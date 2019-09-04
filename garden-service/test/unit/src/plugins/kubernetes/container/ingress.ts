@@ -24,12 +24,14 @@ import {
 
 const kubeConfigEnvVar = process.env.KUBECONFIG
 const namespace = "my-namespace"
-const ports = [{
-  name: "http",
-  protocol: <ServicePortProtocol>"http",
-  containerPort: 123,
-  servicePort: 123,
-}]
+const ports = [
+  {
+    name: "http",
+    protocol: <ServicePortProtocol>"http",
+    containerPort: 123,
+    servicePort: 123,
+  },
+]
 
 const basicConfig: KubernetesConfig = {
   name: "kubernetes",
@@ -64,13 +66,15 @@ const basicProvider: KubernetesProvider = {
 const singleTlsConfig: KubernetesConfig = {
   ...basicConfig,
   forceSsl: true,
-  tlsCertificates: [{
-    name: "default",
-    secretRef: {
-      name: "somesecret",
-      namespace: "somenamespace",
+  tlsCertificates: [
+    {
+      name: "default",
+      secretRef: {
+        name: "somesecret",
+        namespace: "somenamespace",
+      },
     },
-  }],
+  ],
 }
 
 const singleTlsProvider: KubernetesProvider = {
@@ -420,36 +424,38 @@ describe("createIngressResources", () => {
     const api = await getKubeApi(basicProvider)
     const ingresses = await createIngressResources(api, basicProvider, namespace, service)
 
-    expect(ingresses).to.eql([{
-      apiVersion: "extensions/v1beta1",
-      kind: "Ingress",
-      metadata: {
-        name: `${service.name}-0`,
-        annotations: {
-          "ingress.kubernetes.io/force-ssl-redirect": "false",
-          "kubernetes.io/ingress.class": "nginx",
-        },
-        namespace,
-      },
-      spec: {
-        rules: [
-          {
-            host: "my.domain.com",
-            http: {
-              paths: [
-                {
-                  path: "/",
-                  backend: {
-                    serviceName: "my-service",
-                    servicePort: 123,
-                  },
-                },
-              ],
-            },
+    expect(ingresses).to.eql([
+      {
+        apiVersion: "extensions/v1beta1",
+        kind: "Ingress",
+        metadata: {
+          name: `${service.name}-0`,
+          annotations: {
+            "ingress.kubernetes.io/force-ssl-redirect": "false",
+            "kubernetes.io/ingress.class": "nginx",
           },
-        ],
+          namespace,
+        },
+        spec: {
+          rules: [
+            {
+              host: "my.domain.com",
+              http: {
+                paths: [
+                  {
+                    path: "/",
+                    backend: {
+                      serviceName: "my-service",
+                      servicePort: 123,
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
       },
-    }])
+    ])
   })
 
   it("should add annotations if configured", async () => {
@@ -462,37 +468,39 @@ describe("createIngressResources", () => {
     const api = await getKubeApi(basicProvider)
     const ingresses = await createIngressResources(api, basicProvider, namespace, service)
 
-    expect(ingresses).to.eql([{
-      apiVersion: "extensions/v1beta1",
-      kind: "Ingress",
-      metadata: {
-        name: `${service.name}-0`,
-        annotations: {
-          "ingress.kubernetes.io/force-ssl-redirect": "false",
-          "kubernetes.io/ingress.class": "nginx",
-          "foo": "bar",
-        },
-        namespace,
-      },
-      spec: {
-        rules: [
-          {
-            host: "my.domain.com",
-            http: {
-              paths: [
-                {
-                  path: "/",
-                  backend: {
-                    serviceName: "my-service",
-                    servicePort: 123,
-                  },
-                },
-              ],
-            },
+    expect(ingresses).to.eql([
+      {
+        apiVersion: "extensions/v1beta1",
+        kind: "Ingress",
+        metadata: {
+          name: `${service.name}-0`,
+          annotations: {
+            "ingress.kubernetes.io/force-ssl-redirect": "false",
+            "kubernetes.io/ingress.class": "nginx",
+            "foo": "bar",
           },
-        ],
+          namespace,
+        },
+        spec: {
+          rules: [
+            {
+              host: "my.domain.com",
+              http: {
+                paths: [
+                  {
+                    path: "/",
+                    backend: {
+                      serviceName: "my-service",
+                      servicePort: 123,
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
       },
-    }])
+    ])
   })
 
   it("should create multiple ingresses if specified", async () => {
@@ -507,7 +515,7 @@ describe("createIngressResources", () => {
         hostname: "bla",
         path: "/foo",
         port: "http",
-      },
+      }
     )
 
     const api = await getKubeApi(basicProvider)
@@ -526,20 +534,22 @@ describe("createIngressResources", () => {
           namespace,
         },
         spec: {
-          rules: [{
-            host: "my.domain.com",
-            http: {
-              paths: [
-                {
-                  path: "/",
-                  backend: {
-                    serviceName: "my-service",
-                    servicePort: 123,
+          rules: [
+            {
+              host: "my.domain.com",
+              http: {
+                paths: [
+                  {
+                    path: "/",
+                    backend: {
+                      serviceName: "my-service",
+                      servicePort: 123,
+                    },
                   },
-                },
-              ],
+                ],
+              },
             },
-          }],
+          ],
         },
       },
       {
@@ -554,82 +564,84 @@ describe("createIngressResources", () => {
           namespace,
         },
         spec: {
-          rules: [{
-            host: "bla",
-            http: {
-              paths: [
-                {
-                  path: "/foo",
-                  backend: {
-                    serviceName: "my-service",
-                    servicePort: 123,
+          rules: [
+            {
+              host: "bla",
+              http: {
+                paths: [
+                  {
+                    path: "/foo",
+                    backend: {
+                      serviceName: "my-service",
+                      servicePort: 123,
+                    },
                   },
-                },
-              ],
+                ],
+              },
             },
-          }],
+          ],
         },
       },
     ])
   })
 
   it("should map a configured TLS certificate to an ingress", async () => {
-    const service = await getTestService(
-      {
-        annotations: {},
-        path: "/",
-        port: "http",
-      },
-    )
+    const service = await getTestService({
+      annotations: {},
+      path: "/",
+      port: "http",
+    })
 
     const api = await getKubeApi(singleTlsProvider)
     const ingresses = await createIngressResources(api, singleTlsProvider, namespace, service)
 
     td.verify(api.upsert("Secret", namespace, myDomainCertSecret))
 
-    expect(ingresses).to.eql([{
-      apiVersion: "extensions/v1beta1",
-      kind: "Ingress",
-      metadata: {
-        name: `${service.name}-0`,
-        annotations: {
-          "ingress.kubernetes.io/force-ssl-redirect": "true",
-          "kubernetes.io/ingress.class": "nginx",
-        },
-        namespace,
-      },
-      spec: {
-        tls: [{
-          secretName: "somesecret",
-        }],
-        rules: [
-          {
-            host: "my.domain.com",
-            http: {
-              paths: [
-                {
-                  path: "/",
-                  backend: {
-                    serviceName: "my-service",
-                    servicePort: 123,
-                  },
-                },
-              ],
-            },
+    expect(ingresses).to.eql([
+      {
+        apiVersion: "extensions/v1beta1",
+        kind: "Ingress",
+        metadata: {
+          name: `${service.name}-0`,
+          annotations: {
+            "ingress.kubernetes.io/force-ssl-redirect": "true",
+            "kubernetes.io/ingress.class": "nginx",
           },
-        ],
+          namespace,
+        },
+        spec: {
+          tls: [
+            {
+              secretName: "somesecret",
+            },
+          ],
+          rules: [
+            {
+              host: "my.domain.com",
+              http: {
+                paths: [
+                  {
+                    path: "/",
+                    backend: {
+                      serviceName: "my-service",
+                      servicePort: 123,
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
       },
-    }])
+    ])
   })
 
   it("should throw if a configured certificate doesn't exist", async () => {
-    const service = await getTestService(
-      {
-        annotations: {},
-        path: "/",
-        port: "http",
-      },
-    )
+    const service = await getTestService({
+      annotations: {},
+      path: "/",
+      port: "http",
+    })
 
     const api = await getKubeApi(basicProvider)
 
@@ -637,10 +649,12 @@ describe("createIngressResources", () => {
       name: "kubernetes",
       config: {
         ...basicConfig,
-        tlsCertificates: [{
-          name: "foo",
-          secretRef: { name: "foo", namespace: "default" },
-        }],
+        tlsCertificates: [
+          {
+            name: "foo",
+            secretRef: { name: "foo", namespace: "default" },
+          },
+        ],
       },
       dependencies: [],
       moduleConfigs: [],
@@ -655,22 +669,22 @@ describe("createIngressResources", () => {
   })
 
   it("should throw if a secret for a configured certificate doesn't contain a certificate", async () => {
-    const service = await getTestService(
-      {
-        annotations: {},
-        path: "/",
-        port: "http",
-      },
-    )
+    const service = await getTestService({
+      annotations: {},
+      path: "/",
+      port: "http",
+    })
 
     const provider = {
       name: "kubernetes",
       config: {
         ...basicConfig,
-        tlsCertificates: [{
-          name: "foo",
-          secretRef: { name: "foo", namespace: "default" },
-        }],
+        tlsCertificates: [
+          {
+            name: "foo",
+            secretRef: { name: "foo", namespace: "default" },
+          },
+        ],
       },
       dependencies: [],
       moduleConfigs: [],
@@ -687,22 +701,22 @@ describe("createIngressResources", () => {
   })
 
   it("should throw if a secret for a configured certificate contains an invalid certificate", async () => {
-    const service = await getTestService(
-      {
-        annotations: {},
-        path: "/",
-        port: "http",
-      },
-    )
+    const service = await getTestService({
+      annotations: {},
+      path: "/",
+      port: "http",
+    })
 
     const provider = {
       name: "kubernetes",
       config: {
         ...basicConfig,
-        tlsCertificates: [{
-          name: "foo",
-          secretRef: { name: "foo", namespace: "default" },
-        }],
+        tlsCertificates: [
+          {
+            name: "foo",
+            secretRef: { name: "foo", namespace: "default" },
+          },
+        ],
       },
       dependencies: [],
       moduleConfigs: [],
@@ -723,64 +737,64 @@ describe("createIngressResources", () => {
   })
 
   it("should correctly match an ingress to a wildcard certificate", async () => {
-    const service = await getTestService(
-      {
-        annotations: {},
-        hostname: "something.wildcarddomain.com",
-        path: "/",
-        port: "http",
-      },
-    )
+    const service = await getTestService({
+      annotations: {},
+      hostname: "something.wildcarddomain.com",
+      path: "/",
+      port: "http",
+    })
 
     const api = await getKubeApi(multiTlsProvider)
     const ingresses = await createIngressResources(api, multiTlsProvider, namespace, service)
 
     td.verify(api.upsert("Secret", namespace, wildcardDomainCertSecret))
 
-    expect(ingresses).to.eql([{
-      apiVersion: "extensions/v1beta1",
-      kind: "Ingress",
-      metadata: {
-        name: `${service.name}-0`,
-        annotations: {
-          "ingress.kubernetes.io/force-ssl-redirect": "true",
-          "kubernetes.io/ingress.class": "nginx",
-        },
-        namespace,
-      },
-      spec: {
-        tls: [{
-          secretName: "wildcardsecret",
-        }],
-        rules: [
-          {
-            host: "something.wildcarddomain.com",
-            http: {
-              paths: [
-                {
-                  path: "/",
-                  backend: {
-                    serviceName: "my-service",
-                    servicePort: 123,
-                  },
-                },
-              ],
-            },
+    expect(ingresses).to.eql([
+      {
+        apiVersion: "extensions/v1beta1",
+        kind: "Ingress",
+        metadata: {
+          name: `${service.name}-0`,
+          annotations: {
+            "ingress.kubernetes.io/force-ssl-redirect": "true",
+            "kubernetes.io/ingress.class": "nginx",
           },
-        ],
+          namespace,
+        },
+        spec: {
+          tls: [
+            {
+              secretName: "wildcardsecret",
+            },
+          ],
+          rules: [
+            {
+              host: "something.wildcarddomain.com",
+              http: {
+                paths: [
+                  {
+                    path: "/",
+                    backend: {
+                      serviceName: "my-service",
+                      servicePort: 123,
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
       },
-    }])
+    ])
   })
 
   it("should use configured hostnames for a certificate when specified", async () => {
-    const service = await getTestService(
-      {
-        annotations: {},
-        hostname: "madeup.domain.com",
-        path: "/",
-        port: "http",
-      },
-    )
+    const service = await getTestService({
+      annotations: {},
+      hostname: "madeup.domain.com",
+      path: "/",
+      port: "http",
+    })
 
     const api = await getKubeApi(basicProvider)
 
@@ -788,11 +802,13 @@ describe("createIngressResources", () => {
       name: "kubernetes",
       config: {
         ...basicConfig,
-        tlsCertificates: [{
-          name: "madeup",
-          hostnames: ["madeup.domain.com"],
-          secretRef: { name: "somesecret", namespace: "somenamespace" },
-        }],
+        tlsCertificates: [
+          {
+            name: "madeup",
+            hostnames: ["madeup.domain.com"],
+            secretRef: { name: "somesecret", namespace: "somenamespace" },
+          },
+        ],
       },
       dependencies: [],
       moduleConfigs: [],
@@ -804,38 +820,42 @@ describe("createIngressResources", () => {
 
     td.verify(api.upsert("Secret", namespace, myDomainCertSecret))
 
-    expect(ingresses).to.eql([{
-      apiVersion: "extensions/v1beta1",
-      kind: "Ingress",
-      metadata: {
-        name: `${service.name}-0`,
-        annotations: {
-          "ingress.kubernetes.io/force-ssl-redirect": "true",
-          "kubernetes.io/ingress.class": "nginx",
-        },
-        namespace,
-      },
-      spec: {
-        tls: [{
-          secretName: "somesecret",
-        }],
-        rules: [
-          {
-            host: "madeup.domain.com",
-            http: {
-              paths: [
-                {
-                  path: "/",
-                  backend: {
-                    serviceName: "my-service",
-                    servicePort: 123,
-                  },
-                },
-              ],
-            },
+    expect(ingresses).to.eql([
+      {
+        apiVersion: "extensions/v1beta1",
+        kind: "Ingress",
+        metadata: {
+          name: `${service.name}-0`,
+          annotations: {
+            "ingress.kubernetes.io/force-ssl-redirect": "true",
+            "kubernetes.io/ingress.class": "nginx",
           },
-        ],
+          namespace,
+        },
+        spec: {
+          tls: [
+            {
+              secretName: "somesecret",
+            },
+          ],
+          rules: [
+            {
+              host: "madeup.domain.com",
+              http: {
+                paths: [
+                  {
+                    path: "/",
+                    backend: {
+                      serviceName: "my-service",
+                      servicePort: 123,
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
       },
-    }])
+    ])
   })
 })

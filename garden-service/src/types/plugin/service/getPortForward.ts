@@ -12,9 +12,11 @@ import { Module } from "../../module"
 import { ForwardablePort, forwardablePortKeys } from "../../service"
 import { joi } from "../../../config/common"
 
-export type GetPortForwardParams<M extends Module = Module, S extends Module = Module> =
-  PluginServiceActionParamsBase<M, S>
-  & ForwardablePort
+export type GetPortForwardParams<M extends Module = Module, S extends Module = Module> = PluginServiceActionParamsBase<
+  M,
+  S
+> &
+  ForwardablePort
 
 export interface GetPortForwardResult {
   hostname: string
@@ -32,17 +34,17 @@ export const getPortForward = {
 
     If there is a corresponding \`stopPortForward\` handler, it is called when cleaning up.
   `,
-  paramsSchema: serviceActionParamsSchema
-    .keys(forwardablePortKeys),
-  resultSchema: joi.object()
-    .keys({
-      hostname: joi.string()
-        .hostname()
-        .description("The hostname of the port tunnel.")
-        .example("localhost"),
-      port: joi.number()
-        .integer()
-        .description("The port of the tunnel.")
-        .example(12345),
-    }),
+  paramsSchema: serviceActionParamsSchema.keys(forwardablePortKeys),
+  resultSchema: joi.object().keys({
+    hostname: joi
+      .string()
+      .hostname()
+      .description("The hostname of the port tunnel.")
+      .example("localhost"),
+    port: joi
+      .number()
+      .integer()
+      .description("The port of the tunnel.")
+      .example(12345),
+  }),
 }

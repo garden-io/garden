@@ -15,10 +15,10 @@ import dedent = require("dedent")
 import { TaskMetadata } from "../../../../src/logger/log-entry"
 import logSymbols = require("log-symbols")
 
-const logger = getLogger()
+const logger: any = getLogger()
 
 beforeEach(() => {
-  (<any>logger).children = []
+  logger.children = []
 })
 
 describe("renderers", () => {
@@ -49,12 +49,15 @@ describe("renderers", () => {
       const entry = logger.info({ msg: "hello error", status: "error" })
       expect(renderMsg(entry)).to.equal(errorStyle("hello error"))
     })
-    it("should join an array of messages with an arrow symbol and render with the error style" +
-      " if the entry has error status", () => {
+    it(
+      "should join an array of messages with an arrow symbol and render with the error style" +
+        " if the entry has error status",
+      () => {
         const entry = logger.info({ msg: "error a", status: "error" })
         entry.setState({ msg: "error b", append: true })
         expect(renderMsg(entry)).to.equal(errorStyle("error a") + errorStyle(" → ") + errorStyle("error b"))
-      })
+      }
+    )
     describe("renderError", () => {
       it("should render error object if present", () => {
         const error: GardenError = {
@@ -88,14 +91,8 @@ describe("renderers", () => {
         [{ msg: "1", append: true }, { msg: "2", append: false }, { msg: "3", append: true }],
         [{ msg: "1", append: false }, { msg: "2", append: false }, { msg: "3", append: true }],
         [{ msg: "1", append: false }, { msg: "2", append: false }, { msg: "3", append: false }],
-      ].map(msgStates => msgStates.map(msgState => ({ ...msgState, timestamp })))
-      const expects = [
-        ["1", "2", "3"],
-        ["1", "2", "3"],
-        ["2", "3"],
-        ["2", "3"],
-        ["3"],
-      ]
+      ].map((msgStates) => msgStates.map((msgState) => ({ ...msgState, timestamp })))
+      const expects = [["1", "2", "3"], ["1", "2", "3"], ["2", "3"], ["2", "3"], ["3"]]
       messageStateTable.forEach((msgState, index) => {
         expect(chainMessages(msgState)).to.eql(expects[index])
       })

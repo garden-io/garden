@@ -60,11 +60,14 @@ async function run() {
   }
 
   const mochaBinPath = resolve(GARDEN_SERVICE_ROOT, "node_modules/.bin/mocha")
-  await execa(mochaBinPath, mochaOpts, { cwd: GARDEN_SERVICE_ROOT, stdio: "inherit" })
+  await execa(mochaBinPath, mochaOpts, {
+    cwd: GARDEN_SERVICE_ROOT,
+    stdio: "inherit",
+  })
   console.log("Done.")
 }
 
-(async () => {
+const start = async () => {
   try {
     await run()
     process.exit(0)
@@ -72,4 +75,6 @@ async function run() {
     console.log(err)
     process.exit(1)
   }
-})().catch(() => { })
+}
+
+start().catch(() => {})

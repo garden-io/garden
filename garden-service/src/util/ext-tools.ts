@@ -38,7 +38,7 @@ export interface LibraryPlatformSpec {
   // Optionally specify sha256 checksum for validation.
   sha256?: string
   // If the URL contains an archive, provide extraction instructions.
-  extract?: LibraryExtractSpec,
+  extract?: LibraryExtractSpec
 }
 
 // TODO: support different architectures? (the Garden class currently errors on non-x64 archs, and many tools may
@@ -75,10 +75,10 @@ export class Library {
     const platformSpec = spec.specs[currentPlatform]
 
     if (!platformSpec) {
-      throw new ConfigurationError(
-        `Command ${spec.name} doesn't have a spec for this platform (${currentPlatform})`,
-        { spec, currentPlatform },
-      )
+      throw new ConfigurationError(`Command ${spec.name} doesn't have a spec for this platform (${currentPlatform})`, {
+        spec,
+        currentPlatform,
+      })
     }
 
     this.lock = new AsyncLock()
@@ -89,9 +89,7 @@ export class Library {
     this.versionDirname = hashString(this.spec.url, 16)
     this.versionPath = join(this.toolPath, this.versionDirname)
 
-    this.targetSubpath = this.spec.extract
-      ? this.spec.extract.targetPath
-      : [basename(this.spec.url)]
+    this.targetSubpath = this.spec.extract ? this.spec.extract.targetPath : [basename(this.spec.url)]
   }
 
   async getPath(log: LogEntry) {
@@ -108,7 +106,10 @@ export class Library {
       const tmpPath = join(this.toolPath, this.versionDirname + "." + uuid.v4().substr(0, 8))
       const targetAbsPath = join(tmpPath, ...this.targetSubpath)
 
-      const logEntry = log.info({ symbol: "info", msg: `Fetching ${this.name}...` })
+      const logEntry = log.info({
+        symbol: "info",
+        msg: `Fetching ${this.name}...`,
+      })
       const debug = logEntry.debug(`Downloading ${this.spec.url}...`)
 
       await ensureDir(tmpPath)
@@ -119,12 +120,11 @@ export class Library {
         if (this.spec.extract && !(await pathExists(targetAbsPath))) {
           throw new ConfigurationError(
             `Archive ${this.spec.url} does not contain a file or directory at ${this.targetSubpath.join(sep)}`,
-            { name: this.name, spec: this.spec },
+            { name: this.name, spec: this.spec }
           )
         }
 
         await move(tmpPath, this.versionPath, { overwrite: true })
-
       } finally {
         // make sure tmp path is cleared after errors
         if (await pathExists(tmpPath)) {
@@ -165,10 +165,13 @@ export class Library {
         }
 
         if (this.spec.sha256 && sha256 !== this.spec.sha256) {
-          reject(new DownloadError(
-            `Invalid checksum from ${this.spec.url} (got ${sha256})`,
-            { name: this.name, spec: this.spec, sha256 },
-          ))
+          reject(
+            new DownloadError(`Invalid checksum from ${this.spec.url} (got ${sha256})`, {
+              name: this.name,
+              spec: this.spec,
+              sha256,
+            })
+          )
         }
       })
 
@@ -184,14 +187,19 @@ export class Library {
           extractor = tar.x({
             C: tmpPath,
             strict: true,
-            onwarn: entry => console.log(entry),
+            onwarn: (entry) => console.log(entry),
           })
           extractor.on("end", () => resolve())
         } else if (format === "zip") {
           extractor = Extract({ path: tmpPath })
           extractor.on("close", () => resolve())
         } else {
-          reject(new ParameterError(`Invalid archive format: ${format}`, { name: this.name, spec: this.spec }))
+          reject(
+            new ParameterError(`Invalid archive format: ${format}`, {
+              name: this.name,
+              spec: this.spec,
+            })
+          )
           return
         }
 
@@ -276,7 +284,6 @@ export class BinaryCmd extends Library {
       outputStream,
       reject: !ignoreError,
     })
-
   }
 
   async stdout(params: ExecParams) {

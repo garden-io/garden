@@ -1,4 +1,3 @@
-
 import {
   ModuleAndRuntimeActionHandlers,
   PluginActionHandlers,
@@ -47,14 +46,8 @@ describe("ActionRouter", () => {
     path: projectRootA,
     defaultEnvironment: "default",
     dotIgnoreFiles: defaultDotIgnoreFiles,
-    environments: [
-      { name: "default", variables: {} },
-    ],
-    providers: [
-      { name: "base" },
-      { name: "test-plugin" },
-      { name: "test-plugin-b" },
-    ],
+    environments: [{ name: "default", variables: {} }],
+    providers: [{ name: "base" }, { name: "test-plugin" }, { name: "test-plugin-b" }],
     variables: {},
   }
 
@@ -297,9 +290,10 @@ describe("ActionRouter", () => {
 
         await expectError(
           () => actions.getServiceStatus({ log, service, runtimeContext, hotReload: false }),
-          (err) => expect(stripAnsi(err.message)).to.equal(
-            "Error validating outputs from service 'service-a': key .foo must be a string",
-          ),
+          (err) =>
+            expect(stripAnsi(err.message)).to.equal(
+              "Error validating outputs from service 'service-a': key .foo must be a string"
+            )
         )
       })
 
@@ -310,9 +304,10 @@ describe("ActionRouter", () => {
 
         await expectError(
           () => actions.getServiceStatus({ log, service, runtimeContext, hotReload: false }),
-          (err) => expect(stripAnsi(err.message)).to.equal(
-            "Error validating outputs from service 'service-a': key .base must be a string",
-          ),
+          (err) =>
+            expect(stripAnsi(err.message)).to.equal(
+              "Error validating outputs from service 'service-a': key .base must be a string"
+            )
         )
       })
     })
@@ -330,9 +325,10 @@ describe("ActionRouter", () => {
 
         await expectError(
           () => actions.deployService({ log, service, runtimeContext, force: true, hotReload: false }),
-          (err) => expect(stripAnsi(err.message)).to.equal(
-            "Error validating outputs from service 'service-a': key .foo must be a string",
-          ),
+          (err) =>
+            expect(stripAnsi(err.message)).to.equal(
+              "Error validating outputs from service 'service-a': key .foo must be a string"
+            )
         )
       })
 
@@ -343,9 +339,10 @@ describe("ActionRouter", () => {
 
         await expectError(
           () => actions.deployService({ log, service, runtimeContext, force: true, hotReload: false }),
-          (err) => expect(stripAnsi(err.message)).to.equal(
-            "Error validating outputs from service 'service-a': key .base must be a string",
-          ),
+          (err) =>
+            expect(stripAnsi(err.message)).to.equal(
+              "Error validating outputs from service 'service-a': key .base must be a string"
+            )
         )
       })
     })
@@ -439,9 +436,10 @@ describe("ActionRouter", () => {
 
         await expectError(
           () => actions.getTaskResult({ log, task, taskVersion: task.module.version }),
-          (err) => expect(stripAnsi(err.message)).to.equal(
-            "Error validating outputs from task 'task-a': key .foo must be a string",
-          ),
+          (err) =>
+            expect(stripAnsi(err.message)).to.equal(
+              "Error validating outputs from task 'task-a': key .foo must be a string"
+            )
         )
       })
 
@@ -452,9 +450,10 @@ describe("ActionRouter", () => {
 
         await expectError(
           () => actions.getTaskResult({ log, task, taskVersion: task.module.version }),
-          (err) => expect(stripAnsi(err.message)).to.equal(
-            "Error validating outputs from task 'task-a': key .base must be a string",
-          ),
+          (err) =>
+            expect(stripAnsi(err.message)).to.equal(
+              "Error validating outputs from task 'task-a': key .base must be a string"
+            )
         )
       })
     })
@@ -480,19 +479,21 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actions.runTask({
-            log,
-            task,
-            interactive: true,
-            runtimeContext: {
-              envVars: { FOO: "bar" },
-              dependencies: [],
-            },
-            taskVersion: task.module.version,
-          }),
-          (err) => expect(stripAnsi(err.message)).to.equal(
-            "Error validating outputs from task 'task-a': key .foo must be a string",
-          ),
+          () =>
+            actions.runTask({
+              log,
+              task,
+              interactive: true,
+              runtimeContext: {
+                envVars: { FOO: "bar" },
+                dependencies: [],
+              },
+              taskVersion: task.module.version,
+            }),
+          (err) =>
+            expect(stripAnsi(err.message)).to.equal(
+              "Error validating outputs from task 'task-a': key .foo must be a string"
+            )
         )
       })
 
@@ -502,19 +503,21 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actions.runTask({
-            log,
-            task,
-            interactive: true,
-            runtimeContext: {
-              envVars: { FOO: "bar" },
-              dependencies: [],
-            },
-            taskVersion: task.module.version,
-          }),
-          (err) => expect(stripAnsi(err.message)).to.equal(
-            "Error validating outputs from task 'task-a': key .base must be a string",
-          ),
+          () =>
+            actions.runTask({
+              log,
+              task,
+              interactive: true,
+              runtimeContext: {
+                envVars: { FOO: "bar" },
+                dependencies: [],
+              },
+              taskVersion: task.module.version,
+            }),
+          (err) =>
+            expect(stripAnsi(err.message)).to.equal(
+              "Error validating outputs from task 'task-a': key .base must be a string"
+            )
         )
       })
     })
@@ -524,10 +527,7 @@ describe("ActionRouter", () => {
     it("should return all handlers for a type", async () => {
       const handlers = await actions["getActionHandlers"]("prepareEnvironment")
 
-      expect(Object.keys(handlers)).to.eql([
-        "test-plugin",
-        "test-plugin-b",
-      ])
+      expect(Object.keys(handlers)).to.eql(["test-plugin", "test-plugin-b"])
     })
   })
 
@@ -535,9 +535,7 @@ describe("ActionRouter", () => {
     it("should return all handlers for a type", async () => {
       const handlers = await actions["getModuleActionHandlers"]({ actionType: "build", moduleType: "exec" })
 
-      expect(Object.keys(handlers)).to.eql([
-        "exec",
-      ])
+      expect(Object.keys(handlers)).to.eql(["exec"])
     })
   })
 
@@ -584,7 +582,7 @@ describe("ActionRouter", () => {
       const actionsA = await gardenA.getActionRouter()
       await expectError(
         () => actionsA["getModuleActionHandler"]({ actionType: "execInService", moduleType: "container" }),
-        "parameter",
+        "parameter"
       )
     })
 
@@ -613,12 +611,8 @@ describe("ActionRouter", () => {
             path,
             defaultEnvironment: "default",
             dotIgnoreFiles: [],
-            environments: [
-              { name: "default", variables: {} },
-            ],
-            providers: [
-              { name: "foo" },
-            ],
+            environments: [{ name: "default", variables: {} }],
+            providers: [{ name: "foo" }],
             variables: {},
           },
         })
@@ -670,13 +664,8 @@ describe("ActionRouter", () => {
             path,
             defaultEnvironment: "default",
             dotIgnoreFiles: [],
-            environments: [
-              { name: "default", variables: {} },
-            ],
-            providers: [
-              { name: "base" },
-              { name: "foo" },
-            ],
+            environments: [{ name: "default", variables: {} }],
+            providers: [{ name: "base" }, { name: "foo" }],
             variables: {},
           },
         })
@@ -740,9 +729,7 @@ describe("ActionRouter", () => {
             path,
             defaultEnvironment: "default",
             dotIgnoreFiles: [],
-            environments: [
-              { name: "default", variables: {} },
-            ],
+            environments: [{ name: "default", variables: {} }],
             providers: [
               { name: "base" },
               // The order here matters, to verify that the dependency ordering works
@@ -811,9 +798,7 @@ describe("ActionRouter", () => {
               path,
               defaultEnvironment: "default",
               dotIgnoreFiles: [],
-              environments: [
-                { name: "default", variables: {} },
-              ],
+              environments: [{ name: "default", variables: {} }],
               providers: [
                 { name: "base" },
                 // The order here matters, since we use that as a "tie-breaker"
@@ -870,13 +855,8 @@ describe("ActionRouter", () => {
             path,
             defaultEnvironment: "default",
             dotIgnoreFiles: [],
-            environments: [
-              { name: "default", variables: {} },
-            ],
-            providers: [
-              { name: "base" },
-              { name: "foo" },
-            ],
+            environments: [{ name: "default", variables: {} }],
+            providers: [{ name: "base" }, { name: "foo" }],
             variables: {},
           },
         })
@@ -899,13 +879,8 @@ describe("ActionRouter", () => {
         path,
         defaultEnvironment: "default",
         dotIgnoreFiles: [],
-        environments: [
-          { name: "default", variables: {} },
-        ],
-        providers: [
-          { name: "base" },
-          { name: "foo" },
-        ],
+        environments: [{ name: "default", variables: {} }],
+        providers: [{ name: "base" }, { name: "foo" }],
         variables: {},
       }
 
@@ -1046,14 +1021,8 @@ describe("ActionRouter", () => {
             path,
             defaultEnvironment: "default",
             dotIgnoreFiles: [],
-            environments: [
-              { name: "default", variables: {} },
-            ],
-            providers: [
-              { name: "base-a" },
-              { name: "base-b" },
-              { name: "foo" },
-            ],
+            environments: [{ name: "default", variables: {} }],
+            providers: [{ name: "base-a" }, { name: "base-b" }, { name: "foo" }],
             variables: {},
           },
         })
@@ -1079,7 +1048,7 @@ describe("ActionRouter", () => {
           ready: true,
           outputs: {},
         }),
-        { actionType: "getEnvironmentStatus", pluginName: "base" },
+        { actionType: "getEnvironmentStatus", pluginName: "base" }
       )
 
       const handler: ActionHandler<any, any> = async (params) => {
@@ -1091,7 +1060,7 @@ describe("ActionRouter", () => {
       handler.base = base
 
       await emptyActions["callActionHandler"]({
-        actionType: "getEnvironmentStatus",  // Doesn't matter which one it is
+        actionType: "getEnvironmentStatus", // Doesn't matter which one it is
         pluginName: "test-plugin",
         params: {
           log,
@@ -1144,12 +1113,8 @@ describe("ActionRouter", () => {
           path,
           defaultEnvironment: "default",
           dotIgnoreFiles: [],
-          environments: [
-            { name: "default", variables: {} },
-          ],
-          providers: [
-            { name: "foo" },
-          ],
+          environments: [{ name: "default", variables: {} }],
+          providers: [{ name: "foo" }],
           variables: {},
         },
       })
@@ -1157,7 +1122,7 @@ describe("ActionRouter", () => {
       const _actions = await _garden.getActionRouter()
 
       const result = await _actions["callActionHandler"]({
-        actionType: "getSecret",  // Doesn't matter which one it is
+        actionType: "getSecret", // Doesn't matter which one it is
         pluginName: "foo",
         params: {
           key: "foo",
@@ -1187,7 +1152,7 @@ describe("ActionRouter", () => {
           ready: true,
           outputs: {},
         }),
-        { actionType: "getBuildStatus", pluginName: "base", moduleType: "test" },
+        { actionType: "getBuildStatus", pluginName: "base", moduleType: "test" }
       )
 
       const handler: ModuleActionHandler<any, any> = async (params) => {
@@ -1198,7 +1163,7 @@ describe("ActionRouter", () => {
       handler.base = base
 
       await emptyActions["callModuleHandler"]({
-        actionType: "getBuildStatus",  // Doesn't matter which one it is
+        actionType: "getBuildStatus", // Doesn't matter which one it is
         params: {
           module: moduleA,
           log,
@@ -1227,7 +1192,7 @@ describe("ActionRouter", () => {
           state: <ServiceState>"ready",
           detail: {},
         }),
-        { actionType: "deployService", pluginName: "base", moduleType: "test" },
+        { actionType: "deployService", pluginName: "base", moduleType: "test" }
       )
 
       const handler: ModuleActionHandler<any, any> = async (params) => {
@@ -1238,7 +1203,7 @@ describe("ActionRouter", () => {
       handler.base = base
 
       await emptyActions["callServiceHandler"]({
-        actionType: "deployService",  // Doesn't matter which one it is
+        actionType: "deployService", // Doesn't matter which one it is
         params: {
           service: serviceA,
           runtimeContext,
@@ -1259,7 +1224,7 @@ describe("ActionRouter", () => {
         },
       })
 
-      garden["moduleConfigs"]["module-a"].spec.foo = "\${runtime.services.service-b.outputs.foo}"
+      garden["moduleConfigs"]["module-a"].spec.foo = "${runtime.services.service-b.outputs.foo}"
 
       const graph = await garden.getConfigGraph()
       const serviceA = await graph.getService("service-a")
@@ -1286,7 +1251,7 @@ describe("ActionRouter", () => {
       })
 
       await emptyActions["callServiceHandler"]({
-        actionType: "deployService",  // Doesn't matter which one it is
+        actionType: "deployService", // Doesn't matter which one it is
         params: {
           service: serviceA,
           runtimeContext: _runtimeContext,
@@ -1311,7 +1276,7 @@ describe("ActionRouter", () => {
         },
       })
 
-      garden["moduleConfigs"]["module-a"].spec.services[0].foo = "\${runtime.services.service-b.outputs.foo}"
+      garden["moduleConfigs"]["module-a"].spec.services[0].foo = "${runtime.services.service-b.outputs.foo}"
 
       const graph = await garden.getConfigGraph()
       const serviceA = await graph.getService("service-a")
@@ -1331,23 +1296,25 @@ describe("ActionRouter", () => {
       })
 
       await expectError(
-        () => emptyActions["callServiceHandler"]({
-          actionType: "deployService",  // Doesn't matter which one it is
-          params: {
-            service: serviceA,
-            runtimeContext: _runtimeContext,
-            log,
-            hotReload: false,
-            force: false,
-          },
-          defaultHandler: async () => {
-            return {} as any
-          },
-        }),
-        (err) => expect(err.message).to.equal(
-          "Unable to resolve one or more runtime template values for service 'service-a': " +
-          "\${runtime.services.service-b.outputs.foo}",
-        ),
+        () =>
+          emptyActions["callServiceHandler"]({
+            actionType: "deployService", // Doesn't matter which one it is
+            params: {
+              service: serviceA,
+              runtimeContext: _runtimeContext,
+              log,
+              hotReload: false,
+              force: false,
+            },
+            defaultHandler: async () => {
+              return {} as any
+            },
+          }),
+        (err) =>
+          expect(err.message).to.equal(
+            "Unable to resolve one or more runtime template values for service 'service-a': " +
+              "${runtime.services.service-b.outputs.foo}"
+          )
       )
     })
   })
@@ -1377,7 +1344,7 @@ describe("ActionRouter", () => {
           completedAt: new Date(),
           log: "boo",
         }),
-        { actionType: "runTask", pluginName: "base", moduleType: "test" },
+        { actionType: "runTask", pluginName: "base", moduleType: "test" }
       )
 
       const handler: ModuleActionHandler<any, any> = async (params) => {
@@ -1419,7 +1386,7 @@ describe("ActionRouter", () => {
         },
       })
 
-      garden["moduleConfigs"]["module-a"].spec.tasks[0].foo = "\${runtime.services.service-b.outputs.foo}"
+      garden["moduleConfigs"]["module-a"].spec.tasks[0].foo = "${runtime.services.service-b.outputs.foo}"
 
       const graph = await garden.getConfigGraph()
       const taskA = await graph.getTask("task-a")
@@ -1481,7 +1448,7 @@ describe("ActionRouter", () => {
         },
       })
 
-      garden["moduleConfigs"]["module-a"].spec.tasks[0].foo = "\${runtime.services.service-b.outputs.foo}"
+      garden["moduleConfigs"]["module-a"].spec.tasks[0].foo = "${runtime.services.service-b.outputs.foo}"
 
       const graph = await garden.getConfigGraph()
       const taskA = await graph.getTask("task-a")
@@ -1502,23 +1469,25 @@ describe("ActionRouter", () => {
       })
 
       await expectError(
-        () => emptyActions["callTaskHandler"]({
-          actionType: "runTask",
-          params: {
-            task: taskA,
-            runtimeContext: _runtimeContext,
-            log,
-            taskVersion: task.module.version,
-            interactive: false,
-          },
-          defaultHandler: async () => {
-            return {} as any
-          },
-        }),
-        (err) => expect(err.message).to.equal(
-          "Unable to resolve one or more runtime template values for task 'task-a': " +
-          "\${runtime.services.service-b.outputs.foo}",
-        ),
+        () =>
+          emptyActions["callTaskHandler"]({
+            actionType: "runTask",
+            params: {
+              task: taskA,
+              runtimeContext: _runtimeContext,
+              log,
+              taskVersion: task.module.version,
+              interactive: false,
+            },
+            defaultHandler: async () => {
+              return {} as any
+            },
+          }),
+        (err) =>
+          expect(err.message).to.equal(
+            "Unable to resolve one or more runtime template values for task 'task-a': " +
+              "${runtime.services.service-b.outputs.foo}"
+          )
       )
     })
   })
@@ -1529,14 +1498,16 @@ const testOutputSchema = baseOutputsSchema.keys({ foo: joi.string() })
 
 const basePlugin = createGardenPlugin({
   name: "base",
-  createModuleTypes: [{
-    name: "base",
-    docs: "bla bla bla",
-    moduleOutputsSchema: baseOutputsSchema,
-    serviceOutputsSchema: baseOutputsSchema,
-    taskOutputsSchema: baseOutputsSchema,
-    handlers: {},
-  }],
+  createModuleTypes: [
+    {
+      name: "base",
+      docs: "bla bla bla",
+      moduleOutputsSchema: baseOutputsSchema,
+      serviceOutputsSchema: baseOutputsSchema,
+      taskOutputsSchema: baseOutputsSchema,
+      handlers: {},
+    },
+  ],
 })
 
 const testPlugin = createGardenPlugin({
@@ -1578,197 +1549,199 @@ const testPlugin = createGardenPlugin({
     },
   },
 
-  createModuleTypes: [{
-    name: "test",
-    base: "base",
+  createModuleTypes: [
+    {
+      name: "test",
+      base: "base",
 
-    docs: "bla bla bla",
-    moduleOutputsSchema: testOutputSchema,
-    serviceOutputsSchema: testOutputSchema,
-    taskOutputsSchema: testOutputSchema,
-    schema: joi.object(),
-    title: "Bla",
+      docs: "bla bla bla",
+      moduleOutputsSchema: testOutputSchema,
+      serviceOutputsSchema: testOutputSchema,
+      taskOutputsSchema: testOutputSchema,
+      schema: joi.object(),
+      title: "Bla",
 
-    handlers: <ModuleAndRuntimeActionHandlers>{
-      configure: async (params) => {
-        validate(params, moduleActionDescriptions.configure.paramsSchema)
+      handlers: <ModuleAndRuntimeActionHandlers>{
+        configure: async (params) => {
+          validate(params, moduleActionDescriptions.configure.paramsSchema)
 
-        const serviceConfigs = params.moduleConfig.spec.services.map(spec => ({
-          name: spec.name,
-          dependencies: spec.dependencies || [],
-          hotReloadable: false,
-          spec,
-        }))
+          const serviceConfigs = params.moduleConfig.spec.services.map((spec) => ({
+            name: spec.name,
+            dependencies: spec.dependencies || [],
+            hotReloadable: false,
+            spec,
+          }))
 
-        const taskConfigs = (params.moduleConfig.spec.tasks || []).map(spec => ({
-          name: spec.name,
-          dependencies: spec.dependencies || [],
-          spec,
-        }))
+          const taskConfigs = (params.moduleConfig.spec.tasks || []).map((spec) => ({
+            name: spec.name,
+            dependencies: spec.dependencies || [],
+            spec,
+          }))
 
-        return {
-          moduleConfig: {
-            ...params.moduleConfig,
-            serviceConfigs,
-            taskConfigs,
-          },
-        }
-      },
+          return {
+            moduleConfig: {
+              ...params.moduleConfig,
+              serviceConfigs,
+              taskConfigs,
+            },
+          }
+        },
 
-      getBuildStatus: async (params) => {
-        validate(params, moduleActionDescriptions.getBuildStatus.paramsSchema)
-        return { ready: true }
-      },
+        getBuildStatus: async (params) => {
+          validate(params, moduleActionDescriptions.getBuildStatus.paramsSchema)
+          return { ready: true }
+        },
 
-      build: async (params) => {
-        validate(params, moduleActionDescriptions.build.paramsSchema)
-        return {}
-      },
+        build: async (params) => {
+          validate(params, moduleActionDescriptions.build.paramsSchema)
+          return {}
+        },
 
-      publish: async (params) => {
-        validate(params, moduleActionDescriptions.publish.paramsSchema)
-        return { published: true }
-      },
+        publish: async (params) => {
+          validate(params, moduleActionDescriptions.publish.paramsSchema)
+          return { published: true }
+        },
 
-      hotReloadService: async (params) => {
-        validate(params, moduleActionDescriptions.hotReloadService.paramsSchema)
-        return {}
-      },
+        hotReloadService: async (params) => {
+          validate(params, moduleActionDescriptions.hotReloadService.paramsSchema)
+          return {}
+        },
 
-      runModule: async (params) => {
-        validate(params, moduleActionDescriptions.runModule.paramsSchema)
-        return {
-          moduleName: params.module.name,
-          command: params.args,
-          completedAt: now,
-          log: "bla bla",
-          success: true,
-          startedAt: now,
-          version: params.module.version.versionString,
-        }
-      },
-
-      testModule: async (params) => {
-        validate(params, moduleActionDescriptions.testModule.paramsSchema)
-        return {
-          moduleName: params.module.name,
-          command: [],
-          completedAt: now,
-          log: "bla bla",
-          outputs: {
+        runModule: async (params) => {
+          validate(params, moduleActionDescriptions.runModule.paramsSchema)
+          return {
+            moduleName: params.module.name,
+            command: params.args,
+            completedAt: now,
             log: "bla bla",
-          },
-          success: true,
-          startedAt: now,
-          testName: params.testConfig.name,
-          version: params.module.version.versionString,
-        }
-      },
+            success: true,
+            startedAt: now,
+            version: params.module.version.versionString,
+          }
+        },
 
-      getTestResult: async (params) => {
-        validate(params, moduleActionDescriptions.getTestResult.paramsSchema)
-        return {
-          moduleName: params.module.name,
-          command: [],
-          completedAt: now,
-          log: "bla bla",
-          outputs: {
+        testModule: async (params) => {
+          validate(params, moduleActionDescriptions.testModule.paramsSchema)
+          return {
+            moduleName: params.module.name,
+            command: [],
+            completedAt: now,
             log: "bla bla",
-          },
-          success: true,
-          startedAt: now,
-          testName: params.testName,
-          version: params.module.version.versionString,
-        }
-      },
+            outputs: {
+              log: "bla bla",
+            },
+            success: true,
+            startedAt: now,
+            testName: params.testConfig.name,
+            version: params.module.version.versionString,
+          }
+        },
 
-      getServiceStatus: async (params) => {
-        validate(params, moduleActionDescriptions.getServiceStatus.paramsSchema)
-        return { state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } }
-      },
+        getTestResult: async (params) => {
+          validate(params, moduleActionDescriptions.getTestResult.paramsSchema)
+          return {
+            moduleName: params.module.name,
+            command: [],
+            completedAt: now,
+            log: "bla bla",
+            outputs: {
+              log: "bla bla",
+            },
+            success: true,
+            startedAt: now,
+            testName: params.testName,
+            version: params.module.version.versionString,
+          }
+        },
 
-      deployService: async (params) => {
-        validate(params, moduleActionDescriptions.deployService.paramsSchema)
-        return { state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } }
-      },
+        getServiceStatus: async (params) => {
+          validate(params, moduleActionDescriptions.getServiceStatus.paramsSchema)
+          return { state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } }
+        },
 
-      deleteService: async (params) => {
-        validate(params, moduleActionDescriptions.deleteService.paramsSchema)
-        return { state: "ready", detail: {} }
-      },
+        deployService: async (params) => {
+          validate(params, moduleActionDescriptions.deployService.paramsSchema)
+          return { state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } }
+        },
 
-      execInService: async (params) => {
-        validate(params, moduleActionDescriptions.execInService.paramsSchema)
-        return {
-          code: 0,
-          output: "bla bla",
-        }
-      },
+        deleteService: async (params) => {
+          validate(params, moduleActionDescriptions.deleteService.paramsSchema)
+          return { state: "ready", detail: {} }
+        },
 
-      getServiceLogs: async (params) => {
-        validate(params, moduleActionDescriptions.getServiceLogs.paramsSchema)
-        return {}
-      },
+        execInService: async (params) => {
+          validate(params, moduleActionDescriptions.execInService.paramsSchema)
+          return {
+            code: 0,
+            output: "bla bla",
+          }
+        },
 
-      runService: async (params) => {
-        validate(params, moduleActionDescriptions.runService.paramsSchema)
-        return {
-          moduleName: params.module.name,
-          command: ["foo"],
-          completedAt: now,
-          log: "bla bla",
-          success: true,
-          startedAt: now,
-          version: params.module.version.versionString,
-        }
-      },
+        getServiceLogs: async (params) => {
+          validate(params, moduleActionDescriptions.getServiceLogs.paramsSchema)
+          return {}
+        },
 
-      getPortForward: async (params) => {
-        validate(params, moduleActionDescriptions.getPortForward.paramsSchema)
-        return {
-          hostname: "bla",
-          port: 123,
-        }
-      },
+        runService: async (params) => {
+          validate(params, moduleActionDescriptions.runService.paramsSchema)
+          return {
+            moduleName: params.module.name,
+            command: ["foo"],
+            completedAt: now,
+            log: "bla bla",
+            success: true,
+            startedAt: now,
+            version: params.module.version.versionString,
+          }
+        },
 
-      stopPortForward: async (params) => {
-        validate(params, moduleActionDescriptions.stopPortForward.paramsSchema)
-        return {}
-      },
+        getPortForward: async (params) => {
+          validate(params, moduleActionDescriptions.getPortForward.paramsSchema)
+          return {
+            hostname: "bla",
+            port: 123,
+          }
+        },
 
-      getTaskResult: async (params) => {
-        validate(params, moduleActionDescriptions.getTaskResult.paramsSchema)
-        const module = params.task.module
-        return {
-          moduleName: module.name,
-          taskName: params.task.name,
-          command: ["foo"],
-          completedAt: now,
-          log: "bla bla",
-          outputs: { base: "ok", foo: "ok" },
-          success: true,
-          startedAt: now,
-          version: params.module.version.versionString,
-        }
-      },
+        stopPortForward: async (params) => {
+          validate(params, moduleActionDescriptions.stopPortForward.paramsSchema)
+          return {}
+        },
 
-      runTask: async (params) => {
-        validate(params, moduleActionDescriptions.runTask.paramsSchema)
-        const module = params.task.module
-        return {
-          moduleName: module.name,
-          taskName: params.task.name,
-          command: ["foo"],
-          completedAt: now,
-          log: "bla bla",
-          outputs: { base: "ok", foo: "ok" },
-          success: true,
-          startedAt: now,
-          version: params.module.version.versionString,
-        }
+        getTaskResult: async (params) => {
+          validate(params, moduleActionDescriptions.getTaskResult.paramsSchema)
+          const module = params.task.module
+          return {
+            moduleName: module.name,
+            taskName: params.task.name,
+            command: ["foo"],
+            completedAt: now,
+            log: "bla bla",
+            outputs: { base: "ok", foo: "ok" },
+            success: true,
+            startedAt: now,
+            version: params.module.version.versionString,
+          }
+        },
+
+        runTask: async (params) => {
+          validate(params, moduleActionDescriptions.runTask.paramsSchema)
+          const module = params.task.module
+          return {
+            moduleName: module.name,
+            taskName: params.task.name,
+            command: ["foo"],
+            completedAt: now,
+            log: "bla bla",
+            outputs: { base: "ok", foo: "ok" },
+            success: true,
+            startedAt: now,
+            version: params.module.version.versionString,
+          }
+        },
       },
     },
-  }],
+  ],
 })
 
 const testPluginB = createGardenPlugin({

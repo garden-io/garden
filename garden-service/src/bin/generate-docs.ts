@@ -19,14 +19,14 @@ try {
     // level: LogLevel.debug,
     // writers: [new BasicTerminalWriter()],
   })
-} catch (_) { }
+} catch (_) {}
 
 generateDocs(resolve(GARDEN_SERVICE_ROOT, "..", "docs"))
   .then(() => {
     console.log("Done!")
     process.exit(0)
   })
-  .catch(err => {
+  .catch((err) => {
     console.error(err)
     process.exit(1)
   })

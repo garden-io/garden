@@ -33,5 +33,7 @@ export class GetCommand extends Command {
     GetDebugInfoCommand,
   ]
 
-  async action() { return {} }
+  async action() {
+    return {}
+  }
 }

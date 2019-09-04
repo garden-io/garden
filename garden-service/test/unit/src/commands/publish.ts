@@ -30,17 +30,19 @@ const publishModule = async () => {
 
 const testProvider = createGardenPlugin({
   name: "test-plugin",
-  createModuleTypes: [{
-    name: "test",
-    docs: "Test plugin",
-    schema: testModuleSpecSchema,
-    handlers: {
-      configure: configureTestModule,
-      getBuildStatus,
-      build,
-      publish: publishModule,
+  createModuleTypes: [
+    {
+      name: "test",
+      docs: "Test plugin",
+      schema: testModuleSpecSchema,
+      handlers: {
+        configure: configureTestModule,
+        getBuildStatus,
+        build,
+        publish: publishModule,
+      },
     },
-  }],
+  ],
 })
 
 async function getTestGarden() {

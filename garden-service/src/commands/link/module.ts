@@ -11,19 +11,10 @@ import dedent = require("dedent")
 import chalk from "chalk"
 
 import { ParameterError } from "../../exceptions"
-import {
-  Command,
-  CommandResult,
-  StringParameter,
-  PathParameter,
-  CommandParams,
-} from "../base"
+import { Command, CommandResult, StringParameter, PathParameter, CommandParams } from "../base"
 import { LinkedSource } from "../../config-store"
 import { printHeader } from "../../logger/util"
-import {
-  addLinkedSources,
-  hasRemoteSource,
-} from "../../util/ext-source-util"
+import { addLinkedSources, hasRemoteSource } from "../../util/ext-source-util"
 
 const linkModuleArguments = {
   module: new StringParameter({
@@ -68,11 +59,11 @@ export class LinkModuleCommand extends Command<Args> {
 
       throw new ParameterError(
         `Expected module(s) ${chalk.underline(moduleName)} to have a remote source.` +
-        ` Did you mean to use the "link source" command?`,
+          ` Did you mean to use the "link source" command?`,
         {
           modulesWithRemoteSource,
           input: module,
-        },
+        }
       )
     }
 
@@ -86,6 +77,5 @@ export class LinkModuleCommand extends Command<Args> {
     log.info(`Linked module ${moduleName}`)
 
     return { result: linkedModuleSources }
-
   }
 }

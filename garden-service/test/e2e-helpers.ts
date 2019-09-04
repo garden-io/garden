@@ -29,8 +29,7 @@ export async function deleteExampleNamespaces(projectNames?: string[]) {
 
   for (const exampleProjectName of exampleProjectNames) {
     namespacesToDelete.push(exampleProjectName)
-    namespacesToDelete.push(
-      ...existingNamespaces.filter(n => n.startsWith(`${exampleProjectName}--`)))
+    namespacesToDelete.push(...existingNamespaces.filter((n) => n.startsWith(`${exampleProjectName}--`)))
   }
   namespacesToDelete = intersection(namespacesToDelete, existingNamespaces)
 
@@ -50,7 +49,7 @@ export async function deleteSystemMetadataNamespace() {
  */
 export async function getAllNamespacesKubectl() {
   const { stdout } = await execa("kubectl", ["get", "ns", "-o", "name"])
-  const namespaces = stdout.split("\n").map(n => n.replace("namespace/", ""))
+  const namespaces = stdout.split("\n").map((n) => n.replace("namespace/", ""))
   return namespaces
 }
 
@@ -83,14 +82,14 @@ export function parseLogEntries(entries: string[]): JsonLogEntry[] {
 }
 
 export function stringifyLogEntries(entries: JsonLogEntry[]) {
-  return entries.map(e => `${e.section ? padEnd(e.section, 16) + " -> " : ""}${e.msg}`).join("\n")
+  return entries.map((e) => `${e.section ? padEnd(e.section, 16) + " -> " : ""}${e.msg}`).join("\n")
 }
 
 /**
  * For use with the GardenWatch class.
  */
 export function searchLog(entries: JsonLogEntry[], regex: RegExp): WatchTestConditionState {
-  const found = !!entries.find(e => !!e.msg && !!e.msg.match(regex))
+  const found = !!entries.find((e) => !!e.msg && !!e.msg.match(regex))
   return found ? "passed" : "waiting"
 }
 
@@ -98,10 +97,10 @@ export function searchLog(entries: JsonLogEntry[], regex: RegExp): WatchTestCond
  * Indices of the log entries in a JsonLogEntry[] that correspond to a given task starting, completing or erroring.
  */
 export type TaskLogEntryResult = {
-  startedIndex: number | null,
-  completedIndex: number | null,
-  errorIndex: number | null,
-  executionTimeMs?: number,
+  startedIndex: number | null
+  completedIndex: number | null
+  errorIndex: number | null
+  executionTimeMs?: number
 }
 
 /**
@@ -114,25 +113,23 @@ export type TaskLogEntryResult = {
  * instance).
  */
 export function findTasks(entries: JsonLogEntry[], key: string, status?: TaskLogStatus): TaskLogEntryResult[] {
-
   const matching: FilteredTasks = filterTasks(entries, key, status)
 
   const taskIds: string[] = [] // List of task ids, ordered by their first appearance in the log.
 
   for (const match of matching) {
     const taskId = match.entry.metadata!.task!.uid
-    if (!taskIds.find(id => id === taskId)) {
+    if (!taskIds.find((id) => id === taskId)) {
       taskIds.push(taskId)
     }
   }
 
   return taskIds.map((taskId) => {
+    const matchesForKey = matching.filter((m) => m.entry.metadata!.task!.uid === taskId)
 
-    const matchesForKey = matching.filter(m => m.entry.metadata!.task!.uid === taskId)
-
-    const startedMatch = matchesForKey.find(m => m.entry.metadata!.task!.status === "active")
-    const errorMatch = matchesForKey.find(m => m.entry.metadata!.task!.status === "error")
-    const completedMatch = matchesForKey.find(m => m.entry.metadata!.task!.status === "success")
+    const startedMatch = matchesForKey.find((m) => m.entry.metadata!.task!.status === "active")
+    const errorMatch = matchesForKey.find((m) => m.entry.metadata!.task!.status === "error")
+    const completedMatch = matchesForKey.find((m) => m.entry.metadata!.task!.status === "success")
 
     const startedIndex = startedMatch ? startedMatch.index : null
     const errorIndex = errorMatch ? errorMatch.index : null
@@ -149,11 +146,11 @@ export function findTasks(entries: JsonLogEntry[], key: string, status?: TaskLog
  * Returns the index of the matching log entry (in entries), or null if no matching entry was found.
  */
 export function findTask(entries: JsonLogEntry[], key: string, status?: TaskLogStatus): number | null {
-  const index = entries.findIndex(e => matchTask(e, key, status))
+  const index = entries.findIndex((e) => matchTask(e, key, status))
   return index === -1 ? null : index
 }
 
-export type FilteredTasks = { entry: JsonLogEntry, index: number }[]
+export type FilteredTasks = { entry: JsonLogEntry; index: number }[]
 
 export function filterTasks(entries: JsonLogEntry[], key: string, status?: TaskLogStatus): FilteredTasks {
   const filtered: FilteredTasks = []

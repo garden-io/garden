@@ -53,34 +53,37 @@ export async function getChartResources(ctx: PluginContext, module: Module, log:
   })
   const releaseName = getReleaseName(module)
 
-  const objects = <KubernetesResource[]>loadTemplate(await helm({
-    ctx: k8sCtx,
-    log,
-    namespace,
-    args: [
-      "template",
-      "--name", releaseName,
-      "--namespace", namespace,
-      ...await getValueFileArgs(module),
-      chartPath,
-    ],
-  }))
-
-  const resources = objects
-    .filter(obj => {
-      // Don't try to check status of hooks
-      const helmHook = getAnnotation(obj, "helm.sh/hook")
-      if (helmHook) {
-        return false
-      }
-
-      // Ephemeral objects should also not be checked
-      if (obj.kind === "Pod" || obj.kind === "Job") {
-        return false
-      }
-
-      return true
+  const objects = <KubernetesResource[]>loadTemplate(
+    await helm({
+      ctx: k8sCtx,
+      log,
+      namespace,
+      args: [
+        "template",
+        "--name",
+        releaseName,
+        "--namespace",
+        namespace,
+        ...(await getValueFileArgs(module)),
+        chartPath,
+      ],
     })
+  )
+
+  const resources = objects.filter((obj) => {
+    // Don't try to check status of hooks
+    const helmHook = getAnnotation(obj, "helm.sh/hook")
+    if (helmHook) {
+      return false
+    }
+
+    // Ephemeral objects should also not be checked
+    if (obj.kind === "Pod" || obj.kind === "Job") {
+      return false
+    }
+
+    return true
+  })
 
   return flattenResources(resources)
 }
@@ -100,7 +103,7 @@ export function getBaseModule(module: HelmModule) {
     throw new PluginError(
       deline`Helm module '${module.name}' references base module '${module.spec.base}'
       but it is missing from the module's build dependencies.`,
-      { moduleName: module.name, baseModuleName: module.spec.base },
+      { moduleName: module.name, baseModuleName: module.spec.base }
     )
   }
 
@@ -108,7 +111,7 @@ export function getBaseModule(module: HelmModule) {
     throw new ConfigurationError(
       deline`Helm module '${module.name}' references base module '${module.spec.base}'
       which is a '${baseModule.type}' module, but should be a helm module.`,
-      { moduleName: module.name, baseModuleName: module.spec.base, baseModuleType: baseModule.type },
+      { moduleName: module.name, baseModuleName: module.spec.base, baseModuleType: baseModule.type }
     )
   }
 
@@ -149,11 +152,9 @@ export async function getValueFileArgs(module: HelmModule) {
 
   // The garden-values.yml file (which is created from the `values` field in the module config) takes precedence,
   // so it's added to the end of the list.
-  const valueFiles = module.spec.valueFiles
-    .map(f => resolve(module.buildPath, f))
-    .concat([gardenValuesPath])
+  const valueFiles = module.spec.valueFiles.map((f) => resolve(module.buildPath, f)).concat([gardenValuesPath])
 
-  return flatten(valueFiles.map(f => ["--values", f]))
+  return flatten(valueFiles.map((f) => ["--values", f]))
 }
 
 /**
@@ -182,7 +183,7 @@ export function getServiceResourceSpec(module: HelmModule) {
       deline`Helm module '${module.name}' doesn't specify a \`serviceResource\` in its configuration.
       You must specify a resource in the module config in order to use certain Garden features,
       such as hot reloading.`,
-      { resourceSpec },
+      { resourceSpec }
     )
   }
 
@@ -190,11 +191,11 @@ export function getServiceResourceSpec(module: HelmModule) {
 }
 
 interface GetServiceResourceParams {
-  ctx: PluginContext,
-  log: LogEntry,
-  chartResources: KubernetesResource[],
-  module: HelmModule,
-  resourceSpec?: HelmResourceSpec,
+  ctx: PluginContext
+  log: LogEntry
+  chartResources: KubernetesResource[]
+  module: HelmModule
+  resourceSpec?: HelmResourceSpec
 }
 
 /**
@@ -206,9 +207,13 @@ interface GetServiceResourceParams {
  *
  * Throws an error if no valid resource spec is given, or the resource spec doesn't match any of the given resources.
  */
-export async function findServiceResource(
-  { ctx, log, chartResources, module, resourceSpec }: GetServiceResourceParams,
-): Promise<HotReloadableResource> {
+export async function findServiceResource({
+  ctx,
+  log,
+  chartResources,
+  module,
+  resourceSpec,
+}: GetServiceResourceParams): Promise<HotReloadableResource> {
   const resourceMsgName = resourceSpec ? "resource" : "serviceResource"
 
   if (!resourceSpec) {
@@ -218,8 +223,8 @@ export async function findServiceResource(
   const targetKind = resourceSpec.kind
   let targetName = resourceSpec.name
 
-  const chartResourceNames = chartResources.map(o => `${o.kind}/${o.metadata.name}`)
-  const applicableChartResources = chartResources.filter(o => o.kind === targetKind)
+  const chartResourceNames = chartResources.map((o) => `${o.kind}/${o.metadata.name}`)
+  const applicableChartResources = chartResources.filter((o) => o.kind === targetKind)
 
   let target: HotReloadableResource
 
@@ -232,21 +237,21 @@ export async function findServiceResource(
 
     target = find(
       <HotReloadableResource[]>chartResources,
-      o => o.kind === targetKind && o.metadata.name === targetName,
+      (o) => o.kind === targetKind && o.metadata.name === targetName
     )!
 
     if (!target) {
       throw new ConfigurationError(
         `Helm module '${module.name}' does not contain specified ${targetKind} '${targetName}'`,
-        { resourceSpec, chartResourceNames },
+        { resourceSpec, chartResourceNames }
       )
     }
   } else {
     if (applicableChartResources.length === 0) {
-      throw new ConfigurationError(
-        `Helm module '${module.name}' contains no ${targetKind}s.`,
-        { resourceSpec, chartResourceNames },
-      )
+      throw new ConfigurationError(`Helm module '${module.name}' contains no ${targetKind}s.`, {
+        resourceSpec,
+        chartResourceNames,
+      })
     }
 
     if (applicableChartResources.length > 1) {
@@ -254,7 +259,7 @@ export async function findServiceResource(
         deline`Helm module '${module.name}' contains multiple ${targetKind}s.
         You must specify \`${resourceMsgName}.name\` in the module config in order to identify
         the correct ${targetKind} to use.`,
-        { resourceSpec, chartResourceNames },
+        { resourceSpec, chartResourceNames }
       )
     }
 
@@ -275,19 +280,16 @@ export function getResourceContainer(resource: HotReloadableResource, containerN
   const containers = resource.spec.template.spec.containers || []
 
   if (containers.length === 0) {
-    throw new ConfigurationError(
-      `${kind} ${resource.metadata.name} has no containers configured.`,
-      { resource },
-    )
+    throw new ConfigurationError(`${kind} ${resource.metadata.name} has no containers configured.`, { resource })
   }
 
   const container = containerName ? findByName(containers, containerName) : containers[0]
 
   if (!container) {
-    throw new ConfigurationError(
-      `Could not find container '${containerName}' in ${kind} '${name}'`,
-      { resource, containerName },
-    )
+    throw new ConfigurationError(`Could not find container '${containerName}' in ${kind} '${name}'`, {
+      resource,
+      containerName,
+    })
   }
 
   return container
@@ -300,7 +302,11 @@ export function getResourceContainer(resource: HotReloadableResource, containerN
  * TODO: Cache the results to avoid a performance hit when hot-reloading.
  */
 async function renderHelmTemplateString(
-  ctx: PluginContext, log: LogEntry, module: Module, chartPath: string, value: string,
+  ctx: PluginContext,
+  log: LogEntry,
+  module: Module,
+  chartPath: string,
+  value: string
 ): Promise<string> {
   const tempFilePath = join(chartPath, "templates", cryptoRandomString({ length: 16 }))
   const k8sCtx = <KubernetesPluginContext>ctx
@@ -315,22 +321,26 @@ async function renderHelmTemplateString(
   try {
     await writeFile(tempFilePath, value)
 
-    const objects = loadTemplate(await helm({
-      ctx: k8sCtx,
-      log,
-      namespace,
-      args: [
-        "template",
-        "--name", releaseName,
-        "--namespace", namespace,
-        ...await getValueFileArgs(module),
-        "-x", tempFilePath,
-        chartPath,
-      ],
-    }))
+    const objects = loadTemplate(
+      await helm({
+        ctx: k8sCtx,
+        log,
+        namespace,
+        args: [
+          "template",
+          "--name",
+          releaseName,
+          "--namespace",
+          namespace,
+          ...(await getValueFileArgs(module)),
+          "-x",
+          tempFilePath,
+          chartPath,
+        ],
+      })
+    )
 
     return objects[0]
-
   } finally {
     await remove(tempFilePath)
   }
@@ -347,7 +357,7 @@ async function renderHelmTemplateString(
  */
 function loadTemplate(template: string) {
   return loadAll(template, undefined, { json: true })
-    .filter(obj => obj !== null)
+    .filter((obj) => obj !== null)
     .map((obj) => {
       if (isPlainObject(obj)) {
         if (!obj.metadata) {

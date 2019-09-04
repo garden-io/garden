@@ -59,8 +59,8 @@ export interface ApiRequestBody {
 }
 
 export interface AnalyticsEvent {
-  type: AnalyticsType,
-  properties: AnalyticsEventProperties,
+  type: AnalyticsType
+  properties: AnalyticsEventProperties
 }
 
 export interface SegmentEvent {
@@ -286,7 +286,6 @@ export class AnalyticsHandler {
    * @memberof Analytics
    */
   private async promptAnalytics() {
-
     const defaultMessage = dedent`
       Thanks for installing Garden! We work hard to provide you with the best experience we can.
       It would help us a lot if we could collect some anonymous analytics while you use Garden.
@@ -301,6 +300,5 @@ export class AnalyticsHandler {
     })
 
     return ans.continue.startsWith("y")
-
   }
 }

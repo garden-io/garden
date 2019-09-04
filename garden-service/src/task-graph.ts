@@ -19,7 +19,7 @@ import { toGardenError } from "./exceptions"
 import { Garden } from "./garden"
 import { AnalyticsHandler } from "./analytics/analytics"
 
-class TaskGraphError extends Error { }
+class TaskGraphError extends Error {}
 
 export interface TaskResult {
   type: TaskType
@@ -92,14 +92,14 @@ export class TaskGraph {
 
     // We want at most one pending (i.e. not in-progress) task for a given key at any given time,
     // so we deduplicate here.
-    const tasksToProcess = tasks.filter(t => !this.pendingKeys.has(t.getKey()))
+    const tasksToProcess = tasks.filter((t) => !this.pendingKeys.has(t.getKey()))
     for (const t of tasksToProcess) {
       this.pendingKeys.add(t.getKey())
     }
 
     // Regardless of whether it was added by this call to this.processTasksInternal, we want
     // to return the latest result for each requested task.
-    const resultKeys = tasks.map(t => t.getKey())
+    const resultKeys = tasks.map((t) => t.getKey())
 
     return this.opQueue.add(() => this.processTasksInternal(tasksToProcess, resultKeys, opts))
   }
@@ -118,10 +118,10 @@ export class TaskGraph {
        */
       node.clear()
       const taskDeps = this.taskDependencyCache[node.getId()] || new Set()
-      node.setDependencies(taskNodes.filter(n => taskDeps.has(n.getKey())))
+      node.setDependencies(taskNodes.filter((n) => taskDeps.has(n.getKey())))
     }
 
-    const newRootNodes = taskNodes.filter(n => n.getDependencies().length === 0)
+    const newRootNodes = taskNodes.filter((n) => n.getDependencies().length === 0)
     this.roots.clear()
     this.roots.setNodes(newRootNodes)
   }
@@ -147,8 +147,9 @@ export class TaskGraph {
   private getNode(task: BaseTask): TaskNode | null {
     const id = task.getId()
     const key = task.getKey()
-    const existing = this.index.getNodes()
-      .filter(n => n.getKey() === key && n.getId() !== id)
+    const existing = this.index
+      .getNodes()
+      .filter((n) => n.getKey() === key && n.getId() !== id)
       .reverse()[0]
 
     if (existing) {
@@ -160,7 +161,7 @@ export class TaskGraph {
         // No need to add task or its dependencies.
         return null
       } else {
-        return new TaskNode((task))
+        return new TaskNode(task)
       }
     }
   }
@@ -169,7 +170,9 @@ export class TaskGraph {
    * Process the graph until it's complete.
    */
   private async processTasksInternal(
-    tasks: BaseTask[], resultKeys: string[], opts?: ProcessTasksOpts,
+    tasks: BaseTask[],
+    resultKeys: string[],
+    opts?: ProcessTasksOpts
   ): Promise<TaskResults> {
     const { concurrencyLimit = defaultTaskConcurrency } = opts || {}
 
@@ -195,11 +198,12 @@ export class TaskGraph {
         return
       }
 
-      const batch = _this.roots.getNodes()
-        .filter(n => !this.inProgress.contains(n))
+      const batch = _this.roots
+        .getNodes()
+        .filter((n) => !this.inProgress.contains(n))
         .slice(0, concurrencyLimit - this.inProgress.length)
 
-      batch.forEach(n => this.inProgress.addNode(n))
+      batch.forEach((n) => this.inProgress.addNode(n))
       this.rebuild()
 
       this.initLogging()
@@ -220,12 +224,9 @@ export class TaskGraph {
           this.logTask(node)
           this.logEntryMap.inProgress.setState(inProgressToStr(this.inProgress.getNodes()))
 
-          const dependencyBaseKeys = (await task.getDependencies())
-            .map(dep => dep.getKey())
+          const dependencyBaseKeys = (await task.getDependencies()).map((dep) => dep.getKey())
 
-          const dependencyResults = merge(
-            this.resultCache.pick(dependencyBaseKeys),
-            pick(results, dependencyBaseKeys))
+          const dependencyResults = merge(this.resultCache.pick(dependencyBaseKeys), pick(results, dependencyBaseKeys))
 
           try {
             this.pendingKeys.delete(task.getKey())
@@ -290,7 +291,7 @@ export class TaskGraph {
 
     if (node) {
       const depTasks = await node.task.getDependencies()
-      this.taskDependencyCache[node.getId()] = new Set(depTasks.map(d => d.getKey()))
+      this.taskDependencyCache[node.getId()] = new Set(depTasks.map((d) => d.getKey()))
       for (const dep of depTasks) {
         await this.addNodeWithDependencies(dep)
       }
@@ -330,9 +331,10 @@ export class TaskGraph {
   }
 
   private getDependants(node: TaskNode): TaskNode[] {
-    const dependants = this.index.getNodes().filter(n => n.getDependencies()
-      .find(d => d.getKey() === node.getKey()))
-    return dependants.concat(flatten(dependants.map(d => this.getDependants(d))))
+    const dependants = this.index
+      .getNodes()
+      .filter((n) => n.getDependencies().find((d) => d.getKey() === node.getKey()))
+    return dependants.concat(flatten(dependants.map((d) => this.getDependants(d))))
   }
 
   // Logging
@@ -474,7 +476,6 @@ class TaskNodeMap {
     })
     return out
   }
-
 }
 
 class TaskNode {
@@ -520,7 +521,7 @@ class TaskNode {
   inspect(): object {
     return {
       id: this.getId(),
-      dependencies: this.getDependencies().map(d => d.inspect()),
+      dependencies: this.getDependencies().map((d) => d.inspect()),
     }
   }
 
@@ -540,7 +541,7 @@ class TaskNode {
 }
 
 interface CachedResult {
-  result: TaskResult,
+  result: TaskResult
   versionString: string
 }
 
@@ -565,12 +566,12 @@ class ResultCache {
 
   get(key: string, versionString: string): TaskResult | null {
     const r = this.cache[key]
-    return (r && r.versionString === versionString && !r.result.error) ? r.result : null
+    return r && r.versionString === versionString && !r.result.error ? r.result : null
   }
 
   getNewest(key: string): TaskResult | null {
     const r = this.cache[key]
-    return (r && !r.result.error) ? r.result : null
+    return r && !r.result.error ? r.result : null
   }
 
   // Returns newest cached results, if any, for keys
@@ -586,15 +587,16 @@ class ResultCache {
 
     return results
   }
-
 }
 
-interface LogEntryMap { [key: string]: LogEntry }
+interface LogEntryMap {
+  [key: string]: LogEntry
+}
 
 const taskStyle = chalk.cyan.bold
 
 function inProgressToStr(nodes) {
-  return `Currently in progress [${nodes.map(n => taskStyle(n.getId())).join(", ")}]`
+  return `Currently in progress [${nodes.map((n) => taskStyle(n.getId())).join(", ")}]`
 }
 
 function remainingTasksToStr(num) {

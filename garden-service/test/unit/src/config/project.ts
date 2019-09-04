@@ -25,12 +25,8 @@ describe("resolveProjectConfig", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
-      environments: [
-        { name: "default", variables: {} },
-      ],
-      providers: [
-        { name: "some-provider" },
-      ],
+      environments: [{ name: "default", variables: {} }],
+      providers: [{ name: "some-provider" }],
       variables: {},
     }
 
@@ -62,9 +58,7 @@ describe("resolveProjectConfig", () => {
       defaultEnvironment: "local",
       dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [],
-      providers: [
-        { name: "some-provider" },
-      ],
+      providers: [{ name: "some-provider" }],
       variables: {},
     }
 
@@ -92,28 +86,26 @@ describe("resolveProjectConfig", () => {
       dotIgnoreFiles: defaultDotIgnoreFiles,
       environmentDefaults: {
         variables: {
-          defaultEnvVar: "\${local.env.TEST_ENV_VAR}",
+          defaultEnvVar: "${local.env.TEST_ENV_VAR}",
         },
       },
       environments: [
         {
           name: "default",
           variables: {
-            envVar: "\${local.env.TEST_ENV_VAR}",
+            envVar: "${local.env.TEST_ENV_VAR}",
           },
         },
       ],
-      providers: [
-        { name: "some-provider" },
-      ],
+      providers: [{ name: "some-provider" }],
       sources: [
         {
-          name: "\${local.env.TEST_ENV_VAR}",
+          name: "${local.env.TEST_ENV_VAR}",
           repositoryUrl,
         },
       ],
       variables: {
-        platform: "\${local.platform}",
+        platform: "${local.platform}",
       },
     }
 
@@ -163,7 +155,7 @@ describe("resolveProjectConfig", () => {
         providers: [
           {
             name: "provider-a",
-            someKey: "\${local.env.TEST_ENV_VAR_A}",
+            someKey: "${local.env.TEST_ENV_VAR_A}",
           },
         ],
         variables: {},
@@ -174,7 +166,7 @@ describe("resolveProjectConfig", () => {
           providers: [
             {
               name: "provider-b",
-              someKey: "\${local.env.TEST_ENV_VAR_B}",
+              someKey: "${local.env.TEST_ENV_VAR_B}",
             },
           ],
           variables: {
@@ -185,7 +177,7 @@ describe("resolveProjectConfig", () => {
       providers: [
         {
           name: "provider-c",
-          someKey: "\${local.env.TEST_ENV_VAR_C}",
+          someKey: "${local.env.TEST_ENV_VAR_C}",
         },
       ],
       variables: {},
@@ -214,16 +206,16 @@ describe("resolveProjectConfig", () => {
       providers: [
         {
           name: "provider-a",
-          someKey: "\${local.env.TEST_ENV_VAR_A}",
+          someKey: "${local.env.TEST_ENV_VAR_A}",
         },
         {
           name: "provider-c",
-          someKey: "\${local.env.TEST_ENV_VAR_C}",
+          someKey: "${local.env.TEST_ENV_VAR_C}",
         },
         {
           name: "provider-b",
           environments: ["default"],
-          someKey: "\${local.env.TEST_ENV_VAR_B}",
+          someKey: "${local.env.TEST_ENV_VAR_B}",
         },
       ],
       sources: [],
@@ -244,9 +236,7 @@ describe("resolveProjectConfig", () => {
       defaultEnvironment: "",
       dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [],
-      providers: [
-        { name: "some-provider" },
-      ],
+      providers: [{ name: "some-provider" }],
       variables: {},
     }
 
@@ -272,9 +262,7 @@ describe("resolveProjectConfig", () => {
       defaultEnvironment: "",
       dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [],
-      providers: [
-        { name: "some-provider" },
-      ],
+      providers: [{ name: "some-provider" }],
       variables: {},
     }
 
@@ -451,9 +439,7 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
-      environments: [
-        { name: "default", variables: {} },
-      ],
+      environments: [{ name: "default", variables: {} }],
       providers: [],
       variables: {},
     }
@@ -469,18 +455,13 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
-      environments: [
-        { name: "default", variables: {} },
-      ],
+      environments: [{ name: "default", variables: {} }],
       providers: [],
       variables: {},
     }
 
     expect(await pickEnvironment(config, "default")).to.eql({
-      providers: [
-        { name: "exec" },
-        { name: "container" },
-      ],
+      providers: [{ name: "exec" }, { name: "container" }],
       variables: {},
     })
   })
@@ -493,9 +474,7 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
-      environments: [
-        { name: "default", variables: {} },
-      ],
+      environments: [{ name: "default", variables: {} }],
       providers: [
         { name: "container", newKey: "foo" },
         { name: "my-provider", a: "a" },
@@ -506,11 +485,7 @@ describe("pickEnvironment", () => {
     }
 
     expect(await pickEnvironment(config, "default")).to.eql({
-      providers: [
-        { name: "exec" },
-        { name: "container", newKey: "foo" },
-        { name: "my-provider", a: "c", b: "b" },
-      ],
+      providers: [{ name: "exec" }, { name: "container", newKey: "foo" }, { name: "my-provider", a: "c", b: "b" }],
       variables: {},
     })
   })
@@ -523,9 +498,7 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
-      environments: [
-        { name: "default", variables: {} },
-      ],
+      environments: [{ name: "default", variables: {} }],
       providers: [
         { name: "container", newKey: "foo" },
         { name: "my-provider", a: "a" },
@@ -536,11 +509,7 @@ describe("pickEnvironment", () => {
     }
 
     expect(await pickEnvironment(config, "default")).to.eql({
-      providers: [
-        { name: "exec" },
-        { name: "container", newKey: "foo" },
-        { name: "my-provider", b: "b" },
-      ],
+      providers: [{ name: "exec" }, { name: "container", newKey: "foo" }, { name: "my-provider", b: "b" }],
       variables: {},
     })
   })
@@ -580,10 +549,13 @@ describe("pickEnvironment", () => {
 
   it("should load variables from default project varfile if it exists", async () => {
     const varfilePath = resolve(tmpPath, defaultVarfilePath)
-    await writeFile(varfilePath, dedent`
+    await writeFile(
+      varfilePath,
+      dedent`
       a=a
       b=b
-    `)
+    `
+    )
 
     const config: ProjectConfig = {
       apiVersion: DEFAULT_API_VERSION,
@@ -616,10 +588,13 @@ describe("pickEnvironment", () => {
 
   it("should load variables from default environment varfile if it exists", async () => {
     const varfilePath = resolve(tmpPath, defaultEnvVarfilePath("default"))
-    await writeFile(varfilePath, dedent`
+    await writeFile(
+      varfilePath,
+      dedent`
       b=B
       c=c
-    `)
+    `
+    )
 
     const config: ProjectConfig = {
       apiVersion: DEFAULT_API_VERSION,
@@ -652,10 +627,13 @@ describe("pickEnvironment", () => {
 
   it("should load variables from custom project varfile if specified", async () => {
     const varfilePath = resolve(tmpPath, "foo.env")
-    await writeFile(varfilePath, dedent`
+    await writeFile(
+      varfilePath,
+      dedent`
       a=a
       b=b
-    `)
+    `
+    )
 
     const config: ProjectConfig = {
       apiVersion: DEFAULT_API_VERSION,
@@ -689,10 +667,13 @@ describe("pickEnvironment", () => {
 
   it("should load variables from custom environment varfile if specified", async () => {
     const varfilePath = resolve(tmpPath, "foo.env")
-    await writeFile(varfilePath, dedent`
+    await writeFile(
+      varfilePath,
+      dedent`
       b=B
       c=c
-    `)
+    `
+    )
 
     const config: ProjectConfig = {
       apiVersion: DEFAULT_API_VERSION,
@@ -726,16 +707,22 @@ describe("pickEnvironment", () => {
 
   it("should correctly merge all variable sources in precedence order (variables fields and varfiles)", async () => {
     // Precedence 1/4 (highest)
-    await writeFile(resolve(tmpPath, defaultEnvVarfilePath("default")), dedent`
+    await writeFile(
+      resolve(tmpPath, defaultEnvVarfilePath("default")),
+      dedent`
       d=D
       e=e
-    `)
+    `
+    )
 
     // Precedence 3/4
-    await writeFile(resolve(tmpPath, defaultVarfilePath), dedent`
+    await writeFile(
+      resolve(tmpPath, defaultVarfilePath),
+      dedent`
       b=B
       c=c
-    `)
+    `
+    )
 
     const config: ProjectConfig = {
       apiVersion: DEFAULT_API_VERSION,
@@ -794,7 +781,7 @@ describe("pickEnvironment", () => {
 
     await expectError(
       () => pickEnvironment(config, "default"),
-      (err) => expect(err.message).to.equal("Could not find varfile at path 'foo.env'"),
+      (err) => expect(err.message).to.equal("Could not find varfile at path 'foo.env'")
     )
   })
 
@@ -819,7 +806,7 @@ describe("pickEnvironment", () => {
 
     await expectError(
       () => pickEnvironment(config, "default"),
-      (err) => expect(err.message).to.equal("Could not find varfile at path 'foo.env'"),
+      (err) => expect(err.message).to.equal("Could not find varfile at path 'foo.env'")
     )
   })
 })

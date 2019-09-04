@@ -7,13 +7,7 @@
  */
 
 import { getEnvVarName, uniqByName } from "./util/util"
-import {
-  PrimitiveMap,
-  joiEnvVars,
-  joiPrimitive,
-  joi,
-  joiIdentifier,
-} from "./config/common"
+import { PrimitiveMap, joiEnvVars, joiPrimitive, joi, joiIdentifier } from "./config/common"
 import { Module } from "./types/module"
 import { moduleVersionSchema } from "./vcs/vcs"
 import { Garden } from "./garden"
@@ -32,7 +26,7 @@ interface RuntimeDependency {
 
 export type RuntimeContext = {
   envVars: PrimitiveMap
-  dependencies: RuntimeDependency[],
+  dependencies: RuntimeDependency[]
 }
 
 export const emptyRuntimeContext = {
@@ -40,30 +34,32 @@ export const emptyRuntimeContext = {
   dependencies: [],
 }
 
-const runtimeDependencySchema = joi.object()
-  .keys({
-    name: joiIdentifier()
-      .description("The name of the service or task."),
-    outputs: joiEnvVars()
-      .description("The outputs provided by the service (e.g. ingress URLs etc.)."),
-    type: joi.string()
-      .only("service", "task")
-      .description("The type of the dependency."),
-    version: moduleVersionSchema,
-  })
+const runtimeDependencySchema = joi.object().keys({
+  name: joiIdentifier().description("The name of the service or task."),
+  outputs: joiEnvVars().description("The outputs provided by the service (e.g. ingress URLs etc.)."),
+  type: joi
+    .string()
+    .only("service", "task")
+    .description("The type of the dependency."),
+  version: moduleVersionSchema,
+})
 
-export const runtimeContextSchema = joi.object()
+export const runtimeContextSchema = joi
+  .object()
   .options({ presence: "required" })
   .keys({
-    envVars: joi.object().pattern(/.+/, joiPrimitive())
+    envVars: joi
+      .object()
+      .pattern(/.+/, joiPrimitive())
       .default(() => ({}), "{}")
       .unknown(false)
       .description(
         "Key/value map of environment variables. Keys must be valid POSIX environment variable names " +
-        "(must be uppercase) and values must be primitives.",
+          "(must be uppercase) and values must be primitives."
       ),
-    dependencies: joiArray(runtimeDependencySchema)
-      .description("List of all the services and tasks that this service/task/test depends on, and their metadata."),
+    dependencies: joiArray(runtimeDependencySchema).description(
+      "List of all the services and tasks that this service/task/test depends on, and their metadata."
+    ),
   })
 
 interface PrepareRuntimeContextParams {
@@ -83,9 +79,13 @@ interface PrepareRuntimeContextParams {
  *
  * This should be called just ahead of calling relevant service, task and test action handlers.
  */
-export async function prepareRuntimeContext(
-  { garden, module, dependencies, serviceStatuses, taskResults }: PrepareRuntimeContextParams,
-): Promise<RuntimeContext> {
+export async function prepareRuntimeContext({
+  garden,
+  module,
+  dependencies,
+  serviceStatuses,
+  taskResults,
+}: PrepareRuntimeContextParams): Promise<RuntimeContext> {
   const { versionString } = module.version
   const envVars = {
     GARDEN_VERSION: versionString,
@@ -103,8 +103,8 @@ export async function prepareRuntimeContext(
 
   const depModules = uniqByName([
     ...dependencies.build,
-    ...dependencies.service.map(d => d.module),
-    ...dependencies.task.map(d => d.module),
+    ...dependencies.service.map((d) => d.module),
+    ...dependencies.task.map((d) => d.module),
   ])
 
   for (const m of depModules) {

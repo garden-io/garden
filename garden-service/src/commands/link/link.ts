@@ -14,10 +14,9 @@ export class LinkCommand extends Command {
   name = "link"
   help = "Link a remote source or module to a local path."
 
-  subCommands = [
-    LinkSourceCommand,
-    LinkModuleCommand,
-  ]
+  subCommands = [LinkSourceCommand, LinkModuleCommand]
 
-  async action() { return {} }
+  async action() {
+    return {}
+  }
 }

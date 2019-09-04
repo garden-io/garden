@@ -14,10 +14,7 @@ import stripAnsi from "strip-ansi"
 import { LogLevel } from "../log-node"
 import { LogEntry } from "../log-entry"
 import { Writer } from "./base"
-import {
-  renderError,
-  renderMsg,
-} from "../renderers"
+import { renderError, renderMsg } from "../renderers"
 import { InternalError } from "../../exceptions"
 
 export interface FileWriterConfig {
@@ -32,10 +29,7 @@ type FileTransportOptions = winston.transports.FileTransportOptions
 const { combine: winstonCombine, timestamp, printf } = winston.format
 
 const DEFAULT_FILE_TRANSPORT_OPTIONS: FileTransportOptions = {
-  format: winstonCombine(
-    timestamp(),
-    printf(info => `\n[${info.timestamp}] ${info.message}`),
-  ),
+  format: winstonCombine(timestamp(), printf((info) => `\n[${info.timestamp}] ${info.message}`)),
   maxsize: 10000000, // 10 MB
   maxFiles: 1,
 }
@@ -75,8 +69,7 @@ export class FileWriter extends Writer {
     if (truncatePrevious) {
       try {
         await truncate(logFilePath)
-      } catch (_) {
-      }
+      } catch (_) {}
     }
     return new FileWriter(logFilePath, config)
   }
@@ -108,5 +101,5 @@ export class FileWriter extends Writer {
     }
   }
 
-  stop() { }
+  stop() {}
 }

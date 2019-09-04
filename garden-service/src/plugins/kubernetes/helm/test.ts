@@ -19,10 +19,15 @@ import { V1PodSpec } from "@kubernetes/client-node"
 import { uniqByName } from "../../../util/util"
 import { prepareEnvVars } from "../util"
 
-export async function testHelmModule(
-  { ctx, log, interactive, module, runtimeContext, testConfig, testVersion }:
-    TestModuleParams<HelmModule>,
-): Promise<TestResult> {
+export async function testHelmModule({
+  ctx,
+  log,
+  interactive,
+  module,
+  runtimeContext,
+  testConfig,
+  testVersion,
+}: TestModuleParams<HelmModule>): Promise<TestResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
@@ -30,7 +35,13 @@ export async function testHelmModule(
   // Get the container spec to use for running
   const chartResources = await getChartResources(k8sCtx, module, log)
   const resourceSpec = testConfig.spec.resource || getServiceResourceSpec(module)
-  const target = await findServiceResource({ ctx: k8sCtx, log, chartResources, module, resourceSpec })
+  const target = await findServiceResource({
+    ctx: k8sCtx,
+    log,
+    chartResources,
+    module,
+    resourceSpec,
+  })
   const container = getResourceContainer(target, resourceSpec.containerName)
 
   const testName = testConfig.name
@@ -40,17 +51,19 @@ export async function testHelmModule(
 
   // Apply overrides
   const envVars = { ...runtimeContext.envVars, ...testConfig.spec.env }
-  const env = uniqByName([...prepareEnvVars(envVars), ...container.env || []])
+  const env = uniqByName([...prepareEnvVars(envVars), ...(container.env || [])])
 
   const spec: V1PodSpec = {
-    containers: [{
-      ...container,
-      ...command && { command },
-      ...args && { args },
-      env,
-      // TODO: consider supporting volume mounts in ad-hoc runs (would need specific logic and testing)
-      volumeMounts: [],
-    }],
+    containers: [
+      {
+        ...container,
+        ...(command && { command }),
+        ...(args && { args }),
+        env,
+        // TODO: consider supporting volume mounts in ad-hoc runs (would need specific logic and testing)
+        volumeMounts: [],
+      },
+    ],
   }
 
   const result = await runPod({

@@ -87,11 +87,12 @@ describe("GitHandler", () => {
     it("should throw a nice error when given a path outside of a repo", async () => {
       await expectError(
         () => handler.getRepoRoot(log, "/tmp"),
-        (err) => expect(err.message).to.equal(deline`
+        (err) =>
+          expect(err.message).to.equal(deline`
           Path /tmp is not in a git repository root. Garden must be run from within a git repo.
           Please run \`git init\` if you're starting a new project and repository, or move the project to
           an existing repository, and try again.
-        `),
+        `)
       )
     })
   })
@@ -111,9 +112,7 @@ describe("GitHandler", () => {
 
       const hash = "6e1ab2d7d26c1c66f27fea8c136e13c914e3f137"
 
-      expect(await handler.getFiles({ path: tmpPath, log })).to.eql([
-        { path, hash },
-      ])
+      expect(await handler.getFiles({ path: tmpPath, log })).to.eql([{ path, hash }])
     })
 
     it("should return the correct hash on a modified file", async () => {
@@ -126,9 +125,7 @@ describe("GitHandler", () => {
       await writeFile(path, "my change")
       const hash = "6e1ab2d7d26c1c66f27fea8c136e13c914e3f137"
 
-      expect(await handler.getFiles({ path: tmpPath, log })).to.eql([
-        { path, hash },
-      ])
+      expect(await handler.getFiles({ path: tmpPath, log })).to.eql([{ path, hash }])
     })
 
     const dirContexts = [
@@ -161,9 +158,7 @@ describe("GitHandler", () => {
           await createFile(join(dirPath, "foo.txt"))
           const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
 
-          expect(await handler.getFiles({ path: dirPath, log })).to.eql([
-            { path: resolve(dirPath, "foo.txt"), hash },
-          ])
+          expect(await handler.getFiles({ path: dirPath, log })).to.eql([{ path: resolve(dirPath, "foo.txt"), hash }])
         })
       })
     }
@@ -174,9 +169,7 @@ describe("GitHandler", () => {
       await createFile(join(dirPath, "file.txt"))
       const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
 
-      expect(await handler.getFiles({ path: dirPath, log })).to.eql([
-        { path: resolve(dirPath, "file.txt"), hash },
-      ])
+      expect(await handler.getFiles({ path: dirPath, log })).to.eql([{ path: resolve(dirPath, "file.txt"), hash }])
     })
 
     it("should work with tracked files with spaces in the name", async () => {
@@ -186,9 +179,7 @@ describe("GitHandler", () => {
       await git("commit", "-m", "foo")
       const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
 
-      expect(await handler.getFiles({ path: tmpPath, log })).to.eql([
-        { path: resolve(tmpPath, "my file.txt"), hash },
-      ])
+      expect(await handler.getFiles({ path: tmpPath, log })).to.eql([{ path: resolve(tmpPath, "my file.txt"), hash }])
     })
 
     it("should work with tracked+modified files with spaces in the name", async () => {
@@ -201,9 +192,7 @@ describe("GitHandler", () => {
 
       const hash = "099673697c6cbf5c1a96c445ef3eab123740c778"
 
-      expect(await handler.getFiles({ path: tmpPath, log })).to.eql([
-        { path: resolve(tmpPath, "my file.txt"), hash },
-      ])
+      expect(await handler.getFiles({ path: tmpPath, log })).to.eql([{ path: resolve(tmpPath, "my file.txt"), hash }])
     })
 
     it("should gracefully skip files that are deleted after having been committed", async () => {
@@ -222,9 +211,7 @@ describe("GitHandler", () => {
       await createFile(filePath)
       const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
 
-      expect(await handler.getFiles({ path: tmpPath, log })).to.eql([
-        { path: resolve(tmpPath, "my file.txt"), hash },
-      ])
+      expect(await handler.getFiles({ path: tmpPath, log })).to.eql([{ path: resolve(tmpPath, "my file.txt"), hash }])
     })
 
     it("should filter out files that don't match the include filter, if specified", async () => {
@@ -239,9 +226,7 @@ describe("GitHandler", () => {
       const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
       await createFile(path)
 
-      expect(await handler.getFiles({ path: tmpPath, include: ["foo.*"], exclude: [], log })).to.eql([
-        { path, hash },
-      ])
+      expect(await handler.getFiles({ path: tmpPath, include: ["foo.*"], exclude: [], log })).to.eql([{ path, hash }])
     })
 
     it("should filter out files that match the exclude filter, if specified", async () => {
@@ -261,8 +246,12 @@ describe("GitHandler", () => {
       await createFile(pathB)
       await createFile(pathC)
 
-      const files = (await handler.getFiles({ path: tmpPath, include: ["module-a/**/*"], exclude: ["**/*.txt"], log }))
-        .map(f => f.path)
+      const files = (await handler.getFiles({
+        path: tmpPath,
+        include: ["module-a/**/*"],
+        exclude: ["**/*.txt"],
+        log,
+      })).map((f) => f.path)
 
       expect(files).to.eql([pathC])
     })
@@ -273,8 +262,9 @@ describe("GitHandler", () => {
       await createFile(path)
       await addToIgnore(tmpPath, name)
 
-      const files = (await handler.getFiles({ path: tmpPath, exclude: [], log }))
-        .filter(f => !f.path.includes(defaultIgnoreFilename))
+      const files = (await handler.getFiles({ path: tmpPath, exclude: [], log })).filter(
+        (f) => !f.path.includes(defaultIgnoreFilename)
+      )
 
       expect(files).to.eql([])
     })
@@ -288,8 +278,9 @@ describe("GitHandler", () => {
       await git("add", path)
       await git("commit", "-m", "foo")
 
-      const files = (await handler.getFiles({ path: tmpPath, exclude: [], log }))
-        .filter(f => !f.path.includes(defaultIgnoreFilename))
+      const files = (await handler.getFiles({ path: tmpPath, exclude: [], log })).filter(
+        (f) => !f.path.includes(defaultIgnoreFilename)
+      )
 
       expect(files).to.eql([])
     })
@@ -306,9 +297,7 @@ describe("GitHandler", () => {
 
       const _handler = new GitHandler(tmpPath, [])
 
-      expect(await _handler.getFiles({ path: tmpPath, log })).to.eql([
-        { path, hash },
-      ])
+      expect(await _handler.getFiles({ path: tmpPath, log })).to.eql([{ path, hash }])
     })
 
     it("should correctly handle multiple ignore files", async () => {
@@ -328,8 +317,9 @@ describe("GitHandler", () => {
 
       const _handler = new GitHandler(tmpPath, [defaultIgnoreFilename, ".testignore2"])
 
-      const files = (await _handler.getFiles({ path: tmpPath, exclude: [], log }))
-        .filter(f => !f.path.includes(defaultIgnoreFilename))
+      const files = (await _handler.getFiles({ path: tmpPath, exclude: [], log })).filter(
+        (f) => !f.path.includes(defaultIgnoreFilename)
+      )
 
       expect(files).to.eql([])
     })
@@ -343,8 +333,9 @@ describe("GitHandler", () => {
 
       await symlink(tmpPathB, path)
 
-      const files = (await handler.getFiles({ path: tmpPath, exclude: [], log }))
-        .filter(f => !f.path.includes(defaultIgnoreFilename))
+      const files = (await handler.getFiles({ path: tmpPath, exclude: [], log })).filter(
+        (f) => !f.path.includes(defaultIgnoreFilename)
+      )
 
       expect(files).to.eql([])
     })
@@ -369,7 +360,7 @@ describe("GitHandler", () => {
 
       it("should include tracked files in submodules", async () => {
         const files = await handler.getFiles({ path: tmpPath, log })
-        const paths = files.map(f => relative(tmpPath, f.path))
+        const paths = files.map((f) => relative(tmpPath, f.path))
 
         expect(paths).to.eql([".gitmodules", join("sub", initFile)])
       })
@@ -379,7 +370,7 @@ describe("GitHandler", () => {
         await createFile(path)
 
         const files = await handler.getFiles({ path: tmpPath, log })
-        const paths = files.map(f => relative(tmpPath, f.path)).sort()
+        const paths = files.map((f) => relative(tmpPath, f.path)).sort()
 
         expect(paths).to.eql([".gitmodules", join("sub", initFile), join("sub", "x.txt")])
       })
@@ -389,7 +380,7 @@ describe("GitHandler", () => {
         await createFile(path)
 
         const files = await handler.getFiles({ path: tmpPath, log, include: ["sub/*.txt"] })
-        const paths = files.map(f => relative(tmpPath, f.path)).sort()
+        const paths = files.map((f) => relative(tmpPath, f.path)).sort()
 
         expect(paths).to.eql([join("sub", initFile)])
       })
@@ -399,7 +390,7 @@ describe("GitHandler", () => {
         await createFile(path)
 
         const files = await handler.getFiles({ path: tmpPath, log, exclude: ["sub/*.txt"] })
-        const paths = files.map(f => relative(tmpPath, f.path)).sort()
+        const paths = files.map((f) => relative(tmpPath, f.path)).sort()
 
         expect(paths).to.eql([".gitmodules", join("sub", "x.foo")])
       })
@@ -424,7 +415,7 @@ describe("GitHandler", () => {
 
         it("should include tracked files in nested submodules", async () => {
           const files = await handler.getFiles({ path: tmpPath, log })
-          const paths = files.map(f => relative(tmpPath, f.path)).sort()
+          const paths = files.map((f) => relative(tmpPath, f.path)).sort()
 
           expect(paths).to.eql([
             ".gitmodules",
@@ -440,7 +431,7 @@ describe("GitHandler", () => {
           await createFile(path)
 
           const files = await handler.getFiles({ path: tmpPath, log })
-          const paths = files.map(f => relative(tmpPath, f.path)).sort()
+          const paths = files.map((f) => relative(tmpPath, f.path)).sort()
 
           expect(paths).to.eql([
             ".gitmodules",
@@ -538,12 +529,14 @@ describe("GitHandler", () => {
           log,
         })
 
-        expect(await handler.ensureRemoteSource({
-          url: repositoryUrlA,
-          name: "foo",
-          sourceType: "module",
-          log,
-        })).to.not.throw
+        expect(
+          await handler.ensureRemoteSource({
+            url: repositoryUrlA,
+            name: "foo",
+            sourceType: "module",
+            log,
+          })
+        ).to.not.throw
       })
       it("should also clone submodules", async () => {
         // Add repo B as a submodule to repo A
@@ -660,19 +653,11 @@ describe("GitHandler", () => {
 describe("git", () => {
   describe("getCommitIdFromRefList", () => {
     it("should get the commit id from a list of commit ids and refs", () => {
-      const refList = [
-        "abcde	ref/heads/master",
-        "1234	ref/heads/master",
-        "foobar	ref/heads/master",
-      ]
+      const refList = ["abcde	ref/heads/master", "1234	ref/heads/master", "foobar	ref/heads/master"]
       expect(getCommitIdFromRefList(refList)).to.equal("abcde")
     })
     it("should get the commit id from a list of commit ids without refs", () => {
-      const refList = [
-        "abcde",
-        "1234	ref/heads/master",
-        "foobar	ref/heads/master",
-      ]
+      const refList = ["abcde", "1234	ref/heads/master", "foobar	ref/heads/master"]
       expect(getCommitIdFromRefList(refList)).to.equal("abcde")
     })
     it("should get the commit id from a single commit id / ref pair", () => {

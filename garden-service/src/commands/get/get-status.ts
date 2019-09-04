@@ -26,8 +26,12 @@ export interface RunStatus {
   completedAt?: Date
 }
 
-export interface TestStatuses { [testKey: string]: RunStatus }
-export interface TaskStatuses { [taskKey: string]: RunStatus }
+export interface TestStatuses {
+  [testKey: string]: RunStatus
+}
+export interface TaskStatuses {
+  [taskKey: string]: RunStatus
+}
 
 // Value is "completed" if the test/task has been run for the current version.
 export interface StatusCommandResult extends AllEnvironmentStatus {
@@ -70,32 +74,45 @@ async function getTestStatuses(garden: Garden, configGraph: ConfigGraph, log: Lo
   const modules = await configGraph.getModules()
   const actions = await garden.getActionRouter()
 
-  return fromPairs(flatten(await Bluebird.map(modules, async (module) => {
-    return Bluebird.map(module.testConfigs, async (testConfig) => {
-      const testVersion = await getTestVersion(garden, configGraph, module, testConfig)
-      const result = await actions.getTestResult({
-        module, log, testVersion, testName: testConfig.name,
+  return fromPairs(
+    flatten(
+      await Bluebird.map(modules, async (module) => {
+        return Bluebird.map(module.testConfigs, async (testConfig) => {
+          const testVersion = await getTestVersion(garden, configGraph, module, testConfig)
+          const result = await actions.getTestResult({
+            module,
+            log,
+            testVersion,
+            testName: testConfig.name,
+          })
+          return [`${module.name}.${testConfig.name}`, runStatus(result)]
+        })
       })
-      return [`${module.name}.${testConfig.name}`, runStatus(result)]
-    })
-  })))
+    )
+  )
 }
 
 async function getTaskStatuses(garden: Garden, configGraph: ConfigGraph, log: LogEntry): Promise<TaskStatuses> {
   const tasks = await configGraph.getTasks()
   const actions = await garden.getActionRouter()
 
-  return fromPairs(await Bluebird.map(tasks, async (task) => {
-    const taskVersion = await getTaskVersion(garden, configGraph, task)
-    const result = await actions.getTaskResult({ task, taskVersion, log })
-    return [task.name, runStatus(result)]
-  }))
+  return fromPairs(
+    await Bluebird.map(tasks, async (task) => {
+      const taskVersion = await getTaskVersion(garden, configGraph, task)
+      const result = await actions.getTaskResult({ task, taskVersion, log })
+      return [task.name, runStatus(result)]
+    })
+  )
 }
 
 function runStatus<R extends RunResult>(result: R | null): RunStatus {
   if (result) {
     const { startedAt, completedAt } = result
-    return { startedAt, completedAt, state: result.success ? "succeeded" : "failed" }
+    return {
+      startedAt,
+      completedAt,
+      state: result.success ? "succeeded" : "failed",
+    }
   } else {
     return { state: "outdated" }
   }

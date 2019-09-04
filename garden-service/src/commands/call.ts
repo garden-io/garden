@@ -10,12 +10,7 @@ import { parse, resolve } from "url"
 import Axios from "axios"
 import chalk from "chalk"
 import { isObject } from "util"
-import {
-  Command,
-  CommandResult,
-  CommandParams,
-  StringParameter,
-} from "./base"
+import { Command, CommandResult, CommandParams, StringParameter } from "./base"
 import { splitFirst } from "../util/util"
 import { ParameterError, RuntimeError } from "../exceptions"
 import { find, includes, pick } from "lodash"
@@ -83,11 +78,11 @@ export class CallCommand extends Command<Args> {
     let matchedPath
 
     // we can't easily support raw TCP or UDP in a command like this
-    const ingresses = status.ingresses.filter(e => e.protocol === "http" || e.protocol === "https")
+    const ingresses = status.ingresses.filter((e) => e.protocol === "http" || e.protocol === "https")
 
     if (!path) {
       // if no path is specified and there's a root endpoint (path === "/") we use that
-      const rootIngress = <ServiceIngress>find(ingresses, e => e.path === "/")
+      const rootIngress = <ServiceIngress>find(ingresses, (e) => e.path === "/")
 
       if (rootIngress) {
         matchedIngress = rootIngress
@@ -99,7 +94,6 @@ export class CallCommand extends Command<Args> {
       }
 
       path = matchedPath
-
     } else {
       path = "/" + path
 

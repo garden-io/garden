@@ -19,7 +19,7 @@ interface Props {
 
 const Button = styled.div`
   border-radius: 4px;
-  margin: .5rem;
+  margin: 0.5rem;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -31,7 +31,7 @@ const Button = styled.div`
 const Icon = styled.i`
   color: ${colors.gardenGray};
   :hover {
-    color: ${colors.gardenPink}
+    color: ${colors.gardenPink};
   }
   :active {
     opacity: 0.5;
@@ -42,10 +42,10 @@ const IconLoading = styled(Icon)`
   animation: spin 0.5s infinite linear;
   @keyframes spin {
     from {
-      transform:rotate(0deg);
+      transform: rotate(0deg);
     }
     to {
-      transform:rotate(360deg);
+      transform: rotate(360deg);
     }
   }
 `

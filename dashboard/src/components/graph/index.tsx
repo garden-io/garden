@@ -59,8 +59,7 @@ const taskNodeEventNames: Set<TaskNodeEventName> = new Set([
 const selectedClassName = "selected"
 let selectedNodeId: string | null = null
 function clearGraphNodeSelection() {
-  const selectedNode =
-    selectedNodeId && document.getElementById(selectedNodeId)
+  const selectedNode = selectedNodeId && document.getElementById(selectedNodeId)
   selectedNode && selectedNode.classList.remove(selectedClassName)
 }
 
@@ -73,22 +72,15 @@ function getNodeClass(node) {
     className += selectedClassName
   }
 
-  className += ((node.status && ` ${node.status}`) || "")
+  className += (node.status && ` ${node.status}`) || ""
   return className
 }
 
-function drawChart(
-  graph: Graph,
-  width: number,
-  height: number,
-  onGraphNodeSelected: (string) => void,
-) {
+function drawChart(graph: Graph, width: number, height: number, onGraphNodeSelected: (string) => void) {
   // Create the input graph
-  const g = new dagreD3.graphlib.Graph()
-    .setGraph({})
-    .setDefaultEdgeLabel(function() {
-      return {}
-    })
+  const g = new dagreD3.graphlib.Graph().setGraph({}).setDefaultEdgeLabel(function() {
+    return {}
+  })
 
   for (const node of graph.nodes) {
     g.setNode(node.id, {
@@ -151,13 +143,9 @@ function drawChart(
   // svg.attr("height", Math.max(graphHeight, MIN_CHART_HEIGHT))
 
   // Center the graph
-  const xCenterOffset =
-    (parseInt(svg.attr("width"), 10) - g.graph().width * initialScale) / 2
-  const yCenterOffset =
-    (parseInt(svg.attr("height"), 10) - g.graph().height * initialScale) / 2
-  const zoomTranslate = zoomIdentity
-    .translate(xCenterOffset, yCenterOffset)
-    .scale(initialScale)
+  const xCenterOffset = (parseInt(svg.attr("width"), 10) - g.graph().width * initialScale) / 2
+  const yCenterOffset = (parseInt(svg.attr("height"), 10) - g.graph().height * initialScale) / 2
+  const zoomTranslate = zoomIdentity.translate(xCenterOffset, yCenterOffset).scale(initialScale)
   svg.call(zoomHandler.transform, zoomTranslate)
 
   const selections = svg.select("g").selectAll("g.node")
@@ -183,11 +171,11 @@ const makeLabel = (name: string, type: string, moduleName: string) => {
     <span>
       <span class='module-name'>${moduleName}</span>
         ${
-    moduleName !== name
-      ? `<span> / </span>
+          moduleName !== name
+            ? `<span> / </span>
            <span>${name}</span>`
-      : ``
-    }
+            : ``
+        }
     </div>`
 }
 
@@ -205,8 +193,8 @@ const ProcessSpinner = styled<any, SpinnerProps>(Spinner)`
 `
 
 type ChartState = {
-  nodes: Node[],
-  edges: Edge[],
+  nodes: Node[]
+  edges: Edge[]
 }
 
 interface Props {
@@ -238,7 +226,6 @@ class Chart extends Component<Props, ChartState> {
   }
 
   componentDidMount() {
-
     this.drawChart()
 
     // Re-draw graph on **end** of window resize event (hence the timer)
@@ -252,7 +239,7 @@ class Chart extends Component<Props, ChartState> {
   }
 
   componentWillUnmount() {
-    window.onresize = () => { }
+    window.onresize = () => {}
   }
 
   drawChart() {
@@ -266,8 +253,8 @@ class Chart extends Component<Props, ChartState> {
 
   makeGraph() {
     const nodes: Node[] = this.props.graph.nodes
-      .filter(n => this.props.filters[n.type].selected)
-      .map(n => {
+      .filter((n) => this.props.filters[n.type].selected)
+      .map((n) => {
         return {
           id: n.key,
           name: n.name,
@@ -276,11 +263,8 @@ class Chart extends Component<Props, ChartState> {
         }
       })
     const edges: Edge[] = this.props.graph.relationships
-      .filter(n =>
-        this.props.filters[n.dependant.type].selected &&
-        this.props.filters[n.dependency.type].selected,
-      )
-      .map(r => {
+      .filter((n) => this.props.filters[n.dependant.type].selected && this.props.filters[n.dependency.type].selected)
+      .map((r) => {
         const source = r.dependency
         const target = r.dependant
         return {
@@ -296,12 +280,13 @@ class Chart extends Component<Props, ChartState> {
   // FIXME: Refactor!
   componentDidUpdate(prevProps: Props, prevState: ChartState) {
     if (
-      (prevState !== this.state) ||
-      (prevProps.graph !== this.props.graph) ||
+      prevState !== this.state ||
+      prevProps.graph !== this.props.graph ||
       (!prevProps.selectedGraphNode && this.props.selectedGraphNode) ||
       (prevProps.selectedGraphNode && !this.props.selectedGraphNode) ||
-      (prevProps.filters !== this.props.filters) ||
-      (prevProps.layoutChanged !== this.props.layoutChanged)) {
+      prevProps.filters !== this.props.filters ||
+      prevProps.layoutChanged !== this.props.layoutChanged
+    ) {
       this.drawChart()
     }
 
@@ -333,7 +318,7 @@ class Chart extends Component<Props, ChartState> {
           className={cls(
             css`
               position: relative;
-            `,
+            `
           )}
         >
           <div
@@ -342,18 +327,15 @@ class Chart extends Component<Props, ChartState> {
                 position: absolute;
                 top: 1rem;
                 display: flex;
-              `,
+              `
             )}
           >
-            <div className="ml-1" >
-              <FiltersButton
-                filters={this.props.filters}
-                onFilter={this.props.onFilter}
-              />
+            <div className="ml-1">
+              <FiltersButton filters={this.props.filters} onFilter={this.props.onFilter} />
               <div
                 className={css`
-                display: flex;
-              `}
+                  display: flex;
+                `}
               >
                 <Status>{status}</Status>
                 {spinner}
@@ -376,59 +358,59 @@ class Chart extends Component<Props, ChartState> {
                 display: flex;
                 justify-content: flex-end;
               `,
-              "mr-1",
+              "mr-1"
             )}
           >
             <Span>
               <span
                 className={css`
-                    color: ${colors.taskState.ready};
-                  `}
+                  color: ${colors.taskState.ready};
+                `}
               >
                 —{" "}
               </span>
               Ready
-              </Span>
+            </Span>
             <Span>
               <span
                 className={css`
-                    color: ${colors.taskState.pending};
-                  `}
+                  color: ${colors.taskState.pending};
+                `}
               >
                 —{" "}
               </span>
               Pending
-              </Span>
+            </Span>
             <Span>
               <span
                 className={css`
-                    color: ${colors.taskState.processing};
-                  `}
+                  color: ${colors.taskState.processing};
+                `}
               >
                 --{" "}
               </span>
               Processing
-              </Span>
+            </Span>
             <Span>
               <span
                 className={css`
-                 color: ${colors.taskState.cancelled};
-                  `}
+                  color: ${colors.taskState.cancelled};
+                `}
               >
                 —{" "}
               </span>
               Cancelled
-              </Span>
+            </Span>
             <Span>
               <span
                 className={css`
-                 color: ${colors.taskState.error};
-                  `}
+                  color: ${colors.taskState.error};
+                `}
               >
                 —{" "}
               </span>
               Error
-              </Span>
+            </Span>
           </div>
         </div>
       </Card>

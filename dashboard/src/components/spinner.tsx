@@ -18,11 +18,11 @@ export interface SpinnerProps {
 
 // From https://projects.lukehaas.me/css-loaders/
 const Spinner = styled<any, SpinnerProps>("div")`
-  font-size: ${props => props.fontSize || "6px"};
+  font-size: ${(props) => props.fontSize || "6px"};
   margin: 50px auto;
   text-indent: -9999em;
-  width: ${props => props.size || "4.5rem"};
-  height: ${props => props.size || "4.5rem"};
+  width: ${(props) => props.size || "4.5rem"};
+  height: ${(props) => props.size || "4.5rem"};
   border-radius: 50%;
   background: ${colors.gardenPink};
   background: linear-gradient(to right, ${colors.gardenPink} 10%, ${colors.gardenPinkRgba} 42%);
@@ -40,14 +40,14 @@ const Spinner = styled<any, SpinnerProps>("div")`
     position: absolute;
     top: 0;
     left: 0;
-    content: '';
+    content: "";
   }
   :after {
-    background: ${props => props.background || colors.grayLight};
+    background: ${(props) => props.background || colors.grayLight};
     width: 75%;
     height: 75%;
     border-radius: 50%;
-    content: '';
+    content: "";
     margin: auto;
     position: absolute;
     top: 0;

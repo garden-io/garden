@@ -10,14 +10,8 @@ import { uniqBy } from "lodash"
 import chalk from "chalk"
 import pathIsInside = require("path-is-inside")
 
-import {
-  PROJECT_SOURCES_DIR_NAME,
-  MODULE_SOURCES_DIR_NAME,
-} from "../constants"
-import {
-  LinkedSource,
-  localConfigKeys,
-} from "../config-store"
+import { PROJECT_SOURCES_DIR_NAME, MODULE_SOURCES_DIR_NAME } from "../constants"
+import { LinkedSource, localConfigKeys } from "../config-store"
 import { ParameterError } from "../exceptions"
 import { Module } from "../types/module"
 import { join } from "path"
@@ -34,8 +28,15 @@ export function getRemoteSourcesDirname(type: ExternalSourceType): string {
  * A remote source dir name has the format 'source-name--HASH_OF_REPO_URL'
  * so that we can detect if the repo url has changed
  */
-export function getRemoteSourceRelPath({ name, url, sourceType }:
-  { name: string, url: string, sourceType: ExternalSourceType }) {
+export function getRemoteSourceRelPath({
+  name,
+  url,
+  sourceType,
+}: {
+  name: string
+  url: string
+  sourceType: ExternalSourceType
+}) {
   const dirname = name + "--" + hashRepoUrl(url)
   return join(getRemoteSourcesDirname(sourceType), dirname)
 }
@@ -77,29 +78,38 @@ export async function getLinkedSources(garden: Garden, type?: ExternalSourceType
   }
 }
 
-export async function addLinkedSources({ garden, sourceType, sources }: {
-  garden: Garden,
-  sourceType: ExternalSourceType,
-  sources: LinkedSource[],
+export async function addLinkedSources({
+  garden,
+  sourceType,
+  sources,
+}: {
+  garden: Garden
+  sourceType: ExternalSourceType
+  sources: LinkedSource[]
 }): Promise<LinkedSource[]> {
-  const linked = uniqBy([...await getLinkedSources(garden, sourceType), ...sources], "name")
+  const linked = uniqBy([...(await getLinkedSources(garden, sourceType)), ...sources], "name")
   await garden.configStore.set([getConfigKey(sourceType)], linked)
   return linked
 }
 
-export async function removeLinkedSources({ garden, sourceType, names }: {
-  garden: Garden,
-  sourceType: ExternalSourceType,
-  names: string[],
+export async function removeLinkedSources({
+  garden,
+  sourceType,
+  names,
+}: {
+  garden: Garden
+  sourceType: ExternalSourceType
+  names: string[]
 }): Promise<LinkedSource[]> {
   const currentlyLinked = await getLinkedSources(garden, sourceType)
-  const currentNames = currentlyLinked.map(s => s.name)
+  const currentNames = currentlyLinked.map((s) => s.name)
 
   for (const name of names) {
     if (!currentNames.includes(name)) {
-      const msg = sourceType === "project"
-        ? `Source ${chalk.underline(name)} is not linked. Did you mean to unlink a module?`
-        : `Module ${chalk.underline(name)} is not linked. Did you mean to unlink a source?`
+      const msg =
+        sourceType === "project"
+          ? `Source ${chalk.underline(name)} is not linked. Did you mean to unlink a module?`
+          : `Module ${chalk.underline(name)} is not linked. Did you mean to unlink a source?`
       const errorKey = sourceType === "project" ? "currentlyLinkedSources" : "currentlyLinkedModules"
 
       throw new ParameterError(msg, { [errorKey]: currentNames, input: names })

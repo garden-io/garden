@@ -97,10 +97,10 @@ export async function ensureSecret(api: KubeApi, secretRef: ProviderSecretRef, t
     if (err.code === 404) {
       throw new ConfigurationError(
         `Could not find secret '${secretRef.name}' in namespace '${secretRef.namespace}'. ` +
-        `Have you correctly configured your secrets?`,
+          `Have you correctly configured your secrets?`,
         {
           secretRef,
-        },
+        }
       )
     } else {
       throw err

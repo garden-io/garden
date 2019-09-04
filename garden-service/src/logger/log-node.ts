@@ -37,11 +37,7 @@ export abstract class LogNode {
   public readonly key: string
   public readonly children: LogEntry[]
 
-  constructor(
-    public readonly level: LogLevel,
-    public readonly parent?: LogEntry,
-    public readonly id?: string,
-  ) {
+  constructor(public readonly level: LogLevel, public readonly parent?: LogEntry, public readonly id?: string) {
     this.key = uniqid()
     this.timestamp = Date.now()
     this.children = []
@@ -93,5 +89,4 @@ export abstract class LogNode {
   getDuration(precision: number = 2): number {
     return round((Date.now() - this.timestamp) / 1000, precision)
   }
-
 }

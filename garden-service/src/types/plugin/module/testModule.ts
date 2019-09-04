@@ -37,10 +37,9 @@ export const testModule = {
     well as any runtime dependencies configured for the test, so it may not match the current version
     of the module itself.
   `,
-  paramsSchema: runModuleBaseSchema
-    .keys({
-      testConfig: testConfigSchema,
-      testVersion: testVersionSchema,
-    }),
+  paramsSchema: runModuleBaseSchema.keys({
+    testConfig: testConfigSchema,
+    testVersion: testVersionSchema,
+  }),
   resultSchema: testResultSchema,
 }

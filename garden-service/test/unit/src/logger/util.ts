@@ -14,9 +14,7 @@ describe("util", () => {
           {
             children: [
               {
-                children: [
-                  { children: [], id: 3 },
-                ],
+                children: [{ children: [], id: 3 }],
                 id: 2,
               },
               { children: [], id: 4 },
@@ -25,16 +23,14 @@ describe("util", () => {
             id: 1,
           },
           {
-            children: [
-
-            ],
+            children: [],
             id: 6,
           },
         ],
         id: 0,
       }
       const nodeList = getChildNodes<TestNode, TestNode>(graph)
-      expect(nodeList.map(n => n.id)).to.eql([1, 2, 3, 4, 5, 6])
+      expect(nodeList.map((n) => n.id)).to.eql([1, 2, 3, 4, 5, 6])
     })
   })
 })

@@ -26,7 +26,6 @@ export const runService = {
 
     Called by the \`garden run service\` command.
   `,
-  paramsSchema: serviceActionParamsSchema
-    .keys(runBaseParams),
+  paramsSchema: serviceActionParamsSchema.keys(runBaseParams),
   resultSchema: runResultSchema,
 }

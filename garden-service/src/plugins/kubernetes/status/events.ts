@@ -23,10 +23,11 @@ export async function getResourceEvents(api: KubeApi, resource: KubernetesResour
 
   const events = res.items
     // Filter out old events (relating to prior versions of the resource)
-    .filter(e =>
-      !minVersion
-      || !e.involvedObject!.resourceVersion
-      || parseInt(e.involvedObject!.resourceVersion, 10) > minVersion,
+    .filter(
+      (e) =>
+        !minVersion ||
+        !e.involvedObject!.resourceVersion ||
+        parseInt(e.involvedObject!.resourceVersion, 10) > minVersion
     )
 
   return events

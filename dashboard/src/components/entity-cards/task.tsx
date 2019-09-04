@@ -15,28 +15,15 @@ import { TertiaryButton } from "../button"
 import { css } from "emotion"
 import { SelectEntity } from "../../contexts/ui"
 import { Test, Task } from "../../contexts/api"
-import {
-  EntityCardWrap,
-  Header,
-  Label,
-  Name,
-  StateLabel,
-  Content,
-} from "./common"
+import { EntityCardWrap, Header, Label, Name, StateLabel, Content } from "./common"
 
-export type Props = Pick<Task["config"],
-  "name" |
-  "dependencies"
-> & Pick<Test["status"],
-  "state" |
-  "startedAt" |
-  "completedAt"
-> & {
-  moduleName: string,
-  isLoading: boolean,
-  showInfo: boolean,
-  onEntitySelected: SelectEntity,
-}
+export type Props = Pick<Task["config"], "name" | "dependencies"> &
+  Pick<Test["status"], "state" | "startedAt" | "completedAt"> & {
+    moduleName: string
+    isLoading: boolean
+    showInfo: boolean
+    onEntitySelected: SelectEntity
+  }
 
 // FIXME: Use a single card for Test and Task, they're basically the same.
 export const TaskCard = ({
@@ -69,26 +56,17 @@ export const TaskCard = ({
           <Label>TASK</Label>
           <Name>{name}</Name>
         </div>
-        {state && (
-          <StateLabel state={state}>
-            {state}
-          </StateLabel>
-        )}
+        {state && <StateLabel state={state}>{state}</StateLabel>}
       </Header>
       <Content>
-        {isLoading && (
-          <ContentLoader height={100} />
-        )}
+        {isLoading && <ContentLoader height={100} />}
         {!isLoading && (
           <FieldWrap visible={showInfo}>
             <Field inline visible={dependencies.length > 0}>
               <Key>Depends on:</Key>
               <Value>{dependencies.join(", ")}</Value>
             </Field>
-            <FieldGroup
-              className="row between-xs middle-xs"
-              visible={!!startedAt}
-            >
+            <FieldGroup className="row between-xs middle-xs" visible={!!startedAt}>
               <Field inline className="col-xs" visible={!!startedAt}>
                 <Key>Ran:</Key>
                 <Value>{moment(startedAt).fromNow()}</Value>
@@ -103,7 +81,7 @@ export const TaskCard = ({
                 <TertiaryButton
                   onClick={handleEntitySelected}
                   className={css`
-                    margin-top: .5rem;
+                    margin-top: 0.5rem;
                   `}
                 >
                   Show result

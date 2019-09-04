@@ -18,7 +18,7 @@ import { writeTreeVersionFile } from "../vcs/vcs"
 // make sure logger is initialized
 try {
   Logger.initialize({ level: LogLevel.info })
-} catch (_) { }
+} catch (_) {}
 
 /**
  * Write .garden-version files for modules in garden-system/static.
@@ -41,8 +41,7 @@ async function addVersionFiles() {
   })
 }
 
-addVersionFiles()
-  .catch(err => {
-    console.error(err)
-    process.exit(1)
-  })
+addVersionFiles().catch((err) => {
+  console.error(err)
+  process.exit(1)
+})

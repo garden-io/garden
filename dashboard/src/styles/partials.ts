@@ -44,24 +44,13 @@ const responsiveImage = css`
 const withoutLhTopSpace = (fontSize, lineHeight) => {
   return css`
     &::before {
-      content: '';
+      content: "";
       display: block;
       height: 0;
       width: 0;
-      margin-top: calc(
-        (1 - ${parseFloat(String(lineHeight / fontSize))}) *
-          ${parseFloat(String(fontSize / 2))}rem
-      );
+      margin-top: calc((1 - ${parseFloat(String(lineHeight / fontSize))}) * ${parseFloat(String(fontSize / 2))}rem);
     }
   `
 }
 
-export {
-  clickable,
-  noWarp,
-  useWhiteSpaces,
-  truncate,
-  breakWords,
-  responsiveImage,
-  withoutLhTopSpace,
-}
+export { clickable, noWarp, useWhiteSpaces, truncate, breakWords, responsiveImage, withoutLhTopSpace }

@@ -131,26 +131,34 @@ export class DeployCommand extends Command<Args, Opts> {
       footerLog,
       services,
       watch,
-      handler: async (graph, module) => getDependantTasksForModule({
-        garden,
-        graph,
-        log,
-        module,
-        fromWatch: false,
-        hotReloadServiceNames,
-        force: opts.force,
-        forceBuild: opts["force-build"],
-      }),
+      handler: async (graph, module) =>
+        getDependantTasksForModule({
+          garden,
+          graph,
+          log,
+          module,
+          fromWatch: false,
+          hotReloadServiceNames,
+          force: opts.force,
+          forceBuild: opts["force-build"],
+        }),
       changeHandler: async (graph, module) => {
         const tasks: BaseTask[] = await getDependantTasksForModule({
-          garden, graph, log, module, hotReloadServiceNames, force: true, forceBuild: opts["force-build"],
-          fromWatch: true, includeDependants: true,
+          garden,
+          graph,
+          log,
+          module,
+          hotReloadServiceNames,
+          force: true,
+          forceBuild: opts["force-build"],
+          fromWatch: true,
+          includeDependants: true,
         })
 
         const hotReloadServices = await graph.getServices(hotReloadServiceNames)
         const hotReloadTasks = hotReloadServices
-          .filter(service => service.module.name === module.name || service.sourceModule.name === module.name)
-          .map(service => new HotReloadTask({ garden, graph, log, service, force: true }))
+          .filter((service) => service.module.name === module.name || service.sourceModule.name === module.name)
+          .map((service) => new HotReloadTask({ garden, graph, log, service, force: true }))
 
         tasks.push(...hotReloadTasks)
 

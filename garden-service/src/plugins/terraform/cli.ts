@@ -13,7 +13,10 @@ export function terraform(version: string) {
   const cli = terraformClis[version]
 
   if (!cli) {
-    throw new ConfigurationError(`Unsupported Terraform version: ${version}`, { version, supportedVersions })
+    throw new ConfigurationError(`Unsupported Terraform version: ${version}`, {
+      version,
+      supportedVersions,
+    })
   }
 
   return cli

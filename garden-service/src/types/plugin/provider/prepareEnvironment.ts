@@ -18,7 +18,7 @@ export interface PrepareEnvironmentParams extends PluginActionParamsBase {
 }
 
 export interface PrepareEnvironmentResult {
-  status: EnvironmentStatus,
+  status: EnvironmentStatus
 }
 
 export const prepareEnvironment = {
@@ -29,14 +29,11 @@ export const prepareEnvironment = {
     Called ahead of any service runtime actions (such as \`deployService\`,
     \`runModule\` and \`testModule\`), unless \`getEnvironmentStatus\` returns \`ready: true\`.
   `,
-  paramsSchema: actionParamsSchema
-    .keys({
-      force: joi.boolean()
-        .description("Force re-configuration of the environment."),
-      status: environmentStatusSchema,
-    }),
-  resultSchema: joi.object()
-    .keys({
-      status: environmentStatusSchema,
-    }),
+  paramsSchema: actionParamsSchema.keys({
+    force: joi.boolean().description("Force re-configuration of the environment."),
+    status: environmentStatusSchema,
+  }),
+  resultSchema: joi.object().keys({
+    status: environmentStatusSchema,
+  }),
 }

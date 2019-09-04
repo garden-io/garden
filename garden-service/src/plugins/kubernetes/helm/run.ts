@@ -20,11 +20,17 @@ import { uniqByName } from "../../../util/util"
 import { prepareEnvVars } from "../util"
 import { V1PodSpec } from "@kubernetes/client-node"
 
-export async function runHelmModule(
-  {
-    ctx, module, args, command, ignoreError = true, interactive, runtimeContext, timeout, log,
-  }: RunModuleParams<HelmModule>,
-): Promise<RunResult> {
+export async function runHelmModule({
+  ctx,
+  module,
+  args,
+  command,
+  ignoreError = true,
+  interactive,
+  runtimeContext,
+  timeout,
+  log,
+}: RunModuleParams<HelmModule>): Promise<RunResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const namespace = await getAppNamespace(k8sCtx, log, provider)
@@ -33,25 +39,33 @@ export async function runHelmModule(
   if (!resourceSpec) {
     throw new ConfigurationError(
       `Helm module ${module.name} does not specify a \`serviceResource\`. ` +
-      `Please configure that in order to run the module ad-hoc.`,
-      { moduleName: module.name },
+        `Please configure that in order to run the module ad-hoc.`,
+      { moduleName: module.name }
     )
   }
 
   const chartResources = await getChartResources(k8sCtx, module, log)
-  const target = await findServiceResource({ ctx: k8sCtx, log, chartResources, module, resourceSpec })
+  const target = await findServiceResource({
+    ctx: k8sCtx,
+    log,
+    chartResources,
+    module,
+    resourceSpec,
+  })
   const container = getResourceContainer(target, resourceSpec.containerName)
 
   // Apply overrides
-  const env = uniqByName([...prepareEnvVars(runtimeContext.envVars), ...container.env || []])
+  const env = uniqByName([...prepareEnvVars(runtimeContext.envVars), ...(container.env || [])])
 
   const spec: V1PodSpec = {
-    containers: [{
-      ...container,
-      ...command && { command },
-      ...args && { args },
-      env,
-    }],
+    containers: [
+      {
+        ...container,
+        ...(command && { command }),
+        ...(args && { args }),
+        env,
+      },
+    ],
   }
 
   return runPod({
@@ -67,9 +81,15 @@ export async function runHelmModule(
   })
 }
 
-export async function runHelmTask(
-  { ctx, log, module, task, taskVersion, interactive, timeout }: RunTaskParams<HelmModule>,
-): Promise<RunTaskResult> {
+export async function runHelmTask({
+  ctx,
+  log,
+  module,
+  task,
+  taskVersion,
+  interactive,
+  timeout,
+}: RunTaskParams<HelmModule>): Promise<RunTaskResult> {
   // TODO: deduplicate this from testHelmModule
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
@@ -78,21 +98,29 @@ export async function runHelmTask(
   const { command, args } = task.spec
   const chartResources = await getChartResources(k8sCtx, module, log)
   const resourceSpec = task.spec.resource || getServiceResourceSpec(module)
-  const target = await findServiceResource({ ctx: k8sCtx, log, chartResources, module, resourceSpec })
+  const target = await findServiceResource({
+    ctx: k8sCtx,
+    log,
+    chartResources,
+    module,
+    resourceSpec,
+  })
   const container = getResourceContainer(target, resourceSpec.containerName)
 
   // Apply overrides
-  const env = uniqByName([...prepareEnvVars(task.spec.env), ...container.env || []])
+  const env = uniqByName([...prepareEnvVars(task.spec.env), ...(container.env || [])])
 
   const spec: V1PodSpec = {
-    containers: [{
-      ...container,
-      ...command && { command },
-      ...args && { args },
-      env,
-      // TODO: consider supporting volume mounts in ad-hoc runs (would need specific logic and testing)
-      volumeMounts: [],
-    }],
+    containers: [
+      {
+        ...container,
+        ...(command && { command }),
+        ...(args && { args }),
+        env,
+        // TODO: consider supporting volume mounts in ad-hoc runs (would need specific logic and testing)
+        volumeMounts: [],
+      },
+    ],
   }
 
   const res = await runPod({

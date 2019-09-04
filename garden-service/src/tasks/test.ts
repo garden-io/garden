@@ -93,15 +93,16 @@ export class TestTask extends BaseTask {
       })
     })
 
-    const serviceTasks = deps.service.map(service =>
-      new DeployTask({
-        garden: this.garden,
-        graph: this.graph,
-        log: this.log,
-        service,
-        force: false,
-        forceBuild: this.forceBuild,
-      }),
+    const serviceTasks = deps.service.map(
+      (service) =>
+        new DeployTask({
+          garden: this.garden,
+          graph: this.graph,
+          log: this.log,
+          service,
+          force: false,
+          forceBuild: this.forceBuild,
+        })
     )
 
     return [buildTask, ...serviceTasks, ...taskTasks]
@@ -124,7 +125,10 @@ export class TestTask extends BaseTask {
         section: this.module.name,
         msg: `${this.testConfig.name} tests`,
       })
-      passedEntry.setSuccess({ msg: chalk.green("Already passed"), append: true })
+      passedEntry.setSuccess({
+        msg: chalk.green("Already passed"),
+        append: true,
+      })
       return testResult
     }
 
@@ -165,9 +169,15 @@ export class TestTask extends BaseTask {
       throw err
     }
     if (result.success) {
-      log.setSuccess({ msg: chalk.green(`Success (took ${log.getDuration(1)} sec)`), append: true })
+      log.setSuccess({
+        msg: chalk.green(`Success (took ${log.getDuration(1)} sec)`),
+        append: true,
+      })
     } else {
-      log.setError({ msg: chalk.red(`Failed! (took ${log.getDuration(1)} sec)`), append: true })
+      log.setError({
+        msg: chalk.red(`Failed! (took ${log.getDuration(1)} sec)`),
+        append: true,
+      })
       throw new TestError(result.log)
     }
 
@@ -190,45 +200,54 @@ export class TestTask extends BaseTask {
   }
 }
 
-export async function getTestTasks(
-  { garden, log, graph, module, filterNames, force = false, forceBuild = false }:
-    {
-      garden: Garden,
-      log: LogEntry,
-      graph: ConfigGraph,
-      module: Module,
-      filterNames?: string[],
-      force?: boolean,
-      forceBuild?: boolean,
-    },
-) {
-
+export async function getTestTasks({
+  garden,
+  log,
+  graph,
+  module,
+  filterNames,
+  force = false,
+  forceBuild = false,
+}: {
+  garden: Garden
+  log: LogEntry
+  graph: ConfigGraph
+  module: Module
+  filterNames?: string[]
+  force?: boolean
+  forceBuild?: boolean
+}) {
   // If there are no filters we return the test otherwise
   // we check if the test name matches against the filterNames array
   const configs = module.testConfigs.filter(
-    test => !filterNames || filterNames.length === 0
-      || find(filterNames, (n: string) => minimatch(test.name, n)))
+    (test) => !filterNames || filterNames.length === 0 || find(filterNames, (n: string) => minimatch(test.name, n))
+  )
 
-  return Bluebird.map(configs, test => TestTask.factory({
-    garden,
-    graph,
-    log,
-    force,
-    forceBuild,
-    testConfig: test,
-    module,
-  }))
+  return Bluebird.map(configs, (test) =>
+    TestTask.factory({
+      garden,
+      graph,
+      log,
+      force,
+      forceBuild,
+      testConfig: test,
+      module,
+    })
+  )
 }
 
 /**
  * Determine the version of the test run, based on the version of the module and each of its dependencies.
  */
 export async function getTestVersion(
-  garden: Garden, graph: ConfigGraph, module: Module, testConfig: TestConfig,
+  garden: Garden,
+  graph: ConfigGraph,
+  module: Module,
+  testConfig: TestConfig
 ): Promise<ModuleVersion> {
   const moduleDeps = (await graph.resolveDependencyModules(module.build.dependencies, testConfig.dependencies))
     // Don't include the module itself in the dependencies here
-    .filter(m => m.name !== module.name)
+    .filter((m) => m.name !== module.name)
 
   return garden.resolveVersion(module.name, moduleDeps)
 }

@@ -19,10 +19,11 @@ describe("ConfigGraph", () => {
 
     await expectError(
       () => garden.getConfigGraph(),
-      err => expect(err.message).to.equal(
-        "Service names must be unique - the service name 'dupe' is declared multiple times " +
-        "(in modules 'module-a' and 'module-b')",
-      ),
+      (err) =>
+        expect(err.message).to.equal(
+          "Service names must be unique - the service name 'dupe' is declared multiple times " +
+            "(in modules 'module-a' and 'module-b')"
+        )
     )
   })
 
@@ -31,10 +32,11 @@ describe("ConfigGraph", () => {
 
     await expectError(
       () => garden.getConfigGraph(),
-      err => expect(err.message).to.equal(
-        "Task names must be unique - the task name 'dupe' is declared multiple times " +
-        "(in modules 'module-a' and 'module-b')",
-      ),
+      (err) =>
+        expect(err.message).to.equal(
+          "Task names must be unique - the task name 'dupe' is declared multiple times " +
+            "(in modules 'module-a' and 'module-b')"
+        )
     )
   })
 
@@ -43,10 +45,11 @@ describe("ConfigGraph", () => {
 
     await expectError(
       () => garden.getConfigGraph(),
-      err => expect(err.message).to.equal(
-        "Service and task names must be mutually unique - the name 'dupe' is used for a task " +
-        "in 'module-b' and for a service in 'module-a'",
-      ),
+      (err) =>
+        expect(err.message).to.equal(
+          "Service and task names must be mutually unique - the name 'dupe' is used for a task " +
+            "in 'module-b' and for a service in 'module-a'"
+        )
     )
   })
 

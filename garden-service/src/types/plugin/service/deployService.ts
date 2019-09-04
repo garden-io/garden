@@ -15,9 +15,9 @@ import { joi } from "../../../config/common"
 
 export interface DeployServiceParams<M extends Module = Module, S extends Module = Module>
   extends PluginServiceActionParamsBase<M, S> {
-  force: boolean,
-  hotReload: boolean,
-  runtimeContext: RuntimeContext,
+  force: boolean
+  hotReload: boolean
+  runtimeContext: RuntimeContext
 }
 
 export const deployService = {
@@ -27,14 +27,13 @@ export const deployService = {
 
     Called by the \`garden deploy\` and \`garden dev\` commands.
   `,
-  paramsSchema: serviceActionParamsSchema
-    .keys({
-      force: joi.boolean()
-        .description("Whether to force a re-deploy, even if the service is already deployed."),
-      runtimeContext: runtimeContextSchema,
-      hotReload: joi.boolean()
-        .default(false)
-        .description("Whether to configure the service for hot-reloading."),
-    }),
+  paramsSchema: serviceActionParamsSchema.keys({
+    force: joi.boolean().description("Whether to force a re-deploy, even if the service is already deployed."),
+    runtimeContext: runtimeContextSchema,
+    hotReload: joi
+      .boolean()
+      .default(false)
+      .description("Whether to configure the service for hot-reloading."),
+  }),
   resultSchema: serviceStatusSchema,
 }

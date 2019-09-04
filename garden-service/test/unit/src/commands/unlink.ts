@@ -81,9 +81,7 @@ describe("UnlinkCommand", () => {
         opts: withDefaultGlobalOpts({ all: false }),
       })
       const { linkedModuleSources } = await garden.configStore.get()
-      expect(linkedModuleSources).to.eql([
-        { name: "module-c", path: linkedModulePathC },
-      ])
+      expect(linkedModuleSources).to.eql([{ name: "module-c", path: linkedModulePathC }])
     })
 
     it("should unlink all modules", async () => {
@@ -162,9 +160,7 @@ describe("UnlinkCommand", () => {
         opts: withDefaultGlobalOpts({ all: false }),
       })
       const { linkedProjectSources } = await garden.configStore.get()
-      expect(linkedProjectSources).to.eql([
-        { name: "source-c", path: linkedSourcePathC },
-      ])
+      expect(linkedProjectSources).to.eql([{ name: "source-c", path: linkedSourcePathC }])
     })
 
     it("should unlink all sources", async () => {

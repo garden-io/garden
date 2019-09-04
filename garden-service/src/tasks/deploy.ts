@@ -42,9 +42,16 @@ export class DeployTask extends BaseTask {
   private fromWatch: boolean
   private hotReloadServiceNames: string[]
 
-  constructor(
-    { garden, graph, log, service, force, forceBuild, fromWatch = false, hotReloadServiceNames = [] }: DeployTaskParams,
-  ) {
+  constructor({
+    garden,
+    graph,
+    log,
+    service,
+    force,
+    forceBuild,
+    fromWatch = false,
+    hotReloadServiceNames = [],
+  }: DeployTaskParams) {
     super({ garden, log, force, version: service.module.version })
     this.graph = graph
     this.service = service
@@ -57,10 +64,14 @@ export class DeployTask extends BaseTask {
     const dg = this.graph
 
     // We filter out service dependencies on services configured for hot reloading (if any)
-    const deps = await dg.getDependencies("service", this.getName(), false,
-      (depNode) => !(depNode.type === "service" && includes(this.hotReloadServiceNames, depNode.name)))
+    const deps = await dg.getDependencies(
+      "service",
+      this.getName(),
+      false,
+      (depNode) => !(depNode.type === "service" && includes(this.hotReloadServiceNames, depNode.name))
+    )
 
-    const tasks: BaseTask[] = deps.service.map(service => {
+    const tasks: BaseTask[] = deps.service.map((service) => {
       return new DeployTask({
         garden: this.garden,
         graph: this.graph,
@@ -73,14 +84,16 @@ export class DeployTask extends BaseTask {
       })
     })
 
-    tasks.push(new GetServiceStatusTask({
-      garden: this.garden,
-      graph: this.graph,
-      log: this.log,
-      service: this.service,
-      force: false,
-      hotReloadServiceNames: this.hotReloadServiceNames,
-    }))
+    tasks.push(
+      new GetServiceStatusTask({
+        garden: this.garden,
+        graph: this.graph,
+        log: this.log,
+        service: this.service,
+        force: false,
+        hotReloadServiceNames: this.hotReloadServiceNames,
+      })
+    )
 
     if (this.fromWatch && includes(this.hotReloadServiceNames, this.service.name)) {
       // Only need to get existing statuses and results when hot-reloading
@@ -95,7 +108,6 @@ export class DeployTask extends BaseTask {
       })
 
       return [...tasks, ...taskResultTasks]
-
     } else {
       const taskTasks = await Bluebird.map(deps.task, (task) => {
         return TaskTask.factory({
@@ -160,11 +172,7 @@ export class DeployTask extends BaseTask {
       msg: `Deploying version ${versionString}...`,
     })
 
-    if (
-      !this.force &&
-      versionString === status.version &&
-      status.state === "ready"
-    ) {
+    if (!this.force && versionString === status.version && status.state === "ready") {
       // already deployed and ready
       log.setSuccess({
         msg: `Version ${versionString} already deployed`,
@@ -184,7 +192,10 @@ export class DeployTask extends BaseTask {
         throw err
       }
 
-      log.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
+      log.setSuccess({
+        msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
+        append: true,
+      })
     }
 
     for (const ingress of status.ingresses || []) {
@@ -197,12 +208,14 @@ export class DeployTask extends BaseTask {
       for (const proxy of proxies) {
         const targetHost = proxy.spec.targetHostname || this.service.name
 
-        log.info(chalk.gray(
-          `→ Forward: `
-          + chalk.underline(proxy.localUrl)
-          + ` → ${targetHost}:${proxy.spec.targetPort}`
-          + (proxy.spec.name ? ` (${proxy.spec.name})` : ""),
-        ))
+        log.info(
+          chalk.gray(
+            `→ Forward: ` +
+              chalk.underline(proxy.localUrl) +
+              ` → ${targetHost}:${proxy.spec.targetPort}` +
+              (proxy.spec.name ? ` (${proxy.spec.name})` : "")
+          )
+        )
       }
     }
 

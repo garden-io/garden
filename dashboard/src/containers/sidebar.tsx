@@ -61,13 +61,15 @@ const SidebarContainer = () => {
 
   let pages: Page[] = []
 
-  pages = flatten(entries(providers).map(([providerName, providerStatus]) => {
-    return (providerStatus.dashboardPages || []).map(p => ({
-      ...p,
-      path: `/provider/${providerName}/${kebabCase(p.title)}`,
-      description: p.description + ` (from provider ${providerName})`,
-    }))
-  }))
+  pages = flatten(
+    entries(providers).map(([providerName, providerStatus]) => {
+      return (providerStatus.dashboardPages || []).map((p) => ({
+        ...p,
+        path: `/provider/${providerName}/${kebabCase(p.title)}`,
+        description: p.description + ` (from provider ${providerName})`,
+      }))
+    })
+  )
 
   return <Sidebar pages={[...builtinPages, ...pages]} />
 }

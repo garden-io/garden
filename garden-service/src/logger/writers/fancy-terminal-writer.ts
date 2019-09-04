@@ -12,20 +12,11 @@ import elegantSpinner from "elegant-spinner"
 import wrapAnsi from "wrap-ansi"
 import chalk from "chalk"
 
-import {
-  formatForTerminal,
-  leftPad,
-  renderMsg,
-  basicRender,
-} from "../renderers"
+import { formatForTerminal, leftPad, renderMsg, basicRender } from "../renderers"
 import { LogEntry } from "../log-entry"
 import { Logger } from "../logger"
 import { LogLevel } from "../log-node"
-import {
-  getChildEntries,
-  getTerminalWidth,
-  interceptStream,
-} from "../util"
+import { getChildEntries, getTerminalWidth, interceptStream } from "../util"
 import { Writer } from "./base"
 
 const INTERVAL_MS = 60
@@ -76,7 +67,7 @@ export class FancyTerminalWriter extends Writer {
       write: (str, enc, cb) => (<any>process.stdout.write)(str, enc, cb, { noIntercept: true }),
     }
 
-    const onIntercept = msg => logger.info({ msg, fromStdStream: true })
+    const onIntercept = (msg) => logger.info({ msg, fromStdStream: true })
 
     const restoreStreamFns = [
       interceptStream(process.stdout, onIntercept),
@@ -85,14 +76,14 @@ export class FancyTerminalWriter extends Writer {
 
     stream.cleanUp = () => {
       cliCursor.show(this.stream)
-      restoreStreamFns.forEach(restoreStream => restoreStream())
+      restoreStreamFns.forEach((restoreStream) => restoreStream())
     }
 
     return stream
   }
 
   private spin(entries: TerminalEntryWithSpinner[], totalLines: number): void {
-    entries.forEach(e => {
+    entries.forEach((e) => {
       let out = ""
       const x = e.spinnerCoords[0]
       const y = -(totalLines - e.spinnerCoords[1] - 1)
@@ -107,10 +98,7 @@ export class FancyTerminalWriter extends Writer {
 
   private startLoop(entries: TerminalEntryWithSpinner[], totalLines: number): void {
     this.stopLoop()
-    this.intervalID = setInterval(
-      () => this.spin(entries, totalLines),
-      INTERVAL_MS,
-    )
+    this.intervalID = setInterval(() => this.spin(entries, totalLines), INTERVAL_MS)
   }
 
   private stopLoop(): void {
@@ -132,9 +120,7 @@ export class FancyTerminalWriter extends Writer {
 
     const lineNumber = output.length >= this.prevOutput.length ? nextEntry.lineNumber : 0
     const nLinesToErase = this.prevOutput.length - lineNumber
-    this.stream.write(
-      ansiEscapes.eraseLines(nLinesToErase) + output.slice(lineNumber).join("\n"),
-    )
+    this.stream.write(ansiEscapes.eraseLines(nLinesToErase) + output.slice(lineNumber).join("\n"))
   }
 
   private handleGraphChange(log: LogEntry, logger: Logger, didWrite: boolean = false) {
@@ -143,7 +129,7 @@ export class FancyTerminalWriter extends Writer {
     // Suspend processing and write immediately if a lot of data is being intercepted, e.g. when user is typing in input
     if (log.fromStdStream && !didWrite) {
       const now = Date.now()
-      const throttleProcessing = this.lastInterceptAt && (now - this.lastInterceptAt) < THROTTLE_MS
+      const throttleProcessing = this.lastInterceptAt && now - this.lastInterceptAt < THROTTLE_MS
       this.lastInterceptAt = now
 
       if (throttleProcessing) {
@@ -162,7 +148,7 @@ export class FancyTerminalWriter extends Writer {
     }
 
     const terminalEntries = this.toTerminalEntries(logger)
-    const nextEntry = terminalEntries.find(e => e.key === log.key)
+    const nextEntry = terminalEntries.find((e) => e.key === log.key)
 
     // Nothing to do, e.g. because entry level is higher than writer level
     if (!nextEntry) {
@@ -174,7 +160,7 @@ export class FancyTerminalWriter extends Writer {
       this.write(output, nextEntry)
     }
 
-    const entriesWithspinner = <TerminalEntryWithSpinner[]>terminalEntries.filter(e => e.spinnerCoords)
+    const entriesWithspinner = <TerminalEntryWithSpinner[]>terminalEntries.filter((e) => e.spinnerCoords)
 
     if (entriesWithspinner.length > 0) {
       this.startLoop(entriesWithspinner, output.length)
@@ -189,7 +175,7 @@ export class FancyTerminalWriter extends Writer {
     let currentLineNumber = 0
 
     return getChildEntries(logger)
-      .filter(entry => logger.level >= entry.level)
+      .filter((entry) => logger.level >= entry.level)
       .reduce((acc: TerminalEntry[], entry: LogEntry): TerminalEntry[] => {
         let spinnerFrame = ""
         let spinnerX
@@ -204,17 +190,17 @@ export class FancyTerminalWriter extends Writer {
         }
 
         const text = [entry]
-          .map(e => e.fromStdStream ? renderMsg(e) : formatForTerminal(e, "fancy"))
-          .map(str => (
-            spinnerFrame
-              ? `${str.slice(0, spinnerX)}${spinnerStyle(spinnerFrame)} ${str.slice(spinnerX)}`
-              : str
-          ))
-          .map(str => wrapAnsi(str, getTerminalWidth(this.stream), {
-            trim: false,
-            hard: true,
-            wordWrap: false,
-          }))
+          .map((e) => (e.fromStdStream ? renderMsg(e) : formatForTerminal(e, "fancy")))
+          .map((str) =>
+            spinnerFrame ? `${str.slice(0, spinnerX)}${spinnerStyle(spinnerFrame)} ${str.slice(spinnerX)}` : str
+          )
+          .map((str) =>
+            wrapAnsi(str, getTerminalWidth(this.stream), {
+              trim: false,
+              hard: true,
+              wordWrap: false,
+            })
+          )
           .pop()!
 
         if (text) {
@@ -233,7 +219,10 @@ export class FancyTerminalWriter extends Writer {
   }
 
   public render(terminalEntries: TerminalEntry[]): string[] {
-    return terminalEntries.map(e => e.text).join("").split("\n")
+    return terminalEntries
+      .map((e) => e.text)
+      .join("")
+      .split("\n")
   }
 
   public onGraphChange(entry: LogEntry, logger: Logger): void {
@@ -257,5 +246,4 @@ export class FancyTerminalWriter extends Writer {
     this.stopLoop()
     this.stream && this.stream.cleanUp()
   }
-
 }

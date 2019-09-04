@@ -7,10 +7,10 @@ import { getLogger } from "../../../../../src/logger/logger"
 import { renderError } from "../../../../../src/logger/renderers"
 import { render } from "../../../../../src/logger/writers/file-writer"
 
-const logger = getLogger()
+const logger: any = getLogger()
 
 beforeEach(() => {
-  (<any>logger).children = []
+  logger.children = []
 })
 
 describe("FileWriter", () => {

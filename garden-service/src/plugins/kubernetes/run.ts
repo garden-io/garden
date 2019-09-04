@@ -16,43 +16,41 @@ import { KubernetesProvider } from "./config"
 import { Writable } from "stream"
 
 interface RunPodParams {
-  provider: KubernetesProvider,
-  image: string,
-  interactive: boolean,
-  ignoreError: boolean,
-  log: LogEntry,
-  module: Module,
-  namespace: string,
+  provider: KubernetesProvider
+  image: string
+  interactive: boolean
+  ignoreError: boolean
+  log: LogEntry
+  module: Module
+  namespace: string
   annotations?: { [key: string]: string }
-  spec: V1PodSpec,
-  outputStream?: Writable,
-  podName?: string,
-  timeout?: number,
+  spec: V1PodSpec
+  outputStream?: Writable
+  podName?: string
+  timeout?: number
 }
 
-export async function runPod(
-  {
-    provider,
-    ignoreError,
-    image,
-    interactive,
-    log,
-    module,
-    namespace,
-    annotations,
-    spec,
-    outputStream,
-    podName,
-    timeout,
-  }: RunPodParams,
-): Promise<RunResult> {
+export async function runPod({
+  provider,
+  ignoreError,
+  image,
+  interactive,
+  log,
+  module,
+  namespace,
+  annotations,
+  spec,
+  outputStream,
+  podName,
+  timeout,
+}: RunPodParams): Promise<RunResult> {
   const overrides: any = {
     metadata: {
       annotations: {
         // Workaround to make sure sidecars are not injected,
         // due to https://github.com/kubernetes/kubernetes/issues/25908
         "sidecar.istio.io/inject": "false",
-        ...annotations || {},
+        ...(annotations || {}),
       },
     },
     spec,
@@ -81,7 +79,8 @@ export async function runPod(
     // Need to attach to get the log output and exit code.
     "-i",
     // This is a little messy, but it works...
-    "--overrides", `${JSON.stringify(overrides)}`,
+    "--overrides",
+    `${JSON.stringify(overrides)}`,
   ]
 
   if (interactive) {
@@ -90,7 +89,7 @@ export async function runPod(
     kubecmd.push("--quiet")
   }
 
-  const command = [...spec.containers[0].command || [], ...spec.containers[0].args || []]
+  const command = [...(spec.containers[0].command || []), ...(spec.containers[0].args || [])]
   log.verbose(`Running '${command.join(" ")}' in Pod ${runPodName}`)
 
   const startedAt = new Date()

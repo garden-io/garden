@@ -21,17 +21,14 @@ export interface RunModuleParams<T extends Module = Module> extends PluginModule
   timeout?: number
 }
 
-export const runModuleBaseSchema = moduleActionParamsSchema
-  .keys(runBaseParams)
+export const runModuleBaseSchema = moduleActionParamsSchema.keys(runBaseParams)
 
-export const runModuleParamsSchema = runModuleBaseSchema
-  .keys({
-    command: joiArray(joi.string())
-      .optional()
-      .description("The command/entrypoint to run in the module."),
-    args: joiArray(joi.string())
-      .description("The arguments passed to the command/entrypoint to run in the module."),
-  })
+export const runModuleParamsSchema = runModuleBaseSchema.keys({
+  command: joiArray(joi.string())
+    .optional()
+    .description("The command/entrypoint to run in the module."),
+  args: joiArray(joi.string()).description("The arguments passed to the command/entrypoint to run in the module."),
+})
 
 export const runModule = {
   description: dedent`

@@ -23,9 +23,13 @@ import hasha from "hasha"
 import { upsertConfigMap } from "./util"
 import { trimRunOutput } from "./helm/common"
 
-export async function getTaskResult(
-  { ctx, log, module, task, taskVersion }: GetTaskResultParams<ContainerModule | HelmModule>,
-): Promise<RunTaskResult | null> {
+export async function getTaskResult({
+  ctx,
+  log,
+  module,
+  task,
+  taskVersion,
+}: GetTaskResultParams<ContainerModule | HelmModule>): Promise<RunTaskResult | null> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, k8sCtx.provider)
   const ns = await getMetadataNamespace(k8sCtx, log, k8sCtx.provider)
@@ -65,12 +69,12 @@ export function getTaskResultKey(ctx: PluginContext, module: Module, taskName: s
 }
 
 interface StoreTaskResultParams {
-  ctx: PluginContext,
-  log: LogEntry,
-  module: Module,
-  taskName: string,
-  taskVersion: ModuleVersion,
-  result: RunTaskResult,
+  ctx: PluginContext
+  log: LogEntry
+  module: Module
+  taskName: string
+  taskVersion: ModuleVersion
+  result: RunTaskResult
 }
 
 /**
@@ -78,9 +82,7 @@ interface StoreTaskResultParams {
  *
  * TODO: Implement a CRD for this.
  */
-export async function storeTaskResult(
-  { ctx, log, module, taskName, taskVersion, result }: StoreTaskResultParams,
-) {
+export async function storeTaskResult({ ctx, log, module, taskName, taskVersion, result }: StoreTaskResultParams) {
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, provider)
   const namespace = await getMetadataNamespace(ctx, log, provider)

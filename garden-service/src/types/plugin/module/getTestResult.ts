@@ -21,22 +21,21 @@ export interface TestResult extends RunResult {
   testName: string
 }
 
-export const testResultSchema = runResultSchema
-  .keys({
-    outputs: joi.object()
-      .pattern(/.+/, joiPrimitive())
-      .description("A map of primitive values, output from the test."),
-    testName: joi.string()
-      .required()
-      .description("The name of the test that was run."),
-    version: joi.string()
-      .description(deline`
+export const testResultSchema = runResultSchema.keys({
+  outputs: joi
+    .object()
+    .pattern(/.+/, joiPrimitive())
+    .description("A map of primitive values, output from the test."),
+  testName: joi
+    .string()
+    .required()
+    .description("The name of the test that was run."),
+  version: joi.string().description(deline`
         The test run's version, as a string. In addition to the parent module's version, this also
         factors in the module versions of the test's runtime dependencies (if any).`),
-  })
+})
 
-export const testVersionSchema = moduleVersionSchema
-  .description(deline`
+export const testVersionSchema = moduleVersionSchema.description(deline`
     The test run's version. In addition to the parent module's version, this also
     factors in the module versions of the test's runtime dependencies (if any).`)
 
@@ -50,12 +49,10 @@ export const getTestResult = {
     of the module itself.
   `,
 
-  paramsSchema: moduleActionParamsSchema
-    .keys({
-      testName: joi.string()
-        .description("A unique name to identify the test run."),
-      testVersion: testVersionSchema,
-    }),
+  paramsSchema: moduleActionParamsSchema.keys({
+    testName: joi.string().description("A unique name to identify the test run."),
+    testVersion: testVersionSchema,
+  }),
 
   resultSchema: testResultSchema.allow(null),
 }

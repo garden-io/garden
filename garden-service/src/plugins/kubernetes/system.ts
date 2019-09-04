@@ -43,7 +43,9 @@ export const systemMetadataNamespace = "garden-system--metadata"
  * without them all modifying the same system build directory, which can cause unexpected issues.
  */
 export async function getSystemGarden(
-  ctx: KubernetesPluginContext, variables: PrimitiveMap, log: LogEntry,
+  ctx: KubernetesPluginContext,
+  variables: PrimitiveMap,
+  log: LogEntry
 ): Promise<Garden> {
   const sysProvider: KubernetesConfig = {
     ...ctx.provider.config,
@@ -64,9 +66,7 @@ export async function getSystemGarden(
       name: systemNamespace,
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
-      environments: [
-        { name: "default", variables: {} },
-      ],
+      environments: [{ name: "default", variables: {} }],
       providers: [sysProvider],
       variables,
     },
@@ -85,7 +85,10 @@ export async function getSystemGarden(
  * Returns true if the namespace exists and has an up-to-date version.
  */
 export async function systemNamespaceUpToDate(
-  api: KubeApi, log: LogEntry, namespace: string, contextForLog: string,
+  api: KubeApi,
+  log: LogEntry,
+  namespace: string,
+  contextForLog: string
 ): Promise<boolean> {
   let namespaceResource: KubernetesResource<V1Namespace>
 
@@ -135,32 +138,33 @@ export async function recreateSystemNamespaces(api: KubeApi, log: LogEntry, name
 }
 
 interface GetSystemServicesStatusParams {
-  ctx: KubernetesPluginContext,
-  sysGarden: Garden,
-  log: LogEntry,
-  namespace: string,
-  serviceNames: string[],
+  ctx: KubernetesPluginContext
+  sysGarden: Garden
+  log: LogEntry
+  namespace: string
+  serviceNames: string[]
 }
 
-export async function getSystemServiceStatus(
-  { ctx, sysGarden, log, namespace, serviceNames }: GetSystemServicesStatusParams,
-) {
+export async function getSystemServiceStatus({
+  ctx,
+  sysGarden,
+  log,
+  namespace,
+  serviceNames,
+}: GetSystemServicesStatusParams) {
   let dashboardPages: DashboardPage[] = []
 
   const actions = await sysGarden.getActionRouter()
 
   const serviceStatuses = await actions.getServiceStatuses({ log, serviceNames })
-  const state = combineStates(values(serviceStatuses).map(s => (s && s.state) || "unknown"))
+  const state = combineStates(values(serviceStatuses).map((s) => (s && s.state) || "unknown"))
 
   // Add the Kubernetes dashboard to the Garden dashboard
   if (serviceNames.includes("kubernetes-dashboard")) {
     const defaultHostname = ctx.provider.config.defaultHostname
 
     const dashboardStatus = serviceStatuses["kubernetes-dashboard"] as HelmServiceStatus
-    const dashboardServiceResource = find(
-      dashboardStatus.detail.remoteResources,
-      o => o.kind === "Service",
-    )
+    const dashboardServiceResource = find(dashboardStatus.detail.remoteResources, (o) => o.kind === "Service")
 
     if (!!dashboardServiceResource) {
       const dashboardPort = dashboardServiceResource.spec.ports[0].nodePort
@@ -187,9 +191,14 @@ interface PrepareSystemServicesParams extends GetSystemServicesStatusParams {
   force: boolean
 }
 
-export async function prepareSystemServices(
-  { ctx, sysGarden, log, namespace, serviceNames, force }: PrepareSystemServicesParams,
-) {
+export async function prepareSystemServices({
+  ctx,
+  sysGarden,
+  log,
+  namespace,
+  serviceNames,
+  force,
+}: PrepareSystemServicesParams) {
   const api = await KubeApi.factory(log, ctx.provider)
 
   const contextForLog = `Preparing environment for plugin "${ctx.provider.name}"`
@@ -212,28 +221,27 @@ export async function prepareSystemServices(
       forceBuild: force,
     })
 
-    const failed = values(results.taskResults).filter(r => r && r.error).map(r => r!)
-    const errors = failed.map(r => r.error)
+    const failed = values(results.taskResults)
+      .filter((r) => r && r.error)
+      .map((r) => r!)
+    const errors = failed.map((r) => r.error)
 
     if (failed.length === 1) {
       const error = errors[0]
 
-      throw new PluginError(
-        `${provider.name}—an error occurred when configuring environment:\n${error}`,
-        {
-          error,
-          results,
-        },
-      )
+      throw new PluginError(`${provider.name}—an error occurred when configuring environment:\n${error}`, {
+        error,
+        results,
+      })
     } else if (failed.length > 0) {
-      const errorsStr = errors.map(e => `- ${e}`).join("\n")
+      const errorsStr = errors.map((e) => `- ${e}`).join("\n")
 
       throw new PluginError(
         `${provider.name} — ${failed.length} errors occurred when configuring environment:\n${errorsStr}`,
         {
           errors,
           results,
-        },
+        }
       )
     }
   }

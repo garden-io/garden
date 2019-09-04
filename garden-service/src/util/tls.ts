@@ -27,61 +27,76 @@ export function createSelfSignedTlsCert(hostName: string) {
   cert.validity.notAfter = new Date()
   cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 1)
 
-  const attrs = [{
-    name: "commonName",
-    value: hostName,
-  }, {
-    name: "countryName",
-    value: "US",
-  }, {
-    shortName: "ST",
-    value: "Virginia",
-  }, {
-    name: "organizationName",
-    value: "Test",
-  }, {
-    shortName: "OU",
-    value: "Test",
-  }]
+  const attrs = [
+    {
+      name: "commonName",
+      value: hostName,
+    },
+    {
+      name: "countryName",
+      value: "US",
+    },
+    {
+      shortName: "ST",
+      value: "Virginia",
+    },
+    {
+      name: "organizationName",
+      value: "Test",
+    },
+    {
+      shortName: "OU",
+      value: "Test",
+    },
+  ]
 
   cert.setSubject(attrs)
   cert.setIssuer(attrs)
 
-  cert.setExtensions([{
-    name: "basicConstraints",
-    cA: true,
-  }, {
-    name: "keyUsage",
-    keyCertSign: true,
-    digitalSignature: true,
-    nonRepudiation: true,
-    keyEncipherment: true,
-    dataEncipherment: true,
-  }, {
-    name: "extKeyUsage",
-    serverAuth: true,
-    clientAuth: true,
-    codeSigning: true,
-    emailProtection: true,
-    timeStamping: true,
-  }, {
-    name: "nsCertType",
-    client: true,
-    server: true,
-    email: true,
-    objsign: true,
-    sslCA: true,
-    emailCA: true,
-    objCA: true,
-  }, {
-    name: "subjectAltName",
-    altNames: [{
-      type: 2, // DNS
-      value: hostName,
-    }],
-  }, {
-    name: "subjectKeyIdentifier",
-  }])
+  cert.setExtensions([
+    {
+      name: "basicConstraints",
+      cA: true,
+    },
+    {
+      name: "keyUsage",
+      keyCertSign: true,
+      digitalSignature: true,
+      nonRepudiation: true,
+      keyEncipherment: true,
+      dataEncipherment: true,
+    },
+    {
+      name: "extKeyUsage",
+      serverAuth: true,
+      clientAuth: true,
+      codeSigning: true,
+      emailProtection: true,
+      timeStamping: true,
+    },
+    {
+      name: "nsCertType",
+      client: true,
+      server: true,
+      email: true,
+      objsign: true,
+      sslCA: true,
+      emailCA: true,
+      objCA: true,
+    },
+    {
+      name: "subjectAltName",
+      altNames: [
+        {
+          type: 2, // DNS
+          value: hostName,
+        },
+      ],
+    },
+    {
+      name: "subjectKeyIdentifier",
+    },
+  ])
 
   // self-sign certificate
   cert.sign(keys.privateKey)

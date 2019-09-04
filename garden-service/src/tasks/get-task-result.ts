@@ -27,9 +27,7 @@ export class GetTaskResultTask extends BaseTask {
 
   private task: Task
 
-  constructor(
-    { force, garden, log, task, version }: GetTaskResultTaskParams,
-  ) {
+  constructor({ force, garden, log, task, version }: GetTaskResultTaskParams) {
     super({ garden, log, force, version })
     this.task = task
   }

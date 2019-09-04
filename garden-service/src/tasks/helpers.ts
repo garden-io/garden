@@ -16,28 +16,42 @@ import { LogEntry } from "../logger/log-entry"
 import { BaseTask } from "./base"
 import { BuildTask } from "./build"
 
-export async function getDependantTasksForModule(
-  { garden, log, graph, module, hotReloadServiceNames, force = false, forceBuild = false,
-    fromWatch = false, includeDependants = false }:
-    {
-      garden: Garden,
-      log: LogEntry,
-      graph: ConfigGraph,
-      module: Module,
-      hotReloadServiceNames: string[],
-      force?: boolean,
-      forceBuild?: boolean,
-      fromWatch?: boolean,
-      includeDependants?: boolean,
-    },
-): Promise<BaseTask[]> {
-
+export async function getDependantTasksForModule({
+  garden,
+  log,
+  graph,
+  module,
+  hotReloadServiceNames,
+  force = false,
+  forceBuild = false,
+  fromWatch = false,
+  includeDependants = false,
+}: {
+  garden: Garden
+  log: LogEntry
+  graph: ConfigGraph
+  module: Module
+  hotReloadServiceNames: string[]
+  force?: boolean
+  forceBuild?: boolean
+  fromWatch?: boolean
+  includeDependants?: boolean
+}): Promise<BaseTask[]> {
   let buildTasks: BuildTask[] = []
   let dependantBuildModules: Module[] = []
   let services: Service[] = []
 
   if (!includeDependants) {
-    buildTasks.push(new BuildTask({ garden, log, module, force: forceBuild, fromWatch, hotReloadServiceNames }))
+    buildTasks.push(
+      new BuildTask({
+        garden,
+        log,
+        module,
+        force: forceBuild,
+        fromWatch,
+        hotReloadServiceNames,
+      })
+    )
     services = await graph.getServices(module.serviceNames)
   } else {
     const hotReloadModuleNames = await getModuleNames(graph, hotReloadServiceNames)
@@ -54,36 +68,59 @@ export async function getDependantTasksForModule(
     } else {
       const dependants = await graph.getDependantsForModule(module, dependantFilterFn)
 
-      buildTasks.push(new BuildTask({ garden, log, module, force: true, fromWatch, hotReloadServiceNames }))
+      buildTasks.push(
+        new BuildTask({
+          garden,
+          log,
+          module,
+          force: true,
+          fromWatch,
+          hotReloadServiceNames,
+        })
+      )
       dependantBuildModules = dependants.build
       services = (await graph.getServices(module.serviceNames)).concat(dependants.service)
     }
   }
 
-  buildTasks.push(...dependantBuildModules
-    .map(m => new BuildTask({ garden, log, module: m, force: forceBuild, fromWatch, hotReloadServiceNames })))
+  buildTasks.push(
+    ...dependantBuildModules.map(
+      (m) =>
+        new BuildTask({
+          garden,
+          log,
+          module: m,
+          force: forceBuild,
+          fromWatch,
+          hotReloadServiceNames,
+        })
+    )
+  )
 
-  const deployTasks = services
-    .map(service => new DeployTask({
-      garden,
-      log,
-      graph,
-      service,
-      force,
-      forceBuild,
-      fromWatch, hotReloadServiceNames,
-    }))
+  const deployTasks = services.map(
+    (service) =>
+      new DeployTask({
+        garden,
+        log,
+        graph,
+        service,
+        force,
+        forceBuild,
+        fromWatch,
+        hotReloadServiceNames,
+      })
+  )
 
   const outputTasks = [...buildTasks, ...deployTasks]
   log.silly(`getDependantTasksForModule called for module ${module.name}, returning the following tasks:`)
-  log.silly(`  ${outputTasks.map(t => t.getKey()).join(", ")}`)
+  log.silly(`  ${outputTasks.map((t) => t.getKey()).join(", ")}`)
 
   return outputTasks
 }
 
 async function getModuleNames(dg: ConfigGraph, hotReloadServiceNames: string[]) {
   const services = await dg.getServices(hotReloadServiceNames)
-  return uniq(services.map(s => s.module.name))
+  return uniq(services.map((s) => s.module.name))
 }
 
 export function makeTestTaskName(moduleName: string, testConfigName: string) {

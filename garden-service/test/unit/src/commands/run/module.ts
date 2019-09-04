@@ -1,11 +1,6 @@
 import { RunModuleCommand } from "../../../../../src/commands/run/module"
 import { RunResult } from "../../../../../src/types/plugin/base"
-import {
-  makeTestGardenA,
-  testModuleVersion,
-  testNow,
-  withDefaultGlobalOpts,
-} from "../../../../helpers"
+import { makeTestGardenA, testModuleVersion, testNow, withDefaultGlobalOpts } from "../../../../helpers"
 import { expect } from "chai"
 import { Garden } from "../../../../../src/garden"
 import td from "testdouble"
@@ -29,7 +24,10 @@ describe("RunModuleCommand", () => {
       headerLog: log,
       footerLog: log,
       args: { module: "module-a", arguments: [] },
-      opts: withDefaultGlobalOpts({ "interactive": false, "force-build": false }),
+      opts: withDefaultGlobalOpts({
+        "interactive": false,
+        "force-build": false,
+      }),
     })
 
     const expected: RunResult = {
@@ -53,7 +51,10 @@ describe("RunModuleCommand", () => {
       headerLog: log,
       footerLog: log,
       args: { module: "module-a", arguments: ["my", "command"] },
-      opts: withDefaultGlobalOpts({ "interactive": false, "force-build": false }),
+      opts: withDefaultGlobalOpts({
+        "interactive": false,
+        "force-build": false,
+      }),
     })
 
     const expected: RunResult = {
@@ -77,7 +78,11 @@ describe("RunModuleCommand", () => {
       headerLog: log,
       footerLog: log,
       args: { module: "module-a", arguments: ["my", "command"] },
-      opts: withDefaultGlobalOpts({ "interactive": false, "force-build": false, "command": ["/bin/sh", "-c"] }),
+      opts: withDefaultGlobalOpts({
+        "interactive": false,
+        "force-build": false,
+        "command": ["/bin/sh", "-c"],
+      }),
     })
 
     const expected: RunResult = {

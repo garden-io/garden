@@ -6,17 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  BooleanParameter,
-  Command,
-  CommandResult,
-  CommandParams,
-} from "./base"
+import { BooleanParameter, Command, CommandResult, CommandParams } from "./base"
 import { printHeader, printFooter } from "../logger/util"
 import dedent = require("dedent")
 
 const initOpts = {
-  force: new BooleanParameter({ help: "Force initalization of environment, ignoring the environment status check." }),
+  force: new BooleanParameter({
+    help: "Force initalization of environment, ignoring the environment status check.",
+  }),
 }
 
 type Opts = typeof initOpts

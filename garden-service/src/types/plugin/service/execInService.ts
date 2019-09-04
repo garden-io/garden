@@ -31,27 +31,28 @@ export const execInService = {
     Called by the \`garden exec\` command.
   `,
 
-  paramsSchema: serviceActionParamsSchema
-    .keys({
-      command: joiArray(joi.string())
-        .description("The command to run alongside the service."),
-      interactive: joi.boolean(),
-    }),
+  paramsSchema: serviceActionParamsSchema.keys({
+    command: joiArray(joi.string()).description("The command to run alongside the service."),
+    interactive: joi.boolean(),
+  }),
 
-  resultSchema: joi.object()
-    .keys({
-      code: joi.number()
-        .required()
-        .description("The exit code of the command executed in the service container."),
-      output: joi.string()
-        .allow("")
-        .required()
-        .description("The output of the executed command."),
-      stdout: joi.string()
-        .allow("")
-        .description("The stdout output of the executed command (if available)."),
-      stderr: joi.string()
-        .allow("")
-        .description("The stderr output of the executed command (if available)."),
-    }),
+  resultSchema: joi.object().keys({
+    code: joi
+      .number()
+      .required()
+      .description("The exit code of the command executed in the service container."),
+    output: joi
+      .string()
+      .allow("")
+      .required()
+      .description("The output of the executed command."),
+    stdout: joi
+      .string()
+      .allow("")
+      .description("The stdout output of the executed command (if available)."),
+    stderr: joi
+      .string()
+      .allow("")
+      .description("The stderr output of the executed command (if available)."),
+  }),
 }

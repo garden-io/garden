@@ -58,11 +58,7 @@ async function fetchChart(ctx: KubernetesPluginContext, namespace: string, log: 
 
   await helm({ ctx, namespace, log, args: ["init", "--client-only"] })
 
-  const fetchArgs = [
-    "fetch", module.spec.chart!,
-    "--destination", buildPath,
-    "--untar",
-  ]
+  const fetchArgs = ["fetch", module.spec.chart!, "--destination", buildPath, "--untar"]
   if (module.spec.version) {
     fetchArgs.push("--version", module.spec.version)
   }

@@ -27,7 +27,9 @@ export interface TreeVersion {
   files: string[]
 }
 
-export interface TreeVersions { [moduleName: string]: TreeVersion }
+export interface TreeVersions {
+  [moduleName: string]: TreeVersion
+}
 
 export interface ModuleVersion {
   versionString: string
@@ -39,44 +41,44 @@ interface NamedTreeVersion extends TreeVersion {
   name: string
 }
 
-const versionStringSchema = joi.string()
+const versionStringSchema = joi
+  .string()
   .regex(/^v/)
   .required()
   .description("String representation of the module version.")
 
-const fileNamesSchema = joiArray(joi.string())
-  .description("List of file paths included in the version.")
+const fileNamesSchema = joiArray(joi.string()).description("List of file paths included in the version.")
 
-export const treeVersionSchema = joi.object()
-  .keys({
-    contentHash: joi.string()
-      .required()
-      .description("The hash of all files in the directory, after filtering."),
-    files: fileNamesSchema,
-  })
+export const treeVersionSchema = joi.object().keys({
+  contentHash: joi
+    .string()
+    .required()
+    .description("The hash of all files in the directory, after filtering."),
+  files: fileNamesSchema,
+})
 
-export const moduleVersionSchema = joi.object()
-  .keys({
-    versionString: versionStringSchema,
-    dependencyVersions: joi.object()
-      .pattern(/.+/, treeVersionSchema)
-      .default(() => ({}), "{}")
-      .description("The version of each of the dependencies of the module."),
-    files: fileNamesSchema,
-  })
+export const moduleVersionSchema = joi.object().keys({
+  versionString: versionStringSchema,
+  dependencyVersions: joi
+    .object()
+    .pattern(/.+/, treeVersionSchema)
+    .default(() => ({}), "{}")
+    .description("The version of each of the dependencies of the module."),
+  files: fileNamesSchema,
+})
 
 export interface GetFilesParams {
-  log: LogEntry,
-  path: string,
-  include?: string[],
-  exclude?: string[],
+  log: LogEntry
+  path: string
+  include?: string[]
+  exclude?: string[]
 }
 
 export interface RemoteSourceParams {
-  url: string,
-  name: string,
-  sourceType: ExternalSourceType,
-  log: LogEntry,
+  url: string
+  name: string
+  sourceType: ExternalSourceType
+  log: LogEntry
 }
 
 export interface VcsFile {
@@ -85,7 +87,7 @@ export interface VcsFile {
 }
 
 export abstract class VcsHandler {
-  constructor(protected gardenDirPath: string, protected ignoreFiles: string[]) { }
+  constructor(protected gardenDirPath: string, protected ignoreFiles: string[]) {}
 
   abstract name: string
   abstract async getRepoRoot(log: LogEntry, path: string): Promise<string>
@@ -105,11 +107,11 @@ export abstract class VcsHandler {
 
     files = sortBy(files, "path")
       // Don't include the config file in the file list
-      .filter(f => !configPath || f.path !== configPath)
+      .filter((f) => !configPath || f.path !== configPath)
 
-    const contentHash = files.length > 0 ? hashStrings(files.map(f => f.hash)) : NEW_MODULE_VERSION
+    const contentHash = files.length > 0 ? hashStrings(files.map((f) => f.hash)) : NEW_MODULE_VERSION
 
-    return { contentHash, files: files.map(f => f.path) }
+    return { contentHash, files: files.map((f) => f.path) }
   }
 
   async resolveTreeVersion(log: LogEntry, moduleConfig: ModuleConfig): Promise<TreeVersion> {
@@ -120,7 +122,9 @@ export abstract class VcsHandler {
   }
 
   async resolveVersion(
-    log: LogEntry, moduleConfig: ModuleConfig, dependencies: ModuleConfig[],
+    log: LogEntry,
+    moduleConfig: ModuleConfig,
+    dependencies: ModuleConfig[]
   ): Promise<ModuleVersion> {
     const treeVersion = await this.resolveTreeVersion(log, moduleConfig)
 
@@ -129,10 +133,7 @@ export abstract class VcsHandler {
     })
 
     if (dependencies.length === 0) {
-      const versionString = getVersionString(
-        moduleConfig,
-        [{ ...treeVersion, name: moduleConfig.name }],
-      )
+      const versionString = getVersionString(moduleConfig, [{ ...treeVersion, name: moduleConfig.name }])
       return {
         versionString,
         dependencyVersions: {},
@@ -140,15 +141,16 @@ export abstract class VcsHandler {
       }
     }
 
-    const namedDependencyVersions = await Bluebird.map(
-      dependencies,
-      async (m: ModuleConfig) => ({ name: m.name, ...await this.resolveTreeVersion(log, m) }),
-    )
-    const dependencyVersions = mapValues(keyBy(namedDependencyVersions, "name"), v => omit(v, "name"))
+    const namedDependencyVersions = await Bluebird.map(dependencies, async (m: ModuleConfig) => ({
+      name: m.name,
+      ...(await this.resolveTreeVersion(log, m)),
+    }))
+    const dependencyVersions = mapValues(keyBy(namedDependencyVersions, "name"), (v) => omit(v, "name"))
 
     // keep the module at the top of the chain, dependencies sorted by name
-    const allVersions: NamedTreeVersion[] = [{ name: moduleConfig.name, ...treeVersion }]
-      .concat(namedDependencyVersions)
+    const allVersions: NamedTreeVersion[] = [{ name: moduleConfig.name, ...treeVersion }].concat(
+      namedDependencyVersions
+    )
 
     return {
       dependencyVersions,
@@ -184,14 +186,11 @@ async function readVersionFile(path: string, schema: Joi.Schema): Promise<any> {
   try {
     return validate(JSON.parse(versionFileContents), schema)
   } catch (error) {
-    throw new ConfigurationError(
-      `Unable to parse ${path} as valid version file`,
-      {
-        path,
-        versionFileContents,
-        error,
-      },
-    )
+    throw new ConfigurationError(`Unable to parse ${path} as valid version file`, {
+      path,
+      versionFileContents,
+      error,
+    })
   }
 }
 
@@ -214,8 +213,8 @@ export async function writeTreeVersionFile(dir: string, version: TreeVersion) {
     ...version,
     files: version.files
       // Always write relative paths, normalized to POSIX style
-      .map(f => normalize(isAbsolute(f) ? relative(dir, f) : f))
-      .filter(f => f !== GARDEN_TREEVERSION_FILENAME),
+      .map((f) => normalize(isAbsolute(f) ? relative(dir, f) : f))
+      .filter((f) => f !== GARDEN_TREEVERSION_FILENAME),
   }
   const path = join(dir, GARDEN_TREEVERSION_FILENAME)
   await writeFile(path, JSON.stringify(processed, null, 4) + "\n")
@@ -230,9 +229,7 @@ export async function writeModuleVersionFile(path: string, version: ModuleVersio
  * commit hash is used, and that prefix consists of only numbers. This can cause errors in certain contexts
  * when the version string is used in template variables in configuration files.
  */
-export function getVersionString(
-  moduleConfig: ModuleConfig, treeVersions: NamedTreeVersion[],
-) {
+export function getVersionString(moduleConfig: ModuleConfig, treeVersions: NamedTreeVersion[]) {
   return `v-${hashVersions(moduleConfig, treeVersions)}`
 }
 
@@ -241,8 +238,7 @@ export function getVersionString(
  */
 export function hashVersions(moduleConfig: ModuleConfig, versions: NamedTreeVersion[]) {
   const configString = serializeConfig(moduleConfig)
-  const versionStrings = sortBy(versions, "name")
-    .map(v => `${v.name}_${v.contentHash}`)
+  const versionStrings = sortBy(versions, "name").map((v) => `${v.name}_${v.contentHash}`)
   return hashStrings([configString, ...versionStrings])
 }
 

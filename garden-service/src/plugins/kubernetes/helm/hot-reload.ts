@@ -19,9 +19,12 @@ import { getAppNamespace } from "../namespace"
 /**
  * The hot reload action handler for Helm charts.
  */
-export async function hotReloadHelmChart(
-  { ctx, log, module, service }: HotReloadServiceParams<HelmModule, ContainerModule>,
-): Promise<HotReloadServiceResult> {
+export async function hotReloadHelmChart({
+  ctx,
+  log,
+  module,
+  service,
+}: HotReloadServiceParams<HelmModule, ContainerModule>): Promise<HotReloadServiceResult> {
   const hotReloadSpec = getHotReloadSpec(service)
 
   const chartResources = await getChartResources(ctx, service.module, log)
@@ -57,16 +60,17 @@ export function getHotReloadSpec(service: HelmService) {
   if (!resourceSpec || !resourceSpec.containerModule) {
     throw new ConfigurationError(
       `Module '${module.name}' must specify \`serviceResource.containerModule\` in order to enable hot-reloading.`,
-      { moduleName: module.name, resourceSpec },
+      { moduleName: module.name, resourceSpec }
     )
   }
 
   if (service.sourceModule.type !== "container") {
-    throw new ConfigurationError(deline`
+    throw new ConfigurationError(
+      deline`
       Module '${resourceSpec.containerModule}', referenced on module '${module.name}' under
       \`serviceResource.containerModule\`, is not a container module.
       Please specify the appropriate container module that contains the sources for the resource.`,
-      { moduleName: module.name, sourceModuleType: service.sourceModule.type, resourceSpec },
+      { moduleName: module.name, sourceModuleType: service.sourceModule.type, resourceSpec }
     )
   }
 
@@ -74,11 +78,12 @@ export function getHotReloadSpec(service: HelmService) {
   const hotReloadSpec = service.sourceModule.spec.hotReload
 
   if (!hotReloadSpec) {
-    throw new ConfigurationError(deline`
+    throw new ConfigurationError(
+      deline`
       Module '${resourceSpec.containerModule}', referenced on module '${module.name}' under
       \`serviceResource.containerModule\`, is not configured for hot-reloading.
       Please specify \`hotReload\` on the '${resourceSpec.containerModule}' module in order to enable hot-reloading.`,
-      { moduleName: module.name, resourceSpec },
+      { moduleName: module.name, resourceSpec }
     )
   }
 

@@ -55,7 +55,7 @@ export class PluginsCommand extends Command<Args> {
 
   async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult> {
     const providerConfigs = garden.getRawProviderConfigs()
-    const configuredPlugins = providerConfigs.map(p => p.name)
+    const configuredPlugins = providerConfigs.map((p) => p.name)
 
     if (!args.command) {
       // We're listing commands, not executing one
@@ -72,7 +72,7 @@ export class PluginsCommand extends Command<Args> {
         errors: [
           new ParameterError(`Could not find command '${args.command}' on plugin ${args.plugin}`, {
             args,
-            availableCommands: (plugin.commands || []).map(c => c.name),
+            availableCommands: (plugin.commands || []).map((c) => c.name),
           }),
         ],
       }
@@ -107,7 +107,7 @@ async function listPlugins(garden: Garden, log: LogEntry, pluginsToList: string[
       return plugin
     }
 
-    const maxNameLength = max(commands.map(c => c.name.length))!
+    const maxNameLength = max(commands.map((c) => c.name.length))!
 
     for (const command of commands) {
       const commandName = chalk.cyan(padEnd(command.name, maxNameLength, " "))

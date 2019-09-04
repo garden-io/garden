@@ -12,10 +12,9 @@ import { Module } from "../../module"
 import { joi } from "../../../config/common"
 
 export interface HotReloadServiceParams<M extends Module = Module, S extends Module = Module>
-  extends PluginServiceActionParamsBase<M, S> {
-}
+  extends PluginServiceActionParamsBase<M, S> {}
 
-export interface HotReloadServiceResult { }
+export interface HotReloadServiceResult {}
 
 export const hotReloadService = {
   description: dedent`

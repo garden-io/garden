@@ -13,7 +13,7 @@ export const H2 = styled.h2`
   ${fontRegular};
   font-size: 2rem;
   line-height: 3.5rem;
-  color: ${props => props.color || colors.gardenBlack};
+  color: ${(props) => props.color || colors.gardenBlack};
   margin: 0 0 2rem 0;
 `
 
@@ -21,6 +21,6 @@ export const H3 = styled.h3`
   ${fontRegular};
   font-size: 1.75rem;
   line-height: 3.2rem;
-  color: ${props => props.color || colors.gardenBlack};
+  color: ${(props) => props.color || colors.gardenBlack};
   margin: 0 0 2rem 0;
 `

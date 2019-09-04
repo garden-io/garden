@@ -61,7 +61,7 @@ export class Watcher {
     private log: LogEntry,
     private paths: string[],
     private modules: Module[],
-    private bufferInterval: number = DEFAULT_BUFFER_INTERVAL,
+    private bufferInterval: number = DEFAULT_BUFFER_INTERVAL
   ) {
     this.buffer = {}
     this.running = false
@@ -119,13 +119,12 @@ export class Watcher {
         .on("unlinkDir", this.makeDirRemovedHandler())
     }
 
-    this.processBuffer()
-      .catch((err: Error) => {
-        // Log error and restart loop
-        this.processing = false
-        this.watcher.emit("error", err)
-        this.start()
-      })
+    this.processBuffer().catch((err: Error) => {
+      // Log error and restart loop
+      this.processing = false
+      this.watcher.emit("error", err)
+      this.start()
+    })
   }
 
   private async processBuffer() {
@@ -141,8 +140,8 @@ export class Watcher {
         continue
       }
 
-      const added = allChanged.filter(c => c.change === "added")
-      const removed = allChanged.filter(c => c.change === "removed")
+      const added = allChanged.filter((c) => c.change === "added")
+      const removed = allChanged.filter((c) => c.change === "removed")
 
       this.log.silly(`Watcher: Processing ${added.length} added and ${removed.length} removed path(s)`)
 
@@ -167,9 +166,10 @@ export class Watcher {
 
       // First filter modules by path prefix, and include/exclude filters if applicable
       const applicableModules = this.modules.filter((m) => {
-        return some(allChanged, p => {
-          return p.path.startsWith(m.path)
-            && (isConfigFilename(basename(p.path)) || matchPath(p.path, m.include, m.exclude))
+        return some(allChanged, (p) => {
+          return (
+            p.path.startsWith(m.path) && (isConfigFilename(basename(p.path)) || matchPath(p.path, m.include, m.exclude))
+          )
         })
       })
 
@@ -232,7 +232,7 @@ export class Watcher {
   private async checkForAddedDirWithConfig(added: ChangedPath[]) {
     let dirWithConfigAdded = false
 
-    const directoryPaths = added.filter(a => a.type === "dir").map(a => a.path)
+    const directoryPaths = added.filter((a) => a.type === "dir").map((a) => a.path)
 
     if (directoryPaths.length > 0) {
       // Check added directories for new config files
@@ -260,12 +260,15 @@ export class Watcher {
   }
 
   private matchModules(paths: ChangedPath[]) {
-    return this.modules
-      .filter(m => some(paths, p =>
-        m.configPath === p.path
-        || (p.type === "file" && m.version.files.includes(p.path))
-        || (p.type === "dir" && p.path.startsWith(m.path)),
-      ))
+    return this.modules.filter((m) =>
+      some(
+        paths,
+        (p) =>
+          m.configPath === p.path ||
+          (p.type === "file" && m.version.files.includes(p.path)) ||
+          (p.type === "dir" && p.path.startsWith(m.path))
+      )
+    )
   }
 
   private makeFileAddedHandler() {
@@ -328,10 +331,10 @@ export class Watcher {
         this.invalidateCached(this.modules)
 
         if (change === "changed") {
-          const changedModuleConfigs = changedModules.filter(m => m.configPath === path)
+          const changedModuleConfigs = changedModules.filter((m) => m.configPath === path)
 
           if (changedModuleConfigs.length > 0) {
-            const names = changedModuleConfigs.map(m => m.name)
+            const names = changedModuleConfigs.map((m) => m.name)
             this.garden.events.emit("moduleConfigChanged", { names, path })
           } else if (parsed.dir === this.garden.projectRoot) {
             this.garden.events.emit("projectConfigChanged", {})
@@ -348,9 +351,12 @@ export class Watcher {
     }
 
     if (changedModules.length > 0) {
-      const names = changedModules.map(m => m.name)
+      const names = changedModules.map((m) => m.name)
       this.invalidateCached(changedModules)
-      this.garden.events.emit("moduleSourcesChanged", { names, pathsChanged: paths.map(p => p.path) })
+      this.garden.events.emit("moduleSourcesChanged", {
+        names,
+        pathsChanged: paths.map((p) => p.path),
+      })
     }
   }
 

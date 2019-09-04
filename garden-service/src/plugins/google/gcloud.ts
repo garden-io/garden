@@ -9,18 +9,18 @@
 import { spawn, SpawnOpts } from "../../util/util"
 
 export interface GCloudParams {
-  data?: Buffer,
-  ignoreError?: boolean,
-  silent?: boolean,
-  timeout?: number,
-  cwd?: string,
+  data?: Buffer
+  ignoreError?: boolean
+  silent?: boolean
+  timeout?: number
+  cwd?: string
 }
 
 export interface GCloudOutput {
-  code: number,
-  output: string,
-  stdout?: string,
-  stderr?: string,
+  code: number
+  output: string
+  stdout?: string
+  stderr?: string
 }
 
 const DEFAULT_TIMEOUT = 600
@@ -30,7 +30,7 @@ export class GCloud {
   public account?: string
   public project?: string
 
-  constructor({ account, project }: { account?: string, project?: string }) {
+  constructor({ account, project }: { account?: string; project?: string }) {
     this.account = account
     this.project = project
   }

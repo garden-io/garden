@@ -6,10 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  Command,
-  CommandResult,
-} from "../base"
+import { Command, CommandResult } from "../base"
 import dedent = require("dedent")
 import { readFile } from "fs-extra"
 import { STATIC_DIR } from "../../constants"
@@ -33,7 +30,7 @@ export class GetEysiCommand extends Command {
     try {
       // Close enough.
       await exec("say", ["Hello", ",", "I", "am", "Aysey"])
-    } catch (_) { }
+    } catch (_) {}
 
     return { result: { eysi } }
   }

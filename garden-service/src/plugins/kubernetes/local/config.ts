@@ -29,15 +29,16 @@ export interface LocalKubernetesConfig extends KubernetesBaseConfig {
 export const configSchema = kubernetesConfigBase
   .keys({
     name: joiProviderName("local-kubernetes"),
-    context: k8sContextSchema
-      .optional(),
-    namespace: joi.string()
+    context: k8sContextSchema.optional(),
+    namespace: joi
+      .string()
       .default(undefined, "<project name>")
       .description(
         "Specify which namespace to deploy services to (defaults to the project name). " +
-        "Note that the framework generates other namespaces as well with this name as a prefix.",
+          "Note that the framework generates other namespaces as well with this name as a prefix."
       ),
-    setupIngressController: joi.string()
+    setupIngressController: joi
+      .string()
       .allow("nginx", false, null)
       .default("nginx")
       .description("Set this to null or false to skip installing/enabling the `nginx` ingress controller."),
@@ -72,7 +73,7 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
       context = currentContext
       log.debug({ section: config.name, msg: `Using current context: ${context}` })
     } else {
-      const availableContexts = kubeConfig.contexts.map(c => c.name)
+      const availableContexts = kubeConfig.contexts.map((c) => c.name)
 
       for (const supportedContext of supportedContexts) {
         if (availableContexts.includes(supportedContext)) {
@@ -95,10 +96,7 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
   }
 
   if (context === "minikube") {
-    const initCmds = [
-      ["config", "set", "WantUpdateNotification", "false"],
-      ["addons", "enable", "dashboard"],
-    ]
+    const initCmds = [["config", "set", "WantUpdateNotification", "false"], ["addons", "enable", "dashboard"]]
     await Bluebird.map(initCmds, async (cmd) => exec("minikube", cmd))
 
     if (!defaultHostname) {
@@ -113,7 +111,6 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
     }
 
     await setMinikubeDockerEnv()
-
   } else if (context === "microk8s") {
     const addons = ["dns", "dashboard", "registry", "storage"]
 
