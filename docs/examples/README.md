@@ -14,5 +14,5 @@ This is an example project of how to set up TLS using the `mkcert` tool.
 
 ## Other example projects
 
-You can also go straight to the [examples](https://github.com/garden-io/garden/tree/v0.10.6/examples) directory in the
+You can also go straight to the [examples](https://github.com/garden-io/garden/tree/v0.10.7/examples) directory in the
 Garden repository, to look at a variety of fully defined example projects.
