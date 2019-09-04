@@ -3,10 +3,10 @@ import { expect } from "chai"
 import { FancyTerminalWriter } from "../../../../../src/logger/writers/fancy-terminal-writer"
 import { getLogger } from "../../../../../src/logger/logger"
 
-const logger = getLogger()
+const logger: any = getLogger()
 
 beforeEach(() => {
-  (<any>logger).children = []
+  logger.children = []
 })
 
 describe("FancyTerminalWriter", () => {
@@ -21,8 +21,8 @@ describe("FancyTerminalWriter", () => {
       const spinner = logger.info({ msg: "spinner", status: "active" }) // 7
       spinner.info({ msg: "nested spinner", status: "active" }) // 8
       const terminalEntries = writer.toTerminalEntries(logger)
-      const lineNumbers = terminalEntries.map(e => e.lineNumber)
-      const spinners = terminalEntries.filter(e => !!e.spinnerCoords).map(e => e.spinnerCoords)
+      const lineNumbers = terminalEntries.map((e) => e.lineNumber)
+      const spinners = terminalEntries.filter((e) => !!e.spinnerCoords).map((e) => e.spinnerCoords)
       expect(lineNumbers).to.eql([0, 1, 3, 4, 7, 8])
       expect(spinners).to.eql([[0, 7], [3, 8]])
     })

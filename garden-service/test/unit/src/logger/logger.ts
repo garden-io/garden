@@ -3,10 +3,10 @@ import { expect } from "chai"
 import { LogLevel } from "../../../../src/logger/log-node"
 import { getLogger } from "../../../../src/logger/logger"
 
-const logger = getLogger()
+const logger: any = getLogger()
 
 beforeEach(() => {
-  (<any>logger).children = []
+  logger.children = []
 })
 
 describe("Logger", () => {
@@ -28,7 +28,7 @@ describe("Logger", () => {
       logger.info({ section: "s1", id: "b" })
       const s1 = logger.filterBySection("s1")
       const sEmpty = logger.filterBySection("s99")
-      expect(s1.map(entry => entry.id)).to.eql(["a", "b"])
+      expect(s1.map((entry) => entry.id)).to.eql(["a", "b"])
       expect(sEmpty).to.eql([])
     })
   })
@@ -43,7 +43,7 @@ describe("Logger", () => {
       logger.silly("silly")
 
       const entries = logger.getLogEntries()
-      const levels = entries.map(e => e.level)
+      const levels = entries.map((e) => e.level)
 
       expect(entries).to.have.lengthOf(6)
       expect(levels).to.eql([
@@ -56,5 +56,4 @@ describe("Logger", () => {
       ])
     })
   })
-
 })

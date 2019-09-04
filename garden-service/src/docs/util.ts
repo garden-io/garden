@@ -10,7 +10,7 @@ import { padEnd, max } from "lodash"
 
 export function indent(lines: string[], level: number) {
   const prefix = padEnd("", level * 2, " ")
-  return lines.map(line => prefix + line)
+  return lines.map((line) => prefix + line)
 }
 
 export function renderMarkdownTable(data: { [heading: string]: string }) {
@@ -19,7 +19,7 @@ export function renderMarkdownTable(data: { [heading: string]: string }) {
   const paddedValues = Object.values(data).map((v, i) => padEnd(v, lengths[i], " "))
 
   const head = "| " + paddedKeys.join(" | ") + " |"
-  const divider = "| " + paddedKeys.map(k => padEnd("", k.length, "-")).join(" | ") + " |"
+  const divider = "| " + paddedKeys.map((k) => padEnd("", k.length, "-")).join(" | ") + " |"
   const values = "| " + paddedValues.join(" | ") + " |"
 
   return [head, divider, values].join("\n")

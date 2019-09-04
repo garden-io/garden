@@ -11,7 +11,7 @@ import { Module } from "../../module"
 import { PluginModuleActionParamsBase, moduleActionParamsSchema } from "../base"
 import { joi } from "../../../config/common"
 
-export interface GetBuildStatusParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> { }
+export interface GetBuildStatusParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> {}
 
 export interface BuildStatus {
   ready: boolean
@@ -24,10 +24,10 @@ export const getBuildStatus = {
     Called before running the \`build\` action, which is not run if this returns \`{ ready: true }\`.
   `,
   paramsSchema: moduleActionParamsSchema,
-  resultSchema: joi.object()
-    .keys({
-      ready: joi.boolean()
-        .required()
-        .description("Whether an up-to-date build is ready for the module."),
-    }),
+  resultSchema: joi.object().keys({
+    ready: joi
+      .boolean()
+      .required()
+      .description("Whether an up-to-date build is ready for the module."),
+  }),
 }

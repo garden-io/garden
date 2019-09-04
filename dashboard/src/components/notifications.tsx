@@ -12,14 +12,14 @@ import { colors } from "../styles/variables"
 
 const Notification = styled.div`
   border-radius: 3px 3px 3px 3px;
-  padding: .5rem;
+  padding: 0.5rem;
   font-size: 0.75rem;
   display: flex;
   align-items: center;
 `
 
 const NotificationIcon = styled.i`
-  padding-right: .5rem;
+  padding-right: 0.5rem;
 `
 
 export const Error = styled(Notification)`

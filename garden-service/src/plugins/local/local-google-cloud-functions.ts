@@ -61,91 +61,99 @@ export const gardenPlugin = createGardenPlugin({
     },
   },
 
-  extendModuleTypes: [{
-    name: "google-cloud-function",
-    handlers: {
-      async configure(params: ConfigureModuleParams<GcfModule>) {
-        const { moduleConfig: parsed } = await configureGcfModule(params)
+  extendModuleTypes: [
+    {
+      name: "google-cloud-function",
+      handlers: {
+        async configure(params: ConfigureModuleParams<GcfModule>) {
+          const { moduleConfig: parsed } = await configureGcfModule(params)
 
-        // convert the module and services to containers to run locally
-        const serviceConfigs: ServiceConfig<ContainerServiceSpec>[] = parsed.serviceConfigs.map((s) => {
-          const functionEntrypoint = s.spec.entrypoint || s.name
+          // convert the module and services to containers to run locally
+          const serviceConfigs: ServiceConfig<ContainerServiceSpec>[] = parsed.serviceConfigs.map((s) => {
+            const functionEntrypoint = s.spec.entrypoint || s.name
 
-          const spec = {
-            name: s.name,
-            dependencies: s.dependencies,
-            outputs: {
-              ingress: `http://${s.name}:${emulatorPort}/local/local/${functionEntrypoint}`,
-            },
-            annotations: {},
-            args: ["/app/start.sh", functionEntrypoint],
-            daemon: false,
-            ingresses: [{
-              name: "default",
-              annotations: {},
-              hostname: s.spec.hostname,
-              port: "http",
-              path: "/",
-            }],
-            env: {},
-            healthCheck: { tcpPort: "http" },
-            limits: s.spec.limits,
-            ports: [
-              {
-                name: "http",
-                protocol: <ServicePortProtocol>"TCP",
-                containerPort: emulatorPort,
-                servicePort: emulatorPort,
+            const spec = {
+              name: s.name,
+              dependencies: s.dependencies,
+              outputs: {
+                ingress: `http://${s.name}:${emulatorPort}/local/local/${functionEntrypoint}`,
               },
-            ],
-            replicas: 1,
-            volumes: [],
-          }
+              annotations: {},
+              args: ["/app/start.sh", functionEntrypoint],
+              daemon: false,
+              ingresses: [
+                {
+                  name: "default",
+                  annotations: {},
+                  hostname: s.spec.hostname,
+                  port: "http",
+                  path: "/",
+                },
+              ],
+              env: {},
+              healthCheck: { tcpPort: "http" },
+              limits: s.spec.limits,
+              ports: [
+                {
+                  name: "http",
+                  protocol: <ServicePortProtocol>"TCP",
+                  containerPort: emulatorPort,
+                  servicePort: emulatorPort,
+                },
+              ],
+              replicas: 1,
+              volumes: [],
+            }
 
-          return {
-            name: spec.name,
-            dependencies: spec.dependencies,
-            hotReloadable: false,
-            outputs: spec.outputs,
-            spec,
-          }
-        })
+            return {
+              name: spec.name,
+              dependencies: spec.dependencies,
+              hotReloadable: false,
+              outputs: spec.outputs,
+              spec,
+            }
+          })
 
-        const moduleConfig = {
-          apiVersion: DEFAULT_API_VERSION,
-          allowPublish: true,
-          build: {
-            command: [],
-            dependencies: parsed.build.dependencies.concat([{
-              name: emulatorModuleName,
-              plugin: pluginName,
-              copy: [{
-                source: "child/Dockerfile",
-                target: "Dockerfile",
-              }],
-            }]),
-          },
-          name: parsed.name,
-          outputs: {},
-          path: parsed.path,
-          type: "container",
-
-          spec: {
-            buildArgs: {
-              baseImageName: `${baseContainerName}:\${modules.${baseContainerName}.version}`,
+          const moduleConfig = {
+            apiVersion: DEFAULT_API_VERSION,
+            allowPublish: true,
+            build: {
+              command: [],
+              dependencies: parsed.build.dependencies.concat([
+                {
+                  name: emulatorModuleName,
+                  plugin: pluginName,
+                  copy: [
+                    {
+                      source: "child/Dockerfile",
+                      target: "Dockerfile",
+                    },
+                  ],
+                },
+              ]),
             },
-            image: `${parsed.name}:\${modules.${parsed.name}.version}`,
-            services: serviceConfigs.map(s => <ContainerServiceSpec>s.spec),
-            tests: [],
-          },
+            name: parsed.name,
+            outputs: {},
+            path: parsed.path,
+            type: "container",
 
-          serviceConfigs,
-          taskConfigs: [],
-          testConfigs: parsed.testConfigs,
-        }
+            spec: {
+              buildArgs: {
+                baseImageName: `${baseContainerName}:\${modules.${baseContainerName}.version}`,
+              },
+              image: `${parsed.name}:\${modules.${parsed.name}.version}`,
+              services: serviceConfigs.map((s) => <ContainerServiceSpec>s.spec),
+              tests: [],
+            },
 
-        return { moduleConfig }
+            serviceConfigs,
+            taskConfigs: [],
+            testConfigs: parsed.testConfigs,
+          }
+
+          return { moduleConfig }
+        },
       },
     },
-  }],
+  ],
 })

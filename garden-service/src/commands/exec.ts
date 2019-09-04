@@ -10,14 +10,7 @@ import chalk from "chalk"
 import { LoggerType } from "../logger/logger"
 import { ExecInServiceResult } from "../types/plugin/service/execInService"
 import { printHeader } from "../logger/util"
-import {
-  Command,
-  CommandResult,
-  CommandParams,
-  StringParameter,
-  BooleanParameter,
-  StringsParameter,
-} from "./base"
+import { Command, CommandResult, CommandParams, StringParameter, BooleanParameter, StringsParameter } from "./base"
 import dedent = require("dedent")
 
 const runArgs = {
@@ -63,16 +56,20 @@ export class ExecCommand extends Command<Args> {
   options = runOpts
   loggerType: LoggerType = "basic"
 
-  async action(
-    { garden, log, headerLog, args, opts }: CommandParams<Args, Opts>,
-  ): Promise<CommandResult<ExecInServiceResult>> {
+  async action({
+    garden,
+    log,
+    headerLog,
+    args,
+    opts,
+  }: CommandParams<Args, Opts>): Promise<CommandResult<ExecInServiceResult>> {
     const serviceName = args.service
     const command = args.command || []
 
     printHeader(
       headerLog,
       `Running command ${chalk.cyan(command.join(" "))} in service ${chalk.cyan(serviceName)}`,
-      "runner",
+      "runner"
     )
 
     const graph = await garden.getConfigGraph()

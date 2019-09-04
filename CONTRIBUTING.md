@@ -73,6 +73,10 @@ alias k='kubectl'
 
 For developing the dashboard, please refer to the [dashboard docs](./dashboard/README.mdj).
 
+### Formatting
+
+We use [Prettier](https://prettier.io) for automated formatting. We highly recommend installing the appropriate plugin for your editor to automate formatting as you work on your code. You can also run `npm run fix-format` to fix formatting across the codebase.
+
 ### Debugging
 
 To enable setting a breakpoint in the code, run the CLI with the `garden-service/bin/static/garden-debug` binary, which adds the `--inspect` flag. Developers might find it useful to alias this:

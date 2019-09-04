@@ -7,13 +7,7 @@
  */
 
 import chalk from "chalk"
-import {
-  BooleanParameter,
-  Command,
-  CommandParams,
-  StringParameter,
-  CommandResult,
-} from "../base"
+import { BooleanParameter, Command, CommandParams, StringParameter, CommandResult } from "../base"
 import dedent = require("dedent")
 import { TaskTask } from "../../tasks/task"
 import { TaskResult } from "../../task-graph"
@@ -49,9 +43,14 @@ export class RunTaskCommand extends Command<Args, Opts> {
   arguments = runArgs
   options = runOpts
 
-  async action(
-    { garden, log, headerLog, footerLog, args, opts }: CommandParams<Args, Opts>,
-  ): Promise<CommandResult<TaskResult | null>> {
+  async action({
+    garden,
+    log,
+    headerLog,
+    footerLog,
+    args,
+    opts,
+  }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResult | null>> {
     const graph = await garden.getConfigGraph()
     const task = await graph.getTask(args.task)
 

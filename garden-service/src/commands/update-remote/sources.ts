@@ -10,13 +10,7 @@ import { difference } from "lodash"
 import dedent = require("dedent")
 import chalk from "chalk"
 
-import {
-  Command,
-  StringsParameter,
-  CommandResult,
-  CommandParams,
-  ParameterValues,
-} from "../base"
+import { Command, StringsParameter, CommandResult, CommandParams, ParameterValues } from "../base"
 import { ParameterError } from "../../exceptions"
 import { pruneRemoteSources } from "./helpers"
 import { SourceConfig } from "../../config/project"
@@ -52,16 +46,20 @@ export class UpdateRemoteSourcesCommand extends Command<Args> {
   }
 }
 
-export async function updateRemoteSources(
-  { garden, log, args }: { garden: Garden, log: LogEntry, args: ParameterValues<Args> },
-): Promise<CommandResult<SourceConfig[]>> {
-
+export async function updateRemoteSources({
+  garden,
+  log,
+  args,
+}: {
+  garden: Garden
+  log: LogEntry
+  args: ParameterValues<Args>
+}): Promise<CommandResult<SourceConfig[]>> {
   const { sources } = args
 
-  const projectSources = garden.projectSources
-    .filter(src => sources ? sources.includes(src.name) : true)
+  const projectSources = garden.projectSources.filter((src) => (sources ? sources.includes(src.name) : true))
 
-  const names = projectSources.map(src => src.name)
+  const names = projectSources.map((src) => src.name)
 
   // TODO: Make external modules a cli type to avoid validation repetition
   const diff = difference(sources, names)
@@ -69,19 +67,28 @@ export async function updateRemoteSources(
     throw new ParameterError(
       `Expected source(s) ${chalk.underline(diff.join(","))} to be specified in the project garden.yml config.`,
       {
-        remoteSources: garden.projectSources.map(s => s.name).sort(),
+        remoteSources: garden.projectSources.map((s) => s.name).sort(),
         input: sources ? sources.sort() : undefined,
-      },
+      }
     )
   }
 
   // TODO Update remotes in parallel. Currently not possible since updating might
   // trigger a username and password prompt from git.
   for (const { name, repositoryUrl } of projectSources) {
-    await garden.vcs.updateRemoteSource({ name, url: repositoryUrl, sourceType: "project", log })
+    await garden.vcs.updateRemoteSource({
+      name,
+      url: repositoryUrl,
+      sourceType: "project",
+      log,
+    })
   }
 
-  await pruneRemoteSources({ gardenDirPath: garden.gardenDirPath, type: "project", sources: projectSources })
+  await pruneRemoteSources({
+    gardenDirPath: garden.gardenDirPath,
+    type: "project",
+    sources: projectSources,
+  })
 
   return { result: projectSources }
 }

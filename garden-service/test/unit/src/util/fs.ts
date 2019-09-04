@@ -38,7 +38,9 @@ describe("util", () => {
 
       let count = 0
 
-      for await (const item of scanDirectory(testPath, { filter: filterFunc })) {
+      for await (const item of scanDirectory(testPath, {
+        filter: filterFunc,
+      })) {
         expect(expectedPaths).to.include(item.path)
         count++
       }
@@ -106,19 +108,25 @@ describe("util", () => {
 
   describe("getWorkingCopyId", () => {
     it("should generate and return a new ID for an empty directory", async () => {
-      return withDir(async (dir) => {
-        const id = await getWorkingCopyId(dir.path)
-        expect(id).to.be.string
-      }, { unsafeCleanup: true })
+      return withDir(
+        async (dir) => {
+          const id = await getWorkingCopyId(dir.path)
+          expect(id).to.be.string
+        },
+        { unsafeCleanup: true }
+      )
     })
 
     it("should return the same ID after generating for the first time", async () => {
-      return withDir(async (dir) => {
-        const idA = await getWorkingCopyId(dir.path)
-        const idB = await getWorkingCopyId(dir.path)
+      return withDir(
+        async (dir) => {
+          const idA = await getWorkingCopyId(dir.path)
+          const idB = await getWorkingCopyId(dir.path)
 
-        expect(idA).to.equal(idB)
-      }, { unsafeCleanup: true })
+          expect(idA).to.equal(idB)
+        },
+        { unsafeCleanup: true }
+      )
     })
   })
 
@@ -147,9 +155,7 @@ describe("util", () => {
         log: garden.log,
         include,
       })
-      expect(files).to.eql([
-        join(garden.projectRoot, "module-a", "garden.yml"),
-      ])
+      expect(files).to.eql([join(garden.projectRoot, "module-a", "garden.yml")])
     })
 
     it("should respect the exclude option, if specified", async () => {

@@ -15,13 +15,14 @@ import { loadConfig } from "../api/actions"
 /**
  * The hook for loading the config.
  */
-export const useConfig = (dispatch: ApiDispatch, requestState: RequestState) => useEffect(() => {
-  const fetchData = async () => loadConfig(dispatch)
+export const useConfig = (dispatch: ApiDispatch, requestState: RequestState) =>
+  useEffect(() => {
+    const fetchData = async () => loadConfig(dispatch)
 
-  if (!(requestState.initLoadComplete || requestState.pending)) {
-    fetchData()
-  }
-}, [dispatch, requestState])
+    if (!(requestState.initLoadComplete || requestState.pending)) {
+      fetchData()
+    }
+  }, [dispatch, requestState])
 
 /**
  * For effects that should only run once on mount. Bypasses the react-hooks/exhaustive-deps lint warning.

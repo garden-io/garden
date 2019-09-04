@@ -25,9 +25,13 @@ import { ensureNamespace } from "./namespace"
 
 const testResultNamespace = systemMetadataNamespace
 
-export async function getTestResult(
-  { ctx, log, module, testName, testVersion }: GetTestResultParams<ContainerModule | HelmModule>,
-): Promise<TestResult | null> {
+export async function getTestResult({
+  ctx,
+  log,
+  module,
+  testName,
+  testVersion,
+}: GetTestResultParams<ContainerModule | HelmModule>): Promise<TestResult | null> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, k8sCtx.provider)
   await ensureNamespace(api, testResultNamespace)
@@ -67,12 +71,12 @@ export function getTestResultKey(ctx: PluginContext, module: Module, testName: s
 }
 
 interface StoreTestResultParams {
-  ctx: PluginContext,
-  log: LogEntry,
-  module: Module,
-  testName: string,
-  testVersion: ModuleVersion,
-  result: TestResult,
+  ctx: PluginContext
+  log: LogEntry
+  module: Module
+  testName: string
+  testVersion: ModuleVersion
+  result: TestResult
 }
 
 /**
@@ -80,9 +84,14 @@ interface StoreTestResultParams {
  *
  * TODO: Implement a CRD for this.
  */
-export async function storeTestResult(
-  { ctx, log, module, testName, testVersion, result }: StoreTestResultParams,
-): Promise<TestResult> {
+export async function storeTestResult({
+  ctx,
+  log,
+  module,
+  testName,
+  testVersion,
+  result,
+}: StoreTestResultParams): Promise<TestResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, k8sCtx.provider)
   await ensureNamespace(api, testResultNamespace)

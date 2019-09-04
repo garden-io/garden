@@ -10,11 +10,7 @@ import logSymbols from "log-symbols"
 import yaml from "js-yaml"
 import chalk from "chalk"
 import stripAnsi from "strip-ansi"
-import {
-  isArray,
-  isEmpty,
-  repeat,
-} from "lodash"
+import { isArray, isEmpty, repeat } from "lodash"
 import cliTruncate = require("cli-truncate")
 import stringWidth = require("string-width")
 import hasAnsi = require("has-ansi")
@@ -37,8 +33,8 @@ const cliPadEnd = (s: string, width: number): string => {
 }
 const truncateSection = (s: string) => cliTruncate(s, SECTION_PREFIX_WIDTH)
 const sectionStyle = (s: string) => chalk.cyan.italic(cliPadEnd(truncateSection(s), SECTION_PREFIX_WIDTH))
-export const msgStyle = (s: string) => hasAnsi(s) ? s : chalk.gray(s)
-export const errorStyle = (s: string) => hasAnsi(s) ? s : chalk.red(s)
+export const msgStyle = (s: string) => (hasAnsi(s) ? s : chalk.gray(s))
+export const errorStyle = (s: string) => (hasAnsi(s) ? s : chalk.red(s))
 
 /*** RENDER HELPERS ***/
 
@@ -46,7 +42,7 @@ export const errorStyle = (s: string) => hasAnsi(s) ? s : chalk.red(s)
  * Combines the render functions and returns a string with the output value
  */
 export function combineRenders(entry: LogEntry, renderers: RenderFn[]): string {
-  return renderers.map(renderer => renderer(entry)).join("")
+  return renderers.map((renderer) => renderer(entry)).join("")
 }
 
 /**
@@ -142,7 +138,7 @@ export function renderMsg(entry: LogEntry): string {
   if (isArray(msg)) {
     // We apply the style function to each item (as opposed to the entire string) in case some
     // part of the message already has a style
-    return msg.map(str => styleFn(str)).join(styleFn(" → "))
+    return msg.map((str) => styleFn(str)).join(styleFn(" → "))
   }
   return msg ? styleFn(msg) : ""
 }
@@ -171,22 +167,14 @@ export function renderSection(entry: LogEntry): string {
  */
 export function formatForTerminal(entry: LogEntry, type: PickFromUnion<LoggerType, "fancy" | "basic">): string {
   const { msg, emoji, section, symbol, data } = entry.getMessageState()
-  const empty = [msg, section, emoji, symbol, data].every(val => val === undefined)
+  const empty = [msg, section, emoji, symbol, data].every((val) => val === undefined)
   if (empty) {
     return ""
   }
 
   const symbolRenderFn = type === "basic" ? renderSymbolBasic : renderSymbol
 
-  return combineRenders(entry, [
-    leftPad,
-    symbolRenderFn,
-    renderSection,
-    renderEmoji,
-    renderMsg,
-    renderData,
-    () => "\n",
-  ])
+  return combineRenders(entry, [leftPad, symbolRenderFn, renderSection, renderEmoji, renderMsg, renderData, () => "\n"])
 }
 
 export function cleanForJSON(input?: string | string[]): string {

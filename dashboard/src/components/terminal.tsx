@@ -28,7 +28,7 @@ const Term = styled.div`
 
 const P = styled.p`
   color: ${colors.gardenWhite};
-  font-size: .8rem;
+  font-size: 0.8rem;
 `
 
 const Service = styled.span`
@@ -45,9 +45,7 @@ const Terminal: React.FC<Props> = ({ entries, sectionPad, showServiceName }) => 
     <Term className="p-1">
       <code>
         {entries.map((e, idx) => {
-          const service = showServiceName
-            ? <Service>{padEnd(e.serviceName, sectionPad + 3, "\u00A0")}</Service>
-            : ""
+          const service = showServiceName ? <Service>{padEnd(e.serviceName, sectionPad + 3, "\u00A0")}</Service> : ""
           return (
             <P key={idx}>
               {service}

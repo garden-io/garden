@@ -20,4 +20,4 @@ export const builtinPlugins = [
   require("./openfaas/openfaas"),
   require("./maven-container/maven-container"),
   require("./terraform/terraform"),
-].map(m => m.gardenPlugin)
+].map((m) => m.gardenPlugin)

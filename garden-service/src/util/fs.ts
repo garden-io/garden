@@ -68,17 +68,15 @@ export async function* scanDirectory(path: string, opts?: klaw.Options): AsyncIt
  * Throws an error if there are more than one valid config filenames at the given path.
  */
 export async function getConfigFilePath(path: string) {
-  const configFilePaths = await Bluebird
-    .map(VALID_CONFIG_FILENAMES, async (filename) => {
-      const configFilePath = join(path, filename)
-      return (await pathExists(configFilePath)) ? configFilePath : undefined
-    })
-    .filter(Boolean)
+  const configFilePaths = await Bluebird.map(VALID_CONFIG_FILENAMES, async (filename) => {
+    const configFilePath = join(path, filename)
+    return (await pathExists(configFilePath)) ? configFilePath : undefined
+  }).filter(Boolean)
 
   if (configFilePaths.length > 1) {
     throw new ValidationError(`Found more than one Garden config file at ${path}.`, {
       path,
-      configFilenames: configFilePaths.map(filePath => basename(filePath || "")).join(", "),
+      configFilenames: configFilePaths.map((filePath) => basename(filePath || "")).join(", "),
     })
   }
 
@@ -111,15 +109,22 @@ export async function getChildDirNames(parentDir: string): Promise<string[]> {
  *
  * @param {string} dir The directory to scan
  */
-export async function findConfigPathsInPath(
-  { vcs, dir, include, exclude, log }:
-    { vcs: VcsHandler, dir: string, include?: string[], exclude?: string[], log: LogEntry },
-) {
+export async function findConfigPathsInPath({
+  vcs,
+  dir,
+  include,
+  exclude,
+  log,
+}: {
+  vcs: VcsHandler
+  dir: string
+  include?: string[]
+  exclude?: string[]
+  log: LogEntry
+}) {
   // TODO: we could make this lighter/faster using streaming
   const files = await vcs.getFiles({ path: dir, include, exclude: exclude || [], log })
-  return files
-    .map(f => f.path)
-    .filter(f => isConfigFilename(basename(f)))
+  return files.map((f) => f.path).filter((f) => isConfigFilename(basename(f)))
 }
 
 /**
@@ -143,7 +148,7 @@ export function normalizeLocalRsyncPath(path: string) {
  * Checks if the given `path` matches any of the given glob `patterns`.
  */
 export function matchGlobs(path: string, patterns: string[]): boolean {
-  return some(patterns, pattern => minimatch(path, pattern))
+  return some(patterns, (pattern) => minimatch(path, pattern))
 }
 
 /**
@@ -154,11 +159,7 @@ export function matchGlobs(path: string, patterns: string[]): boolean {
  * @param exclude List of globs to match for exclusion, or undefined
  */
 export function matchPath(path: string, include?: string[], exclude?: string[]) {
-  return (
-    (!include || matchGlobs(path, include))
-    &&
-    (!exclude || !matchGlobs(path, exclude))
-  )
+  return (!include || matchGlobs(path, include)) && (!exclude || !matchGlobs(path, exclude))
 }
 
 /**

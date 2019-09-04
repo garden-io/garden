@@ -44,36 +44,54 @@ describe("startServer", () => {
 
   describe("POST /api", () => {
     it("should 400 on non-JSON body", async () => {
-      await request(server).post("/api").send("foo").expect(400)
+      await request(server)
+        .post("/api")
+        .send("foo")
+        .expect(400)
     })
 
     it("should 400 on invalid payload", async () => {
-      await request(server).post("/api").send({ foo: "bar" }).expect(400)
+      await request(server)
+        .post("/api")
+        .send({ foo: "bar" })
+        .expect(400)
     })
 
     it("should 404 on invalid command", async () => {
-      await request(server).post("/api").send({ command: "foo" }).expect(404)
+      await request(server)
+        .post("/api")
+        .send({ command: "foo" })
+        .expect(404)
     })
 
     it("should 503 when Garden instance is not set", async () => {
       gardenServer.setGarden()
-      await request(server).post("/api").send({ command: "get.config" }).expect(503)
+      await request(server)
+        .post("/api")
+        .send({ command: "get.config" })
+        .expect(503)
     })
 
     it("should execute a command and return its results", async () => {
-      const res = await request(server).post("/api").send({ command: "get.config" }).expect(200)
+      const res = await request(server)
+        .post("/api")
+        .send({ command: "get.config" })
+        .expect(200)
       const config = await garden.dumpConfig()
       expect(res.body.result).to.eql(deepOmitUndefined(config))
     })
 
     it("should correctly map arguments and options to commands", async () => {
-      const res = await request(server).post("/api").send({
-        command: "build",
-        parameters: {
-          modules: ["module-a"],
-          force: true,
-        },
-      }).expect(200)
+      const res = await request(server)
+        .post("/api")
+        .send({
+          command: "build",
+          parameters: {
+            modules: ["module-a"],
+            force: true,
+          },
+        })
+        .expect(200)
 
       expect(taskResultOutputs(res.body.result)).to.eql({
         "build.module-a": {
@@ -100,7 +118,7 @@ describe("startServer", () => {
     })
 
     const onMessage = (cb: (req: object) => void) => {
-      ws.on("message", msg => cb(JSON.parse(msg.toString())))
+      ws.on("message", (msg) => cb(JSON.parse(msg.toString())))
     }
 
     it("should emit events from the event bus", (done) => {
@@ -113,7 +131,10 @@ describe("startServer", () => {
 
     it("should send error when a request is not valid JSON", (done) => {
       onMessage((req) => {
-        expect(req).to.eql({ type: "error", message: "Could not parse message as JSON" })
+        expect(req).to.eql({
+          type: "error",
+          message: "Could not parse message as JSON",
+        })
         done()
       })
       ws.send("ijdgkasdghlasdkghals")
@@ -133,16 +154,21 @@ describe("startServer", () => {
 
       gardenServer.setGarden()
 
-      ws.send(JSON.stringify({
-        type: "command",
-        id,
-        command: "get.config",
-      }))
+      ws.send(
+        JSON.stringify({
+          type: "command",
+          id,
+          command: "get.config",
+        })
+      )
     })
 
     it("should error when a request is missing an ID", (done) => {
       onMessage((req) => {
-        expect(req).to.eql({ type: "error", message: "Message should contain an `id` field with a UUID value" })
+        expect(req).to.eql({
+          type: "error",
+          message: "Message should contain an `id` field with a UUID value",
+        })
         done()
       })
       ws.send(JSON.stringify({ type: "command" }))
@@ -150,7 +176,10 @@ describe("startServer", () => {
 
     it("should error when a request has an invalid ID", (done) => {
       onMessage((req) => {
-        expect(req).to.eql({ type: "error", message: "Message should contain an `id` field with a UUID value" })
+        expect(req).to.eql({
+          type: "error",
+          message: "Message should contain an `id` field with a UUID value",
+        })
         done()
       })
       ws.send(JSON.stringify({ type: "command", id: "ksdhgalsdkjghalsjkg" }))
@@ -172,8 +201,9 @@ describe("startServer", () => {
     it("should execute a command and return its results", (done) => {
       const id = uuid.v4()
 
-      garden.dumpConfig()
-        .then(config => {
+      garden
+        .dumpConfig()
+        .then((config) => {
           onMessage((req) => {
             expect(req).to.eql({
               type: "commandResult",
@@ -182,11 +212,13 @@ describe("startServer", () => {
             })
             done()
           })
-          ws.send(JSON.stringify({
-            type: "command",
-            id,
-            command: "get.config",
-          }))
+          ws.send(
+            JSON.stringify({
+              type: "command",
+              id,
+              command: "get.config",
+            })
+          )
         })
         .catch(done)
     })
@@ -215,15 +247,17 @@ describe("startServer", () => {
         })
         done()
       })
-      ws.send(JSON.stringify({
-        type: "command",
-        id,
-        command: "build",
-        parameters: {
-          modules: ["module-a"],
-          force: true,
-        },
-      }))
+      ws.send(
+        JSON.stringify({
+          type: "command",
+          id,
+          command: "build",
+          parameters: {
+            modules: ["module-a"],
+            force: true,
+          },
+        })
+      )
     })
   })
 })

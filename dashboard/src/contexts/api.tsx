@@ -26,13 +26,9 @@ import { EventName } from "garden-service/build/src/events"
 import { EnvironmentStatusMap } from "garden-service/build/src/types/plugin/provider/getEnvironmentStatus"
 import { initWebSocket } from "../api/ws"
 
-export type SupportedEventName = PickFromUnion<EventName,
-  "taskPending" |
-  "taskProcessing" |
-  "taskComplete" |
-  "taskGraphComplete" |
-  "taskError" |
-  "taskCancelled"
+export type SupportedEventName = PickFromUnion<
+  EventName,
+  "taskPending" | "taskProcessing" | "taskComplete" | "taskGraphComplete" | "taskError" | "taskCancelled"
 >
 
 export const supportedEventNames: Set<SupportedEventName> = new Set([
@@ -44,99 +40,77 @@ export const supportedEventNames: Set<SupportedEventName> = new Set([
   "taskCancelled",
 ])
 
-export type TaskState = PickFromUnion<SupportedEventName,
-  "taskComplete" |
-  "taskError" |
-  "taskPending" |
-  "taskProcessing" |
-  "taskCancelled"
+export type TaskState = PickFromUnion<
+  SupportedEventName,
+  "taskComplete" | "taskError" | "taskPending" | "taskProcessing" | "taskCancelled"
 >
 
-export const taskStates = [
-  "taskComplete",
-  "taskError",
-  "taskPending",
-  "taskProcessing",
-  "taskCancelled",
-]
+export const taskStates = ["taskComplete", "taskError", "taskPending", "taskProcessing", "taskCancelled"]
 
 export interface Test {
-  config: TestConfig,
-  status: RunStatus,
-  result: GetTestResultCommandResult,
-  taskState: TaskState, // State of the test task for the module
+  config: TestConfig
+  status: RunStatus
+  result: GetTestResultCommandResult
+  taskState: TaskState // State of the test task for the module
 }
 
 export interface Task {
-  config: TaskConfig,
-  status: RunStatus,
-  result: GetTaskResultCommandResult,
-  taskState: TaskState, // State of the task task for the module
+  config: TaskConfig
+  status: RunStatus
+  result: GetTaskResultCommandResult
+  taskState: TaskState // State of the task task for the module
 }
 
-export type Module = Pick<ModuleConfig,
-  "name" |
-  "type" |
-  "path" |
-  "repositoryUrl" |
-  "description"
-> & {
-  services: string[],
-  tasks: string[],
-  tests: string[],
-  taskState: TaskState, // State of the build task for the module
+export type Module = Pick<ModuleConfig, "name" | "type" | "path" | "repositoryUrl" | "description"> & {
+  services: string[]
+  tasks: string[]
+  tests: string[]
+  taskState: TaskState // State of the build task for the module
 }
 
 export interface Service {
-  config: ServiceConfig,
-  status: ServiceStatus,
-  taskState: TaskState, // State of the deploy task for the service
+  config: ServiceConfig
+  status: ServiceStatus
+  taskState: TaskState // State of the deploy task for the service
 }
 
 export interface RequestState {
-  pending: boolean,
+  pending: boolean
   initLoadComplete: boolean
-  error?: AxiosError,
+  error?: AxiosError
 }
 
 export interface Entities {
   project: {
-    root: string,
-    taskGraphProcessing: boolean,
+    root: string
+    taskGraphProcessing: boolean
   }
   modules: { [moduleName: string]: Module }
   services: { [serviceName: string]: Service }
   tasks: { [taskName: string]: Task }
   tests: { [testKey: string]: Test }
   logs: { [serviceName: string]: ServiceLogEntry[] }
-  graph: GraphOutput,
-  providers: EnvironmentStatusMap,
+  graph: GraphOutput
+  providers: EnvironmentStatusMap
 }
 
 /**
  * The "global" data store
  */
 export interface Store {
-  entities: Entities,
+  entities: Entities
   requestStates: {
     config: RequestState
     status: RequestState
-    graph: RequestState,
-    logs: RequestState,
-    testResult: RequestState,
-    taskResult: RequestState,
-  },
+    graph: RequestState
+    logs: RequestState
+    testResult: RequestState
+    taskResult: RequestState
+  }
 }
 
 type RequestKey = keyof Store["requestStates"]
-const requestKeys: RequestKey[] = [
-  "config",
-  "status",
-  "logs",
-  "testResult",
-  "taskResult",
-  "graph",
-]
+const requestKeys: RequestKey[] = ["config", "status", "logs", "testResult", "taskResult", "graph"]
 
 type ProcessResults = (entities: Entities) => Entities
 
@@ -168,10 +142,13 @@ interface WsMessageReceived extends ActionBase {
 
 export type Action = ActionStart | ActionError | ActionSuccess | WsMessageReceived
 
-const initialRequestState = requestKeys.reduce((acc, key) => {
-  acc[key] = { pending: false, initLoadComplete: false }
-  return acc
-}, {} as { [K in RequestKey]: RequestState })
+const initialRequestState = requestKeys.reduce(
+  (acc, key) => {
+    acc[key] = { pending: false, initLoadComplete: false }
+    return acc
+  },
+  {} as { [K in RequestKey]: RequestState }
+)
 
 const initialState: Store = {
   entities: {
@@ -193,33 +170,34 @@ const initialState: Store = {
 /**
  * The reducer for the useApiProvider hook. Sets the state for a given slice of the store on fetch events.
  */
-const reducer = (store: Store, action: Action) => produce(store, draft => {
-  switch (action.type) {
-    case "fetchStart":
-      draft.requestStates[action.requestKey].pending = true
-      break
-    case "fetchSuccess":
-      // Produce the next store state from the fetch result and update the request state
-      draft.entities = action.processResults(store.entities)
-      draft.requestStates[action.requestKey].pending = false
-      draft.requestStates[action.requestKey].initLoadComplete = true
-      break
-    case "fetchFailure":
-      draft.requestStates[action.requestKey].pending = false
-      draft.requestStates[action.requestKey].error = action.error
-      draft.requestStates[action.requestKey].initLoadComplete = true
-      break
-    case "wsMessageReceived":
-      draft.entities = action.processResults(store.entities)
-      break
-  }
-})
+const reducer = (store: Store, action: Action) =>
+  produce(store, (draft) => {
+    switch (action.type) {
+      case "fetchStart":
+        draft.requestStates[action.requestKey].pending = true
+        break
+      case "fetchSuccess":
+        // Produce the next store state from the fetch result and update the request state
+        draft.entities = action.processResults(store.entities)
+        draft.requestStates[action.requestKey].pending = false
+        draft.requestStates[action.requestKey].initLoadComplete = true
+        break
+      case "fetchFailure":
+        draft.requestStates[action.requestKey].pending = false
+        draft.requestStates[action.requestKey].error = action.error
+        draft.requestStates[action.requestKey].initLoadComplete = true
+        break
+      case "wsMessageReceived":
+        draft.entities = action.processResults(store.entities)
+        break
+    }
+  })
 
 export type ApiDispatch = React.Dispatch<Action>
 
 type Context = {
   store: Store
-  dispatch: ApiDispatch,
+  dispatch: ApiDispatch
 }
 
 // Type cast the initial value to avoid having to check whether the context exists in every context consumer.
@@ -245,9 +223,5 @@ export const ApiProvider: React.FC = ({ children }) => {
     return initWebSocket(dispatch)
   }, [])
 
-  return (
-    <Context.Provider value={{ store, dispatch }}>
-      {children}
-    </Context.Provider>
-  )
+  return <Context.Provider value={{ store, dispatch }}>{children}</Context.Provider>
 }

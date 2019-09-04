@@ -47,7 +47,7 @@ export const clusterInit: PluginCommand = {
         namespace: "garden-system",
         args: ["delete", "--purge", "garden-nfs-provisioner"],
       })
-    } catch (_) { }
+    } catch (_) {}
 
     log.info(chalk.green("\nDone!"))
 

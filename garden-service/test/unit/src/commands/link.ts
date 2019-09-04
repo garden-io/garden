@@ -54,9 +54,7 @@ describe("LinkCommand", () => {
 
       const { linkedModuleSources } = await garden.configStore.get()
 
-      expect(linkedModuleSources).to.eql([
-        { name: "module-a", path: localModulePath },
-      ])
+      expect(linkedModuleSources).to.eql([{ name: "module-a", path: localModulePath }])
     })
 
     it("should handle relative paths", async () => {
@@ -74,25 +72,24 @@ describe("LinkCommand", () => {
 
       const { linkedModuleSources } = await garden.configStore.get()
 
-      expect(linkedModuleSources).to.eql([
-        { name: "module-a", path: localModulePath },
-      ])
+      expect(linkedModuleSources).to.eql([{ name: "module-a", path: localModulePath }])
     })
 
     it("should throw if module to link does not have an external source", async () => {
       await expectError(
-        async () => cmd.action({
-          garden,
-          log,
-          headerLog: log,
-          footerLog: log,
-          args: {
-            module: "banana",
-            path: "",
-          },
-          opts: withDefaultGlobalOpts({}),
-        }),
-        "parameter",
+        async () =>
+          cmd.action({
+            garden,
+            log,
+            headerLog: log,
+            footerLog: log,
+            args: {
+              module: "banana",
+              path: "",
+            },
+            opts: withDefaultGlobalOpts({}),
+          }),
+        "parameter"
       )
     })
   })
@@ -125,9 +122,7 @@ describe("LinkCommand", () => {
 
       const { linkedProjectSources } = await garden.configStore.get()
 
-      expect(linkedProjectSources).to.eql([
-        { name: "source-a", path: localSourcePath },
-      ])
+      expect(linkedProjectSources).to.eql([{ name: "source-a", path: localSourcePath }])
     })
 
     it("should handle relative paths", async () => {
@@ -145,9 +140,7 @@ describe("LinkCommand", () => {
 
       const { linkedProjectSources } = await garden.configStore.get()
 
-      expect(linkedProjectSources).to.eql([
-        { name: "source-a", path: localSourcePath },
-      ])
+      expect(linkedProjectSources).to.eql([{ name: "source-a", path: localSourcePath }])
     })
   })
 })

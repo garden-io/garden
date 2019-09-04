@@ -13,16 +13,16 @@ import { colors, fontMedium } from "../styles/variables"
 
 interface CardProps {
   children: React.ReactNode
-  title?: string,
+  title?: string
   backgroundColor?: string
 }
 
 type WrapperProps = {
-  backgroundColor?: string,
+  backgroundColor?: string
 }
 
 const Wrapper = styled.div<WrapperProps>`
-  background-color: ${props => props.backgroundColor || colors.gardenWhite};
+  background-color: ${(props) => props.backgroundColor || colors.gardenWhite};
   box-shadow: 0px 6px 18px rgba(0, 0, 0, 0.06);
   border-radius: 4px;
   width: 100%;
@@ -36,13 +36,11 @@ export const CardTitle = styled.h3`
 `
 
 const Card: React.FC<CardProps> = ({ children, title, backgroundColor }) => {
-  const titleEl = title
-    ? (
-      <div className="p-1">
-        <CardTitle>{title}</CardTitle>
-      </div>
-    )
-    : null
+  const titleEl = title ? (
+    <div className="p-1">
+      <CardTitle>{title}</CardTitle>
+    </div>
+  ) : null
   return (
     <Wrapper className="mb-2" backgroundColor={backgroundColor}>
       {titleEl}

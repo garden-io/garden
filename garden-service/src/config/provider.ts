@@ -22,24 +22,25 @@ export interface ProviderConfig {
   [key: string]: any
 }
 
-const providerFixedFieldsSchema = joi.object()
-  .keys({
-    name: joiIdentifier()
-      .required()
-      .description("The name of the provider plugin to use.")
-      .example("local-kubernetes"),
-    environments: joi.array().items(joiUserIdentifier())
-      .optional()
-      .description(deline`
+const providerFixedFieldsSchema = joi.object().keys({
+  name: joiIdentifier()
+    .required()
+    .description("The name of the provider plugin to use.")
+    .example("local-kubernetes"),
+  environments: joi
+    .array()
+    .items(joiUserIdentifier())
+    .optional()
+    .description(
+      deline`
         If specified, this provider will only be used in the listed environments. Note that an empty array effectively
         disables the provider. To use a provider in all environments, omit this field.
-      `)
-      .example([["dev", "stage"], {}]),
-  })
+      `
+    )
+    .example([["dev", "stage"], {}]),
+})
 
-export const providerConfigBaseSchema = providerFixedFieldsSchema
-  .unknown(true)
-  .meta({ extendable: true })
+export const providerConfigBaseSchema = providerFixedFieldsSchema.unknown(true).meta({ extendable: true })
 
 export interface Provider<T extends ProviderConfig = ProviderConfig> {
   name: string
@@ -50,24 +51,22 @@ export interface Provider<T extends ProviderConfig = ProviderConfig> {
   status: EnvironmentStatus
 }
 
-export const providerSchema = providerFixedFieldsSchema
-  .keys({
-    dependencies: joi.lazy(() => providersSchema)
-      .required(),
-    config: joi.lazy(() => providerConfigBaseSchema)
-      .required(),
-    moduleConfigs: joiArray(moduleConfigSchema.optional()),
-    status: environmentStatusSchema,
-  })
+export const providerSchema = providerFixedFieldsSchema.keys({
+  dependencies: joi.lazy(() => providersSchema).required(),
+  config: joi.lazy(() => providerConfigBaseSchema).required(),
+  moduleConfigs: joiArray(moduleConfigSchema.optional()),
+  status: environmentStatusSchema,
+})
 
-export const providersSchema = joiArray(providerSchema)
-  .description("List of all the providers that this provider depdends on.")
+export const providersSchema = joiArray(providerSchema).description(
+  "List of all the providers that this provider depdends on."
+)
 
-export interface ProviderMap { [name: string]: Provider }
+export interface ProviderMap {
+  [name: string]: Provider
+}
 
-export const defaultProviders = [
-  { name: "container" },
-]
+export const defaultProviders = [{ name: "container" }]
 
 // this is used for default handlers in the action handler
 export const defaultProvider: Provider = {
@@ -79,7 +78,10 @@ export const defaultProvider: Provider = {
 }
 
 export function providerFromConfig(
-  config: ProviderConfig, dependencies: Provider[], moduleConfigs: ModuleConfig[], status: EnvironmentStatus,
+  config: ProviderConfig,
+  dependencies: Provider[],
+  moduleConfigs: ModuleConfig[],
+  status: EnvironmentStatus
 ): Provider {
   return {
     name: config.name,
@@ -96,7 +98,7 @@ export function providerFromConfig(
  */
 export async function getAllProviderDependencyNames(plugin: GardenPlugin, config: ProviderConfig) {
   // Declared dependencies from config
-  const deps: string[] = [...plugin.dependencies || []]
+  const deps: string[] = [...(plugin.dependencies || [])]
 
   // Implicit dependencies from template strings
   const references = await collectTemplateReferences(config)
@@ -105,10 +107,12 @@ export async function getAllProviderDependencyNames(plugin: GardenPlugin, config
     if (key[0] === "providers") {
       const providerName = key[1]
       if (!providerName) {
-        throw new ConfigurationError(deline`
+        throw new ConfigurationError(
+          deline`
           Invalid template key '${key.join(".")}' in configuration for provider '${config.name}'. You must
           specify a provider name as well (e.g. \${providers.my-provider}).
-        `, { config, key: key.join(".") },
+        `,
+          { config, key: key.join(".") }
         )
       }
       deps.push(providerName)

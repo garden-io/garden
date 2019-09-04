@@ -34,9 +34,7 @@ export class GetServiceStatusTask extends BaseTask {
   private service: Service
   private hotReloadServiceNames: string[]
 
-  constructor(
-    { garden, graph, log, service, force, hotReloadServiceNames = [] }: GetServiceStatusTaskParams,
-  ) {
+  constructor({ garden, graph, log, service, force, hotReloadServiceNames = [] }: GetServiceStatusTaskParams) {
     super({ garden, log, force, version: service.module.version })
     this.graph = graph
     this.service = service
@@ -46,7 +44,7 @@ export class GetServiceStatusTask extends BaseTask {
   async getDependencies() {
     const deps = await this.graph.getDependencies("service", this.getName(), false)
 
-    const statusTasks = deps.service.map(service => {
+    const statusTasks = deps.service.map((service) => {
       return new GetServiceStatusTask({
         garden: this.garden,
         graph: this.graph,

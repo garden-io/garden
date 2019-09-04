@@ -14,6 +14,11 @@ import App from "./app"
 it("renders without crashing", () => {
   const div = document.createElement("div")
   // Need to wrap with Router, see here: https://stackoverflow.com/a/50530166
-  ReactDOM.render(<Router><App /></Router>, div)
+  ReactDOM.render(
+    <Router>
+      <App />
+    </Router>,
+    div
+  )
   ReactDOM.unmountComponentAtNode(div)
 })

@@ -7,12 +7,7 @@
  */
 
 import { ConfigGraph } from "../../config-graph"
-import {
-  Command,
-  CommandResult,
-  CommandParams,
-  StringParameter,
-} from "../base"
+import { Command, CommandResult, CommandParams, StringParameter } from "../base"
 import { printHeader } from "../../logger/util"
 import { getTaskVersion } from "../../tasks/task"
 import { RunTaskResult } from "../../types/plugin/task/runTask"
@@ -35,9 +30,12 @@ export class GetTaskResultCommand extends Command<Args> {
 
   arguments = getTaskResultArgs
 
-  async action(
-    { garden, log, headerLog, args }: CommandParams<Args>,
-  ): Promise<CommandResult<GetTaskResultCommandResult>> {
+  async action({
+    garden,
+    log,
+    headerLog,
+    args,
+  }: CommandParams<Args>): Promise<CommandResult<GetTaskResultCommandResult>> {
     const taskName = args.name
 
     const graph: ConfigGraph = await garden.getConfigGraph()
@@ -45,24 +43,16 @@ export class GetTaskResultCommand extends Command<Args> {
 
     const actions = await garden.getActionRouter()
 
-    const result = await actions.getTaskResult(
-      {
-        log,
-        task,
-        taskVersion: await getTaskVersion(garden, graph, task),
-      },
-    )
+    const result = await actions.getTaskResult({
+      log,
+      task,
+      taskVersion: await getTaskVersion(garden, graph, task),
+    })
 
-    printHeader(
-      headerLog,
-      `Task result for task ${chalk.cyan(taskName)}`,
-      "rocket",
-    )
+    printHeader(headerLog, `Task result for task ${chalk.cyan(taskName)}`, "rocket")
 
     if (result === null) {
-      log.info(
-        `Could not find results for task '${taskName}'`,
-      )
+      log.info(`Could not find results for task '${taskName}'`)
     } else {
       log.info({ data: result })
     }

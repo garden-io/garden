@@ -7,15 +7,11 @@
  */
 
 import { RenderedEdge, RenderedNode } from "../../config-graph"
-import {
-  Command,
-  CommandResult,
-  CommandParams,
-} from "../base"
+import { Command, CommandResult, CommandParams } from "../base"
 
 export interface GraphOutput {
-  nodes: RenderedNode[],
-  relationships: RenderedEdge[],
+  nodes: RenderedNode[]
+  relationships: RenderedEdge[]
 }
 
 export class GetGraphCommand extends Command {
@@ -25,12 +21,13 @@ export class GetGraphCommand extends Command {
   async action({ garden, log }: CommandParams): Promise<CommandResult<GraphOutput>> {
     const graph = await garden.getConfigGraph()
     const renderedGraph = graph.render()
-    const output: GraphOutput = { nodes: renderedGraph.nodes, relationships: renderedGraph.relationships }
+    const output: GraphOutput = {
+      nodes: renderedGraph.nodes,
+      relationships: renderedGraph.relationships,
+    }
 
     log.info({ data: renderedGraph })
 
     return { result: output }
-
   }
-
 }

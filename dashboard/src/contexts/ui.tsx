@@ -14,36 +14,38 @@ import { PickFromUnion } from "garden-service/build/src/util/util"
 interface UiState {
   isSidebarOpen: boolean
   overview: {
-    selectedIngress: ServiceIngress | null,
-    selectedEntity: SelectedEntity | null,
+    selectedIngress: ServiceIngress | null
+    selectedEntity: SelectedEntity | null
     filters: {
       [key in OverviewSupportedFilterKeys]: boolean
-    },
-  },
+    }
+  }
   stackGraph: {
     filters: {
       [key in StackGraphSupportedFilterKeys]: boolean
-    },
-  },
-  selectedGraphNode: string | null,
+    }
+  }
+  selectedGraphNode: string | null
 }
 
 export type SelectGraphNode = (node: string) => void
 export type SelectEntity = (selectedEntity: SelectedEntity | null) => void
 export type SelectIngress = (ingress: ServiceIngress | null) => void
-export type OverviewSupportedFilterKeys = "modules" | "modulesInfo" | "services" | "servicesInfo" |
-  "tasks" | "tasksInfo" | "tests" | "testsInfo"
-export type StackGraphSupportedFilterKeys = PickFromUnion<RenderedNodeType,
-  "test" |
-  "deploy" |
-  "build" |
-  "run"
->
+export type OverviewSupportedFilterKeys =
+  | "modules"
+  | "modulesInfo"
+  | "services"
+  | "servicesInfo"
+  | "tasks"
+  | "tasksInfo"
+  | "tests"
+  | "testsInfo"
+export type StackGraphSupportedFilterKeys = PickFromUnion<RenderedNodeType, "test" | "deploy" | "build" | "run">
 export type EntityResultSupportedTypes = StackGraphSupportedFilterKeys | "task"
 export type SelectedEntity = {
-  type: EntityResultSupportedTypes,
-  name: string,
-  module: string,
+  type: EntityResultSupportedTypes
+  name: string
+  module: string
 }
 
 interface UiActions {
@@ -71,7 +73,8 @@ const INITIAL_UI_STATE: UiState = {
       testsInfo: true,
     },
   },
-  stackGraph: { // todo: currently not attached to graph/index.tsx, use context there
+  stackGraph: {
+    // todo: currently not attached to graph/index.tsx, use context there
     filters: {
       build: true,
       run: true,
@@ -84,8 +87,8 @@ const INITIAL_UI_STATE: UiState = {
 }
 
 interface UiStateAndActions {
-  state: UiState,
-  actions: UiActions,
+  state: UiState
+  actions: UiActions
 }
 
 // FIXME: Use useReducer instead of useState to simplify updating
@@ -184,9 +187,5 @@ export const useUiState = () => useContext(Context)
 export const UiStateProvider: React.FC = ({ children }) => {
   const storeAndActions = useUiStateProvider()
 
-  return (
-    <Context.Provider value={storeAndActions}>
-      {children}
-    </Context.Provider>
-  )
+  return <Context.Provider value={storeAndActions}>{children}</Context.Provider>
 }

@@ -41,16 +41,15 @@ export default () => {
   }
 
   if (requestStates.config.error || requestStates.logs.error) {
-    return (
-      <PageError error={(requestStates.config.error || requestStates.logs.error)} />
-    )
+    return <PageError error={requestStates.config.error || requestStates.logs.error} />
   }
 
-  const handleRefresh = useCallback((names: string[]) => {
-    loadLogs(dispatch, names)
-  }, [dispatch])
-
-  return (
-    <Logs onRefresh={handleRefresh} logs={logs} />
+  const handleRefresh = useCallback(
+    (names: string[]) => {
+      loadLogs(dispatch, names)
+    },
+    [dispatch]
   )
+
+  return <Logs onRefresh={handleRefresh} logs={logs} />
 }

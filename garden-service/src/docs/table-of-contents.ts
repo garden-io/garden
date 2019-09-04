@@ -67,7 +67,7 @@ function attachMetadata(tree: FileTree) {
     // directory that has no README. If the error is *not* ENOENT though,
     // something really went wrong.
     if (e.code !== "ENOENT") {
-      throw (e)
+      throw e
     } else {
       // It's not an empty directory but there's no README: link to first
       // file instead.

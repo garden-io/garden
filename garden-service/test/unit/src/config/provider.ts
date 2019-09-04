@@ -11,30 +11,25 @@ describe("getProviderDependencies", () => {
   it("should extract implicit provider dependencies from template strings", async () => {
     const config: ProviderConfig = {
       name: "my-provider",
-      someKey: "\${providers.other-provider.foo}",
-      anotherKey: "foo-\${providers.another-provider.bar}",
+      someKey: "${providers.other-provider.foo}",
+      anotherKey: "foo-${providers.another-provider.bar}",
     }
-    expect(await getAllProviderDependencyNames(plugin, config)).to.eql([
-      "another-provider",
-      "other-provider",
-    ])
+    expect(await getAllProviderDependencyNames(plugin, config)).to.eql(["another-provider", "other-provider"])
   })
 
   it("should ignore template strings that don't reference providers", async () => {
     const config: ProviderConfig = {
       name: "my-provider",
-      someKey: "\${providers.other-provider.foo}",
-      anotherKey: "foo-\${some.other.ref}",
+      someKey: "${providers.other-provider.foo}",
+      anotherKey: "foo-${some.other.ref}",
     }
-    expect(await getAllProviderDependencyNames(plugin, config)).to.eql([
-      "other-provider",
-    ])
+    expect(await getAllProviderDependencyNames(plugin, config)).to.eql(["other-provider"])
   })
 
   it("should throw on provider-scoped template strings without a provider name", async () => {
     const config: ProviderConfig = {
       name: "my-provider",
-      someKey: "\${providers}",
+      someKey: "${providers}",
     }
 
     await expectError(
@@ -42,9 +37,9 @@ describe("getProviderDependencies", () => {
       (err) => {
         expect(err.message).to.equal(
           "Invalid template key 'providers' in configuration for provider 'my-provider'. " +
-          "You must specify a provider name as well (e.g. \\\${providers.my-provider}).",
+            "You must specify a provider name as well (e.g. \\${providers.my-provider})."
         )
-      },
+      }
     )
   })
 })

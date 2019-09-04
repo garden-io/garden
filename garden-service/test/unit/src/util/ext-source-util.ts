@@ -37,7 +37,11 @@ describe("ext-source-util", () => {
       const url = "banana"
       const urlHash = hashRepoUrl(url)
 
-      const path = getRemoteSourceRelPath({ url, name: "my-source", sourceType: "project" })
+      const path = getRemoteSourceRelPath({
+        url,
+        name: "my-source",
+        sourceType: "project",
+      })
       expect(path).to.equal(join("sources", "project", `my-source--${urlHash}`))
     })
 
@@ -45,7 +49,11 @@ describe("ext-source-util", () => {
       const url = "banana"
       const urlHash = hashRepoUrl(url)
 
-      const path = getRemoteSourceRelPath({ url, name: "my-module", sourceType: "module" })
+      const path = getRemoteSourceRelPath({
+        url,
+        name: "my-module",
+        sourceType: "module",
+      })
       expect(path).to.equal(join("sources", "module", `my-module--${urlHash}`))
     })
   })
@@ -60,7 +68,6 @@ describe("ext-source-util", () => {
       await garden.configStore.set(["linkedModuleSources"], sources)
       expect(await getLinkedSources(garden, "module")).to.eql(sources)
     })
-
   })
 
   describe("addLinkedSources", () => {
@@ -79,12 +86,14 @@ describe("ext-source-util", () => {
       await localConfigStore.set(["linkedModuleSources"], sources)
 
       const newSources = [{ name: "name-c", path: "path-c" }]
-      await addLinkedSources({ garden, sourceType: "module", sources: newSources })
+      await addLinkedSources({
+        garden,
+        sourceType: "module",
+        sources: newSources,
+      })
 
       expect(await garden.configStore.get(["linkedModuleSources"])).to.eql(sources.concat(newSources))
-
     })
-
   })
 
   describe("removeLinkedSources", () => {
@@ -94,9 +103,12 @@ describe("ext-source-util", () => {
       const names = ["name-a"]
       await removeLinkedSources({ garden, sourceType: "module", names })
 
-      expect(await garden.configStore.get(["linkedModuleSources"])).to.eql([{
-        name: "name-b", path: "path-b",
-      }])
+      expect(await garden.configStore.get(["linkedModuleSources"])).to.eql([
+        {
+          name: "name-b",
+          path: "path-b",
+        },
+      ])
     })
 
     it("should remove linked module sources from local config", async () => {
@@ -105,9 +117,12 @@ describe("ext-source-util", () => {
       const names = ["name-a"]
       await removeLinkedSources({ garden, sourceType: "project", names })
 
-      expect(await garden.configStore.get(["linkedProjectSources"])).to.eql([{
-        name: "name-b", path: "path-b",
-      }])
+      expect(await garden.configStore.get(["linkedProjectSources"])).to.eql([
+        {
+          name: "name-b",
+          path: "path-b",
+        },
+      ])
     })
 
     it("should remove multiple sources from local config", async () => {
@@ -116,19 +131,17 @@ describe("ext-source-util", () => {
       const names = ["name-a", "name-b"]
       await removeLinkedSources({ garden, sourceType: "module", names })
 
-      expect(await garden.configStore.get(["linkedModuleSources"])).to.eql([{
-        name: "name-c", path: "path-c",
-      }])
+      expect(await garden.configStore.get(["linkedModuleSources"])).to.eql([
+        {
+          name: "name-c",
+          path: "path-c",
+        },
+      ])
     })
 
     it("should throw if source not currently linked", async () => {
       const names = ["banana"]
-      await expectError(
-        async () => await removeLinkedSources({ garden, sourceType: "project", names }),
-        "parameter",
-      )
-
+      await expectError(async () => await removeLinkedSources({ garden, sourceType: "project", names }), "parameter")
     })
-
   })
 })

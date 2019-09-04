@@ -9,14 +9,10 @@
 import { ConfigGraph } from "../config-graph"
 import { Service } from "../types/service"
 
-export async function getHotReloadServiceNames(
-  namesFromOpt: string[] | undefined, configGraph: ConfigGraph,
-) {
+export async function getHotReloadServiceNames(namesFromOpt: string[] | undefined, configGraph: ConfigGraph) {
   const names = namesFromOpt || []
   if (names[0] === "*") {
-    return (await configGraph.getServices())
-      .filter(s => supportsHotReloading(s))
-      .map(s => s.name)
+    return (await configGraph.getServices()).filter((s) => supportsHotReloading(s)).map((s) => s.name)
   } else {
     return names
   }
@@ -27,12 +23,11 @@ export async function getHotReloadServiceNames(
  * hot reloading, or if one or more of serviceNames referes to a non-existent service. Returns null otherwise.
  */
 export async function validateHotReloadServiceNames(
-  serviceNames: string[], configGraph: ConfigGraph,
+  serviceNames: string[],
+  configGraph: ConfigGraph
 ): Promise<string | null> {
   const services = await configGraph.getServices(serviceNames)
-  const invalidNames = services
-    .filter(s => !supportsHotReloading(s))
-    .map(s => s.name)
+  const invalidNames = services.filter((s) => !supportsHotReloading(s)).map((s) => s.name)
   if (invalidNames.length > 0) {
     return `The following requested services are not configured for hot reloading: ${invalidNames.join(", ")}`
   } else {

@@ -33,7 +33,7 @@ describe("helpers", () => {
 
   describe("parseLogLevel", () => {
     it("should return a level integer if valid", async () => {
-      const parsed = validLogLevels.map(el => parseLogLevel(el))
+      const parsed = validLogLevels.map((el) => parseLogLevel(el))
       expect(parsed).to.eql([0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5])
     })
     it("should throw if level is not valid", async () => {

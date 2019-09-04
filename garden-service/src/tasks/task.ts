@@ -30,7 +30,8 @@ export interface TaskTaskParams {
   forceBuild: boolean
 }
 
-export class TaskTask extends BaseTask { // ... to be renamed soon.
+export class TaskTask extends BaseTask {
+  // ... to be renamed soon.
   type: TaskType = "task"
 
   private graph: ConfigGraph
@@ -62,7 +63,7 @@ export class TaskTask extends BaseTask { // ... to be renamed soon.
     const dg = await this.garden.getConfigGraph()
     const deps = await dg.getDependencies("task", this.getName(), false)
 
-    const deployTasks = deps.service.map(service => {
+    const deployTasks = deps.service.map((service) => {
       return new DeployTask({
         service,
         log: this.log,
@@ -93,7 +94,6 @@ export class TaskTask extends BaseTask { // ... to be renamed soon.
     })
 
     return [buildTask, ...deployTasks, ...taskTasks, resultTask]
-
   }
 
   getName() {
@@ -113,9 +113,11 @@ export class TaskTask extends BaseTask { // ... to be renamed soon.
       const cachedResult = getRunTaskResults(dependencyResults)[this.task.name]
 
       if (cachedResult && cachedResult.success) {
-        this.log.info({
-          section: task.name,
-        }).setSuccess({ msg: chalk.green("Already run") })
+        this.log
+          .info({
+            section: task.name,
+          })
+          .setSuccess({ msg: chalk.green("Already run") })
 
         return cachedResult
       }
@@ -157,7 +159,10 @@ export class TaskTask extends BaseTask { // ... to be renamed soon.
       throw err
     }
 
-    log.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
+    log.setSuccess({
+      msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
+      append: true,
+    })
 
     return result
   }
@@ -166,9 +171,7 @@ export class TaskTask extends BaseTask { // ... to be renamed soon.
 /**
  * Determine the version of the task run, based on the version of the module and each of its dependencies.
  */
-export async function getTaskVersion(
-  garden: Garden, graph: ConfigGraph, task: Task,
-): Promise<ModuleVersion> {
+export async function getTaskVersion(garden: Garden, graph: ConfigGraph, task: Task): Promise<ModuleVersion> {
   const { module } = task
   const moduleDeps = await graph.resolveDependencyModules(module.build.dependencies, task.config.dependencies)
   return garden.resolveVersion(module.name, moduleDeps)

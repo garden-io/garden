@@ -26,9 +26,7 @@ const PageError: React.FC<Props> = ({ error }) => {
   if (status === 500) {
     suggestion = (
       <div>
-        <p>
-          Are you sure Garden server is running? You can run it with:
-        </p>
+        <p>Are you sure Garden server is running? You can run it with:</p>
         <p>
           <code>garden serve</code>
         </p>
@@ -37,16 +35,15 @@ const PageError: React.FC<Props> = ({ error }) => {
   }
   return (
     <div
-      className={cls(css`
-        text-align: center;
-      `, "p-2")}
+      className={cls(
+        css`
+          text-align: center;
+        `,
+        "p-2"
+      )}
     >
-      <H3 color={colors.gardenPink}>
-        Whoops, something went wrong.
-      </H3>
-      {error && error.message &&
-        <p>Messsage: {error.message}</p>
-      }
+      <H3 color={colors.gardenPink}>Whoops, something went wrong.</H3>
+      {error && error.message && <p>Messsage: {error.message}</p>}
       {suggestion}
     </div>
   )

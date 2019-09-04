@@ -30,11 +30,10 @@ import { getPluginBases } from "../plugins"
 export const TEMPLATES_DIR = resolve(GARDEN_SERVICE_ROOT, "src", "docs", "templates")
 const partialTemplatePath = resolve(TEMPLATES_DIR, "config-partial.hbs")
 
-const populateModuleSchema = (schema: Joi.ObjectSchema) => baseModuleSpecSchema
-  .concat(schema)
+const populateModuleSchema = (schema: Joi.ObjectSchema) => baseModuleSpecSchema.concat(schema)
 
-const populateProviderSchema = (schema: Joi.ObjectSchema) => joi.object()
-  .keys({
+const populateProviderSchema = (schema: Joi.ObjectSchema) =>
+  joi.object().keys({
     providers: joiArray(schema),
   })
 
@@ -78,11 +77,7 @@ export interface NormalizedDescription extends Description {
 export function normalizeDescriptions(joiDescription: Joi.Description): NormalizedDescription[] {
   const normalize = (
     joiDesc: Joi.Description,
-    {
-      level = 0,
-      name,
-      parent,
-    }: { level?: number, name?: string, parent?: NormalizedDescription } = {},
+    { level = 0, name, parent }: { level?: number; name?: string; parent?: NormalizedDescription } = {}
   ): NormalizedDescription[] => {
     let description: NormalizedDescription | undefined
     let childDescriptions: NormalizedDescription[] = []
@@ -97,9 +92,11 @@ export function normalizeDescriptions(joiDescription: Joi.Description): Normaliz
       const children = Object.entries(joiDesc.children || {}) || []
       const nextLevel = name ? level + 1 : level
       const nextParent = name ? description : parent
-      childDescriptions = flatten(children.map(([childName, childDescription]) => (
-        normalize(childDescription as Description, { level: nextLevel, parent: nextParent, name: childName })
-      )))
+      childDescriptions = flatten(
+        children.map(([childName, childDescription]) =>
+          normalize(childDescription as Description, { level: nextLevel, parent: nextParent, name: childName })
+        )
+      )
     } else if (joiDesc.type === "array") {
       // We only use the first array item
       const item = joiDesc.items[0]
@@ -112,7 +109,7 @@ export function normalizeDescriptions(joiDescription: Joi.Description): Normaliz
     return [description, ...childDescriptions]
   }
 
-  return normalize(joiDescription).filter(key => !get(key, "meta[0].internal"))
+  return normalize(joiDescription).filter((key) => !get(key, "meta[0].internal"))
 }
 
 // Normalizes the key description
@@ -122,7 +119,7 @@ function normalizeKeyDescription(description: Description): NormalizedDescriptio
   let allowedValues: string | undefined = undefined
   const allowOnly = get(description, "flags.allowOnly") === true
   if (allowOnly) {
-    allowedValues = description.valids!.map(v => JSON.stringify(v)).join(", ")
+    allowedValues = description.valids!.map((v) => JSON.stringify(v)).join(", ")
   }
 
   const presenceRequired = get(description, "flags.presence") === "required"
@@ -205,7 +202,7 @@ export function getDefaultValue(description: Joi.Description) {
 
 function getParentDescriptions(
   description: NormalizedDescription,
-  descriptions: NormalizedDescription[] = [],
+  descriptions: NormalizedDescription[] = []
 ): NormalizedDescription[] {
   if (description.parent) {
     return getParentDescriptions(description.parent, [description.parent, ...descriptions])
@@ -215,9 +212,10 @@ function getParentDescriptions(
 
 function renderMarkdownTitle(description: NormalizedDescription, prefix = "") {
   const parentDescriptions = getParentDescriptions(description)
-  const title = parentDescriptions.length > 0
-    ? `${parentDescriptions.map(d => d.formattedName).join(".")}.${description.formattedName}`
-    : description.name
+  const title =
+    parentDescriptions.length > 0
+      ? `${parentDescriptions.map((d) => d.formattedName).join(".")}.${description.formattedName}`
+      : description.name
   return prefix + title
 }
 
@@ -233,31 +231,33 @@ function makeMarkdownDescription(description: NormalizedDescription, titlePrefix
   const { formattedType, required, allowedValues, defaultValue } = description
   let experimentalFeature = false
   if (description.meta) {
-    experimentalFeature = find(description.meta, attr => attr.experimental) || false
+    experimentalFeature = find(description.meta, (attr) => attr.experimental) || false
   }
 
   const parentDescriptions = getParentDescriptions(description)
   const title = renderMarkdownTitle(description, titlePrefix)
-  const breadCrumbs = parentDescriptions.length > 0
-    ? parentDescriptions
-      .map(renderMarkdownLink)
-      .concat(description.name)
-      .join(" > ")
-    : null
+  const breadCrumbs =
+    parentDescriptions.length > 0
+      ? parentDescriptions
+          .map(renderMarkdownLink)
+          .concat(description.name)
+          .join(" > ")
+      : null
 
   let formattedExample: string | undefined
   if (description.formattedExample) {
-    formattedExample = renderSchemaDescriptionYaml(
-      [...parentDescriptions, description],
-      { showComment: false, useExampleForValue: true, showEllipsisBetweenKeys: true },
-    ).replace(/\n$/, "") // strip trailing new line
+    formattedExample = renderSchemaDescriptionYaml([...parentDescriptions, description], {
+      showComment: false,
+      useExampleForValue: true,
+      showEllipsisBetweenKeys: true,
+    }).replace(/\n$/, "") // strip trailing new line
   }
 
   const table = renderMarkdownTable({
     Type: "`" + formattedType + "`",
     Required: required ? "Yes" : "No",
-    ...allowedValues ? { "Allowed Values": allowedValues } : {},
-    ...defaultValue !== undefined ? { Default: "`" + JSON.stringify(defaultValue) + "`" } : {},
+    ...(allowedValues ? { "Allowed Values": allowedValues } : {}),
+    ...(defaultValue !== undefined ? { Default: "`" + JSON.stringify(defaultValue) + "`" } : {}),
   })
 
   return {
@@ -272,16 +272,11 @@ function makeMarkdownDescription(description: NormalizedDescription, titlePrefix
 
 export function renderSchemaDescriptionYaml(
   descriptions: NormalizedDescription[],
-  {
-    showComment = true,
-    showRequired = true,
-    showEllipsisBetweenKeys = false,
-    useExampleForValue = false,
-  }: RenderOpts,
+  { showComment = true, showRequired = true, showEllipsisBetweenKeys = false, useExampleForValue = false }: RenderOpts
 ) {
   let prevDesc: NormalizedDescription
 
-  const output = descriptions.map(desc => {
+  const output = descriptions.map((desc) => {
     const {
       description,
       formattedExample: example,
@@ -305,8 +300,8 @@ export function renderSchemaDescriptionYaml(
     const isPrimitive = type !== "array" && type !== "object"
 
     const stringifiedDefaultVal = useExampleForValue ? example : JSON.stringify(defaultValue)
-    const exceptionallyTreatAsPrimitive = !hasChildren
-      && (stringifiedDefaultVal === "[]" || stringifiedDefaultVal === "{}")
+    const exceptionallyTreatAsPrimitive =
+      !hasChildren && (stringifiedDefaultVal === "[]" || stringifiedDefaultVal === "{}")
 
     // Prepend new line if applicable (easier then appending). We skip the new line if comments not shown.
     if (prevDesc && showComment) {
@@ -338,7 +333,9 @@ export function renderSchemaDescriptionYaml(
       allowedValues && comment.push(`Allowed values: ${allowedValues}`, "")
 
       const wrap = linewrap(width - 2, { whitespace: "line" })
-      const formattedComment = wrap(comment.join("\n")).split("\n").map(line => "# " + line)
+      const formattedComment = wrap(comment.join("\n"))
+        .split("\n")
+        .map((line) => "# " + line)
       out.push(...formattedComment)
     }
 
@@ -351,9 +348,19 @@ export function renderSchemaDescriptionYaml(
       value = isPrimitive || exceptionallyTreatAsPrimitive ? example : indent(example.split("\n"), levels)
     } else {
       // Non-primitive values get rendered in the line below, indented by one
-      value = isPrimitive || exceptionallyTreatAsPrimitive
-        ? defaultValue === undefined ? "" : safeDump(defaultValue)
-        : defaultValue === undefined ? "" : indent(safeDump(defaultValue).trim().split("\n"), 1)
+      value =
+        isPrimitive || exceptionallyTreatAsPrimitive
+          ? defaultValue === undefined
+            ? ""
+            : safeDump(defaultValue)
+          : defaultValue === undefined
+          ? ""
+          : indent(
+              safeDump(defaultValue)
+                .trim()
+                .split("\n"),
+              1
+            )
     }
 
     if (isPrimitive || exceptionallyTreatAsPrimitive) {
@@ -372,7 +379,7 @@ export function renderSchemaDescriptionYaml(
     // Dedent first array item to account for the "-" sign
     const lvl = isFirstArrayItem ? level - 1 : level
     return indent(out, lvl)
-      .map(line => line.trimRight())
+      .map((line) => line.trimRight())
       .join("\n")
   })
 
@@ -388,7 +395,7 @@ export function renderConfigReference(configSchema: Joi.ObjectSchema, titlePrefi
   const normalizedDescriptions = normalizeDescriptions(configSchema.describe())
 
   const yaml = renderSchemaDescriptionYaml(normalizedDescriptions, { showComment: false })
-  const keys = normalizedDescriptions.map(d => makeMarkdownDescription(d, titlePrefix))
+  const keys = normalizedDescriptions.map((d) => makeMarkdownDescription(d, titlePrefix))
 
   const template = handlebars.compile(readFileSync(partialTemplatePath).toString())
   return { markdownReference: template({ keys }), yaml }
@@ -397,15 +404,22 @@ export function renderConfigReference(configSchema: Joi.ObjectSchema, titlePrefi
 /**
  * Generates a markdown reference for template string output schemas.
  */
-function renderTemplateStringReference(
-  { schema, prefix, placeholder, exampleName }:
-    { schema: Joi.ObjectSchema, prefix: string, placeholder: string, exampleName: string },
-): string {
+function renderTemplateStringReference({
+  schema,
+  prefix,
+  placeholder,
+  exampleName,
+}: {
+  schema: Joi.ObjectSchema
+  prefix: string
+  placeholder: string
+  exampleName: string
+}): string {
   const normalizedDescriptions = normalizeDescriptions(schema.describe())
 
   const keys = normalizedDescriptions
-    .map(d => makeMarkdownDescription(d))
-    .map(d => {
+    .map((d) => makeMarkdownDescription(d))
+    .map((d) => {
       const title = d.title
       d.title = `\${${prefix}.${placeholder}.${title}}`
       if (d.formattedExample) {
@@ -414,7 +428,7 @@ function renderTemplateStringReference(
       return d
     })
     // Omit empty objects without descriptions
-    .filter(d => !(d.name === "outputs" && d.hasChildren === false && !d.description))
+    .filter((d) => !(d.name === "outputs" && d.hasChildren === false && !d.description))
 
   const template = handlebars.compile(readFileSync(partialTemplatePath).toString())
   return template({ keys })
@@ -444,17 +458,16 @@ function renderProviderReference(name: string, plugin: GardenPlugin, allPlugins:
   const providerTemplatePath = resolve(TEMPLATES_DIR, "provider.hbs")
   const { markdownReference, yaml } = renderConfigReference(schema)
 
-  const moduleOutputsReference = moduleOutputsSchema && renderTemplateStringReference(
-    {
-      schema: joi.object()
-        .keys({
-          outputs: moduleOutputsSchema.required(),
-        }),
+  const moduleOutputsReference =
+    moduleOutputsSchema &&
+    renderTemplateStringReference({
+      schema: joi.object().keys({
+        outputs: moduleOutputsSchema.required(),
+      }),
       prefix: "providers",
       placeholder: "<provider-name>",
       exampleName: "my-provider",
-    },
-  )
+    })
 
   const template = handlebars.compile(readFileSync(providerTemplatePath).toString())
   const frontmatterTitle = titleize(humanize(name))
@@ -470,7 +483,10 @@ function renderModuleTypeReference(name: string, definitions: { [name: string]: 
   let { schema, docs } = desc
 
   if (!schema) {
-    schema = joi.object().keys({}).unknown(false)
+    schema = joi
+      .object()
+      .keys({})
+      .unknown(false)
   }
 
   const moduleTemplatePath = resolve(TEMPLATES_DIR, "module-type.hbs")
@@ -479,7 +495,7 @@ function renderModuleTypeReference(name: string, definitions: { [name: string]: 
   // Get each schema from the module definitions, or the nearest base schema
   const getOutputsSchema = (
     spec: ModuleTypeDefinition,
-    type: "moduleOutputsSchema" | "serviceOutputsSchema" | "taskOutputsSchema",
+    type: "moduleOutputsSchema" | "serviceOutputsSchema" | "taskOutputsSchema"
   ): Joi.ObjectSchema => {
     const outputsSchema = desc[type]
 
@@ -492,38 +508,32 @@ function renderModuleTypeReference(name: string, definitions: { [name: string]: 
     }
   }
 
-  const moduleOutputsReference = renderTemplateStringReference(
-    {
-      schema: ModuleContext.getSchema().keys({
-        outputs: getOutputsSchema(desc, "moduleOutputsSchema").required(),
-      }),
-      prefix: "modules",
-      placeholder: "<module-name>",
-      exampleName: "my-module",
-    },
-  )
+  const moduleOutputsReference = renderTemplateStringReference({
+    schema: ModuleContext.getSchema().keys({
+      outputs: getOutputsSchema(desc, "moduleOutputsSchema").required(),
+    }),
+    prefix: "modules",
+    placeholder: "<module-name>",
+    exampleName: "my-module",
+  })
 
-  const serviceOutputsReference = renderTemplateStringReference(
-    {
-      schema: ServiceRuntimeContext.getSchema().keys({
-        outputs: getOutputsSchema(desc, "serviceOutputsSchema").required(),
-      }),
-      prefix: "runtime.services",
-      placeholder: "<service-name>",
-      exampleName: "my-service",
-    },
-  )
+  const serviceOutputsReference = renderTemplateStringReference({
+    schema: ServiceRuntimeContext.getSchema().keys({
+      outputs: getOutputsSchema(desc, "serviceOutputsSchema").required(),
+    }),
+    prefix: "runtime.services",
+    placeholder: "<service-name>",
+    exampleName: "my-service",
+  })
 
-  const taskOutputsReference = renderTemplateStringReference(
-    {
-      schema: TaskRuntimeContext.getSchema().keys({
-        outputs: getOutputsSchema(desc, "taskOutputsSchema").required(),
-      }),
-      prefix: "runtime.tasks",
-      placeholder: "<task-name>",
-      exampleName: "my-tasks",
-    },
-  )
+  const taskOutputsReference = renderTemplateStringReference({
+    schema: TaskRuntimeContext.getSchema().keys({
+      outputs: getOutputsSchema(desc, "taskOutputsSchema").required(),
+    }),
+    prefix: "runtime.tasks",
+    placeholder: "<task-name>",
+    exampleName: "my-tasks",
+  })
 
   const frontmatterTitle = titleize(humanize(name))
   const template = handlebars.compile(readFileSync(moduleTemplatePath).toString())
@@ -550,8 +560,11 @@ function renderBaseConfigReference() {
   const { markdownReference: projectMarkdownReference, yaml: projectYaml } = renderConfigReference(
     projectSchema.keys({
       // Need to override this because we currently don't handle joi.alternatives() right
-      environments: joi.array().items(environmentSchema).unique("name"),
-    }),
+      environments: joi
+        .array()
+        .items(environmentSchema)
+        .unique("name"),
+    })
   )
   const { markdownReference: moduleMarkdownReference, yaml: moduleYaml } = renderConfigReference(baseModuleSpecSchema)
 

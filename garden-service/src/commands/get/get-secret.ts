@@ -7,12 +7,7 @@
  */
 
 import { NotFoundError } from "../../exceptions"
-import {
-  Command,
-  CommandResult,
-  CommandParams,
-  StringParameter,
-} from "../base"
+import { Command, CommandResult, CommandParams, StringParameter } from "../base"
 import dedent = require("dedent")
 
 const getSecretArgs = {

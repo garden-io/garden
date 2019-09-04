@@ -19,15 +19,15 @@ import { GlobalOptions } from "../cli/cli"
 import { joi } from "../config/common"
 
 export interface ParameterConstructor<T> {
-  help: string,
-  required?: boolean,
-  alias?: string,
-  defaultValue?: T,
-  valueName?: string,
-  hints?: string,
-  overrides?: string[],
-  cliDefault?: T,
-  cliOnly?: boolean,
+  help: string
+  required?: boolean
+  alias?: string
+  defaultValue?: T
+  valueName?: string
+  hints?: string
+  overrides?: string[]
+  cliDefault?: T
+  cliOnly?: boolean
 }
 
 export abstract class Parameter<T> {
@@ -46,12 +46,20 @@ export abstract class Parameter<T> {
   valueName: string
   overrides: string[]
 
-  readonly cliDefault: T | undefined  // Optionally specify a separate default for CLI invocation
-  readonly cliOnly: boolean           // If true, only expose in the CLI, and not in the HTTP/WS server.
+  readonly cliDefault: T | undefined // Optionally specify a separate default for CLI invocation
+  readonly cliOnly: boolean // If true, only expose in the CLI, and not in the HTTP/WS server.
 
-  constructor(
-    { help, required, alias, defaultValue, valueName, overrides, hints, cliDefault, cliOnly }: ParameterConstructor<T>,
-  ) {
+  constructor({
+    help,
+    required,
+    alias,
+    defaultValue,
+    valueName,
+    overrides,
+    hints,
+    cliDefault,
+    cliOnly,
+  }: ParameterConstructor<T>) {
     this.help = help
     this.required = required || false
     this.alias = alias
@@ -112,7 +120,7 @@ export class StringsParameter extends Parameter<string[] | undefined> {
   // Sywac returns [undefined] if input is empty so we coerce that into undefined.
   // This only applies to optional parameters since Sywac would throw if input is empty for a required parameter.
   coerce(input: string[]) {
-    const filtered = input.filter(i => !!i)
+    const filtered = input.filter((i) => !!i)
     if (filtered.length < 1) {
       return undefined
     }
@@ -159,7 +167,7 @@ export class IntegerParameter extends Parameter<number> {
 }
 
 export interface ChoicesConstructor extends ParameterConstructor<string> {
-  choices: string[],
+  choices: string[]
 }
 
 export class ChoicesParameter extends Parameter<string> {
@@ -211,10 +219,12 @@ export class EnvironmentOption extends StringParameter {
 }
 
 export type Parameters = { [key: string]: Parameter<any> }
-export type ParameterValues<T extends Parameters> = { [P in keyof T]: T[P]["_valueType"] }
+export type ParameterValues<T extends Parameters> = {
+  [P in keyof T]: T[P]["_valueType"]
+}
 
 export interface CommandConstructor {
-  new(parent?: Command): Command
+  new (parent?: Command): Command
 }
 
 export interface CommandResult<T = any> {
@@ -267,10 +277,10 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
         if (key in this.arguments) {
           const commandName = this.getFullName()
 
-          throw new InternalError(
-            `Key ${key} is defined in both options and arguments for command ${commandName}`,
-            { commandName, key },
-          )
+          throw new InternalError(`Key ${key} is defined in both options and arguments for command ${commandName}`, {
+            commandName,
+            key,
+          })
         }
       }
     }
@@ -285,12 +295,12 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   }
 
   getSubCommands(): Command[] {
-    return this.subCommands.map(cls => new cls(this))
+    return this.subCommands.map((cls) => new cls(this))
   }
 
   describe() {
     const { name, help, description, cliOnly } = this
-    const subCommands = this.subCommands.map(S => new S(this).describe())
+    const subCommands = this.subCommands.map((S) => new S(this).describe())
 
     return {
       name,
@@ -320,9 +330,11 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
 }
 
 export async function handleTaskResults(
-  log: LogEntry, taskType: string, results: ProcessResults,
+  log: LogEntry,
+  taskType: string,
+  results: ProcessResults
 ): Promise<CommandResult<TaskResults>> {
-  const failed = Object.values(results.taskResults).filter(r => r && r.error).length
+  const failed = Object.values(results.taskResults).filter((r) => r && r.error).length
 
   if (failed) {
     const error = new RuntimeError(`${failed} ${taskType} task(s) failed!`, {
@@ -341,7 +353,9 @@ export async function handleTaskResults(
 }
 
 export function describeParameters(args?: Parameters) {
-  if (!args) { return }
+  if (!args) {
+    return
+  }
   return Object.entries(args).map(([argName, arg]) => ({
     name: argName,
     usageName: arg.required ? `<${argName}>` : `[${argName}]`,

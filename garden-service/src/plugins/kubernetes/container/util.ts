@@ -19,7 +19,10 @@ import { KubernetesPluginContext } from "../config"
 import axios, { AxiosRequestConfig } from "axios"
 
 export async function queryRegistry(
-  ctx: KubernetesPluginContext, log: LogEntry, path: string, opts: AxiosRequestConfig = {},
+  ctx: KubernetesPluginContext,
+  log: LogEntry,
+  path: string,
+  opts: AxiosRequestConfig = {}
 ) {
   const registryFwd = await getRegistryPortForward(ctx, log)
   const baseUrl = `http://localhost:${registryFwd.localPort}/v2/`
@@ -38,9 +41,7 @@ export async function getRegistryPortForward(ctx: PluginContext, log: LogEntry) 
   })
 }
 
-export async function getManifestFromRegistry(
-  ctx: KubernetesPluginContext, module: ContainerModule, log: LogEntry,
-) {
+export async function getManifestFromRegistry(ctx: KubernetesPluginContext, module: ContainerModule, log: LogEntry) {
   const imageId = await containerHelpers.getDeploymentImageId(module, ctx.provider.config.deploymentRegistry)
   const imageName = containerHelpers.unparseImageId({
     ...containerHelpers.parseImageId(imageId),

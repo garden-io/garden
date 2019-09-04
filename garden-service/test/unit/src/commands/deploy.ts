@@ -35,60 +35,65 @@ const placeholderTaskResult = (moduleName: string, taskName: string, command: st
 const taskResultA = placeholderTaskResult("module-a", "task-a", ["echo", "A"])
 const taskResultC = placeholderTaskResult("module-c", "task-c", ["echo", "C"])
 
-const testProvider = () => createGardenPlugin(() => {
-  const testStatuses: { [key: string]: ServiceStatus } = {
-    "service-a": {
-      state: "ready",
-      ingresses: [{
-        hostname: "service-a.test-project-b.local.app.garden",
-        path: "/path-a",
-        port: 80,
-        protocol: "http",
-      }],
-      detail: {},
-    },
-    "service-c": {
-      state: "ready",
-      detail: {},
-    },
-  }
-
-  const getServiceStatus = async ({ service }: GetServiceStatusParams): Promise<ServiceStatus> => {
-    return testStatuses[service.name] || { state: "unknown", detail: {} }
-  }
-
-  const deployService = async ({ service }: DeployServiceParams) => {
-    const newStatus = {
-      version: "1",
-      state: <ServiceState>"ready",
-      detail: {},
+const testProvider = () =>
+  createGardenPlugin(() => {
+    const testStatuses: { [key: string]: ServiceStatus } = {
+      "service-a": {
+        state: "ready",
+        ingresses: [
+          {
+            hostname: "service-a.test-project-b.local.app.garden",
+            path: "/path-a",
+            port: 80,
+            protocol: "http",
+          },
+        ],
+        detail: {},
+      },
+      "service-c": {
+        state: "ready",
+        detail: {},
+      },
     }
 
-    testStatuses[service.name] = newStatus
+    const getServiceStatus = async ({ service }: GetServiceStatusParams): Promise<ServiceStatus> => {
+      return testStatuses[service.name] || { state: "unknown", detail: {} }
+    }
 
-    return newStatus
-  }
+    const deployService = async ({ service }: DeployServiceParams) => {
+      const newStatus = {
+        version: "1",
+        state: <ServiceState>"ready",
+        detail: {},
+      }
 
-  const runTask = async ({ task }: RunTaskParams): Promise<RunTaskResult> => {
-    return placeholderTaskResult(task.module.name, task.name, task.spec.command)
-  }
+      testStatuses[service.name] = newStatus
 
-  return {
-    name: "test-plugin",
-    createModuleTypes: [{
-      name: "test",
-      docs: "Test plugin",
-      schema: testModuleSpecSchema,
-      handlers: {
-        configure: configureTestModule,
-        build: buildExecModule,
-        deployService,
-        getServiceStatus,
-        runTask,
-      },
-    }],
-  }
-})
+      return newStatus
+    }
+
+    const runTask = async ({ task }: RunTaskParams): Promise<RunTaskResult> => {
+      return placeholderTaskResult(task.module.name, task.name, task.spec.command)
+    }
+
+    return {
+      name: "test-plugin",
+      createModuleTypes: [
+        {
+          name: "test",
+          docs: "Test plugin",
+          schema: testModuleSpecSchema,
+          handlers: {
+            configure: configureTestModule,
+            build: buildExecModule,
+            deployService,
+            getServiceStatus,
+            runTask,
+          },
+        },
+      ],
+    }
+  })
 
 describe("DeployCommand", () => {
   const projectRootB = join(dataDir, "test-project-b")

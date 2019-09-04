@@ -32,8 +32,8 @@ const Ingresses = styled.div`
   }
 `
 const LinkContainer = styled.div`
-  padding-top: .25rem;
-  font-size: .75rem;
+  padding-top: 0.25rem;
+  font-size: 0.75rem;
 
   &:last-of-type {
     padding-bottom: 0;
@@ -45,11 +45,13 @@ interface IngressesProp {
 }
 
 export default ({ ingresses }: IngressesProp) => {
-  const { actions: { selectIngress } } = useUiState()
+  const {
+    actions: { selectIngress },
+  } = useUiState()
 
   const handleSelectIngress = (event) => {
     if (ingresses && ingresses.length) {
-      const ingress = ingresses.find(i => i.path === event.target.id)
+      const ingress = ingresses.find((i) => i.path === event.target.id)
       if (ingress) {
         selectIngress(ingress)
       }
@@ -63,7 +65,7 @@ export default ({ ingresses }: IngressesProp) => {
         return (
           <LinkContainer key={ingress.path}>
             <div className="visible-lg-block">
-              <ExternalLink id={ingress.path} onClick={handleSelectIngress} >
+              <ExternalLink id={ingress.path} onClick={handleSelectIngress}>
                 {truncateMiddle(url)}
               </ExternalLink>
             </div>

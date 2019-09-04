@@ -3,10 +3,11 @@ import { expect } from "chai"
 import { getLogger } from "../../../../src/logger/logger"
 import { freezeTime } from "../../../helpers"
 import { TaskMetadata } from "../../../../src/logger/log-entry"
-const logger = getLogger()
+
+const logger: any = getLogger()
 
 beforeEach(() => {
-  (<any>logger).children = []
+  logger.children = []
 })
 
 describe("LogEntry", () => {
@@ -16,13 +17,7 @@ describe("LogEntry", () => {
     const nonEmpty = ph1.info("foo")
     const nested = nonEmpty.info("foo")
     const nestedPh = nested.placeholder()
-    const indents = [
-      ph1.indent,
-      ph2.indent,
-      nonEmpty.indent,
-      nested.indent,
-      nestedPh.indent,
-    ]
+    const indents = [ph1.indent, ph2.indent, nonEmpty.indent, nested.indent, nestedPh.indent]
     expect(indents).to.eql([-1, -1, 0, 1, 0])
   })
   it("should indent nested log entries", () => {
@@ -93,16 +88,18 @@ describe("LogEntry", () => {
         metadata: { task: taskMetadata },
       })
 
-      expect(entry.getMessageStates()).to.eql([{
-        msg: "hello",
-        emoji: "haircut",
-        section: "caesar",
-        symbol: "info",
-        status: "done",
-        data: { some: "data" },
-        append: undefined,
-        timestamp,
-      }])
+      expect(entry.getMessageStates()).to.eql([
+        {
+          msg: "hello",
+          emoji: "haircut",
+          section: "caesar",
+          symbol: "info",
+          status: "done",
+          data: { some: "data" },
+          append: undefined,
+          timestamp,
+        },
+      ])
       expect(entry.getMetadata()).to.eql({ task: taskMetadata })
     })
     it("should overwrite previous values", () => {
@@ -149,9 +146,7 @@ describe("LogEntry", () => {
       const entry = logger.placeholder()
 
       entry.setState({ append: true })
-      expect(entry.getMessageStates()).to.eql([
-        { ...emptyState, append: true, timestamp },
-      ])
+      expect(entry.getMessageStates()).to.eql([{ ...emptyState, append: true, timestamp }])
 
       entry.setState({ msg: "boo" })
       expect(entry.getMessageStates()).to.eql([
@@ -177,7 +172,11 @@ describe("LogEntry", () => {
       entry.setState({ status: "error" })
       expect(entry.getMessageState().symbol).to.equal("empty")
 
-      const newEntry = logger.info({ status: "active", section: "foo", symbol: "info" })
+      const newEntry = logger.info({
+        status: "active",
+        section: "foo",
+        symbol: "info",
+      })
       newEntry.setState({ status: "error" })
       expect(newEntry.getMessageState().symbol).to.equal("info")
     })
@@ -198,17 +197,11 @@ describe("LogEntry", () => {
       entry.setState({ metadata: { task: taskMetadataA } })
       expect(entry.getMetadata()).to.eql({ task: taskMetadataA })
       // Message states should not change
-      expect(entry.getMessageStates()).to.eql([
-        { ...emptyState, timestamp },
-      ])
+      expect(entry.getMessageStates()).to.eql([{ ...emptyState, timestamp }])
 
       entry.setState({ metadata: { task: taskMetadataB } })
       expect(entry.getMetadata()).to.eql({ task: taskMetadataB })
-      expect(entry.getMessageStates()).to.eql([
-        { ...emptyState, timestamp },
-        { ...emptyState, timestamp },
-      ])
-
+      expect(entry.getMessageStates()).to.eql([{ ...emptyState, timestamp }, { ...emptyState, timestamp }])
     })
   })
   describe("setDone", () => {

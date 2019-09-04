@@ -34,7 +34,7 @@ function traverseChildren<T extends Node, U extends Node>(node: T | U, cb: Proce
 // Parent (T|U) can have different type then child (U)
 export function getChildNodes<T extends Node, U extends Node>(node: T | U): U[] {
   let childNodes: U[] = []
-  traverseChildren<T, U>(node, child => {
+  traverseChildren<T, U>(node, (child) => {
     childNodes.push(child)
     return true
   })
@@ -46,14 +46,12 @@ export function getChildEntries(node: LogNode): LogEntry[] {
 }
 
 export function findParentEntry(entry: LogEntry, predicate: ProcessNode<LogEntry>): LogEntry | null {
-  return predicate(entry)
-    ? entry
-    : entry.parent ? findParentEntry(entry.parent, predicate) : null
+  return predicate(entry) ? entry : entry.parent ? findParentEntry(entry.parent, predicate) : null
 }
 
 export function findLogNode(node: LogNode, predicate: ProcessNode<LogNode>): LogEntry | void {
   let found: LogEntry | undefined
-  traverseChildren<LogNode, LogEntry>(node, entry => {
+  traverseChildren<LogNode, LogEntry>(node, (entry) => {
     if (predicate(entry)) {
       found = entry
       return false
@@ -78,20 +76,19 @@ interface StreamWriteExtraParam {
 export function interceptStream(stream: NodeJS.WriteStream, callback: Function) {
   const prevWrite = stream.write
 
-  stream.write = (write =>
-    (
-      string: string,
-      encoding?: string,
-      cb?: Function,
-      extraParam?: StreamWriteExtraParam,
-    ): boolean => {
-      if (extraParam && extraParam.noIntercept) {
-        const args = [string, encoding, cb]
-        return write.apply(stream, args)
-      }
-      callback(string)
-      return true
-    })(stream.write) as any
+  stream.write = ((write) => (
+    string: string,
+    encoding?: string,
+    cb?: Function,
+    extraParam?: StreamWriteExtraParam
+  ): boolean => {
+    if (extraParam && extraParam.noIntercept) {
+      const args = [string, encoding, cb]
+      return write.apply(stream, args)
+    }
+    callback(string)
+    return true
+  })(stream.write) as any
 
   const restore = () => {
     stream.write = prevWrite

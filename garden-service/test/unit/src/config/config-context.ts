@@ -16,7 +16,9 @@ import { Service } from "../../../../src/types/service"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>
-interface TestValues { [key: string]: TestValue }
+interface TestValues {
+  [key: string]: TestValue
+}
 
 describe("ConfigContext", () => {
   class TestContext extends ConfigContext {
@@ -123,7 +125,7 @@ describe("ConfigContext", () => {
     })
 
     it("should show full template string in error when unable to resolve in nested context", async () => {
-      class Nested extends ConfigContext { }
+      class Nested extends ConfigContext {}
       class Context extends ConfigContext {
         nested: ConfigContext
 
@@ -135,7 +137,7 @@ describe("ConfigContext", () => {
       const c = new Context()
       await expectError(
         () => resolveKey(c, ["nested", "bla"]),
-        (err) => expect(err.message).to.equal("Could not find key: nested.bla"),
+        (err) => expect(err.message).to.equal("Could not find key: nested.bla")
       )
     })
 
@@ -143,7 +145,7 @@ describe("ConfigContext", () => {
       const c = new TestContext({
         foo: "bar",
       })
-      const nested: any = new TestContext({ key: "\${foo}" }, c)
+      const nested: any = new TestContext({ key: "${foo}" }, c)
       c.addValues({ nested })
       expect(await resolveKey(c, ["nested", "key"])).to.equal("bar")
     })
@@ -152,13 +154,13 @@ describe("ConfigContext", () => {
       const c = new TestContext({
         foo: "bar",
       })
-      const nested: any = new TestContext({ key: "\${nested.foo}", foo: "boo" }, c)
+      const nested: any = new TestContext({ key: "${nested.foo}", foo: "boo" }, c)
       c.addValues({ nested })
       expect(await resolveKey(c, ["nested", "key"])).to.equal("boo")
     })
 
     it("should detect a self-reference when resolving a template string", async () => {
-      const c = new TestContext({ key: "\${key}" })
+      const c = new TestContext({ key: "${key}" })
       await expectError(() => resolveKey(c, ["key"]), "template-string")
     })
 
@@ -166,7 +168,7 @@ describe("ConfigContext", () => {
       const c = new TestContext({
         foo: "bar",
       })
-      const nested = new TestContext({ key: "\${nested.key}" }, c)
+      const nested = new TestContext({ key: "${nested.key}" }, c)
       c.addValues({ nested })
       await expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
     })
@@ -175,7 +177,7 @@ describe("ConfigContext", () => {
       const c = new TestContext({
         foo: "bar",
       })
-      const nested: any = new TestContext({ key: "\${nested.foo}", foo: "\${nested.key}" }, c)
+      const nested: any = new TestContext({ key: "${nested.foo}", foo: "${nested.key}" }, c)
       c.addValues({ nested })
       await expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
     })
@@ -255,7 +257,7 @@ describe("ModuleConfigContext", () => {
       garden.environmentName,
       await garden.resolveProviders(),
       garden.variables,
-      Object.values((<any>garden).moduleConfigs),
+      Object.values((<any>garden).moduleConfigs)
     )
   })
 
@@ -302,8 +304,9 @@ describe("ModuleConfigContext", () => {
 
   context("runtimeContext is not set", () => {
     it("should return runtime template strings unchanged", async () => {
-      expect(await c.resolve({ key: ["runtime", "some", "key"], nodePath: [], opts: {} }))
-        .to.equal("\${runtime.some.key}")
+      expect(await c.resolve({ key: ["runtime", "some", "key"], nodePath: [], opts: {} })).to.equal(
+        "${runtime.some.key}"
+      )
     })
   })
 
@@ -355,7 +358,7 @@ describe("ModuleConfigContext", () => {
         await garden.resolveProviders(),
         garden.variables,
         Object.values((<any>garden).moduleConfigs),
-        runtimeContext,
+        runtimeContext
       )
     })
 
@@ -383,17 +386,18 @@ describe("ModuleConfigContext", () => {
         nodePath: [],
         opts: {},
       })
-      expect(result).to.equal("\${runtime.services.not-ready.outputs.foo}")
+      expect(result).to.equal("${runtime.services.not-ready.outputs.foo}")
     })
 
     it("should throw when a service's outputs have been resolved but an output key is not found", async () => {
       await expectError(
-        () => withRuntime.resolve({
-          key: ["runtime", "services", "service-b", "outputs", "boo"],
-          nodePath: [],
-          opts: {},
-        }),
-        (err) => expect(err.message).to.equal("Could not find key: runtime.services.service-b.outputs.boo"),
+        () =>
+          withRuntime.resolve({
+            key: ["runtime", "services", "service-b", "outputs", "boo"],
+            nodePath: [],
+            opts: {},
+          }),
+        (err) => expect(err.message).to.equal("Could not find key: runtime.services.service-b.outputs.boo")
       )
     })
   })

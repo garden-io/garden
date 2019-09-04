@@ -8,13 +8,7 @@
 
 import chalk from "chalk"
 import { RunResult } from "../../types/plugin/base"
-import {
-  BooleanParameter,
-  Command,
-  CommandParams,
-  CommandResult,
-  StringParameter,
-} from "../base"
+import { BooleanParameter, Command, CommandParams, CommandResult, StringParameter } from "../base"
 import { printRuntimeContext } from "./run"
 import dedent = require("dedent")
 import { printHeader } from "../../logger/util"
@@ -60,11 +54,7 @@ export class RunServiceCommand extends Command<Args, Opts> {
     const service = await graph.getService(serviceName)
     const module = service.module
 
-    printHeader(
-      headerLog,
-      `Running service ${chalk.cyan(serviceName)} in module ${chalk.cyan(module.name)}`,
-      "runner",
-    )
+    printHeader(headerLog, `Running service ${chalk.cyan(serviceName)} in module ${chalk.cyan(module.name)}`, "runner")
 
     const actions = await garden.getActionRouter()
 

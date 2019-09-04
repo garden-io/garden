@@ -11,12 +11,7 @@ import { Module } from "../../types/module"
 import { ServiceState, ServiceStatus, ingressHostnameSchema, Service } from "../../types/service"
 import { resolve } from "path"
 import { ExecTestSpec, execTestSchema } from "../exec"
-import {
-  prepareEnvironment,
-  gcloud,
-  getEnvironmentStatus,
-  GOOGLE_CLOUD_DEFAULT_REGION,
-} from "./common"
+import { prepareEnvironment, gcloud, getEnvironmentStatus, GOOGLE_CLOUD_DEFAULT_REGION } from "./common"
 import { createGardenPlugin } from "../../types/plugin/plugin"
 import { baseServiceSpecSchema, CommonServiceSpec } from "../../config/service"
 import { Provider, providerConfigBaseSchema } from "../../config/provider"
@@ -28,39 +23,39 @@ import { gardenAnnotationKey } from "../../util/string"
 
 const gcfModuleSpecSchema = baseServiceSpecSchema
   .keys({
-    entrypoint: joi.string()
-      .description("The entrypoint for the function (exported name in the function's module)"),
+    entrypoint: joi.string().description("The entrypoint for the function (exported name in the function's module)"),
     hostname: ingressHostnameSchema,
-    path: joi.string()
+    path: joi
+      .string()
       .default(".")
       .description("The path of the module that contains the function."),
-    project: joi.string()
-      .description("The Google Cloud project name of the function."),
+    project: joi.string().description("The Google Cloud project name of the function."),
     tests: joiArray(execTestSchema),
   })
   .description("Configuration for a Google Cloud Function.")
 
 export interface GcfModuleSpec extends CommonServiceSpec {
-  entrypoint?: string,
-  function: string,
+  entrypoint?: string
+  function: string
   hostname?: string
   limits: ServiceLimitSpec
-  path: string,
-  project?: string,
-  tests: ExecTestSpec[],
+  path: string
+  project?: string
+  tests: ExecTestSpec[]
 }
 
 export type GcfServiceSpec = GcfModuleSpec
 
-export interface GcfModule extends Module<GcfModuleSpec, GcfServiceSpec, ExecTestSpec> { }
+export interface GcfModule extends Module<GcfModuleSpec, GcfServiceSpec, ExecTestSpec> {}
 
 function getGcfProject<T extends GcfModule>(service: Service<T>, provider: Provider) {
   return service.spec.project || provider.config.defaultProject || null
 }
 
-export async function configureGcfModule(
-  { ctx, moduleConfig }: ConfigureModuleParams<GcfModule>,
-): Promise<ConfigureModuleResult<GcfModule>> {
+export async function configureGcfModule({
+  ctx,
+  moduleConfig,
+}: ConfigureModuleParams<GcfModule>): Promise<ConfigureModuleResult<GcfModule>> {
   // TODO: we may want to pull this from the service status instead, along with other outputs
   const { name, spec } = moduleConfig
   const project = spec.project || ctx.provider.config.defaultProject
@@ -69,14 +64,16 @@ export async function configureGcfModule(
     endpoint: `https://${GOOGLE_CLOUD_DEFAULT_REGION}-${project}.cloudfunctions.net/${name}`,
   }
 
-  moduleConfig.serviceConfigs = [{
-    name,
-    dependencies: spec.dependencies,
-    hotReloadable: false,
-    spec,
-  }]
+  moduleConfig.serviceConfigs = [
+    {
+      name,
+      dependencies: spec.dependencies,
+      hotReloadable: false,
+      spec,
+    },
+  ]
 
-  moduleConfig.testConfigs = moduleConfig.spec.tests.map(t => ({
+  moduleConfig.testConfigs = moduleConfig.spec.tests.map((t) => ({
     name: t.name,
     dependencies: t.dependencies,
     timeout: t.timeout,
@@ -87,7 +84,8 @@ export async function configureGcfModule(
 }
 
 const configSchema = providerConfigBaseSchema.keys({
-  project: joi.string()
+  project: joi
+    .string()
     .description("The default GCP project to deploy functions to (can be overridden on individual functions)."),
 })
 
@@ -98,44 +96,46 @@ export const gardenPlugin = createGardenPlugin({
     getEnvironmentStatus,
     prepareEnvironment,
   },
-  createModuleTypes: [{
-    name: "google-cloud-function",
-    docs: "(TODO)",
-    schema: gcfModuleSpecSchema,
-    handlers: {
-      configure: configureGcfModule,
+  createModuleTypes: [
+    {
+      name: "google-cloud-function",
+      docs: "(TODO)",
+      schema: gcfModuleSpecSchema,
+      handlers: {
+        configure: configureGcfModule,
 
-      async deployService(params: DeployServiceParams<GcfModule>) {
-        const { ctx, service } = params
+        async deployService(params: DeployServiceParams<GcfModule>) {
+          const { ctx, service } = params
 
-        // TODO: provide env vars somehow to function
-        const project = getGcfProject(service, ctx.provider)
-        const functionPath = resolve(service.module.path, service.spec.path)
-        const entrypoint = service.spec.entrypoint || service.name
+          // TODO: provide env vars somehow to function
+          const project = getGcfProject(service, ctx.provider)
+          const functionPath = resolve(service.module.path, service.spec.path)
+          const entrypoint = service.spec.entrypoint || service.name
 
-        await gcloud(project).call([
-          "beta", "functions",
-          "deploy", service.name,
-          `--source=${functionPath}`,
-          `--entry-point=${entrypoint}`,
-          // TODO: support other trigger types
-          "--trigger-http",
-        ])
+          await gcloud(project).call([
+            "beta",
+            "functions",
+            "deploy",
+            service.name,
+            `--source=${functionPath}`,
+            `--entry-point=${entrypoint}`,
+            // TODO: support other trigger types
+            "--trigger-http",
+          ])
 
-        return getServiceStatus(params)
+          return getServiceStatus(params)
+        },
       },
     },
-  }],
+  ],
 })
 
-export async function getServiceStatus(
-  { ctx, service }: GetServiceStatusParams<GcfModule>,
-): Promise<ServiceStatus> {
+export async function getServiceStatus({ ctx, service }: GetServiceStatusParams<GcfModule>): Promise<ServiceStatus> {
   const project = getGcfProject(service, ctx.provider)
   const functions: any[] = await gcloud(project).json(["beta", "functions", "list"])
   const providerId = `projects/${project}/locations/${GOOGLE_CLOUD_DEFAULT_REGION}/functions/${service.name}`
 
-  const status = functions.filter(f => f.name === providerId)[0]
+  const status = functions.filter((f) => f.name === providerId)[0]
 
   if (!status) {
     // not deployed yet

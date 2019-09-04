@@ -29,7 +29,7 @@ import { dedent, deline } from "../../../util/string"
 import { execInBuilder, getBuilderPodName, BuilderExecParams, buildSyncDeploymentName } from "../container/build"
 import { getPods } from "../util"
 
-const workspaceSyncDirTtl = 0.5 * 86400   // 2 days
+const workspaceSyncDirTtl = 0.5 * 86400 // 2 days
 
 export const cleanupClusterRegistry: PluginCommand = {
   name: "cleanup-cluster-registry",
@@ -77,7 +77,10 @@ export const cleanupClusterRegistry: PluginCommand = {
 }
 
 async function getImagesInUse(api: KubeApi, provider: KubernetesProvider, log: LogEntry) {
-  log = log.info({ msg: chalk.white(`Scanning all Pods in the cluster...`), status: "active" })
+  log = log.info({
+    msg: chalk.white(`Scanning all Pods in the cluster...`),
+    status: "active",
+  })
 
   const pods: KubernetesPod[] = []
   let _continue: string | undefined
@@ -94,18 +97,18 @@ async function getImagesInUse(api: KubeApi, provider: KubernetesProvider, log: L
   }
 
   // Collect all image names
-  const containers: V1Container[] = flatten(pods.map(p => p.spec.containers))
-  const allImageNames = uniq(containers.map(c => c.image!))
+  const containers: V1Container[] = flatten(pods.map((p) => p.spec.containers))
+  const allImageNames = uniq(containers.map((c) => c.image!))
 
   const registryPrefix = provider.config.deploymentRegistry!.hostname + "/"
   const registryImageNames = allImageNames
-    .filter(name => name.startsWith(registryPrefix))
+    .filter((name) => name.startsWith(registryPrefix))
     // Remove the hostname part of the image name
-    .map(name => splitFirst(name, "/")[1])
+    .map((name) => splitFirst(name, "/")[1])
 
   log.info(
     `Found ${allImageNames.length} images in use in cluster, ` +
-    `${registryImageNames.length} referencing the in-cluster registry.`,
+      `${registryImageNames.length} referencing the in-cluster registry.`
   )
   log.setSuccess()
 
@@ -169,15 +172,18 @@ async function deleteImagesFromRegistry(ctx: KubernetesPluginContext, log: LogEn
   await Bluebird.map(images, async (image) => {
     // Get the digest for the image
     const [name, tag] = splitLast(image, ":")
-    const res = await queryRegistry(
-      ctx, log,
-      `${name}/manifests/${tag}`,
-      { method: "HEAD", headers: { Accept: "application/vnd.docker.distribution.manifest.v2+json" } },
-    )
+    const res = await queryRegistry(ctx, log, `${name}/manifests/${tag}`, {
+      method: "HEAD",
+      headers: {
+        Accept: "application/vnd.docker.distribution.manifest.v2+json",
+      },
+    })
     const digest = res.headers["docker-content-digest"]
 
     // Issue the delete request
-    await queryRegistry(ctx, log, `${name}/manifests/${digest}`, { method: "DELETE" })
+    await queryRegistry(ctx, log, `${name}/manifests/${digest}`, {
+      method: "DELETE",
+    })
   })
 
   log.info(`Flagged ${images.length} images as deleted in the registry.`)
@@ -198,9 +204,7 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
   // -> Get the original deployment
   log.info("Fetching original Deployment")
 
-  let registryDeployment = await api.apps.readNamespacedDeployment(
-    CLUSTER_REGISTRY_DEPLOYMENT_NAME, systemNamespace,
-  )
+  let registryDeployment = await api.apps.readNamespacedDeployment(CLUSTER_REGISTRY_DEPLOYMENT_NAME, systemNamespace)
 
   // -> Modify with read only env var and apply
   log.info("Re-starting in read-only mode...")
@@ -219,10 +223,21 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
   })
   delete modifiedDeployment.status
 
-  await apply({ log, provider, manifests: [modifiedDeployment], namespace: systemNamespace })
+  await apply({
+    log,
+    provider,
+    manifests: [modifiedDeployment],
+    namespace: systemNamespace,
+  })
 
   // -> Wait for registry to be up again
-  await waitForResources({ ctx, provider, log, serviceName: "docker-registry", resources: [modifiedDeployment] })
+  await waitForResources({
+    ctx,
+    provider,
+    log,
+    serviceName: "docker-registry",
+    resources: [modifiedDeployment],
+  })
 
   // Run garbage collection
   log.info("Running garbage collection...")
@@ -239,13 +254,12 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
   log.info("Restarting without read-only mode...")
 
   // -> Re-apply the original deployment
-  registryDeployment = await api.apps.readNamespacedDeployment(
-    CLUSTER_REGISTRY_DEPLOYMENT_NAME, systemNamespace,
-  )
+  registryDeployment = await api.apps.readNamespacedDeployment(CLUSTER_REGISTRY_DEPLOYMENT_NAME, systemNamespace)
   const writableRegistry = sanitizeResource(registryDeployment)
   // -> Remove the maintenance flag
-  writableRegistry.spec.template.spec.containers[0].env = writableRegistry.spec.template.spec.containers[0].env
-    .filter(e => e.name !== "REGISTRY_STORAGE_MAINTENANCE")
+  writableRegistry.spec.template.spec.containers[0].env = writableRegistry.spec.template.spec.containers[0].env.filter(
+    (e) => e.name !== "REGISTRY_STORAGE_MAINTENANCE"
+  )
 
   await apply({
     log,
@@ -255,7 +269,13 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
   })
 
   // -> Wait for registry to be up again
-  await waitForResources({ ctx, provider, log, serviceName: "docker-registry", resources: [modifiedDeployment] })
+  await waitForResources({
+    ctx,
+    provider,
+    log,
+    serviceName: "docker-registry",
+    resources: [modifiedDeployment],
+  })
 
   log.info(`Completed registry garbage collection.`)
   log.setSuccess()
@@ -278,18 +298,24 @@ async function deleteImagesFromDaemon(provider: KubernetesProvider, log: LogEntr
   const podName = await getBuilderPodName(provider, log)
 
   const listArgs = ["docker", "images", "--format", "{{.Repository}}:{{.Tag}}"]
-  const res = await execInBuilder({ provider, log, args: listArgs, podName, timeout: 300 })
+  const res = await execInBuilder({
+    provider,
+    log,
+    args: listArgs,
+    podName,
+    timeout: 300,
+  })
   const imagesInDaemon = res.stdout
     .split("\n")
     .filter(Boolean)
     // Not sure why we see some of these
-    .filter(i => !i.includes("<none>"))
-    .map(i => i.trim())
+    .filter((i) => !i.includes("<none>"))
+    .map((i) => i.trim())
 
   log.info(`${imagesInDaemon.length} tagged images in daemon.`)
 
   const host = provider.config.deploymentRegistry!.hostname
-  const imagesWithHost = imagesInUse.map(name => `${host}/${name}`)
+  const imagesWithHost = imagesInUse.map((name) => `${host}/${name}`)
   const imagesToDelete = difference(imagesInDaemon, imagesWithHost)
 
   // Delete all the images
@@ -300,22 +326,31 @@ async function deleteImagesFromDaemon(provider: KubernetesProvider, log: LogEntr
     const imagesBatches: string[][] = chunk(imagesToDelete, batchSize)
 
     let counter = imagesBatches.length
-    log.info(dedent
-      `Cleaning up ${counter} batches of images (total of ${imagesToDelete.length} images)...`)
+    log.info(dedent`Cleaning up ${counter} batches of images (total of ${imagesToDelete.length} images)...`)
 
-    await Bluebird.map(imagesBatches, async (images) => {
-      const args = ["docker", "rmi", ...images]
-      await execInBuilder({ provider, log, args, podName, timeout: 300 })
-      log.setState(deline`
+    await Bluebird.map(
+      imagesBatches,
+      async (images) => {
+        const args = ["docker", "rmi", ...images]
+        await execInBuilder({ provider, log, args, podName, timeout: 300 })
+        log.setState(deline`
         Deleting images:
          ${pluralize("batch", counter, true)} of ${imagesBatches.length} left...`)
-      counter -= 1
-    }, { concurrency: 25 })
+        counter -= 1
+      },
+      { concurrency: 25 }
+    )
   }
 
   // Run a prune operation
   log.info(`Pruning with \`docker image prune -f\`...`)
-  await execInBuilder({ provider, log, args: ["docker", "image", "prune", "-f"], podName, timeout: 300 })
+  await execInBuilder({
+    provider,
+    log,
+    args: ["docker", "image", "prune", "-f"],
+    podName,
+    timeout: 300,
+  })
 
   log.setSuccess()
 }
@@ -328,14 +363,21 @@ async function cleanupBuildSyncVolume(provider: KubernetesProvider, log: LogEntr
 
   const podName = await getBuildSyncPodName(provider, log)
   const statArgs = ["sh", "-c", 'stat /data/* -c "%n %X"']
-  const stat = await execInBuildSync({ provider, log, args: statArgs, timeout: 30, podName })
+  const stat = await execInBuildSync({
+    provider,
+    log,
+    args: statArgs,
+    timeout: 30,
+    podName,
+  })
 
   // Filter to directories last accessed more than workspaceSyncDirTtl ago
   const minTimestamp = new Date().getTime() / 1000 - workspaceSyncDirTtl
 
-  const dirsToDelete = stat.stdout.split("\n")
+  const dirsToDelete = stat.stdout
+    .split("\n")
     .filter(Boolean)
-    .map(line => {
+    .map((line) => {
       const [dirname, lastAccessed] = line.trim().split(" ")
       return { dirname, lastAccessed: parseInt(lastAccessed, 10) }
     })
@@ -343,8 +385,14 @@ async function cleanupBuildSyncVolume(provider: KubernetesProvider, log: LogEntr
 
   // Delete the director
   log.info(`Deleting ${dirsToDelete.length} workspace directories.`)
-  const deleteArgs = ["rm", "-rf", ...dirsToDelete.map(d => d.dirname)]
-  await execInBuildSync({ provider, log, args: deleteArgs, timeout: 30, podName })
+  const deleteArgs = ["rm", "-rf", ...dirsToDelete.map((d) => d.dirname)]
+  await execInBuildSync({
+    provider,
+    log,
+    args: deleteArgs,
+    timeout: 30,
+    podName,
+  })
 
   log.setSuccess()
 }

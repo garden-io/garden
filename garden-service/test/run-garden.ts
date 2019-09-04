@@ -49,10 +49,10 @@ export function taskCompletedStep(key: string, completedCount: number, descripti
     condition: async (logEntries: JsonLogEntry[]) => {
       const tasks = findTasks(logEntries, key)
 
-      if (tasks.filter(t => t.completedIndex).length === completedCount) {
+      if (tasks.filter((t) => t.completedIndex).length === completedCount) {
         return "passed"
       }
-      if (tasks.filter(t => t.errorIndex).length > 0) {
+      if (tasks.filter((t) => t.errorIndex).length > 0) {
         return "failed"
       }
       return "waiting"
@@ -92,7 +92,7 @@ export function commandReloadedStep(): WatchTestStep {
 
 function stringifyJsonLog(entries: UpdateLogEntryParams[]) {
   return entries
-    .map(l => {
+    .map((l) => {
       const msg = chalk.white(<string>l.msg || "")
       return l.section ? `${chalk.cyanBright(l.section)}${chalk.gray(":")} ${msg}` : msg
     })
@@ -124,15 +124,15 @@ export async function runGarden(dir: string, command: string[]): Promise<JsonLog
 }
 
 export interface RunGardenWatchOpts {
-  testSteps: WatchTestStep[],
-  checkIntervalMs?: number,
-  timeout?: number,
+  testSteps: WatchTestStep[]
+  checkIntervalMs?: number
+  timeout?: number
 }
 
 export type WatchTestStep = {
-  description: string,
-  condition?: WatchTestCondition,
-  action?: WatchTestAction,
+  description: string
+  condition?: WatchTestCondition
+  action?: WatchTestAction
 }
 
 export const watchTestStepTypes = ["checkpoint", "action"]
@@ -189,9 +189,7 @@ export class GardenWatch {
     this.checkIntervalMs = DEFAULT_CHECK_INTERVAL_MS
   }
 
-  async run(
-    { testSteps, checkIntervalMs = 2000, timeout = DEFAULT_RUN_TIMEOUT_SECS }: RunGardenWatchOpts,
-  ) {
+  async run({ testSteps, checkIntervalMs = 2000, timeout = DEFAULT_RUN_TIMEOUT_SECS }: RunGardenWatchOpts) {
     this.validateSteps(testSteps)
 
     this.currentTestStepIdx = 0
@@ -199,11 +197,16 @@ export class GardenWatch {
 
     const stream = split2()
 
-    this.proc = spawn(gardenBinPath, this.command.concat(DEFAULT_ARGS), { cwd: this.dir })
+    this.proc = spawn(gardenBinPath, this.command.concat(DEFAULT_ARGS), {
+      cwd: this.dir,
+    })
     this.running = true
 
     stream.on("data", (data: Buffer) => {
-      const lines = data.toString().trim().split("\n")
+      const lines = data
+        .toString()
+        .trim()
+        .split("\n")
       const entries = parseLogEntries(lines)
       this.logEntries.push(...entries)
       if (showLog) {
@@ -257,10 +260,10 @@ export class GardenWatch {
       const now = new Date().getTime()
       if (now - startTime > timeout * 1000) {
         const log = stringifyLogEntries(this.logEntries)
-        error = new TimeoutError(
-          `Timed out waiting for test steps. Logs:\n${log}`,
-          { logEntries: this.logEntries, log },
-        )
+        error = new TimeoutError(`Timed out waiting for test steps. Logs:\n${log}`, {
+          logEntries: this.logEntries,
+          log,
+        })
         break
       }
 
@@ -302,7 +305,6 @@ export class GardenWatch {
       ${stringifyLogEntries(this.logEntries)}`)
 
     throw new Error(`Test step ${description} failed.`)
-
   }
 
   private async performAction() {
@@ -329,45 +331,50 @@ export class GardenWatch {
       const now = new Date().getTime()
       if (now - startTime > 10 * DEFAULT_CHECK_INTERVAL_MS) {
         const log = stringifyLogEntries(this.logEntries)
-        throw new TimeoutError(
-          `Timed out waiting for garden command to terminate. Log:\n${log}`,
-          { logEntries: this.logEntries, log },
-        )
+        throw new TimeoutError(`Timed out waiting for garden command to terminate. Log:\n${log}`, {
+          logEntries: this.logEntries,
+          log,
+        })
       }
     }
   }
 
   private validateSteps(testSteps: WatchTestStep[]) {
-
     for (const { condition, action, description } of testSteps) {
       const hasCondition = !!condition
       const hasAction = !!action
       if (!hasCondition && !hasAction) {
-        throw new ParameterError(deline`
+        throw new ParameterError(
+          deline`
           GardenWatch: step ${description} in testSteps defines neither a condition nor an action.
           Steps must define either a condition or an action.`,
-          { testSteps })
+          { testSteps }
+        )
       }
       if (hasCondition && hasAction) {
-        throw new ParameterError(deline`
+        throw new ParameterError(
+          deline`
           GardenWatch: step ${description} in testSteps defines both a condition and an action.
           Steps must define either a condition or an action, but not both.`,
-          { testSteps })
+          { testSteps }
+        )
       }
     }
 
     if (testSteps.length === 0) {
-      throw new ParameterError(deline`
+      throw new ParameterError(
+        deline`
         GardenWatch: run method called with an empty testSteps array. At least one test step must be provided.`,
-        {})
+        {}
+      )
     }
 
     if (!testSteps[testSteps.length - 1].condition) {
-      throw new ParameterError(deline`
+      throw new ParameterError(
+        deline`
         GardenWatch: The last element of testSteps must be a condition, not an action.`,
-        { testSteps })
+        { testSteps }
+      )
     }
-
   }
-
 }

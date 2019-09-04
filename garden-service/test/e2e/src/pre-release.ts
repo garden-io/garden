@@ -12,12 +12,7 @@ import {
   taskCompletedStep,
   waitingForChangesStep,
 } from "../../run-garden"
-import {
-  deleteExampleNamespaces,
-  parsedArgs,
-  searchLog,
-  removeExampleDotGardenDir,
-} from "../../e2e-helpers"
+import { deleteExampleNamespaces, parsedArgs, searchLog, removeExampleDotGardenDir } from "../../e2e-helpers"
 import username = require("username")
 
 // TODO: Add test for verifying that CLI returns with an error when called with an unknown command
@@ -111,11 +106,9 @@ describe("PreReleaseTests", () => {
         const testSteps = [
           taskCompletedStep("deploy.backend", 1),
           waitingForChangesStep(),
-          changeFileStep(resolve(projectPath, "backend/webserver/main.go"),
-            "change app code in backend service"),
+          changeFileStep(resolve(projectPath, "backend/webserver/main.go"), "change app code in backend service"),
           taskCompletedStep("deploy.backend", 2),
-          changeFileStep(resolve(projectPath, "backend/garden.yml"),
-            "change garden.yml in backend service"),
+          changeFileStep(resolve(projectPath, "backend/garden.yml"), "change garden.yml in backend service"),
           commandReloadedStep(),
         ]
 
@@ -126,11 +119,11 @@ describe("PreReleaseTests", () => {
 
   if (project === "tasks") {
     /*
-    * TODO: Re-enable once this has been debugged:
-    *
-    * TimeoutError: Knex: Timeout acquiring a connection. The pool is probably full.
-    * Are you missing a .transacting(trx) call?
-    */
+     * TODO: Re-enable once this has been debugged:
+     *
+     * TimeoutError: Knex: Timeout acquiring a connection. The pool is probably full.
+     * Are you missing a .transacting(trx) call?
+     */
     describe.skip("tasks", () => {
       it("calls the hello service to fetch the usernames populated by the ruby migration", async () => {
         /**
@@ -139,19 +132,21 @@ describe("PreReleaseTests", () => {
          */
         await runWithEnv(["deploy"])
         const logEntries = await runWithEnv(["call", "hello"])
-        expect(searchLog(logEntries, /John, Paul, George, Ringo/), "expected to find populated usernames in log output")
-          .to.eql("passed")
+        expect(
+          searchLog(logEntries, /John, Paul, George, Ringo/),
+          "expected to find populated usernames in log output"
+        ).to.eql("passed")
       })
     })
   }
 
   if (project === "hot-reload") {
     /*
-    * TODO: Re-enable once this has been debugged:
-    *
-    * Got error from Kubernetes API - a container name must be specified for pod node-service-85f48587df-lvjlp,
-    * choose one of: [node-service garden-rsync] or one of the init containers: [garden-sync-init]
-    */
+     * TODO: Re-enable once this has been debugged:
+     *
+     * Got error from Kubernetes API - a container name must be specified for pod node-service-85f48587df-lvjlp,
+     * choose one of: [node-service garden-rsync] or one of the init containers: [garden-sync-init]
+     */
     describe("hot-reload", () => {
       it("runs the dev command with hot reloading enabled", async () => {
         const hotReloadProjectPath = resolve(examplesDir, "hot-reload")
@@ -209,7 +204,6 @@ describe("PreReleaseTests", () => {
         await gardenWatch.run({ testSteps })
       })
     })
-
   }
 
   if (project === "vote-helm") {
@@ -227,7 +221,6 @@ describe("PreReleaseTests", () => {
         ]
 
         await gardenWatch.run({ testSteps })
-
       })
     })
   }
@@ -273,11 +266,9 @@ describe("PreReleaseTests", () => {
         const testSteps = [
           taskCompletedStep("deploy.backend", 1),
           waitingForChangesStep(),
-          changeFileStep(resolve(projectPath, "backend/webserver/main.go"),
-            "change app code in backend service"),
+          changeFileStep(resolve(projectPath, "backend/webserver/main.go"), "change app code in backend service"),
           taskCompletedStep("deploy.backend", 2),
-          changeFileStep(resolve(projectPath, "backend/garden.yml"),
-            "change garden.yml in backend service"),
+          changeFileStep(resolve(projectPath, "backend/garden.yml"), "change garden.yml in backend service"),
           commandReloadedStep(),
         ]
 

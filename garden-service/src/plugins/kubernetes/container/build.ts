@@ -40,9 +40,7 @@ const registryPort = 5000
 const syncDataVolumeName = "garden-build-sync"
 export const buildSyncDeploymentName = "garden-build-sync"
 
-export async function k8sGetContainerBuildStatus(
-  params: GetBuildStatusParams<ContainerModule>,
-): Promise<BuildStatus> {
+export async function k8sGetContainerBuildStatus(params: GetBuildStatusParams<ContainerModule>): Promise<BuildStatus> {
   const { ctx, module } = params
   const provider = <KubernetesProvider>ctx.provider
 
@@ -148,10 +146,10 @@ const remoteBuild: BuildHandler = async (params) => {
   log.debug(`Syncing from ${src} to ${destination}`)
 
   // We retry a couple of times, because we may get intermittent connection issues or concurrency issues
-  await pRetry(
-    () => exec("rsync", ["-vrpztgo", "--relative", "--delete", src, destination]),
-    { retries: 3, minTimeout: 500 },
-  )
+  await pRetry(() => exec("rsync", ["-vrpztgo", "--relative", "--delete", src, destination]), {
+    retries: 3,
+    minTimeout: 500,
+  })
 
   const localId = await containerHelpers.getLocalImageId(module)
   const deploymentImageId = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
@@ -168,7 +166,7 @@ const remoteBuild: BuildHandler = async (params) => {
   const outputStream = split2()
   const statusLine = log.placeholder(LogLevel.verbose)
 
-  outputStream.on("error", () => { })
+  outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
     statusLine.setState(chalk.gray("  → " + line.toString().slice(0, 80)))
   })
@@ -178,9 +176,12 @@ const remoteBuild: BuildHandler = async (params) => {
     const dockerfilePath = posix.join(contextPath, dockerfile)
 
     const args = [
-      "docker", "build",
-      "-t", deploymentImageId,
-      "-f", dockerfilePath,
+      "docker",
+      "build",
+      "-t",
+      deploymentImageId,
+      "-f",
+      dockerfilePath,
       contextPath,
       ...getDockerBuildFlags(module),
     ]
@@ -200,16 +201,18 @@ const remoteBuild: BuildHandler = async (params) => {
 
     const pushRes = await execInBuilder({ provider, log, args: pushArgs, timeout: 300, podName, outputStream })
     buildLog += pushRes.stdout + pushRes.stderr
-
   } else {
     // build with Kaniko
     const args = [
       "executor",
-      "--context", "dir://" + contextPath,
-      "--dockerfile", dockerfile,
-      "--destination", deploymentImageId,
+      "--context",
+      "dir://" + contextPath,
+      "--dockerfile",
+      dockerfile,
+      "--destination",
+      deploymentImageId,
       "--cache=true",
-      "--insecure",   // The in-cluster registry is not exposed, so we don't configure TLS on it.
+      "--insecure", // The in-cluster registry is not exposed, so we don't configure TLS on it.
       // "--verbosity", "debug",
       ...getDockerBuildFlags(module),
     ]
@@ -230,11 +233,11 @@ const remoteBuild: BuildHandler = async (params) => {
 }
 
 export interface BuilderExecParams {
-  provider: KubernetesProvider,
-  log: LogEntry,
-  args: string[],
-  timeout: number,
-  podName: string,
+  provider: KubernetesProvider
+  log: LogEntry
+  args: string[]
+  timeout: number
+  podName: string
   outputStream?: Writable
 }
 
@@ -304,10 +307,12 @@ async function runKaniko({ provider, log, module, args, outputStream }: RunKanik
           name: "kaniko",
           image: kanikoImage,
           args,
-          volumeMounts: [{
-            name: syncDataVolumeName,
-            mountPath: "/garden-build",
-          }],
+          volumeMounts: [
+            {
+              name: syncDataVolumeName,
+              mountPath: "/garden-build",
+            },
+          ],
           resources: {
             limits: {
               cpu: millicpuToString(provider.config.resources.builder.limits.cpu),
@@ -323,11 +328,13 @@ async function runKaniko({ provider, log, module, args, outputStream }: RunKanik
           name: "proxy",
           image: "basi/socat:v0.1.0",
           command: ["/bin/sh", "-c", `socat TCP-LISTEN:5000,fork TCP:${registryHostname}:5000 || exit 0`],
-          ports: [{
-            name: "proxy",
-            containerPort: registryPort,
-            protocol: "TCP",
-          }],
+          ports: [
+            {
+              name: "proxy",
+              containerPort: registryPort,
+              protocol: "TCP",
+            },
+          ],
           readinessProbe: {
             tcpSocket: { port: <any>registryPort },
           },
@@ -337,15 +344,18 @@ async function runKaniko({ provider, log, module, args, outputStream }: RunKanik
           name: "killer",
           image: "busybox",
           command: [
-            "sh", "-c",
+            "sh",
+            "-c",
             "while true; do if pidof executor > /dev/null; then sleep 0.5; else killall socat; exit 0; fi done",
           ],
         },
       ],
-      volumes: [{
-        name: syncDataVolumeName,
-        persistentVolumeClaim: { claimName: syncDataVolumeName },
-      }],
+      volumes: [
+        {
+          name: syncDataVolumeName,
+          persistentVolumeClaim: { claimName: syncDataVolumeName },
+        },
+      ],
     },
     podName,
     timeout: module.spec.build.timeout,

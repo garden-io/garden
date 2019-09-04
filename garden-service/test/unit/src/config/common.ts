@@ -12,15 +12,7 @@ import { expectError } from "../../../helpers"
 
 describe("envVarRegex", () => {
   it("should fail on invalid env variables", () => {
-    const testCases = [
-      "GARDEN",
-      "garden",
-      "GARDEN_ENV_VAR",
-      "garden_",
-      "123",
-      ".",
-      "MY-ENV_VAR",
-    ]
+    const testCases = ["GARDEN", "garden", "GARDEN_ENV_VAR", "garden_", "123", ".", "MY-ENV_VAR"]
     for (const tc of testCases) {
       const result = envVarRegex.test(tc)
       expect(result, tc).to.be.false
@@ -128,59 +120,89 @@ describe("validate", () => {
     const obj = { B: {} }
     const schema = joi.object().keys({
       A: joi.string().required(),
-      B: joi.object().keys({
-        b: joi.string().required(),
-      }).required(),
+      B: joi
+        .object()
+        .keys({
+          b: joi.string().required(),
+        })
+        .required(),
     })
 
-    await expectError(() => validate(obj, schema), (err) => {
-      expect(stripAnsi(err.detail.errorDescription)).to.equal("key .A is required, key .B.b is required")
-    })
+    await expectError(
+      () => validate(obj, schema),
+      (err) => {
+        expect(stripAnsi(err.detail.errorDescription)).to.equal("key .A is required, key .B.b is required")
+      }
+    )
   })
 
   it("should throw a nice error when keys are wrong in a pattern object", async () => {
     const obj = { A: { B: { c: {} } } }
     const schema = joi.object().keys({
-      A: joi.object().keys({
-        B: joi.object().pattern(/.+/, joi.object().keys({
-          C: joi.string().required(),
-        })).required(),
-      }).required(),
+      A: joi
+        .object()
+        .keys({
+          B: joi
+            .object()
+            .pattern(
+              /.+/,
+              joi.object().keys({
+                C: joi.string().required(),
+              })
+            )
+            .required(),
+        })
+        .required(),
     })
 
-    await expectError(() => validate(obj, schema), (err) => {
-      expect(stripAnsi(err.detail.errorDescription)).to.equal("key .A.B[c].C is required")
-    })
+    await expectError(
+      () => validate(obj, schema),
+      (err) => {
+        expect(stripAnsi(err.detail.errorDescription)).to.equal("key .A.B[c].C is required")
+      }
+    )
   })
 
   it("should throw a nice error when key is invalid", async () => {
     const obj = { 123: "abc" }
     const schema = joi.object().pattern(/[a-z]+/, joi.string())
 
-    await expectError(() => validate(obj, schema), (err) => {
-      expect(stripAnsi(err.detail.errorDescription)).to.equal("key \"123\" is not allowed at path .")
-    })
+    await expectError(
+      () => validate(obj, schema),
+      (err) => {
+        expect(stripAnsi(err.detail.errorDescription)).to.equal('key "123" is not allowed at path .')
+      }
+    )
   })
 
   it("should throw a nice error when nested key is invalid", async () => {
     const obj = { a: { 123: "abc" } }
     const schema = joi.object().keys({ a: joi.object().pattern(/[a-z]+/, joi.string()) })
 
-    await expectError(() => validate(obj, schema), (err) => {
-      expect(stripAnsi(err.detail.errorDescription)).to.equal("key \"123\" is not allowed at path .a")
-    })
+    await expectError(
+      () => validate(obj, schema),
+      (err) => {
+        expect(stripAnsi(err.detail.errorDescription)).to.equal('key "123" is not allowed at path .a')
+      }
+    )
   })
 
   it("should throw a nice error when xor rule fails", async () => {
     const obj = { a: 1, b: 2 }
-    const schema = joi.object().keys({
-      a: joi.number(),
-      b: joi.number(),
-    }).xor("a", "b")
+    const schema = joi
+      .object()
+      .keys({
+        a: joi.number(),
+        b: joi.number(),
+      })
+      .xor("a", "b")
 
-    await expectError(() => validate(obj, schema), (err) => {
-      expect(stripAnsi(err.detail.errorDescription)).to.equal("object at . only allows one of [a, b]")
-    })
+    await expectError(
+      () => validate(obj, schema),
+      (err) => {
+        expect(stripAnsi(err.detail.errorDescription)).to.equal("object at . only allows one of [a, b]")
+      }
+    )
   })
 })
 
@@ -200,21 +222,15 @@ describe("joi.posixPath", () => {
   })
 
   it("should error if attempting to set absoluteOnly and relativeOnly at same time", async () => {
-    return expectError(
-      () => joi.string().posixPath({ absoluteOnly: true, relativeOnly: true }),
-    )
+    return expectError(() => joi.string().posixPath({ absoluteOnly: true, relativeOnly: true }))
   })
 
   it("should error if attempting to set absoluteOnly and subPathOnly at same time", async () => {
-    return expectError(
-      () => joi.string().posixPath({ absoluteOnly: true, subPathOnly: true }),
-    )
+    return expectError(() => joi.string().posixPath({ absoluteOnly: true, subPathOnly: true }))
   })
 
   it("should error if attempting to set absoluteOnly and filenameOnly at same time", async () => {
-    return expectError(
-      () => joi.string().posixPath({ absoluteOnly: true, filenameOnly: true }),
-    )
+    return expectError(() => joi.string().posixPath({ absoluteOnly: true, filenameOnly: true }))
   })
 
   it("should respect absoluteOnly parameter", () => {

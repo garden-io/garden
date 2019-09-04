@@ -9,7 +9,7 @@
 import deline = require("deline")
 import { joiIdentifier, joiArray, joiUserIdentifier, joi, joiVariables } from "./common"
 
-export interface ServiceSpec { }
+export interface ServiceSpec {}
 
 /**
  * This interface provides a common set of Service attributes, that are also required for the higher-level
@@ -22,13 +22,13 @@ export interface CommonServiceSpec extends ServiceSpec {
 
 export const serviceOutputsSchema = joiVariables()
 
-export const dependenciesSchema = joiArray(joiIdentifier())
-  .description(deline`
+export const dependenciesSchema = joiArray(joiIdentifier()).description(deline`
     The names of any services that this service depends on at runtime, and the names of any
     tasks that should be executed before this service is deployed.
   `)
 
-export const baseServiceSpecSchema = joi.object()
+export const baseServiceSpecSchema = joi
+  .object()
   .keys({
     name: joiUserIdentifier().required(),
     dependencies: dependenciesSchema,
@@ -47,17 +47,17 @@ export interface ServiceConfig<T extends ServiceSpec = ServiceSpec> extends Comm
 
 export const serviceConfigSchema = baseServiceSpecSchema
   .keys({
-    hotReloadable: joi.boolean()
+    hotReloadable: joi
+      .boolean()
       .default(false)
       .description("Set this to true if the module and service configuration supports hot reloading."),
-    sourceModuleName: joiIdentifier()
-      .optional()
-      .description(deline`
+    sourceModuleName: joiIdentifier().optional().description(deline`
         The \`validate\` module action should populate this, if the service's code sources are contained in a
         separate module from the parent module. For example, when the service belongs to a module that contains
         manifests (e.g. a Helm chart), but the actual code lives in a different module (e.g. a container module).
       `),
-    spec: joi.object()
+    spec: joi
+      .object()
       .meta({ extendable: true })
       .description("The service's specification, as defined by its provider plugin."),
   })

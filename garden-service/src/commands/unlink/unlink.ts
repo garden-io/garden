@@ -14,10 +14,9 @@ export class UnlinkCommand extends Command {
   name = "unlink"
   help = "Unlink a remote source or module from its local path."
 
-  subCommands = [
-    UnlinkSourceCommand,
-    UnlinkModuleCommand,
-  ]
+  subCommands = [UnlinkSourceCommand, UnlinkModuleCommand]
 
-  async action() { return {} }
+  async action() {
+    return {}
+  }
 }

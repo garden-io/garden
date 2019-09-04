@@ -27,7 +27,7 @@ interface Props {
 
 interface State {
   loading: boolean
-  selectedService: { value: string, label: string }
+  selectedService: { value: string; label: string }
 }
 
 const Header = styled.div`
@@ -51,13 +51,14 @@ const selectStyles = {
     color: colors.gardenBlack,
     backgroundColor: state.isSelected
       ? colors.gardenGreenDark
-      : state.isFocused ? colors.gardenGreenLight : colors.gardenWhite,
+      : state.isFocused
+      ? colors.gardenGreenLight
+      : colors.gardenWhite,
   }),
 }
 
 // TODO: Use functional component
 class Logs extends Component<Props, State> {
-
   constructor(props) {
     super(props)
 
@@ -94,8 +95,9 @@ class Logs extends Component<Props, State> {
     const { loading, selectedService } = this.state
     const serviceNames = Object.keys(logs)
     const maxServiceName = (max(serviceNames) || []).length
-    const options = [{ value: "all", label: "All service logs" }]
-      .concat(serviceNames.map(name => ({ value: name, label: name })))
+    const options = [{ value: "all", label: "All service logs" }].concat(
+      serviceNames.map((name) => ({ value: name, label: name }))
+    )
 
     const { value, label } = selectedService
     const title = value === "all" ? label : `${label} logs`
@@ -104,10 +106,13 @@ class Logs extends Component<Props, State> {
     return (
       <div className="pl-1">
         <div
-          className={cls(css`
-            min-width: 12rem;
-            width: 30%;
-          `, "mb-1")}
+          className={cls(
+            css`
+              min-width: 12rem;
+              width: 30%;
+            `,
+            "mb-1"
+          )}
         >
           <Select
             value={this.state.selectedService}
@@ -120,23 +125,14 @@ class Logs extends Component<Props, State> {
           <div>
             <Header className="p-1">
               <CardTitle>{title}</CardTitle>
-              <ActionIcon
-                onClick={this.refresh}
-                inProgress={loading}
-                iconClassName="redo-alt"
-              />
+              <ActionIcon onClick={this.refresh} inProgress={loading} iconClassName="redo-alt" />
             </Header>
-            <Terminal
-              entries={filteredLogs}
-              sectionPad={maxServiceName}
-              showServiceName={value === "all"}
-            />
+            <Terminal entries={filteredLogs} sectionPad={maxServiceName} showServiceName={value === "all"} />
           </div>
         </Card>
       </div>
     )
   }
-
 }
 
 export default Logs

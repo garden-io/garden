@@ -29,18 +29,23 @@ import { GardenServer, startServer } from "../server/server"
 
 const testArgs = {
   modules: new StringsParameter({
-    help: "The name(s) of the module(s) to test (skip to test all modules). " +
+    help:
+      "The name(s) of the module(s) to test (skip to test all modules). " +
       "Use comma as a separator to specify multiple modules.",
   }),
 }
 
 const testOpts = {
   "name": new StringOption({
-    help: "Only run tests with the specfied name (e.g. unit or integ). " +
+    help:
+      "Only run tests with the specfied name (e.g. unit or integ). " +
       "Accepts glob patterns (e.g. integ* would run both 'integ' and 'integration')",
     alias: "n",
   }),
-  "force": new BooleanParameter({ help: "Force re-test of module(s).", alias: "f" }),
+  "force": new BooleanParameter({
+    help: "Force re-test of module(s).",
+    alias: "f",
+  }),
   "force-build": new BooleanParameter({ help: "Force rebuild of module(s)." }),
   "watch": new BooleanParameter({
     help: "Watch for changes in module(s) and auto-test.",
@@ -116,14 +121,31 @@ export class TestCommand extends Command<Args, Opts> {
       footerLog,
       modules,
       watch: opts.watch,
-      handler: async (updatedGraph, module) => getTestTasks({
-        garden, log, graph: updatedGraph, module, filterNames, force, forceBuild,
-      }),
+      handler: async (updatedGraph, module) =>
+        getTestTasks({
+          garden,
+          log,
+          graph: updatedGraph,
+          module,
+          filterNames,
+          force,
+          forceBuild,
+        }),
       changeHandler: async (updatedGraph, module) => {
         const modulesToProcess = await updatedGraph.withDependantModules([module])
-        return flatten(await Bluebird.map(
-          modulesToProcess,
-          m => getTestTasks({ garden, log, graph: updatedGraph, module: m, filterNames, force, forceBuild })))
+        return flatten(
+          await Bluebird.map(modulesToProcess, (m) =>
+            getTestTasks({
+              garden,
+              log,
+              graph: updatedGraph,
+              module: m,
+              filterNames,
+              force,
+              forceBuild,
+            })
+          )
+        )
       },
     })
 

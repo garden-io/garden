@@ -25,52 +25,46 @@ export interface PluginActionParamsBase extends PluginActionContextParams {
 }
 
 // Note: not specifying this further because we will later remove it from the API
-export const logEntrySchema = joi.object()
+export const logEntrySchema = joi
+  .object()
   .description("Logging context handler that the handler can use to log messages and progress.")
   .required()
 
-export const actionParamsSchema = joi.object()
-  .keys({
-    ctx: pluginContextSchema
-      .required(),
-    log: logEntrySchema,
-  })
+export const actionParamsSchema = joi.object().keys({
+  ctx: pluginContextSchema.required(),
+  log: logEntrySchema,
+})
 
 export interface PluginModuleActionParamsBase<T extends Module = Module> extends PluginActionParamsBase {
   module: T
 }
-export const moduleActionParamsSchema = actionParamsSchema
-  .keys({
-    module: moduleSchema,
-  })
+export const moduleActionParamsSchema = actionParamsSchema.keys({
+  module: moduleSchema,
+})
 
 export interface PluginServiceActionParamsBase<M extends Module = Module, S extends Module = Module>
   extends PluginModuleActionParamsBase<M> {
   runtimeContext?: RuntimeContext
   service: Service<M, S>
 }
-export const serviceActionParamsSchema = moduleActionParamsSchema
-  .keys({
-    runtimeContext: runtimeContextSchema
-      .optional(),
-    service: serviceSchema,
-  })
+export const serviceActionParamsSchema = moduleActionParamsSchema.keys({
+  runtimeContext: runtimeContextSchema.optional(),
+  service: serviceSchema,
+})
 
 export interface PluginTaskActionParamsBase<T extends Module = Module> extends PluginModuleActionParamsBase<T> {
   task: Task<T>
 }
-export const taskActionParamsSchema = moduleActionParamsSchema
-  .keys({
-    task: taskSchema,
-  })
+export const taskActionParamsSchema = moduleActionParamsSchema.keys({
+  task: taskSchema,
+})
 
 export const runBaseParams = {
-  interactive: joi.boolean()
-    .description("Whether to run the module interactively (i.e. attach to the terminal)."),
+  interactive: joi.boolean().description("Whether to run the module interactively (i.e. attach to the terminal)."),
   runtimeContext: runtimeContextSchema,
-  silent: joi.boolean()
-    .description("Set to false if the output should not be logged to the console."),
-  timeout: joi.number()
+  silent: joi.boolean().description("Set to false if the output should not be logged to the console."),
+  timeout: joi
+    .number()
     .optional()
     .description("If set, how long to run the command before timing out."),
 }
@@ -86,29 +80,33 @@ export interface RunResult {
   output?: string
 }
 
-export const runResultSchema = joi.object()
-  .keys({
-    moduleName: joi.string()
-      .description("The name of the module that was run."),
-    command: joi.array().items(joi.string())
-      .required()
-      .description("The command that was run in the module."),
-    version: joi.string()
-      .description("The string version of the module."),
-    success: joi.boolean()
-      .required()
-      .description("Whether the module was successfully run."),
-    startedAt: joi.date()
-      .required()
-      .description("When the module run was started."),
-    completedAt: joi.date()
-      .required()
-      .description("When the module run was completed."),
-    log: joi.string()
-      .allow("")
-      .default("")
-      .description("The output log from the run."),
-    output: joi.string()
-      .allow("")
-      .description("[DEPRECATED - use `log` instead] The output log from the run."),
-  })
+export const runResultSchema = joi.object().keys({
+  moduleName: joi.string().description("The name of the module that was run."),
+  command: joi
+    .array()
+    .items(joi.string())
+    .required()
+    .description("The command that was run in the module."),
+  version: joi.string().description("The string version of the module."),
+  success: joi
+    .boolean()
+    .required()
+    .description("Whether the module was successfully run."),
+  startedAt: joi
+    .date()
+    .required()
+    .description("When the module run was started."),
+  completedAt: joi
+    .date()
+    .required()
+    .description("When the module run was completed."),
+  log: joi
+    .string()
+    .allow("")
+    .default("")
+    .description("The output log from the run."),
+  output: joi
+    .string()
+    .allow("")
+    .description("[DEPRECATED - use `log` instead] The output log from the run."),
+})

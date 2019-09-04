@@ -17,35 +17,41 @@ export interface DashboardPage {
   // children: DashboardPage[]
 }
 
-export const dashboardPageSchema = joi.object()
-  .keys({
-    title: joi.string()
-      .max(32)
-      .required()
-      .description("The link title to show in the menu bar (max length 32)."),
-    description: joi.string()
-      .required()
-      .description("A description to show when hovering over the link."),
-    url: joi.string()
-      .uri()
-      .required()
-      .description("The URL to open in the dashboard pane when clicking the link."),
-    newWindow: joi.boolean()
-      .default(false)
-      .description("Set to true if the link should open in a new browser tab/window."),
-  })
+export const dashboardPageSchema = joi.object().keys({
+  title: joi
+    .string()
+    .max(32)
+    .required()
+    .description("The link title to show in the menu bar (max length 32)."),
+  description: joi
+    .string()
+    .required()
+    .description("A description to show when hovering over the link."),
+  url: joi
+    .string()
+    .uri()
+    .required()
+    .description("The URL to open in the dashboard pane when clicking the link."),
+  newWindow: joi
+    .boolean()
+    .default(false)
+    .description("Set to true if the link should open in a new browser tab/window."),
+})
 
 export const dashboardPagesSchema = joiArray(dashboardPageSchema)
   .optional()
   .description("One or more pages to add to the Garden dashboard.")
 
-export const environmentStatusSchema = joi.object()
+export const environmentStatusSchema = joi
+  .object()
   .keys({
-    ready: joi.boolean()
+    ready: joi
+      .boolean()
       .required()
       .description("Set to true if the environment is fully configured for a provider."),
     dashboardPages: dashboardPagesSchema,
-    detail: joi.object()
+    detail: joi
+      .object()
       .optional()
       .meta({ extendable: true })
       .description("Use this to include additional information that is specific to the provider."),

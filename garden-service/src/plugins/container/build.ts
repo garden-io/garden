@@ -46,7 +46,7 @@ export async function buildContainerModule({ module, log }: BuildModuleParams<Co
   if (!hasDockerfile) {
     throw new ConfigurationError(
       `Dockerfile not found at ${module.spec.dockerfile || "Dockerfile"} for module ${module.name}`,
-      { spec: module.spec },
+      { spec: module.spec }
     )
   }
 
@@ -57,7 +57,7 @@ export async function buildContainerModule({ module, log }: BuildModuleParams<Co
 
   const cmdOpts = ["build", "-t", identifier, ...getDockerBuildFlags(module)]
 
-  cmdOpts.push(...module.spec.extraFlags || [])
+  cmdOpts.push(...(module.spec.extraFlags || []))
 
   if (module.spec.dockerfile) {
     cmdOpts.push("--file", containerHelpers.getDockerfileBuildPath(module))
@@ -75,7 +75,6 @@ export function getDockerBuildFlags(module: ContainerModule) {
   const args: string[] = []
 
   for (const [key, value] of Object.entries(module.spec.buildArgs)) {
-
     // 0 is falsy
     if (value || value === 0) {
       args.push("--build-arg", `${key}=${value}`)

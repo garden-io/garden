@@ -80,7 +80,7 @@ describe("TestTask", () => {
 
       const deps = await task.getDependencies()
 
-      expect(deps.map(d => d.getKey())).to.eql(["build.module-a", "deploy.service-b", "task.task-a"])
+      expect(deps.map((d) => d.getKey())).to.eql(["build.module-a", "deploy.service-b", "task.task-a"])
     })
   })
 })

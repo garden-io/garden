@@ -4,7 +4,6 @@ import { RunTaskCommand } from "../../../../../src/commands/run/task"
 import { makeTestGardenA, withDefaultGlobalOpts } from "../../../../helpers"
 
 describe("RunTaskCommand", () => {
-
   it("should run a task", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
@@ -30,16 +29,8 @@ describe("RunTaskCommand", () => {
       taskName: "task-a",
     }
 
-    const omittedKeys = [
-      "dependencyResults",
-      "description",
-      "type",
-      "completedAt",
-      "startedAt",
-      "version",
-    ]
+    const omittedKeys = ["dependencyResults", "description", "type", "completedAt", "startedAt", "version"]
 
     expect(omit(result!.output, omittedKeys)).to.eql(expected)
   })
-
 })

@@ -25,11 +25,7 @@ import { getPodLogs, podLogLines } from "./pod"
 import { ResourceStatus, StatusHandlerParams } from "./status"
 import { getResourceEvents } from "./events"
 
-const containerStatusFailures = [
-  "CrashLoopBackOff",
-  "CreateContainerConfigError",
-  "ImagePullBackOff",
-]
+const containerStatusFailures = ["CrashLoopBackOff", "CreateContainerConfigError", "ImagePullBackOff"]
 
 type Workload = KubernetesServerResource<V1Deployment | V1DaemonSet | V1StatefulSet>
 
@@ -44,9 +40,7 @@ interface Condition {
  * NOTE: This mostly replicates the logic in `kubectl rollout status`. Using that directly here
  * didn't pan out, since it doesn't look for events and just times out when errors occur during rollout.
  */
-export async function checkWorkloadStatus(
-  { api, namespace, resource }: StatusHandlerParams,
-): Promise<ResourceStatus> {
+export async function checkWorkloadStatus({ api, namespace, resource }: StatusHandlerParams): Promise<ResourceStatus> {
   const workload = <Workload>resource
 
   let _pods: KubernetesPod[]
@@ -64,8 +58,8 @@ export async function checkWorkloadStatus(
       // Get all relevant events for the workload
       const workloadEvents = await getResourceEvents(api, workload)
       const pods = await getPods()
-      const podEvents = flatten(await Promise.all(pods.map(pod => getResourceEvents(api, pod))))
-      _events = sortBy([...workloadEvents, ...podEvents], e => e.metadata.creationTimestamp)
+      const podEvents = flatten(await Promise.all(pods.map((pod) => getResourceEvents(api, pod))))
+      _events = sortBy([...workloadEvents, ...podEvents], (e) => e.metadata.creationTimestamp)
     }
     return _events
   }
@@ -81,25 +75,33 @@ export async function checkWorkloadStatus(
         const obj = event.involvedObject
         const name = chalk.blueBright(`${obj.kind} ${obj.name}:`)
         const msg = `${event.reason} - ${event.message}`
-        const colored = event.type === "Error" ? chalk.red(msg) :
-          event.type === "Warning" ? chalk.yellow(msg) : chalk.white(msg)
+        const colored =
+          event.type === "Error" ? chalk.red(msg) : event.type === "Warning" ? chalk.yellow(msg) : chalk.white(msg)
         logs += `\n${name} ${colored}`
       }
     }
 
     // Attach pod logs for debug output
-    const podNames = (await getPods()).map(pod => pod.metadata.name)
-    const podLogs = await getPodLogs(api, namespace, podNames) || undefined
+    const podNames = (await getPods()).map((pod) => pod.metadata.name)
+    const podLogs = (await getPodLogs(api, namespace, podNames)) || undefined
 
     if (podLogs) {
       logs += chalk.white("\n\n━━━ Pod logs ━━━\n")
-      logs += chalk.gray(dedent`
+      logs +=
+        chalk.gray(dedent`
       <Showing last ${podLogLines} lines per pod in this ${workload.kind}. Run the following command for complete logs>
       $ kubectl -n ${namespace} --context=${api.context} logs ${workload.kind.toLowerCase()}/${workload.metadata.name}
-      `) + "\n" + podLogs
+      `) +
+        "\n" +
+        podLogs
     }
 
-    return <ResourceStatus>{ state: "unhealthy", lastMessage, logs, resource: workload }
+    return <ResourceStatus>{
+      state: "unhealthy",
+      lastMessage,
+      logs,
+      resource: workload,
+    }
   }
 
   const failWithCondition = (condition: Condition) => {
@@ -140,12 +142,11 @@ export async function checkWorkloadStatus(
     if (
       event.type === "Error" ||
       event.type === "Failed" ||
-      (event.type === "Warning" && (
-        event.message!.includes("CrashLoopBackOff") ||
-        event.message!.includes("ImagePullBackOff") ||
-        event.message!.includes("DeadlineExceeded") ||
-        event.reason === "BackOff"
-      ))
+      (event.type === "Warning" &&
+        (event.message!.includes("CrashLoopBackOff") ||
+          event.message!.includes("ImagePullBackOff") ||
+          event.message!.includes("DeadlineExceeded") ||
+          event.reason === "BackOff"))
     ) {
       return failWithCondition(event)
     }
@@ -211,8 +212,7 @@ async function getRolloutStatus(workload: Workload) {
       if (replicas && workloadSpec.updateStrategy.rollingUpdate.partition) {
         const desired = replicas - workloadSpec.updateStrategy.rollingUpdate.partition
         if (updated < desired) {
-          out.lastMessage =
-            `Waiting for partitioned roll out to finish: ${updated} out of ${desired} new pods have been updated...`
+          out.lastMessage = `Waiting for partitioned roll out to finish: ${updated} out of ${desired} new pods have been updated...`
           out.state = "deploying"
         }
       }

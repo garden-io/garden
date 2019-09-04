@@ -10,9 +10,9 @@ import { PluginActionParamsBase, actionParamsSchema } from "../base"
 import { dedent } from "../../../util/string"
 import { joi } from "../../../config/common"
 
-export interface CleanupEnvironmentParams extends PluginActionParamsBase { }
+export interface CleanupEnvironmentParams extends PluginActionParamsBase {}
 
-export interface CleanupEnvironmentResult { }
+export interface CleanupEnvironmentResult {}
 
 export const cleanupEnvironment = {
   description: dedent`

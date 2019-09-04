@@ -19,10 +19,15 @@ import { KubernetesProvider } from "../config"
 import { runPod } from "../run"
 import { getAppNamespace } from "../namespace"
 
-export async function testContainerModule(
-  { ctx, interactive, module, runtimeContext, testConfig, testVersion, log }:
-    TestModuleParams<ContainerModule>,
-): Promise<TestResult> {
+export async function testContainerModule({
+  ctx,
+  interactive,
+  module,
+  runtimeContext,
+  testConfig,
+  testVersion,
+  log,
+}: TestModuleParams<ContainerModule>): Promise<TestResult> {
   const provider = ctx.provider as KubernetesProvider
   const { command, args } = testConfig.spec
   const testName = testConfig.name
@@ -35,13 +40,15 @@ export async function testContainerModule(
   const env = uniqByName(prepareEnvVars(envVars))
 
   const spec: V1PodSpec = {
-    containers: [{
-      name: "main",
-      image,
-      ...command && { command },
-      ...args && { args },
-      env,
-    }],
+    containers: [
+      {
+        name: "main",
+        image,
+        ...(command && { command }),
+        ...(args && { args }),
+        env,
+      },
+    ],
   }
 
   const result = await runPod({

@@ -47,12 +47,14 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
   // Ignore empty resources
   rawSpecs = rawSpecs.filter(Boolean)
 
-  const resources: GardenResource[] = flatten(rawSpecs.map(s => prepareResources(s, path, configPath, projectRoot)))
+  const resources: GardenResource[] = flatten(rawSpecs.map((s) => prepareResources(s, path, configPath, projectRoot)))
 
-  const projectSpecs = resources.filter(s => s.kind === "Project")
+  const projectSpecs = resources.filter((s) => s.kind === "Project")
 
   if (projectSpecs.length > 1) {
-    throw new ConfigurationError(`Multiple project declarations in ${path}`, { projectSpecs })
+    throw new ConfigurationError(`Multiple project declarations in ${path}`, {
+      projectSpecs,
+    })
   }
 
   return resources
@@ -74,7 +76,10 @@ export type ConfigKind = "Module" | "Project"
  */
 function prepareResources(spec: any, path: string, configPath: string, projectRoot: string): GardenResource[] {
   if (!isPlainObject(spec)) {
-    throw new ConfigurationError(`Invalid configuration found in ${path}`, { spec, path })
+    throw new ConfigurationError(`Invalid configuration found in ${path}`, {
+      spec,
+      path,
+    })
   }
 
   if (spec.kind) {
@@ -98,7 +103,10 @@ function prepareFlatConfigDoc(spec: any, path: string, configPath: string, proje
     return prepareModuleResource(spec, path, configPath)
   } else {
     const relPath = `${relative(projectRoot, path)}/garden.yml`
-    throw new ConfigurationError(`Unknown config kind ${kind} in ${relPath}`, { kind, path: relPath })
+    throw new ConfigurationError(`Unknown config kind ${kind} in ${relPath}`, {
+      kind,
+      path: relPath,
+    })
   }
 }
 
@@ -141,9 +149,10 @@ function prepareModuleResource(spec: any, path: string, configPath: string): Mod
    *   - foo-module
    *   - name: foo-module // same as the above
    */
-  const dependencies = spec.build && spec.build.dependencies
-    ? spec.build.dependencies.map(dep => typeof dep === "string" ? { name: dep, copy: [] } : dep)
-    : []
+  const dependencies =
+    spec.build && spec.build.dependencies
+      ? spec.build.dependencies.map((dep) => (typeof dep === "string" ? { name: dep, copy: [] } : dep))
+      : []
 
   // Built-in keys are validated here and the rest are put into the `spec` field
   return {
@@ -177,7 +186,7 @@ export async function findProjectConfig(path: string, allowInvalid = false): Pro
   for (let i = 0; i < sepCount; i++) {
     try {
       const resources = await loadConfig(path, path)
-      const projectResource = find(resources, r => r.kind === "Project")
+      const projectResource = find(resources, (r) => r.kind === "Project")
       if (projectResource) {
         return <ProjectResource>projectResource
       }

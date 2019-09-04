@@ -4,10 +4,10 @@ import { BasicTerminalWriter } from "../../../../../src/logger/writers/basic-ter
 import { getLogger } from "../../../../../src/logger/logger"
 import { formatForTerminal } from "../../../../../src/logger/renderers"
 
-const logger = getLogger()
+const logger: any = getLogger()
 
 beforeEach(() => {
-  (<any>logger).children = []
+  logger.children = []
 })
 
 describe("BasicTerminalWriter", () => {

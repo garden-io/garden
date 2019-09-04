@@ -14,56 +14,56 @@ import { truncateMiddle, getLinkUrl } from "../util/helpers"
 import { useUiState } from "../contexts/ui"
 import { ActionIcon } from "./action-icon"
 
-const ViewIngress = styled.div`
-   `
+const ViewIngress = styled.div``
 
 const LinkContainer = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: absolute;
-    top: 1.5rem;
-    right: 1rem;
-    background: white;
-    padding: 0.5rem;
-    border-radius: 4px;
-    border-bottom-right-radius: 0;
-    border-top-left-radius: 0;
-    box-shadow: 0px 6px 18px rgba(0,0,0,0.06);
-
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: absolute;
+  top: 1.5rem;
+  right: 1rem;
+  background: white;
+  padding: 0.5rem;
+  border-radius: 4px;
+  border-bottom-right-radius: 0;
+  border-top-left-radius: 0;
+  box-shadow: 0px 6px 18px rgba(0, 0, 0, 0.06);
 `
 
 type FrameWrapperProps = {
-  width?: string,
-  height?: string,
+  width?: string
+  height?: string
 }
 
 const FrameWrapper = styled.div<FrameWrapperProps>`
   display: flex;
   flex-direction: column;
-  width: ${props => (props.width || "50vw")};
-  height: ${props => (props.height || "96.5vh")};
+  width: ${(props) => props.width || "50vw"};
+  height: ${(props) => props.height || "96.5vh"};
   background: white;
-  box-shadow: 0px 6px 18px rgba(0,0,0,0.06);
+  box-shadow: 0px 6px 18px rgba(0, 0, 0, 0.06);
   border-radius: 4px;
   min-height: 0;
   overflow: hidden;
 `
 
 const Frame = styled.iframe`
- flex: 1 1 auto;
- border: 0;
+  flex: 1 1 auto;
+  border: 0;
   width: 100%;
 `
 
 interface ViewIngressProp {
-  ingress: ServiceIngress,
-  height?: string,
-  width?: string,
+  ingress: ServiceIngress
+  height?: string
+  width?: string
 }
 
 export default ({ ingress, height, width }: ViewIngressProp) => {
-  const { actions: { selectIngress } } = useUiState()
+  const {
+    actions: { selectIngress },
+  } = useUiState()
 
   const removeSelectedIngress = () => {
     selectIngress(null)
@@ -78,11 +78,9 @@ export default ({ ingress, height, width }: ViewIngressProp) => {
           {truncateMiddle(url)}
         </ExternalLink>
         <ActionIcon onClick={removeSelectedIngress} iconClassName="window-close" />
-
       </LinkContainer>
-      <FrameWrapper height={height} width={width} >
+      <FrameWrapper height={height} width={width}>
         <Frame src={url} />
-
       </FrameWrapper>
     </ViewIngress>
   )

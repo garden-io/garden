@@ -20,30 +20,29 @@ import { HotReloadServiceParams } from "../../types/plugin/service/hotReloadServ
 import { joi } from "../../config/common"
 import { publishContainerModule } from "./publish"
 
-export const containerModuleOutputsSchema = joi.object()
-  .keys({
-    "local-image-name": joi.string()
-      .required()
-      .description(
-        "The name of the image (without tag/version) that the module uses for local builds and deployments.",
-      )
-      .example("my-module"),
-    "deployment-image-name": joi.string()
-      .required()
-      .description("The name of the image (without tag/version) that the module will use during deployment.")
-      .example("my-deployment-registry.io/my-org/my-module"),
-  })
+export const containerModuleOutputsSchema = joi.object().keys({
+  "local-image-name": joi
+    .string()
+    .required()
+    .description("The name of the image (without tag/version) that the module uses for local builds and deployments.")
+    .example("my-module"),
+  "deployment-image-name": joi
+    .string()
+    .required()
+    .description("The name of the image (without tag/version) that the module will use during deployment.")
+    .example("my-deployment-registry.io/my-org/my-module"),
+})
 
-const taskOutputsSchema = joi.object()
-  .keys({
-    log: joi.string()
-      .allow("")
-      .default("")
-      .description(
-        "The full log from the executed task. " +
-        "(Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)",
-      ),
-  })
+const taskOutputsSchema = joi.object().keys({
+  log: joi
+    .string()
+    .allow("")
+    .default("")
+    .description(
+      "The full log from the executed task. " +
+        "(Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)"
+    ),
+})
 
 export async function configureContainerModule({ ctx, moduleConfig }: ConfigureModuleParams<ContainerModule>) {
   // validate hot reload configuration
@@ -52,7 +51,7 @@ export async function configureContainerModule({ ctx, moduleConfig }: ConfigureM
 
   if (hotReloadConfig) {
     const invalidPairDescriptions: string[] = []
-    const targets = hotReloadConfig.sync.map(syncSpec => syncSpec.target)
+    const targets = hotReloadConfig.sync.map((syncSpec) => syncSpec.target)
 
     // Verify that sync targets are mutually disjoint - i.e. that no target is a subdirectory of
     // another target. Mounting directories into mounted directories will cause unexpected results
@@ -71,7 +70,7 @@ export async function configureContainerModule({ ctx, moduleConfig }: ConfigureM
         in the same module.
 
         ${invalidPairDescriptions.join("\n")}`,
-        { invalidPairDescriptions, hotReloadConfig },
+        { invalidPairDescriptions, hotReloadConfig }
       )
     }
   }
@@ -79,7 +78,7 @@ export async function configureContainerModule({ ctx, moduleConfig }: ConfigureM
   const hotReloadable = !!moduleConfig.spec.hotReload
 
   // validate services
-  moduleConfig.serviceConfigs = moduleConfig.spec.services.map(spec => {
+  moduleConfig.serviceConfigs = moduleConfig.spec.services.map((spec) => {
     // make sure ports are correctly configured
     const name = spec.name
     const definedPorts = spec.ports
@@ -89,10 +88,10 @@ export async function configureContainerModule({ ctx, moduleConfig }: ConfigureM
       const ingressPort = ingress.port
 
       if (!portsByName[ingressPort]) {
-        throw new ConfigurationError(
-          `Service ${name} does not define port ${ingressPort} defined in ingress`,
-          { definedPorts, ingressPort },
-        )
+        throw new ConfigurationError(`Service ${name} does not define port ${ingressPort} defined in ingress`, {
+          definedPorts,
+          ingressPort,
+        })
       }
     }
 
@@ -102,7 +101,7 @@ export async function configureContainerModule({ ctx, moduleConfig }: ConfigureM
       if (!portsByName[healthCheckHttpPort]) {
         throw new ConfigurationError(
           `Service ${name} does not define port ${healthCheckHttpPort} defined in httpGet health check`,
-          { definedPorts, healthCheckHttpPort },
+          { definedPorts, healthCheckHttpPort }
         )
       }
     }
@@ -113,7 +112,7 @@ export async function configureContainerModule({ ctx, moduleConfig }: ConfigureM
       if (!portsByName[healthCheckTcpPort]) {
         throw new ConfigurationError(
           `Service ${name} does not define port ${healthCheckTcpPort} defined in tcpPort health check`,
-          { definedPorts, healthCheckTcpPort },
+          { definedPorts, healthCheckTcpPort }
         )
       }
     }
@@ -126,14 +125,14 @@ export async function configureContainerModule({ ctx, moduleConfig }: ConfigureM
     }
   })
 
-  moduleConfig.testConfigs = moduleConfig.spec.tests.map(t => ({
+  moduleConfig.testConfigs = moduleConfig.spec.tests.map((t) => ({
     name: t.name,
     dependencies: t.dependencies,
     spec: t,
     timeout: t.timeout,
   }))
 
-  moduleConfig.taskConfigs = moduleConfig.spec.tasks.map(t => ({
+  moduleConfig.taskConfigs = moduleConfig.spec.tasks.map((t) => ({
     name: t.name,
     dependencies: t.dependencies,
     spec: t,
@@ -143,7 +142,7 @@ export async function configureContainerModule({ ctx, moduleConfig }: ConfigureM
   const provider = <KubernetesProvider>ctx.provider
   const deploymentImageName = await containerHelpers.getDeploymentImageName(
     moduleConfig,
-    provider.config.deploymentRegistry,
+    provider.config.deploymentRegistry
   )
 
   moduleConfig.outputs = {

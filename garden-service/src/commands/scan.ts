@@ -9,11 +9,7 @@
 import { safeDump } from "js-yaml"
 import { DeepPrimitiveMap } from "../config/common"
 import { highlightYaml } from "../util/util"
-import {
-  Command,
-  CommandParams,
-  CommandResult,
-} from "./base"
+import { Command, CommandParams, CommandResult } from "./base"
 import { omit } from "lodash"
 
 export class ScanCommand extends Command {
@@ -21,24 +17,29 @@ export class ScanCommand extends Command {
   help = "Scans your project and outputs an overview of all modules."
 
   async action({ garden, log }: CommandParams): Promise<CommandResult<DeepPrimitiveMap>> {
-    const modules = (await garden.resolveModuleConfigs())
-      .map(m => {
-        return omit(m, [
-          "_ConfigType", "cacheContext", "serviceNames", "taskNames",
-        ])
-      })
+    const modules = (await garden.resolveModuleConfigs()).map((m) => {
+      return omit(m, ["_ConfigType", "cacheContext", "serviceNames", "taskNames"])
+    })
 
     const output = { modules }
 
     const shortOutput = {
-      modules: modules.map(m => {
-        m.serviceConfigs!.map(s => delete s.spec)
+      modules: modules.map((m) => {
+        m.serviceConfigs!.map((s) => delete s.spec)
         return omit(m, ["spec"])
       }),
     }
 
-    log.info(highlightYaml(safeDump(shortOutput, { noRefs: true, skipInvalid: true, sortKeys: true })))
+    log.info(
+      highlightYaml(
+        safeDump(shortOutput, {
+          noRefs: true,
+          skipInvalid: true,
+          sortKeys: true,
+        })
+      )
+    )
 
-    return { result: <DeepPrimitiveMap><any>output }
+    return { result: <DeepPrimitiveMap>(<any>output) }
   }
 }

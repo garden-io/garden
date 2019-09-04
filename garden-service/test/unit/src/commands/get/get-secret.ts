@@ -37,15 +37,16 @@ describe("GetSecretCommand", () => {
     const command = new GetSecretCommand()
 
     await expectError(
-      async () => await command.action({
-        garden,
-        log,
-        headerLog: log,
-        footerLog: log,
-        args: { provider, key: "project.mykey" },
-        opts: withDefaultGlobalOpts({}),
-      }),
-      "not-found",
+      async () =>
+        await command.action({
+          garden,
+          log,
+          headerLog: log,
+          footerLog: log,
+          args: { provider, key: "project.mykey" },
+          opts: withDefaultGlobalOpts({}),
+        }),
+      "not-found"
     )
   })
 })

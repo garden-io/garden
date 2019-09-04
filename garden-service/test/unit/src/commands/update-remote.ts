@@ -46,7 +46,7 @@ describe("UpdateRemoteCommand", () => {
         args: { sources: undefined },
         opts: withDefaultGlobalOpts({}),
       })
-      expect(result!.map(s => s.name).sort()).to.eql(["source-a", "source-b", "source-c"])
+      expect(result!.map((s) => s.name).sort()).to.eql(["source-a", "source-b", "source-c"])
     })
 
     it("should update the specified project sources", async () => {
@@ -58,7 +58,7 @@ describe("UpdateRemoteCommand", () => {
         args: { sources: ["source-a"] },
         opts: withDefaultGlobalOpts({}),
       })
-      expect(result!.map(s => s.name).sort()).to.eql(["source-a"])
+      expect(result!.map((s) => s.name).sort()).to.eql(["source-a"])
     })
 
     it("should remove stale remote project sources", async () => {
@@ -77,7 +77,7 @@ describe("UpdateRemoteCommand", () => {
 
     it("should throw if project source is not found", async () => {
       await expectError(
-        async () => (
+        async () =>
           await cmd.action({
             garden,
             log,
@@ -85,9 +85,8 @@ describe("UpdateRemoteCommand", () => {
             footerLog: log,
             args: { sources: ["banana"] },
             opts: withDefaultGlobalOpts({}),
-          })
-        ),
-        "parameter",
+          }),
+        "parameter"
       )
     })
   })
@@ -112,7 +111,7 @@ describe("UpdateRemoteCommand", () => {
         args: { modules: undefined },
         opts: withDefaultGlobalOpts({}),
       })
-      expect(result!.map(s => s.name).sort()).to.eql(["module-a", "module-b", "module-c"])
+      expect(result!.map((s) => s.name).sort()).to.eql(["module-a", "module-b", "module-c"])
     })
 
     it("should update the specified module sources", async () => {
@@ -124,7 +123,7 @@ describe("UpdateRemoteCommand", () => {
         args: { modules: ["module-a"] },
         opts: withDefaultGlobalOpts({}),
       })
-      expect(result!.map(s => s.name).sort()).to.eql(["module-a"])
+      expect(result!.map((s) => s.name).sort()).to.eql(["module-a"])
     })
 
     it("should remove stale remote module sources", async () => {
@@ -143,7 +142,7 @@ describe("UpdateRemoteCommand", () => {
 
     it("should throw if project source is not found", async () => {
       await expectError(
-        async () => (
+        async () =>
           await cmd.action({
             garden,
             log,
@@ -151,9 +150,8 @@ describe("UpdateRemoteCommand", () => {
             footerLog: log,
             args: { modules: ["banana"] },
             opts: withDefaultGlobalOpts({}),
-          })
-        ),
-        "parameter",
+          }),
+        "parameter"
       )
     })
   })

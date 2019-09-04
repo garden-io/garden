@@ -13,11 +13,11 @@ import { Writer } from "./base"
 import { formatForJson } from "../renderers"
 
 export interface JsonLogEntry {
-  msg: string,
-  data?: any,
-  section?: string,
-  durationMs?: number,
-  metadata?: LogEntryMetadata,
+  msg: string
+  data?: any
+  section?: string
+  durationMs?: number
+  metadata?: LogEntryMetadata
 }
 
 export class JsonTerminalWriter extends Writer {
@@ -40,6 +40,5 @@ export class JsonTerminalWriter extends Writer {
     }
   }
 
-  stop() { }
-
+  stop() {}
 }

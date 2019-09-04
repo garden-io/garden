@@ -30,7 +30,7 @@ const Wrap = styled.div`
 `
 
 type CardWrapProps = {
-  visible: boolean,
+  visible: boolean
 }
 
 const CardWrap = styled.div<CardWrapProps>`
@@ -38,8 +38,8 @@ const CardWrap = styled.div<CardWrapProps>`
   display: flex;
   flex-wrap: wrap;
   align-items: middle;
-  display: ${props => (props.visible ? `block` : "none")};
-  animation: fadein .5s ;
+  display: ${(props) => (props.visible ? `block` : "none")};
+  animation: fadein 0.5s;
 
   @keyframes fadein {
     from {
@@ -63,21 +63,21 @@ const Name = styled.div`
   font-weight: 500;
   font-size: 0.9375rem;
   letter-spacing: 0.01em;
-  color: #323C47;
+  color: #323c47;
 `
 
 const Tag = styled.div`
-  padding-left: .5rem;
+  padding-left: 0.5rem;
   font-weight: 500;
   font-size: 0.625rem;
   letter-spacing: 0.01em;
-  color: #90A0B7;
+  color: #90a0b7;
 `
 
 const Description = styled(Field)`
-  color: #4C5862;
+  color: #4c5862;
   opacity: 0.5;
-  padding-top: .25rem;
+  padding-top: 0.25rem;
 `
 
 const Full = styled(Value)`
@@ -92,30 +92,31 @@ const Short = styled(Value)`
   overflow: hidden;
 `
 
-export type Props = Pick<Module,
-  "name" |
-  "type" |
-  "path" |
-  "repositoryUrl" |
-  "description"
-> & {
+export type Props = Pick<Module, "name" | "type" | "path" | "repositoryUrl" | "description"> & {
   serviceCardProps: Omit<ServiceCardProps, "isLoading" | "showInfo">[]
   testCardProps: Omit<TestCardProps, "isLoading" | "showInfo" | "onEntitySelected">[]
   taskCardProps: Omit<TaskCardProps, "isLoading" | "showInfo" | "onEntitySelected">[]
-  isLoading: boolean,
+  isLoading: boolean
 }
 
 export const ModuleCard = ({
-  serviceCardProps = [], testCardProps = [], taskCardProps = [], name, type, description,
+  serviceCardProps = [],
+  testCardProps = [],
+  taskCardProps = [],
+  name,
+  type,
+  description,
   isLoading,
 }: Props) => {
   const {
-    state: { overview: { filters } },
+    state: {
+      overview: { filters },
+    },
     actions: { selectEntity },
   } = useUiState()
 
   const [isValueExpended, setValueExpendedState] = useState(false)
-  const toggleValueExpendedState = () => (setValueExpendedState(!isValueExpended))
+  const toggleValueExpendedState = () => setValueExpendedState(!isValueExpended)
 
   return (
     <Wrap>
@@ -125,26 +126,17 @@ export const ModuleCard = ({
       </Header>
       <FieldWrap visible={filters.modulesInfo}>
         <Description visible={!!description}>
-          {!isValueExpended && (
-            <Short onClick={toggleValueExpendedState}>{description}</Short>
-          )}
-          {isValueExpended && (
-            <Full onClick={toggleValueExpendedState}>{description}</Full>
-          )}
+          {!isValueExpended && <Short onClick={toggleValueExpendedState}>{description}</Short>}
+          {isValueExpended && <Full onClick={toggleValueExpendedState}>{description}</Full>}
         </Description>
       </FieldWrap>
       <CardWrap visible={filters.services && serviceCardProps.length > 0}>
-        {serviceCardProps.map(props => (
-          <ServiceCard
-            {...props}
-            isLoading={isLoading}
-            key={props.name}
-            showInfo={filters.servicesInfo}
-          />
+        {serviceCardProps.map((props) => (
+          <ServiceCard {...props} isLoading={isLoading} key={props.name} showInfo={filters.servicesInfo} />
         ))}
       </CardWrap>
       <CardWrap visible={filters.tests && testCardProps.length > 0}>
-        {testCardProps.map(props => (
+        {testCardProps.map((props) => (
           <TestCard
             {...props}
             isLoading={isLoading}
@@ -155,7 +147,7 @@ export const ModuleCard = ({
         ))}
       </CardWrap>
       <CardWrap visible={filters.tasks && taskCardProps.length > 0}>
-        {taskCardProps.map(props => (
+        {taskCardProps.map((props) => (
           <TaskCard
             {...props}
             isLoading={isLoading}

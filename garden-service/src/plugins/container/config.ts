@@ -28,8 +28,8 @@ import { joiStringMap } from "../../config/common"
 import { dedent } from "../../util/string"
 
 export const defaultContainerLimits: ServiceLimitSpec = {
-  cpu: 1000,     // = 1000 millicpu = 1 CPU
-  memory: 1024,  // = 1024MB = 1GB
+  cpu: 1000, // = 1000 millicpu = 1 CPU
+  memory: 1024, // = 1024MB = 1GB
 }
 
 export interface ContainerIngressSpec {
@@ -60,12 +60,12 @@ export interface ServiceVolumeSpec {
 
 export interface ServiceHealthCheckSpec {
   httpGet?: {
-    path: string,
-    port: string,
-    scheme?: "HTTP" | "HTTPS",
-  },
-  command?: string[],
-  tcpPort?: string,
+    path: string
+    port: string
+    scheme?: "HTTP" | "HTTPS"
+  }
+  command?: string[]
+  tcpPort?: string
 }
 
 export interface ServiceLimitSpec {
@@ -78,59 +78,64 @@ interface Annotations {
 }
 
 export interface ContainerServiceSpec extends CommonServiceSpec {
-  annotations: Annotations,
-  command?: string[],
-  args: string[],
+  annotations: Annotations
+  command?: string[]
+  args: string[]
   daemon: boolean
-  ingresses: ContainerIngressSpec[],
-  env: PrimitiveMap,
-  healthCheck?: ServiceHealthCheckSpec,
-  hotReloadCommand?: string[],
-  hotReloadArgs?: string[],
-  limits: ServiceLimitSpec,
-  ports: ServicePortSpec[],
-  replicas: number,
-  volumes: ServiceVolumeSpec[],
+  ingresses: ContainerIngressSpec[]
+  env: PrimitiveMap
+  healthCheck?: ServiceHealthCheckSpec
+  hotReloadCommand?: string[]
+  hotReloadArgs?: string[]
+  limits: ServiceLimitSpec
+  ports: ServicePortSpec[]
+  replicas: number
+  volumes: ServiceVolumeSpec[]
 }
 
 export const commandExample = ["/bin/sh", "-c"]
 
-const hotReloadSyncSchema = joi.object()
-  .keys({
-    source: joi.string()
-      .posixPath({ subPathOnly: true })
-      .default(".")
-      .description(deline`
+const hotReloadSyncSchema = joi.object().keys({
+  source: joi
+    .string()
+    .posixPath({ subPathOnly: true })
+    .default(".")
+    .description(
+      deline`
         POSIX-style path of the directory to sync to the target, relative to the module's top-level directory.
-        Must be a relative path if provided. Defaults to the module's top-level directory if no value is provided.`)
-      .example("src"),
-    target: joi.string()
-      .posixPath({ absoluteOnly: true })
-      .required()
-      .description(deline`
+        Must be a relative path if provided. Defaults to the module's top-level directory if no value is provided.`
+    )
+    .example("src"),
+  target: joi
+    .string()
+    .posixPath({ absoluteOnly: true })
+    .required()
+    .description(
+      deline`
         POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is
-        not allowed.`)
-      .example("/app/src"),
-  })
+        not allowed.`
+    )
+    .example("/app/src"),
+})
 
 export interface ContainerHotReloadSpec {
   sync: FileCopySpec[]
   postSyncCommand?: string[]
 }
 
-const hotReloadConfigSchema = joi.object()
-  .keys({
-    sync: joi.array().items(hotReloadSyncSchema)
-      .required()
-      .description(
-        "Specify one or more source files or directories to automatically sync into the running container.",
-      ),
-    postSyncCommand: joi.array().items(joi.string())
-      .optional()
-      .description(`An optional command to run inside the container after syncing.`)
-      .example([["rebuild-static-assets.sh"], {}]),
-  })
-  .description(deline`
+const hotReloadConfigSchema = joi.object().keys({
+  sync: joi
+    .array()
+    .items(hotReloadSyncSchema)
+    .required()
+    .description("Specify one or more source files or directories to automatically sync into the running container."),
+  postSyncCommand: joi
+    .array()
+    .items(joi.string())
+    .optional()
+    .description(`An optional command to run inside the container after syncing.`)
+    .example([["rebuild-static-assets.sh"], {}]),
+}).description(deline`
     Specifies which files or directories to sync to which paths inside the running containers of hot reload-enabled
     services when those files or directories are modified. Applies to this module's services, and to services
     with this module as their \`sourceModule\`.
@@ -144,103 +149,123 @@ const annotationsSchema = joiStringMap(joi.string())
 
 export interface EnvSecretRef {
   secretRef: {
-    name: string,
-    key?: string,
+    name: string
+    key?: string
   }
 }
 
-const secretRefSchema = joi.object()
+const secretRefSchema = joi
+  .object()
   .keys({
-    secretRef: joi.object()
-      .keys({
-        name: joi.string()
-          .required()
-          .description("The name of the secret to refer to."),
-        key: joi.string()
-          .description("The key to read from in the referenced secret. May be required for some providers."),
-      }),
+    secretRef: joi.object().keys({
+      name: joi
+        .string()
+        .required()
+        .description("The name of the secret to refer to."),
+      key: joi
+        .string()
+        .description("The key to read from in the referenced secret. May be required for some providers."),
+    }),
   })
   .description(
     "A reference to a secret, that should be applied to the environment variable. " +
-    "Note that this secret must already be defined in the provider.",
+      "Note that this secret must already be defined in the provider."
   )
 
 export interface ContainerEnvVars {
   [key: string]: Primitive | EnvSecretRef
 }
 
-export const containerEnvVarsSchema = joi.object()
+export const containerEnvVarsSchema = joi
+  .object()
   .pattern(envVarRegex, joi.alternatives(joiPrimitive(), secretRefSchema))
   .default(() => ({}), "{}")
   .unknown(false)
   .description(
     "Key/value map of environment variables. Keys must be valid POSIX environment variable names " +
-    "(must not start with `GARDEN`) and values must be primitives or references to secrets.",
+      "(must not start with `GARDEN`) and values must be primitives or references to secrets."
   )
-  .example([{
-    MY_VAR: "some-value",
-    MY_SECRET_VAR: { secretRef: { name: "my-secret", key: "some-key" } },
-  }, {}])
+  .example([
+    {
+      MY_VAR: "some-value",
+      MY_SECRET_VAR: { secretRef: { name: "my-secret", key: "some-key" } },
+    },
+    {},
+  ])
 
-const ingressSchema = joi.object()
-  .keys({
-    annotations: annotationsSchema
-      .description("Annotations to attach to the ingress (Note: May not be applicable to all providers)"),
-    hostname: ingressHostnameSchema,
-    linkUrl: linkUrlSchema,
-    path: joi.string()
-      .default("/")
-      .description("The path which should be routed to the service."),
-    port: joi.string()
-      .required()
-      .description("The name of the container port where the specified paths should be routed."),
-  })
+const ingressSchema = joi.object().keys({
+  annotations: annotationsSchema.description(
+    "Annotations to attach to the ingress (Note: May not be applicable to all providers)"
+  ),
+  hostname: ingressHostnameSchema,
+  linkUrl: linkUrlSchema,
+  path: joi
+    .string()
+    .default("/")
+    .description("The path which should be routed to the service."),
+  port: joi
+    .string()
+    .required()
+    .description("The name of the container port where the specified paths should be routed."),
+})
 
-const healthCheckSchema = joi.object()
+const healthCheckSchema = joi
+  .object()
   .keys({
-    httpGet: joi.object()
+    httpGet: joi
+      .object()
       .keys({
-        path: joi.string()
+        path: joi
+          .string()
           .uri(<any>{ relativeOnly: true })
           .required()
           .description("The path of the service's health check endpoint."),
-        port: joi.string()
+        port: joi
+          .string()
           .required()
           .description("The name of the port where the service's health check endpoint should be available."),
-        scheme: joi.string().allow("HTTP", "HTTPS").default("HTTP"),
+        scheme: joi
+          .string()
+          .allow("HTTP", "HTTPS")
+          .default("HTTP"),
       })
       .description("Set this to check the service's health by making an HTTP request."),
-    command: joi.array().items(joi.string())
+    command: joi
+      .array()
+      .items(joi.string())
       .description("Set this to check the service's health by running a command in its container."),
-    tcpPort: joi.string()
+    tcpPort: joi
+      .string()
       .description("Set this to check the service's health by checking if this TCP port is accepting connections."),
-  }).xor("httpGet", "command", "tcpPort")
-
-const limitsSchema = joi.object()
-  .keys({
-    cpu: joi.number()
-      .default(defaultContainerLimits.cpu)
-      .min(10)
-      .description("The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)"),
-    memory: joi.number()
-      .default(defaultContainerLimits.memory)
-      .min(64)
-      .description("The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)"),
   })
+  .xor("httpGet", "command", "tcpPort")
 
-export const portSchema = joi.object()
-  .keys({
-    name: joiUserIdentifier()
-      .required()
-      .description("The name of the port (used when referencing the port elsewhere in the service configuration)."),
-    protocol: joi.string()
-      .allow("TCP", "UDP")
-      .default(DEFAULT_PORT_PROTOCOL)
-      .description("The protocol of the port."),
-    containerPort: joi.number()
-      .required()
-      .example("8080")
-      .description(deline`
+const limitsSchema = joi.object().keys({
+  cpu: joi
+    .number()
+    .default(defaultContainerLimits.cpu)
+    .min(10)
+    .description("The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)"),
+  memory: joi
+    .number()
+    .default(defaultContainerLimits.memory)
+    .min(64)
+    .description("The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)"),
+})
+
+export const portSchema = joi.object().keys({
+  name: joiUserIdentifier()
+    .required()
+    .description("The name of the port (used when referencing the port elsewhere in the service configuration)."),
+  protocol: joi
+    .string()
+    .allow("TCP", "UDP")
+    .default(DEFAULT_PORT_PROTOCOL)
+    .description("The protocol of the port."),
+  containerPort: joi
+    .number()
+    .required()
+    .example("8080").description(deline`
         The port exposed on the container by the running process. This will also be the default value
         for \`servicePort\`.
 
@@ -250,10 +275,10 @@ export const portSchema = joi.object()
         The service port maps to the container port:
 
         \`servicePort:80 -> containerPort:8080 -> process:8080\``),
-    servicePort: joi.number()
-      .default((context) => context.containerPort, "<same as containerPort>")
-      .example("80")
-      .description(deline`The port exposed on the service.
+  servicePort: joi
+    .number()
+    .default((context) => context.containerPort, "<same as containerPort>")
+    .example("80").description(deline`The port exposed on the service.
         Defaults to \`containerPort\` if not specified.
 
         This is the port you use when calling a service from another service within the cluster.
@@ -266,11 +291,8 @@ export const portSchema = joi.object()
         The service port maps to the container port:
 
         \`servicePort:80 -> containerPort:8080 -> process:8080\``),
-    hostPort: joi.number()
-      .meta({ deprecated: true }),
-    nodePort: joi.number()
-      .allow(true)
-      .description(deline`
+  hostPort: joi.number().meta({ deprecated: true }),
+  nodePort: joi.number().allow(true).description(deline`
         Set this to expose the service on the specified port on the host node (may not be supported by all providers).
         Set to \`true\` to have the cluster pick a port automatically, which is most often advisable if the cluster is
         shared by multiple users.
@@ -278,141 +300,158 @@ export const portSchema = joi.object()
         This allows you to call the service from the outside by the node's IP address
         and the port number set in this field.
       `),
-  })
+})
 
-const volumeSchema = joi.object()
-  .keys({
-    name: joiUserIdentifier()
-      .required()
-      .description("The name of the allocated volume."),
-    containerPath: joi.string()
-      .posixPath()
-      .required()
-      .description("The path where the volume should be mounted in the container."),
-    hostPath: joi.string()
-      .posixPath()
-      .description(dedent`
+const volumeSchema = joi.object().keys({
+  name: joiUserIdentifier()
+    .required()
+    .description("The name of the allocated volume."),
+  containerPath: joi
+    .string()
+    .posixPath()
+    .required()
+    .description("The path where the volume should be mounted in the container."),
+  hostPath: joi
+    .string()
+    .posixPath()
+    .description(
+      dedent`
         _NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms
         and providers. Some providers may not support it at all._
 
         A local path or path on the node that's running the container, to mount in the container, relative to the
         module source path (or absolute).
-      `)
-      .example("/some/dir"),
-  })
+      `
+    )
+    .example("/some/dir"),
+})
 
-const serviceSchema = baseServiceSpecSchema
-  .keys({
-    annotations: annotationsSchema
-      .description("Annotations to attach to the service (Note: May not be applicable to all providers)."),
-    command: joi.array().items(joi.string())
-      .description("The command/entrypoint to run the container with when starting the service.")
-      .example([commandExample, {}]),
-    args: joi.array().items(joi.string())
-      .description("The arguments to run the container with when starting the service.")
-      .example([["npm", "start"], {}]),
-    daemon: joi.boolean()
-      .default(false)
-      .description(deline`
+const serviceSchema = baseServiceSpecSchema.keys({
+  annotations: annotationsSchema.description(
+    "Annotations to attach to the service (Note: May not be applicable to all providers)."
+  ),
+  command: joi
+    .array()
+    .items(joi.string())
+    .description("The command/entrypoint to run the container with when starting the service.")
+    .example([commandExample, {}]),
+  args: joi
+    .array()
+    .items(joi.string())
+    .description("The arguments to run the container with when starting the service.")
+    .example([["npm", "start"], {}]),
+  daemon: joi.boolean().default(false).description(deline`
         Whether to run the service as a daemon (to ensure exactly one instance runs per node).
         May not be supported by all providers.
       `),
-    ingresses: joiArray(ingressSchema)
-      .description("List of ingress endpoints that the service exposes.")
-      .example([
-        [{ path: "/api", port: "http" }],
-        {},
-      ]),
-    env: containerEnvVarsSchema,
-    healthCheck: healthCheckSchema
-      .description("Specify how the service's health should be checked after deploying."),
-    hotReloadCommand: joi.array().items(joi.string())
-      .description(deline`
+  ingresses: joiArray(ingressSchema)
+    .description("List of ingress endpoints that the service exposes.")
+    .example([[{ path: "/api", port: "http" }], {}]),
+  env: containerEnvVarsSchema,
+  healthCheck: healthCheckSchema.description("Specify how the service's health should be checked after deploying."),
+  hotReloadCommand: joi
+    .array()
+    .items(joi.string())
+    .description(
+      deline`
         If this module uses the \`hotReload\` field, the container will be run with
-        this command/entrypoint when the service is deployed with hot reloading enabled.`)
-      .example([commandExample, {}]),
-    hotReloadArgs: joi.array().items(joi.string())
-      .description(deline`
+        this command/entrypoint when the service is deployed with hot reloading enabled.`
+    )
+    .example([commandExample, {}]),
+  hotReloadArgs: joi
+    .array()
+    .items(joi.string())
+    .description(
+      deline`
         If this module uses the \`hotReload\` field, the container will be run with
-        these arguments when the service is deployed with hot reloading enabled.`)
-      .example([["npm", "run", "dev"], {}]),
-    limits: limitsSchema
-      .description("Specify resource limits for the service.")
-      .default(() => defaultContainerLimits, JSON.stringify(defaultContainerLimits)),
-    ports: joiArray(portSchema)
-      .unique("name")
-      .description("List of ports that the service container exposes."),
-    replicas: joi.number()
-      .integer()
-      .min(1)
-      .default(1)
-      .description(deline`
+        these arguments when the service is deployed with hot reloading enabled.`
+    )
+    .example([["npm", "run", "dev"], {}]),
+  limits: limitsSchema
+    .description("Specify resource limits for the service.")
+    .default(() => defaultContainerLimits, JSON.stringify(defaultContainerLimits)),
+  ports: joiArray(portSchema)
+    .unique("name")
+    .description("List of ports that the service container exposes."),
+  replicas: joi
+    .number()
+    .integer()
+    .min(1)
+    .default(1).description(deline`
         The number of instances of the service to deploy.
 
         Note: This setting may be overridden or ignored in some cases. For example, when running with \`daemon: true\`,
         with hot-reloading enabled, or if the provider doesn't support multiple replicas.
       `),
-    volumes: joiArray(volumeSchema)
-      .unique("name")
-      .description("List of volumes that should be mounted when deploying the container."),
-  })
+  volumes: joiArray(volumeSchema)
+    .unique("name")
+    .description("List of volumes that should be mounted when deploying the container."),
+})
 
 export interface ContainerRegistryConfig {
-  hostname: string,
-  port?: number,
-  namespace: string,
+  hostname: string
+  port?: number
+  namespace: string
 }
 
-export const containerRegistryConfigSchema = joi.object()
-  .keys({
-    hostname: joi.string()
-      .required()
-      .description("The hostname (and optionally port, if not the default port) of the registry.")
-      .example("gcr.io"),
-    port: joi.number()
-      .integer()
-      .description("The port where the registry listens on, if not the default."),
-    namespace: joi.string()
-      .default("_")
-      .description("The namespace in the registry where images should be pushed.")
-      .example("my-project"),
-  })
-  .description(deline`
+export const containerRegistryConfigSchema = joi.object().keys({
+  hostname: joi
+    .string()
+    .required()
+    .description("The hostname (and optionally port, if not the default port) of the registry.")
+    .example("gcr.io"),
+  port: joi
+    .number()
+    .integer()
+    .description("The port where the registry listens on, if not the default."),
+  namespace: joi
+    .string()
+    .default("_")
+    .description("The namespace in the registry where images should be pushed.")
+    .example("my-project"),
+}).description(deline`
     The registry where built containers should be pushed to, and then pulled to the cluster when deploying
     services.
   `)
 
-export interface ContainerService extends Service<ContainerModule> { }
+export interface ContainerService extends Service<ContainerModule> {}
 
 export interface ContainerTestSpec extends BaseTestSpec {
-  command?: string[],
-  args: string[],
-  env: ContainerEnvVars,
+  command?: string[]
+  args: string[]
+  env: ContainerEnvVars
 }
 
-export const containerTestSchema = baseTestSpecSchema
-  .keys({
-    command: joi.array().items(joi.string())
-      .description("The command/entrypoint used to run the test inside the container.")
-      .example([commandExample, {}]),
-    args: joi.array().items(joi.string())
-      .description("The arguments used to run the test inside the container.")
-      .example([["npm", "test"], {}]),
-    env: containerEnvVarsSchema,
-  })
+export const containerTestSchema = baseTestSpecSchema.keys({
+  command: joi
+    .array()
+    .items(joi.string())
+    .description("The command/entrypoint used to run the test inside the container.")
+    .example([commandExample, {}]),
+  args: joi
+    .array()
+    .items(joi.string())
+    .description("The arguments used to run the test inside the container.")
+    .example([["npm", "test"], {}]),
+  env: containerEnvVarsSchema,
+})
 
 export interface ContainerTaskSpec extends BaseTaskSpec {
-  command?: string[],
+  command?: string[]
   args: string[]
   env: ContainerEnvVars
 }
 
 export const containerTaskSchema = baseTaskSpecSchema
   .keys({
-    command: joi.array().items(joi.string())
+    command: joi
+      .array()
+      .items(joi.string())
       .description("The command/entrypoint used to run the task inside the container.")
       .example([commandExample, {}]),
-    args: joi.array().items(joi.string())
+    args: joi
+      .array()
+      .items(joi.string())
       .description("The arguments used to run the task inside the container.")
       .example([["rake", "db:migrate"], {}]),
     env: containerEnvVarsSchema,
@@ -425,65 +464,61 @@ export interface ContainerBuildSpec extends BaseBuildSpec {
 }
 
 export interface ContainerModuleSpec extends ModuleSpec {
-  build: ContainerBuildSpec,
-  buildArgs: PrimitiveMap,
-  extraFlags: string[],
-  image?: string,
-  dockerfile?: string,
-  hotReload?: ContainerHotReloadSpec,
-  services: ContainerServiceSpec[],
-  tests: ContainerTestSpec[],
-  tasks: ContainerTaskSpec[],
+  build: ContainerBuildSpec
+  buildArgs: PrimitiveMap
+  extraFlags: string[]
+  image?: string
+  dockerfile?: string
+  hotReload?: ContainerHotReloadSpec
+  services: ContainerServiceSpec[]
+  tests: ContainerTestSpec[]
+  tasks: ContainerTaskSpec[]
 }
 
-export interface ContainerModuleConfig extends ModuleConfig<ContainerModuleSpec> { }
+export interface ContainerModuleConfig extends ModuleConfig<ContainerModuleSpec> {}
 
 export const defaultNamespace = "_"
 export const defaultTag = "latest"
 
-export const containerModuleSpecSchema = joi.object()
+export const containerModuleSpecSchema = joi
+  .object()
   .keys({
-    build: baseBuildSpecSchema
-      .keys({
-        targetImage: joi.string()
-          .description(deline`
+    build: baseBuildSpecSchema.keys({
+      targetImage: joi.string().description(deline`
             For multi-stage Dockerfiles, specify which image to build (see
             https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for
             details).
           `),
-        timeout: joi.number()
-          .integer()
-          .default(1200)
-          .description("Maximum time in seconds to wait for build to finish."),
-      }),
-    buildArgs: joi.object()
+      timeout: joi
+        .number()
+        .integer()
+        .default(1200)
+        .description("Maximum time in seconds to wait for build to finish."),
+    }),
+    buildArgs: joi
+      .object()
       .pattern(/.+/, joiPrimitive())
       .default(() => ({}), "{}")
       .description("Specify build arguments to use when building the container image."),
-    extraFlags: joi.array()
-      .items(joi.string())
-      .description(deline`
+    extraFlags: joi.array().items(joi.string()).description(deline`
         Specify extra flags to use when building the container image.
-        Note that arguments may not be portable across implementations.`,
-      ),
+        Note that arguments may not be portable across implementations.`),
     // TODO: validate the image name format
-    image: joi.string()
-      .description(deline`
+    image: joi.string().description(deline`
         Specify the image name for the container. Should be a valid Docker image identifier. If specified and
         the module does not contain a Dockerfile, this image will be used to deploy services for this module.
         If specified and the module does contain a Dockerfile, this identifier is used when pushing the built image.`),
     hotReload: hotReloadConfigSchema,
-    dockerfile: joi.string()
+    dockerfile: joi
+      .string()
       .posixPath({ subPathOnly: true })
       .description("POSIX-style name of Dockerfile, relative to module root."),
     services: joiArray(serviceSchema)
       .unique("name")
       .description("The list of services to deploy from this container module."),
-    tests: joiArray(containerTestSchema)
-      .description("A list of tests to run in the module."),
+    tests: joiArray(containerTestSchema).description("A list of tests to run in the module."),
     // We use the user-facing term "tasks" as the key here, instead of "tasks".
-    tasks: joiArray(containerTaskSchema)
-      .description(deline`
+    tasks: joiArray(containerTaskSchema).description(deline`
         A list of tasks that can be run from this container module. These can be used as dependencies for services
         (executed before the service is deployed) or for other tasks.
       `),
@@ -495,4 +530,4 @@ export interface ContainerModule<
   S extends ContainerServiceSpec = ContainerServiceSpec,
   T extends ContainerTestSpec = ContainerTestSpec,
   W extends ContainerTaskSpec = ContainerTaskSpec
-  > extends Module<M, S, T, W> { }
+> extends Module<M, S, T, W> {}

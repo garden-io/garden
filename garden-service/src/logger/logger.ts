@@ -103,7 +103,10 @@ export class Logger extends LogNode {
       }
 
       const writer = getWriterInstance(loggerType)
-      instance = new Logger({ writers: writer ? [writer] : undefined, level: config.level })
+      instance = new Logger({
+        writers: writer ? [writer] : undefined,
+        level: config.level,
+      })
       instance.debug(`Setting logger type to ${loggerType} (from GARDEN_LOGGER_TYPE)`)
     } else {
       instance = new Logger(config)
@@ -125,30 +128,29 @@ export class Logger extends LogNode {
 
   placeholder(level: LogLevel = LogLevel.info): LogEntry {
     // Ensure placeholder child entries align with parent context
-    return this.addNode({ level, indent: - 1, isPlaceholder: true })
+    return this.addNode({ level, indent: -1, isPlaceholder: true })
   }
 
   onGraphChange(entry: LogEntry) {
-    this.writers.forEach(writer => writer.onGraphChange(entry, this))
+    this.writers.forEach((writer) => writer.onGraphChange(entry, this))
   }
 
   getLogEntries(): LogEntry[] {
-    return getChildEntries(this).filter(entry => !entry.fromStdStream)
+    return getChildEntries(this).filter((entry) => !entry.fromStdStream)
   }
 
   filterBySection(section: string): LogEntry[] {
-    return getChildEntries(this).filter(entry => entry.getMessageState().section === section)
+    return getChildEntries(this).filter((entry) => entry.getMessageState().section === section)
   }
 
   findById(id: string): LogEntry | void {
-    return findLogNode(this, node => node.id === id)
+    return findLogNode(this, (node) => node.id === id)
   }
 
   stop(): void {
-    this.getLogEntries().forEach(e => e.stop())
-    this.writers.forEach(writer => writer.stop())
+    this.getLogEntries().forEach((e) => e.stop())
+    this.writers.forEach((writer) => writer.stop())
   }
-
 }
 
 export function getLogger() {

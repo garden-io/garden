@@ -18,30 +18,35 @@ import { GLOBAL_OPTIONS } from "../cli/cli"
 
 export interface CommandMap {
   [key: string]: {
-    command: Command,
-    requestSchema: Joi.ObjectSchema,
+    command: Command
+    requestSchema: Joi.ObjectSchema
     // TODO: implement resultSchema on Commands, so we can include it here as well (for docs mainly)
   }
 }
 
-const baseRequestSchema = joi.object()
-  .keys({
-    command: joi.string()
-      .required()
-      .description("The command name to run.")
-      .example("get.status"),
-    parameters: joi.object()
-      .keys({})
-      .unknown(true)
-      .default(() => ({}), "{}")
-      .description("The parameters for the command."),
-  })
+const baseRequestSchema = joi.object().keys({
+  command: joi
+    .string()
+    .required()
+    .description("The command name to run.")
+    .example("get.status"),
+  parameters: joi
+    .object()
+    .keys({})
+    .unknown(true)
+    .default(() => ({}), "{}")
+    .description("The parameters for the command."),
+})
 
 /**
  * Validate and map a request body to a Command, execute its action, and return its result.
  */
 export async function resolveRequest(
-  ctx: Koa.ParameterizedContext, garden: Garden, log: LogEntry, commands: CommandMap, request: any,
+  ctx: Koa.ParameterizedContext,
+  garden: Garden,
+  log: LogEntry,
+  commands: CommandMap,
+  request: any
 ) {
   // Perform basic validation and find command.
   try {
@@ -88,15 +93,15 @@ export async function prepareCommands(): Promise<CommandMap> {
   const commands: CommandMap = {}
 
   function addCommand(command: Command) {
-    const requestSchema = baseRequestSchema
-      .keys({
-        parameters: joi.object()
-          .keys({
-            ...paramsToJoi(command.arguments),
-            ...paramsToJoi({ ...GLOBAL_OPTIONS, ...command.options }),
-          })
-          .unknown(false),
-      })
+    const requestSchema = baseRequestSchema.keys({
+      parameters: joi
+        .object()
+        .keys({
+          ...paramsToJoi(command.arguments),
+          ...paramsToJoi({ ...GLOBAL_OPTIONS, ...command.options }),
+        })
+        .unknown(false),
+    })
 
     commands[command.getKey()] = {
       command,
@@ -118,9 +123,9 @@ function paramsToJoi(params?: Parameters) {
     return {}
   }
 
-  params = omitBy(params, p => p.cliOnly)
+  params = omitBy(params, (p) => p.cliOnly)
 
-  return mapValues(params, p => {
+  return mapValues(params, (p) => {
     let schema = p.schema.description(p.help)
     if (p.required) {
       schema = schema.required()
@@ -136,7 +141,9 @@ function paramsToJoi(params?: Parameters) {
  * Prepare the args or opts for a Command action, by mapping input values to the parameter specs.
  */
 function mapParams<P extends Parameters>(
-  ctx: Koa.ParameterizedContext, values: object, params?: P,
+  ctx: Koa.ParameterizedContext,
+  values: object,
+  params?: P
 ): ParameterValues<P> {
   if (!params) {
     return <ParameterValues<P>>{}

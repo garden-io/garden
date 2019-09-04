@@ -58,37 +58,39 @@ export class ResolveProviderTask extends BaseTask {
     const rawProviderConfigs = this.garden.getRawProviderConfigs()
     const plugins = keyBy(await this.garden.getPlugins(), "name")
 
-    return flatten(await Bluebird.map(depNames, async (depName) => {
-      // Match against a provider if its name matches directly, or it inherits from a base named `depName`
-      const matched = rawProviderConfigs.filter(c =>
-        c.name === depName || getPluginBaseNames(c.name, plugins).includes(depName),
-      )
-
-      if (matched.length === 0) {
-        throw new ConfigurationError(
-          `Provider '${this.config.name}' depends on provider '${depName}', which is not configured. ` +
-          `You need to add '${depName}' to your project configuration for the '${this.config.name}' to work.`,
-          { config: this.config, missingProviderName: depName },
+    return flatten(
+      await Bluebird.map(depNames, async (depName) => {
+        // Match against a provider if its name matches directly, or it inherits from a base named `depName`
+        const matched = rawProviderConfigs.filter(
+          (c) => c.name === depName || getPluginBaseNames(c.name, plugins).includes(depName)
         )
-      }
 
-      return matched.map(config => {
-        const plugin = plugins[depName]
+        if (matched.length === 0) {
+          throw new ConfigurationError(
+            `Provider '${this.config.name}' depends on provider '${depName}', which is not configured. ` +
+              `You need to add '${depName}' to your project configuration for the '${this.config.name}' to work.`,
+            { config: this.config, missingProviderName: depName }
+          )
+        }
 
-        return new ResolveProviderTask({
-          garden: this.garden,
-          plugin,
-          config,
-          log: this.log,
-          version: this.version,
-          forceInit: this.forceInit,
+        return matched.map((config) => {
+          const plugin = plugins[depName]
+
+          return new ResolveProviderTask({
+            garden: this.garden,
+            plugin,
+            config,
+            log: this.log,
+            version: this.version,
+            forceInit: this.forceInit,
+          })
         })
       })
-    }))
+    )
   }
 
   async process(dependencyResults: TaskResults) {
-    const resolvedProviders: Provider[] = Object.values(dependencyResults).map(result => result && result.output)
+    const resolvedProviders: Provider[] = Object.values(dependencyResults).map((result) => result && result.output)
 
     const context = new ProviderConfigContext(this.garden.environmentName, this.garden.projectName, resolvedProviders)
 
@@ -212,7 +214,7 @@ export class ResolveProviderTask extends BaseTask {
     if (!status.ready) {
       throw new PluginError(
         `Provider ${pluginName} reports status as not ready and could not prepare the configured environment.`,
-        { name: pluginName, status, provider: tmpProvider },
+        { name: pluginName, status, provider: tmpProvider }
       )
     }
 

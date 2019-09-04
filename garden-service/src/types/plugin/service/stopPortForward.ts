@@ -12,16 +12,16 @@ import { Module } from "../../module"
 import { ForwardablePort, forwardablePortKeys } from "../../service"
 import { joi } from "../../../config/common"
 
-export type StopPortForwardParams<M extends Module = Module, S extends Module = Module> =
-  PluginServiceActionParamsBase<M, S>
-  & ForwardablePort
+export type StopPortForwardParams<M extends Module = Module, S extends Module = Module> = PluginServiceActionParamsBase<
+  M,
+  S
+> &
+  ForwardablePort
 
 export const stopPortForward = {
   description: dedent`
     Close a port forward created by \`getPortForward\`.
   `,
-  paramsSchema: serviceActionParamsSchema
-    .keys(forwardablePortKeys),
-  resultSchema: joi.object()
-    .keys({}),
+  paramsSchema: serviceActionParamsSchema.keys(forwardablePortKeys),
+  resultSchema: joi.object().keys({}),
 }

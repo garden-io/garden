@@ -20,11 +20,11 @@ import {
 import { Omit } from "../../util/util"
 
 export interface BaseResource {
-  apiVersion: string,
-  kind: string,
+  apiVersion: string
+  kind: string
   metadata: Partial<V1ObjectMeta> & {
-    name: string,
-  },
+    name: string
+  }
 }
 
 // Because the Kubernetes API library types currently list all keys as optional, we use this type to wrap the
@@ -32,47 +32,43 @@ export interface BaseResource {
 export type KubernetesResource<T extends BaseResource | KubernetesObject = BaseResource> =
   // Make these always required
   {
-    apiVersion: string,
-    kind: string,
+    apiVersion: string
+    kind: string
     metadata: Partial<V1ObjectMeta> & {
-      name: string,
-    },
+      name: string
+    }
     // We add this here for convenience because it's so frequently checked on untyped resources
-    spec?: any,
-  } &
-  Omit<T, "apiVersion" | "kind" | "metadata"> &
-  // Make sure these are required if they're on the provided type
-  {
-    [P in Extract<keyof T, "spec">]: Exclude<T[P], undefined>
-  }
+    spec?: any
+  } & Omit<T, "apiVersion" | "kind" | "metadata"> &
+    // Make sure these are required if they're on the provided type
+    {
+      [P in Extract<keyof T, "spec">]: Exclude<T[P], undefined>
+    }
 
 // Server-side resources always have some fields set if they're in the schema, e.g. status
-export type KubernetesServerResource<T extends BaseResource | KubernetesObject = BaseResource> =
-  KubernetesResource<T> &
+export type KubernetesServerResource<T extends BaseResource | KubernetesObject = BaseResource> = KubernetesResource<T> &
   // Make sure these are required if they're on the provided type
   {
     [P in Extract<keyof T, "status">]: Exclude<T[P], undefined>
   }
 
-export type KubernetesList<T extends BaseResource | KubernetesObject = BaseResource> =
-  {
-    apiVersion: string,
-    kind: string,
-    metadata: Partial<V1ListMeta> & {
-      name: string,
-    },
-    items: Array<KubernetesResource<T>>,
+export type KubernetesList<T extends BaseResource | KubernetesObject = BaseResource> = {
+  apiVersion: string
+  kind: string
+  metadata: Partial<V1ListMeta> & {
+    name: string
   }
+  items: Array<KubernetesResource<T>>
+}
 
-export type KubernetesServerList<T extends BaseResource | KubernetesObject = BaseResource> =
-  {
-    apiVersion: string,
-    kind: string,
-    metadata: Partial<V1ListMeta> & {
-      name: string,
-    },
-    items: Array<KubernetesServerResource<T>>,
+export type KubernetesServerList<T extends BaseResource | KubernetesObject = BaseResource> = {
+  apiVersion: string
+  kind: string
+  metadata: Partial<V1ListMeta> & {
+    name: string
   }
+  items: Array<KubernetesServerResource<T>>
+}
 
 // Pre-wrapping some common types here
 export type KubernetesDaemonSet = KubernetesResource<V1DaemonSet>
@@ -82,7 +78,7 @@ export type KubernetesStatefulSet = KubernetesResource<V1StatefulSet>
 export type KubernetesPod = KubernetesResource<V1Pod>
 
 export type KubernetesWorkload =
-  KubernetesResource<V1DaemonSet> |
-  KubernetesResource<V1Deployment> |
-  KubernetesResource<V1ReplicaSet> |
-  KubernetesResource<V1StatefulSet>
+  | KubernetesResource<V1DaemonSet>
+  | KubernetesResource<V1Deployment>
+  | KubernetesResource<V1ReplicaSet>
+  | KubernetesResource<V1StatefulSet>

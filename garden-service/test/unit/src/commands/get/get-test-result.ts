@@ -1,9 +1,4 @@
-import {
-  expectError,
-  withDefaultGlobalOpts,
-  configureTestModule,
-  makeTestGardenA,
-} from "../../../../helpers"
+import { expectError, withDefaultGlobalOpts, configureTestModule, makeTestGardenA } from "../../../../helpers"
 import { GetTestResultCommand } from "../../../../../src/commands/get/get-test-result"
 import { expect } from "chai"
 import { GetTestResultParams } from "../../../../../src/types/plugin/module/getTestResult"
@@ -33,15 +28,17 @@ const testResults = {
 
 const testPlugin = createGardenPlugin({
   name: "test-plugin",
-  createModuleTypes: [{
-    name: "test",
-    docs: "test",
-    schema: joi.object(),
-    handlers: {
-      configure: configureTestModule,
-      getTestResult: async (params: GetTestResultParams) => testResults[params.testName],
+  createModuleTypes: [
+    {
+      name: "test",
+      docs: "test",
+      schema: joi.object(),
+      handlers: {
+        configure: configureTestModule,
+        getTestResult: async (params: GetTestResultParams) => testResults[params.testName],
+      },
     },
-  }],
+  ],
 })
 
 describe("GetTestResultCommand", () => {
@@ -68,7 +65,7 @@ describe("GetTestResultCommand", () => {
           args: { name, module },
           opts: withDefaultGlobalOpts({}),
         }),
-      "not-found",
+      "not-found"
     )
   })
 
@@ -113,5 +110,4 @@ describe("GetTestResultCommand", () => {
 
     expect(res.result).to.be.null
   })
-
 })

@@ -65,7 +65,6 @@ export class GardenServer {
   }
 
   async start() {
-
     if (this.server) {
       return
     }
@@ -86,7 +85,6 @@ export class GardenServer {
       emoji: "sunflower",
       msg: chalk.cyan("Garden dashboard and API server running on ") + url,
     })
-
   }
 
   async close() {
@@ -165,7 +163,7 @@ export class GardenServer {
 
       // Helper to make JSON messages, make them type-safe, and to log errors.
       const send = <T extends ServerWebsocketMessageType>(type: T, payload: ServerWebsocketMessages[T]) => {
-        ctx.websocket.send(JSON.stringify({ type, ...<object>payload }), (err) => {
+        ctx.websocket.send(JSON.stringify({ type, ...(<object>payload) }), (err) => {
           if (err) {
             const error = toGardenError(err)
             this.log.error({ error })
@@ -196,15 +194,25 @@ export class GardenServer {
         const requestId = request.id
 
         try {
-          joi.attempt(requestId, joi.string().uuid().required())
+          joi.attempt(
+            requestId,
+            joi
+              .string()
+              .uuid()
+              .required()
+          )
         } catch {
-          return send("error", { message: "Message should contain an `id` field with a UUID value" })
+          return send("error", {
+            message: "Message should contain an `id` field with a UUID value",
+          })
         }
 
         try {
           joi.attempt(request.type, joi.string().required())
         } catch {
-          return send("error", { message: "Message should contain a type field" })
+          return send("error", {
+            message: "Message should contain a type field",
+          })
         }
 
         if (request.type === "command") {
@@ -214,14 +222,21 @@ export class GardenServer {
           }
 
           resolveRequest(ctx, this.garden, this.log, commands, omit(request, ["id", "type"]))
-            .then(result => {
-              send("commandResult", { requestId, result: result.result, errors: result.errors })
+            .then((result) => {
+              send("commandResult", {
+                requestId,
+                result: result.result,
+                errors: result.errors,
+              })
             })
-            .catch(err => {
+            .catch((err) => {
               send("error", { requestId, message: err.message })
             })
         } else {
-          return send("error", { requestId, message: `Unsupported request type: ${request.type}` })
+          return send("error", {
+            requestId,
+            message: `Unsupported request type: ${request.type}`,
+          })
         }
       })
     })
@@ -233,22 +248,22 @@ export class GardenServer {
 
 interface ServerWebsocketMessages {
   commandResult: {
-    requestId: string,
-    result: CommandResult<any>,
-    errors?: GardenError[],
+    requestId: string
+    result: CommandResult<any>
+    errors?: GardenError[]
   }
   error: {
-    requestId?: string,
-    message: string,
+    requestId?: string
+    message: string
   }
   event: {
-    name: EventName,
-    payload: ValueOf<Events>,
+    name: EventName
+    payload: ValueOf<Events>
   }
 }
 
 type ServerWebsocketMessageType = keyof ServerWebsocketMessages
 
 export type ServerWebsocketMessage = ServerWebsocketMessages[ServerWebsocketMessageType] & {
-  type: ServerWebsocketMessageType,
+  type: ServerWebsocketMessageType
 }

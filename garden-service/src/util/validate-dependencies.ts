@@ -17,10 +17,7 @@ import { TaskConfig } from "../config/task"
 import { ModuleConfig } from "../config/module"
 import { deline } from "./string"
 
-export function validateDependencies(
-  moduleConfigs: ModuleConfig[], serviceNames: string[], taskNames: string[],
-): void {
-
+export function validateDependencies(moduleConfigs: ModuleConfig[], serviceNames: string[], taskNames: string[]): void {
   const missingDepsError = detectMissingDependencies(moduleConfigs, serviceNames, taskNames)
   const circularDepsError = detectCircularModuleDependencies(moduleConfigs)
 
@@ -40,7 +37,6 @@ export function validateDependencies(
   if (missingDepsError || circularDepsError) {
     throw new ConfigurationError(errMsg, detail)
   }
-
 }
 
 /**
@@ -48,45 +44,38 @@ export function validateDependencies(
  * if any were found.
  */
 export function detectMissingDependencies(
-  moduleConfigs: ModuleConfig[], serviceNames: string[], taskNames: string[],
+  moduleConfigs: ModuleConfig[],
+  serviceNames: string[],
+  taskNames: string[]
 ): ConfigurationError | null {
-
-  const moduleNames: Set<string> = new Set(moduleConfigs.map(m => m.name))
+  const moduleNames: Set<string> = new Set(moduleConfigs.map((m) => m.name))
   const runtimeNames: Set<string> = new Set([...serviceNames, ...taskNames])
   const missingDepDescriptions: string[] = []
 
-  const runtimeDepTypes = [
-    ["serviceConfigs", "Service"],
-    ["taskConfigs", "Task"],
-    ["testConfigs", "Test"],
-  ]
+  const runtimeDepTypes = [["serviceConfigs", "Service"], ["taskConfigs", "Task"], ["testConfigs", "Test"]]
 
   for (const m of moduleConfigs) {
+    const buildDepKeys = m.build.dependencies.map((d) => getModuleKey(d.name, d.plugin))
 
-    const buildDepKeys = m.build.dependencies.map(d => getModuleKey(d.name, d.plugin))
-
-    for (const missingModule of buildDepKeys.filter(k => !moduleNames.has(k))) {
+    for (const missingModule of buildDepKeys.filter((k) => !moduleNames.has(k))) {
       missingDepDescriptions.push(
-        `Module '${m.name}': Unknown module '${missingModule}' referenced in build dependencies.`,
+        `Module '${m.name}': Unknown module '${missingModule}' referenced in build dependencies.`
       )
     }
 
     for (const [configKey, entityName] of runtimeDepTypes) {
       for (const config of m[configKey]) {
-        for (const missingRuntimeDep of config.dependencies.filter(d => !runtimeNames.has(d))) {
+        for (const missingRuntimeDep of config.dependencies.filter((d) => !runtimeNames.has(d))) {
           missingDepDescriptions.push(deline`
             ${entityName} '${config.name}' (in module '${m.name}'): Unknown service or task '${missingRuntimeDep}'
-            referenced in dependencies.`,
-          )
+            referenced in dependencies.`)
         }
       }
     }
-
   }
 
   if (missingDepDescriptions.length > 0) {
-    const errMsg = "Unknown dependencies detected.\n\n" +
-      indentString(missingDepDescriptions.join("\n\n"), 2) + "\n"
+    const errMsg = "Unknown dependencies detected.\n\n" + indentString(missingDepDescriptions.join("\n\n"), 2) + "\n"
 
     return new ConfigurationError(errMsg, {
       unknownDependencies: missingDepDescriptions,
@@ -96,7 +85,6 @@ export function detectMissingDependencies(
   } else {
     return null
   }
-
 }
 
 export type Cycle = string[]
@@ -157,17 +145,23 @@ export function detectCircularModuleDependencies(moduleConfigs: ModuleConfig[]):
 
     if (buildCycles.length > 0) {
       const buildCyclesDescription = cyclesToString(buildCycles)
-      errMsg = errMsg.concat("\n\n" + dedent`
+      errMsg = errMsg.concat(
+        "\n\n" +
+          dedent`
         Circular build dependencies: ${buildCyclesDescription}
-      `)
+      `
+      )
       detail["circular-build-dependencies"] = buildCyclesDescription
     }
 
     if (runtimeCycles.length > 0) {
       const runtimeCyclesDescription = cyclesToString(runtimeCycles)
-      errMsg = errMsg.concat("\n\n" + dedent`
+      errMsg = errMsg.concat(
+        "\n\n" +
+          dedent`
         Circular service/task dependencies: ${runtimeCyclesDescription}
-      `)
+      `
+      )
       detail["circular-service-or-task-dependencies"] = runtimeCyclesDescription
     }
 
@@ -186,9 +180,9 @@ export interface Dependency {
 interface _DependencyGraph {
   [key: string]: {
     [target: string]: {
-      distance: number,
-      next: string,
-    },
+      distance: number
+      next: string
+    }
   }
 }
 
@@ -201,7 +195,7 @@ interface _DependencyGraph {
  */
 export function detectCycles(dependencies: Dependency[]): Cycle[] {
   // Collect all the vertices and build a graph object
-  const vertices = uniq(flatten(dependencies.map(d => [d.from, d.to])))
+  const vertices = uniq(flatten(dependencies.map((d) => [d.from, d.to])))
 
   const graph: _DependencyGraph = {}
 
@@ -223,8 +217,8 @@ export function detectCycles(dependencies: Dependency[]): Cycle[] {
   }
 
   // Reconstruct cycles, if any
-  const cycleVertices = vertices.filter(v => next(graph, v, v))
-  const cycles: Cycle[] = cycleVertices.map(v => {
+  const cycleVertices = vertices.filter((v) => next(graph, v, v))
+  const cycles: Cycle[] = cycleVertices.map((v) => {
     const cycle = [v]
     let nextInCycle = next(graph, v, v)!
     while (nextInCycle !== v) {
@@ -236,7 +230,8 @@ export function detectCycles(dependencies: Dependency[]): Cycle[] {
 
   return uniqWith(
     cycles, // The concat calls below are to prevent in-place sorting.
-    (c1, c2) => isEqual(c1.concat().sort(), c2.concat().sort()))
+    (c1, c2) => isEqual(c1.concat().sort(), c2.concat().sort())
+  )
 }
 
 function distance(graph: _DependencyGraph, source: string, destination: string): number {
@@ -248,6 +243,6 @@ function next(graph: _DependencyGraph, source: string, destination: string): str
 }
 
 export function cyclesToString(cycles: Cycle[]) {
-  const cycleDescriptions = cycles.map(c => join(c.concat([c[0]]), " <- "))
+  const cycleDescriptions = cycles.map((c) => join(c.concat([c[0]]), " <- "))
   return cycleDescriptions.length === 1 ? cycleDescriptions[0] : cycleDescriptions
 }

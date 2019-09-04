@@ -1,10 +1,10 @@
 import { expect } from "chai"
 import { getLogger } from "../../../../src/logger/logger"
 
-const logger = getLogger()
+const logger: any = getLogger()
 
 beforeEach(() => {
-  (<any>logger).children = []
+  logger.children = []
 })
 
 describe("LogNode", () => {

@@ -8,19 +8,10 @@
 
 import dedent = require("dedent")
 
-import {
-  Command,
-  CommandResult,
-  StringsParameter,
-  BooleanParameter,
-  CommandParams,
-} from "../base"
+import { Command, CommandResult, StringsParameter, BooleanParameter, CommandParams } from "../base"
 import { removeLinkedSources } from "../../util/ext-source-util"
 import { printHeader } from "../../logger/util"
-import {
-  localConfigKeys,
-  LinkedSource,
-} from "../../config-store"
+import { localConfigKeys, LinkedSource } from "../../config-store"
 
 const unlinkModuleArguments = {
   modules: new StringsParameter({
@@ -54,9 +45,13 @@ export class UnlinkModuleCommand extends Command<Args, Opts> {
         garden unlink module --all      # unlink all modules
   `
 
-  async action(
-    { garden, log, headerLog, args, opts }: CommandParams<Args, Opts>,
-  ): Promise<CommandResult<LinkedSource[]>> {
+  async action({
+    garden,
+    log,
+    headerLog,
+    args,
+    opts,
+  }: CommandParams<Args, Opts>): Promise<CommandResult<LinkedSource[]>> {
     printHeader(headerLog, "Unlink module", "chains")
 
     const sourceType = "module"
@@ -69,7 +64,11 @@ export class UnlinkModuleCommand extends Command<Args, Opts> {
       return { result: [] }
     }
 
-    const linkedModuleSources = await removeLinkedSources({ garden, sourceType, names: modules })
+    const linkedModuleSources = await removeLinkedSources({
+      garden,
+      sourceType,
+      names: modules,
+    })
 
     log.info(`Unlinked module(s) ${modules.join(" ")}`)
 

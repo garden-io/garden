@@ -30,10 +30,14 @@ interface ContainerStatusDetail {
 
 export type ContainerServiceStatus = ServiceStatus<ContainerStatusDetail>
 
-export async function getContainerServiceStatus(
-  { ctx, module, service, runtimeContext, log, hotReload }: GetServiceStatusParams<ContainerModule>,
-): Promise<ContainerServiceStatus> {
-
+export async function getContainerServiceStatus({
+  ctx,
+  module,
+  service,
+  runtimeContext,
+  log,
+  hotReload,
+}: GetServiceStatusParams<ContainerModule>): Promise<ContainerServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
   // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
   const version = module.version
@@ -47,8 +51,8 @@ export async function getContainerServiceStatus(
   const ingresses = await getIngresses(service, api, provider)
 
   const forwardablePorts: ForwardablePort[] = service.spec.ports
-    .filter(p => p.protocol === "TCP")
-    .map(p => {
+    .filter((p) => p.protocol === "TCP")
+    .map((p) => {
       return {
         name: p.name,
         protocol: "TCP",
@@ -76,13 +80,18 @@ export async function waitForContainerService(
   log: LogEntry,
   runtimeContext: RuntimeContext,
   service: Service,
-  hotReload: boolean,
+  hotReload: boolean
 ) {
   const startTime = new Date().getTime()
 
   while (true) {
     const status = await getContainerServiceStatus({
-      ctx, log, service, runtimeContext, module: service.module, hotReload,
+      ctx,
+      log,
+      service,
+      runtimeContext,
+      module: service.module,
+      hotReload,
     })
 
     if (status.state === "ready" || status.state === "outdated") {
@@ -92,10 +101,10 @@ export async function waitForContainerService(
     log.silly(`Waiting for service ${service.name}`)
 
     if (new Date().getTime() - startTime > KUBECTL_DEFAULT_TIMEOUT * 1000) {
-      throw new DeploymentError(
-        `Timed out waiting for service ${service.name} to deploy`,
-        { serviceName: service.name, status },
-      )
+      throw new DeploymentError(`Timed out waiting for service ${service.name} to deploy`, {
+        serviceName: service.name,
+        status,
+      })
     }
 
     await sleep(1000)

@@ -6,10 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  readFileSync,
-  writeFileSync,
-} from "fs"
+import { readFileSync, writeFileSync } from "fs"
 import handlebars from "handlebars"
 import { resolve } from "path"
 import { GLOBAL_OPTIONS } from "../cli/cli"
@@ -22,21 +19,20 @@ export function writeCommandReferenceDocs(docsRoot: string) {
   const referenceDir = resolve(docsRoot, "reference")
   const outputPath = resolve(referenceDir, "commands.md")
 
-  const commands = flatten(coreCommands.map(cmd => {
-    if (cmd.subCommands && cmd.subCommands.length) {
-      return cmd.subCommands.map(subCommandCls => new subCommandCls(cmd).describe())
-    } else {
-      return [cmd.describe()]
-    }
-  }))
+  const commands = flatten(
+    coreCommands.map((cmd) => {
+      if (cmd.subCommands && cmd.subCommands.length) {
+        return cmd.subCommands.map((subCommandCls) => new subCommandCls(cmd).describe())
+      } else {
+        return [cmd.describe()]
+      }
+    })
+  )
 
   const globalOptions = describeParameters(GLOBAL_OPTIONS)
 
   const templatePath = resolve(TEMPLATES_DIR, "commands.hbs")
-  handlebars.registerPartial(
-    "argType",
-    "{{#if choices}}{{#each choices}}`{{.}}` {{/each}}{{else}}{{type}}{{/if}}",
-  )
+  handlebars.registerPartial("argType", "{{#if choices}}{{#each choices}}`{{.}}` {{/each}}{{else}}{{type}}{{/if}}")
   const template = handlebars.compile(readFileSync(templatePath).toString())
   const markdown = template({ commands, globalOptions })
 

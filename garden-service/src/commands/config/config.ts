@@ -13,9 +13,9 @@ export class ConfigCommand extends Command {
   name = "config"
   help = "Configure user and project settings."
 
-  subCommands = [
-    ConfigAnalyticsEnabled,
-  ]
+  subCommands = [ConfigAnalyticsEnabled]
 
-  async action() { return {} }
+  async action() {
+    return {}
+  }
 }
