@@ -159,7 +159,7 @@ describe("ConfigContext", () => {
 
     it("should detect a self-reference when resolving a template string", async () => {
       const c = new TestContext({ key: "\${key}" })
-      await expectError(() => resolveKey(c, ["key"]), "configuration")
+      await expectError(() => resolveKey(c, ["key"]), "template-string")
     })
 
     it("should detect a nested self-reference when resolving a template string", async () => {
@@ -168,7 +168,7 @@ describe("ConfigContext", () => {
       })
       const nested = new TestContext({ key: "\${nested.key}" }, c)
       c.addValues({ nested })
-      await expectError(() => resolveKey(c, ["nested", "key"]), "configuration")
+      await expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
     })
 
     it("should detect a circular reference when resolving a template string", async () => {
@@ -177,7 +177,7 @@ describe("ConfigContext", () => {
       })
       const nested: any = new TestContext({ key: "\${nested.foo}", foo: "\${nested.key}" }, c)
       c.addValues({ nested })
-      await expectError(() => resolveKey(c, ["nested", "key"]), "configuration")
+      await expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
     })
   })
 
