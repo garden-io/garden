@@ -948,7 +948,15 @@ providers:
 
 The following keys are available via the `${providers.<provider-name>}` template string key for `kubernetes` providers.
 
-### `providers.<provider-name>.app-namespace`
+### `${providers.<provider-name>.outputs}`
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | Yes      |
+
+### `${providers.<provider-name>.outputs.app-namespace}`
+
+[outputs](#outputs) > app-namespace
 
 The primary namespace used for resource deployments.
 
@@ -956,7 +964,9 @@ The primary namespace used for resource deployments.
 | -------- | -------- |
 | `string` | Yes      |
 
-### `providers.<provider-name>.default-hostname`
+### `${providers.<provider-name>.outputs.default-hostname}`
+
+[outputs](#outputs) > default-hostname
 
 The default hostname configured on the provider.
 
@@ -964,7 +974,9 @@ The default hostname configured on the provider.
 | -------- | -------- |
 | `string` | No       |
 
-### `providers.<provider-name>.metadata-namespace`
+### `${providers.<provider-name>.outputs.metadata-namespace}`
+
+[outputs](#outputs) > metadata-namespace
 
 The namespace used for Garden metadata.
 

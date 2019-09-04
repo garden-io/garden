@@ -86,7 +86,7 @@ export async function describeTerraformModuleType({ }: DescribeModuleTypeParams)
       provider.
     `,
     serviceOutputsSchema: joi.object()
-      .unknown(true)
+      .pattern(/.+/, joi.any())
       .description("A map of all the outputs defined in the Terraform stack."),
     schema,
   }
