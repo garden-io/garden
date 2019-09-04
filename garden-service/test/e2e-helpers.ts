@@ -1,7 +1,7 @@
 import * as execa from "execa"
 import * as mlog from "mocha-logger"
 import { remove } from "fs-extra"
-import { get, intersection } from "lodash"
+import { get, intersection, padEnd } from "lodash"
 import parseArgs = require("minimist")
 import { resolve } from "path"
 import { DEFAULT_GARDEN_DIR_NAME } from "../src/constants"
@@ -80,6 +80,10 @@ export function parseLogEntries(entries: string[]): JsonLogEntry[] {
       return {}
     }
   })
+}
+
+export function stringifyLogEntries(entries: JsonLogEntry[]) {
+  return entries.map(e => `${e.section ? padEnd(e.section, 16) + " -> " : ""}${e.msg}`).join("\n")
 }
 
 /**

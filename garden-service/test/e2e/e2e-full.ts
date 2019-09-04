@@ -53,7 +53,7 @@ async function run() {
 
   const mochaOpts = ["--opts", "test/mocha.e2e.opts"]
 
-  for (const opt of ["binPath", "project", "env"]) {
+  for (const opt of ["binPath", "project", "env", "showlog"]) {
     if (parsedArgs[opt]) {
       mochaOpts.push(`--${opt}`, parsedArgs[opt])
     }
