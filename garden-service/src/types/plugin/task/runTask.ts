@@ -22,14 +22,7 @@ export interface RunTaskParams<T extends Module = Module> extends PluginTaskActi
 }
 
 export interface RunTaskResult extends RunResult {
-  moduleName: string
   taskName: string
-  command: string[]
-  version: string
-  success: boolean
-  startedAt: Date
-  completedAt: Date
-  log: string
   outputs: PrimitiveMap
 }
 

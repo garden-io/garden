@@ -60,9 +60,7 @@ export class SetSecretCommand extends Command<typeof setSecretArgs> {
 
     >**Note**: The \`get|set secret\` commands are currently quite limited.
     For Kubernetes secrets, we recommend using kubectl for
-    most non-trivial use-cases. Please refer our
-    [kubernetes-secrets example](https://github.com/garden-io/garden/tree/master/examples/kubernetes-secrets)
-    for more details.
+    most non-trivial use-cases.
 
     Examples:
 

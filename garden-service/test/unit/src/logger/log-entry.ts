@@ -70,6 +70,7 @@ describe("LogEntry", () => {
       section: undefined,
       symbol: undefined,
       status: undefined,
+      data: undefined,
       append: undefined,
     }
     it("should update entry state", () => {
@@ -88,6 +89,7 @@ describe("LogEntry", () => {
         section: "caesar",
         symbol: "info",
         status: "done",
+        data: { some: "data" },
         metadata: { task: taskMetadata },
       })
 
@@ -97,6 +99,7 @@ describe("LogEntry", () => {
         section: "caesar",
         symbol: "info",
         status: "done",
+        data: { some: "data" },
         append: undefined,
         timestamp,
       }])
@@ -111,10 +114,12 @@ describe("LogEntry", () => {
         section: "caesar",
         symbol: "info",
         status: "done",
+        data: { some: "data" },
       })
       entry.setState({
         msg: "world",
         emoji: "hamburger",
+        data: { some: "data_updated" },
       })
       expect(entry.getMessageStates()).to.eql([
         {
@@ -123,6 +128,7 @@ describe("LogEntry", () => {
           section: "caesar",
           symbol: "info",
           status: "done",
+          data: { some: "data" },
           append: undefined,
           timestamp,
         },
@@ -132,6 +138,7 @@ describe("LogEntry", () => {
           section: "caesar",
           symbol: "info",
           status: "done",
+          data: { some: "data_updated" },
           append: undefined,
           timestamp,
         },
