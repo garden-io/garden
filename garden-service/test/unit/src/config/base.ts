@@ -43,9 +43,6 @@ describe("loadConfig", () => {
         path: projectPathA,
         configPath,
         name: "test-project-a",
-        environmentDefaults: {
-          variables: { some: "variable" },
-        },
         environments: [
           {
             name: "local",
@@ -58,6 +55,7 @@ describe("loadConfig", () => {
             name: "other",
           },
         ],
+        variables: { some: "variable" },
       },
     ])
   })
@@ -119,11 +117,6 @@ describe("loadConfig", () => {
         kind: "Project",
         configPath,
         path: projectPathMultipleModules,
-        environmentDefaults: {
-          variables: {
-            some: "variable",
-          },
-        },
         environments: [
           {
             name: "local",
@@ -243,9 +236,6 @@ describe("loadConfig", () => {
         kind: "Project",
         path: projectPathFlat,
         configPath,
-        environmentDefaults: {
-          variables: { some: "variable" },
-        },
         environments: [
           {
             name: "local",
@@ -259,6 +249,7 @@ describe("loadConfig", () => {
           },
         ],
         name: "test-project-flat-config",
+        variables: { some: "variable" },
       },
       {
         apiVersion: "garden.io/v0",
@@ -300,9 +291,6 @@ describe("loadConfig", () => {
         path: projectPath,
         configPath: resolve(projectPath, "garden.yml"),
         name: "test-project-a",
-        environmentDefaults: {
-          variables: { some: "variable" },
-        },
         environments: [
           { name: "local" },
           { name: "other" },

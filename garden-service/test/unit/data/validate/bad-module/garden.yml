@@ -1,2 +1,2 @@
-project:
-  name: build-test-project
+kind: Project
+name: build-test-project

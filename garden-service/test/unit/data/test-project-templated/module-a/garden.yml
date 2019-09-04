@@ -1,11 +1,11 @@
-module:
-  name: module-a
-  type: test
-  services:
-    - name: service-a
-      command: [echo, "${local.env.TEST_VARIABLE}"]
-  build:
-    command: [echo, "${var.service-a-build-command}"]
-  tests:
-    - name: unit
-      command: [echo, OK]
+kind: Module
+name: module-a
+type: test
+services:
+  - name: service-a
+    command: [echo, "${local.env.TEST_VARIABLE}"]
+build:
+  command: [echo, "${var.service-a-build-command}"]
+tests:
+  - name: unit
+    command: [echo, OK]

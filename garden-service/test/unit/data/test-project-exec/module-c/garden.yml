@@ -1,9 +1,9 @@
-module:
-  name: module-c
-  type: exec
-  build:
-    dependencies:
-      - module-b
-  tests:
-    - name: unit
-      command: [echo, OK]
+kind: Module
+name: module-c
+type: exec
+build:
+  dependencies:
+    - module-b
+tests:
+  - name: unit
+    command: [echo, OK]

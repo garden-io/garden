@@ -1,6 +1,6 @@
-module:
-  name: module-b
-  type: test
-  services:
-    - name: service-b
-      sourceModuleName: module-a
+kind: Module
+name: module-b
+type: test
+services:
+  - name: service-b
+    sourceModuleName: module-a

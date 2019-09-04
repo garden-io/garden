@@ -1,26 +1,26 @@
-module:
-  name: node-service
-  description: Node service container
-  type: container
-  services:
-    - name: node-service
-      ports:
-        - name: http
-          containerPort: 8080
-      annotations:
-        getambassador.io/config: |
-          ---
-          apiVersion: ambassador/v1
-          kind:  Mapping
-          name:  node-service_mapping
-          prefix: /node-service/
-          service: node-service:8080
-      dependencies:
-        - go-service
-  tests:
-    - name: unit
-      args: [npm, test]
-    - name: integ
-      args: [npm, run, integ]
-      dependencies:
-        - go-service
+kind: Module
+name: node-service
+description: Node service container
+type: container
+services:
+  - name: node-service
+    ports:
+      - name: http
+        containerPort: 8080
+    annotations:
+      getambassador.io/config: |
+        ---
+        apiVersion: ambassador/v1
+        kind:  Mapping
+        name:  node-service_mapping
+        prefix: /node-service/
+        service: node-service:8080
+    dependencies:
+      - go-service
+tests:
+  - name: unit
+    args: [npm, test]
+  - name: integ
+    args: [npm, run, integ]
+    dependencies:
+      - go-service

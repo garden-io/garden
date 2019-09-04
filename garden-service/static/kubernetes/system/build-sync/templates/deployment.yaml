@@ -29,7 +29,7 @@ spec:
             claimName: garden-build-sync
       containers:
         - name: sync
-          image: "eugenmayer/rsync:latest"
+          image: "gardendev/rsync:0.1"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: rsync

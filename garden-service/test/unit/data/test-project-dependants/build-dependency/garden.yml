@@ -1,12 +1,12 @@
-module:
-  description: Build dependency
-  name: build-dependency
-  type: test
-  services:
-    - name: build-dependency
-      ports:
-        - name: http
-          containerPort: 8080
-      ingresses:
-        - path: /dependency
-          port: http
+kind: Module
+description: Build dependency
+name: build-dependency
+type: test
+services:
+  - name: build-dependency
+    ports:
+      - name: http
+        containerPort: 8080
+    ingresses:
+      - path: /dependency
+        port: http

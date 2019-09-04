@@ -1,5 +1,5 @@
-module:
-  name: module-c
-  type: test
-  build:
-    command: [echo, C]
+kind: Module
+name: module-c
+type: test
+build:
+  command: [echo, C]

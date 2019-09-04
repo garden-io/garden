@@ -1,18 +1,18 @@
-module:
-  name: module-b
-  type: container
-  image: scratch
-  services:
-    - name: service-b
-      dependencies:
-        - service-a
-      ingresses:
-        - path: /path-b
-          port: http
-      ports:
-        - name: http
-          containerPort: 8080
-  build:
-    command: [echo, B]
+kind: Module
+name: module-b
+type: container
+image: scratch
+services:
+  - name: service-b
     dependencies:
-      - module-a
+      - service-a
+    ingresses:
+      - path: /path-b
+        port: http
+    ports:
+      - name: http
+        containerPort: 8080
+build:
+  command: [echo, B]
+  dependencies:
+    - module-a

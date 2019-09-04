@@ -27,14 +27,13 @@ We'll start by looking at the top-level [project configuration file](https://git
 # examples/openfaas/garden.yml
 kind: Project
 name: openfaas
-environmentDefaults:
-  variables:
-    my-variable: hello-variable
 environments:
   - name: local
     providers:
       - name: local-kubernetes
       - name: openfaas
+variables:
+  my-variable: hello-variable
 ```
 
 The project-wide `garden.yml` defines the project's name, the default configuration used for each

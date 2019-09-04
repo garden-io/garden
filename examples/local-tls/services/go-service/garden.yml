@@ -1,12 +1,12 @@
-module:
-  name: go-service
-  description: Go service container
-  type: container
-  services:
-    - name: go-service
-      ports:
-        - name: http
-          containerPort: 80
-      ingresses:
-        - path: /
-          port: http
+kind: Module
+name: go-service
+description: Go service container
+type: container
+services:
+  - name: go-service
+    ports:
+      - name: http
+        containerPort: 80
+    ingresses:
+      - path: /
+        port: http

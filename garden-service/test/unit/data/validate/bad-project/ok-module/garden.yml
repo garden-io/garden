@@ -1,5 +1,5 @@
-module:
-  name: module-a
-  type: exec
-  build:
-    command: [echo, A]
+kind: Module
+name: module-a
+type: exec
+build:
+  command: [echo, A]

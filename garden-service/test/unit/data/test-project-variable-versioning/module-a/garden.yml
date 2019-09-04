@@ -1,8 +1,8 @@
-module:
-  name: module-a
-  type: test
-  build:
-    command: [echo, "${var.echo-string}"]
-  tests:
-    - name: unit
-      command: [echo, OK]
+kind: Module
+name: module-a
+type: test
+build:
+  command: [echo, "${var.echo-string}"]
+tests:
+  - name: unit
+    command: [echo, OK]

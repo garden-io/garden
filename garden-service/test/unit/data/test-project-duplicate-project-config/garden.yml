@@ -1,22 +1,18 @@
-project:
-  name: test-project
-  environmentDefaults:
-    variables:
-      some: variable
-  environments:
-    - name: local
-      providers:
-        - name: test-plugin
-        - name: test-plugin-b
-    - name: other
+kind: Project
+name: test-project
+environments:
+  - name: local
+    providers:
+      - name: test-plugin
+      - name: test-plugin-b
+  - name: other
+variables:
+  some: variable
 
 ---
 
 project:
   name: test-project-duplicate
-  environmentDefaults:
-    variables:
-      some: variable
   environments:
     - name: local
       providers:

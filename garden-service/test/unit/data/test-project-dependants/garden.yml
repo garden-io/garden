@@ -1,8 +1,6 @@
-project:
-  name: test-project-dependants
-  environmentDefaults:
-    providers: []
-  environments:
-    - name: local
-      providers:
-        - name: test-plugin
+kind: Project
+name: test-project-dependants
+environments:
+  - name: local
+    providers:
+      - name: test-plugin

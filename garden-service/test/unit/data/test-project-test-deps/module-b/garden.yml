@@ -1,6 +1,6 @@
-module:
-  name: module-b
-  type: test
-  services:
-    - name: service-b
-      command: [echo, OK]
+kind: Module
+name: module-b
+type: test
+services:
+  - name: service-b
+    command: [echo, OK]

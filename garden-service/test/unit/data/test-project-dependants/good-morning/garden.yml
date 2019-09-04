@@ -1,20 +1,20 @@
-module:
-  description: Good morning greeting service
-  name: good-morning
-  type: test
-  services:
-    - name: good-morning
-      ports:
-        - name: http
-          containerPort: 8080
-      ingresses:
-        - path: /morning
-          port: http
-      dependencies:
-        - good-morning-task
-  build:
+kind: Module
+description: Good morning greeting service
+name: good-morning
+type: test
+services:
+  - name: good-morning
+    ports:
+      - name: http
+        containerPort: 8080
+    ingresses:
+      - path: /morning
+        port: http
     dependencies:
-      - build-dependency
-  tasks:
-    - name: good-morning-task
-      command: [echo, good-morning-task]
+      - good-morning-task
+build:
+  dependencies:
+    - build-dependency
+tasks:
+  - name: good-morning-task
+    command: [echo, good-morning-task]

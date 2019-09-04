@@ -1,17 +1,17 @@
-module:
-  name: module-b
-  type: test
-  services:
-    - name: service-b
-      ingresses:
-        - path: /path-b
-          port: http
-      ports:
-        - name: http
-          containerPort: 8080
-      dependencies:
-        - service-a
-  build:
-    command: [echo, B]
+kind: Module
+name: module-b
+type: test
+services:
+  - name: service-b
+    ingresses:
+      - path: /path-b
+        port: http
+    ports:
+      - name: http
+        containerPort: 8080
     dependencies:
-      - module-a
+      - service-a
+build:
+  command: [echo, B]
+  dependencies:
+    - module-a

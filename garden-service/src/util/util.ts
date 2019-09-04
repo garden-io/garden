@@ -21,6 +21,7 @@ import chalk from "chalk"
 import { safeDump } from "js-yaml"
 import { createHash } from "crypto"
 import { tailString } from "./string"
+import { Writable } from "stream"
 
 // shim to allow async generator functions
 if (typeof (Symbol as any).asyncIterator === "undefined") {
@@ -76,6 +77,7 @@ export interface SpawnOpts {
   data?: Buffer
   ignoreError?: boolean
   env?: { [key: string]: string | undefined }
+  outputStream?: Writable
   tty?: boolean
   wait?: boolean
 }
@@ -90,7 +92,7 @@ export interface SpawnOutput {
 
 // TODO Dump output to a log file if it exceeds the MAX_BUFFER_SIZE
 export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
-  const { timeout = 0, cwd, data, ignoreError = false, env, tty, wait = true } = opts
+  const { timeout = 0, cwd, data, ignoreError = false, env, outputStream, tty, wait = true } = opts
 
   const stdio = tty ? "inherit" : "pipe"
   const proc = _spawn(cmd, args, { cwd, env, stdio })
@@ -125,6 +127,11 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
     proc.stderr!.on("data", (s) => {
       result.stderr! = tailString(result.stderr! + s, MAX_BUFFER_SIZE, true)
     })
+
+    if (outputStream) {
+      proc.stdout!.pipe(outputStream)
+      proc.stderr!.pipe(outputStream)
+    }
 
     if (data) {
       // This may happen if the spawned process errors while we're still writing data.

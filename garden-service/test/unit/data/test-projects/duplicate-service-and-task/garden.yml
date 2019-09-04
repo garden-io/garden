@@ -1,6 +1,6 @@
-project:
-  name: duplicate-module
-  environments:
-    - name: local
-      providers:
-        - name: test-plugin
+kind: Project
+name: duplicate-module
+environments:
+  - name: local
+    providers:
+      - name: test-plugin

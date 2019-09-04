@@ -21,6 +21,7 @@ import { createHash } from "crypto"
 import * as uuid from "uuid"
 import * as crossSpawn from "cross-spawn"
 import { spawn } from "./util"
+import { Writable } from "stream"
 const AsyncLock = require("async-lock")
 
 const toolsPath = join(GARDEN_GLOBAL_PATH, "tools")
@@ -218,6 +219,7 @@ export interface ExecParams {
   timeout?: number
   input?: Buffer | string
   ignoreError?: boolean
+  outputStream?: Writable
 }
 
 export interface SpawnParams extends ExecParams {
@@ -255,7 +257,7 @@ export class BinaryCmd extends Library {
     return path
   }
 
-  async exec({ args, cwd, env, log, timeout, input, ignoreError }: ExecParams) {
+  async exec({ args, cwd, env, log, timeout, input, ignoreError, outputStream }: ExecParams) {
     const path = await this.getPath(log)
 
     if (!args) {
@@ -264,13 +266,20 @@ export class BinaryCmd extends Library {
 
     log.verbose(`Execing ${path} ${args.join(" ")}`)
 
-    return execa(path, args, {
+    const proc = execa(path, args, {
       cwd: cwd || dirname(path),
       timeout: this.getTimeout(timeout) * 1000,
       env,
       input,
       reject: !ignoreError,
     })
+
+    if (outputStream) {
+      proc.stdout && proc.stdout.pipe(outputStream)
+      proc.stderr && proc.stderr.pipe(outputStream)
+    }
+
+    return proc
   }
 
   async stdout(params: ExecParams) {
@@ -288,13 +297,14 @@ export class BinaryCmd extends Library {
     return crossSpawn(path, args || [], { cwd: cwd || dirname(path), env })
   }
 
-  async spawnAndWait({ args, cwd, env, log, ignoreError, timeout, tty }: SpawnParams) {
+  async spawnAndWait({ args, cwd, env, log, ignoreError, outputStream, timeout, tty }: SpawnParams) {
     const path = await this.getPath(log)
     return spawn(path, args || [], {
       cwd: cwd || dirname(path),
       timeout: this.getTimeout(timeout),
       ignoreError,
       env,
+      outputStream,
       tty,
     })
   }
