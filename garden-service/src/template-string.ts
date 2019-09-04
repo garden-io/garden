@@ -13,6 +13,7 @@ import { GardenBaseError, ConfigurationError } from "./exceptions"
 import { ConfigContext, ContextResolveOpts, ScanContext } from "./config/config-context"
 import { uniq } from "lodash"
 import { Primitive } from "./config/common"
+import { isNumber } from "util"
 
 export type StringOrStringPromise = Promise<string> | string
 
@@ -42,30 +43,44 @@ export async function resolveTemplateString(
   string: string, context: ConfigContext, opts: ContextResolveOpts = {},
 ): Promise<Primitive | undefined> {
   const parser = await getParser()
-  const parsed = parser.parse(string, {
-    getKey: async (key: string[], resolveOpts?: ContextResolveOpts) => {
-      return context.resolve({ key, nodePath: [], opts: { ...opts, ...resolveOpts || {} } })
-    },
-    // need this to allow nested template strings
-    resolve: async (parts: StringOrStringPromise[], resolveOpts?: ContextResolveOpts) => {
-      const s = (await Bluebird.all(parts)).join("")
-      return resolveTemplateString(`\$\{${s}\}`, context, { ...opts, ...resolveOpts || {} })
-    },
-    // Some utilities to pass to the parser
-    lodash,
-    ConfigurationError,
-    TemplateStringError,
-  })
+  try {
+    const parsed = parser.parse(string, {
+      getKey: async (key: string[], resolveOpts?: ContextResolveOpts) => {
+        return context.resolve({ key, nodePath: [], opts: { ...opts, ...resolveOpts || {} } })
+      },
+      // Some utilities to pass to the parser
+      buildBinaryExpression,
+      buildLogicalExpression,
+      lodash,
+      ConfigurationError,
+      TemplateStringError,
+      allowUndefined: opts.allowUndefined,
+    })
 
-  const resolved: (Primitive | undefined)[] = await Bluebird.all(parsed)
+    const resolved: (Primitive | undefined | { _error: Error })[] = await Bluebird.all(parsed)
 
-  const result = resolved.length === 1
-    // Return value directly if there is only one value in the output
-    ? resolved[0]
-    // Else join together all the parts as a string. Output null as a literal string and not an empty string.
-    : resolved.map(v => v === null ? "null" : v).join("")
+    // We need to manually propagate errors in the parser, so we catch them here
+    for (const r of resolved) {
+      if (r && r["_error"]) {
+        throw r["_error"]
+      }
+    }
 
-  return <Primitive | undefined>result
+    const result = resolved.length === 1
+      // Return value directly if there is only one value in the output
+      ? resolved[0]
+      // Else join together all the parts as a string. Output null as a literal string and not an empty string.
+      : resolved.map(v => v === null ? "null" : v).join("")
+
+    return <Primitive | undefined>result
+  } catch (err) {
+    const prefix = `Invalid template string ${string}: `
+    const message = err.message.startsWith(prefix) ? err.message : prefix + err.message
+
+    throw new TemplateStringError(message, {
+      err,
+    })
+  }
 }
 
 /**
@@ -94,4 +109,103 @@ export async function collectTemplateReferences<T extends object>(obj: T): Promi
 export async function getRuntimeTemplateReferences<T extends object>(obj: T) {
   const refs = await collectTemplateReferences(obj)
   return refs.filter(ref => ref[0] === "runtime")
+}
+
+async function buildBinaryExpression(head: any, tail: any) {
+  return Bluebird.reduce(tail, async (result: any, element: any) => {
+    const operator = element[1]
+
+    return Promise.all([result, element[3]])
+      .then(([left, right]) => {
+        // We need to manually handle and propagate errors because the parser doesn't support promises
+        if (left && left._error) {
+          return left
+        }
+        if (right && right._error) {
+          return right
+        }
+
+        // Disallow undefined values for comparisons
+        if (left === undefined || right === undefined) {
+          const err = new TemplateStringError(
+            `Could not resolve one or more keys.`,
+            { left, right, operator },
+          )
+          return { _error: err }
+        }
+
+        if (operator === "==") {
+          return left === right
+        }
+        if (operator === "!=") {
+          return left !== right
+        }
+
+        // All other operators require numbers to make sense (we're not gonna allow random JS weirdness)
+        if (!isNumber(left) || !isNumber(right)) {
+          const err = new TemplateStringError(
+            `Both terms need to be numbers for ${operator} operator (got ${typeof left} and ${typeof right}).`,
+            { left, right, operator },
+          )
+          return { _error: err }
+        }
+
+        switch (operator) {
+          case "*":
+            return left * right
+          case "/":
+            return left / right
+          case "%":
+            return left % right
+          case "+":
+            return left + right
+          case "-":
+            return left - right
+          case "<=":
+            return left <= right
+          case ">=":
+            return left >= right
+          case "<":
+            return left < right
+          case ">":
+            return left > right
+          default:
+            const err = new TemplateStringError("Unrecognized operator: " + operator, { operator })
+            return { _error: err }
+        }
+      })
+      .catch(_error => {
+        return { _error }
+      })
+  }, head)
+}
+
+async function buildLogicalExpression(head: any, tail: any) {
+  return Bluebird.reduce(tail, async (result: any, element: any) => {
+    const operator = element[1]
+
+    return Promise.all([result, element[3]])
+      .then(([left, right]) => {
+        // We need to manually handle and propagate errors because the parser doesn't support promises
+        if (left && left._error) {
+          return left
+        }
+        if (right && right._error) {
+          return right
+        }
+
+        switch (operator) {
+          case "&&":
+            return left && right
+          case "||":
+            return left || right
+          default:
+            const err = new TemplateStringError("Unrecognized operator: " + operator, { operator })
+            return { _error: err }
+        }
+      })
+      .catch(_error => {
+        return { _error }
+      })
+  }, head)
 }

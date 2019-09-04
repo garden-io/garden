@@ -486,9 +486,25 @@ For a practical use case, you might for example make a task that provisions some
 
 Different module types expose different output keys for their services and tasks. Please refer to the [module type reference docs](https://docs.garden.io/reference/module-types) for details.
 
-#### Conditionals
+#### Operators
 
-You can use conditional expressions in template strings, using the `||` operator. For example:
+You can use a variety of operators in template string expressions:
+
+* Arithmetic: `*`, `/`, `%`, `+`, `-`
+* Numeric comparison: `>=`, `<=`, `>`, `<`
+* Equality: `==`, `!=`
+* Logical: `&&`, `||`, ternary (`<test> ? <value if true> : <value if false>`)
+* Unary: `!` (negation), `typeof` (returns the type of the following value as a string, e.g. `"boolean"` or `"number"`)
+
+The arithmetic and numeric comparison operators can only be used for numeric literals and keys that resolve to numbers. The equality and logical operators work with any term.
+
+Clauses are evaluated in standard precedence order, but you can also use parentheses to control evaluation order (e.g. `${(1 + 2) * (3 + 4)}` evaluates to 21).
+
+These operators can be very handy, and allow you to tailor your configuration depending on different environments and other contextual variables.
+
+Here are some examples of usage:
+
+The `||` operator allows you to set default values:
 
 ```yaml
   # ...
@@ -497,12 +513,47 @@ You can use conditional expressions in template strings, using the `||` operator
     namespace: ${local.env.CI_BRANCH || local.username || "default"}
 ```
 
-This allows you to easily set default values when certain template keys are not available, and to configure your
-project based on a dynamic context.
+The `==` and `!=` operators allow you to set boolean flags based on other variables:
+
+```yaml
+kind: Module
+...
+skipDeploy: ${environment.name == 'prod'}
+...
+```
+
+```yaml
+kind: Module
+...
+allowPublish: ${environment.name != 'prod'}
+...
+```
+
+Ternary expressions, combined with comparison operators, can be good when provisioning resources:
+
+```yaml
+kind: Module
+type: container
+...
+services:
+  replicas: "${environment.name == 'prod' ? 3 : 1}"
+  ...
+```
+
+And the arithmetic operators can also be handy when provisioning resources:
+
+```yaml
+kind: Module
+type: container
+...
+services:
+  replicas: ${var.default-replicas * 2}
+  ...
+```
 
 #### Numbers, booleans and null values
 
-When a template string key resolves to a number, boolean or null, its output is handled in one of two different ways,
+When a template string resolves to a number, boolean or null, its output is handled in one of two different ways,
 depending on whether the template string is part of a surrounding string or not.
 
 If the template string is the whole string being interpolated, we assign the number, boolean or null directly to the
