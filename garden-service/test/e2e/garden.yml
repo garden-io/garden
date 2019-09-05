@@ -13,8 +13,11 @@ environments:
   - name: local
     providers:
       - name: local-kubernetes
+    variables:
+      show-log: true
 variables:
   timeout: 360
+  show-log: false
 
 ---
 
@@ -23,26 +26,26 @@ name: e2e-tests
 type: exec
 tests:
   - name: demo-project
-    command: [npm, run, e2e-full, --, --project=demo-project, --showlog=true, "--env=${environment.name}"]
+    command: [npm, run, e2e-full, --, --project=demo-project, "--showlog=${var.show-log}", "--env=${environment.name}"]
     timeout: ${var.timeout}
   - name: tasks # Tests for tasks are currently being skipped
-    command: [npm, run, e2e-full, --, --project=tasks, --showlog=true, "--env=${environment.name}"]
+    command: [npm, run, e2e-full, --, --project=tasks, "--showlog=${var.show-log}", "--env=${environment.name}"]
     timeout: ${var.timeout}
   - name: hot-reload # Tests for hot-reload are currently being skipped
-    command: [npm, run, e2e-full, --, --project=hot-reload, --showlog=true, "--env=${environment.name}"]
+    command: [npm, run, e2e-full, --, --project=hot-reload, "--showlog=${var.show-log}", "--env=${environment.name}"]
     timeout: ${var.timeout}
   # Disabling until https://github.com/garden-io/garden/issues/1045 is fixed
   # - name: openfaas
-  #   command: [npm, run, e2e-full, --, --project=openfaas, --showlog=true, "--env=${environment.name}"]
+  #   command: [npm, run, e2e-full, --, --project=openfaas, "--showlog=${var.show-log}", "--env=${environment.name}"]
   - name: project-variables
-    command: [npm, run, e2e-full, --, --project=project-variables, --showlog=true, "--env=${environment.name}"]
+    command: [npm, run, e2e-full, --, --project=project-variables, "--showlog=${var.show-log}", "--env=${environment.name}"]
     timeout: ${var.timeout}
   - name: vote-helm
-    command: [npm, run, e2e-full, --, --project=vote-helm, --showlog=true, "--env=${environment.name}"]
+    command: [npm, run, e2e-full, --, --project=vote-helm, "--showlog=${var.show-log}", "--env=${environment.name}"]
     timeout: ${var.timeout}
   - name: vote
-    command: [npm, run, e2e-full, --, --project=vote, --showlog=true, "--env=${environment.name}"]
+    command: [npm, run, e2e-full, --, --project=vote, "--showlog=${var.show-log}", "--env=${environment.name}"]
     timeout: ${var.timeout}
   - name: remote-sources
-    command: [npm, run, e2e-full, --, --project=remote-sources, --showlog=true, "--env=${environment.name}"]
+    command: [npm, run, e2e-full, --, --project=remote-sources, "--showlog=${var.show-log}", "--env=${environment.name}"]
     timeout: ${var.timeout}

@@ -18,7 +18,7 @@ export const DEFAULT_RUN_TIMEOUT_SECS = 240
 export const gardenBinPath = parsedArgs.binPath || resolve(GARDEN_SERVICE_ROOT, "bin", "garden")
 export const showLog = !!parsedArgs.showlog
 
-const DEFAULT_ARGS = ["--logger-type", "json", "--log-level", "verbose"]
+const DEFAULT_ARGS = ["--logger-type", "json", "--log-level", "debug"]
 
 function execGarden(command: string[], cwd: string, opts: execa.Options = {}) {
   showLog && console.log(`Running 'garden ${command.join(" ")}' in ${cwd}`)
