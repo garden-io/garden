@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import chalk from "chalk"
 import { LogEntry } from "../logger/log-entry"
 import { BaseTask, TaskType } from "./base"
 import { Garden } from "../garden"
@@ -49,10 +50,20 @@ export class GetTaskResultTask extends BaseTask {
     })
     const actions = await this.garden.getActionHelper()
 
-    return actions.getTaskResult({
-      task: this.task,
-      log,
-      taskVersion: this.version,
-    })
+    let result: RunTaskResult | null
+    try {
+      result = await actions.getTaskResult({
+        task: this.task,
+        log,
+        taskVersion: this.version,
+      })
+    } catch (err) {
+      log.setError()
+      throw err
+    }
+
+    log.setSuccess({ msg: chalk.green(`Done`), append: true })
+
+    return result
   }
 }
