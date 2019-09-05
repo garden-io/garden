@@ -104,8 +104,8 @@ export const runResultSchema = joi.object()
       .required()
       .description("When the module run was completed."),
     log: joi.string()
-      .required()
       .allow("")
+      .default("")
       .description("The output log from the run."),
     output: joi.string()
       .allow("")
