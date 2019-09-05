@@ -287,9 +287,9 @@ export async function compareDeployedObjects(
       // complete the check, so we fall back to our own mechanism. Otherwise the command worked, but one or more
       // resources are missing or outdated.
       if (err.stderr && err.stderr.trim() !== "exit status 1") {
-        log.verbose(`kubectl diff failed: ${err.message}\n${err.stderr}`)
+        log.debug(`kubectl diff failed: ${err.message}\n${err.stderr}`)
       } else {
-        log.verbose(`kubectl diff indicates one or more resources are outdated.`)
+        log.debug(`kubectl diff indicates one or more resources are outdated.`)
         log.silly(err.stdout)
         result.state = "outdated"
         return result
@@ -299,7 +299,7 @@ export async function compareDeployedObjects(
 
   // Using kubectl diff didn't work, so we fall back to our own comparison check, which works in _most_ cases,
   // but doesn't exhaustively handle normalization issues.
-  log.verbose(`Getting currently deployed resources...`)
+  log.debug(`Getting currently deployed resources...`)
 
   const deployedObjectStatuses: ResourceStatus[] = await Bluebird.map(
     deployedObjects,
@@ -363,8 +363,8 @@ export async function compareDeployedObjects(
 
     if (!isSubset(existingSpec, newSpec)) {
       if (newSpec) {
-        log.verbose(`Resource ${newSpec.metadata.name} is not a superset of deployed resource:`)
-        log.verbose(diffString(existingSpec, newSpec))
+        log.verbose(`Resource ${newSpec.metadata.name} is not a superset of deployed resource`)
+        log.debug(diffString(existingSpec, newSpec))
       }
       // console.log(JSON.stringify(resource, null, 4))
       // console.log(JSON.stringify(existingSpec, null, 4))
@@ -375,7 +375,7 @@ export async function compareDeployedObjects(
     }
   }
 
-  log.verbose(`All resources match. Environment is ready.`)
+  log.verbose(`All resources match.`)
 
   result.state = "ready"
   return result

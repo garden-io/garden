@@ -71,7 +71,7 @@ export async function processModules(
   { garden, graph, log, footerLog, modules, watch, handler, changeHandler }: ProcessModulesParams,
 ): Promise<ProcessResults> {
 
-  log.debug("Starting processModules")
+  log.silly("Starting processModules")
 
   // Let the user know if any modules are linked to a local path
   const linkedModulesMsg = modules

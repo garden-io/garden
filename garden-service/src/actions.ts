@@ -351,7 +351,7 @@ export class ActionHelper implements TypeGuard {
   //===========================================================================
 
   async getStatus({ log, serviceNames }: { log: LogEntry, serviceNames?: string[] }): Promise<AllEnvironmentStatus> {
-    log.verbose(`Getting environment status (${this.garden.projectName})`)
+    log.debug(`Getting environment status (${this.garden.projectName})`)
 
     const envStatus = await this.garden.getEnvironmentStatus()
     const serviceStatuses = await this.getServiceStatuses({ log, serviceNames })
@@ -484,7 +484,7 @@ export class ActionHelper implements TypeGuard {
   ): Promise<ModuleActionOutputs[T]> {
     const { module, pluginName, log } = params
 
-    log.verbose(`Getting ${actionType} handler for module ${module.name}`)
+    log.silly(`Getting ${actionType} handler for module ${module.name}`)
 
     const handler = await this.getModuleActionHandler({
       moduleType: module.type,
@@ -499,7 +499,7 @@ export class ActionHelper implements TypeGuard {
       module: omit(module, ["_ConfigType"]),
     }
 
-    log.verbose(`Calling ${actionType} handler for module ${module.name}`)
+    log.silly(`Calling ${actionType} handler for module ${module.name}`)
 
     // TODO: figure out why this doesn't compile without the function cast
     return (<Function>handler)(handlerParams)
@@ -512,7 +512,7 @@ export class ActionHelper implements TypeGuard {
     let { log, service, runtimeContext } = params
     let module = omit(service.module, ["_ConfigType"])
 
-    log.verbose(`Getting ${actionType} handler for service ${service.name}`)
+    log.silly(`Getting ${actionType} handler for service ${service.name}`)
 
     const handler = await this.getModuleActionHandler({
       moduleType: module.type,
@@ -523,7 +523,7 @@ export class ActionHelper implements TypeGuard {
 
     // Resolve ${runtime.*} template strings if needed.
     if (runtimeContext && (await getRuntimeTemplateReferences(module)).length > 0) {
-      log.verbose(`Resolving runtime template strings for service '${service.name}'`)
+      log.silly(`Resolving runtime template strings for service '${service.name}'`)
       const configContext = await this.garden.getModuleConfigContext(runtimeContext)
       const graph = await this.garden.getConfigGraph({ configContext })
       service = await graph.getService(service.name)
@@ -547,7 +547,7 @@ export class ActionHelper implements TypeGuard {
       runtimeContext,
     }
 
-    log.verbose(`Calling ${actionType} handler for service ${service.name}`)
+    log.silly(`Calling ${actionType} handler for service ${service.name}`)
 
     return (<Function>handler)(handlerParams)
   }
@@ -563,7 +563,7 @@ export class ActionHelper implements TypeGuard {
     const runtimeContext = params["runtimeContext"] as (RuntimeContext | undefined)
     let module = omit(task.module, ["_ConfigType"])
 
-    log.verbose(`Getting ${actionType} handler for task ${module.name}.${task.name}`)
+    log.silly(`Getting ${actionType} handler for task ${module.name}.${task.name}`)
 
     const handler = await this.getModuleActionHandler({
       moduleType: module.type,
@@ -574,7 +574,7 @@ export class ActionHelper implements TypeGuard {
 
     // Resolve ${runtime.*} template strings if needed.
     if (runtimeContext && (await getRuntimeTemplateReferences(module)).length > 0) {
-      log.verbose(`Resolving runtime template strings for task '${task.name}'`)
+      log.silly(`Resolving runtime template strings for task '${task.name}'`)
       const configContext = await this.garden.getModuleConfigContext(runtimeContext)
       const graph = await this.garden.getConfigGraph({ configContext })
       task = await graph.getTask(task.name)
@@ -598,7 +598,7 @@ export class ActionHelper implements TypeGuard {
       task,
     }
 
-    log.verbose(`Calling ${actionType} handler for task ${module.name}.${task.name}`)
+    log.silly(`Calling ${actionType} handler for task ${module.name}.${task.name}`)
 
     return (<Function>handler)(handlerParams)
   }

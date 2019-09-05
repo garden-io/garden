@@ -264,7 +264,7 @@ export class BinaryCmd extends Library {
       args = []
     }
 
-    log.verbose(`Execing ${path} ${args.join(" ")}`)
+    log.debug(`Execing ${path} ${args.join(" ")}`)
 
     const proc = execa(path, args, {
       cwd: cwd || dirname(path),
