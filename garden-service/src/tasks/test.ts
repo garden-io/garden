@@ -168,7 +168,7 @@ export class TestTask extends BaseTask {
       log.setSuccess({ msg: chalk.green(`Success (took ${log.getDuration(1)} sec)`), append: true })
     } else {
       log.setError({ msg: chalk.red(`Failed! (took ${log.getDuration(1)} sec)`), append: true })
-      throw new TestError(result.output)
+      throw new TestError(result.log)
     }
 
     return result
