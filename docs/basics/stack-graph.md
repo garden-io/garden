@@ -1,3 +1,6 @@
+---
+title: Stack Graph
+---
 # The Stack Graph
 
 Garden centers around the _Stack Graph_, which allows you to describe your whole stack in a consistent, structured way,

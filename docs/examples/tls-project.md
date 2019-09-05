@@ -1,3 +1,6 @@
+---
+title: TLS Project
+---
 # Local TLS example project
 
 This project shows how you can configure a TLS certificate to use for local development on Kubernetes.

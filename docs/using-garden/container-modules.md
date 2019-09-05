@@ -1,4 +1,4 @@
-# Container modules
+# Container Modules
 
 Garden includes a `container` module type, which provides a high-level abstraction around container-based services, that's easy to understand and use.
 

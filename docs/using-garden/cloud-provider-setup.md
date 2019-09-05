@@ -1,4 +1,4 @@
-# Cloud provider setup
+# Cloud Provider Set-up
 
 Below you'll find guides for creating and configuring a Kubernetes cluster with a few
 prominent providers of hosted, managed Kubernetes clusters, and configuring your Garden
