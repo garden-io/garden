@@ -1,4 +1,17 @@
 
+<a name="v0.10.8"></a>
+## [v0.10.8](https://github.com/garden-io/garden/compare/v0.10.7...v0.10.8) (2019-09-05)
+
+### Bug Fixes
+
+* add success/error logging for get task result ([d9efa0fa](https://github.com/garden-io/garden/commit/d9efa0fa))
+* error in test result output schema ([85137217](https://github.com/garden-io/garden/commit/85137217))
+
+### Improvement
+
+* check that the static dir exists ([5ba7b341](https://github.com/garden-io/garden/commit/5ba7b341))
+
+
 <a name="v0.10.7"></a>
 ## [v0.10.7](https://github.com/garden-io/garden/compare/v0.10.6...v0.10.7) (2019-09-04)
 
