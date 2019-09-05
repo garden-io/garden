@@ -20,7 +20,6 @@ export interface BuildTaskParams {
   log: LogEntry
   module: Module
   force: boolean
-  fromWatch?: boolean
   hotReloadServiceNames?: string[]
 }
 
@@ -28,13 +27,11 @@ export class BuildTask extends BaseTask {
   type: TaskType = "build"
 
   private module: Module
-  private fromWatch: boolean
   private hotReloadServiceNames: string[]
 
-  constructor({ garden, log, module, force, fromWatch = false, hotReloadServiceNames = [] }: BuildTaskParams) {
+  constructor({ garden, log, module, force, hotReloadServiceNames = [] }: BuildTaskParams) {
     super({ garden, log, force, version: module.version })
     this.module = module
-    this.fromWatch = fromWatch
     this.hotReloadServiceNames = hotReloadServiceNames
   }
 
@@ -48,7 +45,6 @@ export class BuildTask extends BaseTask {
         log: this.log,
         module: m,
         force: this.force,
-        fromWatch: this.fromWatch,
         hotReloadServiceNames: this.hotReloadServiceNames,
       })
     })

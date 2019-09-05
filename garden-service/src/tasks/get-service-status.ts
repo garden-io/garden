@@ -17,6 +17,7 @@ import { prepareRuntimeContext } from "../runtime-context"
 import { GetTaskResultTask } from "./get-task-result"
 import { getTaskVersion } from "./task"
 import * as Bluebird from "bluebird"
+import { BuildTask } from "./build"
 
 export interface GetServiceStatusTaskParams {
   garden: Garden
@@ -46,6 +47,15 @@ export class GetServiceStatusTask extends BaseTask {
   async getDependencies() {
     const deps = await this.graph.getDependencies("service", this.getName(), false)
 
+    const buildTasks = deps.build.map(module => {
+      return new BuildTask({
+        garden: this.garden,
+        log: this.log,
+        module,
+        force: false,
+      })
+    })
+
     const statusTasks = deps.service.map(service => {
       return new GetServiceStatusTask({
         garden: this.garden,
@@ -67,7 +77,7 @@ export class GetServiceStatusTask extends BaseTask {
       })
     })
 
-    return [...statusTasks, ...taskResultTasks]
+    return [...buildTasks, ...statusTasks, ...taskResultTasks]
   }
 
   getName() {
