@@ -109,14 +109,16 @@ export class TaskTask extends BaseTask { // ... to be renamed soon.
 
     // TODO: Re-enable this logic when we've started providing task graph results to process methods.
 
-    const cachedResult = getRunTaskResults(dependencyResults)[this.task.name]
+    if (!this.force) {
+      const cachedResult = getRunTaskResults(dependencyResults)[this.task.name]
 
-    if (cachedResult && cachedResult.success) {
-      this.log.info({
-        section: task.name,
-      }).setSuccess({ msg: chalk.green("Already run") })
+      if (cachedResult && cachedResult.success) {
+        this.log.info({
+          section: task.name,
+        }).setSuccess({ msg: chalk.green("Already run") })
 
-      return cachedResult
+        return cachedResult
+      }
     }
 
     const log = this.log.info({
