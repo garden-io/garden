@@ -8,10 +8,11 @@
 
 import * as execa from "execa"
 import { join, resolve } from "path"
-import { flatten, uniq } from "lodash"
+import { flatten } from "lodash"
 import { ensureDir, pathExists, stat, createReadStream } from "fs-extra"
 import { PassThrough } from "stream"
 import * as hasha from "hasha"
+import split2 = require("split2")
 
 import { VcsHandler, RemoteSourceParams, VcsFile, GetFilesParams } from "./vcs"
 import { ConfigurationError, RuntimeError } from "../exceptions"
@@ -54,7 +55,7 @@ export class GitHandler extends VcsHandler {
   private gitCli(log: LogEntry, cwd: string): GitCli {
     return async (...args: string[]) => {
       log.silly(`Calling git with args '${args.join(" ")}`)
-      const { stdout } = await execa("git", args, { cwd })
+      const { stdout } = await execa("git", args, { cwd, maxBuffer: 10 * 1024 * 1024 })
       return stdout.split("\n").filter(line => line.length > 0)
     }
   }
@@ -72,62 +73,97 @@ export class GitHandler extends VcsHandler {
     }
   }
 
+  /**
+   * Returns a list of files, along with file hashes, under the given path, taking into account the configured
+   * .ignore files, and the specified include/exclude filters.
+   */
   async getFiles({ log, path, include, exclude }: GetFilesParams): Promise<VcsFile[]> {
     const git = this.gitCli(log, path)
-
-    let lines: string[] = []
-    let ignored: string[] = []
-
-    /**
-     * TODO: Replace the relative path handling in this function with a generic convertible path object
-     * once that's been implemented.
-     */
     const gitRoot = (await git("rev-parse", "--show-toplevel"))[0]
 
-    try {
-      /**
-       * We need to exclude .garden to avoid errors when path is the project root. This happens e.g. for modules
-       * whose config is colocated with the project config, and that don't specify include paths/patterns.
-       */
-      // FIXME: We should use `garden.gardenDirPath` instead of ".garden" since the gardenDirPath
-      // property is configurable.
-      lines = await git("ls-files", "-s", "--others", "--exclude=.garden", path)
+    // List modified files, so that we can ensure we have the right hash for them later
+    const modified = new Set((await this.getModifiedFiles(git, path))
+      // The output here is relative to the git root, and not the directory `path`
+      .map(modifiedRelPath => resolve(gitRoot, modifiedRelPath)),
+    )
 
-      // List ignored files for each ignore file. We need to run ls-files twice to get both tracked and untracked files.
-      const commands = flatten(this.ignoreFiles.map(f => {
-        const lsIgnoredFiles = ["ls-files", "--ignored", `--exclude-per-directory=${f}`]
-        const lsUntrackedIgnoredFiles = [...lsIgnoredFiles, "--others"]
+    // List tracked but ignored files (we currently exclude those as well, so we need to query that specially)
+    const trackedButIgnored = new Set(flatten(
+      await Promise.all(this.ignoreFiles.map(f =>
+        git("ls-files", "--ignored", "--exclude-per-directory", f),
+      )),
+    ))
 
-        return [lsIgnoredFiles, lsUntrackedIgnoredFiles]
-      }))
+    // We run ls-files for each ignoreFile and do a manual set-intersection (by counting elements in an object)
+    // in order to optimize the flow.
+    const paths: { [path: string]: number } = {}
+    const files: VcsFile[] = []
 
-      ignored = uniq(flatten(await Bluebird.map(commands, async (cmd) => git(...cmd, path))))
-    } catch (err) {
-      // if we get 128 we're not in a repo root, so we get no files
-      if (err.exitCode !== 128) {
-        throw err
+    // This function is called for each line output from the ls-files commands that we run, and populates the
+    // `files` array.
+    const handleLine = (data: Buffer) => {
+      const line = data.toString().trim()
+      if (!line) {
+        return
+      }
+
+      let filePath: string
+      let hash = ""
+
+      const split = line.trim().split("\t")
+
+      if (split.length === 1) {
+        // File is untracked
+        filePath = split[0]
+      } else {
+        filePath = split[1]
+        hash = split[0].split(" ")[1]
+      }
+
+      // Ignore files that are tracked but still specified in ignore files
+      if (trackedButIgnored.has(filePath)) {
+        return
+      }
+
+      const resolvedPath = resolve(path, filePath)
+
+      // Add the path to `paths` or increment the counter to indicate how many of the ls-files outputs
+      // contain the path.
+      if (paths[resolvedPath]) {
+        paths[resolvedPath] += 1
+      } else {
+        paths[resolvedPath] = 1
+      }
+
+      // We push to the output array when all ls-files commands "agree" that it should be included,
+      // and it passes through the include/exclude filters.
+      if (paths[resolvedPath] === this.ignoreFiles.length && matchPath(filePath, include, exclude)) {
+        files.push({ path: resolvedPath, hash })
       }
     }
 
-    const files = await Bluebird.map(lines, async (line) => {
-      const split = line.trim().split("\t")
-      if (split.length === 1) {
-        // File is untracked
-        return { path: split[0] }
-      } else {
-        return { path: split[1], hash: split[0].split(" ")[1] }
+    // We run ls-files for each ignore file and collect each return result line with `handleLine`
+    await Bluebird.map(this.ignoreFiles, async (f) => {
+      const args = ["ls-files", "-s", "--others", "--exclude", this.gardenDirPath, "--exclude-per-directory", f, path]
+      const proc = execa("git", args, { cwd: path })
+
+      // Split the command output by line
+      const splitStream = split2()
+      splitStream.on("data", handleLine)
+      proc.stdout!.pipe(splitStream)
+
+      try {
+        await proc
+      } catch (err) {
+        // if we get 128 we're not in a repo root, so we just get no files. Otherwise we throw.
+        if (err.exitCode !== 128) {
+          throw err
+        }
       }
     })
 
-    const modifiedArr = ((await this.getModifiedFiles(git, path)) || [])
-      .map(modifiedRelPath => resolve(gitRoot, modifiedRelPath))
-    const modified = new Set(modifiedArr)
-
-    const filtered = files
-      .filter(f => matchPath(f.path, include, exclude))
-      .filter(f => !ignored.includes(f.path))
-
-    return Bluebird.map(filtered, async (f) => {
+    // Make sure we have a fresh hash for each file
+    return Bluebird.map(files, async (f) => {
       const resolvedPath = resolve(path, f.path)
       if (!f.hash || modified.has(resolvedPath)) {
         // If we can't compute the hash, i.e. the file is gone, we filter it out below
