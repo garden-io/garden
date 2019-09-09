@@ -73,6 +73,10 @@ export class GitHandler extends VcsHandler {
     }
   }
 
+  /**
+   * Returns a list of files, along with file hashes, under the given path, taking into account the configured
+   * .ignore files, and the specified include/exclude filters.
+   */
   async getFiles({ log, path, include, exclude }: GetFilesParams): Promise<VcsFile[]> {
     const git = this.gitCli(log, path)
     const gitRoot = (await git("rev-parse", "--show-toplevel"))[0]
@@ -93,8 +97,10 @@ export class GitHandler extends VcsHandler {
     // We run ls-files for each ignoreFile and do a manual set-intersection (by counting elements in an object)
     // in order to optimize the flow.
     const paths: { [path: string]: number } = {}
-    const output: VcsFile[] = []
+    const files: VcsFile[] = []
 
+    // This function is called for each line output from the ls-files commands that we run, and populates the
+    // `files` array.
     const handleLine = (data: Buffer) => {
       const line = data.toString().trim()
       if (!line) {
@@ -121,6 +127,8 @@ export class GitHandler extends VcsHandler {
 
       const resolvedPath = resolve(path, filePath)
 
+      // Add the path to `paths` or increment the counter to indicate how many of the ls-files outputs
+      // contain the path.
       if (paths[resolvedPath]) {
         paths[resolvedPath] += 1
       } else {
@@ -130,7 +138,7 @@ export class GitHandler extends VcsHandler {
       // We push to the output array when all ls-files commands "agree" that it should be included,
       // and it passes through the include/exclude filters.
       if (paths[resolvedPath] === this.ignoreFiles.length && matchPath(filePath, include, exclude)) {
-        output.push({ path: resolvedPath, hash })
+        files.push({ path: resolvedPath, hash })
       }
     }
 
@@ -139,6 +147,7 @@ export class GitHandler extends VcsHandler {
       const args = ["ls-files", "-s", "--others", "--exclude", this.gardenDirPath, "--exclude-per-directory", f, path]
       const proc = execa("git", args, { cwd: path })
 
+      // Split the command output by line
       const splitStream = split2()
       splitStream.on("data", handleLine)
       proc.stdout!.pipe(splitStream)
@@ -154,7 +163,7 @@ export class GitHandler extends VcsHandler {
     })
 
     // Make sure we have a fresh hash for each file
-    return Bluebird.map(output, async (f) => {
+    return Bluebird.map(files, async (f) => {
       const resolvedPath = resolve(path, f.path)
       if (!f.hash || modified.has(resolvedPath)) {
         // If we can't compute the hash, i.e. the file is gone, we filter it out below
