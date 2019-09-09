@@ -43,13 +43,59 @@ interface JoiPathParams {
 }
 
 // Extend the Joi module with our custom rules
-export interface CustomStringSchema extends Joi.StringSchema {
-  gitUrl: (params: JoiGitUrlParams) => CustomStringSchema
-  posixPath: (params?: JoiPathParams) => CustomStringSchema
+interface MetadataKeys {
+  internal?: boolean
+  deprecated?: boolean
+  extendable?: boolean
 }
 
+// Unfortunately we need to explicitly extend each type (just extending the AnySchema doesn't work).
 declare module "@hapi/joi" {
-  export function string(): CustomStringSchema
+  export interface AnySchema {
+    meta(keys: MetadataKeys): this
+  }
+
+  export interface ArraySchema {
+    meta(keys: MetadataKeys): this
+  }
+
+  export interface AlternativesSchema {
+    meta(keys: MetadataKeys): this
+  }
+
+  export interface BinarySchema {
+    meta(keys: MetadataKeys): this
+  }
+
+  export interface BooleanSchema {
+    meta(keys: MetadataKeys): this
+  }
+
+  export interface DateSchema {
+    meta(keys: MetadataKeys): this
+  }
+
+  export interface FunctionSchema {
+    meta(keys: MetadataKeys): this
+  }
+
+  export interface NumberSchema {
+    meta(keys: MetadataKeys): this
+  }
+
+  export interface ObjectSchema {
+    meta(keys: MetadataKeys): this
+  }
+
+  export interface StringSchema {
+    meta(keys: MetadataKeys): this
+    gitUrl: (params: JoiGitUrlParams) => this
+    posixPath: (params?: JoiPathParams) => this
+  }
+
+  export interface LazySchema {
+    meta(keys: MetadataKeys): this
+  }
 }
 
 export const joi: Joi.Root = Joi.extend({
