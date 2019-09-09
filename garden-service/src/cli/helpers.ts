@@ -6,8 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import axios from "axios"
 import chalk from "chalk"
+import ci = require("ci-info")
+import { pathExists } from "fs-extra"
 import { difference, flatten, range, reduce } from "lodash"
+import moment = require("moment")
+import { platform, release } from "os"
+import qs = require("qs")
+
 import {
   ChoicesParameter,
   ParameterValues,
@@ -18,15 +25,10 @@ import {
 } from "../exceptions"
 import { LogLevel } from "../logger/log-node"
 import { getEnumKeys, getPackageVersion } from "../util/util"
-import axios from "axios"
-import qs = require("qs")
-import { platform, release } from "os"
 import { LogEntry } from "../logger/log-entry"
 import { STATIC_DIR, VERSION_CHECK_URL } from "../constants"
 import { printWarningMessage } from "../logger/util"
 import { GlobalConfigStore, globalConfigKeys } from "../config-store"
-import moment = require("moment")
-import { pathExists } from "fs-extra"
 
 // Parameter types T which map between the Parameter<T> class and the Sywac cli library.
 // In case we add types that aren't supported natively by Sywac, see: http://sywac.io/docs/sync-config.html#custom
@@ -239,7 +241,15 @@ export async function checkForUpdates(config: GlobalConfigStore, logger: LogEntr
     platformVersion: release(),
   }
   try {
-    const res = await axios.get(`${VERSION_CHECK_URL}?${qs.stringify(query)}`)
+    const globalConfig = await config.get()
+    const headers = {}
+    headers["X-user-id"] = globalConfig.analytics ? globalConfig.analytics.userId : "unknown"
+    headers["X-ci-check"] = ci.isCI
+    if (ci.isCI) {
+      headers["X-ci-name"] = ci.name
+    }
+
+    const res = await axios.get(`${VERSION_CHECK_URL}?${qs.stringify(query)}`, { headers })
     const configObj = await config.get()
     const showMessage = (configObj.lastVersionCheck
       && moment().subtract(1, "days").isAfter(moment(configObj.lastVersionCheck.lastRun)))
