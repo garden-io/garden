@@ -15,7 +15,21 @@ git clone https://github.com/garden-io/garden.git
 cd garden/examples/demo-project
 ```
 
-First, let's check the environment status by running the following from the project root:
+If you'd like to use a remote Kubernetes cluster, include the option `--env=remote` when invoking the `garden` commands below, or uncomment the line
+
+```sh
+defaultEnvironment: remote
+```
+
+in the project `garden.yml`.
+
+Also, if your remote cluster hasn't previously been set up for Garden, start by running the following from the project root:
+
+``` sh
+garden plugins kubernetes cluster-init --env=remote
+```
+
+Now, let's check the environment status by running the following:
 
 ```sh
 garden get status

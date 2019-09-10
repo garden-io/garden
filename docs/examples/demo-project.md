@@ -138,9 +138,23 @@ The [services](../using-garden/configuration-files.md#Services) field is specifi
 
 ## Deploying
 
-With this configuration, Garden can now deploy our service to a local Kubernetes cluster. If this is your first time deploying this project, Garden will start by initializing the environment.
+With this configuration, Garden can now deploy our service to a local Kubernetes cluster.
 
-To deploy, run:
+If you'd like to use a remote Kubernetes cluster, include the option `--env=remote` when invoking the `garden` commands below, or uncomment the line
+
+```sh
+defaultEnvironment: remote
+```
+
+in the project `garden.yml`.
+
+Also, if your remote cluster hasn't previously been set up for Garden, start by running the following from the project root:
+
+``` sh
+garden plugins kubernetes cluster-init --env=remote
+```
+
+The first time you deploy this project, Garden will start by initializing the environment. To deploy, run:
 
 ```sh
 garden deploy
