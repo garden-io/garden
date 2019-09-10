@@ -16,6 +16,7 @@
   * [Remote Kubernetes](./using-garden/remote-kubernetes.md)
   * [Remote Sources](./using-garden/using-remote-sources.md)
   * [Terraform](./using-garden/terraform.md)
+  * [Variables and templating](./using-garden/variables-and-templating.md)
 * [Example Projects](./examples/README.md)
   * [Demo Project](./examples/demo-project.md)
   * [TLS Project](./examples/tls-project.md)
