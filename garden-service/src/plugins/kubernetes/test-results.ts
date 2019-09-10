@@ -21,6 +21,7 @@ import * as hasha from "hasha"
 import { gardenAnnotationKey } from "../../util/string"
 import { upsertConfigMap } from "./util"
 import { trimRunOutput } from "./helm/common"
+import { ensureNamespace } from "./namespace"
 
 const testResultNamespace = systemMetadataNamespace
 
@@ -29,6 +30,7 @@ export async function getTestResult(
 ): Promise<TestResult | null> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, k8sCtx.provider)
+  await ensureNamespace(api, testResultNamespace)
   const resultKey = getTestResultKey(k8sCtx, module, testName, testVersion)
 
   try {
@@ -83,6 +85,7 @@ export async function storeTestResult(
 ): Promise<TestResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, k8sCtx.provider)
+  await ensureNamespace(api, testResultNamespace)
 
   const data: TestResult = trimRunOutput(result)
 
