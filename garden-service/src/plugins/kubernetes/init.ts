@@ -69,9 +69,6 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
   }
 
   if (
-    // No need to continue if we don't need any system services
-    systemServiceNames.length === 0
-    ||
     // Make sure we don't recurse infinitely
     provider.config.namespace === systemNamespace
   ) {
@@ -148,7 +145,7 @@ export async function prepareSystem(
   const systemReady = status.detail && !!status.detail.systemReady && !force
   const systemServiceNames = k8sCtx.provider.config._systemServices
 
-  if (systemServiceNames.length === 0 || systemReady) {
+  if (systemReady) {
     return {}
   }
 
@@ -189,8 +186,8 @@ export async function prepareSystem(
       \`garden --env=${ctx.environmentName} plugins kubernetes cluster-init\`
       to initialize them, or contact a cluster admin to do so, before deploying services to this cluster.
     `, {
-      status,
-    })
+        status,
+      })
   }
 
   // Install Tiller to system namespace

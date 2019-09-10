@@ -297,9 +297,9 @@ export class Garden {
       } catch (error) {
         throw new ConfigurationError(
           `Unable to load plugin "${moduleNameOrLocation}" (could not load module: ${error.message})`, {
-          message: error.message,
-          moduleNameOrLocation,
-        })
+            message: error.message,
+            moduleNameOrLocation,
+          })
       }
 
       try {
