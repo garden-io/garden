@@ -7,7 +7,9 @@ Note that there are three sections below, since Project configs and Module confi
 them, and since additional keys are available under `providers` in Project configs.
 Please make sure to refer to the correct section.
 
-Modules can reference `outputs` defined by other modules, via the `${modules.<module-name>.outputs}` key.
+Modules can reference `outputs` defined by other modules, via the `${modules.<module-name>.outputs}` key, as well
+as service and task outputs via the `${runtime.services.<service-name>.outputs}` and
+`${runtime.tasks.<task-name>.outputs}`.
 For details on which outputs are available for a given module type, please refer to the
 [reference](https://docs.garden.io/reference/module-types) docs for the module type in question, and look for the
 _Outputs_ section.
