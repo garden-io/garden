@@ -17,6 +17,7 @@ import { combineStates } from "../../../types/service"
 import { apply } from "../kubectl"
 import { KubernetesProvider, KubernetesPluginContext } from "../config"
 import chalk from "chalk"
+import { convertDeprecatedManifestVersion } from "../util"
 
 const serviceAccountName = "garden-tiller"
 
@@ -84,6 +85,7 @@ async function getTillerResources(
   })
 
   const resources = safeLoadAll(tillerManifests)
+    .map(convertDeprecatedManifestVersion)
 
   return resources
 }
