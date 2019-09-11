@@ -254,7 +254,7 @@ describe("Garden", () => {
       expect(garden.gardenDirPath).to.eql(gardenDirPath)
     })
 
-    it("should load default varFiles if they exist", async () => {
+    it("should load default varfiles if they exist", async () => {
       const projectRoot = join(dataDir, "test-projects", "varfiles")
       const garden = await Garden.factory(projectRoot, {})
       expect(garden.variables).to.eql({
@@ -264,7 +264,7 @@ describe("Garden", () => {
       })
     })
 
-    it("should load custom varFiles if specified", async () => {
+    it("should load custom varfiles if specified", async () => {
       const projectRoot = join(dataDir, "test-projects", "varfiles-custom")
       const garden = await Garden.factory(projectRoot, {})
       expect(garden.variables).to.eql({

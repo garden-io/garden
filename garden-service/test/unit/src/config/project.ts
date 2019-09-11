@@ -6,8 +6,8 @@ import {
   resolveProjectConfig,
   defaultEnvironments,
   pickEnvironment,
-  defaultVarFilePath,
-  defaultEnvVarFilePath,
+  defaultVarfilePath,
+  defaultEnvVarfilePath,
 } from "../../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { expectError } from "../../../helpers"
@@ -44,12 +44,12 @@ describe("resolveProjectConfig", () => {
         {
           name: "default",
           providers: [],
-          varFile: defaultEnvVarFilePath("default"),
+          varfile: defaultEnvVarfilePath("default"),
           variables: {},
         },
       ],
       sources: [],
-      varFile: defaultVarFilePath,
+      varfile: defaultVarfilePath,
     })
   })
 
@@ -76,7 +76,7 @@ describe("resolveProjectConfig", () => {
       },
       environments: defaultEnvironments,
       sources: [],
-      varFile: defaultVarFilePath,
+      varfile: defaultVarfilePath,
     })
   })
 
@@ -129,7 +129,7 @@ describe("resolveProjectConfig", () => {
         {
           name: "default",
           providers: [],
-          varFile: defaultEnvVarFilePath("default"),
+          varfile: defaultEnvVarfilePath("default"),
           variables: {
             envVar: "foo",
           },
@@ -141,7 +141,7 @@ describe("resolveProjectConfig", () => {
           repositoryUrl,
         },
       ],
-      varFile: defaultVarFilePath,
+      varfile: defaultVarfilePath,
       variables: {
         defaultEnvVar: "foo",
         platform: platform(),
@@ -205,7 +205,7 @@ describe("resolveProjectConfig", () => {
         {
           name: "default",
           providers: [],
-          varFile: defaultEnvVarFilePath("default"),
+          varfile: defaultEnvVarfilePath("default"),
           variables: {
             envVar: "foo",
           },
@@ -227,7 +227,7 @@ describe("resolveProjectConfig", () => {
         },
       ],
       sources: [],
-      varFile: defaultVarFilePath,
+      varfile: defaultVarfilePath,
     })
 
     delete process.env.TEST_ENV_VAR_A
@@ -259,7 +259,7 @@ describe("resolveProjectConfig", () => {
       },
       environments: defaultEnvironments,
       sources: [],
-      varFile: defaultVarFilePath,
+      varfile: defaultVarfilePath,
     })
   })
 
@@ -287,7 +287,7 @@ describe("resolveProjectConfig", () => {
       },
       environments: defaultEnvironments,
       sources: [],
-      varFile: defaultVarFilePath,
+      varfile: defaultVarfilePath,
     })
   })
 
@@ -338,7 +338,7 @@ describe("resolveProjectConfig", () => {
         {
           name: "default",
           providers: [],
-          varFile: defaultEnvVarFilePath("default"),
+          varfile: defaultEnvVarfilePath("default"),
           variables: {
             envVar: "foo",
           },
@@ -357,7 +357,7 @@ describe("resolveProjectConfig", () => {
         },
       ],
       sources: [],
-      varFile: defaultVarFilePath,
+      varfile: defaultVarfilePath,
     })
   })
 
@@ -406,7 +406,7 @@ describe("resolveProjectConfig", () => {
         {
           name: "default",
           providers: [],
-          varFile: defaultEnvVarFilePath("default"),
+          varfile: defaultEnvVarfilePath("default"),
           variables: {
             envVar: "bar",
           },
@@ -422,7 +422,7 @@ describe("resolveProjectConfig", () => {
         },
       ],
       sources: [],
-      varFile: defaultVarFilePath,
+      varfile: defaultVarfilePath,
       variables: {
         defaultVar: "foo",
       },
@@ -578,9 +578,9 @@ describe("pickEnvironment", () => {
     })
   })
 
-  it("should load variables from default project varFile if it exists", async () => {
-    const varFilePath = resolve(tmpPath, defaultVarFilePath)
-    await writeFile(varFilePath, dedent`
+  it("should load variables from default project varfile if it exists", async () => {
+    const varfilePath = resolve(tmpPath, defaultVarfilePath)
+    await writeFile(varfilePath, dedent`
       a=a
       b=b
     `)
@@ -614,9 +614,9 @@ describe("pickEnvironment", () => {
     })
   })
 
-  it("should load variables from default environment varFile if it exists", async () => {
-    const varFilePath = resolve(tmpPath, defaultEnvVarFilePath("default"))
-    await writeFile(varFilePath, dedent`
+  it("should load variables from default environment varfile if it exists", async () => {
+    const varfilePath = resolve(tmpPath, defaultEnvVarfilePath("default"))
+    await writeFile(varfilePath, dedent`
       b=B
       c=c
     `)
@@ -650,9 +650,9 @@ describe("pickEnvironment", () => {
     })
   })
 
-  it("should load variables from custom project varFile if specified", async () => {
-    const varFilePath = resolve(tmpPath, "foo.env")
-    await writeFile(varFilePath, dedent`
+  it("should load variables from custom project varfile if specified", async () => {
+    const varfilePath = resolve(tmpPath, "foo.env")
+    await writeFile(varfilePath, dedent`
       a=a
       b=b
     `)
@@ -674,7 +674,7 @@ describe("pickEnvironment", () => {
         },
       ],
       providers: [],
-      varFile: "foo.env",
+      varfile: "foo.env",
       variables: {},
     }
 
@@ -687,9 +687,9 @@ describe("pickEnvironment", () => {
     })
   })
 
-  it("should load variables from custom environment varFile if specified", async () => {
-    const varFilePath = resolve(tmpPath, "foo.env")
-    await writeFile(varFilePath, dedent`
+  it("should load variables from custom environment varfile if specified", async () => {
+    const varfilePath = resolve(tmpPath, "foo.env")
+    await writeFile(varfilePath, dedent`
       b=B
       c=c
     `)
@@ -704,7 +704,7 @@ describe("pickEnvironment", () => {
       environments: [
         {
           name: "default",
-          varFile: "foo.env",
+          varfile: "foo.env",
           variables: {},
         },
       ],
@@ -724,15 +724,15 @@ describe("pickEnvironment", () => {
     })
   })
 
-  it("should correctly merge all variable sources in precedence order (variables fields and varFiles)", async () => {
+  it("should correctly merge all variable sources in precedence order (variables fields and varfiles)", async () => {
     // Precedence 1/4 (highest)
-    await writeFile(resolve(tmpPath, defaultEnvVarFilePath("default")), dedent`
+    await writeFile(resolve(tmpPath, defaultEnvVarfilePath("default")), dedent`
       d=D
       e=e
     `)
 
     // Precedence 3/4
-    await writeFile(resolve(tmpPath, defaultVarFilePath), dedent`
+    await writeFile(resolve(tmpPath, defaultVarfilePath), dedent`
       b=B
       c=c
     `)
@@ -773,7 +773,7 @@ describe("pickEnvironment", () => {
     })
   })
 
-  it("should throw if project varFile is set to non-default and it doesn't exist", async () => {
+  it("should throw if project varfile is set to non-default and it doesn't exist", async () => {
     const config: ProjectConfig = {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Project",
@@ -788,17 +788,17 @@ describe("pickEnvironment", () => {
         },
       ],
       providers: [],
-      varFile: "foo.env",
+      varfile: "foo.env",
       variables: {},
     }
 
     await expectError(
       () => pickEnvironment(config, "default"),
-      (err) => expect(err.message).to.equal("Could not find varFile at path 'foo.env'"),
+      (err) => expect(err.message).to.equal("Could not find varfile at path 'foo.env'"),
     )
   })
 
-  it("should throw if environment varFile is set to non-default and it doesn't exist", async () => {
+  it("should throw if environment varfile is set to non-default and it doesn't exist", async () => {
     const config: ProjectConfig = {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Project",
@@ -809,7 +809,7 @@ describe("pickEnvironment", () => {
       environments: [
         {
           name: "default",
-          varFile: "foo.env",
+          varfile: "foo.env",
           variables: {},
         },
       ],
@@ -819,7 +819,7 @@ describe("pickEnvironment", () => {
 
     await expectError(
       () => pickEnvironment(config, "default"),
-      (err) => expect(err.message).to.equal("Could not find varFile at path 'foo.env'"),
+      (err) => expect(err.message).to.equal("Could not find varfile at path 'foo.env'"),
     )
   })
 })

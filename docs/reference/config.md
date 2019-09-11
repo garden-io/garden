@@ -132,9 +132,9 @@ environmentDefaults:
       - stage
 ```
 
-### `environmentDefaults.varFile`
+### `environmentDefaults.varfile`
 
-[environmentDefaults](#environmentdefaults) > varFile
+[environmentDefaults](#environmentdefaults) > varfile
 
 Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
 _environment-specific_ `variables` field. The file should be in a standard "dotenv" format, specified
@@ -288,7 +288,7 @@ sources:
   - repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
 ```
 
-### `varFile`
+### `varfile`
 
 Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
 project-wide `variables` field. The file should be in a standard "dotenv" format, specified
@@ -298,7 +298,7 @@ If you don't set the field and the `garden.env` file does not exist, we simply i
 If you do override the default value and the file doesn't exist, an error will be thrown.
 
 _Note that in many cases it is advisable to only use environment-specific var files, instead of combining
-multiple ones. See the `environments[].varFile` field for this option._
+multiple ones. See the `environments[].varfile` field for this option._
 
 | Type     | Required | Default        |
 | -------- | -------- | -------------- |
@@ -366,9 +366,9 @@ environments:
         - stage
 ```
 
-### `environments[].varFile`
+### `environments[].varfile`
 
-[environments](#environments) > varFile
+[environments](#environments) > varfile
 
 Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
 _environment-specific_ `variables` field. The file should be in a standard "dotenv" format, specified
@@ -415,7 +415,7 @@ environmentDefaults:
   providers:
     - name:
       environments:
-  varFile: garden.<env-name>.env
+  varfile: garden.<env-name>.env
   variables: {}
 modules:
   include:
@@ -426,13 +426,13 @@ providers:
 sources:
   - name:
     repositoryUrl:
-varFile: garden.env
+varfile: garden.env
 variables: {}
 environments:
   - providers:
       - name:
         environments:
-  - varFile: garden.<env-name>.env
+  - varfile: garden.<env-name>.env
     variables: {}
     name:
 ```

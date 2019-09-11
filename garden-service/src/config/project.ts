@@ -34,8 +34,8 @@ import { defaultDotIgnoreFiles } from "../util/fs"
 import { pathExists, readFile } from "fs-extra"
 import { resolve } from "path"
 
-export const defaultVarFilePath = "garden.env"
-export const defaultEnvVarFilePath = (environmentName: string) => `garden.${environmentName}.env`
+export const defaultVarfilePath = "garden.env"
+export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
 
 export interface CommonEnvironmentConfig {
   providers?: ProviderConfig[]  // further validated by each plugin
@@ -51,17 +51,17 @@ export const environmentConfigSchema = joi.object()
         DEPRECATED - Please use the top-level \`providers\` field instead, and if needed use the \`environments\` key
         on the provider configurations to limit them to specific environments.
       `),
-    varFile: joi.string()
+    varfile: joi.string()
       .posixPath()
       .default(
-        (context: any) => defaultEnvVarFilePath(context.name || "<env-name>"), defaultEnvVarFilePath("<env-name>"),
+        (context: any) => defaultEnvVarfilePath(context.name || "<env-name>"), defaultEnvVarfilePath("<env-name>"),
       )
       .description(dedent`
         Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
         _environment-specific_ \`variables\` field. The file should be in a standard "dotenv" format, specified
         [here](https://github.com/motdotla/dotenv#rules).
 
-        If you don't set the field and the \`${defaultEnvVarFilePath("<env-name>")}\` file does not exist,
+        If you don't set the field and the \`${defaultEnvVarfilePath("<env-name>")}\` file does not exist,
         we simply ignore it. If you do override the default value and the file doesn't exist, an error will be thrown.
       `),
     variables: joiVariables()
@@ -73,7 +73,7 @@ export const environmentConfigSchema = joi.object()
 
 export interface EnvironmentConfig extends CommonEnvironmentConfig {
   name: string
-  varFile?: string
+  varfile?: string
 }
 
 export interface Environment extends EnvironmentConfig {
@@ -129,7 +129,7 @@ export interface ProjectConfig {
   },
   providers: ProviderConfig[]
   sources?: SourceConfig[]
-  varFile?: string
+  varfile?: string
   variables: PrimitiveMap
 }
 
@@ -146,7 +146,7 @@ export const defaultEnvironments: EnvironmentConfig[] = [
         environments: [],
       },
     ],
-    varFile: defaultEnvVarFilePath("local"),
+    varfile: defaultEnvVarfilePath("local"),
     variables: {},
   },
 ]
@@ -236,9 +236,9 @@ export const projectSchema = joi.object()
         "Please refer to individual plugins/providers for details on how to configure them.",
       ),
     sources: projectSourcesSchema,
-    varFile: joi.string()
+    varfile: joi.string()
       .posixPath()
-      .default(defaultVarFilePath)
+      .default(defaultVarfilePath)
       .description(dedent`
         Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
         project-wide \`variables\` field. The file should be in a standard "dotenv" format, specified
@@ -248,7 +248,7 @@ export const projectSchema = joi.object()
         If you do override the default value and the file doesn't exist, an error will be thrown.
 
         _Note that in many cases it is advisable to only use environment-specific var files, instead of combining
-        multiple ones. See the \`environments[].varFile\` field for this option._
+        multiple ones. See the \`environments[].varfile\` field for this option._
       `),
     variables: joiVariables()
       .description("Variables to configure for all environments."),
@@ -276,7 +276,7 @@ export async function resolveProjectConfig(config: ProjectConfig): Promise<Proje
       environmentDefaults: { variables: {}, ...environmentDefaults || {}, providers: <ProviderConfig[]>[] },
       name: config.name,
       sources: config.sources,
-      varFile: config.varFile,
+      varfile: config.varfile,
       variables: config.variables,
       environments: environments.map(e => omit(e, ["providers"])),
     },
@@ -354,8 +354,8 @@ export async function resolveProjectConfig(config: ProjectConfig): Promise<Proje
  *
  * For project variables, we apply the variables specified to the selected environment on the global variables
  * specified on the top-level `variables` key using a JSON Merge Patch (https://tools.ietf.org/html/rfc7396).
- * We also attempt to load the configured varFiles, and include those in the merge. The precedence order is as follows:
- *   environment.varFile > environment.variables > project.varFile > project.variables
+ * We also attempt to load the configured varfiles, and include those in the merge. The precedence order is as follows:
+ *   environment.varfile > environment.variables > project.varfile > project.variables
  *
  * For provider configuration, we filter down to the providers that are enabled for all environments (no `environments`
  * key specified) and those that explicitly list the specified environments. Then we merge any provider configs with
@@ -400,16 +400,16 @@ export async function pickEnvironment(config: ProjectConfig, environmentName: st
     }
   }
 
-  const projectVarFileVars = await loadVarFile(
-    config.path, config.varFile, defaultVarFilePath,
+  const projectVarfileVars = await loadVarfile(
+    config.path, config.varfile, defaultVarfilePath,
   )
-  const envVarFileVars = await loadVarFile(
-    config.path, environmentConfig.varFile, defaultEnvVarFilePath(environmentName),
+  const envVarfileVars = await loadVarfile(
+    config.path, environmentConfig.varfile, defaultEnvVarfilePath(environmentName),
   )
 
   const variables: PrimitiveMap = <any>merge(
-    merge(config.variables, projectVarFileVars),
-    merge(environmentConfig.variables, envVarFileVars),
+    merge(config.variables, projectVarfileVars),
+    merge(environmentConfig.variables, envVarfileVars),
   )
 
   return {
@@ -418,12 +418,12 @@ export async function pickEnvironment(config: ProjectConfig, environmentName: st
   }
 }
 
-async function loadVarFile(projectRoot: string, path: string | undefined, defaultPath: string): Promise<PrimitiveMap> {
+async function loadVarfile(projectRoot: string, path: string | undefined, defaultPath: string): Promise<PrimitiveMap> {
   const resolvedPath = resolve(projectRoot, path || defaultPath)
   const exists = await pathExists(resolvedPath)
 
   if (!exists && path && path !== defaultPath) {
-    throw new ConfigurationError(`Could not find varFile at path '${path}'`, {
+    throw new ConfigurationError(`Could not find varfile at path '${path}'`, {
       path,
       resolvedPath,
     })
@@ -436,7 +436,7 @@ async function loadVarFile(projectRoot: string, path: string | undefined, defaul
   try {
     return dotenv.parse(await readFile(resolvedPath))
   } catch (error) {
-    throw new ConfigurationError(`Unable to load varFile at '${path}': ${error}`, {
+    throw new ConfigurationError(`Unable to load varfile at '${path}': ${error}`, {
       error,
       path,
     })
