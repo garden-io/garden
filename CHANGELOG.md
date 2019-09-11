@@ -1,4 +1,29 @@
 
+<a name="v0.10.9-alpha.0"></a>
+## [v0.10.9-alpha.0](https://github.com/garden-io/garden/compare/v0.10.8...v0.10.9-alpha.0) (2019-09-11)
+
+### Bug Fixes
+
+* **k8s:** ensure sys metadata ns exists for tests ([c88af24f](https://github.com/garden-io/garden/commit/c88af24f))
+* **task-graph:** fix error log output ([6329cd66](https://github.com/garden-io/garden/commit/6329cd66))
+* **tasks:** respect force flag in task task ([3b9ba8ee](https://github.com/garden-io/garden/commit/3b9ba8ee))
+* **vcs:** overflow error when repo contains large number of files ([#1165](https://github.com/garden-io/garden/issues/1165)) ([4f5fabcc](https://github.com/garden-io/garden/commit/4f5fabcc))
+
+### Code Refactoring
+
+* make joi.meta() arguments type-safe ([a8789903](https://github.com/garden-io/garden/commit/a8789903))
+
+### Features
+
+* **config:** add a number of new operators for template expressions ([0a764695](https://github.com/garden-io/garden/commit/0a764695))
+* **config:** add support for varFiles ([e2ade318](https://github.com/garden-io/garden/commit/e2ade318))
+
+### Improvement
+
+* added more headers to checkForUpdates ([8f1c4437](https://github.com/garden-io/garden/commit/8f1c4437))
+* tweak debugging log levels ([7ecbacc0](https://github.com/garden-io/garden/commit/7ecbacc0))
+
+
 <a name="v0.10.8"></a>
 ## [v0.10.8](https://github.com/garden-io/garden/compare/v0.10.7...v0.10.8) (2019-09-05)
 
