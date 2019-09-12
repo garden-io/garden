@@ -1,3 +1,7 @@
+---
+title: Config Files Reference
+---
+
 # garden.yml reference
 
 Below is the schema reference for the [Project](#project-configuration) and [Module](#module-configuration) `garden.yml` configuration files. For an introduction to configuring a Garden project,

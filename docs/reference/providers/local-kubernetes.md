@@ -1,3 +1,7 @@
+---
+title: Local Kubernetes
+---
+
 # `local-kubernetes` reference
 
 Below is the schema reference for the `local-kubernetes` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-files.md).

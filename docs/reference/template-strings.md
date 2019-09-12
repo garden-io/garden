@@ -1,3 +1,7 @@
+---
+title: Template Strings Reference
+---
+
 # Template string reference
 
 Below you'll find the schema of the keys available when interpolating template strings (see our

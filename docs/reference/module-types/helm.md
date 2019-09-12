@@ -1,3 +1,7 @@
+---
+title: Helm
+---
+
 # `helm` reference
 
 Specify a Helm chart (either in your repository or remote from a registry) to deploy.

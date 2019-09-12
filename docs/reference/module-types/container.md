@@ -1,3 +1,7 @@
+---
+title: Container
+---
+
 # `container` reference
 
 Specify a container image to build or pull from a remote registry.
