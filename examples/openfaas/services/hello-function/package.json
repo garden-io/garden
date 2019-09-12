@@ -7,8 +7,5 @@
     "test": "echo OK"
   },
   "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "hello-npm-package": "file:libraries/hello-npm-package"
-  }
+  "license": "ISC"
 }
