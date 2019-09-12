@@ -1,3 +1,7 @@
+---
+title: Kubernetes
+---
+
 # `kubernetes` reference
 
 Specify one or more Kubernetes manifests to deploy.

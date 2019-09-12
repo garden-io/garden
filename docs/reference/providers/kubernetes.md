@@ -1,3 +1,7 @@
+---
+title: Kubernetes
+---
+
 # `kubernetes` reference
 
 Below is the schema reference for the `kubernetes` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-files.md).
