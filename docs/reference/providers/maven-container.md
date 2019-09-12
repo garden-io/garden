@@ -1,3 +1,7 @@
+---
+title: Maven Container
+---
+
 # `maven-container` reference
 
 Below is the schema reference for the `maven-container` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-files.md).

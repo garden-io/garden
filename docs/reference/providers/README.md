@@ -2,4 +2,7 @@
 
 * [Kubernetes](./kubernetes.md)
 * [Local Kubernetes](./local-kubernetes.md)
-* [OpenFaaS](./openfaas.md)
+* [Local Openfaas](./local-openfaas.md)
+* [Maven Container](./maven-container.md)
+* [Openfaas](./openfaas.md)
+* [Terraform](./terraform.md)

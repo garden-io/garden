@@ -1,3 +1,7 @@
+---
+title: Exec
+---
+
 # `exec` reference
 
 A simple module for executing commands in your shell. This can be a useful escape hatch if no other module

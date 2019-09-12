@@ -1,3 +1,7 @@
+---
+title: Maven Container
+---
+
 # `maven-container` reference
 
 A specialized version of the [container](https://docs.garden.io/reference/module-types/container) module type
