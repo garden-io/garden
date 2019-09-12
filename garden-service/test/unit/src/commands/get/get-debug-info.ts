@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import * as yaml from "js-yaml"
+import yaml from "js-yaml"
 import { makeTestGardenA, cleanProject, withDefaultGlobalOpts } from "../../../../helpers"
 import {
   generateBasicDebugInfoReport,

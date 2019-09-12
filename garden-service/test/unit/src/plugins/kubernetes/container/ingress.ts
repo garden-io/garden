@@ -1,6 +1,6 @@
 import { expect } from "chai"
 import { resolve, join } from "path"
-import * as td from "testdouble"
+import td from "testdouble"
 
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import {

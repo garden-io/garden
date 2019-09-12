@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as logSymbols from "log-symbols"
-import * as nodeEmoji from "node-emoji"
+import logSymbols from "log-symbols"
+import nodeEmoji from "node-emoji"
 
 import { LogNode, LogLevel, CreateNodeParams } from "./log-node"
 import { Omit } from "../util/util"

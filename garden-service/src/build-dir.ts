@@ -20,7 +20,7 @@ import { emptyDir, ensureDir } from "fs-extra"
 import { ConfigurationError } from "./exceptions"
 import { FileCopySpec, Module, getModuleKey } from "./types/module"
 import { zip } from "lodash"
-import * as execa from "execa"
+import execa from "execa"
 import { normalizeLocalRsyncPath } from "./util/fs"
 import { LogEntry } from "./logger/log-entry"
 

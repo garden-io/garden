@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import * as indentString from "indent-string"
+import indentString from "indent-string"
 import { sortBy, omit, uniq } from "lodash"
 import {
   Command,

@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as nodeEmoji from "node-emoji"
+import nodeEmoji from "node-emoji"
 import chalk from "chalk"
-import * as CircularJSON from "circular-json"
+import CircularJSON from "circular-json"
 import { LogNode } from "./log-node"
 import { LogEntry, LogEntryParams, EmojiName } from "./log-entry"
 

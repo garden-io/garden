@@ -1,5 +1,5 @@
 import { expect } from "chai"
-import * as td from "testdouble"
+import td from "testdouble"
 import { join, resolve } from "path"
 import { Garden } from "../../../src/garden"
 import {

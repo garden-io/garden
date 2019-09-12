@@ -1,5 +1,5 @@
-import * as execa from "execa"
-import * as mlog from "mocha-logger"
+import execa from "execa"
+import mlog from "mocha-logger"
 import { remove } from "fs-extra"
 import { get, intersection, padEnd } from "lodash"
 import parseArgs = require("minimist")

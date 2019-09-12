@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as logSymbols from "log-symbols"
-import * as yaml from "js-yaml"
+import logSymbols from "log-symbols"
+import yaml from "js-yaml"
 import chalk from "chalk"
 import stripAnsi from "strip-ansi"
 import {

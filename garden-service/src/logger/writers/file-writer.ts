@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as winston from "winston"
+import winston from "winston"
 import { dirname, isAbsolute } from "path"
 import { ensureDir, truncate } from "fs-extra"
 import stripAnsi from "strip-ansi"

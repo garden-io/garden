@@ -7,7 +7,7 @@
  */
 
 import { KubeApi, KubernetesError } from "../api"
-import * as Bluebird from "bluebird"
+import Bluebird from "bluebird"
 import { KubernetesServerResource } from "../types"
 import { V1Pod } from "@kubernetes/client-node"
 import { some } from "lodash"

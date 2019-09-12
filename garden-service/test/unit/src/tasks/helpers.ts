@@ -1,4 +1,4 @@
-import * as Bluebird from "bluebird"
+import Bluebird from "bluebird"
 import { expect } from "chai"
 import { flatten, uniq } from "lodash"
 import { resolve } from "path"

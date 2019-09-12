@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Bluebird from "bluebird"
+import Bluebird from "bluebird"
 import chalk from "chalk"
 import { find } from "lodash"
 import minimatch = require("minimatch")

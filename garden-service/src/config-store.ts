@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as yaml from "js-yaml"
+import yaml from "js-yaml"
 import { join } from "path"
 import { ensureFile, readFile } from "fs-extra"
 import { get, isPlainObject, unset } from "lodash"

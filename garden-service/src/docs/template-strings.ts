@@ -10,7 +10,7 @@ import { resolve } from "path"
 import { renderSchemaDescriptionYaml, normalizeDescriptions, TEMPLATES_DIR } from "./config"
 import { ProjectConfigContext, ModuleConfigContext, ProviderConfigContext } from "../config/config-context"
 import { readFileSync, writeFileSync } from "fs"
-import * as handlebars from "handlebars"
+import handlebars from "handlebars"
 import { GARDEN_SERVICE_ROOT } from "../constants"
 
 export function writeTemplateStringReferenceDocs(docsRoot: string) {

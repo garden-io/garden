@@ -6,17 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as execa from "execa"
+import execa from "execa"
 import { join, resolve } from "path"
 import { flatten } from "lodash"
 import { ensureDir, pathExists, stat, createReadStream } from "fs-extra"
 import { PassThrough } from "stream"
-import * as hasha from "hasha"
+import hasha from "hasha"
 import split2 = require("split2")
 
 import { VcsHandler, RemoteSourceParams, VcsFile, GetFilesParams } from "./vcs"
 import { ConfigurationError, RuntimeError } from "../exceptions"
-import * as Bluebird from "bluebird"
+import Bluebird from "bluebird"
 import { matchPath } from "../util/fs"
 import { deline } from "../util/string"
 import { splitLast } from "../util/util"

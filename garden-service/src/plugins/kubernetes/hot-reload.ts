@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Bluebird from "bluebird"
-import * as execa from "execa"
+import Bluebird from "bluebird"
+import execa from "execa"
 import normalizePath = require("normalize-path")
 import { V1Deployment, V1DaemonSet, V1StatefulSet } from "@kubernetes/client-node"
 import { ContainerModule, ContainerHotReloadSpec } from "../container/config"

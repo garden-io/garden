@@ -16,7 +16,7 @@ import { TaskResults } from "../task-graph"
 import { prepareRuntimeContext } from "../runtime-context"
 import { GetTaskResultTask } from "./get-task-result"
 import { getTaskVersion } from "./task"
-import * as Bluebird from "bluebird"
+import Bluebird from "bluebird"
 
 export interface GetServiceStatusTaskParams {
   garden: Garden

@@ -1,7 +1,7 @@
 import { expect } from "chai"
 import { resolve, join } from "path"
 import { cloneDeep } from "lodash"
-import * as td from "testdouble"
+import td from "testdouble"
 
 import { Garden } from "../../../../../src/garden"
 import { PluginContext } from "../../../../../src/plugin-context"

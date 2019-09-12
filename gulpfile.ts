@@ -7,10 +7,10 @@
  */
 
 import { resolve } from "path"
-import * as execa from "execa"
+import execa from "execa"
 import { writeFile, readFile, ensureDir, pathExists, remove } from "fs-extra"
 import { getUrlChecksum } from "./support/support-util"
-import * as handlebars from "handlebars"
+import handlebars from "handlebars"
 import { find } from "lodash"
 
 const Octokit = require("@octokit/rest")

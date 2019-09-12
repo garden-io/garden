@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as split from "split"
+import split from "split"
 import { omit } from "lodash"
 import moment = require("moment")
 
@@ -19,7 +19,7 @@ import { KubeApi } from "./api"
 import { Service } from "../../types/service"
 import Stream from "ts-stream"
 import { LogEntry } from "../../logger/log-entry"
-import * as Bluebird from "bluebird"
+import Bluebird from "bluebird"
 import { KubernetesProvider } from "./config"
 
 interface GetLogsBaseParams {

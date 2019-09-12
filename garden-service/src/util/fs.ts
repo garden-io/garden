@@ -7,12 +7,12 @@
  */
 
 import klaw = require("klaw")
-import * as _spawn from "cross-spawn"
-import * as Bluebird from "bluebird"
+import _spawn from "cross-spawn"
+import Bluebird from "bluebird"
 import { pathExists, readFile, writeFile } from "fs-extra"
 import minimatch = require("minimatch")
 import { some } from "lodash"
-import * as uuid from "uuid"
+import uuid from "uuid"
 import { join, basename, win32, posix } from "path"
 import { ValidationError } from "../exceptions"
 import { platform } from "os"

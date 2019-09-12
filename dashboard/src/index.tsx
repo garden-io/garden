@@ -9,7 +9,7 @@
 import React from "react"
 import ReactDOM from "react-dom"
 import { BrowserRouter as Router } from "react-router-dom"
-import * as serviceWorker from "./service-worker"
+import { unregister } from "./service-worker"
 
 import App from "./app"
 import GlobalStyle from "./components/global-style"
@@ -17,7 +17,7 @@ import GlobalStyle from "./components/global-style"
 // If you want your app to work offline and load faster, you can change
 // unregister() to register() below. Note this comes with some pitfalls.
 // Learn more about service workers: http://bit.ly/CRA-PWA
-serviceWorker.unregister()
+unregister()
 
 // Hoist Router for smoother hot reloading (hot module replacement).
 const rootEl = document.getElementById("root")

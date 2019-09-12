@@ -1,6 +1,6 @@
 import { platform } from "os"
 import { expect } from "chai"
-import * as td from "testdouble"
+import td from "testdouble"
 import { HotReloadableResource, rsyncSourcePath } from "../../../../../src/plugins/kubernetes/hot-reload"
 
 import {

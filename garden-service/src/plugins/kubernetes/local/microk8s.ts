@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as execa from "execa"
+import execa from "execa"
 import { RuntimeError } from "../../../exceptions"
 import { LogEntry } from "../../../logger/log-entry"
 

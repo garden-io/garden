@@ -9,7 +9,7 @@
 import { join } from "path"
 import { values, find } from "lodash"
 import { V1Namespace } from "@kubernetes/client-node"
-import * as semver from "semver"
+import semver from "semver"
 
 import { STATIC_DIR, DEFAULT_API_VERSION } from "../../constants"
 import { Garden } from "../../garden"
