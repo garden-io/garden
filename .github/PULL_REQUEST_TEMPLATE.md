@@ -14,5 +14,3 @@
 Fixes #
 
 **Special notes for your reviewer**:
-
-**Does this PR introduce a user-facing change?**:
