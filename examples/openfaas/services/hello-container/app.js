@@ -1,6 +1,6 @@
 const request = require("request-promise")
 const express = require("express")
-const hello = require("./libraries/hello-npm-package")
+const hello = require("hello-npm-package")
 
 const app = express()
 
