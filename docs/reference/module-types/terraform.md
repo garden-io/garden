@@ -1,3 +1,7 @@
+---
+title: Terraform
+---
+
 # `terraform` reference
 
 Resolves a Terraform stack and either applies it automatically (if `autoApply: true`) or errors when the stack
