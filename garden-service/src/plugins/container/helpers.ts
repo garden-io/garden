@@ -7,7 +7,7 @@
  */
 
 import { join } from "path"
-import * as semver from "semver"
+import semver from "semver"
 import { ConfigurationError, RuntimeError } from "../../exceptions"
 import { splitFirst, spawn, splitLast } from "../../util/util"
 import { ModuleConfig } from "../../config/module"

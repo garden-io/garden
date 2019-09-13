@@ -7,7 +7,7 @@
  */
 
 import dedent = require("dedent")
-import * as uuidv4 from "uuid/v4"
+import uuidv4 from "uuid/v4"
 import md5 = require("md5")
 import segmentClient = require("analytics-node")
 import { platform, release } from "os"

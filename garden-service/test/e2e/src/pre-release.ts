@@ -1,7 +1,7 @@
 import execa = require("execa")
 import { expect } from "chai"
 import { resolve } from "path"
-import * as mlog from "mocha-logger"
+import mlog from "mocha-logger"
 import replace from "replace-in-file"
 import { examplesDir } from "../../helpers"
 import {

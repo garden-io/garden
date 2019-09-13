@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Bluebird from "bluebird"
+import Bluebird from "bluebird"
 import PQueue from "p-queue"
 import chalk from "chalk"
-import * as yaml from "js-yaml"
+import yaml from "js-yaml"
 import hasAnsi = require("has-ansi")
 import { flatten, merge, padEnd, pick } from "lodash"
 import { BaseTask, TaskDefinitionError, TaskType } from "./tasks/base"

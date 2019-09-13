@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as td from "testdouble"
+import td from "testdouble"
 import { expect } from "chai"
 import { join } from "path"
 import { mkdirp, pathExists } from "fs-extra"

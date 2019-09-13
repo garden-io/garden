@@ -1,4 +1,4 @@
-import * as tmp from "tmp-promise"
+import tmp from "tmp-promise"
 import { ConfigStore } from "../../../src/config-store"
 import { expect } from "chai"
 import { resolve } from "path"

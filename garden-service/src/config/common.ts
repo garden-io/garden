@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "@hapi/joi"
+import Joi from "@hapi/joi"
 import { JoiObject } from "@hapi/joi"
-import * as uuid from "uuid"
+import uuid from "uuid"
 import { ConfigurationError, LocalConfigError } from "../exceptions"
 import chalk from "chalk"
 import { relative } from "path"

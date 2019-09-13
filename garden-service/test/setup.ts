@@ -1,5 +1,5 @@
-import * as td from "testdouble"
-import * as timekeeper from "timekeeper"
+import td from "testdouble"
+import timekeeper from "timekeeper"
 import { Logger } from "../src/logger/logger"
 import { LogLevel } from "../src/logger/log-node"
 import { makeTestGardenA } from "./helpers"

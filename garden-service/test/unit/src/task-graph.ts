@@ -1,4 +1,4 @@
-import * as Bluebird from "bluebird"
+import Bluebird from "bluebird"
 import { join } from "path"
 import { expect } from "chai"
 import { BaseTask, TaskType } from "../../../src/tasks/base"

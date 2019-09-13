@@ -8,8 +8,8 @@
 
 import execa = require("execa")
 import { expect } from "chai"
-import * as tmp from "tmp-promise"
-import * as uuid from "uuid"
+import tmp from "tmp-promise"
+import uuid from "uuid"
 import { createFile, writeFile, realpath, mkdir, remove, symlink } from "fs-extra"
 import { join, resolve, basename } from "path"
 

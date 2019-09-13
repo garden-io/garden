@@ -11,7 +11,8 @@ import { css } from "emotion"
 import React, { Component } from "react"
 import styled from "@emotion/styled"
 import { capitalize } from "lodash"
-import * as d3 from "d3"
+import { event, select, selectAll } from "d3-selection"
+import { zoom, zoomIdentity } from "d3-zoom"
 import dagreD3 from "dagre-d3"
 import { Extends } from "garden-service/build/src/util/util"
 import { ConfigDump } from "garden-service/build/src/garden"
@@ -119,14 +120,13 @@ function drawChart(
   const render = new dagreD3.render()
 
   // Clear previous content if any (for updating)
-  d3.selectAll("#chart svg").remove()
+  selectAll("#chart svg").remove()
 
   // Set width and height. Height gets updated once graph is rendered
   width = Math.max(width, MIN_CHART_WIDTH)
   height = Math.max(height, MIN_CHART_HEIGHT)
 
-  const svg = d3
-    .select("#chart")
+  const svg = select("#chart")
     .append("svg")
     .attr("width", width)
     .attr("height", height)
@@ -135,10 +135,10 @@ function drawChart(
   const svgGroup = svg.append("g")
 
   // Set up zoom support
-  const zoom = d3.zoom<SVGSVGElement, any>().on("zoom", () => {
-    svgGroup.attr("transform", d3.event.transform)
+  const zoomHandler = zoom<SVGSVGElement, any>().on("zoom", () => {
+    svgGroup.attr("transform", event.transform)
   })
-  svg.call(zoom)
+  svg.call(zoomHandler)
 
   // Run the renderer. This is what draws the final graph.
   // FIXME: ts-ignore
@@ -156,10 +156,10 @@ function drawChart(
     (parseInt(svg.attr("width"), 10) - g.graph().width * initialScale) / 2
   const yCenterOffset =
     (parseInt(svg.attr("height"), 10) - g.graph().height * initialScale) / 2
-  const zoomTranslate = d3.zoomIdentity
+  const zoomTranslate = zoomIdentity
     .translate(xCenterOffset, yCenterOffset)
     .scale(initialScale)
-  svg.call(zoom.transform, zoomTranslate)
+  svg.call(zoomHandler.transform, zoomTranslate)
 
   const selections = svg.select("g").selectAll("g.node")
   selections.on("click", function(evt) {

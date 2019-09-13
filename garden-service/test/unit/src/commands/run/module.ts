@@ -8,7 +8,7 @@ import {
 } from "../../../../helpers"
 import { expect } from "chai"
 import { Garden } from "../../../../../src/garden"
-import * as td from "testdouble"
+import td from "testdouble"
 
 describe("RunModuleCommand", () => {
   // TODO: test optional flags

@@ -17,7 +17,7 @@ import { pathToCacheContext } from "../cache"
 import { Garden } from "../garden"
 import { joiArray, joiIdentifier, joiIdentifierMap, joi } from "../config/common"
 import { ConfigGraph } from "../config-graph"
-import * as Bluebird from "bluebird"
+import Bluebird from "bluebird"
 import { getConfigFilePath } from "../util/fs"
 
 export interface FileCopySpec {

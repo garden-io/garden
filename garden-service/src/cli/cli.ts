@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as sywac from "sywac"
+import sywac from "sywac"
 import chalk from "chalk"
 import { intersection, merge, sortBy } from "lodash"
 import { resolve, join } from "path"

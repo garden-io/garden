@@ -1,6 +1,6 @@
 import { platform } from "os"
 import { expect } from "chai"
-import * as tmp from "tmp-promise"
+import tmp from "tmp-promise"
 import {
   ProjectConfig,
   resolveProjectConfig,

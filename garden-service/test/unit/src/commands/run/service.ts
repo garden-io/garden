@@ -8,7 +8,7 @@ import {
 } from "../../../../helpers"
 import { expect } from "chai"
 import { Garden } from "../../../../../src/garden"
-import * as td from "testdouble"
+import td from "testdouble"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 
 describe("RunServiceCommand", () => {

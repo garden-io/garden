@@ -7,7 +7,7 @@
  */
 
 import { isEqual, invert } from "lodash"
-import * as Bluebird from "bluebird"
+import Bluebird from "bluebird"
 import { createServer, Server, Socket } from "net"
 const AsyncLock = require("async-lock")
 import getPort = require("get-port")

@@ -8,7 +8,7 @@
 
 import dedent = require("dedent")
 import { merge, flatten, uniq } from "lodash"
-import * as indentString from "indent-string"
+import indentString from "indent-string"
 import { get, isEqual, join, set, uniqWith } from "lodash"
 import { getModuleKey } from "../types/module"
 import { ConfigurationError } from "../exceptions"

@@ -1,6 +1,6 @@
 import { ChildProcess, spawn } from "child_process"
-import * as execa from "execa"
-import * as mlog from "mocha-logger"
+import execa from "execa"
+import mlog from "mocha-logger"
 import { resolve } from "path"
 import { sleep } from "../src/util/util"
 import { parseLogEntries, searchLog, findTasks, touchFile, parsedArgs, stringifyLogEntries } from "./e2e-helpers"

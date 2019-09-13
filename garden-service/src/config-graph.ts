@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Bluebird from "bluebird"
+import Bluebird from "bluebird"
 const toposort = require("toposort")
 import { flatten, pick, uniq, find, sortBy } from "lodash"
 import { Garden } from "./garden"

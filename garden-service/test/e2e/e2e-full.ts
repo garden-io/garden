@@ -1,4 +1,4 @@
-import * as execa from "execa"
+import execa from "execa"
 import parseArgs = require("minimist")
 import { resolve } from "path"
 import { examplesDir } from "../helpers"

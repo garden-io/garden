@@ -10,7 +10,7 @@ import {
   readFileSync,
   writeFileSync,
 } from "fs"
-import * as handlebars from "handlebars"
+import handlebars from "handlebars"
 import { resolve } from "path"
 import { GLOBAL_OPTIONS } from "../cli/cli"
 import { coreCommands } from "../commands/commands"

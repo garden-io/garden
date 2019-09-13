@@ -1,9 +1,4 @@
 {
-  "extends": "../tsconfig.base.json",
-  "include": [
-    "src/**/*.ts*",
-    "test/**/*.ts*"
-  ],
   "compilerOptions": {
     "skipLibCheck": false,
     "esModuleInterop": true,
@@ -15,5 +10,10 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "preserve"
-  }
+  },
+  "extends": "../tsconfig.base.json",
+  "include": [
+    "src/**/*.ts*",
+    "test/**/*.ts*"
+  ]
 }

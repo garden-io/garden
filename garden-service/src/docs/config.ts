@@ -9,9 +9,9 @@
 import Joi = require("@hapi/joi")
 import { readFileSync, writeFileSync } from "fs"
 import { safeDump } from "js-yaml"
-import * as linewrap from "linewrap"
-import * as titleize from "titleize"
-import * as humanize from "humanize-string"
+import linewrap from "linewrap"
+import titleize from "titleize"
+import humanize from "humanize-string"
 import { resolve } from "path"
 import { get, flatten, startCase, uniq } from "lodash"
 import { projectSchema, environmentSchema } from "../config/project"

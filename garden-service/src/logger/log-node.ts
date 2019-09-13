@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as uniqid from "uniqid"
+import uniqid from "uniqid"
 import { round } from "lodash"
 
 import { LogEntry, LogEntryParams } from "./log-entry"

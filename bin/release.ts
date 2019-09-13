@@ -1,8 +1,8 @@
 #!/usr/bin/env ts-node
 
-import * as execa from "execa"
-import * as semver from "semver"
-import * as inquirer from "inquirer"
+import execa from "execa"
+import semver from "semver"
+import inquirer from "inquirer"
 import chalk from "chalk"
 import parseArgs = require("minimist")
 import deline = require("deline")

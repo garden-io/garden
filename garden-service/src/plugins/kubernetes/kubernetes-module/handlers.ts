@@ -8,7 +8,7 @@
 
 import { resolve } from "path"
 import { readFile } from "fs-extra"
-import * as Bluebird from "bluebird"
+import Bluebird from "bluebird"
 import { flatten, set, uniq } from "lodash"
 import { safeLoadAll } from "js-yaml"
 

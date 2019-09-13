@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Bluebird from "bluebird"
+import Bluebird from "bluebird"
 import { extend } from "lodash"
 import { findByName } from "../../../util/util"
 import { ContainerService, ContainerIngressSpec } from "../../container/config"

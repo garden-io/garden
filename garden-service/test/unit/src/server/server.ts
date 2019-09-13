@@ -12,7 +12,7 @@ import { startServer, GardenServer } from "../../../../src/server/server"
 import { Garden } from "../../../../src/garden"
 import { expect } from "chai"
 import { deepOmitUndefined } from "../../../../src/util/util"
-import * as uuid from "uuid"
+import uuid from "uuid"
 import request = require("supertest")
 import getPort = require("get-port")
 import WebSocket = require("ws")

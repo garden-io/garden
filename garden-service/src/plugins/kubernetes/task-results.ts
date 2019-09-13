@@ -19,7 +19,7 @@ import { PluginContext } from "../../plugin-context"
 import { LogEntry } from "../../logger/log-entry"
 import { gardenAnnotationKey } from "../../util/string"
 import { Module } from "../../types/module"
-import * as hasha from "hasha"
+import hasha from "hasha"
 import { upsertConfigMap } from "./util"
 import { trimRunOutput } from "./helm/common"
 

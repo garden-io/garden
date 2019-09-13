@@ -8,10 +8,10 @@
 
 import Bluebird = require("bluebird")
 import { ResolvableProps } from "bluebird"
-import * as exitHook from "async-exit-hook"
-import * as yaml from "js-yaml"
-import * as Cryo from "cryo"
-import * as _spawn from "cross-spawn"
+import exitHook from "async-exit-hook"
+import yaml from "js-yaml"
+import Cryo from "cryo"
+import _spawn from "cross-spawn"
 import { readFile, writeFile } from "fs-extra"
 import { find, pick, difference, fromPairs, uniqBy } from "lodash"
 import { TimeoutError, ParameterError, RuntimeError, GardenError } from "../exceptions"
