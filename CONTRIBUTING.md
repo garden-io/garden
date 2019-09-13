@@ -72,8 +72,6 @@ For developing the dashboard, please refer to the [dashboard docs](./dashboard/R
 
 ### Debugging
 
-**WARNING: This setup is broken on Node > 10.12 and latest versions of Chrome. See e.g. this [SO post](https://stackoverflow.com/questions/48994836/chrome-devtools-dedicated-node-js-inspector-not-stopping-at-breakpoints). The solutions suggested there have not worked.**
-
 To enable setting a breakpoint in the code, run the CLI with the `garden-service/bin/static/garden-debug` binary, which adds the `--inspect` flag. Developers might find it useful to alias this:
 
 ```sh

@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as td from "testdouble"
+import td from "testdouble"
 import Bluebird = require("bluebird")
 import { resolve, join } from "path"
 import { extend } from "lodash"

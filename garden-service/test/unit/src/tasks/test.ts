@@ -1,7 +1,7 @@
 import { expect } from "chai"
 import { resolve } from "path"
 import { TestTask } from "../../../../src/tasks/test"
-import * as td from "testdouble"
+import td from "testdouble"
 import { Garden } from "../../../../src/garden"
 import { dataDir, makeTestGarden } from "../../../helpers"
 import { LogEntry } from "../../../../src/logger/log-entry"

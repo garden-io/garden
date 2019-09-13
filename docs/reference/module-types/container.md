@@ -1,3 +1,7 @@
+---
+title: Container
+---
+
 # `container` reference
 
 Specify a container image to build or pull from a remote registry.
@@ -349,6 +353,14 @@ Annotations to attach to the service (Note: May not be applicable to all provide
 | -------- | -------- | ------- |
 | `object` | No       | `{}`    |
 
+Example:
+
+```yaml
+services:
+  - annotations:
+      nginx.ingress.kubernetes.io/proxy-body-size: '0'
+```
+
 ### `services[].command[]`
 
 [services](#services) > command
@@ -425,6 +437,17 @@ Annotations to attach to the ingress (Note: May not be applicable to all provide
 | Type     | Required | Default |
 | -------- | -------- | ------- |
 | `object` | No       | `{}`    |
+
+Example:
+
+```yaml
+services:
+  - ingresses:
+    - path: /api
+      port: http
+      - annotations:
+          nginx.ingress.kubernetes.io/proxy-body-size: '0'
+```
 
 ### `services[].ingresses[].hostname`
 
@@ -653,6 +676,8 @@ The protocol of the port.
 [services](#services) > [ports](#services[].ports[]) > containerPort
 
 The port exposed on the container by the running process. This will also be the default value for `servicePort`.
+This is the port you would expose in your Dockerfile and that your process listens on. This is commonly a non-priviledged port like 8080 for security reasons.
+The service port maps to the container port:
 `servicePort:80 -> containerPort:8080 -> process:8080`
 
 | Type     | Required |
@@ -672,6 +697,9 @@ services:
 [services](#services) > [ports](#services[].ports[]) > servicePort
 
 The port exposed on the service. Defaults to `containerPort` if not specified.
+This is the port you use when calling a service from another service within the cluster. For example, if your service name is my-service and the service port is 8090, you would call it with: http://my-service:8090/some-endpoint.
+It is common to use port 80, the default port number, so that you can call the service directly with http://my-service/some-endpoint.
+The service port maps to the container port:
 `servicePort:80 -> containerPort:8080 -> process:8080`
 
 | Type     | Required | Default                     |
@@ -699,6 +727,7 @@ services:
 [services](#services) > [ports](#services[].ports[]) > nodePort
 
 Set this to expose the service on the specified port on the host node (may not be supported by all providers). Set to `true` to have the cluster pick a port automatically, which is most often advisable if the cluster is shared by multiple users.
+This allows you to call the service from the outside by the node's IP address and the port number set in this field.
 
 | Type     | Required |
 | -------- | -------- |

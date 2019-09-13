@@ -1,3 +1,7 @@
+---
+title: Commands Reference
+---
+
 ## Garden CLI commands
 
 Below is a list of Garden CLI commands and usage information.

@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Joi from "@hapi/joi"
-import * as Bluebird from "bluebird"
+import Joi from "@hapi/joi"
+import Bluebird from "bluebird"
 import normalize = require("normalize-path")
 import { mapValues, keyBy, sortBy, omit } from "lodash"
 import { createHash } from "crypto"

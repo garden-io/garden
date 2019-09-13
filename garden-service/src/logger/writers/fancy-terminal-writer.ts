@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as ansiEscapes from "ansi-escapes"
-import * as cliCursor from "cli-cursor"
-import * as elegantSpinner from "elegant-spinner"
-import * as wrapAnsi from "wrap-ansi"
+import ansiEscapes from "ansi-escapes"
+import cliCursor from "cli-cursor"
+import elegantSpinner from "elegant-spinner"
+import wrapAnsi from "wrap-ansi"
 import chalk from "chalk"
 
 import {

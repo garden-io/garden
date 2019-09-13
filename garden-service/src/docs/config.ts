@@ -9,7 +9,9 @@
 import Joi = require("@hapi/joi")
 import { readFileSync, writeFileSync } from "fs"
 import { safeDump } from "js-yaml"
-import * as linewrap from "linewrap"
+import linewrap from "linewrap"
+import titleize from "titleize"
+import humanize from "humanize-string"
 import { resolve } from "path"
 import { get, flatten, startCase, uniq } from "lodash"
 import { projectSchema, environmentSchema } from "../config/project"
@@ -434,7 +436,8 @@ function renderProviderReference(name: string, plugin: GardenPlugin) {
   )
 
   const template = handlebars.compile(readFileSync(providerTemplatePath).toString())
-  return template({ name, markdownReference, yaml, moduleOutputsReference })
+  const frontmatterTitle = titleize(humanize(name))
+  return template({ name, frontmatterTitle, markdownReference, yaml, moduleOutputsReference })
 }
 
 /**
@@ -480,8 +483,10 @@ function renderModuleTypeReference(name: string, desc: ModuleTypeDescription) {
     },
   )
 
+  const frontmatterTitle = titleize(humanize(name))
   const template = handlebars.compile(readFileSync(moduleTemplatePath).toString())
   return template({
+    frontmatterTitle,
     name,
     docs,
     markdownReference,

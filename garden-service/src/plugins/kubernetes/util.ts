@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Bluebird from "bluebird"
+import Bluebird from "bluebird"
 import { get, flatten, uniqBy, sortBy } from "lodash"
 import { V1Pod, V1EnvVar } from "@kubernetes/client-node"
 

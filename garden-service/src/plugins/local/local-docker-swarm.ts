@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Docker from "dockerode"
+import Docker from "dockerode"
 import { exec } from "child-process-promise"
 import { DeploymentError } from "../../exceptions"
 import { PluginContext } from "../../plugin-context"

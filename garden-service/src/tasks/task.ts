@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import * as Bluebird from "bluebird"
+import Bluebird from "bluebird"
 import chalk from "chalk"
 import { BaseTask, TaskParams, TaskType, getServiceStatuses, getRunTaskResults } from "../tasks/base"
 import { Garden } from "../garden"

@@ -7,7 +7,7 @@
  */
 
 import { sep, resolve, relative, basename } from "path"
-import * as yaml from "js-yaml"
+import yaml from "js-yaml"
 import { readFile } from "fs-extra"
 import { omit, flatten, isPlainObject, find } from "lodash"
 import { ModuleResource, moduleConfigSchema } from "./module"

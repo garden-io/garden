@@ -132,6 +132,7 @@ const hotReloadConfigSchema = joi.object()
 export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
 
 const annotationsSchema = joiStringMap(joi.string())
+  .example({ "nginx.ingress.kubernetes.io/proxy-body-size": "0" })
   .default(() => ({}), "{}")
 
 export interface EnvSecretRef {
@@ -232,8 +233,12 @@ export const portSchema = joi.object()
       .required()
       .example("8080")
       .description(deline`
-        The port exposed on the container by the running process. This will also be the default value
-        for \`servicePort\`.
+        The port exposed on the container by the running process. This will also be the default value for \`servicePort\`.
+
+        This is the port you would expose in your Dockerfile and that your process listens on.
+        This is commonly a non-priviledged port like 8080 for security reasons.
+
+        The service port maps to the container port:
 
         \`servicePort:80 -> containerPort:8080 -> process:8080\``),
     servicePort: joi.number()
@@ -241,6 +246,15 @@ export const portSchema = joi.object()
       .example("80")
       .description(deline`The port exposed on the service.
         Defaults to \`containerPort\` if not specified.
+
+        This is the port you use when calling a service from another service within the cluster.
+        For example, if your service name is my-service and the service port is 8090,
+        you would call it with: http://my-service:8090/some-endpoint.
+
+        It is common to use port 80, the default port number, so that you can call the service
+        directly with http://my-service/some-endpoint.
+
+        The service port maps to the container port:
 
         \`servicePort:80 -> containerPort:8080 -> process:8080\``),
     hostPort: joi.number()
@@ -251,6 +265,9 @@ export const portSchema = joi.object()
         Set this to expose the service on the specified port on the host node (may not be supported by all providers).
         Set to \`true\` to have the cluster pick a port automatically, which is most often advisable if the cluster is
         shared by multiple users.
+
+        This allows you to call the service from the outside by the node's IP address
+        and the port number set in this field.
       `),
   })
 

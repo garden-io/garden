@@ -14,7 +14,7 @@ import { ParameterError, toGardenError } from "../exceptions"
 import { LogEntry } from "../logger/log-entry"
 import { Garden } from "../garden"
 import { Command, CommandResult, CommandParams, StringParameter } from "./base"
-import * as Bluebird from "bluebird"
+import Bluebird from "bluebird"
 import { printHeader } from "../logger/util"
 
 const pluginArgs = {

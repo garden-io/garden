@@ -14,7 +14,7 @@ import {
 } from "./base"
 import stringWidth = require("string-width")
 import { maxBy, zip } from "lodash"
-import * as CliTable from "cli-table3"
+import CliTable from "cli-table3"
 import { GLOBAL_OPTIONS, HIDDEN_OPTIONS } from "../cli/cli"
 import { helpTextMaxWidth } from "../cli/helpers"
 import chalk from "chalk"

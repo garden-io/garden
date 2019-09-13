@@ -11,7 +11,7 @@ import { Garden } from "../garden"
 import { Logger } from "../logger/logger"
 import { LogLevel } from "../logger/log-node"
 import { resolve, relative } from "path"
-import * as Bluebird from "bluebird"
+import Bluebird from "bluebird"
 import { STATIC_DIR, GARDEN_VERSIONFILE_NAME } from "../constants"
 import { writeTreeVersionFile } from "../vcs/vcs"
 

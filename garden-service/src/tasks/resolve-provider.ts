@@ -17,7 +17,7 @@ import { ProviderConfigContext } from "../config/config-context"
 import { ModuleConfig } from "../config/module"
 import { GardenPlugin } from "../types/plugin/plugin"
 import { validateWithPath } from "../config/common"
-import * as Bluebird from "bluebird"
+import Bluebird from "bluebird"
 import { defaultEnvironmentStatus } from "../types/plugin/provider/getEnvironmentStatus"
 
 interface Params extends TaskParams {

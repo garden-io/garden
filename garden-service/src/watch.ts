@@ -15,7 +15,7 @@ import { LogEntry } from "./logger/log-entry"
 import { registerCleanupFunction, sleep } from "./util/util"
 import { some } from "lodash"
 import { isConfigFilename, matchPath } from "./util/fs"
-import * as Bluebird from "bluebird"
+import Bluebird from "bluebird"
 import { InternalError } from "./exceptions"
 
 // How long we wait between processing added files and directories

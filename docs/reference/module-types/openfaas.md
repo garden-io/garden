@@ -1,3 +1,7 @@
+---
+title: Openfaas
+---
+
 # `openfaas` reference
 
 Deploy [OpenFaaS](https://www.openfaas.com/) functions using Garden. Requires either the `openfaas` or
