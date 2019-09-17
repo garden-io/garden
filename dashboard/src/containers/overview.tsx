@@ -6,28 +6,28 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import React, { useContext, useEffect } from "react"
-import PageError from "../components/page-error"
+import React, { useEffect } from "react"
 import styled from "@emotion/styled"
-import { ServiceIngress } from "garden-service/build/src/types/service"
-import { RunState } from "garden-service/build/src/commands/get/get-status"
-import Module from "../components/module"
-import EntityResult from "../containers/entity-result"
-import { default as ViewIngress } from "../components/view-ingress"
-import { DataContext } from "../context/data"
-import Spinner from "../components/spinner"
-import { ServiceState } from "garden-service/build/src/types/service"
-import { UiStateContext } from "../context/ui"
-import { getDuration } from "../util/helpers"
 
-export const overviewConfig = {
-  service: {
-    height: "14rem",
-  },
-}
+import { RunState } from "garden-service/build/src/commands/get/get-status"
+import { ServiceState } from "garden-service/build/src/types/service"
+
+import PageError from "../components/page-error"
+import { ModuleCard, Props as ModuleProps } from "../components/entity-cards/module"
+import EntityResult from "./entity-result"
+import ViewIngress from "../components/view-ingress"
+import {
+  Service,
+  Test,
+  Task,
+  Module,
+  useApi,
+} from "../contexts/api"
+import Spinner from "../components/spinner"
+import { useUiState } from "../contexts/ui"
 
 const Overview = styled.div`
-    padding-top: .5rem;
+  padding-top: .5rem;
 `
 
 const Modules = styled.div`
@@ -38,46 +38,52 @@ const Modules = styled.div`
   padding: 0 0 0 1rem;
 `
 
-export type ModuleModel = {
-  name: string;
-  type: string;
-  path?: string;
-  repositoryUrl?: string;
-  description?: string;
-  services: Service[];
-  tests: Test[];
-  tasks: Task[];
-}
 export type Entity = {
-  name: string;
+  name?: string;
   state?: ServiceState | RunState;
-  isLoading: boolean;
   dependencies: string[];
 }
-export interface Service extends Entity {
-  state?: ServiceState
-  ingresses?: ServiceIngress[]
-}
-export interface Test extends Entity {
-  startedAt?: Date
-  completedAt?: Date
-  duration?: string
-  state?: RunState
-}
-export interface Task extends Entity {
-  startedAt?: Date
-  completedAt?: Date
-  duration?: string
-  state?: RunState
+
+const mapServices = (serviceEntities: Service[]): ModuleProps["serviceCardProps"] => {
+  return serviceEntities.map(({ config, status }) => ({
+    name: config.name,
+    dependencies: config.dependencies || [],
+    state: status.state,
+    ingresses: status.ingresses,
+  }))
 }
 
-// Note: We render the overview page components individually so we that we don't
-// have to wait for both API calls to return.
+const mapTests = (testEntities: Test[], moduleName: string): ModuleProps["testCardProps"] => {
+  return testEntities.map(({ config, status }) => ({
+    name: config.name,
+    dependencies: config.dependencies || [],
+    state: status.state,
+    startedAt: status.startedAt,
+    completedAt: status.completedAt,
+    moduleName,
+  }))
+}
+
+const mapTasks = (taskEntities: Task[], moduleName: string): ModuleProps["taskCardProps"] => {
+  return taskEntities.map(({ config, status }) => ({
+    name: config.name,
+    dependencies: config.dependencies || [],
+    state: status.state,
+    startedAt: status.startedAt,
+    completedAt: status.completedAt,
+    moduleName,
+  }))
+}
+
 export default () => {
   const {
+    store: {
+      projectRoot,
+      entities: { modules, services, tests, tasks },
+      requestStates: { fetchConfig, fetchStatus },
+    },
     actions: { loadConfig, loadStatus },
-    store: { config, status },
-  } = useContext(DataContext)
+  } = useApi()
 
   const {
     state: {
@@ -86,143 +92,85 @@ export default () => {
     actions: {
       selectEntity,
     },
-  } = useContext(UiStateContext)
+  } = useUiState()
 
-  useEffect(loadConfig, [])
-  useEffect(loadStatus, [])
+  // TODO use useAsyncEffect?
+  // https://dev.to/n1ru4l/homebrew-react-hooks-useasynceffect-or-how-to-handle-async-operations-with-useeffect-1fa8
+  useEffect(() => {
+    async function fetchData() {
+      return await loadConfig()
+    }
+    fetchData()
+  }, [])
+
+  useEffect(() => {
+    async function fetchData() {
+      return await loadStatus()
+    }
+    fetchData()
+  }, [])
 
   const clearSelectedEntity = () => {
     selectEntity(null)
   }
 
-  const isLoadingConfig = !config.data || config.loading
-
-  let modulesContainerComponent: React.ReactNode = null
-  let modules: ModuleModel[] = []
-
-  if (config.error || status.error) {
-    modulesContainerComponent = <PageError error={config.error || status.error} />
-  } else if (isLoadingConfig) {
-    modulesContainerComponent = <Spinner />
-  } else if (config.data && config.data.moduleConfigs) {
-
-    // fill modules with services names
-    modules = config.data.moduleConfigs.map(moduleConfig => ({
-      name: moduleConfig.name,
-      type: moduleConfig.type,
-      path: config.data &&
-        config.data.projectRoot &&
-        config.data.projectRoot.split("/").pop() +
-        moduleConfig.path.replace(config.data.projectRoot, ""),
-      repositoryUrl: moduleConfig.repositoryUrl,
-      description: moduleConfig.description,
-      services: moduleConfig.serviceConfigs.map(service => ({
-        name: service.name,
-        isLoading: true,
-        dependencies: service.dependencies,
-      })),
-      tests: moduleConfig.testConfigs.map(test => ({
-        name: test.name,
-        isLoading: true,
-        dependencies: test.dependencies,
-      })),
-      tasks: moduleConfig.taskConfigs.map(task => ({
-        name: task.name,
-        isLoading: true,
-        dependencies: task.dependencies,
-      })),
-    }))
-
-    // fill missing data from status
-    if (status.data && status.data.services) {
-      const servicesStatus = status.data.services
-      const testsStatus = status.data.tests
-      const tasksStatus = status.data.tasks
-      for (let currModule of modules) {
-        for (let serviceName of Object.keys(servicesStatus)) {
-          const index = currModule.services.findIndex(s => s.name === serviceName)
-
-          if (index !== -1) {
-            currModule.services[index] = {
-              ...currModule.services[index],
-              state: servicesStatus[serviceName].state,
-              ingresses: servicesStatus[serviceName].ingresses,
-              isLoading: false,
-            }
-          }
-        }
-
-        for (let testName of Object.keys(testsStatus)) {
-          const index = currModule.tests.findIndex(t => t.name === testName.split(".")[1])
-
-          if (index !== -1) {
-            const testStatus = testsStatus[testName]
-            currModule.tests[index] = {
-              ...currModule.tests[index],
-              state: testStatus.state,
-              isLoading: false,
-              startedAt: testStatus.startedAt,
-              completedAt: testStatus.completedAt,
-              duration: testStatus.startedAt &&
-                testStatus.completedAt &&
-                getDuration(testStatus.startedAt, testStatus.completedAt),
-            }
-          }
-        }
-
-        for (let taskName of Object.keys(tasksStatus)) {
-          const index = currModule.tasks.findIndex(t => t.name === taskName)
-
-          if (index !== -1) {
-            const taskStatus = tasksStatus[taskName]
-            currModule.tasks[index] = {
-              ...currModule.tasks[index],
-              state: taskStatus.state,
-              isLoading: false,
-              startedAt: taskStatus.startedAt,
-              completedAt: taskStatus.completedAt,
-              duration: taskStatus.startedAt &&
-                taskStatus.completedAt &&
-                getDuration(taskStatus.startedAt, taskStatus.completedAt),
-            }
-          }
-        }
-      }
-    }
-
-    modulesContainerComponent = (
-      <Overview>
-        <div className="row">
-          <div className="col-xs">
-            <Modules>
-              {modules.map(module => (
-                <Module module={module} key={module.name} />
-              ))}
-            </Modules>
-          </div>
-          {selectedIngress &&
-            <div className="col-lg visible-lg-block">
-              {selectedIngress &&
-                <ViewIngress ingress={selectedIngress} />
-              }
-            </div>
-          }
-          {selectedEntity && (
-            <div className="col-xs-5 col-sm-5 col-md-4 col-lg-4 col-xl-4">
-              <EntityResult
-                name={selectedEntity.name}
-                type={selectedEntity.type}
-                moduleName={selectedEntity.module}
-                onClose={clearSelectedEntity}
-              />
-            </div>
-          )}
-        </div>
-      </Overview >
-    )
+  if (fetchConfig.error || fetchStatus.error) {
+    return <PageError error={fetchConfig.error || fetchStatus.error} />
   }
 
+  if (fetchConfig.loading || fetchStatus.loading) {
+    return <Spinner />
+  }
+
+  const moduleProps: ModuleProps[] = Object.values(modules).map((module: Module) => {
+    const serviceEntities = module.services.map(serviceKey => services[serviceKey]) || []
+    const testEntities = module.tests.map(testKey => tests[testKey]) || []
+    const taskEntities = module.tasks.map(taskKey => tasks[taskKey]) || []
+
+    return {
+      name: module.name,
+      type: module.type,
+      path: projectRoot.split("/").pop() + module.path.replace(projectRoot, ""),
+      repositoryUrl: module.repositoryUrl,
+      description: module.description,
+      serviceCardProps: mapServices(serviceEntities),
+      testCardProps: mapTests(testEntities, module.name),
+      taskCardProps: mapTasks(taskEntities, module.name),
+      isLoading: fetchStatus.loading,
+    }
+  })
+
   return (
-    <div>{modulesContainerComponent}</div>
+    <Overview>
+      <div className="row">
+        <div className="col-xs">
+          <Modules>
+            {moduleProps.map(props => (
+              <ModuleCard
+                {...props}
+                key={props.name}
+              />
+            ))}
+          </Modules>
+        </div>
+        {selectedIngress &&
+          <div className="col-lg visible-lg-block">
+            {selectedIngress &&
+              <ViewIngress ingress={selectedIngress} />
+            }
+          </div>
+        }
+        {selectedEntity && (
+          <div className="col-xs-5 col-sm-5 col-md-4 col-lg-4 col-xl-4">
+            <EntityResult
+              name={selectedEntity.name}
+              type={selectedEntity.type}
+              moduleName={selectedEntity.module}
+              onClose={clearSelectedEntity}
+            />
+          </div>
+        )}
+      </div>
+    </Overview >
   )
 }

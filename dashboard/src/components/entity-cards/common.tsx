@@ -6,18 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import React, { ReactNode } from "react"
 import styled from "@emotion/styled"
-import { Entity } from "../containers/overview"
-import { colors } from "../styles/variables"
-import { Facebook as ContentLoader } from "react-content-loader"
+import { colors } from "../../styles/variables"
 
-interface EntityCardProps {
-  type: EntityType
-}
-const EntityCard = styled.div<EntityCardProps>`
+export const EntityCardWrap = styled.div`
   max-height: 13rem;
-  background-color: ${props => (props && props.type && colors.cardTypes[props.type] || "white")};
+  background-color: white;
   margin-right: 1rem;
   box-shadow: 2px 2px 9px rgba(0,0,0,0.14);
   border-radius: 4px;
@@ -34,13 +28,13 @@ const EntityCard = styled.div<EntityCardProps>`
   }
 `
 
-const Header = styled.div`
+export const Header = styled.div`
   width: 100%;
   display:flex;
   justify-content: space-between;
 `
 
-const Content = styled.div`
+export const Content = styled.div`
   width: 100%;
   position: relative;
   max-height: 10rem;
@@ -51,10 +45,11 @@ const Content = styled.div`
   }
 `
 
-type StateContainerProps = {
+type StateLabelProps = {
   state: string,
 }
-const StateContainer = styled.div<StateContainerProps>`
+
+export const StateLabel = styled.div<StateLabelProps>`
   padding: 0 .5rem;
   margin-left: auto;
   background-color: ${props => (props && props.state ? colors.state[props.state] : colors.gardenGrayLight)};
@@ -70,7 +65,7 @@ const StateContainer = styled.div<StateContainerProps>`
   height: 1rem;
 `
 
-const Tag = styled.div`
+export const Label = styled.div`
   display: flex;
   align-items: center;
   font-weight: 500;
@@ -81,46 +76,62 @@ const Tag = styled.div`
   color: #90A0B7;
 `
 
-const Name = styled.div`
+export const Name = styled.div`
   font-size: 0.9375rem;
   font-weight: 500;
   color: rgba(0, 0, 0, .87);
   padding-top: 0.125rem;
 `
 
-type EntityType = "service" | "test" | "task"
-
-interface Props {
-  type: EntityType
-  children: ReactNode
-  entity: Entity
+type FieldWrapProps = {
+  visible: boolean,
 }
 
-export default ({
-  children,
-  type,
-  entity: { name, isLoading, state },
-}: Props) => {
+export const FieldWrap = styled.div<FieldWrapProps>`
+  display: ${props => (props.visible ? `block` : "none")};
+  animation: fadein .5s;
+  @keyframes fadein {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+`
 
-  return (
-    <EntityCard type={type}>
-      <Header>
-        <div>
-          <Tag>{type.toUpperCase()}</Tag>
-          <Name>{name}</Name>
-        </div>
-        {state && (
-          <StateContainer state={state}>
-            {state}
-          </StateContainer>
-        )}
-      </Header>
-      <Content>
-        {isLoading && (
-          <ContentLoader height={100} />
-        )}
-        {!isLoading && children}
-      </Content>
-    </EntityCard>
-  )
+type FieldProps = {
+  inline?: boolean,
+  visible: boolean,
 }
+
+export const Field = styled.div<FieldProps>`
+  display: ${props => (props.visible ? (props.inline ? "flex" : "block") : "none")};
+  flex-direction: row;
+`
+
+type FieldGroupProps = {
+  visible: boolean,
+}
+
+export const FieldGroup = styled.div<FieldGroupProps>`
+  display: ${props => (props.visible ? "flex" : "none")};
+  flex-direction: row;
+  padding-top: .25rem;
+`
+
+export const Key = styled.div`
+  padding-right: .25rem;
+  font-size: 0.8125rem;
+  line-height: 1.1875rem;
+  letter-spacing: 0.01em;
+  color: #4C5862;
+  opacity: 0.5;
+`
+
+export const Value = styled.div`
+  padding-right: .5rem;
+  font-size: 0.8125rem;
+  line-height: 1.1875rem;
+  letter-spacing: 0.01em;
+`

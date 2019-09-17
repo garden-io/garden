@@ -7,10 +7,10 @@
  */
 
 import { kebabCase, flatten, entries } from "lodash"
-import React, { useContext, useEffect } from "react"
+import React, { useEffect } from "react"
 
 import Sidebar from "../components/sidebar"
-import { DataContext } from "../context/data"
+import { useApi } from "../contexts/api"
 import { DashboardPage } from "garden-service/build/src/config/status"
 
 export interface Page extends DashboardPage {
@@ -44,22 +44,25 @@ const builtinPages: Page[] = [
 const SidebarContainer = () => {
   const {
     actions: { loadStatus },
-    store: { status },
-  } = useContext(DataContext)
+    store: { entities: { providers } },
+  } = useApi()
 
-  useEffect(loadStatus, [])
+  useEffect(() => {
+    async function fetchData() {
+      return await loadStatus()
+    }
+    fetchData()
+  }, [])
 
   let pages: Page[] = []
 
-  if (status.data) {
-    pages = flatten(entries(status.data.providers).map(([providerName, providerStatus]) => {
-      return (providerStatus.dashboardPages || []).map(p => ({
-        ...p,
-        path: `/provider/${providerName}/${kebabCase(p.title)}`,
-        description: p.description + ` (from provider ${providerName})`,
-      }))
+  pages = flatten(entries(providers).map(([providerName, providerStatus]) => {
+    return (providerStatus.dashboardPages || []).map(p => ({
+      ...p,
+      path: `/provider/${providerName}/${kebabCase(p.title)}`,
+      description: p.description + ` (from provider ${providerName})`,
     }))
-  }
+  }))
 
   return <Sidebar pages={[...builtinPages, ...pages]} />
 }

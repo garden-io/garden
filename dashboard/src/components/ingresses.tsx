@@ -6,14 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import React, { useContext } from "react"
+import React from "react"
 import styled from "@emotion/styled"
 import { ExternalLink } from "./links"
 import { ServiceIngress } from "garden-service/build/src/types/service"
 import { truncateMiddle } from "../util/helpers"
 import normalizeUrl from "normalize-url"
 import { format } from "url"
-import { UiStateContext } from "../context/ui"
+import { useUiState } from "../contexts/ui"
 
 const Ingresses = styled.div`
   font-size: 1rem;
@@ -56,7 +56,7 @@ interface IngressesProp {
 }
 
 export default ({ ingresses }: IngressesProp) => {
-  const { actions: { selectIngress } } = useContext(UiStateContext)
+  const { actions: { selectIngress } } = useUiState()
 
   const handleSelectIngress = (event) => {
     if (ingresses && ingresses.length) {
