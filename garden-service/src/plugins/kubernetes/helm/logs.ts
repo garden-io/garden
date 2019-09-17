@@ -21,5 +21,5 @@ export async function getServiceLogs(params: GetServiceLogsParams<HelmModule>) {
 
   const resources = await getChartResources(k8sCtx, module, log)
 
-  return getAllLogs({ ...params, provider, namespace, resources })
+  return getAllLogs({ ...params, provider, defaultNamespace: namespace, resources })
 }
