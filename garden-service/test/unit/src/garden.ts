@@ -1,5 +1,6 @@
 import { expect } from "chai"
 import td from "testdouble"
+import tmp from "tmp-promise"
 import { join, resolve } from "path"
 import { Garden } from "../../../src/garden"
 import {
@@ -33,6 +34,8 @@ import { keyBy, set } from "lodash"
 import stripAnsi from "strip-ansi"
 import { joi } from "../../../src/config/common"
 import { defaultDotIgnoreFiles } from "../../../src/util/fs"
+import { realpath, writeFile } from "fs-extra"
+import { dedent } from "../../../src/util/string"
 
 describe("Garden", () => {
   beforeEach(async () => {
@@ -272,6 +275,21 @@ describe("Garden", () => {
         b: "B",
         c: "c",
       })
+    })
+
+    it("should throw if project root is not in a git repo root", async () => {
+      const tmpDir = await tmp.dir({ unsafeCleanup: true })
+
+      try {
+        const tmpPath = await realpath(tmpDir.path)
+        await writeFile(join(tmpPath, "garden.yml"), dedent`
+          kind: Project
+          name: foo
+        `)
+        await expectError(async () => Garden.factory(tmpPath, {}), "runtime")
+      } finally {
+        await tmpDir.cleanup()
+      }
     })
   })
 
