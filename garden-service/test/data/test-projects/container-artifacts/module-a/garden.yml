@@ -1,0 +1,15 @@
+kind: Module
+name: module-a
+type: exec
+tasks:
+  - name: task-a
+    command: [sh, -c, '"touch /foo.txt"']
+    artifacts:
+      - source: foo.*
+        target: foo/
+tests:
+  - name: test-a
+    command: [sh, -c, '"touch /bar.txt"']
+    artifacts:
+      - source: /bar.*
+        target: bar/

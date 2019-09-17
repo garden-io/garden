@@ -23,7 +23,7 @@ E.g. ${chalk.blue("local")} or ${chalk.blue("testing")}.
 ${chalk.green("--project")}: Specify the project to run (required). \
 E.g. ${chalk.blue("demo-project")} or ${chalk.blue("vote-helm")}.
 
-Example: ./garden-service/bin/e2e-full.ts --binPath=/path/to/garden --project=demo-project
+Example: ./garden-service/bin/e2e-project.ts --binPath=/path/to/garden --project=demo-project
 `
 
 async function run() {
