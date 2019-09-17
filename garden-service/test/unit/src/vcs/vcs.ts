@@ -25,6 +25,10 @@ class TestVcsHandler extends VcsHandler {
   name = "test"
   private testVersions: TreeVersions = {}
 
+  async getRepoRoot() {
+    return "/foo"
+  }
+
   async getFiles() {
     return []
   }

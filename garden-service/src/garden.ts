@@ -85,20 +85,22 @@ interface ModuleConfigResolveOpts extends ContextResolveOpts {
 }
 
 export interface GardenParams {
-  buildDir: BuildDir,
-  environmentName: string,
-  gardenDirPath: string,
-  opts: GardenOpts,
-  plugins: Plugins,
-  projectName: string,
-  projectRoot: string,
-  projectSources?: SourceConfig[],
-  providerConfigs: ProviderConfig[],
-  variables: PrimitiveMap,
-  workingCopyId: string,
+  buildDir: BuildDir
+  environmentName: string
   dotIgnoreFiles: string[]
+  gardenDirPath: string
+  log: LogEntry
   moduleIncludePatterns?: string[]
   moduleExcludePatterns?: string[]
+  opts: GardenOpts
+  plugins: Plugins
+  projectName: string
+  projectRoot: string
+  projectSources?: SourceConfig[]
+  providerConfigs: ProviderConfig[]
+  variables: PrimitiveMap
+  vcs: VcsHandler
+  workingCopyId: string
 }
 
 export class Garden {
@@ -139,6 +141,7 @@ export class Garden {
     this.buildDir = params.buildDir
     this.environmentName = params.environmentName
     this.gardenDirPath = params.gardenDirPath
+    this.log = params.log
     this.opts = params.opts
     this.projectName = params.projectName
     this.projectRoot = params.projectRoot
@@ -151,6 +154,7 @@ export class Garden {
     this.moduleExcludePatterns = params.moduleExcludePatterns || []
     this.asyncLock = new AsyncLock()
     this.persistent = !!params.opts.persistent
+    this.vcs = params.vcs
 
     // make sure we're on a supported platform
     const currentPlatform = platform()
@@ -165,9 +169,7 @@ export class Garden {
     }
 
     this.modulesScanned = false
-    this.log = this.opts.log || getLogger().placeholder()
     // TODO: Support other VCS options.
-    this.vcs = new GitHandler(this.gardenDirPath, this.dotIgnoreFiles)
     this.configStore = new LocalConfigStore(this.gardenDirPath)
     this.globalConfigStore = new GlobalConfigStore()
     this.cache = new TreeCache()
@@ -220,10 +222,15 @@ export class Garden {
     gardenDirPath = resolve(projectRoot, gardenDirPath || DEFAULT_GARDEN_DIR_NAME)
     const buildDir = await BuildDir.factory(projectRoot, gardenDirPath)
     const workingCopyId = await getWorkingCopyId(gardenDirPath)
+    const log = opts.log || getLogger().placeholder()
 
     // We always exclude the garden dir
     const gardenDirExcludePattern = `${relative(projectRoot, gardenDirPath)}/**/*`
     const moduleExcludePatterns = [...((config.modules || {}).exclude || []), gardenDirExcludePattern]
+
+    // Ensure the project root is in a git repo
+    const vcs = new GitHandler(gardenDirPath, config.dotIgnoreFiles)
+    await vcs.getRepoRoot(log, projectRoot)
 
     const garden = new this({
       projectRoot,
@@ -240,6 +247,8 @@ export class Garden {
       workingCopyId,
       dotIgnoreFiles: config.dotIgnoreFiles,
       moduleIncludePatterns: (config.modules || {}).include,
+      log,
+      vcs,
     }) as InstanceType<T>
 
     return garden

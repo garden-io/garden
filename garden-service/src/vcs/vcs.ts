@@ -88,6 +88,7 @@ export abstract class VcsHandler {
   constructor(protected gardenDirPath: string, protected ignoreFiles: string[]) { }
 
   abstract name: string
+  abstract async getRepoRoot(log: LogEntry, path: string): Promise<string>
   abstract async getFiles(params: GetFilesParams): Promise<VcsFile[]>
   abstract async ensureRemoteSource(params: RemoteSourceParams): Promise<string>
   abstract async updateRemoteSource(params: RemoteSourceParams): Promise<void>

@@ -73,13 +73,32 @@ export class GitHandler extends VcsHandler {
     }
   }
 
+  async getRepoRoot(log: LogEntry, path: string) {
+    const git = this.gitCli(log, path)
+
+    try {
+      return (await git("rev-parse", "--show-toplevel"))[0]
+    } catch (err) {
+      if (err.exitCode === 128) {
+        // Throw nice error when we detect that we're not in a repo root
+        throw new RuntimeError(deline`
+          Path ${path} is not in a git repository root. Garden must be run from within a git repo.
+          Please run \`git init\` if you're starting a new project and repository, or move the project to an
+          existing repository, and try again.
+        `, { path })
+      } else {
+        throw err
+      }
+    }
+  }
+
   /**
    * Returns a list of files, along with file hashes, under the given path, taking into account the configured
    * .ignore files, and the specified include/exclude filters.
    */
   async getFiles({ log, path, include, exclude }: GetFilesParams): Promise<VcsFile[]> {
     const git = this.gitCli(log, path)
-    const gitRoot = (await git("rev-parse", "--show-toplevel"))[0]
+    const gitRoot = await this.getRepoRoot(log, path)
 
     // List modified files, so that we can ensure we have the right hash for them later
     const modified = new Set((await this.getModifiedFiles(git, path))
