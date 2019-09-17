@@ -11,11 +11,10 @@ import { expect } from "chai"
 import tmp from "tmp-promise"
 import uuid from "uuid"
 import { createFile, writeFile, realpath, mkdir, remove, symlink } from "fs-extra"
-import { join, resolve, basename } from "path"
+import { join, resolve, basename, relative } from "path"
 
 import { expectError, makeTestGardenA } from "../../../helpers"
 import { getCommitIdFromRefList, parseGitUrl, GitHandler } from "../../../../src/vcs/git"
-import { fixedExcludes } from "../../../../src/util/fs"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { hashRepoUrl } from "../../../../src/util/ext-source-util"
 import { deline } from "../../../../src/util/string"
@@ -30,19 +29,18 @@ async function getCommitMsg(repoPath: string) {
 
 async function commit(msg: string, repoPath: string) {
   // Ensure master contains changes when commiting
-  const uniqueFilename = uuid.v4()
-  const filePath = join(repoPath, `${uniqueFilename}.txt`)
+  const uniqueFilename = `${uuid.v4()}.txt`
+  const filePath = join(repoPath, uniqueFilename)
   await createFile(filePath)
   await execa("git", ["add", filePath], { cwd: repoPath })
   await execa("git", ["commit", "-m", msg], { cwd: repoPath })
+  return uniqueFilename
 }
 
-async function makeTempGitRepo(initCommitMsg: string = "test commit") {
+async function makeTempGitRepo() {
   const tmpDir = await tmp.dir({ unsafeCleanup: true })
   const tmpPath = await realpath(tmpDir.path)
   await execa("git", ["init"], { cwd: tmpPath })
-
-  await commit(initCommitMsg, tmpPath)
 
   return tmpDir
 }
@@ -64,11 +62,10 @@ describe("GitHandler", () => {
   beforeEach(async () => {
     const garden = await makeTestGardenA()
     log = garden.log
-    tmpDir = await tmp.dir({ unsafeCleanup: true })
+    tmpDir = await makeTempGitRepo()
     tmpPath = await realpath(tmpDir.path)
     handler = new GitHandler(tmpPath, [defaultIgnoreFilename])
     git = (<any>handler).gitCli(log, tmpPath)
-    await git("init")
   })
 
   afterEach(async () => {
@@ -320,20 +317,6 @@ describe("GitHandler", () => {
       expect(files).to.eql([])
     })
 
-    it("should exclude files that are exclude by default", async () => {
-      for (const exclude of fixedExcludes) {
-        const name = "foo.txt"
-        const updatedExclude = exclude.replace("**", "a-folder").replace("*", "-a-value/sisis")
-        const path = resolve(join(tmpPath, updatedExclude), name)
-        await createFile(path)
-      }
-
-      const files = (await handler.getFiles({ path: tmpPath, exclude: [...fixedExcludes], log }))
-        .filter(f => !f.path.includes(defaultIgnoreFilename))
-
-      expect(files).to.eql([])
-    })
-
     it("should exclude an untracked symlink to a directory", async () => {
       const tmpDir2 = await tmp.dir({ unsafeCleanup: true })
       const tmpPathB = await realpath(tmpDir2.path)
@@ -347,6 +330,110 @@ describe("GitHandler", () => {
         .filter(f => !f.path.includes(defaultIgnoreFilename))
 
       expect(files).to.eql([])
+    })
+
+    context("path contains a submodule", () => {
+      let submodule: tmp.DirectoryResult
+      let submodulePath: string
+      let initFile: string
+
+      beforeEach(async () => {
+        submodule = await makeTempGitRepo()
+        submodulePath = await realpath(submodule.path)
+        initFile = await commit("init", submodulePath)
+
+        await execa("git", ["submodule", "add", submodulePath, "sub"], { cwd: tmpPath })
+        await execa("git", ["commit", "-m", "add submodule"], { cwd: tmpPath })
+      })
+
+      afterEach(async () => {
+        await submodule.cleanup()
+      })
+
+      it("should include tracked files in submodules", async () => {
+        const files = await handler.getFiles({ path: tmpPath, log })
+        const paths = files.map(f => relative(tmpPath, f.path))
+
+        expect(paths).to.eql([".gitmodules", join("sub", initFile)])
+      })
+
+      it("should include untracked files in submodules", async () => {
+        const path = join(tmpPath, "sub", "x.txt")
+        await createFile(path)
+
+        const files = await handler.getFiles({ path: tmpPath, log })
+        const paths = files.map(f => relative(tmpPath, f.path)).sort()
+
+        expect(paths).to.eql([".gitmodules", join("sub", initFile), join("sub", "x.txt")])
+      })
+
+      it("should respect include filter when scanning a submodule", async () => {
+        const path = join(tmpPath, "sub", "x.foo")
+        await createFile(path)
+
+        const files = await handler.getFiles({ path: tmpPath, log, include: ["sub/*.txt"] })
+        const paths = files.map(f => relative(tmpPath, f.path)).sort()
+
+        expect(paths).to.eql([join("sub", initFile)])
+      })
+
+      it("should respect exclude filter when scanning a submodule", async () => {
+        const path = join(tmpPath, "sub", "x.foo")
+        await createFile(path)
+
+        const files = await handler.getFiles({ path: tmpPath, log, exclude: ["sub/*.txt"] })
+        const paths = files.map(f => relative(tmpPath, f.path)).sort()
+
+        expect(paths).to.eql([".gitmodules", join("sub", "x.foo")])
+      })
+
+      context("submodule contains another submodule", () => {
+        let submoduleB: tmp.DirectoryResult
+        let submodulePathB: string
+        let initFileB: string
+
+        beforeEach(async () => {
+          submoduleB = await makeTempGitRepo()
+          submodulePathB = await realpath(submoduleB.path)
+          initFileB = await commit("init", submodulePathB)
+
+          await execa("git", ["submodule", "add", submodulePathB, "sub-b"], { cwd: join(tmpPath, "sub") })
+          await execa("git", ["commit", "-m", "add submodule"], { cwd: join(tmpPath, "sub") })
+        })
+
+        afterEach(async () => {
+          await submoduleB.cleanup()
+        })
+
+        it("should include tracked files in nested submodules", async () => {
+          const files = await handler.getFiles({ path: tmpPath, log })
+          const paths = files.map(f => relative(tmpPath, f.path)).sort()
+
+          expect(paths).to.eql([
+            ".gitmodules",
+            join("sub", ".gitmodules"),
+            join("sub", initFile),
+            join("sub", "sub-b", initFileB),
+          ])
+        })
+
+        it("should include untracked files in nested submodules", async () => {
+          const dir = join(tmpPath, "sub", "sub-b")
+          const path = join(dir, "x.txt")
+          await createFile(path)
+
+          const files = await handler.getFiles({ path: tmpPath, log })
+          const paths = files.map(f => relative(tmpPath, f.path)).sort()
+
+          expect(paths).to.eql([
+            ".gitmodules",
+            join("sub", ".gitmodules"),
+            join("sub", initFile),
+            join("sub", "sub-b", initFileB),
+            join("sub", "sub-b", "x.txt"),
+          ])
+        })
+      })
     })
   })
 
@@ -375,12 +462,15 @@ describe("GitHandler", () => {
     let clonePath: string
 
     beforeEach(async () => {
-      tmpRepoA = await makeTempGitRepo("test commit A")
+      tmpRepoA = await makeTempGitRepo()
       tmpRepoPathA = await realpath(tmpRepoA.path)
+      await commit("test commit A", tmpRepoPathA)
+
       repositoryUrlA = `file://${tmpRepoPathA}#master`
 
-      tmpRepoB = await makeTempGitRepo("test commit B")
+      tmpRepoB = await makeTempGitRepo()
       tmpRepoPathB = await realpath(tmpRepoB.path)
+      await commit("test commit B", tmpRepoPathB)
 
       const hash = hashRepoUrl(repositoryUrlA)
       clonePath = join(tmpPath, "sources", "module", `foo--${hash}`)

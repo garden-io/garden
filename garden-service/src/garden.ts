@@ -40,7 +40,7 @@ import { platform, arch } from "os"
 import { LogEntry } from "./logger/log-entry"
 import { EventBus } from "./events"
 import { Watcher } from "./watch"
-import { findConfigPathsInPath, getConfigFilePath, getWorkingCopyId } from "./util/fs"
+import { findConfigPathsInPath, getConfigFilePath, getWorkingCopyId, fixedExcludes } from "./util/fs"
 import { Provider, ProviderConfig, getProviderDependencies, defaultProvider } from "./config/provider"
 import { ResolveProviderTask } from "./tasks/resolve-provider"
 import { ActionHelper } from "./actions"
@@ -226,7 +226,11 @@ export class Garden {
 
     // We always exclude the garden dir
     const gardenDirExcludePattern = `${relative(projectRoot, gardenDirPath)}/**/*`
-    const moduleExcludePatterns = [...((config.modules || {}).exclude || []), gardenDirExcludePattern]
+    const moduleExcludePatterns = [
+      ...((config.modules || {}).exclude || []),
+      gardenDirExcludePattern,
+      ...fixedExcludes,
+    ]
 
     // Ensure the project root is in a git repo
     const vcs = new GitHandler(gardenDirPath, config.dotIgnoreFiles)

@@ -22,7 +22,7 @@ import { LogEntry } from "../logger/log-entry"
 const VALID_CONFIG_FILENAMES = ["garden.yml", "garden.yaml"]
 const metadataFilename = "metadata.json"
 export const defaultDotIgnoreFiles = [".gitignore", ".gardenignore"]
-export const fixedExcludes = [".git", ".garden/**/*", "debug-info*/**"]
+export const fixedExcludes = [".git", ".gitmodules", ".garden/**/*", "debug-info*/**"]
 
 /*
   Warning: Don't make any async calls in the loop body when using this function, since this may cause
@@ -116,7 +116,7 @@ export async function findConfigPathsInPath(
     { vcs: VcsHandler, dir: string, include?: string[], exclude?: string[], log: LogEntry },
 ) {
   // TODO: we could make this lighter/faster using streaming
-  const files = await vcs.getFiles({ path: dir, include, exclude: [...exclude || [], ...fixedExcludes], log })
+  const files = await vcs.getFiles({ path: dir, include, exclude: exclude || [], log })
   return files
     .map(f => f.path)
     .filter(f => isConfigFilename(basename(f)))

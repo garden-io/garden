@@ -7,7 +7,7 @@
  */
 
 import execa from "execa"
-import { join, resolve } from "path"
+import { join, resolve, relative } from "path"
 import { flatten } from "lodash"
 import { ensureDir, pathExists, stat, createReadStream } from "fs-extra"
 import { PassThrough } from "stream"
@@ -21,6 +21,7 @@ import { matchPath } from "../util/fs"
 import { deline } from "../util/string"
 import { splitLast } from "../util/util"
 import { LogEntry } from "../logger/log-entry"
+import parseGitConfig from "parse-git-config"
 
 export function getCommitIdFromRefList(refList: string[]): string {
   try {
@@ -46,6 +47,11 @@ export function parseGitUrl(url: string) {
 
 interface GitCli {
   (...args: string[]): Promise<string[]>
+}
+
+interface Submodule {
+  path: string
+  url: string
 }
 
 // TODO Consider moving git commands to separate (and testable) functions
@@ -113,6 +119,9 @@ export class GitHandler extends VcsHandler {
       )),
     ))
 
+    // List all submodule paths in the current repo
+    const submodulePaths = (await this.getSubmodules(gitRoot)).map(s => join(gitRoot, s.path))
+
     // We run ls-files for each ignoreFile and do a manual set-intersection (by counting elements in an object)
     // in order to optimize the flow.
     const paths: { [path: string]: number } = {}
@@ -156,7 +165,10 @@ export class GitHandler extends VcsHandler {
 
       // We push to the output array when all ls-files commands "agree" that it should be included,
       // and it passes through the include/exclude filters.
-      if (paths[resolvedPath] === this.ignoreFiles.length && matchPath(filePath, include, exclude)) {
+      if (
+        paths[resolvedPath] === this.ignoreFiles.length
+        && (matchPath(filePath, include, exclude) || submodulePaths.includes(resolvedPath))
+      ) {
         files.push({ path: resolvedPath, hash })
       }
     }
@@ -181,8 +193,20 @@ export class GitHandler extends VcsHandler {
       }
     })
 
+    // Resolve submodules
+    const withSubmodules = flatten(await Bluebird.map(files, async (f) => {
+      if (submodulePaths.includes(f.path)) {
+        // This path is a submodule, so we recursively call getFiles for that path again.
+        // Note: We apply include/exclude filters after listing files from submodule
+        return (await this.getFiles({ log, path: f.path, exclude: [] }))
+          .filter(submoduleFile => matchPath(relative(path, submoduleFile.path), include, exclude))
+      } else {
+        return [f]
+      }
+    }))
+
     // Make sure we have a fresh hash for each file
-    return Bluebird.map(files, async (f) => {
+    return Bluebird.map(withSubmodules, async (f) => {
       const resolvedPath = resolve(path, f.path)
       if (!f.hash || modified.has(resolvedPath)) {
         // If we can't compute the hash, i.e. the file is gone, we filter it out below
@@ -288,5 +312,23 @@ export class GitHandler extends VcsHandler {
     stream.push(`blob ${info.size}\0`)
     createReadStream(path).pipe(stream)
     return output
+  }
+
+  private async getSubmodules(gitRoot: string) {
+    const submodules: Submodule[] = []
+    const gitmodulesPath = join(gitRoot, ".gitmodules")
+
+    if (await pathExists(gitmodulesPath)) {
+      const parsed = await parseGitConfig({ cwd: gitRoot, path: ".gitmodules" })
+
+      for (const [key, spec] of Object.entries(parsed || {}) as any) {
+        if (!key.startsWith("submodule")) {
+          continue
+        }
+        spec.path && submodules.push(spec)
+      }
+    }
+
+    return submodules
   }
 }
