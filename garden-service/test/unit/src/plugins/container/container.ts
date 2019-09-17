@@ -663,14 +663,6 @@ describe("plugins.container", () => {
     })
   })
 
-  describe("getDockerVersion", () => {
-    it("should get the current docker version", async () => {
-      const { clientVersion, serverVersion } = await helpers.getDockerVersion()
-      expect(clientVersion).to.be.ok
-      expect(serverVersion).to.be.ok
-    })
-  })
-
   describe("checkDockerVersion", () => {
     it("should return if client and server version is equal to minimum version", async () => {
       helpers.dockerVersionChecked = false

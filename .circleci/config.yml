@@ -356,6 +356,9 @@ jobs:
           name: Start Minikube Cluster
           command: sudo -E minikube start --vm-driver=none --cpus 2 --memory 4096 --kubernetes-version=$K8S_VERSION
       - run:
+          name: Integ tests
+          command: npm run integ
+      - run:
           name: Deploy demo-project
           command: sudo -E ./garden-service/bin/garden deploy --root examples/demo-project --logger-type basic
       - run:

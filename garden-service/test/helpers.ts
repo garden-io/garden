@@ -45,7 +45,7 @@ import { ExternalSourceType, getRemoteSourceRelPath, hashRepoUrl } from "../src/
 import { ConfigureProviderParams } from "../src/types/plugin/provider/configureProvider"
 import { ActionRouter } from "../src/actions"
 
-export const dataDir = resolve(GARDEN_SERVICE_ROOT, "test", "unit", "data")
+export const dataDir = resolve(GARDEN_SERVICE_ROOT, "test", "data")
 export const examplesDir = resolve(GARDEN_SERVICE_ROOT, "..", "examples")
 export const testNow = new Date()
 export const testModuleVersionString = "v-1234512345"
