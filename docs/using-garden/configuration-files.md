@@ -399,6 +399,14 @@ name: my-project
 dotIgnoreFiles: [.gardenignore]
 ```
 
+#### Git submodules
+
+If you're using Git submodules in your project, please note the following:
+
+1. You may ignore submodules using .ignore files and include/exclude filters. If a submodule path _itself_ (that is, the path to the submodule directory, not its contents), matches one that is ignored by your .ignore files or exclude filters, or if you specify include filters and the submodule path does not match one of them, the module will not be scanned.
+2. Include/exclude filters (both at the project and module level) are applied the same, whether a directory is a submodule or a normal directory.
+3. _.ignore files are considered in the context of each git root_. This means that a .ignore file that's outside of a submodule will be completely ignored when scanning that submodule. This is by design, to be consistent with normal Git behavior.
+
 ## Next steps
 
 We highly recommend reading the [Variables and Templating guide](./variables-and-templating.md) to understand how you can reference across different providers and modules, as well as to understand how to supply secret values to your configuration.
