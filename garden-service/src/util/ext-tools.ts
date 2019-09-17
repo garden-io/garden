@@ -283,8 +283,16 @@ export class BinaryCmd extends Library {
   }
 
   async stdout(params: ExecParams) {
-    const res = await this.exec(params)
-    return res.stdout
+    try {
+      const res = await this.exec(params)
+      return res.stdout
+    } catch (err) {
+      // Add log output to error
+      if (err.all) {
+        err.message += "\n\n" + err.all
+      }
+      throw err
+    }
   }
 
   async json(params: ExecParams) {
