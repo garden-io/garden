@@ -75,9 +75,6 @@ gulp.task("update-brew", async () => {
 
   const formula = template({
     version,
-    homepage: "https://garden.io",
-    // using a hard-coded description here because Homebrew limits to 80 characters
-    description: "Development engine for Kubernetes",
     tarballUrl,
     sha256,
   })
