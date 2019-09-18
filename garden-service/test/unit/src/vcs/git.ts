@@ -18,6 +18,7 @@ import { getCommitIdFromRefList, parseGitUrl, GitHandler } from "../../../../src
 import { fixedExcludes } from "../../../../src/util/fs"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { hashRepoUrl } from "../../../../src/util/ext-source-util"
+import { deline } from "../../../../src/util/string"
 
 // Overriding this to make sure any ignorefile name is respected
 const defaultIgnoreFilename = ".testignore"
@@ -56,7 +57,7 @@ async function addToIgnore(tmpPath: string, pathToExclude: string, ignoreFilenam
 describe("GitHandler", () => {
   let tmpDir: tmp.DirectoryResult
   let tmpPath: string
-  let git
+  let git: any
   let handler: GitHandler
   let log: LogEntry
 
@@ -72,6 +73,30 @@ describe("GitHandler", () => {
 
   afterEach(async () => {
     await tmpDir.cleanup()
+  })
+
+  describe("getRepoRoot", () => {
+    it("should return the repo root if it is the same as the given path", async () => {
+      const path = tmpPath
+      expect(await handler.getRepoRoot(log, path)).to.equal(tmpPath)
+    })
+
+    it("should return the nearest repo root, given a subpath of that repo", async () => {
+      const dirPath = join(tmpPath, "dir")
+      await mkdir(dirPath)
+      expect(await handler.getRepoRoot(log, dirPath)).to.equal(tmpPath)
+    })
+
+    it("should throw a nice error when given a path outside of a repo", async () => {
+      await expectError(
+        () => handler.getRepoRoot(log, "/tmp"),
+        (err) => expect(err.message).to.equal(deline`
+          Path /tmp is not in a git repository root. Garden must be run from within a git repo.
+          Please run \`git init\` if you're starting a new project and repository, or move the project to
+          an existing repository, and try again.
+        `),
+      )
+    })
   })
 
   describe("getFiles", () => {
