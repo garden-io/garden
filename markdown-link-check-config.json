@@ -2,6 +2,9 @@
   "ignorePatterns": [
     {
       "pattern": "local.app.garden"
+    },
+    {
+      "pattern": "my-service"
     }
   ]
 }
