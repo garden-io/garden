@@ -1,6 +1,6 @@
 class GardenCli < Formula
-  desc "{{description}}"
-  homepage "{{{homepage}}}"
+  desc "Development engine for Kubernetes"
+  homepage "https://garden.io"
   url "{{{tarballUrl}}}"
   version "{{version}}"
   sha256 "{{sha256}}"
