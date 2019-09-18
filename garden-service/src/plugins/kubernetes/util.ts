@@ -28,7 +28,7 @@ export function getAnnotation(obj: KubernetesResource, key: string): string | nu
  * Given a list of resources, get all the associated pods.
  */
 export async function getAllPods(
-  api: KubeApi, namespace: string, resources: KubernetesResource[],
+  api: KubeApi, defaultNamespace: string, resources: KubernetesResource[],
 ): Promise<KubernetesPod[]> {
   const pods: KubernetesPod[] = flatten(await Bluebird.map(resources, async (resource) => {
     if (resource.apiVersion === "v1" && resource.kind === "Pod") {
@@ -36,20 +36,13 @@ export async function getAllPods(
     }
 
     if (isWorkload(resource)) {
-      return getWorkloadPods(api, namespace, <KubernetesWorkload>resource)
+      return getWorkloadPods(api, resource.metadata.namespace || defaultNamespace, <KubernetesWorkload>resource)
     }
 
     return []
   }))
 
   return <KubernetesPod[]>deduplicateResources(pods)
-}
-
-/**
- * Given a list of resources, get the names of all the associated pod.
- */
-export async function getAllPodNames(api: KubeApi, namespace: string, resources: KubernetesResource[]) {
-  return (await getAllPods(api, namespace, resources)).map(p => p.metadata.name)
 }
 
 /**

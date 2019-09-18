@@ -29,6 +29,7 @@ import { DeleteServiceParams } from "../../../types/plugin/service/deleteService
 import { GetServiceLogsParams } from "../../../types/plugin/service/getServiceLogs"
 import { gardenAnnotationKey } from "../../../util/string"
 import { getForwardablePorts, getPortForwardHandler } from "../port-forward"
+import { LogEntry } from "../../../logger/log-entry"
 
 export const kubernetesHandlers: Partial<ModuleAndRuntimeActions<KubernetesModule>> = {
   build,
@@ -43,7 +44,7 @@ export const kubernetesHandlers: Partial<ModuleAndRuntimeActions<KubernetesModul
 
 async function build({ module }: BuildModuleParams<KubernetesModule>): Promise<BuildResult> {
   // Get the manifests here, just to validate that the files are there and are valid YAML
-  await getManifests(module)
+  await readManifests(module)
   return { fresh: true }
 }
 
@@ -58,7 +59,7 @@ async function getServiceStatus(
     skipCreate: true,
   })
   const api = await KubeApi.factory(log, k8sCtx.provider)
-  const manifests = await getManifests(module)
+  const manifests = await getManifests(api, log, module, namespace)
 
   const { state, remoteObjects } = await compareDeployedObjects(k8sCtx, api, namespace, manifests, log, false)
 
@@ -78,16 +79,19 @@ async function deployService(
   const { ctx, force, module, service, log } = params
 
   const k8sCtx = <KubernetesPluginContext>ctx
+  const api = await KubeApi.factory(log, k8sCtx.provider)
+
   const namespace = await getNamespace({
     log,
     projectName: k8sCtx.projectName,
     provider: k8sCtx.provider,
     skipCreate: true,
   })
-  const manifests = await getManifests(module)
+
+  const manifests = await getManifests(api, log, module, namespace)
 
   const pruneSelector = getSelector(service)
-  await apply({ log, provider: k8sCtx.provider, manifests, force, namespace, pruneSelector })
+  await apply({ log, provider: k8sCtx.provider, manifests, force, pruneSelector })
 
   await waitForResources({
     ctx: k8sCtx,
@@ -105,7 +109,8 @@ async function deleteService(params: DeleteServiceParams): Promise<ServiceStatus
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
   const provider = k8sCtx.provider
-  const manifests = await getManifests(module)
+  const api = await KubeApi.factory(log, provider)
+  const manifests = await getManifests(api, log, module, namespace)
 
   await deleteObjectsByLabel({
     log,
@@ -125,27 +130,51 @@ async function getServiceLogs(params: GetServiceLogsParams<KubernetesModule>) {
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const namespace = await getAppNamespace(k8sCtx, log, provider)
-  const manifests = await getManifests(module)
+  const api = await KubeApi.factory(log, provider)
+  const manifests = await getManifests(api, log, module, namespace)
 
-  return getAllLogs({ ...params, provider, namespace, resources: manifests })
+  return getAllLogs({ ...params, provider, defaultNamespace: namespace, resources: manifests })
 }
 
 function getSelector(service: KubernetesService) {
   return `${gardenAnnotationKey("service")}=${service.name}`
 }
 
-async function getManifests(module: KubernetesModule): Promise<KubernetesResource[]> {
+/**
+ * Read the manifests from the module config, as well as any referenced files in the config.
+ */
+async function readManifests(module: KubernetesModule) {
   const fileManifests = flatten(await Bluebird.map(module.spec.files, async (path) => {
     const absPath = resolve(module.buildPath, path)
     return safeLoadAll((await readFile(absPath)).toString())
   }))
 
-  const manifests = [...module.spec.manifests, ...fileManifests]
+  return [...module.spec.manifests, ...fileManifests]
+}
 
-  // Add a label, so that we can identify the manifests as part of this module, and prune if needed
-  return manifests.map(manifest => {
+/**
+ * Reads the manifests and makes sure each has a namespace set (when applicable) and adds annotations.
+ * Use this when applying to the cluster, or comparing against deployed resources.
+ */
+async function getManifests(
+  api: KubeApi, log: LogEntry, module: KubernetesModule, defaultNamespace: string,
+): Promise<KubernetesResource[]> {
+  const manifests = await readManifests(module)
+
+  return Bluebird.map(manifests, async (manifest) => {
+    // Ensure a namespace is set, if not already set, and if required by the resource type
+    if (!manifest.metadata.namespace) {
+      const info = await api.getApiResourceInfo(log, manifest)
+
+      if (info.resource.namespaced) {
+        manifest.metadata.namespace = defaultNamespace
+      }
+    }
+
+    // Set Garden annotations
     set(manifest, ["metadata", "annotations", gardenAnnotationKey("service")], module.name)
     set(manifest, ["metadata", "labels", gardenAnnotationKey("service")], module.name)
+
     return manifest
   })
 }

@@ -192,7 +192,7 @@ async function getServiceLogs(params: GetServiceLogsParams<OpenFaasModule>) {
   const api = await KubeApi.factory(log, provider)
   const resources = await getResources(api, service, namespace)
 
-  return getAllLogs({ ...params, provider, namespace, resources })
+  return getAllLogs({ ...params, provider, defaultNamespace: namespace, resources })
 }
 
 async function deployService(params: DeployServiceParams<OpenFaasModule>): Promise<ServiceStatus> {

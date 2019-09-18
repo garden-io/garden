@@ -30,5 +30,5 @@ export async function getServiceLogs(params: GetServiceLogsParams<ContainerModul
     log,
   })]
 
-  return getAllLogs({ ...params, provider, namespace, resources })
+  return getAllLogs({ ...params, provider, defaultNamespace: namespace, resources })
 }
