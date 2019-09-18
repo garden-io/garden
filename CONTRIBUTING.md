@@ -37,7 +37,10 @@ Other platforms need to roll their own for now (contributions welcome!). Please 
 
 Install Node modules for the root package, and the `dashboard` and `garden-service` packages:
 
-    npm run bootstrap
+```sh
+npm install # To install root dependencies
+npm run bootstrap # To bootstrap packages
+```
 
 ## Developing Garden
 
