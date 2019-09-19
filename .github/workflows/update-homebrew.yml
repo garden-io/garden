@@ -1,0 +1,58 @@
+name: Update Homebrew Formula
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  homebrew-release:
+
+    runs-on: macOS-latestcd
+
+    steps:
+    - name: Checks if pre-release
+      if: github.event.release.prerelease == true
+      run: |
+        echo This is running against a pre-release.
+        echo Skipping all the next steps.
+    - uses: actions/checkout@v1
+      if: github.event.release.prerelease != true
+    - name: Use Node.js 12.x
+      uses: actions/setup-node@v1
+      if: github.event.release.prerelease != true
+      with:
+        node-version: 12.x
+    - name: Setup git
+      if: github.event.release.prerelease != true
+      run: |
+        eval "$(ssh-agent -s)"
+        mkdir -p ~/.ssh
+        ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
+        echo "${{ secrets.DEPLOY_KEY_HOMEBREW_GARDEN }}" > ~/.ssh/homebrew_id
+        chmod 600 ~/.ssh/homebrew_id
+        ssh-add -K ~/.ssh/homebrew_id
+        sudo git config user.email "e.libralato@gmail.com"
+        sudo git config user.name "Github Actions"
+        tee -a ~/.ssh/config << END
+        Host github.com
+            AddKeysToAgent yes
+            UseKeychain yes
+            IdentityFile ~/.ssh/homebrew_id
+        END
+    - name: Release Homebrew Formula
+      if: github.event.release.prerelease != true
+      uses: garden-io/update-homebrew-action@v1
+      with:
+        packageName: 'garden-cli'
+        templatePath: 'support/homebrew-formula.rb'
+        tapRepo: 'garden-io/homebrew-garden'
+        srcRepo: 'garden-io/garden'
+        authToken: ${{ secrets.GITHUB_TOKEN }}
+    - name: Test Homebrew package
+      if: github.event.release.prerelease != true
+      run: |
+        echo 'Testing brew install'
+        brew tap garden-io/garden
+        brew install garden-cli
+        echo 'Running garden --version'
+        garden --version
