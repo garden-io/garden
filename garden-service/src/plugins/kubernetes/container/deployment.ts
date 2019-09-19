@@ -7,28 +7,27 @@
  */
 
 import chalk from "chalk"
-import Bluebird from "bluebird"
 import { V1Container } from "@kubernetes/client-node"
-import { Service, ServiceStatus } from "../../../types/service"
+import { Service } from "../../../types/service"
 import { extend, find, keyBy, merge, set } from "lodash"
 import { ContainerModule, ContainerService } from "../../container/config"
 import { createIngressResources } from "./ingress"
 import { createServiceResources } from "./service"
 import { waitForResources, compareDeployedObjects } from "../status/status"
-import { apply, deleteObjectsByLabel } from "../kubectl"
+import { apply, deleteObjectsBySelector } from "../kubectl"
 import { getAppNamespace } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
 import { KubernetesProvider, KubernetesPluginContext } from "../config"
 import { configureHotReload } from "../hot-reload"
-import { KubernetesResource, KubernetesServerResource } from "../types"
+import { KubernetesWorkload } from "../types"
 import { ConfigurationError } from "../../../exceptions"
 import { getContainerServiceStatus, ContainerServiceStatus } from "./status"
 import { containerHelpers } from "../../container/helpers"
 import { LogEntry } from "../../../logger/log-entry"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
-import { millicpuToString, kilobytesToString, prepareEnvVars } from "../util"
+import { millicpuToString, kilobytesToString, prepareEnvVars, workloadTypes } from "../util"
 import { gardenAnnotationKey } from "../../../util/string"
 import { RuntimeContext } from "../../../runtime-context"
 
@@ -54,11 +53,10 @@ export async function deployContainerServiceRolling(
 
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
-  const manifests = await createContainerObjects(k8sCtx, log, service, runtimeContext, hotReload)
+  const { manifests } = await createContainerManifests(k8sCtx, log, service, runtimeContext, hotReload)
 
-  // TODO: use Helm instead of kubectl apply
   const provider = k8sCtx.provider
-  const pruneSelector = "service=" + service.name
+  const pruneSelector = gardenAnnotationKey("service") + "=" + service.name
 
   await apply({ log, provider, manifests, force, namespace, pruneSelector })
 
@@ -73,25 +71,15 @@ export async function deployContainerServiceRolling(
   return getContainerServiceStatus(params)
 }
 
-// Given an array of k8s resources and a Garden service returns matching k8s resource
-function getResourcesForService(items: KubernetesServerResource[], service): KubernetesServerResource[] {
-  return items.filter((resource) => {
-    return resource.metadata
-      && resource.metadata.labels
-      && resource.metadata.labels["module"] === service.module.name
-      && resource.metadata.labels["service"] === service.name
-  })
-}
-
 export async function deployContainerServiceBlueGreen(
-  params: DeployServiceParams<ContainerModule>): Promise<ServiceStatus> {
+  params: DeployServiceParams<ContainerModule>): Promise<ContainerServiceStatus> {
 
   const { ctx, service, runtimeContext, force, log, hotReload } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
   // Create all the resource manifests for the Garden service which will be deployed
-  const manifests = await createContainerObjects(k8sCtx, log, service, runtimeContext, hotReload)
+  const { manifests } = await createContainerManifests(k8sCtx, log, service, runtimeContext, hotReload)
 
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, provider)
@@ -118,14 +106,11 @@ export async function deployContainerServiceBlueGreen(
   } else {
     // A k8s service matching the current Garden service exist in the cluster.
     // Proceeding with blue-green deployment
+    const newVersion = service.module.version.versionString
+    const versionKey = gardenAnnotationKey("version")
 
     // Remove Service manifest from generated resources
     const filteredManifests = manifests.filter(manifest => manifest.kind !== "Service")
-    // Retrieve new (yet-to-be-deployed) Deployment manifest
-    const deploymentManifest = find(manifests, (manifest) => {
-      return manifest.kind === "Deployment"
-        && manifest.metadata.labels[gardenAnnotationKey("version")] === service.module.version.versionString
-    })
 
     // Apply new Deployment manifest (deploy the Green version)
     await apply({ log, provider, manifests: filteredManifests, force, namespace })
@@ -141,12 +126,12 @@ export async function deployContainerServiceBlueGreen(
     const servicePatchBody = {
       metadata: {
         annotations: {
-          [gardenAnnotationKey("version")]: deploymentManifest.metadata.labels.version,
+          [versionKey]: newVersion,
         },
       },
       spec: {
         selector: {
-          [gardenAnnotationKey("version")]: deploymentManifest.metadata.labels.version,
+          [versionKey]: newVersion,
         },
       },
     }
@@ -177,27 +162,17 @@ export async function deployContainerServiceBlueGreen(
 
     // Clenup unused deployments:
     // as a feature we delete all the deployments which don't match any deployed Service.
-
-    const deployments = await api.apps.listNamespacedDeployment(namespace)
-    // Retrieve all unused deployments for current service
-    const unusedDeployments = getResourcesForService(deployments.items, service)
-      .filter(deployment => deployment.metadata.labels
-        && deployment.metadata.labels[gardenAnnotationKey("version")]
-        !== deploymentManifest.metadata.labels[gardenAnnotationKey("version")])
-
-    if (unusedDeployments) {
-      // Delete old Deployments (Blue)
-      await Bluebird.map(
-        unusedDeployments, oldDeployment => api.apps.deleteNamespacedDeployment(oldDeployment.metadata.name, namespace),
-      )
-      await waitForResources({
-        ctx: k8sCtx,
-        provider: k8sCtx.provider,
-        serviceName: `Cleanup deployments`,
-        resources: manifests,
-        log,
-      })
-    }
+    log.verbose(`Cleaning up old workloads`)
+    await deleteObjectsBySelector({
+      log,
+      provider,
+      namespace,
+      objectTypes: workloadTypes,
+      // Find workloads that match this service, but have a different version
+      selector:
+        `${gardenAnnotationKey("service")}=${service.name},` +
+        `${versionKey}!=${newVersion}`,
+    })
   }
   return getContainerServiceStatus(params)
 }
@@ -223,8 +198,6 @@ export async function createContainerManifests(
   for (const obj of manifests) {
     set(obj, ["metadata", "labels", gardenAnnotationKey("module")], service.module.name)
     set(obj, ["metadata", "labels", gardenAnnotationKey("service")], service.name)
-    set(obj, ["metadata", "labels", gardenAnnotationKey("generated")], "true")
-    set(obj, ["metadata", "labels", gardenAnnotationKey("version")], version.versionString)
     set(obj, ["metadata", "annotations", gardenAnnotationKey("generated")], "true")
     set(obj, ["metadata", "annotations", gardenAnnotationKey("version")], version.versionString)
   }
@@ -310,19 +283,9 @@ export async function createWorkloadResource(
     container.args = service.spec.args
   }
 
-  // if (config.entrypoint) {
-  //   container.command = [config.entrypoint]
-  // }
-
   if (spec.healthCheck) {
     configureHealthCheck(container, spec)
   }
-
-  // if (service.privileged) {
-  //   container.securityContext = {
-  //     privileged: true,
-  //   }
-  // }
 
   if (spec.volumes && spec.volumes.length) {
     configureVolumes(deployment, container, spec)
@@ -405,28 +368,30 @@ export async function createWorkloadResource(
   return deployment
 }
 
-function deploymentConfig(service: Service, configuredReplicas: number, namespace: string): object {
+function getDeploymentName(service: Service) {
+  return `${service.name}-${service.module.version.versionString}`
+}
 
+function deploymentConfig(service: Service, configuredReplicas: number, namespace: string): object {
   const labels = {
-    module: service.module.name,
-    service: service.name,
+    [gardenAnnotationKey("module")]: service.module.name,
+    [gardenAnnotationKey("service")]: service.name,
     [gardenAnnotationKey("version")]: service.module.version.versionString,
   }
 
-  let selector: any = {
+  let selector = {
     matchLabels: {
-      service: service.name,
+      [gardenAnnotationKey("service")]: service.name,
+      [gardenAnnotationKey("version")]: service.module.version.versionString,
     },
   }
-
-  selector.matchLabels[gardenAnnotationKey("version")] = service.module.version.versionString
 
   // TODO: moar type-safety
   return {
     kind: "Deployment",
     apiVersion: "apps/v1",
     metadata: {
-      name: `${service.name}-${service.module.version.versionString}`,
+      name: getDeploymentName(service),
       annotations: {
         // we can use this to avoid overriding the replica count if it has been manually scaled
         "garden.io/configured.replicas": configuredReplicas.toString(),
@@ -448,10 +413,6 @@ function deploymentConfig(service: Service, configuredReplicas: number, namespac
           restartPolicy: "Always",
           terminationGracePeriodSeconds: 5,
           dnsPolicy: "ClusterFirst",
-          // TODO: support private registries
-          // imagePullSecrets: [
-          //   { name: DOCKER_AUTH_SECRET_NAME },
-          // ],
           volumes: [],
         },
       },
@@ -557,45 +518,20 @@ export function rsyncTargetPath(path: string) {
     .replace(/\/*$/, "/")
 }
 
-export async function deleteService(params: DeleteServiceParams): Promise<ServiceStatus> {
+export async function deleteService(params: DeleteServiceParams): Promise<ContainerServiceStatus> {
   const { ctx, log, service } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
   const provider = k8sCtx.provider
 
-  await deleteContainerDeployment({ namespace, provider, serviceName: service.name, log })
-  await deleteObjectsByLabel({
+  await deleteObjectsBySelector({
     log,
     provider,
     namespace,
-    labelKey: "service",
-    labelValue: service.name,
+    selector: `${gardenAnnotationKey("service")}=${service.name}`,
     objectTypes: ["deployment", "replicaset", "pod", "service", "ingress", "daemonset"],
     includeUninitialized: false,
   })
 
-}
-
-export async function deleteContainerDeployment(
-  { namespace, provider, serviceName, log }:
-    { namespace: string, provider: KubernetesProvider, serviceName: string, log: LogEntry },
-) {
-
-  let found = true
-  const api = await KubeApi.factory(log, provider)
-
-  try {
-    await api.extensions.deleteNamespacedDeployment(serviceName, namespace, <any>{})
-  } catch (err) {
-    if (err.code === 404) {
-      found = false
-    } else {
-      throw err
-    }
-  }
-
-  if (log) {
-    found ? log.setSuccess("Service deleted") : log.setWarn("Service not deployed")
-  }
   return { state: "missing", detail: { remoteResources: [], workload: null } }
 }

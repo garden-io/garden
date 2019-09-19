@@ -24,7 +24,7 @@ import { systemNamespace } from "../system"
 import { PluginError } from "../../../exceptions"
 import { apply, kubectl } from "../kubectl"
 import { waitForResources } from "../status/status"
-import { execInDeployment } from "../container/run"
+import { execInWorkload } from "../container/run"
 import { dedent, deline } from "../../../util/string"
 import { execInBuilder, getBuilderPodName, BuilderExecParams, buildSyncDeploymentName } from "../container/build"
 import { getPods } from "../util"
@@ -226,11 +226,11 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
 
   // Run garbage collection
   log.info("Running garbage collection...")
-  await execInDeployment({
+  await execInWorkload({
     provider,
     log,
     namespace: systemNamespace,
-    deploymentName: CLUSTER_REGISTRY_DEPLOYMENT_NAME,
+    workload: modifiedDeployment,
     command: ["/bin/registry", "garbage-collect", "/etc/docker/registry/config.yml"],
     interactive: false,
   })

@@ -13,8 +13,8 @@ import { V1Deployment, V1DaemonSet, V1StatefulSet } from "@kubernetes/client-nod
 import { ContainerModule, ContainerHotReloadSpec } from "../container/config"
 import { RuntimeError, ConfigurationError } from "../../exceptions"
 import { resolve as resolvePath, dirname } from "path"
-import { deline } from "../../util/string"
-import { set } from "lodash"
+import { deline, gardenAnnotationKey } from "../../util/string"
+import { set, sortBy } from "lodash"
 import { Service } from "../../types/service"
 import { LogEntry } from "../../logger/log-entry"
 import { getResourceContainer } from "./helm/common"
@@ -23,8 +23,11 @@ import { RSYNC_PORT } from "./constants"
 import { getAppNamespace } from "./namespace"
 import { KubernetesPluginContext } from "./config"
 import { HotReloadServiceParams, HotReloadServiceResult } from "../../types/plugin/service/hotReloadService"
-import { KubernetesResource } from "./types"
+import { KubernetesResource, KubernetesWorkload, KubernetesList } from "./types"
 import { normalizeLocalRsyncPath } from "../../util/fs"
+import { createWorkloadResource } from "./container/deployment"
+import { kubectl } from "./kubectl"
+import { labelSelectorToString } from "./util"
 
 export const RSYNC_PORT_NAME = "garden-rsync"
 
@@ -53,7 +56,7 @@ export function configureHotReload({
 }: ConfigureHotReloadParams) {
   const kind = <HotReloadableKind>target.kind
 
-  set(target, ["metadata", "annotations", "garden.io/hot-reload"], "true")
+  set(target, ["metadata", "annotations", gardenAnnotationKey("hot-reload")], "true")
 
   const containers = target.spec.template.spec.containers || []
   const mainContainer = getResourceContainer(target, containerName)
@@ -160,16 +163,57 @@ export function configureHotReload({
 export async function hotReloadContainer(
   { ctx, log, service, module }: HotReloadServiceParams<ContainerModule>,
 ): Promise<HotReloadServiceResult> {
-  const hotReloadConfig = module.spec.hotReload
+  const hotReloadSpec = module.spec.hotReload
 
-  if (!hotReloadConfig) {
+  if (!hotReloadSpec) {
     throw new ConfigurationError(
       `Module ${module.name} must specify the \`hotReload\` key for service ${service.name} to be hot-reloadable.`,
       { moduleName: module.name, serviceName: service.name },
     )
   }
 
-  await syncToService(<KubernetesPluginContext>ctx, service, hotReloadConfig, "Deployment", service.name, log)
+  const k8sCtx = ctx as KubernetesPluginContext
+  const provider = k8sCtx.provider
+  const namespace = await getAppNamespace(k8sCtx, log, provider)
+
+  // Find the currently deployed workload by labels
+  const manifest = await createWorkloadResource({
+    provider,
+    service,
+    runtimeContext: { envVars: {}, dependencies: [] },
+    namespace,
+    enableHotReload: true,
+    log,
+  })
+  const selector = labelSelectorToString({
+    [gardenAnnotationKey("service")]: service.name,
+  })
+  // TODO: make and use a KubeApi method for this
+  const res: KubernetesList<KubernetesWorkload> = await kubectl.json({
+    args: ["get", manifest.kind, "-l", selector],
+    log,
+    namespace,
+    provider,
+  })
+  const list = res.items.filter(r => r.metadata.annotations![gardenAnnotationKey("hot-reload")] === "true")
+
+  if (list.length === 0) {
+    throw new RuntimeError(`Unable to find deployed instance of service ${service.name} with hot-reloading enabled`, {
+      service,
+      listResult: res,
+    })
+  }
+
+  const workload = sortBy(list, r => r.metadata.creationTimestamp)[list.length - 1]
+
+  await syncToService({
+    log,
+    ctx: k8sCtx,
+    service,
+    workload,
+    hotReloadSpec,
+    namespace,
+  })
 
   return {}
 }
@@ -220,19 +264,22 @@ function rsyncTargetPath(path: string) {
     .replace(/\/*$/, "/")
 }
 
+interface SyncToServiceParams {
+  ctx: KubernetesPluginContext,
+  service: Service,
+  hotReloadSpec: ContainerHotReloadSpec,
+  namespace: string,
+  workload: KubernetesWorkload,
+  log: LogEntry,
+}
+
 /**
  * Ensure a tunnel is set up for connecting to the target service's sync container, and perform a sync.
  */
 export async function syncToService(
-  ctx: KubernetesPluginContext,
-  service: Service,
-  hotReloadSpec: ContainerHotReloadSpec,
-  targetKind: HotReloadableKind,
-  targetName: string,
-  log: LogEntry,
+  { ctx, service, hotReloadSpec, namespace, workload, log }: SyncToServiceParams,
 ) {
-  const targetResource = `${targetKind.toLowerCase()}/${targetName}`
-  const namespace = await getAppNamespace(ctx, log, ctx.provider)
+  const targetResource = `${workload.kind.toLowerCase()}/${workload.metadata.name}`
 
   const doSync = async () => {
     const portForward = await getPortForward({ ctx, log, namespace, targetResource, port: RSYNC_PORT })
@@ -263,6 +310,7 @@ export async function syncToService(
     throw new RuntimeError(`Unexpected error while synchronising to service ${service.name}: ${error.message}`, {
       error,
       serviceName: service.name,
+      targetResource,
     })
   }
 }

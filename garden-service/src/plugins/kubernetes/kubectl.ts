@@ -48,19 +48,17 @@ export interface DeleteObjectsParams {
   log: LogEntry,
   provider: KubernetesProvider
   namespace: string,
-  labelKey: string,
-  labelValue: string,
+  selector: string,
   objectTypes: string[],
   includeUninitialized?: boolean,
 }
 
-export async function deleteObjectsByLabel(
+export async function deleteObjectsBySelector(
   {
     log,
     provider,
     namespace,
-    labelKey,
-    labelValue,
+    selector,
     objectTypes,
     includeUninitialized = false,
   }: DeleteObjectsParams) {
@@ -69,18 +67,12 @@ export async function deleteObjectsByLabel(
     "delete",
     objectTypes.join(","),
     "-l",
-    `${labelKey}=${labelValue}`,
+    selector,
   ]
 
   includeUninitialized && args.push("--include-uninitialized")
 
-  const result = await kubectl.stdout({ provider, namespace, args, log })
-
-  try {
-    return JSON.parse(result)
-  } catch (_) {
-    return result
-  }
+  return kubectl.stdout({ provider, namespace, args, log })
 }
 
 interface KubectlParams extends ExecParams {
