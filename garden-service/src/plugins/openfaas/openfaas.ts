@@ -142,6 +142,7 @@ async function configureProvider(
       skipDeploy: false,
       tasks: [],
       tests: [],
+      timeout: 900,
       version: "4.4.0",
       releaseName,
       values: {

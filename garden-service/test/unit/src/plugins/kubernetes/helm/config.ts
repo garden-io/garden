@@ -8,6 +8,7 @@ import { deline } from "../../../../../../src/util/string"
 import { ModuleConfig } from "../../../../../../src/config/module"
 import { apply } from "json-merge-patch"
 import { getHelmTestGarden } from "./common"
+import { defaultHelmTimeout } from "../../../../../../src/plugins/kubernetes/helm/config"
 
 describe("validateHelmModule", () => {
   let garden: TestGarden
@@ -77,6 +78,7 @@ describe("validateHelmModule", () => {
             skipDeploy: false,
             tasks: [],
             tests: [],
+            timeout: defaultHelmTimeout,
             values: {
               image: {
                 tag: versionString,
@@ -109,6 +111,7 @@ describe("validateHelmModule", () => {
         skipDeploy: false,
         tasks: [],
         tests: [],
+        timeout: defaultHelmTimeout,
         values: {
           image: {
             tag: versionString,
