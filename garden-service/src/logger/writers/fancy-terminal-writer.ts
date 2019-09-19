@@ -16,6 +16,7 @@ import {
   formatForTerminal,
   leftPad,
   renderMsg,
+  basicRender,
 } from "../renderers"
 import { LogEntry } from "../log-entry"
 import { Logger } from "../logger"
@@ -25,7 +26,7 @@ import {
   getTerminalWidth,
   interceptStream,
 } from "../util"
-import { Writer, WriterConfig } from "./base"
+import { Writer } from "./base"
 
 const INTERVAL_MS = 60
 const THROTTLE_MS = 600
@@ -59,8 +60,8 @@ export class FancyTerminalWriter extends Writer {
 
   public level: LogLevel
 
-  constructor(config: WriterConfig = {}) {
-    super(config)
+  constructor() {
+    super()
     this.intervalID = null
     this.spinners = {} // Each entry has it's own spinner
     this.prevOutput = []
@@ -185,11 +186,10 @@ export class FancyTerminalWriter extends Writer {
   }
 
   public toTerminalEntries(logger: Logger): TerminalEntry[] {
-    const level = this.level || logger.level
     let currentLineNumber = 0
 
     return getChildEntries(logger)
-      .filter(entry => level >= entry.level)
+      .filter(entry => logger.level >= entry.level)
       .reduce((acc: TerminalEntry[], entry: LogEntry): TerminalEntry[] => {
         let spinnerFrame = ""
         let spinnerX
@@ -204,7 +204,7 @@ export class FancyTerminalWriter extends Writer {
         }
 
         const text = [entry]
-          .map(e => e.fromStdStream ? renderMsg(e) : formatForTerminal(e))
+          .map(e => e.fromStdStream ? renderMsg(e) : formatForTerminal(e, "fancy"))
           .map(str => (
             spinnerFrame
               ? `${str.slice(0, spinnerX)}${spinnerStyle(spinnerFrame)} ${str.slice(spinnerX)}`
@@ -236,12 +236,21 @@ export class FancyTerminalWriter extends Writer {
     return terminalEntries.map(e => e.text).join("").split("\n")
   }
 
-  public onGraphChange(log: LogEntry, logger: Logger): void {
+  public onGraphChange(entry: LogEntry, logger: Logger): void {
+    // The fancy stuff doesn't play well with log levels above "info" so we just render that normally
+    if (logger.level > LogLevel.info) {
+      const out = basicRender(entry, logger)
+      if (out) {
+        process.stdout.write(out)
+      }
+      return
+    }
+
     if (!this.stream) {
       this.stream = this.initStream(logger)
     }
 
-    this.handleGraphChange(log, logger, false)
+    this.handleGraphChange(entry, logger, false)
   }
 
   public stop(): void {
