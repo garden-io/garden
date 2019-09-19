@@ -18,6 +18,7 @@ const testProvider: PluginFactory = () => {
         protocol: "http",
         port: 32000,
       }],
+      detail: {},
     },
     "service-b": {
       state: "ready",
@@ -27,9 +28,11 @@ const testProvider: PluginFactory = () => {
         port: 32000,
         protocol: "http",
       }],
+      detail: {},
     },
     "service-c": {
       state: "ready",
+      detail: {},
     },
   }
 

@@ -136,6 +136,7 @@ export async function getTerraformStatus(
     state: status.ready ? "ready" : "outdated",
     version: module.version.versionString,
     outputs: await getTfOutputs(log, provider.config.version, root),
+    detail: {},
   }
 }
 
@@ -152,6 +153,7 @@ export async function deployTerraform(
       state: "ready",
       version: module.version.versionString,
       outputs: await getTfOutputs(log, provider.config.version, root),
+      detail: {},
     }
   } else {
     // This clause is here as a fail-safe, but shouldn't come up in normal usage because the status handler won't

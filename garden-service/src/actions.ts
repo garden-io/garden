@@ -71,7 +71,7 @@ import { HotReloadServiceParams, HotReloadServiceResult } from "./types/plugin/s
 import { RunServiceParams } from "./types/plugin/service/runService"
 import { GetTaskResultParams } from "./types/plugin/task/getTaskResult"
 import { RunTaskParams, RunTaskResult } from "./types/plugin/task/runTask"
-import { ServiceStatus, ServiceStatusMap } from "./types/service"
+import { ServiceStatus, ServiceStatusMap, ServiceState } from "./types/service"
 import { Omit } from "./util/util"
 import { DebugInfoMap } from "./types/plugin/provider/getDebugInfo"
 import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "./types/plugin/provider/prepareEnvironment"
@@ -784,5 +784,5 @@ const dummyPublishHandler = async ({ module }) => {
 const dummyDeleteServiceHandler = async ({ module, log }: DeleteServiceParams) => {
   const msg = `No delete service handler available for module type ${module.type}`
   log.setError(msg)
-  return {}
+  return { state: "missing" as ServiceState, detail: {} }
 }

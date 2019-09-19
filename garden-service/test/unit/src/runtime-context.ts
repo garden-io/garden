@@ -108,7 +108,9 @@ describe("prepareRuntimeContext", () => {
       },
       serviceStatuses: {
         "service-b": {
+          state: "ready",
           outputs,
+          detail: {},
         },
       },
       taskResults: {},

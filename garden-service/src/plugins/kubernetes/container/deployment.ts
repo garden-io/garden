@@ -23,7 +23,7 @@ import { KubernetesProvider, KubernetesPluginContext } from "../config"
 import { configureHotReload } from "../hot-reload"
 import { KubernetesResource, KubernetesServerResource } from "../types"
 import { ConfigurationError } from "../../../exceptions"
-import { getContainerServiceStatus } from "./status"
+import { getContainerServiceStatus, ContainerServiceStatus } from "./status"
 import { containerHelpers } from "../../container/helpers"
 import { LogEntry } from "../../../logger/log-entry"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
@@ -35,7 +35,9 @@ import { RuntimeContext } from "../../../runtime-context"
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "64Mi"
 
-export async function deployContainerService(params: DeployServiceParams<ContainerModule>): Promise<ServiceStatus> {
+export async function deployContainerService(
+  params: DeployServiceParams<ContainerModule>,
+): Promise<ContainerServiceStatus> {
   const { deploymentStrategy } = params.ctx.provider.config
 
   if (deploymentStrategy === "blue-green") {
@@ -46,7 +48,7 @@ export async function deployContainerService(params: DeployServiceParams<Contain
 }
 
 export async function deployContainerServiceRolling(
-  params: DeployServiceParams<ContainerModule>): Promise<ServiceStatus> {
+  params: DeployServiceParams<ContainerModule>): Promise<ContainerServiceStatus> {
   const { ctx, service, runtimeContext, force, log, hotReload } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
@@ -200,7 +202,7 @@ export async function deployContainerServiceBlueGreen(
   return getContainerServiceStatus(params)
 }
 
-export async function createContainerObjects(
+export async function createContainerManifests(
   ctx: PluginContext,
   log: LogEntry,
   service: ContainerService,
@@ -213,18 +215,21 @@ export async function createContainerObjects(
   const namespace = await getAppNamespace(k8sCtx, log, provider)
   const api = await KubeApi.factory(log, provider)
   const ingresses = await createIngressResources(api, provider, namespace, service)
-  const deployment = await createDeployment({ provider, service, runtimeContext, namespace, enableHotReload, log })
+  const workload = await createWorkloadResource({ provider, service, runtimeContext, namespace, enableHotReload, log })
   const kubeservices = await createServiceResources(service, namespace)
 
-  const objects = [deployment, ...kubeservices, ...ingresses]
+  const manifests = [workload, ...kubeservices, ...ingresses]
 
-  return objects.map(obj => {
+  for (const obj of manifests) {
+    set(obj, ["metadata", "labels", gardenAnnotationKey("module")], service.module.name)
+    set(obj, ["metadata", "labels", gardenAnnotationKey("service")], service.name)
+    set(obj, ["metadata", "labels", gardenAnnotationKey("generated")], "true")
+    set(obj, ["metadata", "labels", gardenAnnotationKey("version")], version.versionString)
     set(obj, ["metadata", "annotations", gardenAnnotationKey("generated")], "true")
     set(obj, ["metadata", "annotations", gardenAnnotationKey("version")], version.versionString)
-    set(obj, ["metadata", "labels", "module"], service.module.name)
-    set(obj, ["metadata", "labels", "service"], service.name)
-    return obj
-  })
+  }
+
+  return { workload, manifests }
 }
 
 interface CreateDeploymentParams {
@@ -236,9 +241,9 @@ interface CreateDeploymentParams {
   log: LogEntry,
 }
 
-export async function createDeployment(
+export async function createWorkloadResource(
   { provider, service, runtimeContext, namespace, enableHotReload, log }: CreateDeploymentParams,
-): Promise<KubernetesResource> {
+): Promise<KubernetesWorkload> {
 
   const spec = service.spec
   let configuredReplicas = service.spec.replicas
@@ -569,7 +574,6 @@ export async function deleteService(params: DeleteServiceParams): Promise<Servic
     includeUninitialized: false,
   })
 
-  return { state: "missing" }
 }
 
 export async function deleteContainerDeployment(
@@ -593,4 +597,5 @@ export async function deleteContainerDeployment(
   if (log) {
     found ? log.setSuccess("Service deleted") : log.setWarn("Service not deployed")
   }
+  return { state: "missing", detail: { remoteResources: [], workload: null } }
 }

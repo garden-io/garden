@@ -257,7 +257,7 @@ async function getServiceStatus({ ctx, service }: GetServiceStatusParams<Contain
   } catch (err) {
     if (err.statusCode === 404) {
       // service does not exist
-      return {}
+      return { state: "missing", detail: {} }
     } else {
       throw err
     }
@@ -276,6 +276,7 @@ async function getServiceStatus({ ctx, service }: GetServiceStatusParams<Contain
     lastError: lastError || undefined,
     createdAt: swarmServiceStatus.CreatedAt,
     updatedAt: swarmServiceStatus.UpdatedAt,
+    detail: {},
   }
 }
 
@@ -300,8 +301,8 @@ const taskStateMap: { [key: string]: ServiceState } = {
   rejected: "unhealthy",
 }
 
-function mapContainerState(lastState: string | undefined): ServiceState | undefined {
-  return lastState ? taskStateMap[lastState] : undefined
+function mapContainerState(lastState: string | undefined): ServiceState {
+  return lastState ? taskStateMap[lastState] : "unknown"
 }
 
 function getSwarmServiceName(ctx: PluginContext, serviceName: string) {

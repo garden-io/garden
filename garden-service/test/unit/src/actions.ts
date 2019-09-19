@@ -235,26 +235,26 @@ describe("ActionHelper", () => {
     describe("getServiceStatus", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const result = await actions.getServiceStatus({ log, service, runtimeContext, hotReload: false })
-        expect(result).to.eql({ forwardablePorts: [], state: "ready" })
+        expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {} })
       })
 
       it("should resolve runtime template strings", async () => {
         const result = await actions.getServiceStatus({ log, service, runtimeContext, hotReload: false })
-        expect(result).to.eql({ forwardablePorts: [], state: "ready" })
+        expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {} })
       })
     })
 
     describe("deployService", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const result = await actions.deployService({ log, service, runtimeContext, force: true, hotReload: false })
-        expect(result).to.eql({ forwardablePorts: [], state: "ready" })
+        expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {} })
       })
     })
 
     describe("deleteService", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const result = await actions.deleteService({ log, service, runtimeContext })
-        expect(result).to.eql({ forwardablePorts: [], state: "ready" })
+        expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {} })
       })
     })
 
@@ -438,7 +438,9 @@ describe("ActionHelper", () => {
         module: serviceA.module,
         serviceStatuses: {
           "service-b": {
+            state: "ready",
             outputs: { foo: "bar" },
+            detail: {},
           },
         },
         taskResults: {},
@@ -456,7 +458,7 @@ describe("ActionHelper", () => {
         defaultHandler: async (params) => {
           expect(params.module.spec.foo).to.equal("bar")
 
-          return { forwardablePorts: [], state: <ServiceState>"ready" }
+          return { forwardablePorts: [], state: <ServiceState>"ready", detail: {} }
         },
       })
     })
@@ -527,7 +529,9 @@ describe("ActionHelper", () => {
         module: taskA.module,
         serviceStatuses: {
           "service-b": {
+            state: "ready",
             outputs: { foo: "bar" },
+            detail: {},
           },
         },
         taskResults: {},
@@ -747,17 +751,17 @@ const testPlugin: PluginFactory = async () => ({
 
       getServiceStatus: async (params) => {
         validate(params, moduleActionDescriptions.getServiceStatus.paramsSchema)
-        return { state: "ready" }
+        return { state: "ready", detail: {} }
       },
 
       deployService: async (params) => {
         validate(params, moduleActionDescriptions.deployService.paramsSchema)
-        return { state: "ready" }
+        return { state: "ready", detail: {} }
       },
 
       deleteService: async (params) => {
         validate(params, moduleActionDescriptions.deleteService.paramsSchema)
-        return { state: "ready" }
+        return { state: "ready", detail: {} }
       },
 
       execInService: async (params) => {

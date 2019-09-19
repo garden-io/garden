@@ -15,13 +15,13 @@ import { safeLoadAll } from "js-yaml"
 import { KubernetesModule, configureKubernetesModule, KubernetesService, describeType } from "./config"
 import { getNamespace, getAppNamespace } from "../namespace"
 import { KubernetesPluginContext } from "../config"
-import { KubernetesResource } from "../types"
+import { KubernetesResource, KubernetesServerResource } from "../types"
 import { ServiceStatus } from "../../../types/service"
 import { compareDeployedObjects, waitForResources } from "../status/status"
 import { KubeApi } from "../api"
 import { ModuleAndRuntimeActions } from "../../../types/plugin/plugin"
 import { getAllLogs } from "../logs"
-import { deleteObjectsByLabel, apply } from "../kubectl"
+import { deleteObjectsBySelector, apply } from "../kubectl"
 import { BuildModuleParams, BuildResult } from "../../../types/plugin/module/build"
 import { GetServiceStatusParams } from "../../../types/plugin/service/getServiceStatus"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
@@ -42,6 +42,12 @@ export const kubernetesHandlers: Partial<ModuleAndRuntimeActions<KubernetesModul
   getServiceStatus,
 }
 
+interface KubernetesStatusDetail {
+  remoteResources: KubernetesServerResource[]
+}
+
+export type KubernetesServiceStatus = ServiceStatus<KubernetesStatusDetail>
+
 async function build({ module }: BuildModuleParams<KubernetesModule>): Promise<BuildResult> {
   // Get the manifests here, just to validate that the files are there and are valid YAML
   await readManifests(module)
@@ -50,7 +56,7 @@ async function build({ module }: BuildModuleParams<KubernetesModule>): Promise<B
 
 async function getServiceStatus(
   { ctx, module, log }: GetServiceStatusParams<KubernetesModule>,
-): Promise<ServiceStatus> {
+): Promise<KubernetesServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespace = await getNamespace({
     log,
@@ -61,21 +67,21 @@ async function getServiceStatus(
   const api = await KubeApi.factory(log, k8sCtx.provider)
   const manifests = await getManifests(api, log, module, namespace)
 
-  const { state, remoteObjects } = await compareDeployedObjects(k8sCtx, api, namespace, manifests, log, false)
+  const { state, remoteResources } = await compareDeployedObjects(k8sCtx, api, namespace, manifests, log, false)
 
-  const forwardablePorts = getForwardablePorts(remoteObjects)
+  const forwardablePorts = getForwardablePorts(remoteResources)
 
   return {
     forwardablePorts,
     state,
     version: state === "ready" ? module.version.versionString : undefined,
-    detail: { remoteObjects },
+    detail: { remoteResources },
   }
 }
 
 async function deployService(
   params: DeployServiceParams<KubernetesModule>,
-): Promise<ServiceStatus> {
+): Promise<KubernetesServiceStatus> {
   const { ctx, force, module, service, log } = params
 
   const k8sCtx = <KubernetesPluginContext>ctx
@@ -104,7 +110,7 @@ async function deployService(
   return getServiceStatus(params)
 }
 
-async function deleteService(params: DeleteServiceParams): Promise<ServiceStatus> {
+async function deleteService(params: DeleteServiceParams): Promise<KubernetesServiceStatus> {
   const { ctx, log, service, module } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
@@ -112,17 +118,16 @@ async function deleteService(params: DeleteServiceParams): Promise<ServiceStatus
   const api = await KubeApi.factory(log, provider)
   const manifests = await getManifests(api, log, module, namespace)
 
-  await deleteObjectsByLabel({
+  await deleteObjectsBySelector({
     log,
     provider,
     namespace,
-    labelKey: gardenAnnotationKey("service"),
-    labelValue: service.name,
+    selector: `${gardenAnnotationKey("service")}=${service.name}`,
     objectTypes: uniq(manifests.map(m => m.kind)),
     includeUninitialized: false,
   })
 
-  return { state: "missing" }
+  return { state: "missing", detail: { remoteResources: [] } }
 }
 
 async function getServiceLogs(params: GetServiceLogsParams<KubernetesModule>) {
