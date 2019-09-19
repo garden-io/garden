@@ -29,6 +29,8 @@ import { ContainerModule, ContainerEnvVars, containerEnvVarsSchema, commandExamp
 import { baseBuildSpecSchema } from "../../../config/module"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../../types/plugin/module/configure"
 
+export const defaultHelmTimeout = 300
+
 // A Helm Module always maps to a single Service
 export type HelmModuleSpec = HelmServiceSpec
 
@@ -140,6 +142,7 @@ export interface HelmServiceSpec extends ServiceSpec {
   skipDeploy: boolean
   tasks: HelmTaskSpec[]
   tests: HelmTestSpec[]
+  timeout: number
   version?: string
   values: DeepPrimitiveMap
   valueFiles: string[]
@@ -205,6 +208,12 @@ export const helmModuleSpecSchema = joi.object().keys({
     .description("The task definitions for this module."),
   tests: joiArray(execTestSchema)
     .description("The test suite definitions for this module."),
+  timeout: joi.number()
+    .integer()
+    .default(defaultHelmTimeout)
+    .description(
+      "Time in seconds to wait for Helm to complete any individual Kubernetes operation (like Jobs for hooks).",
+    ),
   version: joi.string()
     .description("The chart version to deploy."),
   values: joi.object()

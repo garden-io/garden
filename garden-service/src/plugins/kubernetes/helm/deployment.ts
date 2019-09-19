@@ -45,22 +45,26 @@ export async function deployService(
 
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
+
   const chartPath = await getChartPath(module)
   const namespace = await getAppNamespace(k8sCtx, log, provider)
   const releaseName = getReleaseName(module)
-
   const releaseStatus = await getReleaseStatus(k8sCtx, releaseName, log)
+
+  const commonArgs = [
+    "--namespace", namespace,
+    "--timeout", module.spec.timeout.toString(10),
+    ...await getValueFileArgs(module),
+  ]
 
   if (releaseStatus.state === "missing") {
     log.silly(`Installing Helm release ${releaseName}`)
     const installArgs = [
       "install", chartPath,
       "--name", releaseName,
-      "--namespace", namespace,
-      ...await getValueFileArgs(module),
       // Make sure chart gets purged if it fails to install
       "--atomic",
-      "--timeout", "600",
+      ...commonArgs,
     ]
     if (force) {
       installArgs.push("--replace")
@@ -71,8 +75,7 @@ export async function deployService(
     const upgradeArgs = [
       "upgrade", releaseName, chartPath,
       "--install",
-      "--namespace", namespace,
-      ...await getValueFileArgs(module),
+      ...commonArgs,
     ]
     if (force) {
       upgradeArgs.push("--force")
