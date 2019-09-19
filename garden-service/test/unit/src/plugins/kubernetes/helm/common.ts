@@ -462,7 +462,7 @@ describe("Helm common functions", () => {
       expect(await getChartResources(ctx, module, log)).to.not.throw
     })
 
-    it("should filter out test pods", async () => {
+    it("should filter out resources with hooks", async () => {
       const module = await graph.getModule("chart-with-test-pod")
       const resources = await getChartResources(ctx, module, log)
 
