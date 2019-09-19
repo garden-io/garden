@@ -22,6 +22,7 @@ import { KubernetesResource } from "./types"
 import { ForwardablePort } from "../../types/service"
 import { isBuiltIn } from "./util"
 import { LogEntry } from "../../logger/log-entry"
+import { RuntimeError } from "../../exceptions"
 
 // TODO: implement stopPortForward handler
 
@@ -90,8 +91,25 @@ export async function getPortForward(
     log.silly(`Running 'kubectl ${portForwardArgs.join(" ")}'`)
 
     const proc = await kubectl.spawn({ log, provider: k8sCtx.provider, namespace, args: portForwardArgs })
+    let output = ""
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
+      let resolved = false
+
+      const portForward = { targetResource, port, proc, localPort }
+
+      proc.on("close", (code) => {
+        if (registeredPortForwards[key]) {
+          delete registeredPortForwards[key]
+        }
+        if (!resolved) {
+          reject(new RuntimeError(
+            `Port forward exited with code ${code} before establishing connection:\n\n${output}`,
+            { code, portForward },
+          ))
+        }
+      })
+
       proc.on("error", (error) => {
         !proc.killed && proc.kill()
         throw error
@@ -100,12 +118,18 @@ export async function getPortForward(
       proc.stdout!.on("data", (line) => {
         // This is unfortunately the best indication that we have that the connection is up...
         log.silly(`[${targetResource} port forwarder] ${line}`)
+        output += line
 
         if (line.toString().includes("Forwarding from ")) {
-          const portForward = { targetResource, port, proc, localPort }
           registeredPortForwards[key] = portForward
+          resolved = true
           resolve(portForward)
         }
+      })
+
+      proc.stderr!.on("data", (line) => {
+        log.silly(`[${targetResource} port forwarder] ${line}`)
+        output += line
       })
     })
   }))
