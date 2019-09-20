@@ -1,4 +1,36 @@
 
+<a name="v0.10.10"></a>
+## [v0.10.10](https://github.com/garden-io/garden/compare/v0.10.9...v0.10.10) (2019-09-20)
+
+### Bug Fixes
+
+* temporarily removed action ([f30bea7b](https://github.com/garden-io/garden/commit/f30bea7b))
+* **k8s:** exec-ing and hot-reloading only worked for Deployments ([6d00df44](https://github.com/garden-io/garden/commit/6d00df44))
+* **k8s:** don't include any hooks when checking resource statuses ([ca6462c5](https://github.com/garden-io/garden/commit/ca6462c5))
+* **k8s:** helm returned deprecated manifest version for tiller ([9da49d41](https://github.com/garden-io/garden/commit/9da49d41))
+* **kubernetes-module:** handle namespace attribute correctly ([b6fffd06](https://github.com/garden-io/garden/commit/b6fffd06))
+* **vcs:** recursively handle submodules when scanning for files ([06eabdaa](https://github.com/garden-io/garden/commit/06eabdaa))
+
+### Code Refactoring
+
+* change `varFile` parameter name to `varfile` ([71e37fbf](https://github.com/garden-io/garden/commit/71e37fbf))
+* **dashboard:** normalize data store + merge events ([0d96fdb5](https://github.com/garden-io/garden/commit/0d96fdb5))
+* **plugin:** make ServiceStatus detail type-safe ([37ecd0a6](https://github.com/garden-io/garden/commit/37ecd0a6))
+
+### Features
+
+* experimental blue-green deployment ([01f59f5b](https://github.com/garden-io/garden/commit/01f59f5b))
+* **k8s:** add timeout parameter to helm module type ([373beeb9](https://github.com/garden-io/garden/commit/373beeb9))
+
+### Improvement
+
+* better error output when ext commands fail (e.g. kubectl) ([43220575](https://github.com/garden-io/garden/commit/43220575))
+* better error when attempting to run outside of git repo ([11887d7b](https://github.com/garden-io/garden/commit/11887d7b))
+* **k8s:** better error logging for kubectl port forwards ([5a5d5393](https://github.com/garden-io/garden/commit/5a5d5393))
+* **k8s:** update kubectl to v1.16.0 ([3fb518d5](https://github.com/garden-io/garden/commit/3fb518d5))
+* **task-graph:** add more fields to events ([2e5c9e30](https://github.com/garden-io/garden/commit/2e5c9e30))
+
+
 <a name="v0.10.9"></a>
 ## [v0.10.9](https://github.com/garden-io/garden/compare/v0.10.8...v0.10.9) (2019-09-11)
 
