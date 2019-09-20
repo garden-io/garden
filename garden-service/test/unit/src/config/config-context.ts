@@ -329,7 +329,9 @@ describe("ModuleConfigContext", () => {
         module: serviceA.module,
         serviceStatuses: {
           "service-b": {
+            state: "ready",
             outputs: { foo: "bar" },
+            detail: {},
           },
         },
         taskResults: {

@@ -176,8 +176,8 @@ export const testPlugin: PluginFactory = (): GardenPlugin => {
         build: buildExecModule,
         runModule,
 
-        async getServiceStatus() { return {} },
-        async deployService() { return {} },
+        async getServiceStatus() { return { state: "ready", detail: {} } },
+        async deployService() { return { state: "ready", detail: {} } },
 
         async runService(
           { ctx, service, interactive, runtimeContext, timeout, log }: RunServiceParams,

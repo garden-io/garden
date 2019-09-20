@@ -157,9 +157,9 @@ export const forwardablePortKeys = {
 const forwardablePortSchema = joi.object()
   .keys(forwardablePortKeys)
 
-export interface ServiceStatus {
+export interface ServiceStatus<T = {}> {
   createdAt?: string
-  detail?: any
+  detail: T
   externalId?: string
   externalVersion?: string
   forwardablePorts?: ForwardablePort[],
@@ -168,7 +168,7 @@ export interface ServiceStatus {
   lastError?: string
   outputs?: PrimitiveMap
   runningReplicas?: number
-  state?: ServiceState
+  state: ServiceState
   updatedAt?: string
   version?: string
 }

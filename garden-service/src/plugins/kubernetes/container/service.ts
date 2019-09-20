@@ -25,7 +25,7 @@ export async function createServiceResources(service: ContainerService, namespac
       spec: {
         ports: servicePorts,
         selector: {
-          service: service.name,
+          [gardenAnnotationKey("service")]: service.name,
           [gardenAnnotationKey("version")]: service.module.version.versionString,
         },
         type,

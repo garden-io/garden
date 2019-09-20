@@ -39,20 +39,23 @@ const testProvider: PluginFactory = () => {
         port: 80,
         protocol: "http",
       }],
+      detail: {},
     },
     "service-c": {
       state: "ready",
+      detail: {},
     },
   }
 
   const getServiceStatus = async ({ service }: GetServiceStatusParams): Promise<ServiceStatus> => {
-    return testStatuses[service.name] || {}
+    return testStatuses[service.name] || { state: "unknown", detail: {} }
   }
 
   const deployService = async ({ service }: DeployServiceParams) => {
     const newStatus = {
       version: "1",
       state: <ServiceState>"ready",
+      detail: {},
     }
 
     testStatuses[service.name] = newStatus
@@ -128,23 +131,27 @@ describe("DeployCommand", () => {
           },
         ],
         state: "ready",
+        detail: {},
       },
       "get-service-status.service-b": {
         forwardablePorts: [],
         state: "unknown",
+        detail: {},
       },
       "get-service-status.service-c": {
         forwardablePorts: [],
         state: "ready",
+        detail: {},
       },
       "get-service-status.service-d": {
         forwardablePorts: [],
         state: "unknown",
+        detail: {},
       },
-      "deploy.service-a": { forwardablePorts: [], version: "1", state: "ready" },
-      "deploy.service-b": { forwardablePorts: [], version: "1", state: "ready" },
-      "deploy.service-c": { forwardablePorts: [], version: "1", state: "ready" },
-      "deploy.service-d": { forwardablePorts: [], version: "1", state: "ready" },
+      "deploy.service-a": { forwardablePorts: [], version: "1", state: "ready", detail: {} },
+      "deploy.service-b": { forwardablePorts: [], version: "1", state: "ready", detail: {} },
+      "deploy.service-c": { forwardablePorts: [], version: "1", state: "ready", detail: {} },
+      "deploy.service-d": { forwardablePorts: [], version: "1", state: "ready", detail: {} },
     })
   })
 
@@ -192,13 +199,15 @@ describe("DeployCommand", () => {
           },
         ],
         state: "ready",
+        detail: {},
       },
       "get-service-status.service-b": {
         forwardablePorts: [],
         state: "unknown",
+        detail: {},
       },
-      "deploy.service-a": { forwardablePorts: [], version: "1", state: "ready" },
-      "deploy.service-b": { forwardablePorts: [], version: "1", state: "ready" },
+      "deploy.service-a": { forwardablePorts: [], version: "1", state: "ready", detail: {} },
+      "deploy.service-b": { forwardablePorts: [], version: "1", state: "ready", detail: {} },
     })
   })
 })

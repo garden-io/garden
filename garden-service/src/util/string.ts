@@ -18,9 +18,15 @@ export const urlJoin = _urlJoin as (...args: string[]) => string
 
 const gardenAnnotationPrefix = "garden.io/"
 
-export type GardenAnnotationKey = "generated" | "module" | "moduleVersion" | "service" | "task" | "test" | "version"
+export type GardenAnnotationKey =
+  "generated" | "hot-reload" | "module" | "moduleVersion" | "service" | "task" | "test" | "version"
 
 export function gardenAnnotationKey(key: GardenAnnotationKey) {
+  // FIXME: We need to work out a transition for existing deployments, but we had previously set these two keys
+  // without the prefix and K8s doesn't allow modifying label selectors on existing workloads. (yay.)
+  if (key === "module" || key === "service") {
+    return key
+  }
   return gardenAnnotationPrefix + key
 }
 
