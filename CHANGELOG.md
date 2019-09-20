@@ -1,6 +1,29 @@
 
+<a name="v0.10.10-alpha.1"></a>
+## [v0.10.10-alpha.1](https://github.com/garden-io/garden/compare/v0.10.10-alpha.0...v0.10.10-alpha.1) (2019-09-18)
+
+### Bug Fixes
+
+* temporarily removed action ([f30bea7b](https://github.com/garden-io/garden/commit/f30bea7b))
+* **k8s:** exec-ing and hot-reloading only worked for Deployments ([6d00df44](https://github.com/garden-io/garden/commit/6d00df44))
+* **k8s:** don't include any hooks when checking resource statuses ([ca6462c5](https://github.com/garden-io/garden/commit/ca6462c5))
+
+### Code Refactoring
+
+* **plugin:** make ServiceStatus detail type-safe ([37ecd0a6](https://github.com/garden-io/garden/commit/37ecd0a6))
+
+### Features
+
+* **k8s:** add timeout parameter to helm module type ([373beeb9](https://github.com/garden-io/garden/commit/373beeb9))
+
+### Improvement
+
+* **k8s:** better error logging for kubectl port forwards ([5a5d5393](https://github.com/garden-io/garden/commit/5a5d5393))
+* **k8s:** update kubectl to v1.16.0 ([3fb518d5](https://github.com/garden-io/garden/commit/3fb518d5))
+
+
 <a name="v0.10.10-alpha.0"></a>
-## [v0.10.10-alpha.0](https://github.com/garden-io/garden/compare/v0.10.9...v0.10.10-alpha.0) (2019-08-13)
+## [v0.10.10-alpha.0](https://github.com/garden-io/garden/compare/v0.10.9...v0.10.10-alpha.0) (2019-09-18)
 
 ### Bug Fixes
 
