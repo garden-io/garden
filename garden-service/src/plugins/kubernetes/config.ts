@@ -45,12 +45,13 @@ interface KubernetesResources {
 }
 
 interface KubernetesStorageSpec {
-  size: number
+  size?: number
   storageClass: string | null
 }
 
 interface KubernetesStorage {
   builder: KubernetesStorageSpec
+  nfs: KubernetesStorageSpec
   registry: KubernetesStorageSpec
   sync: KubernetesStorageSpec
 }
@@ -125,6 +126,9 @@ export const defaultStorage: KubernetesStorage = {
     size: 20 * 1024,
     storageClass: null,
   },
+  nfs: {
+    storageClass: null,
+  },
   registry: {
     size: 20 * 1024,
     storageClass: null,
@@ -176,7 +180,7 @@ const storageSchema = (defaults: KubernetesStorageSpec) => joi.object()
       .description("Volume size in megabytes."),
     storageClass: joi.string()
       .allow(null)
-      .default(null)
+      .default(defaults.storageClass)
       .description("Storage class to use for the volume."),
   })
   .default(defaults)
@@ -312,6 +316,20 @@ export const kubernetesConfigBase = providerConfigBaseSchema
 
             Only applies when \`buildMode\` is set to \`cluster-docker\`, ignored otherwise.
           `),
+        nfs: joi.object()
+          .keys({
+            storageClass: joi.string()
+              .allow(null)
+              .default(null)
+              .description("Storage class to use as backing storage for NFS ."),
+          })
+          .default({ storageClass: null })
+          .description(dedent`
+            Storage parameters for the NFS provisioner, which we automatically create for the sync volume, _unless_
+            you specify a \`storageClass\` for the sync volume. See the below \`sync\` parameter for more.
+
+            Only applies when \`buildMode\` is set to \`cluster-docker\` or \`kaniko\`, ignored otherwise.
+          `),
         registry: storageSchema(defaultStorage.registry)
           .description(dedent`
             Storage parameters for the in-cluster Docker registry volume. Built images are stored here, so that they
@@ -325,7 +343,7 @@ export const kubernetesConfigBase = providerConfigBaseSchema
             in-cluster builds.
 
             Important: The storage class configured here has to support _ReadWriteMany_ access.
-            If you don't specify a storage class, Garden creates an NFS provisioner and provisions an ephemeral
+            If you don't specify a storage class, Garden creates an NFS provisioner and provisions an
             NFS volume for the sync data volume.
 
             Only applies when \`buildMode\` is set to \`cluster-docker\` or \`kaniko\`, ignored otherwise.

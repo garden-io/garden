@@ -27,6 +27,10 @@ storage:
 registry:
   hostname: garden-docker-registry
 
+buildSync:
+  pvc:
+    name: garden-build-sync
+
 nodeSelector: {}
 
 tolerations: []

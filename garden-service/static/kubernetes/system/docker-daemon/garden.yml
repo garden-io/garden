@@ -20,3 +20,6 @@ values:
   storage:
     size: ${var.builder-storage-size}
     storageClass: ${var.builder-storage-class}
+  buildSync:
+    volume:
+      name: ${var.sync-volume-name}
