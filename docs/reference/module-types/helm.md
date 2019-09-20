@@ -696,6 +696,14 @@ tests:
           key: some-key
 ```
 
+### `timeout`
+
+Time in seconds to wait for Helm to complete any individual Kubernetes operation (like Jobs for hooks).
+
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `number` | No       | `300`   |
+
 ### `version`
 
 The chart version to deploy.
@@ -785,6 +793,7 @@ tests:
       hotReloadArgs:
     args:
     env: {}
+timeout: 300
 version:
 values: {}
 valueFiles: []

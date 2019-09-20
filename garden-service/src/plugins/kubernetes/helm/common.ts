@@ -68,8 +68,14 @@ export async function getChartResources(ctx: PluginContext, module: Module, log:
 
   const resources = objects
     .filter(obj => {
+      // Don't try to check status of hooks
       const helmHook = getAnnotation(obj, "helm.sh/hook")
-      if (helmHook && helmHook.startsWith("test-")) {
+      if (helmHook) {
+        return false
+      }
+
+      // Ephemeral objects should also not be checked
+      if (obj.kind === "Pod" || obj.kind === "Job") {
         return false
       }
 
