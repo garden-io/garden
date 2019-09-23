@@ -37,7 +37,7 @@ export interface TaskResult {
  * the result from the last processed is used (hence only one key-value pair here per key).
  */
 export interface TaskResults {
-  [key: string]: TaskResult
+  [key: string]: TaskResult | null
 }
 
 const DEFAULT_CONCURRENCY = 6

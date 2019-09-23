@@ -386,7 +386,7 @@ export async function expectError(fn: Function, typeOrCallback?: string | ((err:
 }
 
 export function taskResultOutputs(results: TaskResults) {
-  return mapValues(results, r => r.output)
+  return mapValues(results, r => r && r.output)
 }
 
 export const cleanProject = async (gardenDirPath: string) => {
