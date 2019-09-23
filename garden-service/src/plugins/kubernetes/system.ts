@@ -150,7 +150,7 @@ export async function getSystemServiceStatus(
   const actions = await sysGarden.getActionHelper()
 
   const serviceStatuses = await actions.getServiceStatuses({ log, serviceNames })
-  const state = combineStates(values(serviceStatuses).map(s => s.state || "unknown"))
+  const state = combineStates(values(serviceStatuses).map(s => (s && s.state) || "unknown"))
 
   // Add the Kubernetes dashboard to the Garden dashboard
   if (serviceNames.includes("kubernetes-dashboard")) {

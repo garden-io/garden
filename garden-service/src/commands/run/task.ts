@@ -51,7 +51,7 @@ export class RunTaskCommand extends Command<Args, Opts> {
 
   async action(
     { garden, log, headerLog, footerLog, args, opts }: CommandParams<Args, Opts>,
-  ): Promise<CommandResult<TaskResult>> {
+  ): Promise<CommandResult<TaskResult | null>> {
     const graph = await garden.getConfigGraph()
     const task = await graph.getTask(args.task)
 
@@ -62,7 +62,7 @@ export class RunTaskCommand extends Command<Args, Opts> {
     const taskTask = await TaskTask.factory({ garden, graph, task, log, force: true, forceBuild: opts["force-build"] })
     const result = (await garden.processTasks([taskTask]))[taskTask.getKey()]
 
-    if (!result.error) {
+    if (result && !result.error) {
       log.info("")
       // TODO: The command will need to be updated to stream logs: see https://github.com/garden-io/garden/issues/630.
       // It's ok with the current providers but the shape might change in the future.

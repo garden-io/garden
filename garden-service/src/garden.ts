@@ -499,14 +499,14 @@ export class Garden {
       const failed = Object.values(taskResults).filter(r => r && r.error)
 
       if (failed.length) {
-        const messages = failed.map(r => `- ${r.name}: ${r.error!.message}`)
+        const messages = failed.map(r => `- ${r!.name}: ${r!.error!.message}`)
         throw new PluginError(
           `Failed resolving one or more provider configurations:\n${messages.join("\n")}`,
           { rawConfigs, taskResults, messages },
         )
       }
 
-      const providers: Provider[] = Object.values(taskResults).map(result => result.output)
+      const providers: Provider[] = Object.values(taskResults).map(result => result!.output)
 
       await Bluebird.map(providers, async (provider) =>
         Bluebird.map(provider.moduleConfigs, async (moduleConfig) => {
