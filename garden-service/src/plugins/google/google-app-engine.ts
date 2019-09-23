@@ -60,7 +60,7 @@ export const gardenPlugin = (): GardenPlugin => ({
         // const services = await this.gcloud(project).json(["app", "services", "list"])
         // const instances: any[] = await this.gcloud(project).json(["app", "instances", "list"])
 
-        return {}
+        return { state: "unknown", detail: {} }
       },
 
       async deployService({ ctx, service, runtimeContext, log }: DeployServiceParams<ContainerModule>) {
@@ -104,7 +104,7 @@ export const gardenPlugin = (): GardenPlugin => ({
 
         log.info({ section: service.name, msg: `App deployed` })
 
-        return {}
+        return { state: "ready", detail: {} }
       },
     },
   },

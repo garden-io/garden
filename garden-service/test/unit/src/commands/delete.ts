@@ -58,7 +58,7 @@ describe("DeleteSecretCommand", () => {
 })
 
 const getServiceStatus = async (): Promise<ServiceStatus> => {
-  return { state: "ready" }
+  return { state: "ready", detail: {} }
 }
 
 describe("DeleteEnvironmentCommand", () => {
@@ -80,7 +80,7 @@ describe("DeleteEnvironmentCommand", () => {
 
     const deleteService = async ({ service }): Promise<ServiceStatus> => {
       deletedServices.push(service.name)
-      return { state: "missing" }
+      return { state: "missing", detail: {} }
     }
 
     return {
@@ -121,10 +121,10 @@ describe("DeleteEnvironmentCommand", () => {
 
     expect(result!.environmentStatuses["test-plugin"]["ready"]).to.be.false
     expect(result!.serviceStatuses).to.eql({
-      "service-a": { forwardablePorts: [], state: "missing" },
-      "service-b": { forwardablePorts: [], state: "missing" },
-      "service-c": { forwardablePorts: [], state: "missing" },
-      "service-d": { forwardablePorts: [], state: "missing" },
+      "service-a": { forwardablePorts: [], state: "missing", detail: {} },
+      "service-b": { forwardablePorts: [], state: "missing", detail: {} },
+      "service-c": { forwardablePorts: [], state: "missing", detail: {} },
+      "service-d": { forwardablePorts: [], state: "missing", detail: {} },
     })
     expect(deletedServices.sort()).to.eql(["service-a", "service-b", "service-c", "service-d"])
   })
@@ -136,10 +136,12 @@ describe("DeleteServiceCommand", () => {
       "service-a": {
         state: "unknown",
         ingresses: [],
+        detail: {},
       },
       "service-b": {
         state: "unknown",
         ingresses: [],
+        detail: {},
       },
     }
 
@@ -176,7 +178,7 @@ describe("DeleteServiceCommand", () => {
       opts: withDefaultGlobalOpts({}),
     })
     expect(result).to.eql({
-      "service-a": { forwardablePorts: [], state: "unknown", ingresses: [] },
+      "service-a": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {} },
     })
   })
 
@@ -193,8 +195,8 @@ describe("DeleteServiceCommand", () => {
       opts: withDefaultGlobalOpts({}),
     })
     expect(result).to.eql({
-      "service-a": { forwardablePorts: [], state: "unknown", ingresses: [] },
-      "service-b": { forwardablePorts: [], state: "unknown", ingresses: [] },
+      "service-a": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {} },
+      "service-b": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {} },
     })
   })
 })

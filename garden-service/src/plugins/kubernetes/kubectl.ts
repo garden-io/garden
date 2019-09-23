@@ -48,19 +48,17 @@ export interface DeleteObjectsParams {
   log: LogEntry,
   provider: KubernetesProvider
   namespace: string,
-  labelKey: string,
-  labelValue: string,
+  selector: string,
   objectTypes: string[],
   includeUninitialized?: boolean,
 }
 
-export async function deleteObjectsByLabel(
+export async function deleteObjectsBySelector(
   {
     log,
     provider,
     namespace,
-    labelKey,
-    labelValue,
+    selector,
     objectTypes,
     includeUninitialized = false,
   }: DeleteObjectsParams) {
@@ -69,18 +67,12 @@ export async function deleteObjectsByLabel(
     "delete",
     objectTypes.join(","),
     "-l",
-    `${labelKey}=${labelValue}`,
+    selector,
   ]
 
   includeUninitialized && args.push("--include-uninitialized")
 
-  const result = await kubectl.stdout({ provider, namespace, args, log })
-
-  try {
-    return JSON.parse(result)
-  } catch (_) {
-    return result
-  }
+  return kubectl.stdout({ provider, namespace, args, log })
 }
 
 interface KubectlParams extends ExecParams {
@@ -155,16 +147,16 @@ export const kubectl = new Kubectl({
   defaultTimeout: KUBECTL_DEFAULT_TIMEOUT,
   specs: {
     darwin: {
-      url: "https://storage.googleapis.com/kubernetes-release/release/v1.14.0/bin/darwin/amd64/kubectl",
-      sha256: "26bb69f6ac819700d12be3339c19887a2e496ef3e487e896af2375bf1455cb9f",
+      url: "https://storage.googleapis.com/kubernetes-release/release/v1.16.0/bin/darwin/amd64/kubectl",
+      sha256: "a81b23abe67e70f8395ff7a3659bea6610fba98cda1126ef19e0a995f0075d54",
     },
     linux: {
-      url: "https://storage.googleapis.com/kubernetes-release/release/v1.14.0/bin/linux/amd64/kubectl",
-      sha256: "99ade995156c1f2fcb01c587fd91be7aae9009c4a986f43438e007265ca112e8",
+      url: "https://storage.googleapis.com/kubernetes-release/release/v1.16.0/bin/linux/amd64/kubectl",
+      sha256: "4fc8a7024ef17b907820890f11ba7e59a6a578fa91ea593ce8e58b3260f7fb88",
     },
     win32: {
-      url: "https://storage.googleapis.com/kubernetes-release/release/v1.14.0/bin/windows/amd64/kubectl.exe",
-      sha256: "427fd942e356ce44d6c396674bba486ace99f99e45f9121c513c7dd98ff999f0",
+      url: "https://storage.googleapis.com/kubernetes-release/release/v1.16.0/bin/windows/amd64/kubectl.exe",
+      sha256: "a7e4e527735f5bc49ad80b92f4a9d3bb6aebd129f9a708baac80465ebc33a9bc",
     },
   },
 })

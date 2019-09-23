@@ -21,6 +21,7 @@ import { configureHotReload } from "../hot-reload"
 import { getHotReloadSpec } from "./hot-reload"
 import { KubernetesPluginContext } from "../config"
 import { getForwardablePorts } from "../port-forward"
+import { KubernetesServerResource } from "../types"
 
 const helmStatusCodeMap: { [code: number]: ServiceState } = {
   // see https://github.com/kubernetes/helm/blob/master/_proto/hapi/release/status.proto
@@ -35,9 +36,15 @@ const helmStatusCodeMap: { [code: number]: ServiceState } = {
   8: "deploying", // PENDING_ROLLBACK
 }
 
+interface HelmStatusDetail {
+  remoteResources: KubernetesServerResource[]
+}
+
+export type HelmServiceStatus = ServiceStatus<HelmStatusDetail>
+
 export async function getServiceStatus(
   { ctx, module, service, log, hotReload }: GetServiceStatusParams<HelmModule>,
-): Promise<ServiceStatus> {
+): Promise<HelmServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
   // need to build to be able to check the status
   const buildStatus = await getExecModuleBuildStatus({ ctx: k8sCtx, module, log })
@@ -65,11 +72,11 @@ export async function getServiceStatus(
   const api = await KubeApi.factory(log, provider)
   const namespace = await getAppNamespace(k8sCtx, log, provider)
 
-  let { state, remoteObjects } = await compareDeployedObjects(k8sCtx, api, namespace, chartResources, log, false)
+  let { state, remoteResources } = await compareDeployedObjects(k8sCtx, api, namespace, chartResources, log, false)
 
-  const forwardablePorts = getForwardablePorts(remoteObjects)
+  const forwardablePorts = getForwardablePorts(remoteResources)
 
-  const detail = { remoteObjects }
+  const detail = { remoteResources }
 
   return {
     forwardablePorts,
@@ -92,6 +99,6 @@ export async function getReleaseStatus(
     }
   } catch (_) {
     // release doesn't exist
-    return { state: "missing" }
+    return { state: "missing", detail: {} }
   }
 }

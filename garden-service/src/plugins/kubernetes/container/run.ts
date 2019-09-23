@@ -26,6 +26,7 @@ import { LogEntry } from "../../../logger/log-entry"
 import { getWorkloadPods, prepareEnvVars } from "../util"
 import { uniqByName } from "../../../util/util"
 import { V1PodSpec } from "@kubernetes/client-node"
+import { KubernetesWorkload } from "../types"
 
 export async function execInService(params: ExecInServiceParams<ContainerModule>) {
   const { ctx, log, service, command, interactive } = params
@@ -43,37 +44,36 @@ export async function execInService(params: ExecInServiceParams<ContainerModule>
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
   // TODO: this check should probably live outside of the plugin
-  if (!includes(["ready", "outdated"], status.state)) {
+  if (!status.detail.workload || !includes(["ready", "outdated"], status.state)) {
     throw new DeploymentError(`Service ${service.name} is not running`, {
       name: service.name,
       state: status.state,
     })
   }
 
-  return execInDeployment({ provider, log, namespace, deploymentName: service.name, command, interactive })
+  return execInWorkload({ provider, log, namespace, workload: status.detail.workload, command, interactive })
 }
 
-export async function execInDeployment(
-  { provider, log, namespace, deploymentName, command, interactive }:
+export async function execInWorkload(
+  { provider, log, namespace, workload, command, interactive }:
     {
       provider: KubernetesProvider,
       log: LogEntry,
       namespace: string,
-      deploymentName: string,
+      workload: KubernetesWorkload,
       command: string[],
       interactive: boolean,
     },
 ) {
   const api = await KubeApi.factory(log, provider)
-  const deployment = await api.apps.readNamespacedDeployment(deploymentName, namespace)
-  const pods = await getWorkloadPods(api, namespace, deployment)
+  const pods = await getWorkloadPods(api, namespace, workload)
 
   const pod = pods[0]
 
   if (!pod) {
     // This should not happen because of the prior status check, but checking to be sure
-    throw new DeploymentError(`Could not find running pod for ${deploymentName}`, {
-      deploymentName,
+    throw new DeploymentError(`Could not find running pod for ${workload.kind}/${workload.metadata.name}`, {
+      workload,
     })
   }
 

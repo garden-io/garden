@@ -170,12 +170,13 @@ export async function waitForResources({ ctx, provider, serviceName, resources, 
 
   const api = await KubeApi.factory(log, provider)
   const namespace = await getAppNamespace(ctx, log, provider)
+  let statuses: ResourceStatus[]
 
   while (true) {
     await sleep(2000 + 500 * loops)
     loops += 1
 
-    const statuses = await checkResourceStatuses(api, namespace, resources, log)
+    statuses = await checkResourceStatuses(api, namespace, resources, log)
 
     for (const status of statuses) {
       if (status.state === "unhealthy") {
@@ -219,11 +220,13 @@ export async function waitForResources({ ctx, provider, serviceName, resources, 
   }
 
   statusLine.setState({ symbol: "info", section: serviceName, msg: `Resources ready` })
+
+  return statuses.map(s => s.resource)
 }
 
 interface ComparisonResult {
   state: ServiceState
-  remoteObjects: KubernetesResource[]
+  remoteResources: KubernetesResource[]
 }
 
 /**
@@ -244,7 +247,7 @@ export async function compareDeployedObjects(
 
   const result: ComparisonResult = {
     state: "unknown",
-    remoteObjects: <KubernetesResource[]>deployedObjects.filter(o => o !== null),
+    remoteResources: <KubernetesResource[]>deployedObjects.filter(o => o !== null),
   }
 
   const logDescription = (resource: KubernetesResource) => `${resource.kind}/${resource.metadata.name}`

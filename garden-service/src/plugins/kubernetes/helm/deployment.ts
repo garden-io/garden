@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ServiceStatus } from "../../../types/service"
 import { getAppNamespace } from "../namespace"
 import { waitForResources } from "../status/status"
 import { helm } from "./helm-cli"
@@ -19,7 +18,7 @@ import {
   getServiceResourceSpec,
   getValueFileArgs,
 } from "./common"
-import { getReleaseStatus } from "./status"
+import { getReleaseStatus, HelmServiceStatus } from "./status"
 import { configureHotReload, HotReloadableResource } from "../hot-reload"
 import { apply } from "../kubectl"
 import { KubernetesPluginContext } from "../config"
@@ -31,7 +30,7 @@ import { getForwardablePorts } from "../port-forward"
 
 export async function deployService(
   { ctx, module, service, log, force, hotReload }: DeployServiceParams<HelmModule>,
-): Promise<ServiceStatus> {
+): Promise<HelmServiceStatus> {
   let hotReloadSpec: ContainerHotReloadSpec | null = null
   let hotReloadTarget: HotReloadableResource | null = null
 
@@ -100,7 +99,13 @@ export async function deployService(
 
   // FIXME: we should get these objects from the cluster, and not from the local `helm template` command, because
   // they may be legitimately inconsistent.
-  await waitForResources({ ctx, provider, serviceName: service.name, resources: chartResources, log })
+  const remoteResources = await waitForResources({
+    ctx,
+    provider,
+    serviceName: service.name,
+    resources: chartResources,
+    log,
+  })
 
   const forwardablePorts = getForwardablePorts(chartResources)
 
@@ -108,10 +113,11 @@ export async function deployService(
     forwardablePorts,
     state: "ready",
     version: module.version.versionString,
+    detail: { remoteResources },
   }
 }
 
-export async function deleteService(params: DeleteServiceParams): Promise<ServiceStatus> {
+export async function deleteService(params: DeleteServiceParams): Promise<HelmServiceStatus> {
   const { ctx, log, module } = params
 
   const k8sCtx = <KubernetesPluginContext>ctx
@@ -120,5 +126,5 @@ export async function deleteService(params: DeleteServiceParams): Promise<Servic
   await helm({ ctx: k8sCtx, log, args: ["delete", "--purge", releaseName] })
   log.setSuccess("Service deleted")
 
-  return { state: "missing" }
+  return { state: "missing", detail: { remoteResources: [] } }
 }

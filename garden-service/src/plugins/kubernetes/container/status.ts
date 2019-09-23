@@ -9,22 +9,30 @@
 import { PluginContext } from "../../../plugin-context"
 import { LogEntry } from "../../../logger/log-entry"
 import { Service, ServiceStatus, ForwardablePort } from "../../../types/service"
-import { createContainerObjects } from "./deployment"
+import { createContainerManifests } from "./deployment"
 import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { DeploymentError } from "../../../exceptions"
 import { sleep } from "../../../util/util"
 import { GetServiceStatusParams } from "../../../types/plugin/service/getServiceStatus"
 import { ContainerModule } from "../../container/config"
 import { KubeApi } from "../api"
-import { compareDeployedObjects } from "../status/status"
+import { compareDeployedObjects as compareDeployedResources } from "../status/status"
 import { getIngresses } from "./ingress"
 import { getAppNamespace } from "../namespace"
 import { KubernetesPluginContext } from "../config"
 import { RuntimeContext } from "../../../runtime-context"
+import { KubernetesServerResource, KubernetesWorkload } from "../types"
+
+interface ContainerStatusDetail {
+  remoteResources: KubernetesServerResource[]
+  workload: KubernetesWorkload | null
+}
+
+export type ContainerServiceStatus = ServiceStatus<ContainerStatusDetail>
 
 export async function getContainerServiceStatus(
   { ctx, module, service, runtimeContext, log, hotReload }: GetServiceStatusParams<ContainerModule>,
-): Promise<ServiceStatus> {
+): Promise<ContainerServiceStatus> {
 
   const k8sCtx = <KubernetesPluginContext>ctx
   // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
@@ -34,8 +42,8 @@ export async function getContainerServiceStatus(
   const namespace = await getAppNamespace(k8sCtx, log, provider)
 
   // FIXME: [objects, matched] and ingresses can be run in parallel
-  const objects = await createContainerObjects(k8sCtx, log, service, runtimeContext, hotReload)
-  const { state, remoteObjects } = await compareDeployedObjects(k8sCtx, api, namespace, objects, log, true)
+  const { workload, manifests } = await createContainerManifests(k8sCtx, log, service, runtimeContext, hotReload)
+  const { state, remoteResources } = await compareDeployedResources(k8sCtx, api, namespace, manifests, log, true)
   const ingresses = await getIngresses(service, api, provider)
 
   const forwardablePorts: ForwardablePort[] = service.spec.ports
@@ -55,7 +63,7 @@ export async function getContainerServiceStatus(
     ingresses,
     state,
     version: state === "ready" ? version.versionString : undefined,
-    detail: { remoteObjects },
+    detail: { remoteResources, workload },
   }
 }
 

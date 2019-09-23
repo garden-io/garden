@@ -11,9 +11,10 @@ import { ConfigurationError } from "../../../exceptions"
 import { deline } from "../../../util/string"
 import { ContainerModule } from "../../container/config"
 import { getChartResources, findServiceResource, getServiceResourceSpec } from "./common"
-import { syncToService, HotReloadableKind } from "../hot-reload"
+import { syncToService } from "../hot-reload"
 import { KubernetesPluginContext } from "../config"
 import { HotReloadServiceParams, HotReloadServiceResult } from "../../../types/plugin/service/hotReloadService"
+import { getAppNamespace } from "../namespace"
 
 /**
  * The hot reload action handler for Helm charts.
@@ -26,7 +27,7 @@ export async function hotReloadHelmChart(
   const chartResources = await getChartResources(ctx, service.module, log)
   const resourceSpec = service.spec.serviceResource
 
-  const target = await findServiceResource({
+  const workload = await findServiceResource({
     ctx,
     log,
     module,
@@ -34,14 +35,17 @@ export async function hotReloadHelmChart(
     resourceSpec,
   })
 
-  await syncToService(
-    <KubernetesPluginContext>ctx,
+  const k8sCtx = ctx as KubernetesPluginContext
+  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
+
+  await syncToService({
+    ctx: k8sCtx,
     service,
     hotReloadSpec,
-    <HotReloadableKind>target.kind,
-    target.metadata.name!,
+    workload,
     log,
-  )
+    namespace,
+  })
 
   return {}
 }

@@ -263,11 +263,14 @@ export class BinaryCmd extends Library {
     if (!args) {
       args = []
     }
+    if (!cwd) {
+      cwd = dirname(path)
+    }
 
-    log.debug(`Execing ${path} ${args.join(" ")}`)
+    log.debug(`Execing '${path} ${args.join(" ")}' in ${cwd}`)
 
     const proc = execa(path, args, {
-      cwd: cwd || dirname(path),
+      cwd,
       timeout: this.getTimeout(timeout) * 1000,
       env,
       input,
@@ -302,7 +305,16 @@ export class BinaryCmd extends Library {
 
   async spawn({ args, cwd, env, log }: ExecParams) {
     const path = await this.getPath(log)
-    return crossSpawn(path, args || [], { cwd: cwd || dirname(path), env })
+
+    if (!args) {
+      args = []
+    }
+    if (!cwd) {
+      cwd = dirname(path)
+    }
+
+    log.debug(`Spawning '${path} ${args.join(" ")}' in ${cwd}`)
+    return crossSpawn(path, args, { cwd, env })
   }
 
   async spawnAndWait({ args, cwd, env, log, ignoreError, outputStream, timeout, tty }: SpawnParams) {

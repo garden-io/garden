@@ -270,7 +270,9 @@ async function getResources(api: KubeApi, service: OpenFaasService, namespace: s
   return [deployment]
 }
 
-async function getServiceStatus({ ctx, module, service, log }: GetServiceStatusParams<OpenFaasModule>) {
+async function getServiceStatus(
+  { ctx, module, service, log }: GetServiceStatusParams<OpenFaasModule>,
+): Promise<ServiceStatus> {
   const openFaasCtx = <OpenFaasPluginContext>ctx
   const k8sProvider = getK8sProvider(ctx.provider.dependencies)
 
@@ -290,7 +292,7 @@ async function getServiceStatus({ ctx, module, service, log }: GetServiceStatusP
     deployment = await api.apps.readNamespacedDeployment(service.name, namespace)
   } catch (err) {
     if (err.code === 404) {
-      return {}
+      return { state: "missing", detail: {} }
     } else {
       throw err
     }
@@ -306,5 +308,6 @@ async function getServiceStatus({ ctx, module, service, log }: GetServiceStatusP
     state: status.state,
     version,
     ingresses,
+    detail: {},
   }
 }

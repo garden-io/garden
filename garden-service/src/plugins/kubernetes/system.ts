@@ -26,6 +26,7 @@ import { PrimitiveMap } from "../../config/common"
 import { combineStates } from "../../types/service"
 import { KubernetesResource } from "./types"
 import { defaultDotIgnoreFiles } from "../../util/fs"
+import { HelmServiceStatus } from "./helm/status"
 
 const GARDEN_VERSION = getPackageVersion()
 const SYSTEM_NAMESPACE_MIN_VERSION = "0.9.0"
@@ -155,9 +156,9 @@ export async function getSystemServiceStatus(
   if (serviceNames.includes("kubernetes-dashboard")) {
     const defaultHostname = ctx.provider.config.defaultHostname
 
-    const dashboardStatus = serviceStatuses["kubernetes-dashboard"]
+    const dashboardStatus = serviceStatuses["kubernetes-dashboard"] as HelmServiceStatus
     const dashboardServiceResource = find(
-      (dashboardStatus.detail || {}).remoteObjects || [],
+      dashboardStatus.detail.remoteResources,
       o => o.kind === "Service",
     )
 

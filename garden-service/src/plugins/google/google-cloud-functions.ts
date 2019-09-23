@@ -144,7 +144,7 @@ export async function getServiceStatus(
 
   if (!status) {
     // not deployed yet
-    return {}
+    return { state: "missing", detail: {} }
   }
 
   // TODO: map states properly
