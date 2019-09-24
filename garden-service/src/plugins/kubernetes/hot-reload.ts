@@ -18,6 +18,7 @@ import { set, sortBy } from "lodash"
 import { Service } from "../../types/service"
 import { LogEntry } from "../../logger/log-entry"
 import { getResourceContainer } from "./helm/common"
+import { execInWorkload } from "./container/run"
 import { getPortForward, killPortForward } from "./port-forward"
 import { RSYNC_PORT } from "./constants"
 import { getAppNamespace } from "./namespace"
@@ -284,7 +285,7 @@ export async function syncToService(
   const doSync = async () => {
     const portForward = await getPortForward({ ctx, log, namespace, targetResource, port: RSYNC_PORT })
 
-    return Bluebird.map(hotReloadSpec.sync, ({ source, target }) => {
+    const syncResult = await Bluebird.map(hotReloadSpec.sync, ({ source, target }) => {
       const src = rsyncSourcePath(service.sourceModule.path, source)
       const destination = `rsync://localhost:${portForward.localPort}/volume/${rsyncTargetPath(target)}`
 
@@ -292,6 +293,22 @@ export async function syncToService(
 
       return execa("rsync", ["-vrpztgo", src, destination])
     })
+
+    const postSyncCommand = hotReloadSpec.postSyncCommand
+    if (postSyncCommand) {
+      // Run post-sync callback inside the pod
+      const callbackResult = await execInWorkload({
+        log,
+        namespace,
+        workload,
+        command: postSyncCommand,
+        provider: ctx.provider,
+        interactive: false,
+      })
+      log.debug(`Running postSyncCommand "${postSyncCommand}", output: ${callbackResult.output}`)
+    }
+
+    return syncResult
   }
 
   try {

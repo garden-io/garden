@@ -113,6 +113,7 @@ const hotReloadSyncSchema = joi.object()
 
 export interface ContainerHotReloadSpec {
   sync: FileCopySpec[]
+  postSyncCommand?: string[]
 }
 
 const hotReloadConfigSchema = joi.object()
@@ -122,6 +123,10 @@ const hotReloadConfigSchema = joi.object()
       .description(
         "Specify one or more source files or directories to automatically sync into the running container.",
       ),
+    postSyncCommand: joi.array().items(joi.string())
+      .optional()
+      .description(`An optional command to run inside the container after syncing.`)
+      .example([["rebuild-static-assets.sh"], {}]),
   })
   .description(deline`
     Specifies which files or directories to sync to which paths inside the running containers of hot reload-enabled
@@ -233,7 +238,8 @@ export const portSchema = joi.object()
       .required()
       .example("8080")
       .description(deline`
-        The port exposed on the container by the running process. This will also be the default value for \`servicePort\`.
+        The port exposed on the container by the running process. This will also be the default value
+        for \`servicePort\`.
 
         This is the port you would expose in your Dockerfile and that your process listens on.
         This is commonly a non-priviledged port like 8080 for security reasons.

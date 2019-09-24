@@ -7,7 +7,7 @@ on:
 jobs:
   homebrew-release:
 
-    runs-on: macOS-latestcd
+    runs-on: macOS-latest
 
     steps:
     - name: Checks if pre-release
