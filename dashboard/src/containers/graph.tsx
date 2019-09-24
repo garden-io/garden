@@ -36,34 +36,34 @@ export interface GraphOutputWithNodeStatus extends GraphOutput {
 
 export default () => {
   const {
-    actions: { loadGraph, loadConfig },
+    actions,
     store: { entities: { modules, services, tests, tasks, graph }, requestStates: { fetchGraph, fetchTaskStates } },
   } = useApi()
-
-  useEffect(() => {
-    async function fetchData() {
-      return await loadConfig()
-    }
-    fetchData()
-  }, [])
-
-  useEffect(() => {
-    async function fetchData() {
-      return await loadGraph()
-    }
-    fetchData()
-  }, [])
 
   const {
     actions: { selectGraphNode, stackGraphToggleItemsView, clearGraphNodeSelection },
     state: { selectedGraphNode, isSidebarOpen, stackGraph: { filters } },
   } = useUiState()
 
+  useEffect(() => {
+    async function fetchData() {
+      return await actions.loadConfig()
+    }
+    fetchData()
+  }, [])
+
+  useEffect(() => {
+    async function fetchData() {
+      return await actions.loadGraph()
+    }
+    fetchData()
+  }, [])
+
   if (fetchGraph.error) {
     return <PageError error={fetchGraph.error} />
   }
 
-  if (fetchGraph.loading) {
+  if (!fetchGraph.initLoadComplete) {
     return <Spinner />
   }
 

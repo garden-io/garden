@@ -53,7 +53,7 @@ interface LoadHandlerParams {
 export async function loadConfigHandler({ store, dispatch, force = false }: LoadHandlerParams) {
   const requestKey = "fetchConfig"
 
-  if (!force && store.requestStates[requestKey].didFetch) {
+  if (!force && store.requestStates[requestKey].initLoadComplete) {
     return
   }
 
@@ -66,8 +66,9 @@ export async function loadConfigHandler({ store, dispatch, force = false }: Load
     return
   }
 
-  const processedStore = processConfig(store, res)
-  dispatch({ store: processedStore, type: "fetchSuccess", requestKey })
+  const produceNextStore = (currentStore: Store) => processConfig(currentStore, res)
+
+  dispatch({ type: "fetchSuccess", requestKey, produceNextStore })
 }
 
 function processConfig(store: Store, config: ConfigDump) {
@@ -111,15 +112,13 @@ function processConfig(store: Store, config: ConfigDump) {
     }
   }
 
-  const processedStore = produce(store, storeDraft => {
+  return produce(store, storeDraft => {
     storeDraft.entities.modules = modules
     storeDraft.entities.services = services
     storeDraft.entities.tests = tests
     storeDraft.entities.tasks = tasks
     storeDraft.projectRoot = config.projectRoot
   })
-
-  return processedStore
 }
 
 interface LoadLogsHandlerParams extends LoadHandlerParams, FetchLogsParams { }
@@ -127,7 +126,7 @@ interface LoadLogsHandlerParams extends LoadHandlerParams, FetchLogsParams { }
 export async function loadLogsHandler({ serviceNames, store, dispatch, force = false }: LoadLogsHandlerParams) {
   const requestKey = "fetchLogs"
 
-  if ((!force && store.requestStates[requestKey].didFetch) || !serviceNames.length) {
+  if ((!force && store.requestStates[requestKey].initLoadComplete) || !serviceNames.length) {
     return
   }
   dispatch({ requestKey, type: "fetchStart" })
@@ -140,7 +139,9 @@ export async function loadLogsHandler({ serviceNames, store, dispatch, force = f
     return
   }
 
-  dispatch({ store: processLogs(store, res), type: "fetchSuccess", requestKey })
+  const produceNextStore = (currentStore: Store) => processLogs(currentStore, res)
+
+  dispatch({ type: "fetchSuccess", requestKey, produceNextStore })
 }
 
 function processLogs(store: Store, logs: ServiceLogEntry[]) {
@@ -152,7 +153,7 @@ function processLogs(store: Store, logs: ServiceLogEntry[]) {
 export async function loadStatusHandler({ store, dispatch, force = false }: LoadHandlerParams) {
   const requestKey = "fetchStatus"
 
-  if (!force && store.requestStates[requestKey].didFetch) {
+  if (!force && store.requestStates[requestKey].initLoadComplete) {
     return
   }
 
@@ -166,11 +167,13 @@ export async function loadStatusHandler({ store, dispatch, force = false }: Load
     return
   }
 
-  dispatch({ store: processStatus(store, res), type: "fetchSuccess", requestKey })
+  const produceNextStore = (currentStore: Store) => processStatus(currentStore, res)
+
+  dispatch({ type: "fetchSuccess", requestKey, produceNextStore })
 }
 
 function processStatus(store: Store, status: StatusCommandResult) {
-  const processedStore = produce(store, storeDraft => {
+  return produce(store, storeDraft => {
     for (const serviceName of Object.keys(status.services)) {
       storeDraft.entities.services[serviceName] = {
         ...storeDraft.entities.services[serviceName],
@@ -191,8 +194,6 @@ function processStatus(store: Store, status: StatusCommandResult) {
     }
     storeDraft.entities.providers = status.providers
   })
-
-  return processedStore
 }
 
 interface LoadTaskResultHandlerParams extends LoadHandlerParams, FetchTaskResultParams { }
@@ -202,7 +203,7 @@ export async function loadTaskResultHandler(
 ) {
   const requestKey = "fetchTaskResult"
 
-  if (!force && store.requestStates[requestKey].didFetch) {
+  if (!force && store.requestStates[requestKey].initLoadComplete) {
     return
   }
 
@@ -216,7 +217,9 @@ export async function loadTaskResultHandler(
     return
   }
 
-  dispatch({ store: processTaskResult(store, res), type: "fetchSuccess", requestKey })
+  const produceNextStore = (currentStore: Store) => processTaskResult(currentStore, res)
+
+  dispatch({ type: "fetchSuccess", requestKey, produceNextStore })
 }
 
 function processTaskResult(store: Store, result: TaskResultOutput) {
@@ -232,7 +235,7 @@ interface LoadTestResultParams extends LoadHandlerParams, FetchTestResultParams 
 export async function loadTestResultHandler({ store, dispatch, force = false, ...fetchParams }: LoadTestResultParams) {
   const requestKey = "fetchTestResult"
 
-  if (!force && store.requestStates[requestKey].didFetch) {
+  if (!force && store.requestStates[requestKey].initLoadComplete) {
     return
   }
 
@@ -246,7 +249,9 @@ export async function loadTestResultHandler({ store, dispatch, force = false, ..
     return
   }
 
-  dispatch({ store: processTestResult(store, res), type: "fetchSuccess", requestKey })
+  const produceNextStore = (currentStore: Store) => processTestResult(currentStore, res)
+
+  dispatch({ type: "fetchSuccess", requestKey, produceNextStore })
 }
 
 function processTestResult(store: Store, result: TestResultOutput) {
@@ -260,7 +265,7 @@ function processTestResult(store: Store, result: TestResultOutput) {
 export async function loadGraphHandler({ store, dispatch, force = false }: LoadHandlerParams) {
   const requestKey = "fetchGraph"
 
-  if (!force && store.requestStates[requestKey].didFetch) {
+  if (!force && store.requestStates[requestKey].initLoadComplete) {
     return
   }
 
@@ -274,7 +279,9 @@ export async function loadGraphHandler({ store, dispatch, force = false }: LoadH
     return
   }
 
-  dispatch({ store: processGraph(store, res), type: "fetchSuccess", requestKey })
+  const produceNextStore = (currentStore: Store) => processGraph(currentStore, res)
+
+  dispatch({ type: "fetchSuccess", requestKey, produceNextStore })
 }
 
 function processGraph(store: Store, graph: GraphOutput) {

@@ -1,6 +1,5 @@
 import { expect } from "chai"
 
-import { LogLevel } from "../../../../../src/logger/log-node"
 import { JsonTerminalWriter } from "../../../../../src/logger/writers/json-terminal-writer"
 import { getLogger } from "../../../../../src/logger/logger"
 
@@ -42,12 +41,6 @@ describe("JsonTerminalWriter", () => {
       const entry = logger.verbose("abc")
       const out = writer.render(entry, logger)
       expect(out).to.eql(null)
-    })
-    it("should override root level if level is set", () => {
-      const writer = new JsonTerminalWriter({ level: LogLevel.verbose })
-      const entry = logger.verbose("cormorant")
-      const out = writer.render(entry, logger)
-      expect(out).to.eql('{"msg":"cormorant","section":""}')
     })
   })
 })

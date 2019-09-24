@@ -1,6 +1,5 @@
 import { expect } from "chai"
 
-import { LogLevel } from "../../../../../src/logger/log-node"
 import { BasicTerminalWriter } from "../../../../../src/logger/writers/basic-terminal-writer"
 import { getLogger } from "../../../../../src/logger/logger"
 import { formatForTerminal } from "../../../../../src/logger/renderers"
@@ -17,7 +16,7 @@ describe("BasicTerminalWriter", () => {
       const writer = new BasicTerminalWriter()
       const entry = logger.info("hello logger")
       const out = writer.render(entry, logger)
-      expect(out).to.eql(formatForTerminal(entry))
+      expect(out).to.eql(formatForTerminal(entry, "basic"))
     })
     it("should return a new line if message is an empty string", () => {
       const writer = new BasicTerminalWriter()
@@ -30,12 +29,6 @@ describe("BasicTerminalWriter", () => {
       const entry = logger.verbose("abc")
       const out = writer.render(entry, logger)
       expect(out).to.eql(null)
-    })
-    it("should override root level if level is set", () => {
-      const writer = new BasicTerminalWriter({ level: LogLevel.verbose })
-      const entry = logger.verbose("")
-      const out = writer.render(entry, logger)
-      expect(out).to.eql("\n")
     })
     it("should return an empty string if entry is empty", () => {
       const writer = new BasicTerminalWriter()

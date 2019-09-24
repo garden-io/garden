@@ -43,13 +43,13 @@ const builtinPages: Page[] = [
 
 const SidebarContainer = () => {
   const {
-    actions: { loadStatus },
+    actions,
     store: { entities: { providers } },
   } = useApi()
 
   useEffect(() => {
     async function fetchData() {
-      return await loadStatus()
+      return await actions.loadStatus()
     }
     fetchData()
   }, [])

@@ -9,7 +9,6 @@
 import { useReducer, useEffect, useContext } from "react"
 import React from "react"
 import produce from "immer"
-import { merge } from "lodash"
 import { AxiosError } from "axios"
 
 import { ServiceLogEntry } from "garden-service/build/src/types/plugin/service/getServiceLogs"
@@ -101,7 +100,7 @@ export interface Service {
 
 interface RequestState {
   loading: boolean,
-  didFetch: boolean
+  initLoadComplete: boolean
   error?: AxiosError,
 }
 
@@ -141,6 +140,8 @@ const requestKeys: RequestKey[] = [
   "fetchTaskStates",
 ]
 
+type ProduceNextStore = (store: Store) => Store
+
 interface ActionBase {
   type: "fetchStart" | "fetchSuccess" | "fetchFailure" | "wsMessageReceived"
 }
@@ -153,7 +154,7 @@ interface ActionStart extends ActionBase {
 interface ActionSuccess extends ActionBase {
   requestKey: RequestKey
   type: "fetchSuccess"
-  store: Store
+  produceNextStore: ProduceNextStore
 }
 
 interface ActionError extends ActionBase {
@@ -164,7 +165,7 @@ interface ActionError extends ActionBase {
 
 interface WsMessageReceived extends ActionBase {
   type: "wsMessageReceived"
-  store: Store
+  produceNextStore: ProduceNextStore
 }
 
 export type Action = ActionStart | ActionError | ActionSuccess | WsMessageReceived
@@ -193,7 +194,7 @@ interface Actions {
 }
 
 const initialRequestState = requestKeys.reduce((acc, key) => {
-  acc[key] = { loading: false, didFetch: false }
+  acc[key] = { loading: false, initLoadComplete: false }
   return acc
 }, {} as { [K in RequestKey]: RequestState })
 
@@ -224,9 +225,10 @@ function reducer(store: Store, action: Action): Store {
       })
       break
     case "fetchSuccess":
-      nextStore = produce(merge(store, action.store), storeDraft => {
+      // Produce the next store state from the fetch result and update the request state
+      nextStore = produce(action.produceNextStore(store), storeDraft => {
         storeDraft.requestStates[action.requestKey].loading = false
-        storeDraft.requestStates[action.requestKey].didFetch = true
+        storeDraft.requestStates[action.requestKey].initLoadComplete = true
       })
       break
     case "fetchFailure":
@@ -234,11 +236,11 @@ function reducer(store: Store, action: Action): Store {
         storeDraft.requestStates[action.requestKey].loading = false
         storeDraft.requestStates[action.requestKey].error = action.error
         // set didFetch to true on failure so the user can choose to force load the status
-        storeDraft.requestStates[action.requestKey].didFetch = true
+        storeDraft.requestStates[action.requestKey].initLoadComplete = true
       })
       break
     case "wsMessageReceived":
-      nextStore = { ...merge(store, action.store) }
+      nextStore = action.produceNextStore(store)
       break
   }
 
@@ -253,7 +255,7 @@ function useApiActions(store: Store, dispatch: React.Dispatch<Action>) {
     loadConfig: async (params: LoadActionParams = {}) => loadConfigHandler({ store, dispatch, ...params }),
     loadStatus: async (params: LoadActionParams = {}) => loadStatusHandler({ store, dispatch, ...params }),
     loadLogs: async (params: LoadLogsParams) => loadLogsHandler({ store, dispatch, ...params }),
-    loadTaskResult: async (params: LoadTaskResultParams) => loadTaskResultHandler({ name, store, dispatch, ...params }),
+    loadTaskResult: async (params: LoadTaskResultParams) => loadTaskResultHandler({ store, dispatch, ...params }),
     loadTestResult: async (params: LoadTestResultParams) => loadTestResultHandler({ store, dispatch, ...params }),
     loadGraph: async (params: LoadActionParams = {}) => loadGraphHandler({ store, dispatch, ...params }),
   }
@@ -287,7 +289,7 @@ export const ApiProvider: React.FC = ({ children }) => {
   // TODO: Add websocket state as dependency (second argument) so that the websocket is re-initialised
   // if the connection breaks.
   useEffect(() => {
-    return initWebSocket(store, dispatch)
+    return initWebSocket(dispatch)
   }, [])
 
   return (

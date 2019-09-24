@@ -47,15 +47,15 @@ interface Props {
  */
 export default ({ name, moduleName, type, onClose }: Props) => {
   const {
-    actions: { loadTestResult, loadTaskResult },
+    actions,
     store: { entities: { tasks, tests }, requestStates: { fetchTestResult, fetchTaskResult } },
   } = useApi()
 
   const loadResults = () => {
     if (type === "test") {
-      loadTestResult({ name, moduleName, force: true })
+      actions.loadTestResult({ name, moduleName, force: true })
     } else if (type === "run" || type === "task") {
-      loadTaskResult({ name, force: true })
+      actions.loadTaskResult({ name, force: true })
     }
   }
 
