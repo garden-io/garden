@@ -15,7 +15,7 @@ import Spinner from "../components/spinner"
 
 export default () => {
   const {
-    actions: { loadConfig, loadLogs },
+    actions,
     store: { entities: { logs, services }, requestStates: { fetchLogs, fetchConfig } },
   } = useApi()
 
@@ -23,22 +23,22 @@ export default () => {
 
   useEffect(() => {
     async function fetchData() {
-      return await loadConfig()
+      return await actions.loadConfig()
     }
     fetchData()
   }, [])
 
   useEffect(() => {
     async function fetchData() {
-      return await loadLogs({ serviceNames })
+      return await actions.loadLogs({ serviceNames })
     }
 
     if (serviceNames.length) {
       fetchData()
     }
-  }, [fetchConfig.didFetch]) // run again only after config had been fetched
+  }, [fetchConfig.initLoadComplete]) // run again only after config had been fetched
 
-  if (fetchConfig.loading || fetchLogs.loading) {
+  if (!(fetchConfig.initLoadComplete && fetchLogs.initLoadComplete)) {
     return <Spinner />
   }
 
@@ -49,6 +49,6 @@ export default () => {
   }
 
   return (
-    <Logs onRefresh={loadLogs} logs={logs} />
+    <Logs onRefresh={actions.loadLogs} logs={logs} />
   )
 }

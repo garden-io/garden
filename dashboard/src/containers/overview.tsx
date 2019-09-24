@@ -77,12 +77,12 @@ const mapTasks = (taskEntities: Task[], moduleName: string): ModuleProps["taskCa
 
 export default () => {
   const {
+    actions,
     store: {
       projectRoot,
       entities: { modules, services, tests, tasks },
       requestStates: { fetchConfig, fetchStatus },
     },
-    actions: { loadConfig, loadStatus },
   } = useApi()
 
   const {
@@ -94,18 +94,9 @@ export default () => {
     },
   } = useUiState()
 
-  // TODO use useAsyncEffect?
-  // https://dev.to/n1ru4l/homebrew-react-hooks-useasynceffect-or-how-to-handle-async-operations-with-useeffect-1fa8
   useEffect(() => {
     async function fetchData() {
-      return await loadConfig()
-    }
-    fetchData()
-  }, [])
-
-  useEffect(() => {
-    async function fetchData() {
-      return await loadStatus()
+      return await actions.loadConfig()
     }
     fetchData()
   }, [])
@@ -118,7 +109,10 @@ export default () => {
     return <PageError error={fetchConfig.error || fetchStatus.error} />
   }
 
-  if (fetchConfig.loading || fetchStatus.loading) {
+  // Note that we don't call the loadStatus function here since the Sidebar ensures that the status is always loaded.
+  // FIXME: We should be able to call loadStatus safely and have the handler check if the status
+  // has already been fetched or is pending.
+  if (!(fetchConfig.initLoadComplete && fetchStatus.initLoadComplete)) {
     return <Spinner />
   }
 

@@ -16,6 +16,7 @@ import {
   supportedEventNames,
 } from "./api"
 import getApiUrl from "../api/get-api-url"
+import produce from "immer"
 
 export type WsEventMessage = ServerWebsocketMessage & {
   type: "event",
@@ -30,7 +31,7 @@ export function isSupportedEvent(data: ServerWebsocketMessage): data is WsEventM
   return data.type === "event" && supportedEventNames.has((data as WsEventMessage).name)
 }
 
-export function initWebSocket(store: Store, dispatch: React.Dispatch<Action>) {
+export function initWebSocket(dispatch: React.Dispatch<Action>) {
   const url = getApiUrl()
   const ws = new WebSocket(`ws://${url}/ws`)
   ws.onopen = event => {
@@ -46,7 +47,8 @@ export function initWebSocket(store: Store, dispatch: React.Dispatch<Action>) {
       console.error(parsedMsg)
     }
     if (isSupportedEvent(parsedMsg)) {
-      dispatch({ store: processWebSocketMessage(store, parsedMsg), type: "wsMessageReceived" })
+      const produceNextStore = (store: Store) => processWebSocketMessage(store, parsedMsg)
+      dispatch({ type: "wsMessageReceived", produceNextStore })
     }
   }
   return function cleanUp() {
@@ -56,45 +58,45 @@ export function initWebSocket(store: Store, dispatch: React.Dispatch<Action>) {
 
 // Process the graph response and return a normalized store
 function processWebSocketMessage(store: Store, message: WsEventMessage) {
-  const storeDraft = { ...store }
   const taskType = message.payload["type"] === "task" ? "run" : message.payload["type"] // convert "task" to "run"
   const taskState = message.name
   const entityName = message.payload["name"]
-  //  We don't handle taskGraphComplete events
-  if (taskType && taskState !== "taskGraphComplete") {
-    storeDraft.requestStates.fetchTaskStates.loading = true
-    switch (taskType) {
-      case "publish":
-        break
-      case "deploy":
-        storeDraft.entities.services[entityName] = {
-          ...storeDraft.entities.services[entityName],
-          taskState,
-        }
-        break
-      case "build":
-        storeDraft.entities.modules[entityName] = {
-          ...store.entities.modules[entityName],
-          taskState,
-        }
-        break
-      case "run":
-        storeDraft.entities.tasks[entityName] = {
-          ...store.entities.tasks[entityName],
-          taskState,
-        }
-        break
-      case "test":
-        storeDraft.entities.tests[entityName] = {
-          ...store.entities.tests[entityName], taskState,
-        }
-        break
+  return produce(store, storeDraft => {
+    //  We don't handle taskGraphComplete events
+    if (taskType && taskState !== "taskGraphComplete") {
+      storeDraft.requestStates.fetchTaskStates.loading = true
+      switch (taskType) {
+        case "publish":
+          break
+        case "deploy":
+          storeDraft.entities.services[entityName] = {
+            ...storeDraft.entities.services[entityName],
+            taskState,
+          }
+          break
+        case "build":
+          storeDraft.entities.modules[entityName] = {
+            ...store.entities.modules[entityName],
+            taskState,
+          }
+          break
+        case "run":
+          storeDraft.entities.tasks[entityName] = {
+            ...store.entities.tasks[entityName],
+            taskState,
+          }
+          break
+        case "test":
+          storeDraft.entities.tests[entityName] = {
+            ...store.entities.tests[entityName],
+            taskState,
+          }
+          break
+      }
     }
-  }
 
-  if (taskState === "taskGraphComplete") { // add to requestState graph whenever its taskGraphComplete
-    storeDraft.requestStates.fetchTaskStates.loading = false
-  }
-
-  return storeDraft
+    if (taskState === "taskGraphComplete") { // add to requestState graph whenever its taskGraphComplete
+      storeDraft.requestStates.fetchTaskStates.loading = false
+    }
+  })
 }
