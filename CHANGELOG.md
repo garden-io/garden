@@ -1,4 +1,16 @@
 
+<a name="v0.10.11"></a>
+## [v0.10.11](https://github.com/garden-io/garden/compare/v0.10.10...v0.10.11) (2019-09-24)
+
+### Bug Fixes
+
+* **dashboard:** ensure fresh store state when merging data ([bf5b5d0d](https://github.com/garden-io/garden/commit/bf5b5d0d))
+
+### Features
+
+* **container:** added hotReload.postSyncCommand ([eb942883](https://github.com/garden-io/garden/commit/eb942883))
+
+
 <a name="v0.10.10"></a>
 ## [v0.10.10](https://github.com/garden-io/garden/compare/v0.10.9...v0.10.10) (2019-09-20)
 
