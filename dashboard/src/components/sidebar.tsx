@@ -65,10 +65,12 @@ class Sidebar extends Component<Props, State> {
             {this.props.pages.map(page => {
               let link: React.ReactNode
               if (page.url) {
-                link = <A href={page.url} target="_blank" title={page.description}>
-                  {page.title}
-                  <i className={`${css("color: #ccc; margin-left: 0.5em;")} fas fa-external-link-alt`} />
-                </A>
+                link = (
+                  <A href={page.url} target="_blank" title={page.description}>
+                    {page.title}
+                    <i className={`${css("color: #ccc; margin-left: 0.5em;")} fas fa-external-link-alt`} />
+                  </A>
+                )
               } else {
                 link = (
                   <Link

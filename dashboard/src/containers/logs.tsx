@@ -12,31 +12,32 @@ import PageError from "../components/page-error"
 import Logs from "../components/logs"
 import { useApi } from "../contexts/api"
 import Spinner from "../components/spinner"
+import { useMountEffect } from "../util/helpers"
 
 export default () => {
   const {
-    actions,
+    actions: { loadConfig, loadLogs },
     store: { entities: { logs, services }, requestStates: { fetchLogs, fetchConfig } },
   } = useApi()
 
   const serviceNames: string[] = Object.keys(services)
 
-  useEffect(() => {
+  useMountEffect(() => {
     async function fetchData() {
-      return await actions.loadConfig()
+      return await loadConfig()
     }
     fetchData()
-  }, [])
+  })
 
   useEffect(() => {
     async function fetchData() {
-      return await actions.loadLogs({ serviceNames })
+      return await loadLogs({ serviceNames })
     }
 
     if (serviceNames.length) {
       fetchData()
     }
-  }, [fetchConfig.initLoadComplete]) // run again only after config had been fetched
+  }, [serviceNames, loadLogs]) // run again only after config had been fetched
 
   if (!(fetchConfig.initLoadComplete && fetchLogs.initLoadComplete)) {
     return <Spinner />
@@ -49,6 +50,6 @@ export default () => {
   }
 
   return (
-    <Logs onRefresh={actions.loadLogs} logs={logs} />
+    <Logs onRefresh={loadLogs} logs={logs} />
   )
 }

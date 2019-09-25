@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import React, { useEffect } from "react"
+import React from "react"
 import styled from "@emotion/styled"
 
 import { RunState } from "garden-service/build/src/commands/get/get-status"
@@ -25,6 +25,7 @@ import {
 } from "../contexts/api"
 import Spinner from "../components/spinner"
 import { useUiState } from "../contexts/ui"
+import { useMountEffect } from "../util/helpers"
 
 const Overview = styled.div`
   padding-top: .5rem;
@@ -94,12 +95,12 @@ export default () => {
     },
   } = useUiState()
 
-  useEffect(() => {
+  useMountEffect(() => {
     async function fetchData() {
       return await actions.loadConfig()
     }
     fetchData()
-  }, [])
+  })
 
   const clearSelectedEntity = () => {
     selectEntity(null)
@@ -148,11 +149,13 @@ export default () => {
           </Modules>
         </div>
         {selectedIngress &&
-          <div className="col-lg visible-lg-block">
-            {selectedIngress &&
-              <ViewIngress ingress={selectedIngress} />
-            }
-          </div>
+          (
+            <div className="col-lg visible-lg-block">
+              {selectedIngress &&
+                <ViewIngress ingress={selectedIngress} />
+              }
+            </div>
+          )
         }
         {selectedEntity && (
           <div className="col-xs-5 col-sm-5 col-md-4 col-lg-4 col-xl-4">
