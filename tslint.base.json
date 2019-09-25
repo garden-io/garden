@@ -6,6 +6,11 @@
   "rulesDirectory": [
     "node_modules/tslint-microsoft-contrib"
   ],
+  "linterOptions": {
+    "exclude": [
+      "./dashboard/**/*"
+    ]
+  },
   "rules": {
     "arrow-return-shorthand": true,
     "curly": true,

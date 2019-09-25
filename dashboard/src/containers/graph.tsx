@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import React, { useEffect } from "react"
+import React from "react"
 import styled from "@emotion/styled"
 import Graph from "../components/graph"
 import PageError from "../components/page-error"
@@ -22,6 +22,7 @@ import { Filters } from "../components/group-filter"
 import { capitalize } from "lodash"
 import { RenderedNode } from "garden-service/build/src/config-graph"
 import { GraphOutput } from "garden-service/build/src/commands/get/get-graph"
+import { useMountEffect } from "../util/helpers"
 
 const Wrapper = styled.div`
   padding-left: .75rem;
@@ -45,19 +46,19 @@ export default () => {
     state: { selectedGraphNode, isSidebarOpen, stackGraph: { filters } },
   } = useUiState()
 
-  useEffect(() => {
+  useMountEffect(() => {
     async function fetchData() {
       return await actions.loadConfig()
     }
     fetchData()
-  }, [])
+  })
 
-  useEffect(() => {
+  useMountEffect(() => {
     async function fetchData() {
       return await actions.loadGraph()
     }
     fetchData()
-  }, [])
+  })
 
   if (fetchGraph.error) {
     return <PageError error={fetchGraph.error} />
@@ -73,16 +74,16 @@ export default () => {
       case "publish":
         break
       case "deploy":
-        taskState = services[node.name] && services[node.name].taskState || taskState
+        taskState = (services[node.name] && services[node.name].taskState) || taskState
         break
       case "build":
-        taskState = modules[node.name] && modules[node.name].taskState || taskState
+        taskState = (modules[node.name] && modules[node.name].taskState) || taskState
         break
       case "run":
-        taskState = tasks[node.name] && tasks[node.name].taskState || taskState
+        taskState = (tasks[node.name] && tasks[node.name].taskState) || taskState
         break
       case "test":
-        taskState = tests[node.name] && tests[node.name].taskState || taskState
+        taskState = (tests[node.name] && tests[node.name].taskState) || taskState
         break
     }
     return { ...node, status: taskState }
@@ -107,18 +108,15 @@ export default () => {
     }
   }
 
-  const createFiltersState =
-    (allGroupFilters, type): Filters<StackGraphSupportedFilterKeys> => {
-      return ({
-        ...allGroupFilters,
-        [type]: {
-          label: capitalize(type),
-          selected: filters[type],
-        },
-      })
-    }
-
-  const graphFilters = Object.keys(filters).reduce(createFiltersState, {}) as Filters<StackGraphSupportedFilterKeys>
+  const graphFilters = Object.keys(filters).reduce((allGroupFilters, type) => {
+    return ({
+      ...allGroupFilters,
+      [type]: {
+        label: capitalize(type),
+        selected: filters[type],
+      },
+    })
+  }, {}) as Filters<StackGraphSupportedFilterKeys>
 
   return (
     <Wrapper className="row">

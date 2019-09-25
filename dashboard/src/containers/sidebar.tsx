@@ -7,11 +7,12 @@
  */
 
 import { kebabCase, flatten, entries } from "lodash"
-import React, { useEffect } from "react"
+import React from "react"
 
 import Sidebar from "../components/sidebar"
 import { useApi } from "../contexts/api"
 import { DashboardPage } from "garden-service/build/src/config/status"
+import { useMountEffect } from "../util/helpers"
 
 export interface Page extends DashboardPage {
   path: string
@@ -47,12 +48,12 @@ const SidebarContainer = () => {
     store: { entities: { providers } },
   } = useApi()
 
-  useEffect(() => {
+  useMountEffect(() => {
     async function fetchData() {
       return await actions.loadStatus()
     }
     fetchData()
-  }, [])
+  })
 
   let pages: Page[] = []
 
