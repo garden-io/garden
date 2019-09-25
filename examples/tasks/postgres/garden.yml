@@ -1,5 +1,5 @@
 kind: Module
-description: Postgres database for storing voting results
+description: Postgres database for storing user names
 type: helm
 name: postgres
 chart: stable/postgresql
