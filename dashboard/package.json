@@ -45,9 +45,9 @@
     "uuid": "^3.3.2"
   },
   "scripts": {
-    "start": "CI=true react-scripts start",
+    "start": "react-scripts start",
     "build": "react-scripts build && ./bin/copy-to-static",
-    "dev": "EXTEND_ESLINT=true npm run start",
+    "dev": "EXTEND_ESLINT=true CI=true npm run start",
     "test-watch": "react-scripts test",
     "test": "CI=true react-scripts test",
     "eject": "react-scripts eject"
