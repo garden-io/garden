@@ -211,10 +211,11 @@ jobs:
           command: ./garden-service/bin/garden init --root garden-service/test/e2e --logger-type basic
       - run:
           name: Run e2e tests
-          command: ./garden-service/bin/garden test e2e-tests --root garden-service/test/e2e --logger-type basic
+          # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
+          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-e2e ./garden-service/bin/garden test e2e-tests --root garden-service/test/e2e --logger-type basic
       - run:
           name: Cleanup
-          command: kubectl delete --wait=false $(kubectl get ns -o name | grep $CIRCLE_BUILD_NUM) || true
+          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-e2e kubectl delete --wait=false $(kubectl get ns -o name | grep testing-$CIRCLE_BUILD_NUM) || true
           when: always
   test-dashboard:
     <<: *node-config
@@ -312,10 +313,11 @@ jobs:
       - run: sudo apt-get update && sudo apt-get -y install rsync
       - run:
           name: Deploy demo-project with binary
-          command: garden-service/dist/linux-amd64/garden deploy --root examples/demo-project --env testing --logger-type basic
+          # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
+          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist garden-service/dist/linux-amd64/garden deploy --root examples/demo-project --env testing --logger-type basic
       - run:
           name: Cleanup
-          command: kubectl delete --wait=false $(kubectl get ns -o name | grep $CIRCLE_BUILD_NUM) || true
+          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist kubectl delete --wait=false $(kubectl get ns -o name | grep testing-$CIRCLE_BUILD_NUM) || true
           when: always
   test-minikube:
     machine:
@@ -376,11 +378,14 @@ jobs:
             gcloud --quiet container clusters get-credentials $env:GOOGLE_CLUSTER_ID --zone $env:GOOGLE_COMPUTE_ZONE
             gcloud --quiet auth configure-docker
       - run:
+          name: Override build ID
+          command: $env:CIRCLE_BUILD_NUM = "$env:CIRCLE_BUILD_NUM-win"
+      - run:
           name: Deploy demo-project
           command: .\garden-service\dist\windows-amd64\garden.exe deploy --root .\examples\demo-project\ --logger-type basic --env testing
       - run:
           name: Cleanup
-          command: (kubectl delete --wait=false $(kubectl get ns -o name | grep $env:CIRCLE_BUILD_NUM)) -or $true
+          command: (kubectl delete namespace --wait=false demo-project-testing-$env:CIRCLE_BUILD_NUM demo-project-testing-$env:CIRCLE_BUILD_NUM--metadata) -or $true
           when: always
 
 workflows:
