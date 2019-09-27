@@ -12,11 +12,12 @@
     "@types/react-dom": "^16.8.4",
     "@types/react-router-dom": "^4.3.2",
     "@types/react-select": "^2.0.17",
-    "react-scripts": "^2.1.8",
+    "@typescript-eslint/eslint-plugin-tslint": "^2.3.1",
+    "react-scripts": "3.1.2",
     "ts-node": "^7.0.1",
-    "tslint": "^5.16.0",
-    "tslint-microsoft-contrib": "^6.1.1",
-    "tslint-react": "^4.0.0",
+    "tslint": "^5.20.0",
+    "tslint-microsoft-contrib": "^6.2.0",
+    "tslint-react": "^4.1.0",
     "typescript": "^3.4.3"
   },
   "dependencies": {
@@ -46,13 +47,10 @@
   "scripts": {
     "start": "CI=true react-scripts start",
     "build": "react-scripts build && ./bin/copy-to-static",
-    "dev": "npm run start",
+    "dev": "EXTEND_ESLINT=true npm run start",
     "test-watch": "react-scripts test",
     "test": "CI=true react-scripts test",
     "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": "react-app"
   },
   "browserslist": [
     ">0.2%",

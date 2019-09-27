@@ -73,7 +73,7 @@ function getNodeClass(node) {
     className += selectedClassName
   }
 
-  className += (node.status && ` ${node.status}` || "")
+  className += ((node.status && ` ${node.status}`) || "")
   return className
 }
 
@@ -293,6 +293,7 @@ class Chart extends Component<Props, ChartState> {
     return { edges, nodes }
   }
 
+  // FIXME: Refactor!
   componentDidUpdate(prevProps: Props, prevState: ChartState) {
     if (
       (prevState !== this.state) ||

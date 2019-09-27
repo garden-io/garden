@@ -40,6 +40,25 @@ npm dev
 
 to start the dashboard development server. The `start` command returns a link to the development version of the dashboard. The default is `http://localhost:3000`.
 
+### Linting
+
+Create React App projects ship with their own linting rules which users can extend with the `EXTEND_ESLINT` flag—which is exactly what we do. The rules can be found under `dashboard/.eslintrc.js`.
+
+Lint warnings and errors are visible in the browser and in your terminal by default. To enable them in VSCode as well, add the following to your `.vscode/settings.json` in the Garden root:
+
+```json
+{
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    { "language": "typescript", "autoFix": true },
+    { "language": "typescriptreact", "autoFix": true }
+  ]
+}
+```
+
+For other editors and more detail, please refer to the [Create React App docs](https://create-react-app.dev/docs/setting-up-your-editor).
+
 ### CORS
 
 To avoid Cross-Origin Resource Sharing (CORS) errors while developing, we proxy the request to the `garden-service` server, defaulting to port `9777`.

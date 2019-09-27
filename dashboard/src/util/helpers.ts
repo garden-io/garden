@@ -8,6 +8,7 @@
 
 import { flatten } from "lodash"
 import { ModuleConfig } from "garden-service/build/src/config/module"
+import { useEffect } from "react"
 
 export function getServiceNames(moduleConfigs: ModuleConfig[]) {
   return flatten(moduleConfigs.map(m => m.serviceConfigs.map(s => s.name)))
@@ -49,3 +50,12 @@ export const truncateMiddle = (str: string, resLength: number = 35) => {
 
   return str
 }
+
+/**
+ * For effects that should only run once on mount. Bypasses the react-hooks/exhaustive-deps lint warning.
+ *
+ * However, this pattern may not be desirable and the overall topic is widely debated.
+ * See e.g. here: https://github.com/facebook/react/issues/15865.
+ * Here's the suggested solution: https://github.com/facebook/create-react-app/issues/6880#issuecomment-488158024
+ */
+export const useMountEffect = (fun: () => void) => useEffect(fun, [])
