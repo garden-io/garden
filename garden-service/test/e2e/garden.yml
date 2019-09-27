@@ -31,7 +31,7 @@ tests:
   - name: tasks # Tests for tasks are currently being skipped
     command: [npm, run, e2e-full, --, --project=tasks, "--showlog=${var.show-log}", "--env=${environment.name}"]
     timeout: ${var.timeout}
-  - name: hot-reload # Tests for hot-reload are currently being skipped
+  - name: hot-reload
     command: [npm, run, e2e-full, --, --project=hot-reload, "--showlog=${var.show-log}", "--env=${environment.name}"]
     timeout: ${var.timeout}
   # Disabling until https://github.com/garden-io/garden/issues/1045 is fixed
