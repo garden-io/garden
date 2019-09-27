@@ -123,7 +123,12 @@ export async function getPods(
     pod.apiVersion = "v1"
     pod.kind = "Pod"
     return pod
-  })
+  }).filter(pod =>
+    // Filter out failed pods
+    !(pod.status && pod.status.phase === "Failed") &&
+    // Filter out evicted pods
+    !(pod.status && pod.status.reason && pod.status.reason.includes("Evicted")),
+  )
 }
 
 /**
