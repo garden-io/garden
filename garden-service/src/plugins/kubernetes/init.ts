@@ -201,6 +201,19 @@ export async function prepareSystem(
 
   await installTiller({ ctx: sysCtx, provider: sysCtx.provider, log, force })
 
+  // We need to install the NFS provisioner separately, so that we can optionally install it
+  // FIXME: when we've added an `enabled` field, we should get rid of this special case
+  if (systemServiceNames.includes("nfs-provisioner")) {
+    await prepareSystemServices({
+      log,
+      sysGarden,
+      namespace: systemNamespace,
+      force,
+      ctx: k8sCtx,
+      serviceNames: ["nfs-provisioner"],
+    })
+  }
+
   // Install system services
   await prepareSystemServices({
     log,
@@ -208,7 +221,7 @@ export async function prepareSystem(
     namespace: systemNamespace,
     force,
     ctx: k8sCtx,
-    serviceNames: systemServiceNames,
+    serviceNames: systemServiceNames.filter(name => name !== "nfs-provisioner"),
   })
 
   sysGarden.log.setSuccess()
