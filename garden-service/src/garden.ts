@@ -637,21 +637,6 @@ export class Garden {
       const ctx = await this.getPluginContext(provider)
       config = await configureHandler({ ctx, moduleConfig: config, log: this.log })
 
-      if (config.plugin) {
-        // Make sure nested entities in plugin modules are scoped by name
-        for (const serviceConfig of config.serviceConfigs) {
-          serviceConfig.name = `${config.plugin}--${serviceConfig.name}`
-        }
-
-        for (const taskConfig of config.taskConfigs) {
-          taskConfig.name = `${config.plugin}--${taskConfig.name}`
-        }
-
-        for (const testConfig of config.testConfigs) {
-          testConfig.name = `${config.plugin}--${testConfig.name}`
-        }
-      }
-
       // FIXME: We should be able to avoid this
       config.name = getModuleKey(config.name, config.plugin)
 
