@@ -140,3 +140,19 @@ The command does the following:
 
 There are plans to do this automatically when disk-space runs low, but for now you can run this manually or set up
 your own cron jobs.
+
+## Pulling base images from private registries
+
+Currently, only the _Local Docker_ build mode supports pulling base images from private registries in Dockerfiles. If you see an `ImagePullBackOff` error when using the other build modes, it's likely that it's failing because the Dockerfile for the module contains an entry like this:
+
+```console
+FROM my-private-registry.com/my-image:tag
+```
+
+where `my-private-registry` requires authorization.
+
+This is because Garden currently can't authenticate against the private registry from inside the cluster.
+
+We do plan on supporting this for more build modes but it's a non-trivial feature to add. You can track the discussion and progress [in this issue](https://github.com/garden-io/garden/issues/1236).
+
+Note that you _can reference private images_ in the module config (`image: my-private-registry.com/image:tag`), or in your Helm/Kubernetes modules, as usual. For this you may need to set the `imagePullSecret` directive in the provider configuration.
