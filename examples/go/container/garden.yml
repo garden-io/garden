@@ -1,0 +1,18 @@
+kind: Module
+type: container
+name: container
+services:
+  - name: container-test
+    limits:
+      cpu: 1000
+      memory: 1024
+    ports:
+      - name: http
+        containerPort: 8080
+    ingresses:
+      - path: /
+        port: http
+hotReload:
+  sync:
+    - target: /app/
+      source: bin/

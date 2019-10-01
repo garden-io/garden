@@ -1,0 +1,7 @@
+kind: Project
+name: gradle
+environments:
+  - name: local
+    providers:
+      - name: local-kubernetes
+        defaultHostname: garden.local

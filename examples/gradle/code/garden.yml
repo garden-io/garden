@@ -1,0 +1,5 @@
+kind: Module
+type: exec
+name: helloworld
+build:
+  command: ["/bin/bash", "myscript.sh"]
