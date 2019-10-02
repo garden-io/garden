@@ -125,6 +125,7 @@ export async function getIngresses(
       hostname: ingress.hostname,
       path: ingress.path,
       port: ingress.port,
+      linkUrl: ingress.linkUrl,
       protocol: ingress.protocol,
     }))
 }
