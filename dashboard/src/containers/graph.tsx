@@ -22,6 +22,9 @@ import { Filters } from "../components/group-filter"
 import { capitalize } from "lodash"
 import { RenderedNode } from "garden-service/build/src/config-graph"
 import { GraphOutput } from "garden-service/build/src/commands/get/get-graph"
+import { loadGraph } from "../api/actions"
+import { useConfig } from "../util/hooks"
+import { getTestKey } from "../util/helpers"
 
 const Wrapper = styled.div`
   padding-left: .75rem;
@@ -36,34 +39,35 @@ export interface GraphOutputWithNodeStatus extends GraphOutput {
 
 export default () => {
   const {
-    actions: { loadGraph, loadConfig },
-    store: { entities: { modules, services, tests, tasks, graph }, requestStates: { fetchGraph, fetchTaskStates } },
+    dispatch,
+    store: {
+      entities,
+      requestStates,
+    },
   } = useApi()
 
-  useEffect(() => {
-    async function fetchData() {
-      return await loadConfig()
-    }
-    fetchData()
-  }, [])
-
-  useEffect(() => {
-    async function fetchData() {
-      return await loadGraph()
-    }
-    fetchData()
-  }, [])
+  const { project, modules, services, tests, tasks, graph } = entities
 
   const {
     actions: { selectGraphNode, stackGraphToggleItemsView, clearGraphNodeSelection },
     state: { selectedGraphNode, isSidebarOpen, stackGraph: { filters } },
   } = useUiState()
 
-  if (fetchGraph.error) {
-    return <PageError error={fetchGraph.error} />
+  useConfig(dispatch, requestStates.config)
+
+  useEffect(() => {
+    const fetchData = async () => loadGraph(dispatch)
+
+    if (!(requestStates.graph.initLoadComplete || requestStates.graph.pending)) {
+      fetchData()
+    }
+  }, [dispatch, requestStates.graph])
+
+  if (requestStates.graph.error) {
+    return <PageError error={requestStates.graph.error} />
   }
 
-  if (fetchGraph.loading) {
+  if (!requestStates.graph.initLoadComplete) {
     return <Spinner />
   }
 
@@ -73,16 +77,17 @@ export default () => {
       case "publish":
         break
       case "deploy":
-        taskState = services[node.name] && services[node.name].taskState || taskState
+        taskState = (services[node.name] && services[node.name].taskState) || taskState
         break
       case "build":
-        taskState = modules[node.name] && modules[node.name].taskState || taskState
+        taskState = (modules[node.name] && modules[node.name].taskState) || taskState
         break
       case "run":
-        taskState = tasks[node.name] && tasks[node.name].taskState || taskState
+        taskState = (tasks[node.name] && tasks[node.name].taskState) || taskState
         break
       case "test":
-        taskState = tests[node.name] && tests[node.name].taskState || taskState
+        const testKey = getTestKey({ testName: node.name, moduleName: node.moduleName })
+        taskState = (tests[testKey] && tests[testKey].taskState) || taskState
         break
     }
     return { ...node, status: taskState }
@@ -107,18 +112,15 @@ export default () => {
     }
   }
 
-  const createFiltersState =
-    (allGroupFilters, type): Filters<StackGraphSupportedFilterKeys> => {
-      return ({
-        ...allGroupFilters,
-        [type]: {
-          label: capitalize(type),
-          selected: filters[type],
-        },
-      })
-    }
-
-  const graphFilters = Object.keys(filters).reduce(createFiltersState, {}) as Filters<StackGraphSupportedFilterKeys>
+  const graphFilters = Object.keys(filters).reduce((allGroupFilters, type) => {
+    return ({
+      ...allGroupFilters,
+      [type]: {
+        label: capitalize(type),
+        selected: filters[type],
+      },
+    })
+  }, {}) as Filters<StackGraphSupportedFilterKeys>
 
   return (
     <Wrapper className="row">
@@ -130,7 +132,7 @@ export default () => {
           graph={graphWithStatus}
           filters={graphFilters}
           onFilter={stackGraphToggleItemsView}
-          isProcessing={fetchTaskStates.loading}
+          isProcessing={project.taskGraphProcessing}
         />
       </div>
       {moreInfoPane}

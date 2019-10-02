@@ -219,18 +219,22 @@ To make a new release, set your current working directory to the garden root dir
         3. Rebase the version branch with the release branch: `git rebase latest-release`
         4. Run `./bin/release.ts prerelease`
     * If you’re ready to make a proper release, run `./bin/release.ts minor | patch` from `latest-release`. This way, the version bump commits created by the prereleases are omitted from the final history.
-3. If you're making a pre-release you're done, and you can now start testing the binaries that were just published to our Github [Releases page](https://github.com/garden-io/garden/releases). Otherwise go to **step 4**.
-4. Go to our Github [Releases page](https://github.com/garden-io/garden/releases) and click the **Edit** button for the draft just created from CI. Note that for drafts, a new one is always created instead of replacing a previous one.
-5. Write release notes. The notes should give an overview of the release and mention all relevant features. They should also **acknowledge all external contributors** and contain the changelog for that release.
+3. If you're making a pre-release you're done, and you can now start testing the binaries that were just published to our Github [Releases page](https://github.com/garden-io/garden/releases) (**step 4**). Otherwise go to **step 5**.
+4. Manual testing (using the pre-release/release binary)
+    * On a **Windows** machine, run `garden dev --hot=vote` in the `vote` example project.
+        * Change a file in the `vote` service and verify that the hot reload was successful.
+        * Open the dashboard, verify that the initial page loads without errors. 
+5. Go to our Github [Releases page](https://github.com/garden-io/garden/releases) and click the **Edit** button for the draft just created from CI. Note that for drafts, a new one is always created instead of replacing a previous one.
+6. Write release notes. The notes should give an overview of the release and mention all relevant features. They should also **acknowledge all external contributors** and contain the changelog for that release.
     * To generate a changelog for just that tag, run `git-chglog <tag-name>`
     * To get a list of all contributors between releases, ordered by count, run: `git log <previous-tag>..<current-tag> --no-merges "$@" | grep ^Author | sort | uniq -c | sort -nr`. Note that authors of squashed commits won't show up so it might be good to do a quick sanity check on Github as well.
-6. Click the **Publish release** button.
-7. Make a pull request for the branch that was pushed by the script.
-8. **Update the Homebrew package: `gulp update-brew`.**
-9. Install the Homebrew package and make sure it works okay:
+7. Click the **Publish release** button.
+8. Make a pull request for the branch that was pushed by the script.
+9. Check the `update-homebrew` GitHub Action run succesfully and the [homebrew repo](https://github.com/garden-io/homebrew-garden) contains the latest version.
+10. Install the Homebrew package and make sure it works okay:
     * `brew tap garden-io/garden && brew install garden-cli && brew update && brew upgrade garden-cli`
     * Run `$(brew --prefix garden-cli)/bin/garden dev` (to make sure you're using the packaged release) in an example project and see if all looks well.
-10. Prepare the release announcement and publish it in our channels (Slack and Twitter). If not possible, delegate the task to an available contributor.
+11. Prepare the release announcement and publish it in our channels (Slack and Twitter). If not possible, delegate the task to an available contributor.
 
 ## Changelog
 

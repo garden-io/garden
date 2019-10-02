@@ -13,6 +13,7 @@ import {
 import { GardenError } from "../../../../src/exceptions"
 import dedent = require("dedent")
 import { TaskMetadata } from "../../../../src/logger/log-entry"
+import logSymbols = require("log-symbols")
 
 const logger = getLogger()
 
@@ -103,31 +104,41 @@ describe("renderers", () => {
   describe("formatForTerminal", () => {
     it("should return the entry as a formatted string with a new line character", () => {
       const entry = logger.info("")
-      expect(formatForTerminal(entry)).to.equal("\n")
+      expect(formatForTerminal(entry, "fancy")).to.equal("\n")
     })
     it("should return an empty string without a new line if the entry is empty", () => {
       const entry = logger.placeholder()
-      expect(formatForTerminal(entry)).to.equal("")
+      expect(formatForTerminal(entry, "fancy")).to.equal("")
     })
     it("should return an empty string without a new line if the parameter LogEntryParams is empty", () => {
       const entry = logger.info({})
-      expect(formatForTerminal(entry)).to.equal("")
+      expect(formatForTerminal(entry, "fancy")).to.equal("")
     })
     it("should return a string with a new line if any of the members of entry.messageState is not empty", () => {
       const entryMsg = logger.info({ msg: "msg" })
-      expect(formatForTerminal(entryMsg)).contains("\n")
+      expect(formatForTerminal(entryMsg, "fancy")).contains("\n")
 
       const entryEmoji = logger.info({ emoji: "warning" })
-      expect(formatForTerminal(entryEmoji)).contains("\n")
+      expect(formatForTerminal(entryEmoji, "fancy")).contains("\n")
 
       const entrySection = logger.info({ section: "section" })
-      expect(formatForTerminal(entrySection)).contains("\n")
+      expect(formatForTerminal(entrySection, "fancy")).contains("\n")
 
       const entrySymbol = logger.info({ symbol: "success" })
-      expect(formatForTerminal(entrySymbol)).contains("\n")
+      expect(formatForTerminal(entrySymbol, "fancy")).contains("\n")
 
       const entryData = logger.info({ data: { some: "data" } })
-      expect(formatForTerminal(entryData)).contains("\n")
+      expect(formatForTerminal(entryData, "fancy")).contains("\n")
+    })
+    context("active entry with no symbol", () => {
+      it("should render an info symbol for basic entries", () => {
+        const entry = logger.info({ status: "active", msg: "" })
+        expect(formatForTerminal(entry, "basic")).to.eql(logSymbols.info + " \n")
+      })
+      it("should not render anything for fancy entries", () => {
+        const entry = logger.info({ status: "active", msg: "" })
+        expect(formatForTerminal(entry, "fancy")).to.eql("\n")
+      })
     })
   })
   describe("formatForJson", () => {

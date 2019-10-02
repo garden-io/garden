@@ -18,15 +18,6 @@ import { getTaskVersion } from "../../tasks/task"
 import { RunTaskResult } from "../../types/plugin/task/runTask"
 import chalk from "chalk"
 
-export interface TaskResultOutput {
-  name: string
-  module: string | null
-  version: string | null
-  output: string | null
-  startedAt: Date | null
-  completedAt: Date | null
-}
-
 const getTaskResultArgs = {
   name: new StringParameter({
     help: "The name of the task",
@@ -36,13 +27,17 @@ const getTaskResultArgs = {
 
 type Args = typeof getTaskResultArgs
 
+export type GetTaskResultCommandResult = RunTaskResult | null
+
 export class GetTaskResultCommand extends Command<Args> {
   name = "task-result"
   help = "Outputs the latest execution result of a provided task."
 
   arguments = getTaskResultArgs
 
-  async action({ garden, log, headerLog, args }: CommandParams<Args>): Promise<CommandResult<TaskResultOutput>> {
+  async action(
+    { garden, log, headerLog, args }: CommandParams<Args>,
+  ): Promise<CommandResult<GetTaskResultCommandResult>> {
     const taskName = args.name
 
     const graph: ConfigGraph = await garden.getConfigGraph()
@@ -50,7 +45,7 @@ export class GetTaskResultCommand extends Command<Args> {
 
     const actions = await garden.getActionHelper()
 
-    const taskResult: RunTaskResult | null = await actions.getTaskResult(
+    const result = await actions.getTaskResult(
       {
         log,
         task,
@@ -64,31 +59,14 @@ export class GetTaskResultCommand extends Command<Args> {
       "rocket",
     )
 
-    if (taskResult !== null) {
-      const output: TaskResultOutput = {
-        name: taskResult.taskName,
-        module: taskResult.moduleName,
-        version: taskResult.version,
-        output: taskResult.output || null,
-        startedAt: taskResult.startedAt,
-        completedAt: taskResult.completedAt,
-      }
-
-      log.info({ data: taskResult })
-      return { result: output }
-    } else {
+    if (result === null) {
       log.info(
         `Could not find results for task '${taskName}'`,
       )
-      const output: TaskResultOutput = {
-        name: taskName,
-        module: null,
-        version: null,
-        output: null,
-        startedAt: null,
-        completedAt: null,
-      }
-      return { result: output }
+    } else {
+      log.info({ data: result })
     }
+
+    return { result }
   }
 }

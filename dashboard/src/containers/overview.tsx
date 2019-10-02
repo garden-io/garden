@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import React, { useEffect } from "react"
+import React from "react"
 import styled from "@emotion/styled"
 
 import { RunState } from "garden-service/build/src/commands/get/get-status"
@@ -25,6 +25,7 @@ import {
 } from "../contexts/api"
 import Spinner from "../components/spinner"
 import { useUiState } from "../contexts/ui"
+import { useConfig } from "../util/hooks"
 
 const Overview = styled.div`
   padding-top: .5rem;
@@ -77,12 +78,11 @@ const mapTasks = (taskEntities: Task[], moduleName: string): ModuleProps["taskCa
 
 export default () => {
   const {
+    dispatch,
     store: {
-      projectRoot,
-      entities: { modules, services, tests, tasks },
-      requestStates: { fetchConfig, fetchStatus },
+      entities: { project, modules, services, tests, tasks },
+      requestStates,
     },
-    actions: { loadConfig, loadStatus },
   } = useApi()
 
   const {
@@ -94,31 +94,20 @@ export default () => {
     },
   } = useUiState()
 
-  // TODO use useAsyncEffect?
-  // https://dev.to/n1ru4l/homebrew-react-hooks-useasynceffect-or-how-to-handle-async-operations-with-useeffect-1fa8
-  useEffect(() => {
-    async function fetchData() {
-      return await loadConfig()
-    }
-    fetchData()
-  }, [])
-
-  useEffect(() => {
-    async function fetchData() {
-      return await loadStatus()
-    }
-    fetchData()
-  }, [])
+  useConfig(dispatch, requestStates.config)
 
   const clearSelectedEntity = () => {
     selectEntity(null)
   }
 
-  if (fetchConfig.error || fetchStatus.error) {
-    return <PageError error={fetchConfig.error || fetchStatus.error} />
+  if (requestStates.config.error || requestStates.status.error) {
+    return <PageError error={requestStates.config.error || requestStates.status.error} />
   }
 
-  if (fetchConfig.loading || fetchStatus.loading) {
+  // Note that we don't call the loadStatus function here since the Sidebar ensures that the status is always loaded.
+  // FIXME: We should be able to call loadStatus safely and have the handler check if the status
+  // has already been fetched or is pending.
+  if (!(requestStates.config.initLoadComplete && requestStates.status.initLoadComplete)) {
     return <Spinner />
   }
 
@@ -130,13 +119,13 @@ export default () => {
     return {
       name: module.name,
       type: module.type,
-      path: projectRoot.split("/").pop() + module.path.replace(projectRoot, ""),
+      path: project.root.split("/").pop() + module.path.replace(project.root, ""),
       repositoryUrl: module.repositoryUrl,
       description: module.description,
       serviceCardProps: mapServices(serviceEntities),
       testCardProps: mapTests(testEntities, module.name),
       taskCardProps: mapTasks(taskEntities, module.name),
-      isLoading: fetchStatus.loading,
+      isLoading: requestStates.status.pending,
     }
   })
 
@@ -154,11 +143,13 @@ export default () => {
           </Modules>
         </div>
         {selectedIngress &&
-          <div className="col-lg visible-lg-block">
-            {selectedIngress &&
-              <ViewIngress ingress={selectedIngress} />
-            }
-          </div>
+          (
+            <div className="col-lg visible-lg-block">
+              {selectedIngress &&
+                <ViewIngress ingress={selectedIngress} />
+              }
+            </div>
+          )
         }
         {selectedEntity && (
           <div className="col-xs-5 col-sm-5 col-md-4 col-lg-4 col-xl-4">

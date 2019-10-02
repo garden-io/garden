@@ -1,6 +1,9 @@
 # CircleCI 2.1 configuration file
 version: 2.1
 
+orbs:
+  win: circleci/windows@1.0.0
+
 # Shared config to use between jobs
 # These can be used to inject shared variables
 # see https://blog.daemonl.com/2016/02/yaml.html
@@ -308,19 +311,12 @@ jobs:
       - *attach-workspace
       - run: sudo apt-get update && sudo apt-get -y install rsync
       - run:
-          name: Extract binary and add to $HOME dir
-          command: |
-            GARDEN_DIR=${HOME}/.garden
-            mkdir -p ${GARDEN_DIR}
-            tar xvfz ./garden-service/dist/*linux-amd64.tar.gz --strip-components=1 -C ${GARDEN_DIR}
-      - run:
           name: Deploy demo-project with binary
-          command: $HOME/.garden/garden deploy --root examples/demo-project --env testing --logger-type basic
+          command: garden-service/dist/linux-amd64/garden deploy --root examples/demo-project --env testing --logger-type basic
       - run:
           name: Cleanup
           command: kubectl delete --wait=false $(kubectl get ns -o name | grep $CIRCLE_BUILD_NUM) || true
           when: always
-
   test-minikube:
     machine:
       image: 'ubuntu-1604:201903-01'
@@ -358,6 +354,34 @@ jobs:
       - run:
           name: Deploy demo-project
           command: sudo -E ./garden-service/bin/garden deploy --root examples/demo-project --logger-type basic
+  test-windows:
+    executor: win/vs2019
+    steps:
+      - checkout
+      - *attach-workspace
+      - run:
+          name: Install Deps
+          command: |
+            choco upgrade -y rsync gcloudsdk kubernetes-cli
+            refreshenv
+      - run:
+          name: Write gcloud credentials to file
+          command: $env:GCLOUD_SERVICE_KEY | Set-Content key.json
+      - run:
+          name: Setup remote K8s
+          command: |
+            gcloud auth activate-service-account --key-file=key.json
+            gcloud --quiet config set project $env:GOOGLE_PROJECT_ID
+            gcloud --quiet config set compute/zone $env:GOOGLE_COMPUTE_ZONE
+            gcloud --quiet container clusters get-credentials $env:GOOGLE_CLUSTER_ID --zone $env:GOOGLE_COMPUTE_ZONE
+            gcloud --quiet auth configure-docker
+      - run:
+          name: Deploy demo-project
+          command: .\garden-service\dist\windows-amd64\garden.exe deploy --root .\examples\demo-project\ --logger-type basic --env testing
+      - run:
+          name: Cleanup
+          command: (kubectl delete --wait=false $(kubectl get ns -o name | grep $env:CIRCLE_BUILD_NUM)) -or $true
+          when: always
 
 workflows:
   version: 2
@@ -390,6 +414,12 @@ workflows:
           requires:
             - build
       - test-minikube
+      - test-windows:
+          # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
+          <<: *only-internal-prs
+          requires:
+            - build-dist
+
 
   master:
     jobs:
@@ -428,6 +458,13 @@ workflows:
             - test-dist
       - test-minikube:
           <<: *only-master
+      - test-windows:
+          <<: *only-master
+          # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
+          <<: *only-internal-prs
+          requires:
+            - build-dist-edge
+
 
   tags:
     jobs:
@@ -464,3 +501,7 @@ workflows:
             - test-dist
       - test-minikube:
           <<: *only-tags
+      - test-windows:
+          <<: *only-tags
+          requires:
+            - build-dist

@@ -9,7 +9,6 @@
 import { useReducer, useEffect, useContext } from "react"
 import React from "react"
 import produce from "immer"
-import { merge } from "lodash"
 import { AxiosError } from "axios"
 
 import { ServiceLogEntry } from "garden-service/build/src/types/plugin/service/getServiceLogs"
@@ -20,25 +19,12 @@ import { PickFromUnion } from "garden-service/build/src/util/util"
 import { ServiceConfig } from "garden-service/build/src/config/service"
 import { RunStatus } from "garden-service/build/src/commands/get/get-status"
 import { TaskConfig } from "garden-service/build/src/config/task"
-import { TaskResultOutput } from "garden-service/build/src/commands/get/get-task-result"
-import { TestResultOutput } from "garden-service/build/src/commands/get/get-test-result"
+import { GetTaskResultCommandResult } from "garden-service/build/src/commands/get/get-task-result"
+import { GetTestResultCommandResult } from "garden-service/build/src/commands/get/get-test-result"
 import { TestConfig } from "garden-service/build/src/config/test"
 import { EventName } from "garden-service/build/src/events"
 import { EnvironmentStatusMap } from "garden-service/build/src/types/plugin/provider/getEnvironmentStatus"
-import {
-  loadLogsHandler,
-  loadStatusHandler,
-  loadTaskResultHandler,
-  loadConfigHandler,
-  loadTestResultHandler,
-  loadGraphHandler,
-} from "./api-handlers"
-import {
-  FetchLogsParams,
-  FetchTaskResultParams,
-  FetchTestResultParams,
-} from "../api/api"
-import { initWebSocket } from "./ws-handlers"
+import { initWebSocket } from "../api/ws"
 
 export type SupportedEventName = PickFromUnion<EventName,
   "taskPending" |
@@ -66,17 +52,25 @@ export type TaskState = PickFromUnion<SupportedEventName,
   "taskCancelled"
 >
 
+export const taskStates = [
+  "taskComplete",
+  "taskError",
+  "taskPending",
+  "taskProcessing",
+  "taskCancelled",
+]
+
 export interface Test {
   config: TestConfig,
   status: RunStatus,
-  result: TestResultOutput,
+  result: GetTestResultCommandResult,
   taskState: TaskState, // State of the test task for the module
 }
 
 export interface Task {
   config: TaskConfig,
   status: RunStatus,
-  result: TaskResultOutput,
+  result: GetTaskResultCommandResult,
   taskState: TaskState, // State of the task task for the module
 }
 
@@ -99,47 +93,52 @@ export interface Service {
   taskState: TaskState, // State of the deploy task for the service
 }
 
-interface RequestState {
-  loading: boolean,
-  didFetch: boolean
+export interface RequestState {
+  pending: boolean,
+  initLoadComplete: boolean
   error?: AxiosError,
+}
+
+export interface Entities {
+  project: {
+    root: string,
+    taskGraphProcessing: boolean,
+  }
+  modules: { [moduleName: string]: Module }
+  services: { [serviceName: string]: Service }
+  tasks: { [taskName: string]: Task }
+  tests: { [testKey: string]: Test }
+  logs: { [serviceName: string]: ServiceLogEntry[] }
+  graph: GraphOutput,
+  providers: EnvironmentStatusMap,
 }
 
 /**
  * The "global" data store
  */
 export interface Store {
-  projectRoot: string,
-  entities: {
-    modules: { [moduleName: string]: Module }
-    services: { [serviceName: string]: Service }
-    tasks: { [taskName: string]: Task }
-    tests: { [testKey: string]: Test }
-    logs: { [serviceName: string]: ServiceLogEntry[] }
-    graph: GraphOutput,
-    providers: EnvironmentStatusMap,
-  },
+  entities: Entities,
   requestStates: {
-    fetchConfig: RequestState
-    fetchStatus: RequestState
-    fetchGraph: RequestState,
-    fetchLogs: RequestState,
-    fetchTestResult: RequestState,
-    fetchTaskResult: RequestState,
-    fetchTaskStates: RequestState, // represents stack graph web sockets connection
+    config: RequestState
+    status: RequestState
+    graph: RequestState,
+    logs: RequestState,
+    testResult: RequestState,
+    taskResult: RequestState,
   },
 }
 
 type RequestKey = keyof Store["requestStates"]
 const requestKeys: RequestKey[] = [
-  "fetchConfig",
-  "fetchStatus",
-  "fetchLogs",
-  "fetchTestResult",
-  "fetchTaskResult",
-  "fetchGraph",
-  "fetchTaskStates",
+  "config",
+  "status",
+  "logs",
+  "testResult",
+  "taskResult",
+  "graph",
 ]
+
+type ProcessResults = (entities: Entities) => Entities
 
 interface ActionBase {
   type: "fetchStart" | "fetchSuccess" | "fetchFailure" | "wsMessageReceived"
@@ -153,7 +152,7 @@ interface ActionStart extends ActionBase {
 interface ActionSuccess extends ActionBase {
   requestKey: RequestKey
   type: "fetchSuccess"
-  store: Store
+  processResults: ProcessResults
 }
 
 interface ActionError extends ActionBase {
@@ -164,42 +163,22 @@ interface ActionError extends ActionBase {
 
 interface WsMessageReceived extends ActionBase {
   type: "wsMessageReceived"
-  store: Store
+  processResults: ProcessResults
 }
 
 export type Action = ActionStart | ActionError | ActionSuccess | WsMessageReceived
 
-interface LoadActionParams {
-  force?: boolean
-}
-type LoadAction = (param?: LoadActionParams) => Promise<void>
-
-interface LoadLogsParams extends LoadActionParams, FetchLogsParams { }
-export type LoadLogs = (param: LoadLogsParams) => Promise<void>
-
-interface LoadTaskResultParams extends LoadActionParams, FetchTaskResultParams { }
-type LoadTaskResult = (param: LoadTaskResultParams) => Promise<void>
-
-interface LoadTestResultParams extends LoadActionParams, FetchTestResultParams { }
-type LoadTestResult = (param: LoadTestResultParams) => Promise<void>
-
-interface Actions {
-  loadLogs: LoadLogs
-  loadTaskResult: LoadTaskResult
-  loadTestResult: LoadTestResult
-  loadConfig: LoadAction
-  loadStatus: LoadAction
-  loadGraph: LoadAction
-}
-
 const initialRequestState = requestKeys.reduce((acc, key) => {
-  acc[key] = { loading: false, didFetch: false }
+  acc[key] = { pending: false, initLoadComplete: false }
   return acc
 }, {} as { [K in RequestKey]: RequestState })
 
 const initialState: Store = {
-  projectRoot: "",
   entities: {
+    project: {
+      root: "",
+      taskGraphProcessing: false,
+    },
     modules: {},
     services: {},
     tasks: {},
@@ -214,56 +193,33 @@ const initialState: Store = {
 /**
  * The reducer for the useApiProvider hook. Sets the state for a given slice of the store on fetch events.
  */
-function reducer(store: Store, action: Action): Store {
-  let nextStore: Store = store
-
+const reducer = (store: Store, action: Action) => produce(store, draft => {
   switch (action.type) {
     case "fetchStart":
-      nextStore = produce(store, storeDraft => {
-        storeDraft.requestStates[action.requestKey].loading = true
-      })
+      draft.requestStates[action.requestKey].pending = true
       break
     case "fetchSuccess":
-      nextStore = produce(merge(store, action.store), storeDraft => {
-        storeDraft.requestStates[action.requestKey].loading = false
-        storeDraft.requestStates[action.requestKey].didFetch = true
-      })
+      // Produce the next store state from the fetch result and update the request state
+      draft.entities = action.processResults(store.entities)
+      draft.requestStates[action.requestKey].pending = false
+      draft.requestStates[action.requestKey].initLoadComplete = true
       break
     case "fetchFailure":
-      nextStore = produce(store, storeDraft => {
-        storeDraft.requestStates[action.requestKey].loading = false
-        storeDraft.requestStates[action.requestKey].error = action.error
-        // set didFetch to true on failure so the user can choose to force load the status
-        storeDraft.requestStates[action.requestKey].didFetch = true
-      })
+      draft.requestStates[action.requestKey].pending = false
+      draft.requestStates[action.requestKey].error = action.error
+      draft.requestStates[action.requestKey].initLoadComplete = true
       break
     case "wsMessageReceived":
-      nextStore = { ...merge(store, action.store) }
+      draft.entities = action.processResults(store.entities)
       break
   }
+})
 
-  return nextStore
-}
-
-/**
- * Hook that returns the store and the load actions that are passed down via the ApiProvider.
- */
-function useApiActions(store: Store, dispatch: React.Dispatch<Action>) {
-  const actions: Actions = {
-    loadConfig: async (params: LoadActionParams = {}) => loadConfigHandler({ store, dispatch, ...params }),
-    loadStatus: async (params: LoadActionParams = {}) => loadStatusHandler({ store, dispatch, ...params }),
-    loadLogs: async (params: LoadLogsParams) => loadLogsHandler({ store, dispatch, ...params }),
-    loadTaskResult: async (params: LoadTaskResultParams) => loadTaskResultHandler({ name, store, dispatch, ...params }),
-    loadTestResult: async (params: LoadTestResultParams) => loadTestResultHandler({ store, dispatch, ...params }),
-    loadGraph: async (params: LoadActionParams = {}) => loadGraphHandler({ store, dispatch, ...params }),
-  }
-
-  return actions
-}
+export type ApiDispatch = React.Dispatch<Action>
 
 type Context = {
-  store: Store;
-  actions: Actions;
+  store: Store
+  dispatch: ApiDispatch,
 }
 
 // Type cast the initial value to avoid having to check whether the context exists in every context consumer.
@@ -281,17 +237,16 @@ export const useApi = () => useContext(Context)
  */
 export const ApiProvider: React.FC = ({ children }) => {
   const [store, dispatch] = useReducer(reducer, initialState)
-  const actions = useApiActions(store, dispatch)
 
   // Set up the ws connection
   // TODO: Add websocket state as dependency (second argument) so that the websocket is re-initialised
   // if the connection breaks.
   useEffect(() => {
-    return initWebSocket(store, dispatch)
+    return initWebSocket(dispatch)
   }, [])
 
   return (
-    <Context.Provider value={{ store, actions }}>
+    <Context.Provider value={{ store, dispatch }}>
       {children}
     </Context.Provider>
   )

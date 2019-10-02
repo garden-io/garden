@@ -12,6 +12,7 @@ import React, { useEffect } from "react"
 import Sidebar from "../components/sidebar"
 import { useApi } from "../contexts/api"
 import { DashboardPage } from "garden-service/build/src/config/status"
+import { loadStatus } from "../api/actions"
 
 export interface Page extends DashboardPage {
   path: string
@@ -43,16 +44,20 @@ const builtinPages: Page[] = [
 
 const SidebarContainer = () => {
   const {
-    actions: { loadStatus },
-    store: { entities: { providers } },
+    dispatch,
+    store: {
+      entities: { providers },
+      requestStates,
+    },
   } = useApi()
 
   useEffect(() => {
-    async function fetchData() {
-      return await loadStatus()
+    const fetchData = async () => loadStatus(dispatch)
+
+    if (!(requestStates.status.initLoadComplete || requestStates.status.pending)) {
+      fetchData()
     }
-    fetchData()
-  }, [])
+  }, [dispatch, requestStates.status])
 
   let pages: Page[] = []
 

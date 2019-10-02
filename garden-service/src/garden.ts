@@ -499,14 +499,14 @@ export class Garden {
       const failed = Object.values(taskResults).filter(r => r && r.error)
 
       if (failed.length) {
-        const messages = failed.map(r => `- ${r.name}: ${r.error!.message}`)
+        const messages = failed.map(r => `- ${r!.name}: ${r!.error!.message}`)
         throw new PluginError(
           `Failed resolving one or more provider configurations:\n${messages.join("\n")}`,
           { rawConfigs, taskResults, messages },
         )
       }
 
-      const providers: Provider[] = Object.values(taskResults).map(result => result.output)
+      const providers: Provider[] = Object.values(taskResults).map(result => result!.output)
 
       await Bluebird.map(providers, async (provider) =>
         Bluebird.map(provider.moduleConfigs, async (moduleConfig) => {
@@ -636,21 +636,6 @@ export class Garden {
       const provider = await this.resolveProvider(configureHandler["pluginName"])
       const ctx = await this.getPluginContext(provider)
       config = await configureHandler({ ctx, moduleConfig: config, log: this.log })
-
-      if (config.plugin) {
-        // Make sure nested entities in plugin modules are scoped by name
-        for (const serviceConfig of config.serviceConfigs) {
-          serviceConfig.name = `${config.plugin}--${serviceConfig.name}`
-        }
-
-        for (const taskConfig of config.taskConfigs) {
-          taskConfig.name = `${config.plugin}--${taskConfig.name}`
-        }
-
-        for (const testConfig of config.testConfigs) {
-          testConfig.name = `${config.plugin}--${testConfig.name}`
-        }
-      }
 
       // FIXME: We should be able to avoid this
       config.name = getModuleKey(config.name, config.plugin)

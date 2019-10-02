@@ -11,7 +11,7 @@ import chalk from "chalk"
 import { includes } from "lodash"
 import { LogEntry } from "../logger/log-entry"
 import { BaseTask, TaskType, getServiceStatuses, getRunTaskResults } from "./base"
-import { Service, ServiceStatus, getIngressUrl } from "../types/service"
+import { Service, ServiceStatus, getLinkUrl } from "../types/service"
 import { Garden } from "../garden"
 import { TaskTask, getTaskVersion } from "./task"
 import { BuildTask } from "./build"
@@ -188,7 +188,7 @@ export class DeployTask extends BaseTask {
     }
 
     for (const ingress of status.ingresses || []) {
-      log.info(chalk.gray("→ Ingress: ") + chalk.underline.gray(getIngressUrl(ingress)))
+      log.info(chalk.gray("→ Ingress: ") + chalk.underline.gray(getLinkUrl(ingress)))
     }
 
     if (this.garden.persistent) {

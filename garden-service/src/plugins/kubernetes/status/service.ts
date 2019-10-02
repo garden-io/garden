@@ -47,7 +47,7 @@ export async function waitForServiceEndpoints(
     while (true) {
       const endpoints = await api.core.readNamespacedEndpoints(serviceName, serviceNamespace)
 
-      const addresses = flatten(endpoints.subsets!.map(subset => subset.addresses || []))
+      const addresses = flatten((endpoints.subsets || []).map(subset => subset.addresses || []))
       const routedPods = addresses
         .filter(a => a.targetRef!.kind === "Pod" && readyPodNames.includes(a.targetRef!.name!))
 

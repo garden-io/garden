@@ -71,7 +71,7 @@ export class GroupedFiltersButton<T extends string> extends React.Component<Grou
   render() {
     return (
       <Filters>
-        {(this.props.groups).map((group, index) =>
+        {(this.props.groups).map((group, index) => (
           <FilterGroup key={index}>
             {group && Object.keys(group).map((filterKey) => (
               <Filter
@@ -81,10 +81,10 @@ export class GroupedFiltersButton<T extends string> extends React.Component<Grou
                 key={filterKey}
               >
                 {group[filterKey].label}
-              </Filter>),
-            )}
-          </FilterGroup>,
-        )}
+              </Filter>
+            ))}
+          </FilterGroup>
+        ))}
       </Filters>
     )
   }
@@ -118,8 +118,8 @@ export class FiltersButton<T extends string> extends React.Component<FiltersButt
             key={filterKey}
           >
             {filters[filterKey].label}
-          </Filter>),
-        )}
+          </Filter>
+        ))}
       </Filters>
     )
   }

@@ -16,14 +16,13 @@ import Select from "react-select"
 import Terminal from "./terminal"
 import Card, { CardTitle } from "./card"
 import { colors } from "../styles/variables"
-import { LoadLogs } from "../contexts/api"
 
 import { ServiceLogEntry } from "garden-service/build/src/types/plugin/service/getServiceLogs"
 import { ActionIcon } from "./action-icon"
 
 interface Props {
   logs: { [serviceName: string]: ServiceLogEntry[] }
-  onRefresh: LoadLogs
+  onRefresh: (serviceNames: string[]) => void
 }
 
 interface State {
@@ -56,6 +55,7 @@ const selectStyles = {
   }),
 }
 
+// TODO: Use functional component
 class Logs extends Component<Props, State> {
 
   constructor(props) {
@@ -85,7 +85,7 @@ class Logs extends Component<Props, State> {
     if (!serviceNames.length) {
       return
     }
-    this.props.onRefresh({ serviceNames, force: true })
+    this.props.onRefresh(serviceNames)
     this.setState({ loading: true })
   }
 

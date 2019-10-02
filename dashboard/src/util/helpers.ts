@@ -6,8 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import normalizeUrl from "normalize-url"
+import { format } from "url"
 import { flatten } from "lodash"
 import { ModuleConfig } from "garden-service/build/src/config/module"
+import { ServiceIngress } from "garden-service/build/src/types/service"
 
 export function getServiceNames(moduleConfigs: ModuleConfig[]) {
   return flatten(moduleConfigs.map(m => m.serviceConfigs.map(s => s.name)))
@@ -48,4 +51,27 @@ export const truncateMiddle = (str: string, resLength: number = 35) => {
   }
 
   return str
+}
+
+/**
+ * Returns the link URL or falls back to constructing the URL from the ingress spec
+ */
+export function getLinkUrl(ingress: ServiceIngress) {
+  if (ingress.linkUrl) {
+    return ingress.linkUrl
+  }
+
+  return normalizeUrl(format({
+    protocol: ingress.protocol,
+    hostname: ingress.hostname,
+    port: ingress.port,
+    pathname: ingress.path,
+  }))
+}
+
+/**
+ * Test names are not unique so we construct a unique key from the module name and the test name.
+ */
+export function getTestKey({ testName, moduleName }: { testName: string, moduleName: string }) {
+  return `${moduleName}.${testName}`
 }

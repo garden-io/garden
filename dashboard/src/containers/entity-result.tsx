@@ -8,12 +8,12 @@
 
 import React, { useEffect } from "react"
 import { useApi } from "../contexts/api"
-import { getDuration } from "../util/helpers"
+import { getDuration, getTestKey } from "../util/helpers"
 import EntityResult from "../components/entity-result"
-import { TaskResultOutput } from "garden-service/build/src/commands/get/get-task-result"
-import { TestResultOutput } from "garden-service/build/src/commands/get/get-test-result"
 import { ErrorNotification } from "../components/notifications"
 import { EntityResultSupportedTypes } from "../contexts/ui"
+import { loadTestResult, loadTaskResult } from "../api/actions"
+import { RunResult } from "garden-service/build/src/types/plugin/base"
 
 const ErrorMsg = ({ error, type }) => (
   <ErrorNotification>
@@ -21,7 +21,7 @@ const ErrorMsg = ({ error, type }) => (
   </ErrorNotification>
 )
 
-function prepareData(data: TestResultOutput | TaskResultOutput) {
+function prepareData(data: RunResult) {
   const startedAt = data.startedAt
   const completedAt = data.completedAt
   const duration =
@@ -29,7 +29,7 @@ function prepareData(data: TestResultOutput | TaskResultOutput) {
     completedAt &&
     getDuration(startedAt, completedAt)
 
-  const output = data.output
+  const output = data.log
   return { duration, startedAt, completedAt, output }
 }
 
@@ -47,55 +47,62 @@ interface Props {
  */
 export default ({ name, moduleName, type, onClose }: Props) => {
   const {
-    actions: { loadTestResult, loadTaskResult },
-    store: { entities: { tasks, tests }, requestStates: { fetchTestResult, fetchTaskResult } },
+    dispatch,
+    store: {
+      entities,
+      requestStates,
+    },
   } = useApi()
+
+  const { tasks, tests } = entities
 
   const loadResults = () => {
     if (type === "test") {
-      loadTestResult({ name, moduleName, force: true })
+      loadTestResult({ dispatch, name, moduleName })
     } else if (type === "run" || type === "task") {
-      loadTaskResult({ name, force: true })
+      loadTaskResult({ name, dispatch })
     }
   }
 
   useEffect(loadResults, [name, moduleName])
 
   if (type === "test") {
-    const testResult = tests && tests[name] && tests[name].result
+    const testKey = getTestKey({ moduleName, testName: name })
 
-    if (fetchTestResult.error) {
-      return <ErrorMsg error={fetchTestResult.error} type={type} />
+    const testResult = tests && tests[testKey] && tests[testKey].result
+
+    if (requestStates.testResult.error) {
+      return <ErrorMsg error={requestStates.testResult.error} type={type} />
     }
 
     return (
       <EntityResult
         onRefresh={loadResults}
-        loading={fetchTestResult.loading}
+        loading={requestStates.testResult.pending}
         onClose={onClose}
         name={name}
         type={type}
         moduleName={moduleName}
-        {...(!fetchTestResult.loading && testResult && prepareData(testResult))}
+        {...(!requestStates.testResult.pending && testResult && prepareData(testResult))}
       />
     )
 
   } else if (type === "task" || type === "run") {
     const taskResult = tasks && tasks[name] && tasks[name].result
 
-    if (fetchTaskResult.error) {
-      return <ErrorMsg error={fetchTaskResult.error} type={type} />
+    if (requestStates.taskResult.error) {
+      return <ErrorMsg error={requestStates.taskResult.error} type={type} />
     }
 
     return (
       <EntityResult
         onRefresh={loadResults}
-        loading={fetchTaskResult.loading}
+        loading={requestStates.taskResult.pending}
         onClose={onClose}
         name={name}
         type={type}
         moduleName={moduleName}
-        {...(!fetchTaskResult.loading && taskResult && prepareData(taskResult))}
+        {...(!requestStates.taskResult.pending && taskResult && prepareData(taskResult))}
 
       />
     )

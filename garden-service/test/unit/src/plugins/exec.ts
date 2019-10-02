@@ -149,7 +149,7 @@ describe("exec plugin", () => {
     const results = await _garden.processTasks([taskTask])
 
     // Task A echoes "task-a-output" and Task B echoes the output from Task A
-    expect(results["task.task-b"].output.outputs.log).to.equal("task-a-output")
+    expect(results["task.task-b"]!.output.outputs.log).to.equal("task-a-output")
   })
 
   describe("getBuildStatus", () => {

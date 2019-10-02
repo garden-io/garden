@@ -11,8 +11,6 @@ import yaml from "js-yaml"
 import chalk from "chalk"
 import stripAnsi from "strip-ansi"
 import {
-  curryRight,
-  flow,
   isArray,
   isEmpty,
   repeat,
@@ -23,13 +21,12 @@ import hasAnsi = require("has-ansi")
 
 import { LogEntry, MessageState } from "./log-entry"
 import { JsonLogEntry } from "./writers/json-terminal-writer"
-import { highlightYaml, deepFilter } from "../util/util"
+import { highlightYaml, deepFilter, PickFromUnion } from "../util/util"
 import { isNumber } from "util"
 import { printEmoji, sanitizeObject } from "./util"
+import { LoggerType, Logger } from "./logger"
 
-export type ToRender = string | ((...args: any[]) => string)
-export type Renderer = [ToRender, any[]] | ToRender[]
-export type Renderers = Renderer[]
+type RenderFn = (entry: LogEntry) => string
 
 /*** STYLE HELPERS ***/
 
@@ -44,19 +41,12 @@ export const msgStyle = (s: string) => hasAnsi(s) ? s : chalk.gray(s)
 export const errorStyle = (s: string) => hasAnsi(s) ? s : chalk.red(s)
 
 /*** RENDER HELPERS ***/
-function insertVal(out: string[], idx: number, toRender: Function | string, renderArgs: any[]): string[] {
-  out[idx] = typeof toRender === "string" ? toRender : toRender(...renderArgs)
-  return out
-}
 
-// Creates a chain of renderers that each receives the updated output array along with the provided parameters
-function applyRenderers(renderers: Renderers): Function {
-  const curried = renderers.map(([toRender, renderArgs]: Renderer, idx: number) => {
-    const args = [idx, toRender, renderArgs]
-    // FIXME Currying like this throws "Expected 0-4 arguments, but got 0 or more"
-    return (<any>curryRight)(insertVal)(...args)
-  })
-  return flow(curried)
+/**
+ * Combines the render functions and returns a string with the output value
+ */
+export function combineRenders(entry: LogEntry, renderers: RenderFn[]): string {
+  return renderers.map(renderer => renderer(entry)).join("")
 }
 
 /**
@@ -75,11 +65,6 @@ export function chainMessages(messageStates: MessageState[], chain: string[] = [
     return chainMessages(messageStates.slice(0, -1), chain)
   }
   return chain.reverse()
-}
-
-export function combine(renderers: Renderers): string {
-  const initOutput = []
-  return applyRenderers(renderers)(initOutput).join("")
 }
 
 /*** RENDERERS ***/
@@ -122,8 +107,22 @@ export function renderError(entry: LogEntry) {
   return isArray(msg) ? msg.join(" ") : msg || ""
 }
 
+export function renderSymbolBasic(entry: LogEntry): string {
+  let { symbol, status } = entry.getMessageState()
+
+  if (symbol === "empty") {
+    return " "
+  }
+  if (status === "active" && !symbol) {
+    symbol = "info"
+  }
+
+  return symbol ? `${logSymbols[symbol]} ` : ""
+}
+
 export function renderSymbol(entry: LogEntry): string {
   const { symbol } = entry.getMessageState()
+
   if (symbol === "empty") {
     return " "
   }
@@ -167,20 +166,26 @@ export function renderSection(entry: LogEntry): string {
   return ""
 }
 
-export function formatForTerminal(entry: LogEntry): string {
+/**
+ * Formats entries for both fancy writer and basic terminal writer.
+ */
+export function formatForTerminal(entry: LogEntry, type: PickFromUnion<LoggerType, "fancy" | "basic">): string {
   const { msg, emoji, section, symbol, data } = entry.getMessageState()
   const empty = [msg, section, emoji, symbol, data].every(val => val === undefined)
   if (empty) {
     return ""
   }
-  return combine([
-    [leftPad, [entry]],
-    [renderSymbol, [entry]],
-    [renderSection, [entry]],
-    [renderEmoji, [entry]],
-    [renderMsg, [entry]],
-    [renderData, [entry]],
-    ["\n"],
+
+  const symbolRenderFn = type === "basic" ? renderSymbolBasic : renderSymbol
+
+  return combineRenders(entry, [
+    leftPad,
+    symbolRenderFn,
+    renderSection,
+    renderEmoji,
+    renderMsg,
+    renderData,
+    () => "\n",
   ])
 }
 
@@ -195,6 +200,13 @@ export function cleanForJSON(input?: string | string[]): string {
 
 export function cleanWhitespace(str) {
   return str.replace(/\s+/g, " ")
+}
+
+export function basicRender(entry: LogEntry, logger: Logger): string | null {
+  if (logger.level >= entry.level) {
+    return formatForTerminal(entry, "basic")
+  }
+  return null
 }
 
 // TODO: Include individual message states with timestamp

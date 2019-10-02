@@ -15,7 +15,6 @@
     "@commitlint/cli": "^8.1.0",
     "@commitlint/config-conventional": "^8.1.0",
     "@lerna/version": "^3.16.4",
-    "@octokit/rest": "^16.28.9",
     "@types/bluebird": "^3.5.27",
     "@types/fs-extra": "^8.0.0",
     "@types/lodash": "^4.14.138",

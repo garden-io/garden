@@ -486,6 +486,22 @@ Note that if you're developing locally you may need to add this hostname to your
 | -------- | -------- |
 | `string` | No       |
 
+### `services[].ingresses[].linkUrl`
+
+[services](#services) > [ingresses](#services[].ingresses[]) > linkUrl
+
+The link URL for the ingress to show in the console and on the dashboard.
+Also used when calling the service with the `call` command.
+
+Use this if the actual URL is different from what's specified in the ingress,
+e.g. because there's a load balancer in front of the service that rewrites the paths.
+
+Otherwise Garden will construct the link URL from the ingress spec.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
 ### `services[].ingresses[].path`
 
 [services](#services) > [ingresses](#services[].ingresses[]) > path
@@ -1081,6 +1097,7 @@ services:
     ingresses:
       - annotations: {}
         hostname:
+        linkUrl:
         path: /
         port:
     env: {}
