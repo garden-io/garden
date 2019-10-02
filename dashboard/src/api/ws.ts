@@ -10,12 +10,12 @@ import { ServerWebsocketMessage } from "garden-service/build/src/server/server"
 import { Events } from "garden-service/build/src/events"
 
 import {
-  Store,
+  Entities,
   Action,
   SupportedEventName,
   supportedEventNames,
-} from "./api"
-import getApiUrl from "../api/get-api-url"
+} from "../contexts/api"
+import getApiUrl from "./get-api-url"
 import produce from "immer"
 
 export type WsEventMessage = ServerWebsocketMessage & {
@@ -47,8 +47,8 @@ export function initWebSocket(dispatch: React.Dispatch<Action>) {
       console.error(parsedMsg)
     }
     if (isSupportedEvent(parsedMsg)) {
-      const produceNextStore = (store: Store) => processWebSocketMessage(store, parsedMsg)
-      dispatch({ type: "wsMessageReceived", produceNextStore })
+      const processResults = (store: Entities) => processWebSocketMessage(store, parsedMsg)
+      dispatch({ type: "wsMessageReceived", processResults })
     }
   }
   return function cleanUp() {
@@ -57,46 +57,47 @@ export function initWebSocket(dispatch: React.Dispatch<Action>) {
 }
 
 // Process the graph response and return a normalized store
-function processWebSocketMessage(store: Store, message: WsEventMessage) {
+function processWebSocketMessage(store: Entities, message: WsEventMessage) {
   const taskType = message.payload["type"] === "task" ? "run" : message.payload["type"] // convert "task" to "run"
   const taskState = message.name
   const entityName = message.payload["name"]
-  return produce(store, storeDraft => {
+  return produce(store, draft => {
     //  We don't handle taskGraphComplete events
     if (taskType && taskState !== "taskGraphComplete") {
-      storeDraft.requestStates.fetchTaskStates.loading = true
+      draft.project.taskGraphProcessing = true
       switch (taskType) {
         case "publish":
           break
         case "deploy":
-          storeDraft.entities.services[entityName] = {
-            ...storeDraft.entities.services[entityName],
+          draft.services[entityName] = {
+            ...draft.services[entityName],
             taskState,
           }
           break
         case "build":
-          storeDraft.entities.modules[entityName] = {
-            ...store.entities.modules[entityName],
+          draft.modules[entityName] = {
+            ...store.modules[entityName],
             taskState,
           }
           break
         case "run":
-          storeDraft.entities.tasks[entityName] = {
-            ...store.entities.tasks[entityName],
+          draft.tasks[entityName] = {
+            ...store.tasks[entityName],
             taskState,
           }
           break
         case "test":
-          storeDraft.entities.tests[entityName] = {
-            ...store.entities.tests[entityName],
+          draft.tests[entityName] = {
+            ...store.tests[entityName],
             taskState,
           }
           break
       }
     }
 
-    if (taskState === "taskGraphComplete") { // add to requestState graph whenever its taskGraphComplete
-      storeDraft.requestStates.fetchTaskStates.loading = false
+    // add to requestState graph whenever its taskGraphComplete
+    if (taskState === "taskGraphComplete") {
+      draft.project.taskGraphProcessing = false
     }
   })
 }

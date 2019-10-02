@@ -6,39 +6,17 @@ module.exports = {
   },
   "extends": ["react-app"],
   "rules": {
+    // FIXME: This is to prevent "Unexpected whitespace before property" false positives.
+    // This shouldn't happen in the first place though, not sure what the issue is.
+    "no-whitespace-before-property": "off",
+    // We use this plugin to import the dashboard tslint config which extends the root level tslint config.
+    // Note that tslint rules imported like this will not be autofixable. However, a lot of the
+    // rules we need aren't available with @typescript-eslint and we'd rather get a non-fixable
+    // lint error as opposed to no error at all.
     "@typescript-eslint/tslint/config": [
       "error",
       {
-        "rulesDirectory": [
-          "/Users/eysi/code/garden-io/garden/dashboard/node_modules/tslint-react/rules",
-          "/Users/eysi/code/garden-io/garden/dashboard/node_modules/tslint-microsoft-contrib"
-        ],
-        "rules": {
-          // Override tslint-react rules here
-          "jsx-alignment": true,
-          "jsx-boolean-value": [
-            true,
-            "never"
-          ],
-          "jsx-curly-spacing": [
-            true,
-            "never"
-          ],
-          "jsx-equals-spacing": [
-            true,
-            "never"
-          ],
-          "jsx-key": true,
-          "jsx-no-bind": true,
-          "jsx-no-lambda": true,
-          "jsx-no-string-ref": true,
-          "jsx-self-close": true,
-          "jsx-space-before-trailing-slash": true,
-          "jsx-wrap-multiline": true,
-          // From tslint-microsoft-contrib rules directory
-          "react-unused-props-and-state": true,
-          "react-this-binding-issue": true,
-        }
+        "lintFile": "./tslint.json",
       }
     ]
   },
