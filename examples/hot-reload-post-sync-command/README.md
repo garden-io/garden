@@ -40,7 +40,7 @@ services:
   ...
 ```
 
-When one is specified, the `postSyncCommand` is executed inside inside the running container during each hot reload, after any changed files have been synced.
+When one is specified, the `postSyncCommand` is executed inside the running container during each hot reload, after any changed files have been synced.
 
 In this example, the idea is to "notify" the `nodemon` process that a reload is needed by `touch`-ing  `hotreloadfile` during each hot reload. `nodemon` will then pick up the updated modification time, triggering a reload. `hotreloadfile` doesn't exist when the image is built (and doesn't need to for our purposes here).
 
