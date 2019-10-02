@@ -90,6 +90,7 @@ import { ConfigureProviderParams, ConfigureProviderResult } from "./types/plugin
 import { Task } from "./types/task"
 import { ConfigureModuleParams, ConfigureModuleResult } from "./types/plugin/module/configure"
 import { PluginContext } from "./plugin-context"
+import { DeleteServiceTask, deletedServiceStatuses } from "./tasks/delete-service"
 
 type TypeGuard = {
   readonly [P in keyof (PluginActionParams | ModuleActionParams<any>)]: (...args: any[]) => Promise<any>
@@ -368,7 +369,10 @@ export class ActionRouter implements TypeGuard {
       defaultHandler: dummyDeleteServiceHandler,
     })
 
-    log.setSuccess()
+    log.setSuccess({
+      msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
+      append: true,
+    })
 
     return result
   }
@@ -524,11 +528,20 @@ export class ActionRouter implements TypeGuard {
     const servicesLog = log.info({ msg: chalk.white("Deleting services..."), status: "active" })
 
     const services = await graph.getServices()
-    const serviceStatuses: { [key: string]: ServiceStatus } = {}
 
-    await Bluebird.map(services, async (service) => {
-      serviceStatuses[service.name] = await this.deleteService({ log: servicesLog, service })
-    })
+    const deleteResults = await this.garden.processTasks(
+      services.map((service) => {
+        return new DeleteServiceTask({
+          garden: this.garden,
+          graph,
+          service,
+          log: servicesLog,
+          includeDependants: true,
+        })
+      })
+    )
+
+    const serviceStatuses = deletedServiceStatuses(deleteResults)
 
     servicesLog.setSuccess()
 

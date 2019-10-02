@@ -18,6 +18,7 @@ import { splitLast } from "../util/util"
 
 export type TaskType =
   | "build"
+  | "delete-service"
   | "deploy"
   | "get-service-status"
   | "get-task-result"
