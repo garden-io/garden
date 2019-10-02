@@ -1,4 +1,12 @@
 
+<a name="v0.10.12-alpha.1"></a>
+## [v0.10.12-alpha.1](https://github.com/garden-io/garden/compare/v0.10.12-alpha.0...v0.10.12-alpha.1) (2019-10-02)
+
+### Bug Fixes
+
+* **commands:** fix regression due to changes to test|task result output ([71e204d3](https://github.com/garden-io/garden/commit/71e204d3))
+
+
 <a name="v0.10.12-alpha.0"></a>
 ## [v0.10.12-alpha.0](https://github.com/garden-io/garden/compare/v0.10.11...v0.10.12-alpha.0) (2019-10-02)
 
