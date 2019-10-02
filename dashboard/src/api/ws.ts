@@ -14,6 +14,8 @@ import {
   Action,
   SupportedEventName,
   supportedEventNames,
+  TaskState,
+  taskStates,
 } from "../contexts/api"
 import getApiUrl from "./get-api-url"
 import produce from "immer"
@@ -24,11 +26,25 @@ export type WsEventMessage = ServerWebsocketMessage & {
   payload: Events[SupportedEventName],
 }
 
+interface TaskStateChangeEventMessage {
+  type: "event"
+  name: TaskState
+  payload: Events[TaskState]
+}
+
 /**
  * Type guard to check whether websocket message is a type supported by the Dashboard
  */
-export function isSupportedEvent(data: ServerWebsocketMessage): data is WsEventMessage {
-  return data.type === "event" && supportedEventNames.has((data as WsEventMessage).name)
+export function isSupportedEvent(msg: ServerWebsocketMessage): msg is WsEventMessage {
+  return msg.type === "event" && supportedEventNames.has((msg as WsEventMessage).name)
+}
+
+/**
+ * Type guard to check whether the websocket event is for a task state change that is handled
+ * by the Dashboard.
+ */
+export function isTaskStateChangeEvent(msg: WsEventMessage): msg is TaskStateChangeEventMessage {
+  return taskStates.includes(msg.name)
 }
 
 export function initWebSocket(dispatch: React.Dispatch<Action>) {
@@ -58,14 +74,14 @@ export function initWebSocket(dispatch: React.Dispatch<Action>) {
 
 // Process the graph response and return a normalized store
 function processWebSocketMessage(store: Entities, message: WsEventMessage) {
-  const taskType = message.payload["type"] === "task" ? "run" : message.payload["type"] // convert "task" to "run"
-  const taskState = message.name
-  const entityName = message.payload["name"]
   return produce(store, draft => {
-    //  We don't handle taskGraphComplete events
-    if (taskType && taskState !== "taskGraphComplete") {
+    if (isTaskStateChangeEvent(message)) {
+      const taskState = message.name
+      const payload = message.payload
+      const entityName = payload.name
+
       draft.project.taskGraphProcessing = true
-      switch (taskType) {
+      switch (payload.type) {
         case "publish":
           break
         case "deploy":
@@ -87,6 +103,10 @@ function processWebSocketMessage(store: Entities, message: WsEventMessage) {
           }
           break
         case "test":
+          // Note that the task payload name for tests has the same format that we use in the
+          // store. So there's no need to use getTestKey here.
+          // FIXME: We need to make this more robust, although it will resolve itself when we implement
+          // https://github.com/garden-io/garden/issues/1177.
           draft.tests[entityName] = {
             ...store.tests[entityName],
             taskState,
@@ -95,8 +115,7 @@ function processWebSocketMessage(store: Entities, message: WsEventMessage) {
       }
     }
 
-    // add to requestState graph whenever its taskGraphComplete
-    if (taskState === "taskGraphComplete") {
+    if (message.name === "taskGraphComplete") {
       draft.project.taskGraphProcessing = false
     }
   })

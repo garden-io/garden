@@ -19,15 +19,6 @@ import { findByName, getNames } from "../../util/util"
 import { printHeader } from "../../logger/util"
 import chalk from "chalk"
 
-export interface TestResultOutput {
-  module: string
-  name: string
-  version: string | null
-  output: string | null
-  startedAt: Date | null
-  completedAt: Date | null
-}
-
 const getTestResultArgs = {
   module: new StringParameter({
     help: "Module name of where the test runs.",
@@ -39,6 +30,8 @@ const getTestResultArgs = {
   }),
 }
 
+export type GetTestResultCommandResult = TestResult | null
+
 type Args = typeof getTestResultArgs
 
 export class GetTestResultCommand extends Command<Args> {
@@ -47,7 +40,9 @@ export class GetTestResultCommand extends Command<Args> {
 
   arguments = getTestResultArgs
 
-  async action({ garden, log, headerLog, args }: CommandParams<Args>): Promise<CommandResult<TestResultOutput>> {
+  async action(
+    { garden, log, headerLog, args }: CommandParams<Args>,
+  ): Promise<CommandResult<GetTestResultCommandResult>> {
     const testName = args.name
     const moduleName = args.module
 
@@ -79,39 +74,19 @@ export class GetTestResultCommand extends Command<Args> {
 
     const testVersion = await getTestVersion(garden, graph, module, testConfig)
 
-    const testResult: TestResult | null = await actions.getTestResult({
+    const result = await actions.getTestResult({
       log,
       testName,
       module,
       testVersion,
     })
 
-    if (testResult !== null) {
-      const output: TestResultOutput = {
-        name: testResult.testName,
-        module: testResult.moduleName,
-        startedAt: testResult.startedAt,
-        completedAt: testResult.completedAt,
-        version: testResult.version,
-        output: testResult.output || null,
-      }
-
-      log.info({ data: testResult })
-      return { result: output }
+    if (result === null) {
+      log.info(`Could not find results for test '${testName}'`)
     } else {
-      const errorMessage = `Could not find results for test '${testName}'`
-
-      log.info(errorMessage)
-
-      const output: TestResultOutput = {
-        name: testName,
-        module: moduleName,
-        version: null,
-        output: null,
-        startedAt: null,
-        completedAt: null,
-      }
-      return { result: output }
+      log.info({ data: result })
     }
+
+    return { result }
   }
 }
