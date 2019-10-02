@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import React from "react"
+import React, { useEffect } from "react"
 import styled from "@emotion/styled"
 import Graph from "../components/graph"
 import PageError from "../components/page-error"
@@ -22,7 +22,8 @@ import { Filters } from "../components/group-filter"
 import { capitalize } from "lodash"
 import { RenderedNode } from "garden-service/build/src/config-graph"
 import { GraphOutput } from "garden-service/build/src/commands/get/get-graph"
-import { useMountEffect } from "../util/helpers"
+import { loadGraph } from "../api/actions"
+import { useConfig } from "../util/hooks"
 
 const Wrapper = styled.div`
   padding-left: .75rem;
@@ -37,8 +38,11 @@ export interface GraphOutputWithNodeStatus extends GraphOutput {
 
 export default () => {
   const {
-    actions,
-    store: { entities: { modules, services, tests, tasks, graph }, requestStates: { fetchGraph, fetchTaskStates } },
+    dispatch,
+    store: {
+      entities: { project, modules, services, tests, tasks, graph },
+      requestStates,
+    },
   } = useApi()
 
   const {
@@ -46,25 +50,21 @@ export default () => {
     state: { selectedGraphNode, isSidebarOpen, stackGraph: { filters } },
   } = useUiState()
 
-  useMountEffect(() => {
-    async function fetchData() {
-      return await actions.loadConfig()
-    }
-    fetchData()
-  })
+  useConfig(dispatch, requestStates.config)
 
-  useMountEffect(() => {
-    async function fetchData() {
-      return await actions.loadGraph()
-    }
-    fetchData()
-  })
+  useEffect(() => {
+    const fetchData = async () => loadGraph(dispatch)
 
-  if (fetchGraph.error) {
-    return <PageError error={fetchGraph.error} />
+    if (!(requestStates.graph.initLoadComplete || requestStates.graph.pending)) {
+      fetchData()
+    }
+  }, [dispatch, requestStates.graph])
+
+  if (requestStates.graph.error) {
+    return <PageError error={requestStates.graph.error} />
   }
 
-  if (!fetchGraph.initLoadComplete) {
+  if (!requestStates.graph.initLoadComplete) {
     return <Spinner />
   }
 
@@ -128,7 +128,7 @@ export default () => {
           graph={graphWithStatus}
           filters={graphFilters}
           onFilter={stackGraphToggleItemsView}
-          isProcessing={fetchTaskStates.loading}
+          isProcessing={project.taskGraphProcessing}
         />
       </div>
       {moreInfoPane}

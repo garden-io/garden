@@ -230,7 +230,7 @@ To make a new release, set your current working directory to the garden root dir
     * To get a list of all contributors between releases, ordered by count, run: `git log <previous-tag>..<current-tag> --no-merges "$@" | grep ^Author | sort | uniq -c | sort -nr`. Note that authors of squashed commits won't show up so it might be good to do a quick sanity check on Github as well.
 7. Click the **Publish release** button.
 8. Make a pull request for the branch that was pushed by the script.
-9. **Update the Homebrew package: `gulp update-brew`.**
+9. Check the `update-homebrew` GitHub Action run succesfully and the [homebrew repo](https://github.com/garden-io/homebrew-garden) contains the latest version.
 10. Install the Homebrew package and make sure it works okay:
     * `brew tap garden-io/garden && brew install garden-cli && brew update && brew upgrade garden-cli`
     * Run `$(brew --prefix garden-cli)/bin/garden dev` (to make sure you're using the packaged release) in an example project and see if all looks well.

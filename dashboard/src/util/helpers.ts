@@ -6,9 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import normalizeUrl from "normalize-url"
+import { format } from "url"
 import { flatten } from "lodash"
 import { ModuleConfig } from "garden-service/build/src/config/module"
-import { useEffect } from "react"
+import { ServiceIngress } from "garden-service/build/src/types/service"
 
 export function getServiceNames(moduleConfigs: ModuleConfig[]) {
   return flatten(moduleConfigs.map(m => m.serviceConfigs.map(s => s.name)))
@@ -52,10 +54,17 @@ export const truncateMiddle = (str: string, resLength: number = 35) => {
 }
 
 /**
- * For effects that should only run once on mount. Bypasses the react-hooks/exhaustive-deps lint warning.
- *
- * However, this pattern may not be desirable and the overall topic is widely debated.
- * See e.g. here: https://github.com/facebook/react/issues/15865.
- * Here's the suggested solution: https://github.com/facebook/create-react-app/issues/6880#issuecomment-488158024
+ * Returns the link URL or falls back to constructing the URL from the ingress spec
  */
-export const useMountEffect = (fun: () => void) => useEffect(fun, [])
+export function getLinkUrl(ingress: ServiceIngress) {
+  if (ingress.linkUrl) {
+    return ingress.linkUrl
+  }
+
+  return normalizeUrl(format({
+    protocol: ingress.protocol,
+    hostname: ingress.hostname,
+    port: ingress.port,
+    pathname: ingress.path,
+  }))
+}

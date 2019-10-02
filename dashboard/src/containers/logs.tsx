@@ -6,50 +6,51 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import React, { useEffect } from "react"
+import React, { useEffect, useCallback } from "react"
 
 import PageError from "../components/page-error"
 import Logs from "../components/logs"
 import { useApi } from "../contexts/api"
 import Spinner from "../components/spinner"
-import { useMountEffect } from "../util/helpers"
+import { loadLogs } from "../api/actions"
+import { useConfig } from "../util/hooks"
 
 export default () => {
   const {
-    actions: { loadConfig, loadLogs },
-    store: { entities: { logs, services }, requestStates: { fetchLogs, fetchConfig } },
+    dispatch,
+    store: {
+      entities: { logs, services },
+      requestStates,
+    },
   } = useApi()
 
   const serviceNames: string[] = Object.keys(services)
 
-  useMountEffect(() => {
-    async function fetchData() {
-      return await loadConfig()
-    }
-    fetchData()
-  })
+  useConfig(dispatch, requestStates.config)
 
   useEffect(() => {
-    async function fetchData() {
-      return await loadLogs({ serviceNames })
-    }
+    const fetchData = async () => loadLogs(dispatch, serviceNames)
 
-    if (serviceNames.length) {
+    if (!(requestStates.logs.initLoadComplete || requestStates.logs.pending) && serviceNames.length) {
       fetchData()
     }
-  }, [serviceNames, loadLogs]) // run again only after config had been fetched
+  }, [dispatch, requestStates.logs, serviceNames])
 
-  if (!(fetchConfig.initLoadComplete && fetchLogs.initLoadComplete)) {
+  if (!(requestStates.config.initLoadComplete && requestStates.logs.initLoadComplete)) {
     return <Spinner />
   }
 
-  if (fetchConfig.error || fetchLogs.error) {
+  if (requestStates.config.error || requestStates.logs.error) {
     return (
-      <PageError error={(fetchConfig.error || fetchLogs.error)} />
+      <PageError error={(requestStates.config.error || requestStates.logs.error)} />
     )
   }
 
+  const handleRefresh = useCallback((names: string[]) => {
+    loadLogs(dispatch, names)
+  }, [dispatch])
+
   return (
-    <Logs onRefresh={loadLogs} logs={logs} />
+    <Logs onRefresh={handleRefresh} logs={logs} />
   )
 }

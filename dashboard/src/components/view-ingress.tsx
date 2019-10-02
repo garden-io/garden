@@ -10,9 +10,7 @@ import React from "react"
 import styled from "@emotion/styled"
 import { ExternalLink } from "./links"
 import { ServiceIngress } from "garden-service/build/src/types/service"
-import { truncateMiddle } from "../util/helpers"
-import normalizeUrl from "normalize-url"
-import { format } from "url"
+import { truncateMiddle, getLinkUrl } from "../util/helpers"
 import { useUiState } from "../contexts/ui"
 import { ActionIcon } from "./action-icon"
 
@@ -58,15 +56,6 @@ const Frame = styled.iframe`
   width: 100%;
 `
 
-const getIngressUrl = (ingress: ServiceIngress) => {
-  return normalizeUrl(format({
-    protocol: ingress.protocol,
-    hostname: ingress.hostname,
-    port: ingress.port,
-    pathname: ingress.path,
-  }))
-}
-
 interface ViewIngressProp {
   ingress: ServiceIngress,
   height?: string,
@@ -80,7 +69,7 @@ export default ({ ingress, height, width }: ViewIngressProp) => {
     selectIngress(null)
   }
 
-  const url = getIngressUrl(ingress)
+  const url = getLinkUrl(ingress)
 
   return (
     <ViewIngress>

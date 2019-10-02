@@ -18,7 +18,7 @@ import {
   envVarRegex,
   Primitive,
 } from "../../config/common"
-import { Service, ingressHostnameSchema } from "../../types/service"
+import { Service, ingressHostnameSchema, linkUrlSchema } from "../../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../../constants"
 import { ModuleSpec, ModuleConfig, baseBuildSpecSchema, BaseBuildSpec } from "../../config/module"
 import { CommonServiceSpec, ServiceConfig, baseServiceSpecSchema } from "../../config/service"
@@ -33,6 +33,7 @@ export const defaultContainerLimits: ServiceLimitSpec = {
 
 export interface ContainerIngressSpec {
   annotations: Annotations
+  linkUrl?: string
   hostname?: string
   path: string
   port: string
@@ -185,6 +186,7 @@ const ingressSchema = joi.object()
     annotations: annotationsSchema
       .description("Annotations to attach to the ingress (Note: May not be applicable to all providers)"),
     hostname: ingressHostnameSchema,
+    linkUrl: linkUrlSchema,
     path: joi.string()
       .default("/")
       .description("The path which should be routed to the service."),

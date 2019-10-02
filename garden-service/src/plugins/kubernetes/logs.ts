@@ -51,6 +51,10 @@ export async function getPodLogs(params: GetPodLogsParams) {
   const procs = await Bluebird.map(params.pods, pod => getLogs({ ...omit(params, "pods"), pod }))
 
   return new Promise<GetServiceLogsResult>((resolve, reject) => {
+    // Make sure to resolve if no processes get created
+    if (procs.length === 0) {
+      return resolve({})
+    }
     for (const proc of procs) {
       proc.on("error", reject)
 

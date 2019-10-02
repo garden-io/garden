@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { resolve } from "url"
+import { parse, resolve } from "url"
 import Axios from "axios"
 import chalk from "chalk"
 import { isObject } from "util"
@@ -123,12 +123,30 @@ export class CallCommand extends Command<Args> {
       })
     }
 
-    const url = resolve(getIngressUrl(matchedIngress), path || matchedPath)
+    let url: string
+    let protocol: string
+    let host: string
+
+    // If a link URL is provided, we use that (and destructure the URL parts from it)...
+    if (matchedIngress.linkUrl) {
+      url = matchedIngress.linkUrl
+      const parsed = parse(url)
+      protocol = parsed.protocol || ""
+      host = parsed.hostname || ""
+      // Overwrite the return path value
+      path = parsed.path || ""
+      // ...otherwise we use the ingress spec
+    } else {
+      url = resolve(getIngressUrl(matchedIngress), path || matchedPath)
+      protocol = matchedIngress.protocol
+      host = matchedIngress.hostname
+    }
+
     // TODO: support POST requests with request body
     const method = "get"
 
     const entry = log.info({
-      msg: chalk.cyan(`Sending ${matchedIngress.protocol.toUpperCase()} GET request to `) + url + "\n",
+      msg: chalk.cyan(`Sending ${protocol.toUpperCase()} ${method.toUpperCase()} request to `) + url + "\n",
       status: "active",
     })
 
@@ -138,9 +156,7 @@ export class CallCommand extends Command<Args> {
     const req = Axios({
       method,
       url,
-      headers: {
-        host: matchedIngress.hostname,
-      },
+      headers: { host },
     })
 
     // TODO: add verbose and debug logging (request/response headers etc.)

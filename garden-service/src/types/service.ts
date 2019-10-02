@@ -80,6 +80,7 @@ export type ServiceProtocol = "http" | "https"  // | "tcp" | "udp"
 
 export interface ServiceIngressSpec {
   hostname?: string
+  linkUrl?: string
   path: string
   port: number
   protocol: ServiceProtocol
@@ -96,6 +97,18 @@ export const ingressHostnameSchema = joi.string()
     configured in the provider configuration.
 
     Note that if you're developing locally you may need to add this hostname to your hosts file.
+  `)
+
+export const linkUrlSchema = joi.string()
+  .uri()
+  .description(dedent`
+    The link URL for the ingress to show in the console and on the dashboard.
+    Also used when calling the service with the \`call\` command.
+
+    Use this if the actual URL is different from what's specified in the ingress,
+    e.g. because there's a load balancer in front of the service that rewrites the paths.
+
+    Otherwise Garden will construct the link URL from the ingress spec.
   `)
 
 const portSchema = joi.number()
@@ -213,6 +226,20 @@ export const serviceStatusSchema = joi.object()
       .description("The Garden module version of the deployed service."),
   })
 
+/**
+ * Returns the link URL or falls back to constructing the URL from the ingress spec
+ */
+export function getLinkUrl(ingress: ServiceIngress) {
+  if (ingress.linkUrl) {
+    return ingress.linkUrl
+  }
+
+  return getIngressUrl(ingress)
+}
+
+/**
+ * Returns a normalized URL string, constructed from the ingress spec
+ */
 export function getIngressUrl(ingress: ServiceIngress) {
   return normalizeUrl(format({
     protocol: ingress.protocol,

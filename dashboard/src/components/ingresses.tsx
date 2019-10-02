@@ -10,9 +10,7 @@ import React from "react"
 import styled from "@emotion/styled"
 import { ExternalLink } from "./links"
 import { ServiceIngress } from "garden-service/build/src/types/service"
-import { truncateMiddle } from "../util/helpers"
-import normalizeUrl from "normalize-url"
-import { format } from "url"
+import { truncateMiddle, getLinkUrl } from "../util/helpers"
 import { useUiState } from "../contexts/ui"
 
 const Ingresses = styled.div`
@@ -42,15 +40,6 @@ const LinkContainer = styled.div`
   }
 `
 
-const getIngressUrl = (ingress: ServiceIngress) => {
-  return normalizeUrl(format({
-    protocol: ingress.protocol,
-    hostname: ingress.hostname,
-    port: ingress.port,
-    pathname: ingress.path,
-  }))
-}
-
 interface IngressesProp {
   ingresses: ServiceIngress[] | undefined
 }
@@ -70,7 +59,7 @@ export default ({ ingresses }: IngressesProp) => {
   return (
     <Ingresses>
       {(ingresses || []).map((ingress) => {
-        const url = getIngressUrl(ingress)
+        const url = getLinkUrl(ingress)
         return (
           <LinkContainer key={ingress.path}>
             <div className="visible-lg-block">

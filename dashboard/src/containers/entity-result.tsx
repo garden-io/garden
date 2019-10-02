@@ -14,6 +14,7 @@ import { TaskResultOutput } from "garden-service/build/src/commands/get/get-task
 import { TestResultOutput } from "garden-service/build/src/commands/get/get-test-result"
 import { ErrorNotification } from "../components/notifications"
 import { EntityResultSupportedTypes } from "../contexts/ui"
+import { loadTestResult, loadTaskResult } from "../api/actions"
 
 const ErrorMsg = ({ error, type }) => (
   <ErrorNotification>
@@ -47,15 +48,18 @@ interface Props {
  */
 export default ({ name, moduleName, type, onClose }: Props) => {
   const {
-    actions,
-    store: { entities: { tasks, tests }, requestStates: { fetchTestResult, fetchTaskResult } },
+    dispatch,
+    store: {
+      entities: { tasks, tests },
+      requestStates,
+    },
   } = useApi()
 
   const loadResults = () => {
     if (type === "test") {
-      actions.loadTestResult({ name, moduleName, force: true })
+      loadTestResult({ dispatch, name, moduleName })
     } else if (type === "run" || type === "task") {
-      actions.loadTaskResult({ name, force: true })
+      loadTaskResult({ name, dispatch })
     }
   }
 
@@ -64,38 +68,38 @@ export default ({ name, moduleName, type, onClose }: Props) => {
   if (type === "test") {
     const testResult = tests && tests[name] && tests[name].result
 
-    if (fetchTestResult.error) {
-      return <ErrorMsg error={fetchTestResult.error} type={type} />
+    if (requestStates.testResult.error) {
+      return <ErrorMsg error={requestStates.testResult.error} type={type} />
     }
 
     return (
       <EntityResult
         onRefresh={loadResults}
-        loading={fetchTestResult.loading}
+        loading={requestStates.testResult.pending}
         onClose={onClose}
         name={name}
         type={type}
         moduleName={moduleName}
-        {...(!fetchTestResult.loading && testResult && prepareData(testResult))}
+        {...(!requestStates.testResult.pending && testResult && prepareData(testResult))}
       />
     )
 
   } else if (type === "task" || type === "run") {
     const taskResult = tasks && tasks[name] && tasks[name].result
 
-    if (fetchTaskResult.error) {
-      return <ErrorMsg error={fetchTaskResult.error} type={type} />
+    if (requestStates.taskResult.error) {
+      return <ErrorMsg error={requestStates.taskResult.error} type={type} />
     }
 
     return (
       <EntityResult
         onRefresh={loadResults}
-        loading={fetchTaskResult.loading}
+        loading={requestStates.taskResult.pending}
         onClose={onClose}
         name={name}
         type={type}
         moduleName={moduleName}
-        {...(!fetchTaskResult.loading && taskResult && prepareData(taskResult))}
+        {...(!requestStates.taskResult.pending && taskResult && prepareData(taskResult))}
 
       />
     )

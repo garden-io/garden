@@ -25,7 +25,7 @@ import {
 } from "../contexts/api"
 import Spinner from "../components/spinner"
 import { useUiState } from "../contexts/ui"
-import { useMountEffect } from "../util/helpers"
+import { useConfig } from "../util/hooks"
 
 const Overview = styled.div`
   padding-top: .5rem;
@@ -78,11 +78,10 @@ const mapTasks = (taskEntities: Task[], moduleName: string): ModuleProps["taskCa
 
 export default () => {
   const {
-    actions,
+    dispatch,
     store: {
-      projectRoot,
-      entities: { modules, services, tests, tasks },
-      requestStates: { fetchConfig, fetchStatus },
+      entities: { project, modules, services, tests, tasks },
+      requestStates,
     },
   } = useApi()
 
@@ -95,25 +94,20 @@ export default () => {
     },
   } = useUiState()
 
-  useMountEffect(() => {
-    async function fetchData() {
-      return await actions.loadConfig()
-    }
-    fetchData()
-  })
+  useConfig(dispatch, requestStates.config)
 
   const clearSelectedEntity = () => {
     selectEntity(null)
   }
 
-  if (fetchConfig.error || fetchStatus.error) {
-    return <PageError error={fetchConfig.error || fetchStatus.error} />
+  if (requestStates.config.error || requestStates.status.error) {
+    return <PageError error={requestStates.config.error || requestStates.status.error} />
   }
 
   // Note that we don't call the loadStatus function here since the Sidebar ensures that the status is always loaded.
   // FIXME: We should be able to call loadStatus safely and have the handler check if the status
   // has already been fetched or is pending.
-  if (!(fetchConfig.initLoadComplete && fetchStatus.initLoadComplete)) {
+  if (!(requestStates.config.initLoadComplete && requestStates.status.initLoadComplete)) {
     return <Spinner />
   }
 
@@ -125,13 +119,13 @@ export default () => {
     return {
       name: module.name,
       type: module.type,
-      path: projectRoot.split("/").pop() + module.path.replace(projectRoot, ""),
+      path: project.root.split("/").pop() + module.path.replace(project.root, ""),
       repositoryUrl: module.repositoryUrl,
       description: module.description,
       serviceCardProps: mapServices(serviceEntities),
       testCardProps: mapTests(testEntities, module.name),
       taskCardProps: mapTasks(taskEntities, module.name),
-      isLoading: fetchStatus.loading,
+      isLoading: requestStates.status.pending,
     }
   })
 
