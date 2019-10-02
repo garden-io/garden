@@ -19,8 +19,8 @@ import { PickFromUnion } from "garden-service/build/src/util/util"
 import { ServiceConfig } from "garden-service/build/src/config/service"
 import { RunStatus } from "garden-service/build/src/commands/get/get-status"
 import { TaskConfig } from "garden-service/build/src/config/task"
-import { TaskResultOutput } from "garden-service/build/src/commands/get/get-task-result"
-import { TestResultOutput } from "garden-service/build/src/commands/get/get-test-result"
+import { GetTaskResultCommandResult } from "garden-service/build/src/commands/get/get-task-result"
+import { GetTestResultCommandResult } from "garden-service/build/src/commands/get/get-test-result"
 import { TestConfig } from "garden-service/build/src/config/test"
 import { EventName } from "garden-service/build/src/events"
 import { EnvironmentStatusMap } from "garden-service/build/src/types/plugin/provider/getEnvironmentStatus"
@@ -52,17 +52,25 @@ export type TaskState = PickFromUnion<SupportedEventName,
   "taskCancelled"
 >
 
+export const taskStates = [
+  "taskComplete",
+  "taskError",
+  "taskPending",
+  "taskProcessing",
+  "taskCancelled",
+]
+
 export interface Test {
   config: TestConfig,
   status: RunStatus,
-  result: TestResultOutput,
+  result: GetTestResultCommandResult,
   taskState: TaskState, // State of the test task for the module
 }
 
 export interface Task {
   config: TaskConfig,
   status: RunStatus,
-  result: TaskResultOutput,
+  result: GetTaskResultCommandResult,
   taskState: TaskState, // State of the task task for the module
 }
 

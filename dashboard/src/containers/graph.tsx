@@ -24,6 +24,7 @@ import { RenderedNode } from "garden-service/build/src/config-graph"
 import { GraphOutput } from "garden-service/build/src/commands/get/get-graph"
 import { loadGraph } from "../api/actions"
 import { useConfig } from "../util/hooks"
+import { getTestKey } from "../util/helpers"
 
 const Wrapper = styled.div`
   padding-left: .75rem;
@@ -40,10 +41,12 @@ export default () => {
   const {
     dispatch,
     store: {
-      entities: { project, modules, services, tests, tasks, graph },
+      entities,
       requestStates,
     },
   } = useApi()
+
+  const { project, modules, services, tests, tasks, graph } = entities
 
   const {
     actions: { selectGraphNode, stackGraphToggleItemsView, clearGraphNodeSelection },
@@ -83,7 +86,8 @@ export default () => {
         taskState = (tasks[node.name] && tasks[node.name].taskState) || taskState
         break
       case "test":
-        taskState = (tests[node.name] && tests[node.name].taskState) || taskState
+        const testKey = getTestKey({ testName: node.name, moduleName: node.moduleName })
+        taskState = (tests[testKey] && tests[testKey].taskState) || taskState
         break
     }
     return { ...node, status: taskState }

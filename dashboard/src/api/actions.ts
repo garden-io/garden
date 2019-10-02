@@ -11,9 +11,9 @@ import { groupBy } from "lodash"
 
 import { ServiceLogEntry } from "garden-service/build/src/types/plugin/service/getServiceLogs"
 import { StatusCommandResult } from "garden-service/build/src/commands/get/get-status"
-import { TaskResultOutput } from "garden-service/build/src/commands/get/get-task-result"
+import { GetTaskResultCommandResult } from "garden-service/build/src/commands/get/get-task-result"
 import { ConfigDump } from "garden-service/build/src/garden"
-import { TestResultOutput } from "garden-service/build/src/commands/get/get-test-result"
+import { GetTestResultCommandResult } from "garden-service/build/src/commands/get/get-test-result"
 import { GraphOutput } from "garden-service/build/src/commands/get/get-graph"
 import {
   Entities,
@@ -33,6 +33,7 @@ import {
   FetchTaskResultParams,
   FetchTestResultParams,
 } from "./api"
+import { getTestKey } from "../util/helpers"
 
 /**
  * This file contains the API action functions.
@@ -86,7 +87,8 @@ function processConfig(entities: Entities, config: ConfigDump) {
       }
     }
     for (const testConfig of cfg.testConfigs) {
-      const testKey = `${cfg.name}.${testConfig.name}`
+      // Test names are not unique so we store the data under a unique test key
+      const testKey = getTestKey({ testName: testConfig.name, moduleName: cfg.name })
       tests[testKey] = {
         ...tests[testKey],
         config: testConfig,
@@ -184,7 +186,7 @@ export async function loadTaskResult({ dispatch, ...fetchParams }: LoadTaskResul
 
   dispatch({ requestKey, type: "fetchStart" })
 
-  let res: TaskResultOutput
+  let res: GetTaskResultCommandResult
   try {
     res = await fetchTaskResult(fetchParams)
   } catch (error) {
@@ -197,11 +199,14 @@ export async function loadTaskResult({ dispatch, ...fetchParams }: LoadTaskResul
   dispatch({ type: "fetchSuccess", requestKey, processResults })
 }
 
-function processTaskResult(entities: Entities, result: TaskResultOutput) {
+function processTaskResult(entities: Entities, result: GetTaskResultCommandResult) {
   return produce(entities, draft => {
-    draft.tasks = draft.tasks || {}
-    draft.tasks[result.name] = draft.tasks[result.name] || {}
-    draft.tasks[result.name].result = result
+    if (result) {
+      draft.tasks[result.taskName] = {
+        ...draft.tasks[result.taskName],
+        result,
+      }
+    }
   })
 }
 
@@ -214,7 +219,7 @@ export async function loadTestResult({ dispatch, ...fetchParams }: LoadTestResul
 
   dispatch({ requestKey, type: "fetchStart" })
 
-  let res: TestResultOutput
+  let res: GetTestResultCommandResult
   try {
     res = await fetchTestResult(fetchParams)
   } catch (error) {
@@ -227,11 +232,16 @@ export async function loadTestResult({ dispatch, ...fetchParams }: LoadTestResul
   dispatch({ type: "fetchSuccess", requestKey, processResults })
 }
 
-function processTestResult(entities: Entities, result: TestResultOutput) {
+function processTestResult(entities: Entities, result: GetTestResultCommandResult) {
   return produce(entities, draft => {
-    draft.tests = draft.tests || {}
-    draft.tests[result.name] = draft.tests[result.name] || {}
-    draft.tests[result.name].result = result
+    if (result) {
+      // Test names are not unique so we store the data under a unique test key
+      const testKey = getTestKey({ testName: result.testName, moduleName: result.moduleName })
+      draft.tests[testKey] = {
+        ...draft.tests[testKey],
+        result,
+      }
+    }
   })
 }
 

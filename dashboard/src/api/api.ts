@@ -9,8 +9,8 @@
 import axios from "axios"
 
 import { GraphOutput } from "garden-service/build/src/commands/get/get-graph"
-import { TaskResultOutput } from "garden-service/build/src/commands/get/get-task-result"
-import { TestResultOutput } from "garden-service/build/src/commands/get/get-test-result"
+import { GetTaskResultCommandResult } from "garden-service/build/src/commands/get/get-task-result"
+import { GetTestResultCommandResult } from "garden-service/build/src/commands/get/get-test-result"
 import { ServiceLogEntry } from "garden-service/build/src/types/plugin/service/getServiceLogs"
 import { CommandResult } from "garden-service/build/src/commands/base"
 import { ConfigDump } from "garden-service/build/src/garden"
@@ -49,7 +49,7 @@ export interface FetchTaskResultParams {
 }
 
 export async function fetchTaskResult(params: FetchTaskResultParams) {
-  return apiPost<TaskResultOutput>("get.task-result", params)
+  return apiPost<GetTaskResultCommandResult>("get.task-result", params)
 }
 
 export interface FetchTestResultParams {
@@ -58,7 +58,7 @@ export interface FetchTestResultParams {
 }
 
 export async function fetchTestResult({ name, moduleName }: FetchTestResultParams) {
-  return apiPost<TestResultOutput>("get.test-result", { name, module: moduleName })
+  return apiPost<GetTestResultCommandResult>("get.test-result", { name, module: moduleName })
 }
 
 async function apiPost<T>(command: string, parameters: {} = {}): Promise<T> {
@@ -73,7 +73,7 @@ async function apiPost<T>(command: string, parameters: {} = {}): Promise<T> {
     throw res.data.errors
   }
 
-  if (!res.data.result) {
+  if (res.data.result === undefined) {
     throw new Error("Empty response from server")
   }
 
