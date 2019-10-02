@@ -1,4 +1,24 @@
 
+<a name="v0.10.12-alpha.0"></a>
+## [v0.10.12-alpha.0](https://github.com/garden-io/garden/compare/v0.10.11...v0.10.12-alpha.0) (2019-10-02)
+
+### Bug Fixes
+
+* **core:** null reference error when an action with dependants failed ([7c1fb0d2](https://github.com/garden-io/garden/commit/7c1fb0d2))
+* **k8s:** ensure get logs handler resolves ([4763532c](https://github.com/garden-io/garden/commit/4763532c))
+* **k8s:** filter out failed and evicted pods when listing ([65e4d0ff](https://github.com/garden-io/garden/commit/65e4d0ff))
+
+### Code Refactoring
+
+* **core:** only set config names once in resolveModuleConfigs ([baabb98e](https://github.com/garden-io/garden/commit/baabb98e))
+* **dashboard:** pass deps to useEffect hook ([2f291ecc](https://github.com/garden-io/garden/commit/2f291ecc))
+
+### Improvement
+
+* **config:** add linkUrl field ([b77fe934](https://github.com/garden-io/garden/commit/b77fe934))
+* **logger:** skip fancy rendering when log level > info ([ff22a48d](https://github.com/garden-io/garden/commit/ff22a48d))
+
+
 <a name="v0.10.11"></a>
 ## [v0.10.11](https://github.com/garden-io/garden/compare/v0.10.10...v0.10.11) (2019-09-24)
 
