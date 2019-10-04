@@ -221,8 +221,11 @@ function renderMarkdownTitle(description: NormalizedDescription, prefix = "") {
   return prefix + title
 }
 
-function renderMarkdownLink(description: NormalizedDescription) {
-  const path = renderMarkdownTitle(description).replace(/\s+/g, "-").toLowerCase()
+export function renderMarkdownLink(description: NormalizedDescription) {
+  const path = renderMarkdownTitle(description)
+    .replace(/\s+/g, "-") // Replace " " with "-""
+    .replace(/(\.)|(\[\])/g, "") // Replace "." and "[]" with ""
+    .toLowerCase()
   return `[${description.name}](#${path})`
 }
 

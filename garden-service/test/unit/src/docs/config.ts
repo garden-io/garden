@@ -3,6 +3,8 @@ import {
   getDefaultValue,
   normalizeDescriptions,
   renderConfigReference,
+  NormalizedDescription,
+  renderMarkdownLink,
 } from "../../../../src/docs/config"
 import { expect } from "chai"
 import dedent = require("dedent")
@@ -232,4 +234,54 @@ describe("config", () => {
     })
   })
 
+  describe("renderMarkdownLink", () => {
+    it("should return a markdown link with a name and relative path", () => {
+      const happy: NormalizedDescription = {
+        name: "happy",
+        level: 0,
+        required: false,
+        hasChildren: true,
+        formattedName: "happy",
+        formattedType: "string",
+      }
+      const families: NormalizedDescription = {
+        name: "families",
+        level: 0,
+        required: false,
+        hasChildren: true,
+        formattedName: "families[]",
+        formattedType: "array",
+        parent: happy,
+      }
+      const are: NormalizedDescription = {
+        name: "happy",
+        level: 0,
+        required: false,
+        hasChildren: true,
+        formattedName: "are",
+        formattedType: "string",
+        parent: families,
+      }
+      const all: NormalizedDescription = {
+        name: "all",
+        level: 0,
+        required: false,
+        hasChildren: true,
+        formattedName: "all[]",
+        formattedType: "array",
+        parent: are,
+      }
+      const alike: NormalizedDescription = {
+        name: "alike",
+        level: 0,
+        required: false,
+        hasChildren: false,
+        formattedName: "alike",
+        formattedType: "string",
+        parent: all,
+      }
+
+      expect(renderMarkdownLink(alike)).to.equal(`[alike](#happyfamiliesareallalike)`)
+    })
+  })
 })

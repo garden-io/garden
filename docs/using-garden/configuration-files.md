@@ -47,7 +47,7 @@ then available for substitution in any string value in any module's `garden.yml`
 
 For example, assuming the above project configuration, `"foo-${var.my-variable}-bar"` would evaluate to
 `"foo-hello-variable-bar"` when used as a string value in a module's `garden.yml`. See
-[Template strings](#template-strings) below for more on templating your configuration files.
+[Template strings](./variables-and-templating.md#template-string-basics) below for more on templating your configuration files.
 
 ## Module Configuration
 
@@ -105,7 +105,7 @@ depending on which provider is responsible for that module.
 
 Regardless of the implementation, a module's build process is executed with its working directory set to a copy of the
 module's top-level directory, located at `[project-root]/.garden/build/[module-name]`. This internal directory is
-referred to as the module's [build directory](../reference/glossary.md#build-directory).
+referred to as the module's build directory.
 
 The `.garden` directory should not be modified by users, since this may lead to unexpected errors when the Garden CLI
 tools are used in the project.

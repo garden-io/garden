@@ -34,7 +34,7 @@ For a comprehensive list of providers available in Garden, check out the [Refere
 
 #### Service
 The unit of deployment in Garden. Services are defined in their parent [module](#module)'s `garden.yml`, each
-exposing [one or more ingress endpoints](./config.md#container).
+exposing [one or more ingress endpoints](./module-types/container.md#servicesingresses).
 
 Services may depend on services defined in other modules, in which case those services will be deployed first, and
 their deployment output made available to the requiring service's deploy step.

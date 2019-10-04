@@ -164,7 +164,7 @@ build:
 
 ### `build.dependencies[].name`
 
-[build](#build) > [dependencies](#build.dependencies[]) > name
+[build](#build) > [dependencies](#builddependencies) > name
 
 Module name to build ahead of this module.
 
@@ -174,7 +174,7 @@ Module name to build ahead of this module.
 
 ### `build.dependencies[].copy[]`
 
-[build](#build) > [dependencies](#build.dependencies[]) > copy
+[build](#build) > [dependencies](#builddependencies) > copy
 
 Specify one or more files or directories to copy from the built dependency to this module.
 
@@ -184,7 +184,7 @@ Specify one or more files or directories to copy from the built dependency to th
 
 ### `build.dependencies[].copy[].source`
 
-[build](#build) > [dependencies](#build.dependencies[]) > [copy](#build.dependencies[].copy[]) > source
+[build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > source
 
 POSIX-style path or filename of the directory or file(s) to copy to the target.
 
@@ -194,7 +194,7 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 
 ### `build.dependencies[].copy[].target`
 
-[build](#build) > [dependencies](#build.dependencies[]) > [copy](#build.dependencies[].copy[]) > target
+[build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > target
 
 POSIX-style path or filename to copy the directory or file(s).
 
@@ -412,7 +412,7 @@ The Deployment, DaemonSet or StatefulSet that Garden should use to execute this 
 
 ### `tasks[].resource.kind`
 
-[tasks](#tasks) > [resource](#tasks[].resource) > kind
+[tasks](#tasks) > [resource](#tasksresource) > kind
 
 The type of Kubernetes resource to sync files to.
 
@@ -422,7 +422,7 @@ The type of Kubernetes resource to sync files to.
 
 ### `tasks[].resource.name`
 
-[tasks](#tasks) > [resource](#tasks[].resource) > name
+[tasks](#tasks) > [resource](#tasksresource) > name
 
 The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can be omitted.
 This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'. This allows you to easily match the dynamic names given by Helm. In most cases you should copy this directly from the template in question in order to match it. Note that you may need to add single quotes around the string for the YAML to be parsed correctly.
@@ -433,7 +433,7 @@ This can include a Helm template string, e.g. '{{ template "my-chart.fullname" .
 
 ### `tasks[].resource.containerName`
 
-[tasks](#tasks) > [resource](#tasks[].resource) > containerName
+[tasks](#tasks) > [resource](#tasksresource) > containerName
 
 The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.
 
@@ -443,7 +443,7 @@ The name of a container in the target. Specify this if the target contains more 
 
 ### `tasks[].resource.containerModule`
 
-[tasks](#tasks) > [resource](#tasks[].resource) > containerModule
+[tasks](#tasks) > [resource](#tasksresource) > containerModule
 
 The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading for the chart, but is not necessary for tasks and tests.
 Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the container module.
@@ -464,7 +464,7 @@ tasks:
 
 ### `tasks[].resource.hotReloadArgs[]`
 
-[tasks](#tasks) > [resource](#tasks[].resource) > hotReloadArgs
+[tasks](#tasks) > [resource](#tasksresource) > hotReloadArgs
 
 If specified, overrides the arguments for the main container when running in hot-reload mode.
 
@@ -593,7 +593,7 @@ The Deployment, DaemonSet or StatefulSet that Garden should use to execute this 
 
 ### `tests[].resource.kind`
 
-[tests](#tests) > [resource](#tests[].resource) > kind
+[tests](#tests) > [resource](#testsresource) > kind
 
 The type of Kubernetes resource to sync files to.
 
@@ -603,7 +603,7 @@ The type of Kubernetes resource to sync files to.
 
 ### `tests[].resource.name`
 
-[tests](#tests) > [resource](#tests[].resource) > name
+[tests](#tests) > [resource](#testsresource) > name
 
 The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can be omitted.
 This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'. This allows you to easily match the dynamic names given by Helm. In most cases you should copy this directly from the template in question in order to match it. Note that you may need to add single quotes around the string for the YAML to be parsed correctly.
@@ -614,7 +614,7 @@ This can include a Helm template string, e.g. '{{ template "my-chart.fullname" .
 
 ### `tests[].resource.containerName`
 
-[tests](#tests) > [resource](#tests[].resource) > containerName
+[tests](#tests) > [resource](#testsresource) > containerName
 
 The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.
 
@@ -624,7 +624,7 @@ The name of a container in the target. Specify this if the target contains more 
 
 ### `tests[].resource.containerModule`
 
-[tests](#tests) > [resource](#tests[].resource) > containerModule
+[tests](#tests) > [resource](#testsresource) > containerModule
 
 The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading for the chart, but is not necessary for tasks and tests.
 Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the container module.
@@ -645,7 +645,7 @@ tests:
 
 ### `tests[].resource.hotReloadArgs[]`
 
-[tests](#tests) > [resource](#tests[].resource) > hotReloadArgs
+[tests](#tests) > [resource](#testsresource) > hotReloadArgs
 
 If specified, overrides the arguments for the main container when running in hot-reload mode.
 

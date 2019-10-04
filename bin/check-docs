@@ -1,20 +1,35 @@
 #!/bin/bash -e
 
-# Linter before git check so we can lint docs even if they are 'dirty'
-
 # Use "|| true" so we don't exit on empty
 modified_docs=$(git diff --name-status master docs README.md) || true
 modified_examples=$(git diff --name-status master examples | grep "examples.*\README.md$") || true
 
+check_relative_links() {
+  echo $1 | xargs -n 1 ./node_modules/.bin/remark --use validate-links --frail --quiet --no-stdout
+}
+
+check_external_links() {
+  # markdown-link-check is configured to ignore relative links
+  echo $1 | xargs -n 1 ./node_modules/.bin/markdown-link-check --config markdown-link-check-config.json
+}
+
 # Only check links if docs or examples were modified
 if !([ -z "$modified_docs" ] && [ -z "$modified_examples" ]); then
-  # Using xargs to exit 1 if link is broken, see: https://github.com/tcort/markdown-link-check/issues/57
+  docs=$(find docs -name '*.md' -type f)
+  examples=$(find examples -name 'README.md' -type f -not -path "*/.garden/*" -not -path "*/node_modules/*")
+  readme=./README.md
+
   # Check docs
-  find docs -name '*.md' -type f | xargs -n 1 ./node_modules/.bin/markdown-link-check --config markdown-link-check-config.json
+  check_external_links "$docs"
+  check_relative_links "$docs"
+
   # Check examples
-  find examples -name 'README.md' -type f -not -path "*/.garden/*" -not -path "*/node_modules/*" | xargs -n 1 ./node_modules/.bin/markdown-link-check --config markdown-link-check-config.json
+  check_external_links "$examples"
+  check_relative_links "$examples"
+
   # Check README.md
-  find . -name 'README.md' -type f  -maxdepth 1 | xargs -n 1 ./node_modules/.bin/markdown-link-check --config markdown-link-check-config.json
+  check_external_links "$readme"
+  check_relative_links "$readme"
 fi
 
 # Needs to generate clean docs before we can validate they are up to date
