@@ -147,7 +147,7 @@ export async function getSystemServiceStatus(
 ) {
   let dashboardPages: DashboardPage[] = []
 
-  const actions = await sysGarden.getActionHelper()
+  const actions = await sysGarden.getActionRouter()
 
   const serviceStatuses = await actions.getServiceStatuses({ log, serviceNames })
   const state = combineStates(values(serviceStatuses).map(s => (s && s.state) || "unknown"))
@@ -204,7 +204,7 @@ export async function prepareSystemServices(
 
   // Deploy enabled system services
   if (serviceNames.length > 0) {
-    const actions = await sysGarden.getActionHelper()
+    const actions = await sysGarden.getActionRouter()
     const results = await actions.deployServices({
       log,
       serviceNames,

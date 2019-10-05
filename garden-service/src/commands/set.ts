@@ -72,7 +72,7 @@ export class SetSecretCommand extends Command<typeof setSecretArgs> {
 
   async action({ garden, log, args }: CommandParams<SetArgs>): Promise<CommandResult<SetSecretResult>> {
     const key = args.key
-    const actions = await garden.getActionHelper()
+    const actions = await garden.getActionRouter()
     const result = await actions.setSecret({
       pluginName: args.provider,
       key,

@@ -104,13 +104,13 @@ export interface DeployServicesParams {
 }
 
 /**
- * The ActionHelper takes care of choosing which plugin should be responsible for handling an action,
+ * The ActionRouter takes care of choosing which plugin should be responsible for handling an action,
  * and preparing common parameters (so as to reduce boilerplate on the usage side).
  *
  * Each plugin and module action has a corresponding method on this class (aside from configureProvider, which
  * is handled especially elsewhere).
  */
-export class ActionHelper implements TypeGuard {
+export class ActionRouter implements TypeGuard {
   private readonly actionHandlers: WrappedPluginActionMap
   private readonly moduleActionHandlers: WrappedModuleActionMap
   private readonly loadedPlugins: PluginMap
@@ -124,7 +124,7 @@ export class ActionHelper implements TypeGuard {
     this.moduleActionHandlers = <WrappedModuleActionMap>fromPairs(moduleActionNames.map(n => [n, {}]))
     this.loadedPlugins = keyBy(loadedPlugins, "name")
 
-    garden.log.silly(`Creating ActionHelper with ${configuredPlugins.length} configured plugins`)
+    garden.log.silly(`Creating ActionRouter with ${configuredPlugins.length} configured plugins`)
 
     for (const plugin of configuredPlugins) {
       const handlers = plugin.handlers || {}
@@ -180,7 +180,7 @@ export class ActionHelper implements TypeGuard {
   }
 
   async getEnvironmentStatus(
-    params: RequirePluginName<ActionHelperParams<GetEnvironmentStatusParams>>,
+    params: RequirePluginName<ActionRouterParams<GetEnvironmentStatusParams>>,
   ): Promise<EnvironmentStatus> {
     const { pluginName } = params
 
@@ -193,7 +193,7 @@ export class ActionHelper implements TypeGuard {
   }
 
   async prepareEnvironment(
-    params: RequirePluginName<ActionHelperParams<PrepareEnvironmentParams>>,
+    params: RequirePluginName<ActionRouterParams<PrepareEnvironmentParams>>,
   ): Promise<PrepareEnvironmentResult> {
     const { pluginName } = params
 
@@ -206,7 +206,7 @@ export class ActionHelper implements TypeGuard {
   }
 
   async cleanupEnvironment(
-    params: RequirePluginName<ActionHelperParams<CleanupEnvironmentParams>>,
+    params: RequirePluginName<ActionRouterParams<CleanupEnvironmentParams>>,
   ) {
     const { pluginName } = params
     return this.callActionHandler({
@@ -217,17 +217,17 @@ export class ActionHelper implements TypeGuard {
     })
   }
 
-  async getSecret(params: RequirePluginName<ActionHelperParams<GetSecretParams>>): Promise<GetSecretResult> {
+  async getSecret(params: RequirePluginName<ActionRouterParams<GetSecretParams>>): Promise<GetSecretResult> {
     const { pluginName } = params
     return this.callActionHandler({ actionType: "getSecret", pluginName, params: omit(params, ["pluginName"]) })
   }
 
-  async setSecret(params: RequirePluginName<ActionHelperParams<SetSecretParams>>): Promise<SetSecretResult> {
+  async setSecret(params: RequirePluginName<ActionRouterParams<SetSecretParams>>): Promise<SetSecretResult> {
     const { pluginName } = params
     return this.callActionHandler({ actionType: "setSecret", pluginName, params: omit(params, ["pluginName"]) })
   }
 
-  async deleteSecret(params: RequirePluginName<ActionHelperParams<DeleteSecretParams>>): Promise<DeleteSecretResult> {
+  async deleteSecret(params: RequirePluginName<ActionRouterParams<DeleteSecretParams>>): Promise<DeleteSecretResult> {
     const { pluginName } = params
     return this.callActionHandler({ actionType: "deleteSecret", pluginName, params: omit(params, ["pluginName"]) })
   }
@@ -239,7 +239,7 @@ export class ActionHelper implements TypeGuard {
   //===========================================================================
 
   async getBuildStatus<T extends Module>(
-    params: ModuleActionHelperParams<GetBuildStatusParams<T>>,
+    params: ModuleActionRouterParams<GetBuildStatusParams<T>>,
   ): Promise<BuildStatus> {
     return this.callModuleHandler({
       params,
@@ -248,26 +248,26 @@ export class ActionHelper implements TypeGuard {
     })
   }
 
-  async build<T extends Module>(params: ModuleActionHelperParams<BuildModuleParams<T>>): Promise<BuildResult> {
+  async build<T extends Module>(params: ModuleActionRouterParams<BuildModuleParams<T>>): Promise<BuildResult> {
     return this.callModuleHandler({ params, actionType: "build" })
   }
 
   async publishModule<T extends Module>(
-    params: ModuleActionHelperParams<PublishModuleParams<T>>,
+    params: ModuleActionRouterParams<PublishModuleParams<T>>,
   ): Promise<PublishResult> {
     return this.callModuleHandler({ params, actionType: "publish", defaultHandler: dummyPublishHandler })
   }
 
-  async runModule<T extends Module>(params: ModuleActionHelperParams<RunModuleParams<T>>): Promise<RunResult> {
+  async runModule<T extends Module>(params: ModuleActionRouterParams<RunModuleParams<T>>): Promise<RunResult> {
     return this.callModuleHandler({ params, actionType: "runModule" })
   }
 
-  async testModule<T extends Module>(params: ModuleActionHelperParams<TestModuleParams<T>>): Promise<TestResult> {
+  async testModule<T extends Module>(params: ModuleActionRouterParams<TestModuleParams<T>>): Promise<TestResult> {
     return this.callModuleHandler({ params, actionType: "testModule" })
   }
 
   async getTestResult<T extends Module>(
-    params: ModuleActionHelperParams<GetTestResultParams<T>>,
+    params: ModuleActionRouterParams<GetTestResultParams<T>>,
   ): Promise<TestResult | null> {
     return this.callModuleHandler({
       params,
@@ -282,20 +282,20 @@ export class ActionHelper implements TypeGuard {
   //region Service Actions
   //===========================================================================
 
-  async getServiceStatus(params: ServiceActionHelperParams<GetServiceStatusParams>): Promise<ServiceStatus> {
+  async getServiceStatus(params: ServiceActionRouterParams<GetServiceStatusParams>): Promise<ServiceStatus> {
     return this.callServiceHandler({ params, actionType: "getServiceStatus" })
   }
 
-  async deployService(params: ServiceActionHelperParams<DeployServiceParams>): Promise<ServiceStatus> {
+  async deployService(params: ServiceActionRouterParams<DeployServiceParams>): Promise<ServiceStatus> {
     return this.callServiceHandler({ params, actionType: "deployService" })
   }
 
-  async hotReloadService(params: ServiceActionHelperParams<HotReloadServiceParams>)
+  async hotReloadService(params: ServiceActionRouterParams<HotReloadServiceParams>)
     : Promise<HotReloadServiceResult> {
     return this.callServiceHandler(({ params, actionType: "hotReloadService" }))
   }
 
-  async deleteService(params: ServiceActionHelperParams<DeleteServiceParams>): Promise<ServiceStatus> {
+  async deleteService(params: ServiceActionRouterParams<DeleteServiceParams>): Promise<ServiceStatus> {
     const log = params.log.info({
       section: params.service.name,
       msg: "Deleting...",
@@ -324,23 +324,23 @@ export class ActionHelper implements TypeGuard {
     return result
   }
 
-  async execInService(params: ServiceActionHelperParams<ExecInServiceParams>): Promise<ExecInServiceResult> {
+  async execInService(params: ServiceActionRouterParams<ExecInServiceParams>): Promise<ExecInServiceResult> {
     return this.callServiceHandler({ params, actionType: "execInService" })
   }
 
-  async getServiceLogs(params: ServiceActionHelperParams<GetServiceLogsParams>): Promise<GetServiceLogsResult> {
+  async getServiceLogs(params: ServiceActionRouterParams<GetServiceLogsParams>): Promise<GetServiceLogsResult> {
     return this.callServiceHandler({ params, actionType: "getServiceLogs", defaultHandler: dummyLogStreamer })
   }
 
-  async runService(params: ServiceActionHelperParams<RunServiceParams>): Promise<RunResult> {
+  async runService(params: ServiceActionRouterParams<RunServiceParams>): Promise<RunResult> {
     return this.callServiceHandler({ params, actionType: "runService" })
   }
 
-  async getPortForward(params: ServiceActionHelperParams<GetPortForwardParams>) {
+  async getPortForward(params: ServiceActionRouterParams<GetPortForwardParams>) {
     return this.callServiceHandler({ params, actionType: "getPortForward" })
   }
 
-  async stopPortForward(params: ServiceActionHelperParams<StopPortForwardParams>) {
+  async stopPortForward(params: ServiceActionRouterParams<StopPortForwardParams>) {
     return this.callServiceHandler({ params, actionType: "stopPortForward" })
   }
 
@@ -350,11 +350,11 @@ export class ActionHelper implements TypeGuard {
   //region Task Methods
   //===========================================================================
 
-  async runTask(params: TaskActionHelperParams<RunTaskParams>): Promise<RunTaskResult> {
+  async runTask(params: TaskActionRouterParams<RunTaskParams>): Promise<RunTaskResult> {
     return this.callTaskHandler({ params, actionType: "runTask" })
   }
 
-  async getTaskResult(params: TaskActionHelperParams<GetTaskResultParams>): Promise<RunTaskResult | null> {
+  async getTaskResult(params: TaskActionRouterParams<GetTaskResultParams>): Promise<RunTaskResult | null> {
     return this.callTaskHandler({
       params,
       actionType: "getTaskResult",
@@ -479,7 +479,7 @@ export class ActionHelper implements TypeGuard {
   private async callActionHandler<T extends keyof Omit<WrappedPluginActionHandlers, "configureProvider">>(
     { params, actionType, pluginName, defaultHandler }:
       {
-        params: ActionHelperParams<PluginActionParams[T]>,
+        params: ActionRouterParams<PluginActionParams[T]>,
         actionType: T,
         pluginName: string,
         defaultHandler?: PluginActionHandlers[T],
@@ -508,7 +508,7 @@ export class ActionHelper implements TypeGuard {
   private async callModuleHandler<T extends keyof Omit<ModuleActionHandlers, "configure">>(
     { params, actionType, defaultHandler }:
       {
-        params: ModuleActionHelperParams<ModuleActionParams[T]>,
+        params: ModuleActionRouterParams<ModuleActionParams[T]>,
         actionType: T,
         defaultHandler?: ModuleActionHandlers[T],
       },
@@ -539,7 +539,7 @@ export class ActionHelper implements TypeGuard {
   private async callServiceHandler<T extends keyof ServiceActionHandlers>(
     { params, actionType, defaultHandler }:
       {
-        params: ServiceActionHelperParams<ServiceActionParams[T]>,
+        params: ServiceActionRouterParams<ServiceActionParams[T]>,
         actionType: T,
         defaultHandler?: ServiceActionHandlers[T],
       },
@@ -590,7 +590,7 @@ export class ActionHelper implements TypeGuard {
   private async callTaskHandler<T extends keyof TaskActionHandlers>(
     { params, actionType, defaultHandler }:
       {
-        params: TaskActionHelperParams<TaskActionParams[T]>, actionType: T,
+        params: TaskActionRouterParams<TaskActionParams[T]>, actionType: T,
         defaultHandler?: TaskActionHandlers[T],
       },
   ): Promise<TaskActionOutputs[T]> {
@@ -934,18 +934,18 @@ type WrappedModuleActionMap = {
 }
 
 // avoid having to specify common params on each action helper call
-type ActionHelperParams<T extends PluginActionParamsBase> =
+type ActionRouterParams<T extends PluginActionParamsBase> =
   Omit<T, CommonParams> & { pluginName?: string }
 
-type ModuleActionHelperParams<T extends PluginModuleActionParamsBase> =
+type ModuleActionRouterParams<T extends PluginModuleActionParamsBase> =
   Omit<T, CommonParams> & { pluginName?: string }
 // additionally make runtimeContext param optional
 
-type ServiceActionHelperParams<T extends PluginServiceActionParamsBase> =
+type ServiceActionRouterParams<T extends PluginServiceActionParamsBase> =
   Omit<T, "module" | CommonParams>
   & { pluginName?: string }
 
-type TaskActionHelperParams<T extends PluginTaskActionParamsBase> =
+type TaskActionRouterParams<T extends PluginTaskActionParamsBase> =
   Omit<T, "module" | CommonParams>
   & { pluginName?: string }
 

@@ -43,7 +43,7 @@ export class GetTaskResultCommand extends Command<Args> {
     const graph: ConfigGraph = await garden.getConfigGraph()
     const task = await graph.getTask(taskName)
 
-    const actions = await garden.getActionHelper()
+    const actions = await garden.getActionRouter()
 
     const result = await actions.getTaskResult(
       {

@@ -66,7 +66,7 @@ export class RunServiceCommand extends Command<Args, Opts> {
       "runner",
     )
 
-    const actions = await garden.getActionHelper()
+    const actions = await garden.getActionRouter()
 
     // Make sure all dependencies are ready and collect their outputs for the runtime context
     const deployTask = new DeployTask({

@@ -69,7 +69,7 @@ export class PublishTask extends BaseTask {
       status: "active",
     })
 
-    const actions = await this.garden.getActionHelper()
+    const actions = await this.garden.getActionRouter()
 
     let result: PublishResult
     try {

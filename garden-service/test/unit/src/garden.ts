@@ -45,7 +45,7 @@ describe("Garden", () => {
   describe("factory", () => {
     it("should initialize and add the action handlers for a plugin", async () => {
       const garden = await makeTestGardenA()
-      const actions = await garden.getActionHelper()
+      const actions = await garden.getActionRouter()
 
       expect((<any>actions).actionHandlers.prepareEnvironment["test-plugin"]).to.be.ok
       expect((<any>actions).actionHandlers.prepareEnvironment["test-plugin-b"]).to.be.ok

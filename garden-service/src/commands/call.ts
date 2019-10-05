@@ -61,7 +61,7 @@ export class CallCommand extends Command<Args> {
     const service = await graph.getService(serviceName)
     // No need for full context, since we're just checking if the service is running.
     const runtimeContext = emptyRuntimeContext
-    const actions = await garden.getActionHelper()
+    const actions = await garden.getActionRouter()
     const status = await actions.getServiceStatus({ service, log, hotReload: false, runtimeContext })
 
     if (!includes(["ready", "outdated"], status.state)) {

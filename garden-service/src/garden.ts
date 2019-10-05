@@ -43,7 +43,7 @@ import { Watcher } from "./watch"
 import { findConfigPathsInPath, getConfigFilePath, getWorkingCopyId, fixedExcludes } from "./util/fs"
 import { Provider, ProviderConfig, getAllProviderDependencyNames, defaultProvider } from "./config/provider"
 import { ResolveProviderTask, getPluginBaseNames } from "./tasks/resolve-provider"
-import { ActionHelper } from "./actions"
+import { ActionRouter } from "./actions"
 import { detectCycles, cyclesToString, Dependency } from "./util/validate-dependencies"
 import chalk from "chalk"
 import { RuntimeContext } from "./runtime-context"
@@ -120,7 +120,7 @@ export class Garden {
   public readonly globalConfigStore: GlobalConfigStore
   public readonly vcs: VcsHandler
   public readonly cache: TreeCache
-  private actionHelper: ActionHelper
+  private actionHelper: ActionRouter
   public readonly events: EventBus
 
   public readonly projectRoot: string
@@ -787,7 +787,7 @@ export class Garden {
     return fromPairs(providers.map(p => [p.name, p.status]))
   }
 
-  async getActionHelper() {
+  async getActionRouter() {
     if (!this.actionHelper) {
       const loadedPlugins = await this.getPlugins()
       const plugins = keyBy(loadedPlugins, "name")
@@ -795,7 +795,7 @@ export class Garden {
       // We only pass configured plugins to the router (others won't have the required configuration to call handlers)
       const configuredPlugins = this.getRawProviderConfigs().map(c => plugins[c.name])
 
-      this.actionHelper = new ActionHelper(this, configuredPlugins, loadedPlugins)
+      this.actionHelper = new ActionRouter(this, configuredPlugins, loadedPlugins)
     }
 
     return this.actionHelper
@@ -837,7 +837,7 @@ export class Garden {
     keys?: string[],
     opts: ModuleConfigResolveOpts = {},
   ): Promise<ModuleConfig[]> {
-    const actions = await this.getActionHelper()
+    const actions = await this.getActionRouter()
     await this.resolveProviders()
     const configs = await this.getRawModuleConfigs(keys)
 

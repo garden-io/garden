@@ -152,7 +152,7 @@ export async function collectProviderDebugInfo(garden: Garden, log: LogEntry, fo
   const tempPath = join(garden.gardenDirPath, TEMP_DEBUG_ROOT)
   await ensureDir(tempPath)
   // Collect debug info from providers
-  const actions = await garden.getActionHelper()
+  const actions = await garden.getActionRouter()
   const providersDebugInfo = await actions.getDebugInfo({ log, includeProject })
 
   // Create a provider folder and report for each provider.

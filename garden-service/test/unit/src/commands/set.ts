@@ -20,7 +20,7 @@ describe("SetSecretCommand", () => {
       opts: withDefaultGlobalOpts({}),
     })
 
-    const actions = await garden.getActionHelper()
+    const actions = await garden.getActionRouter()
     expect(await actions.getSecret({ log, pluginName, key: "mykey" })).to.eql({ value: "myvalue" })
   })
 })
