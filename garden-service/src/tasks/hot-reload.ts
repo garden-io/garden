@@ -72,7 +72,7 @@ export class HotReloadTask extends BaseTask {
       status: "active",
     })
 
-    const actions = await this.garden.getActionHelper()
+    const actions = await this.garden.getActionRouter()
 
     try {
       await actions.hotReloadService({ log, service: this.service })

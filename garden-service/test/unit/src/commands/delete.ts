@@ -30,7 +30,7 @@ describe("DeleteSecretCommand", () => {
     const key = "mykey"
     const value = "myvalue"
 
-    const actions = await garden.getActionHelper()
+    const actions = await garden.getActionRouter()
     await actions.setSecret({ log, key, value, pluginName })
 
     await command.action({

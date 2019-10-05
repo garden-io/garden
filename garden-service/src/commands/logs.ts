@@ -93,7 +93,7 @@ export class LogsCommand extends Command<Args, Opts> {
       }
     })
 
-    const actions = await garden.getActionHelper()
+    const actions = await garden.getActionRouter()
     const voidLog = log.placeholder(LogLevel.silly, true)
 
     await Bluebird.map(services, async (service: Service<any>) => {

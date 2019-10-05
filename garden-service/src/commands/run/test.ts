@@ -90,7 +90,7 @@ export class RunTestCommand extends Command<Args, Opts> {
       "runner",
     )
 
-    const actions = await garden.getActionHelper()
+    const actions = await garden.getActionRouter()
     const version = await getTestVersion(garden, graph, module, testConfig)
 
     // Make sure all dependencies are ready and collect their outputs for the runtime context

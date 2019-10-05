@@ -52,7 +52,7 @@ export class GetSecretCommand extends Command<GetArgs> {
 
   async action({ garden, log, args }: CommandParams<GetArgs>): Promise<CommandResult> {
     const key = args.key
-    const actions = await garden.getActionHelper()
+    const actions = await garden.getActionRouter()
     const { value } = await actions.getSecret({
       pluginName: args.provider,
       key,

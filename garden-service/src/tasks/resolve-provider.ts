@@ -116,7 +116,7 @@ export class ResolveProviderTask extends BaseTask {
 
     this.log.silly(`Calling configureProvider on ${providerName}`)
 
-    const actions = await this.garden.getActionHelper()
+    const actions = await this.garden.getActionRouter()
 
     const configureOutput = await actions.configureProvider({
       pluginName: providerName,
@@ -169,7 +169,7 @@ export class ResolveProviderTask extends BaseTask {
 
   private async ensurePrepared(tmpProvider: Provider) {
     const pluginName = tmpProvider.name
-    const actions = await this.garden.getActionHelper()
+    const actions = await this.garden.getActionRouter()
     const ctx = this.garden.getPluginContext(tmpProvider)
 
     this.log.silly(`Getting status for ${pluginName}`)

@@ -147,7 +147,7 @@ export class TestTask extends BaseTask {
       taskResults,
     })
 
-    const actions = await this.garden.getActionHelper()
+    const actions = await this.garden.getActionRouter()
 
     let result: TestResult
     try {
@@ -179,7 +179,7 @@ export class TestTask extends BaseTask {
       return null
     }
 
-    const actions = await this.garden.getActionHelper()
+    const actions = await this.garden.getActionRouter()
 
     return actions.getTestResult({
       log: this.log,

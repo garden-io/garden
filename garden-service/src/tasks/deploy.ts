@@ -148,7 +148,7 @@ export class DeployTask extends BaseTask {
       taskResults,
     })
 
-    const actions = await this.garden.getActionHelper()
+    const actions = await this.garden.getActionRouter()
 
     let status = serviceStatuses[this.service.name]
 

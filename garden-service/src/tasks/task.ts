@@ -141,7 +141,7 @@ export class TaskTask extends BaseTask { // ... to be renamed soon.
       taskResults,
     })
 
-    const actions = await this.garden.getActionHelper()
+    const actions = await this.garden.getActionRouter()
 
     let result: RunTaskResult
     try {

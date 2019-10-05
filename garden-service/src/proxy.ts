@@ -54,7 +54,7 @@ async function startPortProxy(garden: Garden, log: LogEntry, service: Service, s
 
 // TODO: handle dead port forwards
 async function createProxy(garden: Garden, log: LogEntry, service: Service, spec: ForwardablePort): Promise<PortProxy> {
-  const actions = await garden.getActionHelper()
+  const actions = await garden.getActionRouter()
   const key = getPortKey(service, spec)
   let fwd: GetPortForwardResult
 

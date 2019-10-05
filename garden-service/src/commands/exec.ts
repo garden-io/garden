@@ -77,7 +77,7 @@ export class ExecCommand extends Command<Args> {
 
     const graph = await garden.getConfigGraph()
     const service = await graph.getService(serviceName)
-    const actions = await garden.getActionHelper()
+    const actions = await garden.getActionRouter()
     const result = await actions.execInService({
       log,
       service,

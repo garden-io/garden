@@ -48,7 +48,7 @@ export class GetTaskResultTask extends BaseTask {
       msg: "Checking result...",
       status: "active",
     })
-    const actions = await this.garden.getActionHelper()
+    const actions = await this.garden.getActionRouter()
 
     let result: RunTaskResult | null
     try {

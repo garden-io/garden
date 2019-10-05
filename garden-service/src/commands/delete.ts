@@ -67,7 +67,7 @@ export class DeleteSecretCommand extends Command<typeof deleteSecretArgs> {
     { garden, log, args }: CommandParams<DeleteSecretArgs>,
   ): Promise<CommandResult<DeleteSecretResult>> {
     const key = args.key!
-    const actions = await garden.getActionHelper()
+    const actions = await garden.getActionRouter()
     const result = await actions.deleteSecret({ log, pluginName: args.provider!, key })
 
     if (result.found) {
@@ -101,7 +101,7 @@ export class DeleteEnvironmentCommand extends Command {
   async action({ garden, log, headerLog }: CommandParams): Promise<CommandResult<DeleteEnvironmentResult>> {
     printHeader(headerLog, `Deleting ${garden.environmentName} environment`, "skull_and_crossbones")
 
-    const actions = await garden.getActionHelper()
+    const actions = await garden.getActionRouter()
     const result = await actions.deleteEnvironment(log)
 
     return { result }
@@ -145,7 +145,7 @@ export class DeleteServiceCommand extends Command {
 
     const result: { [key: string]: ServiceStatus } = {}
 
-    const actions = await garden.getActionHelper()
+    const actions = await garden.getActionRouter()
 
     await Bluebird.map(services, async service => {
       result[service.name] = await actions.deleteService({ log, service })

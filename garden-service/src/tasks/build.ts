@@ -64,7 +64,7 @@ export class BuildTask extends BaseTask {
 
   async process(): Promise<BuildResult> {
     const module = this.module
-    const actions = await this.garden.getActionHelper()
+    const actions = await this.garden.getActionRouter()
 
     const log = this.log.info({
       section: this.getName(),
