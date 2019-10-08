@@ -172,7 +172,7 @@ build:
 
 ### `build.dependencies[].name`
 
-[build](#build) > [dependencies](#build.dependencies[]) > name
+[build](#build) > [dependencies](#builddependencies) > name
 
 Module name to build ahead of this module.
 
@@ -182,7 +182,7 @@ Module name to build ahead of this module.
 
 ### `build.dependencies[].copy[]`
 
-[build](#build) > [dependencies](#build.dependencies[]) > copy
+[build](#build) > [dependencies](#builddependencies) > copy
 
 Specify one or more files or directories to copy from the built dependency to this module.
 
@@ -192,7 +192,7 @@ Specify one or more files or directories to copy from the built dependency to th
 
 ### `build.dependencies[].copy[].source`
 
-[build](#build) > [dependencies](#build.dependencies[]) > [copy](#build.dependencies[].copy[]) > source
+[build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > source
 
 POSIX-style path or filename of the directory or file(s) to copy to the target.
 
@@ -202,7 +202,7 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 
 ### `build.dependencies[].copy[].target`
 
-[build](#build) > [dependencies](#build.dependencies[]) > [copy](#build.dependencies[].copy[]) > target
+[build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > target
 
 POSIX-style path or filename to copy the directory or file(s).
 
@@ -256,7 +256,7 @@ The kind of the resource.
 
 ### `manifests[].metadata.name`
 
-[manifests](#manifests) > [metadata](#manifests[].metadata) > name
+[manifests](#manifests) > [metadata](#manifestsmetadata) > name
 
 The name of the resource.
 

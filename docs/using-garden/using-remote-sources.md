@@ -6,7 +6,7 @@ You can import **two** types of remote repositories with Garden:
 
 > **Remote _module_**: The source code for a single Garden module. In this case, the `garden.yml` config file is stored in the main project repository while the module code itself is in the remote repository.
 
-The code examples below are from our [remote sources example](https://github.com/garden-io/garden/tree/v0.10.11/examples/remote-sources).
+The code examples below are from our [remote sources example](https://github.com/garden-io/garden/tree/v0.10.12/examples/remote-sources).
 
 ## Importing Remote Repositories
 
@@ -107,7 +107,7 @@ repositoryUrl: file:///my/local/project/path#master
 
 As usual, the URL must point to a specific branch or tag.
 
-Local paths work just the same remote URLs and you'll still need to [link the repository](#linking-remote-sources/modules-to-local-code) if you want to edit it locally.
+Local paths work just the same remote URLs and you'll still need to [link the repository](#linking-remote-sourcesmodules-to-local-code) if you want to edit it locally.
 
 In general we don't recommend using local paths except for testing purposes. The `garden.yml` files should be checked into your version control system and therefore shouldn't contain anything specific to a particular user's setup.
 

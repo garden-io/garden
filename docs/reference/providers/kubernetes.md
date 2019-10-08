@@ -123,7 +123,7 @@ when configuring a remote Kubernetes environment with buildMode=local.
 
 ### `providers[].imagePullSecrets[].name`
 
-[providers](#providers) > [imagePullSecrets](#providers[].imagepullsecrets[]) > name
+[providers](#providers) > [imagePullSecrets](#providersimagepullsecrets) > name
 
 The name of the Kubernetes secret.
 
@@ -141,7 +141,7 @@ providers:
 
 ### `providers[].imagePullSecrets[].namespace`
 
-[providers](#providers) > [imagePullSecrets](#providers[].imagepullsecrets[]) > namespace
+[providers](#providers) > [imagePullSecrets](#providersimagepullsecrets) > namespace
 
 The namespace where the secret is stored. If necessary, the secret may be copied to the appropriate namespace before use.
 
@@ -161,7 +161,7 @@ Resource requests and limits for the in-cluster builder, container registry and 
 
 ### `providers[].resources.builder`
 
-[providers](#providers) > [resources](#providers[].resources) > builder
+[providers](#providers) > [resources](#providersresources) > builder
 
 Resource requests and limits for the in-cluster builder.
 
@@ -178,7 +178,7 @@ limits/requests, but you should evaluate based on your needs.
 
 ### `providers[].resources.builder.limits`
 
-[providers](#providers) > [resources](#providers[].resources) > [builder](#providers[].resources.builder) > limits
+[providers](#providers) > [resources](#providersresources) > [builder](#providersresourcesbuilder) > limits
 
 | Type     | Required | Default                      |
 | -------- | -------- | ---------------------------- |
@@ -186,7 +186,7 @@ limits/requests, but you should evaluate based on your needs.
 
 ### `providers[].resources.builder.limits.cpu`
 
-[providers](#providers) > [resources](#providers[].resources) > [builder](#providers[].resources.builder) > [limits](#providers[].resources.builder.limits) > cpu
+[providers](#providers) > [resources](#providersresources) > [builder](#providersresourcesbuilder) > [limits](#providersresourcesbuilderlimits) > cpu
 
 CPU limit in millicpu.
 
@@ -209,7 +209,7 @@ providers:
 
 ### `providers[].resources.builder.limits.memory`
 
-[providers](#providers) > [resources](#providers[].resources) > [builder](#providers[].resources.builder) > [limits](#providers[].resources.builder.limits) > memory
+[providers](#providers) > [resources](#providersresources) > [builder](#providersresourcesbuilder) > [limits](#providersresourcesbuilderlimits) > memory
 
 Memory limit in megabytes.
 
@@ -232,7 +232,7 @@ providers:
 
 ### `providers[].resources.builder.requests`
 
-[providers](#providers) > [resources](#providers[].resources) > [builder](#providers[].resources.builder) > requests
+[providers](#providers) > [resources](#providersresources) > [builder](#providersresourcesbuilder) > requests
 
 | Type     | Required | Default                    |
 | -------- | -------- | -------------------------- |
@@ -240,7 +240,7 @@ providers:
 
 ### `providers[].resources.builder.requests.cpu`
 
-[providers](#providers) > [resources](#providers[].resources) > [builder](#providers[].resources.builder) > [requests](#providers[].resources.builder.requests) > cpu
+[providers](#providers) > [resources](#providersresources) > [builder](#providersresourcesbuilder) > [requests](#providersresourcesbuilderrequests) > cpu
 
 CPU request in millicpu.
 
@@ -263,7 +263,7 @@ providers:
 
 ### `providers[].resources.builder.requests.memory`
 
-[providers](#providers) > [resources](#providers[].resources) > [builder](#providers[].resources.builder) > [requests](#providers[].resources.builder.requests) > memory
+[providers](#providers) > [resources](#providersresources) > [builder](#providersresourcesbuilder) > [requests](#providersresourcesbuilderrequests) > memory
 
 Memory request in megabytes.
 
@@ -286,7 +286,7 @@ providers:
 
 ### `providers[].resources.registry`
 
-[providers](#providers) > [resources](#providers[].resources) > registry
+[providers](#providers) > [resources](#providersresources) > registry
 
 Resource requests and limits for the in-cluster image registry. Built images are pushed to this registry,
 so that they are available to all the nodes in your cluster.
@@ -300,7 +300,7 @@ in how many concurrent builds you expect and how large your images tend to be.
 
 ### `providers[].resources.registry.limits`
 
-[providers](#providers) > [resources](#providers[].resources) > [registry](#providers[].resources.registry) > limits
+[providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > limits
 
 | Type     | Required | Default                      |
 | -------- | -------- | ---------------------------- |
@@ -308,7 +308,7 @@ in how many concurrent builds you expect and how large your images tend to be.
 
 ### `providers[].resources.registry.limits.cpu`
 
-[providers](#providers) > [resources](#providers[].resources) > [registry](#providers[].resources.registry) > [limits](#providers[].resources.registry.limits) > cpu
+[providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > [limits](#providersresourcesregistrylimits) > cpu
 
 CPU limit in millicpu.
 
@@ -331,7 +331,7 @@ providers:
 
 ### `providers[].resources.registry.limits.memory`
 
-[providers](#providers) > [resources](#providers[].resources) > [registry](#providers[].resources.registry) > [limits](#providers[].resources.registry.limits) > memory
+[providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > [limits](#providersresourcesregistrylimits) > memory
 
 Memory limit in megabytes.
 
@@ -354,7 +354,7 @@ providers:
 
 ### `providers[].resources.registry.requests`
 
-[providers](#providers) > [resources](#providers[].resources) > [registry](#providers[].resources.registry) > requests
+[providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > requests
 
 | Type     | Required | Default                    |
 | -------- | -------- | -------------------------- |
@@ -362,7 +362,7 @@ providers:
 
 ### `providers[].resources.registry.requests.cpu`
 
-[providers](#providers) > [resources](#providers[].resources) > [registry](#providers[].resources.registry) > [requests](#providers[].resources.registry.requests) > cpu
+[providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > [requests](#providersresourcesregistryrequests) > cpu
 
 CPU request in millicpu.
 
@@ -385,7 +385,7 @@ providers:
 
 ### `providers[].resources.registry.requests.memory`
 
-[providers](#providers) > [resources](#providers[].resources) > [registry](#providers[].resources.registry) > [requests](#providers[].resources.registry.requests) > memory
+[providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > [requests](#providersresourcesregistryrequests) > memory
 
 Memory request in megabytes.
 
@@ -408,7 +408,7 @@ providers:
 
 ### `providers[].resources.sync`
 
-[providers](#providers) > [resources](#providers[].resources) > sync
+[providers](#providers) > [resources](#providersresources) > sync
 
 Resource requests and limits for the code sync service, which we use to sync build contexts to the cluster
 ahead of building images. This generally is not resource intensive, but you might want to adjust the
@@ -420,7 +420,7 @@ defaults if you have many concurrent users.
 
 ### `providers[].resources.sync.limits`
 
-[providers](#providers) > [resources](#providers[].resources) > [sync](#providers[].resources.sync) > limits
+[providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > limits
 
 | Type     | Required | Default                    |
 | -------- | -------- | -------------------------- |
@@ -428,7 +428,7 @@ defaults if you have many concurrent users.
 
 ### `providers[].resources.sync.limits.cpu`
 
-[providers](#providers) > [resources](#providers[].resources) > [sync](#providers[].resources.sync) > [limits](#providers[].resources.sync.limits) > cpu
+[providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > [limits](#providersresourcessynclimits) > cpu
 
 CPU limit in millicpu.
 
@@ -451,7 +451,7 @@ providers:
 
 ### `providers[].resources.sync.limits.memory`
 
-[providers](#providers) > [resources](#providers[].resources) > [sync](#providers[].resources.sync) > [limits](#providers[].resources.sync.limits) > memory
+[providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > [limits](#providersresourcessynclimits) > memory
 
 Memory limit in megabytes.
 
@@ -474,7 +474,7 @@ providers:
 
 ### `providers[].resources.sync.requests`
 
-[providers](#providers) > [resources](#providers[].resources) > [sync](#providers[].resources.sync) > requests
+[providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > requests
 
 | Type     | Required | Default                   |
 | -------- | -------- | ------------------------- |
@@ -482,7 +482,7 @@ providers:
 
 ### `providers[].resources.sync.requests.cpu`
 
-[providers](#providers) > [resources](#providers[].resources) > [sync](#providers[].resources.sync) > [requests](#providers[].resources.sync.requests) > cpu
+[providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > [requests](#providersresourcessyncrequests) > cpu
 
 CPU request in millicpu.
 
@@ -505,7 +505,7 @@ providers:
 
 ### `providers[].resources.sync.requests.memory`
 
-[providers](#providers) > [resources](#providers[].resources) > [sync](#providers[].resources.sync) > [requests](#providers[].resources.sync.requests) > memory
+[providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > [requests](#providersresourcessyncrequests) > memory
 
 Memory request in megabytes.
 
@@ -542,7 +542,7 @@ factoring in how many concurrent builds you expect and how large your images and
 
 ### `providers[].storage.builder`
 
-[providers](#providers) > [storage](#providers[].storage) > builder
+[providers](#providers) > [storage](#providersstorage) > builder
 
 Storage parameters for the data volume for the in-cluster Docker Daemon.
 
@@ -554,7 +554,7 @@ Only applies when `buildMode` is set to `cluster-docker`, ignored otherwise.
 
 ### `providers[].storage.builder.size`
 
-[providers](#providers) > [storage](#providers[].storage) > [builder](#providers[].storage.builder) > size
+[providers](#providers) > [storage](#providersstorage) > [builder](#providersstoragebuilder) > size
 
 Volume size in megabytes.
 
@@ -564,7 +564,7 @@ Volume size in megabytes.
 
 ### `providers[].storage.builder.storageClass`
 
-[providers](#providers) > [storage](#providers[].storage) > [builder](#providers[].storage.builder) > storageClass
+[providers](#providers) > [storage](#providersstorage) > [builder](#providersstoragebuilder) > storageClass
 
 Storage class to use for the volume.
 
@@ -574,7 +574,7 @@ Storage class to use for the volume.
 
 ### `providers[].storage.registry`
 
-[providers](#providers) > [storage](#providers[].storage) > registry
+[providers](#providers) > [storage](#providersstorage) > registry
 
 Storage parameters for the in-cluster Docker registry volume. Built images are stored here, so that they
 are available to all the nodes in your cluster.
@@ -587,7 +587,7 @@ Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored ot
 
 ### `providers[].storage.registry.size`
 
-[providers](#providers) > [storage](#providers[].storage) > [registry](#providers[].storage.registry) > size
+[providers](#providers) > [storage](#providersstorage) > [registry](#providersstorageregistry) > size
 
 Volume size in megabytes.
 
@@ -597,7 +597,7 @@ Volume size in megabytes.
 
 ### `providers[].storage.registry.storageClass`
 
-[providers](#providers) > [storage](#providers[].storage) > [registry](#providers[].storage.registry) > storageClass
+[providers](#providers) > [storage](#providersstorage) > [registry](#providersstorageregistry) > storageClass
 
 Storage class to use for the volume.
 
@@ -607,7 +607,7 @@ Storage class to use for the volume.
 
 ### `providers[].storage.sync`
 
-[providers](#providers) > [storage](#providers[].storage) > sync
+[providers](#providers) > [storage](#providersstorage) > sync
 
 Storage parameters for the code sync volume, which build contexts are synced to ahead of running
 in-cluster builds.
@@ -624,7 +624,7 @@ Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored ot
 
 ### `providers[].storage.sync.size`
 
-[providers](#providers) > [storage](#providers[].storage) > [sync](#providers[].storage.sync) > size
+[providers](#providers) > [storage](#providersstorage) > [sync](#providersstoragesync) > size
 
 Volume size in megabytes.
 
@@ -634,7 +634,7 @@ Volume size in megabytes.
 
 ### `providers[].storage.sync.storageClass`
 
-[providers](#providers) > [storage](#providers[].storage) > [sync](#providers[].storage.sync) > storageClass
+[providers](#providers) > [storage](#providersstorage) > [sync](#providersstoragesync) > storageClass
 
 Storage class to use for the volume.
 
@@ -654,7 +654,7 @@ One or more certificates to use for ingress.
 
 ### `providers[].tlsCertificates[].name`
 
-[providers](#providers) > [tlsCertificates](#providers[].tlscertificates[]) > name
+[providers](#providers) > [tlsCertificates](#providerstlscertificates) > name
 
 A unique identifier for this certificate.
 
@@ -672,7 +672,7 @@ providers:
 
 ### `providers[].tlsCertificates[].hostnames[]`
 
-[providers](#providers) > [tlsCertificates](#providers[].tlscertificates[]) > hostnames
+[providers](#providers) > [tlsCertificates](#providerstlscertificates) > hostnames
 
 A list of hostnames that this certificate should be used for. If you don't specify these, they will be automatically read from the certificate.
 
@@ -691,7 +691,7 @@ providers:
 
 ### `providers[].tlsCertificates[].secretRef`
 
-[providers](#providers) > [tlsCertificates](#providers[].tlscertificates[]) > secretRef
+[providers](#providers) > [tlsCertificates](#providerstlscertificates) > secretRef
 
 A reference to the Kubernetes secret that contains the TLS certificate and key for the domain.
 
@@ -711,7 +711,7 @@ providers:
 
 ### `providers[].tlsCertificates[].secretRef.name`
 
-[providers](#providers) > [tlsCertificates](#providers[].tlscertificates[]) > [secretRef](#providers[].tlscertificates[].secretref) > name
+[providers](#providers) > [tlsCertificates](#providerstlscertificates) > [secretRef](#providerstlscertificatessecretref) > name
 
 The name of the Kubernetes secret.
 
@@ -733,7 +733,7 @@ providers:
 
 ### `providers[].tlsCertificates[].secretRef.namespace`
 
-[providers](#providers) > [tlsCertificates](#providers[].tlscertificates[]) > [secretRef](#providers[].tlscertificates[].secretref) > namespace
+[providers](#providers) > [tlsCertificates](#providerstlscertificates) > [secretRef](#providerstlscertificatessecretref) > namespace
 
 The namespace where the secret is stored. If necessary, the secret may be copied to the appropriate namespace before use.
 
@@ -787,7 +787,7 @@ The registry where built containers should be pushed to, and then pulled to the 
 
 ### `providers[].deploymentRegistry.hostname`
 
-[providers](#providers) > [deploymentRegistry](#providers[].deploymentregistry) > hostname
+[providers](#providers) > [deploymentRegistry](#providersdeploymentregistry) > hostname
 
 The hostname (and optionally port, if not the default port) of the registry.
 
@@ -806,7 +806,7 @@ providers:
 
 ### `providers[].deploymentRegistry.port`
 
-[providers](#providers) > [deploymentRegistry](#providers[].deploymentregistry) > port
+[providers](#providers) > [deploymentRegistry](#providersdeploymentregistry) > port
 
 The port where the registry listens on, if not the default.
 
@@ -816,7 +816,7 @@ The port where the registry listens on, if not the default.
 
 ### `providers[].deploymentRegistry.namespace`
 
-[providers](#providers) > [deploymentRegistry](#providers[].deploymentregistry) > namespace
+[providers](#providers) > [deploymentRegistry](#providersdeploymentregistry) > namespace
 
 The namespace in the registry where images should be pushed.
 

@@ -32,8 +32,8 @@ Specifically, the clusters need the following:
 - Support for `PersistentVolumeClaim`s and enough disk space for layer caches and the in-cluster image registry.
 
 You can—_and should_—adjust the allocated resources and storage in the provider configuration, under
-[resources](../reference/providers/kubernetes.md#providers[].resources) and
-[storage](../reference/providers/kubernetes.md#providers[].storage). See the individual modes below as well for more
+[resources](../reference/providers/kubernetes.md#providersresources) and
+[storage](../reference/providers/kubernetes.md#providersstorage). See the individual modes below as well for more
 information on how to allocate resources appropriately.
 
 ## Build modes
@@ -74,8 +74,8 @@ and a couple of small utility services.
 
 Make sure your cluster has enough resources and storage to support the required services, and keep in mind that these
 services are shared across all users of the cluster. Please look at the
-[resources](../reference/providers/kubernetes.md#providers[].resources) and
-[storage](../reference/providers/kubernetes.md#providers[].storage) sections in the provider reference for
+[resources](../reference/providers/kubernetes.md#providersresources) and
+[storage](../reference/providers/kubernetes.md#providersstorage) sections in the provider reference for
 details.
 
 ### Kaniko
@@ -94,7 +94,7 @@ The trade-off is generally in performance, at least for the moment, partly becau
 cache layers. There are also some known issues and incompatibilities, so your mileage may vary.
 
 Note the difference in how resources for the builder are allocated. See the
-[builder resources](../reference/providers/kubernetes.md#providers[].resources.builder) reference for details.
+[builder resources](../reference/providers/kubernetes.md#providersresourcesbuilder) reference for details.
 
 ### Local Docker
 

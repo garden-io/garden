@@ -19,7 +19,7 @@ type: container
 name: my-container
 ```
 
-If you have a `Dockerfile` next to this file, this is enough to tell Garden to build it. You can also specify `dockerfile: <path-to-Dockerfile>` if you need to override the Dockerfile name. You might also want to explictly [include or exclude](./configuration-files.md#including-excluding-files-and-directories) files in the build context.
+If you have a `Dockerfile` next to this file, this is enough to tell Garden to build it. You can also specify `dockerfile: <path-to-Dockerfile>` if you need to override the Dockerfile name. You might also want to explicitly [include or exclude](./configuration-files.md#includingexcluding-files-and-directories) files in the build context.
 
 ## Using remote images
 
@@ -57,7 +57,7 @@ If you specify a tag as well, for example `image: my-org/my-container:v1.2.3`, t
 
 In the case of Kubernetes, Garden will take the simplified `container` service specification and convert it to the corresponding Kubernetes manifests, i.e. Deployment, Service and (if applicable) Ingress resources.
 
-Here, for example, is the spec for the `frontend` service in our example [demo project](https://github.com/garden-io/garden/tree/v0.10.11/examples/demo-project):
+Here, for example, is the spec for the `frontend` service in our example [demo project](https://github.com/garden-io/garden/tree/v0.10.12/examples/demo-project):
 
 ```yaml
 kind: Module
@@ -105,7 +105,7 @@ services:
 ...
 ```
 
-`env` is a simple mapping of "name: value". Above we see a simple example with a string value, but you'll also commonly use [template strings](./configuration-files.md#template-strings) to interpolate variables to be consumed by the container service.
+`env` is a simple mapping of "name: value". Above we see a simple example with a string value, but you'll also commonly use [template strings](./variables-and-templating.md#template-string-basics) to interpolate variables to be consumed by the container service.
 
 #### Secrets
 
@@ -141,7 +141,7 @@ kubectl --namespace <my-app-namespace> create secret generic --from-literal=some
 
 Where `<my-app-namespace>` is your project namespace (which is either set with `namespace` in your provider config, or defaults to your project name). There are notably other, more secure ways to create secrets via `kubectl`. Please refer to the offical [Kubernetes Secrets docs](https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret-using-kubectl-create-secret) for details.
 
-Also check out the [Kubernetes Secrets example project](https://github.com/garden-io/garden/tree/v0.10.11/examples/kubernetes-secrets) for a working example.
+Also check out the [Kubernetes Secrets example project](https://github.com/garden-io/garden/tree/v0.10.12/examples/kubernetes-secrets) for a working example.
 
 ## Running tests
 
@@ -197,7 +197,7 @@ See the [reference](../reference/module-types/container.md#tasks) for all the co
 
 ## Referencing from other modules
 
-Modules can reference outputs from each other using [template strings](./configuration-files.md#template-strings). `container` modules are, for instance, often referenced by other module types such as `helm` module types. For example:
+Modules can reference outputs from each other using [template strings](./variables-and-templating.md#template-string-basics). `container` modules are, for instance, often referenced by other module types such as `helm` module types. For example:
 
 ```yaml
 kind: Module

@@ -9,7 +9,7 @@ In this guide we'll demonstrate how Garden can fit into your continuous integrat
 
 To use Garden in your CI pipeline you need the following:
 
-1. A Garden project, [configured to deploy to a remote cluster](#configure-garden-for-remote-environments).
+1. A Garden project, [configured to deploy to a remote cluster](#configure-remote-environments).
 2. A [Kubectl context](#configure-the-kubectl-context) on the CI agent that's configured for the remote cluster.
 
 For the purposes of this example we'll be using [CircleCI](https://circleci.com) and deploying to a Google Kubernetes Engine (GKE) cluster. However, the instructions below can easily be applied to other CI platforms and cloud providers.
@@ -23,7 +23,7 @@ The guide is based on the [Remote Kubernetes](https://docs.garden.io/using-garde
 
 ## Project overview
 
-The project is based on our basic [demo-project](https://github.com/garden-io/garden/tree/v0.10.11/examples/demo-project) example, but configured for multiple environments. Additionally it contains a CircleCI config file. You'll find the entire source code [here](https://github.com/garden-io/ci-demo-project).
+The project is based on our basic [demo-project](https://github.com/garden-io/garden/tree/v0.10.12/examples/demo-project) example, but configured for multiple environments. Additionally it contains a CircleCI config file. You'll find the entire source code [here](https://github.com/garden-io/ci-demo-project).
 
 The CI pipeline in configured so that Garden tests the project and deploys it to a **preview** environment on every pull request. Additionally, it tests the project and deploys it to a separate **staging** environment on every merge to the `master` branch.
 

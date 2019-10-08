@@ -7,7 +7,7 @@ In what follows you'll learn how to:
 * [Configure the project](#project-wide-configuration)
 * [Configure individual modules](#module-configuration)
 * [Deploy the project locally](#deploying)
-* [Have the services communicate with one another](#inter-service-communication)
+* [Have the services communicate with one another](#communication-between-services)
 * [Manage service dependencies](#dependencies)
 * [Test services](#testing)
 
@@ -17,7 +17,7 @@ This tutorial assumes that you already have a running [installation of Garden](.
 
 ## Clone the example repo
 
-The code for this tutorial can be found in our Github repository under the [examples directory](https://github.com/garden-io/garden/tree/v0.10.11/examples). We'll use the [demo-project-start](https://github.com/garden-io/garden/tree/v0.10.11/examples/demo-project-start/) example and work our way from there. The final version is under [demo-project](https://github.com/garden-io/garden/tree/v0.10.11/examples/demo-project).
+The code for this tutorial can be found in our Github repository under the [examples directory](https://github.com/garden-io/garden/tree/v0.10.12/examples). We'll use the [demo-project-start](https://github.com/garden-io/garden/tree/v0.10.12/examples/demo-project-start/) example and work our way from there. The final version is under [demo-project](https://github.com/garden-io/garden/tree/v0.10.12/examples/demo-project).
 
 First, let's clone the examples repo, change into the directory, and take a look inside:
 
@@ -76,7 +76,7 @@ Above, we've specified the name of our project and configured it to use the `loc
 
 ## Module configuration
 
-Now, let's turn to our services. Services live inside [modules](../reference/glossary.md#Module), and each module has its own `garden.yml` configuration file. You can read more about the difference between services and modules [here](../basics/stack-graph.md#structure).
+Now, let's turn to our services. Services live inside [modules](../reference/glossary.md#Module), and each module has its own `garden.yml` configuration file. You can read more about the difference between services and modules [here](../basics/stack-graph.md#structure-and-terminology).
 
 We'll start with the module for the `frontend`:
 
