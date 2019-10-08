@@ -28,6 +28,8 @@ import dtree = require("directory-tree")
 import { readFileSync, writeFile, createFile } from "fs-extra"
 import { resolve } from "path"
 import { cloneDeep, repeat } from "lodash"
+import titleize = require("titleize")
+import humanizeString = require("humanize-string")
 
 interface Metadata {
   order: number
@@ -36,6 +38,8 @@ interface Metadata {
 
 interface FileTree extends dtree.DirectoryTree, Metadata {
   children: FileTree[]
+  emptyDir: boolean
+  topLevel: boolean
 }
 
 function createNewTree(tree: FileTree, transform: Function): FileTree {
@@ -45,17 +49,32 @@ function createNewTree(tree: FileTree, transform: Function): FileTree {
 }
 
 function attachMetadata(tree: FileTree) {
+  // Is this an empty directory?
   if (tree.type === "directory") {
-    tree.path = tree.path + "/README.md"
+    if (tree.children.length > 0) {
+      tree.path = resolve(tree.path, "README.md")
+    } else {
+      tree.emptyDir = true
+      return
+    }
   }
   let file: string | undefined
   try {
     file = readFileSync(tree.path, "utf-8")
   } catch (e) {
+    // We know we won't run into ENOENT because these files were just checked
+    // by dtree. The only reason ENOENT might happen is if it's a non-empty
+    // directory that has no README. If the error is *not* ENOENT though,
+    // something really went wrong.
     if (e.code !== "ENOENT") {
       throw (e)
+    } else {
+      // It's not an empty directory but there's no README: link to first
+      // file instead.
+      tree.path = tree.children[0].path
     }
   }
+  // We know the file's there, so let's fetch all the metadata.
   if (file) {
     const metadata = <Metadata>matter(file).data
     if (metadata.order) {
@@ -66,15 +85,17 @@ function attachMetadata(tree: FileTree) {
     if (metadata.title) {
       tree.title = metadata.title
     } else {
+      // This matches the first "# Title Header" in a Markdown file.
       const name = file.match(/^#[^#][\s]*(.+?)#*?$/m)
       if (name) {
         tree.title = name[1]
       } else {
+        // If there's no "# Title Header," use the file name as title.
         tree.title = tree.name
       }
     }
   } else {
-    tree.title = tree.name
+    tree.title = titleize(humanizeString(tree.name))
   }
   if (tree.children) {
     for (let item in tree.children) {
@@ -85,6 +106,7 @@ function attachMetadata(tree: FileTree) {
 
 function sortTree(tree: FileTree) {
   if (tree.children) {
+    // If order is specified, sort by order. If not, sort by title.
     tree.children.sort((a, b) => {
       if (a.order === b.order) {
         return a.title > b.title ? 1 : -1
@@ -100,11 +122,13 @@ function sortTree(tree: FileTree) {
 function generateMarkdown(tree: FileTree, docsRoot: string, depth = 0) {
   const path = tree.path.replace(docsRoot, ".")
   let output = repeat(indent, depth) + "* [" + tree.title + "](" + path + ")\n"
-  if (path === "./README.md") {
+  // We don't want the root directory of the docs to be a TOC item.
+  if (tree.topLevel) {
     output = ""
     depth = -1
   }
-  if (tree.name === "README.md") {
+  // Empty folders are omitted; README files shouldn't be linked to directly.
+  if (tree.name === "README.md" || tree.emptyDir === true) {
     output = ""
   }
   for (let item in tree.children) {
@@ -117,6 +141,10 @@ const indent: string = "  "
 
 export function generateTableOfContents(docsRoot: string): string {
   const rawTree = <FileTree>dtree(docsRoot, { extensions: /\.md/ })
+  if (rawTree === null) {
+    throw new Error("Directory not found.")
+  }
+  rawTree.topLevel = true
   const treeWithMetadata = createNewTree(rawTree, attachMetadata)
   const preparedTree = createNewTree(treeWithMetadata, sortTree)
   return "# Table of Contents\n\n" + generateMarkdown(preparedTree, docsRoot)

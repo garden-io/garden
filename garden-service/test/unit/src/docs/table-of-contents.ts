@@ -18,8 +18,8 @@ describe("table of contents", () => {
         * [This goes second.](./4/1.md)
         * [I have a title but no order.](./4/b.md)
         * [I too have a title but no order.](./4/a.md)
-        * [x-something.md](./4/x-something.md)
-        * [y-something.md](./4/y-something.md)\n
+        * [X Something.md](./4/x-something.md)
+        * [Y Something.md](./4/y-something.md)\n
 
     `)
   })
