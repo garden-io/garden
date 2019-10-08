@@ -4,7 +4,7 @@ The [Helm](https://helm.sh/) package manager is one of the most commonly used to
 
 In this guide we'll be using the [vote-helm](https://github.com/garden-io/garden/tree/v0.10.12/examples/vote-helm) project. If you prefer to just check out a complete example, the project itself is also a good resource.
 
-You may also want to check out the full [helm module reference](../reference/config.md#helm).
+You may also want to check out the full [helm module reference](../reference/module-types/helm.md).
 
 _Note: If you only need a way to deploy some Kubernetes manifests and don't need all the features of Helm, you can_
 _use the simpler `kubernetes` module type instead. Check out the_
@@ -302,7 +302,7 @@ a lot of flexibility in how you organize your charts.
 
 ## Next steps
 
-Check out the full [helm module reference](../reference/config.md#helm) for more details, and the
+Check out the full [helm module reference](../reference/module-types/helm.md) for more details, and the
 [vote-helm](https://github.com/garden-io/garden-example-vote-helm) example project for a full project that showcases
 Garden's Helm support.
 

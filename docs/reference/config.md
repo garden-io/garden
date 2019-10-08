@@ -4,7 +4,7 @@ title: Config Files Reference
 
 # garden.yml reference
 
-Below is the schema reference for the [Project](#project-configuration) and [Module](#module-configuration) `garden.yml` configuration files. For an introduction to configuring a Garden project,
+Below is the schema reference for the [Project](#project-configuration-keys) and [Module](#module-configuration-keys) `garden.yml` configuration files. For an introduction to configuring a Garden project,
 please look at our [configuration guide](../using-garden/configuration-files.md).
 
 The reference is divided into four sections. The [first section](#project-configuration-keys) lists and describes the available schema keys for the project level configuration, and the [second section](#project-yaml-schema) contains the project level YAML schema.
@@ -94,7 +94,7 @@ DEPRECATED - Please use the top-level `providers` field instead, and if needed u
 
 ### `environmentDefaults.providers[].name`
 
-[environmentDefaults](#environmentdefaults) > [providers](#environmentdefaults.providers[]) > name
+[environmentDefaults](#environmentdefaults) > [providers](#environmentdefaultsproviders) > name
 
 The name of the provider plugin to use.
 
@@ -115,7 +115,7 @@ environmentDefaults:
 
 ### `environmentDefaults.providers[].environments[]`
 
-[environmentDefaults](#environmentdefaults) > [providers](#environmentdefaults.providers[]) > environments
+[environmentDefaults](#environmentdefaults) > [providers](#environmentdefaultsproviders) > environments
 
 If specified, this provider will only be used in the listed environments. Note that an empty array effectively disables the provider. To use a provider in all environments, omit this field.
 
@@ -334,7 +334,7 @@ DEPRECATED - Please use the top-level `providers` field instead, and if needed u
 
 ### `environments[].providers[].name`
 
-[environments](#environments) > [providers](#environments[].providers[]) > name
+[environments](#environments) > [providers](#environmentsproviders) > name
 
 The name of the provider plugin to use.
 
@@ -352,7 +352,7 @@ environments:
 
 ### `environments[].providers[].environments[]`
 
-[environments](#environments) > [providers](#environments[].providers[]) > environments
+[environments](#environments) > [providers](#environmentsproviders) > environments
 
 If specified, this provider will only be used in the listed environments. Note that an empty array effectively disables the provider. To use a provider in all environments, omit this field.
 
@@ -592,7 +592,7 @@ build:
 
 ### `build.dependencies[].name`
 
-[build](#build) > [dependencies](#build.dependencies[]) > name
+[build](#build) > [dependencies](#builddependencies) > name
 
 Module name to build ahead of this module.
 
@@ -602,7 +602,7 @@ Module name to build ahead of this module.
 
 ### `build.dependencies[].copy[]`
 
-[build](#build) > [dependencies](#build.dependencies[]) > copy
+[build](#build) > [dependencies](#builddependencies) > copy
 
 Specify one or more files or directories to copy from the built dependency to this module.
 
@@ -612,7 +612,7 @@ Specify one or more files or directories to copy from the built dependency to th
 
 ### `build.dependencies[].copy[].source`
 
-[build](#build) > [dependencies](#build.dependencies[]) > [copy](#build.dependencies[].copy[]) > source
+[build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > source
 
 POSIX-style path or filename of the directory or file(s) to copy to the target.
 
@@ -622,7 +622,7 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 
 ### `build.dependencies[].copy[].target`
 
-[build](#build) > [dependencies](#build.dependencies[]) > [copy](#build.dependencies[].copy[]) > target
+[build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > target
 
 POSIX-style path or filename to copy the directory or file(s).
 

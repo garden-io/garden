@@ -169,7 +169,7 @@ build:
 
 ### `build.dependencies[].name`
 
-[build](#build) > [dependencies](#build.dependencies[]) > name
+[build](#build) > [dependencies](#builddependencies) > name
 
 Module name to build ahead of this module.
 
@@ -179,7 +179,7 @@ Module name to build ahead of this module.
 
 ### `build.dependencies[].copy[]`
 
-[build](#build) > [dependencies](#build.dependencies[]) > copy
+[build](#build) > [dependencies](#builddependencies) > copy
 
 Specify one or more files or directories to copy from the built dependency to this module.
 
@@ -189,7 +189,7 @@ Specify one or more files or directories to copy from the built dependency to th
 
 ### `build.dependencies[].copy[].source`
 
-[build](#build) > [dependencies](#build.dependencies[]) > [copy](#build.dependencies[].copy[]) > source
+[build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > source
 
 POSIX-style path or filename of the directory or file(s) to copy to the target.
 
@@ -199,7 +199,7 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 
 ### `build.dependencies[].copy[].target`
 
-[build](#build) > [dependencies](#build.dependencies[]) > [copy](#build.dependencies[].copy[]) > target
+[build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > target
 
 POSIX-style path or filename to copy the directory or file(s).
 
@@ -271,7 +271,7 @@ Specify one or more source files or directories to automatically sync into the r
 
 ### `hotReload.sync[].source`
 
-[hotReload](#hotreload) > [sync](#hotreload.sync[]) > source
+[hotReload](#hotreload) > [sync](#hotreloadsync) > source
 
 POSIX-style path of the directory to sync to the target, relative to the module's top-level directory. Must be a relative path if provided. Defaults to the module's top-level directory if no value is provided.
 
@@ -290,7 +290,7 @@ hotReload:
 
 ### `hotReload.sync[].target`
 
-[hotReload](#hotreload) > [sync](#hotreload.sync[]) > target
+[hotReload](#hotreload) > [sync](#hotreloadsync) > target
 
 POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is not allowed.
 
@@ -449,7 +449,7 @@ services:
 
 ### `services[].ingresses[].annotations`
 
-[services](#services) > [ingresses](#services[].ingresses[]) > annotations
+[services](#services) > [ingresses](#servicesingresses) > annotations
 
 Annotations to attach to the ingress (Note: May not be applicable to all providers)
 
@@ -470,7 +470,7 @@ services:
 
 ### `services[].ingresses[].hostname`
 
-[services](#services) > [ingresses](#services[].ingresses[]) > hostname
+[services](#services) > [ingresses](#servicesingresses) > hostname
 
 The hostname that should route to this service. Defaults to the default hostname
 configured in the provider configuration.
@@ -483,7 +483,7 @@ Note that if you're developing locally you may need to add this hostname to your
 
 ### `services[].ingresses[].linkUrl`
 
-[services](#services) > [ingresses](#services[].ingresses[]) > linkUrl
+[services](#services) > [ingresses](#servicesingresses) > linkUrl
 
 The link URL for the ingress to show in the console and on the dashboard.
 Also used when calling the service with the `call` command.
@@ -499,7 +499,7 @@ Otherwise Garden will construct the link URL from the ingress spec.
 
 ### `services[].ingresses[].path`
 
-[services](#services) > [ingresses](#services[].ingresses[]) > path
+[services](#services) > [ingresses](#servicesingresses) > path
 
 The path which should be routed to the service.
 
@@ -509,7 +509,7 @@ The path which should be routed to the service.
 
 ### `services[].ingresses[].port`
 
-[services](#services) > [ingresses](#services[].ingresses[]) > port
+[services](#services) > [ingresses](#servicesingresses) > port
 
 The name of the container port where the specified paths should be routed.
 
@@ -551,7 +551,7 @@ Specify how the service's health should be checked after deploying.
 
 ### `services[].healthCheck.httpGet`
 
-[services](#services) > [healthCheck](#services[].healthcheck) > httpGet
+[services](#services) > [healthCheck](#serviceshealthcheck) > httpGet
 
 Set this to check the service's health by making an HTTP request.
 
@@ -561,7 +561,7 @@ Set this to check the service's health by making an HTTP request.
 
 ### `services[].healthCheck.httpGet.path`
 
-[services](#services) > [healthCheck](#services[].healthcheck) > [httpGet](#services[].healthcheck.httpget) > path
+[services](#services) > [healthCheck](#serviceshealthcheck) > [httpGet](#serviceshealthcheckhttpget) > path
 
 The path of the service's health check endpoint.
 
@@ -571,7 +571,7 @@ The path of the service's health check endpoint.
 
 ### `services[].healthCheck.httpGet.port`
 
-[services](#services) > [healthCheck](#services[].healthcheck) > [httpGet](#services[].healthcheck.httpget) > port
+[services](#services) > [healthCheck](#serviceshealthcheck) > [httpGet](#serviceshealthcheckhttpget) > port
 
 The name of the port where the service's health check endpoint should be available.
 
@@ -581,7 +581,7 @@ The name of the port where the service's health check endpoint should be availab
 
 ### `services[].healthCheck.httpGet.scheme`
 
-[services](#services) > [healthCheck](#services[].healthcheck) > [httpGet](#services[].healthcheck.httpget) > scheme
+[services](#services) > [healthCheck](#serviceshealthcheck) > [httpGet](#serviceshealthcheckhttpget) > scheme
 
 | Type     | Required | Default  |
 | -------- | -------- | -------- |
@@ -589,7 +589,7 @@ The name of the port where the service's health check endpoint should be availab
 
 ### `services[].healthCheck.command[]`
 
-[services](#services) > [healthCheck](#services[].healthcheck) > command
+[services](#services) > [healthCheck](#serviceshealthcheck) > command
 
 Set this to check the service's health by running a command in its container.
 
@@ -599,7 +599,7 @@ Set this to check the service's health by running a command in its container.
 
 ### `services[].healthCheck.tcpPort`
 
-[services](#services) > [healthCheck](#services[].healthcheck) > tcpPort
+[services](#services) > [healthCheck](#serviceshealthcheck) > tcpPort
 
 Set this to check the service's health by checking if this TCP port is accepting connections.
 
@@ -658,7 +658,7 @@ Specify resource limits for the service.
 
 ### `services[].limits.cpu`
 
-[services](#services) > [limits](#services[].limits) > cpu
+[services](#services) > [limits](#serviceslimits) > cpu
 
 The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)
 
@@ -668,7 +668,7 @@ The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)
 
 ### `services[].limits.memory`
 
-[services](#services) > [limits](#services[].limits) > memory
+[services](#services) > [limits](#serviceslimits) > memory
 
 The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)
 
@@ -688,7 +688,7 @@ List of ports that the service container exposes.
 
 ### `services[].ports[].name`
 
-[services](#services) > [ports](#services[].ports[]) > name
+[services](#services) > [ports](#servicesports) > name
 
 The name of the port (used when referencing the port elsewhere in the service configuration).
 
@@ -698,7 +698,7 @@ The name of the port (used when referencing the port elsewhere in the service co
 
 ### `services[].ports[].protocol`
 
-[services](#services) > [ports](#services[].ports[]) > protocol
+[services](#services) > [ports](#servicesports) > protocol
 
 The protocol of the port.
 
@@ -708,7 +708,7 @@ The protocol of the port.
 
 ### `services[].ports[].containerPort`
 
-[services](#services) > [ports](#services[].ports[]) > containerPort
+[services](#services) > [ports](#servicesports) > containerPort
 
 The port exposed on the container by the running process. This will also be the default value for `servicePort`.
 This is the port you would expose in your Dockerfile and that your process listens on. This is commonly a non-priviledged port like 8080 for security reasons.
@@ -729,7 +729,7 @@ services:
 
 ### `services[].ports[].servicePort`
 
-[services](#services) > [ports](#services[].ports[]) > servicePort
+[services](#services) > [ports](#servicesports) > servicePort
 
 The port exposed on the service. Defaults to `containerPort` if not specified.
 This is the port you use when calling a service from another service within the cluster. For example, if your service name is my-service and the service port is 8090, you would call it with: http://my-service:8090/some-endpoint.
@@ -751,7 +751,7 @@ services:
 
 ### `services[].ports[].hostPort`
 
-[services](#services) > [ports](#services[].ports[]) > hostPort
+[services](#services) > [ports](#servicesports) > hostPort
 
 | Type     | Required |
 | -------- | -------- |
@@ -759,7 +759,7 @@ services:
 
 ### `services[].ports[].nodePort`
 
-[services](#services) > [ports](#services[].ports[]) > nodePort
+[services](#services) > [ports](#servicesports) > nodePort
 
 Set this to expose the service on the specified port on the host node (may not be supported by all providers). Set to `true` to have the cluster pick a port automatically, which is most often advisable if the cluster is shared by multiple users.
 This allows you to call the service from the outside by the node's IP address and the port number set in this field.
@@ -791,7 +791,7 @@ List of volumes that should be mounted when deploying the container.
 
 ### `services[].volumes[].name`
 
-[services](#services) > [volumes](#services[].volumes[]) > name
+[services](#services) > [volumes](#servicesvolumes) > name
 
 The name of the allocated volume.
 
@@ -801,7 +801,7 @@ The name of the allocated volume.
 
 ### `services[].volumes[].containerPath`
 
-[services](#services) > [volumes](#services[].volumes[]) > containerPath
+[services](#services) > [volumes](#servicesvolumes) > containerPath
 
 The path where the volume should be mounted in the container.
 
@@ -811,7 +811,7 @@ The path where the volume should be mounted in the container.
 
 ### `services[].volumes[].hostPath`
 
-[services](#services) > [volumes](#services[].volumes[]) > hostPath
+[services](#services) > [volumes](#servicesvolumes) > hostPath
 
 | Type     | Required |
 | -------- | -------- |

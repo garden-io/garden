@@ -107,7 +107,7 @@ repositoryUrl: file:///my/local/project/path#master
 
 As usual, the URL must point to a specific branch or tag.
 
-Local paths work just the same remote URLs and you'll still need to [link the repository](#linking-remote-sources/modules-to-local-code) if you want to edit it locally.
+Local paths work just the same remote URLs and you'll still need to [link the repository](#linking-remote-sourcesmodules-to-local-code) if you want to edit it locally.
 
 In general we don't recommend using local paths except for testing purposes. The `garden.yml` files should be checked into your version control system and therefore shouldn't contain anything specific to a particular user's setup.
 

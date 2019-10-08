@@ -1,10 +1,20 @@
 {
   "ignorePatterns": [
     {
-      "pattern": "local.app.garden"
+      "pattern": "local.app.garden",
+      "reason": "Ignore example URL"
     },
     {
-      "pattern": "my-service"
+      "pattern": "^http://my-service",
+      "reason": "Ignore example URL"
+    },
+    {
+      "pattern": "^[^\/]+\/[^\/].*$|^\/[^\/].*$",
+      "reason": "Ignore relative paths. Those are handled by another tool due to: https://github.com/tcort/markdown-link-check/issues/65"
+    },
+    {
+      "pattern": "^#",
+      "reason": "Ignore relative paths. Those are handled by another tool due to: https://github.com/tcort/markdown-link-check/issues/65"
     }
   ]
 }

@@ -100,7 +100,7 @@ services:
 
 A common use case for templating is to define variables in the project/environment configuration, and to use template strings to propagate values to modules in the project.
 
-You can define them in your project configuration using the [`variables` key](../reference/config.md#variables), as well as the [`environment[].variables` key](../reference/config.md#environment-variables) for environment-specific values. You might, for example, define project defaults using the `variables` key, and then provide environment-specific overrides in the `environment[].variables` key for each environment.
+You can define them in your project configuration using the [`variables` key](../reference/config.md#variables), as well as the [`environment[].variables` key](../reference/config.md#environmentsvariables) for environment-specific values. You might, for example, define project defaults using the `variables` key, and then provide environment-specific overrides in the `environment[].variables` key for each environment.
 
 The variables can then be configured via `${var.<key>}` template string keys. For example:
 
