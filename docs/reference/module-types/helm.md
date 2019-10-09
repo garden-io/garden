@@ -664,6 +664,25 @@ tests:
         - my-server.js
 ```
 
+### `tests[].command[]`
+
+[tests](#tests) > command
+
+The command/entrypoint used to run the test inside the container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+Example:
+
+```yaml
+tests:
+  - command:
+    - /bin/sh
+    - '-c'
+```
+
 ### `tests[].args[]`
 
 [tests](#tests) > args
@@ -673,6 +692,15 @@ The arguments to pass to the pod used for testing.
 | Type            | Required |
 | --------------- | -------- |
 | `array[string]` | No       |
+
+Example:
+
+```yaml
+tests:
+  - args:
+    - npm
+    - test
+```
 
 ### `tests[].env`
 
@@ -791,6 +819,7 @@ tests:
       containerName:
       containerModule:
       hotReloadArgs:
+    command:
     args:
     env: {}
 timeout: 300
