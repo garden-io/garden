@@ -40,8 +40,6 @@ export const defaultEnvVarfilePath = (environmentName: string) => `garden.${envi
 const fixedPlugins = [
   "exec",
   "container",
-  // TODO: remove this after we've implemented module type inheritance
-  "maven-container",
 ]
 
 export interface CommonEnvironmentConfig {

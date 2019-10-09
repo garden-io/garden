@@ -18,7 +18,6 @@ import { ConfigureModuleParams } from "../../../types/plugin/module/configure"
 import { getContainerServiceStatus } from "./status"
 import { getTestResult } from "../test-results"
 import { ContainerModule } from "../../container/config"
-import { configureMavenContainerModule, MavenContainerModule } from "../../maven-container/maven-container"
 import { getTaskResult } from "../task-results"
 import { k8sBuildContainer, k8sGetContainerBuildStatus } from "./build"
 import { k8sPublishContainerModule } from "./publish"
@@ -26,13 +25,6 @@ import { getPortForwardHandler } from "../port-forward"
 
 async function configure(params: ConfigureModuleParams<ContainerModule>) {
   let { moduleConfig } = await configureContainerModule(params)
-  params.moduleConfig = moduleConfig
-  return validateConfig(params)
-}
-
-// TODO: avoid having to special-case this (needs framework improvements)
-export async function configureMaven(params: ConfigureModuleParams<MavenContainerModule>) {
-  let { moduleConfig } = await configureMavenContainerModule(params)
   params.moduleConfig = moduleConfig
   return validateConfig(params)
 }
@@ -55,11 +47,6 @@ export const containerHandlers = {
   runTask: runContainerTask,
   getTaskResult,
   testModule: testContainerModule,
-}
-
-export const mavenContainerHandlers = {
-  ...containerHandlers,
-  configure: configureMaven,
 }
 
 async function validateConfig<T extends ContainerModule>(params: ConfigureModuleParams<T>) {

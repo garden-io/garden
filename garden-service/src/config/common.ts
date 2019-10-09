@@ -276,6 +276,8 @@ export const joiRepositoryUrl = () => joi.alternatives(
   )
   .example("git+https://github.com/org/repo.git#v2.0")
 
+export const joiSchema = () => joi.object({ isJoi: joi.boolean().only(true).required() }).unknown(true)
+
 export function isPrimitive(value: any) {
   return typeof value === "string" || typeof value === "number" || typeof value === "boolean" || value === null
 }
@@ -320,7 +322,7 @@ export function validateWithPath<T>(
 ) {
 
   const validateOpts = {
-    context: `${configType} ${name ? name + " " : ""}(${relative(projectRoot, path)}/garden.yml)`,
+    context: `${configType} ${name ? `'${name}' ` : ""}(${relative(projectRoot, path)}/garden.yml)`,
   }
 
   if (ErrorClass) {

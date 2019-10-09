@@ -8,15 +8,15 @@
 
 import Bluebird from "bluebird"
 import { parse, relative, resolve, dirname } from "path"
-import { flatten, isString, cloneDeep, sortBy, fromPairs, keyBy, uniq } from "lodash"
+import { flatten, isString, cloneDeep, sortBy, fromPairs, keyBy } from "lodash"
 const AsyncLock = require("async-lock")
 
 import { TreeCache } from "./cache"
 import { builtinPlugins } from "./plugins/plugins"
 import { Module, getModuleCacheContext, getModuleKey, ModuleConfigMap } from "./types/module"
-import { pluginModuleSchema, pluginSchema, ModuleTypeDefinition, ModuleTypeExtension } from "./types/plugin/plugin"
+import { pluginModuleSchema } from "./types/plugin/plugin"
 import { SourceConfig, ProjectConfig, resolveProjectConfig, pickEnvironment } from "./config/project"
-import { findByName, pickKeys, getPackageVersion, pushToKey, getNames } from "./util/util"
+import { findByName, pickKeys, getPackageVersion, getNames } from "./util/util"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
 import { VcsHandler, ModuleVersion } from "./vcs/vcs"
 import { GitHandler } from "./vcs/git"
@@ -42,12 +42,13 @@ import { EventBus } from "./events"
 import { Watcher } from "./watch"
 import { findConfigPathsInPath, getConfigFilePath, getWorkingCopyId, fixedExcludes } from "./util/fs"
 import { Provider, ProviderConfig, getAllProviderDependencyNames, defaultProvider } from "./config/provider"
-import { ResolveProviderTask, getPluginBaseNames } from "./tasks/resolve-provider"
+import { ResolveProviderTask } from "./tasks/resolve-provider"
 import { ActionRouter } from "./actions"
 import { detectCycles, cyclesToString, Dependency } from "./util/validate-dependencies"
 import chalk from "chalk"
 import { RuntimeContext } from "./runtime-context"
 import { deline } from "./util/string"
+import { loadPlugins, getModuleTypeBases } from "./plugins"
 
 export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
   [actionName: string]: PluginActionHandlers[T]
@@ -381,280 +382,24 @@ export class Garden {
       this.log.silly(`Loading plugins`)
       const rawConfigs = this.getRawProviderConfigs()
 
-      // Plugins that are explicitly configured for the project+environment
-      const configuredPlugins: { [name: string]: GardenPlugin } = {}
+      this.loadedPlugins = loadPlugins(this.log, this.registeredPlugins, rawConfigs)
 
-      // All loaded plugins, including base plugins
-      const loadedPlugins: { [name: string]: GardenPlugin } = {}
-
-      const deps: Dependency[] = []
-
-      // TODO: split this out of this method
-      const loadPlugin = (name: string) => {
-        this.log.silly(`Loading plugin ${name}`)
-        let plugin = this.registeredPlugins[name]
-
-        if (!plugin) {
-          return null
-        }
-
-        plugin = validate(plugin, pluginSchema, {
-          context: `plugin "${name}"`,
-        })
-
-        loadedPlugins[name] = plugin
-
-        if (plugin.base) {
-          if (plugin.base === plugin.name) {
-            throw new PluginError(
-              `Plugin '${plugin.name}' references itself as a base plugin.`,
-              { pluginName: plugin.name },
-            )
-          }
-
-          deps.push({ from: name, to: plugin.base })
-
-          if (!loadedPlugins[plugin.base]) {
-            loadPlugin(plugin.base)
-          }
-        }
-
-        this.log.silly(`Done loading plugin ${name}`)
-        return plugin
-      }
-
-      for (const config of rawConfigs) {
-        const plugin = loadPlugin(config.name)
-
-        if (!plugin) {
-          throw new ConfigurationError(
-            `Configured plugin '${config.name}' has not been registered.`,
-            {
-              name: config.name,
-              availablePlugins: Object.keys(this.registeredPlugins),
-            },
-          )
-        }
-
-        configuredPlugins[config.name] = plugin
-      }
-
-      // Check for circular base declarations
-      const cycles = detectCycles(deps)
-
-      if (cycles.length) {
-        const cyclesStr = cyclesToString(cycles)
-
-        throw new PluginError(
-          `One or more circular dependencies found between plugins and their bases: ${cyclesStr}`,
-          { cycles },
-        )
-      }
-
-      // Takes a plugin and resolves it against its base plugin, if applicable
-      // TODO: split this out of this method
-      const resolvePlugin = (plugin: GardenPlugin): GardenPlugin => {
-        if (!plugin.base) {
-          return plugin
-        }
-
-        // Resolve the plugin base
-        let base = loadedPlugins[plugin.base] || loadPlugin(plugin.base)
-
-        if (!base) {
-          throw new ConfigurationError(
-            `Plugin '${plugin.name}' is based on plugin '${plugin.base}' which has not been registered.`,
-            { pluginName: plugin.name, base: plugin.base },
-          )
-        }
-
-        base = resolvePlugin(base)
-
-        const baseIsConfigured = plugin.base in configuredPlugins
-
-        const resolved = {
-          configKeys: base.configKeys,
-          outputsSchema: base.outputsSchema,
-          ...plugin,
-        }
-
-        // Merge dependencies with base
-        resolved.dependencies = uniq([
-          ...(plugin.dependencies || []),
-          ...(base.dependencies || []),
-        ]).sort()
-
-        // TODO: Make sure the plugin doesn't redeclare module types from the base
-
-        // Merge plugin handlers
-        resolved.handlers = { ...(plugin.handlers || {}) }
-
-        for (const [name, handler] of Object.entries(base.handlers || {})) {
-          if (!handler) {
-            continue
-          } else if (resolved.handlers[name]) {
-            // Attach the overridden handler as a base, and attach metadata
-            resolved.handlers[name].base = Object.assign(handler, { actionType: name, pluginName: base.name })
-          } else {
-            resolved.handlers[name] = handler
-          }
-        }
-
-        // Merge commands
-        resolved.commands = [...(plugin.commands || [])]
-
-        for (const baseCommand of base.commands || []) {
-          const command = findByName(resolved.commands, baseCommand.name)
-          if (command) {
-            command.base = baseCommand
-          } else {
-            resolved.commands.push(baseCommand)
-          }
-        }
-
-        // If the base is not expressly configured for the environment, we pull and coalesce its module declarations.
-        // We also make sure the plugin doesn't redeclare a module type from the base.
-        resolved.createModuleTypes = [...plugin.createModuleTypes || []]
-        resolved.extendModuleTypes = [...plugin.extendModuleTypes || []]
-
-        for (const spec of base.createModuleTypes || []) {
-          if (findByName(plugin.createModuleTypes || [], spec.name)) {
-            throw new PluginError(
-              `Plugin '${plugin.name}' redeclares the '${spec.name}' module type, already declared by its base.`,
-              { plugin, base },
-            )
-          } else if (!baseIsConfigured) {
-            resolved.createModuleTypes.push(spec)
-          }
-        }
-
-        if (!baseIsConfigured) {
-          // Base is not explicitly configured, so we coalesce the module type extensions
-          for (const baseSpec of base.extendModuleTypes || []) {
-            const spec = findByName(plugin.extendModuleTypes || [], baseSpec.name)
-            if (spec) {
-              // Both plugin and base extend the module type, coalesce them
-              for (const [name, baseHandler] of Object.entries(baseSpec.handlers)) {
-                // Pull in handler from base, if it's not specified in the plugin
-                if (!spec.handlers[name]) {
-                  spec.handlers[name] = cloneDeep(baseHandler)
-                }
-              }
-            } else {
-              // Only base has the extension for this type, pull it directly
-              resolved.extendModuleTypes.push(baseSpec)
-            }
-          }
-        }
-
-        return resolved
-      }
-
-      const moduleDeclarations: { [moduleType: string]: { plugin: GardenPlugin, spec: ModuleTypeDefinition }[] } = {}
-      const moduleExtensions: { [moduleType: string]: { plugin: GardenPlugin, spec: ModuleTypeExtension }[] } = {}
-
-      for (const plugin of Object.values(configuredPlugins)) {
-        const resolved = resolvePlugin(plugin)
-
-        // Note: We clone the specs to avoid possible circular references
-        // (plugin authors may re-use handlers for various reasons).
-        for (const spec of resolved.createModuleTypes || []) {
-          pushToKey(moduleDeclarations, spec.name, {
-            plugin: resolved,
-            spec: cloneDeep(spec),
-          })
-        }
-
-        for (const spec of resolved.extendModuleTypes || []) {
-          pushToKey(moduleExtensions, spec.name, {
-            plugin: resolved,
-            spec: cloneDeep(spec),
-          })
-        }
-
-        loadedPlugins[plugin.name] = configuredPlugins[plugin.name] = resolved
-      }
-
-      for (const [moduleType, declarations] of Object.entries(moduleDeclarations)) {
-        // Make sure only one plugin declares each module type
-        if (declarations.length > 1) {
-          const plugins = declarations.map(d => d.plugin.name)
-
-          throw new ConfigurationError(
-            `Module type '${moduleType}' is declared in multiple providers: ${plugins.join(", ")}.`,
-            { moduleType, plugins },
-          )
-        }
-      }
-
-      for (const [moduleType, extensions] of Object.entries(moduleExtensions)) {
-        // We validate above that there is only one declaration per module type
-        const declaration = moduleDeclarations[moduleType] && moduleDeclarations[moduleType][0]
-        const declaredBy = declaration && declaration.plugin.name
-
-        for (const { plugin, spec } of extensions) {
-          // Make sure plugins that extend module types correctly declare their dependencies
-          if (!declaration) {
-            throw new PluginError(
-              deline`
-              Plugin '${plugin.name}' extends module type '${moduleType}' but the module type has not been declared.
-              The '${plugin.name}' plugin is likely missing a dependency declaration.
-              Please report an issue with the author.
-              `,
-              { moduleType, pluginName: plugin.name },
-            )
-          }
-
-          const bases = getPluginBaseNames(plugin.name, loadedPlugins)
-
-          if (
-            declaredBy !== plugin.name &&
-            !bases.includes(declaredBy) &&
-            !(plugin.dependencies && plugin.dependencies.includes(declaredBy))
-          ) {
-            throw new PluginError(
-              deline`
-              Plugin '${plugin.name}' extends module type '${moduleType}', declared by the '${declaredBy}' plugin,
-              but does not specify a dependency on that plugin. Plugins must explicitly declare dependencies on plugins
-              that define module types they reference. Please report an issue with the author.
-              `,
-              {
-                moduleType,
-                pluginName: plugin.name,
-                declaredByName: declaredBy,
-                bases,
-              },
-            )
-          }
-
-          // Attach base handlers (which are the corresponding declaration handlers, if any)
-          for (const [name, handler] of Object.entries(spec.handlers)) {
-            const baseHandler = declaration.spec.handlers[name]
-
-            if (handler && baseHandler) {
-              // Note: We clone the handler to avoid possible circular references
-              // (plugin authors may re-use handlers for various reasons).
-              handler.base = cloneDeep(baseHandler)
-              handler.base!.actionType = name
-              handler.base!.moduleType = moduleType
-              handler.base!.pluginName = declaration.plugin.name
-            }
-          }
-        }
-      }
-
-      this.loadedPlugins = Object.values(loadedPlugins)
       this.log.silly(
-        `Loaded plugins: ${Object.keys(configuredPlugins).join(", ")}`,
+        `Loaded plugins: ${rawConfigs.map(c => c.name).join(", ")}`,
       )
     })
 
     return this.loadedPlugins
   }
 
+  /**
+   * Returns a mapping of all configured module types in the project and their definitions.
+   */
   async getModuleTypeDefinitions() {
     const plugins = await this.getPlugins()
-    return flatten(plugins.map(p => p.createModuleTypes || []))
+    const configNames = keyBy(this.getRawProviderConfigs(), "name")
+    const configuredPlugins = plugins.filter(p => configNames[p.name])
+    return keyBy(flatten(configuredPlugins.map(p => p.createModuleTypes || [])), "name")
   }
 
   getRawProviderConfigs() {
@@ -702,6 +447,7 @@ export class Garden {
 
       await Bluebird.map(rawConfigs, async config => {
         const plugin = plugins[config.name]
+
         for (const dep of await getAllProviderDependencyNames(plugin!, config!)) {
           pluginDeps.push({ from: config!.name, to: dep })
         }
@@ -790,12 +536,13 @@ export class Garden {
   async getActionRouter() {
     if (!this.actionHelper) {
       const loadedPlugins = await this.getPlugins()
+      const moduleTypes = await this.getModuleTypeDefinitions()
       const plugins = keyBy(loadedPlugins, "name")
 
       // We only pass configured plugins to the router (others won't have the required configuration to call handlers)
       const configuredPlugins = this.getRawProviderConfigs().map(c => plugins[c.name])
 
-      this.actionHelper = new ActionRouter(this, configuredPlugins, loadedPlugins)
+      this.actionHelper = new ActionRouter(this, configuredPlugins, loadedPlugins, moduleTypes)
     }
 
     return this.actionHelper
@@ -849,10 +596,7 @@ export class Garden {
       opts.configContext = await this.getModuleConfigContext()
     }
 
-    const moduleTypeDefinitions = keyBy(
-      await this.getModuleTypeDefinitions(),
-      "name",
-    )
+    const moduleTypeDefinitions = await this.getModuleTypeDefinitions()
 
     return Bluebird.map(configs, async config => {
       config = await resolveTemplateStrings(
@@ -863,13 +607,11 @@ export class Garden {
       const description = moduleTypeDefinitions[config.type]
 
       if (!description) {
+        const configPath = relative(this.projectRoot, config.configPath || config.path)
+
         throw new ConfigurationError(
           deline`
-          Unrecognized module type '${config.type}'
-          (defined at ${relative(
-            this.projectRoot,
-            config.configPath || config.path,
-          )}).
+          Unrecognized module type '${config.type}' (defined at ${configPath}).
           Are you missing a provider configuration?
           `,
           { config, configuredModuleTypes: Object.keys(moduleTypeDefinitions) },
@@ -877,13 +619,15 @@ export class Garden {
       }
 
       // Validate the module-type specific spec
-      config.spec = validateWithPath({
-        config: config.spec,
-        schema: description.schema,
-        name: config.name,
-        path: config.path,
-        projectRoot: this.projectRoot,
-      })
+      if (description.schema) {
+        config.spec = validateWithPath({
+          config: config.spec,
+          schema: description.schema,
+          name: config.name,
+          path: config.path,
+          projectRoot: this.projectRoot,
+        })
+      }
 
       /*
         We allow specifying modules by name only as a shorthand:
@@ -916,22 +660,56 @@ export class Garden {
         })
       }
 
-      const configureHandler = await actions.getModuleActionHandler({
-        actionType: "configure",
-        moduleType: config.type,
-      })
-
-      const provider = await this.resolveProvider(
-        configureHandler.pluginName,
-      )
-      const ctx = this.getPluginContext(provider)
-      const configureResult = await configureHandler({
-        ctx,
+      const configureResult = await actions.configureModule({
         moduleConfig: config,
         log: this.log,
       })
 
       config = configureResult.moduleConfig
+
+      // Validate the module outputs against the outputs schema
+      if (description.moduleOutputsSchema) {
+        config.outputs = validateWithPath({
+          config: config.outputs,
+          schema: description.moduleOutputsSchema,
+          configType: `outputs for module`,
+          name: config.name,
+          path: config.path,
+          projectRoot: this.projectRoot,
+          ErrorClass: PluginError,
+        })
+      }
+
+      // Validate the configure handler output (incl. module outputs) against the module type's bases
+      const bases = getModuleTypeBases(moduleTypeDefinitions[config.type], moduleTypeDefinitions)
+
+      for (const base of bases) {
+        if (base.schema) {
+          this.log.silly(`Validating '${config.name}' config against '${base.name}' schema`)
+
+          config.spec = <ModuleConfig>validateWithPath({
+            config: config.spec,
+            schema: base.schema.unknown(true),
+            path: this.projectRoot,
+            projectRoot: this.projectRoot,
+            configType: `configuration for module '${config.name}' (base schema from '${base.name}' plugin)`,
+            ErrorClass: ConfigurationError,
+          })
+        }
+
+        if (base.moduleOutputsSchema) {
+          this.log.silly(`Validating '${config.name}' module outputs against '${base.name}' schema`)
+
+          config.outputs = validateWithPath({
+            config: config.outputs,
+            schema: base.moduleOutputsSchema.unknown(true),
+            path: this.projectRoot,
+            projectRoot: this.projectRoot,
+            configType: `outputs for module '${config.name}' (base schema from '${base.name}' plugin)`,
+            ErrorClass: PluginError,
+          })
+        }
+      }
 
       // FIXME: We should be able to avoid this
       config.name = getModuleKey(config.name, config.plugin)
@@ -1019,6 +797,8 @@ export class Garden {
    * Scans the specified directories for Garden config files and returns a list of paths.
    */
   async scanForConfigs(path: string) {
+    this.log.silly(`Scanning for configs in ${path}`)
+
     return findConfigPathsInPath({
       vcs: this.vcs,
       dir: path,
@@ -1036,6 +816,8 @@ export class Garden {
       if (this.modulesScanned && !force) {
         return
       }
+
+      this.log.silly(`Scanning for modules`)
 
       let extSourcePaths: string[] = []
 

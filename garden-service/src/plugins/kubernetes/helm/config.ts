@@ -249,7 +249,7 @@ export const helmModuleSpecSchema = joi.object().keys({
     `),
 })
 
-export async function validateHelmModule({ moduleConfig }: ConfigureModuleParams<HelmModule>)
+export async function configureHelmModule({ moduleConfig }: ConfigureModuleParams<HelmModule>)
   : Promise<ConfigureModuleResult<HelmModule>> {
   const {
     base, chart, dependencies, serviceResource, skipDeploy, tasks, tests,

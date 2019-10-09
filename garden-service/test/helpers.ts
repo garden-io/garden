@@ -17,7 +17,12 @@ import { containerModuleSpecSchema, containerTestSchema, containerTaskSchema } f
 import { testExecModule, buildExecModule, execBuildSpecSchema } from "../src/plugins/exec"
 import { TaskResults } from "../src/task-graph"
 import { joiArray, joi } from "../src/config/common"
-import { PluginActionHandlers, ModuleActionHandlers, createGardenPlugin, RegisterPluginParam } from "../src/types/plugin/plugin"
+import {
+  PluginActionHandlers,
+  createGardenPlugin,
+  RegisterPluginParam,
+  ModuleAndRuntimeActionHandlers,
+} from "../src/types/plugin/plugin"
 import { Garden, GardenParams } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { mapValues, fromPairs } from "lodash"
@@ -38,6 +43,7 @@ import { RunTaskParams, RunTaskResult } from "../src/types/plugin/task/runTask"
 import { RunResult } from "../src/types/plugin/base"
 import { ExternalSourceType, getRemoteSourceRelPath, hashRepoUrl } from "../src/util/ext-source-util"
 import { ConfigureProviderParams } from "../src/types/plugin/provider/configureProvider"
+import { ActionRouter } from "../src/actions"
 
 export const dataDir = resolve(GARDEN_SERVICE_ROOT, "test", "unit", "data")
 export const examplesDir = resolve(GARDEN_SERVICE_ROOT, "..", "examples")
@@ -337,13 +343,17 @@ export function stubAction<T extends keyof PluginActionHandlers>(
   return td.replace(garden["actionHandlers"][type], pluginName, handler)
 }
 
-export function stubModuleAction<T extends keyof ModuleActionHandlers<any>>(
-  garden: Garden, moduleType: string, pluginName: string, actionType: T, handler: ModuleActionHandlers<any>[T],
+export function stubModuleAction<T extends keyof ModuleAndRuntimeActionHandlers<any>>(
+  actions: ActionRouter,
+  moduleType: string,
+  pluginName: string,
+  actionType: T,
+  handler: ModuleAndRuntimeActionHandlers<any>[T],
 ) {
   handler["actionType"] = actionType
   handler["pluginName"] = pluginName
   handler["moduleType"] = moduleType
-  return td.replace(garden["moduleActionHandlers"][actionType][moduleType], pluginName, handler)
+  return td.replace(actions["moduleActionHandlers"][actionType][moduleType], pluginName, handler)
 }
 
 /**

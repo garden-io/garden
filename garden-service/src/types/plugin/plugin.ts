@@ -30,7 +30,7 @@ import { RunServiceParams, runService } from "./service/runService"
 import { RunTaskParams, RunTaskResult, runTask } from "./task/runTask"
 import { SetSecretParams, SetSecretResult, setSecret } from "./provider/setSecret"
 import { TestModuleParams, testModule } from "./module/testModule"
-import { joiArray, joiIdentifier, joi } from "../../config/common"
+import { joiArray, joiIdentifier, joi, joiSchema } from "../../config/common"
 import { Module } from "../module"
 import { RunResult } from "./base"
 import { ServiceStatus } from "../service"
@@ -45,22 +45,25 @@ export interface ActionHandlerParamsBase {
   base?: ActionHandler<any, any>
 }
 
-export interface ActionHandler<P extends ActionHandlerParamsBase, O extends {}> {
-  (params: P): O
+export interface ActionHandler<P extends ActionHandlerParamsBase, O> {
+  (params: P): Promise<O>
+  actionType?: string
+  pluginName?: string
   base?: WrappedActionHandler<P, O>
 }
 
-export interface ModuleActionHandler<P extends ActionHandlerParamsBase, O extends {}> {
-  (params: P): O
+export interface ModuleActionHandler<P extends ActionHandlerParamsBase, O> extends ActionHandler<P, O> {
+  (params: P): Promise<O>
+  moduleType?: string
   base?: WrappedModuleActionHandler<P, O>
 }
 
-export interface WrappedActionHandler<P extends ActionHandlerParamsBase, O extends object> extends ActionHandler<P, O> {
+export interface WrappedActionHandler<P extends ActionHandlerParamsBase, O> extends ActionHandler<P, O> {
   actionType: string
   pluginName: string
 }
 
-export interface WrappedModuleActionHandler<P extends ActionHandlerParamsBase, O extends object>
+export interface WrappedModuleActionHandler<P extends ActionHandlerParamsBase, O>
   extends WrappedActionHandler<P, O> {
   moduleType: string
   base?: WrappedModuleActionHandler<P, O>
@@ -114,17 +117,17 @@ export interface PluginActionParams {
 }
 
 export interface PluginActionOutputs {
-  configureProvider: Promise<ConfigureProviderResult>
+  configureProvider: ConfigureProviderResult
 
-  getEnvironmentStatus: Promise<EnvironmentStatus>
-  prepareEnvironment: Promise<PrepareEnvironmentResult>
-  cleanupEnvironment: Promise<CleanupEnvironmentResult>
+  getEnvironmentStatus: EnvironmentStatus
+  prepareEnvironment: PrepareEnvironmentResult
+  cleanupEnvironment: CleanupEnvironmentResult
 
-  getSecret: Promise<GetSecretResult>
-  setSecret: Promise<SetSecretResult>
-  deleteSecret: Promise<DeleteSecretResult>
+  getSecret: GetSecretResult
+  setSecret: SetSecretResult
+  deleteSecret: DeleteSecretResult
 
-  getDebugInfo: Promise<DebugInfo>
+  getDebugInfo: DebugInfo
 }
 
 const _pluginActionDescriptions: { [P in PluginActionName]: PluginActionDescription } = {
@@ -174,15 +177,15 @@ export type ServiceActionParams<T extends Module = Module> = {
 }
 
 export interface ServiceActionOutputs {
-  deployService: Promise<ServiceStatus>
-  deleteService: Promise<ServiceStatus>
-  execInService: Promise<ExecInServiceResult>
-  getPortForward: Promise<GetPortForwardResult>
-  getServiceLogs: Promise<{}>
-  getServiceStatus: Promise<ServiceStatus>
-  hotReloadService: Promise<HotReloadServiceResult>
-  runService: Promise<RunResult>
-  stopPortForward: Promise<{}>
+  deployService: ServiceStatus
+  deleteService: ServiceStatus
+  execInService: ExecInServiceResult
+  getPortForward: GetPortForwardResult
+  getServiceLogs: {}
+  getServiceStatus: ServiceStatus
+  hotReloadService: HotReloadServiceResult
+  runService: RunResult
+  stopPortForward: {}
 }
 
 export const serviceActionDescriptions: { [P in ServiceActionName]: PluginActionDescription } = {
@@ -210,8 +213,8 @@ export type TaskActionParams<T extends Module = Module> = {
 }
 
 export interface TaskActionOutputs {
-  runTask: Promise<RunTaskResult>
-  getTaskResult: Promise<RunTaskResult | null>
+  runTask: RunTaskResult
+  getTaskResult: RunTaskResult | null
 }
 
 export const taskActionDescriptions: { [P in TaskActionName]: PluginActionDescription } = {
@@ -237,13 +240,13 @@ export type ModuleActionParams<T extends Module = Module> = {
 }
 
 export interface ModuleActionOutputs extends ServiceActionOutputs {
-  configure: Promise<ConfigureModuleResult>
-  getBuildStatus: Promise<BuildStatus>
-  build: Promise<BuildResult>
-  publish: Promise<PublishResult>
-  runModule: Promise<RunResult>
-  testModule: Promise<TestResult>
-  getTestResult: Promise<TestResult | null>
+  configure: ConfigureModuleResult
+  getBuildStatus: BuildStatus
+  build: BuildResult
+  publish: PublishResult
+  runModule: RunResult
+  testModule: TestResult
+  getTestResult: TestResult | null
 }
 
 const _moduleActionDescriptions:
@@ -276,10 +279,11 @@ export interface ModuleTypeExtension {
 }
 
 export interface ModuleTypeDefinition extends ModuleTypeExtension {
+  base?: string
   docs: string
   // TODO: specify the schemas using primitives (e.g. JSONSchema/OpenAPI) and not Joi objects
   moduleOutputsSchema?: Joi.ObjectSchema
-  schema: Joi.ObjectSchema
+  schema?: Joi.ObjectSchema
   serviceOutputsSchema?: Joi.ObjectSchema
   taskOutputsSchema?: Joi.ObjectSchema
   title?: string
@@ -310,56 +314,78 @@ export interface PluginMap {
 
 export type RegisterPluginParam = string | GardenPlugin
 
+const moduleHandlersSchema = joi.object().keys(mapValues(moduleActionDescriptions, () => joi.func()))
+  .description("A map of module action handlers provided by the plugin.")
+
 const extendModuleTypeSchema = joi.object()
   .keys({
     name: joiIdentifier()
       .required()
       .description("The name of module type."),
-    handlers: joi.object().keys(mapValues(moduleActionDescriptions, () => joi.func()))
-      .description("A map of module action handlers provided by the plugin."),
+    handlers: moduleHandlersSchema,
   })
+
+const outputSchemaDocs = dedent`
+The schema must be a single level object, with string keys. Each value must be a primitive
+(null, boolean, number or string).
+
+If no schema is provided, an error may be thrown if a plugin handler attempts to return an output key.
+
+If the module type has a \`base\`, you must either omit this field to inherit the base's schema, make sure
+that the specified schema is a _superset_ of the base's schema (i.e. only adds or further constrains existing fields),
+_or_ override the necessary handlers to make sure their output matches the base's schemas.
+This is to ensure that plugin handlers made for the base type also work with this module type.
+`
 
 const createModuleTypeSchema = extendModuleTypeSchema
   .keys({
-    // base: joiIdentifier()
-    //   .description(dedent`
-    //     Name of module type to use as a base for this module type.
-    //   `),
+    base: joiIdentifier()
+      .description(dedent`
+        Name of module type to use as a base for this module type.
+
+        If specified, providers that support the base module type also work with this module type.
+        Note that some constraints apply on the configuration and output schemas. Please see each of the schema
+        fields for details.
+      `),
     docs: joi.string()
-      .required()
       .description("Documentation for the module type, in markdown format."),
-    // TODO: specify the schemas using primitives and not Joi objects
-    moduleOutputsSchema: joi.object()
-      .default(() => joi.object().keys({}), "{}")
+    handlers: joi.object().keys(mapValues(moduleActionDescriptions, () => joi.func()))
+      .description(dedent`
+        A map of module action handlers provided by the plugin.
+      `),
+    // TODO: specify the schemas using JSONSchema instead of Joi objects
+    // TODO: validate outputs against the output schemas
+    moduleOutputsSchema: joiSchema()
       .description(dedent`
         A valid Joi schema describing the keys that each module outputs at config resolution time,
         for use in template strings (e.g. \`\${modules.my-module.outputs.some-key}\`).
 
-        If no schema is provided, an error may be thrown if a module attempts to return an output.
+        ${outputSchemaDocs}
       `),
-    schema: joi.object()
-      .required()
-      .description(
-        "A valid Joi schema describing the configuration keys for the `module` " +
-        "field in the module's `garden.yml`.",
-      ),
-    serviceOutputsSchema: joi.object()
-      .default(() => joi.object().keys({}), "{}")
+    schema: joiSchema()
+      .description(dedent`
+        A valid Joi schema describing the configuration keys for the \`module\` field in the module's \`garden.yml\`.
+
+        If the module type has a \`base\`, you must either omit this field to inherit the base's schema, make sure
+        that the specified schema is a _superset_ of the base's schema (i.e. only adds or further constrains existing
+        fields), _or_ specify a \`configure\` handler that returns a module config compatible with the base's
+        schema. This is to ensure that plugin handlers made for the base type also work with this module type.
+      `),
+    serviceOutputsSchema: joiSchema()
       .description(dedent`
         A valid Joi schema describing the keys that each service outputs at runtime, for use in template strings
         and environment variables (e.g. \`\${runtime.services.my-service.outputs.some-key}\` and
         \`GARDEN_SERVICES_MY_SERVICE__OUTPUT_SOME_KEY\`).
 
-        If no schema is provided, an error may be thrown if a service attempts to return an output.
+        ${outputSchemaDocs}
       `),
-    taskOutputsSchema: joi.object()
-      .default(() => joi.object().keys({}), "{}")
+    taskOutputsSchema: joiSchema()
       .description(dedent`
         A valid Joi schema describing the keys that each task outputs at runtime, for use in template strings
         and environment variables (e.g. \`\${runtime.tasks.my-task.outputs.some-key}\` and
         \`GARDEN_TASKS_MY_TASK__OUTPUT_SOME_KEY\`).
 
-        If no schema is provided, an error may be thrown if a task attempts to return an output.
+        ${outputSchemaDocs}
       `),
     title: joi.string()
       .description(
@@ -393,7 +419,7 @@ export const pluginSchema = joi.object()
       `),
 
     // TODO: make this a JSON/OpenAPI schema for portability
-    configSchema: joi.object({ isJoi: joi.boolean().only(true).required() })
+    configSchema: joiSchema()
       .unknown(true)
       .description(dedent`
         The schema for the provider configuration (which the user specifies in the Garden Project configuration).
@@ -404,7 +430,7 @@ export const pluginSchema = joi.object()
         configuration schema they expect.
       `),
 
-    outputsSchema: joi.object({ isJoi: joi.boolean().only(true).required() })
+    outputsSchema: joiSchema()
       .unknown(true)
       .description(dedent`
         The schema for the provider configuration (which the user specifies in the Garden Project configuration).

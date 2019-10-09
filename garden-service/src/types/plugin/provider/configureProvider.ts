@@ -25,7 +25,7 @@ export interface ConfigureProviderParams<T extends ProviderConfig = any> extends
   projectRoot: string
   dependencies: Provider[]
   configStore: ConfigStore
-  base?: ActionHandler<ConfigureProviderParams<T>, Promise<ConfigureProviderResult<T>>>
+  base?: ActionHandler<ConfigureProviderParams<T>, ConfigureProviderResult<T>>
 }
 
 export interface ConfigureProviderResult<T extends ProviderConfig = ProviderConfig> {

@@ -13,7 +13,7 @@ import { helmHandlers } from "./helm/handlers"
 import { getAppNamespace, getMetadataNamespace } from "./namespace"
 import { getSecret, setSecret, deleteSecret } from "./secrets"
 import { getEnvironmentStatus, prepareEnvironment, cleanupEnvironment } from "./init"
-import { containerHandlers, mavenContainerHandlers } from "./container/handlers"
+import { containerHandlers } from "./container/handlers"
 import { kubernetesHandlers } from "./kubernetes-module/handlers"
 import { ConfigureProviderParams } from "../../types/plugin/provider/configureProvider"
 import { DebugInfo, GetDebugInfoParams } from "../../types/plugin/provider/getDebugInfo"
@@ -122,7 +122,7 @@ const outputsSchema = joi.object()
 
 export const gardenPlugin = createGardenPlugin({
   name: "kubernetes",
-  dependencies: ["container", "maven-container"],
+  dependencies: ["container"],
   configSchema,
   outputsSchema,
   commands: [
@@ -174,10 +174,6 @@ export const gardenPlugin = createGardenPlugin({
     {
       name: "container",
       handlers: containerHandlers,
-    },
-    {
-      name: "maven-container",
-      handlers: mavenContainerHandlers,
     },
   ],
 })
