@@ -27,7 +27,7 @@ import { getModuleCacheContext } from "../../../src/types/module"
 import { createGardenPlugin, GardenPlugin } from "../../../src/types/plugin/plugin"
 import { ConfigureProviderParams } from "../../../src/types/plugin/provider/configureProvider"
 import { ProjectConfig } from "../../../src/config/project"
-import { ModuleConfig } from "../../../src/config/module"
+import { ModuleConfig, baseModuleSpecSchema } from "../../../src/config/module"
 import { DEFAULT_API_VERSION } from "../../../src/constants"
 import { providerConfigBaseSchema } from "../../../src/config/provider"
 import { keyBy, set } from "lodash"
@@ -36,8 +36,41 @@ import { joi } from "../../../src/config/common"
 import { defaultDotIgnoreFiles } from "../../../src/util/fs"
 import { realpath, writeFile } from "fs-extra"
 import { dedent, deline } from "../../../src/util/string"
+import { ServiceState } from "../../../src/types/service"
+import execa from "execa"
 
 describe("Garden", () => {
+  let tmpDir: tmp.DirectoryResult
+  let pathFoo: string
+  let projectConfigFoo: ProjectConfig
+
+  before(async () => {
+    tmpDir = await tmp.dir({ unsafeCleanup: true })
+    pathFoo = tmpDir.path
+
+    await execa("git", ["init"], { cwd: pathFoo })
+
+    projectConfigFoo = {
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Project",
+      name: "test",
+      path: pathFoo,
+      defaultEnvironment: "default",
+      dotIgnoreFiles: [],
+      environments: [
+        { name: "default", variables: {} },
+      ],
+      providers: [
+        { name: "foo" },
+      ],
+      variables: {},
+    }
+  })
+
+  after(async () => {
+    await tmpDir.cleanup()
+  })
+
   beforeEach(async () => {
     td.replace(Garden.prototype, "resolveVersion", async () => testModuleVersion)
   })
@@ -99,7 +132,6 @@ describe("Garden", () => {
       expect(await garden.resolveProviders()).to.eql([
         emptyProvider(projectRoot, "exec"),
         emptyProvider(projectRoot, "container"),
-        emptyProvider(projectRoot, "maven-container"),
         testPluginProvider,
         {
           name: "test-plugin-b",
@@ -136,7 +168,6 @@ describe("Garden", () => {
       expect(await garden.resolveProviders()).to.eql([
         emptyProvider(projectRoot, "exec"),
         emptyProvider(projectRoot, "container"),
-        emptyProvider(projectRoot, "maven-container"),
         {
           name: "test-plugin",
           config: {
@@ -237,29 +268,12 @@ describe("Garden", () => {
         `)
         await expectError(async () => Garden.factory(tmpPath, {}), "runtime")
       } finally {
-        await tmpDir.cleanup()
+        await dir.cleanup()
       }
     })
   })
 
   describe("getPlugins", () => {
-    const path = process.cwd()
-    const projectConfig: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
-      name: "test",
-      path,
-      defaultEnvironment: "default",
-      dotIgnoreFiles: [],
-      environments: [
-        { name: "default", variables: {} },
-      ],
-      providers: [
-        { name: "foo" },
-      ],
-      variables: {},
-    }
-
     it("should attach base from createModuleTypes when overriding a handler via extendModuleTypes", async () => {
       const base: GardenPlugin = {
         name: "base",
@@ -269,7 +283,6 @@ describe("Garden", () => {
             docs: "foo",
             schema: joi.object(),
             handlers: {
-              configure: async ({ moduleConfig }) => ({ moduleConfig }),
               build: async () => ({}),
             },
           },
@@ -288,12 +301,12 @@ describe("Garden", () => {
         ],
       }
 
-      const garden = await Garden.factory(path, {
+      const garden = await Garden.factory(pathFoo, {
         plugins: [base, foo],
         config: {
-          ...projectConfig,
+          ...projectConfigFoo,
           providers: [
-            ...projectConfig.providers,
+            ...projectConfigFoo.providers,
             { name: "base" },
           ],
         },
@@ -324,26 +337,24 @@ describe("Garden", () => {
       await expectError(
         () => garden.getPlugins(),
         (err) => expect(err.message).to.equal(
-          "Module type 'test' is declared in multiple providers: test-plugin, test-plugin-dupe.",
+          "Module type 'test' is declared in multiple plugins: test-plugin, test-plugin-dupe.",
         ),
       )
     })
 
     it("should throw if a plugin extends a module type that hasn't been declared elsewhere", async () => {
-      const plugin = {
+      const foo = {
         name: "foo",
         extendModuleTypes: [{
           name: "bar",
-          handlers: {
-            configure: async ({ moduleConfig }) => {
-              return moduleConfig
-            },
-          },
+          handlers: {},
         }],
       }
-      const garden = await makeTestGardenA([plugin])
 
-      garden["providerConfigs"].push({ name: "foo" })
+      const garden = await Garden.factory(pathFoo, {
+        plugins: [foo],
+        config: projectConfigFoo,
+      })
 
       await expectError(
         () => garden.getPlugins(),
@@ -355,34 +366,214 @@ describe("Garden", () => {
       )
     })
 
-    it("should throw if a plugin extends a known module type but doesn't declare dependency on the base", async () => {
-      const plugin = {
-        name: "foo",
-        extendModuleTypes: [{
-          name: "test",
-          handlers: {
-            configure: async ({ moduleConfig }) => {
-              return moduleConfig
+    context("module type declaration has a base", () => {
+      it("should allow recursive inheritance when defining module types", async () => {
+        const baseA: GardenPlugin = {
+          name: "base-a",
+          createModuleTypes: [
+            {
+              name: "foo-a",
+              title: "Foo A",
+              docs: "foo-a",
+              schema: baseModuleSpecSchema.keys({ foo: joi.string() }),
+              moduleOutputsSchema: joi.object().keys({ moduleOutput: joi.string() }),
+              handlers: {
+                configure: async ({ moduleConfig }) => ({ moduleConfig }),
+                getServiceStatus: async () => ({ state: <ServiceState>"ready", detail: {} }),
+              },
             },
+          ],
+        }
+        const baseB: GardenPlugin = {
+          name: "base-b",
+          dependencies: ["base-a"],
+          createModuleTypes: [
+            {
+              name: "foo-b",
+              base: "foo-a",
+              docs: "Foo B",
+              schema: baseModuleSpecSchema,
+              serviceOutputsSchema: joi.object().keys({ serviceOutput: joi.string() }),
+              handlers: {
+                build: async () => ({}),
+              },
+            },
+          ],
+        }
+        const foo: GardenPlugin = {
+          name: "foo",
+          dependencies: ["base-b"],
+          createModuleTypes: [
+            {
+              name: "foo-c",
+              base: "foo-b",
+              docs: "Foo C",
+              taskOutputsSchema: baseModuleSpecSchema.keys({ taskOutput: joi.string() }),
+              handlers: {
+                configure: async ({ moduleConfig }) => ({ moduleConfig }),
+                build: async () => ({}),
+                getBuildStatus: async () => ({ ready: true }),
+              },
+            },
+          ],
+        }
+
+        const garden = await Garden.factory(pathFoo, {
+          plugins: [baseA, baseB, foo],
+          config: projectConfigFoo,
+        })
+
+        const parsed = await garden.getPlugin("foo")
+        const spec = findByName(parsed.createModuleTypes || [], "foo-c")!
+
+        // Make sure properties are correctly inherited
+        expect(spec).to.exist
+        expect(spec.name).to.equal("foo-c")
+        expect(spec.base).to.equal("foo-b")
+        expect(spec.docs).to.equal("Foo C")
+        expect(spec.title).to.not.exist
+        expect(spec.schema).to.exist
+        expect(spec.moduleOutputsSchema).to.not.exist
+        expect(spec.serviceOutputsSchema).to.not.exist
+        expect(spec.taskOutputsSchema).to.exist
+
+        // Make sure handlers are correctly inherited and bases set
+        const configureHandler = spec.handlers.configure!
+        expect(configureHandler).to.exist
+        expect(configureHandler.base).to.exist
+        expect(configureHandler.base!.actionType).to.equal("configure")
+        expect(configureHandler.base!.moduleType).to.equal("foo-a")
+        expect(configureHandler.base!.pluginName).to.equal("base-a")
+        expect(configureHandler.base!.base).to.not.exist
+
+        const buildHandler = spec.handlers.build!
+        expect(buildHandler).to.exist
+        expect(buildHandler.base).to.exist
+        expect(buildHandler.base!.actionType).to.equal("build")
+        expect(buildHandler.base!.moduleType).to.equal("foo-b")
+        expect(buildHandler.base!.pluginName).to.equal("base-b")
+        expect(buildHandler.base!.base).to.not.exist
+
+        const getBuildStatusHandler = spec.handlers.getBuildStatus!
+        expect(getBuildStatusHandler).to.exist
+        expect(getBuildStatusHandler.base).to.not.exist
+
+        const getServiceStatusHandler = spec.handlers.getServiceStatus!
+        expect(getServiceStatusHandler).to.not.exist
+      })
+
+      it("should throw when a module type has a base that is not defined", async () => {
+        const foo = {
+          name: "foo",
+          createModuleTypes: [{
+            name: "foo",
+            docs: "foo",
+            base: "bar",
+            handlers: {},
+          }],
+        }
+
+        const garden = await Garden.factory(pathFoo, {
+          plugins: [foo],
+          config: projectConfigFoo,
+        })
+
+        await expectError(
+          () => garden.getPlugins(),
+          (err) => expect(err.message).to.equal(deline`
+            Module type 'foo', defined in plugin 'foo', specifies base module type 'bar' which cannot be found.
+            The plugin is likely missing a dependency declaration. Please report an issue with the author.
+          `),
+        )
+      })
+
+      it("should throw when a module type has a base that is not declared in the plugin's dependencies", async () => {
+        const base = {
+          name: "base",
+          createModuleTypes: [{
+            name: "bar",
+            docs: "bar",
+            handlers: {},
+          }],
+        }
+        const foo = {
+          name: "foo",
+          createModuleTypes: [{
+            name: "foo",
+            docs: "foo",
+            base: "bar",
+            handlers: {},
+          }],
+        }
+
+        const garden = await Garden.factory(pathFoo, {
+          plugins: [base, foo],
+          config: {
+            ...projectConfigFoo,
+            providers: [
+              ...projectConfigFoo.providers,
+              { name: "base" },
+            ],
           },
-        }],
-      }
-      const garden = await makeTestGardenA([plugin])
+        })
 
-      garden["providerConfigs"].push({ name: "foo" })
+        await expectError(
+          () => garden.getPlugins(),
+          (err) => expect(err.message).to.equal(deline`
+            Module type 'foo', defined in plugin 'foo', specifies base module type 'bar' which is defined by 'base'
+            but 'foo' does not specify a dependency on that plugin. Plugins must explicitly declare dependencies on
+            plugins that define module types they reference. Please report an issue with the author.
+          `),
+        )
+      })
 
-      await expectError(
-        () => garden.getPlugins(),
-        (err) => expect(err.message).to.equal(deline`
-          Plugin 'foo' extends module type 'test', declared by the 'test-plugin' plugin,
-          but does not specify a dependency on that plugin. Plugins must explicitly declare dependencies on plugins
-          that define module types they reference. Please report an issue with the author.
-        `),
-      )
+      it("should throw on circular module type base definitions", async () => {
+        const foo = {
+          name: "foo",
+          createModuleTypes: [
+            {
+              name: "foo",
+              docs: "foo",
+              base: "bar",
+              handlers: {},
+            },
+            {
+              name: "bar",
+              docs: "bar",
+              base: "foo",
+              handlers: {},
+            },
+          ],
+        }
+
+        const garden = await Garden.factory(pathFoo, {
+          plugins: [foo],
+          config: projectConfigFoo,
+        })
+
+        await expectError(
+          () => garden.getPlugins(),
+          (err) => expect(err.message).to.equal(deline`
+          Found circular dependency between module type bases (defined in plugin(s) 'foo'): foo -> bar -> foo
+          `),
+        )
+      })
     })
 
     context("when a plugin has a base defined", () => {
       it("should add and deduplicate declared dependencies on top of the dependencies of the base", async () => {
+        const depA = {
+          name: "test-plugin",
+          dependencies: [],
+        }
+        const depB = {
+          name: "test-plugin-b",
+          dependencies: [],
+        }
+        const depC = {
+          name: "test-plugin-c",
+          dependencies: [],
+        }
         const base = {
           name: "base",
           dependencies: ["test-plugin", "test-plugin-b"],
@@ -393,9 +584,9 @@ describe("Garden", () => {
           base: "base",
         }
 
-        const garden = await Garden.factory(path, {
-          plugins: [base, foo],
-          config: projectConfig,
+        const garden = await Garden.factory(pathFoo, {
+          plugins: [depA, depB, depC, base, foo],
+          config: projectConfigFoo,
         })
 
         const parsed = await garden.getPlugin("foo")
@@ -419,9 +610,9 @@ describe("Garden", () => {
           },
         }
 
-        const garden = await Garden.factory(path, {
+        const garden = await Garden.factory(pathFoo, {
           plugins: [base, foo],
-          config: projectConfig,
+          config: projectConfigFoo,
         })
 
         const parsed = await garden.getPlugin("foo")
@@ -461,9 +652,9 @@ describe("Garden", () => {
           ],
         }
 
-        const garden = await Garden.factory(path, {
+        const garden = await Garden.factory(pathFoo, {
           plugins: [base, foo],
-          config: projectConfig,
+          config: projectConfigFoo,
         })
 
         const parsed = await garden.getPlugin("foo")
@@ -476,7 +667,7 @@ describe("Garden", () => {
         expect(findByName(parsed.commands!, "bar")).to.eql(foo.commands[1])
       })
 
-      it("should combine defined module types from both plugins", async () => {
+      it("should register module types from both plugins", async () => {
         const base: GardenPlugin = {
           name: "base",
           createModuleTypes: [
@@ -501,15 +692,14 @@ describe("Garden", () => {
           ],
         }
 
-        const garden = await Garden.factory(path, {
+        const garden = await Garden.factory(pathFoo, {
           plugins: [base, foo],
-          config: projectConfig,
+          config: projectConfigFoo,
         })
 
-        const parsed = await garden.getPlugin("foo")
+        const moduleTypes = await garden.getModuleTypeDefinitions()
 
-        expect(findByName(parsed.createModuleTypes || [], "foo")!.name).to.equal("foo")
-        expect(findByName(parsed.createModuleTypes || [], "bar")!.name).to.equal("bar")
+        expect(Object.keys(moduleTypes).sort()).to.eql(["bar", "container", "exec", "foo"])
       })
 
       it("should throw if attempting to redefine a module type defined in the base", async () => {
@@ -530,9 +720,9 @@ describe("Garden", () => {
           createModuleTypes: base.createModuleTypes,
         }
 
-        const garden = await Garden.factory(path, {
+        const garden = await Garden.factory(pathFoo, {
           plugins: [base, foo],
-          config: projectConfig,
+          config: projectConfigFoo,
         })
 
         await expectError(
@@ -552,7 +742,6 @@ describe("Garden", () => {
               docs: "foo",
               schema: joi.object(),
               handlers: {
-                configure: async ({ moduleConfig }) => ({ moduleConfig }),
                 build: async () => ({}),
               },
             },
@@ -572,17 +761,14 @@ describe("Garden", () => {
           ],
         }
 
-        const garden = await Garden.factory(path, {
+        const garden = await Garden.factory(pathFoo, {
           plugins: [base, foo],
-          config: projectConfig,
+          config: projectConfigFoo,
         })
 
         const parsed = await garden.getPlugin("foo")
-        const created = findByName(parsed.createModuleTypes || [], "foo")
         const extended = findByName(parsed.extendModuleTypes || [], "foo")
 
-        expect(created).to.exist
-        expect(created!.name).to.equal("foo")
         expect(extended).to.exist
         expect(extended!.name).to.equal("foo")
       })
@@ -596,7 +782,6 @@ describe("Garden", () => {
               docs: "foo",
               schema: joi.object(),
               handlers: {
-                configure: async ({ moduleConfig }) => ({ moduleConfig }),
                 build: async () => ({}),
               },
             },
@@ -616,12 +801,12 @@ describe("Garden", () => {
           ],
         }
 
-        const garden = await Garden.factory(path, {
+        const garden = await Garden.factory(pathFoo, {
           plugins: [base, foo],
           config: {
-            ...projectConfig,
+            ...projectConfigFoo,
             providers: [
-              ...projectConfig.providers,
+              ...projectConfigFoo.providers,
               { name: "base" },
             ],
           },
@@ -641,15 +826,15 @@ describe("Garden", () => {
           base: "base",
         }
 
-        const garden = await Garden.factory(path, {
+        const garden = await Garden.factory(pathFoo, {
           plugins: [foo],
-          config: projectConfig,
+          config: projectConfigFoo,
         })
 
         await expectError(
           () => garden.getPlugins(),
           (err) => expect(err.message).to.equal(
-            "Plugin 'foo' is based on plugin 'base' which has not been registered.",
+            "Plugin 'foo' specifies plugin 'base' as a base, but that plugin has not been registered.",
           ),
         )
       })
@@ -664,21 +849,30 @@ describe("Garden", () => {
           base: "foo",
         }
 
-        const garden = await Garden.factory(path, {
+        const garden = await Garden.factory(pathFoo, {
           plugins: [foo, bar],
-          config: projectConfig,
+          config: projectConfigFoo,
         })
 
         await expectError(
           () => garden.getPlugins(),
           (err) => expect(err.message).to.equal(
-            "One or more circular dependencies found between plugins and their bases: foo <- bar <- foo",
+            "Found a circular dependency between registered plugins: foo -> bar -> foo",
           ),
         )
       })
 
       context("when a plugin's base has a base defined", () => {
         it("should add and deduplicate declared dependencies for the whole chain", async () => {
+          const depA = {
+            name: "test-plugin",
+          }
+          const depB = {
+            name: "test-plugin-b",
+          }
+          const depC = {
+            name: "test-plugin-c",
+          }
           const baseA = {
             name: "base-a",
             dependencies: ["test-plugin"],
@@ -694,9 +888,9 @@ describe("Garden", () => {
             base: "b",
           }
 
-          const garden = await Garden.factory(path, {
-            plugins: [baseA, b, foo],
-            config: projectConfig,
+          const garden = await Garden.factory(pathFoo, {
+            plugins: [depA, depB, depC, baseA, b, foo],
+            config: projectConfigFoo,
           })
 
           const parsed = await garden.getPlugin("foo")
@@ -727,9 +921,9 @@ describe("Garden", () => {
             },
           }
 
-          const garden = await Garden.factory(path, {
+          const garden = await Garden.factory(pathFoo, {
             plugins: [baseA, baseB, foo],
-            config: projectConfig,
+            config: projectConfigFoo,
           })
 
           const parsed = await garden.getPlugin("foo")
@@ -784,9 +978,9 @@ describe("Garden", () => {
             ],
           }
 
-          const garden = await Garden.factory(path, {
+          const garden = await Garden.factory(pathFoo, {
             plugins: [baseA, baseB, foo],
-            config: projectConfig,
+            config: projectConfigFoo,
           })
 
           const parsed = await garden.getPlugin("foo")
@@ -811,7 +1005,7 @@ describe("Garden", () => {
           expect(barCommand!.base!.base).to.be.undefined
         })
 
-        it("should combine defined module types from all plugins", async () => {
+        it("should register defined module types from all plugins in the chain", async () => {
           const baseA: GardenPlugin = {
             name: "base-a",
             createModuleTypes: [
@@ -848,16 +1042,14 @@ describe("Garden", () => {
             ],
           }
 
-          const garden = await Garden.factory(path, {
+          const garden = await Garden.factory(pathFoo, {
             plugins: [baseA, baseB, foo],
-            config: projectConfig,
+            config: projectConfigFoo,
           })
 
-          const parsed = await garden.getPlugin("foo")
+          const moduleTypes = await garden.getModuleTypeDefinitions()
 
-          expect(findByName(parsed.createModuleTypes || [], "a")!.name).to.equal("a")
-          expect(findByName(parsed.createModuleTypes || [], "b")!.name).to.equal("b")
-          expect(findByName(parsed.createModuleTypes || [], "c")!.name).to.equal("c")
+          expect(Object.keys(moduleTypes).sort()).to.eql(["a", "b", "c", "container", "exec"])
         })
 
         it("should throw if attempting to redefine a module type defined in the base's base", async () => {
@@ -890,9 +1082,9 @@ describe("Garden", () => {
             ],
           }
 
-          const garden = await Garden.factory(path, {
+          const garden = await Garden.factory(pathFoo, {
             plugins: [baseA, baseB, foo],
-            config: projectConfig,
+            config: projectConfigFoo,
           })
 
           await expectError(
@@ -912,7 +1104,6 @@ describe("Garden", () => {
                 docs: "foo",
                 schema: joi.object(),
                 handlers: {
-                  configure: async ({ moduleConfig }) => ({ moduleConfig }),
                   build: async () => ({}),
                 },
               },
@@ -936,14 +1127,13 @@ describe("Garden", () => {
             ],
           }
 
-          const garden = await Garden.factory(path, {
+          const garden = await Garden.factory(pathFoo, {
             plugins: [baseA, baseB, foo],
-            config: projectConfig,
+            config: projectConfigFoo,
           })
 
           const parsed = await garden.getPlugin("foo")
 
-          expect(findByName(parsed.createModuleTypes || [], "foo")).to.exist
           expect(findByName(parsed.extendModuleTypes || [], "foo")).to.exist
         })
 
@@ -956,7 +1146,6 @@ describe("Garden", () => {
                 docs: "foo",
                 schema: joi.object(),
                 handlers: {
-                  configure: async ({ moduleConfig }) => ({ moduleConfig }),
                   build: async () => ({}),
                 },
               },
@@ -965,6 +1154,7 @@ describe("Garden", () => {
           const baseB: GardenPlugin = {
             name: "base-b",
             base: "base-a",
+            dependencies: ["base-a"],
             extendModuleTypes: [
               {
                 name: "foo",
@@ -977,6 +1167,7 @@ describe("Garden", () => {
           const baseC: GardenPlugin = {
             name: "base-c",
             base: "base-b",
+            dependencies: ["base-a"],
             extendModuleTypes: [
               {
                 name: "foo",
@@ -992,14 +1183,12 @@ describe("Garden", () => {
             base: "base-c",
           }
 
-          const garden = await Garden.factory(path, {
+          const garden = await Garden.factory(pathFoo, {
             plugins: [baseA, baseB, baseC, foo],
-            config: projectConfig,
+            config: projectConfigFoo,
           })
 
           const parsed = await garden.getPlugin("foo")
-
-          expect(findByName(parsed.createModuleTypes || [], "foo")).to.exist
 
           // Module type extensions should be a combination of base-b and base-c extensions
           const fooExtension = findByName(parsed.extendModuleTypes || [], "foo")!
@@ -1027,15 +1216,15 @@ describe("Garden", () => {
             base: "base-b",
           }
 
-          const garden = await Garden.factory(path, {
+          const garden = await Garden.factory(pathFoo, {
             plugins: [baseA, baseB, foo],
-            config: projectConfig,
+            config: projectConfigFoo,
           })
 
           await expectError(
             () => garden.getPlugins(),
             (err) => expect(err.message).to.equal(
-              "One or more circular dependencies found between plugins and their bases: foo <- base-b <- base-a <- foo",
+              "Found a circular dependency between registered plugins: base-a -> foo -> base-b -> base-a",
             ),
           )
         })
@@ -1044,8 +1233,9 @@ describe("Garden", () => {
   })
 
   describe("resolveProviders", () => {
-    it("should throw when when plugins are missing", async () => {
+    it("should throw when plugins are missing", async () => {
       const garden = await Garden.factory(projectRootA)
+
       await expectError(
         () => garden.resolveProviders(),
         (err) => expect(err.message).to.equal("Configured plugin 'test-plugin' has not been registered."),
@@ -1074,7 +1264,6 @@ describe("Garden", () => {
       expect(await garden.resolveProviders()).to.eql([
         emptyProvider(projectRoot, "exec"),
         emptyProvider(projectRoot, "container"),
-        emptyProvider(projectRoot, "maven-container"),
         testPluginProvider,
         {
           name: "test-plugin-b",
@@ -1169,10 +1358,9 @@ describe("Garden", () => {
       )
     })
 
-    it("should give a readable error if providers reference non-existent providers", async () => {
+    it("should give a readable error if providers reference non-existent providers in template strings", async () => {
       const test = createGardenPlugin({
         name: "test",
-        dependencies: ["foo"],
       })
 
       const projectConfig: ProjectConfig = {
@@ -1186,7 +1374,7 @@ describe("Garden", () => {
           { name: "default", variables: {} },
         ],
         providers: [
-          { name: "test" },
+          { name: "test", foo: "\${providers.foo.config.bla}" },
         ],
         variables: {},
       }
@@ -1194,10 +1382,10 @@ describe("Garden", () => {
       const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins: [test] })
       await expectError(
         () => garden.resolveProviders(),
-        err => expect(err.message).to.equal(
-          "Missing provider dependency 'foo' in configuration for provider 'test'. " +
-          "Are you missing a provider configuration?",
-        ),
+        err => expect(err.message).to.equal(deline`
+          Provider 'test' depends on provider 'foo', which is not configured.
+          You need to add 'foo' to your project configuration for the 'test' to work.
+        `),
       )
     })
 
@@ -1227,11 +1415,7 @@ describe("Garden", () => {
           name: "test",
           docs: "Test plugin",
           schema: joi.object(),
-          handlers: {
-            configure: async ({ moduleConfig }) => {
-              return { moduleConfig }
-            },
-          },
+          handlers: {},
         }],
       })
 
@@ -1291,8 +1475,7 @@ describe("Garden", () => {
       await expectError(
         () => garden.resolveProviders(),
         err => expect(err.message).to.equal(
-          "One or more circular dependencies found between providers " +
-          "or their configurations: test-a <- test-b <- test-a",
+          "Found a circular dependency between registered plugins: test-a -> test-b -> test-a",
         ),
       )
     })
@@ -1324,8 +1507,7 @@ describe("Garden", () => {
       await expectError(
         () => garden.resolveProviders(),
         err => expect(err.message).to.equal(
-          "One or more circular dependencies found between providers " +
-          "or their configurations: test-a <- test-a",
+          "Found a circular dependency between registered plugins: test-a -> test-a",
         ),
       )
     })
@@ -1942,6 +2124,384 @@ describe("Garden", () => {
           "Unrecognized module type 'foo' (defined at module-a/garden.yml). Are you missing a provider configuration?",
         ),
       )
+    })
+
+    it("should throw if the module config doesn't match the declared schema", async () => {
+      const foo = {
+        name: "foo",
+        createModuleTypes: [{
+          name: "foo",
+          docs: "foo",
+          schema: joi.object().keys({ foo: joi.string() }),
+          handlers: {},
+        }],
+      }
+
+      const garden = await Garden.factory(pathFoo, {
+        plugins: [foo],
+        config: projectConfigFoo,
+      })
+
+      garden["moduleConfigs"] = {
+        foo: {
+          apiVersion: DEFAULT_API_VERSION,
+          name: "foo",
+          type: "foo",
+          allowPublish: false,
+          build: { dependencies: [] },
+          outputs: {},
+          path: pathFoo,
+          serviceConfigs: [],
+          taskConfigs: [],
+          testConfigs: [],
+          spec: { bla: "fla" },
+        },
+      }
+
+      await expectError(
+        () => garden.resolveModuleConfigs(),
+        (err) => expect(stripAnsi(err.message)).to.equal(deline`
+          Error validating module 'foo' (/garden.yml): key "bla" is not allowed at path [bla]
+        `),
+      )
+    })
+
+    it("should throw if the module outputs don't match the declared outputs schema", async () => {
+      const foo = {
+        name: "foo",
+        createModuleTypes: [{
+          name: "foo",
+          docs: "foo",
+          moduleOutputsSchema: joi.object().keys({ foo: joi.string() }),
+          handlers: {
+            configure: async ({ moduleConfig }) => ({
+              moduleConfig: {
+                ...moduleConfig,
+                outputs: { foo: 123 },
+              },
+            }),
+          },
+        }],
+      }
+
+      const garden = await Garden.factory(pathFoo, {
+        plugins: [foo],
+        config: projectConfigFoo,
+      })
+
+      garden["moduleConfigs"] = {
+        foo: {
+          apiVersion: DEFAULT_API_VERSION,
+          name: "foo",
+          type: "foo",
+          allowPublish: false,
+          build: { dependencies: [] },
+          outputs: {},
+          path: pathFoo,
+          serviceConfigs: [],
+          taskConfigs: [],
+          testConfigs: [],
+          spec: {},
+        },
+      }
+
+      await expectError(
+        () => garden.resolveModuleConfigs(),
+        (err) => expect(stripAnsi(err.message)).to.equal(deline`
+          Error validating outputs for module 'foo' (/garden.yml): key .foo must be a string
+        `),
+      )
+    })
+
+    context("module type has a base", () => {
+      it("should throw if the configure handler output doesn't match the module type's base schema", async () => {
+        const base = {
+          name: "base",
+          createModuleTypes: [{
+            name: "base",
+            docs: "base",
+            schema: joi.object().keys({ base: joi.string().required() }),
+            handlers: {},
+          }],
+        }
+        const foo = {
+          name: "foo",
+          dependencies: ["base"],
+          createModuleTypes: [{
+            name: "foo",
+            base: "base",
+            docs: "foo",
+            schema: joi.object().keys({ foo: joi.string().required() }),
+            handlers: {
+              configure: async ({ moduleConfig }) => ({
+                moduleConfig: {
+                  ...moduleConfig,
+                  spec: {
+                    ...moduleConfig.spec,
+                    foo: "bar",
+                  },
+                },
+              }),
+            },
+          }],
+        }
+
+        const garden = await Garden.factory(pathFoo, {
+          plugins: [base, foo],
+          config: {
+            ...projectConfigFoo,
+            providers: [
+              ...projectConfigFoo.providers,
+              { name: "base" },
+            ],
+          },
+        })
+
+        garden["moduleConfigs"] = {
+          foo: {
+            apiVersion: DEFAULT_API_VERSION,
+            name: "foo",
+            type: "foo",
+            allowPublish: false,
+            build: { dependencies: [] },
+            outputs: {},
+            path: pathFoo,
+            serviceConfigs: [],
+            taskConfigs: [],
+            testConfigs: [],
+            spec: { foo: "bar" },
+          },
+        }
+
+        await expectError(
+          () => garden.resolveModuleConfigs(),
+          (err) => expect(stripAnsi(err.message)).to.equal(deline`
+            Error validating configuration for module 'foo'
+            (base schema from 'base' plugin) (/garden.yml): key .base is required
+          `),
+        )
+      })
+
+      it("should throw if the module outputs don't match the base's declared outputs schema", async () => {
+        const base = {
+          name: "base",
+          createModuleTypes: [{
+            name: "base",
+            docs: "base",
+            moduleOutputsSchema: joi.object().keys({ foo: joi.string() }),
+            handlers: {},
+          }],
+        }
+        const foo = {
+          name: "foo",
+          dependencies: ["base"],
+          createModuleTypes: [{
+            name: "foo",
+            base: "base",
+            docs: "foo",
+            handlers: {
+              configure: async ({ moduleConfig }) => ({
+                moduleConfig: {
+                  ...moduleConfig,
+                  outputs: { foo: 123 },
+                },
+              }),
+            },
+          }],
+        }
+
+        const garden = await Garden.factory(pathFoo, {
+          plugins: [base, foo],
+          config: {
+            ...projectConfigFoo,
+            providers: [
+              ...projectConfigFoo.providers,
+              { name: "base" },
+            ],
+          },
+        })
+
+        garden["moduleConfigs"] = {
+          foo: {
+            apiVersion: DEFAULT_API_VERSION,
+            name: "foo",
+            type: "foo",
+            allowPublish: false,
+            build: { dependencies: [] },
+            outputs: {},
+            path: pathFoo,
+            serviceConfigs: [],
+            taskConfigs: [],
+            testConfigs: [],
+            spec: {},
+          },
+        }
+
+        await expectError(
+          () => garden.resolveModuleConfigs(),
+          (err) => expect(stripAnsi(err.message)).to.equal(deline`
+            Error validating outputs for module 'foo' (base schema from 'base' plugin) (/garden.yml):
+            key .foo must be a string
+          `),
+        )
+      })
+
+      context("module type's base has a base", () => {
+        it("should throw if the configure handler output doesn't match the schema of the base's base", async () => {
+          const baseA = {
+            name: "base-a",
+            createModuleTypes: [{
+              name: "base-a",
+              docs: "base-a",
+              schema: joi.object().keys({ base: joi.string().required() }),
+              handlers: {},
+            }],
+          }
+          const baseB = {
+            name: "base-b",
+            dependencies: ["base-a"],
+            createModuleTypes: [{
+              name: "base-b",
+              docs: "base-b",
+              base: "base-a",
+              schema: joi.object().keys({ foo: joi.string() }),
+              handlers: {},
+            }],
+          }
+          const foo = {
+            name: "foo",
+            dependencies: ["base-b"],
+            createModuleTypes: [{
+              name: "foo",
+              base: "base-b",
+              docs: "foo",
+              schema: joi.object().keys({ foo: joi.string().required() }),
+              handlers: {
+                configure: async ({ moduleConfig }) => ({
+                  moduleConfig: {
+                    ...moduleConfig,
+                    spec: {
+                      ...moduleConfig.spec,
+                      foo: "bar",
+                    },
+                  },
+                }),
+              },
+            }],
+          }
+
+          const garden = await Garden.factory(pathFoo, {
+            plugins: [baseA, baseB, foo],
+            config: {
+              ...projectConfigFoo,
+              providers: [
+                ...projectConfigFoo.providers,
+                { name: "base-a" },
+                { name: "base-b" },
+              ],
+            },
+          })
+
+          garden["moduleConfigs"] = {
+            foo: {
+              apiVersion: DEFAULT_API_VERSION,
+              name: "foo",
+              type: "foo",
+              allowPublish: false,
+              build: { dependencies: [] },
+              outputs: {},
+              path: pathFoo,
+              serviceConfigs: [],
+              taskConfigs: [],
+              testConfigs: [],
+              spec: { foo: "bar" },
+            },
+          }
+
+          await expectError(
+            () => garden.resolveModuleConfigs(),
+            (err) => expect(stripAnsi(err.message)).to.equal(deline`
+              Error validating configuration for module 'foo'
+              (base schema from 'base-a' plugin) (/garden.yml): key .base is required
+            `),
+          )
+        })
+
+        it("should throw if the module outputs don't match the base's base's declared outputs schema", async () => {
+          const baseA = {
+            name: "base-a",
+            createModuleTypes: [{
+              name: "base-a",
+              docs: "base-a",
+              moduleOutputsSchema: joi.object().keys({ foo: joi.string() }),
+              handlers: {},
+            }],
+          }
+          const baseB = {
+            name: "base-b",
+            dependencies: ["base-a"],
+            createModuleTypes: [{
+              name: "base-b",
+              docs: "base-b",
+              base: "base-a",
+              handlers: {},
+            }],
+          }
+          const foo = {
+            name: "foo",
+            dependencies: ["base-b"],
+            createModuleTypes: [{
+              name: "foo",
+              base: "base-b",
+              docs: "foo",
+              handlers: {
+                configure: async ({ moduleConfig }) => ({
+                  moduleConfig: {
+                    ...moduleConfig,
+                    outputs: { foo: 123 },
+                  },
+                }),
+              },
+            }],
+          }
+
+          const garden = await Garden.factory(pathFoo, {
+            plugins: [baseA, baseB, foo],
+            config: {
+              ...projectConfigFoo,
+              providers: [
+                ...projectConfigFoo.providers,
+                { name: "base-a" },
+                { name: "base-b" },
+              ],
+            },
+          })
+
+          garden["moduleConfigs"] = {
+            foo: {
+              apiVersion: DEFAULT_API_VERSION,
+              name: "foo",
+              type: "foo",
+              allowPublish: false,
+              build: { dependencies: [] },
+              outputs: {},
+              path: pathFoo,
+              serviceConfigs: [],
+              taskConfigs: [],
+              testConfigs: [],
+              spec: {},
+            },
+          }
+
+          await expectError(
+            () => garden.resolveModuleConfigs(),
+            (err) => expect(stripAnsi(err.message)).to.equal(deline`
+              Error validating outputs for module 'foo' (base schema from 'base-a' plugin) (/garden.yml):
+              key .foo must be a string
+            `),
+          )
+        })
+      })
     })
   })
 

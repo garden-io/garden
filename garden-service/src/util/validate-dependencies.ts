@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import dedent = require("dedent")
+import dedent from "dedent"
 import { merge, flatten, uniq } from "lodash"
 import indentString from "indent-string"
 import { get, isEqual, join, set, uniqWith } from "lodash"
@@ -177,12 +177,13 @@ export function detectCircularModuleDependencies(moduleConfigs: ModuleConfig[]):
   return null
 }
 
+// These types are used for our own dependency graph code, which we should likely deprecate
 export interface Dependency {
   from: string
   to: string
 }
 
-interface DependencyGraph {
+interface _DependencyGraph {
   [key: string]: {
     [target: string]: {
       distance: number,
@@ -202,7 +203,7 @@ export function detectCycles(dependencies: Dependency[]): Cycle[] {
   // Collect all the vertices and build a graph object
   const vertices = uniq(flatten(dependencies.map(d => [d.from, d.to])))
 
-  const graph: DependencyGraph = {}
+  const graph: _DependencyGraph = {}
 
   for (const { from, to } of dependencies) {
     set(graph, [from, to], { distance: 1, next: to })
@@ -238,11 +239,11 @@ export function detectCycles(dependencies: Dependency[]): Cycle[] {
     (c1, c2) => isEqual(c1.concat().sort(), c2.concat().sort()))
 }
 
-function distance(graph: DependencyGraph, source: string, destination: string): number {
+function distance(graph: _DependencyGraph, source: string, destination: string): number {
   return get(graph, [source, destination, "distance"], Infinity) as number
 }
 
-function next(graph: DependencyGraph, source: string, destination: string): string | undefined {
+function next(graph: _DependencyGraph, source: string, destination: string): string | undefined {
   return get(graph, [source, destination, "next"])
 }
 

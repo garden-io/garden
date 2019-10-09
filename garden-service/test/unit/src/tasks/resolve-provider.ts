@@ -1,5 +1,5 @@
 import { GardenPlugin, PluginMap } from "../../../../src/types/plugin/plugin"
-import { getPluginBases } from "../../../../src/tasks/resolve-provider"
+import { getPluginBases } from "../../../../src/plugins"
 import { expect } from "chai"
 import { sortBy } from "lodash"
 

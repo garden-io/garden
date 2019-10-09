@@ -55,3 +55,17 @@ export function tailString(str: string, maxLength: number, nextLine = false) {
 export function base64(str: string) {
   return Buffer.from(str).toString("base64")
 }
+
+/**
+ * Returns an array of strings, joined together as a string in a natural language manner.
+ * Example: `naturalList(["a", "b", "c"])` -> `"a, b and c"`
+ */
+export function naturalList(list: string[]) {
+  if (list.length === 0) {
+    return ""
+  } else if (list.length === 1) {
+    return list[0]
+  } else {
+    return list.slice(0, -1).join(", ") + " and " + list[list.length - 1]
+  }
+}

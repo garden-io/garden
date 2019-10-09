@@ -25,7 +25,7 @@ import { ModuleContext, ServiceRuntimeContext, TaskRuntimeContext } from "../con
 import { defaultDotIgnoreFiles } from "../util/fs"
 import { providerConfigBaseSchema } from "../config/provider"
 import { GardenPlugin, ModuleTypeDefinition, PluginMap } from "../types/plugin/plugin"
-import { getPluginBases } from "../tasks/resolve-provider"
+import { getPluginBases } from "../plugins"
 
 export const TEMPLATES_DIR = resolve(GARDEN_SERVICE_ROOT, "src", "docs", "templates")
 const partialTemplatePath = resolve(TEMPLATES_DIR, "config-partial.hbs")
@@ -465,16 +465,37 @@ function renderProviderReference(name: string, plugin: GardenPlugin, allPlugins:
  * Generates the module types reference from the module-type.hbs template.
  * The reference includes the rendered output from the config-partial.hbs template.
  */
-function renderModuleTypeReference(name: string, desc: ModuleTypeDefinition) {
+function renderModuleTypeReference(name: string, definitions: { [name: string]: ModuleTypeDefinition }) {
+  const desc = definitions[name]
   let { schema, docs } = desc
+
+  if (!schema) {
+    schema = joi.object().keys({}).unknown(false)
+  }
 
   const moduleTemplatePath = resolve(TEMPLATES_DIR, "module-type.hbs")
   const { markdownReference, yaml } = renderConfigReference(populateModuleSchema(schema))
 
+  // Get each schema from the module definitions, or the nearest base schema
+  const getOutputsSchema = (
+    spec: ModuleTypeDefinition,
+    type: "moduleOutputsSchema" | "serviceOutputsSchema" | "taskOutputsSchema",
+  ): Joi.ObjectSchema => {
+    const outputsSchema = desc[type]
+
+    if (outputsSchema) {
+      return outputsSchema
+    } else if (spec.base) {
+      return getOutputsSchema(definitions[spec.base], type)
+    } else {
+      return joi.object()
+    }
+  }
+
   const moduleOutputsReference = renderTemplateStringReference(
     {
       schema: ModuleContext.getSchema().keys({
-        outputs: desc.moduleOutputsSchema!.required(),
+        outputs: getOutputsSchema(desc, "moduleOutputsSchema").required(),
       }),
       prefix: "modules",
       placeholder: "<module-name>",
@@ -485,7 +506,7 @@ function renderModuleTypeReference(name: string, desc: ModuleTypeDefinition) {
   const serviceOutputsReference = renderTemplateStringReference(
     {
       schema: ServiceRuntimeContext.getSchema().keys({
-        outputs: desc.serviceOutputsSchema!.required(),
+        outputs: getOutputsSchema(desc, "serviceOutputsSchema").required(),
       }),
       prefix: "runtime.services",
       placeholder: "<service-name>",
@@ -496,7 +517,7 @@ function renderModuleTypeReference(name: string, desc: ModuleTypeDefinition) {
   const taskOutputsReference = renderTemplateStringReference(
     {
       schema: TaskRuntimeContext.getSchema().keys({
-        outputs: desc.taskOutputsSchema!.required(),
+        outputs: getOutputsSchema(desc, "taskOutputsSchema").required(),
       }),
       prefix: "runtime.tasks",
       placeholder: "<task-name>",
@@ -588,14 +609,14 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
   // Render module type docs
   const moduleTypeDir = resolve(referenceDir, "module-types")
   const readme = ["# Module Types", ""]
-  const moduleTypeDefinitions = keyBy(await garden.getModuleTypeDefinitions(), "name")
+  const moduleTypeDefinitions = await garden.getModuleTypeDefinitions()
 
   for (const { name } of moduleTypes) {
     const path = resolve(moduleTypeDir, `${name}.md`)
     const desc = moduleTypeDefinitions[name]
 
     console.log("->", path)
-    writeFileSync(path, renderModuleTypeReference(name, desc))
+    writeFileSync(path, renderModuleTypeReference(name, moduleTypeDefinitions))
 
     readme.push(`* [${desc.title || startCase(name.replace("-", " "))}](./${name}.md)`)
   }

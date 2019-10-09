@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ServiceStatus } from "../../types/service"
+import { ServiceStatus, ServiceState } from "../../types/service"
 import { join } from "path"
 import { gcloud } from "./common"
 import {
@@ -62,7 +62,7 @@ export const gardenPlugin = createGardenPlugin({
         // const services = await this.gcloud(project).json(["app", "services", "list"])
         // const instances: any[] = await this.gcloud(project).json(["app", "instances", "list"])
 
-        return { state: "unknown", detail: {} }
+        return { state: <ServiceState>"unknown", detail: {} }
       },
 
       async deployService({ ctx, service, runtimeContext, log }: DeployServiceParams<ContainerModule>) {
@@ -106,7 +106,7 @@ export const gardenPlugin = createGardenPlugin({
 
         log.info({ section: service.name, msg: `App deployed` })
 
-        return { state: "ready", detail: {} }
+        return { state: <ServiceState>"ready", detail: {} }
       },
     },
   }],

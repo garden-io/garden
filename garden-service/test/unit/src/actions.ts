@@ -11,7 +11,7 @@ import {
 } from "../../../src/types/plugin/plugin"
 import { Service, ServiceState } from "../../../src/types/service"
 import { RuntimeContext, prepareRuntimeContext } from "../../../src/runtime-context"
-import { expectError, makeTestGardenA } from "../../helpers"
+import { expectError, makeTestGardenA, stubModuleAction, projectRootA, TestGarden } from "../../helpers"
 import { ActionRouter } from "../../../src/actions"
 import { Garden } from "../../../src/garden"
 import { LogEntry } from "../../../src/logger/log-entry"
@@ -25,6 +25,9 @@ import { validate, joi } from "../../../src/config/common"
 import { ProjectConfig } from "../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../src/constants"
 import { defaultProvider } from "../../../src/config/provider"
+import { RunTaskResult } from "../../../src/types/plugin/task/runTask"
+import { defaultDotIgnoreFiles } from "../../../src/util/fs"
+import stripAnsi from "strip-ansi"
 
 const now = new Date()
 
@@ -37,9 +40,29 @@ describe("ActionRouter", () => {
   let runtimeContext: RuntimeContext
   let task: Task
 
+  const projectConfig: ProjectConfig = {
+    apiVersion: DEFAULT_API_VERSION,
+    kind: "Project",
+    name: "test",
+    path: projectRootA,
+    defaultEnvironment: "default",
+    dotIgnoreFiles: defaultDotIgnoreFiles,
+    environments: [
+      { name: "default", variables: {} },
+    ],
+    providers: [
+      { name: "base" },
+      { name: "test-plugin" },
+      { name: "test-plugin-b" },
+    ],
+    variables: {},
+  }
+
   before(async () => {
-    const plugins = [testPlugin, testPluginB]
-    garden = await makeTestGardenA(plugins)
+    garden = await TestGarden.factory(projectRootA, {
+      plugins: [basePlugin, testPlugin, testPluginB],
+      config: projectConfig,
+    })
     log = garden.log
     actions = await garden.getActionRouter()
     const graph = await garden.getConfigGraph()
@@ -259,19 +282,71 @@ describe("ActionRouter", () => {
     describe("getServiceStatus", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const result = await actions.getServiceStatus({ log, service, runtimeContext, hotReload: false })
-        expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {} })
+        expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } })
       })
 
       it("should resolve runtime template strings", async () => {
         const result = await actions.getServiceStatus({ log, service, runtimeContext, hotReload: false })
-        expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {} })
+        expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } })
+      })
+
+      it("should throw if the outputs don't match the service outputs schema of the plugin", async () => {
+        stubModuleAction(actions, service.module.type, "test-plugin", "getServiceStatus", async () => {
+          return { state: <ServiceState>"ready", detail: {}, outputs: { base: "ok", foo: 123 } }
+        })
+
+        await expectError(
+          () => actions.getServiceStatus({ log, service, runtimeContext, hotReload: false }),
+          (err) => expect(stripAnsi(err.message)).to.equal(
+            "Error validating outputs from service 'service-a': key .foo must be a string",
+          ),
+        )
+      })
+
+      it("should throw if the outputs don't match the service outputs schema of a plugin's base", async () => {
+        stubModuleAction(actions, service.module.type, "test-plugin", "getServiceStatus", async () => {
+          return { state: <ServiceState>"ready", detail: {}, outputs: { base: 123, foo: "ok" } }
+        })
+
+        await expectError(
+          () => actions.getServiceStatus({ log, service, runtimeContext, hotReload: false }),
+          (err) => expect(stripAnsi(err.message)).to.equal(
+            "Error validating outputs from service 'service-a': key .base must be a string",
+          ),
+        )
       })
     })
 
     describe("deployService", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const result = await actions.deployService({ log, service, runtimeContext, force: true, hotReload: false })
-        expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {} })
+        expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } })
+      })
+
+      it("should throw if the outputs don't match the service outputs schema of the plugin", async () => {
+        stubModuleAction(actions, service.module.type, "test-plugin", "deployService", async () => {
+          return { state: <ServiceState>"ready", detail: {}, outputs: { base: "ok", foo: 123 } }
+        })
+
+        await expectError(
+          () => actions.deployService({ log, service, runtimeContext, force: true, hotReload: false }),
+          (err) => expect(stripAnsi(err.message)).to.equal(
+            "Error validating outputs from service 'service-a': key .foo must be a string",
+          ),
+        )
+      })
+
+      it("should throw if the outputs don't match the service outputs schema of a plugin's base", async () => {
+        stubModuleAction(actions, service.module.type, "test-plugin", "deployService", async () => {
+          return { state: <ServiceState>"ready", detail: {}, outputs: { base: 123, foo: "ok" } }
+        })
+
+        await expectError(
+          () => actions.deployService({ log, service, runtimeContext, force: true, hotReload: false }),
+          (err) => expect(stripAnsi(err.message)).to.equal(
+            "Error validating outputs from service 'service-a': key .base must be a string",
+          ),
+        )
       })
     })
 
@@ -328,6 +403,25 @@ describe("ActionRouter", () => {
   })
 
   describe("task actions", () => {
+    let taskResult: RunTaskResult
+
+    before(() => {
+      taskResult = {
+        moduleName: task.module.name,
+        taskName: task.name,
+        command: ["foo"],
+        completedAt: now,
+        log: "bla bla",
+        outputs: {
+          base: "ok",
+          foo: "ok",
+        },
+        success: true,
+        startedAt: now,
+        version: task.module.version.versionString,
+      }
+    })
+
     describe("getTaskResult", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const result = await actions.getTaskResult({
@@ -335,19 +429,33 @@ describe("ActionRouter", () => {
           task,
           taskVersion: task.module.version,
         })
-        expect(result).to.eql({
-          moduleName: task.module.name,
-          taskName: task.name,
-          command: ["foo"],
-          completedAt: now,
-          log: "bla bla",
-          outputs: {
-            log: "bla bla",
-          },
-          success: true,
-          startedAt: now,
-          version: task.module.version.versionString,
+        expect(result).to.eql(taskResult)
+      })
+
+      it("should throw if the outputs don't match the task outputs schema of the plugin", async () => {
+        stubModuleAction(actions, service.module.type, "test-plugin", "getTaskResult", async () => {
+          return { ...taskResult, outputs: { base: "ok", foo: 123 } }
         })
+
+        await expectError(
+          () => actions.getTaskResult({ log, task, taskVersion: task.module.version }),
+          (err) => expect(stripAnsi(err.message)).to.equal(
+            "Error validating outputs from task 'task-a': key .foo must be a string",
+          ),
+        )
+      })
+
+      it("should throw if the outputs don't match the task outputs schema of a plugin's base", async () => {
+        stubModuleAction(actions, service.module.type, "test-plugin", "getTaskResult", async () => {
+          return { ...taskResult, outputs: { base: 123, foo: "ok" } }
+        })
+
+        await expectError(
+          () => actions.getTaskResult({ log, task, taskVersion: task.module.version }),
+          (err) => expect(stripAnsi(err.message)).to.equal(
+            "Error validating outputs from task 'task-a': key .base must be a string",
+          ),
+        )
       })
     })
 
@@ -363,26 +471,58 @@ describe("ActionRouter", () => {
           },
           taskVersion: task.module.version,
         })
-        expect(result).to.eql({
-          moduleName: task.module.name,
-          taskName: task.name,
-          command: ["foo"],
-          completedAt: now,
-          log: "bla bla",
-          outputs: {
-            log: "bla bla",
-          },
-          success: true,
-          startedAt: now,
-          version: task.module.version.versionString,
+        expect(result).to.eql(taskResult)
+      })
+
+      it("should throw if the outputs don't match the task outputs schema of the plugin", async () => {
+        stubModuleAction(actions, task.module.type, "test-plugin", "runTask", async () => {
+          return { ...taskResult, outputs: { base: "ok", foo: 123 } }
         })
+
+        await expectError(
+          () => actions.runTask({
+            log,
+            task,
+            interactive: true,
+            runtimeContext: {
+              envVars: { FOO: "bar" },
+              dependencies: [],
+            },
+            taskVersion: task.module.version,
+          }),
+          (err) => expect(stripAnsi(err.message)).to.equal(
+            "Error validating outputs from task 'task-a': key .foo must be a string",
+          ),
+        )
+      })
+
+      it("should throw if the outputs don't match the task outputs schema of a plugin's base", async () => {
+        stubModuleAction(actions, task.module.type, "test-plugin", "runTask", async () => {
+          return { ...taskResult, outputs: { base: 123, foo: "ok" } }
+        })
+
+        await expectError(
+          () => actions.runTask({
+            log,
+            task,
+            interactive: true,
+            runtimeContext: {
+              envVars: { FOO: "bar" },
+              dependencies: [],
+            },
+            taskVersion: task.module.version,
+          }),
+          (err) => expect(stripAnsi(err.message)).to.equal(
+            "Error validating outputs from task 'task-a': key .base must be a string",
+          ),
+        )
       })
     })
   })
 
   describe("getActionHandlers", () => {
     it("should return all handlers for a type", async () => {
-      const handlers = await actions.getActionHandlers("prepareEnvironment")
+      const handlers = await actions["getActionHandlers"]("prepareEnvironment")
 
       expect(Object.keys(handlers)).to.eql([
         "test-plugin",
@@ -393,7 +533,7 @@ describe("ActionRouter", () => {
 
   describe("getModuleActionHandlers", () => {
     it("should return all handlers for a type", async () => {
-      const handlers = await actions.getModuleActionHandlers({ actionType: "build", moduleType: "exec" })
+      const handlers = await actions["getModuleActionHandlers"]({ actionType: "build", moduleType: "exec" })
 
       expect(Object.keys(handlers)).to.eql([
         "exec",
@@ -406,7 +546,7 @@ describe("ActionRouter", () => {
       const gardenA = await makeTestGardenA()
       const actionsA = await gardenA.getActionRouter()
       const pluginName = "test-plugin-b"
-      const handler = await actionsA.getActionHandler({ actionType: "prepareEnvironment", pluginName })
+      const handler = await actionsA["getActionHandler"]({ actionType: "prepareEnvironment", pluginName })
 
       expect(handler.actionType).to.equal("prepareEnvironment")
       expect(handler.pluginName).to.equal(pluginName)
@@ -416,7 +556,7 @@ describe("ActionRouter", () => {
       const gardenA = await makeTestGardenA()
       const actionsA = await gardenA.getActionRouter()
       const pluginName = "test-plugin-b"
-      await expectError(() => actionsA.getActionHandler({ actionType: "cleanupEnvironment", pluginName }), "plugin")
+      await expectError(() => actionsA["getActionHandler"]({ actionType: "cleanupEnvironment", pluginName }), "plugin")
     })
   })
 
@@ -429,7 +569,7 @@ describe("ActionRouter", () => {
       const defaultHandler = async () => {
         return { code: 0, output: "" }
       }
-      const handler = await actionsA.getModuleActionHandler({
+      const handler = await actionsA["getModuleActionHandler"]({
         actionType: "execInService",
         moduleType: "container",
         defaultHandler,
@@ -443,7 +583,7 @@ describe("ActionRouter", () => {
       const gardenA = await makeTestGardenA()
       const actionsA = await gardenA.getActionRouter()
       await expectError(
-        () => actionsA.getModuleActionHandler({ actionType: "execInService", moduleType: "container" }),
+        () => actionsA["getModuleActionHandler"]({ actionType: "execInService", moduleType: "container" }),
         "parameter",
       )
     })
@@ -458,37 +598,34 @@ describe("ActionRouter", () => {
               docs: "bar",
               schema: joi.object(),
               handlers: {
-                configure: async ({ moduleConfig }) => ({ moduleConfig }),
                 build: async () => ({}),
               },
             },
           ],
         }
 
-        const projectConfig: ProjectConfig = {
-          apiVersion: DEFAULT_API_VERSION,
-          kind: "Project",
-          name: "test",
-          path,
-          defaultEnvironment: "default",
-          dotIgnoreFiles: [],
-          environments: [
-            { name: "default", variables: {} },
-          ],
-          providers: [
-            { name: "foo" },
-          ],
-          variables: {},
-        }
-
         const _garden = await Garden.factory(path, {
           plugins: [foo],
-          config: projectConfig,
+          config: {
+            apiVersion: DEFAULT_API_VERSION,
+            kind: "Project",
+            name: "test",
+            path,
+            defaultEnvironment: "default",
+            dotIgnoreFiles: [],
+            environments: [
+              { name: "default", variables: {} },
+            ],
+            providers: [
+              { name: "foo" },
+            ],
+            variables: {},
+          },
         })
 
         const _actions = await _garden.getActionRouter()
 
-        const handler = await _actions.getModuleActionHandler({ actionType: "build", moduleType: "bar" })
+        const handler = await _actions["getModuleActionHandler"]({ actionType: "build", moduleType: "bar" })
 
         expect(handler.actionType).to.equal("build")
         expect(handler.moduleType).to.equal("bar")
@@ -498,23 +635,6 @@ describe("ActionRouter", () => {
 
     context("when one provider overrides the requested handler on the module type", () => {
       it("should return the handler from the extending provider", async () => {
-        const projectConfig: ProjectConfig = {
-          apiVersion: DEFAULT_API_VERSION,
-          kind: "Project",
-          name: "test",
-          path,
-          defaultEnvironment: "default",
-          dotIgnoreFiles: [],
-          environments: [
-            { name: "default", variables: {} },
-          ],
-          providers: [
-            { name: "base" },
-            { name: "foo" },
-          ],
-          variables: {},
-        }
-
         const base: GardenPlugin = {
           name: "base",
           createModuleTypes: [
@@ -523,7 +643,6 @@ describe("ActionRouter", () => {
               docs: "bar",
               schema: joi.object(),
               handlers: {
-                configure: async ({ moduleConfig }) => ({ moduleConfig }),
                 build: async () => ({}),
               },
             },
@@ -544,12 +663,27 @@ describe("ActionRouter", () => {
 
         const _garden = await Garden.factory(path, {
           plugins: [base, foo],
-          config: projectConfig,
+          config: {
+            apiVersion: DEFAULT_API_VERSION,
+            kind: "Project",
+            name: "test",
+            path,
+            defaultEnvironment: "default",
+            dotIgnoreFiles: [],
+            environments: [
+              { name: "default", variables: {} },
+            ],
+            providers: [
+              { name: "base" },
+              { name: "foo" },
+            ],
+            variables: {},
+          },
         })
 
         const _actions = await _garden.getActionRouter()
 
-        const handler = await _actions.getModuleActionHandler({ actionType: "build", moduleType: "bar" })
+        const handler = await _actions["getModuleActionHandler"]({ actionType: "build", moduleType: "bar" })
 
         expect(handler.actionType).to.equal("build")
         expect(handler.moduleType).to.equal("bar")
@@ -559,25 +693,6 @@ describe("ActionRouter", () => {
 
     context("when multiple providers extend the module type with requested handler", () => {
       it("should return the handler that is not being overridden by another handler", async () => {
-        const projectConfig: ProjectConfig = {
-          apiVersion: DEFAULT_API_VERSION,
-          kind: "Project",
-          name: "test",
-          path,
-          defaultEnvironment: "default",
-          dotIgnoreFiles: [],
-          environments: [
-            { name: "default", variables: {} },
-          ],
-          providers: [
-            { name: "base" },
-            // The order here matters, to verify that the dependency ordering works
-            { name: "too" },
-            { name: "foo" },
-          ],
-          variables: {},
-        }
-
         const base: GardenPlugin = {
           name: "base",
           createModuleTypes: [
@@ -586,7 +701,6 @@ describe("ActionRouter", () => {
               docs: "bar",
               schema: joi.object(),
               handlers: {
-                configure: async ({ moduleConfig }) => ({ moduleConfig }),
                 build: async () => ({}),
               },
             },
@@ -619,21 +733,7 @@ describe("ActionRouter", () => {
 
         const _garden = await Garden.factory(path, {
           plugins: [base, too, foo],
-          config: projectConfig,
-        })
-
-        const _actions = await _garden.getActionRouter()
-
-        const handler = await _actions.getModuleActionHandler({ actionType: "build", moduleType: "bar" })
-
-        expect(handler.actionType).to.equal("build")
-        expect(handler.moduleType).to.equal("bar")
-        expect(handler.pluginName).to.equal("too")
-      })
-
-      context("when multiple providers are side by side in the dependency graph", () => {
-        it("should return the last configured handler for the specified module action type", async () => {
-          const projectConfig: ProjectConfig = {
+          config: {
             apiVersion: DEFAULT_API_VERSION,
             kind: "Project",
             name: "test",
@@ -645,13 +745,25 @@ describe("ActionRouter", () => {
             ],
             providers: [
               { name: "base" },
-              // The order here matters, since we use that as a "tie-breaker"
-              { name: "foo" },
+              // The order here matters, to verify that the dependency ordering works
               { name: "too" },
+              { name: "foo" },
             ],
             variables: {},
-          }
+          },
+        })
 
+        const _actions = await _garden.getActionRouter()
+
+        const handler = await _actions["getModuleActionHandler"]({ actionType: "build", moduleType: "bar" })
+
+        expect(handler.actionType).to.equal("build")
+        expect(handler.moduleType).to.equal("bar")
+        expect(handler.pluginName).to.equal("too")
+      })
+
+      context("when multiple providers are side by side in the dependency graph", () => {
+        it("should return the last configured handler for the specified module action type", async () => {
           const base: GardenPlugin = {
             name: "base",
             createModuleTypes: [
@@ -660,7 +772,6 @@ describe("ActionRouter", () => {
                 docs: "bar",
                 schema: joi.object(),
                 handlers: {
-                  configure: async ({ moduleConfig }) => ({ moduleConfig }),
                   build: async () => ({}),
                 },
               },
@@ -693,12 +804,29 @@ describe("ActionRouter", () => {
 
           const _garden = await Garden.factory(path, {
             plugins: [base, too, foo],
-            config: projectConfig,
+            config: {
+              apiVersion: DEFAULT_API_VERSION,
+              kind: "Project",
+              name: "test",
+              path,
+              defaultEnvironment: "default",
+              dotIgnoreFiles: [],
+              environments: [
+                { name: "default", variables: {} },
+              ],
+              providers: [
+                { name: "base" },
+                // The order here matters, since we use that as a "tie-breaker"
+                { name: "foo" },
+                { name: "too" },
+              ],
+              variables: {},
+            },
           })
 
           const _actions = await _garden.getActionRouter()
 
-          const handler = await _actions.getModuleActionHandler({ actionType: "build", moduleType: "bar" })
+          const handler = await _actions["getModuleActionHandler"]({ actionType: "build", moduleType: "bar" })
 
           expect(handler.actionType).to.equal("build")
           expect(handler.moduleType).to.equal("bar")
@@ -709,23 +837,6 @@ describe("ActionRouter", () => {
 
     context("when the handler was added by a provider and not specified in the creating provider", () => {
       it("should return the added handler", async () => {
-        const projectConfig: ProjectConfig = {
-          apiVersion: DEFAULT_API_VERSION,
-          kind: "Project",
-          name: "test",
-          path,
-          defaultEnvironment: "default",
-          dotIgnoreFiles: [],
-          environments: [
-            { name: "default", variables: {} },
-          ],
-          providers: [
-            { name: "base" },
-            { name: "foo" },
-          ],
-          variables: {},
-        }
-
         const base: GardenPlugin = {
           name: "base",
           createModuleTypes: [
@@ -733,9 +844,7 @@ describe("ActionRouter", () => {
               name: "bar",
               docs: "bar",
               schema: joi.object(),
-              handlers: {
-                configure: async ({ moduleConfig }) => ({ moduleConfig }),
-              },
+              handlers: {},
             },
           ],
         }
@@ -754,23 +863,216 @@ describe("ActionRouter", () => {
 
         const _garden = await Garden.factory(path, {
           plugins: [base, foo],
-          config: projectConfig,
+          config: {
+            apiVersion: DEFAULT_API_VERSION,
+            kind: "Project",
+            name: "test",
+            path,
+            defaultEnvironment: "default",
+            dotIgnoreFiles: [],
+            environments: [
+              { name: "default", variables: {} },
+            ],
+            providers: [
+              { name: "base" },
+              { name: "foo" },
+            ],
+            variables: {},
+          },
         })
 
         const _actions = await _garden.getActionRouter()
 
-        const handler = await _actions.getModuleActionHandler({ actionType: "build", moduleType: "bar" })
+        const handler = await _actions["getModuleActionHandler"]({ actionType: "build", moduleType: "bar" })
 
         expect(handler.actionType).to.equal("build")
         expect(handler.moduleType).to.equal("bar")
         expect(handler.pluginName).to.equal("foo")
       })
     })
+
+    context("when the module type has a base", () => {
+      const projectConfigWithBase: ProjectConfig = {
+        apiVersion: DEFAULT_API_VERSION,
+        kind: "Project",
+        name: "test",
+        path,
+        defaultEnvironment: "default",
+        dotIgnoreFiles: [],
+        environments: [
+          { name: "default", variables: {} },
+        ],
+        providers: [
+          { name: "base" },
+          { name: "foo" },
+        ],
+        variables: {},
+      }
+
+      it("should return the handler for the specific module type, if available", async () => {
+        const base: GardenPlugin = {
+          name: "base",
+          createModuleTypes: [
+            {
+              name: "bar",
+              docs: "bar",
+              schema: joi.object(),
+              handlers: {
+                build: async () => ({}),
+              },
+            },
+          ],
+        }
+        const foo: GardenPlugin = {
+          name: "foo",
+          dependencies: ["base"],
+          createModuleTypes: [
+            {
+              name: "moo",
+              base: "bar",
+              docs: "moo",
+              schema: joi.object(),
+              handlers: {
+                build: async () => ({}),
+              },
+            },
+          ],
+        }
+
+        const _garden = await Garden.factory(path, {
+          plugins: [base, foo],
+          config: projectConfigWithBase,
+        })
+
+        const _actions = await _garden.getActionRouter()
+
+        const handler = await _actions["getModuleActionHandler"]({ actionType: "build", moduleType: "moo" })
+
+        expect(handler.actionType).to.equal("build")
+        expect(handler.moduleType).to.equal("moo")
+        expect(handler.pluginName).to.equal("foo")
+      })
+
+      it("should fall back on the base if no specific handler is available", async () => {
+        const base: GardenPlugin = {
+          name: "base",
+          createModuleTypes: [
+            {
+              name: "bar",
+              docs: "bar",
+              schema: joi.object(),
+              handlers: {
+                build: async () => ({ buildLog: "base" }),
+              },
+            },
+          ],
+        }
+        const foo: GardenPlugin = {
+          name: "foo",
+          dependencies: ["base"],
+          createModuleTypes: [
+            {
+              name: "moo",
+              base: "bar",
+              docs: "moo",
+              schema: joi.object(),
+              handlers: {},
+            },
+          ],
+        }
+
+        const _garden = await Garden.factory(path, {
+          plugins: [base, foo],
+          config: projectConfigWithBase,
+        })
+
+        const _actions = await _garden.getActionRouter()
+
+        const handler = await _actions["getModuleActionHandler"]({ actionType: "build", moduleType: "moo" })
+
+        expect(handler.actionType).to.equal("build")
+        expect(handler.moduleType).to.equal("bar")
+        expect(handler.pluginName).to.equal("base")
+        expect(await handler(<any>{})).to.eql({ buildLog: "base" })
+      })
+
+      it("should recursively fall back on the base's bases if needed", async () => {
+        const baseA: GardenPlugin = {
+          name: "base-a",
+          createModuleTypes: [
+            {
+              name: "base-a",
+              docs: "base A",
+              schema: joi.object(),
+              handlers: {
+                build: async () => ({ buildLog: "base" }),
+              },
+            },
+          ],
+        }
+        const baseB: GardenPlugin = {
+          name: "base-b",
+          dependencies: ["base-a"],
+          createModuleTypes: [
+            {
+              name: "base-b",
+              base: "base-a",
+              docs: "base B",
+              schema: joi.object(),
+              handlers: {},
+            },
+          ],
+        }
+        const foo: GardenPlugin = {
+          name: "foo",
+          dependencies: ["base-b"],
+          createModuleTypes: [
+            {
+              name: "moo",
+              base: "base-b",
+              docs: "moo",
+              schema: joi.object(),
+              handlers: {},
+            },
+          ],
+        }
+
+        const _garden = await Garden.factory(path, {
+          plugins: [baseA, baseB, foo],
+          config: {
+            apiVersion: DEFAULT_API_VERSION,
+            kind: "Project",
+            name: "test",
+            path,
+            defaultEnvironment: "default",
+            dotIgnoreFiles: [],
+            environments: [
+              { name: "default", variables: {} },
+            ],
+            providers: [
+              { name: "base-a" },
+              { name: "base-b" },
+              { name: "foo" },
+            ],
+            variables: {},
+          },
+        })
+
+        const _actions = await _garden.getActionRouter()
+
+        const handler = await _actions["getModuleActionHandler"]({ actionType: "build", moduleType: "moo" })
+
+        expect(handler.actionType).to.equal("build")
+        expect(handler.moduleType).to.equal("base-a")
+        expect(handler.pluginName).to.equal("base-a")
+        expect(await handler(<any>{})).to.eql({ buildLog: "base" })
+      })
+    })
   })
 
   describe("callActionHandler", () => {
     it("should call the handler with a base argument if the handler is overriding another", async () => {
-      const emptyActions = new ActionRouter(garden, [], [])
+      const emptyActions = new ActionRouter(garden, [], [], {})
 
       const base = Object.assign(
         async () => ({
@@ -833,25 +1135,23 @@ describe("ActionRouter", () => {
 
       const path = process.cwd()
 
-      const projectConfig: ProjectConfig = {
-        apiVersion: DEFAULT_API_VERSION,
-        kind: "Project",
-        name: "test",
-        path,
-        defaultEnvironment: "default",
-        dotIgnoreFiles: [],
-        environments: [
-          { name: "default", variables: {} },
-        ],
-        providers: [
-          { name: "foo" },
-        ],
-        variables: {},
-      }
-
       const _garden = await Garden.factory(path, {
         plugins: [baseA, baseB, foo],
-        config: projectConfig,
+        config: {
+          apiVersion: DEFAULT_API_VERSION,
+          kind: "Project",
+          name: "test",
+          path,
+          defaultEnvironment: "default",
+          dotIgnoreFiles: [],
+          environments: [
+            { name: "default", variables: {} },
+          ],
+          providers: [
+            { name: "foo" },
+          ],
+          variables: {},
+        },
       })
 
       const _actions = await _garden.getActionRouter()
@@ -871,7 +1171,13 @@ describe("ActionRouter", () => {
 
   describe("callModuleHandler", () => {
     it("should call the handler with a base argument if the handler is overriding another", async () => {
-      const emptyActions = new ActionRouter(garden, [], [])
+      const emptyActions = new ActionRouter(garden, [], [], {
+        test: {
+          name: "test",
+          docs: "test",
+          handlers: {},
+        },
+      })
 
       const graph = await garden.getConfigGraph()
       const moduleA = await graph.getModule("module-a")
@@ -904,7 +1210,13 @@ describe("ActionRouter", () => {
 
   describe("callServiceHandler", () => {
     it("should call the handler with a base argument if the handler is overriding another", async () => {
-      const emptyActions = new ActionRouter(garden, [], [])
+      const emptyActions = new ActionRouter(garden, [], [], {
+        test: {
+          name: "test",
+          docs: "test",
+          handlers: {},
+        },
+      })
 
       const graph = await garden.getConfigGraph()
       const serviceA = await graph.getService("service-a")
@@ -939,7 +1251,13 @@ describe("ActionRouter", () => {
     })
 
     it("should interpolate runtime template strings", async () => {
-      const emptyActions = new ActionRouter(garden, [], [])
+      const emptyActions = new ActionRouter(garden, [], [], {
+        test: {
+          name: "test",
+          docs: "test",
+          handlers: {},
+        },
+      })
 
       garden["moduleConfigs"]["module-a"].spec.foo = "\${runtime.services.service-b.outputs.foo}"
 
@@ -985,7 +1303,13 @@ describe("ActionRouter", () => {
     })
 
     it("should throw if one or more runtime variables remain unresolved after re-resolution", async () => {
-      const emptyActions = new ActionRouter(garden, [], [])
+      const emptyActions = new ActionRouter(garden, [], [], {
+        test: {
+          name: "test",
+          docs: "test",
+          handlers: {},
+        },
+      })
 
       garden["moduleConfigs"]["module-a"].spec.services[0].foo = "\${runtime.services.service-b.outputs.foo}"
 
@@ -1030,7 +1354,13 @@ describe("ActionRouter", () => {
 
   describe("callTaskHandler", () => {
     it("should call the handler with a base argument if the handler is overriding another", async () => {
-      const emptyActions = new ActionRouter(garden, [], [])
+      const emptyActions = new ActionRouter(garden, [], [], {
+        test: {
+          name: "test",
+          docs: "test",
+          handlers: {},
+        },
+      })
 
       const graph = await garden.getConfigGraph()
       const taskA = await graph.getTask("task-a")
@@ -1081,7 +1411,13 @@ describe("ActionRouter", () => {
     })
 
     it("should interpolate runtime template strings", async () => {
-      const emptyActions = new ActionRouter(garden, [], [])
+      const emptyActions = new ActionRouter(garden, [], [], {
+        test: {
+          name: "test",
+          docs: "test",
+          handlers: {},
+        },
+      })
 
       garden["moduleConfigs"]["module-a"].spec.tasks[0].foo = "\${runtime.services.service-b.outputs.foo}"
 
@@ -1137,7 +1473,13 @@ describe("ActionRouter", () => {
     })
 
     it("should throw if one or more runtime variables remain unresolved after re-resolution", async () => {
-      const emptyActions = new ActionRouter(garden, [], [])
+      const emptyActions = new ActionRouter(garden, [], [], {
+        test: {
+          name: "test",
+          docs: "test",
+          handlers: {},
+        },
+      })
 
       garden["moduleConfigs"]["module-a"].spec.tasks[0].foo = "\${runtime.services.service-b.outputs.foo}"
 
@@ -1182,8 +1524,24 @@ describe("ActionRouter", () => {
   })
 })
 
+const baseOutputsSchema = joi.object().keys({ base: joi.string() })
+const testOutputSchema = baseOutputsSchema.keys({ foo: joi.string() })
+
+const basePlugin = createGardenPlugin({
+  name: "base",
+  createModuleTypes: [{
+    name: "base",
+    docs: "bla bla bla",
+    moduleOutputsSchema: baseOutputsSchema,
+    serviceOutputsSchema: baseOutputsSchema,
+    taskOutputsSchema: baseOutputsSchema,
+    handlers: {},
+  }],
+})
+
 const testPlugin = createGardenPlugin({
   name: "test-plugin",
+  dependencies: ["base"],
 
   handlers: <PluginActionHandlers>{
     getEnvironmentStatus: async (params) => {
@@ -1222,11 +1580,12 @@ const testPlugin = createGardenPlugin({
 
   createModuleTypes: [{
     name: "test",
+    base: "base",
 
     docs: "bla bla bla",
-    moduleOutputsSchema: joi.object(),
-    serviceOutputsSchema: joi.object(),
-    taskOutputsSchema: joi.object(),
+    moduleOutputsSchema: testOutputSchema,
+    serviceOutputsSchema: testOutputSchema,
+    taskOutputsSchema: testOutputSchema,
     schema: joi.object(),
     title: "Bla",
 
@@ -1325,12 +1684,12 @@ const testPlugin = createGardenPlugin({
 
       getServiceStatus: async (params) => {
         validate(params, moduleActionDescriptions.getServiceStatus.paramsSchema)
-        return { state: "ready", detail: {} }
+        return { state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } }
       },
 
       deployService: async (params) => {
         validate(params, moduleActionDescriptions.deployService.paramsSchema)
-        return { state: "ready", detail: {} }
+        return { state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } }
       },
 
       deleteService: async (params) => {
@@ -1386,9 +1745,7 @@ const testPlugin = createGardenPlugin({
           command: ["foo"],
           completedAt: now,
           log: "bla bla",
-          outputs: {
-            log: "bla bla",
-          },
+          outputs: { base: "ok", foo: "ok" },
           success: true,
           startedAt: now,
           version: params.module.version.versionString,
@@ -1404,9 +1761,7 @@ const testPlugin = createGardenPlugin({
           command: ["foo"],
           completedAt: now,
           log: "bla bla",
-          outputs: {
-            log: "bla bla",
-          },
+          outputs: { base: "ok", foo: "ok" },
           success: true,
           startedAt: now,
           version: params.module.version.versionString,

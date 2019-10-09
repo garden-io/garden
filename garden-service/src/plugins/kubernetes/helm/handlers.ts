@@ -7,7 +7,7 @@
  */
 
 import { ModuleAndRuntimeActionHandlers } from "../../../types/plugin/plugin"
-import { HelmModule, validateHelmModule as configureHelmModule } from "./config"
+import { HelmModule, configureHelmModule as configureHelmModule } from "./config"
 import { buildHelmModule } from "./build"
 import { getServiceStatus } from "./status"
 import { deployService, deleteService } from "./deployment"

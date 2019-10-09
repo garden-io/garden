@@ -10,15 +10,16 @@ import chalk from "chalk"
 import { BaseTask, TaskParams, TaskType } from "./base"
 import { ProviderConfig, Provider, getAllProviderDependencyNames, providerFromConfig } from "../config/provider"
 import { resolveTemplateStrings } from "../template-string"
-import { ConfigurationError, PluginError, RuntimeError } from "../exceptions"
-import { keyBy, omit, flatten, uniq } from "lodash"
+import { ConfigurationError, PluginError } from "../exceptions"
+import { keyBy, omit, flatten } from "lodash"
 import { TaskResults } from "../task-graph"
 import { ProviderConfigContext } from "../config/config-context"
 import { ModuleConfig } from "../config/module"
-import { GardenPlugin, PluginMap } from "../types/plugin/plugin"
+import { GardenPlugin } from "../types/plugin/plugin"
 import { validateWithPath, joi } from "../config/common"
 import Bluebird from "bluebird"
 import { defaultEnvironmentStatus } from "../types/plugin/provider/getEnvironmentStatus"
+import { getPluginBases, getPluginBaseNames } from "../plugins"
 
 interface Params extends TaskParams {
   plugin: GardenPlugin
@@ -65,8 +66,8 @@ export class ResolveProviderTask extends BaseTask {
 
       if (matched.length === 0) {
         throw new ConfigurationError(
-          `Missing provider dependency '${depName}' in configuration for provider '${this.config.name}'. ` +
-          `Are you missing a provider configuration?`,
+          `Provider '${this.config.name}' depends on provider '${depName}', which is not configured. ` +
+          `You need to add '${depName}' to your project configuration for the '${this.config.name}' to work.`,
           { config: this.config, missingProviderName: depName },
         )
       }
@@ -151,7 +152,7 @@ export class ResolveProviderTask extends BaseTask {
 
       resolvedConfig = <ProviderConfig>validateWithPath({
         config: omit(resolvedConfig, "path"),
-        schema: base.configSchema,
+        schema: base.configSchema.unknown(true),
         path: this.garden.projectRoot,
         projectRoot: this.garden.projectRoot,
         configType: `provider configuration (base schema from '${base.name}' plugin)`,
@@ -174,7 +175,8 @@ export class ResolveProviderTask extends BaseTask {
 
     this.log.silly(`Getting status for ${pluginName}`)
 
-    const handler = await actions.getActionHandler({
+    // TODO: avoid calling the handler manually (currently doing it to override the plugin context)
+    const handler = await actions["getActionHandler"]({
       actionType: "getEnvironmentStatus",
       pluginName,
       defaultHandler: async () => defaultEnvironmentStatus,
@@ -194,7 +196,8 @@ export class ResolveProviderTask extends BaseTask {
         msg: "Configuring...",
       })
 
-      const prepareHandler = await actions.getActionHandler({
+      // TODO: avoid calling the handler manually
+      const prepareHandler = await actions["getActionHandler"]({
         actionType: "prepareEnvironment",
         pluginName,
         defaultHandler: async () => ({ status }),
@@ -215,42 +218,4 @@ export class ResolveProviderTask extends BaseTask {
 
     return status
   }
-}
-
-/**
- * Recursively resolves all the bases for the given plugin.
- */
-export function getPluginBases(plugin: GardenPlugin, loadedPlugins: PluginMap): GardenPlugin[] {
-  if (!plugin.base) {
-    return []
-  }
-
-  const base = loadedPlugins[plugin.base]
-
-  if (!base) {
-    throw new RuntimeError(`Unable to find base plugin '${plugin.base}' for plugin '${plugin.name}'`, { plugin })
-  }
-
-  return [base, ...getPluginBases(base, loadedPlugins)]
-}
-
-/**
- * Recursively resolves all the base names for the given plugin.
- */
-export function getPluginBaseNames(name: string, loadedPlugins: PluginMap) {
-  return getPluginBases(loadedPlugins[name], loadedPlugins).map(p => p.name)
-}
-
-/**
- * Recursively get all declared dependencies for the given plugin,
- * i.e. direct dependencies, and dependencies of those dependencies etc.
- */
-export function getPluginDependencies(plugin: GardenPlugin, loadedPlugins: PluginMap): GardenPlugin[] {
-  return uniq(flatten((plugin.dependencies || []).map(depName => {
-    const depPlugin = loadedPlugins[depName]
-    if (!depPlugin) {
-      throw new RuntimeError(`Unable to find dependency '${depName} for plugin '${plugin.name}'`, { plugin })
-    }
-    return [depPlugin, ...getPluginDependencies(depPlugin, loadedPlugins)]
-  })))
 }

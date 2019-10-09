@@ -7,18 +7,15 @@
  */
 
 import { createGardenPlugin } from "../types/plugin/plugin"
-import { execPlugin, execModuleSpecSchema } from "./exec"
 
 export const gardenPlugin = createGardenPlugin({
   name: "npm-package",
   createModuleTypes: [
     {
       name: "npm-package",
+      base: "exec",
       docs: "[DEPRECATED]",
-      schema: execModuleSpecSchema,
-      handlers: {
-        ...execPlugin.createModuleTypes![0].handlers,
-      },
+      handlers: {},
     },
   ],
 })

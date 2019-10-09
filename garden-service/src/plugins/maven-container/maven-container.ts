@@ -18,12 +18,6 @@ import {
 } from "../container/config"
 import { joiArray, joiProviderName, joi } from "../../config/common"
 import { Module } from "../../types/module"
-import {
-  configureContainerModule,
-  gardenPlugin as containerPlugin,
-  containerModuleOutputsSchema,
-} from "../container/container"
-import { buildContainerModule, getContainerBuildStatus } from "../container/build"
 import { resolve } from "path"
 import { RuntimeError, ConfigurationError } from "../../exceptions"
 import { containerHelpers } from "../container/helpers"
@@ -81,11 +75,12 @@ export const mavenContainerConfigSchema = providerConfigBaseSchema
   })
 
 export const gardenPlugin = createGardenPlugin({
-  ...containerPlugin,
   name: "maven-container",
+  dependencies: ["container"],
 
   createModuleTypes: [{
     name: "maven-container",
+    base: "container",
     docs: dedent`
       A specialized version of the [container](https://docs.garden.io/reference/module-types/container) module type
       that has special semantics for JAR files built with Maven.
@@ -100,10 +95,8 @@ export const gardenPlugin = createGardenPlugin({
       To use it, make sure to add the \`maven-container\` provider to your project configuration.
       The provider will automatically fetch and cache Maven and the appropriate OpenJDK version ahead of building.
     `,
-    moduleOutputsSchema: containerModuleOutputsSchema,
     schema: mavenContainerModuleSpecSchema,
     handlers: {
-      ...containerPlugin.createModuleTypes![0].handlers,
       configure: configureMavenContainerModule,
       getBuildStatus,
       build,
@@ -112,7 +105,7 @@ export const gardenPlugin = createGardenPlugin({
 })
 
 export async function configureMavenContainerModule(params: ConfigureModuleParams<MavenContainerModule>) {
-  const { moduleConfig } = params
+  const { base, moduleConfig } = params
 
   let containerConfig: ContainerModuleConfig = { ...moduleConfig, type: "container" }
   containerConfig.spec = <ContainerModuleSpec>omit(moduleConfig.spec, Object.keys(mavenKeys))
@@ -124,11 +117,12 @@ export async function configureMavenContainerModule(params: ConfigureModuleParam
     JDK_VERSION: jdkVersion.toString(),
   }
 
-  const configured = await configureContainerModule({ ...params, moduleConfig: containerConfig })
+  const configured = await base!({ ...params, moduleConfig: containerConfig })
 
   return {
     moduleConfig: {
       ...configured.moduleConfig,
+      type: "maven-container",
       spec: {
         ...configured.moduleConfig.spec,
         jarPath: moduleConfig.spec.jarPath,
@@ -140,16 +134,16 @@ export async function configureMavenContainerModule(params: ConfigureModuleParam
 }
 
 async function getBuildStatus(params: GetBuildStatusParams<MavenContainerModule>) {
-  const { module, log } = params
+  const { base, module, log } = params
 
   await prepareBuild(module, log)
 
-  return getContainerBuildStatus(params)
+  return base!(params)
 }
 
 async function build(params: BuildModuleParams<MavenContainerModule>) {
   // Run the maven build
-  const { ctx, module, log } = params
+  const { base, module, log } = params
   let { jarPath, jdkVersion, mvnOpts } = module.spec
 
   const pom = await loadPom(module.path)
@@ -200,7 +194,7 @@ async function build(params: BuildModuleParams<MavenContainerModule>) {
 
   // Build the container
   await prepareBuild(module, log)
-  return buildContainerModule(params)
+  return base!(params)
 }
 
 async function prepareBuild(module: MavenContainerModule, log: LogEntry) {
