@@ -14,7 +14,7 @@ import { PluginContext } from "../../plugin-context"
 import { joiArray, joiProviderName, joi, joiEnvVars } from "../../config/common"
 import { Module } from "../../types/module"
 import { Service } from "../../types/service"
-import { ExecModuleSpec, ExecTestSpec, execTestSchema } from "../exec"
+import { ExecModuleSpecBase, ExecTestSpec, execTestSchema } from "../exec"
 import { KubernetesProvider } from "../kubernetes/config"
 import { CommonServiceSpec } from "../../config/service"
 import { Provider, providerConfigBaseSchema, ProviderConfig } from "../../config/provider"
@@ -26,11 +26,18 @@ import { LogEntry } from "../../logger/log-entry"
 import { baseBuildSpecSchema } from "../../config/module"
 import { DEFAULT_BUILD_TIMEOUT } from "../container/helpers"
 
-export interface OpenFaasModuleSpec extends ExecModuleSpec {
+export interface OpenFaasModuleSpec extends ExecModuleSpecBase {
   handler: string
   image: string
   lang: string
 }
+
+// Use the exec test schema but override the command description
+const openfaasTestSchema = execTestSchema.concat(joi.object({
+  command: joi.array().items(joi.string())
+    .description("The command to run in the module build context in order to test it.")
+    .required(),
+}))
 
 export const openfaasModuleSpecSchema = joi.object()
   .keys({
@@ -47,7 +54,7 @@ export const openfaasModuleSpecSchema = joi.object()
     lang: joi.string()
       .required()
       .description("The OpenFaaS language template to use to build this function."),
-    tests: joiArray(execTestSchema)
+    tests: joiArray(openfaasTestSchema)
       .description("A list of tests to run in the module."),
   })
   .unknown(false)

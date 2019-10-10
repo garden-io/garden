@@ -1,0 +1,9 @@
+kind: Module
+name: module-local
+type: exec
+local: true
+build:
+  command: [pwd]
+tasks:
+  - name: pwd
+    command: [pwd]

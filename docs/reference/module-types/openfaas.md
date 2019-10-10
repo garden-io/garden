@@ -288,7 +288,7 @@ The command to run in the module build context in order to test it.
 
 | Type            | Required |
 | --------------- | -------- |
-| `array[string]` | No       |
+| `array[string]` | Yes      |
 
 ### `tests[].env`
 

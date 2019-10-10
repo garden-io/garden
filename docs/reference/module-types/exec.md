@@ -7,6 +7,14 @@ title: Exec
 A simple module for executing commands in your shell. This can be a useful escape hatch if no other module
 type fits your needs, and you just need to execute something (as opposed to deploy it, track its status etc.).
 
+By default, the `exec` module type executes the commands in the Garden build directory
+(under .garden/build/<module-name>). By setting `local: true`, the commands are executed in the module
+source directory instead.
+
+Note that Garden does not sync the source code for local exec modules into the Garden build directory.
+This means that include/exclude filters and ignore files are not applied to local exec modules, as the
+filtering is done during the sync.
+
 Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../using-garden/configuration-files.md).
 The [first section](#configuration-keys) lists and describes the available
@@ -206,7 +214,10 @@ POSIX-style path or filename to copy the directory or file(s).
 
 [build](#build) > command
 
-The command to run inside the module's directory to perform the build.
+The command to run to perform the build.
+
+By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
 
 | Type            | Required | Default |
 | --------------- | -------- | ------- |
@@ -222,6 +233,18 @@ build:
     - run
     - build
 ```
+
+### `local`
+
+If set to true, Garden will run the build command, tests, and tasks in the module source directory,
+instead of in the Garden build directory (under .garden/build/<module-name>).
+
+Garden will therefore not stage the build for local exec modules. This means that include/exclude filters
+and ignore files are not applied to local exec modules.
+
+| Type      | Required | Default |
+| --------- | -------- | ------- |
+| `boolean` | No       | `false` |
 
 ### `env`
 
@@ -283,11 +306,24 @@ Maximum duration (in seconds) of the task's execution.
 
 [tasks](#tasks) > command
 
-The command to run in the module build context.
+The command to run.
+
+By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
 
 | Type            | Required |
 | --------------- | -------- |
-| `array[string]` | No       |
+| `array[string]` | Yes      |
+
+### `tasks[].env`
+
+[tasks](#tasks) > env
+
+Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
+
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `object` | No       | `{}`    |
 
 ### `tests`
 
@@ -331,11 +367,14 @@ Maximum duration (in seconds) of the test run.
 
 [tests](#tests) > command
 
-The command to run in the module build context in order to test it.
+The command to run to test the module.
+
+By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
+If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
 
 | Type            | Required |
 | --------------- | -------- |
-| `array[string]` | No       |
+| `array[string]` | Yes      |
 
 ### `tests[].env`
 
@@ -366,6 +405,7 @@ build:
         - source:
           target: <same as source path>
   command: []
+local: false
 env: {}
 tasks:
   - name:
@@ -373,6 +413,7 @@ tasks:
     dependencies: []
     timeout: null
     command:
+    env: {}
 tests:
   - name:
     dependencies: []

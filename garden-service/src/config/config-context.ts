@@ -514,7 +514,7 @@ export class ModuleConfigContext extends ProviderConfigContext {
           stack: [...opts.stack || [], stackKey],
         })
         const version = await garden.resolveVersion(resolvedConfig.name, resolvedConfig.build.dependencies)
-        const buildPath = await garden.buildDir.buildPath(config.name)
+        const buildPath = await garden.buildDir.buildPath(config)
 
         return new ModuleContext(_this, resolvedConfig, buildPath, version)
       }],

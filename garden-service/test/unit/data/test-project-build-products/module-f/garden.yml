@@ -1,0 +1,16 @@
+kind: Module
+name: module-f
+type: test
+build:
+  command: [echo, F]
+  dependencies:
+    - name: module-d
+      copy:
+        - source: build/d.txt
+          target: d/build/
+    - name: module-e
+      copy:
+        - source: e1.txt
+          target: e/
+        - source: some-dir/e2.txt
+          target: e/build/

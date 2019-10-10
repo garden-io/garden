@@ -5,15 +5,16 @@ import { expect } from "chai"
 import { BuildTask } from "../../../src/tasks/build"
 import { makeTestGarden, dataDir } from "../../helpers"
 import { getConfigFilePath } from "../../../src/util/fs"
+import { Garden } from "../../../src/garden"
 
 /*
   Module dependency diagram for test-project-build-products
 
     a   b
      \ /
-      d    c
-        \ /
-         e
+      d   c  e (e is a local exec module)
+        \ | /
+          f
  */
 
 const projectRoot = join(dataDir, "test-project-build-products")
@@ -23,35 +24,37 @@ const makeGarden = async () => {
 }
 
 describe("BuildDir", () => {
+  let garden: Garden
+
+  before(async () => {
+    garden = await makeGarden()
+  })
+
+  afterEach(async () => {
+    await garden.buildDir.clear()
+  })
 
   it("should have ensured the existence of the build dir when Garden was initialized", async () => {
-    const garden = await makeGarden()
     const buildDirExists = await pathExists(garden.buildDir.buildDirPath)
     expect(buildDirExists).to.eql(true)
   })
 
   it("should clear the build dir when requested", async () => {
-    const garden = await makeGarden()
-    await garden.buildDir.clear()
     const nodeCount = await readdir(garden.buildDir.buildDirPath)
     expect(nodeCount).to.eql([])
   })
 
   it("should ensure that a module's build subdir exists before returning from buildPath", async () => {
-    const garden = await makeGarden()
-    await garden.buildDir.clear()
     const moduleA = await garden.resolveModuleConfig("module-a")
-    const buildPath = await garden.buildDir.buildPath(moduleA.name)
+    const buildPath = await garden.buildDir.buildPath(moduleA)
     expect(await pathExists(buildPath)).to.eql(true)
   })
 
   it("should sync sources to the build dir", async () => {
-    const garden = await makeGarden()
-    await garden.buildDir.clear()
     const graph = await garden.getConfigGraph()
     const moduleA = await graph.getModule("module-a")
     await garden.buildDir.syncFromSrc(moduleA, garden.log)
-    const buildDirA = await garden.buildDir.buildPath(moduleA.name)
+    const buildDirA = await garden.buildDir.buildPath(moduleA)
 
     const copiedPaths = [
       join(buildDirA, "some-dir", "some-file"),
@@ -62,27 +65,33 @@ describe("BuildDir", () => {
     }
   })
 
+  it("should not sync sources for local exec modules", async () => {
+    const graph = await garden.getConfigGraph()
+    const moduleE = await graph.getModule("module-e")
+    await garden.buildDir.syncFromSrc(moduleE, garden.log)
+    // This is the dir Garden would have synced the sources into
+    const buildDirF = join(garden.buildDir.buildDirPath, moduleE.name)
+
+    expect(await pathExists(buildDirF)).to.eql(false)
+  })
+
   it("should respect the file list in the module's version", async () => {
-    const garden = await makeGarden()
-    await garden.buildDir.clear()
     const graph = await garden.getConfigGraph()
     const moduleA = await graph.getModule("module-a")
 
     moduleA.version.files = [await getConfigFilePath(moduleA.path)]
 
     await garden.buildDir.syncFromSrc(moduleA, garden.log)
-    const buildDirA = await garden.buildDir.buildPath(moduleA.name)
+    const buildDirA = await garden.buildDir.buildPath(moduleA)
 
     expect(await pathExists(await getConfigFilePath(buildDirA))).to.eql(true)
     expect(await pathExists(join(buildDirA, "some-dir", "some-file"))).to.eql(false)
   })
 
   it("should sync dependency products to their specified destinations", async () => {
-    const garden = await makeGarden()
     const log = garden.log
 
     try {
-      await garden.clearBuilds()
       const graph = await garden.getConfigGraph()
       const modules = await graph.getModules()
       const tasks = modules.map(module => new BuildTask({
@@ -94,15 +103,19 @@ describe("BuildDir", () => {
 
       await garden.processTasks(tasks)
 
-      const buildDirD = await garden.buildDir.buildPath("module-d")
-      const buildDirE = await garden.buildDir.buildPath("module-e")
+      const moduleD = await garden.resolveModuleConfig("module-d")
+      const moduleF = await garden.resolveModuleConfig("module-f")
+      const buildDirD = await garden.buildDir.buildPath(moduleD)
+      const buildDirF = await garden.buildDir.buildPath(moduleF)
 
       // All these destinations should be populated now.
       const buildProductDestinations = [
         join(buildDirD, "a", "a.txt"),
         join(buildDirD, "b", "build", "b1.txt"),
         join(buildDirD, "b", "build_subdir", "b2.txt"),
-        join(buildDirE, "d", "build", "d.txt"),
+        join(buildDirF, "d", "build", "d.txt"),
+        join(buildDirF, "e", "e1.txt"),
+        join(buildDirF, "e", "build", "e2.txt"),
       ]
 
       for (const p of buildProductDestinations) {
@@ -116,6 +129,25 @@ describe("BuildDir", () => {
       console.log(nodetree(garden.buildDir.buildDirPath))
       throw e
     }
+  })
+
+  describe("buildPath", () => {
+    it("should ensure the build path and return it", async () => {
+      const graph = await garden.getConfigGraph()
+      const moduleA = await graph.getModule("module-a")
+      const buildDirA = await garden.buildDir.buildPath(moduleA)
+
+      expect(await pathExists(buildDirA)).to.eql(true)
+      expect(buildDirA).to.eql(join(garden.buildDir.buildDirPath, "module-a"))
+    })
+
+    it("should return the module path for a local exec modules", async () => {
+      const graph = await garden.getConfigGraph()
+      const moduleE = await graph.getModule("module-e")
+      const buildDirE = await garden.buildDir.buildPath(moduleE)
+
+      expect(buildDirE).to.eql(moduleE.path)
+    })
   })
 
 })

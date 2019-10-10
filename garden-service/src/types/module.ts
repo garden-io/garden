@@ -97,7 +97,7 @@ export async function moduleFromConfig(garden: Garden, graph: ConfigGraph, confi
   const module: Module = {
     ...cloneDeep(config),
 
-    buildPath: await garden.buildDir.buildPath(config.name),
+    buildPath: await garden.buildDir.buildPath(config),
     buildMetadataPath: await garden.buildDir.buildMetadataPath(config.name),
     configPath,
 
