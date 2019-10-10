@@ -24,6 +24,13 @@ import { millicpuToString, megabytesToString } from "./util"
 import chalk from "chalk"
 import { deline } from "../../util/string"
 import { combineStates, ServiceStatusMap } from "../../types/service"
+import {
+  setupCertManager,
+  checkCertManagerStatus,
+  checkCertificateStatusByName,
+  getCertificateName,
+} from "./integrations/cert-manager"
+import { ConfigurationError } from "../../exceptions"
 
 // Note: We need to increment a version number here if we ever make breaking changes to the NFS provisioner StatefulSet
 const nfsStorageClass = "garden-system-nfs-v2"
@@ -57,6 +64,8 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
     systemReady: true,
     systemServiceState: "unknown",
     systemTillerReady: true,
+    systemCertManagerReady: true,
+    systemManagedCertificatesReady: true,
   }
 
   const result: EnvironmentStatus = {
@@ -89,6 +98,41 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
   if (tillerStatus !== "ready") {
     result.ready = false
     detail.systemTillerReady = false
+  }
+
+  if (provider.config.certManager) {
+    const certManagerStatus = await checkCertManagerStatus({ provider, log })
+
+    // A running cert-manager installation couldn't be found.
+    if (certManagerStatus !== "ready") {
+      if (!provider.config.certManager.install) {
+        // Cert manager installation couldn't be found AND user doesn't want to let garden install it.
+        throw new ConfigurationError(
+          deline`
+          Couldn't find a running installation of cert-manager in namespace "cert-manager".
+          Please set providers[].certManager.install == true or install cert-manager manually.
+        `,
+          {}
+        )
+      } else {
+        // garden will proceed with intstallation and certificate creation.
+        result.ready = false
+        detail.systemCertManagerReady = false
+        detail.systemManagedCertificatesReady = false
+      }
+    } else {
+      // A running cert-manager installation has been found and we can safely check for the status of the certificates.
+      const certManager = provider.config.certManager
+      const certificateNames = provider.config.tlsCertificates
+        .filter((cert) => cert.managedBy === "cert-manager")
+        .map((cert) => getCertificateName(certManager, cert))
+      const certificatesStatus = await checkCertificateStatusByName({ ctx, log, provider, resources: certificateNames })
+      if (!certificatesStatus) {
+        // Some certificates are not ready/created and will be taken care of by the integration.
+        result.ready = false
+        detail.systemManagedCertificatesReady = false
+      }
+    }
   }
 
   const api = await KubeApi.factory(log, provider)
@@ -134,6 +178,8 @@ export async function prepareEnvironment(params: PrepareEnvironmentParams): Prom
 
   // Prepare system services
   await prepareSystem({ ...params, clusterInit: false })
+
+  await setupCertManager({ ctx: k8sCtx, provider: k8sCtx.provider, log, status })
 
   return { status: { ready: true, outputs: status.outputs } }
 }

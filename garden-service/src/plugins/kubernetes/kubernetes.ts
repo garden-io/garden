@@ -25,13 +25,14 @@ import { ConfigurationError } from "../../exceptions"
 import { cleanupClusterRegistry } from "./commands/cleanup-cluster-registry"
 import { clusterInit } from "./commands/cluster-init"
 import { uninstallGardenServices } from "./commands/uninstall-garden-services"
-import chalk from "chalk"
 import { joi, joiIdentifier } from "../../config/common"
 import { resolve } from "path"
 import { dedent } from "../../util/string"
 import { kubernetesModuleSpecSchema } from "./kubernetes-module/config"
 import { helmModuleSpecSchema, helmModuleOutputsSchema } from "./helm/config"
 import { isNumber } from "util"
+import chalk from "chalk"
+import pluralize = require("pluralize")
 
 export async function configureProvider({
   projectName,
@@ -99,6 +100,17 @@ export async function configureProvider({
         { value, operator, config }
       )
     }
+  }
+
+  const managedCertificates = config.tlsCertificates.filter((cert) => cert.managedBy === "cert-manager")
+  if (managedCertificates.length > 0 && !config.certManager) {
+    throw new ConfigurationError(
+      `cert-manager: found ${managedCertificates.length} ${pluralize(
+        "certificate",
+        managedCertificates.length
+      )} managed by cert-manager but no certManager configuration.`,
+      { config }
+    )
   }
 
   return { config }
