@@ -5,11 +5,11 @@ providers:
     # These two keys must be set if we want to apply a stack as part of the provider initialization.
     autoApply: true
     initRoot: "."
-    # You can either replace these with your own values, or delete these and provide your own in a
+    # You can either uncomment and replace these with your own values, or provide the values in a
     # terraform.tfvars file in the project root.
-    variables:
-      gcp_project_id: garden-gke-tf-${local.username}
-      gcp_region: europe-west1
+    # variables:
+    #   gcp_project_id: garden-gke-tf-${local.username}
+    #   gcp_region: europe-west1
   - name: kubernetes
     kubeconfig: ${providers.terraform.outputs.kubeconfig_path}
     context: gke

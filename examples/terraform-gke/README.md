@@ -35,8 +35,8 @@ The Terraform stack needs some input values from you. You can provide those in a
 
 ```tfvars
 # terraform.tfvars
-gcp-region     = "europe-west1"°
-gcp-project-id = "my-test-project"
+gcp_region     = "europe-west1"°
+gcp_project_id = "my-test-project"
 ```
 
 **B)** Configure the variables directly in the project `garden.yml` (see the `terraform` provider section).
