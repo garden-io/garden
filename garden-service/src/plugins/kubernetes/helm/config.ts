@@ -126,8 +126,12 @@ export const execTestSchema = baseTestSpecSchema
         If not specified, the \`serviceResource\` configured on the module will be used. If neither is specified,
         an error will be thrown.`,
       ),
+    command: joi.array().items(joi.string())
+      .description("The command/entrypoint used to run the test inside the container.")
+      .example([commandExample, {}]),
     args: joi.array().items(joi.string())
-      .description("The arguments to pass to the pod used for testing."),
+      .description("The arguments to pass to the pod used for testing.")
+      .example([["npm", "test"], {}]),
     env: containerEnvVarsSchema,
   })
 
