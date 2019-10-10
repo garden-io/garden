@@ -7,7 +7,7 @@
  */
 
 import { KubeApi, KubernetesError } from "./api"
-import { getAppNamespace, prepareNamespaces, deleteNamespaces } from "./namespace"
+import { getAppNamespace, prepareNamespaces, deleteNamespaces, getMetadataNamespace } from "./namespace"
 import { KubernetesPluginContext, KubernetesConfig } from "./config"
 import { checkTillerStatus, installTiller } from "./helm/tiller"
 import {
@@ -233,13 +233,14 @@ export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams)
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, k8sCtx.provider)
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
+  const metadataNamespace = await getMetadataNamespace(k8sCtx, log, k8sCtx.provider)
   const entry = log.info({
     section: "kubernetes",
     msg: `Deleting namespace ${namespace} (this may take a while)`,
     status: "active",
   })
 
-  await deleteNamespaces([namespace], api, entry)
+  await deleteNamespaces([namespace, metadataNamespace], api, entry)
 
   return {}
 }
