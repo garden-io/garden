@@ -23,6 +23,7 @@ metadata.json
 *.tfstate.backup
 *.tfvars
 *.tfvars.json
+*.tfstate.lock.info
 .terraform
 
 # TS cache on the CI
