@@ -176,8 +176,8 @@ export async function applyStack(log: LogEntry, provider: TerraformProvider, roo
  * If any variables are specified in the Garden config, this prepares a .tfvars file to use and returns the
  * appropriate arguments to pass to the Terraform CLI, otherwise an empty array.
  */
-export async function prepareVariables(targetDir: string, variables: object): Promise<string[]> {
-  if (Object.entries(variables).length === 0) {
+export async function prepareVariables(targetDir: string, variables?: object): Promise<string[]> {
+  if (Object.entries(variables || {}).length === 0) {
     return []
   }
 
