@@ -258,10 +258,10 @@ describe("Garden", () => {
     })
 
     it("should throw if project root is not in a git repo root", async () => {
-      const tmpDir = await tmp.dir({ unsafeCleanup: true })
+      const dir = await tmp.dir({ unsafeCleanup: true })
 
       try {
-        const tmpPath = await realpath(tmpDir.path)
+        const tmpPath = await realpath(dir.path)
         await writeFile(join(tmpPath, "garden.yml"), dedent`
           kind: Project
           name: foo

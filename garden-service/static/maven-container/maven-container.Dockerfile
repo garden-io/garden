@@ -1,9 +1,5 @@
-ARG JDK_VERSION=8
-FROM openjdk:${JDK_VERSION}-jdk-alpine
-
-RUN addgroup -g 2000 app && \
-  adduser -D -u 2000 -G app -h /var/lib/app -s /bin/sh app
-USER 2000:2000
+ARG IMAGE_VERSION=8-jre
+FROM openjdk:${IMAGE_VERSION}
 
 EXPOSE 8080
 

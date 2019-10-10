@@ -1028,6 +1028,21 @@ tasks:
           key: some-key
 ```
 
+### `imageVersion`
+
+Set this to override the default OpenJDK container image version. Make sure the image version matches the
+configured `jdkVersion`. Ignored if you provide your own Dockerfile.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+Example:
+
+```yaml
+imageVersion: "11-jdk"
+```
+
 ### `jarPath`
 
 POSIX-style path to the packaged JAR artifact, relative to the module directory.
@@ -1140,6 +1155,7 @@ tasks:
     command:
     args:
     env: {}
+imageVersion:
 jarPath:
 jdkVersion: 8
 mvnOpts: []
@@ -1192,43 +1208,5 @@ Example:
 
 ```yaml
 my-variable: ${modules.my-module.version}
-```
-
-### `${modules.<module-name>.outputs}`
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | Yes      |
-
-### `${modules.<module-name>.outputs.local-image-name}`
-
-[outputs](#outputs) > local-image-name
-
-The name of the image (without tag/version) that the module uses for local builds and deployments.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-Example:
-
-```yaml
-my-variable: ${modules.my-module.outputs.local-image-name}
-```
-
-### `${modules.<module-name>.outputs.deployment-image-name}`
-
-[outputs](#outputs) > deployment-image-name
-
-The name of the image (without tag/version) that the module will use during deployment.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-Example:
-
-```yaml
-my-variable: ${modules.my-module.outputs.deployment-image-name}
 ```
 
