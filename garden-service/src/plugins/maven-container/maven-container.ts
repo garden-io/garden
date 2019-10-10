@@ -35,10 +35,13 @@ import { ConfigureModuleParams } from "../../types/plugin/module/configure"
 import { GetBuildStatusParams } from "../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams } from "../../types/plugin/module/build"
 
-const defaultDockerfilePath = resolve(STATIC_DIR, "maven-container", "Dockerfile")
+const defaultDockerfileName = "maven-container.Dockerfile"
+const defaultDockerfilePath = resolve(STATIC_DIR, "maven-container", defaultDockerfileName)
+
 const buildLock = new AsyncLock()
 
 export interface MavenContainerModuleSpec extends ContainerModuleSpec {
+  imageVersion?: string
   jarPath: string
   jdkVersion: number
   mvnOpts: string[]
@@ -54,6 +57,12 @@ export interface MavenContainerModule<
   > extends Module<M, S, T, W> { }
 
 const mavenKeys = {
+  imageVersion: joi.string()
+    .description(dedent`
+      Set this to override the default OpenJDK container image version. Make sure the image version matches the
+      configured \`jdkVersion\`. Ignored if you provide your own Dockerfile.
+    `)
+    .example("11-jdk"),
   jarPath: joi.string()
     .required()
     .posixPath({ subPathOnly: true })
@@ -61,7 +70,7 @@ const mavenKeys = {
     .example("target/my-module.jar"),
   jdkVersion: joi.number()
     .integer()
-    .allow(8, 11)
+    .allow(...Object.keys(openJdks))
     .default(8)
     .description("The JDK version to use."),
   mvnOpts: joiArray(joi.string())
@@ -113,8 +122,7 @@ export async function configureMavenContainerModule(params: ConfigureModuleParam
   const jdkVersion = moduleConfig.spec.jdkVersion!
 
   containerConfig.spec.buildArgs = {
-    JAR_PATH: "app.jar",
-    JDK_VERSION: jdkVersion.toString(),
+    IMAGE_VERSION: moduleConfig.spec.imageVersion || `${jdkVersion}-jdk`,
   }
 
   const configured = await base!({ ...params, moduleConfig: containerConfig })
@@ -128,6 +136,7 @@ export async function configureMavenContainerModule(params: ConfigureModuleParam
         jarPath: moduleConfig.spec.jarPath,
         jdkVersion,
         mvnOpts: moduleConfig.spec.mvnOpts,
+        dockerfile: moduleConfig.spec.dockerfile || defaultDockerfileName,
       },
     },
   }
@@ -172,7 +181,7 @@ async function build(params: BuildModuleParams<MavenContainerModule>) {
   await buildLock.acquire("mvn", async () => {
     await maven.exec({
       args: mvnArgs,
-      cwd: ctx.projectRoot,
+      cwd: module.path,
       log,
       env: {
         JAVA_HOME: openJdkPath,
@@ -200,9 +209,9 @@ async function build(params: BuildModuleParams<MavenContainerModule>) {
 async function prepareBuild(module: MavenContainerModule, log: LogEntry) {
   // Copy the default Dockerfile to the build directory, if the module doesn't provide one
   // Note: Doing this here so that the build status check works as expected.
-  if (!(await containerHelpers.hasDockerfile(module))) {
+  if (module.spec.dockerfile === defaultDockerfileName || !(await containerHelpers.hasDockerfile(module))) {
     log.debug(`Using default Dockerfile`)
-    await copy(defaultDockerfilePath, resolve(module.buildPath, "Dockerfile"))
+    await copy(defaultDockerfilePath, resolve(module.buildPath, defaultDockerfileName))
   }
 }
 
