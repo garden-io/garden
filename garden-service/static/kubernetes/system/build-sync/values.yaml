@@ -22,6 +22,9 @@ resources:
 storage:
   request: 2Gi
 
+pvc:
+  name: garden-build-sync
+
 nodeSelector: {}
 
 tolerations: []

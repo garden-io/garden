@@ -2,13 +2,13 @@ kind: Module
 name: nfs-provisioner
 description: Provisioner for NFS volumes used by Garden system services
 type: helm
-chart: stable/nfs-server-provisioner
-version: "0.3.0"
-releaseName: garden-nfs-provisioner
+releaseName: garden-nfs-provisioner-v2
 values:
-  nameOverride: garden-nfs-provisioner
-  fullnameOverride: garden-nfs-provisioner
+  nameOverride: garden-nfs-provisioner-v2
+  fullnameOverride: garden-nfs-provisioner-v2
   persistence:
-    enabled: false
+    enabled: true
+    size: ${var.nfs-storage-size}
+    storageClass: ${var.nfs-storage-class}
   storageClass:
-    name: garden-system-nfs
+    name: ${var.sync-storage-class}

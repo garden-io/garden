@@ -25,7 +25,8 @@ import chalk from "chalk"
 import { deline } from "../../util/string"
 import { combineStates, ServiceStatusMap } from "../../types/service"
 
-const nfsStorageClass = "garden-system-nfs"
+// Note: We need to increment a version number here if we ever make breaking changes to the NFS provisioner StatefulSet
+const nfsStorageClass = "garden-system-nfs-v2"
 
 /**
  * Performs the following actions to check environment status:
@@ -162,7 +163,11 @@ export async function prepareSystem(
   // in the prepareEnvironment handler, instead of flagging as not ready here. This avoids blocking users where
   // there's variance in configuration between users of the same cluster, that often doesn't affect usage.
   if (!clusterInit && remoteCluster) {
-    if (combinedState === "outdated" && !serviceStates.includes("missing")) {
+    if (
+      combinedState === "outdated" &&
+      !serviceStates.includes("missing") &&
+      !(ctx.command && ctx.command.name === "plugins" && ctx.command.args.command === "cluster-init")
+    ) {
       log.warn({
         symbol: "warning",
         msg: chalk.yellow(deline`
@@ -178,12 +183,6 @@ export async function prepareSystem(
   // We require manual init if we're installing any system services to remote clusters, to avoid conflicts
   // between users or unnecessary work.
   if (!clusterInit && remoteCluster && !systemReady) {
-    // Special-case so that this doesn't error when attempting to run the cluster init
-    const initCommandName = `plugins ${ctx.provider.name} cluster-init`
-    if (ctx.command && ctx.command.name === initCommandName) {
-      return {}
-    }
-
     throw new KubernetesError(deline`
       One or more cluster-wide system services are missing or not ready. You need to run
       \`garden --env=${ctx.environmentName} plugins kubernetes cluster-init\`
@@ -198,7 +197,22 @@ export async function prepareSystem(
   const sysProvider = await sysGarden.resolveProvider(k8sCtx.provider.name)
   const sysCtx = <KubernetesPluginContext>await sysGarden.getPluginContext(sysProvider)
 
+  await sysGarden.clearBuilds()
+
   await installTiller({ ctx: sysCtx, provider: sysCtx.provider, log, force })
+
+  // We need to install the NFS provisioner separately, so that we can optionally install it
+  // FIXME: when we've added an `enabled` field, we should get rid of this special case
+  if (systemServiceNames.includes("nfs-provisioner")) {
+    await prepareSystemServices({
+      log,
+      sysGarden,
+      namespace: systemNamespace,
+      force,
+      ctx: k8sCtx,
+      serviceNames: ["nfs-provisioner"],
+    })
+  }
 
   // Install system services
   await prepareSystemServices({
@@ -207,7 +221,7 @@ export async function prepareSystem(
     namespace: systemNamespace,
     force,
     ctx: k8sCtx,
-    serviceNames: systemServiceNames,
+    serviceNames: systemServiceNames.filter(name => name !== "nfs-provisioner"),
   })
 
   sysGarden.log.setSuccess()
@@ -231,6 +245,8 @@ export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams)
 }
 
 export function getKubernetesSystemVariables(config: KubernetesConfig) {
+  const syncStorageClass = config.storage.sync.storageClass || nfsStorageClass
+
   return {
     "namespace": systemNamespace,
 
@@ -241,22 +257,27 @@ export function getKubernetesSystemVariables(config: KubernetesConfig) {
     "builder-limits-memory": megabytesToString(config.resources.builder.limits.memory),
     "builder-requests-cpu": millicpuToString(config.resources.builder.requests.cpu),
     "builder-requests-memory": megabytesToString(config.resources.builder.requests.memory),
-    "builder-storage-size": megabytesToString(config.storage.builder.size),
+    "builder-storage-size": megabytesToString(config.storage.builder.size!),
     "builder-storage-class": config.storage.builder.storageClass,
+
+    // We only use NFS for the build-sync volume, so we allocate the space we need for that plus 1GB for margin.
+    "nfs-storage-size": megabytesToString(config.storage.sync.size! + 1024),
+    "nfs-storage-class": config.storage.nfs.storageClass,
 
     "registry-limits-cpu": millicpuToString(config.resources.registry.limits.cpu),
     "registry-limits-memory": megabytesToString(config.resources.registry.limits.memory),
     "registry-requests-cpu": millicpuToString(config.resources.registry.requests.cpu),
     "registry-requests-memory": megabytesToString(config.resources.registry.requests.memory),
-    "registry-storage-size": megabytesToString(config.storage.registry.size),
+    "registry-storage-size": megabytesToString(config.storage.registry.size!),
     "registry-storage-class": config.storage.registry.storageClass,
 
     "sync-limits-cpu": millicpuToString(config.resources.sync.limits.cpu),
     "sync-limits-memory": megabytesToString(config.resources.sync.limits.memory),
     "sync-requests-cpu": millicpuToString(config.resources.sync.requests.cpu),
     "sync-requests-memory": megabytesToString(config.resources.sync.requests.memory),
-    "sync-storage-size": megabytesToString(config.storage.sync.size),
-    "sync-storage-class": config.storage.sync.storageClass || nfsStorageClass,
+    "sync-storage-size": megabytesToString(config.storage.sync.size!),
+    "sync-storage-class": syncStorageClass,
+    "sync-volume-name": `garden-sync-${syncStorageClass}`,
   }
 }
 

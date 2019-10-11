@@ -536,9 +536,9 @@ Storage parameters to set for the in-cluster builder, container registry and cod
 These are all shared cluster-wide across all users and builds, so they should be resourced accordingly,
 factoring in how many concurrent builds you expect and how large your images and build contexts tend to be.
 
-| Type     | Required | Default                                                                                                                                  |
-| -------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `object` | No       | `{"builder":{"size":20480,"storageClass":null},"registry":{"size":20480,"storageClass":null},"sync":{"size":10240,"storageClass":null}}` |
+| Type     | Required | Default                                                                                                                                                              |
+| -------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `object` | No       | `{"builder":{"size":20480,"storageClass":null},"nfs":{"storageClass":null},"registry":{"size":20480,"storageClass":null},"sync":{"size":10240,"storageClass":null}}` |
 
 ### `providers[].storage.builder`
 
@@ -567,6 +567,29 @@ Volume size in megabytes.
 [providers](#providers) > [storage](#providersstorage) > [builder](#providersstoragebuilder) > storageClass
 
 Storage class to use for the volume.
+
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `string` | No       | `null`  |
+
+### `providers[].storage.nfs`
+
+[providers](#providers) > [storage](#providersstorage) > nfs
+
+Storage parameters for the NFS provisioner, which we automatically create for the sync volume, _unless_
+you specify a `storageClass` for the sync volume. See the below `sync` parameter for more.
+
+Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored otherwise.
+
+| Type     | Required | Default                 |
+| -------- | -------- | ----------------------- |
+| `object` | No       | `{"storageClass":null}` |
+
+### `providers[].storage.nfs.storageClass`
+
+[providers](#providers) > [storage](#providersstorage) > [nfs](#providersstoragenfs) > storageClass
+
+Storage class to use as backing storage for NFS .
 
 | Type     | Required | Default |
 | -------- | -------- | ------- |
@@ -613,7 +636,7 @@ Storage parameters for the code sync volume, which build contexts are synced to 
 in-cluster builds.
 
 Important: The storage class configured here has to support _ReadWriteMany_ access.
-If you don't specify a storage class, Garden creates an NFS provisioner and provisions an ephemeral
+If you don't specify a storage class, Garden creates an NFS provisioner and provisions an
 NFS volume for the sync data volume.
 
 Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored otherwise.
@@ -935,6 +958,8 @@ providers:
     storage:
       builder:
         size: 20480
+        storageClass: null
+      nfs:
         storageClass: null
       registry:
         size: 20480

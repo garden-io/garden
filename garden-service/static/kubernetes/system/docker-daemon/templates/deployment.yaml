@@ -28,7 +28,7 @@ spec:
             claimName: garden-docker-data
         - name: garden-build-sync
           persistentVolumeClaim:
-            claimName: garden-build-sync
+            claimName: {{ .Values.buildSync.volume.name }}
         # - name: garden-registry-tls
         #   secret:
         #     secretName: foo

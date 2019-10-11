@@ -9,6 +9,8 @@
 import { PluginCommand } from "../../../types/plugin/command"
 import { prepareSystem, getEnvironmentStatus } from "../init"
 import chalk from "chalk"
+import { helm } from "../helm/helm-cli"
+import { KubernetesPluginContext } from "../config"
 
 export const clusterInit: PluginCommand = {
   name: "cluster-init",
@@ -33,6 +35,19 @@ export const clusterInit: PluginCommand = {
         clusterInit: true,
       })
     }
+
+    const k8sCtx = ctx as KubernetesPluginContext
+
+    log.info("Cleaning up old resources...")
+
+    try {
+      await helm({
+        ctx: k8sCtx,
+        log,
+        namespace: "garden-system",
+        args: ["delete", "--purge", "garden-nfs-provisioner"],
+      })
+    } catch (_) { }
 
     log.info(chalk.green("\nDone!"))
 
