@@ -1,4 +1,15 @@
 
+<a name="v0.10.13"></a>
+## [v0.10.13](https://github.com/garden-io/garden/compare/v0.10.12...v0.10.13) (2019-10-11)
+
+### Bug Fixes
+
+* **k8s:** don't install NFS provisioner when sync storage class is set ([f0263371](https://github.com/garden-io/garden/commit/f0263371))
+* **k8s:** avoid issues with NFS provisioner on node/pod eviction ([2f2eef80](https://github.com/garden-io/garden/commit/2f2eef80))
+* **k8s:** add missing command argument to helm module test schema ([c5fc53af](https://github.com/garden-io/garden/commit/c5fc53af))
+* **vcs:** no files were found when dotIgnoreFiles was set to empty list ([48208005](https://github.com/garden-io/garden/commit/48208005))
+
+
 <a name="v0.10.12"></a>
 ## [v0.10.12](https://github.com/garden-io/garden/compare/v0.10.11...v0.10.12) (2019-10-02)
 
