@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: garden-build-sync
+  name: {{ .Values.pvc.name }}
 spec:
   accessModes:
     - ReadWriteMany

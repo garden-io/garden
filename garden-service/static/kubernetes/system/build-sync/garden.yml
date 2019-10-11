@@ -3,8 +3,10 @@ type: helm
 name: build-sync
 description: Sync service for receiving build context ahead of in-cluster builds
 releaseName: garden-build-sync
-dependencies:
-  - nfs-provisioner
+# Note: We special-case this dependency in the cluster-init procedure,
+# to be fixed when the `enabled` field is implemented
+# dependencies:
+#   - nfs-provisioner
 values:
   resources:
     limits:
@@ -16,3 +18,5 @@ values:
   storage:
     request: ${var.sync-storage-size}
     storageClass: ${var.sync-storage-class}
+  pvc:
+    name: ${var.sync-volume-name}
