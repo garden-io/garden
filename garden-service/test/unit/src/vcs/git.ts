@@ -294,6 +294,23 @@ describe("GitHandler", () => {
       expect(files).to.eql([])
     })
 
+    it("should work without ignore files", async () => {
+      const path = resolve(tmpPath, "foo.txt")
+
+      await createFile(path)
+      await writeFile(path, "my change")
+      await git("add", ".")
+      await git("commit", "-m", "foo")
+
+      const hash = "6e1ab2d7d26c1c66f27fea8c136e13c914e3f137"
+
+      const _handler = new GitHandler(tmpPath, [])
+
+      expect(await _handler.getFiles({ path: tmpPath, log })).to.eql([
+        { path, hash },
+      ])
+    })
+
     it("should correctly handle multiple ignore files", async () => {
       const nameA = "foo.txt"
       const nameB = "boo.txt"

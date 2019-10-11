@@ -60,7 +60,7 @@ export class GitHandler extends VcsHandler {
 
   private gitCli(log: LogEntry, cwd: string): GitCli {
     return async (...args: string[]) => {
-      log.silly(`Calling git with args '${args.join(" ")}`)
+      log.silly(`Calling git with args '${args.join(" ")}'`)
       const { stdout } = await execa("git", args, { cwd, maxBuffer: 10 * 1024 * 1024 })
       return stdout.split("\n").filter(line => line.length > 0)
     }
@@ -113,11 +113,11 @@ export class GitHandler extends VcsHandler {
     )
 
     // List tracked but ignored files (we currently exclude those as well, so we need to query that specially)
-    const trackedButIgnored = new Set(flatten(
-      await Promise.all(this.ignoreFiles.map(f =>
-        git("ls-files", "--ignored", "--exclude-per-directory", f),
-      )),
-    ))
+    const trackedButIgnored = new Set(
+      this.ignoreFiles.length === 0 ? [] : flatten(
+        await Promise.all(this.ignoreFiles.map(f => git("ls-files", "--ignored", "--exclude-per-directory", f))),
+      ),
+    )
 
     // List all submodule paths in the current repo
     const submodulePaths = (await this.getSubmodules(gitRoot)).map(s => join(gitRoot, s.path))
@@ -166,16 +166,20 @@ export class GitHandler extends VcsHandler {
       // We push to the output array when all ls-files commands "agree" that it should be included,
       // and it passes through the include/exclude filters.
       if (
-        paths[resolvedPath] === this.ignoreFiles.length
+        paths[resolvedPath] >= this.ignoreFiles.length
         && (matchPath(filePath, include, exclude) || submodulePaths.includes(resolvedPath))
       ) {
         files.push({ path: resolvedPath, hash })
       }
     }
 
-    // We run ls-files for each ignore file and collect each return result line with `handleLine`
-    await Bluebird.map(this.ignoreFiles, async (f) => {
-      const args = ["ls-files", "-s", "--others", "--exclude", this.gardenDirPath, "--exclude-per-directory", f, path]
+    const lsFiles = async (ignoreFile?: string) => {
+      const args = ["ls-files", "-s", "--others", "--exclude", this.gardenDirPath]
+      if (ignoreFile) {
+        args.push("--exclude-per-directory", ignoreFile)
+      }
+      args.push(path)
+
       const proc = execa("git", args, { cwd: path })
 
       // Split the command output by line
@@ -191,7 +195,14 @@ export class GitHandler extends VcsHandler {
           throw err
         }
       }
-    })
+    }
+
+    if (this.ignoreFiles.length === 0) {
+      await lsFiles()
+    } else {
+      // We run ls-files for each ignore file and collect each return result line with `handleLine`
+      await Bluebird.map(this.ignoreFiles, lsFiles)
+    }
 
     // Resolve submodules
     const withSubmodules = flatten(await Bluebird.map(files, async (f) => {
