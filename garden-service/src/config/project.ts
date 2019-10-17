@@ -127,6 +127,10 @@ export interface ProjectConfig {
     include?: string[],
     exclude?: string[],
   },
+  watch?: {
+    include: string[],
+    exclude: string[],
+  },
   providers: ProviderConfig[]
   sources?: SourceConfig[]
   varfile?: string
@@ -230,6 +234,10 @@ export const projectSchema = joi.object()
       .description("A list of environments to configure for the project.")
       .example([defaultEnvironments, {}]),
     modules: projectModulesSchema,
+    watch: {
+      include: joi.array().items(joi.string()),
+      exclude: joi.array().items(joi.string()),
+    },
     providers: joiArray(providerConfigBaseSchema)
       .description(
         "A list of providers that should be used for this project, and their configuration. " +

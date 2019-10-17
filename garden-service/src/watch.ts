@@ -62,6 +62,7 @@ export class Watcher {
     private paths: string[],
     private modules: Module[],
     private bufferInterval: number = DEFAULT_BUFFER_INTERVAL,
+    private ignorePaths?: string[],
   ) {
     this.buffer = {}
     this.running = false
@@ -96,6 +97,7 @@ export class Watcher {
       }
 
       watcher = watch(this.paths, {
+        ignored: this.ignorePaths,
         ignoreInitial: true,
         ignorePermissionErrors: true,
         persistent: true,

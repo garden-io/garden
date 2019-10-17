@@ -213,6 +213,28 @@ modules:
     - tmp/**/*
 ```
 
+### `watch`
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `watch.include[]`
+
+[watch](#watch) > include
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `watch.exclude[]`
+
+[watch](#watch) > exclude
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
 ### `providers`
 
 A list of providers that should be used for this project, and their configuration. Please refer to individual plugins/providers for details on how to configure them.
@@ -422,6 +444,9 @@ environmentDefaults:
   varfile: garden.<env-name>.env
   variables: {}
 modules:
+  include:
+  exclude:
+watch:
   include:
   exclude:
 providers:

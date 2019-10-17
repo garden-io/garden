@@ -101,6 +101,10 @@ export interface GardenParams {
   variables: PrimitiveMap
   vcs: VcsHandler
   workingCopyId: string
+  watch?: {
+    include: string[],
+    exclude: string[],
+  }
 }
 
 export class Garden {
@@ -136,6 +140,7 @@ export class Garden {
   public readonly moduleIncludePatterns?: string[]
   public readonly moduleExcludePatterns: string[]
   public readonly persistent: boolean
+  public readonly watch: { include: string[]; exclude: string[] } | undefined
 
   constructor(params: GardenParams) {
     this.buildDir = params.buildDir
@@ -155,6 +160,7 @@ export class Garden {
     this.asyncLock = new AsyncLock()
     this.persistent = !!params.opts.persistent
     this.vcs = params.vcs
+    this.watch = params.watch
 
     // make sure we're on a supported platform
     const currentPlatform = platform()
@@ -253,6 +259,7 @@ export class Garden {
       moduleIncludePatterns: (config.modules || {}).include,
       log,
       vcs,
+      watch: config.watch,
     }) as InstanceType<T>
 
     return garden
@@ -284,8 +291,18 @@ export class Garden {
   async startWatcher(graph: ConfigGraph, bufferInterval?: number) {
     const modules = await graph.getModules()
     const linkedPaths = (await getLinkedSources(this)).map(s => s.path)
-    const paths = [this.projectRoot, ...linkedPaths]
-    this.watcher = new Watcher(this, this.log, paths, modules, bufferInterval)
+    const paths: string[] = []
+    const excludePaths: string[] = []
+    if (this.watch && this.watch.include) {
+      paths.push(...this.watch.include.map((path) => resolve(this.projectRoot, path)))
+    } else {
+      paths.push(this.projectRoot, ...linkedPaths)
+    }
+
+    if (this.watch && this.watch.exclude) {
+      excludePaths.push(...this.watch.exclude.map((path) => resolve(this.projectRoot, path)))
+    }
+    this.watcher = new Watcher(this, this.log, paths, modules, bufferInterval, excludePaths)
   }
 
   private registerPlugin(name: string, moduleOrFactory: RegisterPluginParam) {
