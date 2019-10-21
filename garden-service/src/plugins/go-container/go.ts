@@ -40,7 +40,6 @@ export const go = new BinaryCmd({
   specs: {
     darwin: macos,
     linux: penguin,
-    // Is the "32" here really 32 or is it just the name?
     win32: windows,
   },
 })

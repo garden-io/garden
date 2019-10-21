@@ -1,9 +1,6 @@
-FROM alpine
-RUN apk add entr ca-certificates
-RUN mkdir app
+FROM alpine:3.10.2
+RUN apk add entr ca-certificates & mkdir app
 WORKDIR /app
-EXPOSE 8080
-
 COPY bin/ /app/
-
-CMD ls binary | entr -r ./binary 
+# RUN ${EXTRA_RUN}
+ENTRYPOINT ["/app/binary"]
