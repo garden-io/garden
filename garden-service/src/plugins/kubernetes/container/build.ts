@@ -22,7 +22,7 @@ import { KubeApi } from "../api"
 import { kubectl } from "../kubectl"
 import { LogEntry } from "../../../logger/log-entry"
 import { KubernetesProvider, ContainerBuildMode, KubernetesPluginContext } from "../config"
-import { PluginError } from "../../../exceptions"
+import { PluginError, RuntimeError } from "../../../exceptions"
 import { runPod } from "../run"
 import { getRegistryHostname } from "../init"
 import { getManifestFromRegistry } from "./util"
@@ -189,8 +189,13 @@ const remoteBuild: BuildHandler = async (params) => {
     const podName = await getBuilderPodName(provider, log)
     const buildTimeout = module.spec.build.timeout
 
-    const buildRes = await execInBuilder({ provider, log, args, timeout: buildTimeout, podName, outputStream })
-    buildLog = buildRes.stdout + buildRes.stderr
+    try {
+      const buildRes = await execInBuilder({ provider, log, args, timeout: buildTimeout, podName, outputStream })
+      buildLog = buildRes.stdout + buildRes.stderr
+    } catch (err) {
+      const error = <execa.ExecaError>err
+      throw new RuntimeError(`Unable to run docker command: ${error.all}`, { error, args })
+    }
 
     // Push the image to the registry
     log.setState({ msg: `Pushing image ${localId} to registry...` })
