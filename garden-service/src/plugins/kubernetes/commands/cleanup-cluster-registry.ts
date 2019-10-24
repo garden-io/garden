@@ -83,7 +83,7 @@ async function getImagesInUse(api: KubeApi, provider: KubernetesProvider, log: L
   let _continue: string | undefined
 
   while (true) {
-    const page = await api.core.listPodForAllNamespaces(_continue)
+    const page = await api.core.listPodForAllNamespaces(undefined, _continue)
     pods.push(...page.items)
 
     if (page.metadata._continue) {

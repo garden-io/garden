@@ -88,7 +88,12 @@ export async function getWorkloadPods(api: KubeApi, namespace: string, resource:
     // Make sure we only return the pods from the current ReplicaSet
     const selectorString = labelSelectorToString(selector)
     const replicaSets = await api.apps.listNamespacedReplicaSet(
-      resource.metadata.namespace || namespace, false, undefined, undefined, undefined, selectorString,
+      resource.metadata.namespace || namespace,
+      undefined,  // pretty
+      undefined,  // allowWatchBookmarks
+      undefined,  // _continue
+      undefined,  // fieldSelector
+      selectorString,   // labelSelector
     )
 
     if (replicaSets.items.length === 0) {
@@ -116,7 +121,12 @@ export async function getPods(
 ): Promise<KubernetesServerResource<V1Pod>[]> {
   const selectorString = labelSelectorToString(selector)
   const res = await api.core.listNamespacedPod(
-    namespace, true, undefined, undefined, undefined, selectorString,
+    namespace,
+    undefined,  // pretty
+    undefined,  // allowWatchBookmarks
+    undefined,  // continue
+    undefined,  // fieldSelector
+    selectorString, // labelSelector
   )
   return <KubernetesServerResource<V1Pod>[]>res.items.map(pod => {
     // inexplicably, the API sometimes returns apiVersion and kind as undefined...

@@ -329,7 +329,7 @@ async function runKaniko({ provider, log, module, args, outputStream }: RunKanik
             protocol: "TCP",
           }],
           readinessProbe: {
-            tcpSocket: { port: registryPort },
+            tcpSocket: { port: <any>registryPort },
           },
         },
         // This is a little workaround so that the socat proxy doesn't just keep running after the build finishes.

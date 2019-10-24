@@ -275,7 +275,7 @@ export class KubeApi {
     }
 
     // apply auth
-    this.config.applyToRequest(requestOpts)
+    await this.config.applyToRequest(requestOpts)
 
     try {
       log.silly(`GET ${url}`)

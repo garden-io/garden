@@ -62,13 +62,13 @@ commands:
     steps:
       - restore_cache:
           keys:
-          - root-v2-{{ checksum "package-lock.json" }}
+          - root-v3-{{ checksum "package-lock.json" }}
       - restore_cache:
           keys:
-          - garden-service-v2-{{ checksum "garden-service/package-lock.json" }}
+          - garden-service-v3-{{ checksum "garden-service/package-lock.json" }}
       - restore_cache:
           keys:
-          - dashboard-v2-{{ checksum "dashboard/package-lock.json" }}
+          - dashboard-v3-{{ checksum "dashboard/package-lock.json" }}
 
       # only install root dependencies if node_modules wasn't cached
       - run: if [ ! -d "node_modules" ]; then npm ci; fi
@@ -77,13 +77,13 @@ commands:
 
       - save_cache:
           paths: [node_modules]
-          key: root-v2-{{ checksum "package-lock.json" }}
+          key: root-v3-{{ checksum "package-lock.json" }}
       - save_cache:
           paths: [garden-service/node_modules]
-          key: garden-service-v2-{{ checksum "garden-service/package-lock.json" }}
+          key: garden-service-v3-{{ checksum "garden-service/package-lock.json" }}
       - save_cache:
           paths: [dashboard/node_modules]
-          key: dashboard-v2-{{ checksum "dashboard/package-lock.json" }}
+          key: dashboard-v3-{{ checksum "dashboard/package-lock.json" }}
 
   configure_kubectl_context:
     description: Configure the kubectl context so that we can access our remote cluster. Used for e2e testing.
@@ -342,7 +342,9 @@ jobs:
             # ...and finally symlink for when calling Garden with sudo below
             sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/node" "/usr/local/bin/node"
             sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/npm" "/usr/local/bin/npm"
-      - npm_install
+      # Note: We can't use npm_install here because the cache conflicts
+      - run: npm ci
+      - run: npm run bootstrap
       - run: npm run build
       - run:
           name: Install Minikube Executable
