@@ -173,7 +173,7 @@
     "chai": "^4.2.0",
     "gulp": "^4.0.2",
     "gulp-pegjs": "^0.2.0",
-    "handlebars": "^4.2.0",
+    "handlebars": "^4.4.5",
     "is-subset": "^0.1.1",
     "linewrap": "^0.2.1",
     "md5": "^2.2.1",
@@ -186,7 +186,6 @@
     "pkg": "4.3.8",
     "replace-in-file": "^4.1.3",
     "shx": "^0.3.2",
-    "snyk": "^1.224.0",
     "testdouble": "^3.12.4",
     "testdouble-chai": "^0.5.0",
     "timekeeper": "^2.2.0",
@@ -211,8 +210,6 @@
     "integ": "./test/integ/run",
     "e2e-full": "node ./build/test/e2e/e2e-full.js",
     "pkg": "./bin/build-pkg.sh",
-    "prepare": "npm run snyk-protect",
-    "snyk-protect": "snyk protect",
     "test": "node_modules/.bin/mocha",
     "tsc": "tsc -p . --outDir build --declaration --declarationMap --sourceMap",
     "view-report": "open coverage/index.html",
@@ -224,6 +221,5 @@
       "build/src/**/*.js"
     ]
   },
-  "snyk": true,
   "gitHead": "b0647221a4d2ff06952bae58000b104215aed922"
 }
