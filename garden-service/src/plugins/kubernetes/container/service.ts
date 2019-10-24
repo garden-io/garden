@@ -44,7 +44,7 @@ export async function createServiceResources(service: ContainerService, namespac
         name: portSpec.name,
         protocol: portSpec.protocol,
         port: portSpec.servicePort,
-        targetPort: portSpec.containerPort,
+        targetPort: <any>portSpec.containerPort,
       }
 
       if (portSpec.nodePort && portSpec.nodePort !== true) {
