@@ -6,15 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import execa from "execa"
 import { RuntimeError } from "../../../exceptions"
 import { LogEntry } from "../../../logger/log-entry"
+import { exec } from "../../../util/util"
 
 export async function configureMicrok8sAddons(log: LogEntry, addons: string[]) {
   let status = ""
 
   try {
-    status = (await execa("microk8s.status")).stdout
+    status = (await exec("microk8s.status")).stdout
   } catch {
     // This is caught below.
   }
@@ -29,6 +29,6 @@ export async function configureMicrok8sAddons(log: LogEntry, addons: string[]) {
 
   if (missingAddons.length > 0) {
     log.info({ section: "microk8s", msg: `enabling required addons (${missingAddons.join(", ")})` })
-    await execa("microk8s.enable", missingAddons)
+    await exec("microk8s.enable", missingAddons)
   }
 }

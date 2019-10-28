@@ -7,7 +7,6 @@
  */
 
 import Bluebird from "bluebird"
-import execa from "execa"
 import normalizePath = require("normalize-path")
 import { V1Deployment, V1DaemonSet, V1StatefulSet } from "@kubernetes/client-node"
 import { ContainerModule, ContainerHotReloadSpec } from "../container/config"
@@ -29,6 +28,7 @@ import { normalizeLocalRsyncPath } from "../../util/fs"
 import { createWorkloadResource } from "./container/deployment"
 import { kubectl } from "./kubectl"
 import { labelSelectorToString } from "./util"
+import { exec } from "../../util/util"
 
 export const RSYNC_PORT_NAME = "garden-rsync"
 
@@ -291,7 +291,7 @@ export async function syncToService(
 
       log.debug(`Hot-reloading from ${src} to ${destination}`)
 
-      return execa("rsync", ["-vrpztgo", src, destination])
+      return exec("rsync", ["-vrpztgo", src, destination])
     })
 
     const postSyncCommand = hotReloadSpec.postSyncCommand

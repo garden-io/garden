@@ -16,7 +16,6 @@ import { BuildModuleParams, BuildResult } from "../../../types/plugin/module/bui
 import { getPods, millicpuToString, megabytesToString } from "../util"
 import { systemNamespace } from "../system"
 import { RSYNC_PORT } from "../constants"
-import execa = require("execa")
 import { posix, resolve } from "path"
 import { KubeApi } from "../api"
 import { kubectl } from "../kubectl"
@@ -31,6 +30,7 @@ import { getPortForward } from "../port-forward"
 import chalk from "chalk"
 import { Writable } from "stream"
 import { LogLevel } from "../../../logger/log-node"
+import { exec } from "../../../util/util"
 
 const dockerDaemonDeploymentName = "garden-docker-daemon"
 const dockerDaemonContainerName = "docker-daemon"
@@ -149,7 +149,7 @@ const remoteBuild: BuildHandler = async (params) => {
 
   // We retry a couple of times, because we may get intermittent connection issues or concurrency issues
   await pRetry(
-    () => execa("rsync", ["-vrpztgo", "--relative", "--delete", src, destination]),
+    () => exec("rsync", ["-vrpztgo", "--relative", "--delete", src, destination]),
     { retries: 3, minTimeout: 500 },
   )
 

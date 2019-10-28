@@ -10,9 +10,8 @@ import { platform } from "os"
 import { pathExists, createWriteStream, ensureDir, chmod, remove, move } from "fs-extra"
 import { ConfigurationError, ParameterError, GardenBaseError } from "../exceptions"
 import { join, dirname, basename, sep } from "path"
-import { hashString } from "./util"
+import { hashString, exec } from "./util"
 import Axios from "axios"
-import execa from "execa"
 import tar from "tar"
 import { SupportedPlatform, GARDEN_GLOBAL_PATH } from "../constants"
 import { LogEntry } from "../logger/log-entry"
@@ -269,20 +268,15 @@ export class BinaryCmd extends Library {
 
     log.debug(`Execing '${path} ${args.join(" ")}' in ${cwd}`)
 
-    const proc = execa(path, args, {
+    return exec(path, args, {
       cwd,
       timeout: this.getTimeout(timeout) * 1000,
       env,
       input,
+      outputStream,
       reject: !ignoreError,
     })
 
-    if (outputStream) {
-      proc.stdout && proc.stdout.pipe(outputStream)
-      proc.stderr && proc.stderr.pipe(outputStream)
-    }
-
-    return proc
   }
 
   async stdout(params: ExecParams) {

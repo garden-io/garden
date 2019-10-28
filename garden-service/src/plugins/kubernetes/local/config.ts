@@ -7,7 +7,6 @@
  */
 
 import Bluebird from "bluebird"
-import execa from "execa"
 import { KubernetesBaseConfig, kubernetesConfigBase, k8sContextSchema } from "../config"
 import { ConfigureProviderParams } from "../../../types/plugin/provider/configureProvider"
 import { joiProviderName, joi } from "../../../config/common"
@@ -15,6 +14,7 @@ import { getKubeConfig } from "../api"
 import { configureMicrok8sAddons } from "./microk8s"
 import { setMinikubeDockerEnv } from "./minikube"
 import { ContainerRegistryConfig } from "../../container/config"
+import { exec } from "../../../util/util"
 
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
 
@@ -99,17 +99,17 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
       ["config", "set", "WantUpdateNotification", "false"],
       ["addons", "enable", "dashboard"],
     ]
-    await Bluebird.map(initCmds, async (cmd) => execa("minikube", cmd))
+    await Bluebird.map(initCmds, async (cmd) => exec("minikube", cmd))
 
     if (!defaultHostname) {
       // use the nip.io service to give a hostname to the instance, if none is explicitly configured
-      const { stdout } = await execa("minikube", ["ip"])
+      const { stdout } = await exec("minikube", ["ip"])
       defaultHostname = `${projectName}.${stdout}.nip.io`
     }
 
     if (config.setupIngressController === "nginx") {
       log.debug("Using minikube's ingress addon")
-      await execa("minikube", ["addons", "enable", "ingress"])
+      await exec("minikube", ["addons", "enable", "ingress"])
     }
 
     await setMinikubeDockerEnv()

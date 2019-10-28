@@ -15,10 +15,9 @@ import {
 } from "../base"
 import { findProjectConfig } from "../../config/base"
 import { ensureDir, copy, remove, pathExists, writeFile } from "fs-extra"
-import { getPackageVersion } from "../../util/util"
+import { getPackageVersion, exec } from "../../util/util"
 import { platform, release } from "os"
 import { join, relative, basename, dirname } from "path"
-import execa = require("execa")
 import { LogEntry } from "../../logger/log-entry"
 import { deline } from "../../util/string"
 import { findConfigPathsInPath, getConfigFilePath, defaultDotIgnoreFiles } from "../../util/fs"
@@ -115,7 +114,7 @@ export async function collectSystemDiagnostic(gardenDirPath: string, log: LogEnt
   const dockerLog = log.info({ section: "Docker", msg: "collecting info", status: "active" })
   let dockerVersion = ""
   try {
-    dockerVersion = (await execa("docker", ["--version"])).stdout
+    dockerVersion = (await exec("docker", ["--version"])).stdout
     dockerLog.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
   } catch (error) {
     log.error("Error encountered while executing docker")
