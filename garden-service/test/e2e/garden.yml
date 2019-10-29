@@ -25,28 +25,28 @@ kind: Module
 name: e2e-tests
 type: exec
 tests:
-  - name: demo-project
+  - name: batch_a-demo-project
     command: [npm, run, e2e-full, --, --project=demo-project, "--showlog=${var.show-log}", "--env=${environment.name}"]
     timeout: ${var.timeout}
-  - name: tasks # Tests for tasks are currently being skipped
+  - name: batch_b-tasks # Tests for tasks are currently being skipped
     command: [npm, run, e2e-full, --, --project=tasks, "--showlog=${var.show-log}", "--env=${environment.name}"]
     timeout: ${var.timeout}
-  - name: hot-reload
-    command: [npm, run, e2e-full, --, --project=hot-reload, "--showlog=${var.show-log}", "--env=${environment.name}"]
-    timeout: ${var.timeout}
-  - name: openfaas
-    command: [npm, run, e2e-full, --, --project=openfaas, "--showlog=${var.show-log}", "--env=${environment.name}"]
-  - name: project-variables
-    command: [npm, run, e2e-full, --, --project=project-variables, "--showlog=${var.show-log}", "--env=${environment.name}"]
-    timeout: ${var.timeout}
-  - name: vote-helm
-    command: [npm, run, e2e-full, --, --project=vote-helm, "--showlog=${var.show-log}", "--env=${environment.name}"]
-    timeout: ${var.timeout}
-  - name: vote
-    command: [npm, run, e2e-full, --, --project=vote, "--showlog=${var.show-log}", "--env=${environment.name}"]
-    timeout: ${var.timeout}
-  - name: remote-sources
-    command: [npm, run, e2e-full, --, --project=remote-sources, "--showlog=${var.show-log}", "--env=${environment.name}"]
-    timeout: ${var.timeout}
-  - name: deployment-strategies
-    command: [npm, run, e2e-full, --, --project=deployment-strategies, --showlog=true, --env=testing]
+  # - name: hot-reload
+  #   command: [npm, run, e2e-full, --, --project=hot-reload, "--showlog=${var.show-log}", "--env=${environment.name}"]
+  #   timeout: ${var.timeout}
+  # - name: openfaas
+  #   command: [npm, run, e2e-full, --, --project=openfaas, "--showlog=${var.show-log}", "--env=${environment.name}"]
+  # - name: project-variables
+  #   command: [npm, run, e2e-full, --, --project=project-variables, "--showlog=${var.show-log}", "--env=${environment.name}"]
+  #   timeout: ${var.timeout}
+  # - name: vote-helm
+  #   command: [npm, run, e2e-full, --, --project=vote-helm, "--showlog=${var.show-log}", "--env=${environment.name}"]
+  #   timeout: ${var.timeout}
+  # - name: vote
+  #   command: [npm, run, e2e-full, --, --project=vote, "--showlog=${var.show-log}", "--env=${environment.name}"]
+  #   timeout: ${var.timeout}
+  # - name: remote-sources
+  #   command: [npm, run, e2e-full, --, --project=remote-sources, "--showlog=${var.show-log}", "--env=${environment.name}"]
+  #   timeout: ${var.timeout}
+  # - name: deployment-strategies
+  #   command: [npm, run, e2e-full, --, --project=deployment-strategies, --showlog=true, --env=testing]
