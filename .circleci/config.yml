@@ -198,21 +198,48 @@ jobs:
             npm test
           environment:
             CHOKIDAR_USEPOLLING: "1"
+  split-test:
+    <<: *node-config
+    parallelism: 4
+    steps:
+      - run:
+          name: test splitting output
+          command: |
+            circleci tests glob garden-service/test/**/*.ts | circleci tests split
+            # cat /tmp/tests-to-run
+
+          # command: |
+          #   echo "a\nb\nc\nd" > names.txt
+          #   circleci tests split names.txt | xargs -n 1 echo
+            # COMMA_SEPERATED_TESTNAMES=${TESTNAMES// /,}
+          # command: circleci tests glob “src/integration-test/**/*.groovy” | circleci tests split --split-by=timings | xargs -n 1 echo
   e2e-test-service:
     <<: *node-config
+    parallelism: 2
     steps:
       - checkout
       - run: sudo apt-get update && sudo apt-get install rsync
       - npm_install
       - configure_kubectl_context
       - *attach-workspace
+      # - run:
+      #     name: Init Garden
+      #     command: ./garden-service/bin/garden init --root garden-service/test/e2e --logger-type basic
       - run:
-          name: Init Garden
-          command: ./garden-service/bin/garden init --root garden-service/test/e2e --logger-type basic
+          name: test splitting output
+          command: |
+            TESTNAMES=${a b | circleci tests split}
+            # COMMA_SEPERATED_TESTNAMES=${TESTNAMES// /,}
+            echo TESTNAMES
+          # command: circleci tests glob “src/integration-test/**/*.groovy” | circleci tests split --split-by=timings | xargs -n 1 echo
       - run:
           name: Run e2e tests
           # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
-          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-e2e ./garden-service/bin/garden test e2e-tests --root garden-service/test/e2e --logger-type basic
+          command: |
+            TESTBATCHES=${batch_a batch_b | circleci tests split}
+            # COMMA_SEPERATED_TESTNAMES=${TESTNAMES// /,}
+            echo TESTBATCHES
+            CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-e2e ./garden-service/bin/garden test e2e-tests --name ${TESTBATCHES}-* --root garden-service/test/e2e --logger-type basic
       - run:
           name: Cleanup
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-e2e kubectl delete --wait=false $(kubectl get ns -o name | grep testing-$CIRCLE_BUILD_NUM) || true
@@ -397,38 +424,38 @@ workflows:
   version: 2
   commit:
     jobs:
-      - build
-      - build-dist:
-          requires:
-            - build
-      - build-docker:
-          requires:
-            - build-dist
-      - test-service:
-          requires:
-            - build
-      - lint:
-          requires:
-            - build
-      - e2e-test-service:
-          # Don't attempt to run e2e tests for external PRs (they won't have access to the required keys)
-          <<: *only-internal-prs
-          requires:
-            - build
-      - test-dist:
-          # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
-          <<: *only-internal-prs
-          requires:
-            - build-dist
-      - test-dashboard:
-          requires:
-            - build
-      - test-minikube
-      - test-windows:
-          # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
-          <<: *only-internal-prs
-          requires:
-            - build-dist
+      # - build
+      - split-test
+      # - build-dist:
+      #     requires:
+      #       - build
+      # - build-docker:
+      #     requires:
+      #       - build-dist
+      # - test-service:
+      #     requires:
+      #       - build
+      # - lint:
+      #     requires:
+      #       - build
+      # - e2e-test-service:
+      #     # Don't attempt to run e2e tests for external PRs (they won't have access to the required keys)
+      #     requires:
+      #       - build
+      # - test-dist:
+      #     # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
+      #     <<: *only-internal-prs
+      #     requires:
+      #       - build-dist
+      # - test-dashboard:
+      #     requires:
+      #       - build
+      # - test-minikube
+      # - test-windows:
+      #     # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
+      #     <<: *only-internal-prs
+      #     requires:
+      #       - build-dist
 
 
   master:
