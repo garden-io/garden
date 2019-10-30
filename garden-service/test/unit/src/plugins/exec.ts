@@ -1,15 +1,16 @@
 import { expect } from "chai"
 import { join, resolve } from "path"
 import { Garden } from "../../../../src/garden"
-import { gardenPlugin } from "../../../../src/plugins/exec"
+import { gardenPlugin, configureExecModule } from "../../../../src/plugins/exec"
 import { GARDEN_BUILD_VERSION_FILENAME } from "../../../../src/constants"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { keyBy } from "lodash"
 import { ConfigGraph } from "../../../../src/config-graph"
-import { getDataDir } from "../../../helpers"
+import { getDataDir, makeTestModule, expectError } from "../../../helpers"
 import { TaskTask } from "../../../../src/tasks/task"
 import { writeModuleVersionFile, readModuleVersionFile } from "../../../../src/vcs/vcs"
 import { dataDir, makeTestGarden } from "../../../helpers"
+import { ModuleConfig } from "../../../../src/config/module"
 
 describe("exec plugin", () => {
   const projectRoot = resolve(dataDir, "test-project-exec")
@@ -32,6 +33,7 @@ describe("exec plugin", () => {
       "module-a": moduleA,
       "module-b": moduleB,
       "module-c": moduleC,
+      "module-local": moduleLocal,
     } = modules
 
     expect(moduleA.build).to.eql({
@@ -50,6 +52,7 @@ describe("exec plugin", () => {
         spec: {
           name: "banana",
           command: ["echo", "BANANA"],
+          env: {},
           dependencies: ["orange"],
           timeout: null,
         },
@@ -61,6 +64,7 @@ describe("exec plugin", () => {
         spec: {
           name: "orange",
           command: ["echo", "ORANGE"],
+          env: {},
           dependencies: [],
           timeout: 999,
         },
@@ -130,10 +134,33 @@ describe("exec plugin", () => {
         },
       },
     ])
+
+    expect(moduleLocal.spec.local).to.eql(true)
+    expect(moduleLocal.build).to.eql({
+      dependencies: [],
+    })
+    expect(moduleLocal.spec.build).to.eql({
+      command: ["pwd"],
+      dependencies: [],
+    })
+    expect(moduleLocal.serviceConfigs).to.eql([])
+    expect(moduleLocal.taskConfigs).to.eql([{
+      name: "pwd",
+      dependencies: [],
+      timeout: null,
+      spec: {
+        name: "pwd",
+        env: {},
+        command: ["pwd"],
+        dependencies: [],
+        timeout: null,
+      },
+    }])
+    expect(moduleLocal.testConfigs).to.eql([])
   })
 
   it("should propagate task logs to runtime outputs", async () => {
-    const _garden = await makeTestGarden(await getDataDir("test-projects", "exec-task-outputs"))
+    const _garden = await makeTestGarden(getDataDir("test-projects", "exec-task-outputs"))
     const _graph = await _garden.getConfigGraph()
     const taskB = await _graph.getTask("task-b")
 
@@ -150,6 +177,29 @@ describe("exec plugin", () => {
 
     // Task A echoes "task-a-output" and Task B echoes the output from Task A
     expect(results["task.task-b"]!.output.outputs.log).to.equal("task-a-output")
+  })
+
+  describe("configureExecModule", () => {
+    it("should throw if a local exec module has a build.copy spec", async () => {
+      const moduleConfig = makeTestModule(<Partial<ModuleConfig>>{
+        local: true,
+        build: {
+          dependencies: [{
+            name: "foo",
+            copy: [{
+              source: ".",
+              target: ".",
+            }],
+          }],
+        },
+      })
+      const provider = await garden.resolveProvider("test-plugin")
+      const ctx = garden.getPluginContext(provider)
+      await expectError(
+        async () => await configureExecModule({ ctx, moduleConfig, log }),
+        "configuration",
+      )
+    })
   })
 
   describe("getBuildStatus", () => {
@@ -182,6 +232,58 @@ describe("exec plugin", () => {
       const versionFileContents = await readModuleVersionFile(versionFilePath)
 
       expect(versionFileContents).to.eql(version)
+    })
+
+    it("should run the build command in the module dir if local true", async () => {
+      const module = await graph.getModule("module-local")
+      const actions = await garden.getActionRouter()
+      const res = await actions.build({ log, module })
+      expect(res.buildLog).to.eql(join(projectRoot, "module-local"))
+    })
+  })
+
+  describe("testExecModule", () => {
+    it("should run the test command in the module dir if local true", async () => {
+      const module = await graph.getModule("module-local")
+      const actions = await garden.getActionRouter()
+      const res = await actions.testModule({
+        log,
+        module,
+        interactive: true,
+        runtimeContext: {
+          envVars: {},
+          dependencies: [],
+        },
+        silent: false,
+        testConfig: {
+          name: "test",
+          dependencies: [],
+          timeout: 1234,
+          spec: {
+            command: ["pwd"],
+          },
+        },
+        testVersion: module.version,
+      })
+      expect(res.log).to.eql(join(projectRoot, "module-local"))
+    })
+  })
+
+  describe("runExecTask", () => {
+    it("should run the task command in the module dir if local true", async () => {
+      const actions = await garden.getActionRouter()
+      const task = await graph.getTask("pwd")
+      const res = await actions.runTask({
+        log,
+        task,
+        interactive: true,
+        runtimeContext: {
+          envVars: {},
+          dependencies: [],
+        },
+        taskVersion: task.module.version,
+      })
+      expect(res.log).to.eql(join(projectRoot, "module-local"))
     })
   })
 })

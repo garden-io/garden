@@ -34,8 +34,8 @@ tests:
   - name: hot-reload
     command: [npm, run, e2e-full, --, --project=hot-reload, "--showlog=${var.show-log}", "--env=${environment.name}"]
     timeout: ${var.timeout}
-  - name: openfaas
-    command: [npm, run, e2e-full, --, --project=openfaas, "--showlog=${var.show-log}", "--env=${environment.name}"]
+  # - name: openfaas
+  #   command: [npm, run, e2e-full, --, --project=openfaas, "--showlog=${var.show-log}", "--env=${environment.name}"]
   - name: project-variables
     command: [npm, run, e2e-full, --, --project=project-variables, "--showlog=${var.show-log}", "--env=${environment.name}"]
     timeout: ${var.timeout}

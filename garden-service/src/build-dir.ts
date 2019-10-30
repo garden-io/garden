@@ -19,10 +19,17 @@ import {
 import { emptyDir, ensureDir } from "fs-extra"
 import { ConfigurationError } from "./exceptions"
 import { FileCopySpec, Module, getModuleKey } from "./types/module"
-import { zip } from "lodash"
 import execa from "execa"
 import { normalizeLocalRsyncPath } from "./util/fs"
 import { LogEntry } from "./logger/log-entry"
+import { ModuleConfig } from "./config/module"
+import { ConfigGraph } from "./config-graph"
+
+// FIXME: We don't want to keep special casing this module type so we need to think
+// of a better way around this.
+function isLocalExecModule(moduleConfig: ModuleConfig) {
+  return moduleConfig.type === "exec" && moduleConfig.spec.local
+}
 
 // Lazily construct a directory of modules inside which all build steps are performed.
 
@@ -38,6 +45,12 @@ export class BuildDir {
   }
 
   async syncFromSrc(module: Module, log: LogEntry) {
+    // We don't sync local exec modules to the build dir
+    if (isLocalExecModule(module)) {
+      log.silly("Skipping syncing from source for local exec module")
+      return
+    }
+
     const files = module.version.files
       // Normalize to relative POSIX-style paths
       .map(f => normalize(isAbsolute(f) ? relative(module.path, f) : f))
@@ -52,20 +65,20 @@ export class BuildDir {
     })
   }
 
-  async syncDependencyProducts(module: Module, log: LogEntry) {
-    const buildPath = await this.buildPath(module.name)
-    const buildDependencies = await module.build.dependencies
-    const dependencyConfigs = module.build.dependencies || []
+  async syncDependencyProducts(module: Module, graph: ConfigGraph, log: LogEntry) {
+    const buildPath = await this.buildPath(module)
+    const buildDependencies = module.build.dependencies
 
-    await bluebirdMap(zip(buildDependencies, dependencyConfigs), async ([sourceModule, depConfig]) => {
-      if (!sourceModule || !depConfig || !depConfig.copy) {
+    await bluebirdMap(buildDependencies, async (buildDepConfig) => {
+      if (!buildDepConfig || !buildDepConfig.copy) {
         return
       }
 
-      const sourceBuildPath = await this.buildPath(getModuleKey(sourceModule.name, sourceModule.plugin))
+      const sourceModule = await graph.getModule(getModuleKey(buildDepConfig.name, buildDepConfig.plugin))
+      const sourceBuildPath = await this.buildPath(sourceModule)
 
       // Sync to the module's top-level dir by default.
-      await bluebirdMap(depConfig.copy, (copy: FileCopySpec) => {
+      await bluebirdMap(buildDepConfig.copy, (copy: FileCopySpec) => {
         if (isAbsolute(copy.source)) {
           throw new ConfigurationError(`Source path in build dependency copy spec must be a relative path`, {
             copySpec: copy,
@@ -89,9 +102,18 @@ export class BuildDir {
     await emptyDir(this.buildDirPath)
   }
 
-  async buildPath(moduleName: string): Promise<string> {
-    const path = resolve(this.buildDirPath, moduleName)
+  async buildPath(moduleOrConfig: Module | ModuleConfig): Promise<string> {
+    // We don't stage the build for local exec modules, so the module path is effectively the build path.
+    if (isLocalExecModule(moduleOrConfig)) {
+      return moduleOrConfig.path
+    }
+
+    // This returns the same result for modules and module configs
+    const moduleKey = getModuleKey(moduleOrConfig.name, moduleOrConfig.plugin)
+
+    const path = resolve(this.buildDirPath, moduleKey)
     await ensureDir(path)
+
     return path
   }
 

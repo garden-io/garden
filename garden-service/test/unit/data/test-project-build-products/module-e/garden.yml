@@ -1,10 +1,6 @@
 kind: Module
 name: module-e
-type: test
+type: exec
+local: true
 build:
   command: [echo, E]
-  dependencies:
-    - name: module-d
-      copy:
-        - source: build/d.txt
-          target: d/build/

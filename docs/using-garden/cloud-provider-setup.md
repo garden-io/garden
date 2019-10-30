@@ -52,7 +52,7 @@ Run `garden --env=remote plugins kubernetes cluster-init`, then `garden dev --en
 
 ### Optional: Configure DNS
 
-First, get the public IP address of the ingress controller you set up in the previous step. If you configured Garden to set up _nginx_, run: `kubectl describe service --namespace=garden-system garden-nginx-nginx-ingress-controller | grep 'LoadBalancer Ingress'` and make note of returned IP address. 
+First, get the public IP address of the ingress controller you set up in the previous step. If you configured Garden to set up _nginx_, run: `kubectl describe service --namespace=garden-system garden-nginx-nginx-ingress-controller | grep 'LoadBalancer Ingress'` and make note of returned IP address.
 
 Then, create a DNS record with your provider of choice, pointing at the IP address you wrote down in the previous step (e.g. an `A` record pointing your-project.your-domain.com at that IP). We recommend setting up a wildcard record as well (e.g *.your-project.your-domain.com).
 
@@ -151,7 +151,7 @@ Now you should be good to go.
 
 ## AWS (kops)
 
-[kops](https://github.com/kubernetes/kops) is a handy tool for creating Kubernetes clusters on AWS. Follow [these instructions](https://github.com/kubernetes/kops/blob/master/docs/aws.md) to create your cluster.
+[kops](https://github.com/kubernetes/kops) is a handy tool for creating Kubernetes clusters on AWS. Follow [these instructions](https://github.com/kubernetes/kops/blob/master/docs/getting_started/aws.md) to create your cluster.
 
 After creating the cluster, kops will create a new `kubectl` context and set it as the active context. Note the name of the context and
 create an environment for the cluster in your project `garden.yml`:

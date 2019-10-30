@@ -2,7 +2,7 @@
 
 This project shows how you can configure several modules in a single directory.
 
-This is useful, for exmample, when you want to use more than one Dockerfile for the same code.
+This is useful, for example, when you want to use more than one Dockerfile for the same code.
 
 ```shell
 $ garden deploy

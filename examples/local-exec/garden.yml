@@ -1,0 +1,6 @@
+kind: Project
+name: local-exec
+environments:
+  - name: local
+    providers:
+      - name: local-kubernetes

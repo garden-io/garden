@@ -76,8 +76,9 @@ export class BuildTask extends BaseTask {
       log.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
     }
 
+    const graph = await this.garden.getConfigGraph()
     await this.garden.buildDir.syncFromSrc(this.module, log)
-    await this.garden.buildDir.syncDependencyProducts(this.module, log)
+    await this.garden.buildDir.syncDependencyProducts(this.module, graph, log)
 
     if (!this.force) {
       log.setState({ msg: `Getting build status for ${module.version.versionString}...` })

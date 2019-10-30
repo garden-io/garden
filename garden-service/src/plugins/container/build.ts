@@ -11,9 +11,8 @@ import { ContainerModule } from "./config"
 import { ConfigurationError } from "../../exceptions"
 import { GetBuildStatusParams } from "../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams } from "../../types/plugin/module/build"
-import chalk from "chalk"
 import { LogLevel } from "../../logger/log-node"
-import split2 = require("split2")
+import { createOutputStream } from "../../util/util"
 
 export async function getContainerBuildStatus({ module, log }: GetBuildStatusParams<ContainerModule>) {
   const identifier = await containerHelpers.imageExistsLocally(module)
@@ -65,14 +64,7 @@ export async function buildContainerModule({ module, log }: BuildModuleParams<Co
   }
 
   // Stream log to a status line
-  const outputStream = split2()
-  const statusLine = log.placeholder(LogLevel.debug)
-
-  outputStream.on("error", () => { })
-  outputStream.on("data", (line: Buffer) => {
-    statusLine.setState(chalk.gray("  → " + line.toString().slice(0, 80)))
-  })
-
+  const outputStream = createOutputStream(log.placeholder(LogLevel.debug))
   const timeout = module.spec.build.timeout
   const buildLog = await containerHelpers.dockerCli(module, [...cmdOpts, buildPath], { outputStream, timeout })
 
