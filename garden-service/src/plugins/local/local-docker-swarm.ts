@@ -20,6 +20,7 @@ import { DeployServiceParams } from "../../types/plugin/service/deployService"
 import { ExecInServiceParams } from "../../types/plugin/service/execInService"
 import { GetServiceStatusParams } from "../../types/plugin/service/getServiceStatus"
 import { EnvironmentStatus } from "../../types/plugin/provider/getEnvironmentStatus"
+import { resolve } from "path"
 
 // should this be configurable and/or global across providers?
 const DEPLOY_TIMEOUT = 30
@@ -64,7 +65,7 @@ export const gardenPlugin = createGardenPlugin({
           if (v.hostPath) {
             return {
               Type: "bind",
-              Source: v.hostPath,
+              Source: resolve(module.path, v.hostPath),
               Target: v.containerPath,
             }
           } else {

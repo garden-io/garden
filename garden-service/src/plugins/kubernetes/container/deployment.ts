@@ -30,6 +30,7 @@ import { DeleteServiceParams } from "../../../types/plugin/service/deleteService
 import { millicpuToString, kilobytesToString, prepareEnvVars, workloadTypes } from "../util"
 import { gardenAnnotationKey } from "../../../util/string"
 import { RuntimeContext } from "../../../runtime-context"
+import { resolve } from "path"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "64Mi"
@@ -288,7 +289,7 @@ export async function createWorkloadResource(
   }
 
   if (spec.volumes && spec.volumes.length) {
-    configureVolumes(deployment, container, spec)
+    configureVolumes(service.module, deployment, container, spec)
   }
 
   const ports = spec.ports
@@ -467,7 +468,7 @@ function configureHealthCheck(container, spec): void {
 
 }
 
-function configureVolumes(deployment, container, spec): void {
+function configureVolumes(module: ContainerModule, deployment, container, spec): void {
   const volumes: any[] = []
   const volumeMounts: any[] = []
 
@@ -492,12 +493,12 @@ function configureVolumes(deployment, container, spec): void {
       volumes.push({
         name: volumeName,
         hostPath: {
-          path: volume.hostPath,
+          path: resolve(module.path, volume.hostPath),
         },
       })
       volumeMounts.push({
         name: volumeName,
-        mountPath: volume.containerPath || volume.hostPath,
+        mountPath: volume.containerPath,
       })
     } else {
       throw new Error("Unsupported volume type: " + volumeType)

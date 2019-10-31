@@ -25,6 +25,7 @@ import { CommonServiceSpec, ServiceConfig, baseServiceSpecSchema } from "../../c
 import { baseTaskSpecSchema, BaseTaskSpec } from "../../config/task"
 import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
 import { joiStringMap } from "../../config/common"
+import { dedent } from "../../util/string"
 
 export const defaultContainerLimits: ServiceLimitSpec = {
   cpu: 1000,     // = 1000 millicpu = 1 CPU
@@ -285,10 +286,19 @@ const volumeSchema = joi.object()
       .required()
       .description("The name of the allocated volume."),
     containerPath: joi.string()
+      .posixPath()
       .required()
       .description("The path where the volume should be mounted in the container."),
     hostPath: joi.string()
-      .meta({ deprecated: true }),
+      .posixPath()
+      .description(dedent`
+        _NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms
+        and providers. Some providers may not support it at all._
+
+        A local path or path on the node that's running the container, to mount in the container, relative to the
+        module source path (or absolute).
+      `)
+      .example("/some/dir"),
   })
 
 const serviceSchema = baseServiceSpecSchema

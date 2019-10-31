@@ -818,9 +818,23 @@ The path where the volume should be mounted in the container.
 
 [services](#services) > [volumes](#servicesvolumes) > hostPath
 
+_NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms
+and providers. Some providers may not support it at all._
+
+A local path or path on the node that's running the container, to mount in the container, relative to the
+module source path (or absolute).
+
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+Example:
+
+```yaml
+services:
+  - volumes:
+      - hostPath: "/some/dir"
+```
 
 ### `tests`
 
