@@ -170,7 +170,7 @@ async function getManifests(
     if (!manifest.metadata.namespace) {
       const info = await api.getApiResourceInfo(log, manifest)
 
-      if (info.resource.namespaced) {
+      if (info.namespaced) {
         manifest.metadata.namespace = defaultNamespace
       }
     }
