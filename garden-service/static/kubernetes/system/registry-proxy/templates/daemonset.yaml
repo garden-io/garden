@@ -47,15 +47,17 @@ spec:
         - name: envoy-yaml
           configMap:
             name: {{ include "registry-proxy.fullname" . }}-envoy
+    # We expose the tolerations directive to the user.
+    {{- with .Values.tolerations }}
+      # Note that we're not using the toYAML function here because the tolerations are JSON stringified (by Garden)
+      tolerations:
+        {{- . | nindent 8 }}
+    {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
     {{- with .Values.affinity }}
       affinity:
-        {{- toYaml . | nindent 8 }}
-    {{- end }}
-    {{- with .Values.tolerations }}
-      tolerations:
         {{- toYaml . | nindent 8 }}
     {{- end }}

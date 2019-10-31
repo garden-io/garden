@@ -4,6 +4,7 @@ name: registry-proxy
 description: DaemonSet that proxies connections to the docker registry service on each node
 releaseName: garden-registry-proxy
 values:
+  tolerations: ${var.registry-proxy-tolerations}
   registry:
     hostname: ${var.registry-hostname || "foo"}
     # tlsSecretName: ${variables.registry-tls-secret-name}

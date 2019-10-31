@@ -31,6 +31,7 @@ import { resolve } from "path"
 import { dedent } from "../../util/string"
 import { kubernetesModuleSpecSchema } from "./kubernetes-module/config"
 import { helmModuleSpecSchema, helmModuleOutputsSchema } from "./helm/config"
+import { isNumber } from "util"
 
 export async function configureProvider(
   { projectName, projectRoot, config }: ConfigureProviderParams<KubernetesConfig>,
@@ -75,6 +76,27 @@ export async function configureProvider(
 
   if (config.kubeconfig) {
     config.kubeconfig = resolve(projectRoot, config.kubeconfig)
+  }
+
+  for (const { effect, key, operator, tolerationSeconds, value } of config.registryProxyTolerations) {
+    if (!key && operator !== "Exists") {
+      throw new ConfigurationError(
+        `kubernetes: tolerations operator must be 'Exists' if tolerations key is empty`,
+        { key, operator, config },
+      )
+    }
+    if (isNumber(tolerationSeconds) && effect !== "NoExecute") {
+      throw new ConfigurationError(
+        `kubernetes: tolerations effect must be 'NoExecute' if toleration seconds is set`,
+        { tolerationSeconds, effect, config },
+      )
+    }
+    if (!!value && operator === "Exists") {
+      throw new ConfigurationError(
+        `kubernetes: tolerations value should be empty if tolerations operator is 'Exists'`,
+        { value, operator, config },
+      )
+    }
   }
 
   return { config }
