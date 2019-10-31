@@ -764,6 +764,78 @@ The namespace where the secret is stored. If necessary, the secret may be copied
 | -------- | -------- | ----------- |
 | `string` | No       | `"default"` |
 
+### `providers[].registryProxyTolerations[]`
+
+[providers](#providers) > registryProxyTolerations
+
+For setting tolerations on the registry-proxy when using in-cluster building.
+The registry-proxy is a DaemonSet that proxies connections to the docker registry service on each node.
+
+Use this only if you're doing in-cluster building and the nodes in your cluster
+have [taints](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/).
+
+| Type            | Required | Default |
+| --------------- | -------- | ------- |
+| `array[object]` | No       | `[]`    |
+
+### `providers[].registryProxyTolerations[].effect`
+
+[providers](#providers) > [registryProxyTolerations](#providersregistryproxytolerations) > effect
+
+"Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
+allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].registryProxyTolerations[].key`
+
+[providers](#providers) > [registryProxyTolerations](#providersregistryproxytolerations) > key
+
+"Key" is the taint key that the toleration applies to. Empty means match all taint keys.
+If the key is empty, operator must be "Exists"; this combination means to match all values and all keys.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].registryProxyTolerations[].operator`
+
+[providers](#providers) > [registryProxyTolerations](#providersregistryproxytolerations) > operator
+
+"Operator" represents a key's relationship to the value. Valid operators are "Exists" and "Equal". Defaults to
+"Equal". "Exists" is equivalent to wildcard for value, so that a pod can tolerate all taints of a
+particular category.
+
+| Type     | Required | Default   |
+| -------- | -------- | --------- |
+| `string` | No       | `"Equal"` |
+
+### `providers[].registryProxyTolerations[].tolerationSeconds`
+
+[providers](#providers) > [registryProxyTolerations](#providersregistryproxytolerations) > tolerationSeconds
+
+"TolerationSeconds" represents the period of time the toleration (which must be of effect "NoExecute",
+otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate
+the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately)
+by the system.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].registryProxyTolerations[].value`
+
+[providers](#providers) > [registryProxyTolerations](#providersregistryproxytolerations) > value
+
+"Value" is the taint value the toleration matches to. If the operator is "Exists", the value should be empty,
+otherwise just a regular string.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
 ### `providers[].name`
 
 [providers](#providers) > name
@@ -874,6 +946,12 @@ providers:
         secretRef:
           name:
           namespace: default
+    registryProxyTolerations:
+      - effect:
+        key:
+        operator: Equal
+        tolerationSeconds:
+        value:
     name: local-kubernetes
     context:
     namespace:

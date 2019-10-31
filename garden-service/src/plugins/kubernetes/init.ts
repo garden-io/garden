@@ -279,6 +279,10 @@ export function getKubernetesSystemVariables(config: KubernetesConfig) {
     "sync-storage-size": megabytesToString(config.storage.sync.size!),
     "sync-storage-class": syncStorageClass,
     "sync-volume-name": `garden-sync-${syncStorageClass}`,
+
+    // Stringifying the tolerations since variable values should be primitives.
+    // Helm handles the decoding automatically.
+    "registry-proxy-tolerations": JSON.stringify(config.registryProxyTolerations),
   }
 }
 

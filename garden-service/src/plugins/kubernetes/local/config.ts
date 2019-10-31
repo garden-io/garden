@@ -161,6 +161,7 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
     storage: config.storage,
     setupIngressController: config.setupIngressController,
     tlsCertificates: config.tlsCertificates,
+    registryProxyTolerations: config.registryProxyTolerations,
     _systemServices,
   }
 
