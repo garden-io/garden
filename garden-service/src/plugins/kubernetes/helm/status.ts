@@ -8,14 +8,13 @@
 
 import { ServiceStatus, ServiceState } from "../../../types/service"
 import { GetServiceStatusParams } from "../../../types/plugin/service/getServiceStatus"
-import { getExecModuleBuildStatus } from "../../exec"
-import { compareDeployedObjects } from "../status/status"
+import { compareDeployedResources } from "../status/status"
 import { KubeApi } from "../api"
 import { getAppNamespace } from "../namespace"
 import { LogEntry } from "../../../logger/log-entry"
 import { helm } from "./helm-cli"
 import { HelmModule } from "./config"
-import { getChartResources, findServiceResource } from "./common"
+import { getChartResources, findServiceResource, getReleaseName } from "./common"
 import { buildHelmModule } from "./build"
 import { configureHotReload } from "../hot-reload"
 import { getHotReloadSpec } from "./hot-reload"
@@ -37,7 +36,7 @@ const helmStatusCodeMap: { [code: number]: ServiceState } = {
 }
 
 interface HelmStatusDetail {
-  remoteResources: KubernetesServerResource[]
+  remoteResources?: KubernetesServerResource[]
 }
 
 export type HelmServiceStatus = ServiceStatus<HelmStatusDetail>
@@ -51,15 +50,19 @@ export async function getServiceStatus({
 }: GetServiceStatusParams<HelmModule>): Promise<HelmServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
   // need to build to be able to check the status
-  const buildStatus = await getExecModuleBuildStatus({ ctx: k8sCtx, module, log })
-  if (!buildStatus.ready) {
-    await buildHelmModule({ ctx: k8sCtx, module, log })
-  }
+  await buildHelmModule({ ctx: k8sCtx, module, log })
 
   // first check if the installed objects on the cluster match the current code
   const chartResources = await getChartResources(k8sCtx, module, log)
+  const provider = k8sCtx.provider
+  const namespace = await getAppNamespace(k8sCtx, log, provider)
+  const releaseName = getReleaseName(module)
+
+  const detail: HelmStatusDetail = {}
+  let state: ServiceState
 
   if (hotReload) {
+    // If we're running with hot reload enabled, we need to alter the appropriate resources and then compare directly.
     const target = await findServiceResource({ ctx: k8sCtx, log, chartResources, module })
     const hotReloadSpec = getHotReloadSpec(service)
     const resourceSpec = module.spec.serviceResource!
@@ -70,17 +73,23 @@ export async function getServiceStatus({
       hotReloadArgs: resourceSpec.hotReloadArgs,
       containerName: resourceSpec.containerName,
     })
+
+    const api = await KubeApi.factory(log, provider)
+
+    const comparison = await compareDeployedResources(k8sCtx, api, namespace, chartResources, log)
+    state = comparison.state
+    detail.remoteResources = comparison.remoteResources
+  } else {
+    // Otherwise we trust Helm to report the status of the chart.
+    try {
+      const helmStatus = await getReleaseStatus(k8sCtx, releaseName, log)
+      state = helmStatus.state
+    } catch (err) {
+      state = "missing"
+    }
   }
 
-  const provider = k8sCtx.provider
-  const api = await KubeApi.factory(log, provider)
-  const namespace = await getAppNamespace(k8sCtx, log, provider)
-
-  let { state, remoteResources } = await compareDeployedObjects(k8sCtx, api, namespace, chartResources, log, false)
-
-  const forwardablePorts = getForwardablePorts(remoteResources)
-
-  const detail = { remoteResources }
+  const forwardablePorts = getForwardablePorts(chartResources)
 
   return {
     forwardablePorts,

@@ -16,7 +16,7 @@ import { sleep } from "../../../util/util"
 import { GetServiceStatusParams } from "../../../types/plugin/service/getServiceStatus"
 import { ContainerModule } from "../../container/config"
 import { KubeApi } from "../api"
-import { compareDeployedObjects as compareDeployedResources } from "../status/status"
+import { compareDeployedResources } from "../status/status"
 import { getIngresses } from "./ingress"
 import { getAppNamespace } from "../namespace"
 import { KubernetesPluginContext } from "../config"
@@ -47,7 +47,7 @@ export async function getContainerServiceStatus({
 
   // FIXME: [objects, matched] and ingresses can be run in parallel
   const { workload, manifests } = await createContainerManifests(k8sCtx, log, service, runtimeContext, hotReload)
-  const { state, remoteResources } = await compareDeployedResources(k8sCtx, api, namespace, manifests, log, true)
+  const { state, remoteResources } = await compareDeployedResources(k8sCtx, api, namespace, manifests, log)
   const ingresses = await getIngresses(service, api, provider)
 
   const forwardablePorts: ForwardablePort[] = service.spec.ports
