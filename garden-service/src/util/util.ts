@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { trimEnd } from "lodash"
 import split2 = require("split2")
 import Bluebird = require("bluebird")
 import { ResolvableProps } from "bluebird"
@@ -21,9 +22,10 @@ import highlight from "cli-highlight"
 import chalk from "chalk"
 import { safeDump } from "js-yaml"
 import { createHash } from "crypto"
-import { tailString } from "./string"
+import { tailString, dedent } from "./string"
 import { Writable } from "stream"
 import { LogEntry } from "../logger/log-entry"
+import execa = require("execa")
 
 // shim to allow async generator functions
 if (typeof (Symbol as any).asyncIterator === "undefined") {
@@ -74,6 +76,13 @@ export async function sleep(msec) {
 }
 
 /**
+ * Extracting to a separate function so that we can test output streams
+ */
+export function renderOutputStream(msg: string) {
+  return chalk.gray("  → " + msg.toString().slice(0, 80))
+}
+
+/**
  * Creates an output stream that updates a log entry on data events (in an opinionated way).
  *
  * Note that new entries are not created but rather the passed log entry gets updated.
@@ -84,10 +93,70 @@ export function createOutputStream(log: LogEntry) {
 
   outputStream.on("error", () => { })
   outputStream.on("data", (line: Buffer) => {
-    log.setState(chalk.gray("  → " + line.toString().slice(0, 80)))
+    log.setState(renderOutputStream(line.toString()))
   })
 
   return outputStream
+}
+
+export function makeErrorMsg(
+  { code, cmd, args, output, error }: { code: number, cmd: string, args: string[], error: string, output: string },
+) {
+  const nLinesToShow = 100
+  const lines = output.split("\n")
+  const out = lines.slice(-nLinesToShow).join("\n")
+  const cmdStr = args.length > 0 ? `${cmd} ${args.join(" ")}` : cmd
+  let msg = dedent`
+    Command "${cmdStr}" failed with code ${code}:
+
+    ${trimEnd(error, "\n")}
+  `
+  if (out !== error) {
+    msg += lines.length > nLinesToShow
+      ? `\n\nHere are the last ${nLinesToShow} lines of the output:`
+      : `\n\nHere's the full output:`
+    msg += `\n\n${trimEnd(out, "\n")}`
+  }
+  return msg
+}
+
+interface ExecOpts extends execa.Options {
+  outputStream?: Writable
+}
+
+/**
+ * A wrapper function around execa that standardises error messages.
+ * Enforces `buffer: true` (which is the default execa behavior).
+ *
+ * Also adds the ability to pipe stdout|stderr to an output stream.
+ */
+export async function exec(cmd: string, args: string[] = [], opts: ExecOpts = {}) {
+  // Ensure buffer is always set to true so that we can read the error output
+  opts = { ...opts, buffer: true }
+  const proc = args.length === 0
+    ? execa.command(cmd, opts)
+    : execa(cmd, args, opts)
+
+  if (opts.outputStream) {
+    proc.stdout && proc.stdout.pipe(opts.outputStream)
+    proc.stderr && proc.stderr.pipe(opts.outputStream)
+  }
+
+  try {
+    const res = await proc
+    return res
+  } catch (err) {
+    const error = <execa.ExecaError>err
+    const message = makeErrorMsg({
+      cmd,
+      args,
+      code: error.exitCode,
+      output: error.all,
+      error: error.stderr,
+    })
+    error.message = message
+    throw error
+  }
 }
 
 export interface SpawnOpts {
@@ -195,12 +264,13 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
       if (code === 0 || ignoreError) {
         resolve(result)
       } else {
-        const nLinesToShow = 100
-        const output = result.output.split("\n").slice(-nLinesToShow).join("\n")
-        const msg =
-          `Command failed with code ${code}: ${cmd} ${args.join(" ")}\n\n` +
-          `${result.stderr}\n` +
-          `Here are the last ${nLinesToShow} lines of the output:\n\n ${output}`
+        const msg = makeErrorMsg({
+          code,
+          cmd,
+          args,
+          output: result.output + result.stderr,
+          error: result.stderr || "",
+        })
         _reject(new RuntimeError(msg, { cmd, args, opts, result }))
       }
     })

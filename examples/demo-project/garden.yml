@@ -9,7 +9,8 @@ environments:
     providers:
       - name: kubernetes
         # Replace these values as appropriate
-        context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
+        # context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
+        context: foo
         namespace: ${local.env.USER || local.username}-demo-project
         defaultHostname: ${local.env.USER || local.username}-demo-project.dev-1.sys.garden
         buildMode: cluster-docker

@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import execa from "execa"
 import { join, resolve, relative } from "path"
 import { flatten } from "lodash"
 import { ensureDir, pathExists, stat, createReadStream } from "fs-extra"
@@ -19,7 +18,7 @@ import { ConfigurationError, RuntimeError } from "../exceptions"
 import Bluebird from "bluebird"
 import { matchPath } from "../util/fs"
 import { deline } from "../util/string"
-import { splitLast } from "../util/util"
+import { splitLast, exec } from "../util/util"
 import { LogEntry } from "../logger/log-entry"
 import parseGitConfig from "parse-git-config"
 
@@ -61,7 +60,7 @@ export class GitHandler extends VcsHandler {
   private gitCli(log: LogEntry, cwd: string): GitCli {
     return async (...args: string[]) => {
       log.silly(`Calling git with args '${args.join(" ")}'`)
-      const { stdout } = await execa("git", args, { cwd, maxBuffer: 10 * 1024 * 1024 })
+      const { stdout } = await exec("git", args, { cwd, maxBuffer: 10 * 1024 * 1024 })
       return stdout.split("\n").filter(line => line.length > 0)
     }
   }
@@ -180,15 +179,12 @@ export class GitHandler extends VcsHandler {
       }
       args.push(path)
 
-      const proc = execa("git", args, { cwd: path })
-
       // Split the command output by line
       const splitStream = split2()
       splitStream.on("data", handleLine)
-      proc.stdout!.pipe(splitStream)
 
       try {
-        await proc
+        await exec("git", args, { cwd: path, outputStream: splitStream })
       } catch (err) {
         // if we get 128 we're not in a repo root, so we just get no files. Otherwise we throw.
         if (err.exitCode !== 128) {

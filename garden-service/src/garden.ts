@@ -496,10 +496,9 @@ export class Garden {
 
       if (failed.length) {
         const messages = failed.map(r => `- ${r!.name}: ${r!.error!.message}`)
+        const names = failed.map(r => r!.name)
         throw new PluginError(
-          `Failed resolving one or more providers:\n${messages.join(
-            "\n",
-          )}`,
+          `Failed resolving one or more providers:\n- ${names.join("\n- ")}`,
           { rawConfigs, taskResults, messages },
         )
       }

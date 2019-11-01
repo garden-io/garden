@@ -7,6 +7,7 @@
  */
 
 import execa from "execa"
+import { exec } from "../../../util/util"
 
 /**
  * Automatically set docker environment variables for minikube
@@ -16,7 +17,7 @@ export async function setMinikubeDockerEnv() {
   let minikubeEnv: string
 
   try {
-    minikubeEnv = (await execa("minikube", ["docker-env", "--shell=bash"])).stdout
+    minikubeEnv = (await exec("minikube", ["docker-env", "--shell=bash"])).stdout
   } catch (err) {
     if ((<execa.ExecaError>err).stderr.includes("driver does not support")) {
       return

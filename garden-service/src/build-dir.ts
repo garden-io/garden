@@ -19,11 +19,11 @@ import {
 import { emptyDir, ensureDir } from "fs-extra"
 import { ConfigurationError } from "./exceptions"
 import { FileCopySpec, Module, getModuleKey } from "./types/module"
-import execa from "execa"
 import { normalizeLocalRsyncPath } from "./util/fs"
 import { LogEntry } from "./logger/log-entry"
 import { ModuleConfig } from "./config/module"
 import { ConfigGraph } from "./config-graph"
+import { exec } from "./util/util"
 
 // FIXME: We don't want to keep special casing this module type so we need to think
 // of a better way around this.
@@ -179,7 +179,7 @@ export class BuildDir {
       log.silly(`File list: ${JSON.stringify(files)}`)
     }
 
-    await execa("rsync", [...syncOpts, sourcePath, destinationPath], { input })
+    await exec("rsync", [...syncOpts, sourcePath, destinationPath], { input })
   }
 }
 

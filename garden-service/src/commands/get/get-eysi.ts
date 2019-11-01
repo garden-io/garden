@@ -14,7 +14,7 @@ import dedent = require("dedent")
 import { readFile } from "fs-extra"
 import { STATIC_DIR } from "../../constants"
 import { join } from "path"
-import execa = require("execa")
+import { exec } from "../../util/util"
 
 export class GetEysiCommand extends Command {
   name = "eysi"
@@ -32,7 +32,7 @@ export class GetEysiCommand extends Command {
 
     try {
       // Close enough.
-      await execa("say", ["Hello", ",", "I", "am", "Aysey"])
+      await exec("say", ["Hello", ",", "I", "am", "Aysey"])
     } catch (_) { }
 
     return { result: { eysi } }

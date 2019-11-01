@@ -1351,10 +1351,15 @@ describe("Garden", () => {
       const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins: [test] })
       await expectError(
         () => garden.resolveProviders(),
-        err => expect(err.message).to.equal(
-          "Failed resolving one or more providers:\n" +
-          "- test: Invalid template string \${bla.ble}: Unable to resolve one or more keys.",
-        ),
+        err => {
+          expect(err.message).to.equal(
+            "Failed resolving one or more providers:\n" +
+            "- test",
+          )
+          expect(err.detail.messages[0]).to.equal(
+            "- test: Invalid template string \${bla.ble}: Unable to resolve one or more keys.",
+          )
+        },
       )
     })
 
@@ -1649,10 +1654,15 @@ describe("Garden", () => {
 
       await expectError(
         () => garden.resolveProviders(),
-        err => expect(stripAnsi(err.message)).to.equal(
-          "Failed resolving one or more providers:\n- " +
-          "test: Error validating provider configuration (/garden.yml): key .foo must be a string",
-        ),
+        err => {
+          expect(err.message).to.equal(
+            "Failed resolving one or more providers:\n" +
+            "- test",
+          )
+          expect(stripAnsi(err.detail.messages[0])).to.equal(
+            "- test: Error validating provider configuration (/garden.yml): key .foo must be a string",
+          )
+        },
       )
     })
 
@@ -1690,10 +1700,15 @@ describe("Garden", () => {
 
       await expectError(
         () => garden.resolveProviders(),
-        err => expect(stripAnsi(err.message)).to.equal(
-          "Failed resolving one or more providers:\n- " +
-          "test: Error validating provider configuration (/garden.yml): key .foo must be a string",
-        ),
+        err => {
+          expect(err.message).to.equal(
+            "Failed resolving one or more providers:\n" +
+            "- test",
+          )
+          expect(stripAnsi(err.detail.messages[0])).to.equal(
+            "- test: Error validating provider configuration (/garden.yml): key .foo must be a string",
+          )
+        },
       )
     })
 
@@ -1880,11 +1895,16 @@ describe("Garden", () => {
 
         await expectError(
           () => garden.resolveProviders(),
-          err => expect(stripAnsi(err.message)).to.equal(
-            "Failed resolving one or more providers:\n" +
-            "- test: Error validating provider configuration (base schema from 'base' plugin) " +
-            "(/garden.yml): key .foo must be a string",
-          ),
+          err => {
+            expect(err.message).to.equal(
+              "Failed resolving one or more providers:\n" +
+              "- test",
+            )
+            expect(stripAnsi(err.detail.messages[0])).to.equal(
+              "- test: Error validating provider configuration (base schema from 'base' plugin) " +
+              "(/garden.yml): key .foo must be a string",
+            )
+          },
         )
       })
 
@@ -1927,11 +1947,16 @@ describe("Garden", () => {
 
         await expectError(
           () => garden.resolveProviders(),
-          err => expect(stripAnsi(err.message)).to.equal(
-            "Failed resolving one or more providers:\n" +
-            "- test: Error validating provider configuration (base schema from 'base' plugin) " +
-            "(/garden.yml): key .foo must be a string",
-          ),
+          err => {
+            expect(err.message).to.equal(
+              "Failed resolving one or more providers:\n" +
+              "- test",
+            )
+            expect(stripAnsi(err.detail.messages[0])).to.equal(
+              "- test: Error validating provider configuration (base schema from 'base' plugin) " +
+              "(/garden.yml): key .foo must be a string",
+            )
+          },
         )
       })
     })

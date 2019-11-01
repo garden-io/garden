@@ -18,6 +18,7 @@ import { GetEnvironmentStatusParams } from "../../types/plugin/provider/getEnvir
 import { kubectl, KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { LogEntry } from "../../logger/log-entry"
 import { gardenAnnotationKey } from "../../util/string"
+import dedent from "dedent"
 
 const GARDEN_VERSION = getPackageVersion()
 type CreateNamespaceStatus = "pending" | "created"
@@ -116,21 +117,14 @@ export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams
     // TODO: use API instead of kubectl (I just couldn't find which API call to make)
     await kubectl.exec({ log, provider: k8sCtx.provider, args: ["version"] })
   } catch (err) {
-    let message = err.message
-    if (err.stdout) {
-      message += err.stdout
-    }
-    if (err.stderr) {
-      message += err.stderr
-    }
-    throw new DeploymentError(
-      `Unable to connect to Kubernetes cluster. ` +
-      `Please make sure it is running, reachable and that you have the right context configured.`,
-      {
-        providerConfig: k8sCtx.provider.config,
-        message,
-      },
-    )
+    log.setError("Error")
+
+    throw new DeploymentError(dedent`
+      Unable to connect to Kubernetes cluster. Got error:
+
+      ${err.message}
+    `,
+      { providerConfig: k8sCtx.provider.config })
   }
 
   return Bluebird.props({

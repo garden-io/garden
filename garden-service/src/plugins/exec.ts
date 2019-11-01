@@ -24,11 +24,9 @@ import { BuildModuleParams, BuildResult } from "../types/plugin/module/build"
 import { TestModuleParams } from "../types/plugin/module/testModule"
 import { TestResult } from "../types/plugin/module/getTestResult"
 import { RunTaskParams, RunTaskResult } from "../types/plugin/task/runTask"
-import { createOutputStream } from "../util/util"
+import { createOutputStream, exec } from "../util/util"
 import { LogLevel } from "../logger/log-node"
 import { ConfigurationError } from "../exceptions"
-import execa = require("execa")
-import { LogEntry } from "../logger/log-entry"
 
 export const name = "exec"
 
@@ -36,15 +34,6 @@ const execPathDoc = dedent`
   By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
   If the top level \`local\` directive is set to \`true\`, the command runs in the module source directory instead.
 `
-
-function execWithStream(cmd: string, log: LogEntry, opts: execa.Options) {
-  const proc = execa(cmd, opts)
-
-  const outputStream = createOutputStream(log.placeholder(LogLevel.debug))
-  proc.stdout!.pipe(outputStream)
-  proc.stderr!.pipe(outputStream)
-  return proc
-}
 
 export interface ExecTestSpec extends BaseTestSpec {
   command: string[],
@@ -198,12 +187,13 @@ export async function buildExecModule({ module, log }: BuildModuleParams<ExecMod
   const { command } = module.spec.build
 
   if (command.length) {
-    const result = await execWithStream(command.join(" "), log, {
+    const result = await exec(command.join(" "), [], {
       cwd: module.buildPath,
       env: {
         ...process.env,
         ...mapValues(module.spec.env, v => v.toString()),
       },
+      outputStream: createOutputStream(log.placeholder(LogLevel.debug)),
       shell: true,
     })
 
@@ -222,7 +212,7 @@ export async function testExecModule({ module, log, testConfig }: TestModulePara
   const startedAt = new Date()
   const { command } = testConfig.spec
 
-  const result = await execWithStream(command.join(" "), log, {
+  const result = await exec(command.join(" "), [], {
     cwd: module.buildPath,
     env: {
       ...process.env,
@@ -231,6 +221,7 @@ export async function testExecModule({ module, log, testConfig }: TestModulePara
       ...mapValues(testConfig.spec.env, v => v + ""),
     },
     reject: false,
+    outputStream: createOutputStream(log.placeholder(LogLevel.debug)),
     shell: true,
   })
 
@@ -252,13 +243,14 @@ export async function runExecTask(params: RunTaskParams): Promise<RunTaskResult>
   const command = task.spec.command
   const startedAt = new Date()
 
-  const result = await execWithStream(command.join(" "), log, {
+  const result = await exec(command.join(" "), [], {
     cwd: module.buildPath,
     env: {
       ...process.env,
       ...mapValues(module.spec.env, v => v.toString()),
       ...mapValues(task.spec.env, v => v.toString()),
     },
+    outputStream: createOutputStream(log.placeholder(LogLevel.debug)),
     shell: true,
   })
 
