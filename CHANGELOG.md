@@ -1,4 +1,33 @@
 
+<a name="v0.10.14-alpha.0"></a>
+## [v0.10.14-alpha.0](https://github.com/garden-io/garden/compare/v0.10.13...v0.10.14-alpha.0) (2019-11-01)
+
+### Bug Fixes
+
+* **k8s:** hostPath is now relative to module source path ([8b9bbfee](https://github.com/garden-io/garden/commit/8b9bbfee))
+* **k8s:** handle CronJob resources correctly ([e7a46463](https://github.com/garden-io/garden/commit/e7a46463))
+* **terraform:** error when no variables are specified in provider config ([6251d90f](https://github.com/garden-io/garden/commit/6251d90f))
+
+### Code Refactoring
+
+* standardise error message from execa and spawn ([035599da](https://github.com/garden-io/garden/commit/035599da))
+* **core:** rename ActionHelper to ActionRouter ([ac48a669](https://github.com/garden-io/garden/commit/ac48a669))
+* **plugin:** implement module type inheritance and polymorphism ([59fef9f1](https://github.com/garden-io/garden/commit/59fef9f1))
+* **plugins:** formalize plugin and module type extension mechanisms ([8ae84348](https://github.com/garden-io/garden/commit/8ae84348))
+* **plugins:** make plugin definition interface more intuitive ([de9b3c95](https://github.com/garden-io/garden/commit/de9b3c95))
+
+### Features
+
+* **k8s:** allow specifying tolerations for registry-proxy ([#1296](https://github.com/garden-io/garden/issues/1296)) ([1fc83103](https://github.com/garden-io/garden/commit/1fc83103))
+* **plugins:** add local flag to exec module type ([3c1fa5a6](https://github.com/garden-io/garden/commit/3c1fa5a6))
+
+### Improvement
+
+* **k8s:** move back to upstream kubernetes client library ([7af3ceb5](https://github.com/garden-io/garden/commit/7af3ceb5))
+* **k8s:** also delete metadata namespace when cleaning up ([f3af8777](https://github.com/garden-io/garden/commit/f3af8777))
+* **maven-container:** add JDK 13 support + some tweaks and fixes ([8cddab8f](https://github.com/garden-io/garden/commit/8cddab8f))
+
+
 <a name="v0.10.13"></a>
 ## [v0.10.13](https://github.com/garden-io/garden/compare/v0.10.12...v0.10.13) (2019-10-11)
 
