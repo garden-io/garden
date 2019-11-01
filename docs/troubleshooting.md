@@ -1,3 +1,8 @@
+---
+order: 8
+title: Troubleshooting
+---
+
 # Troubleshooting
 
 _This section could (obviously) use more work. Contributions are most appreciated!_

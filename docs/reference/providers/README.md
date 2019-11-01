@@ -1,3 +1,7 @@
+---
+order: 5
+title: Providers
+---
 # Providers
 
 * [Kubernetes](./kubernetes.md)

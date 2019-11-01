@@ -1,11 +1,12 @@
 ---
+order: 3
 title: Config Files Reference
 ---
 
 # garden.yml reference
 
 Below is the schema reference for the [Project](#project-configuration-keys) and [Module](#module-configuration-keys) `garden.yml` configuration files. For an introduction to configuring a Garden project,
-please look at our [configuration guide](../using-garden/configuration-files.md).
+please look at our [configuration guide](../guides/configuration-files.md).
 
 The reference is divided into four sections. The [first section](#project-configuration-keys) lists and describes the available schema keys for the project level configuration, and the [second section](#project-yaml-schema) contains the project level YAML schema.
 

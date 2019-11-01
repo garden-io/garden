@@ -1,3 +1,8 @@
+---
+order: 4
+title: Module Types
+---
+
 # Module Types
 
 * [Exec](./exec.md)

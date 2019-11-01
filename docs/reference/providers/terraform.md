@@ -4,7 +4,7 @@ title: Terraform
 
 # `terraform` reference
 
-Below is the schema reference for the `terraform` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-files.md).
+Below is the schema reference for the `terraform` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../guides/configuration-files.md).
 
 The reference is divided into two sections. The [first section](#configuration-keys) lists and describes the available schema keys. The [second section](#complete-yaml-schema) contains the complete YAML schema.
 
@@ -69,7 +69,7 @@ If set to true, Garden will automatically run `terraform apply -auto-approve` wh
 Specify the path to a Terraform config directory, that should be resolved when initializing the provider.
 This is useful when other providers need to be able to reference the outputs from the stack.
 
-See the [Terraform guide](../../using-garden/terraform.md) for more information.
+See the [Terraform guide](../../guides/terraform.md) for more information.
 
 | Type     | Required |
 | -------- | -------- |

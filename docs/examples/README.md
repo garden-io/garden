@@ -1,5 +1,6 @@
 ---
-order: 3
+order: 6
+title: Example Projects
 ---
 # Example Projects
 
@@ -9,7 +10,7 @@ Here we see how to "gardenify" a pre-existing project, creating a project config
 
 ## [Using Garden in CI](./using-garden-in-ci.md)
 
-In this example we demonstrate how to use Garden in a CI pipeline to run tests and deploy to preview and staging environments. Note that you'll need to have a [remote Kubernetes cluster](../using-garden/remote-kubernetes.md) set up to complete the steps in the guide.
+In this example we demonstrate how to use Garden in a CI pipeline to run tests and deploy to preview and staging environments. Note that you'll need to have a [remote Kubernetes cluster](../guides/remote-kubernetes.md) set up to complete the steps in the guide.
 
 ## [TLS project](./tls-project.md)
 

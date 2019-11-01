@@ -1,4 +1,5 @@
 ---
+order: 3
 title: Stack Graph
 ---
 # The Stack Graph
@@ -70,4 +71,4 @@ Note here the first four fields, which are common across all module types—`kin
 Also notice that the `container` module explicitly declares a service, whereas the `helm` module does not. This is dictated by the module
 type. Containers often only need to be built (e.g. base images for other containers), or may contain multiple services. A Helm chart, however, is generally a single deployable so the provider makes the service implicit when configuring it.
 
-For more details on how to configure your project, take a look at the [configuration guide](../using-garden/configuration-files.md).
+For more details on how to configure your project, take a look at the [configuration guide](./guides/configuration-files.md).

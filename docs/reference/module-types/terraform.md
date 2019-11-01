@@ -18,11 +18,11 @@ configurations, e.g. if you spin up an environment with the Terraform provider, 
 that to configure another provider or other modules via `\${providers.terraform.outputs.<key>}` template
 strings.
 
-See the [Terraform guide](../../using-garden/terraform.md) for a high-level introduction to the `terraform`
+See the [Terraform guide](../../guides/terraform.md) for a high-level introduction to the `terraform`
 provider.
 
 Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
-guide](../../using-garden/configuration-files.md).
+guide](../../guides/configuration-files.md).
 The [first section](#configuration-keys) lists and describes the available
 schema keys. The [second section](#complete-yaml-schema) contains the complete YAML schema.
 
