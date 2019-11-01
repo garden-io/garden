@@ -13,7 +13,7 @@ import { extend, find, keyBy, merge, set } from "lodash"
 import { ContainerModule, ContainerService } from "../../container/config"
 import { createIngressResources } from "./ingress"
 import { createServiceResources } from "./service"
-import { waitForResources, compareDeployedObjects } from "../status/status"
+import { waitForResources, compareDeployedResources } from "../status/status"
 import { apply, deleteObjectsBySelector } from "../kubectl"
 import { getAppNamespace } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
@@ -144,7 +144,7 @@ export async function deployContainerServiceBlueGreen(
     const serviceManifest = find(manifests, (manifest) => manifest.kind == "Service")
     const patchedServiceManifest = merge(serviceManifest, servicePatchBody)
     // Compare with the deployed Service
-    const result = await compareDeployedObjects(k8sCtx, api, namespace, [patchedServiceManifest], log, true)
+    const result = await compareDeployedResources(k8sCtx, api, namespace, [patchedServiceManifest], log)
 
     // If the result is outdated it means something in the Service definition itself changed
     // and we need to apply the whole Service manifest. Otherwise we just patch it.

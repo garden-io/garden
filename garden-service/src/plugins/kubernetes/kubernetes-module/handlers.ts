@@ -17,7 +17,7 @@ import { getNamespace, getAppNamespace } from "../namespace"
 import { KubernetesPluginContext } from "../config"
 import { KubernetesResource, KubernetesServerResource } from "../types"
 import { ServiceStatus } from "../../../types/service"
-import { compareDeployedObjects, waitForResources } from "../status/status"
+import { compareDeployedResources, waitForResources } from "../status/status"
 import { KubeApi } from "../api"
 import { ModuleAndRuntimeActionHandlers } from "../../../types/plugin/plugin"
 import { getAllLogs } from "../logs"
@@ -68,7 +68,7 @@ async function getServiceStatus({
   const api = await KubeApi.factory(log, k8sCtx.provider)
   const manifests = await getManifests(api, log, module, namespace)
 
-  const { state, remoteResources } = await compareDeployedObjects(k8sCtx, api, namespace, manifests, log, false)
+  const { state, remoteResources } = await compareDeployedResources(k8sCtx, api, namespace, manifests, log)
 
   const forwardablePorts = getForwardablePorts(remoteResources)
 
