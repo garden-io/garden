@@ -8,9 +8,9 @@
 
 import { join } from "path"
 import { ConfigurationError } from "../../exceptions"
-import { ServiceStatus, ServiceIngress } from "../../types/service"
+import { ServiceStatus, ServiceIngress, ServiceProtocol } from "../../types/service"
 import { testExecModule } from "../exec"
-import { getNamespace, getAppNamespace } from "../kubernetes/namespace"
+import { getNamespace } from "../kubernetes/namespace"
 import { findByName } from "../../util/util"
 import { KubeApi } from "../kubernetes/api"
 import { waitForResources } from "../kubernetes/status/status"
@@ -39,9 +39,14 @@ import {
   configureModule,
   openfaasModuleOutputsSchema,
   openfaasModuleSpecSchema,
+  getExternalGatewayUrl,
 } from "./config"
 import { getOpenfaasModuleBuildStatus, buildOpenfaasModule, writeStackFile, stackFilename } from "./build"
 import { dedent } from "../../util/string"
+import { LogEntry } from "../../logger/log-entry"
+import { Provider } from "../../config/provider"
+import { parse } from "url"
+import { trim } from "lodash"
 
 const systemDir = join(STATIC_DIR, "openfaas", "system")
 
@@ -56,8 +61,8 @@ export const gardenPlugin = createGardenPlugin({
     {
       name: "openfaas",
       docs: dedent`
-      Deploy [OpenFaaS](https://www.openfaas.com/) functions using Garden. Requires either the \`openfaas\` or
-      \`local-openfaas\` provider to be configured.
+      Deploy [OpenFaaS](https://www.openfaas.com/) functions using Garden. Requires the \`openfaas\` provider
+      to be configured.
     `,
       moduleOutputsSchema: openfaasModuleOutputsSchema,
       schema: openfaasModuleSpecSchema,
@@ -85,7 +90,7 @@ const templateModuleConfig: ExecModuleConfig = {
   description: "OpenFaaS templates for building functions",
   name: "templates",
   path: join(systemDir, "openfaas-templates"),
-  repositoryUrl: "https://github.com/openfaas/templates.git#master",
+  repositoryUrl: "https://github.com/openfaas/templates.git#1.2",
   outputs: {},
   serviceConfigs: [],
   spec: {
@@ -110,27 +115,62 @@ async function configureProvider({
 }: ConfigureProviderParams<OpenFaasConfig>): Promise<ConfigureProviderResult> {
   const k8sProvider = getK8sProvider(dependencies)
 
-  if (!config.hostname) {
-    if (!k8sProvider.config.defaultHostname) {
+  if (!config.faasNetes.install || config.faasNetes.values) {
+    // The user is manually configuring faas-netes
+    if (!config.gatewayUrl) {
       throw new ConfigurationError(
-        `openfaas: Must configure hostname if no default hostname is configured on Kubernetes provider.`,
+        `openfaas: gatewayUrl field must be configured when manually configuring or installing faas-netes.`,
         { config }
       )
     }
+  } else {
+    // We set a basic default configuration
+    if (!config.hostname) {
+      if (!k8sProvider.config.defaultHostname) {
+        throw new ConfigurationError(
+          `openfaas: hostname field must be configured if no default hostname is configured on Kubernetes provider.`,
+          { config }
+        )
+      }
 
-    config.hostname = k8sProvider.config.defaultHostname
+      config.hostname = k8sProvider.config.defaultHostname
+    }
   }
 
-  const namespace = await getNamespace({
-    log,
-    provider: k8sProvider,
-    projectName,
-    skipCreate: true,
-  })
-
+  const namespace = await getFunctionNamespace(log, projectName, config, dependencies)
   // Need to scope the release name, because the OpenFaaS Helm chart installs some cluster-wide resources
   // that could conflict across projects/users.
   const releaseName = `${namespace}--openfaas`
+
+  const defaultValues = {
+    basic_auth: false,
+    exposeServices: false,
+    functionNamespace: namespace,
+    ingress: {
+      enabled: true,
+      hosts: [
+        {
+          host: config.hostname,
+          serviceName: "gateway",
+          servicePort: 8080,
+          path: "/function/",
+        },
+        {
+          host: config.hostname,
+          serviceName: "gateway",
+          servicePort: 8080,
+          path: "/system/",
+        },
+      ],
+    },
+    faasIdler: {
+      create: false,
+    },
+    faasnetes: {
+      imagePullPolicy: "IfNotPresent",
+    },
+    securityContext: false,
+  }
 
   const systemModule: HelmModuleConfig = {
     allowPublish: false,
@@ -155,39 +195,9 @@ async function configureProvider({
       tasks: [],
       tests: [],
       timeout: 900,
-      version: "4.4.0",
+      version: "5.2.1",
       releaseName,
-      values: {
-        // TODO: allow setting password in provider config
-        basic_auth: false,
-        exposeServices: false,
-        functionNamespace: namespace,
-        ingress: {
-          enabled: true,
-          hosts: [
-            {
-              host: config.hostname,
-              serviceName: "gateway",
-              servicePort: 8080,
-              path: "/function/",
-            },
-            {
-              host: config.hostname,
-              serviceName: "gateway",
-              servicePort: 8080,
-              path: "/system/",
-            },
-          ],
-        },
-        // TODO: make this (and more stuff) configurable
-        faasIdler: {
-          create: false,
-        },
-        faasnetes: {
-          imagePullPolicy: "IfNotPresent",
-        },
-        securityContext: false,
-      },
+      values: config.faasNetes.values || defaultValues,
       valueFiles: [],
     },
   }
@@ -197,15 +207,39 @@ async function configureProvider({
   return { config, moduleConfigs }
 }
 
+async function getFunctionNamespace(
+  log: LogEntry,
+  projectName: string,
+  config: OpenFaasConfig,
+  dependencies: Provider[]
+) {
+  // Check for configured namespace in faas-netes custom values
+  return (
+    (config.values && config.values.functionNamespace) ||
+    // Default to K8s app namespace
+    (await getNamespace({
+      log,
+      provider: getK8sProvider(dependencies),
+      projectName,
+      skipCreate: true,
+    }))
+  )
+}
+
 async function getServiceLogs(params: GetServiceLogsParams<OpenFaasModule>) {
   const { ctx, log, service } = params
-  const provider = getK8sProvider(ctx.provider.dependencies)
-  const namespace = await getAppNamespace(ctx, log, provider)
+  const namespace = await getFunctionNamespace(
+    log,
+    ctx.projectName,
+    ctx.provider.config as OpenFaasConfig,
+    ctx.provider.dependencies
+  )
 
-  const api = await KubeApi.factory(log, provider)
+  const k8sProvider = getK8sProvider(ctx.provider.dependencies)
+  const api = await KubeApi.factory(log, k8sProvider)
   const resources = await getResources(api, service, namespace)
 
-  return getAllLogs({ ...params, provider, defaultNamespace: namespace, resources })
+  return getAllLogs({ ...params, provider: k8sProvider, defaultNamespace: namespace, resources })
 }
 
 async function deployService(params: DeployServiceParams<OpenFaasModule>): Promise<ServiceStatus> {
@@ -224,7 +258,12 @@ async function deployService(params: DeployServiceParams<OpenFaasModule>): Promi
   })
 
   // wait until deployment is ready
-  const namespace = await getAppNamespace(ctx, log, k8sProvider)
+  const namespace = await getFunctionNamespace(
+    log,
+    ctx.projectName,
+    ctx.provider.config as OpenFaasConfig,
+    ctx.provider.dependencies
+  )
   const api = await KubeApi.factory(log, k8sProvider)
   const resources = await getResources(api, service, namespace)
 
@@ -242,7 +281,7 @@ async function deployService(params: DeployServiceParams<OpenFaasModule>): Promi
 
 async function deleteService(params: DeleteServiceParams<OpenFaasModule>): Promise<ServiceStatus> {
   const { ctx, log, service } = params
-  let status
+  let status: ServiceStatus
   let found = true
 
   try {
@@ -267,6 +306,7 @@ async function deleteService(params: DeleteServiceParams<OpenFaasModule>): Promi
     })
   } catch (err) {
     found = false
+    status = { state: "missing", detail: {} }
   }
 
   if (log) {
@@ -290,16 +330,25 @@ async function getServiceStatus({
   const openFaasCtx = <OpenFaasPluginContext>ctx
   const k8sProvider = getK8sProvider(ctx.provider.dependencies)
 
+  const gatewayUrl = getExternalGatewayUrl(openFaasCtx)
+  const parsed = parse(gatewayUrl)
+  const protocol = trim(parsed.protocol!, ":") as ServiceProtocol
+
   const ingresses: ServiceIngress[] = [
     {
-      hostname: ctx.provider.config.hostname,
+      hostname: parsed.hostname!,
       path: getServicePath(module),
-      port: k8sProvider.config.ingressHttpPort,
-      protocol: "http",
+      port: protocol === "https" ? 443 : 80,
+      protocol,
     },
   ]
 
-  const namespace = await getAppNamespace(openFaasCtx, log, k8sProvider)
+  const namespace = await getFunctionNamespace(
+    log,
+    openFaasCtx.projectName,
+    openFaasCtx.provider.config,
+    openFaasCtx.provider.dependencies
+  )
   const api = await KubeApi.factory(log, k8sProvider)
 
   let deployment: KubernetesDeployment

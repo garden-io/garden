@@ -12,16 +12,16 @@ export const faasCli = new BinaryCmd({
   name: "faas-cli",
   specs: {
     darwin: {
-      url: "https://github.com/openfaas/faas-cli/releases/download/0.8.21/faas-cli-darwin",
-      sha256: "68d99f789e2e0a763b6f58f075f0118b8828fd43b3ca4eed646961eb6ac352fa",
+      url: "https://github.com/openfaas/faas-cli/releases/download/0.9.5/faas-cli-darwin",
+      sha256: "28beff63ef8234c1c937b14fd63e8c25244432897830650b8f76897fe4e22cbb",
     },
     linux: {
-      url: "https://github.com/openfaas/faas-cli/releases/download/0.8.21/faas-cli",
-      sha256: "b8a5b455f20b14751140cb63277ee4d435e23ed041be1898a0dc2c27ee718046",
+      url: "https://github.com/openfaas/faas-cli/releases/download/0.9.5/faas-cli",
+      sha256: "f4c8014d953f42e0c83628c089aff36aaf306f9f1aea62e5f22c84ab4269d1f7",
     },
     win32: {
-      url: "https://github.com/openfaas/faas-cli/releases/download/0.8.21/faas-cli.exe",
-      sha256: "366e01a364e64f90bec6b8234c2bc5bb87bbd059b187f8afe43c36d22f4d5b84",
+      url: "https://github.com/openfaas/faas-cli/releases/download/0.9.5/faas-cli.exe",
+      sha256: "45d09e4dbff679c32aff8f86cc39e12c3687b6b344a9a20510c6c61f4e141eb5",
     },
   },
 })
