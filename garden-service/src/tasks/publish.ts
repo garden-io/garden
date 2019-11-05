@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { BuildTask } from "./build"
+import { getBuildTasks } from "./build"
 import { Module } from "../types/module"
 import { PublishResult } from "../types/plugin/module/publishModule"
 import { BaseTask, TaskType } from "../tasks/base"
@@ -37,14 +37,12 @@ export class PublishTask extends BaseTask {
     if (!this.module.allowPublish) {
       return []
     }
-    return [
-      new BuildTask({
-        garden: this.garden,
-        log: this.log,
-        module: this.module,
-        force: this.forceBuild,
-      }),
-    ]
+    return getBuildTasks({
+      garden: this.garden,
+      log: this.log,
+      module: this.module,
+      force: this.forceBuild,
+    })
   }
 
   getName() {

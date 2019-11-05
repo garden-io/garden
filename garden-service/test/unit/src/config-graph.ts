@@ -11,14 +11,14 @@ describe("ConfigGraph", () => {
 
   before(async () => {
     gardenA = await makeTestGardenA()
-    graphA = await gardenA.getConfigGraph()
+    graphA = await gardenA.getConfigGraph(gardenA.log)
   })
 
   it("should throw when two services have the same name", async () => {
     const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-service"))
 
     await expectError(
-      () => garden.getConfigGraph(),
+      () => garden.getConfigGraph(garden.log),
       (err) =>
         expect(err.message).to.equal(
           "Service names must be unique - the service name 'dupe' is declared multiple times " +
@@ -31,7 +31,7 @@ describe("ConfigGraph", () => {
     const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-task"))
 
     await expectError(
-      () => garden.getConfigGraph(),
+      () => garden.getConfigGraph(garden.log),
       (err) =>
         expect(err.message).to.equal(
           "Task names must be unique - the task name 'dupe' is declared multiple times " +
@@ -44,7 +44,7 @@ describe("ConfigGraph", () => {
     const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-service-and-task"))
 
     await expectError(
-      () => garden.getConfigGraph(),
+      () => garden.getConfigGraph(garden.log),
       (err) =>
         expect(err.message).to.equal(
           "Service and task names must be mutually unique - the name 'dupe' is used for a task " +
@@ -55,7 +55,7 @@ describe("ConfigGraph", () => {
 
   it("should automatically add service source modules as module build dependencies", async () => {
     const garden = await makeTestGarden(resolve(dataDir, "test-projects", "source-module"))
-    const graph = await garden.getConfigGraph()
+    const graph = await garden.getConfigGraph(garden.log)
     const module = await graph.getModule("module-b")
     expect(module.build.dependencies).to.eql([{ name: "module-a", copy: [] }])
   })

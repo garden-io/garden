@@ -19,7 +19,7 @@ export class GetGraphCommand extends Command {
   help = "Outputs the dependency relationships specified in this project's garden.yml files."
 
   async action({ garden, log }: CommandParams): Promise<CommandResult<GraphOutput>> {
-    const graph = await garden.getConfigGraph()
+    const graph = await garden.getConfigGraph(log)
     const renderedGraph = graph.render()
     const output: GraphOutput = {
       nodes: renderedGraph.nodes,

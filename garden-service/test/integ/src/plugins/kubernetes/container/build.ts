@@ -38,7 +38,7 @@ describe("k8sBuildContainer", () => {
     }
 
     garden = await makeTestGarden(root, { environmentName })
-    graph = await garden.getConfigGraph()
+    graph = await garden.getConfigGraph(garden.log)
     provider = <KubernetesProvider>await garden.resolveProvider("local-kubernetes")
     ctx = garden.getPluginContext(provider)
 

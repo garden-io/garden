@@ -112,7 +112,7 @@ describe("GetServiceStatusTask", () => {
         },
       }
 
-      const graph = await garden.getConfigGraph()
+      const graph = await garden.getConfigGraph(garden.log)
       const testService = await graph.getService("test-service")
 
       const statusTask = new GetServiceStatusTask({

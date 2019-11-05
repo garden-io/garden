@@ -24,7 +24,7 @@ describe("kubernetes container module handlers", () => {
   before(async () => {
     const root = getDataDir("test-projects", "container")
     garden = await makeTestGarden(root)
-    graph = await garden.getConfigGraph()
+    graph = await garden.getConfigGraph(garden.log)
     provider = await garden.resolveProvider("local-kubernetes")
   })
 

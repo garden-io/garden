@@ -16,7 +16,7 @@ import { LogEntry } from "../logger/log-entry"
 import { prepareRuntimeContext } from "../runtime-context"
 import { ConfigGraph } from "../config-graph"
 import { ModuleVersion } from "../vcs/vcs"
-import { BuildTask } from "./build"
+import { getBuildTasks } from "./build"
 import { RunTaskResult } from "../types/plugin/task/runTask"
 import { TaskResults } from "../task-graph"
 import { GetTaskResultTask } from "./get-task-result"
@@ -53,14 +53,14 @@ export class TaskTask extends BaseTask {
   }
 
   async getDependencies(): Promise<BaseTask[]> {
-    const buildTask = new BuildTask({
+    const buildTasks = await getBuildTasks({
       garden: this.garden,
       log: this.log,
       module: this.task.module,
       force: this.forceBuild,
     })
 
-    const dg = await this.garden.getConfigGraph()
+    const dg = await this.garden.getConfigGraph(this.log)
     const deps = await dg.getDependencies("task", this.getName(), false)
 
     const deployTasks = deps.service.map((service) => {
@@ -93,7 +93,7 @@ export class TaskTask extends BaseTask {
       version: this.version,
     })
 
-    return [buildTask, ...deployTasks, ...taskTasks, resultTask]
+    return [...buildTasks, ...deployTasks, ...taskTasks, resultTask]
   }
 
   getName() {
@@ -174,5 +174,5 @@ export class TaskTask extends BaseTask {
 export async function getTaskVersion(garden: Garden, graph: ConfigGraph, task: Task): Promise<ModuleVersion> {
   const { module } = task
   const moduleDeps = await graph.resolveDependencyModules(module.build.dependencies, task.config.dependencies)
-  return garden.resolveVersion(module.name, moduleDeps)
+  return garden.resolveVersion(module, moduleDeps)
 }

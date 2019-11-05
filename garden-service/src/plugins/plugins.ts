@@ -11,6 +11,7 @@ export const builtinPlugins = [
   require("./exec"),
   require("./container/container"),
   require("./google/google-cloud-functions"),
+  require("./hadolint/hadolint"),
   require("./local/local-google-cloud-functions"),
   require("./kubernetes/kubernetes"),
   require("./kubernetes/local/local"),

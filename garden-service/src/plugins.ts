@@ -17,36 +17,6 @@ import { validate } from "./config/common"
 import { LogEntry } from "./logger/log-entry"
 
 export function loadPlugins(log: LogEntry, registeredPlugins: PluginMap, configs: ProviderConfig[]) {
-  let graph = new DepGraph()
-
-  for (const plugin of Object.values(registeredPlugins)) {
-    graph.addNode(plugin.name)
-
-    if (plugin.base) {
-      graph.addNode(plugin.base)
-      graph.addDependency(plugin.name, plugin.base)
-    }
-
-    for (const dependency of plugin.dependencies || []) {
-      graph.addNode(dependency)
-      graph.addDependency(plugin.name, dependency)
-    }
-  }
-
-  let ordered: string[]
-
-  try {
-    ordered = graph.overallOrder()
-  } catch (err) {
-    if (err.cyclePath) {
-      throw new PluginError(`Found a circular dependency between registered plugins: ${err.cyclePath.join(" -> ")}`, {
-        cyclePath: err.cyclePath,
-      })
-    } else {
-      throw err
-    }
-  }
-
   const loadedPlugins: PluginMap = {}
 
   const loadPlugin = (name: string) => {
@@ -106,10 +76,8 @@ export function loadPlugins(log: LogEntry, registeredPlugins: PluginMap, configs
     return plugin
   }
 
-  // Load plugins in dependency order (concat() makes sure we're not mutating the original array, because JS...)
-  const orderedConfigs = configs.concat().sort((a, b) => {
-    return ordered.indexOf(a.name) - ordered.indexOf(b.name)
-  })
+  // Load plugins in dependency order
+  const orderedConfigs = getDependencyOrder(configs, registeredPlugins)
 
   for (const config of orderedConfigs) {
     const plugin = loadPlugin(config.name)
@@ -127,6 +95,46 @@ export function loadPlugins(log: LogEntry, registeredPlugins: PluginMap, configs
 
   // Resolve module type definitions
   return Object.values(resolveModuleDefinitions(resolvedPlugins, configs))
+}
+
+/**
+ * Returns the given provider configs in dependency order.
+ */
+export function getDependencyOrder<T extends ProviderConfig>(configs: T[], registeredPlugins: PluginMap): T[] {
+  let graph = new DepGraph()
+
+  for (const plugin of Object.values(registeredPlugins)) {
+    graph.addNode(plugin.name)
+
+    if (plugin.base) {
+      graph.addNode(plugin.base)
+      graph.addDependency(plugin.name, plugin.base)
+    }
+
+    for (const dependency of plugin.dependencies || []) {
+      graph.addNode(dependency)
+      graph.addDependency(plugin.name, dependency)
+    }
+  }
+
+  let ordered: string[]
+
+  try {
+    ordered = graph.overallOrder()
+  } catch (err) {
+    if (err.cyclePath) {
+      throw new PluginError(`Found a circular dependency between registered plugins: ${err.cyclePath.join(" -> ")}`, {
+        cyclePath: err.cyclePath,
+      })
+    } else {
+      throw err
+    }
+  }
+
+  // Note: concat() makes sure we're not mutating the original array, because JS...
+  return configs.concat().sort((a, b) => {
+    return ordered.indexOf(a.name) - ordered.indexOf(b.name)
+  })
 }
 
 // Takes a plugin and resolves it against its base plugin, if applicable

@@ -50,7 +50,7 @@ export class GetStatusCommand extends Command {
     let result: AllEnvironmentStatus
 
     if (opts.output) {
-      const graph = await garden.getConfigGraph()
+      const graph = await garden.getConfigGraph(log)
       result = await Bluebird.props({
         ...status,
         tests: getTestStatuses(garden, graph, log),

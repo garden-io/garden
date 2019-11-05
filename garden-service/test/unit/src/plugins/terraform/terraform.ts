@@ -66,7 +66,7 @@ describe("Terraform module type", () => {
   })
 
   async function runTestTask() {
-    const graph = await garden.getConfigGraph()
+    const graph = await garden.getConfigGraph(garden.log)
     const task = await graph.getTask("test-task")
 
     const taskTask = new TaskTask({

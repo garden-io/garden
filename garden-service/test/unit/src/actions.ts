@@ -60,7 +60,7 @@ describe("ActionRouter", () => {
     })
     log = garden.log
     actions = await garden.getActionRouter()
-    const graph = await garden.getConfigGraph()
+    const graph = await garden.getConfigGraph(garden.log)
     module = await graph.getModule("module-a")
     service = await graph.getService("service-a")
     runtimeContext = await prepareRuntimeContext({
@@ -79,11 +79,15 @@ describe("ActionRouter", () => {
     task = await graph.getTask("task-a")
   })
 
+  after(async () => {
+    await garden.close()
+  })
+
   // Note: The test plugins below implicitly validate input params for each of the tests
   describe("environment actions", () => {
     describe("configureProvider", () => {
       it("should configure the provider", async () => {
-        const config = { foo: "bar" }
+        const config = { name: "test-plugin", foo: "bar" }
         const result = await actions.configureProvider({
           pluginName: "test-plugin",
           log,
@@ -95,6 +99,40 @@ describe("ActionRouter", () => {
         })
         expect(result).to.eql({
           config,
+          moduleConfigs: [],
+        })
+      })
+    })
+
+    describe("augmentGraph", () => {
+      it("should return modules and/or dependency relations to add to the stack graph", async () => {
+        const graph = await garden.getConfigGraph(garden.log)
+        const modules = await graph.getModules()
+        const providers = await garden.resolveProviders()
+        const result = await actions.augmentGraph({
+          log,
+          pluginName: "test-plugin",
+          modules,
+          providers,
+        })
+
+        const name = "added-by-test-plugin"
+
+        expect(result).to.eql({
+          addBuildDependencies: [{ by: name, on: "module-b" }],
+          addRuntimeDependencies: [{ by: name, on: "service-b" }],
+          addModules: [
+            {
+              apiVersion: DEFAULT_API_VERSION,
+              kind: "Module",
+              name,
+              type: "test",
+              path: garden.projectRoot,
+              services: [{ name }],
+              allowPublish: true,
+              build: { dependencies: [] },
+            },
+          ],
         })
       })
     })
@@ -579,7 +617,7 @@ describe("ActionRouter", () => {
       it("should copy artifacts exported by the handler to the artifacts directory", async () => {
         await emptyDir(garden.artifactsPath)
 
-        const graph = await garden.getConfigGraph()
+        const graph = await garden.getConfigGraph(garden.log)
         const _task = await graph.getTask("task-a")
 
         _task.spec.artifacts = [
@@ -646,8 +684,8 @@ describe("ActionRouter", () => {
       const pluginName = "test-plugin-b"
       const handler = await actionsA["getActionHandler"]({ actionType: "prepareEnvironment", pluginName })
 
-      expect(handler.actionType).to.equal("prepareEnvironment")
-      expect(handler.pluginName).to.equal(pluginName)
+      expect(handler!.actionType).to.equal("prepareEnvironment")
+      expect(handler!.pluginName).to.equal(pluginName)
     })
 
     it("should throw if no handler is available", async () => {
@@ -1244,7 +1282,7 @@ describe("ActionRouter", () => {
         },
       })
 
-      const graph = await garden.getConfigGraph()
+      const graph = await garden.getConfigGraph(garden.log)
       const moduleA = await graph.getModule("module-a")
 
       const base = Object.assign(
@@ -1283,7 +1321,7 @@ describe("ActionRouter", () => {
         },
       })
 
-      const graph = await garden.getConfigGraph()
+      const graph = await garden.getConfigGraph(garden.log)
       const serviceA = await graph.getService("service-a")
 
       const base = Object.assign(
@@ -1326,7 +1364,7 @@ describe("ActionRouter", () => {
 
       garden["moduleConfigs"]["module-a"].spec.foo = "${runtime.services.service-b.outputs.foo}"
 
-      const graph = await garden.getConfigGraph()
+      const graph = await garden.getConfigGraph(garden.log)
       const serviceA = await graph.getService("service-a")
       const serviceB = await graph.getService("service-b")
 
@@ -1378,7 +1416,7 @@ describe("ActionRouter", () => {
 
       garden["moduleConfigs"]["module-a"].spec.services[0].foo = "${runtime.services.service-b.outputs.foo}"
 
-      const graph = await garden.getConfigGraph()
+      const graph = await garden.getConfigGraph(garden.log)
       const serviceA = await graph.getService("service-a")
 
       const _runtimeContext = await prepareRuntimeContext({
@@ -1429,7 +1467,7 @@ describe("ActionRouter", () => {
         },
       })
 
-      const graph = await garden.getConfigGraph()
+      const graph = await garden.getConfigGraph(garden.log)
       const taskA = await graph.getTask("task-a")
 
       const base = Object.assign(
@@ -1489,7 +1527,7 @@ describe("ActionRouter", () => {
 
       garden["moduleConfigs"]["module-a"].spec.tasks[0].foo = "${runtime.services.service-b.outputs.foo}"
 
-      const graph = await garden.getConfigGraph()
+      const graph = await garden.getConfigGraph(garden.log)
       const taskA = await graph.getTask("task-a")
       const serviceB = await graph.getService("service-b")
 
@@ -1552,7 +1590,7 @@ describe("ActionRouter", () => {
 
       garden["moduleConfigs"]["module-a"].spec.tasks[0].foo = "${runtime.services.service-b.outputs.foo}"
 
-      const graph = await garden.getConfigGraph()
+      const graph = await garden.getConfigGraph(garden.log)
       const taskA = await graph.getTask("task-a")
 
       const _runtimeContext = await prepareRuntimeContext({
@@ -1618,12 +1656,46 @@ const testPlugin = createGardenPlugin({
   dependencies: ["base"],
 
   handlers: <PluginActionHandlers>{
+    configureProvider: async (params) => {
+      validate(params, pluginActionDescriptions.configureProvider.paramsSchema)
+      return { config: params.config }
+    },
+
     getEnvironmentStatus: async (params) => {
       validate(params, pluginActionDescriptions.getEnvironmentStatus.paramsSchema)
       return {
         ready: false,
         outputs: {},
       }
+    },
+
+    augmentGraph: async (params) => {
+      validate(params, pluginActionDescriptions.augmentGraph.paramsSchema)
+
+      const moduleName = "added-by-" + params.ctx.provider.name
+
+      return {
+        addBuildDependencies: [{ by: moduleName, on: "module-b" }],
+        addRuntimeDependencies: [{ by: moduleName, on: "service-b" }],
+        addModules: [
+          {
+            kind: "Module",
+            name: moduleName,
+            type: "test",
+            path: projectRootA,
+            services: [
+              {
+                name: moduleName,
+              },
+            ],
+          },
+        ],
+      }
+    },
+
+    getDebugInfo: async (params) => {
+      validate(params, pluginActionDescriptions.getDebugInfo.paramsSchema)
+      return { info: {} }
     },
 
     prepareEnvironment: async (params) => {
