@@ -15,12 +15,13 @@ import {
   StringsParameter,
   PrepareParams,
 } from "./base"
-import { BuildTask } from "../tasks/build"
+import { getBuildTasks } from "../tasks/build"
 import { TaskResults } from "../task-graph"
 import dedent = require("dedent")
 import { processModules } from "../process"
 import { printHeader } from "../logger/util"
 import { startServer, GardenServer } from "../server/server"
+import { flatten } from "lodash"
 
 const buildArguments = {
   modules: new StringsParameter({
@@ -81,24 +82,25 @@ export class BuildCommand extends Command<Args, Opts> {
 
     await garden.clearBuilds()
 
-    const graph = await garden.getConfigGraph()
+    const graph = await garden.getConfigGraph(log)
     const modules = await graph.getModules(args.modules)
     const moduleNames = modules.map((m) => m.name)
 
     const results = await processModules({
       garden,
-      graph: await garden.getConfigGraph(),
+      graph: await garden.getConfigGraph(log),
       log,
       footerLog,
       modules,
       watch: opts.watch,
-      handler: async (_, module) => [new BuildTask({ garden, log, module, force: opts.force })],
+      handler: async (_, module) => getBuildTasks({ garden, log, module, force: opts.force }),
       changeHandler: async (_, module) => {
         const dependantModules = (await graph.getDependants("build", module.name, true)).build
-        return [module]
+        const tasks = [module]
           .concat(dependantModules)
           .filter((m) => moduleNames.includes(m.name))
-          .map((m) => new BuildTask({ garden, log, module: m, force: true }))
+          .map((m) => getBuildTasks({ garden, log, module: m, force: true }))
+        return flatten(await Promise.all(tasks))
       },
     })
 

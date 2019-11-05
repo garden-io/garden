@@ -14,7 +14,7 @@ export class GetConfigCommand extends Command {
   help = "Outputs the fully resolved configuration for this project and environment."
 
   async action({ garden, log }: CommandParams): Promise<CommandResult<ConfigDump>> {
-    const config = await garden.dumpConfig()
+    const config = await garden.dumpConfig(log)
 
     // TODO: do a nicer print of this by default
     log.info({ data: config })

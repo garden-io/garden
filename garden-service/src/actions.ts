@@ -97,6 +97,7 @@ import { DeleteServiceTask, deletedServiceStatuses } from "./tasks/delete-servic
 import { realpath, writeFile } from "fs-extra"
 import { relative, join } from "path"
 import { getArtifactKey } from "./util/artifacts"
+import { AugmentGraphResult, AugmentGraphParams } from "./types/plugin/provider/augmentGraph"
 
 const maxArtifactLogLines = 5 // max number of artifacts to list in console after task+test runs
 
@@ -181,7 +182,7 @@ export class ActionRouter implements TypeGuard {
 
     const handlerParams: PluginActionParams["configureProvider"] = {
       ...omit(params, ["pluginName"]),
-      base: this.wrapBase(handler.base),
+      base: this.wrapBase(handler!.base),
     }
 
     const result = (<Function>handler)(handlerParams)
@@ -189,6 +190,17 @@ export class ActionRouter implements TypeGuard {
     this.garden.log.silly(`Called 'configureProvider' handler on '${pluginName}'`)
 
     return result
+  }
+
+  async augmentGraph(params: RequirePluginName<ActionRouterParams<AugmentGraphParams>>): Promise<AugmentGraphResult> {
+    const { pluginName } = params
+
+    return this.callActionHandler({
+      actionType: "augmentGraph",
+      pluginName,
+      params: omit(params, ["pluginName"]),
+      defaultHandler: async () => ({ addBuildDependencies: [], addRuntimeDependencies: [], addModules: [] }),
+    })
   }
 
   async getEnvironmentStatus(
@@ -283,7 +295,11 @@ export class ActionRouter implements TypeGuard {
   }
 
   async build<T extends Module>(params: ModuleActionRouterParams<BuildModuleParams<T>>): Promise<BuildResult> {
-    return this.callModuleHandler({ params, actionType: "build" })
+    return this.callModuleHandler({
+      params,
+      actionType: "build",
+      defaultHandler: async () => ({}),
+    })
   }
 
   async publishModule<T extends Module>(
@@ -516,7 +532,7 @@ export class ActionRouter implements TypeGuard {
     log: LogEntry
     serviceNames?: string[]
   }): Promise<ServiceStatusMap> {
-    const graph = await this.garden.getConfigGraph()
+    const graph = await this.garden.getConfigGraph(log)
     const services = await graph.getServices(serviceNames)
 
     const tasks = services.map(
@@ -540,7 +556,7 @@ export class ActionRouter implements TypeGuard {
     forceBuild = false,
     log,
   }: DeployServicesParams): Promise<ProcessResults> {
-    const graph = await this.garden.getConfigGraph()
+    const graph = await this.garden.getConfigGraph(log)
     const services = await graph.getServices(serviceNames)
 
     return processServices({
@@ -566,7 +582,7 @@ export class ActionRouter implements TypeGuard {
    * Deletes all services and cleans up the specified environment.
    */
   async deleteEnvironment(log: LogEntry) {
-    const graph = await this.garden.getConfigGraph()
+    const graph = await this.garden.getConfigGraph(log)
 
     const servicesLog = log.info({ msg: chalk.white("Deleting services..."), status: "active" })
 
@@ -678,7 +694,7 @@ export class ActionRouter implements TypeGuard {
     })
 
     const handlerParams: PluginActionParams[T] = {
-      ...(await this.commonParams(handler, params.log)),
+      ...(await this.commonParams(handler!, params.log)),
       ...(<any>params),
     }
 
@@ -746,7 +762,7 @@ export class ActionRouter implements TypeGuard {
     if (runtimeContext && (await getRuntimeTemplateReferences(module)).length > 0) {
       log.silly(`Resolving runtime template strings for service '${service.name}'`)
       const configContext = await this.garden.getModuleConfigContext(runtimeContext)
-      const graph = await this.garden.getConfigGraph({ configContext })
+      const graph = await this.garden.getConfigGraph(log, { configContext })
       service = await graph.getService(service.name)
       module = service.module
 
@@ -803,7 +819,7 @@ export class ActionRouter implements TypeGuard {
     if (runtimeContext && (await getRuntimeTemplateReferences(module)).length > 0) {
       log.silly(`Resolving runtime template strings for task '${task.name}'`)
       const configContext = await this.garden.getModuleConfigContext(runtimeContext)
-      const graph = await this.garden.getConfigGraph({ configContext })
+      const graph = await this.garden.getConfigGraph(log, { configContext })
       task = await graph.getTask(task.name)
       module = task.module
 
@@ -971,15 +987,17 @@ export class ActionRouter implements TypeGuard {
   /**
    * Get the last configured handler for the specified action (and optionally module type).
    */
-  private async getActionHandler<T extends keyof WrappedPluginActionHandlers>({
+  async getActionHandler<T extends keyof WrappedPluginActionHandlers>({
     actionType,
     pluginName,
     defaultHandler,
+    throwIfMissing = true,
   }: {
     actionType: T
     pluginName: string
     defaultHandler?: PluginActionHandlers[T]
-  }): Promise<WrappedPluginActionHandlers[T]> {
+    throwIfMissing?: boolean
+  }): Promise<WrappedPluginActionHandlers[T] | null> {
     const handlers = Object.values(await this.getActionHandlers(actionType, pluginName))
 
     // Since we only allow retrieving by plugin name, the length is always either 0 or 1
@@ -993,6 +1011,10 @@ export class ActionRouter implements TypeGuard {
         <WrappedPluginActionHandlers[T]>defaultHandler,
         { actionType, pluginName: defaultProvider.name }
       )
+    }
+
+    if (!throwIfMissing) {
+      return null
     }
 
     const errorDetails = {
@@ -1013,9 +1035,9 @@ export class ActionRouter implements TypeGuard {
   }
 
   /**
-   * Get the last configured handler for the specified action.
+   * Get the configured handler for the specified action.
    */
-  private async getModuleActionHandler<T extends keyof ModuleAndRuntimeActionHandlers>({
+  async getModuleActionHandler<T extends keyof ModuleAndRuntimeActionHandlers>({
     actionType,
     moduleType,
     pluginName,

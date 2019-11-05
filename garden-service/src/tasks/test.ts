@@ -22,7 +22,7 @@ import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { ConfigGraph } from "../config-graph"
 import { makeTestTaskName } from "./helpers"
-import { BuildTask } from "./build"
+import { getBuildTasks } from "./build"
 import { TaskTask } from "./task"
 import { TaskResults } from "../task-graph"
 
@@ -75,7 +75,7 @@ export class TestTask extends BaseTask {
     const dg = this.graph
     const deps = await dg.getDependencies("test", this.getName(), false)
 
-    const buildTask = new BuildTask({
+    const buildTasks = await getBuildTasks({
       garden: this.garden,
       log: this.log,
       module: this.module,
@@ -105,7 +105,7 @@ export class TestTask extends BaseTask {
         })
     )
 
-    return [buildTask, ...serviceTasks, ...taskTasks]
+    return [...buildTasks, ...serviceTasks, ...taskTasks]
   }
 
   getName() {
@@ -249,5 +249,5 @@ export async function getTestVersion(
     // Don't include the module itself in the dependencies here
     .filter((m) => m.name !== module.name)
 
-  return garden.resolveVersion(module.name, moduleDeps)
+  return garden.resolveVersion(module, moduleDeps)
 }

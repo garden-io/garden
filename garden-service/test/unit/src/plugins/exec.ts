@@ -25,7 +25,7 @@ describe("exec plugin", () => {
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin] })
-    graph = await garden.getConfigGraph()
+    graph = await garden.getConfigGraph(garden.log)
     log = garden.log
     await garden.clearBuilds()
   })
@@ -160,8 +160,8 @@ describe("exec plugin", () => {
   })
 
   it("should propagate task logs to runtime outputs", async () => {
-    const _garden = await makeTestGarden(await getDataDir("test-projects", "exec-task-outputs"))
-    const _graph = await _garden.getConfigGraph()
+    const _garden = await makeTestGarden(getDataDir("test-projects", "exec-task-outputs"))
+    const _graph = await _garden.getConfigGraph(_garden.log)
     const taskB = await _graph.getTask("task-b")
 
     const taskTask = new TaskTask({
@@ -182,7 +182,7 @@ describe("exec plugin", () => {
 
   it("should copy artifacts after task runs", async () => {
     const _garden = await makeTestGarden(getDataDir("test-projects", "exec-artifacts"))
-    const _graph = await _garden.getConfigGraph()
+    const _graph = await _garden.getConfigGraph(_garden.log)
     const task = await _graph.getTask("task-a")
 
     const taskTask = new TaskTask({
@@ -204,7 +204,7 @@ describe("exec plugin", () => {
 
   it("should copy artifacts after test runs", async () => {
     const _garden = await makeTestGarden(getDataDir("test-projects", "exec-artifacts"))
-    const _graph = await _garden.getConfigGraph()
+    const _graph = await _garden.getConfigGraph(_garden.log)
     const module = await _graph.getModule("module-a")
 
     const testTask = new TestTask({

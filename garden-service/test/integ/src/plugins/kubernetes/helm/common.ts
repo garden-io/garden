@@ -50,12 +50,12 @@ describe("Helm common functions", () => {
     const provider = await garden.resolveProvider("local-kubernetes")
     ctx = garden.getPluginContext(provider)
     log = garden.log
-    graph = await garden.getConfigGraph()
+    graph = await garden.getConfigGraph(garden.log)
     await buildModules()
   })
 
   beforeEach(async () => {
-    graph = await garden.getConfigGraph()
+    graph = await garden.getConfigGraph(garden.log)
   })
 
   async function buildModules() {

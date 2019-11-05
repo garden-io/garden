@@ -6,7 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { intersection, uniq } from "lodash"
+import Bluebird from "bluebird"
+import { intersection, uniq, flatten } from "lodash"
 import { DeployTask } from "./deploy"
 import { Garden } from "../garden"
 import { Module } from "../types/module"
@@ -14,7 +15,7 @@ import { Service } from "../types/service"
 import { DependencyGraphNode, ConfigGraph } from "../config-graph"
 import { LogEntry } from "../logger/log-entry"
 import { BaseTask } from "./base"
-import { BuildTask } from "./build"
+import { BuildTask, getBuildTasks } from "./build"
 
 export async function getDependantTasksForModule({
   garden,
@@ -37,20 +38,20 @@ export async function getDependantTasksForModule({
   fromWatch?: boolean
   includeDependants?: boolean
 }): Promise<BaseTask[]> {
-  let buildTasks: BuildTask[] = []
+  let buildTasks: BaseTask[] = []
   let dependantBuildModules: Module[] = []
   let services: Service[] = []
 
   if (!includeDependants) {
     buildTasks.push(
-      new BuildTask({
+      ...(await getBuildTasks({
         garden,
         log,
         module,
         force: forceBuild,
         fromWatch,
         hotReloadServiceNames,
-      })
+      }))
     )
     services = await graph.getServices(module.serviceNames)
   } else {
@@ -69,31 +70,30 @@ export async function getDependantTasksForModule({
       const dependants = await graph.getDependantsForModule(module, dependantFilterFn)
 
       buildTasks.push(
-        new BuildTask({
+        ...(await getBuildTasks({
           garden,
           log,
           module,
           force: true,
           fromWatch,
           hotReloadServiceNames,
-        })
+        }))
       )
       dependantBuildModules = dependants.build
       services = (await graph.getServices(module.serviceNames)).concat(dependants.service)
     }
   }
 
-  buildTasks.push(
-    ...dependantBuildModules.map(
-      (m) =>
-        new BuildTask({
-          garden,
-          log,
-          module: m,
-          force: forceBuild,
-          fromWatch,
-          hotReloadServiceNames,
-        })
+  const dependantBuildTasks = flatten(
+    await Bluebird.map(dependantBuildModules, (m) =>
+      getBuildTasks({
+        garden,
+        log,
+        module: m,
+        force: forceBuild,
+        fromWatch,
+        hotReloadServiceNames,
+      })
     )
   )
 
@@ -111,7 +111,7 @@ export async function getDependantTasksForModule({
       })
   )
 
-  const outputTasks = [...buildTasks, ...deployTasks]
+  const outputTasks = [...buildTasks, ...dependantBuildTasks, ...deployTasks]
   log.silly(`getDependantTasksForModule called for module ${module.name}, returning the following tasks:`)
   log.silly(`  ${outputTasks.map((t) => t.getKey()).join(", ")}`)
 

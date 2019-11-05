@@ -14,7 +14,7 @@ import { BaseTask, TaskType, getServiceStatuses, getRunTaskResults } from "./bas
 import { Service, ServiceStatus, getLinkUrl } from "../types/service"
 import { Garden } from "../garden"
 import { TaskTask, getTaskVersion } from "./task"
-import { BuildTask } from "./build"
+import { getBuildTasks } from "./build"
 import { ConfigGraph } from "../config-graph"
 import { startPortProxies } from "../proxy"
 import { TaskResults } from "../task-graph"
@@ -129,7 +129,7 @@ export class DeployTask extends BaseTask {
         })
       })
 
-      const buildTask = new BuildTask({
+      const buildTasks = await getBuildTasks({
         garden: this.garden,
         log: this.log,
         module: this.service.module,
@@ -138,7 +138,7 @@ export class DeployTask extends BaseTask {
         hotReloadServiceNames: this.hotReloadServiceNames,
       })
 
-      return [statusTask, ...deployTasks, ...taskTasks, buildTask]
+      return [statusTask, ...deployTasks, ...taskTasks, ...buildTasks]
     }
   }
 

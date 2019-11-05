@@ -51,7 +51,7 @@ export class RunTaskCommand extends Command<Args, Opts> {
     args,
     opts,
   }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResult | null>> {
-    const graph = await garden.getConfigGraph()
+    const graph = await garden.getConfigGraph(log)
     const task = await graph.getTask(args.task)
 
     const msg = `Running task ${chalk.white(task.name)}`

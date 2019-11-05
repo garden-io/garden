@@ -50,7 +50,7 @@ export class RunServiceCommand extends Command<Args, Opts> {
 
   async action({ garden, log, headerLog, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
     const serviceName = args.service
-    const graph = await garden.getConfigGraph()
+    const graph = await garden.getConfigGraph(log)
     const service = await graph.getService(serviceName)
     const module = service.module
 

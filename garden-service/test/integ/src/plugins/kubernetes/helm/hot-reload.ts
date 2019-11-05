@@ -15,7 +15,7 @@ describe("getHotReloadSpec", () => {
   })
 
   beforeEach(async () => {
-    graph = await garden.getConfigGraph()
+    graph = await garden.getConfigGraph(garden.log)
   })
 
   it("should retrieve the hot reload spec on the service's source module", async () => {

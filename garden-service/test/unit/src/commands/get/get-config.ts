@@ -27,7 +27,7 @@ describe("GetConfigCommand", () => {
       environmentName: garden.environmentName,
       providers,
       variables: garden.variables,
-      moduleConfigs: sortBy(await garden.resolveModuleConfigs(), "name"),
+      moduleConfigs: sortBy(await garden["resolveModuleConfigs"](log), "name"),
       projectRoot: garden.projectRoot,
     }
 

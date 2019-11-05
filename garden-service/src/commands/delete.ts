@@ -126,7 +126,7 @@ export class DeleteServiceCommand extends Command {
   `
 
   async action({ garden, log, headerLog, args }: CommandParams<DeleteServiceArgs>): Promise<CommandResult> {
-    const graph = await garden.getConfigGraph()
+    const graph = await garden.getConfigGraph(log)
     const services = await graph.getServices(args.services)
 
     if (services.length === 0) {

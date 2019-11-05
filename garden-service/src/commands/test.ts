@@ -101,7 +101,7 @@ export class TestCommand extends Command<Args, Opts> {
       this.server.setGarden(garden)
     }
 
-    const graph = await garden.getConfigGraph()
+    const graph = await garden.getConfigGraph(log)
 
     let modules: Module[]
     if (args.modules) {

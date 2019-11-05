@@ -22,7 +22,7 @@ describe("util", () => {
     before(async () => {
       const root = getDataDir("test-projects", "container")
       garden = await makeTestGarden(root)
-      graph = await garden.getConfigGraph()
+      graph = await garden.getConfigGraph(garden.log)
       provider = (await garden.resolveProvider("local-kubernetes")) as Provider<KubernetesConfig>
       api = await KubeApi.factory(garden.log, provider)
     })

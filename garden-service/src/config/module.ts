@@ -74,17 +74,23 @@ export interface BaseBuildSpec {
 
 export interface ModuleSpec {}
 
-export interface BaseModuleSpec {
-  apiVersion: string
+export interface AddModuleSpec {
+  apiVersion?: string
   name: string
   path: string
-  allowPublish: boolean
-  build: BaseBuildSpec
+  allowPublish?: boolean
+  build?: BaseBuildSpec
   description?: string
   include?: string[]
   exclude?: string[]
   type: string
   repositoryUrl?: string
+}
+
+export interface BaseModuleSpec extends AddModuleSpec {
+  apiVersion: string
+  allowPublish: boolean
+  build: BaseBuildSpec
 }
 
 export const baseBuildSpecSchema = joi
@@ -191,10 +197,12 @@ export interface ModuleConfig<
   spec: M
 }
 
+export const modulePathSchema = joi.string().description("The filesystem path of the module.")
+
 export const moduleConfigSchema = baseModuleSpecSchema
   .keys({
     outputs: joiVariables().description("The outputs defined by the module (referenceable in other module configs)."),
-    path: joi.string().description("The filesystem path of the module."),
+    path: modulePathSchema,
     configPath: joi.string().description("The filesystem path of the module config file."),
     plugin: joiIdentifier()
       .meta({ internal: true })

@@ -33,7 +33,7 @@ export class StageBuildTask extends BaseTask {
   }
 
   async getDependencies() {
-    const dg = await this.garden.getConfigGraph()
+    const dg = await this.garden.getConfigGraph(this.log)
     const deps = (await dg.getDependencies("build", this.getName(), false)).build
 
     return Bluebird.map(deps, async (m: Module) => {
@@ -65,7 +65,7 @@ export class StageBuildTask extends BaseTask {
       })
     }
 
-    const graph = await this.garden.getConfigGraph()
+    const graph = await this.garden.getConfigGraph(log || this.log)
     await this.garden.buildDir.syncFromSrc(this.module, log || this.log)
     await this.garden.buildDir.syncDependencyProducts(this.module, graph, log || this.log)
 

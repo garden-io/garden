@@ -119,7 +119,7 @@ describe("DeployTask", () => {
         },
       }
 
-      const graph = await garden.getConfigGraph()
+      const graph = await garden.getConfigGraph(garden.log)
       const testService = await graph.getService("test-service")
 
       const deployTask = new DeployTask({

@@ -19,7 +19,8 @@ import { flatten } from "lodash"
  * execution of scanModules).
  */
 async function scanAndGetConfigs(garden: Garden) {
-  const moduleConfigs: ModuleConfig[] = await garden.resolveModuleConfigs()
+  const moduleConfigs: ModuleConfig[] = await garden["resolveModuleConfigs"](garden.log)
+
   const serviceNames = flatten(moduleConfigs.map((m) => m.serviceConfigs.map((s) => s.name)))
   const taskNames = flatten(moduleConfigs.map((m) => m.taskConfigs.map((s) => s.name)))
 

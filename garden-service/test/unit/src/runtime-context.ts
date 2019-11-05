@@ -10,7 +10,7 @@ describe("prepareRuntimeContext", () => {
 
   before(async () => {
     garden = await makeTestGardenA()
-    graph = await garden.getConfigGraph()
+    graph = await garden.getConfigGraph(garden.log)
   })
 
   it("should add the module version to the output envVars", async () => {

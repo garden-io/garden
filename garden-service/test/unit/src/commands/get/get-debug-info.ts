@@ -97,7 +97,7 @@ describe("GetDebugInfoCommand", () => {
 
       // we first check if the main garden.yml exists
       expect(await pathExists(await getConfigFilePath(gardenDebugTmp))).to.equal(true)
-      const graph = await garden.getConfigGraph()
+      const graph = await garden.getConfigGraph(garden.log)
 
       // Check that each module config files have been copied over and
       // the folder structure is maintained
