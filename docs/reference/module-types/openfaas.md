@@ -4,8 +4,8 @@ title: Openfaas
 
 # `openfaas` reference
 
-Deploy [OpenFaaS](https://www.openfaas.com/) functions using Garden. Requires either the `openfaas` or
-`local-openfaas` provider to be configured.
+Deploy [OpenFaaS](https://www.openfaas.com/) functions using Garden. Requires the `openfaas` provider
+to be configured.
 
 Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../guides/configuration-files.md).

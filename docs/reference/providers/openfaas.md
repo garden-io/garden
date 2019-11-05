@@ -52,12 +52,30 @@ providers:
   - name: "openfaas"
 ```
 
+### `providers[].gatewayUrl`
+
+[providers](#providers) > gatewayUrl
+
+The external URL to the function gateway, after installation. This is required if you set `faasNetes.values`
+or `faastNetes.install: false`, so that Garden can know how to reach the gateway.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+Example:
+
+```yaml
+providers:
+  - gatewayUrl: "https://functions.mydomain.com"
+```
+
 ### `providers[].hostname`
 
 [providers](#providers) > hostname
 
-The hostname to configure for the function gateway.
-Defaults to the default hostname of the configured Kubernetes provider.
+The ingress hostname to configure for the function gateway, when `faasNetes.install: true` and not
+overriding `faasNetes.values`. Defaults to the default hostname of the configured Kubernetes provider.
 
 Important: If you have other types of services, this should be different from their ingress hostnames,
 or the other services should not expose paths under /function and /system to avoid routing conflicts.
@@ -73,6 +91,40 @@ providers:
   - hostname: "functions.mydomain.com"
 ```
 
+### `providers[].faasNetes`
+
+[providers](#providers) > faasNetes
+
+| Type     | Required | Default            |
+| -------- | -------- | ------------------ |
+| `object` | No       | `{"install":true}` |
+
+### `providers[].faasNetes.install`
+
+[providers](#providers) > [faasNetes](#providersfaasnetes) > install
+
+Set to false if you'd like to install and configure faas-netes yourself.
+See the [official instructions](https://docs.openfaas.com/deployment/kubernetes/) for details.
+
+| Type      | Required | Default |
+| --------- | -------- | ------- |
+| `boolean` | No       | `true`  |
+
+### `providers[].faasNetes.values`
+
+[providers](#providers) > [faasNetes](#providersfaasnetes) > values
+
+Override the values passed to the faas-netes Helm chart. Ignored if `install: false`.
+See the [chart docs](https://github.com/openfaas/faas-netes/tree/master/chart/openfaas) for the available
+options.
+
+Note that this completely replaces the values Garden assigns by default, including `functionNamespace`,
+ingress configuration etc. so you need to make sure those are correctly configured for your use case.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
 
 ## Complete YAML schema
 
@@ -82,5 +134,9 @@ The values in the schema below are the default values.
 providers:
   - environments:
     name: openfaas
+    gatewayUrl:
     hostname:
+    faasNetes:
+      install: true
+      values:
 ```

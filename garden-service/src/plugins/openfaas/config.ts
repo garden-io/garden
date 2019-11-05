@@ -11,7 +11,7 @@ import { join } from "path"
 import { resolve as urlResolve } from "url"
 import { ConfigurationError } from "../../exceptions"
 import { PluginContext } from "../../plugin-context"
-import { joiArray, joiProviderName, joi, joiEnvVars } from "../../config/common"
+import { joiArray, joiProviderName, joi, joiEnvVars, DeepPrimitiveMap } from "../../config/common"
 import { Module } from "../../types/module"
 import { Service } from "../../types/service"
 import { ExecModuleSpecBase, ExecTestSpec, execTestSchema } from "../exec"
@@ -81,24 +81,56 @@ export type OpenFaasModuleConfig = OpenFaasModule["_ConfigType"]
 export interface OpenFaasService extends Service<OpenFaasModule> {}
 
 export interface OpenFaasConfig extends ProviderConfig {
+  gatewayUrl: string
   hostname: string
+  faasNetes: {
+    install: boolean
+    values: DeepPrimitiveMap
+  }
 }
 
 export const configSchema = providerConfigBaseSchema.keys({
   name: joiProviderName("openfaas"),
+  gatewayUrl: joi
+    .string()
+    .uri({ scheme: ["http", "https"] })
+    .description(
+      dedent`
+        The external URL to the function gateway, after installation. This is required if you set \`faasNetes.values\`
+        or \`faastNetes.install: false\`, so that Garden can know how to reach the gateway.
+      `
+    )
+    .example("https://functions.mydomain.com"),
   hostname: joi
     .string()
     .hostname()
-    .allow(null)
     .description(
       dedent`
-        The hostname to configure for the function gateway.
-        Defaults to the default hostname of the configured Kubernetes provider.
+        The ingress hostname to configure for the function gateway, when \`faasNetes.install: true\` and not
+        overriding \`faasNetes.values\`. Defaults to the default hostname of the configured Kubernetes provider.
 
         Important: If you have other types of services, this should be different from their ingress hostnames,
-        or the other services should not expose paths under /function and /system to avoid routing conflicts.`
+        or the other services should not expose paths under /function and /system to avoid routing conflicts.
+      `
     )
     .example("functions.mydomain.com"),
+  faasNetes: joi
+    .object()
+    .keys({
+      install: joi.boolean().default(true).description(dedent`
+        Set to false if you'd like to install and configure faas-netes yourself.
+        See the [official instructions](https://docs.openfaas.com/deployment/kubernetes/) for details.
+      `),
+      values: joi.object().description(dedent`
+        Override the values passed to the faas-netes Helm chart. Ignored if \`install: false\`.
+        See the [chart docs](https://github.com/openfaas/faas-netes/tree/master/chart/openfaas) for the available
+        options.
+
+        Note that this completely replaces the values Garden assigns by default, including \`functionNamespace\`,
+        ingress configuration etc. so you need to make sure those are correctly configured for your use case.
+      `),
+    })
+    .default({ install: true }),
 })
 
 export type OpenFaasProvider = Provider<OpenFaasConfig>
@@ -106,6 +138,7 @@ export type OpenFaasPluginContext = PluginContext<OpenFaasConfig>
 
 export function getK8sProvider(providers: Provider[]): KubernetesProvider {
   const providerMap = keyBy(providers, "name")
+  // FIXME: use new plugin inheritance mechanism here, instead of explicitly checking for local-kubernetes
   const provider = <KubernetesProvider>(providerMap["local-kubernetes"] || providerMap.kubernetes)
 
   if (!provider) {
@@ -211,4 +244,8 @@ async function getInternalServiceUrl(ctx: PluginContext<OpenFaasConfig>, log: Lo
 
 export function getServicePath(config: OpenFaasModuleConfig) {
   return join("/", "function", config.name)
+}
+
+export function getExternalGatewayUrl(ctx: PluginContext<OpenFaasConfig>) {
+  return ctx.provider.config.gatewayUrl || `http://${ctx.provider.config.hostname}`
 }
