@@ -436,7 +436,7 @@ environments:
   - providers:
       - name:
         environments:
-  - varfile: garden.<env-name>.env
+    varfile: garden.<env-name>.env
     variables: {}
     name:
 ```

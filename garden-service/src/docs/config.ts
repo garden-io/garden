@@ -299,7 +299,7 @@ export function renderSchemaDescriptionYaml(
     const width = maxWidth - indentSpaces - 2
     const comment: string[] = []
     const out: string[] = []
-    const isFirstChild = parent && parent.name === prevDesc.name
+    const isFirstChild = parent && parent === prevDesc
     const isArrayItem = parent && parent.type === "array"
     const isFirstArrayItem = isArrayItem && isFirstChild
     const isPrimitive = type !== "array" && type !== "object"
