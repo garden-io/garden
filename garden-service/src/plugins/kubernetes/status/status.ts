@@ -10,13 +10,13 @@ import { diffString } from "json-diff"
 import { DeploymentError } from "../../../exceptions"
 import { PluginContext } from "../../../plugin-context"
 import { ServiceState, combineStates } from "../../../types/service"
-import { sleep, encodeYamlMulti, deepMap } from "../../../util/util"
+import { sleep, deepMap } from "../../../util/util"
 import { KubeApi } from "../api"
-import { KUBECTL_DEFAULT_TIMEOUT, kubectl } from "../kubectl"
+import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { getAppNamespace } from "../namespace"
 import Bluebird from "bluebird"
 import { KubernetesResource, KubernetesServerResource } from "../types"
-import { zip, isArray, isPlainObject, pickBy, mapValues, flatten } from "lodash"
+import { zip, isArray, isPlainObject, pickBy, mapValues, flatten, cloneDeep } from "lodash"
 import { KubernetesProvider, KubernetesPluginContext } from "../config"
 import { isSubset } from "../../../util/is-subset"
 import { LogEntry } from "../../../logger/log-entry"
@@ -32,6 +32,8 @@ import { getPods } from "../util"
 import { checkWorkloadStatus } from "./workload"
 import { checkPodStatus } from "./pod"
 import { waitForServiceEndpoints } from "./service"
+import { gardenAnnotationKey } from "../../../util/string"
+import stringify from "json-stable-stringify"
 
 export interface ResourceStatus {
   state: ServiceState
@@ -240,35 +242,34 @@ interface ComparisonResult {
 /**
  * Check if each of the given Kubernetes objects matches what's installed in the cluster
  */
-export async function compareDeployedObjects(
+export async function compareDeployedResources(
   ctx: KubernetesPluginContext,
   api: KubeApi,
   namespace: string,
-  resources: KubernetesResource[],
-  log: LogEntry,
-  skipDiff: boolean
+  manifests: KubernetesResource[],
+  log: LogEntry
 ): Promise<ComparisonResult> {
   // Unroll any `List` resource types
-  resources = flatten(resources.map((r: any) => (r.apiVersion === "v1" && r.kind === "List" ? r.items : [r])))
+  manifests = flatten(manifests.map((r: any) => (r.apiVersion === "v1" && r.kind === "List" ? r.items : [r])))
 
   // Check if any resources are missing from the cluster.
-  const maybeDeployedObjects = await Bluebird.map(resources, (resource) =>
+  const maybeDeployedObjects = await Bluebird.map(manifests, (resource) =>
     getDeployedResource(ctx, ctx.provider, resource, log)
   )
-  const deployedObjects = <KubernetesResource[]>maybeDeployedObjects.filter((o) => o !== null)
+  const deployedResources = <KubernetesResource[]>maybeDeployedObjects.filter((o) => o !== null)
 
   const result: ComparisonResult = {
     state: "unknown",
-    remoteResources: <KubernetesResource[]>deployedObjects.filter((o) => o !== null),
+    remoteResources: <KubernetesResource[]>deployedResources.filter((o) => o !== null),
   }
 
   const logDescription = (resource: KubernetesResource) => `${resource.kind}/${resource.metadata.name}`
 
-  const missingObjectNames = zip(resources, maybeDeployedObjects)
+  const missingObjectNames = zip(manifests, maybeDeployedObjects)
     .filter(([_, deployed]) => !deployed)
     .map(([resource, _]) => logDescription(resource!))
 
-  if (missingObjectNames.length === resources.length) {
+  if (missingObjectNames.length === manifests.length) {
     // All resources missing.
     log.verbose(`All resources missing from cluster`)
     result.state = "missing"
@@ -281,48 +282,15 @@ export async function compareDeployedObjects(
   }
 
   // From here, the state can only be "ready" or "outdated", so we proceed to compare the old & new specs.
+  log.debug(`Getting currently deployed resource statuses...`)
 
-  // TODO: The skipDiff parameter is a temporary workaround until we finish implementing diffing in a more reliable way.
-  if (!skipDiff) {
-    // First we try using `kubectl diff`, to avoid potential normalization issues (i.e. false negatives). This errors
-    // with exit code 1 if there is a mismatch, but may also fail with the same exit code for a number of other reasons,
-    // including the cluster not supporting dry-runs, certain CRDs not supporting dry-runs etc.
-    const yamlResources = await encodeYamlMulti(resources)
-    const provider = ctx.provider
-
-    try {
-      await kubectl.exec({ log, provider, namespace, args: ["diff", "-f", "-"], input: Buffer.from(yamlResources) })
-
-      // If the commands exits succesfully, the check was successful and the diff is empty.
-      log.verbose(`kubectl diff indicates all resources match the deployed resources.`)
-      result.state = "ready"
-      return result
-    } catch (err) {
-      // Exited with non-zero code. Check for error messages on stderr. If one is there, the command was unable to
-      // complete the check, so we fall back to our own mechanism. Otherwise the command worked, but one or more
-      // resources are missing or outdated.
-      if (err.stderr && err.stderr.trim() !== "exit status 1") {
-        log.debug(`kubectl diff failed: ${err.message}\n${err.stderr}`)
-      } else {
-        log.debug(`kubectl diff indicates one or more resources are outdated.`)
-        log.silly(err.stdout)
-        result.state = "outdated"
-        return result
-      }
-    }
-  }
-
-  // Using kubectl diff didn't work, so we fall back to our own comparison check, which works in _most_ cases,
-  // but doesn't exhaustively handle normalization issues.
-  log.debug(`Getting currently deployed resources...`)
-
-  const deployedObjectStatuses: ResourceStatus[] = await Bluebird.map(deployedObjects, async (resource) =>
+  const deployedObjectStatuses: ResourceStatus[] = await Bluebird.map(deployedResources, async (resource) =>
     checkResourceStatus(api, namespace, resource, log)
   )
 
   const deployedStates = deployedObjectStatuses.map((s) => s.state)
   if (deployedStates.find((s) => s !== "ready")) {
-    const descriptions = zip(deployedObjects, deployedStates)
+    const descriptions = zip(deployedResources, deployedStates)
       .filter(([_, s]) => s !== "ready")
       .map(([o, s]) => `${logDescription(o!)}: "${s}"`)
       .join("\n")
@@ -340,48 +308,72 @@ export async function compareDeployedObjects(
 
   log.verbose(`Comparing expected and deployed resources...`)
 
-  for (let [newSpec, existingSpec] of zip(resources, deployedObjects) as KubernetesResource[][]) {
-    // to avoid normalization issues, we convert all numeric values to strings and then compare
-    newSpec = <KubernetesResource>deepMap(newSpec, (v) => (typeof v === "number" ? v.toString() : v))
-    existingSpec = <KubernetesResource>deepMap(existingSpec, (v) => (typeof v === "number" ? v.toString() : v))
+  for (let [newManifest, deployedResource] of zip(manifests, deployedResources) as KubernetesResource[][]) {
+    let manifest = cloneDeep(newManifest)
 
-    // the API version may implicitly change when deploying
-    existingSpec.apiVersion = newSpec.apiVersion
-
-    // the namespace property is silently dropped when added to non-namespaced
-    if (newSpec.metadata.namespace && existingSpec.metadata.namespace === undefined) {
-      delete newSpec.metadata.namespace
+    if (!manifest.metadata.annotations) {
+      manifest.metadata.annotations = {}
     }
 
-    if (!existingSpec.metadata.annotations) {
-      existingSpec.metadata.annotations = {}
+    // Discard any last applied config from the input manifest
+    if (manifest.metadata.annotations[gardenAnnotationKey("last-applied-configuration")]) {
+      delete manifest.metadata.annotations[gardenAnnotationKey("last-applied-configuration")]
+    }
+
+    // Start by checking for "last applied configuration" annotations and comparing against those.
+    // This can be more accurate than comparing against resolved resources.
+    if (deployedResource.metadata && deployedResource.metadata.annotations) {
+      const lastApplied =
+        deployedResource.metadata.annotations[gardenAnnotationKey("last-applied-configuration")] ||
+        deployedResource.metadata.annotations["kubectl.kubernetes.io/last-applied-configuration"]
+
+      // The new manifest matches the last applied manifest
+      if (lastApplied && stringify(manifest) === lastApplied) {
+        continue
+      }
+    }
+
+    // to avoid normalization issues, we convert all numeric values to strings and then compare
+    manifest = <KubernetesResource>deepMap(manifest, (v) => (typeof v === "number" ? v.toString() : v))
+    deployedResource = <KubernetesResource>deepMap(deployedResource, (v) => (typeof v === "number" ? v.toString() : v))
+
+    // the API version may implicitly change when deploying
+    manifest.apiVersion = deployedResource.apiVersion
+
+    // the namespace property is silently dropped when added to non-namespaced resources
+    if (manifest.metadata.namespace && deployedResource.metadata.namespace === undefined) {
+      delete manifest.metadata.namespace
+    }
+
+    if (!deployedResource.metadata.annotations) {
+      deployedResource.metadata.annotations = {}
     }
 
     // handle auto-filled properties (this is a bit of a design issue in the K8s API)
-    if (newSpec.kind === "Service" && newSpec.spec.clusterIP === "") {
-      delete newSpec.spec.clusterIP
+    if (manifest.kind === "Service" && manifest.spec.clusterIP === "") {
+      delete manifest.spec.clusterIP
     }
 
     // NOTE: this approach won't fly in the long run, but hopefully we can climb out of this mess when
     //       `kubectl diff` is ready, or server-side apply/diff is ready
-    if (newSpec.kind === "DaemonSet" || newSpec.kind === "Deployment" || newSpec.kind == "StatefulSet") {
+    if (manifest.kind === "DaemonSet" || manifest.kind === "Deployment" || manifest.kind == "StatefulSet") {
       // handle properties that are omitted in the response because they have the default value
       // (another design issue in the K8s API)
-      if (newSpec.spec.minReadySeconds === 0) {
-        delete newSpec.spec.minReadySeconds
+      if (manifest.spec.minReadySeconds === 0) {
+        delete manifest.spec.minReadySeconds
       }
-      if (newSpec.spec.template && newSpec.spec.template.spec && newSpec.spec.template.spec.hostNetwork === false) {
-        delete newSpec.spec.template.spec.hostNetwork
+      if (manifest.spec.template && manifest.spec.template.spec && manifest.spec.template.spec.hostNetwork === false) {
+        delete manifest.spec.template.spec.hostNetwork
       }
     }
 
     // clean null values
-    newSpec = <KubernetesResource>removeNull(newSpec)
+    manifest = <KubernetesResource>removeNull(manifest)
 
-    if (!isSubset(existingSpec, newSpec)) {
-      if (newSpec) {
-        log.verbose(`Resource ${newSpec.metadata.name} is not a superset of deployed resource`)
-        log.debug(diffString(existingSpec, newSpec))
+    if (!isSubset(deployedResource, manifest)) {
+      if (manifest) {
+        log.verbose(`Resource ${manifest.metadata.name} is not a superset of deployed resource`)
+        log.debug(diffString(deployedResource, manifest))
       }
       // console.log(JSON.stringify(resource, null, 4))
       // console.log(JSON.stringify(existingSpec, null, 4))

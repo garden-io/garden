@@ -20,6 +20,7 @@ const gardenAnnotationPrefix = "garden.io/"
 
 export type GardenAnnotationKey =
   | "generated"
+  | "last-applied-configuration"
   | "hot-reload"
   | "module"
   | "moduleVersion"

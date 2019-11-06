@@ -11,11 +11,14 @@ import { encodeYamlMulti } from "../../util/util"
 import { BinaryCmd, ExecParams } from "../../util/ext-tools"
 import { LogEntry } from "../../logger/log-entry"
 import { KubernetesProvider } from "./config"
+import { KubernetesResource } from "./types"
+import { gardenAnnotationKey } from "../../util/string"
+import stringify from "json-stable-stringify"
 
 export interface ApplyParams {
   log: LogEntry
   provider: KubernetesProvider
-  manifests: object[]
+  manifests: KubernetesResource[]
   dryRun?: boolean
   force?: boolean
   pruneSelector?: string
@@ -27,13 +30,25 @@ export const KUBECTL_DEFAULT_TIMEOUT = 300
 export async function apply({
   log,
   provider,
-  manifests: objects,
+  manifests,
   dryRun = false,
   force = false,
   namespace,
   pruneSelector,
 }: ApplyParams) {
-  const input = Buffer.from(encodeYamlMulti(objects))
+  // Add the raw input as an annotation on each manifest (this is helpful beyond kubectl's own annotation, because
+  // kubectl applies some normalization/transformation that is sometimes difficult to reason about).
+  for (const manifest of manifests) {
+    if (!manifest.metadata.annotations) {
+      manifest.metadata.annotations = {}
+    }
+    if (manifest.metadata.annotations[gardenAnnotationKey("last-applied-configuration")]) {
+      delete manifest.metadata.annotations[gardenAnnotationKey("last-applied-configuration")]
+    }
+    manifest.metadata.annotations[gardenAnnotationKey("last-applied-configuration")] = stringify(manifest)
+  }
+
+  const input = Buffer.from(encodeYamlMulti(manifests))
 
   let args = ["apply"]
   dryRun && args.push("--dry-run")
