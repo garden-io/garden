@@ -2,9 +2,9 @@
 
 This project shows how you can configure Garden to work against a remote Kubernetes cluster, in addition to a local
 cluster. We also go through how to configure TLS for your `container` services, and set up
-[in-cluster building](https://docs.garden.io/using-garden/in-cluster-building).
+[in-cluster building](https://docs.garden.io/guides/in-cluster-building).
 
-The example follows the [Remote Kubernetes guide](https://docs.garden.io/using-garden/remote-kubernetes). Please look
+The example follows the [Remote Kubernetes guide](https://docs.garden.io/guides/remote-kubernetes). Please look
 at the guide for more details on how to configure your own project.
 
 ## Setup

@@ -163,7 +163,7 @@ export const gardenPlugin = createGardenPlugin({
       name: "helm",
       docs: dedent`
         Specify a Helm chart (either in your repository or remote from a registry) to deploy.
-        Refer to the [Helm guide](https://docs.garden.io/using-garden/using-helm-charts) for usage instructions.
+        Refer to the [Helm guide](https://docs.garden.io/guides/using-helm-charts) for usage instructions.
       `,
       moduleOutputsSchema: helmModuleOutputsSchema,
       schema: helmModuleSpecSchema,

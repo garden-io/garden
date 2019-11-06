@@ -5,7 +5,7 @@ title: Template Strings Reference
 # Template string reference
 
 Below you'll find the schema of the keys available when interpolating template strings (see our
-[Configuration Files](../using-garden/configuration-files.md) guide for more information and usage examples).
+[Configuration Files](../guides/configuration-files.md) guide for more information and usage examples).
 
 Note that there are three sections below, since Project configs and Module configs have different keys available to
 them, and since additional keys are available under `providers` in Project configs.

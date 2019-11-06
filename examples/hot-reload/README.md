@@ -73,4 +73,4 @@ And you can verify the change by running `garden call node-service` again:
 }
 ```
 
-Check out the [docs](https://docs.garden.io/using-garden/hot-reload) for more information on hot-reloading. Hot-reloading also works with spring-boot, for which we have a dedicated [example project](https://github.com/garden-io/garden/tree/master/examples/spring-boot-hot-reload).
+Check out the [docs](https://docs.garden.io/guides/hot-reload) for more information on hot-reloading. Hot-reloading also works with spring-boot, for which we have a dedicated [example project](https://github.com/garden-io/garden/tree/master/examples/spring-boot-hot-reload).

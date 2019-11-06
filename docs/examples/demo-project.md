@@ -13,7 +13,7 @@ In what follows you'll learn how to:
 
 ## Before you get started
 
-This tutorial assumes that you already have a running [installation of Garden](../basics/installation.md).
+This tutorial assumes that you already have a running [installation of Garden](../installation.md).
 
 ## Clone the example repo
 
@@ -53,7 +53,7 @@ The task at hand is to configure these services so that they can run on the Gard
 
 ## Project-wide configuration
 
-To begin with, every project needs a project-wide `garden.yml` [configuration file](../using-garden/configuration-files.md) at the root level. There we define, among other things, the name of the project, and the [providers](../reference/glossary.md#Provider) the project requires.
+To begin with, every project needs a project-wide `garden.yml` [configuration file](../guides/configuration-files.md) at the root level. There we define, among other things, the name of the project, and the [providers](../reference/glossary.md#Provider) the project requires.
 
 Let's go ahead and create one:
 
@@ -76,7 +76,7 @@ Above, we've specified the name of our project and configured it to use the `loc
 
 ## Module configuration
 
-Now, let's turn to our services. Services live inside [modules](../reference/glossary.md#Module), and each module has its own `garden.yml` configuration file. You can read more about the difference between services and modules [here](../basics/stack-graph.md#structure-and-terminology).
+Now, let's turn to our services. Services live inside [modules](../reference/glossary.md#Module), and each module has its own `garden.yml` configuration file. You can read more about the difference between services and modules [here](../stack-graph.md#structure-and-terminology).
 
 We'll start with the module for the `frontend`:
 
@@ -134,7 +134,7 @@ services:
         port: http
 ```
 
-The [services](../using-garden/configuration-files.md#Services) field is specific to container modules, and defines the services exposed by the module. In this case, our containerized Node.js server. The other keys tell Garden how to expose our `/hello-frontend` endpoint.
+The [services](../guides/configuration-files.md#Services) field is specific to container modules, and defines the services exposed by the module. In this case, our containerized Node.js server. The other keys tell Garden how to expose our `/hello-frontend` endpoint.
 
 ## Deploying
 

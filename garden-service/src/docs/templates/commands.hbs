@@ -1,4 +1,5 @@
 ---
+order: 2
 title: Commands Reference
 ---
 

@@ -621,7 +621,7 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
 
   // Render module type docs
   const moduleTypeDir = resolve(referenceDir, "module-types")
-  const readme = ["# Module Types", ""]
+  const readme = ["---", "order: 4", "title: Module Types", "---", "", "# Module Types", ""]
   const moduleTypeDefinitions = await garden.getModuleTypeDefinitions()
 
   for (const { name } of moduleTypes) {

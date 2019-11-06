@@ -37,7 +37,7 @@ const configSchema = providerConfigBaseSchema
         Specify the path to a Terraform config directory, that should be resolved when initializing the provider.
         This is useful when other providers need to be able to reference the outputs from the stack.
 
-        See the [Terraform guide](../../using-garden/terraform.md) for more information.
+        See the [Terraform guide](../../guides/terraform.md) for more information.
       `),
     // When you provide variables directly in \`terraform\` modules, those variables will
     // extend the ones specified here, and take precedence if the keys overlap.
@@ -81,7 +81,7 @@ export const gardenPlugin = createGardenPlugin({
       that to configure another provider or other modules via \`\${providers.terraform.outputs.<key>}\` template
       strings.
 
-      See the [Terraform guide](../../using-garden/terraform.md) for a high-level introduction to the \`terraform\`
+      See the [Terraform guide](../../guides/terraform.md) for a high-level introduction to the \`terraform\`
       provider.
     `,
       serviceOutputsSchema: joi

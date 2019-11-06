@@ -18,11 +18,11 @@ configurations, e.g. if you spin up an environment with the Terraform provider, 
 that to configure another provider or other modules via `\${providers.terraform.outputs.<key>}` template
 strings.
 
-See the [Terraform guide](../../using-garden/terraform.md) for a high-level introduction to the `terraform`
+See the [Terraform guide](../../guides/terraform.md) for a high-level introduction to the `terraform`
 provider.
 
 Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
-guide](../../using-garden/configuration-files.md).
+guide](../../guides/configuration-files.md).
 The [first section](#configuration-keys) lists and describes the available
 schema keys. The [second section](#complete-yaml-schema) contains the complete YAML schema.
 
@@ -86,7 +86,7 @@ when responding to filesystem watch events, and when staging builds.
 
 Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
 source tree, which use the same format as `.gitignore` files. See the
-[Configuration Files guide](https://docs.garden.io/using-garden/configuration-files#including-excluding-files-and-directories) for details.
+[Configuration Files guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
 
 Also note that specifying an empty list here means _no sources_ should be included.
 
@@ -110,7 +110,7 @@ watch events, and when staging builds.
 
 Note that you can also explicitly _include_ files using the `include` field. If you also specify the
 `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the
-[Configuration Files guide](https://docs.garden.io/using-garden/configuration-files#including-excluding-files-and-directories)for details.
+[Configuration Files guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)for details.
 
 | Type            | Required |
 | --------------- | -------- |

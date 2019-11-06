@@ -20,17 +20,17 @@
 - Spin up your whole stack with a single command, and (optionally) watch for changes. Only what’s needed gets re-built, re-deployed, and/or re-tested, so you get a **much faster feedback loop**.
 - **Shared development clusters with fast in-cluster building and image caching for Kubernetes.** This allows teams to easily share build and test results, and for CI to become much faster because it can use the same build and test caches as the team.
 - Get helpful information when your deployments fail. Garden collects events and logs and displays them prominently when issues come up, and strives to "fail fast", so that you don't need to wait for timeouts or dive into kubectl whenever something is wrong.
-- Easily write [integration test suites](https://docs.garden.io/using-garden/development-workflows#tests-and-dependencies) that have runtime dependencies. Run tests *before* pushing your code to CI, and avoid having to mock or stub your own services.
+- Easily write [integration test suites](https://docs.garden.io/guides/development-workflows#tests-and-dependencies) that have runtime dependencies. Run tests *before* pushing your code to CI, and avoid having to mock or stub your own services.
 - Define [tasks](https://github.com/garden-io/garden/tree/v0.10.14/examples/tasks) that run as part of your deployment process—e.g. database migrations or scaffolding.
-- [Hot reload](https://docs.garden.io/using-garden/hot-reload) lets you near-instantaneously update code and static files in containers as they run, for services that support in-place reloading.
-- [Remote sources](https://docs.garden.io/using-garden) support allows your project to automatically pull code from different repositories.
+- [Hot reload](https://docs.garden.io/guides/hot-reload) lets you near-instantaneously update code and static files in containers as they run, for services that support in-place reloading.
+- [Remote sources](https://docs.garden.io/guides/using-remote-sources) support allows your project to automatically pull code from different repositories.
 - The built-in web **dashboard** gives you a full overview of your stack (and many more UI features are planned to further aid with development).
-- Build, test and deploy Docker containers, [Helm charts](https://docs.garden.io/using-garden/using-helm-charts), OpenFaaS functions and more.
+- Build, test and deploy Docker containers, [Helm charts](https://docs.garden.io/guides/using-helm-charts), OpenFaaS functions and more.
 - An extensible plug-in system ensures you’ll later be able add anything that’s not on the above list, or create custom module types tailored to your needs (*due summer 2019*).
 
 ## Installation
 
-*(Check out our documentation for more [detailed instructions](https://docs.garden.io/basics/installation))*
+*(Check out our documentation for more [detailed instructions](https://docs.garden.io/installation))*
 
 ### macOS
 
@@ -96,8 +96,8 @@ You can find Garden’s full documentation at [https://docs.garden.io](https://d
 
 Overview:
 
-- [Basics](https://docs.garden.io/basics)—installation instructions, our quick start guide, and an overview of the main concepts around Garden.
-- [Using Garden](https://docs.garden.io/using-garden)—development workflows, Garden configuration files, usage with remote Kubernetes clusters, and setting up hot reload.
+- [Using Garden](https://docs.garden.io/basics)—short Guides on incrementally adding the main Garden constructs to your project.
+- [Guides](https://docs.garden.io/guides)—development workflows, Garden configuration files, usage with remote Kubernetes clusters, and setting up hot reload.
 - [Example Projects](https://docs.garden.io/examples)—guides based on some of the [examples](https://github.com/garden-io/garden/tree/v0.10.14/examples).
 - [Reference](https://docs.garden.io/reference)—glossary, commands reference, configuration files reference, and template strings reference.
 - [FAQs](https://docs.garden.io/#faqs).
@@ -108,7 +108,7 @@ The [examples](https://github.com/garden-io/garden/tree/v0.10.14/examples) folde
 
 Garden runs as a developer tool on your machine or in CI, that looks at your source code and configuration files, runs tests, and resolves your changes to update your development environment. Garden can watch your files and run continuously, or you can trigger it manually via the CLI.
 
-For configuration, Garden is centered around the **[Stack Graph](https://docs.garden.io/basics/stack-graph)**, which allows you to fully codify how each part of your stack is built, deployed and tested—making your workflow reproducible and portable.
+For configuration, Garden is centered around the **[Stack Graph](https://docs.garden.io/stack-graph)**, which allows you to fully codify how each part of your stack is built, deployed and tested—making your workflow reproducible and portable.
 
 <p align="center">
   <img src="docs/stack-graph.png" width="50%">

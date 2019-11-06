@@ -4,7 +4,7 @@ title: Local Openfaas
 
 # `local-openfaas` reference
 
-Below is the schema reference for the `local-openfaas` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-files.md).
+Below is the schema reference for the `local-openfaas` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../guides/configuration-files.md).
 
 The reference is divided into two sections. The [first section](#configuration-keys) lists and describes the available schema keys. The [second section](#complete-yaml-schema) contains the complete YAML schema.
 

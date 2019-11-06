@@ -1,3 +1,7 @@
+---
+order: 1
+title: Installation
+---
 # Installation
 
 This guide will walk you through setting up the Garden framework.
@@ -8,7 +12,7 @@ Please follow the guide for your operating system:
 * [Windows](#windows)
 * [Linux](#linux)
 
-If you'd like to run Kubernetes locally, please see our [local Kubernetes guide](../using-garden/local-kubernetes.md)
+If you'd like to run Kubernetes locally, please see our [local Kubernetes guide](./guides/local-kubernetes.md)
 for installation and usage information.
 
 If you want to install Garden from source, see the instructions in our [contributor guide](https://github.com/garden-io/garden/tree/master/CONTRIBUTING.md).
@@ -49,7 +53,7 @@ To install Docker, Kubernetes and kubectl, we recommend Docker for Mac.
 
 Please refer to their [installation guide](https://docs.docker.com/engine/installation/) for how to download and install it (which is a pretty simple process).
 
-If you'd like to use a local Kubernetes cluster, please refer to the [local Kubernetes guide](../using-garden/local-kubernetes.md)
+If you'd like to use a local Kubernetes cluster, please refer to the [local Kubernetes guide](./guides/local-kubernetes.md)
 for further information.
 
 ## Windows
@@ -57,8 +61,8 @@ for further information.
 You can run Garden on Windows 10 Home, Pro or Enterprise editions.
 
 _Note: The Home edition doesn't support virtualization, but you can still use Garden if you're working with
-[remote Kubernetes](../using-garden/remote-kubernetes.md) and
-[in-cluster building](../using-garden/in-cluster-building.md)._
+[remote Kubernetes](./guides/remote-kubernetes.md) and
+[in-cluster building](./guides/in-cluster-building.md)._
 
 To install the Garden CLI and its dependencies, please use our installation script. To run the script, open PowerShell as an administrator and run:
 
@@ -115,7 +119,7 @@ To install Docker, please follow the instructions in the [official documentation
 
 ### Step 4 (optional): Local Kubernetes
 
-If you'd like to use a local Kubernetes cluster, please refer to the [local Kubernetes guide](../using-garden/local-kubernetes.md)
+If you'd like to use a local Kubernetes cluster, please refer to the [local Kubernetes guide](./guides/local-kubernetes.md)
 for installation and usage information.
 
 ## Using Garden with proxies
