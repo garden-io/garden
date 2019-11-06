@@ -17,6 +17,7 @@ import { LogEntry } from "./logger/log-entry"
 import { ModuleConfig } from "./config/module"
 import { ConfigGraph } from "./config-graph"
 import { exec } from "./util/util"
+import { LogLevel } from "./logger/log-node"
 
 // FIXME: We don't want to keep special casing this module type so we need to think
 // of a better way around this.
@@ -158,11 +159,7 @@ export class BuildDir {
     destinationPath = stripWildcard(destinationPath)
 
     // --exclude is required for modules where the module and project are in the same directory
-    const syncOpts = ["-rptgo", `--exclude=${this.buildDirPath}`]
-
-    if (withDelete) {
-      syncOpts.push("--delete")
-    }
+    const syncOpts = ["-rptgo", `--exclude=${this.buildDirPath}`, "--ignore-missing-args"]
 
     let logMsg =
       `Syncing ${module.version.files.length} files from ` +
@@ -174,12 +171,28 @@ export class BuildDir {
 
     log.debug(logMsg)
 
+    // rsync benefits from file lists being sorted
+    files && files.sort()
     let input: string | undefined
 
-    if (files !== undefined) {
+    if (withDelete) {
+      syncOpts.push("--prune-empty-dirs")
+
+      if (files === undefined) {
+        syncOpts.push("--delete")
+      } else {
+        // Workaround for this issue:
+        // https://stackoverflow.com/questions/1813907/rsync-delete-files-from-list-dest-does-not-delete-unwanted-files
+        syncOpts.push("--include-from=-", "--exclude=*", "--delete-excluded")
+        input = "/**/\n" + files.join("\n")
+      }
+    } else if (files !== undefined) {
       syncOpts.push("--files-from=-")
-      files = files.sort()
       input = files.join("\n")
+    }
+
+    // Avoid rendering the full file list except when at the silly log level
+    if (log.root.level === LogLevel.silly) {
       log.silly(`File list: ${JSON.stringify(files)}`)
     }
 
