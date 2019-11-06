@@ -1,6 +1,6 @@
 const nodetree = require("nodetree")
 import { join } from "path"
-import { pathExists, readdir } from "fs-extra"
+import { pathExists, readdir, createFile } from "fs-extra"
 import { expect } from "chai"
 import { BuildTask } from "../../../src/tasks/build"
 import { makeTestGarden, dataDir } from "../../helpers"
@@ -50,40 +50,58 @@ describe("BuildDir", () => {
     expect(await pathExists(buildPath)).to.eql(true)
   })
 
-  it("should sync sources to the build dir", async () => {
-    const graph = await garden.getConfigGraph()
-    const moduleA = await graph.getModule("module-a")
-    await garden.buildDir.syncFromSrc(moduleA, garden.log)
-    const buildDirA = await garden.buildDir.buildPath(moduleA)
+  describe("syncFromSrc", () => {
+    it("should sync sources to the build dir", async () => {
+      const graph = await garden.getConfigGraph()
+      const moduleA = await graph.getModule("module-a")
+      await garden.buildDir.syncFromSrc(moduleA, garden.log)
+      const buildDirA = await garden.buildDir.buildPath(moduleA)
 
-    const copiedPaths = [join(buildDirA, "some-dir", "some-file")]
+      const copiedPaths = [join(buildDirA, "some-dir", "some-file")]
 
-    for (const p of copiedPaths) {
-      expect(await pathExists(p)).to.eql(true)
-    }
-  })
+      for (const p of copiedPaths) {
+        expect(await pathExists(p)).to.eql(true)
+      }
+    })
 
-  it("should not sync sources for local exec modules", async () => {
-    const graph = await garden.getConfigGraph()
-    const moduleE = await graph.getModule("module-e")
-    await garden.buildDir.syncFromSrc(moduleE, garden.log)
-    // This is the dir Garden would have synced the sources into
-    const buildDirF = join(garden.buildDir.buildDirPath, moduleE.name)
+    it("should not sync sources for local exec modules", async () => {
+      const graph = await garden.getConfigGraph()
+      const moduleE = await graph.getModule("module-e")
+      await garden.buildDir.syncFromSrc(moduleE, garden.log)
+      // This is the dir Garden would have synced the sources into
+      const buildDirF = join(garden.buildDir.buildDirPath, moduleE.name)
 
-    expect(await pathExists(buildDirF)).to.eql(false)
-  })
+      expect(await pathExists(buildDirF)).to.eql(false)
+    })
 
-  it("should respect the file list in the module's version", async () => {
-    const graph = await garden.getConfigGraph()
-    const moduleA = await graph.getModule("module-a")
+    it("should respect the file list in the module's version", async () => {
+      const graph = await garden.getConfigGraph()
+      const moduleA = await graph.getModule("module-a")
 
-    moduleA.version.files = [await getConfigFilePath(moduleA.path)]
+      moduleA.version.files = [await getConfigFilePath(moduleA.path)]
 
-    await garden.buildDir.syncFromSrc(moduleA, garden.log)
-    const buildDirA = await garden.buildDir.buildPath(moduleA)
+      await garden.buildDir.syncFromSrc(moduleA, garden.log)
+      const buildDirA = await garden.buildDir.buildPath(moduleA)
 
-    expect(await pathExists(await getConfigFilePath(buildDirA))).to.eql(true)
-    expect(await pathExists(join(buildDirA, "some-dir", "some-file"))).to.eql(false)
+      expect(await pathExists(await getConfigFilePath(buildDirA))).to.eql(true)
+      expect(await pathExists(join(buildDirA, "some-dir", "some-file"))).to.eql(false)
+    })
+
+    it("should delete files that are not being synced from the module source directory", async () => {
+      const graph = await garden.getConfigGraph()
+      const moduleA = await graph.getModule("module-a")
+
+      const buildDirA = await garden.buildDir.buildPath(moduleA)
+      const deleteMe = join(buildDirA, "delete-me")
+
+      await createFile(deleteMe)
+
+      moduleA.version.files = [await getConfigFilePath(moduleA.path)]
+
+      await garden.buildDir.syncFromSrc(moduleA, garden.log)
+
+      expect(await pathExists(deleteMe)).to.be.false
+    })
   })
 
   it("should sync dependency products to their specified destinations", async () => {
