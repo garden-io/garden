@@ -34,15 +34,17 @@ const taskResults = {
 
 const testPlugin = createGardenPlugin({
   name: "test-plugin",
-  createModuleTypes: [{
-    name: "test",
-    docs: "test",
-    schema: testModuleSpecSchema,
-    handlers: {
-      configure: configureTestModule,
-      getTaskResult: async (params: GetTaskResultParams) => taskResults[params.task.name],
+  createModuleTypes: [
+    {
+      name: "test",
+      docs: "test",
+      schema: testModuleSpecSchema,
+      handlers: {
+        configure: configureTestModule,
+        getTaskResult: async (params: GetTaskResultParams) => taskResults[params.task.name],
+      },
     },
-  }],
+  ],
 })
 
 describe("GetTaskResultCommand", () => {
@@ -69,7 +71,7 @@ describe("GetTaskResultCommand", () => {
           args: { name },
           opts: withDefaultGlobalOpts({}),
         }),
-      "parameter",
+      "parameter"
     )
   })
 
@@ -112,5 +114,4 @@ describe("GetTaskResultCommand", () => {
 
     expect(res.result).to.be.null
   })
-
 })

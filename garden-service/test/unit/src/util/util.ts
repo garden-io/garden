@@ -116,25 +116,27 @@ describe("util", () => {
       await exec("echo hello", [], { outputStream: createOutputStream(entry) })
       // Using "sh -c" to get consistent output between operating systems
       await exec(`sh -c "echo hello error; exit 1"`, [], {
-        outputStream: createOutputStream(errorEntry), shell: true, reject: false,
+        outputStream: createOutputStream(errorEntry),
+        shell: true,
+        reject: false,
       })
       expect(entry.getMessageState().msg).to.equal(renderOutputStream("hello"))
-      expect(errorEntry.getMessageState().msg).to.equal(
-        renderOutputStream("hello error"),
-      )
+      expect(errorEntry.getMessageState().msg).to.equal(renderOutputStream("hello error"))
     })
     it("should throw a standardised error message on error", async () => {
       try {
         // Using "sh -c" to get consistent output between operating systems
         await exec(`sh -c "echo hello error; exit 1"`, [], { shell: true })
       } catch (err) {
-        expect(err.message).to.equal(makeErrorMsg({
-          code: 1,
-          cmd: `sh -c "echo hello error; exit 1"`,
-          args: [],
-          output: "hello error",
-          error: "",
-        }))
+        expect(err.message).to.equal(
+          makeErrorMsg({
+            code: 1,
+            cmd: `sh -c "echo hello error; exit 1"`,
+            args: [],
+            output: "hello error",
+            error: "",
+          })
+        )
       }
     })
   })
@@ -154,21 +156,25 @@ describe("util", () => {
         // We're not using "sh -c" here since the output is not added to stdout|stderr if `tty: true` and
         // we therefore can't test the entire error message.
         if (process.platform === "darwin") {
-          expect(err.message).to.equal(makeErrorMsg({
-            code: 1,
-            cmd: "ls scottiepippen",
-            args: [],
-            output: "ls: scottiepippen: No such file or directory",
-            error: "ls: scottiepippen: No such file or directory",
-          }))
+          expect(err.message).to.equal(
+            makeErrorMsg({
+              code: 1,
+              cmd: "ls scottiepippen",
+              args: [],
+              output: "ls: scottiepippen: No such file or directory",
+              error: "ls: scottiepippen: No such file or directory",
+            })
+          )
         } else {
-          expect(err.message).to.equal(makeErrorMsg({
-            code: 2,
-            cmd: "ls scottiepippen",
-            args: [],
-            output: "ls: cannot access 'scottiepippen': No such file or directory",
-            error: "ls: cannot access 'scottiepippen': No such file or directory",
-          }))
+          expect(err.message).to.equal(
+            makeErrorMsg({
+              code: 2,
+              cmd: "ls scottiepippen",
+              args: [],
+              output: "ls: cannot access 'scottiepippen': No such file or directory",
+              error: "ls: cannot access 'scottiepippen': No such file or directory",
+            })
+          )
         }
       }
     })
@@ -188,23 +194,29 @@ describe("util", () => {
 
     it("should throw if one or more keys are missing", async () => {
       const obj = { a: 1, b: 2, c: 3 }
-      await expectError(() => pickKeys(obj, <any>["a", "foo", "bar"]), (err) => {
-        expect(err.message).to.equal("Could not find key(s): foo, bar")
-        expect(err.detail.missing).to.eql(["foo", "bar"])
-        expect(err.detail.available).to.eql(["a", "b", "c"])
-      })
+      await expectError(
+        () => pickKeys(obj, <any>["a", "foo", "bar"]),
+        (err) => {
+          expect(err.message).to.equal("Could not find key(s): foo, bar")
+          expect(err.detail.missing).to.eql(["foo", "bar"])
+          expect(err.detail.available).to.eql(["a", "b", "c"])
+        }
+      )
     })
 
     it("should use given description in error message", async () => {
       const obj = { a: 1, b: 2, c: 3 }
-      await expectError(() => pickKeys(obj, <any>["a", "foo", "bar"], "banana"), (err) => {
-        expect(err.message).to.equal("Could not find banana(s): foo, bar")
-      })
+      await expectError(
+        () => pickKeys(obj, <any>["a", "foo", "bar"], "banana"),
+        (err) => {
+          expect(err.message).to.equal("Could not find banana(s): foo, bar")
+        }
+      )
     })
   })
 
   describe("deepFilter", () => {
-    const fn = v => v !== 99
+    const fn = (v) => v !== 99
 
     it("should filter keys in a simple object", () => {
       const obj = {
@@ -237,9 +249,7 @@ describe("util", () => {
       const obj = {
         a: 1,
         b: 2,
-        c: [
-          { d: 3, e: 99 },
-        ],
+        c: [{ d: 3, e: 99 }],
       }
       expect(deepFilter(obj, fn)).to.eql({ a: 1, b: 2, c: [{ d: 3 }] })
     })
@@ -277,9 +287,7 @@ describe("util", () => {
       const obj = {
         a: 1,
         b: 2,
-        c: [
-          { d: 3, e: undefined },
-        ],
+        c: [{ d: 3, e: undefined }],
       }
       expect(deepOmitUndefined(obj)).to.eql({ a: 1, b: 2, c: [{ d: 3 }] })
     })

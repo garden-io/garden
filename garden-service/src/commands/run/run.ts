@@ -20,14 +20,11 @@ export class RunCommand extends Command {
   name = "run"
   help = "Run ad-hoc instances of your modules, services and tests."
 
-  subCommands = [
-    RunModuleCommand,
-    RunServiceCommand,
-    RunTaskCommand,
-    RunTestCommand,
-  ]
+  subCommands = [RunModuleCommand, RunServiceCommand, RunTaskCommand, RunTestCommand]
 
-  async action() { return {} }
+  async action() {
+    return {}
+  }
 }
 
 export function printRuntimeContext(log: LogEntry, runtimeContext: RuntimeContext) {

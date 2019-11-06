@@ -27,7 +27,10 @@ interface ServiceIngressWithCert extends ServiceIngress {
 const certificateHostnames: { [name: string]: string[] } = {}
 
 export async function createIngressResources(
-  api: KubeApi, provider: KubernetesProvider, namespace: string, service: ContainerService,
+  api: KubeApi,
+  provider: KubernetesProvider,
+  namespace: string,
+  service: ContainerService
 ) {
   if (service.spec.ingresses.length === 0) {
     return []
@@ -36,18 +39,22 @@ export async function createIngressResources(
   const allIngresses = await getIngressesWithCert(service, api, provider)
 
   return Bluebird.map(allIngresses, async (ingress, index) => {
-    const rules = [{
-      host: ingress.hostname,
-      http: {
-        paths: [{
-          path: ingress.path,
-          backend: {
-            serviceName: service.name,
-            servicePort: findByName(service.spec.ports, ingress.spec.port)!.servicePort,
-          },
-        }],
+    const rules = [
+      {
+        host: ingress.hostname,
+        http: {
+          paths: [
+            {
+              path: ingress.path,
+              backend: {
+                serviceName: service.name,
+                servicePort: findByName(service.spec.ports, ingress.spec.port)!.servicePort,
+              },
+            },
+          ],
+        },
       },
-    }]
+    ]
 
     const cert = ingress.certificate
 
@@ -67,9 +74,11 @@ export async function createIngressResources(
       // make sure the TLS secrets exist in this namespace
       await ensureSecret(api, cert.secretRef, namespace)
 
-      spec.tls = [{
-        secretName: cert.secretRef.name,
-      }]
+      spec.tls = [
+        {
+          secretName: cert.secretRef.name,
+        },
+      ]
     }
 
     return {
@@ -86,7 +95,10 @@ export async function createIngressResources(
 }
 
 async function getIngress(
-  service: ContainerService, api: KubeApi, provider: KubernetesProvider, spec: ContainerIngressSpec,
+  service: ContainerService,
+  api: KubeApi,
+  provider: KubernetesProvider,
+  spec: ContainerIngressSpec
 ): Promise<ServiceIngressWithCert> {
   const hostname = spec.hostname || provider.config.defaultHostname
 
@@ -112,22 +124,25 @@ async function getIngress(
 }
 
 async function getIngressesWithCert(
-  service: ContainerService, api: KubeApi, provider: KubernetesProvider,
+  service: ContainerService,
+  api: KubeApi,
+  provider: KubernetesProvider
 ): Promise<ServiceIngressWithCert[]> {
-  return Bluebird.map(service.spec.ingresses, spec => getIngress(service, api, provider, spec))
+  return Bluebird.map(service.spec.ingresses, (spec) => getIngress(service, api, provider, spec))
 }
 
 export async function getIngresses(
-  service: ContainerService, api: KubeApi, provider: KubernetesProvider,
+  service: ContainerService,
+  api: KubeApi,
+  provider: KubernetesProvider
 ): Promise<ServiceIngress[]> {
-  return (await getIngressesWithCert(service, api, provider))
-    .map(ingress => ({
-      hostname: ingress.hostname,
-      path: ingress.path,
-      port: ingress.port,
-      linkUrl: ingress.linkUrl,
-      protocol: ingress.protocol,
-    }))
+  return (await getIngressesWithCert(service, api, provider)).map((ingress) => ({
+    hostname: ingress.hostname,
+    path: ingress.path,
+    port: ingress.port,
+    linkUrl: ingress.linkUrl,
+    protocol: ingress.protocol,
+  }))
 }
 
 async function getCertificateHostnames(api: KubeApi, cert: IngressTlsCertificate): Promise<string[]> {
@@ -147,7 +162,7 @@ async function getCertificateHostnames(api: KubeApi, cert: IngressTlsCertificate
       if (err.code === 404) {
         throw new ConfigurationError(
           `Cannot find Secret ${cert.secretRef.name} configured for TLS certificate ${cert.name}`,
-          cert,
+          cert
         )
       } else {
         throw err
@@ -159,7 +174,7 @@ async function getCertificateHostnames(api: KubeApi, cert: IngressTlsCertificate
     if (!data["tls.crt"] || !data["tls.key"]) {
       throw new ConfigurationError(
         `Secret '${cert.secretRef.name}' is not a valid TLS secret (missing tls.crt and/or tls.key).`,
-        cert,
+        cert
       )
     }
 
@@ -168,25 +183,25 @@ async function getCertificateHostnames(api: KubeApi, cert: IngressTlsCertificate
     try {
       return getHostnamesFromPem(crtData)
     } catch (error) {
-      throw new ConfigurationError(
-        `Unable to parse Secret '${cert.secretRef.name}' as a valid TLS certificate`,
-        { ...cert, error },
-      )
+      throw new ConfigurationError(`Unable to parse Secret '${cert.secretRef.name}' as a valid TLS certificate`, {
+        ...cert,
+        error,
+      })
     }
   }
 }
 
 async function pickCertificate(
-  service: ContainerService, api: KubeApi, provider: KubernetesProvider, hostname: string,
+  service: ContainerService,
+  api: KubeApi,
+  provider: KubernetesProvider,
+  hostname: string
 ): Promise<IngressTlsCertificate | undefined> {
   for (const cert of provider.config.tlsCertificates) {
     const certHostnames = await getCertificateHostnames(api, cert)
 
     for (const certHostname of certHostnames) {
-      if (
-        certHostname === hostname
-        || certHostname.startsWith("*") && hostname.endsWith(certHostname.slice(1))
-      ) {
+      if (certHostname === hostname || (certHostname.startsWith("*") && hostname.endsWith(certHostname.slice(1)))) {
         return cert
       }
     }
@@ -195,11 +210,11 @@ async function pickCertificate(
   if (provider.config.forceSsl) {
     throw new ConfigurationError(
       `Could not find certificate for hostname '${hostname}' ` +
-      `configured on service '${service.name}' and forceSsl flag is set.`,
+        `configured on service '${service.name}' and forceSsl flag is set.`,
       {
         serviceName: service.name,
         hostname,
-      },
+      }
     )
   }
 

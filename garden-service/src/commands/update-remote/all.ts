@@ -8,19 +8,15 @@
 
 import dedent = require("dedent")
 
-import {
-  Command,
-  CommandResult,
-  CommandParams,
-} from "../base"
+import { Command, CommandResult, CommandParams } from "../base"
 import { updateRemoteSources } from "./sources"
 import { updateRemoteModules } from "./modules"
 import { SourceConfig } from "../../config/project"
 import { printHeader } from "../../logger/util"
 
 export interface UpdateRemoteAllResult {
-  projectSources: SourceConfig[],
-  moduleSources: SourceConfig[],
+  projectSources: SourceConfig[]
+  moduleSources: SourceConfig[]
 }
 
 export class UpdateRemoteAllCommand extends Command {
@@ -33,9 +29,7 @@ export class UpdateRemoteAllCommand extends Command {
         garden update-remote all # update all remote sources and modules in the project
   `
 
-  async action(
-    { garden, log, headerLog }: CommandParams,
-  ): Promise<CommandResult<UpdateRemoteAllResult>> {
+  async action({ garden, log, headerLog }: CommandParams): Promise<CommandResult<UpdateRemoteAllResult>> {
     printHeader(headerLog, "Update remote sources and modules", "hammer_and_wrench")
 
     const { result: projectSources } = await updateRemoteSources({
@@ -49,6 +43,11 @@ export class UpdateRemoteAllCommand extends Command {
       args: { modules: undefined },
     })
 
-    return { result: { projectSources: projectSources!, moduleSources: moduleSources! } }
+    return {
+      result: {
+        projectSources: projectSources!,
+        moduleSources: moduleSources!,
+      },
+    }
   }
 }

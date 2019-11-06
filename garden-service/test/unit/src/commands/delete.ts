@@ -1,16 +1,6 @@
-import {
-  DeleteSecretCommand,
-  DeleteEnvironmentCommand,
-  DeleteServiceCommand,
-} from "../../../../src/commands/delete"
+import { DeleteSecretCommand, DeleteEnvironmentCommand, DeleteServiceCommand } from "../../../../src/commands/delete"
 import { Garden } from "../../../../src/garden"
-import {
-  expectError,
-  makeTestGardenA,
-  getDataDir,
-  configureTestModule,
-  withDefaultGlobalOpts,
-} from "../../../helpers"
+import { expectError, makeTestGardenA, getDataDir, configureTestModule, withDefaultGlobalOpts } from "../../../helpers"
 import { expect } from "chai"
 import { ServiceStatus } from "../../../../src/types/service"
 import { EnvironmentStatus } from "../../../../src/types/plugin/provider/getEnvironmentStatus"
@@ -42,7 +32,9 @@ describe("DeleteSecretCommand", () => {
       opts: withDefaultGlobalOpts({}),
     })
 
-    expect(await actions.getSecret({ log, pluginName, key })).to.eql({ value: null })
+    expect(await actions.getSecret({ log, pluginName, key })).to.eql({
+      value: null,
+    })
   })
 
   it("should throw on missing key", async () => {
@@ -51,15 +43,16 @@ describe("DeleteSecretCommand", () => {
     const command = new DeleteSecretCommand()
 
     await expectError(
-      async () => await command.action({
-        garden,
-        log,
-        headerLog: log,
-        footerLog: log,
-        args: { provider, key: "foo" },
-        opts: withDefaultGlobalOpts({}),
-      }),
-      "not-found",
+      async () =>
+        await command.action({
+          garden,
+          log,
+          headerLog: log,
+          footerLog: log,
+          args: { provider, key: "foo" },
+          opts: withDefaultGlobalOpts({}),
+        }),
+      "not-found"
     )
   })
 })
@@ -96,16 +89,18 @@ describe("DeleteEnvironmentCommand", () => {
         cleanupEnvironment,
         getEnvironmentStatus,
       },
-      createModuleTypes: [{
-        name: "test",
-        docs: "Test plugin",
-        schema: testModuleSpecSchema,
-        handlers: {
-          configure: configureTestModule,
-          getServiceStatus,
-          deleteService,
+      createModuleTypes: [
+        {
+          name: "test",
+          docs: "Test plugin",
+          schema: testModuleSpecSchema,
+          handlers: {
+            configure: configureTestModule,
+            getServiceStatus,
+            deleteService,
+          },
         },
-      }],
+      ],
     }
   })
 
@@ -162,16 +157,18 @@ describe("DeleteServiceCommand", () => {
 
     return {
       name: "test-plugin",
-      createModuleTypes: [{
-        name: "test",
-        docs: "Test plugin",
-        schema: testModuleSpecSchema,
-        handlers: {
-          configure: configureTestModule,
-          getServiceStatus,
-          deleteService,
+      createModuleTypes: [
+        {
+          name: "test",
+          docs: "Test plugin",
+          schema: testModuleSpecSchema,
+          handlers: {
+            configure: configureTestModule,
+            getServiceStatus,
+            deleteService,
+          },
         },
-      }],
+      ],
     }
   })
 

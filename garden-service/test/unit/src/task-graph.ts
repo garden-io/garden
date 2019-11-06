@@ -13,7 +13,7 @@ type TestTaskCallback = (name: string, result: any) => Promise<void>
 
 interface TestTaskOptions {
   callback?: TestTaskCallback
-  dependencies?: BaseTask[],
+  dependencies?: BaseTask[]
   versionString?: string
   uid?: string
   throwError?: boolean
@@ -26,12 +26,7 @@ class TestTask extends BaseTask {
   uid: string
   throwError: boolean
 
-  constructor(
-    garden: Garden,
-    name: string,
-    force: boolean,
-    options?: TestTaskOptions,
-  ) {
+  constructor(garden: Garden, name: string, force: boolean, options?: TestTaskOptions) {
     super({
       garden,
       log: garden.log,
@@ -86,7 +81,6 @@ class TestTask extends BaseTask {
 }
 
 describe("task-graph", () => {
-
   describe("TaskGraph", () => {
     async function getGarden() {
       return makeTestGarden(projectRoot)
@@ -176,7 +170,11 @@ describe("task-graph", () => {
           name: "taskComplete",
           payload: {
             completedAt: now,
-            dependencyResults: {}, description: "a", key: task.getKey(), type: "test", name: "a",
+            dependencyResults: {},
+            description: "a",
+            key: task.getKey(),
+            type: "test",
+            name: "a",
             output: { dependencyResults: {}, result: "result-a" },
           },
         },
@@ -227,7 +225,7 @@ describe("task-graph", () => {
       const task = new TestTask(garden, "a", false, { throwError: true })
 
       await graph.process([task])
-      const taskError = garden.events.eventLog.find(obj => obj.name === "taskError")
+      const taskError = garden.events.eventLog.find((obj) => obj.name === "taskError")
 
       expect(taskError && taskError.payload["error"]).to.exist
     })
@@ -253,18 +251,7 @@ describe("task-graph", () => {
       const taskD = new TestTask(garden, "d", false, { ...opts, dependencies: [taskB, taskC], uid: "d1" })
 
       // we should be able to add tasks multiple times and in any order
-      const results = await graph.process([
-        taskA,
-        taskB,
-        taskC,
-        taskC,
-        taskD,
-        taskA,
-        taskD,
-        taskB,
-        taskD,
-        taskA,
-      ])
+      const results = await graph.process([taskA, taskB, taskC, taskC, taskD, taskA, taskD, taskB, taskD, taskA])
 
       // repeat
 
@@ -283,14 +270,13 @@ describe("task-graph", () => {
       const repeatTaskC = new TestTask(garden, "c", true, { ...repeatOpts, dependencies: [repeatTaskB], uid: "c2" })
 
       const repeatTaskAforced = new TestTask(garden, "a", true, { ...repeatOpts, dependencies: [], uid: "a2f" })
-      const repeatTaskBforced = new TestTask(garden, "b", true,
-        { ...repeatOpts, dependencies: [repeatTaskA], uid: "b2f" })
+      const repeatTaskBforced = new TestTask(garden, "b", true, {
+        ...repeatOpts,
+        dependencies: [repeatTaskA],
+        uid: "b2f",
+      })
 
-      await graph.process([
-        repeatTaskBforced,
-        repeatTaskAforced,
-        repeatTaskC,
-      ])
+      await graph.process([repeatTaskBforced, repeatTaskAforced, repeatTaskC])
 
       const resultA: TaskResult = {
         type: "test",
@@ -356,21 +342,26 @@ describe("task-graph", () => {
       expect(results).to.eql(expected, "Wrong results after initial add and process")
       expect(resultOrder).to.eql(["a.a1", "b.b1", "c.c1", "d.d1"], "Wrong result order after initial add and process")
 
-      expect(callbackResults).to.eql({
-        "a.a1": "result-a.a1",
-        "b.b1": "result-b.b1",
-        "c.c1": "result-c.c1",
-        "d.d1": "result-d.d1",
-      }, "Wrong callbackResults after initial add and process")
+      expect(callbackResults).to.eql(
+        {
+          "a.a1": "result-a.a1",
+          "b.b1": "result-b.b1",
+          "c.c1": "result-c.c1",
+          "d.d1": "result-d.d1",
+        },
+        "Wrong callbackResults after initial add and process"
+      )
 
       expect(repeatResultOrder).to.eql(["a.a2f", "b.b2f", "c.c2"], "Wrong result order after repeat add & process")
 
-      expect(repeatCallbackResults).to.eql({
-        "a.a2f": "result-a.a2f",
-        "b.b2f": "result-b.b2f",
-        "c.c2": "result-c.c2",
-      }, "Wrong callbackResults after repeat add & process")
-
+      expect(repeatCallbackResults).to.eql(
+        {
+          "a.a2f": "result-a.a2f",
+          "b.b2f": "result-b.b2f",
+          "c.c2": "result-c.c2",
+        },
+        "Wrong callbackResults after repeat add & process"
+      )
     })
 
     it("should add at most one pending task for a given key", async () => {
@@ -430,12 +421,7 @@ describe("task-graph", () => {
       const taskC = new TestTask(garden, "c", true, { ...opts, dependencies: [taskB] })
       const taskD = new TestTask(garden, "d", true, { ...opts, dependencies: [taskB, taskC] })
 
-      const results = await graph.process([
-        taskA,
-        taskB,
-        taskC,
-        taskD,
-      ])
+      const results = await graph.process([taskA, taskB, taskC, taskD])
 
       const resultA: TaskResult = {
         type: "test",
@@ -451,9 +437,15 @@ describe("task-graph", () => {
       }
 
       const filteredKeys: Set<string | number> = new Set([
-        "version", "error", "addedAt", "startedAt", "cancelledAt", "completedAt"])
+        "version",
+        "error",
+        "addedAt",
+        "startedAt",
+        "cancelledAt",
+        "completedAt",
+      ])
 
-      const filteredEventLog = garden.events.eventLog.map(e => {
+      const filteredEventLog = garden.events.eventLog.map((e) => {
         return deepFilter(e, (_, key) => !filteredKeys.has(key))
       })
 
@@ -468,9 +460,14 @@ describe("task-graph", () => {
         { name: "taskGraphProcessing", payload: {} },
         { name: "taskProcessing", payload: { key: "a", name: "a", type: "test" } },
         {
-          name: "taskComplete", payload: {
-            dependencyResults: {}, description: "a", key: "a", name: "a",
-            output: { dependencyResults: {}, result: "result-a" }, type: "test",
+          name: "taskComplete",
+          payload: {
+            dependencyResults: {},
+            description: "a",
+            key: "a",
+            name: "a",
+            output: { dependencyResults: {}, result: "result-a" },
+            type: "test",
           },
         },
         { name: "taskProcessing", payload: { key: "b", name: "b", type: "test" } },
@@ -481,6 +478,5 @@ describe("task-graph", () => {
         { name: "taskGraphComplete", payload: {} },
       ])
     })
-
   })
 })

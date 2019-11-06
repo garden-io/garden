@@ -60,16 +60,20 @@ export async function createNamespace(api: KubeApi, namespace: string) {
 }
 
 interface GetNamespaceParams {
-  log: LogEntry,
-  projectName: string,
-  provider: KubernetesProvider,
-  suffix?: string,
-  skipCreate?: boolean,
+  log: LogEntry
+  projectName: string
+  provider: KubernetesProvider
+  suffix?: string
+  skipCreate?: boolean
 }
 
-export async function getNamespace(
-  { projectName, log, provider, suffix, skipCreate }: GetNamespaceParams,
-): Promise<string> {
+export async function getNamespace({
+  projectName,
+  log,
+  provider,
+  suffix,
+  skipCreate,
+}: GetNamespaceParams): Promise<string> {
   let namespace = provider.config.namespace || projectName
 
   if (suffix) {
@@ -103,8 +107,7 @@ export function getMetadataNamespace(ctx: PluginContext, log: LogEntry, provider
 
 export async function getAllNamespaces(api: KubeApi): Promise<string[]> {
   const allNamespaces = await api.core.listNamespace()
-  return allNamespaces.items
-    .map(n => n.metadata.name)
+  return allNamespaces.items.map((n) => n.metadata.name)
 }
 
 /**
@@ -119,12 +122,14 @@ export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams
   } catch (err) {
     log.setError("Error")
 
-    throw new DeploymentError(dedent`
+    throw new DeploymentError(
+      dedent`
       Unable to connect to Kubernetes cluster. Got error:
 
       ${err.message}
     `,
-      { providerConfig: k8sCtx.provider.config })
+      { providerConfig: k8sCtx.provider.config }
+    )
   }
 
   return Bluebird.props({
@@ -162,10 +167,9 @@ export async function deleteNamespaces(namespaces: string[], api: KubeApi, log?:
 
     const now = new Date().getTime()
     if (now - startTime > KUBECTL_DEFAULT_TIMEOUT * 1000) {
-      throw new TimeoutError(
-        `Timed out waiting for namespace ${namespaces.join(", ")} delete to complete`,
-        { namespaces },
-      )
+      throw new TimeoutError(`Timed out waiting for namespace ${namespaces.join(", ")} delete to complete`, {
+        namespaces,
+      })
     }
   }
 }

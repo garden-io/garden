@@ -45,7 +45,7 @@ import { ExternalSourceType, getRemoteSourceRelPath, hashRepoUrl } from "../src/
 import { ConfigureProviderParams } from "../src/types/plugin/provider/configureProvider"
 import { ActionRouter } from "../src/actions"
 
-export const dataDir = resolve(GARDEN_SERVICE_ROOT, "test", "unit", "data")
+export const dataDir = resolve(GARDEN_SERVICE_ROOT, "test", "data")
 export const examplesDir = resolve(GARDEN_SERVICE_ROOT, "..", "examples")
 export const testNow = new Date()
 export const testModuleVersionString = "v-1234512345"
@@ -66,7 +66,7 @@ export function getDataDir(...names: string[]) {
 export async function profileBlock(description: string, block: () => Promise<any>) {
   const startTime = new Date().getTime()
   const result = await block()
-  const executionTime = (new Date().getTime()) - startTime
+  const executionTime = new Date().getTime() - startTime
   console.log(description, "took", executionTime, "ms")
   return result
 }
@@ -88,38 +88,35 @@ async function runModule(params: RunModuleParams): Promise<RunResult> {
 
 export const projectRootA = getDataDir("test-project-a")
 
-const testModuleTestSchema = containerTestSchema
-  .keys({ command: joi.array().items(joi.string()) })
+const testModuleTestSchema = containerTestSchema.keys({ command: joi.array().items(joi.string()) })
 
-const testModuleTaskSchema = containerTaskSchema
-  .keys({ command: joi.array().items(joi.string()) })
+const testModuleTaskSchema = containerTaskSchema.keys({ command: joi.array().items(joi.string()) })
 
-export const testModuleSpecSchema = containerModuleSpecSchema
-  .keys({
-    build: execBuildSpecSchema,
-    tests: joiArray(testModuleTestSchema),
-    tasks: joiArray(testModuleTaskSchema),
-  })
+export const testModuleSpecSchema = containerModuleSpecSchema.keys({
+  build: execBuildSpecSchema,
+  tests: joiArray(testModuleTestSchema),
+  tasks: joiArray(testModuleTaskSchema),
+})
 
 export async function configureTestModule({ moduleConfig }: ConfigureModuleParams) {
   moduleConfig.outputs = { foo: "bar" }
 
   // validate services
-  moduleConfig.serviceConfigs = moduleConfig.spec.services.map(spec => ({
+  moduleConfig.serviceConfigs = moduleConfig.spec.services.map((spec) => ({
     name: spec.name,
     dependencies: spec.dependencies,
     sourceModuleName: spec.sourceModuleName,
     spec,
   }))
 
-  moduleConfig.taskConfigs = moduleConfig.spec.tasks.map(t => ({
+  moduleConfig.taskConfigs = moduleConfig.spec.tasks.map((t) => ({
     name: t.name,
     dependencies: t.dependencies,
     spec: t,
     timeout: t.timeout,
   }))
 
-  moduleConfig.testConfigs = moduleConfig.spec.tests.map(t => ({
+  moduleConfig.testConfigs = moduleConfig.spec.tests.map((t) => ({
     name: t.name,
     dependencies: t.dependencies,
     spec: t,
@@ -172,57 +169,66 @@ export const testPlugin = createGardenPlugin(() => {
         }
       },
     },
-    createModuleTypes: [{
-      name: "test",
-      docs: "Test module type",
-      schema: testModuleSpecSchema,
-      handlers: {
-        testModule: testExecModule,
-        configure: configureTestModule,
-        build: buildExecModule,
-        runModule,
+    createModuleTypes: [
+      {
+        name: "test",
+        docs: "Test module type",
+        schema: testModuleSpecSchema,
+        handlers: {
+          testModule: testExecModule,
+          configure: configureTestModule,
+          build: buildExecModule,
+          runModule,
 
-        async getServiceStatus() { return { state: "ready", detail: {} } },
-        async deployService() { return { state: "ready", detail: {} } },
+          async getServiceStatus() {
+            return { state: "ready", detail: {} }
+          },
+          async deployService() {
+            return { state: "ready", detail: {} }
+          },
 
-        async runService(
-          { ctx, service, interactive, runtimeContext, timeout, log }: RunServiceParams,
-        ): Promise<RunResult> {
-          return runModule({
+          async runService({
             ctx,
-            log,
-            module: service.module,
-            args: [service.name],
+            service,
             interactive,
             runtimeContext,
             timeout,
-          })
-        },
-
-        async runTask(
-          { ctx, task, interactive, runtimeContext, log }: RunTaskParams,
-        ): Promise<RunTaskResult> {
-          const result = await runModule({
-            ctx,
-            interactive,
             log,
-            runtimeContext,
-            module: task.module,
-            args: task.spec.command,
-            ignoreError: false,
-            timeout: task.spec.timeout || 9999,
-          })
+          }: RunServiceParams): Promise<RunResult> {
+            return runModule({
+              ctx,
+              log,
+              module: service.module,
+              args: [service.name],
+              interactive,
+              runtimeContext,
+              timeout,
+            })
+          },
 
-          return {
-            ...result,
-            taskName: task.name,
-            outputs: {
-              log: result.log,
-            },
-          }
+          async runTask({ ctx, task, interactive, runtimeContext, log }: RunTaskParams): Promise<RunTaskResult> {
+            const result = await runModule({
+              ctx,
+              interactive,
+              log,
+              runtimeContext,
+              module: task.module,
+              args: task.spec.command,
+              ignoreError: false,
+              timeout: task.spec.timeout || 9999,
+            })
+
+            return {
+              ...result,
+              taskName: task.name,
+              outputs: {
+                log: result.log,
+              },
+            }
+          },
         },
       },
-    }],
+    ],
   }
 })
 
@@ -324,9 +330,9 @@ export class TestGarden extends Garden {
 
 export const makeTestGarden = async (
   projectRoot: string,
-  { extraPlugins, gardenDirPath }: { extraPlugins?: RegisterPluginParam[], gardenDirPath?: string } = {},
+  { extraPlugins, gardenDirPath }: { extraPlugins?: RegisterPluginParam[]; gardenDirPath?: string } = {}
 ): Promise<TestGarden> => {
-  const plugins = [...testPlugins, ...extraPlugins || []]
+  const plugins = [...testPlugins, ...(extraPlugins || [])]
   return TestGarden.factory(projectRoot, { plugins, gardenDirPath })
 }
 
@@ -335,7 +341,10 @@ export const makeTestGardenA = async (extraPlugins: RegisterPluginParam[] = []) 
 }
 
 export function stubAction<T extends keyof PluginActionHandlers>(
-  garden: Garden, pluginName: string, type: T, handler?: PluginActionHandlers[T],
+  garden: Garden,
+  pluginName: string,
+  type: T,
+  handler?: PluginActionHandlers[T]
 ) {
   if (handler) {
     handler["pluginName"] = pluginName
@@ -348,7 +357,7 @@ export function stubModuleAction<T extends keyof ModuleAndRuntimeActionHandlers<
   moduleType: string,
   pluginName: string,
   actionType: T,
-  handler: ModuleAndRuntimeActionHandlers<any>[T],
+  handler: ModuleAndRuntimeActionHandlers<any>[T]
 ) {
   handler["actionType"] = actionType
   handler["pluginName"] = pluginName
@@ -403,7 +412,7 @@ export async function expectError(fn: Function, typeOrCallback?: string | ((err:
 }
 
 export function taskResultOutputs(results: TaskResults) {
-  return mapValues(results, r => r && r.output)
+  return mapValues(results, (r) => r && r.output)
 }
 
 export const cleanProject = async (gardenDirPath: string) => {
@@ -411,11 +420,11 @@ export const cleanProject = async (gardenDirPath: string) => {
 }
 
 export function getExampleProjects() {
-  const names = readdirSync(examplesDir).filter(n => {
+  const names = readdirSync(examplesDir).filter((n) => {
     const basePath = join(examplesDir, n)
     return existsSync(join(basePath, "garden.yml")) || existsSync(join(basePath, "garden.yaml"))
   })
-  return fromPairs(names.map(n => [n, join(examplesDir, n)]))
+  return fromPairs(names.map((n) => [n, join(examplesDir, n)]))
 }
 
 export function withDefaultGlobalOpts(opts: any) {
@@ -470,8 +479,16 @@ export async function makeExtModuleSourcesGarden() {
  * Copies the external sources into the .garden directory and git inits them.
  */
 async function prepareRemoteGarden({
-  projectRoot, extSourcesRoot, sourceNames, type,
-}: { projectRoot: string, extSourcesRoot: string, sourceNames: string[], type: ExternalSourceType }) {
+  projectRoot,
+  extSourcesRoot,
+  sourceNames,
+  type,
+}: {
+  projectRoot: string
+  extSourcesRoot: string
+  sourceNames: string[]
+  type: ExternalSourceType
+}) {
   const garden = await makeTestGarden(projectRoot)
   const sourcesPath = join(projectRoot, ".garden", "sources", type)
 

@@ -36,9 +36,7 @@ const media = Object.keys(sizes).reduce((acc, label) => {
 
 export const orientation = Object.keys(orientations).reduce((acc, label) => {
   acc[label] = (...args) => css`
-    @media only screen and (max-width: ${tablet}px) and (orientation: ${orientations[
-    label
-    ]}) {
+    @media only screen and (max-width: ${tablet}px) and (orientation: ${orientations[label]}) {
       ${css(...args)};
     }
   `

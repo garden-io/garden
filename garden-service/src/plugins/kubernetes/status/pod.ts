@@ -17,11 +17,12 @@ import chalk from "chalk"
 export const podLogLines = 20
 
 export function checkPodStatus(
-  resource: KubernetesServerResource, pods: KubernetesServerResource<V1Pod>[],
+  resource: KubernetesServerResource,
+  pods: KubernetesServerResource<V1Pod>[]
 ): ResourceStatus {
   for (const pod of pods) {
     // TODO: detect unhealthy state (currently we just time out)
-    const ready = some(pod.status!.conditions!.map(c => c.type === "ready"))
+    const ready = some(pod.status!.conditions!.map((c) => c.type === "ready"))
     if (!ready) {
       return { state: "deploying", resource }
     }
@@ -39,9 +40,9 @@ export async function getPodLogs(api: KubeApi, namespace: string, podNames: stri
 
     try {
       const podRes = await api.core.readNamespacedPod(name, namespace)
-      const containerNames = podRes.spec.containers.map(c => c.name)
+      const containerNames = podRes.spec.containers.map((c) => c.name)
       if (containerNames.length > 1) {
-        containerName = containerNames.filter(n => !n.match(/garden-/))[0] || containerNames[0]
+        containerName = containerNames.filter((n) => !n.match(/garden-/))[0] || containerNames[0]
       } else {
         containerName = containerNames[0]
       }
@@ -57,7 +58,15 @@ export async function getPodLogs(api: KubeApi, namespace: string, podNames: stri
     // accidentally logs a binary file or something.
     try {
       const log = await api.core.readNamespacedPodLog(
-        name, namespace, containerName, false, 5000, undefined, false, undefined, podLogLines,
+        name,
+        namespace,
+        containerName,
+        false,
+        5000,
+        undefined,
+        false,
+        undefined,
+        podLogLines
       )
       return log ? chalk.blueBright(`\n****** ${name} ******\n`) + log : ""
     } catch (err) {
@@ -68,5 +77,5 @@ export async function getPodLogs(api: KubeApi, namespace: string, podNames: stri
       }
     }
   })
-  return allLogs.filter(l => l !== "").join("\n\n")
+  return allLogs.filter((l) => l !== "").join("\n\n")
 }

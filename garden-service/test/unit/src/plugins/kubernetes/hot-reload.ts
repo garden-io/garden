@@ -22,9 +22,11 @@ describe("configureHotReload", () => {
         template: {
           metadata: {},
           spec: {
-            containers: [{
-              image: "garden-io/foo",
-            }],
+            containers: [
+              {
+                image: "garden-io/foo",
+              },
+            ],
           },
         },
       },
@@ -33,10 +35,12 @@ describe("configureHotReload", () => {
     configureHotReload({
       target: <HotReloadableResource>target,
       hotReloadSpec: {
-        sync: [{
-          source: "*",
-          target: "/app",
-        }],
+        sync: [
+          {
+            source: "*",
+            target: "/app",
+          },
+        ],
       },
       hotReloadArgs: ["some", "args"],
     })
@@ -65,10 +69,7 @@ describe("configureHotReload", () => {
                   },
                 ],
                 ports: [],
-                args: [
-                  "some",
-                  "args",
-                ],
+                args: ["some", "args"],
               },
               {
                 name: "garden-rsync",
@@ -105,11 +106,7 @@ describe("configureHotReload", () => {
               {
                 name: "garden-sync-init",
                 image: "garden-io/foo",
-                command: [
-                  "/bin/sh",
-                  "-c",
-                  "mkdir -p /.garden/hot_reload && cp -r /app/ /.garden/hot_reload/app/",
-                ],
+                command: ["/bin/sh", "-c", "mkdir -p /.garden/hot_reload && cp -r /app/ /.garden/hot_reload/app/"],
                 env: [],
                 imagePullPolicy: "IfNotPresent",
                 volumeMounts: [
@@ -227,7 +224,8 @@ describe("rsyncSourcePath", () => {
 describe("makeCopyCommand", () => {
   const resA = "mkdir -p /.garden/hot_reload && cp -r /app/ /.garden/hot_reload/app/"
   const resB = "mkdir -p /.garden/hot_reload/app/src && cp -r /app/src/foo/ /.garden/hot_reload/app/src/foo/"
-  const resC = "mkdir -p /.garden/hot_reload/app && cp -r /app/src1/ /.garden/hot_reload/app/src1/ && " +
+  const resC =
+    "mkdir -p /.garden/hot_reload/app && cp -r /app/src1/ /.garden/hot_reload/app/src1/ && " +
     "mkdir -p /.garden/hot_reload/app && cp -r /app/src2/ /.garden/hot_reload/app/src2/"
 
   it("ensures a trailing slash in the copy source and target", () => {

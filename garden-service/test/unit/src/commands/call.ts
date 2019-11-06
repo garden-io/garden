@@ -11,22 +11,26 @@ import { configureTestModule, withDefaultGlobalOpts, dataDir, testModuleSpecSche
 const testStatusesA: { [key: string]: ServiceStatus } = {
   "service-a": {
     state: "ready",
-    ingresses: [{
-      hostname: "service-a.test-project-b.local.app.garden",
-      path: "/path-a",
-      protocol: "http",
-      port: 32000,
-    }],
+    ingresses: [
+      {
+        hostname: "service-a.test-project-b.local.app.garden",
+        path: "/path-a",
+        protocol: "http",
+        port: 32000,
+      },
+    ],
     detail: {},
   },
   "service-b": {
     state: "ready",
-    ingresses: [{
-      hostname: "service-b.test-project-b.local.app.garden",
-      path: "/",
-      port: 32000,
-      protocol: "http",
-    }],
+    ingresses: [
+      {
+        hostname: "service-b.test-project-b.local.app.garden",
+        path: "/",
+        port: 32000,
+        protocol: "http",
+      },
+    ],
     detail: {},
   },
   "service-c": {
@@ -38,24 +42,28 @@ const testStatusesA: { [key: string]: ServiceStatus } = {
 const testStatusesB: { [key: string]: ServiceStatus } = {
   "service-a": {
     state: "ready",
-    ingresses: [{
-      hostname: "service-a.test-project-b.local.app.garden",
-      linkUrl: "https://www.example.com",
-      path: "/path-a",
-      protocol: "http",
-      port: 32000,
-    }],
+    ingresses: [
+      {
+        hostname: "service-a.test-project-b.local.app.garden",
+        linkUrl: "https://www.example.com",
+        path: "/path-a",
+        protocol: "http",
+        port: 32000,
+      },
+    ],
     detail: {},
   },
   "service-b": {
     state: "ready",
-    ingresses: [{
-      hostname: "service-b.test-project-b.local.app.garden",
-      linkUrl: "https://www.example.com/hello",
-      path: "/path-b",
-      protocol: "http",
-      port: 32000,
-    }],
+    ingresses: [
+      {
+        hostname: "service-b.test-project-b.local.app.garden",
+        linkUrl: "https://www.example.com/hello",
+        path: "/path-b",
+        protocol: "http",
+        port: 32000,
+      },
+    ],
     detail: {},
   },
 }
@@ -67,15 +75,17 @@ function makeTestProvider(serviceStatuses: { [key: string]: ServiceStatus }): Ga
 
   return {
     name: "test-plugin",
-    createModuleTypes: [{
-      name: "test",
-      docs: "Test plugin",
-      schema: testModuleSpecSchema,
-      handlers: {
-        configure: configureTestModule,
-        getServiceStatus,
+    createModuleTypes: [
+      {
+        name: "test",
+        docs: "Test plugin",
+        schema: testModuleSpecSchema,
+        handlers: {
+          configure: configureTestModule,
+          getServiceStatus,
+        },
       },
-    }],
+    ],
   }
 }
 
@@ -116,7 +126,6 @@ describe("commands.call", () => {
     expect(result.path).to.equal("/path-a")
     expect(result.response.status).to.equal(200)
     expect(result.response.data).to.equal("bla")
-
   })
 
   it("should default to the path '/' if that is exposed if no path is requested", async () => {

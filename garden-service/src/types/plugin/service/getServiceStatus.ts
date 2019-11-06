@@ -17,7 +17,7 @@ export type hotReloadStatus = "enabled" | "disabled"
 
 export interface GetServiceStatusParams<M extends Module = Module, S extends Module = Module>
   extends PluginServiceActionParamsBase<M, S> {
-  hotReload: boolean,
+  hotReload: boolean
   runtimeContext: RuntimeContext
 }
 
@@ -28,12 +28,12 @@ export const getServiceStatus = {
     Called ahead of any actions that expect a service to be running, as well as the
     \`garden get status\` command.
   `,
-  paramsSchema: serviceActionParamsSchema
-    .keys({
-      runtimeContext: runtimeContextSchema,
-      hotReload: joi.boolean()
-        .default(false)
-        .description("Whether the service should be configured for hot-reloading."),
-    }),
+  paramsSchema: serviceActionParamsSchema.keys({
+    runtimeContext: runtimeContextSchema,
+    hotReload: joi
+      .boolean()
+      .default(false)
+      .description("Whether the service should be configured for hot-reloading."),
+  }),
   resultSchema: serviceStatusSchema,
 }

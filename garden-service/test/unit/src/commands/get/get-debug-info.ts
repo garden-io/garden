@@ -59,40 +59,36 @@ describe("GetDebugInfoCommand", () => {
   })
 
   describe("generateDebugInfoReport", () => {
-    it("should generate a zip file containing a debug info report in the root folder of the project",
-      async () => {
-        const command = new GetDebugInfoCommand()
-        const res = await command.action({
-          garden,
-          log,
-          headerLog: log,
-          footerLog: log,
-          args: {},
-          opts: withDefaultGlobalOpts({ format: "json" }),
-        })
+    it("should generate a zip file containing a debug info report in the root folder of the project", async () => {
+      const command = new GetDebugInfoCommand()
+      const res = await command.action({
+        garden,
+        log,
+        headerLog: log,
+        footerLog: log,
+        args: {},
+        opts: withDefaultGlobalOpts({ format: "json" }),
+      })
 
-        expect(res.result).to.eql(0)
+      expect(res.result).to.eql(0)
 
-        const gardenProjectRootFiles = await readdir(garden.projectRoot)
-        const zipFiles = gardenProjectRootFiles.filter((fileName) => {
-          return fileName.match(debugZipFileRegex)
-        })
-        expect(zipFiles.length).to.equal(1)
-      },
-    )
+      const gardenProjectRootFiles = await readdir(garden.projectRoot)
+      const zipFiles = gardenProjectRootFiles.filter((fileName) => {
+        return fileName.match(debugZipFileRegex)
+      })
+      expect(zipFiles.length).to.equal(1)
+    })
   })
 
   describe("generateBasicDebugInfoReport", () => {
-    it("should generate a zip file containing a *basic* debug info report in the root folder of the project",
-      async () => {
-        await generateBasicDebugInfoReport(garden.projectRoot, garden.gardenDirPath, log)
-        const gardenProjectRootFiles = await readdir(garden.projectRoot)
-        const zipFiles = gardenProjectRootFiles.filter((fileName) => {
-          return fileName.match(debugZipFileRegex)
-        })
-        expect(zipFiles.length).to.equal(1)
-      },
-    )
+    it("should generate a zip file with a *basic* debug info report in the root folder of the project", async () => {
+      await generateBasicDebugInfoReport(garden.projectRoot, garden.gardenDirPath, log)
+      const gardenProjectRootFiles = await readdir(garden.projectRoot)
+      const zipFiles = gardenProjectRootFiles.filter((fileName) => {
+        return fileName.match(debugZipFileRegex)
+      })
+      expect(zipFiles.length).to.equal(1)
+    })
   })
 
   describe("collectBasicDebugInfo", () => {
@@ -182,7 +178,6 @@ describe("GetDebugInfoCommand", () => {
       // Check structure of provider info file
       const systemInfoFile = await readJSON(join(gardenDebugTmp, providerInfoFilePath))
       expect(systemInfoFile).to.have.property("info")
-
     })
   })
 })

@@ -35,10 +35,15 @@ export interface TerraformBaseSpec {
 }
 
 export async function tfValidate(log: LogEntry, provider: TerraformProvider, root: string, variables: object) {
-  const args = ["validate", "-json", ...await prepareVariables(root, variables)]
+  const args = ["validate", "-json", ...(await prepareVariables(root, variables))]
   const tfVersion = provider.config.version
 
-  const res = await terraform(tfVersion).json({ log, args, ignoreError: true, cwd: root })
+  const res = await terraform(tfVersion).json({
+    log,
+    args,
+    ignoreError: true,
+    cwd: root,
+  })
 
   if (res.valid === false) {
     const reasons = res.diagnostics.map((d: any) => d.summary)
@@ -48,11 +53,15 @@ export async function tfValidate(log: LogEntry, provider: TerraformProvider, roo
       log.info("Initializing Terraform")
       await terraform(tfVersion).exec({ log, args: ["init"], cwd: root })
 
-      const retryRes = await terraform(tfVersion).json({ log, args, ignoreError: true, cwd: root })
+      const retryRes = await terraform(tfVersion).json({
+        log,
+        args,
+        ignoreError: true,
+        cwd: root,
+      })
       if (retryRes.valid === "false") {
         throw tfValidationError(retryRes)
       }
-
     } else {
       throw tfValidationError(res)
     }
@@ -60,7 +69,11 @@ export async function tfValidate(log: LogEntry, provider: TerraformProvider, roo
 }
 
 export async function getTfOutputs(log: LogEntry, terraformVersion: string, workingDir: string) {
-  const res = await terraform(terraformVersion).json({ log, args: ["output", "-json"], cwd: workingDir })
+  const res = await terraform(terraformVersion).json({
+    log,
+    args: ["output", "-json"],
+    cwd: workingDir,
+  })
   return mapValues(res, (v: any) => v.value)
 }
 
@@ -97,7 +110,7 @@ export async function getStackStatus({ log, provider, autoApply, root, variables
   const plan = await terraform(tfVersion).exec({
     log,
     ignoreError: true,
-    args: ["plan", "-detailed-exitcode", "-input=false", ...await prepareVariables(root, variables)],
+    args: ["plan", "-detailed-exitcode", "-input=false", ...(await prepareVariables(root, variables))],
     cwd: root,
   })
 
@@ -131,7 +144,7 @@ export async function getStackStatus({ log, provider, autoApply, root, variables
 
 export async function applyStack(log: LogEntry, provider: TerraformProvider, root: string, variables: object) {
   const tfVersion = provider.config.version
-  const args = ["apply", "-auto-approve", "-input=false", ...await prepareVariables(root, variables)]
+  const args = ["apply", "-auto-approve", "-input=false", ...(await prepareVariables(root, variables))]
 
   const proc = await terraform(tfVersion).spawn({ log, args, cwd: root })
 
@@ -166,7 +179,13 @@ export async function applyStack(log: LogEntry, provider: TerraformProvider, roo
       if (code === 0) {
         _resolve()
       } else {
-        reject(new RuntimeError(`Error when applying Terraform stack:\n${stderr}`, { stdout, stderr, code }))
+        reject(
+          new RuntimeError(`Error when applying Terraform stack:\n${stderr}`, {
+            stdout,
+            stderr,
+            code,
+          })
+        )
       }
     })
   })

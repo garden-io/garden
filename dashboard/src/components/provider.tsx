@@ -16,7 +16,7 @@ interface RoutePropsWithState extends RouteComponentProps {
   location: H.Location<Page>
 }
 
-const Provider: React.FC<RoutePropsWithState> = props => {
+const Provider: React.FC<RoutePropsWithState> = (props) => {
   const page = props.location.state
   return (
     <div>

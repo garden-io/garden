@@ -6,33 +6,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
-import {
-  Command,
-  CommandResult,
-  CommandParams,
-  StringParameter,
-  StringsParameter,
-} from "./base"
+import { Command, CommandResult, CommandParams, StringParameter, StringsParameter } from "./base"
 import { NotFoundError } from "../exceptions"
-import dedent = require("dedent")
-import { ServiceStatus, ServiceStatusMap } from "../types/service"
+import dedent from "dedent"
+import { ServiceStatusMap } from "../types/service"
 import { printHeader } from "../logger/util"
 import { DeleteSecretResult } from "../types/plugin/provider/deleteSecret"
 import { EnvironmentStatusMap } from "../types/plugin/provider/getEnvironmentStatus"
+import { DeleteServiceTask, deletedServiceStatuses } from "../tasks/delete-service"
 
 export class DeleteCommand extends Command {
   name = "delete"
   alias = "del"
   help = "Delete configuration or objects."
 
-  subCommands = [
-    DeleteSecretCommand,
-    DeleteEnvironmentCommand,
-    DeleteServiceCommand,
-  ]
+  subCommands = [DeleteSecretCommand, DeleteEnvironmentCommand, DeleteServiceCommand]
 
-  async action() { return {} }
+  async action() {
+    return {}
+  }
 }
 
 const deleteSecretArgs = {
@@ -63,9 +55,7 @@ export class DeleteSecretCommand extends Command<typeof deleteSecretArgs> {
 
   arguments = deleteSecretArgs
 
-  async action(
-    { garden, log, args }: CommandParams<DeleteSecretArgs>,
-  ): Promise<CommandResult<DeleteSecretResult>> {
+  async action({ garden, log, args }: CommandParams<DeleteSecretArgs>): Promise<CommandResult<DeleteSecretResult>> {
     const key = args.key!
     const actions = await garden.getActionRouter()
     const result = await actions.deleteSecret({ log, pluginName: args.provider!, key })
@@ -143,13 +133,11 @@ export class DeleteServiceCommand extends Command {
 
     printHeader(headerLog, "Delete service", "skull_and_crossbones")
 
-    const result: { [key: string]: ServiceStatus } = {}
-
-    const actions = await garden.getActionRouter()
-
-    await Bluebird.map(services, async service => {
-      result[service.name] = await actions.deleteService({ log, service })
+    const deleteServiceTasks = services.map((service) => {
+      return new DeleteServiceTask({ garden, graph, log, service })
     })
+
+    const result = deletedServiceStatuses(await garden.processTasks(deleteServiceTasks))
 
     return { result }
   }

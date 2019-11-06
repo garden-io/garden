@@ -24,9 +24,12 @@ const timeout = 10000
  * Note: This assumes that the Service and Pod/workload statuses have previously been cleared as ready.
  */
 export async function waitForServiceEndpoints(
-  api: KubeApi, log: LogEntry, namespace: string, resources: KubernetesServerResource[],
+  api: KubeApi,
+  log: LogEntry,
+  namespace: string,
+  resources: KubernetesServerResource[]
 ) {
-  const services = resources.filter(r => r.apiVersion === "v1" && r.kind === "Service")
+  const services = resources.filter((r) => r.apiVersion === "v1" && r.kind === "Service")
   const start = new Date().getTime()
 
   return Bluebird.map(services, async (service) => {
@@ -40,16 +43,15 @@ export async function waitForServiceEndpoints(
     const serviceNamespace = service.metadata.namespace || namespace
 
     const pods = await getPods(api, serviceNamespace, selector)
-    const readyPodNames = pods
-      .filter(p => checkPodStatus(p, [p]).state === "ready")
-      .map(p => p.metadata.name)
+    const readyPodNames = pods.filter((p) => checkPodStatus(p, [p]).state === "ready").map((p) => p.metadata.name)
 
     while (true) {
       const endpoints = await api.core.readNamespacedEndpoints(serviceName, serviceNamespace)
 
-      const addresses = flatten((endpoints.subsets || []).map(subset => subset.addresses || []))
-      const routedPods = addresses
-        .filter(a => a.targetRef!.kind === "Pod" && readyPodNames.includes(a.targetRef!.name!))
+      const addresses = flatten((endpoints.subsets || []).map((subset) => subset.addresses || []))
+      const routedPods = addresses.filter(
+        (a) => a.targetRef!.kind === "Pod" && readyPodNames.includes(a.targetRef!.name!)
+      )
 
       if (routedPods.length === readyPodNames.length) {
         // All endpoints routing nicely!
@@ -57,10 +59,10 @@ export async function waitForServiceEndpoints(
       }
 
       if (new Date().getTime() - start > timeout) {
-        throw new TimeoutError(
-          `Timed out waiting for Service '${serviceName}' Endpoints to resolve to correct Pods`,
-          { service, pods },
-        )
+        throw new TimeoutError(`Timed out waiting for Service '${serviceName}' Endpoints to resolve to correct Pods`, {
+          service,
+          pods,
+        })
       }
 
       log.setState({ symbol: "warning", msg: `Waiting for Service '${serviceName}' Endpoints to resolve...` })

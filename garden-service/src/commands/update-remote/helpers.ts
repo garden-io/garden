@@ -11,17 +11,17 @@ import { join, basename } from "path"
 import { remove, pathExists } from "fs-extra"
 
 import { getChildDirNames } from "../../util/fs"
-import {
-  ExternalSourceType,
-  getRemoteSourcesDirname,
-  getRemoteSourceRelPath,
-} from "../../util/ext-source-util"
+import { ExternalSourceType, getRemoteSourcesDirname, getRemoteSourceRelPath } from "../../util/ext-source-util"
 import { SourceConfig } from "../../config/project"
 
-export async function pruneRemoteSources({ gardenDirPath, sources, type }: {
-  gardenDirPath: string,
-  sources: SourceConfig[],
-  type: ExternalSourceType,
+export async function pruneRemoteSources({
+  gardenDirPath,
+  sources,
+  type,
+}: {
+  gardenDirPath: string
+  sources: SourceConfig[]
+  type: ExternalSourceType
 }) {
   const remoteSourcesPath = join(gardenDirPath, getRemoteSourcesDirname(type))
 
@@ -31,7 +31,7 @@ export async function pruneRemoteSources({ gardenDirPath, sources, type }: {
 
   const sourceNames = sources
     .map(({ name, repositoryUrl: url }) => getRemoteSourceRelPath({ name, url, sourceType: type }))
-    .map(srcPath => basename(srcPath))
+    .map((srcPath) => basename(srcPath))
 
   const currentRemoteSources = await getChildDirNames(remoteSourcesPath)
   const staleRemoteSources = difference(currentRemoteSources, sourceNames)

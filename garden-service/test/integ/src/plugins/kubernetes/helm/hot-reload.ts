@@ -22,10 +22,12 @@ describe("getHotReloadSpec", () => {
   it("should retrieve the hot reload spec on the service's source module", async () => {
     const service = await graph.getService("api")
     expect(getHotReloadSpec(service)).to.eql({
-      sync: [{
-        source: "*",
-        target: "/app",
-      }],
+      sync: [
+        {
+          source: "*",
+          target: "/app",
+        },
+      ],
     })
   })
 
@@ -34,9 +36,10 @@ describe("getHotReloadSpec", () => {
     delete service.module.spec.serviceResource.containerModule
     await expectError(
       () => getHotReloadSpec(service),
-      err => expect(err.message).to.equal(
-        "Module 'api' must specify `serviceResource.containerModule` in order to enable hot-reloading.",
-      ),
+      (err) =>
+        expect(err.message).to.equal(
+          "Module 'api' must specify `serviceResource.containerModule` in order to enable hot-reloading."
+        )
     )
   })
 
@@ -46,11 +49,12 @@ describe("getHotReloadSpec", () => {
     service.sourceModule = otherModule
     await expectError(
       () => getHotReloadSpec(service),
-      err => expect(err.message).to.equal(deline`
+      (err) =>
+        expect(err.message).to.equal(deline`
         Module 'api-image', referenced on module 'api' under \`serviceResource.containerModule\`,
         is not a container module. Please specify the appropriate container module that contains
         the sources for the resource.
-      `),
+      `)
     )
   })
 
@@ -59,11 +63,12 @@ describe("getHotReloadSpec", () => {
     delete service.sourceModule.spec.hotReload
     await expectError(
       () => getHotReloadSpec(service),
-      err => expect(err.message).to.equal(deline`
+      (err) =>
+        expect(err.message).to.equal(deline`
         Module 'api-image', referenced on module 'api' under \`serviceResource.containerModule\`,
         is not configured for hot-reloading. Please specify \`hotReload\` on the 'api-image'
         module in order to enable hot-reloading.
-      `),
+      `)
     )
   })
 })

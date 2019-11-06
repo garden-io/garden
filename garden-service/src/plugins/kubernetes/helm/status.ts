@@ -25,12 +25,12 @@ import { KubernetesServerResource } from "../types"
 
 const helmStatusCodeMap: { [code: number]: ServiceState } = {
   // see https://github.com/kubernetes/helm/blob/master/_proto/hapi/release/status.proto
-  0: "unknown",   // UNKNOWN
-  1: "ready",     // DEPLOYED
-  2: "missing",   // DELETED
-  3: "stopped",   // SUPERSEDED
+  0: "unknown", // UNKNOWN
+  1: "ready", // DEPLOYED
+  2: "missing", // DELETED
+  3: "stopped", // SUPERSEDED
   4: "unhealthy", // FAILED
-  5: "stopped",   // DELETING
+  5: "stopped", // DELETING
   6: "deploying", // PENDING_INSTALL
   7: "deploying", // PENDING_UPGRADE
   8: "deploying", // PENDING_ROLLBACK
@@ -42,9 +42,13 @@ interface HelmStatusDetail {
 
 export type HelmServiceStatus = ServiceStatus<HelmStatusDetail>
 
-export async function getServiceStatus(
-  { ctx, module, service, log, hotReload }: GetServiceStatusParams<HelmModule>,
-): Promise<HelmServiceStatus> {
+export async function getServiceStatus({
+  ctx,
+  module,
+  service,
+  log,
+  hotReload,
+}: GetServiceStatusParams<HelmModule>): Promise<HelmServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
   // need to build to be able to check the status
   const buildStatus = await getExecModuleBuildStatus({ ctx: k8sCtx, module, log })
@@ -87,7 +91,9 @@ export async function getServiceStatus(
 }
 
 export async function getReleaseStatus(
-  ctx: KubernetesPluginContext, releaseName: string, log: LogEntry,
+  ctx: KubernetesPluginContext,
+  releaseName: string,
+  log: LogEntry
 ): Promise<ServiceStatus> {
   try {
     log.silly(`Getting the release status for ${releaseName}`)

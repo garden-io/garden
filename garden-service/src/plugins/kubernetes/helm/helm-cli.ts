@@ -41,18 +41,22 @@ const helmCmd = new BinaryCmd({
   },
 })
 
-export async function helm(
-  { ctx, namespace, log, args }:
-    { ctx: KubernetesPluginContext, namespace?: string, log: LogEntry, args: string[]; },
-) {
+export async function helm({
+  ctx,
+  namespace,
+  log,
+  args,
+}: {
+  ctx: KubernetesPluginContext
+  namespace?: string
+  log: LogEntry
+  args: string[]
+}) {
   if (!namespace) {
     namespace = await getAppNamespace(ctx, log, ctx.provider)
   }
 
-  const opts = [
-    "--tiller-namespace", namespace,
-    "--kube-context", ctx.provider.config.context,
-  ]
+  const opts = ["--tiller-namespace", namespace, "--kube-context", ctx.provider.config.context]
 
   if (ctx.provider.config.kubeconfig) {
     opts.push("--kubeconfig", ctx.provider.config.kubeconfig)

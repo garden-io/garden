@@ -54,17 +54,21 @@ export async function execInService(params: ExecInServiceParams<ContainerModule>
   return execInWorkload({ provider, log, namespace, workload: status.detail.workload, command, interactive })
 }
 
-export async function execInWorkload(
-  { provider, log, namespace, workload, command, interactive }:
-    {
-      provider: KubernetesProvider,
-      log: LogEntry,
-      namespace: string,
-      workload: KubernetesWorkload,
-      command: string[],
-      interactive: boolean,
-    },
-) {
+export async function execInWorkload({
+  provider,
+  log,
+  namespace,
+  workload,
+  command,
+  interactive,
+}: {
+  provider: KubernetesProvider
+  log: LogEntry
+  namespace: string
+  workload: KubernetesWorkload
+  command: string[]
+  interactive: boolean
+}) {
   const api = await KubeApi.factory(log, provider)
   const pods = await getWorkloadPods(api, namespace, workload)
 
@@ -98,11 +102,17 @@ export async function execInWorkload(
   return { code: res.code, output: res.output }
 }
 
-export async function runContainerModule(
-  {
-    ctx, log, module, args, command, ignoreError = true, interactive, runtimeContext, timeout,
-  }: RunModuleParams<ContainerModule>,
-): Promise<RunResult> {
+export async function runContainerModule({
+  ctx,
+  log,
+  module,
+  args,
+  command,
+  ignoreError = true,
+  interactive,
+  runtimeContext,
+  timeout,
+}: RunModuleParams<ContainerModule>): Promise<RunResult> {
   const provider = <KubernetesProvider>ctx.provider
   const namespace = await getAppNamespace(ctx, log, provider)
 
@@ -112,13 +122,15 @@ export async function runContainerModule(
   const env = uniqByName(prepareEnvVars(envVars))
 
   const spec: V1PodSpec = {
-    containers: [{
-      name: "main",
-      image,
-      ...command && { command },
-      ...args && { args },
-      env,
-    }],
+    containers: [
+      {
+        name: "main",
+        image,
+        ...(command && { command }),
+        ...(args && { args }),
+        env,
+      },
+    ],
   }
 
   return runPod({
@@ -134,9 +146,14 @@ export async function runContainerModule(
   })
 }
 
-export async function runContainerService(
-  { ctx, service, interactive, runtimeContext, timeout, log }: RunServiceParams<ContainerModule>,
-): Promise<RunResult> {
+export async function runContainerService({
+  ctx,
+  service,
+  interactive,
+  runtimeContext,
+  timeout,
+  log,
+}: RunServiceParams<ContainerModule>): Promise<RunResult> {
   const { command, args } = service.spec
   return runContainerModule({
     ctx,
@@ -150,9 +167,15 @@ export async function runContainerService(
   })
 }
 
-export async function runContainerTask(
-  { ctx, log, module, task, taskVersion, interactive, runtimeContext }: RunTaskParams<ContainerModule>,
-): Promise<RunTaskResult> {
+export async function runContainerTask({
+  ctx,
+  log,
+  module,
+  task,
+  taskVersion,
+  interactive,
+  runtimeContext,
+}: RunTaskParams<ContainerModule>): Promise<RunTaskResult> {
   const provider = <KubernetesProvider>ctx.provider
   const namespace = await getAppNamespace(ctx, log, provider)
 
@@ -163,13 +186,15 @@ export async function runContainerTask(
   const env = uniqByName(prepareEnvVars(envVars))
 
   const spec: V1PodSpec = {
-    containers: [{
-      name: "main",
-      image,
-      ...command && { command },
-      ...args && { args },
-      env,
-    }],
+    containers: [
+      {
+        name: "main",
+        image,
+        ...(command && { command }),
+        ...(args && { args }),
+        env,
+      },
+    ],
   }
 
   const res = await runPod({

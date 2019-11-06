@@ -28,19 +28,23 @@ export function getAnnotation(obj: KubernetesResource, key: string): string | nu
  * Given a list of resources, get all the associated pods.
  */
 export async function getAllPods(
-  api: KubeApi, defaultNamespace: string, resources: KubernetesResource[],
+  api: KubeApi,
+  defaultNamespace: string,
+  resources: KubernetesResource[]
 ): Promise<KubernetesPod[]> {
-  const pods: KubernetesPod[] = flatten(await Bluebird.map(resources, async (resource) => {
-    if (resource.apiVersion === "v1" && resource.kind === "Pod") {
-      return [<KubernetesPod>resource]
-    }
+  const pods: KubernetesPod[] = flatten(
+    await Bluebird.map(resources, async (resource) => {
+      if (resource.apiVersion === "v1" && resource.kind === "Pod") {
+        return [<KubernetesPod>resource]
+      }
 
-    if (isWorkload(resource)) {
-      return getWorkloadPods(api, resource.metadata.namespace || defaultNamespace, <KubernetesWorkload>resource)
-    }
+      if (isWorkload(resource)) {
+        return getWorkloadPods(api, resource.metadata.namespace || defaultNamespace, <KubernetesWorkload>resource)
+      }
 
-    return []
-  }))
+      return []
+    })
+  )
 
   return <KubernetesPod[]>deduplicateResources(pods)
 }
@@ -50,22 +54,16 @@ export async function getAllPods(
  */
 export function getSelectorFromResource(resource: KubernetesWorkload) {
   // We check if the resource has its own selector
-  if (resource.spec && resource.spec.selector
-    && resource.spec.selector.matchLabels) {
+  if (resource.spec && resource.spec.selector && resource.spec.selector.matchLabels) {
     return resource.spec.selector.matchLabels
   }
   // We check if the pod template has labels
-  if (resource.spec.template
-    && resource.spec.template.metadata
-    && resource.spec.template.metadata.labels) {
+  if (resource.spec.template && resource.spec.template.metadata && resource.spec.template.metadata.labels) {
     return resource.spec.template.metadata.labels
   }
   // We check if the resource is from an Helm Chart
   // (as in returned from kubernetes.helm.common.getChartResources(...))
-  if (resource.metadata
-    && resource.metadata.labels
-    && resource.metadata.labels.chart
-    && resource.metadata.labels.app) {
+  if (resource.metadata && resource.metadata.labels && resource.metadata.labels.chart && resource.metadata.labels.app) {
     return {
       app: resource.metadata.labels.app,
     }
@@ -89,56 +87,63 @@ export async function getWorkloadPods(api: KubeApi, namespace: string, resource:
     const selectorString = labelSelectorToString(selector)
     const replicaSets = await api.apps.listNamespacedReplicaSet(
       resource.metadata.namespace || namespace,
-      undefined,  // pretty
-      undefined,  // allowWatchBookmarks
-      undefined,  // _continue
-      undefined,  // fieldSelector
-      selectorString,   // labelSelector
+      undefined, // pretty
+      undefined, // allowWatchBookmarks
+      undefined, // _continue
+      undefined, // fieldSelector
+      selectorString // labelSelector
     )
 
     if (replicaSets.items.length === 0) {
       return []
     }
 
-    const sorted = sortBy(replicaSets.items, r => r.metadata.creationTimestamp!)
+    const sorted = sortBy(replicaSets.items, (r) => r.metadata.creationTimestamp!)
     const currentReplicaSet = sorted[replicaSets.items.length - 1]
 
-    return pods.filter(pod => pod.metadata.name.startsWith(currentReplicaSet.metadata.name))
+    return pods.filter((pod) => pod.metadata.name.startsWith(currentReplicaSet.metadata.name))
   } else {
     return pods
   }
 }
 
 export function labelSelectorToString(selector: { [key: string]: string }) {
-  return Object.entries(selector).map(([k, v]) => `${k}=${v}`).join(",")
+  return Object.entries(selector)
+    .map(([k, v]) => `${k}=${v}`)
+    .join(",")
 }
 
 /**
  * Retrieve a list of pods based on the provided label selector.
  */
 export async function getPods(
-  api: KubeApi, namespace: string, selector: { [key: string]: string },
+  api: KubeApi,
+  namespace: string,
+  selector: { [key: string]: string }
 ): Promise<KubernetesServerResource<V1Pod>[]> {
   const selectorString = labelSelectorToString(selector)
   const res = await api.core.listNamespacedPod(
     namespace,
-    undefined,  // pretty
-    undefined,  // allowWatchBookmarks
-    undefined,  // continue
-    undefined,  // fieldSelector
-    selectorString, // labelSelector
+    undefined, // pretty
+    undefined, // allowWatchBookmarks
+    undefined, // continue
+    undefined, // fieldSelector
+    selectorString // labelSelector
   )
-  return <KubernetesServerResource<V1Pod>[]>res.items.map(pod => {
-    // inexplicably, the API sometimes returns apiVersion and kind as undefined...
-    pod.apiVersion = "v1"
-    pod.kind = "Pod"
-    return pod
-  }).filter(pod =>
-    // Filter out failed pods
-    !(pod.status && pod.status.phase === "Failed") &&
-    // Filter out evicted pods
-    !(pod.status && pod.status.reason && pod.status.reason.includes("Evicted")),
-  )
+  return <KubernetesServerResource<V1Pod>[]>res.items
+    .map((pod) => {
+      // inexplicably, the API sometimes returns apiVersion and kind as undefined...
+      pod.apiVersion = "v1"
+      pod.kind = "Pod"
+      return pod
+    })
+    .filter(
+      (pod) =>
+        // Filter out failed pods
+        !(pod.status && pod.status.phase === "Failed") &&
+        // Filter out evicted pods
+        !(pod.status && pod.status.reason && pod.status.reason.includes("Evicted"))
+    )
 }
 
 /**
@@ -165,7 +170,7 @@ export function isBuiltIn(resource: KubernetesResource) {
 }
 
 export function deduplicateResources(resources: KubernetesResource[]) {
-  return uniqBy(resources, r => `${r.apiVersion}/${r.kind}`)
+  return uniqBy(resources, (r) => `${r.apiVersion}/${r.kind}`)
 }
 
 /**
@@ -188,8 +193,8 @@ export function kilobytesToString(kb: number) {
   kb = Math.floor(kb)
 
   for (const [suffix, power] of Object.entries(suffixTable)) {
-    if (kb % (1024 ** power) === 0) {
-      return `${(kb / (1024 ** power))}${suffix}`
+    if (kb % 1024 ** power === 0) {
+      return `${kb / 1024 ** power}${suffix}`
     }
   }
 
@@ -211,10 +216,19 @@ const suffixTable = {
   Mi: 1,
 }
 
-export async function upsertConfigMap(
-  { api, namespace, key, labels, data }:
-    { api: KubeApi, namespace: string, key: string, labels: { [key: string]: string }, data: { [key: string]: any } },
-) {
+export async function upsertConfigMap({
+  api,
+  namespace,
+  key,
+  labels,
+  data,
+}: {
+  api: KubeApi
+  namespace: string
+  key: string
+  labels: { [key: string]: string }
+  data: { [key: string]: any }
+}) {
   const serializedData = serializeValues(data)
 
   if (base64(JSON.stringify(serializedData)).length > MAX_CONFIGMAP_DATA_SIZE) {
@@ -264,37 +278,36 @@ export async function upsertConfigMap(
  * `[{ metadata: { name: a }}, { metadata: { name: b }}, { metadata: { name: b }}]`
  */
 export function flattenResources(resources: KubernetesResource[]) {
-  return flatten(resources.map((r: any) => r.apiVersion === "v1" && r.kind === "List" ? r.items : [r]))
+  return flatten(resources.map((r: any) => (r.apiVersion === "v1" && r.kind === "List" ? r.items : [r])))
 }
 
 /**
  * Maps an array of env vars, as specified on a container module, to a list of Kubernetes `V1EnvVar`s.
  */
 export function prepareEnvVars(env: ContainerEnvVars): V1EnvVar[] {
-  return Object.entries(env)
-    .map(([name, value]) => {
-      if (value === null) {
-        return { name, value: "null" }
-      } else if (typeof value === "object") {
-        if (!value.secretRef.key) {
-          throw new ConfigurationError(`kubernetes: Must specify \`key\` on secretRef for env variable ${name}`, {
-            name,
-            value,
-          })
-        }
-        return {
+  return Object.entries(env).map(([name, value]) => {
+    if (value === null) {
+      return { name, value: "null" }
+    } else if (typeof value === "object") {
+      if (!value.secretRef.key) {
+        throw new ConfigurationError(`kubernetes: Must specify \`key\` on secretRef for env variable ${name}`, {
           name,
-          valueFrom: {
-            secretKeyRef: {
-              name: value.secretRef.name,
-              key: value.secretRef.key!,
-            },
-          },
-        }
-      } else {
-        return { name, value: value.toString() }
+          value,
+        })
       }
-    })
+      return {
+        name,
+        valueFrom: {
+          secretKeyRef: {
+            name: value.secretRef.name,
+            key: value.secretRef.key!,
+          },
+        },
+      }
+    } else {
+      return { name, value: value.toString() }
+    }
+  })
 }
 
 /**

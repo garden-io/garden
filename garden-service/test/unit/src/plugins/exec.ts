@@ -29,12 +29,7 @@ describe("exec plugin", () => {
 
   it("should correctly parse exec modules", async () => {
     const modules = keyBy(await graph.getModules(), "name")
-    const {
-      "module-a": moduleA,
-      "module-b": moduleB,
-      "module-c": moduleC,
-      "module-local": moduleLocal,
-    } = modules
+    const { "module-a": moduleA, "module-b": moduleB, "module-c": moduleC, "module-local": moduleLocal } = modules
 
     expect(moduleA.build).to.eql({
       dependencies: [],
@@ -144,18 +139,20 @@ describe("exec plugin", () => {
       dependencies: [],
     })
     expect(moduleLocal.serviceConfigs).to.eql([])
-    expect(moduleLocal.taskConfigs).to.eql([{
-      name: "pwd",
-      dependencies: [],
-      timeout: null,
-      spec: {
+    expect(moduleLocal.taskConfigs).to.eql([
+      {
         name: "pwd",
-        env: {},
-        command: ["pwd"],
         dependencies: [],
         timeout: null,
+        spec: {
+          name: "pwd",
+          env: {},
+          command: ["pwd"],
+          dependencies: [],
+          timeout: null,
+        },
       },
-    }])
+    ])
     expect(moduleLocal.testConfigs).to.eql([])
   })
 
@@ -184,21 +181,22 @@ describe("exec plugin", () => {
       const moduleConfig = makeTestModule(<Partial<ModuleConfig>>{
         local: true,
         build: {
-          dependencies: [{
-            name: "foo",
-            copy: [{
-              source: ".",
-              target: ".",
-            }],
-          }],
+          dependencies: [
+            {
+              name: "foo",
+              copy: [
+                {
+                  source: ".",
+                  target: ".",
+                },
+              ],
+            },
+          ],
         },
       })
       const provider = await garden.resolveProvider("test-plugin")
       const ctx = garden.getPluginContext(provider)
-      await expectError(
-        async () => await configureExecModule({ ctx, moduleConfig, log }),
-        "configuration",
-      )
+      await expectError(async () => await configureExecModule({ ctx, moduleConfig, log }), "configuration")
     })
   })
 

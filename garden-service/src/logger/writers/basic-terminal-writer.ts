@@ -23,5 +23,5 @@ export class BasicTerminalWriter extends Writer {
     }
   }
 
-  stop() { }
+  stop() {}
 }

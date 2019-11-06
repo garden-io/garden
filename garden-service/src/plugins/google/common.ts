@@ -20,8 +20,8 @@ export const GOOGLE_CLOUD_DEFAULT_REGION = "us-central1"
 export interface GoogleCloudModule<
   M extends ModuleSpec = ModuleSpec,
   S extends CommonServiceSpec = CommonServiceSpec,
-  T extends ExecTestSpec = ExecTestSpec,
-  > extends Module<M, S, T> { }
+  T extends ExecTestSpec = ExecTestSpec
+> extends Module<M, S, T> {}
 
 export async function getEnvironmentStatus() {
   let sdkInfo: any
@@ -61,8 +61,8 @@ export async function prepareEnvironment({ status, log }: PrepareEnvironmentPara
   if (!status.detail.sdkInstalled) {
     throw new ConfigurationError(
       "Google Cloud SDK is not installed. " +
-      "Please visit https://cloud.google.com/sdk/downloads for installation instructions.",
-      {},
+        "Please visit https://cloud.google.com/sdk/downloads for installation instructions.",
+      {}
     )
   }
 

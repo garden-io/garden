@@ -15,11 +15,9 @@ export class UpdateRemoteCommand extends Command {
   name = "update-remote"
   help = "Pulls the latest version of remote sources or modules from their repository."
 
-  subCommands = [
-    UpdateRemoteSourcesCommand,
-    UpdateRemoteModulesCommand,
-    UpdateRemoteAllCommand,
-  ]
+  subCommands = [UpdateRemoteSourcesCommand, UpdateRemoteModulesCommand, UpdateRemoteAllCommand]
 
-  async action() { return {} }
+  async action() {
+    return {}
+  }
 }

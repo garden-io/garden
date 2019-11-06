@@ -13,7 +13,7 @@ import { ModuleConfig } from "garden-service/build/src/config/module"
 import { ServiceIngress } from "garden-service/build/src/types/service"
 
 export function getServiceNames(moduleConfigs: ModuleConfig[]) {
-  return flatten(moduleConfigs.map(m => m.serviceConfigs.map(s => s.name)))
+  return flatten(moduleConfigs.map((m) => m.serviceConfigs.map((s) => s.name)))
 }
 
 export function timeConversion(millisec) {
@@ -61,17 +61,19 @@ export function getLinkUrl(ingress: ServiceIngress) {
     return ingress.linkUrl
   }
 
-  return normalizeUrl(format({
-    protocol: ingress.protocol,
-    hostname: ingress.hostname,
-    port: ingress.port,
-    pathname: ingress.path,
-  }))
+  return normalizeUrl(
+    format({
+      protocol: ingress.protocol,
+      hostname: ingress.hostname,
+      port: ingress.port,
+      pathname: ingress.path,
+    })
+  )
 }
 
 /**
  * Test names are not unique so we construct a unique key from the module name and the test name.
  */
-export function getTestKey({ testName, moduleName }: { testName: string, moduleName: string }) {
+export function getTestKey({ testName, moduleName }: { testName: string; moduleName: string }) {
   return `${moduleName}.${testName}`
 }

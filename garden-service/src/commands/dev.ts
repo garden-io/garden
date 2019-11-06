@@ -52,7 +52,8 @@ const devOpts = {
     help: "Disable running the tests.",
   }),
   "test-names": new StringsParameter({
-    help: "Filter the tests to run by test name across all modules (leave unset to run all tests). " +
+    help:
+      "Filter the tests to run by test name across all modules (leave unset to run all tests). " +
       "Accepts glob patterns (e.g. integ* would run both 'integ' and 'integration').",
     alias: "tn",
   }),
@@ -129,35 +130,53 @@ export class DevCommand extends Command<Args, Opts> {
         if (watch) {
           const hotReloadServices = await updatedGraph.getServices(hotReloadServiceNames)
           const hotReloadTasks = hotReloadServices
-            .filter(service => service.module.name === module.name || service.sourceModule.name === module.name)
-            .map(service => new HotReloadTask({ garden, graph: updatedGraph, log, service, force: true }))
+            .filter((service) => service.module.name === module.name || service.sourceModule.name === module.name)
+            .map(
+              (service) =>
+                new HotReloadTask({
+                  garden,
+                  graph: updatedGraph,
+                  log,
+                  service,
+                  force: true,
+                })
+            )
 
           tasks.push(...hotReloadTasks)
         }
 
-        const testModules: Module[] = watch
-          ? (await updatedGraph.withDependantModules([module]))
-          : [module]
+        const testModules: Module[] = watch ? await updatedGraph.withDependantModules([module]) : [module]
 
         if (!opts["skip-tests"]) {
           const filterNames = opts["test-names"]
-          tasks.push(...flatten(
-            await Bluebird.map(
-              testModules, m => getTestTasks({ garden, log, module: m, graph: updatedGraph, filterNames })),
-          ))
+          tasks.push(
+            ...flatten(
+              await Bluebird.map(testModules, (m) =>
+                getTestTasks({
+                  garden,
+                  log,
+                  module: m,
+                  graph: updatedGraph,
+                  filterNames,
+                })
+              )
+            )
+          )
         }
 
-        tasks.push(...await getDependantTasksForModule({
-          garden,
-          log,
-          graph: updatedGraph,
-          module,
-          fromWatch: watch,
-          hotReloadServiceNames,
-          force: watch,
-          forceBuild: false,
-          includeDependants: watch,
-        }))
+        tasks.push(
+          ...(await getDependantTasksForModule({
+            garden,
+            log,
+            graph: updatedGraph,
+            module,
+            fromWatch: watch,
+            hotReloadServiceNames,
+            force: watch,
+            forceBuild: false,
+            includeDependants: watch,
+          }))
+        )
 
         return tasks
       }

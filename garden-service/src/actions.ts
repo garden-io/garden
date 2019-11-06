@@ -90,6 +90,7 @@ import { ConfigureProviderParams, ConfigureProviderResult } from "./types/plugin
 import { Task } from "./types/task"
 import { ConfigureModuleParams, ConfigureModuleResult } from "./types/plugin/module/configure"
 import { PluginContext } from "./plugin-context"
+import { DeleteServiceTask, deletedServiceStatuses } from "./tasks/delete-service"
 
 type TypeGuard = {
   readonly [P in keyof (PluginActionParams | ModuleActionParams<any>)]: (...args: any[]) => Promise<any>
@@ -123,10 +124,10 @@ export class ActionRouter implements TypeGuard {
     private readonly garden: Garden,
     configuredPlugins: GardenPlugin[],
     loadedPlugins: GardenPlugin[],
-    private readonly moduleTypes: { [name: string]: ModuleTypeDefinition },
+    private readonly moduleTypes: { [name: string]: ModuleTypeDefinition }
   ) {
-    this.actionHandlers = <WrappedPluginActionMap>fromPairs(pluginActionNames.map(n => [n, {}]))
-    this.moduleActionHandlers = <WrappedModuleActionMap>fromPairs(moduleActionNames.map(n => [n, {}]))
+    this.actionHandlers = <WrappedPluginActionMap>fromPairs(pluginActionNames.map((n) => [n, {}]))
+    this.moduleActionHandlers = <WrappedModuleActionMap>fromPairs(moduleActionNames.map((n) => [n, {}]))
     this.loadedPlugins = keyBy(loadedPlugins, "name")
 
     garden.log.silly(`Creating ActionRouter with ${configuredPlugins.length} configured plugins`)
@@ -159,9 +160,7 @@ export class ActionRouter implements TypeGuard {
   //region Environment Actions
   //===========================================================================
 
-  async configureProvider(
-    params: ConfigureProviderParams & { pluginName: string },
-  ): Promise<ConfigureProviderResult> {
+  async configureProvider(params: ConfigureProviderParams & { pluginName: string }): Promise<ConfigureProviderResult> {
     const pluginName = params.pluginName
 
     this.garden.log.silly(`Calling 'configureProvider' handler on '${pluginName}'`)
@@ -185,7 +184,7 @@ export class ActionRouter implements TypeGuard {
   }
 
   async getEnvironmentStatus(
-    params: RequirePluginName<ActionRouterParams<GetEnvironmentStatusParams>> & { ctx?: PluginContext },
+    params: RequirePluginName<ActionRouterParams<GetEnvironmentStatusParams>> & { ctx?: PluginContext }
   ): Promise<EnvironmentStatus> {
     const { pluginName } = params
 
@@ -198,7 +197,7 @@ export class ActionRouter implements TypeGuard {
   }
 
   async prepareEnvironment(
-    params: RequirePluginName<ActionRouterParams<PrepareEnvironmentParams>>,
+    params: RequirePluginName<ActionRouterParams<PrepareEnvironmentParams>>
   ): Promise<PrepareEnvironmentResult> {
     const { pluginName } = params
 
@@ -210,9 +209,7 @@ export class ActionRouter implements TypeGuard {
     })
   }
 
-  async cleanupEnvironment(
-    params: RequirePluginName<ActionRouterParams<CleanupEnvironmentParams>>,
-  ) {
+  async cleanupEnvironment(params: RequirePluginName<ActionRouterParams<CleanupEnvironmentParams>>) {
     const { pluginName } = params
     return this.callActionHandler({
       actionType: "cleanupEnvironment",
@@ -256,7 +253,7 @@ export class ActionRouter implements TypeGuard {
     })
 
     const handlerParams = {
-      ...await this.commonParams(handler, log),
+      ...(await this.commonParams(handler, log)),
       ...params,
     }
 
@@ -268,7 +265,7 @@ export class ActionRouter implements TypeGuard {
   }
 
   async getBuildStatus<T extends Module>(
-    params: ModuleActionRouterParams<GetBuildStatusParams<T>>,
+    params: ModuleActionRouterParams<GetBuildStatusParams<T>>
   ): Promise<BuildStatus> {
     return this.callModuleHandler({
       params,
@@ -282,7 +279,7 @@ export class ActionRouter implements TypeGuard {
   }
 
   async publishModule<T extends Module>(
-    params: ModuleActionRouterParams<PublishModuleParams<T>>,
+    params: ModuleActionRouterParams<PublishModuleParams<T>>
   ): Promise<PublishResult> {
     return this.callModuleHandler({ params, actionType: "publish", defaultHandler: dummyPublishHandler })
   }
@@ -296,7 +293,7 @@ export class ActionRouter implements TypeGuard {
   }
 
   async getTestResult<T extends Module>(
-    params: ModuleActionRouterParams<GetTestResultParams<T>>,
+    params: ModuleActionRouterParams<GetTestResultParams<T>>
   ): Promise<TestResult | null> {
     return this.callModuleHandler({
       params,
@@ -343,9 +340,8 @@ export class ActionRouter implements TypeGuard {
     }
   }
 
-  async hotReloadService(params: ServiceActionRouterParams<HotReloadServiceParams>)
-    : Promise<HotReloadServiceResult> {
-    const { result } = await this.callServiceHandler(({ params, actionType: "hotReloadService" }))
+  async hotReloadService(params: ServiceActionRouterParams<HotReloadServiceParams>): Promise<HotReloadServiceResult> {
+    const { result } = await this.callServiceHandler({ params, actionType: "hotReloadService" })
     return result
   }
 
@@ -373,7 +369,10 @@ export class ActionRouter implements TypeGuard {
       defaultHandler: dummyDeleteServiceHandler,
     })
 
-    log.setSuccess()
+    log.setSuccess({
+      msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
+      append: true,
+    })
 
     return result
   }
@@ -385,7 +384,9 @@ export class ActionRouter implements TypeGuard {
 
   async getServiceLogs(params: ServiceActionRouterParams<GetServiceLogsParams>): Promise<GetServiceLogsResult> {
     const { result } = await this.callServiceHandler({
-      params, actionType: "getServiceLogs", defaultHandler: dummyLogStreamer,
+      params,
+      actionType: "getServiceLogs",
+      defaultHandler: dummyLogStreamer,
     })
     return result
   }
@@ -453,7 +454,7 @@ export class ActionRouter implements TypeGuard {
   //region Helper Methods
   //===========================================================================
 
-  async getStatus({ log, serviceNames }: { log: LogEntry, serviceNames?: string[] }): Promise<AllEnvironmentStatus> {
+  async getStatus({ log, serviceNames }: { log: LogEntry; serviceNames?: string[] }): Promise<AllEnvironmentStatus> {
     log.debug(`Getting environment status (${this.garden.projectName})`)
 
     const envStatus = await this.garden.getEnvironmentStatus()
@@ -465,27 +466,37 @@ export class ActionRouter implements TypeGuard {
     }
   }
 
-  async getServiceStatuses(
-    { log, serviceNames }: { log: LogEntry, serviceNames?: string[] },
-  ): Promise<ServiceStatusMap> {
+  async getServiceStatuses({
+    log,
+    serviceNames,
+  }: {
+    log: LogEntry
+    serviceNames?: string[]
+  }): Promise<ServiceStatusMap> {
     const graph = await this.garden.getConfigGraph()
     const services = await graph.getServices(serviceNames)
 
-    const tasks = services.map(service => new GetServiceStatusTask({
-      force: false,
-      garden: this.garden,
-      graph,
-      log,
-      service,
-    }))
+    const tasks = services.map(
+      (service) =>
+        new GetServiceStatusTask({
+          force: false,
+          garden: this.garden,
+          graph,
+          log,
+          service,
+        })
+    )
     const results = await this.garden.processTasks(tasks)
 
     return getServiceStatuses(results)
   }
 
-  async deployServices(
-    { serviceNames, force = false, forceBuild = false, log }: DeployServicesParams,
-  ): Promise<ProcessResults> {
+  async deployServices({
+    serviceNames,
+    force = false,
+    forceBuild = false,
+    log,
+  }: DeployServicesParams): Promise<ProcessResults> {
     const graph = await this.garden.getConfigGraph()
     const services = await graph.getServices(serviceNames)
 
@@ -495,15 +506,16 @@ export class ActionRouter implements TypeGuard {
       graph,
       log,
       watch: false,
-      handler: async (_, module) => getDependantTasksForModule({
-        garden: this.garden,
-        log,
-        graph,
-        module,
-        hotReloadServiceNames: [],
-        force,
-        forceBuild,
-      }),
+      handler: async (_, module) =>
+        getDependantTasksForModule({
+          garden: this.garden,
+          log,
+          graph,
+          module,
+          hotReloadServiceNames: [],
+          force,
+          forceBuild,
+        }),
     })
   }
 
@@ -516,11 +528,20 @@ export class ActionRouter implements TypeGuard {
     const servicesLog = log.info({ msg: chalk.white("Deleting services..."), status: "active" })
 
     const services = await graph.getServices()
-    const serviceStatuses: { [key: string]: ServiceStatus } = {}
 
-    await Bluebird.map(services, async (service) => {
-      serviceStatuses[service.name] = await this.deleteService({ log: servicesLog, service })
-    })
+    const deleteResults = await this.garden.processTasks(
+      services.map((service) => {
+        return new DeleteServiceTask({
+          garden: this.garden,
+          graph,
+          service,
+          log: servicesLog,
+          includeDependants: true,
+        })
+      })
+    )
+
+    const serviceStatuses = deletedServiceStatuses(deleteResults)
 
     servicesLog.setSuccess()
 
@@ -540,17 +561,15 @@ export class ActionRouter implements TypeGuard {
     return { serviceStatuses, environmentStatuses }
   }
 
-  async getDebugInfo({ log, includeProject }: { log: LogEntry, includeProject: boolean }): Promise<DebugInfoMap> {
+  async getDebugInfo({ log, includeProject }: { log: LogEntry; includeProject: boolean }): Promise<DebugInfoMap> {
     const handlers = await this.getActionHandlers("getDebugInfo")
-    return Bluebird.props(mapValues(handlers, async (h) => h({ ...await this.commonParams(h, log), includeProject })))
+    return Bluebird.props(mapValues(handlers, async (h) => h({ ...(await this.commonParams(h, log)), includeProject })))
   }
 
   //endregion
 
   // TODO: find a nicer way to do this (like a type-safe wrapper function)
-  private async commonParams(
-    handler: WrappedActionHandler<any, any>, log: LogEntry,
-  ): Promise<PluginActionParamsBase> {
+  private async commonParams(handler: WrappedActionHandler<any, any>, log: LogEntry): Promise<PluginActionParamsBase> {
     const provider = await this.garden.resolveProvider(handler.pluginName)
 
     return {
@@ -561,15 +580,17 @@ export class ActionRouter implements TypeGuard {
   }
 
   // We special-case the configureProvider handlers and don't call them through this
-  private async callActionHandler<T extends keyof Omit<WrappedPluginActionHandlers, "configureProvider">>(
-    { params, actionType, pluginName, defaultHandler }:
-      {
-        params: ActionRouterParams<PluginActionParams[T]>,
-        actionType: T,
-        pluginName: string,
-        defaultHandler?: PluginActionHandlers[T],
-      },
-  ): Promise<PluginActionOutputs[T]> {
+  private async callActionHandler<T extends keyof Omit<WrappedPluginActionHandlers, "configureProvider">>({
+    params,
+    actionType,
+    pluginName,
+    defaultHandler,
+  }: {
+    params: ActionRouterParams<PluginActionParams[T]>
+    actionType: T
+    pluginName: string
+    defaultHandler?: PluginActionHandlers[T]
+  }): Promise<PluginActionOutputs[T]> {
     this.garden.log.silly(`Calling ${actionType} handler on plugin '${pluginName}'`)
 
     const handler = await this.getActionHandler({
@@ -579,8 +600,8 @@ export class ActionRouter implements TypeGuard {
     })
 
     const handlerParams: PluginActionParams[T] = {
-      ...await this.commonParams(handler, params.log),
-      ...<any>params,
+      ...(await this.commonParams(handler, params.log)),
+      ...(<any>params),
     }
 
     const result = await (<Function>handler)(handlerParams)
@@ -590,14 +611,15 @@ export class ActionRouter implements TypeGuard {
     return result
   }
 
-  private async callModuleHandler<T extends keyof Omit<ModuleActionHandlers, "configure">>(
-    { params, actionType, defaultHandler }:
-      {
-        params: ModuleActionRouterParams<ModuleActionParams[T]>,
-        actionType: T,
-        defaultHandler?: ModuleActionHandlers[T],
-      },
-  ): Promise<ModuleActionOutputs[T]> {
+  private async callModuleHandler<T extends keyof Omit<ModuleActionHandlers, "configure">>({
+    params,
+    actionType,
+    defaultHandler,
+  }: {
+    params: ModuleActionRouterParams<ModuleActionParams[T]>
+    actionType: T
+    defaultHandler?: ModuleActionHandlers[T]
+  }): Promise<ModuleActionOutputs[T]> {
     const { module, pluginName, log } = params
 
     log.silly(`Getting '${actionType}' handler for module '${module.name}' (type '${module.type}')`)
@@ -610,7 +632,7 @@ export class ActionRouter implements TypeGuard {
     })
 
     const handlerParams = {
-      ...await this.commonParams(handler, (<any>params).log),
+      ...(await this.commonParams(handler, (<any>params).log)),
       ...params,
       module: omit(module, ["_ConfigType"]),
     }
@@ -621,14 +643,15 @@ export class ActionRouter implements TypeGuard {
     return (<Function>handler)(handlerParams)
   }
 
-  private async callServiceHandler<T extends keyof ServiceActionHandlers>(
-    { params, actionType, defaultHandler }:
-      {
-        params: ServiceActionRouterParams<ServiceActionParams[T]>,
-        actionType: T,
-        defaultHandler?: ServiceActionHandlers[T],
-      },
-  ) {
+  private async callServiceHandler<T extends keyof ServiceActionHandlers>({
+    params,
+    actionType,
+    defaultHandler,
+  }: {
+    params: ServiceActionRouterParams<ServiceActionParams[T]>
+    actionType: T
+    defaultHandler?: ServiceActionHandlers[T]
+  }) {
     let { log, service, runtimeContext } = params
     let module = omit(service.module, ["_ConfigType"])
 
@@ -652,16 +675,16 @@ export class ActionRouter implements TypeGuard {
       // Make sure everything has been resolved in the task config
       const remainingRefs = await getRuntimeTemplateReferences(service.config)
       if (remainingRefs.length > 0) {
-        const unresolvedStrings = remainingRefs.map(ref => `\${${ref.join(".")}}`).join(", ")
+        const unresolvedStrings = remainingRefs.map((ref) => `\${${ref.join(".")}}`).join(", ")
         throw new ConfigurationError(
           `Unable to resolve one or more runtime template values for service '${service.name}': ${unresolvedStrings}`,
-          { service, unresolvedStrings },
+          { service, unresolvedStrings }
         )
       }
     }
 
     const handlerParams = {
-      ...await this.commonParams(handler, log),
+      ...(await this.commonParams(handler, log)),
       ...params,
       module,
       runtimeContext,
@@ -671,18 +694,19 @@ export class ActionRouter implements TypeGuard {
 
     return {
       handler,
-      result: <ServiceActionOutputs[T]>(await handler(<any>handlerParams)),
+      result: <ServiceActionOutputs[T]>await handler(<any>handlerParams),
     }
   }
 
-  private async callTaskHandler<T extends keyof TaskActionHandlers>(
-    { params, actionType, defaultHandler }:
-      {
-        params: TaskActionRouterParams<TaskActionParams[T]>,
-        actionType: T,
-        defaultHandler?: TaskActionHandlers[T],
-      },
-  ) {
+  private async callTaskHandler<T extends keyof TaskActionHandlers>({
+    params,
+    actionType,
+    defaultHandler,
+  }: {
+    params: TaskActionRouterParams<TaskActionParams[T]>
+    actionType: T
+    defaultHandler?: TaskActionHandlers[T]
+  }) {
     let { task, log } = params
     const runtimeContext = params["runtimeContext"] as (RuntimeContext | undefined)
     let module = omit(task.module, ["_ConfigType"])
@@ -707,16 +731,16 @@ export class ActionRouter implements TypeGuard {
       // Make sure everything has been resolved in the task config
       const remainingRefs = await getRuntimeTemplateReferences(task.config)
       if (remainingRefs.length > 0) {
-        const unresolvedStrings = remainingRefs.map(ref => `\${${ref.join(".")}}`).join(", ")
+        const unresolvedStrings = remainingRefs.map((ref) => `\${${ref.join(".")}}`).join(", ")
         throw new ConfigurationError(
           `Unable to resolve one or more runtime template values for task '${task.name}': ${unresolvedStrings}`,
-          { task, unresolvedStrings },
+          { task, unresolvedStrings }
         )
       }
     }
 
     const handlerParams: any = {
-      ...await this.commonParams(handler, (<any>params).log),
+      ...(await this.commonParams(handler, (<any>params).log)),
       ...params,
       module,
       task,
@@ -726,12 +750,14 @@ export class ActionRouter implements TypeGuard {
 
     return {
       handler,
-      result: <TaskActionOutputs[T]>(await handler(<any>handlerParams)),
+      result: <TaskActionOutputs[T]>await handler(<any>handlerParams),
     }
   }
 
   private addActionHandler<T extends keyof WrappedPluginActionHandlers>(
-    plugin: GardenPlugin, actionType: T, handler: PluginActionHandlers[T],
+    plugin: GardenPlugin,
+    actionType: T,
+    handler: PluginActionHandlers[T]
   ) {
     const pluginName = plugin.name
     const schema = pluginActionDescriptions[actionType].resultSchema
@@ -749,7 +775,7 @@ export class ActionRouter implements TypeGuard {
         }
         return validate(result, schema, { context: `${actionType} output from plugin ${pluginName}` })
       },
-      { actionType, pluginName },
+      { actionType, pluginName }
     )
 
     wrapped.base = this.wrapBase(handler.base)
@@ -760,7 +786,10 @@ export class ActionRouter implements TypeGuard {
   }
 
   private addModuleActionHandler<T extends keyof ModuleActionHandlers>(
-    plugin: GardenPlugin, actionType: T, moduleType: string, handler: ModuleActionHandlers[T],
+    plugin: GardenPlugin,
+    actionType: T,
+    moduleType: string,
+    handler: ModuleActionHandlers[T]
   ) {
     const pluginName = plugin.name
     const schema = moduleActionDescriptions[actionType].resultSchema
@@ -778,7 +807,7 @@ export class ActionRouter implements TypeGuard {
         }
         return validate(result, schema, { context: `${actionType} output from plugin ${pluginName}` })
       }),
-      { actionType, pluginName, moduleType },
+      { actionType, pluginName, moduleType }
     )
 
     wrapped.base = this.wrapBase(handler.base)
@@ -789,7 +818,8 @@ export class ActionRouter implements TypeGuard {
 
     if (!this.moduleActionHandlers[actionType][moduleType]) {
       // I'm not sure why we need the cast here - JE
-      (<any>this.moduleActionHandlers[actionType])[moduleType] = {}
+      const handlers: any = this.moduleActionHandlers
+      handlers[actionType][moduleType] = {}
     }
 
     this.moduleActionHandlers[actionType][moduleType][pluginName] = wrapped
@@ -800,7 +830,7 @@ export class ActionRouter implements TypeGuard {
    * base handler as the `base` parameter when called from within the handler.
    */
   private wrapBase<T extends WrappedActionHandler<any, any> | WrappedModuleActionHandler<any, any>>(
-    handler?: T,
+    handler?: T
   ): T | undefined {
     if (!handler) {
       return undefined
@@ -815,7 +845,7 @@ export class ActionRouter implements TypeGuard {
 
         return handler({ ...params, base })
       },
-      { ...handler, base },
+      { ...handler, base }
     )
 
     return wrapped
@@ -825,7 +855,8 @@ export class ActionRouter implements TypeGuard {
    * Get a handler for the specified action.
    */
   private async getActionHandlers<T extends keyof WrappedPluginActionHandlers>(
-    actionType: T, pluginName?: string,
+    actionType: T,
+    pluginName?: string
   ): Promise<WrappedActionHandlerMap<T>> {
     return this.filterActionHandlers(this.actionHandlers[actionType], pluginName)
   }
@@ -833,10 +864,15 @@ export class ActionRouter implements TypeGuard {
   /**
    * Get a handler for the specified module action.
    */
-  private async getModuleActionHandlers<T extends keyof ModuleAndRuntimeActionHandlers>(
-    { actionType, moduleType, pluginName }:
-      { actionType: T, moduleType: string, pluginName?: string },
-  ): Promise<WrappedModuleActionHandlerMap<T>> {
+  private async getModuleActionHandlers<T extends keyof ModuleAndRuntimeActionHandlers>({
+    actionType,
+    moduleType,
+    pluginName,
+  }: {
+    actionType: T
+    moduleType: string
+    pluginName?: string
+  }): Promise<WrappedModuleActionHandlerMap<T>> {
     return this.filterActionHandlers((this.moduleActionHandlers[actionType] || {})[moduleType], pluginName)
   }
 
@@ -856,11 +892,15 @@ export class ActionRouter implements TypeGuard {
   /**
    * Get the last configured handler for the specified action (and optionally module type).
    */
-  private async getActionHandler<T extends keyof WrappedPluginActionHandlers>(
-    { actionType, pluginName, defaultHandler }:
-      { actionType: T, pluginName: string, defaultHandler?: PluginActionHandlers[T] },
-  ): Promise<WrappedPluginActionHandlers[T]> {
-
+  private async getActionHandler<T extends keyof WrappedPluginActionHandlers>({
+    actionType,
+    pluginName,
+    defaultHandler,
+  }: {
+    actionType: T
+    pluginName: string
+    defaultHandler?: PluginActionHandlers[T]
+  }): Promise<WrappedPluginActionHandlers[T]> {
     const handlers = Object.values(await this.getActionHandlers(actionType, pluginName))
 
     // Since we only allow retrieving by plugin name, the length is always either 0 or 1
@@ -872,7 +912,7 @@ export class ActionRouter implements TypeGuard {
       return Object.assign(
         // TODO: figure out why we need the cast here
         <WrappedPluginActionHandlers[T]>defaultHandler,
-        { actionType, pluginName: defaultProvider.name },
+        { actionType, pluginName: defaultProvider.name }
       )
     }
 
@@ -887,8 +927,8 @@ export class ActionRouter implements TypeGuard {
     } else {
       throw new ParameterError(
         `No '${actionType}' handler configured in environment '${this.garden.environmentName}'. ` +
-        `Are you missing a provider configuration?`,
-        errorDetails,
+          `Are you missing a provider configuration?`,
+        errorDetails
       )
     }
   }
@@ -896,10 +936,17 @@ export class ActionRouter implements TypeGuard {
   /**
    * Get the last configured handler for the specified action.
    */
-  private async getModuleActionHandler<T extends keyof ModuleAndRuntimeActionHandlers>(
-    { actionType, moduleType, pluginName, defaultHandler }:
-      { actionType: T, moduleType: string, pluginName?: string, defaultHandler?: ModuleAndRuntimeActionHandlers[T] },
-  ): Promise<WrappedModuleAndRuntimeActionHandlers[T]> {
+  private async getModuleActionHandler<T extends keyof ModuleAndRuntimeActionHandlers>({
+    actionType,
+    moduleType,
+    pluginName,
+    defaultHandler,
+  }: {
+    actionType: T
+    moduleType: string
+    pluginName?: string
+    defaultHandler?: ModuleAndRuntimeActionHandlers[T]
+  }): Promise<WrappedModuleAndRuntimeActionHandlers[T]> {
     const handlers = Object.values(await this.getModuleActionHandlers({ actionType, moduleType, pluginName }))
     const spec = this.moduleTypes[moduleType]
 
@@ -918,7 +965,7 @@ export class ActionRouter implements TypeGuard {
     } else if (handlers.length > 0) {
       // Multiple matches. We start by filtering down to "leaf nodes", i.e. handlers which are not being overridden
       // by other matched handlers.
-      const filtered = handlers.filter(handler => {
+      const filtered = handlers.filter((handler) => {
         for (const other of handlers) {
           if (other === handler) {
             continue
@@ -953,19 +1000,19 @@ export class ActionRouter implements TypeGuard {
         // This should never happen
         throw new InternalError(
           `Unable to find any matching configuration when selecting ${moduleType}/${actionType} handler ` +
-          `(please report this as a bug).`,
-          { handlers, configs },
+            `(please report this as a bug).`,
+          { handlers, configs }
         )
       } else {
         return filtered[0]
       }
-
     } else if (defaultHandler) {
       // Return the default handler, but wrap it to match the expected interface.
-      return Object.assign(
-        <WrappedModuleAndRuntimeActionHandlers[T]>defaultHandler,
-        { actionType, moduleType, pluginName: defaultProvider.name },
-      )
+      return Object.assign(<WrappedModuleAndRuntimeActionHandlers[T]>defaultHandler, {
+        actionType,
+        moduleType,
+        pluginName: defaultProvider.name,
+      })
     } else {
       // Nothing matched, throw error.
       const errorDetails = {
@@ -978,13 +1025,13 @@ export class ActionRouter implements TypeGuard {
       if (pluginName) {
         throw new PluginError(
           `Plugin '${pluginName}' does not have a '${actionType}' handler for module type '${moduleType}'.`,
-          errorDetails,
+          errorDetails
         )
       } else {
         throw new ParameterError(
           `No '${actionType}' handler configured for module type '${moduleType}' in environment ` +
-          `'${this.garden.environmentName}'. Are you missing a provider configuration?`,
-          errorDetails,
+            `'${this.garden.environmentName}'. Are you missing a provider configuration?`,
+          errorDetails
         )
       }
     }
@@ -1005,12 +1052,12 @@ type WrappedModuleActionHandlers<T extends Module = Module> = {
   [P in keyof ModuleActionParams<T>]: WrappedModuleActionHandler<ModuleActionParams<T>[P], ModuleActionOutputs[P]>
 }
 
-type WrappedModuleAndRuntimeActionHandlers<T extends Module = Module> =
-  WrappedModuleActionHandlers<T> & WrappedServiceActionHandlers<T> & WrappedTaskActionHandlers<T>
+type WrappedModuleAndRuntimeActionHandlers<T extends Module = Module> = WrappedModuleActionHandlers<T> &
+  WrappedServiceActionHandlers<T> &
+  WrappedTaskActionHandlers<T>
 
 type WrappedPluginActionHandlers = {
-  [P in keyof PluginActionParams]:
-  WrappedActionHandler<PluginActionParams[P], PluginActionOutputs[P]>
+  [P in keyof PluginActionParams]: WrappedActionHandler<PluginActionParams[P], PluginActionOutputs[P]>
 }
 
 interface WrappedActionHandlerMap<T extends keyof WrappedPluginActionHandlers> {
@@ -1023,33 +1070,31 @@ interface WrappedModuleActionHandlerMap<T extends keyof ModuleAndRuntimeActionHa
 
 type WrappedPluginActionMap = {
   [A in keyof WrappedPluginActionHandlers]: {
-    [pluginName: string]: WrappedPluginActionHandlers[A],
+    [pluginName: string]: WrappedPluginActionHandlers[A]
   }
 }
 
 type WrappedModuleActionMap = {
   [A in keyof ModuleAndRuntimeActionHandlers]: {
     [moduleType: string]: {
-      [pluginName: string]: WrappedModuleAndRuntimeActionHandlers[A],
-    },
+      [pluginName: string]: WrappedModuleAndRuntimeActionHandlers[A]
+    }
   }
 }
 
 // avoid having to specify common params on each action helper call
-type ActionRouterParams<T extends PluginActionParamsBase> =
-  Omit<T, CommonParams> & { pluginName?: string }
+type ActionRouterParams<T extends PluginActionParamsBase> = Omit<T, CommonParams> & { pluginName?: string }
 
-type ModuleActionRouterParams<T extends PluginModuleActionParamsBase> =
-  Omit<T, CommonParams> & { pluginName?: string }
+type ModuleActionRouterParams<T extends PluginModuleActionParamsBase> = Omit<T, CommonParams> & { pluginName?: string }
 // additionally make runtimeContext param optional
 
-type ServiceActionRouterParams<T extends PluginServiceActionParamsBase> =
-  Omit<T, "module" | CommonParams>
-  & { pluginName?: string }
+type ServiceActionRouterParams<T extends PluginServiceActionParamsBase> = Omit<T, "module" | CommonParams> & {
+  pluginName?: string
+}
 
-type TaskActionRouterParams<T extends PluginTaskActionParamsBase> =
-  Omit<T, "module" | CommonParams>
-  & { pluginName?: string }
+type TaskActionRouterParams<T extends PluginTaskActionParamsBase> = Omit<T, "module" | CommonParams> & {
+  pluginName?: string
+}
 
 type RequirePluginName<T> = T & { pluginName: string }
 

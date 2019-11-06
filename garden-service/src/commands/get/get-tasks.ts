@@ -9,13 +9,7 @@
 import chalk from "chalk"
 import indentString from "indent-string"
 import { sortBy, omit, uniq } from "lodash"
-import {
-  Command,
-  CommandResult,
-  CommandParams,
-  StringsParameter,
-  PrepareParams,
-} from "../base"
+import { Command, CommandResult, CommandParams, StringsParameter, PrepareParams } from "../base"
 import { printHeader } from "../../logger/util"
 import { Task } from "../../types/task"
 
@@ -42,7 +36,7 @@ export function prettyPrintTask(task: Task): string {
 
   if (task.config.dependencies.length) {
     out += "\n" + indentString(`${chalk.gray("dependencies")}:`, 2) + "\n"
-    out += indentString(task.config.dependencies.map(depName => `• ${depName}`).join("\n"), 4)
+    out += indentString(task.config.dependencies.map((depName) => `• ${depName}`).join("\n"), 4)
     out += "\n"
   } else {
     out += "\n"
@@ -69,25 +63,21 @@ export class GetTasksCommand extends Command<Args> {
   async action({ args, garden, log }: CommandParams<Args>): Promise<CommandResult> {
     const graph = await garden.getConfigGraph()
     const tasks = await graph.getTasks(args.tasks)
-    const taskModuleNames = uniq(tasks.map(t => t.module.name))
-    const modules = sortBy(await graph.getModules(taskModuleNames), m => m.name)
+    const taskModuleNames = uniq(tasks.map((t) => t.module.name))
+    const modules = sortBy(await graph.getModules(taskModuleNames), (m) => m.name)
 
     const taskListing: any[] = []
     let logStr = ""
 
     for (const m of modules) {
-      const tasksForModule = sortBy(
-        tasks.filter(t => t.module.name === m.name),
-        t => t.name)
+      const tasksForModule = sortBy(tasks.filter((t) => t.module.name === m.name), (t) => t.name)
 
-      const logStrForTasks = tasksForModule
-        .map(t => indentString(prettyPrintTask(t), 2))
-        .join("\n")
+      const logStrForTasks = tasksForModule.map((t) => indentString(prettyPrintTask(t), 2)).join("\n")
 
       logStr += `tasks in module ${chalk.green(m.name)}` + "\n" + logStrForTasks + "\n"
 
       taskListing.push({
-        [m.name]: tasksForModule.map(t => ({
+        [m.name]: tasksForModule.map((t) => ({
           ...omit(t.config.spec, ["timeout"]),
           name: t.name,
           description: t.config.spec.description,
@@ -103,7 +93,5 @@ export class GetTasksCommand extends Command<Args> {
     }
 
     return { result: taskListing }
-
   }
-
 }

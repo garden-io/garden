@@ -8,14 +8,7 @@
 
 import chalk from "chalk"
 import { RunResult } from "../../types/plugin/base"
-import {
-  BooleanParameter,
-  Command,
-  CommandParams,
-  StringParameter,
-  CommandResult,
-  StringsParameter,
-} from "../base"
+import { BooleanParameter, Command, CommandParams, StringParameter, CommandResult, StringsParameter } from "../base"
 import { printRuntimeContext } from "./run"
 import { printHeader } from "../../logger/util"
 import { BuildTask } from "../../tasks/build"
@@ -43,7 +36,9 @@ const runOpts = {
     cliDefault: true,
     cliOnly: true,
   }),
-  "force-build": new BooleanParameter({ help: "Force rebuild of module before running." }),
+  "force-build": new BooleanParameter({
+    help: "Force rebuild of module before running.",
+  }),
   "command": new StringsParameter({
     help: deline`The base command (a.k.a. entrypoint) to run in the module. For container modules, for example,
       this overrides the image's default command/entrypoint. This option may not be relevant for all module types.
@@ -90,7 +85,12 @@ export class RunModuleCommand extends Command<Args, Opts> {
 
     const actions = await garden.getActionRouter()
 
-    const buildTask = new BuildTask({ garden, log, module, force: opts["force-build"] })
+    const buildTask = new BuildTask({
+      garden,
+      log,
+      module,
+      force: opts["force-build"],
+    })
     await garden.processTasks([buildTask])
 
     const dependencies = await graph.getDependencies("build", module.name, false)

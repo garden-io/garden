@@ -351,7 +351,7 @@ The list of services to deploy from this container module.
 
 [services](#services) > name
 
-Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash), cannot contain consecutive dashes or start with `garden`, or be longer than 63 characters.
+Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter and cannot end with a dash), cannot contain consecutive dashes or start with `garden` or be longer than 63 characters.
 
 | Type     | Required |
 | -------- | -------- |

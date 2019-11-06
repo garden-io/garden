@@ -10,19 +10,19 @@ import styled from "@emotion/styled"
 import { colors } from "../styles/variables"
 
 export const TertiaryButton = styled.button`
-    cursor: pointer;
-    padding: 0;
-    font-size: 0.8125rem;
-    line-height: 1.1875rem;
-    text-align: center;
-    letter-spacing: 0.01em;
-    color: ${colors.buttons.tertiary.default.color};
-    background: none;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.8125rem;
+  line-height: 1.1875rem;
+  text-align: center;
+  letter-spacing: 0.01em;
+  color: ${colors.buttons.tertiary.default.color};
+  background: none;
 
-    &:hover {
-       color: ${colors.buttons.tertiary.hover.color};
-    }
-    &:active{
-       color: ${colors.buttons.tertiary.pressed.color};
-    }
-  `
+  &:hover {
+    color: ${colors.buttons.tertiary.hover.color};
+  }
+  &:active {
+    color: ${colors.buttons.tertiary.pressed.color};
+  }
+`

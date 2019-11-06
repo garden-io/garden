@@ -73,6 +73,10 @@ alias k='kubectl'
 
 For developing the dashboard, please refer to the [dashboard docs](./dashboard/README.mdj).
 
+### Formatting
+
+We use [Prettier](https://prettier.io) for automated formatting. We highly recommend installing the appropriate plugin for your editor to automate formatting as you work on your code. You can also run `npm run fix-format` to fix formatting across the codebase.
+
 ### Debugging
 
 To enable setting a breakpoint in the code, run the CLI with the `garden-service/bin/static/garden-debug` binary, which adds the `--inspect` flag. Developers might find it useful to alias this:
@@ -96,17 +100,30 @@ You should now be able to inspect the code at run time in the **Console** tab of
 
 ### Tests
 
-Tests are run using `mocha` via `npm test` from the directory of the package you want to test. To run a specific test, you can grep the test description with the `-g` flag. E.g., to the test the `taskGraph` of the `garden-service`, run:
+Unit tests are run using `mocha` via `npm test` from the directory of the package you want to test. To run a specific test, you can grep the test description with the `-g` flag.:
 
 ```sh
 cd garden-service
-npm test -- -g "taskGraph"
+npm test                    # run all unit tests
+npm test -- -g "taskGraph"  # run only tests with descriptions matching "taskGraph"
 ```
 
 Integration tests are run with:
 
 ```sh
 npm run integ
+```
+
+End-to-end tests are run with:
+
+```sh
+npm run e2e
+```
+
+You can also run the end-to-end tests for a specific example project using:
+
+```sh
+npm run e2e-project -- --project=<example project name>
 ```
 
 End to end tests are run in CI by using Garden itself to test the project defined in `./garden-service/test/e2e/garden.yml`. Cf. the appropriate job in `circleci/config.yml` for details.

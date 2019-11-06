@@ -24,7 +24,7 @@ describe("validateHelmModule", () => {
   })
 
   beforeEach(() => {
-    (<any>garden).moduleConfigs = cloneDeep(moduleConfigs)
+    garden["moduleConfigs"] = cloneDeep(moduleConfigs)
   })
 
   after(async () => {
@@ -85,12 +85,8 @@ describe("validateHelmModule", () => {
               },
               ingress: {
                 enabled: true,
-                paths: [
-                  "/",
-                ],
-                hosts: [
-                  "api.local.app.garden",
-                ],
+                paths: ["/"],
+                hosts: ["api.local.app.garden"],
               },
             },
             valueFiles: [],
@@ -118,12 +114,8 @@ describe("validateHelmModule", () => {
           },
           ingress: {
             enabled: true,
-            paths: [
-              "/",
-            ],
-            hosts: [
-              "api.local.app.garden",
-            ],
+            paths: ["/"],
+            hosts: ["api.local.app.garden"],
           },
         },
         valueFiles: [],
@@ -145,9 +137,7 @@ describe("validateHelmModule", () => {
     patchModuleConfig("postgres", { spec: { base: "foo" } })
     const config = await garden.resolveModuleConfig("postgres")
 
-    expect(config.build.dependencies).to.eql([
-      { name: "foo", copy: [{ source: "*", target: "." }] },
-    ])
+    expect(config.build.dependencies).to.eql([{ name: "foo", copy: [{ source: "*", target: "." }] }])
   })
 
   it("should add copy spec to build dependency if it's already a dependency", async () => {
@@ -157,39 +147,39 @@ describe("validateHelmModule", () => {
     })
     const config = await garden.resolveModuleConfig("postgres")
 
-    expect(config.build.dependencies).to.eql([
-      { name: "foo", copy: [{ source: "*", target: "." }] },
-    ])
+    expect(config.build.dependencies).to.eql([{ name: "foo", copy: [{ source: "*", target: "." }] }])
   })
 
   it("should add module specified under tasks[].resource.containerModule as a build dependency", async () => {
     patchModuleConfig("api", {
       spec: {
         tasks: [
-          { name: "my-task", resource: { kind: "Deployment", containerModule: "foo" } },
+          {
+            name: "my-task",
+            resource: { kind: "Deployment", containerModule: "foo" },
+          },
         ],
       },
     })
     const config = await garden.resolveModuleConfig("api")
 
-    expect(config.build.dependencies).to.eql([
-      { name: "foo", copy: [] },
-    ])
+    expect(config.build.dependencies).to.eql([{ name: "foo", copy: [] }])
   })
 
   it("should add module specified under tests[].resource.containerModule as a build dependency", async () => {
     patchModuleConfig("api", {
       spec: {
         tests: [
-          { name: "my-task", resource: { kind: "Deployment", containerModule: "foo" } },
+          {
+            name: "my-task",
+            resource: { kind: "Deployment", containerModule: "foo" },
+          },
         ],
       },
     })
     const config = await garden.resolveModuleConfig("api")
 
-    expect(config.build.dependencies).to.eql([
-      { name: "foo", copy: [] },
-    ])
+    expect(config.build.dependencies).to.eql([{ name: "foo", copy: [] }])
   })
 
   it("should throw if chart both contains sources and specifies base", async () => {
@@ -197,11 +187,12 @@ describe("validateHelmModule", () => {
 
     await expectError(
       () => garden.resolveModuleConfig("api"),
-      err => expect(err.message).to.equal(deline`
+      (err) =>
+        expect(err.message).to.equal(deline`
         Helm module 'api' both contains sources and specifies a base module.
         Since Helm charts cannot currently be merged, please either remove the sources or
         the \`base\` reference in your module config.
-      `),
+      `)
     )
   })
 
@@ -210,9 +201,10 @@ describe("validateHelmModule", () => {
 
     await expectError(
       () => garden.resolveModuleConfig("postgres"),
-      err => expect(err.message).to.equal(deline`
+      (err) =>
+        expect(err.message).to.equal(deline`
         Chart neither specifies a chart name, base module, nor contains chart sources at \`chartPath\`.
-      `),
+      `)
     )
   })
 })

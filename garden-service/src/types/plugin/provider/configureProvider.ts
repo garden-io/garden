@@ -45,25 +45,22 @@ export const configureProvider = {
     Important: This action is called on most executions of Garden commands, so it should return quickly
     and avoid performing expensive processing or network calls.
   `,
-  paramsSchema: joi.object()
-    .keys({
-      config: providerConfigBaseSchema.required(),
-      log: logEntrySchema,
-      projectName: projectNameSchema,
-      projectRoot: projectRootSchema,
-      dependencies: providersSchema,
-      configStore: configStoreSchema,
-    }),
-  resultSchema: joi.object()
-    .keys({
-      config: providerConfigBaseSchema,
-      moduleConfigs: joiArray(moduleConfigSchema)
-        .description(deline`
+  paramsSchema: joi.object().keys({
+    config: providerConfigBaseSchema.required(),
+    log: logEntrySchema,
+    projectName: projectNameSchema,
+    projectRoot: projectRootSchema,
+    dependencies: providersSchema,
+    configStore: configStoreSchema,
+  }),
+  resultSchema: joi.object().keys({
+    config: providerConfigBaseSchema,
+    moduleConfigs: joiArray(moduleConfigSchema).description(deline`
           Providers may return one or more module configs, that are included with the provider. This can be used for
           modules that should always be built, or deployed as part of bootstrapping the provider.
 
           They become part of the project graph like other modules, but need to be referenced with the provider name
           as a prefix and a double dash, e.g. \`provider-name--module-name\`.
         `),
-    }),
+  }),
 }

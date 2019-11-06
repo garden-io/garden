@@ -48,7 +48,7 @@ interface GetLogsParams extends GetLogsBaseParams {
  * Stream all logs for the given pod names and service.
  */
 export async function getPodLogs(params: GetPodLogsParams) {
-  const procs = await Bluebird.map(params.pods, pod => getLogs({ ...omit(params, "pods"), pod }))
+  const procs = await Bluebird.map(params.pods, (pod) => getLogs({ ...omit(params, "pods"), pod }))
 
   return new Promise<GetServiceLogsResult>((resolve, reject) => {
     // Make sure to resolve if no processes get created
@@ -76,12 +76,7 @@ export async function getAllLogs(params: GetAllLogsParams) {
 
 async function getLogs({ log, provider, service, stream, tail, follow, pod }: GetLogsParams) {
   // TODO: do this via API instead of kubectl
-  const kubectlArgs = [
-    "logs",
-    "--tail", String(tail),
-    "--timestamps=true",
-    "--all-containers=true",
-  ]
+  const kubectlArgs = ["logs", "--tail", String(tail), "--timestamps=true", "--all-containers=true"]
 
   if (follow) {
     kubectlArgs.push("--follow=true")
@@ -97,22 +92,20 @@ async function getLogs({ log, provider, service, stream, tail, follow, pod }: Ge
   })
   let timestamp: Date
 
-  proc.stdout!
-    .pipe(split())
-    .on("data", (s) => {
-      if (!s) {
-        return
-      }
-      const [timestampStr, msg] = splitFirst(s, " ")
-      try {
-        timestamp = moment(timestampStr).toDate()
-      } catch { }
-      void stream.write({
-        serviceName: service.name,
-        timestamp,
-        msg: `${pod.metadata.name} ${msg}`,
-      })
+  proc.stdout!.pipe(split()).on("data", (s) => {
+    if (!s) {
+      return
+    }
+    const [timestampStr, msg] = splitFirst(s, " ")
+    try {
+      timestamp = moment(timestampStr).toDate()
+    } catch {}
+    void stream.write({
+      serviceName: service.name,
+      timestamp,
+      msg: `${pod.metadata.name} ${msg}`,
     })
+  })
 
   return proc
 }

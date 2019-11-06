@@ -7,12 +7,7 @@
  */
 
 import yaml from "js-yaml"
-import {
-  Command,
-  CommandParams,
-  ChoicesParameter,
-  BooleanParameter,
-} from "../base"
+import { Command, CommandParams, ChoicesParameter, BooleanParameter } from "../base"
 import { findProjectConfig } from "../../config/base"
 import { ensureDir, copy, remove, pathExists, writeFile } from "fs-extra"
 import { getPackageVersion, exec } from "../../util/util"
@@ -48,9 +43,12 @@ export async function collectBasicDebugInfo(root: string, gardenDirPath: string,
   // Find project definition
   const config = await findProjectConfig(root, true)
   if (!config) {
-    throw new ValidationError(deline`
+    throw new ValidationError(
+      deline`
       Couldn't find a garden.yml with a project definition.
-      Please run this command from the root of your Garden project.`, {})
+      Please run this command from the root of your Garden project.`,
+      {}
+    )
   }
 
   // Create temporary folder inside .garden/ at root of project
@@ -77,21 +75,27 @@ export async function collectBasicDebugInfo(root: string, gardenDirPath: string,
   for (const configPath of paths) {
     const servicePath = dirname(configPath)
     const gardenPathLog = log.info({
-      section: relative(root, servicePath) || "/", msg: "collecting info", status: "active",
+      section: relative(root, servicePath) || "/",
+      msg: "collecting info",
+      status: "active",
     })
     const tempServicePath = join(tempPath, relative(root, servicePath))
     await ensureDir(tempServicePath)
     const moduleConfigFilePath = await getConfigFilePath(servicePath)
     const moduleConfigFilename = basename(moduleConfigFilePath)
     const gardenLog = gardenPathLog.info({
-      section: moduleConfigFilename, msg: "collecting garden.yml", status: "active",
+      section: moduleConfigFilename,
+      msg: "collecting garden.yml",
+      status: "active",
     })
     await copy(moduleConfigFilePath, join(tempServicePath, moduleConfigFilename))
     gardenLog.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
     // Check if error logs exist and copy them over if they do
     if (await pathExists(join(servicePath, ERROR_LOG_FILENAME))) {
       const errorLog = gardenPathLog.info({
-        section: ERROR_LOG_FILENAME, msg: `collecting ${ERROR_LOG_FILENAME}`, status: "active",
+        section: ERROR_LOG_FILENAME,
+        msg: `collecting ${ERROR_LOG_FILENAME}`,
+        status: "active",
       })
       await copy(join(servicePath, ERROR_LOG_FILENAME), join(tempServicePath, ERROR_LOG_FILENAME))
       errorLog.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
@@ -160,7 +164,6 @@ export async function collectProviderDebugInfo(garden: Garden, log: LogEntry, fo
     await ensureDir(prividerPath)
     const outputFileName = `${PROVIDER_INFO_FILENAME_NO_EXT}.${format}`
     await writeFile(join(prividerPath, outputFileName), renderInfo(info, format), "utf8")
-
   }
 }
 
@@ -175,11 +178,14 @@ export async function collectProviderDebugInfo(garden: Garden, log: LogEntry, fo
  * @param {LogEntry} log
  */
 export async function generateBasicDebugInfoReport(
-  root: string, gardenDirPath: string, log: LogEntry, format = "json") {
+  root: string,
+  gardenDirPath: string,
+  log: LogEntry,
+  format = "json"
+) {
   log.setWarn({
-    msg: chalk.yellow(
-      "It looks like Garden couldn't validate your project: generating basic report.",
-    ), append: true,
+    msg: chalk.yellow("It looks like Garden couldn't validate your project: generating basic report."),
+    append: true,
   })
 
   const tempPath = join(gardenDirPath, TEMP_DEBUG_ROOT)
@@ -289,7 +295,8 @@ export class GetDebugInfoCommand extends Command<Args, Opts> {
       // One or multiple providers threw an error while processing.
       // Skip the step but still create a report.
       providerEntry.setWarn({
-        msg: chalk.yellow(`Failed to collect providers info. Skipping this step.`), append: true,
+        msg: chalk.yellow(`Failed to collect providers info. Skipping this step.`),
+        append: true,
       })
     }
 
@@ -316,7 +323,8 @@ export class GetDebugInfoCommand extends Command<Args, Opts> {
         If you plan to make the file available to the general public (e.g. GitHub), please review the content first.
         If you need to share a file containing sensitive information with the Garden team, please contact us on
         the #garden-dev channel on https://slack.k8s.io.
-      `), append: true,
+      `),
+      append: true,
     })
 
     return { result: 0 }

@@ -48,7 +48,6 @@ class TestVcsHandler extends VcsHandler {
   async updateRemoteSource() {
     return
   }
-
 }
 describe("VcsHandler", () => {
   let handlerA: TestVcsHandler
@@ -69,16 +68,14 @@ describe("VcsHandler", () => {
     it("should sort the list of files in the returned version", async () => {
       const getFiles = td.replace(handlerA, "getFiles")
       const moduleConfig = await gardenA.resolveModuleConfig("module-a")
-      td.when(getFiles({
-        log: gardenA.log,
-        path: moduleConfig.path,
-        include: undefined,
-        exclude: undefined,
-      })).thenResolve([
-        { path: "c", hash: "c" },
-        { path: "b", hash: "b" },
-        { path: "d", hash: "d" },
-      ])
+      td.when(
+        getFiles({
+          log: gardenA.log,
+          path: moduleConfig.path,
+          include: undefined,
+          exclude: undefined,
+        })
+      ).thenResolve([{ path: "c", hash: "c" }, { path: "b", hash: "b" }, { path: "d", hash: "d" }])
       const version = await handlerA.getTreeVersion(gardenA.log, moduleConfig)
       expect(version.files).to.eql(["b", "c", "d"])
     })
@@ -86,16 +83,14 @@ describe("VcsHandler", () => {
     it("should not include the module config file in the file list", async () => {
       const getFiles = td.replace(handlerA, "getFiles")
       const moduleConfig = await gardenA.resolveModuleConfig("module-a")
-      td.when(getFiles({
-        log: gardenA.log,
-        path: moduleConfig.path,
-        include: undefined,
-        exclude: undefined,
-      })).thenResolve([
-        { path: moduleConfig.configPath, hash: "c" },
-        { path: "b", hash: "b" },
-        { path: "d", hash: "d" },
-      ])
+      td.when(
+        getFiles({
+          log: gardenA.log,
+          path: moduleConfig.path,
+          include: undefined,
+          exclude: undefined,
+        })
+      ).thenResolve([{ path: moduleConfig.configPath, hash: "c" }, { path: "b", hash: "b" }, { path: "d", hash: "d" }])
       const version = await handlerA.getTreeVersion(gardenA.log, moduleConfig)
       expect(version.files).to.eql(["b", "d"])
     })
@@ -108,9 +103,7 @@ describe("VcsHandler", () => {
 
       const version = await handler.getTreeVersion(gardenA.log, moduleConfig)
 
-      expect(version.files).to.eql([
-        resolve(moduleConfig.path, "yes.txt"),
-      ])
+      expect(version.files).to.eql([resolve(moduleConfig.path, "yes.txt")])
     })
 
     it("should respect the exclude field, if specified", async () => {
@@ -121,9 +114,7 @@ describe("VcsHandler", () => {
 
       const version = await handler.getTreeVersion(garden.log, moduleConfig)
 
-      expect(version.files).to.eql([
-        resolve(moduleConfig.path, "yes.txt"),
-      ])
+      expect(version.files).to.eql([resolve(moduleConfig.path, "yes.txt")])
     })
 
     it("should respect both include and exclude fields, if specified", async () => {
@@ -134,9 +125,7 @@ describe("VcsHandler", () => {
 
       const version = await handler.getTreeVersion(garden.log, moduleConfig)
 
-      expect(version.files).to.eql([
-        resolve(moduleConfig.path, "yes.txt"),
-      ])
+      expect(version.files).to.eql([resolve(moduleConfig.path, "yes.txt")])
     })
 
     it("should not be affected by changes to the module's garden.yml that don't affect the module config", async () => {
@@ -199,11 +188,15 @@ describe("VcsHandler", () => {
         templateGarden.environmentName,
         await templateGarden.resolveProviders(),
         { ...templateGarden.variables, "echo-string": "something else" },
-        await templateGarden.getRawModuleConfigs(),
+        await templateGarden.getRawModuleConfigs()
       )
 
-      moduleAAfter = await templateGarden.resolveModuleConfig("module-a", { configContext })
-      moduleBAfter = await templateGarden.resolveModuleConfig("module-b", { configContext })
+      moduleAAfter = await templateGarden.resolveModuleConfig("module-a", {
+        configContext,
+      })
+      moduleBAfter = await templateGarden.resolveModuleConfig("module-b", {
+        configContext,
+      })
     })
 
     it("should return a different version for a module when a variable used by it changes", async () => {
@@ -222,7 +215,6 @@ describe("VcsHandler", () => {
   })
 
   context("internal helpers", () => {
-
     const namedVersionA = {
       name: "module-a",
       contentHash: "qwerty",
@@ -250,15 +242,15 @@ describe("VcsHandler", () => {
         delete stirredConfig.name
         stirredConfig.name = originalConfig.name
 
-        expect(getVersionString(originalConfig, namedVersions))
-          .to.eql(getVersionString(stirredConfig, namedVersions))
+        expect(getVersionString(originalConfig, namedVersions)).to.eql(getVersionString(stirredConfig, namedVersions))
       })
 
       it("is stable with respect to named version order", async () => {
         const config = await gardenA.resolveModuleConfig("module-a")
 
-        expect(getVersionString(config, [namedVersionA, namedVersionB, namedVersionC]))
-          .to.eql(getVersionString(config, [namedVersionB, namedVersionA, namedVersionC]))
+        expect(getVersionString(config, [namedVersionA, namedVersionB, namedVersionC])).to.eql(
+          getVersionString(config, [namedVersionB, namedVersionA, namedVersionC])
+        )
       })
     })
   })
@@ -356,45 +348,33 @@ describe("writeTreeVersionFile", () => {
     it("should write relative paths for files", async () => {
       await writeTreeVersionFile(tmpPath, {
         contentHash: "foo",
-        files: [
-          join(tmpPath, "some", "file"),
-        ],
+        files: [join(tmpPath, "some", "file")],
       })
       expect(await readTreeVersionFile(join(tmpPath, GARDEN_VERSIONFILE_NAME))).to.eql({
         contentHash: "foo",
-        files: [
-          "some/file",
-        ],
+        files: ["some/file"],
       })
     })
 
     it("should handle relative paths in input", async () => {
       await writeTreeVersionFile(tmpPath, {
         contentHash: "foo",
-        files: [
-          "some/file",
-        ],
+        files: ["some/file"],
       })
       expect(await readTreeVersionFile(join(tmpPath, GARDEN_VERSIONFILE_NAME))).to.eql({
         contentHash: "foo",
-        files: [
-          "some/file",
-        ],
+        files: ["some/file"],
       })
     })
 
     it("should normalize Windows-style paths to POSIX-style", async () => {
       await writeTreeVersionFile(tmpPath, {
         contentHash: "foo",
-        files: [
-          `some\\file`,
-        ],
+        files: [`some\\file`],
       })
       expect(await readTreeVersionFile(join(tmpPath, GARDEN_VERSIONFILE_NAME))).to.eql({
         contentHash: "foo",
-        files: [
-          "some/file",
-        ],
+        files: ["some/file"],
       })
     })
   })

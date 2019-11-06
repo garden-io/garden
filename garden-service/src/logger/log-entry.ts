@@ -20,15 +20,17 @@ export type LogSymbol = keyof typeof logSymbols | "empty"
 export type EntryStatus = "active" | "done" | "error" | "success" | "warn"
 export type TaskLogStatus = "active" | "success" | "error"
 
-export interface LogEntryMetadata { task?: TaskMetadata }
+export interface LogEntryMetadata {
+  task?: TaskMetadata
+}
 
 export interface TaskMetadata {
-  type: string,
-  key: string,
-  status: TaskLogStatus,
-  uid: string,
-  versionString: string,
-  durationMs?: number,
+  type: string
+  key: string
+  status: TaskLogStatus
+  uid: string
+  versionString: string
+  durationMs?: number
 }
 
 interface MessageBase {
@@ -42,7 +44,7 @@ interface MessageBase {
 }
 
 export interface MessageState extends MessageBase {
-  timestamp: number,
+  timestamp: number
 }
 
 export interface UpdateLogEntryParams extends MessageBase {
@@ -138,10 +140,10 @@ export class LogEntry extends LogNode {
       nextMessageState.symbol = "empty"
     }
 
-    this.messageStates = [...this.messageStates || [], nextMessageState]
+    this.messageStates = [...(this.messageStates || []), nextMessageState]
 
     if (updateParams.metadata) {
-      this.metadata = { ...this.metadata || {}, ...updateParams.metadata }
+      this.metadata = { ...(this.metadata || {}), ...updateParams.metadata }
     }
   }
 
@@ -153,7 +155,7 @@ export class LogEntry extends LogNode {
 
     // Stop active child nodes if no longer active
     if (wasActive && updateParams.status !== "active") {
-      getChildEntries(this).forEach(entry => {
+      getChildEntries(this).forEach((entry) => {
         if (entry.getMessageState().status === "active") {
           entry.update({ status: "done" })
         }
@@ -166,7 +168,7 @@ export class LogEntry extends LogNode {
 
     // If childEntriesInheritLevel is set to true, all children must have a level geq to the level
     // of the parent entry that set the flag.
-    const parentWithPreserveFlag = findParentEntry(this, entry => !!entry.childEntriesInheritLevel)
+    const parentWithPreserveFlag = findParentEntry(this, (entry) => !!entry.childEntriesInheritLevel)
     const level = parentWithPreserveFlag ? Math.max(parentWithPreserveFlag.level, params.level) : params.level
 
     return new LogEntry({
@@ -207,8 +209,13 @@ export class LogEntry extends LogNode {
 
   placeholder(level: LogLevel = LogLevel.info, childEntriesInheritLevel = false): LogEntry {
     // Ensure placeholder child entries align with parent context
-    const indent = Math.max((this.indent || 0) - 1, - 1)
-    return this.addNode({ level, indent, childEntriesInheritLevel, isPlaceholder: true })
+    const indent = Math.max((this.indent || 0) - 1, -1)
+    return this.addNode({
+      level,
+      indent,
+      childEntriesInheritLevel,
+      isPlaceholder: true,
+    })
   }
 
   // Preserves status
@@ -225,19 +232,31 @@ export class LogEntry extends LogNode {
   }
 
   setSuccess(params?: string | Omit<UpdateLogEntryParams, "status" & "symbol">): LogEntry {
-    this.deepUpdate({ ...resolveParams(params), symbol: "success", status: "success" })
+    this.deepUpdate({
+      ...resolveParams(params),
+      symbol: "success",
+      status: "success",
+    })
     this.root.onGraphChange(this)
     return this
   }
 
   setError(params?: string | Omit<UpdateLogEntryParams, "status" & "symbol">): LogEntry {
-    this.deepUpdate({ ...resolveParams(params), symbol: "error", status: "error" })
+    this.deepUpdate({
+      ...resolveParams(params),
+      symbol: "error",
+      status: "error",
+    })
     this.root.onGraphChange(this)
     return this
   }
 
   setWarn(param?: string | Omit<UpdateLogEntryParams, "status" & "symbol">): LogEntry {
-    this.deepUpdate({ ...resolveParams(param), symbol: "warning", status: "warn" })
+    this.deepUpdate({
+      ...resolveParams(param),
+      symbol: "warning",
+      status: "warn",
+    })
     this.root.onGraphChange(this)
     return this
   }
@@ -254,5 +273,4 @@ export class LogEntry extends LogNode {
     }
     return this
   }
-
 }

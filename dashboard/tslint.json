@@ -18,7 +18,7 @@
     ],
     "jsx-no-lambda": true,
     "jsx-space-before-trailing-slash": true,
-    "jsx-wrap-multiline": true,
+    "jsx-wrap-multiline": false,
     "jsx-key": true,
     "jsx-no-bind": true,
     "jsx-curly-spacing": [

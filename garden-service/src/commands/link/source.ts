@@ -11,12 +11,7 @@ import dedent = require("dedent")
 import chalk from "chalk"
 
 import { ParameterError } from "../../exceptions"
-import {
-  Command,
-  CommandResult,
-  StringParameter,
-  PathParameter,
-} from "../base"
+import { Command, CommandResult, StringParameter, PathParameter } from "../base"
 import { addLinkedSources } from "../../util/ext-source-util"
 import { LinkedSource } from "../../config-store"
 import { CommandParams } from "../base"
@@ -56,18 +51,18 @@ export class LinkSourceCommand extends Command<Args> {
     const sourceType = "project"
 
     const { source: sourceName, path } = args
-    const projectSourceToLink = garden.projectSources.find(src => src.name === sourceName)
+    const projectSourceToLink = garden.projectSources.find((src) => src.name === sourceName)
 
     if (!projectSourceToLink) {
-      const availableRemoteSources = garden.projectSources.map(s => s.name).sort()
+      const availableRemoteSources = garden.projectSources.map((s) => s.name).sort()
 
       throw new ParameterError(
         `Remote source ${chalk.underline(sourceName)} not found in project config.` +
-        ` Did you mean to use the "link module" command?`,
+          ` Did you mean to use the "link module" command?`,
         {
           availableRemoteSources,
           input: sourceName,
-        },
+        }
       )
     }
 

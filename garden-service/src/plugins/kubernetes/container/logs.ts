@@ -20,15 +20,17 @@ export async function getServiceLogs(params: GetServiceLogsParams<ContainerModul
   const provider = k8sCtx.provider
   const namespace = await getAppNamespace(k8sCtx, log, provider)
 
-  const resources = [await createWorkloadResource({
-    provider,
-    service,
-    // No need for the proper context here
-    runtimeContext: emptyRuntimeContext,
-    namespace,
-    enableHotReload: false,
-    log,
-  })]
+  const resources = [
+    await createWorkloadResource({
+      provider,
+      service,
+      // No need for the proper context here
+      runtimeContext: emptyRuntimeContext,
+      namespace,
+      enableHotReload: false,
+      log,
+    }),
+  ]
 
   return getAllLogs({ ...params, provider, defaultNamespace: namespace, resources })
 }

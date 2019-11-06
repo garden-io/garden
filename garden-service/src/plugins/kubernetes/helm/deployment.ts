@@ -28,9 +28,14 @@ import { DeployServiceParams } from "../../../types/plugin/service/deployService
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
 import { getForwardablePorts } from "../port-forward"
 
-export async function deployService(
-  { ctx, module, service, log, force, hotReload }: DeployServiceParams<HelmModule>,
-): Promise<HelmServiceStatus> {
+export async function deployService({
+  ctx,
+  module,
+  service,
+  log,
+  force,
+  hotReload,
+}: DeployServiceParams<HelmModule>): Promise<HelmServiceStatus> {
   let hotReloadSpec: ContainerHotReloadSpec | null = null
   let hotReloadTarget: HotReloadableResource | null = null
 
@@ -51,16 +56,20 @@ export async function deployService(
   const releaseStatus = await getReleaseStatus(k8sCtx, releaseName, log)
 
   const commonArgs = [
-    "--namespace", namespace,
-    "--timeout", module.spec.timeout.toString(10),
-    ...await getValueFileArgs(module),
+    "--namespace",
+    namespace,
+    "--timeout",
+    module.spec.timeout.toString(10),
+    ...(await getValueFileArgs(module)),
   ]
 
   if (releaseStatus.state === "missing") {
     log.silly(`Installing Helm release ${releaseName}`)
     const installArgs = [
-      "install", chartPath,
-      "--name", releaseName,
+      "install",
+      chartPath,
+      "--name",
+      releaseName,
       // Make sure chart gets purged if it fails to install
       "--atomic",
       ...commonArgs,
@@ -71,11 +80,7 @@ export async function deployService(
     await helm({ ctx: k8sCtx, namespace, log, args: [...installArgs] })
   } else {
     log.silly(`Upgrading Helm release ${releaseName}`)
-    const upgradeArgs = [
-      "upgrade", releaseName, chartPath,
-      "--install",
-      ...commonArgs,
-    ]
+    const upgradeArgs = ["upgrade", releaseName, chartPath, "--install", ...commonArgs]
     if (force) {
       upgradeArgs.push("--force")
     }

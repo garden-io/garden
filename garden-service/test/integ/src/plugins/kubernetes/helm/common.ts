@@ -82,10 +82,10 @@ describe("Helm common functions", () => {
 
   async function buildModules() {
     const modules = await graph.getModules()
-    const tasks = modules.map(module => new BuildTask({ garden, log, module, force: false }))
+    const tasks = modules.map((module) => new BuildTask({ garden, log, module, force: false }))
     const results = await garden.processTasks(tasks)
 
-    const err = first(Object.values(results).map(r => r && r.error))
+    const err = first(Object.values(results).map((r) => r && r.error))
 
     if (err) {
       throw err
@@ -173,10 +173,7 @@ describe("Helm common functions", () => {
                     name: "api",
                     image: resources[1].spec.template.spec.containers[0].image,
                     imagePullPolicy: "IfNotPresent",
-                    args: [
-                      "python",
-                      "app.py",
-                    ],
+                    args: ["python", "app.py"],
                     ports: [
                       {
                         name: "http",
@@ -364,7 +361,7 @@ describe("Helm common functions", () => {
                       "sh",
                       "-c",
                       "chown -R 1001:1001 /bitnami\nif [ -d /bitnami/postgresql/data ]; then\n  " +
-                      "chmod  0700 /bitnami/postgresql/data;\nfi\n",
+                        "chmod  0700 /bitnami/postgresql/data;\nfi\n",
                     ],
                     securityContext: {
                       runAsUser: 0,
@@ -411,11 +408,7 @@ describe("Helm common functions", () => {
                     ],
                     livenessProbe: {
                       exec: {
-                        command: [
-                          "sh",
-                          "-c",
-                          "exec pg_isready -U \"postgres\" -h localhost",
-                        ],
+                        command: ["sh", "-c", 'exec pg_isready -U "postgres" -h localhost'],
                       },
                       initialDelaySeconds: 30,
                       periodSeconds: 10,
@@ -425,11 +418,7 @@ describe("Helm common functions", () => {
                     },
                     readinessProbe: {
                       exec: {
-                        command: [
-                          "sh",
-                          "-c",
-                          "exec pg_isready -U \"postgres\" -h localhost",
-                        ],
+                        command: ["sh", "-c", 'exec pg_isready -U "postgres" -h localhost'],
                       },
                       initialDelaySeconds: 5,
                       periodSeconds: 10,
@@ -454,9 +443,7 @@ describe("Helm common functions", () => {
                   name: "data",
                 },
                 spec: {
-                  accessModes: [
-                    "ReadWriteOnce",
-                  ],
+                  accessModes: ["ReadWriteOnce"],
                   resources: {
                     requests: {
                       storage: "8Gi",
@@ -528,10 +515,11 @@ describe("Helm common functions", () => {
 
       await expectError(
         () => getBaseModule(module),
-        err => expect(err.message).to.equal(
-          deline`Helm module 'api' references base module 'postgres'
-          but it is missing from the module's build dependencies.`,
-        ),
+        (err) =>
+          expect(err.message).to.equal(
+            deline`Helm module 'api' references base module 'postgres'
+          but it is missing from the module's build dependencies.`
+          )
       )
     })
 
@@ -546,10 +534,11 @@ describe("Helm common functions", () => {
 
       await expectError(
         () => getBaseModule(module),
-        err => expect(err.message).to.equal(
-          deline`Helm module 'api' references base module 'postgres' which is a 'foo' module,
-          but should be a helm module.`,
-        ),
+        (err) =>
+          expect(err.message).to.equal(
+            deline`Helm module 'api' references base module 'postgres' which is a 'foo' module,
+          but should be a helm module.`
+          )
       )
     })
   })
@@ -558,9 +547,7 @@ describe("Helm common functions", () => {
     context("module has chart sources", () => {
       it("should return the chart path in the build directory", async () => {
         const module = await graph.getModule("api")
-        expect(await getChartPath(module)).to.equal(
-          resolve(ctx.projectRoot, ".garden", "build", "api"),
-        )
+        expect(await getChartPath(module)).to.equal(resolve(ctx.projectRoot, ".garden", "build", "api"))
       })
     })
 
@@ -568,7 +555,7 @@ describe("Helm common functions", () => {
       it("should construct the chart path based on the chart name", async () => {
         const module = await graph.getModule("postgres")
         expect(await getChartPath(module)).to.equal(
-          resolve(ctx.projectRoot, ".garden", "build", "postgres", "postgresql"),
+          resolve(ctx.projectRoot, ".garden", "build", "postgres", "postgresql")
         )
       })
     })
@@ -594,9 +581,12 @@ describe("Helm common functions", () => {
       const gardenValuesPath = getGardenValuesPath(module.buildPath)
 
       expect(await getValueFileArgs(module)).to.eql([
-        "--values", resolve(module.buildPath, "foo.yaml"),
-        "--values", resolve(module.buildPath, "bar.yaml"),
-        "--values", gardenValuesPath,
+        "--values",
+        resolve(module.buildPath, "foo.yaml"),
+        "--values",
+        resolve(module.buildPath, "bar.yaml"),
+        "--values",
+        gardenValuesPath,
       ])
     })
   })
@@ -646,11 +636,12 @@ describe("Helm common functions", () => {
       delete module.spec.serviceResource
       await expectError(
         () => getServiceResourceSpec(module),
-        err => expect(err.message).to.equal(
-          deline`Helm module 'api' doesn't specify a \`serviceResource\` in its configuration.
+        (err) =>
+          expect(err.message).to.equal(
+            deline`Helm module 'api' doesn't specify a \`serviceResource\` in its configuration.
           You must specify a resource in the module config in order to use certain Garden features,
-          such as hot reloading.`,
-        ),
+          such as hot reloading.`
+          )
       )
     })
 
@@ -663,11 +654,12 @@ describe("Helm common functions", () => {
       delete baseModule.spec.serviceResource
       await expectError(
         () => getServiceResourceSpec(module),
-        err => expect(err.message).to.equal(
-          deline`Helm module 'api' doesn't specify a \`serviceResource\` in its configuration.
+        (err) =>
+          expect(err.message).to.equal(
+            deline`Helm module 'api' doesn't specify a \`serviceResource\` in its configuration.
           You must specify a resource in the module config in order to use certain Garden features,
-          such as hot reloading.`,
-        ),
+          such as hot reloading.`
+          )
       )
     })
   })
@@ -676,8 +668,13 @@ describe("Helm common functions", () => {
     it("should return the resource specified by serviceResource", async () => {
       const module = await graph.getModule("api")
       const chartResources = await getChartResources(ctx, module, log)
-      const result = await findServiceResource({ ctx, log, module, chartResources })
-      const expected = find(chartResources, r => r.kind === "Deployment")
+      const result = await findServiceResource({
+        ctx,
+        log,
+        module,
+        chartResources,
+      })
+      const expected = find(chartResources, (r) => r.kind === "Deployment")
       expect(result).to.eql(expected)
     })
 
@@ -687,11 +684,12 @@ describe("Helm common functions", () => {
       delete module.spec.serviceResource
       await expectError(
         () => findServiceResource({ ctx, log, module, chartResources }),
-        err => expect(err.message).to.equal(
-          deline`Helm module 'api' doesn't specify a \`serviceResource\` in its configuration.
+        (err) =>
+          expect(err.message).to.equal(
+            deline`Helm module 'api' doesn't specify a \`serviceResource\` in its configuration.
           You must specify a resource in the module config in order to use certain Garden features,
-          such as hot reloading.`,
-        ),
+          such as hot reloading.`
+          )
       )
     })
 
@@ -703,8 +701,15 @@ describe("Helm common functions", () => {
         kind: "DaemonSet",
       }
       await expectError(
-        () => findServiceResource({ ctx, log, module, chartResources, resourceSpec }),
-        err => expect(err.message).to.equal("Helm module 'api' contains no DaemonSets."),
+        () =>
+          findServiceResource({
+            ctx,
+            log,
+            module,
+            chartResources,
+            resourceSpec,
+          }),
+        (err) => expect(err.message).to.equal("Helm module 'api' contains no DaemonSets.")
       )
     })
 
@@ -716,23 +721,30 @@ describe("Helm common functions", () => {
         name: "foo",
       }
       await expectError(
-        () => findServiceResource({ ctx, log, module, chartResources, resourceSpec }),
-        err => expect(err.message).to.equal("Helm module 'api' does not contain specified Deployment 'foo'"),
+        () =>
+          findServiceResource({
+            ctx,
+            log,
+            module,
+            chartResources,
+            resourceSpec,
+          }),
+        (err) => expect(err.message).to.equal("Helm module 'api' does not contain specified Deployment 'foo'")
       )
     })
 
     it("should throw if no name is specified and multiple resources are matched", async () => {
       const module = await graph.getModule("api")
       const chartResources = await getChartResources(ctx, module, log)
-      const deployment = find(chartResources, r => r.kind === "Deployment")
+      const deployment = find(chartResources, (r) => r.kind === "Deployment")
       chartResources.push(deployment!)
       await expectError(
         () => findServiceResource({ ctx, log, module, chartResources }),
-        err => expect(err.message).to.equal(deline`
+        (err) =>
+          expect(err.message).to.equal(deline`
           Helm module 'api' contains multiple Deployments.
           You must specify \`serviceResource.name\` in the module config in order to
-          identify the correct Deployment to use.`,
-        ),
+          identify the correct Deployment to use.`)
       )
     })
 
@@ -741,8 +753,13 @@ describe("Helm common functions", () => {
       await buildHelmModule({ ctx, module, log })
       const chartResources = await getChartResources(ctx, module, log)
       module.spec.serviceResource.name = `{{ template "postgresql.master.fullname" . }}`
-      const result = await findServiceResource({ ctx, log, module, chartResources })
-      const expected = find(chartResources, r => r.kind === "StatefulSet")
+      const result = await findServiceResource({
+        ctx,
+        log,
+        module,
+        chartResources,
+      })
+      const expected = find(chartResources, (r) => r.kind === "StatefulSet")
       expect(result).to.eql(expected)
     })
   })
@@ -751,7 +768,7 @@ describe("Helm common functions", () => {
     async function getDeployment() {
       const module = await graph.getModule("api")
       const chartResources = await getChartResources(ctx, module, log)
-      return <HotReloadableResource>find(chartResources, r => r.kind === "Deployment")!
+      return <HotReloadableResource>find(chartResources, (r) => r.kind === "Deployment")!
     }
 
     it("should get the first container on the resource if no name is specified", async () => {
@@ -771,7 +788,7 @@ describe("Helm common functions", () => {
       deployment.spec.template.spec.containers = []
       await expectError(
         () => getResourceContainer(deployment),
-        err => expect(err.message).to.equal("Deployment api-release has no containers configured."),
+        (err) => expect(err.message).to.equal("Deployment api-release has no containers configured.")
       )
     })
 
@@ -779,7 +796,7 @@ describe("Helm common functions", () => {
       const deployment = await getDeployment()
       await expectError(
         () => getResourceContainer(deployment, "foo"),
-        err => expect(err.message).to.equal("Could not find container 'foo' in Deployment 'api-release'"),
+        (err) => expect(err.message).to.equal("Could not find container 'foo' in Deployment 'api-release'")
       )
     })
   })

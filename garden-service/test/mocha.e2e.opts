@@ -1,7 +1,8 @@
 --require source-map-support/register
 --watch-dirs build/
---exclude build/test/unit/**/*.js
---exclude test/,src/
+--exclude build/test/integ/**/*
+--exclude build/test/unit/**/*
+--exclude test/,src/,.garden
 --watch-extensions js,json,pegjs
 --reporter spec
 --timeout 0

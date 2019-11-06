@@ -11,7 +11,7 @@ import { Module } from "../../module"
 import { PluginModuleActionParamsBase, moduleActionParamsSchema } from "../base"
 import { joi } from "../../../config/common"
 
-export interface PublishModuleParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> { }
+export interface PublishModuleParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> {}
 
 export interface PublishResult {
   published: boolean
@@ -25,12 +25,11 @@ export const publishModule = {
     Called by the \`garden publish\` command.
   `,
   paramsSchema: moduleActionParamsSchema,
-  resultSchema: joi.object()
-    .keys({
-      published: joi.boolean()
-        .required()
-        .description("Set to true if the module was published."),
-      message: joi.string()
-        .description("Optional result message."),
-    }),
+  resultSchema: joi.object().keys({
+    published: joi
+      .boolean()
+      .required()
+      .description("Set to true if the module was published."),
+    message: joi.string().description("Optional result message."),
+  }),
 }

@@ -9,5 +9,5 @@
 export const RSYNC_PORT = 873
 export const CLUSTER_REGISTRY_PORT = 5000
 export const CLUSTER_REGISTRY_DEPLOYMENT_NAME = "garden-docker-registry"
-export const MAX_CONFIGMAP_DATA_SIZE = 1024 * 1024  // max ConfigMap data size is 1MB
-export const MAX_RUN_RESULT_OUTPUT_LENGTH = 900 * 1024  // max ConfigMap data size is 1MB, so 900kB gives enough margin
+export const MAX_CONFIGMAP_DATA_SIZE = 1024 * 1024 // max ConfigMap data size is 1MB
+export const MAX_RUN_RESULT_OUTPUT_LENGTH = 900 * 1024 // max ConfigMap data size is 1MB, so 900kB gives enough margin

@@ -17,23 +17,23 @@ describe("millicpuToString", () => {
 
 describe("kilobytesToString", () => {
   it("should return whole exabytes with an Ei suffix", () => {
-    expect(kilobytesToString(2 * (1024 ** 5))).to.equal("2Ei")
+    expect(kilobytesToString(2 * 1024 ** 5)).to.equal("2Ei")
   })
 
   it("should return whole petabytes with a Pi suffix", () => {
-    expect(kilobytesToString(3 * (1024 ** 4))).to.equal("3Pi")
+    expect(kilobytesToString(3 * 1024 ** 4)).to.equal("3Pi")
   })
 
   it("should return whole terabytes with a Ti suffix", () => {
-    expect(kilobytesToString(1 * (1024 ** 3))).to.equal("1Ti")
+    expect(kilobytesToString(1 * 1024 ** 3)).to.equal("1Ti")
   })
 
   it("should return whole gigabytes with a Gi suffix", () => {
-    expect(kilobytesToString(7 * (1024 ** 2))).to.equal("7Gi")
+    expect(kilobytesToString(7 * 1024 ** 2)).to.equal("7Gi")
   })
 
   it("should return whole megabytes with an Mi suffix", () => {
-    expect(kilobytesToString(2 * (1024 ** 1))).to.equal("2Mi")
+    expect(kilobytesToString(2 * 1024 ** 1)).to.equal("2Mi")
   })
 
   it("should otherwise return the kilobytes with a Ki suffix", () => {
@@ -63,7 +63,7 @@ describe("flattenResources", () => {
         },
       },
     ]
-    expect(flattenResources(resources).map(r => r.metadata.name)).to.eql(["a", "b"])
+    expect(flattenResources(resources).map((r) => r.metadata.name)).to.eql(["a", "b"])
   })
   it("should flatten resourcess that contain resources of kind List", () => {
     const resources = [
@@ -91,7 +91,7 @@ describe("flattenResources", () => {
         },
       },
     ]
-    expect(flattenResources(resources).map(r => r.metadata.name)).to.eql(["a", "b"])
+    expect(flattenResources(resources).map((r) => r.metadata.name)).to.eql(["a", "b"])
   })
   it("should flatten resources that contain List and non-List resources", () => {
     const resources = [
@@ -133,7 +133,7 @@ describe("flattenResources", () => {
         },
       },
     ]
-    expect(flattenResources(resources).map(r => r.metadata.name)).to.eql(["a", "b", "c", "d"])
+    expect(flattenResources(resources).map((r) => r.metadata.name)).to.eql(["a", "b", "c", "d"])
   })
   it("should not flatten List resources that don't have apiVersion v1", () => {
     const resources = [
@@ -175,6 +175,6 @@ describe("flattenResources", () => {
         },
       },
     ]
-    expect(flattenResources(resources).map(r => r.metadata.name)).to.eql(["a", "d", "e"])
+    expect(flattenResources(resources).map((r) => r.metadata.name)).to.eql(["a", "d", "e"])
   })
 })

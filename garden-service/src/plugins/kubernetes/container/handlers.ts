@@ -61,11 +61,11 @@ async function validateConfig<T extends ContainerModule>(params: ConfigureModule
       if (!hostname) {
         throw new ConfigurationError(
           `No hostname configured for one of the ingresses on service ${serviceConfig.name}. ` +
-          `Please configure a default hostname or specify a hostname for the ingress.`,
+            `Please configure a default hostname or specify a hostname for the ingress.`,
           {
             serviceName: serviceConfig.name,
             ingressSpec,
-          },
+          }
         )
       }
 

@@ -6,14 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  Command,
-  CommandResult,
-  CommandParams,
-  StringsParameter,
-  IntegerParameter,
-  BooleanParameter,
-} from "./base"
+import { Command, CommandResult, CommandParams, StringsParameter, IntegerParameter, BooleanParameter } from "./base"
 import chalk from "chalk"
 import { ServiceLogEntry } from "../types/plugin/service/getServiceLogs"
 import Bluebird = require("bluebird")
@@ -26,7 +19,8 @@ import { emptyRuntimeContext } from "../runtime-context"
 
 const logsArgs = {
   services: new StringsParameter({
-    help: "The name(s) of the service(s) to log (skip to log all services). " +
+    help:
+      "The name(s) of the service(s) to log (skip to log all services). " +
       "Use comma as a separator to specify multiple services.",
   }),
 }
@@ -83,10 +77,13 @@ export class LogsCommand extends Command<Args, Opts> {
       if (entry.timestamp) {
         try {
           timestamp = entry.timestamp.toISOString()
-        } catch { }
+        } catch {}
       }
 
-      log.info({ section: entry.serviceName, msg: `${timestamp} → ${chalk.white(entry.msg)}` })
+      log.info({
+        section: entry.serviceName,
+        msg: `${timestamp} → ${chalk.white(entry.msg)}`,
+      })
 
       if (!follow) {
         result.push(entry)

@@ -56,9 +56,7 @@ describe("BuildDir", () => {
     await garden.buildDir.syncFromSrc(moduleA, garden.log)
     const buildDirA = await garden.buildDir.buildPath(moduleA)
 
-    const copiedPaths = [
-      join(buildDirA, "some-dir", "some-file"),
-    ]
+    const copiedPaths = [join(buildDirA, "some-dir", "some-file")]
 
     for (const p of copiedPaths) {
       expect(await pathExists(p)).to.eql(true)
@@ -94,12 +92,15 @@ describe("BuildDir", () => {
     try {
       const graph = await garden.getConfigGraph()
       const modules = await graph.getModules()
-      const tasks = modules.map(module => new BuildTask({
-        garden,
-        log,
-        module,
-        force: true,
-      }))
+      const tasks = modules.map(
+        (module) =>
+          new BuildTask({
+            garden,
+            log,
+            module,
+            force: true,
+          })
+      )
 
       await garden.processTasks(tasks)
 
@@ -149,5 +150,4 @@ describe("BuildDir", () => {
       expect(buildDirE).to.eql(moduleE.path)
     })
   })
-
 })

@@ -19,24 +19,21 @@ import { ConfigurationError } from "../../exceptions"
 import { variablesSchema, TerraformBaseSpec } from "./common"
 import { schema, configureTerraformModule, getTerraformStatus, deployTerraform } from "./module"
 
-type TerraformProviderConfig = ProviderConfig & TerraformBaseSpec & {
-  initRoot?: string,
-}
+type TerraformProviderConfig = ProviderConfig &
+  TerraformBaseSpec & {
+    initRoot?: string
+  }
 
-export interface TerraformProvider extends Provider<TerraformProviderConfig> { }
+export interface TerraformProvider extends Provider<TerraformProviderConfig> {}
 
 const configSchema = providerConfigBaseSchema
   .keys({
-    autoApply: joi.boolean()
-      .default(false)
-      .description(deline`
+    autoApply: joi.boolean().default(false).description(deline`
         If set to true, Garden will automatically run \`terraform apply -auto-approve\` when a stack is not
         up-to-date. Otherwise, a warning is logged if the stack is out-of-date, and an error thrown if it is missing
         entirely.
       `),
-    initRoot: joi.string()
-      .posixPath({ subPathOnly: true })
-      .description(dedent`
+    initRoot: joi.string().posixPath({ subPathOnly: true }).description(dedent`
         Specify the path to a Terraform config directory, that should be resolved when initializing the provider.
         This is useful when other providers need to be able to reference the outputs from the stack.
 
@@ -44,16 +41,15 @@ const configSchema = providerConfigBaseSchema
       `),
     // When you provide variables directly in \`terraform\` modules, those variables will
     // extend the ones specified here, and take precedence if the keys overlap.
-    variables: variablesSchema
-      .description(deline`
+    variables: variablesSchema.description(deline`
         A map of variables to use when applying Terraform stacks. You can define these here, in individual
         \`terraform\` module configs, or you can place a \`terraform.tfvars\` file in each working directory.
       `),
     // May be overridden by individual \`terraform\` modules.
-    version: joi.string()
+    version: joi
+      .string()
       .allow(...supportedVersions)
-      .default(defaultTerraformVersion)
-      .description(deline`
+      .default(defaultTerraformVersion).description(deline`
         The version of Terraform to use.
       `),
   })
@@ -67,9 +63,10 @@ export const gardenPlugin = createGardenPlugin({
     getEnvironmentStatus,
     prepareEnvironment,
   },
-  createModuleTypes: [{
-    name: "terraform",
-    docs: dedent`
+  createModuleTypes: [
+    {
+      name: "terraform",
+      docs: dedent`
       Resolves a Terraform stack and either applies it automatically (if \`autoApply: true\`) or errors when the stack
       resources are not up-to-date.
 
@@ -87,23 +84,26 @@ export const gardenPlugin = createGardenPlugin({
       See the [Terraform guide](../../using-garden/terraform.md) for a high-level introduction to the \`terraform\`
       provider.
     `,
-    serviceOutputsSchema: joi.object()
-      .pattern(/.+/, joi.any())
-      .description("A map of all the outputs defined in the Terraform stack."),
-    schema,
-    handlers: {
-      configure: configureTerraformModule,
-      // FIXME: it should not be strictly necessary to provide this handler
-      build: async () => ({}),
-      getServiceStatus: getTerraformStatus,
-      deployService: deployTerraform,
+      serviceOutputsSchema: joi
+        .object()
+        .pattern(/.+/, joi.any())
+        .description("A map of all the outputs defined in the Terraform stack."),
+      schema,
+      handlers: {
+        configure: configureTerraformModule,
+        // FIXME: it should not be strictly necessary to provide this handler
+        build: async () => ({}),
+        getServiceStatus: getTerraformStatus,
+        deployService: deployTerraform,
+      },
     },
-  }],
+  ],
 })
 
-async function configureProvider(
-  { config, projectRoot }: ConfigureProviderParams<TerraformProviderConfig>,
-): Promise<ConfigureProviderResult> {
+async function configureProvider({
+  config,
+  projectRoot,
+}: ConfigureProviderParams<TerraformProviderConfig>): Promise<ConfigureProviderResult> {
   // Make sure the configured root path exists, if it is set
   if (config.initRoot) {
     const absRoot = join(projectRoot, config.initRoot)
@@ -112,7 +112,7 @@ async function configureProvider(
     if (!exists) {
       throw new ConfigurationError(
         `Terraform: configured initRoot config directory '${config.initRoot}' does not exist`,
-        { config, projectRoot },
+        { config, projectRoot }
       )
     }
   }

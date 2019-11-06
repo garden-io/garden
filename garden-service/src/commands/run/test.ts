@@ -9,17 +9,8 @@
 import chalk from "chalk"
 import { ParameterError } from "../../exceptions"
 import { RunResult } from "../../types/plugin/base"
-import {
-  findByName,
-  getNames,
-} from "../../util/util"
-import {
-  BooleanParameter,
-  Command,
-  CommandParams,
-  CommandResult,
-  StringParameter,
-} from "../base"
+import { findByName, getNames } from "../../util/util"
+import { BooleanParameter, Command, CommandParams, CommandResult, StringParameter } from "../base"
 import { printRuntimeContext } from "./run"
 import dedent = require("dedent")
 import { prepareRuntimeContext } from "../../runtime-context"
@@ -45,7 +36,9 @@ const runOpts = {
     cliDefault: true,
     cliOnly: true,
   }),
-  "force-build": new BooleanParameter({ help: "Force rebuild of module before running." }),
+  "force-build": new BooleanParameter({
+    help: "Force rebuild of module before running.",
+  }),
 }
 
 type Args = typeof runArgs
@@ -84,11 +77,7 @@ export class RunTestCommand extends Command<Args, Opts> {
       })
     }
 
-    printHeader(
-      headerLog,
-      `Running test ${chalk.cyan(testName)} in module ${chalk.cyan(moduleName)}`,
-      "runner",
-    )
+    printHeader(headerLog, `Running test ${chalk.cyan(testName)} in module ${chalk.cyan(moduleName)}`, "runner")
 
     const actions = await garden.getActionRouter()
     const version = await getTestVersion(garden, graph, module, testConfig)

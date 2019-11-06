@@ -29,9 +29,7 @@ export class HotReloadTask extends BaseTask {
   // private hotReloadServiceNames: string[]
   private service: Service
 
-  constructor(
-    { garden, log, service, force }: Params,
-  ) {
+  constructor({ garden, log, service, force }: Params) {
     super({ garden, log, force, version: service.module.version })
     // this.graph = graph
     // this.hotReloadServiceNames = hotReloadServiceNames || []
@@ -81,7 +79,10 @@ export class HotReloadTask extends BaseTask {
       throw err
     }
 
-    log.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
+    log.setSuccess({
+      msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
+      append: true,
+    })
 
     return {}
   }

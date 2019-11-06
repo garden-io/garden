@@ -87,7 +87,10 @@ const helpers = {
   async getDeploymentImageName(moduleConfig: ContainerModuleConfig, registryConfig?: ContainerRegistryConfig) {
     const localName = moduleConfig.spec.image || moduleConfig.name
     const parsedId = helpers.parseImageId(localName)
-    const withoutVersion = helpers.unparseImageId({ ...parsedId, tag: undefined })
+    const withoutVersion = helpers.unparseImageId({
+      ...parsedId,
+      tag: undefined,
+    })
 
     if (!registryConfig) {
       return withoutVersion
@@ -121,10 +124,9 @@ const helpers = {
       // Otherwise, return the configured image ID.
       return module.spec.image
     } else {
-      throw new ConfigurationError(
-        `Module ${module.name} neither specifies image nor provides Dockerfile`,
-        { spec: module.spec },
-      )
+      throw new ConfigurationError(`Module ${module.name} neither specifies image nor provides Dockerfile`, {
+        spec: module.spec,
+      })
     }
   },
 
@@ -168,7 +170,9 @@ const helpers = {
         tag,
       }
     } else {
-      throw new ConfigurationError(`Invalid container image tag: ${imageId}`, { imageId })
+      throw new ConfigurationError(`Invalid container image tag: ${imageId}`, {
+        imageId,
+      })
     }
   },
 
@@ -203,10 +207,9 @@ const helpers = {
     try {
       versionRes = await spawn("docker", ["version", "-f", "{{ .Client.Version }} {{ .Server.Version }}"])
     } catch (err) {
-      throw new RuntimeError(
-        `Unable to get docker version: ${err.message}`,
-        { err },
-      )
+      throw new RuntimeError(`Unable to get docker version: ${err.message}`, {
+        err,
+      })
     }
 
     const output = versionRes.output.trim()
@@ -216,10 +219,9 @@ const helpers = {
     const serverVersion = split[1]
 
     if (!clientVersion || !serverVersion) {
-      throw new RuntimeError(
-        `Unexpected docker version output: ${output}`,
-        { output },
-      )
+      throw new RuntimeError(`Unexpected docker version output: ${output}`, {
+        output,
+      })
     }
 
     return { clientVersion, serverVersion }
@@ -234,25 +236,26 @@ const helpers = {
     const { clientVersion, serverVersion } = await helpers.getDockerVersion()
 
     if (!semver.gte(fixDockerVersionString(clientVersion), fixedMinVersion)) {
-      throw new RuntimeError(
-        `Docker client needs to be version ${minDockerVersion} or newer (got ${clientVersion})`,
-        { clientVersion, serverVersion },
-      )
+      throw new RuntimeError(`Docker client needs to be version ${minDockerVersion} or newer (got ${clientVersion})`, {
+        clientVersion,
+        serverVersion,
+      })
     }
 
     if (!semver.gte(fixDockerVersionString(serverVersion), fixedMinVersion)) {
-      throw new RuntimeError(
-        `Docker server needs to be version ${minDockerVersion} or newer (got ${serverVersion})`,
-        { clientVersion, serverVersion },
-      )
+      throw new RuntimeError(`Docker server needs to be version ${minDockerVersion} or newer (got ${serverVersion})`, {
+        clientVersion,
+        serverVersion,
+      })
     }
 
     helpers.dockerVersionChecked = true
   },
 
   async dockerCli(
-    module: ContainerModule, args: string[],
-    { outputStream, timeout = DEFAULT_BUILD_TIMEOUT }: { outputStream?: Writable, timeout?: number } = {},
+    module: ContainerModule,
+    args: string[],
+    { outputStream, timeout = DEFAULT_BUILD_TIMEOUT }: { outputStream?: Writable; timeout?: number } = {}
   ) {
     await helpers.checkDockerVersion()
 
@@ -262,10 +265,11 @@ const helpers = {
       const res = await spawn("docker", args, { cwd, outputStream, timeout })
       return res.output || ""
     } catch (err) {
-      throw new RuntimeError(
-        `Unable to run docker command: ${err.message}`,
-        { err, args, cwd },
-      )
+      throw new RuntimeError(`Unable to run docker command: ${err.message}`, {
+        err,
+        args,
+        cwd,
+      })
     }
   },
 

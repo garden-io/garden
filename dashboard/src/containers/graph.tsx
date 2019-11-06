@@ -11,11 +11,7 @@ import styled from "@emotion/styled"
 import Graph from "../components/graph"
 import PageError from "../components/page-error"
 import { TaskState, useApi } from "../contexts/api"
-import {
-  StackGraphSupportedFilterKeys,
-  EntityResultSupportedTypes,
-  useUiState,
-} from "../contexts/ui"
+import { StackGraphSupportedFilterKeys, EntityResultSupportedTypes, useUiState } from "../contexts/ui"
 import EntityResult from "./entity-result"
 import Spinner from "../components/spinner"
 import { Filters } from "../components/group-filter"
@@ -27,30 +23,31 @@ import { useConfig } from "../util/hooks"
 import { getTestKey } from "../util/helpers"
 
 const Wrapper = styled.div`
-  padding-left: .75rem;
+  padding-left: 0.75rem;
 `
 
 export interface RenderedNodeWithStatus extends RenderedNode {
   status?: TaskState
 }
 export interface GraphOutputWithNodeStatus extends GraphOutput {
-  nodes: RenderedNodeWithStatus[],
+  nodes: RenderedNodeWithStatus[]
 }
 
 export default () => {
   const {
     dispatch,
-    store: {
-      entities,
-      requestStates,
-    },
+    store: { entities, requestStates },
   } = useApi()
 
   const { project, modules, services, tests, tasks, graph } = entities
 
   const {
     actions: { selectGraphNode, stackGraphToggleItemsView, clearGraphNodeSelection },
-    state: { selectedGraphNode, isSidebarOpen, stackGraph: { filters } },
+    state: {
+      selectedGraphNode,
+      isSidebarOpen,
+      stackGraph: { filters },
+    },
   } = useUiState()
 
   useConfig(dispatch, requestStates.config)
@@ -71,7 +68,7 @@ export default () => {
     return <Spinner />
   }
 
-  const nodesWithStatus: RenderedNodeWithStatus[] = graph.nodes.map(node => {
+  const nodesWithStatus: RenderedNodeWithStatus[] = graph.nodes.map((node) => {
     let taskState: TaskState = "taskComplete"
     switch (node.type) {
       case "publish":
@@ -97,7 +94,7 @@ export default () => {
 
   let moreInfoPane: React.ReactNode = null
   if (selectedGraphNode && graph) {
-    const node = graph.nodes.find(n => n.key === selectedGraphNode)
+    const node = graph.nodes.find((n) => n.key === selectedGraphNode)
     if (node) {
       moreInfoPane = (
         <div className="col-xs-5 col-sm-5 col-md-4 col-lg-4 col-xl-4">
@@ -113,13 +110,13 @@ export default () => {
   }
 
   const graphFilters = Object.keys(filters).reduce((allGroupFilters, type) => {
-    return ({
+    return {
       ...allGroupFilters,
       [type]: {
         label: capitalize(type),
         selected: filters[type],
       },
-    })
+    }
   }, {}) as Filters<StackGraphSupportedFilterKeys>
 
   return (

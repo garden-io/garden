@@ -45,17 +45,13 @@ export const configure = {
     any network calls.
   `,
 
-  paramsSchema: joi.object()
-    .keys({
-      ctx: pluginContextSchema
-        .required(),
-      log: logEntrySchema,
-      moduleConfig: baseModuleSpecSchema
-        .required(),
-    }),
+  paramsSchema: joi.object().keys({
+    ctx: pluginContextSchema.required(),
+    log: logEntrySchema,
+    moduleConfig: baseModuleSpecSchema.required(),
+  }),
 
-  resultSchema: joi.object()
-    .keys({
-      moduleConfig: moduleConfigSchema,
-    }),
+  resultSchema: joi.object().keys({
+    moduleConfig: moduleConfigSchema,
+  }),
 }

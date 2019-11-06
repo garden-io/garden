@@ -17,17 +17,18 @@ import { RunTaskResult } from "../types/plugin/task/runTask"
 import { splitLast } from "../util/util"
 
 export type TaskType =
-  "build" |
-  "deploy" |
-  "get-service-status" |
-  "get-task-result" |
-  "hot-reload" |
-  "publish" |
-  "resolve-provider" |
-  "task" |
-  "test"
+  | "build"
+  | "delete-service"
+  | "deploy"
+  | "get-service-status"
+  | "get-task-result"
+  | "hot-reload"
+  | "publish"
+  | "resolve-provider"
+  | "task"
+  | "test"
 
-export class TaskDefinitionError extends Error { }
+export class TaskDefinitionError extends Error {}
 
 export function makeBaseKey(type: TaskType, name: string) {
   return `${type}.${name}`
@@ -79,19 +80,19 @@ export abstract class BaseTask {
 }
 
 export function getServiceStatuses(dependencyResults: TaskResults): { [name: string]: ServiceStatus } {
-  const getServiceStatusResults = pickBy(dependencyResults, r => r && r.type === "get-service-status")
-  const deployResults = pickBy(dependencyResults, r => r && r.type === "deploy")
+  const getServiceStatusResults = pickBy(dependencyResults, (r) => r && r.type === "get-service-status")
+  const deployResults = pickBy(dependencyResults, (r) => r && r.type === "deploy")
   // DeployTask results take precedence over GetServiceStatusTask results, because status changes after deployment
   const combined = { ...getServiceStatusResults, ...deployResults }
-  const statuses = mapValues(combined, r => r!.output as ServiceStatus)
+  const statuses = mapValues(combined, (r) => r!.output as ServiceStatus)
   return mapKeys(statuses, (_, key) => splitLast(key, ".")[1])
 }
 
 export function getRunTaskResults(dependencyResults: TaskResults): { [name: string]: RunTaskResult } {
-  const storedResults = pickBy(dependencyResults, r => r && r.type === "get-task-result")
-  const runResults = pickBy(dependencyResults, r => r && r.type === "task")
+  const storedResults = pickBy(dependencyResults, (r) => r && r.type === "get-task-result")
+  const runResults = pickBy(dependencyResults, (r) => r && r.type === "task")
   // TaskTask results take precedence over GetTaskResultTask results
   const combined = { ...storedResults, ...runResults }
-  const results = mapValues(combined, r => r!.output as RunTaskResult)
+  const results = mapValues(combined, (r) => r!.output as RunTaskResult)
   return mapKeys(results, (_, key) => splitLast(key, ".")[1])
 }

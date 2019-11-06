@@ -25,14 +25,11 @@ export async function checkTillerStatus(ctx: KubernetesPluginContext, log: LogEn
   const api = await KubeApi.factory(log, ctx.provider)
   const namespace = await getAppNamespace(ctx, log, ctx.provider)
 
-  const resources = [
-    ...getRoleResources(namespace),
-    ...await getTillerResources(ctx, log),
-  ]
+  const resources = [...getRoleResources(namespace), ...(await getTillerResources(ctx, log))]
 
   const statuses = await checkResourceStatuses(api, namespace, resources, log)
 
-  return combineStates(statuses.map(s => s.state))
+  return combineStates(statuses.map((s) => s.state))
 }
 
 interface InstallTillerParams {
@@ -43,7 +40,7 @@ interface InstallTillerParams {
 }
 
 export async function installTiller({ ctx, log, provider, force = false }: InstallTillerParams) {
-  if (!force && await checkTillerStatus(ctx, log) === "ready") {
+  if (!force && (await checkTillerStatus(ctx, log)) === "ready") {
     return
   }
 
@@ -59,33 +56,46 @@ export async function installTiller({ ctx, log, provider, force = false }: Insta
   const roleResources = getRoleResources(namespace)
   entry.setState("Applying Tiller RBAC resources...")
   await apply({ log, provider, manifests: roleResources, namespace })
-  await waitForResources({ ctx, provider, serviceName: "tiller", resources: roleResources, log: entry })
+  await waitForResources({
+    ctx,
+    provider,
+    serviceName: "tiller",
+    resources: roleResources,
+    log: entry,
+  })
 
   const tillerResources = await getTillerResources(ctx, log)
   const pruneSelector = "app=helm,name=tiller"
   entry.setState("Deploying Tiller...")
-  await apply({ log, provider, manifests: tillerResources, namespace, pruneSelector })
-  await waitForResources({ ctx, provider, serviceName: "tiller", resources: tillerResources, log: entry })
+  await apply({
+    log,
+    provider,
+    manifests: tillerResources,
+    namespace,
+    pruneSelector,
+  })
+  await waitForResources({
+    ctx,
+    provider,
+    serviceName: "tiller",
+    resources: tillerResources,
+    log: entry,
+  })
 
-  entry.setSuccess({ msg: chalk.green(`Done (took ${entry.getDuration(1)} sec)`), append: true })
+  entry.setSuccess({
+    msg: chalk.green(`Done (took ${entry.getDuration(1)} sec)`),
+    append: true,
+  })
 }
 
-async function getTillerResources(
-  ctx: KubernetesPluginContext, log: LogEntry,
-): Promise<KubernetesResource[]> {
+async function getTillerResources(ctx: KubernetesPluginContext, log: LogEntry): Promise<KubernetesResource[]> {
   const tillerManifests = await helm({
     ctx,
     log,
-    args: [
-      "init",
-      "--service-account", serviceAccountName,
-      "--dry-run",
-      "--debug",
-    ],
+    args: ["init", "--service-account", serviceAccountName, "--dry-run", "--debug"],
   })
 
-  const resources = safeLoadAll(tillerManifests)
-    .map(convertDeprecatedManifestVersion)
+  const resources = safeLoadAll(tillerManifests).map(convertDeprecatedManifestVersion)
 
   return resources
 }

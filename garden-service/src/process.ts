@@ -49,11 +49,17 @@ export interface ProcessResults {
   restartRequired?: boolean
 }
 
-export async function processServices(
-  { garden, graph, log, footerLog, services, watch, handler, changeHandler }: ProcessServicesParams,
-): Promise<ProcessResults> {
-
-  const modules = Array.from(new Set(services.map(s => s.module)))
+export async function processServices({
+  garden,
+  graph,
+  log,
+  footerLog,
+  services,
+  watch,
+  handler,
+  changeHandler,
+}: ProcessServicesParams): Promise<ProcessResults> {
+  const modules = Array.from(new Set(services.map((s) => s.module)))
 
   return processModules({
     modules,
@@ -67,17 +73,23 @@ export async function processServices(
   })
 }
 
-export async function processModules(
-  { garden, graph, log, footerLog, modules, watch, handler, changeHandler }: ProcessModulesParams,
-): Promise<ProcessResults> {
-
+export async function processModules({
+  garden,
+  graph,
+  log,
+  footerLog,
+  modules,
+  watch,
+  handler,
+  changeHandler,
+}: ProcessModulesParams): Promise<ProcessResults> {
   log.silly("Starting processModules")
 
   // Let the user know if any modules are linked to a local path
   const linkedModulesMsg = modules
-    .filter(m => isModuleLinked(m, garden))
-    .map(m => `${chalk.cyan(m.name)} linked to path ${chalk.white(m.path)}`)
-    .map(msg => "  " + msg) // indent list
+    .filter((m) => isModuleLinked(m, garden))
+    .map((m) => `${chalk.cyan(m.name)} linked to path ${chalk.white(m.path)}`)
+    .map((msg) => "  " + msg) // indent list
 
   if (linkedModulesMsg.length > 0) {
     const divider = padEnd("", 80, "—")
@@ -86,7 +98,7 @@ export async function processModules(
     log.info(divider)
   }
 
-  const tasks: BaseTask[] = flatten(await Bluebird.map(modules, module => handler(graph, module)))
+  const tasks: BaseTask[] = flatten(await Bluebird.map(modules, (module) => handler(graph, module)))
 
   if (watch && !!footerLog) {
     garden.events.on("taskGraphProcessing", () => {
@@ -113,7 +125,7 @@ export async function processModules(
     changeHandler = handler
   }
 
-  const buildDependecies = (await graph.getDependenciesForMany("build", modules.map(m => m.name), true)).build
+  const buildDependecies = (await graph.getDependenciesForMany("build", modules.map((m) => m.name), true)).build
   const modulesToWatch = uniqByName(buildDependecies.concat(modules))
   const modulesByName = keyBy(modulesToWatch, "name")
 
@@ -127,21 +139,30 @@ export async function processModules(
 
     garden.events.on("projectConfigChanged", async () => {
       if (await validateConfigChange(garden, log, garden.projectRoot, "changed")) {
-        log.info({ symbol: "info", msg: `Project configuration changed, reloading...` })
+        log.info({
+          symbol: "info",
+          msg: `Project configuration changed, reloading...`,
+        })
         resolve()
       }
     })
 
     garden.events.on("configAdded", async (event) => {
       if (await validateConfigChange(garden, log, event.path, "added")) {
-        log.info({ symbol: "info", msg: `Garden config added at ${event.path}, reloading...` })
+        log.info({
+          symbol: "info",
+          msg: `Garden config added at ${event.path}, reloading...`,
+        })
         resolve()
       }
     })
 
     garden.events.on("configRemoved", async (event) => {
       if (await validateConfigChange(garden, log, event.path, "removed")) {
-        log.info({ symbol: "info", msg: `Garden config at ${event.path} removed, reloading...` })
+        log.info({
+          symbol: "info",
+          msg: `Garden config at ${event.path} removed, reloading...`,
+        })
         resolve()
       }
     })
@@ -150,7 +171,11 @@ export async function processModules(
       if (await validateConfigChange(garden, log, event.path, "changed")) {
         const moduleNames = event.names
         const section = moduleNames.length === 1 ? moduleNames[0] : undefined
-        log.info({ symbol: "info", section, msg: `Module configuration changed, reloading...` })
+        log.info({
+          symbol: "info",
+          section,
+          msg: `Module configuration changed, reloading...`,
+        })
         resolve()
       }
     })
@@ -166,10 +191,12 @@ export async function processModules(
       // Make sure the modules' versions are up to date.
       const changedModules = await graph.getModules(changedModuleNames)
 
-      const moduleTasks = flatten(await Bluebird.map(changedModules, async (m) => {
-        modulesByName[m.name] = m
-        return changeHandler!(graph, m)
-      }))
+      const moduleTasks = flatten(
+        await Bluebird.map(changedModules, async (m) => {
+          modulesByName[m.name] = m
+          return changeHandler!(graph, m)
+        })
+      )
       await garden.processTasks(moduleTasks)
     })
   })
@@ -180,7 +207,6 @@ export async function processModules(
     taskResults: {}, // TODO: Return latest results for each task key processed between restarts?
     restartRequired: true,
   }
-
 }
 
 /**
@@ -192,9 +218,11 @@ export async function processModules(
  * Returns true if no configuration errors occurred.
  */
 async function validateConfigChange(
-  garden: Garden, log: LogEntry, changedPath: string, operationType: "added" | "changed" | "removed",
+  garden: Garden,
+  log: LogEntry,
+  changedPath: string,
+  operationType: "added" | "changed" | "removed"
 ): Promise<boolean> {
-
   try {
     const nextGarden = await Garden.factory(garden.projectRoot, garden.opts)
     await nextGarden.getConfigGraph()

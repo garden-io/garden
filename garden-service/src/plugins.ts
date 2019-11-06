@@ -39,10 +39,9 @@ export function loadPlugins(log: LogEntry, registeredPlugins: PluginMap, configs
     ordered = graph.overallOrder()
   } catch (err) {
     if (err.cyclePath) {
-      throw new PluginError(
-        `Found a circular dependency between registered plugins: ${err.cyclePath.join(" -> ")}`,
-        { cyclePath: err.cyclePath },
-      )
+      throw new PluginError(`Found a circular dependency between registered plugins: ${err.cyclePath.join(" -> ")}`, {
+        cyclePath: err.cyclePath,
+      })
     } else {
       throw err
     }
@@ -70,10 +69,9 @@ export function loadPlugins(log: LogEntry, registeredPlugins: PluginMap, configs
 
     if (plugin.base) {
       if (plugin.base === plugin.name) {
-        throw new PluginError(
-          `Plugin '${plugin.name}' references itself as a base plugin.`,
-          { pluginName: plugin.name },
-        )
+        throw new PluginError(`Plugin '${plugin.name}' references itself as a base plugin.`, {
+          pluginName: plugin.name,
+        })
       }
 
       const base = loadPlugin(plugin.base)
@@ -81,8 +79,8 @@ export function loadPlugins(log: LogEntry, registeredPlugins: PluginMap, configs
       if (!base) {
         throw new PluginError(
           `Plugin '${plugin.name}' specifies plugin '${plugin.base}' as a base, ` +
-          `but that plugin has not been registered.`,
-          { registeredPlugins: Object.keys(registeredPlugins), base: plugin.base },
+            `but that plugin has not been registered.`,
+          { registeredPlugins: Object.keys(registeredPlugins), base: plugin.base }
         )
       }
     }
@@ -93,7 +91,7 @@ export function loadPlugins(log: LogEntry, registeredPlugins: PluginMap, configs
       if (!depPlugin) {
         throw new PluginError(
           `Plugin '${plugin.name}' lists plugin '${dep}' as a dependency, but that plugin has not been registered.`,
-          { registeredPlugins: Object.keys(registeredPlugins), dependency: dep },
+          { registeredPlugins: Object.keys(registeredPlugins), dependency: dep }
         )
       }
     }
@@ -112,18 +110,15 @@ export function loadPlugins(log: LogEntry, registeredPlugins: PluginMap, configs
     const plugin = loadPlugin(config.name)
 
     if (!plugin) {
-      throw new ConfigurationError(
-        `Configured plugin '${config.name}' has not been registered.`,
-        {
-          name: config.name,
-          availablePlugins: Object.keys(registeredPlugins),
-        },
-      )
+      throw new ConfigurationError(`Configured plugin '${config.name}' has not been registered.`, {
+        name: config.name,
+        availablePlugins: Object.keys(registeredPlugins),
+      })
     }
   }
 
   // Resolve plugins against their base plugins
-  const resolvedPlugins = mapValues(loadedPlugins, p => resolvePlugin(p, loadedPlugins, configs))
+  const resolvedPlugins = mapValues(loadedPlugins, (p) => resolvePlugin(p, loadedPlugins, configs))
 
   // Resolve module type definitions
   return Object.values(resolveModuleDefinitions(resolvedPlugins, configs))
@@ -148,10 +143,7 @@ function resolvePlugin(plugin: GardenPlugin, loadedPlugins: PluginMap, configs: 
   }
 
   // Merge dependencies with base
-  resolved.dependencies = uniq([
-    ...(plugin.dependencies || []),
-    ...(base.dependencies || []),
-  ]).sort()
+  resolved.dependencies = uniq([...(plugin.dependencies || []), ...(base.dependencies || [])]).sort()
 
   // Merge plugin handlers
   resolved.handlers = { ...(plugin.handlers || {}) }
@@ -181,14 +173,14 @@ function resolvePlugin(plugin: GardenPlugin, loadedPlugins: PluginMap, configs: 
 
   // If the base is not expressly configured for the environment, we pull and coalesce its module declarations.
   // We also make sure the plugin doesn't redeclare a module type from the base.
-  resolved.createModuleTypes = [...plugin.createModuleTypes || []]
-  resolved.extendModuleTypes = [...plugin.extendModuleTypes || []]
+  resolved.createModuleTypes = [...(plugin.createModuleTypes || [])]
+  resolved.extendModuleTypes = [...(plugin.extendModuleTypes || [])]
 
   for (const spec of base.createModuleTypes || []) {
     if (findByName(plugin.createModuleTypes || [], spec.name)) {
       throw new PluginError(
         `Plugin '${plugin.name}' redeclares the '${spec.name}' module type, already declared by its base.`,
-        { plugin, base },
+        { plugin, base }
       )
     } else if (!baseIsConfigured) {
       resolved.createModuleTypes.push(spec)
@@ -238,14 +230,15 @@ export function getPluginBases(plugin: GardenPlugin, loadedPlugins: PluginMap): 
  * Recursively resolves all the base names for the given plugin.
  */
 export function getPluginBaseNames(name: string, loadedPlugins: PluginMap) {
-  return getPluginBases(loadedPlugins[name], loadedPlugins).map(p => p.name)
+  return getPluginBases(loadedPlugins[name], loadedPlugins).map((p) => p.name)
 }
 
 /**
  * Recursively resolves all the bases for the given module type, ordered from closest base to last.
  */
 export function getModuleTypeBases(
-  moduleType: ModuleTypeDefinition, moduleTypes: { [name: string]: ModuleTypeDefinition },
+  moduleType: ModuleTypeDefinition,
+  moduleTypes: { [name: string]: ModuleTypeDefinition }
 ): ModuleTypeDefinition[] {
   if (!moduleType.base) {
     return []
@@ -254,10 +247,10 @@ export function getModuleTypeBases(
   const base = moduleTypes[moduleType.base]
 
   if (!base) {
-    throw new RuntimeError(
-      `Unable to find base module type '${moduleType.base}' for module type '${name}'`,
-      { name, moduleTypes },
-    )
+    throw new RuntimeError(`Unable to find base module type '${moduleType.base}' for module type '${name}'`, {
+      name,
+      moduleTypes,
+    })
   }
 
   return [base, ...getModuleTypeBases(base, moduleTypes)]
@@ -268,24 +261,28 @@ export function getModuleTypeBases(
  * i.e. direct dependencies, and dependencies of those dependencies etc.
  */
 export function getPluginDependencies(plugin: GardenPlugin, loadedPlugins: PluginMap): GardenPlugin[] {
-  return uniq(flatten((plugin.dependencies || []).map(depName => {
-    const depPlugin = loadedPlugins[depName]
-    if (!depPlugin) {
-      throw new RuntimeError(`Unable to find dependency '${depName} for plugin '${plugin.name}'`, { plugin })
-    }
-    return [depPlugin, ...getPluginDependencies(depPlugin, loadedPlugins)]
-  })))
+  return uniq(
+    flatten(
+      (plugin.dependencies || []).map((depName) => {
+        const depPlugin = loadedPlugins[depName]
+        if (!depPlugin) {
+          throw new RuntimeError(`Unable to find dependency '${depName} for plugin '${plugin.name}'`, { plugin })
+        }
+        return [depPlugin, ...getPluginDependencies(depPlugin, loadedPlugins)]
+      })
+    )
+  )
 }
 
 interface ModuleDefinitionMap {
-  [moduleType: string]: { plugin: GardenPlugin, spec: ModuleTypeDefinition }
+  [moduleType: string]: { plugin: GardenPlugin; spec: ModuleTypeDefinition }
 }
 
 function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: ProviderConfig[]): PluginMap {
   // Collect module type declarations
   const graph = new DepGraph()
-  const moduleDefinitionMap: { [moduleType: string]: { plugin: GardenPlugin, spec: ModuleTypeDefinition }[] } = {}
-  const moduleExtensionMap: { [moduleType: string]: { plugin: GardenPlugin, spec: ModuleTypeExtension }[] } = {}
+  const moduleDefinitionMap: { [moduleType: string]: { plugin: GardenPlugin; spec: ModuleTypeDefinition }[] } = {}
+  const moduleExtensionMap: { [moduleType: string]: { plugin: GardenPlugin; spec: ModuleTypeExtension }[] } = {}
 
   for (const plugin of Object.values(resolvedPlugins)) {
     for (const spec of plugin.createModuleTypes || []) {
@@ -306,14 +303,14 @@ function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: ProviderC
 
   // Make sure only one _configured_ plugin declares each module type
   for (const [moduleType, definitions] of Object.entries(moduleDefinitionMap)) {
-    const configured = definitions.filter(d => configs.map(c => c.name).includes(d.plugin.name))
+    const configured = definitions.filter((d) => configs.map((c) => c.name).includes(d.plugin.name))
 
     if (configured.length > 1) {
-      const plugins = definitions.map(d => d.plugin.name)
+      const plugins = definitions.map((d) => d.plugin.name)
 
       throw new ConfigurationError(
         `Module type '${moduleType}' is declared in multiple plugins: ${plugins.join(", ")}.`,
-        { moduleType, plugins },
+        { moduleType, plugins }
       )
     }
   }
@@ -326,41 +323,43 @@ function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: ProviderC
   } catch (err) {
     if (err.cyclePath) {
       const plugins: string[] = err.cyclePath.map(
-        (name: string) => "'" + moduleDefinitionMap[name][0].plugin.name + "'",
+        (name: string) => "'" + moduleDefinitionMap[name][0].plugin.name + "'"
       )
 
       throw new PluginError(
         `Found circular dependency between module type bases (defined in plugin(s) ${naturalList(uniq(plugins))}): ` +
-        err.cyclePath.join(" -> "),
-        { cyclePath: err.cyclePath },
+          err.cyclePath.join(" -> "),
+        { cyclePath: err.cyclePath }
       )
     } else {
       throw err
     }
   }
 
-  ordered = ordered.filter(name => name in moduleDefinitionMap)
+  ordered = ordered.filter((name) => name in moduleDefinitionMap)
 
   const resolvedDefinitions: ModuleDefinitionMap = {}
 
   // Resolve the base for each module declaration (in dependency order)
-  const moduleDefinitions = fromPairs(ordered.map(name => {
-    const definitions = moduleDefinitionMap[name]
+  const moduleDefinitions = fromPairs(
+    ordered.map((name) => {
+      const definitions = moduleDefinitionMap[name]
 
-    const resolved = resolvedDefinitions[name] = resolveModuleDefinition(
-      definitions[0].plugin,
-      definitions[0].spec,
-      resolvedDefinitions,
-      resolvedPlugins,
-    )
+      const resolved = (resolvedDefinitions[name] = resolveModuleDefinition(
+        definitions[0].plugin,
+        definitions[0].spec,
+        resolvedDefinitions,
+        resolvedPlugins
+      ))
 
-    return [name, resolved]
-  }))
+      return [name, resolved]
+    })
+  )
 
   // Return the plugins with the resolved module definitions
-  return mapValues(resolvedPlugins, plugin => {
+  return mapValues(resolvedPlugins, (plugin) => {
     // Validate module extensions and add base handlers where appropriate
-    const extendModuleTypes = (plugin.extendModuleTypes || []).map(spec => {
+    const extendModuleTypes = (plugin.extendModuleTypes || []).map((spec) => {
       const moduleType = spec.name
       const definition = moduleDefinitions[moduleType]
 
@@ -372,7 +371,7 @@ function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: ProviderC
           The '${plugin.name}' plugin is likely missing a dependency declaration.
           Please report an issue with the author.
           `,
-          { moduleType, pluginName: plugin.name },
+          { moduleType, pluginName: plugin.name }
         )
       }
 
@@ -405,7 +404,7 @@ function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: ProviderC
 
     return {
       ...plugin,
-      createModuleTypes: (plugin.createModuleTypes || []).map(spec => resolvedDefinitions[spec.name].spec),
+      createModuleTypes: (plugin.createModuleTypes || []).map((spec) => resolvedDefinitions[spec.name].spec),
       extendModuleTypes,
     }
   })
@@ -415,7 +414,7 @@ function resolveModuleDefinition(
   plugin: GardenPlugin,
   spec: ModuleTypeDefinition,
   definitions: ModuleDefinitionMap,
-  resolvedPlugins: PluginMap,
+  resolvedPlugins: PluginMap
 ) {
   if (!spec.base) {
     // Just attach metadata to handlers and return
@@ -440,7 +439,7 @@ function resolveModuleDefinition(
       which cannot be found. The plugin is likely missing a dependency declaration.
       Please report an issue with the author.
       `,
-      { moduleType: spec.name, baseName: spec.base, pluginName: plugin.name },
+      { moduleType: spec.name, baseName: spec.base, pluginName: plugin.name }
     )
   }
 
@@ -465,7 +464,7 @@ function resolveModuleDefinition(
         pluginName: plugin.name,
         declaredByName: declaredBy,
         bases: pluginBases,
-      },
+      }
     )
   }
 
@@ -475,7 +474,7 @@ function resolveModuleDefinition(
     ...spec,
   }
 
-  const moduleBases = getModuleTypeBases(spec, mapValues(definitions, d => d.spec))
+  const moduleBases = getModuleTypeBases(spec, mapValues(definitions, (d) => d.spec))
 
   // Find the nearest base for each configured handler and attach it
   for (const [name, handler] of Object.entries(resolved.handlers)) {

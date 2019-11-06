@@ -12,8 +12,7 @@ import { Module } from "../../module"
 import { serviceStatusSchema } from "../../service"
 
 export interface DeleteServiceParams<M extends Module = Module, S extends Module = Module>
-  extends PluginServiceActionParamsBase<M, S> {
-}
+  extends PluginServiceActionParamsBase<M, S> {}
 
 export const deleteService = {
   description: dedent`

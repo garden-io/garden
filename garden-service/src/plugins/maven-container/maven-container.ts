@@ -54,43 +54,47 @@ export interface MavenContainerModule<
   S extends ContainerServiceSpec = ContainerServiceSpec,
   T extends ContainerTestSpec = ContainerTestSpec,
   W extends ContainerTaskSpec = ContainerTaskSpec
-  > extends Module<M, S, T, W> { }
+> extends Module<M, S, T, W> {}
 
 const mavenKeys = {
-  imageVersion: joi.string()
-    .description(dedent`
+  imageVersion: joi
+    .string()
+    .description(
+      dedent`
       Set this to override the default OpenJDK container image version. Make sure the image version matches the
       configured \`jdkVersion\`. Ignored if you provide your own Dockerfile.
-    `)
+    `
+    )
     .example("11-jdk"),
-  jarPath: joi.string()
+  jarPath: joi
+    .string()
     .required()
     .posixPath({ subPathOnly: true })
     .description("POSIX-style path to the packaged JAR artifact, relative to the module directory.")
     .example("target/my-module.jar"),
-  jdkVersion: joi.number()
+  jdkVersion: joi
+    .number()
     .integer()
     .allow(...Object.keys(openJdks))
     .default(8)
     .description("The JDK version to use."),
-  mvnOpts: joiArray(joi.string())
-    .description("Options to add to the `mvn package` command when building."),
+  mvnOpts: joiArray(joi.string()).description("Options to add to the `mvn package` command when building."),
 }
 
 const mavenContainerModuleSpecSchema = containerModuleSpecSchema.keys(mavenKeys)
-export const mavenContainerConfigSchema = providerConfigBaseSchema
-  .keys({
-    name: joiProviderName("maven-container"),
-  })
+export const mavenContainerConfigSchema = providerConfigBaseSchema.keys({
+  name: joiProviderName("maven-container"),
+})
 
 export const gardenPlugin = createGardenPlugin({
   name: "maven-container",
   dependencies: ["container"],
 
-  createModuleTypes: [{
-    name: "maven-container",
-    base: "container",
-    docs: dedent`
+  createModuleTypes: [
+    {
+      name: "maven-container",
+      base: "container",
+      docs: dedent`
       A specialized version of the [container](https://docs.garden.io/reference/module-types/container) module type
       that has special semantics for JAR files built with Maven.
 
@@ -104,13 +108,14 @@ export const gardenPlugin = createGardenPlugin({
       To use it, make sure to add the \`maven-container\` provider to your project configuration.
       The provider will automatically fetch and cache Maven and the appropriate OpenJDK version ahead of building.
     `,
-    schema: mavenContainerModuleSpecSchema,
-    handlers: {
-      configure: configureMavenContainerModule,
-      getBuildStatus,
-      build,
+      schema: mavenContainerModuleSpecSchema,
+      handlers: {
+        configure: configureMavenContainerModule,
+        getBuildStatus,
+        build,
+      },
     },
-  }],
+  ],
 })
 
 export async function configureMavenContainerModule(params: ConfigureModuleParams<MavenContainerModule>) {
@@ -167,13 +172,7 @@ async function build(params: BuildModuleParams<MavenContainerModule>) {
   const openJdk = openJdks[jdkVersion]
   const openJdkPath = await openJdk.getPath(log)
 
-  const mvnArgs = [
-    "package",
-    "--batch-mode",
-    "--projects", ":" + artifactId,
-    "--also-make",
-    ...mvnOpts,
-  ]
+  const mvnArgs = ["package", "--batch-mode", "--projects", ":" + artifactId, "--also-make", ...mvnOpts]
   const mvnCmdStr = "mvn " + mvnArgs.join(" ")
 
   // Maven has issues when running concurrent processes, so we're working around that with a lock.
@@ -193,10 +192,10 @@ async function build(params: BuildModuleParams<MavenContainerModule>) {
   const resolvedJarPath = resolve(module.path, jarPath)
 
   if (!(await pathExists(resolvedJarPath))) {
-    throw new RuntimeError(
-      `Could not find artifact at ${resolvedJarPath} after running '${mvnCmdStr}'`,
-      { jarPath, mvnArgs },
-    )
+    throw new RuntimeError(`Could not find artifact at ${resolvedJarPath} after running '${mvnCmdStr}'`, {
+      jarPath,
+      mvnArgs,
+    })
   }
 
   await copy(resolvedJarPath, resolve(module.buildPath, "app.jar"))

@@ -39,11 +39,11 @@ export type HotReloadableKind = "Deployment" | "DaemonSet" | "StatefulSet"
 export const hotReloadableKinds: HotReloadableKind[] = ["Deployment", "DaemonSet", "StatefulSet"]
 
 interface ConfigureHotReloadParams {
-  target: HotReloadableResource,
-  hotReloadSpec: ContainerHotReloadSpec,
-  hotReloadCommand?: string[],
-  hotReloadArgs?: string[],
-  containerName?: string,
+  target: HotReloadableResource
+  hotReloadSpec: ContainerHotReloadSpec
+  hotReloadCommand?: string[]
+  hotReloadArgs?: string[]
+  containerName?: string
 }
 
 /**
@@ -53,7 +53,11 @@ interface ConfigureHotReloadParams {
  * and an initContainer to perform the initial population of the emptyDir volume.
  */
 export function configureHotReload({
-  target, hotReloadSpec, hotReloadCommand, hotReloadArgs, containerName,
+  target,
+  hotReloadSpec,
+  hotReloadCommand,
+  hotReloadArgs,
+  containerName,
 }: ConfigureHotReloadParams) {
   const kind = <HotReloadableKind>target.kind
 
@@ -66,7 +70,7 @@ export function configureHotReload({
 
   // We're copying the target folder, not just its contents
   const syncConfig = hotReloadSpec.sync
-  const targets = syncConfig.map(pair => removeTrailingSlashes(pair.target))
+  const targets = syncConfig.map((pair) => removeTrailingSlashes(pair.target))
   const copyCommand = makeCopyCommand(targets)
 
   const initContainer = {
@@ -75,13 +79,15 @@ export function configureHotReload({
     command: ["/bin/sh", "-c", copyCommand],
     env: mainContainer.env || [],
     imagePullPolicy: "IfNotPresent",
-    volumeMounts: [{
-      name: syncVolumeName,
-      mountPath: "/.garden/hot_reload",
-    }],
+    volumeMounts: [
+      {
+        name: syncVolumeName,
+        mountPath: "/.garden/hot_reload",
+      },
+    ],
   }
 
-  const syncMounts = targets.map(t => {
+  const syncMounts = targets.map((t) => {
     return {
       name: syncVolumeName,
       mountPath: t,
@@ -94,13 +100,13 @@ export function configureHotReload({
       container.volumeMounts = []
     }
     // This any cast (and a couple below) are necessary because of flaws in the TS definitions in the client library.
-    container.volumeMounts.push(...<any>syncMounts)
+    container.volumeMounts.push(...(<any>syncMounts))
 
     if (!container.ports) {
       container.ports = []
     }
 
-    if (container.ports.find(p => p.containerPort === RSYNC_PORT)) {
+    if (container.ports.find((p) => p.containerPort === RSYNC_PORT)) {
       throw new Error(deline`
         ${kind} ${target.metadata.name} is configured for hot reload, but one of its containers uses
         port ${RSYNC_PORT}, which is reserved for internal use while hot reload is active. Please remove
@@ -125,19 +131,23 @@ export function configureHotReload({
       // K8s can be trusted to secure the port. - JE
       { name: "ALLOW", value: "0.0.0.0/0" },
     ],
-    volumeMounts: [{
-      name: syncVolumeName,
-      /**
-       * We mount at /data because the rsync image we're currently using is configured
-       * to use that path.
-       */
-      mountPath: "/data",
-    }],
-    ports: [{
-      name: RSYNC_PORT_NAME,
-      protocol: "TCP",
-      containerPort: RSYNC_PORT,
-    }],
+    volumeMounts: [
+      {
+        name: syncVolumeName,
+        /**
+         * We mount at /data because the rsync image we're currently using is configured
+         * to use that path.
+         */
+        mountPath: "/data",
+      },
+    ],
+    ports: [
+      {
+        name: RSYNC_PORT_NAME,
+        protocol: "TCP",
+        containerPort: RSYNC_PORT,
+      },
+    ],
   }
 
   // These any casts are necessary because of flaws in the TS definitions in the client library.
@@ -161,15 +171,18 @@ export function configureHotReload({
 /**
  * The hot reload action handler for containers.
  */
-export async function hotReloadContainer(
-  { ctx, log, service, module }: HotReloadServiceParams<ContainerModule>,
-): Promise<HotReloadServiceResult> {
+export async function hotReloadContainer({
+  ctx,
+  log,
+  service,
+  module,
+}: HotReloadServiceParams<ContainerModule>): Promise<HotReloadServiceResult> {
   const hotReloadSpec = module.spec.hotReload
 
   if (!hotReloadSpec) {
     throw new ConfigurationError(
       `Module ${module.name} must specify the \`hotReload\` key for service ${service.name} to be hot-reloadable.`,
-      { moduleName: module.name, serviceName: service.name },
+      { moduleName: module.name, serviceName: service.name }
     )
   }
 
@@ -196,7 +209,7 @@ export async function hotReloadContainer(
     namespace,
     provider,
   })
-  const list = res.items.filter(r => r.metadata.annotations![gardenAnnotationKey("hot-reload")] === "true")
+  const list = res.items.filter((r) => r.metadata.annotations![gardenAnnotationKey("hot-reload")] === "true")
 
   if (list.length === 0) {
     throw new RuntimeError(`Unable to find deployed instance of service ${service.name} with hot-reloading enabled`, {
@@ -205,7 +218,7 @@ export async function hotReloadContainer(
     })
   }
 
-  const workload = sortBy(list, r => r.metadata.creationTimestamp)[list.length - 1]
+  const workload = sortBy(list, (r) => r.metadata.creationTimestamp)[list.length - 1]
 
   await syncToService({
     log,
@@ -250,8 +263,7 @@ export function removeTrailingSlashes(path: string) {
 export function rsyncSourcePath(modulePath: string, sourcePath: string) {
   const path = resolvePath(modulePath, sourcePath)
 
-  return normalizeLocalRsyncPath(path)
-    .replace(/\/*$/, "/") // ensure (exactly one) trailing slash
+  return normalizeLocalRsyncPath(path).replace(/\/*$/, "/") // ensure (exactly one) trailing slash
 }
 
 /**
@@ -261,25 +273,22 @@ export function rsyncSourcePath(modulePath: string, sourcePath: string) {
  * @param target
  */
 function rsyncTargetPath(path: string) {
-  return path.replace(/^\/*/, "")
-    .replace(/\/*$/, "/")
+  return path.replace(/^\/*/, "").replace(/\/*$/, "/")
 }
 
 interface SyncToServiceParams {
-  ctx: KubernetesPluginContext,
-  service: Service,
-  hotReloadSpec: ContainerHotReloadSpec,
-  namespace: string,
-  workload: KubernetesWorkload,
-  log: LogEntry,
+  ctx: KubernetesPluginContext
+  service: Service
+  hotReloadSpec: ContainerHotReloadSpec
+  namespace: string
+  workload: KubernetesWorkload
+  log: LogEntry
 }
 
 /**
  * Ensure a tunnel is set up for connecting to the target service's sync container, and perform a sync.
  */
-export async function syncToService(
-  { ctx, service, hotReloadSpec, namespace, workload, log }: SyncToServiceParams,
-) {
+export async function syncToService({ ctx, service, hotReloadSpec, namespace, workload, log }: SyncToServiceParams) {
   const targetResource = `${workload.kind.toLowerCase()}/${workload.metadata.name}`
 
   const doSync = async () => {

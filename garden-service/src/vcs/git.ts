@@ -37,7 +37,7 @@ export function parseGitUrl(url: string) {
       deline`
         Repository URLs must contain a hash part pointing to a specific branch or tag
         (e.g. https://github.com/org/repo.git#master)`,
-      { repositoryUrl: url },
+      { repositoryUrl: url }
     )
   }
   const parsed = { repositoryUrl: parts[0], hash: parts[1] }
@@ -61,7 +61,7 @@ export class GitHandler extends VcsHandler {
     return async (...args: string[]) => {
       log.silly(`Calling git with args '${args.join(" ")}'`)
       const { stdout } = await exec("git", args, { cwd, maxBuffer: 10 * 1024 * 1024 })
-      return stdout.split("\n").filter(line => line.length > 0)
+      return stdout.split("\n").filter((line) => line.length > 0)
     }
   }
 
@@ -86,11 +86,14 @@ export class GitHandler extends VcsHandler {
     } catch (err) {
       if (err.exitCode === 128) {
         // Throw nice error when we detect that we're not in a repo root
-        throw new RuntimeError(deline`
+        throw new RuntimeError(
+          deline`
           Path ${path} is not in a git repository root. Garden must be run from within a git repo.
           Please run \`git init\` if you're starting a new project and repository, or move the project to an
           existing repository, and try again.
-        `, { path })
+        `,
+          { path }
+        )
       } else {
         throw err
       }
@@ -106,20 +109,23 @@ export class GitHandler extends VcsHandler {
     const gitRoot = await this.getRepoRoot(log, path)
 
     // List modified files, so that we can ensure we have the right hash for them later
-    const modified = new Set((await this.getModifiedFiles(git, path))
-      // The output here is relative to the git root, and not the directory `path`
-      .map(modifiedRelPath => resolve(gitRoot, modifiedRelPath)),
+    const modified = new Set(
+      (await this.getModifiedFiles(git, path))
+        // The output here is relative to the git root, and not the directory `path`
+        .map((modifiedRelPath) => resolve(gitRoot, modifiedRelPath))
     )
 
     // List tracked but ignored files (we currently exclude those as well, so we need to query that specially)
     const trackedButIgnored = new Set(
-      this.ignoreFiles.length === 0 ? [] : flatten(
-        await Promise.all(this.ignoreFiles.map(f => git("ls-files", "--ignored", "--exclude-per-directory", f))),
-      ),
+      this.ignoreFiles.length === 0
+        ? []
+        : flatten(
+            await Promise.all(this.ignoreFiles.map((f) => git("ls-files", "--ignored", "--exclude-per-directory", f)))
+          )
     )
 
     // List all submodule paths in the current repo
-    const submodulePaths = (await this.getSubmodules(gitRoot)).map(s => join(gitRoot, s.path))
+    const submodulePaths = (await this.getSubmodules(gitRoot)).map((s) => join(gitRoot, s.path))
 
     // We run ls-files for each ignoreFile and do a manual set-intersection (by counting elements in an object)
     // in order to optimize the flow.
@@ -165,8 +171,8 @@ export class GitHandler extends VcsHandler {
       // We push to the output array when all ls-files commands "agree" that it should be included,
       // and it passes through the include/exclude filters.
       if (
-        paths[resolvedPath] >= this.ignoreFiles.length
-        && (matchPath(filePath, include, exclude) || submodulePaths.includes(resolvedPath))
+        paths[resolvedPath] >= this.ignoreFiles.length &&
+        (matchPath(filePath, include, exclude) || submodulePaths.includes(resolvedPath))
       ) {
         files.push({ path: resolvedPath, hash })
       }
@@ -201,16 +207,19 @@ export class GitHandler extends VcsHandler {
     }
 
     // Resolve submodules
-    const withSubmodules = flatten(await Bluebird.map(files, async (f) => {
-      if (submodulePaths.includes(f.path)) {
-        // This path is a submodule, so we recursively call getFiles for that path again.
-        // Note: We apply include/exclude filters after listing files from submodule
-        return (await this.getFiles({ log, path: f.path, exclude: [] }))
-          .filter(submoduleFile => matchPath(relative(path, submoduleFile.path), include, exclude))
-      } else {
-        return [f]
-      }
-    }))
+    const withSubmodules = flatten(
+      await Bluebird.map(files, async (f) => {
+        if (submodulePaths.includes(f.path)) {
+          // This path is a submodule, so we recursively call getFiles for that path again.
+          // Note: We apply include/exclude filters after listing files from submodule
+          return (await this.getFiles({ log, path: f.path, exclude: [] })).filter((submoduleFile) =>
+            matchPath(relative(path, submoduleFile.path), include, exclude)
+          )
+        } else {
+          return [f]
+        }
+      })
+    )
 
     // Make sure we have a fresh hash for each file
     return Bluebird.map(withSubmodules, async (f) => {
@@ -223,7 +232,7 @@ export class GitHandler extends VcsHandler {
           // We filter symlinked directories out, since hashObject() will fail to
           // process them.
           if (!(await stat(resolvedPath)).isDirectory()) {
-            hash = await this.hashObject(resolvedPath) || ""
+            hash = (await this.hashObject(resolvedPath)) || ""
           }
         } catch (err) {
           // 128 = File no longer exists
@@ -235,11 +244,15 @@ export class GitHandler extends VcsHandler {
       } else {
         return { path: resolvedPath, hash: f.hash }
       }
-    }).filter(f => f.hash !== "")
+    }).filter((f) => f.hash !== "")
   }
 
   private async cloneRemoteSource(
-    log: LogEntry, remoteSourcesPath: string, repositoryUrl: string, hash: string, absPath: string,
+    log: LogEntry,
+    remoteSourcesPath: string,
+    repositoryUrl: string,
+    hash: string,
+    absPath: string
   ) {
     const git = this.gitCli(log, remoteSourcesPath)
     // Use `--recursive` to include submodules

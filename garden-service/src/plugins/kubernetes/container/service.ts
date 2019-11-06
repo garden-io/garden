@@ -37,22 +37,26 @@ export async function createServiceResources(service: ContainerService, namespac
   const ports = service.spec.ports
 
   if (ports.length) {
-    const serviceType = ports.filter(portSpec => !!portSpec.nodePort).length > 0 ? "NodePort" : "ClusterIP"
+    const serviceType = ports.filter((portSpec) => !!portSpec.nodePort).length > 0 ? "NodePort" : "ClusterIP"
 
-    addService(service.name, serviceType, ports.map(portSpec => {
-      const port: V1ServicePort = {
-        name: portSpec.name,
-        protocol: portSpec.protocol,
-        port: portSpec.servicePort,
-        targetPort: <any>portSpec.containerPort,
-      }
+    addService(
+      service.name,
+      serviceType,
+      ports.map((portSpec) => {
+        const port: V1ServicePort = {
+          name: portSpec.name,
+          protocol: portSpec.protocol,
+          port: portSpec.servicePort,
+          targetPort: <any>portSpec.containerPort,
+        }
 
-      if (portSpec.nodePort && portSpec.nodePort !== true) {
-        port.nodePort = portSpec.nodePort
-      }
+        if (portSpec.nodePort && portSpec.nodePort !== true) {
+          port.nodePort = portSpec.nodePort
+        }
 
-      return port
-    }))
+        return port
+      })
+    )
   }
 
   return services

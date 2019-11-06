@@ -73,9 +73,7 @@ export class BuildCommand extends Command<Args, Opts> {
     return { persistent }
   }
 
-  async action(
-    { args, opts, garden, log, footerLog }: CommandParams<Args, Opts>,
-  ): Promise<CommandResult<TaskResults>> {
+  async action({ args, opts, garden, log, footerLog }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
     if (this.server) {
       this.server.setGarden(garden)
     }
@@ -84,7 +82,7 @@ export class BuildCommand extends Command<Args, Opts> {
 
     const graph = await garden.getConfigGraph()
     const modules = await graph.getModules(args.modules)
-    const moduleNames = modules.map(m => m.name)
+    const moduleNames = modules.map((m) => m.name)
 
     const results = await processModules({
       garden,
@@ -96,9 +94,10 @@ export class BuildCommand extends Command<Args, Opts> {
       handler: async (_, module) => [new BuildTask({ garden, log, module, force: opts.force })],
       changeHandler: async (_, module) => {
         const dependantModules = (await graph.getDependants("build", module.name, true)).build
-        return [module].concat(dependantModules)
-          .filter(m => moduleNames.includes(m.name))
-          .map(m => new BuildTask({ garden, log, module: m, force: true }))
+        return [module]
+          .concat(dependantModules)
+          .filter((m) => moduleNames.includes(m.name))
+          .map((m) => new BuildTask({ garden, log, module: m, force: true }))
       },
     })
 

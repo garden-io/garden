@@ -23,13 +23,13 @@ export interface PluginCommandResult<T extends object = object> {
   errors?: Error[]
 }
 
-export const pluginCommandResultSchema = joi.object()
-  .keys({
-    result: joi.object()
-      .options({ allowUnknown: true })
-      .required(),
-    errors: joiArray(joi.any()),
-  })
+export const pluginCommandResultSchema = joi.object().keys({
+  result: joi
+    .object()
+    .options({ allowUnknown: true })
+    .required(),
+  errors: joiArray(joi.any()),
+})
 
 export interface PluginCommandHandler<T extends object = object> {
   (params: PluginCommandParams): PluginCommandResult<T> | Promise<PluginCommandResult<T>>
@@ -44,19 +44,21 @@ export interface PluginCommand {
   base?: PluginCommand
 }
 
-export const pluginCommandSchema = joi.object()
-  .keys({
-    name: joiIdentifier()
-      .required()
-      .description("The name of the command. Must be " + joiIdentifierDescription),
-    description: joi.string()
-      .required()
-      .max(80)
-      .description("A one-line description of the command (max 80 chars)."),
-    title: joi.alternatives(joi.string(), joi.func())
-      .description("A heading to print ahead of calling the command handler, or a function that returns it."),
-    handler: joi.func()
-      // TODO: see if we can define/output the function schema somehow
-      .description("The command handler."),
-    // TODO: allow arguments and options
-  })
+export const pluginCommandSchema = joi.object().keys({
+  name: joiIdentifier()
+    .required()
+    .description("The name of the command. Must be " + joiIdentifierDescription),
+  description: joi
+    .string()
+    .required()
+    .max(80)
+    .description("A one-line description of the command (max 80 chars)."),
+  title: joi
+    .alternatives(joi.string(), joi.func())
+    .description("A heading to print ahead of calling the command handler, or a function that returns it."),
+  handler: joi
+    .func()
+    // TODO: see if we can define/output the function schema somehow
+    .description("The command handler."),
+  // TODO: allow arguments and options
+})

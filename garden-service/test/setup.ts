@@ -12,7 +12,7 @@ try {
     // level: LogLevel.debug,
     // writers: [new BasicTerminalWriter()],
   })
-} catch (_) { }
+} catch (_) {}
 
 // Global hooks
 before(async function(this: any) {
@@ -23,7 +23,7 @@ before(async function(this: any) {
   await makeTestGardenA()
 })
 
-beforeEach(() => { })
+beforeEach(() => {})
 afterEach(() => {
   td.reset()
   timekeeper.reset()

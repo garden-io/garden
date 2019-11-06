@@ -11,7 +11,7 @@ import { dedent } from "../../../util/string"
 import { PrimitiveMap } from "../../../config/common"
 import { DashboardPage, environmentStatusSchema } from "../../../config/status"
 
-export interface GetEnvironmentStatusParams extends PluginActionParamsBase { }
+export interface GetEnvironmentStatusParams extends PluginActionParamsBase {}
 
 export interface EnvironmentStatus<T extends PrimitiveMap = PrimitiveMap> {
   ready: boolean
@@ -20,7 +20,10 @@ export interface EnvironmentStatus<T extends PrimitiveMap = PrimitiveMap> {
   outputs: T
 }
 
-export const defaultEnvironmentStatus: EnvironmentStatus = { ready: true, outputs: {} }
+export const defaultEnvironmentStatus: EnvironmentStatus = {
+  ready: true,
+  outputs: {},
+}
 
 export interface EnvironmentStatusMap {
   [providerName: string]: EnvironmentStatus

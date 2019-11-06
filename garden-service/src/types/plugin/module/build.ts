@@ -11,7 +11,7 @@ import { Module } from "../../module"
 import { PluginModuleActionParamsBase, moduleActionParamsSchema } from "../base"
 import { joi } from "../../../config/common"
 
-export interface BuildModuleParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> { }
+export interface BuildModuleParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> {}
 
 export interface BuildResult {
   buildLog?: string
@@ -30,20 +30,16 @@ export const build = {
 
   paramsSchema: moduleActionParamsSchema,
 
-  resultSchema: joi.object()
-    .keys({
-      buildLog: joi.string()
-        .allow("")
-        .description("The full log from the build."),
-      fetched: joi.boolean()
-        .description("Set to true if the build was fetched from a remote registry."),
-      fresh: joi.boolean()
-        .description(
-          "Set to true if the build was performed, false if it was already built, or fetched from a registry",
-        ),
-      version: joi.string()
-        .description("The version that was built."),
-      details: joi.object()
-        .description("Additional information, specific to the provider."),
-    }),
+  resultSchema: joi.object().keys({
+    buildLog: joi
+      .string()
+      .allow("")
+      .description("The full log from the build."),
+    fetched: joi.boolean().description("Set to true if the build was fetched from a remote registry."),
+    fresh: joi
+      .boolean()
+      .description("Set to true if the build was performed, false if it was already built, or fetched from a registry"),
+    version: joi.string().description("The version that was built."),
+    details: joi.object().description("Additional information, specific to the provider."),
+  }),
 }

@@ -10,13 +10,7 @@ import { difference } from "lodash"
 import dedent = require("dedent")
 import chalk from "chalk"
 
-import {
-  Command,
-  StringsParameter,
-  CommandResult,
-  CommandParams,
-  ParameterValues,
-} from "../base"
+import { Command, StringsParameter, CommandResult, CommandParams, ParameterValues } from "../base"
 import { SourceConfig } from "../../config/project"
 import { ParameterError } from "../../exceptions"
 import { pruneRemoteSources } from "./helpers"
@@ -54,40 +48,51 @@ export class UpdateRemoteModulesCommand extends Command<Args> {
   }
 }
 
-export async function updateRemoteModules(
-  { garden, log, args }: { garden: Garden, log: LogEntry, args: ParameterValues<Args> },
-): Promise<CommandResult<SourceConfig[]>> {
-
+export async function updateRemoteModules({
+  garden,
+  log,
+  args,
+}: {
+  garden: Garden
+  log: LogEntry
+  args: ParameterValues<Args>
+}): Promise<CommandResult<SourceConfig[]>> {
   const { modules: moduleNames } = args
   const graph = await garden.getConfigGraph()
   const modules = await graph.getModules(moduleNames)
 
-  const moduleSources = <SourceConfig[]>modules
-    .filter(hasRemoteSource)
-    .filter(src => moduleNames ? moduleNames.includes(src.name) : true)
+  const moduleSources = <SourceConfig[]>(
+    modules.filter(hasRemoteSource).filter((src) => (moduleNames ? moduleNames.includes(src.name) : true))
+  )
 
-  const names = moduleSources.map(src => src.name)
+  const names = moduleSources.map((src) => src.name)
 
   const diff = difference(moduleNames, names)
   if (diff.length > 0) {
     const modulesWithRemoteSource = (await graph.getModules()).filter(hasRemoteSource).sort()
 
-    throw new ParameterError(
-      `Expected module(s) ${chalk.underline(diff.join(","))} to have a remote source.`,
-      {
-        modulesWithRemoteSource,
-        input: moduleNames ? moduleNames.sort() : undefined,
-      },
-    )
+    throw new ParameterError(`Expected module(s) ${chalk.underline(diff.join(","))} to have a remote source.`, {
+      modulesWithRemoteSource,
+      input: moduleNames ? moduleNames.sort() : undefined,
+    })
   }
 
   // TODO Update remotes in parallel. Currently not possible since updating might
   // trigger a username and password prompt from git.
   for (const { name, repositoryUrl } of moduleSources) {
-    await garden.vcs.updateRemoteSource({ name, url: repositoryUrl, sourceType: "module", log })
+    await garden.vcs.updateRemoteSource({
+      name,
+      url: repositoryUrl,
+      sourceType: "module",
+      log,
+    })
   }
 
-  await pruneRemoteSources({ gardenDirPath: garden.gardenDirPath, type: "module", sources: moduleSources })
+  await pruneRemoteSources({
+    gardenDirPath: garden.gardenDirPath,
+    type: "module",
+    sources: moduleSources,
+  })
 
   return { result: moduleSources }
 }

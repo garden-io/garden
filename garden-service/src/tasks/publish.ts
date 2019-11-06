@@ -37,12 +37,14 @@ export class PublishTask extends BaseTask {
     if (!this.module.allowPublish) {
       return []
     }
-    return [new BuildTask({
-      garden: this.garden,
-      log: this.log,
-      module: this.module,
-      force: this.forceBuild,
-    })]
+    return [
+      new BuildTask({
+        garden: this.garden,
+        log: this.log,
+        module: this.module,
+        force: this.forceBuild,
+      }),
+    ]
   }
 
   getName() {
@@ -80,7 +82,10 @@ export class PublishTask extends BaseTask {
     }
 
     if (result.published) {
-      log.setSuccess({ msg: chalk.green(result.message || `Ready`), append: true })
+      log.setSuccess({
+        msg: chalk.green(result.message || `Ready`),
+        append: true,
+      })
     } else {
       log.setWarn({ msg: result.message, append: true })
     }

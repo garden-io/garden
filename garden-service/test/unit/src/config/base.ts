@@ -28,7 +28,8 @@ describe("loadConfig", () => {
       async () => await loadConfig(projectPath, resolve(projectPath, "invalid-syntax-module")),
       (err) => {
         expect(err.message).to.match(/Could not parse/)
-      })
+      }
+    )
   })
 
   // TODO: test more cases
@@ -46,10 +47,7 @@ describe("loadConfig", () => {
         environments: [
           {
             name: "local",
-            providers: [
-              { name: "test-plugin" },
-              { name: "test-plugin-b" },
-            ],
+            providers: [{ name: "test-plugin" }, { name: "test-plugin-b" }],
           },
           {
             name: "other",
@@ -86,18 +84,22 @@ describe("loadConfig", () => {
             dependencies: [],
           },
           services: [{ name: "service-a" }],
-          tasks: [{
-            name: "task-a",
-            command: ["echo", "OK"],
-          }],
-          tests: [{
-            name: "unit",
-            command: ["echo", "OK"],
-          },
-          {
-            name: "integration",
-            command: ["echo", "OK"],
-          }],
+          tasks: [
+            {
+              name: "task-a",
+              command: ["echo", "OK"],
+            },
+          ],
+          tests: [
+            {
+              name: "unit",
+              command: ["echo", "OK"],
+            },
+            {
+              name: "integration",
+              command: ["echo", "OK"],
+            },
+          ],
         },
 
         serviceConfigs: [],
@@ -120,10 +122,7 @@ describe("loadConfig", () => {
         environments: [
           {
             name: "local",
-            providers: [
-              { name: "test-plugin" },
-              { name: "test-plugin-b" },
-            ],
+            providers: [{ name: "test-plugin" }, { name: "test-plugin-b" }],
           },
           {
             name: "other",
@@ -175,9 +174,7 @@ describe("loadConfig", () => {
         exclude: undefined,
         repositoryUrl: undefined,
         build: {
-          dependencies: [
-            { name: "module-from-project-config", copy: [] },
-          ],
+          dependencies: [{ name: "module-from-project-config", copy: [] }],
         },
         outputs: {},
         path: modulePathAMultiple,
@@ -185,9 +182,7 @@ describe("loadConfig", () => {
         spec: {
           build: {
             command: ["echo", "A1"],
-            dependencies: [
-              { name: "module-from-project-config", copy: [] },
-            ],
+            dependencies: [{ name: "module-from-project-config", copy: [] }],
           },
           services: [{ name: "service-a1" }],
           tests: [{ name: "unit", command: ["echo", "OK"] }],
@@ -239,10 +234,7 @@ describe("loadConfig", () => {
         environments: [
           {
             name: "local",
-            providers: [
-              { name: "test-plugin" },
-              { name: "test-plugin-b" },
-            ],
+            providers: [{ name: "test-plugin" }, { name: "test-plugin-b" }],
           },
           {
             name: "other",
@@ -291,14 +283,8 @@ describe("loadConfig", () => {
         path: projectPath,
         configPath: resolve(projectPath, "garden.yml"),
         name: "test-project-a",
-        environments: [
-          { name: "local" },
-          { name: "other" },
-        ],
-        providers: [
-          { name: "test-plugin", environments: ["local"] },
-          { name: "test-plugin-b" },
-        ],
+        environments: [{ name: "local" }, { name: "other" }],
+        providers: [{ name: "test-plugin", environments: ["local"] }, { name: "test-plugin-b" }],
       },
     ])
   })
@@ -308,7 +294,8 @@ describe("loadConfig", () => {
       async () => await loadConfig(projectPathFlat, modulePathFlatInvalid),
       (err) => {
         expect(err.message).to.match(/Unknown config kind/)
-      })
+      }
+    )
   })
 
   it("should throw an error when parsing a config file defining multiple projects", async () => {
@@ -316,7 +303,8 @@ describe("loadConfig", () => {
       async () => await loadConfig(projectPathDuplicateProjects, projectPathDuplicateProjects),
       (err) => {
         expect(err.message).to.match(/Multiple project declarations/)
-      })
+      }
+    )
   })
 
   it("should return [] if config file is not found", async () => {

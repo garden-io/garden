@@ -151,7 +151,7 @@ async function createProxy(garden: Garden, log: LogEntry, service: Service, spec
             remote && writeToRemote(remote, data)
           })
           // Promises are appropriately handled in the getRemote function
-          .catch(() => { })
+          .catch(() => {})
       }
     })
 

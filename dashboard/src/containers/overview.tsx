@@ -16,19 +16,13 @@ import PageError from "../components/page-error"
 import { ModuleCard, Props as ModuleProps } from "../components/entity-cards/module"
 import EntityResult from "./entity-result"
 import ViewIngress from "../components/view-ingress"
-import {
-  Service,
-  Test,
-  Task,
-  Module,
-  useApi,
-} from "../contexts/api"
+import { Service, Test, Task, Module, useApi } from "../contexts/api"
 import Spinner from "../components/spinner"
 import { useUiState } from "../contexts/ui"
 import { useConfig } from "../util/hooks"
 
 const Overview = styled.div`
-  padding-top: .5rem;
+  padding-top: 0.5rem;
 `
 
 const Modules = styled.div`
@@ -40,9 +34,9 @@ const Modules = styled.div`
 `
 
 export type Entity = {
-  name?: string;
-  state?: ServiceState | RunState;
-  dependencies: string[];
+  name?: string
+  state?: ServiceState | RunState
+  dependencies: string[]
 }
 
 const mapServices = (serviceEntities: Service[]): ModuleProps["serviceCardProps"] => {
@@ -89,9 +83,7 @@ export default () => {
     state: {
       overview: { selectedIngress, selectedEntity },
     },
-    actions: {
-      selectEntity,
-    },
+    actions: { selectEntity },
   } = useUiState()
 
   useConfig(dispatch, requestStates.config)
@@ -112,9 +104,9 @@ export default () => {
   }
 
   const moduleProps: ModuleProps[] = Object.values(modules).map((module: Module) => {
-    const serviceEntities = module.services.map(serviceKey => services[serviceKey]) || []
-    const testEntities = module.tests.map(testKey => tests[testKey]) || []
-    const taskEntities = module.tasks.map(taskKey => tasks[taskKey]) || []
+    const serviceEntities = module.services.map((serviceKey) => services[serviceKey]) || []
+    const testEntities = module.tests.map((testKey) => tests[testKey]) || []
+    const taskEntities = module.tasks.map((taskKey) => tasks[taskKey]) || []
 
     return {
       name: module.name,
@@ -134,23 +126,14 @@ export default () => {
       <div className="row">
         <div className="col-xs">
           <Modules>
-            {moduleProps.map(props => (
-              <ModuleCard
-                {...props}
-                key={props.name}
-              />
+            {moduleProps.map((props) => (
+              <ModuleCard {...props} key={props.name} />
             ))}
           </Modules>
         </div>
-        {selectedIngress &&
-          (
-            <div className="col-lg visible-lg-block">
-              {selectedIngress &&
-                <ViewIngress ingress={selectedIngress} />
-              }
-            </div>
-          )
-        }
+        {selectedIngress && (
+          <div className="col-lg visible-lg-block">{selectedIngress && <ViewIngress ingress={selectedIngress} />}</div>
+        )}
         {selectedEntity && (
           <div className="col-xs-5 col-sm-5 col-md-4 col-lg-4 col-xl-4">
             <EntityResult
@@ -162,6 +145,6 @@ export default () => {
           </div>
         )}
       </div>
-    </Overview >
+    </Overview>
   )
 }

@@ -6,12 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  Command,
-  CommandParams,
-  CommandResult,
-  Parameter,
-} from "./base"
+import { Command, CommandParams, CommandResult, Parameter } from "./base"
 import stringWidth = require("string-width")
 import { maxBy, zip } from "lodash"
 import CliTable from "cli-table3"
@@ -21,10 +16,21 @@ import chalk from "chalk"
 
 const tableConfig: CliTable.TableConstructorOptions = {
   chars: {
-    "top": "", "top-mid": "", "top-left": "", "top-right": "",
-    "bottom": "", "bottom-mid": "", "bottom-left": "", "bottom-right": "",
-    "left": "", "left-mid": "", "mid": " ", "mid-mid": "",
-    "right": "", "right-mid": "", "middle": "",
+    "top": "",
+    "top-mid": "",
+    "top-left": "",
+    "top-right": "",
+    "bottom": "",
+    "bottom-mid": "",
+    "bottom-left": "",
+    "bottom-right": "",
+    "left": "",
+    "left-mid": "",
+    "mid": " ",
+    "mid-mid": "",
+    "right": "",
+    "right-mid": "",
+    "middle": "",
   },
   wordWrap: true,
   truncate: " ", // We need this to prevent ellipsis (empty string does not work)
@@ -41,13 +47,13 @@ export class OptionsCommand extends Command {
     // Show both global options and hidden commands (version and help) in the output
     const allOpts = { ...GLOBAL_OPTIONS, ...HIDDEN_OPTIONS }
     const sortedOpts = Object.keys(allOpts).sort()
-    const optNames = sortedOpts.map(optName => {
+    const optNames = sortedOpts.map((optName) => {
       const option = <Parameter<any>>allOpts[optName]
       const alias = option.alias ? `-${option.alias}, ` : ""
       return chalk.green(`  ${alias}--${optName}  `)
     })
 
-    const helpTexts = sortedOpts.map(optName => {
+    const helpTexts = sortedOpts.map((optName) => {
       const option = <Parameter<any>>allOpts[optName]
       let out = option.help
       let hints = ""
@@ -62,9 +68,12 @@ export class OptionsCommand extends Command {
       return out + chalk.gray(hints)
     })
 
-    const nameColWidth = stringWidth(maxBy(optNames, n => stringWidth(n)) || "") + 1
+    const nameColWidth = stringWidth(maxBy(optNames, (n) => stringWidth(n)) || "") + 1
     const textColWidth = helpTextMaxWidth() - nameColWidth
-    const table = new CliTable({ ...tableConfig, colWidths: [nameColWidth, textColWidth] }) as CliTable.HorizontalTable
+    const table = new CliTable({
+      ...tableConfig,
+      colWidths: [nameColWidth, textColWidth],
+    }) as CliTable.HorizontalTable
 
     table.push(...zip(optNames, helpTexts))
 

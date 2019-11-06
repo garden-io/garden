@@ -18,22 +18,20 @@ export interface GetSecretResult {
   value: string | null
 }
 
-export const getSecretParamsSchema = actionParamsSchema
-  .keys({
-    key: joi.string()
-      .description("A unique identifier for the secret."),
-  })
+export const getSecretParamsSchema = actionParamsSchema.keys({
+  key: joi.string().description("A unique identifier for the secret."),
+})
 
 export const getSecret = {
   description: dedent`
     Retrieve a secret value for this plugin in the current environment (as set via \`setSecret\`).
   `,
   paramsSchema: getSecretParamsSchema,
-  resultSchema: joi.object()
-    .keys({
-      value: joi.string()
-        .allow(null)
-        .required()
-        .description("The config value found for the specified key (as string), or null if not found."),
-    }),
+  resultSchema: joi.object().keys({
+    value: joi
+      .string()
+      .allow(null)
+      .required()
+      .description("The config value found for the specified key (as string), or null if not found."),
+  }),
 }

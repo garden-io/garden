@@ -10,36 +10,16 @@ import React from "react"
 import { Facebook as ContentLoader } from "react-content-loader"
 import { FieldWrap, Field, Key, Value } from "./common"
 import Ingresses from "../ingresses"
-import {
-  EntityCardWrap,
-  Header,
-  Content,
-  Name,
-  StateLabel,
-  Label,
-} from "./common"
+import { EntityCardWrap, Header, Content, Name, StateLabel, Label } from "./common"
 import { Service } from "../../contexts/api"
 
-export type Props = Pick<Service["config"],
-  "name" |
-  "dependencies"
-> & Pick<Service["status"],
-  "ingresses" |
-  "state"
-> & {
-  isLoading: boolean,
-  showInfo: boolean,
-}
+export type Props = Pick<Service["config"], "name" | "dependencies"> &
+  Pick<Service["status"], "ingresses" | "state"> & {
+    isLoading: boolean
+    showInfo: boolean
+  }
 
-export const ServiceCard = ({
-  name,
-  dependencies,
-  state,
-  ingresses,
-  isLoading,
-  showInfo,
-}: Props) => {
-
+export const ServiceCard = ({ name, dependencies, state, ingresses, isLoading, showInfo }: Props) => {
   return (
     <EntityCardWrap>
       <Header>
@@ -47,16 +27,10 @@ export const ServiceCard = ({
           <Label>SERVICE</Label>
           <Name>{name}</Name>
         </div>
-        {state && (
-          <StateLabel state={state}>
-            {state}
-          </StateLabel>
-        )}
+        {state && <StateLabel state={state}>{state}</StateLabel>}
       </Header>
       <Content>
-        {isLoading && (
-          <ContentLoader height={100} />
-        )}
+        {isLoading && <ContentLoader height={100} />}
         {!isLoading && (
           <FieldWrap visible={showInfo}>
             <Field inline visible={dependencies.length > 0}>

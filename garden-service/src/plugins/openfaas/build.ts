@@ -28,7 +28,11 @@ export async function getOpenfaasModuleBuildStatus({ ctx, log, module }: GetBuil
   // We need to do an OpenFaas build before getting the container build status
   await buildOpenfaasFunction(<OpenFaasProvider>ctx.provider, k8sProvider, module, log)
 
-  return k8sGetContainerBuildStatus({ ctx: k8sCtx, log, module: containerModule })
+  return k8sGetContainerBuildStatus({
+    ctx: k8sCtx,
+    log,
+    module: containerModule,
+  })
 }
 
 export async function buildOpenfaasModule({ ctx, log, module }: BuildModuleParams<OpenFaasModule>) {
@@ -38,13 +42,20 @@ export async function buildOpenfaasModule({ ctx, log, module }: BuildModuleParam
 
   const containerModule = getContainerModule(module)
   const k8sCtx = { ...ctx, provider: k8sProvider }
-  const result = await k8sBuildContainer({ ctx: k8sCtx, log, module: containerModule })
+  const result = await k8sBuildContainer({
+    ctx: k8sCtx,
+    log,
+    module: containerModule,
+  })
 
   return { fresh: true, buildLog: buildLog + "\n" + result.buildLog }
 }
 
 export async function writeStackFile(
-  provider: OpenFaasProvider, k8sProvider: KubernetesProvider, module: OpenFaasModule, envVars: PrimitiveMap,
+  provider: OpenFaasProvider,
+  k8sProvider: KubernetesProvider,
+  module: OpenFaasModule,
+  envVars: PrimitiveMap
 ) {
   const containerModule = getContainerModule(module)
   const image = await containerHelpers.getDeploymentImageId(containerModule, k8sProvider.config.deploymentRegistry)
@@ -71,7 +82,10 @@ export async function writeStackFile(
  * Writes the stack file and builds the OpenFaaS function container with the OpenFaaS CLI
  */
 async function buildOpenfaasFunction(
-  provider: OpenFaasProvider, k8sProvider: KubernetesProvider, module: OpenFaasModule, log: LogEntry,
+  provider: OpenFaasProvider,
+  k8sProvider: KubernetesProvider,
+  module: OpenFaasModule,
+  log: LogEntry
 ) {
   await writeStackFile(provider, k8sProvider, module, {})
 
@@ -80,7 +94,6 @@ async function buildOpenfaasFunction(
     cwd: module.buildPath,
     args: ["build", "--shrinkwrap", "-f", stackFilename],
   })
-
 }
 
 function getExternalGatewayUrl(provider: OpenFaasProvider) {

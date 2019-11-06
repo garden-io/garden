@@ -31,13 +31,17 @@ describe("commands.validate", () => {
     const log = garden.log
     const command = new ValidateCommand()
 
-    await expectError(async () => await command.action({
-      garden,
-      log,
-      headerLog: log,
-      footerLog: log,
-      args: {},
-      opts: withDefaultGlobalOpts({}),
-    }), "configuration")
+    await expectError(
+      async () =>
+        await command.action({
+          garden,
+          log,
+          headerLog: log,
+          footerLog: log,
+          args: {},
+          opts: withDefaultGlobalOpts({}),
+        }),
+      "configuration"
+    )
   })
 })

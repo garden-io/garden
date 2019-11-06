@@ -15,14 +15,7 @@ import { GetTaskResultCommandResult } from "garden-service/build/src/commands/ge
 import { ConfigDump } from "garden-service/build/src/garden"
 import { GetTestResultCommandResult } from "garden-service/build/src/commands/get/get-test-result"
 import { GraphOutput } from "garden-service/build/src/commands/get/get-graph"
-import {
-  Entities,
-  Module,
-  Service,
-  Task,
-  Test,
-  ApiDispatch,
-} from "../contexts/api"
+import { Entities, Module, Service, Task, Test, ApiDispatch } from "../contexts/api"
 import {
   fetchLogs,
   fetchStatus,
@@ -67,16 +60,15 @@ function processConfig(entities: Entities, config: ConfigDump) {
   let tests: { [testKey: string]: Test } = {}
 
   for (const cfg of config.moduleConfigs) {
-
     const module: Module = {
       name: cfg.name,
       type: cfg.type,
       path: cfg.path,
       repositoryUrl: cfg.repositoryUrl,
       description: cfg.description,
-      services: cfg.serviceConfigs.map(service => service.name),
-      tests: cfg.testConfigs.map(test => `${cfg.name}.${test.name}`),
-      tasks: cfg.taskConfigs.map(task => task.name),
+      services: cfg.serviceConfigs.map((service) => service.name),
+      tests: cfg.testConfigs.map((test) => `${cfg.name}.${test.name}`),
+      tasks: cfg.taskConfigs.map((task) => task.name),
       taskState: "taskComplete",
     }
     modules[cfg.name] = module
@@ -102,7 +94,7 @@ function processConfig(entities: Entities, config: ConfigDump) {
     }
   }
 
-  return produce(entities, draft => {
+  return produce(entities, (draft) => {
     draft.modules = modules
     draft.services = services
     draft.tests = tests
@@ -130,7 +122,7 @@ export async function loadLogs(dispatch: ApiDispatch, serviceNames: string[]) {
 }
 
 function processLogs(entities: Entities, logs: ServiceLogEntry[]) {
-  return produce(entities, draft => {
+  return produce(entities, (draft) => {
     draft.logs = groupBy(logs, "serviceName")
   })
 }
@@ -154,7 +146,7 @@ export async function loadStatus(dispatch: ApiDispatch) {
 }
 
 function processStatus(entities: Entities, status: StatusCommandResult) {
-  return produce(entities, draft => {
+  return produce(entities, (draft) => {
     for (const serviceName of Object.keys(status.services)) {
       draft.services[serviceName] = {
         ...draft.services[serviceName],
@@ -200,7 +192,7 @@ export async function loadTaskResult({ dispatch, ...fetchParams }: LoadTaskResul
 }
 
 function processTaskResult(entities: Entities, result: GetTaskResultCommandResult) {
-  return produce(entities, draft => {
+  return produce(entities, (draft) => {
     if (result) {
       draft.tasks[result.taskName] = {
         ...draft.tasks[result.taskName],
@@ -233,7 +225,7 @@ export async function loadTestResult({ dispatch, ...fetchParams }: LoadTestResul
 }
 
 function processTestResult(entities: Entities, result: GetTestResultCommandResult) {
-  return produce(entities, draft => {
+  return produce(entities, (draft) => {
     if (result) {
       // Test names are not unique so we store the data under a unique test key
       const testKey = getTestKey({ testName: result.testName, moduleName: result.moduleName })
@@ -264,7 +256,7 @@ export async function loadGraph(dispatch: ApiDispatch) {
 }
 
 function processGraph(entities: Entities, graph: GraphOutput) {
-  return produce(entities, draft => {
+  return produce(entities, (draft) => {
     draft.graph = graph
   })
 }

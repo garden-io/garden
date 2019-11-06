@@ -49,12 +49,7 @@ import {
   checkForStaticDir,
 } from "./helpers"
 import { defaultEnvironments, ProjectConfig } from "../config/project"
-import {
-  ERROR_LOG_FILENAME,
-  DEFAULT_API_VERSION,
-  DEFAULT_GARDEN_DIR_NAME,
-  LOGS_DIR_NAME,
-} from "../constants"
+import { ERROR_LOG_FILENAME, DEFAULT_API_VERSION, DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME } from "../constants"
 import stringify = require("json-stringify-safe")
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 import { AnalyticsHandler } from "../analytics/analytics"
@@ -135,8 +130,7 @@ export const GLOBAL_OPTIONS = {
     help: deline`
       Set logger level. Values can be either string or numeric and are prioritized from 0 to 5
       (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5.`,
-    hints:
-      "[choice] [default: info] [error || 0, warn || 1, info || 2, verbose || 3, debug || 4, silly || 5]",
+    hints: "[choice] [default: info] [error || 0, warn || 1, info || 2, verbose || 3, debug || 4, silly || 5]",
     defaultValue: LogLevel[LogLevel.info],
   }),
   "output": new ChoicesParameter({
@@ -152,7 +146,7 @@ export const GLOBAL_OPTIONS = {
 
 export type GlobalOptions = typeof GLOBAL_OPTIONS
 
-function initLogger({ level, loggerType, emoji }: { level: LogLevel, loggerType: LoggerType, emoji: boolean }) {
+function initLogger({ level, loggerType, emoji }: { level: LogLevel; loggerType: LoggerType; emoji: boolean }) {
   const writer = getWriterInstance(loggerType)
   const writers = writer ? [writer] : undefined
   return Logger.initialize({ level, writers, useEmoji: emoji })
@@ -166,7 +160,7 @@ export interface ParseResults {
 
 interface SywacParseResults extends ParseResults {
   output: string
-  details: { logger: Logger, result?: CommandResult }
+  details: { logger: Logger; result?: CommandResult }
 }
 
 export class GardenCli {
@@ -192,10 +186,10 @@ export class GardenCli {
       .outputSettings({ maxWidth: helpTextMaxWidth() })
       .style(styleConfig)
 
-    const commands = sortBy(coreCommands, c => c.name)
+    const commands = sortBy(coreCommands, (c) => c.name)
     const globalOptions = Object.entries(GLOBAL_OPTIONS)
 
-    commands.forEach(command => this.addCommand(command, this.program))
+    commands.forEach((command) => this.addCommand(command, this.program))
     globalOptions.forEach(([key, opt]) => this.addGlobalOption(key, opt))
   }
 
@@ -204,9 +198,19 @@ export class GardenCli {
       return
     }
     const logConfigs: FileWriterConfig[] = [
-      { logFilePath: join(root, ERROR_LOG_FILENAME), truncatePrevious: true, level: LogLevel.error },
-      { logFilePath: join(gardenDirPath, LOGS_DIR_NAME, ERROR_LOG_FILENAME), level: LogLevel.error },
-      { logFilePath: join(gardenDirPath, LOGS_DIR_NAME, "development.log"), level: logger.level },
+      {
+        logFilePath: join(root, ERROR_LOG_FILENAME),
+        truncatePrevious: true,
+        level: LogLevel.error,
+      },
+      {
+        logFilePath: join(gardenDirPath, LOGS_DIR_NAME, ERROR_LOG_FILENAME),
+        level: LogLevel.error,
+      },
+      {
+        logFilePath: join(gardenDirPath, LOGS_DIR_NAME, "development.log"),
+        level: logger.level,
+      },
     ]
     for (const config of logConfigs) {
       logger.writers.push(await FileWriter.factory(config))
@@ -232,10 +236,7 @@ export class GardenCli {
 
     this.commands[fullName] = command
 
-    const {
-      arguments: args = {},
-      options = {},
-    } = command
+    const { arguments: args = {}, options = {} } = command
 
     const argKeys = getKeys(args)
     const optKeys = getKeys(options)
@@ -251,14 +252,7 @@ export class GardenCli {
       const parsedArgs = filterByKeys(argv, argKeys)
       const parsedOpts = filterByKeys(argv, optKeys.concat(globalKeys))
       const root = resolve(process.cwd(), parsedOpts.root)
-      const {
-        "logger-type": loggerTypeOpt,
-        "log-level": logLevel,
-        emoji,
-        env,
-        silent,
-        output,
-      } = parsedOpts
+      const { "logger-type": loggerTypeOpt, "log-level": logLevel, emoji, env, silent, output } = parsedOpts
 
       let loggerType = loggerTypeOpt || command.loggerType || DEFAULT_CLI_LOGGER_TYPE
 
@@ -329,7 +323,6 @@ export class GardenCli {
           })
 
           await garden.close()
-
         } catch (err) {
           // Generate a basic report in case Garden.factory(...) fails and command is "get debug-info".
           // Other exceptions are handled within the implementation of "get debug-info".
@@ -346,12 +339,12 @@ export class GardenCli {
     }
 
     // Command specific positional args and options are set inside the builder function
-    const setup = parser => {
+    const setup = (parser) => {
       const subCommands = command.getSubCommands()
-      subCommands.forEach(subCommand => this.addCommand(subCommand, parser))
+      subCommands.forEach((subCommand) => this.addCommand(subCommand, parser))
 
-      argKeys.forEach(key => parser.positional(getArgSynopsis(key, args[key]), prepareArgConfig(args[key])))
-      optKeys.forEach(key => parser.option(getOptionSynopsis(key, options[key]), prepareOptionConfig(options[key])))
+      argKeys.forEach((key) => parser.positional(getArgSynopsis(key, args[key]), prepareArgConfig(args[key])))
+      optKeys.forEach((key) => parser.option(getOptionSynopsis(key, options[key]), prepareOptionConfig(options[key])))
 
       // We only check for invalid flags for the last command since it might contain flags that
       // the parent is unaware of, thus causing the check to fail for the parent
@@ -407,9 +400,7 @@ export class GardenCli {
       process.exit(code)
     }
 
-    const gardenErrors: GardenError[] = errors
-      .map(toGardenError)
-      .concat((commandResult && commandResult.errors) || [])
+    const gardenErrors: GardenError[] = errors.map(toGardenError).concat((commandResult && commandResult.errors) || [])
 
     // --output option set
     if (output) {
@@ -423,12 +414,14 @@ export class GardenCli {
     }
 
     if (gardenErrors.length > 0) {
-      gardenErrors.forEach(error => logger.error({
-        msg: error.message,
-        error,
-      }))
+      gardenErrors.forEach((error) =>
+        logger.error({
+          msg: error.message,
+          error,
+        })
+      )
 
-      if (logger.writers.find(w => w instanceof FileWriter)) {
+      if (logger.writers.find((w) => w instanceof FileWriter)) {
         logger.info(`\nSee ${ERROR_LOG_FILENAME} for detailed error message`)
         await waitForOutputFlush()
       }
@@ -439,7 +432,6 @@ export class GardenCli {
     logger.stop()
     return { argv, code, errors }
   }
-
 }
 
 export async function run(): Promise<void> {

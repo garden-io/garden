@@ -18,7 +18,7 @@ const Label = styled.label`
   cursor: pointer;
   font-size: 1rem;
   user-select: none;
-  margin-bottom: .75rem;
+  margin-bottom: 0.75rem;
   height: 1rem;
   line-height: 1rem;
 `
@@ -69,22 +69,12 @@ interface Props {
   onChange: (event: ChangeEvent<HTMLInputElement>) => void
 }
 
-const CheckBox: React.FC<Props> = ({
-  name,
-  onChange,
-  checked = false,
-  children,
-}) => {
+const CheckBox: React.FC<Props> = ({ name, onChange, checked = false, children }) => {
   const Mark = checked ? CheckmarkChecked : Checkmark
   return (
     <Label>
       {children}
-      <Input
-        type={"checkbox"}
-        name={name}
-        checked={checked}
-        onChange={onChange}
-      />
+      <Input type={"checkbox"} name={name} checked={checked} onChange={onChange} />
       <Mark />
     </Label>
   )

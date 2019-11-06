@@ -6,14 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  BooleanParameter,
-  Command,
-  CommandParams,
-  CommandResult,
-  handleTaskResults,
-  StringsParameter,
-} from "./base"
+import { BooleanParameter, Command, CommandParams, CommandResult, handleTaskResults, StringsParameter } from "./base"
 import { Module } from "../types/module"
 import { PublishTask } from "../tasks/publish"
 import { TaskResults } from "../task-graph"
@@ -24,7 +17,8 @@ import dedent = require("dedent")
 
 const publishArgs = {
   modules: new StringsParameter({
-    help: "The name(s) of the module(s) to publish (skip to publish all modules). " +
+    help:
+      "The name(s) of the module(s) to publish (skip to publish all modules). " +
       "Use comma as a separator to specify multiple modules.",
   }),
 }
@@ -60,9 +54,14 @@ export class PublishCommand extends Command<Args, Opts> {
   arguments = publishArgs
   options = publishOpts
 
-  async action(
-    { garden, log, headerLog, footerLog, args, opts }: CommandParams<Args, Opts>,
-  ): Promise<CommandResult<TaskResults>> {
+  async action({
+    garden,
+    log,
+    headerLog,
+    footerLog,
+    args,
+    opts,
+  }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
     printHeader(headerLog, "Publish modules", "rocket")
 
     const graph = await garden.getConfigGraph()
@@ -79,13 +78,13 @@ export async function publishModules(
   log: LogEntry,
   modules: Module<any>[],
   forceBuild: boolean,
-  allowDirty: boolean,
+  allowDirty: boolean
 ): Promise<TaskResults> {
   if (!!allowDirty) {
     log.warn(`The --allow-dirty flag has been deprecated. It no longer has an effect.`)
   }
 
-  const tasks = modules.map(module => {
+  const tasks = modules.map((module) => {
     return new PublishTask({ garden, log, module, forceBuild })
   })
 

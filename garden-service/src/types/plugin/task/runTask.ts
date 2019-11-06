@@ -31,8 +31,6 @@ export const runTask = {
     Runs a task within the context of its module. This should wait until execution completes, and
     return its output.
   `,
-  paramsSchema: taskActionParamsSchema
-    .keys(runBaseParams)
-    .keys({ taskVersion: taskVersionSchema }),
+  paramsSchema: taskActionParamsSchema.keys(runBaseParams).keys({ taskVersion: taskVersionSchema }),
   resultSchema: taskResultSchema,
 }

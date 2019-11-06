@@ -47,5 +47,4 @@ export class KeyedSet<V> {
   clear(): void {
     this.map = new Map()
   }
-
 }

@@ -32,9 +32,8 @@ export interface Module<
   M extends ModuleSpec = any,
   S extends ServiceSpec = any,
   T extends TestSpec = any,
-  W extends TaskSpec = any,
-  > extends ModuleConfig<M, S, T, W> {
-
+  W extends TaskSpec = any
+> extends ModuleConfig<M, S, T, W> {
   buildPath: string
   buildMetadataPath: string
   configPath: string
@@ -52,35 +51,36 @@ export interface Module<
   _ConfigType: ModuleConfig<M, S, T, W>
 }
 
-export const moduleSchema = moduleConfigSchema
-  .keys({
-    buildPath: joi.string()
-      .required()
-      .description("The path to the build staging directory for the module."),
-    buildMetadataPath: joi.string()
-      .required()
-      .description("The path to the build metadata directory for the module."),
-    configPath: joi.string()
-      .required()
-      .description("The path to the module config file."),
-    version: moduleVersionSchema
-      .required(),
-    buildDependencies: joiIdentifierMap(joi.lazy(() => moduleSchema))
-      .required()
-      .description("A map of all modules referenced under \`build.dependencies\`."),
-    serviceNames: joiArray(joiIdentifier())
-      .required()
-      .description("The names of the services that the module provides."),
-    serviceDependencyNames: joiArray(joiIdentifier())
-      .required()
-      .description("The names of all the services and tasks that the services in this module depend on."),
-    taskNames: joiArray(joiIdentifier())
-      .required()
-      .description("The names of the tasks that the module provides."),
-    taskDependencyNames: joiArray(joiIdentifier())
-      .required()
-      .description("The names of all the tasks and services that the tasks in this module depend on."),
-  })
+export const moduleSchema = moduleConfigSchema.keys({
+  buildPath: joi
+    .string()
+    .required()
+    .description("The path to the build staging directory for the module."),
+  buildMetadataPath: joi
+    .string()
+    .required()
+    .description("The path to the build metadata directory for the module."),
+  configPath: joi
+    .string()
+    .required()
+    .description("The path to the module config file."),
+  version: moduleVersionSchema.required(),
+  buildDependencies: joiIdentifierMap(joi.lazy(() => moduleSchema))
+    .required()
+    .description("A map of all modules referenced under `build.dependencies`."),
+  serviceNames: joiArray(joiIdentifier())
+    .required()
+    .description("The names of the services that the module provides."),
+  serviceDependencyNames: joiArray(joiIdentifier())
+    .required()
+    .description("The names of all the services and tasks that the services in this module depend on."),
+  taskNames: joiArray(joiIdentifier())
+    .required()
+    .description("The names of the tasks that the module provides."),
+  taskDependencyNames: joiArray(joiIdentifier())
+    .required()
+    .description("The names of all the tasks and services that the tasks in this module depend on."),
+})
 
 export interface ModuleMap<T extends Module = Module> {
   [key: string]: T
@@ -106,20 +106,20 @@ export async function moduleFromConfig(garden: Garden, graph: ConfigGraph, confi
     buildDependencies: {},
 
     serviceNames: getNames(config.serviceConfigs),
-    serviceDependencyNames: uniq(flatten(config.serviceConfigs
-      .map(serviceConfig => serviceConfig.dependencies)
-      .filter(deps => !!deps))),
+    serviceDependencyNames: uniq(
+      flatten(config.serviceConfigs.map((serviceConfig) => serviceConfig.dependencies).filter((deps) => !!deps))
+    ),
 
     taskNames: getNames(config.taskConfigs),
-    taskDependencyNames: uniq(flatten(config.taskConfigs
-      .map(taskConfig => taskConfig.dependencies)
-      .filter(deps => !!deps))),
+    taskDependencyNames: uniq(
+      flatten(config.taskConfigs.map((taskConfig) => taskConfig.dependencies).filter((deps) => !!deps))
+    ),
 
     _ConfigType: config,
   }
 
-  const buildDependencyModules = await Bluebird.map(
-    module.build.dependencies, d => graph.getModule(getModuleKey(d.name, d.plugin)),
+  const buildDependencyModules = await Bluebird.map(module.build.dependencies, (d) =>
+    graph.getModule(getModuleKey(d.name, d.plugin))
   )
   module.buildDependencies = keyBy(buildDependencyModules, "name")
 
@@ -132,5 +132,5 @@ export function getModuleCacheContext(config: ModuleConfig) {
 
 export function getModuleKey(name: string, plugin?: string) {
   const hasPrefix = !!name.match(/--/)
-  return (plugin && !hasPrefix) ? `${plugin}--${name}` : name
+  return plugin && !hasPrefix ? `${plugin}--${name}` : name
 }

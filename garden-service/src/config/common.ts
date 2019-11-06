@@ -14,11 +14,16 @@ import chalk from "chalk"
 import { relative } from "path"
 import { splitLast } from "../util/util"
 import isGitUrl = require("is-git-url")
+import { deline } from "../util/string"
 
 export type Primitive = string | number | boolean | null
 
-export interface PrimitiveMap { [key: string]: Primitive }
-export interface DeepPrimitiveMap { [key: string]: Primitive | DeepPrimitiveMap | Primitive[] | DeepPrimitiveMap[] }
+export interface PrimitiveMap {
+  [key: string]: Primitive
+}
+export interface DeepPrimitiveMap {
+  [key: string]: Primitive | DeepPrimitiveMap | Primitive[] | DeepPrimitiveMap[]
+}
 
 // export type ConfigWithSpec<S extends object> = <T extends S>{
 //   spec: Omit<T, keyof S> & Partial<S>
@@ -27,9 +32,7 @@ export interface DeepPrimitiveMap { [key: string]: Primitive | DeepPrimitiveMap 
 export const includeGuideLink =
   "https://docs.garden.io/using-garden/configuration-files#including-excluding-files-and-directories"
 
-export const enumToArray = Enum => (
-  Object.values(Enum).filter(k => typeof k === "string") as string[]
-)
+export const enumToArray = (Enum) => Object.values(Enum).filter((k) => typeof k === "string") as string[]
 
 interface JoiGitUrlParams {
   requireHash?: boolean
@@ -115,11 +118,9 @@ export const joi: Joi.Root = Joi.extend({
     {
       name: "gitUrl",
       params: {
-        options: Joi.object()
-          .keys({
-            requireHash: Joi.boolean()
-              .description("Only allow Git URLs with a branch/tag hash."),
-          }),
+        options: Joi.object().keys({
+          requireHash: Joi.boolean().description("Only allow Git URLs with a branch/tag hash."),
+        }),
       },
       validate(params: { options?: JoiGitUrlParams }, value: string, state, prefs) {
         // Make sure it's a string
@@ -151,14 +152,12 @@ export const joi: Joi.Root = Joi.extend({
       params: {
         options: Joi.object()
           .keys({
-            absoluteOnly: Joi.boolean()
-              .description("Only allow absolute paths (starting with /)."),
-            relativeOnly: Joi.boolean()
-              .description("Disallow absolute paths (starting with /)."),
-            subPathOnly: Joi.boolean()
-              .description("Only allow sub-paths. That is, disallow '..' path segments and absolute paths."),
-            filenameOnly: Joi.boolean()
-              .description("Only allow filenames. That is, disallow '/' in the path."),
+            absoluteOnly: Joi.boolean().description("Only allow absolute paths (starting with /)."),
+            relativeOnly: Joi.boolean().description("Disallow absolute paths (starting with /)."),
+            subPathOnly: Joi.boolean().description(
+              "Only allow sub-paths. That is, disallow '..' path segments and absolute paths."
+            ),
+            filenameOnly: Joi.boolean().description("Only allow filenames. That is, disallow '/' in the path."),
           })
           .oxor("absoluteOnly", "relativeOnly")
           .oxor("absoluteOnly", "filenameOnly")
@@ -205,11 +204,18 @@ export const joi: Joi.Root = Joi.extend({
   ],
 })
 
-export const joiPrimitive = () => joi.alternatives().try(
-  joi.number(),
-  joi.string().allow("").allow(null),
-  joi.boolean(),
-).description("Number, string or boolean")
+export const joiPrimitive = () =>
+  joi
+    .alternatives()
+    .try(
+      joi.number(),
+      joi
+        .string()
+        .allow("")
+        .allow(null),
+      joi.boolean()
+    )
+    .description("Number, string or boolean")
 
 export const absolutePathRegex = /^\/.*/ // Note: Only checks for the leading slash
 // from https://stackoverflow.com/a/12311250/3290965
@@ -221,62 +227,82 @@ export const joiIdentifierDescription =
   "valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, " +
   "and cannot end with a dash) and must not be longer than 63 characters."
 
-export const joiIdentifier = () => joi.string()
-  .regex(identifierRegex)
-  .description(joiIdentifierDescription[0].toUpperCase() + joiIdentifierDescription.slice(1))
+export const joiIdentifier = () =>
+  joi
+    .string()
+    .regex(identifierRegex)
+    .description(joiIdentifierDescription[0].toUpperCase() + joiIdentifierDescription.slice(1))
 
-export const joiProviderName = (name: string) => joiIdentifier().required()
-  .description("The name of the provider plugin to use.")
-  .default(name)
-  .example(name)
+export const joiProviderName = (name: string) =>
+  joiIdentifier()
+    .required()
+    .description("The name of the provider plugin to use.")
+    .default(name)
+    .example(name)
 
-export const joiStringMap = (valueSchema: JoiObject) => joi
-  .object().pattern(/.+/, valueSchema)
+export const joiStringMap = (valueSchema: JoiObject) => joi.object().pattern(/.+/, valueSchema)
 
-export const joiUserIdentifier = () => joi.string()
-  .regex(userIdentifierRegex)
-  .description(
-    "Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, " +
-    "and cannot end with a dash), cannot contain consecutive dashes or start with `garden`, " +
-    "or be longer than 63 characters.",
-  )
+export const joiUserIdentifier = () =>
+  joi.string().regex(userIdentifierRegex).description(deline`
+    Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter
+    and cannot end with a dash), cannot contain consecutive dashes or start with \`garden\`
+    or be longer than 63 characters.
+  `)
 
-export const joiIdentifierMap = (valueSchema: JoiObject) => joi
-  .object().pattern(identifierRegex, valueSchema)
-  .default(() => ({}), "{}")
-  .description("Key/value map. Keys must be valid identifiers.")
+export const joiIdentifierMap = (valueSchema: JoiObject) =>
+  joi
+    .object()
+    .pattern(identifierRegex, valueSchema)
+    .default(() => ({}), "{}")
+    .description("Key/value map. Keys must be valid identifiers.")
 
-export const joiVariables = () => joi
-  .object().pattern(/[a-zA-Z][a-zA-Z0-9_\-]+/i, joiPrimitive())
-  .default(() => ({}), "{}")
-  .unknown(false)
-  .description("Key/value map. Keys may contain letters and numbers, and values must be primitives.")
+export const joiVariables = () =>
+  joi
+    .object()
+    .pattern(/[a-zA-Z][a-zA-Z0-9_\-]+/i, joiPrimitive())
+    .default(() => ({}), "{}")
+    .unknown(false)
+    .description("Key/value map. Keys may contain letters and numbers, and values must be primitives.")
 
-export const joiEnvVars = () => joi
-  .object().pattern(envVarRegex, joiPrimitive())
-  .default(() => ({}), "{}")
-  .unknown(false)
-  .description(
-    "Key/value map of environment variables. Keys must be valid POSIX environment variable names " +
-    "(must not start with `GARDEN`) and values must be primitives.",
-  )
+export const joiEnvVars = () =>
+  joi
+    .object()
+    .pattern(envVarRegex, joiPrimitive())
+    .default(() => ({}), "{}")
+    .unknown(false)
+    .description(
+      "Key/value map of environment variables. Keys must be valid POSIX environment variable names " +
+        "(must not start with `GARDEN`) and values must be primitives."
+    )
 
-export const joiArray = (schema) => joi
-  .array().items(schema)
-  .default(() => [], "[]")
+export const joiArray = (schema) =>
+  joi
+    .array()
+    .items(schema)
+    .default(() => [], "[]")
 
-export const joiRepositoryUrl = () => joi.alternatives(
-  joi.string().gitUrl({ requireHash: true }),
-  // Allow file URLs as well
-  joi.string().uri({ scheme: ["file"] }),
-)
-  .description(
-    "A remote repository URL. Currently only supports git servers. Must contain a hash suffix" +
-    " pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>",
-  )
-  .example("git+https://github.com/org/repo.git#v2.0")
+export const joiRepositoryUrl = () =>
+  joi
+    .alternatives(
+      joi.string().gitUrl({ requireHash: true }),
+      // Allow file URLs as well
+      joi.string().uri({ scheme: ["file"] })
+    )
+    .description(
+      "A remote repository URL. Currently only supports git servers. Must contain a hash suffix" +
+        " pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>"
+    )
+    .example("git+https://github.com/org/repo.git#v2.0")
 
-export const joiSchema = () => joi.object({ isJoi: joi.boolean().only(true).required() }).unknown(true)
+export const joiSchema = () =>
+  joi
+    .object({
+      isJoi: joi
+        .boolean()
+        .only(true)
+        .required(),
+    })
+    .unknown(true)
 
 export function isPrimitive(value: any) {
   return typeof value === "string" || typeof value === "number" || typeof value === "boolean" || value === null
@@ -290,7 +316,7 @@ const joiOptions = {
     key: `key ${joiPathPlaceholder} `,
     object: {
       allowUnknown: `!!key "{{!child}}" is not allowed at path ${joiPathPlaceholder}`,
-      child: "!!\"{{!child}}\": {{reason}}",
+      child: '!!"{{!child}}": {{reason}}',
       xor: `!!object at ${joiPathPlaceholder} only allows one of {{peersWithLabels}}`,
     },
   },
@@ -302,11 +328,11 @@ export interface ValidateOptions {
 }
 
 export interface ValidateWithPathParams<T> {
-  config: T,
-  schema: Joi.Schema,
-  path: string, // Absolute path to the config file, including filename
-  projectRoot: string,
-  name?: string, // Name of the top-level entity that the config belongs to, e.g. "some-module" or "some-project"
+  config: T
+  schema: Joi.Schema
+  path: string // Absolute path to the config file, including filename
+  projectRoot: string
+  name?: string // Name of the top-level entity that the config belongs to, e.g. "some-module" or "some-project"
   configType?: string // The type of top-level entity that the config belongs to, e.g. "module" or "project"
   ErrorClass?: typeof ConfigurationError | typeof LocalConfigError
 }
@@ -317,10 +343,15 @@ export interface ValidateWithPathParams<T> {
  *
  * This is to ensure consistent error messages that include the relative path to the failing file.
  */
-export function validateWithPath<T>(
-  { config, schema, path, projectRoot, name, configType = "module", ErrorClass }: ValidateWithPathParams<T>,
-) {
-
+export function validateWithPath<T>({
+  config,
+  schema,
+  path,
+  projectRoot,
+  name,
+  configType = "module",
+  ErrorClass,
+}: ValidateWithPathParams<T>) {
   const validateOpts = {
     context: `${configType} ${name ? `'${name}' ` : ""}(${relative(projectRoot, path)}/garden.yml)`,
   }
@@ -335,7 +366,7 @@ export function validateWithPath<T>(
 export function validate<T>(
   value: T,
   schema: Joi.Schema,
-  { context = "", ErrorClass = ConfigurationError }: ValidateOptions = {},
+  { context = "", ErrorClass = ConfigurationError }: ValidateOptions = {}
 ): T {
   const result = schema.validate(value, joiOptions)
   const error = result.error
@@ -376,7 +407,7 @@ export function validate<T>(
     })
 
     const msgPrefix = context ? `Error validating ${context}` : "Validation error"
-    const errorDescription = errorDetails.map(e => e.message).join(", ")
+    const errorDescription = errorDetails.map((e) => e.message).join(", ")
 
     throw new ErrorClass(`${msgPrefix}: ${errorDescription}`, {
       value,

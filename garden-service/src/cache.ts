@@ -6,19 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  isEqual,
-} from "lodash"
-import {
-  normalize,
-  parse,
-  sep,
-} from "path"
-import {
-  InternalError,
-  NotFoundError,
-  ParameterError,
-} from "./exceptions"
+import { isEqual } from "lodash"
+import { normalize, parse, sep } from "path"
+import { InternalError, NotFoundError, ParameterError } from "./exceptions"
 
 export type CacheKey = string[]
 export type CacheContext = string[]
@@ -84,11 +74,17 @@ export class TreeCache {
 
   set(key: CacheKey, value: CacheValue, ...contexts: CacheContext[]) {
     if (key.length === 0) {
-      throw new ParameterError(`Cache key must have at least one part`, { key, contexts })
+      throw new ParameterError(`Cache key must have at least one part`, {
+        key,
+        contexts,
+      })
     }
 
     if (contexts.length === 0) {
-      throw new ParameterError(`Must specify at least one context`, { key, contexts })
+      throw new ParameterError(`Must specify at least one context`, {
+        key,
+        contexts,
+      })
     }
 
     const curriedKey = curry(key)
@@ -102,13 +98,16 @@ export class TreeCache {
       entry.value = value
     }
 
-    contexts.forEach(c => entry!.contexts[curry(c)] = c)
+    contexts.forEach((c) => (entry!.contexts[curry(c)] = c))
 
     for (const context of Object.values(contexts)) {
       let node = this.contextTree
 
       if (context.length === 0) {
-        throw new ParameterError(`Context key must have at least one part`, { key, context })
+        throw new ParameterError(`Context key must have at least one part`, {
+          key,
+          context,
+        })
       }
 
       const contextKey: CacheContext = []
@@ -146,7 +145,7 @@ export class TreeCache {
     const node = this.getNode(context)
 
     if (node) {
-      pairs = Array.from(node.entries).map(curriedKey => {
+      pairs = Array.from(node.entries).map((curriedKey) => {
         const entry = this.cache.get(curriedKey)
         if (!entry) {
           throw new InternalError(`Invalid reference found in cache: ${curriedKey}`, { curriedKey })

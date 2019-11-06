@@ -12,8 +12,7 @@ import { Module } from "../../module"
 import { moduleVersionSchema, ModuleVersion } from "../../../vcs/vcs"
 import { joi, joiPrimitive } from "../../../config/common"
 
-export const taskVersionSchema = moduleVersionSchema
-  .description(deline`
+export const taskVersionSchema = moduleVersionSchema.description(deline`
     The task run's version. In addition to the parent module's version, this also
     factors in the module versions of the tasks's runtime dependencies (if any).`)
 
@@ -21,37 +20,41 @@ export interface GetTaskResultParams<T extends Module = Module> extends PluginTa
   taskVersion: ModuleVersion
 }
 
-export const taskResultSchema = joi.object()
-  .keys({
-    moduleName: joi.string()
-      .description("The name of the module that the task belongs to."),
-    taskName: joi.string()
-      .description("The name of the task that was run."),
-    command: joi.array().items(joi.string())
-      .required()
-      .description("The command that the task ran in the module."),
-    version: joi.string()
-      .description("The string version of the task."),
-    success: joi.boolean()
-      .required()
-      .description("Whether the task was successfully run."),
-    startedAt: joi.date()
-      .required()
-      .description("When the task run was started."),
-    completedAt: joi.date()
-      .required()
-      .description("When the task run was completed."),
-    log: joi.string()
-      .required()
-      .allow("")
-      .description("The output log from the run."),
-    output: joi.string()
-      .allow("")
-      .description("[DEPRECATED - use `log` instead] The output log from the run."),
-    outputs: joi.object()
-      .pattern(/.+/, joiPrimitive())
-      .description("A map of primitive values, output from the task."),
-  })
+export const taskResultSchema = joi.object().keys({
+  moduleName: joi.string().description("The name of the module that the task belongs to."),
+  taskName: joi.string().description("The name of the task that was run."),
+  command: joi
+    .array()
+    .items(joi.string())
+    .required()
+    .description("The command that the task ran in the module."),
+  version: joi.string().description("The string version of the task."),
+  success: joi
+    .boolean()
+    .required()
+    .description("Whether the task was successfully run."),
+  startedAt: joi
+    .date()
+    .required()
+    .description("When the task run was started."),
+  completedAt: joi
+    .date()
+    .required()
+    .description("When the task run was completed."),
+  log: joi
+    .string()
+    .required()
+    .allow("")
+    .description("The output log from the run."),
+  output: joi
+    .string()
+    .allow("")
+    .description("[DEPRECATED - use `log` instead] The output log from the run."),
+  outputs: joi
+    .object()
+    .pattern(/.+/, joiPrimitive())
+    .description("A map of primitive values, output from the task."),
+})
 
 export const getTaskResult = {
   description: dedent`
@@ -62,10 +65,9 @@ export const getTaskResult = {
     well as any runtime dependencies configured for the task, so it may not match the current version
     of the module itself.
   `,
-  paramsSchema: taskActionParamsSchema
-    .keys({
-      taskVersion: taskVersionSchema,
-    }),
+  paramsSchema: taskActionParamsSchema.keys({
+    taskVersion: taskVersionSchema,
+  }),
 
   resultSchema: taskResultSchema.allow(null),
 }

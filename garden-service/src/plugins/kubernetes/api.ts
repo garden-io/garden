@@ -32,7 +32,7 @@ import { safeLoad, safeDump } from "js-yaml"
 import { readFile } from "fs-extra"
 
 import { Omit } from "../../util/util"
-import { zip, omitBy, isObject, isPlainObject, keyBy } from "lodash"
+import { omitBy, isObject, isPlainObject, keyBy } from "lodash"
 import { GardenBaseError, RuntimeError, ConfigurationError } from "../../exceptions"
 import { KubernetesResource, KubernetesServerResource, KubernetesServerList } from "./types"
 import { LogEntry } from "../../logger/log-entry"
@@ -61,7 +61,8 @@ const apiInfoLock = new AsyncLock()
 
 // NOTE: be warned, the API of the client library is very likely to change
 
-type K8sApi = CoreV1Api
+type K8sApi =
+  | CoreV1Api
   | ExtensionsV1beta1Api
   | RbacAuthorizationV1Api
   | AppsV1Api
@@ -107,6 +108,7 @@ interface List {
 type WrappedList<T extends List> = T["items"] extends Array<infer V> ? KubernetesServerList<V> : KubernetesServerList
 
 // This describes the API classes on KubeApi after they've been wrapped with KubeApi.wrapApi()
+// prettier-ignore
 type WrappedApi<T> = {
   // Wrap each API method
   [P in keyof T]:
@@ -165,7 +167,7 @@ export class KubeApi {
         const coreApi = await this.coreApi.getAPIVersions()
         const apis = await this.apis.getAPIVersions()
 
-        const coreGroups: V1APIGroup[] = coreApi.versions.map(version => ({
+        const coreGroups: V1APIGroup[] = coreApi.versions.map((version) => ({
           apiVersion: "v1",
           kind: "ApiGroup",
           name: version,
@@ -233,20 +235,22 @@ export class KubeApi {
     const apiResources = cachedApiResourceInfo[this.context]
 
     const lockKey = `${this.context}/${apiVersion}`
-    const resourceMap = apiResources[apiVersion] || await apiInfoLock.acquire(lockKey, async () => {
-      if (apiResources[apiVersion]) {
+    const resourceMap =
+      apiResources[apiVersion] ||
+      (await apiInfoLock.acquire(lockKey, async () => {
+        if (apiResources[apiVersion]) {
+          return apiResources[apiVersion]
+        }
+
+        log.debug(`Kubernetes: Getting API resource info for group ${apiVersion}`)
+        const res = await this.request(log, getGroupBasePath(apiVersion))
+
+        // We're only interested in the entities themselves, not the sub-resources
+        const resources = res.body.resources.filter((r: any) => !r.name.includes("/"))
+
+        apiResources[apiVersion] = keyBy(resources, "kind")
         return apiResources[apiVersion]
-      }
-
-      log.debug(`Kubernetes: Getting API resource info for group ${apiVersion}`)
-      const res = await this.request(log, getGroupBasePath(apiVersion))
-
-      // We're only interested in the entities themselves, not the sub-resources
-      const resources = res.body.resources.filter((r: any) => !r.name.includes("/"))
-
-      apiResources[apiVersion] = keyBy(resources, "kind")
-      return apiResources[apiVersion]
-    })
+      }))
 
     const resource = resourceMap[manifest.kind]
 
@@ -300,7 +304,9 @@ export class KubeApi {
   }
 
   async upsert<K extends keyof CrudMapType>(
-    kind: K, namespace: string, obj: KubernetesResource,
+    kind: K,
+    namespace: string,
+    obj: KubernetesResource
   ): Promise<KubernetesResource> {
     const api = this[crudMap[kind].group]
 
@@ -334,7 +340,8 @@ export class KubeApi {
 
     return new Proxy(api, {
       get: (target: T, name: string, receiver) => {
-        if (!(name in Object.getPrototypeOf(target))) { // assume methods live on the prototype
+        if (!(name in Object.getPrototypeOf(target))) {
+          // assume methods live on the prototype
           return Reflect.get(target, name, receiver)
         }
 
@@ -350,17 +357,19 @@ export class KubeApi {
           target["defaultHeaders"] = defaultHeaders
 
           if (typeof output.then === "function") {
-            return output
-              // return the result body direcly
-              .then((res: any) => {
-                if (isPlainObject(res) && res["body"] !== undefined) {
-                  return res["body"]
-                }
-              })
-              // the API errors are not properly formed Error objects
-              .catch((err: Error) => {
-                throw wrapError(err)
-              })
+            return (
+              output
+                // return the result body direcly
+                .then((res: any) => {
+                  if (isPlainObject(res) && res["body"] !== undefined) {
+                    return res["body"]
+                  }
+                })
+                // the API errors are not properly formed Error objects
+                .catch((err: Error) => {
+                  throw wrapError(err)
+                })
+            )
           }
 
           return output
@@ -408,13 +417,6 @@ async function getContextConfig(log: LogEntry, provider: KubernetesProvider): Pr
   // There doesn't appear to be a method to just load the parsed config :/
   kc.loadFromString(safeDump(rawConfig))
   kc.setCurrentContext(context)
-
-  // FIXME: need to patch a bug in the library here (https://github.com/kubernetes-client/javascript/pull/54)
-  for (const [a, b] of zip(rawConfig["clusters"] || [], kc.clusters)) {
-    if (a && (<any>a)["cluster"]["insecure-skip-tls-verify"] === true) {
-      (<any>b).skipTLSVerify = true
-    }
-  }
 
   cachedConfigs[cacheKey] = kc
 

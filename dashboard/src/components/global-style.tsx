@@ -9,13 +9,7 @@
 import { Global, css } from "@emotion/core"
 import React from "react"
 import media from "../styles/media"
-import {
-  colors,
-  fontBold,
-  fontMedium,
-  tablet,
-  fontFamily,
-} from "../styles/variables"
+import { colors, fontBold, fontMedium, tablet, fontFamily } from "../styles/variables"
 
 const styles = css`
   html {
@@ -67,7 +61,9 @@ const styles = css`
     box-sizing: inherit;
   }
 
-  h1, h2, h3 {
+  h1,
+  h2,
+  h3 {
     margin-top: 0;
   }
 
@@ -113,6 +109,4 @@ const styles = css`
   }
 `
 
-export default () => (
-  <Global styles={styles} />
-)
+export default () => <Global styles={styles} />
