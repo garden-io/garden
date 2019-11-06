@@ -353,6 +353,8 @@ Here we only scan the `modules` directory, but exclude the `modules/tmp` directo
 
 If you specify a list with `include`, only those patterns are included. If you then specify one or more `exclude` patterns, those are filtered out of the ones matched by `include`. If you _only_ specify `exclude`, those patterns will be filtered out of all paths in the project directory.
 
+The `modules.exclude` field is also used to limit the number of files and directories Garden watches for changes while running. Use that if you have a large number of files/directories in your project that you do not need to watch, or if you are seeing excessive CPU/RAM usage.
+
 #### Module include/exclude
 
 By default, all files in the same directory as a module configuration file are included as source files for that module. Sometimes you need more granular control over the context, not least if you have multiple modules in the same directory.
@@ -374,6 +376,8 @@ exclude:
 Here we only include the `Dockerfile` and all the `.py` files under `my-sources/`, but exclude the `my-sources/tmp` directory.
 
 If you specify a list with `include`, only those files/patterns are included. If you then specify one or more `exclude` files or patterns, those are filtered out of the files matched by `include`. If you _only_ specify `exclude`, those patterns will be filtered out of all files in the module directory.
+
+The `exclude` field on modules is also used to limit the number of files and directories Garden watches for changes while running. Use that if you have a large number of files/directories in your module that you do not need to watch, or if you are seeing excessive CPU/RAM usage.
 
 #### .ignore files
 

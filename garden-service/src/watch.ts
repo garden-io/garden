@@ -7,34 +7,19 @@
  */
 
 import { watch, FSWatcher } from "chokidar"
-import { parse, basename } from "path"
+import { parse, basename, resolve } from "path"
 import { pathToCacheContext } from "./cache"
 import { Module } from "./types/module"
 import { Garden } from "./garden"
 import { LogEntry } from "./logger/log-entry"
-import { registerCleanupFunction, sleep } from "./util/util"
-import { some } from "lodash"
+import { sleep } from "./util/util"
+import { some, flatten } from "lodash"
 import { isConfigFilename, matchPath } from "./util/fs"
 import Bluebird from "bluebird"
 import { InternalError } from "./exceptions"
 
 // How long we wait between processing added files and directories
 const DEFAULT_BUFFER_INTERVAL = 500
-
-// IMPORTANT: We must use a single global instance of the watcher, because we may otherwise get
-// segmentation faults on macOS! See https://github.com/fsevents/fsevents/issues/273
-let watcher: FSWatcher | undefined
-
-// Export so that we can clean up the global watcher instance when running tests
-export function cleanUpGlobalWatcher() {
-  if (watcher) {
-    watcher.close()
-    watcher = undefined
-  }
-}
-
-// The process hangs after tests if we don't do this
-registerCleanupFunction("stop watcher", cleanUpGlobalWatcher)
 
 export type ChangeHandler = (module: Module | null, configChanged: boolean) => Promise<void>
 
@@ -82,7 +67,9 @@ export class Watcher {
   start() {
     this.log.debug(`Watcher: Watching paths ${this.paths.join(", ")}`)
 
-    if (watcher === undefined) {
+    this.running = true
+
+    if (!this.watcher) {
       // Make sure that fsevents works when we're on macOS. This has come up before without us noticing, which has
       // a dramatic performance impact, so it's best if we simply throw here so that our tests catch such issues.
       if (process.platform === "darwin") {
@@ -95,7 +82,14 @@ export class Watcher {
         }
       }
 
-      watcher = watch(this.paths, {
+      // Collect all the configured excludes and pass to the watcher.
+      // This allows chokidar to optimize polling based on the exclusions.
+      // See https://github.com/garden-io/garden/issues/1269.
+      // TODO: see if we can extract paths from dotignore files as well (we'd have to deal with negations etc. somehow).
+      const projectExcludes = this.garden.moduleExcludePatterns.map((p) => resolve(this.garden.projectRoot, p))
+      const moduleExcludes = flatten(this.modules.map((m) => (m.exclude || []).map((p) => resolve(m.path, p))))
+
+      this.watcher = watch(this.paths, {
         ignoreInitial: true,
         ignorePermissionErrors: true,
         persistent: true,
@@ -103,13 +97,8 @@ export class Watcher {
           stabilityThreshold: 500,
           pollInterval: 200,
         },
+        ignored: [...projectExcludes, ...moduleExcludes],
       })
-    }
-
-    this.running = true
-
-    if (!this.watcher) {
-      this.watcher = watcher
 
       this.watcher
         .on("add", this.makeFileAddedHandler())

@@ -1,0 +1,5 @@
+kind: Project
+name: huge-project
+dotIgnoreFiles: [.gardenignore]
+modules:
+  exclude: [dir0/**/*, dir1/**/*, dir2/**/*, dir3/**/*, dir4/**/*, dir5/**/*, dir6/**/*, dir7/**/*, dir8/**/*]

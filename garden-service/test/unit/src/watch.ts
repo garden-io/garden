@@ -15,7 +15,6 @@ import { CacheContext, pathToCacheContext } from "../../../src/cache"
 import { createFile, remove, pathExists } from "fs-extra"
 import { getConfigFilePath } from "../../../src/util/fs"
 import { LinkModuleCommand } from "../../../src/commands/link/module"
-import { cleanUpGlobalWatcher } from "../../../src/watch"
 import { LinkSourceCommand } from "../../../src/commands/link/source"
 import { sleep } from "../../../src/util/util"
 
@@ -174,6 +173,12 @@ describe("Watcher", () => {
     })
   })
 
+  it("should not emit moduleSourcesChanged if file is changed and matches the modules.exclude list", async () => {
+    const pathChanged = resolve(includeModulePath, "project-excluded.txt")
+    emitEvent(garden, "change", pathChanged)
+    expect(garden.events.eventLog).to.eql([])
+  })
+
   it("should not emit moduleSourcesChanged if file is changed and doesn't match module's include list", async () => {
     const pathChanged = resolve(includeModulePath, "foo.txt")
     emitEvent(garden, "change", pathChanged)
@@ -187,7 +192,7 @@ describe("Watcher", () => {
   })
 
   it("should not emit moduleSourcesChanged if file is changed and it's in a gardenignore in the project", async () => {
-    const pathChanged = resolve(modulePath, "project-excluded.txt")
+    const pathChanged = resolve(modulePath, "gardenignore-excluded.txt")
     emitEvent(garden, "change", pathChanged)
     expect(garden.events.eventLog).to.eql([])
   })
@@ -281,8 +286,6 @@ describe("Watcher", () => {
     const localModulePathB = join(localModuleSourceDir, "module-b")
 
     before(async () => {
-      // The watcher instance is global so we clean up the previous one before proceeding
-      cleanUpGlobalWatcher()
       garden = await makeExtModuleSourcesGarden()
 
       // Link some modules
@@ -353,8 +356,6 @@ describe("Watcher", () => {
     const localSourcePathB = join(localProjectSourceDir, "source-b")
 
     before(async () => {
-      // The watcher instance is global so we clean up the previous one before proceeding
-      cleanUpGlobalWatcher()
       garden = await makeExtProjectSourcesGarden()
 
       // Link some projects
