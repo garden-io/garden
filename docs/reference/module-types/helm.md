@@ -5,7 +5,7 @@ title: Helm
 # `helm` reference
 
 Specify a Helm chart (either in your repository or remote from a registry) to deploy.
-Refer to the [Helm guide](https://docs.garden.io/using-garden/using-helm-charts) for usage instructions.
+Refer to the [Helm guide](https://docs.garden.io/guides/using-helm-charts) for usage instructions.
 
 Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../guides/configuration-files.md).
@@ -72,7 +72,7 @@ when responding to filesystem watch events, and when staging builds.
 
 Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
 source tree, which use the same format as `.gitignore` files. See the
-[Configuration Files guide](https://docs.garden.io/using-garden/configuration-files#including-excluding-files-and-directories) for details.
+[Configuration Files guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
 
 Also note that specifying an empty list here means _no sources_ should be included.
 
@@ -96,7 +96,7 @@ watch events, and when staging builds.
 
 Note that you can also explicitly _include_ files using the `include` field. If you also specify the
 `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the
-[Configuration Files guide](https://docs.garden.io/using-garden/configuration-files#including-excluding-files-and-directories)for details.
+[Configuration Files guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)for details.
 
 | Type            | Required |
 | --------------- | -------- |

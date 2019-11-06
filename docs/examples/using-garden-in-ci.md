@@ -14,7 +14,7 @@ To use Garden in your CI pipeline you need the following:
 
 For the purposes of this example we'll be using [CircleCI](https://circleci.com) and deploying to a Google Kubernetes Engine (GKE) cluster. However, the instructions below can easily be applied to other CI platforms and cloud providers.
 
-The guide is based on the [Remote Kubernetes](https://docs.garden.io/using-garden/remote-kubernetes) example. In what follows we assume that you've read that guide and that you have a running Kubernetes cluster to work with.
+The guide is based on the [Remote Kubernetes](https://docs.garden.io/guides/remote-kubernetes) example. In what follows we assume that you've read that guide and that you have a running Kubernetes cluster to work with.
 
 ## Prerequisites
 

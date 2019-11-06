@@ -30,7 +30,7 @@ export interface DeepPrimitiveMap {
 // }
 
 export const includeGuideLink =
-  "https://docs.garden.io/using-garden/configuration-files#including-excluding-files-and-directories"
+  "https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories"
 
 export const enumToArray = (Enum) => Object.values(Enum).filter((k) => typeof k === "string") as string[]
 

@@ -61,7 +61,7 @@ The default environment to use when calling commands without the `--env` paramet
 
 Specify a list of filenames that should be used as ".ignore" files across the project, using the same syntax and semantics as `.gitignore` files. By default, patterns matched in `.gitignore` and `.gardenignore` files, found anywhere in the project, are ignored when scanning for modules and module sources.
 Note that these take precedence over the project `module.include` field, and module `include` fields, so any paths matched by the .ignore files will be ignored even if they are explicitly specified in those fields.
-See the [Configuration Files guide] (https://docs.garden.io/using-garden/configuration-files#including-excluding-files-and-directories) for details.
+See the [Configuration Files guide] (https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
 
 | Type            | Required | Default                          |
 | --------------- | -------- | -------------------------------- |
@@ -176,7 +176,7 @@ Specify a list of POSIX-style paths or globs that should be scanned for Garden m
 
 Note that you can also _exclude_ path using the `exclude` field or by placing `.gardenignore` files in your
 source tree, which use the same format as `.gitignore` files. See the
-[Configuration Files guide](https://docs.garden.io/using-garden/configuration-files#including-excluding-files-and-directories) for details.
+[Configuration Files guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
 
 Also note that specifying an empty list here means _no paths_ should be included.
 
@@ -198,7 +198,7 @@ modules:
 [modules](#modules) > exclude
 
 Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for modules.
-Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the paths/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-files#including-excluding-files-and-directories) for details.
+Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the paths/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
 
 | Type            | Required |
 | --------------- | -------- |
@@ -501,7 +501,7 @@ when responding to filesystem watch events, and when staging builds.
 
 Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
 source tree, which use the same format as `.gitignore` files. See the
-[Configuration Files guide](https://docs.garden.io/using-garden/configuration-files#including-excluding-files-and-directories) for details.
+[Configuration Files guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
 
 Also note that specifying an empty list here means _no sources_ should be included.
 
@@ -525,7 +525,7 @@ watch events, and when staging builds.
 
 Note that you can also explicitly _include_ files using the `include` field. If you also specify the
 `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the
-[Configuration Files guide](https://docs.garden.io/using-garden/configuration-files#including-excluding-files-and-directories)for details.
+[Configuration Files guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)for details.
 
 | Type            | Required |
 | --------------- | -------- |

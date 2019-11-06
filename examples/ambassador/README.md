@@ -4,7 +4,7 @@ This example project demonstrates how to use the [Ambassador API Gateway](https:
 
 Even though we chose Ambassador for this project, the same principles apply to e.g. [Traefik](https://traefik.io/), which also supports configuring route mappings via service annotations.
 
-The project is based on our [simple-project example](https://github.com/garden-io/garden/tree/v0.9.0-docfix.2/examples/simple-project) and installs Ambassador via the [Helm module type](https://docs.garden.io/reference/module-types/helm). To learn more about using Helm charts with Garden, take a look at our [Helm user guide](https://docs.garden.io/using-garden/using-helm-charts).
+The project is based on our [simple-project example](https://github.com/garden-io/garden/tree/v0.9.0-docfix.2/examples/simple-project) and installs Ambassador via the [Helm module type](https://docs.garden.io/reference/module-types/helm). To learn more about using Helm charts with Garden, take a look at our [Helm user guide](https://docs.garden.io/guides/using-helm-charts).
 
 ## Usage
 

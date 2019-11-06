@@ -221,7 +221,7 @@ export const projectSchema = joi
         so any paths matched by the .ignore files will be ignored even if they are explicitly specified in those fields.
 
         See the [Configuration Files guide]
-        (https://docs.garden.io/using-garden/configuration-files#including-excluding-files-and-directories)
+        (https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)
         for details.
       `),
     environmentDefaults: environmentConfigSchema
