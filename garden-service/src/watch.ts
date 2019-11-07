@@ -13,13 +13,14 @@ import { Module } from "./types/module"
 import { Garden } from "./garden"
 import { LogEntry } from "./logger/log-entry"
 import { sleep } from "./util/util"
-import { some, flatten } from "lodash"
+import { some } from "lodash"
 import { isConfigFilename, matchPath } from "./util/fs"
 import Bluebird from "bluebird"
 import { InternalError } from "./exceptions"
+import { EventEmitter } from "events"
 
 // How long we wait between processing added files and directories
-const DEFAULT_BUFFER_INTERVAL = 500
+const DEFAULT_BUFFER_INTERVAL = 400
 
 export type ChangeHandler = (module: Module | null, configChanged: boolean) => Promise<void>
 
@@ -35,7 +36,7 @@ interface ChangedPath {
  * Wrapper around the Chokidar file watcher. Emits events on `garden.events` when project files are changed.
  * This needs to be enabled by calling the `.start()` method, and stopped with the `.stop()` method.
  */
-export class Watcher {
+export class Watcher extends EventEmitter {
   private watcher: FSWatcher
   private buffer: { [path: string]: ChangedPath }
   private running: boolean
@@ -48,18 +49,20 @@ export class Watcher {
     private modules: Module[],
     private bufferInterval: number = DEFAULT_BUFFER_INTERVAL
   ) {
+    super()
     this.buffer = {}
     this.running = false
     this.processing = false
     this.start()
   }
 
-  stop(): void {
+  async stop() {
     this.running = false
 
     if (this.watcher) {
       this.log.debug(`Watcher: Clearing handlers`)
       this.watcher.removeAllListeners()
+      await this.watcher.close()
       delete this.watcher
     }
   }
@@ -87,17 +90,20 @@ export class Watcher {
       // See https://github.com/garden-io/garden/issues/1269.
       // TODO: see if we can extract paths from dotignore files as well (we'd have to deal with negations etc. somehow).
       const projectExcludes = this.garden.moduleExcludePatterns.map((p) => resolve(this.garden.projectRoot, p))
-      const moduleExcludes = flatten(this.modules.map((m) => (m.exclude || []).map((p) => resolve(m.path, p))))
+      // TODO: filter paths based on module excludes as well
+      //       (requires more complex logic to handle overlapping module sources).
+      // const moduleExcludes = flatten(this.modules.map((m) => (m.exclude || []).map((p) => resolve(m.path, p))))
 
       this.watcher = watch(this.paths, {
         ignoreInitial: true,
         ignorePermissionErrors: true,
         persistent: true,
         awaitWriteFinish: {
-          stabilityThreshold: 500,
-          pollInterval: 200,
+          stabilityThreshold: 300,
+          pollInterval: 100,
         },
-        ignored: [...projectExcludes, ...moduleExcludes],
+        ignored: [...projectExcludes],
+        useFsEvents: false,
       })
 
       this.watcher
@@ -106,6 +112,13 @@ export class Watcher {
         .on("unlink", this.makeFileRemovedHandler())
         .on("addDir", this.makeDirAddedHandler())
         .on("unlinkDir", this.makeDirRemovedHandler())
+        .on("ready", () => {
+          this.emit("ready")
+        })
+        .on("all", (name, path, payload) => {
+          this.emit(name, path, payload)
+          this.log.silly(`FSWatcher event: ${name} ${path} ${JSON.stringify(payload)}`)
+        })
     }
 
     this.processBuffer().catch((err: Error) => {

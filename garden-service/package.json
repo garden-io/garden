@@ -218,7 +218,7 @@
     "e2e": "cd test/e2e && ../../bin/garden test",
     "e2e-project": "node build/test/e2e/e2e-project.js",
     "pkg": "./bin/build-pkg.sh",
-    "test": "node_modules/.bin/mocha",
+    "test": "node_modules/.bin/mocha --opts test/mocha.opts",
     "tsc": "tsc -p . --outDir build --declaration --declarationMap --sourceMap",
     "view-report": "open coverage/index.html",
     "watch": "npm run tsc -- -w"

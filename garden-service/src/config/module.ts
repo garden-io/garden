@@ -140,7 +140,12 @@ export const baseModuleSpecSchema = joi
 
         Note that you can also explicitly _include_ files using the \`include\` field. If you also specify the
         \`include\` field, the files/patterns specified here are filtered from the files matched by \`include\`. See the
-        [Configuration Files guide](${includeGuideLink})for details.`
+        [Configuration Files guide](${includeGuideLink})for details.
+
+        Unlike the \`modules.exclude\` field in the project config, the filters here have _no effect_ on which files
+        and directories are watched for changes. Use the project \`modules.exclude\` field to affect those, if you have
+        large directories that should not be watched for changes.
+        `
       )
       .example([["tmp/**/*", "*.log"], {}]),
     repositoryUrl: joiRepositoryUrl().description(
