@@ -14,7 +14,7 @@ import { PluginContext } from "../../plugin-context"
 import { joiArray, joiProviderName, joi, joiEnvVars, DeepPrimitiveMap } from "../../config/common"
 import { Module } from "../../types/module"
 import { Service } from "../../types/service"
-import { ExecModuleSpecBase, ExecTestSpec, execTestSchema } from "../exec"
+import { ExecModuleSpecBase, ExecTestSpec } from "../exec"
 import { KubernetesProvider } from "../kubernetes/config"
 import { CommonServiceSpec } from "../../config/service"
 import { Provider, providerConfigBaseSchema, ProviderConfig } from "../../config/provider"
@@ -25,6 +25,7 @@ import { getNamespace } from "../kubernetes/namespace"
 import { LogEntry } from "../../logger/log-entry"
 import { baseBuildSpecSchema } from "../../config/module"
 import { DEFAULT_BUILD_TIMEOUT } from "../container/helpers"
+import { baseTestSpecSchema } from "../../config/test"
 
 export interface OpenFaasModuleSpec extends ExecModuleSpecBase {
   handler: string
@@ -33,15 +34,14 @@ export interface OpenFaasModuleSpec extends ExecModuleSpecBase {
 }
 
 // Use the exec test schema but override the command description
-const openfaasTestSchema = execTestSchema.concat(
-  joi.object({
-    command: joi
-      .array()
-      .items(joi.string())
-      .description("The command to run in the module build context in order to test it.")
-      .required(),
-  })
-)
+const openfaasTestSchema = baseTestSpecSchema.keys({
+  command: joi
+    .array()
+    .items(joi.string())
+    .description("The command to run in the module build context in order to test it.")
+    .required(),
+  env: joiEnvVars(),
+})
 
 export const openfaasModuleSpecSchema = joi
   .object()

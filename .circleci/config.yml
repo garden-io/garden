@@ -322,10 +322,15 @@ jobs:
   test-minikube:
     machine:
       image: 'ubuntu-1604:201903-01'
-      docker_layer_caching: true
+    parameters:
+      kubernetesVersion:
+        description: The Kubernetes version to run
+        type: string
     environment:
-      K8S_VERSION: v1.15.0
-      MINIKUBE_VERSION: v1.3.1
+      K8S_VERSION: <<parameters.kubernetesVersion>>
+      MINIKUBE_VERSION: v1.5.2
+      GARDEN_LOG_LEVEL: silly
+      GARDEN_LOGGER_TYPE: basic
     steps:
       - checkout
       - run:
@@ -354,10 +359,12 @@ jobs:
             sudo mv minikube /usr/local/bin
       - run:
           name: Start Minikube Cluster
-          command: sudo -E minikube start --vm-driver=none --cpus 2 --memory 4096 --kubernetes-version=$K8S_VERSION
+          command: |
+            sudo -E minikube start --vm-driver=none --cpus 2 --memory 4096 --kubernetes-version=$K8S_VERSION
+            sudo chown -R circleci:circleci /home/circleci/.kube /home/circleci/.minikube /etc/kubernetes
       - run:
           name: Integ tests
-          command: npm run integ
+          command: cd garden-service && npm run integ -- -b
       - run:
           name: Deploy demo-project
           command: sudo -E ./garden-service/bin/garden deploy --root examples/demo-project --logger-type basic
@@ -429,7 +436,10 @@ workflows:
       - test-dashboard:
           requires:
             - build
-      - test-minikube
+      - test-minikube:
+          kubernetesVersion: "1.16.2"
+      - test-minikube:
+          kubernetesVersion: "1.15.0"
       - test-windows:
           # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
           <<: *only-internal-prs
@@ -474,6 +484,10 @@ workflows:
             - test-dist
       - test-minikube:
           <<: *only-master
+          kubernetesVersion: "1.16.2"
+      - test-minikube:
+          <<: *only-master
+          kubernetesVersion: "1.15.0"
       - test-windows:
           <<: *only-master
           # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
@@ -517,6 +531,10 @@ workflows:
             - test-dist
       - test-minikube:
           <<: *only-tags
+          kubernetesVersion: "1.16.2"
+      - test-minikube:
+          <<: *only-tags
+          kubernetesVersion: "1.15.0"
       - test-windows:
           <<: *only-tags
           requires:

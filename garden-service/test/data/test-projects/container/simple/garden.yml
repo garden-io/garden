@@ -1,0 +1,39 @@
+kind: Module
+name: simple
+type: container
+image: busybox
+tasks:
+  - name: echo-task
+    command: [sh, -c, "echo ok"]
+  - name: artifacts-task
+    command: [sh, -c, "touch /task.txt"]
+    artifacts:
+      - source: /task.txt
+      - source: /task.txt
+        target: subdir
+  - name: globs-task
+    command: [sh, -c, "touch /task.txt && mkdir -p /tasks && touch /tasks/output.txt"]
+    artifacts:
+      - source: /task.*
+        target: subdir
+      - source: /tasks/*
+  - name: dir-task
+    command: [sh, -c, "mkdir -p /report && touch /report/output.txt"]
+    artifacts:
+      - source: /report/*
+        target: my-task-report
+tests:
+  - name: echo-test
+    command: [sh, -c, "echo ok"]
+  - name: artifacts-test
+    command: [sh, -c, "touch /test.txt"]
+    artifacts:
+      - source: /test.txt
+      - source: /test.txt
+        target: subdir
+  - name: globs-test
+    command: [sh, -c, "touch /test.txt && mkdir -p /tests && touch /tests/output.txt"]
+    artifacts:
+      - source: /test.*
+        target: subdir
+      - source: /tests/*

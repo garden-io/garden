@@ -185,7 +185,6 @@ describe("VcsHandler", () => {
 
       const configContext = new ModuleConfigContext(
         templateGarden,
-        templateGarden.environmentName,
         await templateGarden.resolveProviders(),
         { ...templateGarden.variables, "echo-string": "something else" },
         await templateGarden.getRawModuleConfigs()

@@ -234,13 +234,13 @@ describe("ConfigContext", () => {
 describe("ProjectConfigContext", () => {
   it("should should resolve local env variables", async () => {
     process.env.TEST_VARIABLE = "foo"
-    const c = new ProjectConfigContext()
+    const c = new ProjectConfigContext("/tmp")
     expect(await c.resolve({ key: ["local", "env", "TEST_VARIABLE"], nodePath: [], opts: {} })).to.equal("foo")
     delete process.env.TEST_VARIABLE
   })
 
   it("should should resolve the local platform", async () => {
-    const c = new ProjectConfigContext()
+    const c = new ProjectConfigContext("/tmp")
     expect(await c.resolve({ key: ["local", "platform"], nodePath: [], opts: {} })).to.equal(process.platform)
   })
 })
@@ -254,7 +254,6 @@ describe("ModuleConfigContext", () => {
     await garden.scanModules()
     c = new ModuleConfigContext(
       garden,
-      garden.environmentName,
       await garden.resolveProviders(),
       garden.variables,
       Object.values((<any>garden).moduleConfigs)
@@ -354,7 +353,6 @@ describe("ModuleConfigContext", () => {
 
       withRuntime = new ModuleConfigContext(
         garden,
-        garden.environmentName,
         await garden.resolveProviders(),
         garden.variables,
         Object.values((<any>garden).moduleConfigs),

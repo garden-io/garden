@@ -8,7 +8,7 @@
 
 import { dedent } from "../../../util/string"
 import { Module } from "../../module"
-import { PluginModuleActionParamsBase } from "../base"
+import { PluginModuleActionParamsBase, artifactsPathSchema } from "../base"
 import { RuntimeContext } from "../../../runtime-context"
 import { ModuleVersion } from "../../../vcs/vcs"
 import { testConfigSchema } from "../../../config/test"
@@ -16,6 +16,7 @@ import { runModuleBaseSchema } from "./runModule"
 import { testResultSchema, testVersionSchema } from "./getTestResult"
 
 export interface TestModuleParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> {
+  artifactsPath: string
   interactive: boolean
   runtimeContext: RuntimeContext
   silent: boolean
@@ -38,6 +39,7 @@ export const testModule = {
     of the module itself.
   `,
   paramsSchema: runModuleBaseSchema.keys({
+    artifactsPath: artifactsPathSchema,
     testConfig: testConfigSchema,
     testVersion: testVersionSchema,
   }),

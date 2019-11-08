@@ -262,7 +262,7 @@ const helpers = {
     const cwd = module.buildPath
 
     try {
-      const res = await spawn("docker", args, { cwd, outputStream, timeout })
+      const res = await spawn("docker", args, { cwd, stdout: outputStream, timeout })
       return res.output || ""
     } catch (err) {
       throw new RuntimeError(`Unable to run docker command: ${err.message}`, {

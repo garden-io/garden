@@ -70,8 +70,7 @@ export class Library {
   protected versionPath: string
   protected targetSubpath: string[]
 
-  constructor(spec: LibrarySpec) {
-    const currentPlatform = platform()
+  constructor(spec: LibrarySpec, currentPlatform = platform()) {
     const platformSpec = spec.specs[currentPlatform]
 
     if (!platformSpec) {
@@ -181,7 +180,7 @@ export class Library {
         response.data.on("end", () => resolve())
       } else {
         const format = this.spec.extract.format
-        let extractor: any
+        let extractor: Writable
 
         if (format === "tar") {
           extractor = tar.x({
@@ -226,7 +225,8 @@ export interface ExecParams {
   timeout?: number
   input?: Buffer | string
   ignoreError?: boolean
-  outputStream?: Writable
+  stdout?: Writable
+  stderr?: Writable
 }
 
 export interface SpawnParams extends ExecParams {
@@ -264,7 +264,7 @@ export class BinaryCmd extends Library {
     return path
   }
 
-  async exec({ args, cwd, env, log, timeout, input, ignoreError, outputStream }: ExecParams) {
+  async exec({ args, cwd, env, log, timeout, input, ignoreError, stdout, stderr }: ExecParams) {
     const path = await this.getPath(log)
 
     if (!args) {
@@ -281,8 +281,9 @@ export class BinaryCmd extends Library {
       timeout: this.getTimeout(timeout) * 1000,
       env,
       input,
-      outputStream,
       reject: !ignoreError,
+      stdout,
+      stderr,
     })
   }
 
@@ -318,14 +319,15 @@ export class BinaryCmd extends Library {
     return crossSpawn(path, args, { cwd, env })
   }
 
-  async spawnAndWait({ args, cwd, env, log, ignoreError, outputStream, timeout, tty }: SpawnParams) {
+  async spawnAndWait({ args, cwd, env, log, ignoreError, stdout, stderr, timeout, tty }: SpawnParams) {
     const path = await this.getPath(log)
     return spawn(path, args || [], {
       cwd: cwd || dirname(path),
       timeout: this.getTimeout(timeout),
       ignoreError,
       env,
-      outputStream,
+      stdout,
+      stderr,
       tty,
     })
   }
