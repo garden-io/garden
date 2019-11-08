@@ -103,7 +103,6 @@ export class Watcher extends EventEmitter {
           pollInterval: 100,
         },
         ignored: [...projectExcludes],
-        useFsEvents: false,
       })
 
       this.watcher
