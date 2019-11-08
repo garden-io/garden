@@ -66,6 +66,7 @@ type Opts = typeof devOpts
 export class DevCommand extends Command<Args, Opts> {
   name = "dev"
   help = "Starts the garden development console."
+  protected = true
 
   // Currently it doesn't make sense to do file watching except in the CLI
   cliOnly = true

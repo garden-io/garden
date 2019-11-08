@@ -22,6 +22,7 @@ type WrappedFromGarden = Pick<
   | "workingCopyId"
   // TODO: remove this from the interface
   | "environmentName"
+  | "production"
 >
 
 export interface CommandInfo {
@@ -62,6 +63,10 @@ export const pluginContextSchema = joi
         The absolute path of the project's Garden dir. This is the directory the contains builds, logs and
         other meta data. A custom path can be set when initialising the Garden class. Defaults to \`.garden\`.
       `),
+    production: joi
+      .boolean()
+      .default(false)
+      .description("Indicate if the current environment is a production environment"),
     projectName: projectNameSchema,
     projectRoot: joi.string().description("The absolute path of the project root."),
     projectSources: projectSourcesSchema,
@@ -78,6 +83,7 @@ export function createPluginContext(garden: Garden, provider: Provider, command?
     projectRoot: garden.projectRoot,
     projectSources: cloneDeep(garden.projectSources),
     provider,
+    production: garden.production,
     workingCopyId: garden.workingCopyId,
   }
 }

@@ -429,6 +429,22 @@ The name of the environment.
 | -------- | -------- |
 | `string` | Yes      |
 
+### `environments[].production`
+
+[environments](#environments) > production
+
+Set environment as production.
+
+Setting this flag to `true` will activate the protection on the `deploy`, `test`, `task`, `build`, `call`, `init` and `dev` commands.
+A protected command will ask for a user confirmation every time is run agains an environment marked as production.
+Run the command with the "--yes" flag to skip the check (e.g. when running Garden in CI).
+
+Note: This flag will affect how certain providers behave. For more details please check the documentation for the providers in use.
+
+| Type      | Required | Default |
+| --------- | -------- | ------- |
+| `boolean` | No       | `false` |
+
 
 ## Project YAML schema
 ```yaml
@@ -463,6 +479,7 @@ environments:
     varfile: garden.<env-name>.env
     variables: {}
     name:
+    production: false
 ```
 
 ## Module configuration keys

@@ -782,12 +782,12 @@ This allows you to call the service from the outside by the node's IP address an
 
 [services](#services) > replicas
 
-The number of instances of the service to deploy.
+The number of instances of the service to deploy. Defaults to 3 for environments configured with production: true, otherwise 1.
 Note: This setting may be overridden or ignored in some cases. For example, when running with `daemon: true`, with hot-reloading enabled, or if the provider doesn't support multiple replicas.
 
-| Type     | Required | Default |
-| -------- | -------- | ------- |
-| `number` | No       | `1`     |
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
 
 ### `services[].volumes[]`
 
@@ -1268,7 +1268,7 @@ services:
         servicePort: <same as containerPort>
         hostPort:
         nodePort:
-    replicas: 1
+    replicas:
     volumes:
       - name:
         containerPath:

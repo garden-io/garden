@@ -28,6 +28,7 @@ export async function getServiceLogs(params: GetServiceLogsParams<ContainerModul
       runtimeContext: emptyRuntimeContext,
       namespace,
       enableHotReload: false,
+      production: ctx.production,
       log,
     }),
   ]

@@ -50,6 +50,7 @@ describe("util", () => {
         namespace: "container-artifacts",
         enableHotReload: false,
         log: garden.log,
+        production: false,
       })
       await garden.processTasks([deployTask], { throwOnError: true })
 

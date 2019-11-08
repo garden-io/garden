@@ -131,7 +131,9 @@ you will expose for ingress.
 _How you configure DNS and prepare the certificates will depend on how you manage DNS and certificates in general,
 so we won't cover that in detail here._
 
-Once you have the certificates in hand (the `.crt` and `.key` files), create a
+If you are using cert-manager to manage your TLS certificates you can check out the [cert-manager integration](../guide/cert-manager-integration.md).
+
+If you are manually creating or obtaining the certificates (and you have the `.crt` and `.key` files), create a
 [Secret](https://kubernetes.io/docs/concepts/configuration/secret/) for each cert in the cluster so
 they can be referenced when deploying services:
 
@@ -167,3 +169,13 @@ environments:
         namespace: default
     ...
 ```
+
+## Production flag
+
+You can define a remote environment as `production` by setting the [production flag](../reference/config.md#environmentsproduction).
+
+This will set up some defaults when deploying the container module type:
+
+- Default number of replicas for a service will be 3 (unless specified by the user).
+- A soft AntiAffinity setting will try to schedule pods based over different nodes.
+- RevisionHistoryLimit is set to 10.

@@ -29,6 +29,7 @@ quiet: suppresses all log output, same as --silent.
   | `--log-level` | `-l` | `error` `warn` `info` `verbose` `debug` `silly` `0` `1` `2` `3` `4` `5`  | Set logger level. Values can be either string or numeric and are prioritized from 0 to 5 (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5.
   | `--output` | `-o` | `json` `yaml`  | Output command result in specified format (note: disables progress logging and interactive functionality).
   | `--emoji` |  | boolean | Enable emoji in output (defaults to true if the environment supports it).
+  | `--yes` | `-y` | boolean | Automatically approve any yes/no prompts during execution.
 
 ### garden build
 

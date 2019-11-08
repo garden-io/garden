@@ -39,6 +39,7 @@ describe("resolveProjectConfig", () => {
       environments: [
         {
           name: "default",
+          production: false,
           providers: [],
           varfile: defaultEnvVarfilePath("default"),
           variables: {},
@@ -121,6 +122,7 @@ describe("resolveProjectConfig", () => {
         {
           name: "default",
           providers: [],
+          production: false,
           varfile: defaultEnvVarfilePath("default"),
           variables: {
             envVar: "foo",
@@ -197,6 +199,7 @@ describe("resolveProjectConfig", () => {
         {
           name: "default",
           providers: [],
+          production: false,
           varfile: defaultEnvVarfilePath("default"),
           variables: {
             envVar: "foo",
@@ -326,6 +329,7 @@ describe("resolveProjectConfig", () => {
         {
           name: "default",
           providers: [],
+          production: false,
           varfile: defaultEnvVarfilePath("default"),
           variables: {
             envVar: "foo",
@@ -394,6 +398,7 @@ describe("resolveProjectConfig", () => {
         {
           name: "default",
           providers: [],
+          production: false,
           varfile: defaultEnvVarfilePath("default"),
           variables: {
             envVar: "bar",
@@ -462,6 +467,7 @@ describe("pickEnvironment", () => {
 
     expect(await pickEnvironment(config, "default")).to.eql({
       providers: [{ name: "exec" }, { name: "container" }],
+      production: false,
       variables: {},
     })
   })
@@ -486,6 +492,7 @@ describe("pickEnvironment", () => {
 
     expect(await pickEnvironment(config, "default")).to.eql({
       providers: [{ name: "exec" }, { name: "container", newKey: "foo" }, { name: "my-provider", a: "c", b: "b" }],
+      production: false,
       variables: {},
     })
   })
@@ -510,6 +517,7 @@ describe("pickEnvironment", () => {
 
     expect(await pickEnvironment(config, "default")).to.eql({
       providers: [{ name: "exec" }, { name: "container", newKey: "foo" }, { name: "my-provider", b: "b" }],
+      production: false,
       variables: {},
     })
   })

@@ -43,6 +43,7 @@ type Opts = typeof buildOptions
 export class BuildCommand extends Command<Args, Opts> {
   name = "build"
   help = "Build your modules."
+  protected = true
 
   description = dedent`
     Builds all or specified modules, taking into account build dependency order.

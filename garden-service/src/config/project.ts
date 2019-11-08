@@ -27,7 +27,7 @@ import { findByName, getNames } from "../util/util"
 import { ConfigurationError, ParameterError } from "../exceptions"
 import { PrimitiveMap } from "./common"
 import { cloneDeep, omit } from "lodash"
-import { providerConfigBaseSchema, Provider, ProviderConfig } from "./provider"
+import { providerConfigBaseSchema, ProviderConfig } from "./provider"
 import { DEFAULT_API_VERSION } from "../constants"
 import { defaultDotIgnoreFiles } from "../util/fs"
 import { pathExists, readFile } from "fs-extra"
@@ -72,10 +72,7 @@ export const environmentConfigSchema = joi.object().keys({
 export interface EnvironmentConfig extends CommonEnvironmentConfig {
   name: string
   varfile?: string
-}
-
-export interface Environment extends EnvironmentConfig {
-  providers: Provider[]
+  production?: boolean
 }
 
 export const environmentNameSchema = joiUserIdentifier()
@@ -84,6 +81,15 @@ export const environmentNameSchema = joiUserIdentifier()
 
 export const environmentSchema = environmentConfigSchema.keys({
   name: environmentNameSchema,
+  production: joi.boolean().default(false).description(dedent`
+      Set environment as production.
+
+      Setting this flag to \`true\` will activate the protection on the \`deploy\`, \`test\`, \`task\`, \`build\`, \`init\` and \`dev\` commands.
+      A protected command will ask for a user confirmation every time is run agains an environment marked as production.
+      Run the command with the "--yes" flag to skip the check (e.g. when running Garden in CI).
+
+      Note: This flag will affect how certain providers behave. For more details please check the documentation for the providers in use.
+      `),
 })
 
 const environmentsSchema = joi.alternatives(
@@ -438,6 +444,7 @@ export async function pickEnvironment(config: ProjectConfig, environmentName: st
   return {
     providers: Object.values(mergedProviders),
     variables,
+    production: !!environmentConfig.production,
   }
 }
 
