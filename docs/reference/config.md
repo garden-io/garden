@@ -202,8 +202,26 @@ modules:
 [modules](#modules) > exclude
 
 Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for modules.
-The filters here also affect which files and directories are watched for changes. So if you have a large number of directories in your project that should not be watched, you should specify them here. The `include` field does _not_ affect which files are watched.
-Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the paths/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
+
+The filters here also affect which files and directories are watched for changes. So if you have a large number
+of directories in your project that should not be watched, you should specify them here.
+
+For example, you might want to exclude large vendor directories in your project from being scanned and
+watched:
+
+```yaml
+modules:
+  exclude:
+    - node_modules/**/*
+    - vendor/**/*
+```
+
+Note that you can also explicitly _include_ files using the `include` field. If you also specify the
+`include` field, the paths/patterns specified here are filtered from the files matched by `include`.
+
+The `include` field does _not_ affect which files are watched.
+
+See the [Configuration Files guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
 
 | Type            | Required |
 | --------------- | -------- |
