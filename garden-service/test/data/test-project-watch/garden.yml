@@ -1,5 +1,7 @@
 kind: Project
 name: test-project-a
+modules:
+  exclude: [module-a/project-excluded.txt]
 environments:
   - name: local
     providers:

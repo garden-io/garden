@@ -178,6 +178,10 @@ Note that you can also _exclude_ path using the `exclude` field or by placing `.
 source tree, which use the same format as `.gitignore` files. See the
 [Configuration Files guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
 
+Unlike the `exclude` field, the paths/globs specified here have _no effect_ on which files and directories
+Garden watches for changes. Use the `exclude` field to affect those, if you have large directories that
+should not be watched for changes.
+
 Also note that specifying an empty list here means _no paths_ should be included.
 
 | Type            | Required |
@@ -198,7 +202,26 @@ modules:
 [modules](#modules) > exclude
 
 Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for modules.
-Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the paths/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
+
+The filters here also affect which files and directories are watched for changes. So if you have a large number
+of directories in your project that should not be watched, you should specify them here.
+
+For example, you might want to exclude large vendor directories in your project from being scanned and
+watched:
+
+```yaml
+modules:
+  exclude:
+    - node_modules/**/*
+    - vendor/**/*
+```
+
+Note that you can also explicitly _include_ files using the `include` field. If you also specify the
+`include` field, the paths/patterns specified here are filtered from the files matched by `include`.
+
+The `include` field does _not_ affect which files are watched.
+
+See the [Configuration Files guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
 
 | Type            | Required |
 | --------------- | -------- |
@@ -526,6 +549,10 @@ watch events, and when staging builds.
 Note that you can also explicitly _include_ files using the `include` field. If you also specify the
 `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the
 [Configuration Files guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)for details.
+
+Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files
+and directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have
+large directories that should not be watched for changes.
 
 | Type            | Required |
 | --------------- | -------- |

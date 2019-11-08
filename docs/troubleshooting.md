@@ -7,6 +7,12 @@ title: Troubleshooting
 
 _This section could (obviously) use more work. Contributions are most appreciated!_
 
+## I have a huge number of files in my repository and Garden is eating all my CPU/RAM
+
+This issue often comes up on Linux, and in other scenarios where the filesystem doesn't support event-based file watching.
+
+Thankfully, you can in most cases avoid this problem using the `modules.exclude` field in your project config, and/or the `exclude` field in your individual module configs. See the [Including/excluding files and directories](./using-garden/configuration-files#including-excluding-files-and-directories) section in our Configuration Files guide for details.
+
 ## I'm getting an "EPERM: operation not permitted, rename..." error on Windows
 
 This is a known issue with Windows and may affect many Node.js applications (and possibly others).

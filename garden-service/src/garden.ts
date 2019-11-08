@@ -256,7 +256,7 @@ export class Garden {
    * Clean up before shutting down.
    */
   async close() {
-    this.watcher && this.watcher.stop()
+    this.watcher && (await this.watcher.stop())
   }
 
   getPluginContext(provider: Provider) {

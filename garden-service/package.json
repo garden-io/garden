@@ -36,7 +36,7 @@
     "certpem": "^1.1.3",
     "chalk": "^2.4.2",
     "child-process-promise": "^2.2.1",
-    "chokidar": "^3.0.2",
+    "chokidar": "^3.3.0",
     "ci-info": "^2.0.0",
     "circular-json": "^0.5.9",
     "cli-cursor": "^3.1.0",
@@ -218,7 +218,7 @@
     "e2e": "cd test/e2e && ../../bin/garden test",
     "e2e-project": "node build/test/e2e/e2e-project.js",
     "pkg": "./bin/build-pkg.sh",
-    "test": "node_modules/.bin/mocha",
+    "test": "node_modules/.bin/mocha --opts test/mocha.opts",
     "tsc": "tsc -p . --outDir build --declaration --declarationMap --sourceMap",
     "view-report": "open coverage/index.html",
     "watch": "npm run tsc -- -w"

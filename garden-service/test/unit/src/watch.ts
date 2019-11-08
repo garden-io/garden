@@ -1,6 +1,6 @@
 import { resolve, join } from "path"
 import { expect } from "chai"
-import pEvent = require("p-event")
+import pEvent from "p-event"
 
 import {
   TestGarden,
@@ -12,12 +12,12 @@ import {
   makeExtProjectSourcesGarden,
 } from "../../helpers"
 import { CacheContext, pathToCacheContext } from "../../../src/cache"
-import { createFile, remove, pathExists } from "fs-extra"
+import { remove, pathExists, writeFile } from "fs-extra"
 import { getConfigFilePath } from "../../../src/util/fs"
 import { LinkModuleCommand } from "../../../src/commands/link/module"
-import { cleanUpGlobalWatcher } from "../../../src/watch"
 import { LinkSourceCommand } from "../../../src/commands/link/source"
 import { sleep } from "../../../src/util/util"
+import { Garden } from "../../../src/garden"
 
 function emitEvent(garden: TestGarden, name: string, payload: any) {
   garden["watcher"]["watcher"].emit(name, payload)
@@ -43,25 +43,28 @@ describe("Watcher", () => {
     garden.events.clearLog()
     garden["watcher"]["addBuffer"] = {}
     garden["watcher"].start()
+    await waitUntilReady(garden)
   })
 
   afterEach(async () => {
-    garden["watcher"].stop()
+    await garden["watcher"].stop()
 
     // Wait for processing to complete
     while (garden["watcher"].processing) {
       await sleep(100)
     }
-
-    garden.events.clearLog()
   })
 
   after(async () => {
     await garden.close()
   })
 
+  async function waitUntilReady(_garden: Garden) {
+    return pEvent(_garden["watcher"], "ready", { timeout: 5000 })
+  }
+
   async function waitForEvent(name: string) {
-    return pEvent(<any>garden.events, name, { timeout: 2000 })
+    return pEvent(<any>garden.events, name, { timeout: 5000 })
   }
 
   it("should emit a moduleConfigChanged changed event when module config is changed", async () => {
@@ -151,7 +154,7 @@ describe("Watcher", () => {
     it("if a file is added to a module", async () => {
       const path = resolve(modulePath, "new.txt")
       try {
-        await createFile(path)
+        await writeFile(path, "foo")
         expect(await waitForEvent("moduleSourcesChanged")).to.eql({
           names: ["module-a"],
           pathsChanged: [path],
@@ -174,6 +177,12 @@ describe("Watcher", () => {
     })
   })
 
+  it("should not emit moduleSourcesChanged if file is changed and matches the modules.exclude list", async () => {
+    const pathChanged = resolve(includeModulePath, "project-excluded.txt")
+    emitEvent(garden, "change", pathChanged)
+    expect(garden.events.eventLog).to.eql([])
+  })
+
   it("should not emit moduleSourcesChanged if file is changed and doesn't match module's include list", async () => {
     const pathChanged = resolve(includeModulePath, "foo.txt")
     emitEvent(garden, "change", pathChanged)
@@ -187,7 +196,7 @@ describe("Watcher", () => {
   })
 
   it("should not emit moduleSourcesChanged if file is changed and it's in a gardenignore in the project", async () => {
-    const pathChanged = resolve(modulePath, "project-excluded.txt")
+    const pathChanged = resolve(modulePath, "gardenignore-excluded.txt")
     emitEvent(garden, "change", pathChanged)
     expect(garden.events.eventLog).to.eql([])
   })
@@ -281,8 +290,6 @@ describe("Watcher", () => {
     const localModulePathB = join(localModuleSourceDir, "module-b")
 
     before(async () => {
-      // The watcher instance is global so we clean up the previous one before proceeding
-      cleanUpGlobalWatcher()
       garden = await makeExtModuleSourcesGarden()
 
       // Link some modules
@@ -315,17 +322,10 @@ describe("Watcher", () => {
       // so the user will always have a new instance of Garden when they run their next command.
       garden = await makeExtModuleSourcesGarden()
       await garden.startWatcher(await garden.getConfigGraph())
-      // This ensures that the watcher is properly initialised when we call `watcher.getWatched()` below
-      await sleep(100)
-    })
-
-    beforeEach(() => {
-      garden.events.clearLog()
     })
 
     after(async () => {
       await resetLocalConfig(garden.gardenDirPath)
-      await garden.close()
     })
 
     it("should watch all linked repositories", () => {
@@ -353,8 +353,6 @@ describe("Watcher", () => {
     const localSourcePathB = join(localProjectSourceDir, "source-b")
 
     before(async () => {
-      // The watcher instance is global so we clean up the previous one before proceeding
-      cleanUpGlobalWatcher()
       garden = await makeExtProjectSourcesGarden()
 
       // Link some projects
@@ -387,17 +385,10 @@ describe("Watcher", () => {
       // so the user will always have a new instance of Garden when they run their next command.
       garden = await makeExtProjectSourcesGarden()
       await garden.startWatcher(await garden.getConfigGraph())
-      // This ensures that the watcher is properly initialised when we call `watcher.getWatched()` below
-      await sleep(100)
-    })
-
-    beforeEach(() => {
-      garden.events.clearLog()
     })
 
     after(async () => {
       await resetLocalConfig(garden.gardenDirPath)
-      await garden.close()
     })
 
     it("should watch all linked repositories", () => {
