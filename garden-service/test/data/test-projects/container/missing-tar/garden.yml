@@ -1,0 +1,14 @@
+kind: Module
+name: missing-tar
+description: Test module for attempting to copy artifacts without tar binary in the image
+type: container
+tasks:
+  - name: missing-tar-task
+    command: [sh, -c, "touch /task-a.txt"]
+    artifacts:
+      - source: /task-a.txt
+tests:
+  - name: missing-tar-test
+    command: [sh, -c, "touch /test-a.txt"]
+    artifacts:
+      - source: /test-a.txt

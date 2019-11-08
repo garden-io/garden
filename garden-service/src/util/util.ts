@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { trimEnd } from "lodash"
+import { trimEnd, omit } from "lodash"
 import split2 = require("split2")
 import Bluebird = require("bluebird")
 import { ResolvableProps } from "bluebird"
@@ -131,7 +131,8 @@ export function makeErrorMsg({
 }
 
 interface ExecOpts extends execa.Options {
-  outputStream?: Writable
+  stdout?: Writable
+  stderr?: Writable
 }
 
 /**
@@ -140,15 +141,13 @@ interface ExecOpts extends execa.Options {
  *
  * Also adds the ability to pipe stdout|stderr to an output stream.
  */
-export async function exec(cmd: string, args: string[] = [], opts: ExecOpts = {}) {
+export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
   // Ensure buffer is always set to true so that we can read the error output
   opts = { ...opts, buffer: true }
-  const proc = args.length === 0 ? execa.command(cmd, opts) : execa(cmd, args, opts)
+  const proc = execa(cmd, args, omit(opts, ["stdout", "stderr"]))
 
-  if (opts.outputStream) {
-    proc.stdout && proc.stdout.pipe(opts.outputStream)
-    proc.stderr && proc.stderr.pipe(opts.outputStream)
-  }
+  opts.stdout && proc.stdout && proc.stdout.pipe(opts.stdout)
+  opts.stderr && proc.stderr && proc.stderr.pipe(opts.stderr)
 
   try {
     const res = await proc
@@ -173,7 +172,8 @@ export interface SpawnOpts {
   data?: Buffer
   ignoreError?: boolean
   env?: { [key: string]: string | undefined }
-  outputStream?: Writable
+  stdout?: Writable
+  stderr?: Writable
   tty?: boolean
   wait?: boolean
 }
@@ -188,7 +188,7 @@ export interface SpawnOutput {
 
 // TODO Dump output to a log file if it exceeds the MAX_BUFFER_SIZE
 export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
-  const { timeout = 0, cwd, data, ignoreError = false, env, outputStream, tty, wait = true } = opts
+  const { timeout = 0, cwd, data, ignoreError = false, env, stdout, stderr, tty, wait = true } = opts
 
   const stdio = tty ? "inherit" : "pipe"
   const proc = _spawn(cmd, args, { cwd, env, stdio })
@@ -223,10 +223,8 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
       result.stderr! = tailString(result.stderr! + s, MAX_BUFFER_SIZE, true)
     })
 
-    if (outputStream) {
-      proc.stdout!.pipe(outputStream)
-      proc.stderr!.pipe(outputStream)
-    }
+    stdout && proc.stdout!.pipe(stdout)
+    stderr && proc.stderr!.pipe(stderr)
 
     if (data) {
       // This may happen if the spawned process errors while we're still writing data.

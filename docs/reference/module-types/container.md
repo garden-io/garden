@@ -205,7 +205,8 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 
 [build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > target
 
-POSIX-style path or filename to copy the directory or file(s).
+POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
+Defaults to to same as source path.
 
 | Type     | Required | Default                   |
 | -------- | -------- | ------------------------- |
@@ -350,7 +351,7 @@ The list of services to deploy from this container module.
 
 [services](#services) > name
 
-Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter and cannot end with a dash), cannot contain consecutive dashes or start with `garden` or be longer than 63 characters.
+Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash), cannot contain consecutive dashes or start with `garden`, or be longer than 63 characters.
 
 | Type     | Required |
 | -------- | -------- |
@@ -728,7 +729,7 @@ Example:
 ```yaml
 services:
   - ports:
-      - containerPort: "8080"
+      - containerPort: 8080
 ```
 
 ### `services[].ports[].servicePort`
@@ -750,7 +751,7 @@ Example:
 ```yaml
 services:
   - ports:
-      - servicePort: "80"
+      - servicePort: 80
 ```
 
 ### `services[].ports[].hostPort`
@@ -873,25 +874,6 @@ Maximum duration (in seconds) of the test run.
 | -------- | -------- | ------- |
 | `number` | No       | `null`  |
 
-### `tests[].command[]`
-
-[tests](#tests) > command
-
-The command/entrypoint used to run the test inside the container.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-Example:
-
-```yaml
-tests:
-  - command:
-    - /bin/sh
-    - '-c'
-```
-
 ### `tests[].args[]`
 
 [tests](#tests) > args
@@ -909,6 +891,82 @@ tests:
   - args:
     - npm
     - test
+```
+
+### `tests[].artifacts[]`
+
+[tests](#tests) > artifacts
+
+Specify artifacts to copy out of the container after the run.
+Note: Depending on the provider, this may require the container image to include `sh` `tar`, in order to enable the file transfer.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[object]` | No       |
+
+Example:
+
+```yaml
+tests:
+  - artifacts:
+    - source: /report/**/*
+```
+
+### `tests[].artifacts[].source`
+
+[tests](#tests) > [artifacts](#testsartifacts) > source
+
+A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+Example:
+
+```yaml
+tests:
+  - artifacts:
+    - source: /report/**/*
+      - source: "/output/**/*"
+```
+
+### `tests[].artifacts[].target`
+
+[tests](#tests) > [artifacts](#testsartifacts) > target
+
+A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
+
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `string` | No       | `"."`   |
+
+Example:
+
+```yaml
+tests:
+  - artifacts:
+    - source: /report/**/*
+      - target: "outputs/foo/"
+```
+
+### `tests[].command[]`
+
+[tests](#tests) > command
+
+The command/entrypoint used to run the test inside the container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+Example:
+
+```yaml
+tests:
+  - command:
+    - /bin/sh
+    - '-c'
 ```
 
 ### `tests[].env`
@@ -981,25 +1039,6 @@ Maximum duration (in seconds) of the task's execution.
 | -------- | -------- | ------- |
 | `number` | No       | `null`  |
 
-### `tasks[].command[]`
-
-[tasks](#tasks) > command
-
-The command/entrypoint used to run the task inside the container.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-Example:
-
-```yaml
-tasks:
-  - command:
-    - /bin/sh
-    - '-c'
-```
-
 ### `tasks[].args[]`
 
 [tasks](#tasks) > args
@@ -1017,6 +1056,82 @@ tasks:
   - args:
     - rake
     - 'db:migrate'
+```
+
+### `tasks[].artifacts[]`
+
+[tasks](#tasks) > artifacts
+
+Specify artifacts to copy out of the container after the run.
+Note: Depending on the provider, this may require the container image to include `sh` `tar`, in order to enable the file transfer.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[object]` | No       |
+
+Example:
+
+```yaml
+tasks:
+  - artifacts:
+    - source: /report/**/*
+```
+
+### `tasks[].artifacts[].source`
+
+[tasks](#tasks) > [artifacts](#tasksartifacts) > source
+
+A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+Example:
+
+```yaml
+tasks:
+  - artifacts:
+    - source: /report/**/*
+      - source: "/output/**/*"
+```
+
+### `tasks[].artifacts[].target`
+
+[tasks](#tasks) > [artifacts](#tasksartifacts) > target
+
+A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
+
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `string` | No       | `"."`   |
+
+Example:
+
+```yaml
+tasks:
+  - artifacts:
+    - source: /report/**/*
+      - target: "outputs/foo/"
+```
+
+### `tasks[].command[]`
+
+[tasks](#tasks) > command
+
+The command/entrypoint used to run the task inside the container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+Example:
+
+```yaml
+tasks:
+  - command:
+    - /bin/sh
+    - '-c'
 ```
 
 ### `tasks[].env`
@@ -1112,16 +1227,22 @@ tests:
   - name:
     dependencies: []
     timeout: null
-    command:
     args:
+    artifacts:
+      - source:
+        target: .
+    command:
     env: {}
 tasks:
   - name:
     description:
     dependencies: []
     timeout: null
-    command:
     args:
+    artifacts:
+      - source:
+        target: .
+    command:
     env: {}
 ```
 

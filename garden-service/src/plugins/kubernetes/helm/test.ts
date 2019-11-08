@@ -9,39 +9,20 @@
 import { DEFAULT_TEST_TIMEOUT } from "../../../constants"
 import { storeTestResult } from "../test-results"
 import { HelmModule } from "./config"
-import { getAppNamespace } from "../namespace"
-import { runPod } from "../run"
+import { runAndCopy } from "../run"
 import { findServiceResource, getChartResources, getResourceContainer, getServiceResourceSpec } from "./common"
 import { KubernetesPluginContext } from "../config"
 import { TestModuleParams } from "../../../types/plugin/module/testModule"
 import { TestResult } from "../../../types/plugin/module/getTestResult"
-import { V1PodSpec } from "@kubernetes/client-node"
-import { uniqByName } from "../../../util/util"
-import { prepareEnvVars } from "../util"
 
-export async function testHelmModule({
-  ctx,
-  log,
-  interactive,
-  module,
-  runtimeContext,
-  testConfig,
-  testVersion,
-}: TestModuleParams<HelmModule>): Promise<TestResult> {
+export async function testHelmModule(params: TestModuleParams<HelmModule>): Promise<TestResult> {
+  const { ctx, log, module, testConfig, testVersion } = params
   const k8sCtx = <KubernetesPluginContext>ctx
-  const provider = k8sCtx.provider
-  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
   // Get the container spec to use for running
   const chartResources = await getChartResources(k8sCtx, module, log)
   const resourceSpec = testConfig.spec.resource || getServiceResourceSpec(module)
-  const target = await findServiceResource({
-    ctx: k8sCtx,
-    log,
-    chartResources,
-    module,
-    resourceSpec,
-  })
+  const target = await findServiceResource({ ctx: k8sCtx, log, chartResources, module, resourceSpec })
   const container = getResourceContainer(target, resourceSpec.containerName)
 
   const testName = testConfig.name
@@ -49,33 +30,18 @@ export async function testHelmModule({
   const image = container.image
   const timeout = testConfig.timeout || DEFAULT_TEST_TIMEOUT
 
-  // Apply overrides
-  const envVars = { ...runtimeContext.envVars, ...testConfig.spec.env }
-  const env = uniqByName([...prepareEnvVars(envVars), ...(container.env || [])])
-
-  const spec: V1PodSpec = {
-    containers: [
-      {
-        ...container,
-        ...(command && { command }),
-        ...(args && { args }),
-        env,
-        // TODO: consider supporting volume mounts in ad-hoc runs (would need specific logic and testing)
-        volumeMounts: [],
-      },
-    ],
-  }
-
-  const result = await runPod({
-    provider,
+  const result = await runAndCopy({
+    ...params,
+    container,
+    command,
+    args,
+    artifacts: testConfig.spec.artifacts,
+    envVars: testConfig.spec.env,
     image,
-    interactive,
-    ignoreError: true, // to ensure results get stored when an error occurs
-    log,
-    module,
-    namespace,
-    spec,
+    podName: `test-${module.name}-${testName}-${Math.round(new Date().getTime())}`,
+    description: `Test '${testName}' in container module '${module.name}'`,
     timeout,
+    ignoreError: true, // to ensure results get stored when an error occurs
   })
 
   return storeTestResult({

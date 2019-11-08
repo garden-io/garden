@@ -31,18 +31,21 @@ export interface BuildCopySpec {
 }
 
 // TODO: allow : delimited string (e.g. some.file:some-dir/)
+// FIXME: target should not default to source if source contains wildcards
 const copySchema = joi.object().keys({
   // TODO: allow array of strings here
   source: joi
     .string()
-    .posixPath({ subPathOnly: true })
+    .posixPath({ allowGlobs: true, subPathOnly: true })
     .required()
     .description("POSIX-style path or filename of the directory or file(s) to copy to the target."),
   target: joi
     .string()
     .posixPath({ subPathOnly: true })
-    .default(() => "", "<same as source path>")
-    .description("POSIX-style path or filename to copy the directory or file(s)."),
+    .default(() => "", "<same as source path>").description(dedent`
+        POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
+        Defaults to to same as source path.
+      `),
 })
 
 export const moduleOutputsSchema = joiIdentifierMap(joiPrimitive())
@@ -117,7 +120,7 @@ export const baseModuleSpecSchema = joi
     description: joi.string(),
     include: joi
       .array()
-      .items(joi.string().posixPath({ subPathOnly: true }))
+      .items(joi.string().posixPath({ allowGlobs: true, subPathOnly: true }))
       .description(
         dedent`Specify a list of POSIX-style paths or globs that should be regarded as the source files for this
         module. Files that do *not* match these paths or globs are excluded when computing the version of the module,
@@ -132,7 +135,7 @@ export const baseModuleSpecSchema = joi
       .example([["Dockerfile", "my-app.js"], {}]),
     exclude: joi
       .array()
-      .items(joi.string().posixPath({ subPathOnly: true }))
+      .items(joi.string().posixPath({ allowGlobs: true, subPathOnly: true }))
       .description(
         dedent`Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that
         match these paths or globs are excluded when computing the version of the module, when responding to filesystem

@@ -13,7 +13,7 @@ import { ConfigurationError, LocalConfigError } from "../exceptions"
 import chalk from "chalk"
 import { relative } from "path"
 import { splitLast } from "../util/util"
-import isGitUrl = require("is-git-url")
+import isGitUrl from "is-git-url"
 import { deline } from "../util/string"
 
 export type Primitive = string | number | boolean | null
@@ -38,8 +38,9 @@ interface JoiGitUrlParams {
   requireHash?: boolean
 }
 
-interface JoiPathParams {
+interface JoiPosixPathParams {
   absoluteOnly?: boolean
+  allowGlobs?: boolean
   relativeOnly?: boolean
   subPathOnly?: boolean
   filenameOnly?: boolean
@@ -94,7 +95,7 @@ declare module "@hapi/joi" {
   export interface StringSchema {
     meta(keys: MetadataKeys): this
     gitUrl: (params: JoiGitUrlParams) => this
-    posixPath: (params?: JoiPathParams) => this
+    posixPath: (params?: JoiPosixPathParams) => this
   }
 
   export interface LazySchema {
@@ -110,6 +111,7 @@ export const joi: Joi.Root = Joi.extend({
     requireHash: "must specify a branch/tag hash",
     posixPath: "must be a POSIX-style path", // Used below as 'string.posixPath'
     absoluteOnly: "must be a an absolute path",
+    allowGlobs: "must not include globs (wildcards)",
     relativeOnly: "must be a relative path (may not be an absolute path)",
     subPathOnly: "must be a relative sub-path (may not contain '..' segments or be an absolute path)",
     filenameOnly: "must be a filename (may not contain slashes)",
@@ -153,6 +155,7 @@ export const joi: Joi.Root = Joi.extend({
         options: Joi.object()
           .keys({
             absoluteOnly: Joi.boolean().description("Only allow absolute paths (starting with /)."),
+            allowGlobs: Joi.boolean().description("Allow globs (wildcards) in path."),
             relativeOnly: Joi.boolean().description("Disallow absolute paths (starting with /)."),
             subPathOnly: Joi.boolean().description(
               "Only allow sub-paths. That is, disallow '..' path segments and absolute paths."
@@ -163,7 +166,7 @@ export const joi: Joi.Root = Joi.extend({
           .oxor("absoluteOnly", "filenameOnly")
           .oxor("absoluteOnly", "subPathOnly"),
       },
-      validate(params: { options?: JoiPathParams }, value: string, state, prefs) {
+      validate(params: { options?: JoiPosixPathParams }, value: string, state, prefs) {
         // Note: This relativeOnly param is in the context of URLs.
         // Our own relativeOnly param is in the context of file paths.
         const baseSchema = Joi.string().uri({ relativeOnly: true })
@@ -196,6 +199,11 @@ export const joi: Joi.Root = Joi.extend({
         if (options.filenameOnly && value.includes("/")) {
           // tslint:disable-next-line:no-invalid-this
           return this.createError("string.filenameOnly", { v: value }, state, prefs)
+        }
+
+        if (!options.allowGlobs && (value.includes("*") || value.includes("?"))) {
+          // tslint:disable-next-line:no-invalid-this
+          return this.createError("string.allowGlobs", { v: value }, state, prefs)
         }
 
         return value // Everything is OK
@@ -243,11 +251,16 @@ export const joiProviderName = (name: string) =>
 export const joiStringMap = (valueSchema: JoiObject) => joi.object().pattern(/.+/, valueSchema)
 
 export const joiUserIdentifier = () =>
-  joi.string().regex(userIdentifierRegex).description(deline`
-    Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter
-    and cannot end with a dash), cannot contain consecutive dashes or start with \`garden\`
-    or be longer than 63 characters.
-  `)
+  joi
+    .string()
+    .regex(userIdentifierRegex)
+    .description(
+      deline`
+        Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start
+        with a letter, and cannot end with a dash), cannot contain consecutive dashes or start with \`garden\`,
+        or be longer than 63 characters.
+      `
+    )
 
 export const joiIdentifierMap = (valueSchema: JoiObject) =>
   joi
@@ -418,4 +431,9 @@ export function validate<T>(
   }
 
   return result.value
+}
+
+export interface ArtifactSpec {
+  source: string
+  target?: string
 }

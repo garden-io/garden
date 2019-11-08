@@ -9,7 +9,15 @@
 import { find } from "lodash"
 
 import { ServiceSpec } from "../../../config/service"
-import { joiPrimitive, joiArray, joiIdentifier, joiUserIdentifier, DeepPrimitiveMap, joi } from "../../../config/common"
+import {
+  joiPrimitive,
+  joiArray,
+  joiIdentifier,
+  joiUserIdentifier,
+  DeepPrimitiveMap,
+  joi,
+  ArtifactSpec,
+} from "../../../config/common"
 import { Module, FileCopySpec } from "../../../types/module"
 import { containsSource, getReleaseName } from "./common"
 import { ConfigurationError } from "../../../exceptions"
@@ -18,7 +26,13 @@ import { HotReloadableKind, hotReloadableKinds } from "../hot-reload"
 import { BaseTestSpec, baseTestSpecSchema } from "../../../config/test"
 import { BaseTaskSpec, baseTaskSpecSchema } from "../../../config/task"
 import { Service } from "../../../types/service"
-import { ContainerModule, ContainerEnvVars, containerEnvVarsSchema, commandExample } from "../../container/config"
+import {
+  ContainerModule,
+  ContainerEnvVars,
+  containerEnvVarsSchema,
+  commandExample,
+  containerArtifactSchema,
+} from "../../container/config"
 import { baseBuildSpecSchema } from "../../../config/module"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../../types/plugin/module/configure"
 
@@ -37,17 +51,19 @@ export interface HelmResourceSpec {
 }
 
 export interface HelmTaskSpec extends BaseTaskSpec {
-  resource: HelmResourceSpec
-  command?: string[]
   args: string[]
+  artifacts: ArtifactSpec[]
+  command?: string[]
   env: ContainerEnvVars
+  resource: HelmResourceSpec
 }
 
 export interface HelmTestSpec extends BaseTestSpec {
-  resource: HelmResourceSpec
-  command?: string[]
   args: string[]
+  artifacts: ArtifactSpec[]
+  command?: string[]
   env: ContainerEnvVars
+  resource: HelmResourceSpec
 }
 
 export interface HelmModule extends Module<HelmModuleSpec, HelmServiceSpec, HelmTestSpec, HelmTaskSpec> {}
@@ -92,7 +108,7 @@ const resourceSchema = joi.object().keys({
     .example([["nodemon", "my-server.js"], {}]),
 })
 
-export const execTaskSchema = baseTaskSpecSchema.keys({
+export const taskSchema = baseTaskSpecSchema.keys({
   resource: resourceSchema.description(
     deline`The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task.
         If not specified, the \`serviceResource\` configured on the module will be used. If neither is specified,
@@ -109,9 +125,12 @@ export const execTaskSchema = baseTaskSpecSchema.keys({
     .description("The arguments to pass to the pod used for execution.")
     .example([["rake", "db:migrate"], {}]),
   env: containerEnvVarsSchema,
+  artifacts: joiArray(containerArtifactSchema).description(
+    "Specify artifacts to copy out of the container after the task is complete."
+  ),
 })
 
-export const execTestSchema = baseTestSpecSchema.keys({
+export const testSchema = baseTestSpecSchema.keys({
   resource: resourceSchema.description(
     deline`The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite.
         If not specified, the \`serviceResource\` configured on the module will be used. If neither is specified,
@@ -128,6 +147,9 @@ export const execTestSchema = baseTestSpecSchema.keys({
     .description("The arguments to pass to the pod used for testing.")
     .example([["npm", "test"], {}]),
   env: containerEnvVarsSchema,
+  artifacts: joiArray(containerArtifactSchema).description(
+    "Specify artifacts to copy out of the container after the test is complete."
+  ),
 })
 
 export interface HelmServiceSpec extends ServiceSpec {
@@ -213,8 +235,8 @@ export const helmModuleSpecSchema = joi.object().keys({
       deline`Set this to true if the chart should only be built, but not deployed as a service.
       Use this, for example, if the chart should only be used as a base for other modules.`
     ),
-  tasks: joiArray(execTaskSchema).description("The task definitions for this module."),
-  tests: joiArray(execTestSchema).description("The test suite definitions for this module."),
+  tasks: joiArray(taskSchema).description("The task definitions for this module."),
+  tests: joiArray(testSchema).description("The test suite definitions for this module."),
   timeout: joi
     .number()
     .integer()
@@ -269,7 +291,8 @@ export async function configureHelmModule({
 
   if (!chart && !base && !containsSources) {
     throw new ConfigurationError(
-      `Chart neither specifies a chart name, base module, nor contains chart sources at \`chartPath\`.`,
+      deline`Module '${moduleConfig.name}' neither specifies a chart name, base module,
+      nor contains chart sources at \`chartPath\`.`,
       { moduleConfig }
     )
   }

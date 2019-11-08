@@ -15,11 +15,14 @@ import { flatten, merge, padEnd, pick } from "lodash"
 import { BaseTask, TaskDefinitionError, TaskType } from "./tasks/base"
 
 import { LogEntry, LogEntryMetadata, TaskLogStatus } from "./logger/log-entry"
-import { toGardenError } from "./exceptions"
+import { toGardenError, GardenBaseError } from "./exceptions"
 import { Garden } from "./garden"
 import { AnalyticsHandler } from "./analytics/analytics"
+import { dedent } from "./util/string"
 
-class TaskGraphError extends Error {}
+class TaskGraphError extends GardenBaseError {
+  type = "task-graph"
+}
 
 export interface TaskResult {
   type: TaskType
@@ -47,6 +50,7 @@ export const defaultTaskConcurrency = (concurrencyFromEnv && parseInt(concurrenc
 
 export interface ProcessTasksOpts {
   concurrencyLimit?: number
+  throwOnError?: boolean
 }
 
 export class TaskGraph {
@@ -101,7 +105,23 @@ export class TaskGraph {
     // to return the latest result for each requested task.
     const resultKeys = tasks.map((t) => t.getKey())
 
-    return this.opQueue.add(() => this.processTasksInternal(tasksToProcess, resultKeys, opts))
+    const results = this.opQueue.add(() => this.processTasksInternal(tasksToProcess, resultKeys, opts))
+
+    if (opts && opts.throwOnError) {
+      const failed = Object.entries(results).filter(([_, result]) => result && result.error)
+
+      if (failed.length > 0) {
+        throw new TaskGraphError(
+          dedent`
+            ${failed.length} task(s) failed:
+            ${failed.map(([key, result]) => `- ${key}: ${result.error.toString()}`).join("\n")}
+          `,
+          { results }
+        )
+      }
+    }
+
+    return results
   }
 
   /**
@@ -300,7 +320,7 @@ export class TaskGraph {
 
   private completeTask(node: TaskNode, success: boolean) {
     if (node.getDependencies().length > 0) {
-      throw new TaskGraphError(`Task ${node.getId()} still has unprocessed dependencies`)
+      throw new TaskGraphError(`Task ${node.getId()} still has unprocessed dependencies`, { node })
     }
 
     this.remove(node)

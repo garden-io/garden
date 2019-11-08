@@ -179,6 +179,14 @@ export class ScanContext extends ConfigContext {
 
 class LocalContext extends ConfigContext {
   @schema(
+    joi
+      .string()
+      .description("The absolute path to the directory where exported artifacts from test and task runs are stored.")
+      .example("/home/me/my-project/.garden/artifacts")
+  )
+  public artifactsPath: string
+
+  @schema(
     joiStringMap(joi.string()).description(
       "A map of all local environment variables (see https://nodejs.org/api/process.html#process_process_env)."
     )
@@ -204,8 +212,9 @@ class LocalContext extends ConfigContext {
   )
   public username: () => Promise<string>
 
-  constructor(root: ConfigContext) {
+  constructor(root: ConfigContext, artifactsPath: string) {
     super(root)
+    this.artifactsPath = artifactsPath
     this.env = process.env
     this.platform = process.platform
     this.username = async () => {
@@ -222,12 +231,16 @@ class LocalContext extends ConfigContext {
  * This context is available for template strings under the `project` key in configuration files.
  */
 export class ProjectConfigContext extends ConfigContext {
-  @schema(LocalContext.getSchema())
+  @schema(
+    LocalContext.getSchema().description(
+      "Context variables that are specific to the currently running environment/machine."
+    )
+  )
   public local: LocalContext
 
-  constructor() {
+  constructor(artifactsPath: string) {
     super()
-    this.local = new LocalContext(this)
+    this.local = new LocalContext(this, artifactsPath)
   }
 }
 
@@ -302,12 +315,12 @@ export class ProviderConfigContext extends ProjectConfigContext {
   )
   public providers: Map<string, ProviderContext>
 
-  constructor(environmentName: string, projectName: string, resolvedProviders: Provider[]) {
-    super()
+  constructor(garden: Garden, resolvedProviders: Provider[]) {
+    super(garden.artifactsPath)
     const _this = this
 
-    this.environment = new EnvironmentContext(this, environmentName)
-    this.project = new ProjectContext(this, projectName)
+    this.environment = new EnvironmentContext(this, garden.environmentName)
+    this.project = new ProjectContext(this, garden.projectName)
 
     this.providers = new Map(
       resolvedProviders.map((p) => <[string, ProviderContext]>[p.name, new ProviderContext(_this, p)])
@@ -493,7 +506,6 @@ export class ModuleConfigContext extends ProviderConfigContext {
 
   constructor(
     garden: Garden,
-    environmentName: string,
     resolvedProviders: Provider[],
     variables: PrimitiveMap,
     moduleConfigs: ModuleConfig[],
@@ -501,7 +513,7 @@ export class ModuleConfigContext extends ProviderConfigContext {
     // Otherwise we pass `${runtime.*} template strings through for later resolution.
     runtimeContext?: RuntimeContext
   ) {
-    super(environmentName, garden.projectName, resolvedProviders)
+    super(garden, resolvedProviders)
 
     const _this = this
 

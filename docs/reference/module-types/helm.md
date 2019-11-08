@@ -200,7 +200,8 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 
 [build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > target
 
-POSIX-style path or filename to copy the directory or file(s).
+POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
+Defaults to to same as source path.
 
 | Type     | Required | Default                   |
 | -------- | -------- | ------------------------- |
@@ -547,6 +548,52 @@ tasks:
           key: some-key
 ```
 
+### `tasks[].artifacts[]`
+
+[tasks](#tasks) > artifacts
+
+Specify artifacts to copy out of the container after the task is complete.
+
+| Type            | Required | Default |
+| --------------- | -------- | ------- |
+| `array[object]` | No       | `[]`    |
+
+### `tasks[].artifacts[].source`
+
+[tasks](#tasks) > [artifacts](#tasksartifacts) > source
+
+A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+Example:
+
+```yaml
+tasks:
+  - artifacts:
+      - source: "/output/**/*"
+```
+
+### `tasks[].artifacts[].target`
+
+[tasks](#tasks) > [artifacts](#tasksartifacts) > target
+
+A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
+
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `string` | No       | `"."`   |
+
+Example:
+
+```yaml
+tasks:
+  - artifacts:
+      - target: "outputs/foo/"
+```
+
 ### `tests`
 
 The test suite definitions for this module.
@@ -728,6 +775,52 @@ tests:
           key: some-key
 ```
 
+### `tests[].artifacts[]`
+
+[tests](#tests) > artifacts
+
+Specify artifacts to copy out of the container after the test is complete.
+
+| Type            | Required | Default |
+| --------------- | -------- | ------- |
+| `array[object]` | No       | `[]`    |
+
+### `tests[].artifacts[].source`
+
+[tests](#tests) > [artifacts](#testsartifacts) > source
+
+A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+Example:
+
+```yaml
+tests:
+  - artifacts:
+      - source: "/output/**/*"
+```
+
+### `tests[].artifacts[].target`
+
+[tests](#tests) > [artifacts](#testsartifacts) > target
+
+A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
+
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `string` | No       | `"."`   |
+
+Example:
+
+```yaml
+tests:
+  - artifacts:
+      - target: "outputs/foo/"
+```
+
 ### `timeout`
 
 Time in seconds to wait for Helm to complete any individual Kubernetes operation (like Jobs for hooks).
@@ -813,6 +906,9 @@ tasks:
     command:
     args:
     env: {}
+    artifacts:
+      - source:
+        target: .
 tests:
   - name:
     dependencies: []
@@ -826,6 +922,9 @@ tests:
     command:
     args:
     env: {}
+    artifacts:
+      - source:
+        target: .
 timeout: 300
 version:
 values: {}

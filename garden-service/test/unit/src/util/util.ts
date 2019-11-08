@@ -100,29 +100,35 @@ describe("util", () => {
         this.skip()
       }
     })
+
     it("should successfully execute a command", async () => {
       const res = await exec("echo", ["hello"])
       expect(res.stdout).to.equal("hello")
     })
+
     it("should handle command and args in a single string", async () => {
       const res = await exec("echo hello && echo world", [], { shell: true })
       expect(res.stdout).to.equal("hello\nworld")
     })
-    it("should optionally pipe stdout and stderr to an output stream", async () => {
+
+    it("should optionally pipe stdout to an output stream", async () => {
       const logger = getLogger()
       const entry = logger.placeholder()
-      const errorEntry = logger.placeholder()
 
-      await exec("echo hello", [], { outputStream: createOutputStream(entry) })
-      // Using "sh -c" to get consistent output between operating systems
-      await exec(`sh -c "echo hello error; exit 1"`, [], {
-        outputStream: createOutputStream(errorEntry),
-        shell: true,
-        reject: false,
-      })
+      await exec("echo", ["hello"], { stdout: createOutputStream(entry) })
+
       expect(entry.getMessageState().msg).to.equal(renderOutputStream("hello"))
-      expect(errorEntry.getMessageState().msg).to.equal(renderOutputStream("hello error"))
     })
+
+    it("should optionally pipe stderr to an output stream", async () => {
+      const logger = getLogger()
+      const entry = logger.placeholder()
+
+      await exec("sh", ["-c", "echo hello 1>&2"], { stderr: createOutputStream(entry) })
+
+      expect(entry.getMessageState().msg).to.equal(renderOutputStream("hello"))
+    })
+
     it("should throw a standardised error message on error", async () => {
       try {
         // Using "sh -c" to get consistent output between operating systems

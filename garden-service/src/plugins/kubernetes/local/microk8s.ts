@@ -14,7 +14,7 @@ export async function configureMicrok8sAddons(log: LogEntry, addons: string[]) {
   let status = ""
 
   try {
-    status = (await exec("microk8s.status")).stdout
+    status = (await exec("microk8s.status", [])).stdout
   } catch {
     // This is caught below.
   }

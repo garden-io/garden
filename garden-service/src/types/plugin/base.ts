@@ -110,3 +110,8 @@ export const runResultSchema = joi.object().keys({
     .allow("")
     .description("[DEPRECATED - use `log` instead] The output log from the run."),
 })
+
+export const artifactsPathSchema = joi
+  .string()
+  .required()
+  .description("A directory path where the handler should write any exported artifacts to.")

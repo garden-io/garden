@@ -17,6 +17,7 @@ import {
   joi,
   envVarRegex,
   Primitive,
+  ArtifactSpec,
 } from "../../config/common"
 import { Service, ingressHostnameSchema, linkUrlSchema } from "../../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../../constants"
@@ -98,7 +99,7 @@ export const commandExample = ["/bin/sh", "-c"]
 const hotReloadSyncSchema = joi.object().keys({
   source: joi
     .string()
-    .posixPath({ subPathOnly: true })
+    .posixPath({ allowGlobs: true, subPathOnly: true, relativeOnly: true })
     .default(".")
     .description(
       deline`
@@ -265,7 +266,7 @@ export const portSchema = joi.object().keys({
   containerPort: joi
     .number()
     .required()
-    .example("8080").description(deline`
+    .example(8080).description(deline`
         The port exposed on the container by the running process. This will also be the default value
         for \`servicePort\`.
 
@@ -278,7 +279,8 @@ export const portSchema = joi.object().keys({
   servicePort: joi
     .number()
     .default((context) => context.containerPort, "<same as containerPort>")
-    .example("80").description(deline`The port exposed on the service.
+    .example(80).description(deline`
+        The port exposed on the service.
         Defaults to \`containerPort\` if not specified.
 
         This is the port you use when calling a service from another service within the cluster.
@@ -378,11 +380,11 @@ const serviceSchema = baseServiceSpecSchema.keys({
     .integer()
     .min(1)
     .default(1).description(deline`
-        The number of instances of the service to deploy.
+      The number of instances of the service to deploy.
 
-        Note: This setting may be overridden or ignored in some cases. For example, when running with \`daemon: true\`,
-        with hot-reloading enabled, or if the provider doesn't support multiple replicas.
-      `),
+      Note: This setting may be overridden or ignored in some cases. For example, when running with \`daemon: true\`,
+      with hot-reloading enabled, or if the provider doesn't support multiple replicas.
+    `),
   volumes: joiArray(volumeSchema)
     .unique("name")
     .description("List of volumes that should be mounted when deploying the container."),
@@ -416,44 +418,76 @@ export const containerRegistryConfigSchema = joi.object().keys({
 
 export interface ContainerService extends Service<ContainerModule> {}
 
+export const containerArtifactSchema = joi.object().keys({
+  source: joi
+    .string()
+    .posixPath({ allowGlobs: true, absoluteOnly: true })
+    .required()
+    .description("A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.")
+    .example("/output/**/*"),
+  target: joi
+    .string()
+    .posixPath({ subPathOnly: true, relativeOnly: true })
+    .default(".")
+    .description("A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.")
+    .example("outputs/foo/"),
+})
+
+const artifactsSchema = joi
+  .array()
+  .items(containerArtifactSchema)
+  .description(
+    deline`
+      Specify artifacts to copy out of the container after the run.
+
+      Note: Depending on the provider, this may require the container image to include \`sh\` \`tar\`, in order
+      to enable the file transfer.
+    `
+  )
+  .example([[{ source: "/report/**/*" }], {}])
+
 export interface ContainerTestSpec extends BaseTestSpec {
-  command?: string[]
   args: string[]
+  artifacts: ArtifactSpec[]
+  command?: string[]
   env: ContainerEnvVars
 }
 
 export const containerTestSchema = baseTestSpecSchema.keys({
-  command: joi
-    .array()
-    .items(joi.string())
-    .description("The command/entrypoint used to run the test inside the container.")
-    .example([commandExample, {}]),
   args: joi
     .array()
     .items(joi.string())
     .description("The arguments used to run the test inside the container.")
     .example([["npm", "test"], {}]),
+  artifacts: artifactsSchema,
+  command: joi
+    .array()
+    .items(joi.string())
+    .description("The command/entrypoint used to run the test inside the container.")
+    .example([commandExample, {}]),
   env: containerEnvVarsSchema,
 })
 
 export interface ContainerTaskSpec extends BaseTaskSpec {
-  command?: string[]
   args: string[]
+  artifacts: ArtifactSpec[]
+  command?: string[]
   env: ContainerEnvVars
 }
 
 export const containerTaskSchema = baseTaskSpecSchema
   .keys({
-    command: joi
-      .array()
-      .items(joi.string())
-      .description("The command/entrypoint used to run the task inside the container.")
-      .example([commandExample, {}]),
     args: joi
       .array()
       .items(joi.string())
       .description("The arguments used to run the task inside the container.")
       .example([["rake", "db:migrate"], {}]),
+    artifacts: artifactsSchema,
+    command: joi
+      .array()
+      .items(joi.string())
+      .description("The command/entrypoint used to run the task inside the container.")
+      .example([commandExample, {}]),
     env: containerEnvVarsSchema,
   })
   .description("A task that can be run in the container.")

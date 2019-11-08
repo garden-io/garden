@@ -23,12 +23,8 @@ describe("validateHelmModule", () => {
     moduleConfigs = cloneDeep((<any>garden).moduleConfigs)
   })
 
-  beforeEach(() => {
+  afterEach(() => {
     garden["moduleConfigs"] = cloneDeep(moduleConfigs)
-  })
-
-  after(async () => {
-    await garden.close()
   })
 
   function patchModuleConfig(name: string, patch: any) {
@@ -203,7 +199,7 @@ describe("validateHelmModule", () => {
       () => garden.resolveModuleConfig("postgres"),
       (err) =>
         expect(err.message).to.equal(deline`
-        Chart neither specifies a chart name, base module, nor contains chart sources at \`chartPath\`.
+        Module 'postgres' neither specifies a chart name, base module, nor contains chart sources at \`chartPath\`.
       `)
     )
   })

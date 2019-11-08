@@ -86,6 +86,29 @@ If you make a change to the backend `backend` module, Garden will first re-build
 
 ## Advanced
 
+### Test Artifacts
+
+Many module types, including `container`, `exec` and `helm`, allow you to extract artifacts after tests have been run. This can be handy when you'd like to view reports or logs, or if you'd like a script (via a local `exec` module, for instance) to validate the output from a test.
+
+By convention, artifacts you'd like to copy can be specified using the `artifacts` field on test configurations. For example, for the `container` module, you can do something like this:
+
+```yaml
+kind: Module
+type: container
+name: my-container
+...
+tests:
+  - name: my-test
+    command: [some, command]
+    artifacts:
+      - source: /report/*
+        target: my-test-report
+```
+
+After running `my-test`, you can find the contents of the `report` directory in the test's container, locally under `.garden/artifacts/my-test-report`.
+
+Please look at individual [module type references](../reference/module-types/README.md) to see how to configure each module type's tests to extract artifacts after running them.
+
 ### Kubernetes Provider
 
 Tests are executed in their own Pod inside the project namespace. The Pod is removed once the test has finished running.

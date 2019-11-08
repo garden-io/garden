@@ -49,6 +49,7 @@ import chalk from "chalk"
 import { RuntimeContext } from "./runtime-context"
 import { deline } from "./util/string"
 import { loadPlugins, getModuleTypeBases } from "./plugins"
+import { ensureDir } from "fs-extra"
 
 export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
   [actionName: string]: PluginActionHandlers[T]
@@ -87,6 +88,7 @@ interface ModuleConfigResolveOpts extends ContextResolveOpts {
 }
 
 export interface GardenParams {
+  artifactsPath: string
   buildDir: BuildDir
   environmentName: string
   dotIgnoreFiles: string[]
@@ -131,6 +133,7 @@ export class Garden {
   public readonly projectSources: SourceConfig[]
   public readonly buildDir: BuildDir
   public readonly gardenDirPath: string
+  public readonly artifactsPath: string
   public readonly opts: GardenOpts
   private readonly providerConfigs: ProviderConfig[]
   public readonly workingCopyId: string
@@ -144,6 +147,7 @@ export class Garden {
     this.environmentName = params.environmentName
     this.gardenDirPath = params.gardenDirPath
     this.log = params.log
+    this.artifactsPath = params.artifactsPath
     this.opts = params.opts
     this.projectName = params.projectName
     this.projectRoot = params.projectRoot
@@ -207,7 +211,13 @@ export class Garden {
       }
     }
 
-    config = await resolveProjectConfig(config)
+    gardenDirPath = resolve(config.path, gardenDirPath || DEFAULT_GARDEN_DIR_NAME)
+    await ensureDir(gardenDirPath)
+
+    const artifactsPath = resolve(gardenDirPath, "artifacts")
+    await ensureDir(artifactsPath)
+
+    config = await resolveProjectConfig(config, artifactsPath)
 
     const { defaultEnvironment, name: projectName, sources: projectSources, path: projectRoot } = config
 
@@ -217,7 +227,6 @@ export class Garden {
 
     const { providers, variables } = await pickEnvironment(config, environmentName)
 
-    gardenDirPath = resolve(projectRoot, gardenDirPath || DEFAULT_GARDEN_DIR_NAME)
     const buildDir = await BuildDir.factory(projectRoot, gardenDirPath)
     const workingCopyId = await getWorkingCopyId(gardenDirPath)
     const log = opts.log || getLogger().placeholder()
@@ -231,6 +240,7 @@ export class Garden {
     await vcs.getRepoRoot(log, projectRoot)
 
     const garden = new this({
+      artifactsPath,
       projectRoot,
       projectName,
       environmentName,
@@ -537,14 +547,7 @@ export class Garden {
   async getModuleConfigContext(runtimeContext?: RuntimeContext) {
     const providers = await this.resolveProviders()
 
-    return new ModuleConfigContext(
-      this,
-      this.environmentName,
-      providers,
-      this.variables,
-      Object.values(this.moduleConfigs),
-      runtimeContext
-    )
+    return new ModuleConfigContext(this, providers, this.variables, Object.values(this.moduleConfigs), runtimeContext)
   }
 
   /**

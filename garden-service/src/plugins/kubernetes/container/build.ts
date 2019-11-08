@@ -22,7 +22,7 @@ import { kubectl } from "../kubectl"
 import { LogEntry } from "../../../logger/log-entry"
 import { KubernetesProvider, ContainerBuildMode, KubernetesPluginContext } from "../config"
 import { PluginError } from "../../../exceptions"
-import { runPod } from "../run"
+import { PodRunner } from "../run"
 import { getRegistryHostname } from "../init"
 import { getManifestFromRegistry } from "./util"
 import { normalizeLocalRsyncPath } from "../../../util/fs"
@@ -190,7 +190,7 @@ const remoteBuild: BuildHandler = async (params) => {
     const podName = await getBuilderPodName(provider, log)
     const buildTimeout = module.spec.build.timeout
 
-    const buildRes = await execInBuilder({ provider, log, args, timeout: buildTimeout, podName, outputStream })
+    const buildRes = await execInBuilder({ provider, log, args, timeout: buildTimeout, podName, stdout: outputStream })
     buildLog = buildRes.stdout + buildRes.stderr
 
     // Push the image to the registry
@@ -199,7 +199,7 @@ const remoteBuild: BuildHandler = async (params) => {
     const dockerCmd = ["docker", "push", deploymentImageId]
     const pushArgs = ["/bin/sh", "-c", dockerCmd.join(" ")]
 
-    const pushRes = await execInBuilder({ provider, log, args: pushArgs, timeout: 300, podName, outputStream })
+    const pushRes = await execInBuilder({ provider, log, args: pushArgs, timeout: 300, podName, stdout: outputStream })
     buildLog += pushRes.stdout + pushRes.stderr
   } else {
     // build with Kaniko
@@ -238,7 +238,8 @@ export interface BuilderExecParams {
   args: string[]
   timeout: number
   podName: string
-  outputStream?: Writable
+  stdout?: Writable
+  stderr?: Writable
 }
 
 const buildHandlers: { [mode in ContainerBuildMode]: BuildHandler } = {
@@ -248,7 +249,7 @@ const buildHandlers: { [mode in ContainerBuildMode]: BuildHandler } = {
 }
 
 // TODO: we should make a simple service around this instead of execing into containers
-export async function execInBuilder({ provider, log, args, timeout, podName, outputStream }: BuilderExecParams) {
+export async function execInBuilder({ provider, log, args, timeout, podName, stdout, stderr }: BuilderExecParams) {
   const execCmd = ["exec", "-i", podName, "-c", dockerDaemonContainerName, "--", ...args]
 
   log.verbose(`Running: kubectl ${execCmd.join(" ")}`)
@@ -259,7 +260,8 @@ export async function execInBuilder({ provider, log, args, timeout, podName, out
     log,
     namespace: systemNamespace,
     timeout,
-    outputStream,
+    stdout,
+    stderr,
   })
 }
 
@@ -289,15 +291,15 @@ interface RunKanikoParams {
 }
 
 async function runKaniko({ provider, log, module, args, outputStream }: RunKanikoParams) {
+  const api = await KubeApi.factory(log, provider)
   const podName = `kaniko-${module.name}-${Math.round(new Date().getTime())}`
   const registryHostname = getRegistryHostname()
 
-  return runPod({
+  const runner = new PodRunner({
+    api,
+    podName,
     provider,
-    ignoreError: false,
     image: kanikoImage,
-    interactive: false,
-    log,
     module,
     namespace: systemNamespace,
     spec: {
@@ -357,8 +359,13 @@ async function runKaniko({ provider, log, module, args, outputStream }: RunKanik
         },
       ],
     },
-    podName,
+  })
+
+  return runner.startAndWait({
+    ignoreError: false,
+    interactive: false,
+    log,
     timeout: module.spec.build.timeout,
-    outputStream,
+    stdout: outputStream,
   })
 }
