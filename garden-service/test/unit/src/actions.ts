@@ -27,6 +27,8 @@ import { defaultProvider } from "../../../src/config/provider"
 import { RunTaskResult } from "../../../src/types/plugin/task/runTask"
 import { defaultDotIgnoreFiles } from "../../../src/util/fs"
 import stripAnsi from "strip-ansi"
+import { emptyDir, pathExists, ensureFile, readFile } from "fs-extra"
+import { join } from "path"
 
 const now = new Date()
 
@@ -242,6 +244,59 @@ describe("ActionRouter", () => {
           startedAt: now,
           testName: "test",
           version: module.version.versionString,
+        })
+      })
+
+      it("should copy artifacts exported by the handler to the artifacts directory", async () => {
+        await emptyDir(garden.artifactsPath)
+
+        const testConfig = {
+          name: "test",
+          dependencies: [],
+          timeout: 1234,
+          spec: {
+            artifacts: [
+              {
+                source: "some-file.txt",
+              },
+              {
+                source: "some-dir/some-file.txt",
+                target: "some-dir/some-file.txt",
+              },
+            ],
+          },
+        }
+
+        module.testConfigs[0]
+
+        await actions.testModule({
+          log,
+          module,
+          interactive: true,
+          runtimeContext: {
+            envVars: { FOO: "bar" },
+            dependencies: [],
+          },
+          silent: false,
+          testConfig,
+          testVersion: module.version,
+        })
+
+        const targetPaths = testConfig.spec.artifacts.map((spec) => join(garden.artifactsPath, spec.source)).sort()
+
+        for (const path of targetPaths) {
+          expect(await pathExists(path)).to.be.true
+        }
+
+        const metadataKey = `test.test.${module.version.versionString}`
+        const metadataFilename = `.metadata.${metadataKey}.json`
+        const metadataPath = join(garden.artifactsPath, metadataFilename)
+        expect(await pathExists(metadataPath)).to.be.true
+
+        const metadata = JSON.parse((await readFile(metadataPath)).toString())
+        expect(metadata).to.eql({
+          key: metadataKey,
+          files: targetPaths,
         })
       })
     })
@@ -519,6 +574,51 @@ describe("ActionRouter", () => {
               "Error validating outputs from task 'task-a': key .base must be a string"
             )
         )
+      })
+
+      it("should copy artifacts exported by the handler to the artifacts directory", async () => {
+        await emptyDir(garden.artifactsPath)
+
+        const graph = await garden.getConfigGraph()
+        const _task = await graph.getTask("task-a")
+
+        _task.spec.artifacts = [
+          {
+            source: "some-file.txt",
+          },
+          {
+            source: "some-dir/some-file.txt",
+            target: "some-dir/some-file.txt",
+          },
+        ]
+
+        await actions.runTask({
+          log,
+          task: _task,
+          interactive: true,
+          runtimeContext: {
+            envVars: { FOO: "bar" },
+            dependencies: [],
+          },
+          taskVersion: _task.module.version,
+        })
+
+        const targetPaths = _task.spec.artifacts.map((spec) => join(garden.artifactsPath, spec.source)).sort()
+
+        for (const path of targetPaths) {
+          expect(await pathExists(path)).to.be.true
+        }
+
+        const metadataKey = `task.task-a.${_task.module.version.versionString}`
+        const metadataFilename = `.metadata.${metadataKey}.json`
+        const metadataPath = join(garden.artifactsPath, metadataFilename)
+        expect(await pathExists(metadataPath)).to.be.true
+
+        const metadata = JSON.parse((await readFile(metadataPath)).toString())
+        expect(metadata).to.eql({
+          key: metadataKey,
+          files: targetPaths,
+        })
       })
     })
   })
@@ -1367,6 +1467,7 @@ describe("ActionRouter", () => {
       await emptyActions["callTaskHandler"]({
         actionType: "runTask",
         params: {
+          artifactsPath: "/tmp",
           task: taskA,
           runtimeContext,
           log,
@@ -1415,6 +1516,7 @@ describe("ActionRouter", () => {
       await emptyActions["callTaskHandler"]({
         actionType: "runTask",
         params: {
+          artifactsPath: "/tmp", // Not used in this test
           task: taskA,
           runtimeContext: _runtimeContext,
           log,
@@ -1473,6 +1575,7 @@ describe("ActionRouter", () => {
           emptyActions["callTaskHandler"]({
             actionType: "runTask",
             params: {
+              artifactsPath: "/tmp", // Not used in this test
               task: taskA,
               runtimeContext: _runtimeContext,
               log,
@@ -1622,6 +1725,12 @@ const testPlugin = createGardenPlugin({
 
         testModule: async (params) => {
           validate(params, moduleActionDescriptions.testModule.paramsSchema)
+
+          // Create artifacts, to test artifact copying
+          for (const artifact of params.testConfig.spec.artifacts || []) {
+            await ensureFile(join(params.artifactsPath, artifact.source))
+          }
+
           return {
             moduleName: params.module.name,
             command: [],
@@ -1726,7 +1835,14 @@ const testPlugin = createGardenPlugin({
 
         runTask: async (params) => {
           validate(params, moduleActionDescriptions.runTask.paramsSchema)
+
           const module = params.task.module
+
+          // Create artifacts, to test artifact copying
+          for (const artifact of params.task.spec.artifacts || []) {
+            await ensureFile(join(params.artifactsPath, artifact.source))
+          }
+
           return {
             moduleName: module.name,
             taskName: params.task.name,

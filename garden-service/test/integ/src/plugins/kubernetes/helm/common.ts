@@ -1,7 +1,7 @@
 import { TestGarden, makeTestGarden, dataDir, expectError } from "../../../../../helpers"
 import { resolve } from "path"
 import { expect } from "chai"
-import { first, set } from "lodash"
+import { first } from "lodash"
 
 import {
   containsSource,
@@ -22,43 +22,20 @@ import { deline } from "../../../../../../src/util/string"
 import { HotReloadableResource } from "../../../../../../src/plugins/kubernetes/hot-reload"
 import { getServiceResourceSpec } from "../../../../../../src/plugins/kubernetes/helm/common"
 import { ConfigGraph } from "../../../../../../src/config-graph"
-import { Provider } from "../../../../../../src/config/provider"
 import { buildHelmModule } from "../../../../../../src/plugins/kubernetes/helm/build"
 
-const containerProvider: Provider = {
-  name: "container",
-  config: {
-    name: "container",
-  },
-  dependencies: [],
-  moduleConfigs: [],
-  status: {
-    ready: true,
-    outputs: {},
-  },
-}
-
-const helmProvider: Provider = {
-  name: "local-kubernetes",
-  config: {
-    name: "local-kubernetes",
-    buildMode: "local-docker",
-  },
-  dependencies: [],
-  moduleConfigs: [],
-  status: {
-    ready: true,
-    outputs: {},
-  },
-}
-
-const resolvedProviders = [containerProvider, helmProvider]
+let helmTestGarden: TestGarden
 
 export async function getHelmTestGarden() {
+  if (helmTestGarden) {
+    return helmTestGarden
+  }
+
   const projectRoot = resolve(dataDir, "test-projects", "helm")
   const garden = await makeTestGarden(projectRoot)
-  // Avoid having to resolve the provider
-  set(garden, "resolvedProviders", resolvedProviders)
+
+  helmTestGarden = garden
+
   return garden
 }
 
@@ -70,14 +47,15 @@ describe("Helm common functions", () => {
 
   before(async () => {
     garden = await getHelmTestGarden()
-    graph = await garden.getConfigGraph()
-    ctx = garden.getPluginContext(helmProvider)
+    const provider = await garden.resolveProvider("local-kubernetes")
+    ctx = garden.getPluginContext(provider)
     log = garden.log
+    graph = await garden.getConfigGraph()
     await buildModules()
   })
 
-  after(async () => {
-    await garden.close()
+  beforeEach(async () => {
+    graph = await garden.getConfigGraph()
   })
 
   async function buildModules() {

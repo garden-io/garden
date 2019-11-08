@@ -10,6 +10,9 @@ import Bluebird = require("bluebird")
 
 import chalk from "chalk"
 import { fromPairs, mapValues, omit, pickBy, keyBy } from "lodash"
+import tmp from "tmp-promise"
+import cpy from "cpy"
+import normalizePath = require("normalize-path")
 
 import { PublishModuleParams, PublishResult } from "./types/plugin/module/publishModule"
 import { SetSecretParams, SetSecretResult } from "./types/plugin/provider/setSecret"
@@ -91,6 +94,10 @@ import { Task } from "./types/task"
 import { ConfigureModuleParams, ConfigureModuleResult } from "./types/plugin/module/configure"
 import { PluginContext } from "./plugin-context"
 import { DeleteServiceTask, deletedServiceStatuses } from "./tasks/delete-service"
+import { realpath, writeFile } from "fs-extra"
+import { relative, join } from "path"
+
+const maxArtifactLogLines = 5 // max number of artifacts to list in console after task+test runs
 
 type TypeGuard = {
   readonly [P in keyof (PluginActionParams | ModuleActionParams<any>)]: (...args: any[]) => Promise<any>
@@ -288,8 +295,27 @@ export class ActionRouter implements TypeGuard {
     return this.callModuleHandler({ params, actionType: "runModule" })
   }
 
-  async testModule<T extends Module>(params: ModuleActionRouterParams<TestModuleParams<T>>): Promise<TestResult> {
-    return this.callModuleHandler({ params, actionType: "testModule" })
+  async testModule<T extends Module>(
+    params: ModuleActionRouterParams<Omit<TestModuleParams<T>, "artifactsPath">>
+  ): Promise<TestResult> {
+    const tmpDir = await tmp.dir({ unsafeCleanup: true })
+    const artifactsPath = normalizePath(await realpath(tmpDir.path))
+
+    try {
+      const result = await this.callModuleHandler({ params: { ...params, artifactsPath }, actionType: "testModule" })
+      return result
+    } finally {
+      // Copy everything from the temp directory, and then clean it up
+      try {
+        await this.copyArtifacts(
+          params.log,
+          artifactsPath,
+          `test.${params.testConfig.name}.${params.module.version.versionString}`
+        )
+      } finally {
+        await tmpDir.cleanup()
+      }
+    }
   }
 
   async getTestResult<T extends Module>(
@@ -412,10 +438,26 @@ export class ActionRouter implements TypeGuard {
   //region Task Methods
   //===========================================================================
 
-  async runTask(params: TaskActionRouterParams<RunTaskParams>): Promise<RunTaskResult> {
-    const { result } = await this.callTaskHandler({ params, actionType: "runTask" })
-    result && this.validateTaskOutputs(params.task, result)
-    return result
+  async runTask(params: TaskActionRouterParams<Omit<RunTaskParams, "artifactsPath">>): Promise<RunTaskResult> {
+    const tmpDir = await tmp.dir({ unsafeCleanup: true })
+    const artifactsPath = normalizePath(await realpath(tmpDir.path))
+
+    try {
+      const { result } = await this.callTaskHandler({ params: { ...params, artifactsPath }, actionType: "runTask" })
+      result && this.validateTaskOutputs(params.task, result)
+      return result
+    } finally {
+      // Copy everything from the temp directory, and then clean it up
+      try {
+        await this.copyArtifacts(
+          params.log,
+          artifactsPath,
+          `task.${params.task.name}.${params.task.module.version.versionString}`
+        )
+      } finally {
+        await tmpDir.cleanup()
+      }
+    }
   }
 
   async getTaskResult(params: TaskActionRouterParams<GetTaskResultParams>): Promise<RunTaskResult | null> {
@@ -567,6 +609,41 @@ export class ActionRouter implements TypeGuard {
   }
 
   //endregion
+
+  /**
+   * Copies the artifacts exported by a plugin handler to the user's artifact directory.
+   *
+   * @param log LogEntry
+   * @param artifactsPath the temporary directory path given to the plugin handler
+   */
+  private async copyArtifacts(log: LogEntry, artifactsPath: string, key: string) {
+    let files = await cpy("**/*", this.garden.artifactsPath, { cwd: artifactsPath, parents: true })
+
+    const count = files.length
+
+    if (count > 0) {
+      // Log the exported artifact paths (but don't spam the console)
+      if (count > maxArtifactLogLines) {
+        files = files.slice(0, maxArtifactLogLines)
+      }
+      for (const file of files) {
+        log.info(chalk.gray(`→ Artifact: ${relative(this.garden.projectRoot, file)}`))
+      }
+      if (count > maxArtifactLogLines) {
+        log.info(chalk.gray(`→ Artifact: … plus ${count - maxArtifactLogLines} more files`))
+      }
+    }
+
+    // Write list of files to a metadata file
+    const metadataPath = join(this.garden.artifactsPath, `.metadata.${key}.json`)
+    const metadata = {
+      key,
+      files: files.sort(),
+    }
+    await writeFile(metadataPath, JSON.stringify(metadata))
+
+    return files
+  }
 
   // TODO: find a nicer way to do this (like a type-safe wrapper function)
   private async commonParams(handler: WrappedActionHandler<any, any>, log: LogEntry): Promise<PluginActionParamsBase> {

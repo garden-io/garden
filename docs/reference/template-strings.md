@@ -25,9 +25,20 @@ The following keys are available in any template strings within project definiti
 `providers`):
 
 ```yaml
+# Context variables that are specific to the currently running environment/machine.
+#
 # Type: object
 #
 local:
+  # The absolute path to the directory where exported artifacts from test and task runs are
+  # stored.
+  #
+  # Type: string
+  #
+  # Example: "/home/me/my-project/.garden/artifacts"
+  #
+  artifactsPath:
+
   # A map of all local environment variables (see
   # https://nodejs.org/api/process.html#process_process_env).
   #
@@ -59,9 +70,20 @@ The following keys are available in template strings under the `providers` key 
 in `garden.yml` project config files:
 
 ```yaml
+# Context variables that are specific to the currently running environment/machine.
+#
 # Type: object
 #
 local:
+  # The absolute path to the directory where exported artifacts from test and task runs are
+  # stored.
+  #
+  # Type: string
+  #
+  # Example: "/home/me/my-project/.garden/artifacts"
+  #
+  artifactsPath:
+
   # A map of all local environment variables (see
   # https://nodejs.org/api/process.html#process_process_env).
   #
@@ -129,9 +151,20 @@ providers: {}
 The following keys are available in template strings with module definitions in `garden.yml` config files:
 
 ```yaml
+# Context variables that are specific to the currently running environment/machine.
+#
 # Type: object
 #
 local:
+  # The absolute path to the directory where exported artifacts from test and task runs are
+  # stored.
+  #
+  # Type: string
+  #
+  # Example: "/home/me/my-project/.garden/artifacts"
+  #
+  artifactsPath:
+
   # A map of all local environment variables (see
   # https://nodejs.org/api/process.html#process_process_env).
   #

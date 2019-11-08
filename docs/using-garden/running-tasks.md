@@ -89,9 +89,32 @@ The full example is [available here](https://github.com/garden-io/garden/blob/v0
 
 ## Advanced
 
+### Task Artifacts
+
+Many module types, including `container`, `exec` and `helm`, allow you to extract artifacts after tasks have been run. This can, for example, be handy when you'd like to view reports or logs, or if you'd like a script (via a local `exec` module, for instance) to validate the output from a task.
+
+By convention, artifacts you'd like to copy can be specified using the `artifacts` field on task configurations. For example, for the `container` module, you can do something like this:
+
+```yaml
+kind: Module
+type: container
+name: my-container
+...
+tasks:
+  - name: my-task
+    command: [some, command]
+    artifacts:
+      - source: /report/*
+        target: my-task-report
+```
+
+Here, after running `my-task`, you can find the contents of the `report` directory in the task's container in `.garden/artifacts/my-task-report`.
+
+Please look at individual [module type references](../reference/module-types/README.md) to see how to configure each module type's tasks to extract artifacts after running them.
+
 ### Kubernetes Provider
 
-Tasks are executed in their own Pod inside the project namespace. The Pod is removed once the task has finished running.
+The Kubernetes providers execute each task in its own Pod inside the project namespace. The Pod is removed once the task has finished running.
 
 Task results are stored as [ConfigMaps](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/) in the `<project-name--metadata>` namespace with the format `task-result--<hash>`.
 

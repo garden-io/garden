@@ -190,7 +190,7 @@ export class GitHandler extends VcsHandler {
       splitStream.on("data", handleLine)
 
       try {
-        await exec("git", args, { cwd: path, outputStream: splitStream })
+        await exec("git", args, { cwd: path, stdout: splitStream })
       } catch (err) {
         // if we get 128 we're not in a repo root, so we just get no files. Otherwise we throw.
         if (err.exitCode !== 128) {

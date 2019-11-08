@@ -12,11 +12,10 @@ describe("getHotReloadSpec", () => {
 
   before(async () => {
     garden = await getHelmTestGarden()
-    graph = await garden.getConfigGraph()
   })
 
-  after(async () => {
-    await garden.close()
+  beforeEach(async () => {
+    graph = await garden.getConfigGraph()
   })
 
   it("should retrieve the hot reload spec on the service's source module", async () => {

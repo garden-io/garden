@@ -5,12 +5,15 @@ import { gardenPlugin, configureExecModule } from "../../../../src/plugins/exec"
 import { GARDEN_BUILD_VERSION_FILENAME } from "../../../../src/constants"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { keyBy } from "lodash"
-import { ConfigGraph } from "../../../../src/config-graph"
 import { getDataDir, makeTestModule, expectError } from "../../../helpers"
 import { TaskTask } from "../../../../src/tasks/task"
 import { writeModuleVersionFile, readModuleVersionFile } from "../../../../src/vcs/vcs"
 import { dataDir, makeTestGarden } from "../../../helpers"
 import { ModuleConfig } from "../../../../src/config/module"
+import { ConfigGraph } from "../../../../src/config-graph"
+import { pathExists, emptyDir } from "fs-extra"
+import { TestTask } from "../../../../src/tasks/test"
+import { findByName } from "../../../../src/util/util"
 
 describe("exec plugin", () => {
   const projectRoot = resolve(dataDir, "test-project-exec")
@@ -22,8 +25,8 @@ describe("exec plugin", () => {
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, { extraPlugins: [gardenPlugin] })
-    log = garden.log
     graph = await garden.getConfigGraph()
+    log = garden.log
     await garden.clearBuilds()
   })
 
@@ -157,7 +160,7 @@ describe("exec plugin", () => {
   })
 
   it("should propagate task logs to runtime outputs", async () => {
-    const _garden = await makeTestGarden(getDataDir("test-projects", "exec-task-outputs"))
+    const _garden = await makeTestGarden(await getDataDir("test-projects", "exec-task-outputs"))
     const _graph = await _garden.getConfigGraph()
     const taskB = await _graph.getTask("task-b")
 
@@ -173,7 +176,53 @@ describe("exec plugin", () => {
     const results = await _garden.processTasks([taskTask])
 
     // Task A echoes "task-a-output" and Task B echoes the output from Task A
+    expect(results["task.task-b"]).to.exist
     expect(results["task.task-b"]!.output.outputs.log).to.equal("task-a-output")
+  })
+
+  it("should copy artifacts after task runs", async () => {
+    const _garden = await makeTestGarden(getDataDir("test-projects", "exec-artifacts"))
+    const _graph = await _garden.getConfigGraph()
+    const task = await _graph.getTask("task-a")
+
+    const taskTask = new TaskTask({
+      garden: _garden,
+      graph: _graph,
+      task,
+      log: _garden.log,
+      force: false,
+      forceBuild: false,
+      version: task.module.version,
+    })
+
+    await emptyDir(_garden.artifactsPath)
+
+    await _garden.processTasks([taskTask])
+
+    expect(await pathExists(join(_garden.artifactsPath, "task-outputs", "task-a.txt"))).to.be.true
+  })
+
+  it("should copy artifacts after test runs", async () => {
+    const _garden = await makeTestGarden(getDataDir("test-projects", "exec-artifacts"))
+    const _graph = await _garden.getConfigGraph()
+    const module = await _graph.getModule("module-a")
+
+    const testTask = new TestTask({
+      garden: _garden,
+      graph: _graph,
+      module,
+      testConfig: findByName(module.testConfigs, "test-a")!,
+      log: _garden.log,
+      force: false,
+      forceBuild: false,
+      version: module.version,
+    })
+
+    await emptyDir(_garden.artifactsPath)
+
+    await _garden.processTasks([testTask])
+
+    expect(await pathExists(join(_garden.artifactsPath, "test-outputs", "test-a.txt"))).to.be.true
   })
 
   describe("configureExecModule", () => {

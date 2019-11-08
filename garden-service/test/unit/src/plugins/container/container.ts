@@ -149,6 +149,7 @@ describe("plugins.container", () => {
             {
               name: "task-a",
               args: ["echo", "OK"],
+              artifacts: [],
               dependencies: [],
               env: {
                 TASK_ENV_VAR: "value",
@@ -160,6 +161,7 @@ describe("plugins.container", () => {
             {
               name: "unit",
               args: ["echo", "OK"],
+              artifacts: [],
               dependencies: [],
               env: {
                 TEST_ENV_VAR: "value",
@@ -226,6 +228,7 @@ describe("plugins.container", () => {
               {
                 name: "task-a",
                 args: ["echo", "OK"],
+                artifacts: [],
                 dependencies: [],
                 env: {
                   TASK_ENV_VAR: "value",
@@ -237,6 +240,7 @@ describe("plugins.container", () => {
               {
                 name: "unit",
                 args: ["echo", "OK"],
+                artifacts: [],
                 dependencies: [],
                 env: {
                   TEST_ENV_VAR: "value",
@@ -283,6 +287,7 @@ describe("plugins.container", () => {
               name: "task-a",
               spec: {
                 args: ["echo", "OK"],
+                artifacts: [],
                 dependencies: [],
                 env: {
                   TASK_ENV_VAR: "value",
@@ -300,6 +305,7 @@ describe("plugins.container", () => {
               spec: {
                 name: "unit",
                 args: ["echo", "OK"],
+                artifacts: [],
                 dependencies: [],
                 env: {
                   TEST_ENV_VAR: "value",
@@ -357,6 +363,7 @@ describe("plugins.container", () => {
             {
               name: "task-a",
               args: ["echo"],
+              artifacts: [],
               dependencies: [],
               env: {},
               timeout: null,
@@ -366,6 +373,7 @@ describe("plugins.container", () => {
             {
               name: "unit",
               args: ["echo", "OK"],
+              artifacts: [],
               dependencies: [],
               env: {},
               timeout: null,
@@ -425,6 +433,7 @@ describe("plugins.container", () => {
             {
               name: "task-a",
               args: ["echo"],
+              artifacts: [],
               dependencies: [],
               env: {},
               timeout: null,
@@ -482,6 +491,7 @@ describe("plugins.container", () => {
             {
               name: "task-a",
               args: ["echo"],
+              artifacts: [],
               dependencies: [],
               env: {},
               timeout: null,

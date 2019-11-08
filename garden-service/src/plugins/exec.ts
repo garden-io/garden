@@ -6,9 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import Bluebird from "bluebird"
 import { mapValues } from "lodash"
 import { join } from "path"
-import { joiArray, joiEnvVars, validateWithPath, joi } from "../config/common"
+import cpy = require("cpy")
+import { joiArray, joiEnvVars, validateWithPath, joi, ArtifactSpec } from "../config/common"
 import { createGardenPlugin } from "../types/plugin/plugin"
 import { Module } from "../types/module"
 import { CommonServiceSpec } from "../config/service"
@@ -24,20 +26,34 @@ import { BuildModuleParams, BuildResult } from "../types/plugin/module/build"
 import { TestModuleParams } from "../types/plugin/module/testModule"
 import { TestResult } from "../types/plugin/module/getTestResult"
 import { RunTaskParams, RunTaskResult } from "../types/plugin/task/runTask"
-import { createOutputStream, exec } from "../util/util"
-import { LogLevel } from "../logger/log-node"
+import { exec } from "../util/util"
 import { ConfigurationError } from "../exceptions"
-
-export const name = "exec"
+import { LogEntry } from "../logger/log-entry"
 
 const execPathDoc = dedent`
   By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
   If the top level \`local\` directive is set to \`true\`, the command runs in the module source directory instead.
 `
 
+const artifactSchema = joi.object().keys({
+  source: joi
+    .string()
+    .posixPath({ allowGlobs: true, subPathOnly: true, relativeOnly: true })
+    .required()
+    .description("A POSIX-style path or glob to copy, relative to the build root."),
+  target: joi
+    .string()
+    .posixPath({ subPathOnly: true, relativeOnly: true })
+    .default(".")
+    .description("A POSIX-style path to copy the artifact to, relative to the project artifacts directory."),
+})
+
+const artifactsSchema = joi.array().items(artifactSchema)
+
 export interface ExecTestSpec extends BaseTestSpec {
   command: string[]
   env: { [key: string]: string }
+  artifacts?: ArtifactSpec[]
 }
 
 export const execTestSchema = baseTestSpecSchema
@@ -54,16 +70,19 @@ export const execTestSchema = baseTestSpecSchema
       )
       .required(),
     env: joiEnvVars(),
+    artifacts: artifactsSchema.description("A list of artifacts to copy after the test run."),
   })
   .description("The test specification of an exec module.")
 
 export interface ExecTaskSpec extends BaseTaskSpec {
+  artifacts?: ArtifactSpec[]
   command: string[]
   env: { [key: string]: string }
 }
 
 export const execTaskSpecSchema = baseTaskSpecSchema
   .keys({
+    artifacts: artifactsSchema.description("A list of artifacts to copy after the task run."),
     command: joi
       .array()
       .items(joi.string())
@@ -94,7 +113,7 @@ export interface ExecModuleSpec extends ExecModuleSpecBase {
   local?: boolean
 }
 
-export type ExecModuleConfig = ModuleConfig<ExecModuleSpec>
+export type ExecModuleConfig = ModuleConfig<ExecModuleSpec, any, ExecTestSpec, ExecTaskSpec>
 
 export const execBuildSpecSchema = baseBuildSpecSchema.keys({
   command: joiArray(joi.string())
@@ -131,7 +150,7 @@ export const execModuleSpecSchema = joi
   .unknown(false)
   .description("The module specification for an exec module.")
 
-export interface ExecModule extends Module<ExecModuleSpec, CommonServiceSpec, ExecTestSpec> {}
+export interface ExecModule extends Module<ExecModuleSpec, CommonServiceSpec, ExecTestSpec, ExecTaskSpec> {}
 
 export async function configureExecModule({
   ctx,
@@ -198,7 +217,7 @@ export async function getExecModuleBuildStatus({ module }: GetBuildStatusParams)
   return { ready: false }
 }
 
-export async function buildExecModule({ module, log }: BuildModuleParams<ExecModule>): Promise<BuildResult> {
+export async function buildExecModule({ module }: BuildModuleParams<ExecModule>): Promise<BuildResult> {
   const output: BuildResult = {}
   const { command } = module.spec.build
 
@@ -209,7 +228,6 @@ export async function buildExecModule({ module, log }: BuildModuleParams<ExecMod
         ...process.env,
         ...mapValues(module.spec.env, (v) => v.toString()),
       },
-      outputStream: createOutputStream(log.placeholder(LogLevel.debug)),
       shell: true,
     })
 
@@ -224,7 +242,12 @@ export async function buildExecModule({ module, log }: BuildModuleParams<ExecMod
   return output
 }
 
-export async function testExecModule({ module, log, testConfig }: TestModuleParams<ExecModule>): Promise<TestResult> {
+export async function testExecModule({
+  log,
+  module,
+  testConfig,
+  artifactsPath,
+}: TestModuleParams<ExecModule>): Promise<TestResult> {
   const startedAt = new Date()
   const { command } = testConfig.spec
 
@@ -237,9 +260,10 @@ export async function testExecModule({ module, log, testConfig }: TestModulePara
       ...mapValues(testConfig.spec.env, (v) => v + ""),
     },
     reject: false,
-    outputStream: createOutputStream(log.placeholder(LogLevel.debug)),
     shell: true,
   })
+
+  await copyArtifacts(log, testConfig.spec.artifacts, module.buildPath, artifactsPath)
 
   return {
     moduleName: module.name,
@@ -253,36 +277,45 @@ export async function testExecModule({ module, log, testConfig }: TestModulePara
   }
 }
 
-export async function runExecTask(params: RunTaskParams): Promise<RunTaskResult> {
-  const { task, log } = params
+export async function runExecTask(params: RunTaskParams<ExecModule>): Promise<RunTaskResult> {
+  const { artifactsPath, log, task } = params
   const module = task.module
   const command = task.spec.command
   const startedAt = new Date()
 
-  const result = await exec(command.join(" "), [], {
-    cwd: module.buildPath,
-    env: {
-      ...process.env,
-      ...mapValues(module.spec.env, (v) => v.toString()),
-      ...mapValues(task.spec.env, (v) => v.toString()),
-    },
-    outputStream: createOutputStream(log.placeholder(LogLevel.debug)),
-    shell: true,
-  })
+  let completedAt: Date
+  let outputLog: string
 
-  const completedAt = new Date()
-  const output = result.stdout + result.stderr
+  if (command && command.length) {
+    const commandResult = await exec(command.join(" "), [], {
+      cwd: module.buildPath,
+      env: {
+        ...process.env,
+        ...mapValues(module.spec.env, (v) => v.toString()),
+        ...mapValues(task.spec.env, (v) => v.toString()),
+      },
+      shell: true,
+    })
 
-  return <RunTaskResult>{
+    completedAt = new Date()
+    outputLog = (commandResult.stdout + commandResult.stderr).trim()
+  } else {
+    completedAt = startedAt
+    outputLog = ""
+  }
+
+  await copyArtifacts(log, task.spec.artifacts, module.buildPath, artifactsPath)
+
+  return {
     moduleName: module.name,
     taskName: task.name,
     command,
     version: module.version.versionString,
     // the exec call throws on error so we can assume success if we made it this far
     success: true,
-    log: output,
+    log: outputLog,
     outputs: {
-      log: output,
+      log: outputLog,
     },
     startedAt,
     completedAt,
@@ -330,3 +363,16 @@ export const execPlugin = createGardenPlugin({
 })
 
 export const gardenPlugin = execPlugin
+
+async function copyArtifacts(
+  log: LogEntry,
+  artifacts: ArtifactSpec[] | undefined,
+  from: string,
+  artifactsPath: string
+) {
+  return Bluebird.map(artifacts || [], async (spec) => {
+    log.verbose(`→ Copying artifacts ${spec.source}`)
+
+    await cpy(spec.source, join(artifactsPath, spec.target || "."), { cwd: from })
+  })
+}

@@ -208,7 +208,8 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 
 [build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > target
 
-POSIX-style path or filename to copy the directory or file(s).
+POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
+Defaults to to same as source path.
 
 | Type     | Required | Default                   |
 | -------- | -------- | ------------------------- |
@@ -306,6 +307,36 @@ Maximum duration (in seconds) of the task's execution.
 | -------- | -------- | ------- |
 | `number` | No       | `null`  |
 
+### `tasks[].artifacts[]`
+
+[tasks](#tasks) > artifacts
+
+A list of artifacts to copy after the task run.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[object]` | No       |
+
+### `tasks[].artifacts[].source`
+
+[tasks](#tasks) > [artifacts](#tasksartifacts) > source
+
+A POSIX-style path or glob to copy, relative to the build root.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `tasks[].artifacts[].target`
+
+[tasks](#tasks) > [artifacts](#tasksartifacts) > target
+
+A POSIX-style path to copy the artifact to, relative to the project artifacts directory.
+
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `string` | No       | `"."`   |
+
 ### `tasks[].command[]`
 
 [tasks](#tasks) > command
@@ -390,6 +421,36 @@ Key/value map of environment variables. Keys must be valid POSIX environment var
 | -------- | -------- | ------- |
 | `object` | No       | `{}`    |
 
+### `tests[].artifacts[]`
+
+[tests](#tests) > artifacts
+
+A list of artifacts to copy after the test run.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[object]` | No       |
+
+### `tests[].artifacts[].source`
+
+[tests](#tests) > [artifacts](#testsartifacts) > source
+
+A POSIX-style path or glob to copy, relative to the build root.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `tests[].artifacts[].target`
+
+[tests](#tests) > [artifacts](#testsartifacts) > target
+
+A POSIX-style path to copy the artifact to, relative to the project artifacts directory.
+
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `string` | No       | `"."`   |
+
 
 ## Complete YAML schema
 ```yaml
@@ -416,6 +477,9 @@ tasks:
     description:
     dependencies: []
     timeout: null
+    artifacts:
+      - source:
+        target: .
     command:
     env: {}
 tests:
@@ -424,6 +488,9 @@ tests:
     timeout: null
     command:
     env: {}
+    artifacts:
+      - source:
+        target: .
 ```
 
 ## Outputs

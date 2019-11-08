@@ -164,7 +164,7 @@ export const projectRootSchema = joi.string().description("The path to the proje
 const projectModulesSchema = joi.object().keys({
   include: joi
     .array()
-    .items(joi.string().posixPath({ subPathOnly: true }))
+    .items(joi.string().posixPath({ allowGlobs: true, subPathOnly: true }))
     .description(
       dedent`
         Specify a list of POSIX-style paths or globs that should be scanned for Garden modules.
@@ -182,7 +182,7 @@ const projectModulesSchema = joi.object().keys({
     .example([["modules/**/*"], {}]),
   exclude: joi
     .array()
-    .items(joi.string().posixPath({ subPathOnly: true }))
+    .items(joi.string().posixPath({ allowGlobs: true, subPathOnly: true }))
     .description(
       dedent`
         Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for modules.
@@ -292,7 +292,7 @@ export const projectSchema = joi
  *
  * @param config raw project configuration
  */
-export async function resolveProjectConfig(config: ProjectConfig): Promise<ProjectConfig> {
+export async function resolveProjectConfig(config: ProjectConfig, artifactsPath: string): Promise<ProjectConfig> {
   // Resolve template strings for non-environment-specific fields
   let { environmentDefaults, environments = [] } = config
 
@@ -307,7 +307,7 @@ export async function resolveProjectConfig(config: ProjectConfig): Promise<Proje
       variables: config.variables,
       environments: environments.map((e) => omit(e, ["providers"])),
     },
-    new ProjectConfigContext()
+    new ProjectConfigContext(artifactsPath)
   )
 
   // Validate after resolving global fields

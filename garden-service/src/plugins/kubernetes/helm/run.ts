@@ -8,7 +8,7 @@
 
 import { HelmModule } from "./config"
 import { getAppNamespace } from "../namespace"
-import { runPod } from "../run"
+import { PodRunner, runAndCopy } from "../run"
 import { findServiceResource, getChartResources, getResourceContainer, getServiceResourceSpec } from "./common"
 import { ConfigurationError } from "../../../exceptions"
 import { KubernetesPluginContext } from "../config"
@@ -19,6 +19,7 @@ import { RunTaskParams, RunTaskResult } from "../../../types/plugin/task/runTask
 import { uniqByName } from "../../../util/util"
 import { prepareEnvVars } from "../util"
 import { V1PodSpec } from "@kubernetes/client-node"
+import { KubeApi } from "../api"
 
 export async function runHelmModule({
   ctx,
@@ -68,32 +69,31 @@ export async function runHelmModule({
     ],
   }
 
-  return runPod({
+  const api = await KubeApi.factory(log, provider)
+  const podName = `run-${module.name}-${Math.round(new Date().getTime())}`
+
+  const runner = new PodRunner({
+    api,
+    podName,
     provider,
     image: container.image,
-    interactive,
-    ignoreError,
-    log,
     module,
     namespace,
     spec,
+  })
+
+  return runner.startAndWait({
+    ignoreError,
+    interactive,
+    log,
     timeout,
   })
 }
 
-export async function runHelmTask({
-  ctx,
-  log,
-  module,
-  task,
-  taskVersion,
-  interactive,
-  timeout,
-}: RunTaskParams<HelmModule>): Promise<RunTaskResult> {
+export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<RunTaskResult> {
+  const { ctx, log, module, task, taskVersion, timeout } = params
   // TODO: deduplicate this from testHelmModule
   const k8sCtx = <KubernetesPluginContext>ctx
-  const provider = k8sCtx.provider
-  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
   const { command, args } = task.spec
   const chartResources = await getChartResources(k8sCtx, module, log)
@@ -107,32 +107,18 @@ export async function runHelmTask({
   })
   const container = getResourceContainer(target, resourceSpec.containerName)
 
-  // Apply overrides
-  const env = uniqByName([...prepareEnvVars(task.spec.env), ...(container.env || [])])
-
-  const spec: V1PodSpec = {
-    containers: [
-      {
-        ...container,
-        ...(command && { command }),
-        ...(args && { args }),
-        env,
-        // TODO: consider supporting volume mounts in ad-hoc runs (would need specific logic and testing)
-        volumeMounts: [],
-      },
-    ],
-  }
-
-  const res = await runPod({
-    provider,
+  const res = await runAndCopy({
+    ...params,
+    container,
+    command,
+    args,
+    artifacts: task.spec.artifacts,
+    envVars: task.spec.env,
     image: container.image,
-    interactive,
-    ignoreError: false,
-    log,
-    module,
-    namespace,
-    spec,
+    podName: `task-${module.name}-${task.name}-${Math.round(new Date().getTime())}`,
+    description: `Task '${task.name}' in container module '${module.name}'`,
     timeout,
+    ignoreError: true, // to ensure results get stored when an error occurs
   })
 
   const result = {

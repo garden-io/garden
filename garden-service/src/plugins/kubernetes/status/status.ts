@@ -30,7 +30,7 @@ import {
 import dedent = require("dedent")
 import { getPods } from "../util"
 import { checkWorkloadStatus } from "./workload"
-import { checkPodStatus } from "./pod"
+import { checkWorkloadPodStatus } from "./pod"
 import { waitForServiceEndpoints } from "./service"
 import { gardenAnnotationKey } from "../../../util/string"
 import stringify from "json-stable-stringify"
@@ -69,18 +69,18 @@ const objHandlers: { [kind: string]: ObjHandler } = {
   },
 
   Pod: async ({ resource }) => {
-    return checkPodStatus(resource, [<KubernetesServerResource<V1Pod>>resource])
+    return checkWorkloadPodStatus(resource, [<KubernetesServerResource<V1Pod>>resource])
   },
 
   ReplicaSet: async ({ api, namespace, resource }) => {
-    return checkPodStatus(
+    return checkWorkloadPodStatus(
       resource,
       await getPods(api, namespace, (<KubernetesServerResource<V1ReplicaSet>>resource).spec.selector!.matchLabels!)
     )
   },
 
   ReplicationController: async ({ api, namespace, resource }) => {
-    return checkPodStatus(
+    return checkWorkloadPodStatus(
       resource,
       await getPods(api, namespace, (<KubernetesServerResource<V1ReplicationController>>resource).spec.selector)
     )
