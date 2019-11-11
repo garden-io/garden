@@ -12,9 +12,10 @@ import React from "react"
 import { colors } from "../styles/variables"
 
 interface Props {
-  onClick: () => void
+  className?: string
+  onClick: (event: React.MouseEvent<HTMLElement>) => void
   inProgress?: boolean
-  iconClassName: "redo-alt" | "window-close"
+  iconClassName: "redo-alt" | "window-close" | "copy"
 }
 
 const Button = styled.div`
@@ -50,11 +51,11 @@ const IconLoading = styled(Icon)`
   }
 `
 
-export const ActionIcon: React.FC<Props> = ({ inProgress, onClick, iconClassName }) => {
+export const ActionIcon: React.FC<Props> = ({ inProgress, className, onClick, iconClassName }) => {
   const IconComp = inProgress ? IconLoading : Icon
 
   return (
-    <Button onClick={onClick}>
+    <Button className={className} onClick={onClick}>
       <IconComp className={`fas fa-${iconClassName}`} />
     </Button>
   )

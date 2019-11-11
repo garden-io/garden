@@ -18,4 +18,5 @@ const { GARDEN_SERVICE_DEFAULT_PORT } = require("./constants")
 module.exports = function(app) {
   const port = process.env.REACT_APP_GARDEN_SERVICE_PORT || GARDEN_SERVICE_DEFAULT_PORT
   app.use(proxy('/api', { target: `http://localhost:${port}/` }))
+  app.use(proxy('/download', { target: `http://localhost:${port}/` }))
 };

@@ -13,18 +13,21 @@ import { css } from "emotion"
 import moment from "moment"
 import styled from "@emotion/styled"
 import Card from "./card"
-import { colors } from "../styles/variables"
+import { colors, fontMedium } from "../styles/variables"
 import { WarningNotification } from "./notifications"
 import { ActionIcon } from "./action-icon"
-import { EntityResultSupportedTypes } from "../contexts/ui"
+import { EntityResultSupportedTypes, useUiState } from "../contexts/ui"
+import { ExternalLink } from "./links"
+import { truncateMiddle } from "../util/helpers"
+import { CopyActionIcon } from "./copy-action-icon"
 
 const Term = styled.div`
   background-color: ${colors.gardenBlack};
   color: white;
   border-radius: 0.125rem;
   flex: 1 1;
-  overflow-y: auto;
   padding: 1rem;
+  margin-bottom: 1rem;
   margin-top: 1rem;
 `
 const Code = styled.code`
@@ -99,14 +102,15 @@ const Header = styled.div`
   font-weight: 500;
   font-size: 1.125rem;
   line-height: 1.6875rem;
-
   color: ${colors.black};
 `
 
+// TODO: Just use the test|task results type here instead of specifying each key
 interface Props {
   type: EntityResultSupportedTypes
   name: string
   moduleName: string
+  artifacts?: string[]
   output?: string | null
   startedAt?: Date | null
   completedAt?: Date | null
@@ -116,10 +120,10 @@ interface Props {
   loading?: boolean
 }
 
-// TODO: Split up into something InfoPane and InfoPaneWithResults. Props are kind of messy.
 export default ({
   type,
   name,
+  artifacts,
   moduleName,
   output,
   startedAt,
@@ -129,7 +133,26 @@ export default ({
   onRefresh,
   loading,
 }: Props) => {
+  const {
+    actions: { showModal },
+  } = useUiState()
+
   let outputEl: React.ReactNode = null
+  artifacts = artifacts || []
+
+  const onCopy = () => {
+    const message = (
+      <p
+        className={css`
+          ${fontMedium}
+          text-align: center;
+        `}
+      >
+        Copied value to clipboard!
+      </p>
+    )
+    showModal(message)
+  }
 
   if (output) {
     outputEl = (
@@ -138,7 +161,7 @@ export default ({
       </Term>
     )
   } else if (output === null || output === "") {
-    // Output explictly set to nullƒ means that the data was  fetched but the result was empty
+    // Output explictly set to null means that the data was fetched but the result was empty
     outputEl = (
       <div className="row pt-1">
         <div className="col-xs-12">
@@ -149,7 +172,11 @@ export default ({
   }
 
   return (
-    <Card>
+    <Card
+      className={css`
+        overflow-y: auto !important;
+      `}
+    >
       <div
         className={cls(
           "p-1",
@@ -214,6 +241,51 @@ export default ({
             <Value>{moment(completedAt).fromNow()}</Value>
           </Field>
         )}
+
+        {artifacts.length > 0 && (
+          <Field>
+            <Key text="Artifacts" />
+            <div
+              className={css`
+                max-height: 12rem;
+                width: 100%;
+                overflow-y: auto;
+              `}
+            >
+              {artifacts.map((path) => {
+                return (
+                  <Value key={path}>
+                    <div
+                      className={css`
+                        display: flex;
+                        justify-content: space-between;
+                      `}
+                    >
+                      <ExternalLink
+                        href={`${path.split(".garden")[1]}`}
+                        rel="noopener noreferrer"
+                        target="_blank"
+                        title={path}
+                        download
+                      >
+                        {truncateMiddle(path)}
+                      </ExternalLink>
+                      <div
+                        className={css`
+                          margin-top: -4px;
+                          margin-bttom: 0.5rem;
+                        `}
+                      >
+                        <CopyActionIcon value={path} onCopy={onCopy} />
+                      </div>
+                    </div>
+                  </Value>
+                )
+              })}
+            </div>
+          </Field>
+        )}
+
         {/* we only show the output if has content and only for these types */}
         {(type === "test" || type === "run" || type === "task") && outputEl !== null && outputEl}
       </div>
