@@ -389,6 +389,9 @@ jobs:
           name: Override build ID
           command: $env:CIRCLE_BUILD_NUM = "$env:CIRCLE_BUILD_NUM-win"
       - run:
+          name: Build demo-project
+          command: .\garden-service\dist\windows-amd64\garden.exe build --root .\examples\demo-project\ --logger-type basic --env testing
+      - run:
           name: Deploy demo-project
           command: .\garden-service\dist\windows-amd64\garden.exe deploy --root .\examples\demo-project\ --logger-type basic --env testing
       - run:
