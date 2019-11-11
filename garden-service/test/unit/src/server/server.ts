@@ -65,7 +65,7 @@ describe("startServer", () => {
     })
 
     it("should 503 when Garden instance is not set", async () => {
-      gardenServer.setGarden()
+      gardenServer["garden"] = undefined
       await request(server)
         .post("/api")
         .send({ command: "get.config" })
@@ -152,7 +152,7 @@ describe("startServer", () => {
         done()
       })
 
-      gardenServer.setGarden()
+      gardenServer["garden"] = undefined
 
       ws.send(
         JSON.stringify({

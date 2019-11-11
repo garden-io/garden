@@ -12,6 +12,7 @@ import { printHeader } from "../../logger/util"
 import { getTaskVersion } from "../../tasks/task"
 import { RunTaskResult } from "../../types/plugin/task/runTask"
 import chalk from "chalk"
+import { getArtifactFileList, getArtifactKey } from "../../util/artifacts"
 
 const getTaskResultArgs = {
   name: new StringParameter({
@@ -22,7 +23,11 @@ const getTaskResultArgs = {
 
 type Args = typeof getTaskResultArgs
 
-export type GetTaskResultCommandResult = RunTaskResult | null
+interface Result extends RunTaskResult {
+  artifacts: string[]
+}
+
+export type GetTaskResultCommandResult = Result | null
 
 export class GetTaskResultCommand extends Command<Args> {
   name = "task-result"
@@ -43,11 +48,25 @@ export class GetTaskResultCommand extends Command<Args> {
 
     const actions = await garden.getActionRouter()
 
-    const result = await actions.getTaskResult({
+    const taskResult = await actions.getTaskResult({
       log,
       task,
       taskVersion: await getTaskVersion(garden, graph, task),
     })
+
+    let result: GetTaskResultCommandResult = null
+
+    if (taskResult) {
+      const artifacts = await getArtifactFileList({
+        key: getArtifactKey("task", task.name, task.module.version.versionString),
+        artifactsPath: garden.artifactsPath,
+        log: garden.log,
+      })
+      result = {
+        ...taskResult,
+        artifacts,
+      }
+    }
 
     printHeader(headerLog, `Task result for task ${chalk.cyan(taskName)}`, "rocket")
 
