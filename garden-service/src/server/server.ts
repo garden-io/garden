@@ -91,8 +91,11 @@ export class GardenServer {
     return this.server.close()
   }
 
-  setGarden(garden?: Garden) {
+  setGarden(garden: Garden) {
     this.garden = garden
+
+    // Serve artifacts as static assets
+    this.app.use(mount("/artifacts", serve(garden.artifactsPath)))
   }
 
   private async createApp() {

@@ -1,4 +1,10 @@
-import { expectError, withDefaultGlobalOpts, configureTestModule, makeTestGardenA } from "../../../../helpers"
+import {
+  expectError,
+  withDefaultGlobalOpts,
+  configureTestModule,
+  makeTestGardenA,
+  cleanProject,
+} from "../../../../helpers"
 import { GetTestResultCommand } from "../../../../../src/commands/get/get-test-result"
 import { expect } from "chai"
 import { GetTestResultParams } from "../../../../../src/types/plugin/module/getTestResult"
@@ -6,6 +12,9 @@ import { Garden } from "../../../../../src/garden"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
 import { joi } from "../../../../../src/config/common"
+import { getArtifactKey } from "../../../../../src/util/artifacts"
+import { join } from "path"
+import { writeFile } from "fs-extra"
 
 const now = new Date()
 
@@ -47,9 +56,13 @@ describe("GetTestResultCommand", () => {
   const command = new GetTestResultCommand()
   const module = "module-a"
 
-  before(async () => {
+  beforeEach(async () => {
     garden = await makeTestGardenA([testPlugin])
     log = garden.log
+  })
+
+  afterEach(async () => {
+    await cleanProject(garden.gardenDirPath)
   })
 
   it("should throw error if test not found", async () => {
@@ -72,6 +85,16 @@ describe("GetTestResultCommand", () => {
   it("should return the test result", async () => {
     const name = "unit"
 
+    const moduleVersion = "v-76154ddb19"
+    const artifactKey = getArtifactKey("test", name, moduleVersion)
+    const metadataPath = join(garden.artifactsPath, `.metadata.${artifactKey}.json`)
+    const metadata = {
+      key: artifactKey,
+      files: ["/foo/bar.txt", "/bas/bar.txt"],
+    }
+
+    await writeFile(metadataPath, JSON.stringify(metadata))
+
     const res = await command.action({
       garden,
       log,
@@ -82,6 +105,35 @@ describe("GetTestResultCommand", () => {
     })
 
     expect(res.result).to.eql({
+      artifacts: ["/foo/bar.txt", "/bas/bar.txt"],
+      moduleName: "module-a",
+      command: [],
+      completedAt: now,
+      log: "bla bla",
+      outputs: {
+        log: "bla bla",
+      },
+      success: true,
+      startedAt: now,
+      testName: "unit",
+      version: "1234",
+    })
+  })
+
+  it("should include paths to artifacts if artifacts exist", async () => {
+    const name = "unit"
+
+    const res = await command.action({
+      garden,
+      log,
+      headerLog: log,
+      footerLog: log,
+      args: { name, module },
+      opts: withDefaultGlobalOpts({}),
+    })
+
+    expect(res.result).to.eql({
+      artifacts: [],
       moduleName: "module-a",
       command: [],
       completedAt: now,

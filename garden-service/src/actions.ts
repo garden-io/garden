@@ -96,6 +96,7 @@ import { PluginContext } from "./plugin-context"
 import { DeleteServiceTask, deletedServiceStatuses } from "./tasks/delete-service"
 import { realpath, writeFile } from "fs-extra"
 import { relative, join } from "path"
+import { getArtifactKey } from "./util/artifacts"
 
 const maxArtifactLogLines = 5 // max number of artifacts to list in console after task+test runs
 
@@ -310,7 +311,7 @@ export class ActionRouter implements TypeGuard {
         await this.copyArtifacts(
           params.log,
           artifactsPath,
-          `test.${params.testConfig.name}.${params.module.version.versionString}`
+          getArtifactKey("test", params.testConfig.name, params.module.version.versionString)
         )
       } finally {
         await tmpDir.cleanup()
@@ -452,7 +453,7 @@ export class ActionRouter implements TypeGuard {
         await this.copyArtifacts(
           params.log,
           artifactsPath,
-          `task.${params.task.name}.${params.task.module.version.versionString}`
+          getArtifactKey("task", params.task.name, params.task.module.version.versionString)
         )
       } finally {
         await tmpDir.cleanup()
