@@ -31,7 +31,6 @@ import dedent = require("dedent")
 import { getPods } from "../util"
 import { checkWorkloadStatus } from "./workload"
 import { checkWorkloadPodStatus } from "./pod"
-import { waitForServiceEndpoints } from "./service"
 import { gardenAnnotationKey } from "../../../util/string"
 import stringify from "json-stable-stringify"
 
@@ -213,12 +212,6 @@ export async function waitForResources({ ctx, provider, serviceName, resources, 
     }
 
     if (combineStates(statuses.map((s) => s.state)) === "ready") {
-      // If applicable, wait until Services properly point to each Pod in the resource list.
-      // This step is put in to give the cluster a moment to update its network routing.
-      // For example, when a Deployment passes its health check, Kubernetes doesn't instantly route Service traffic
-      // to it. We need to account for this so that dependant tasks, tests and services can reliably run after this
-      // routine resolves.
-      await waitForServiceEndpoints(api, statusLine, namespace, resources)
       break
     }
 
