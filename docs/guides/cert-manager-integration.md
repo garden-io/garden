@@ -1,29 +1,31 @@
-# cert-manager integration
+# cert-manager Integration
 
-## Scope, requirements and version supported
+When starting a new Kubernetes project or when maintaining your existing ones, dealing with the creation and renewal of TLS certificates can easily become a headache. A popular tool to help automate certficate generation and renewal is [cert-manager](https://github.com/jetstack/cert-manager).
 
-### Scope
+The [kubernetes](./remote-kubernetes.md) and [local-kubernetes](./local-kubernetes.md) providers include an integration with cert-manager. The goal of the integration is to give you a head start when setting up TLS certificates for your project, providing an easy way to install it, and some sensible defaults.
+We don't aim to support all the features of cert-manager, but rather accommodate the most common use case, while still allowing full control of the underlying setup when needed.
 
-This guide aims at outlining configuration and best practices when dealing with TLS certificates, cert-manager and Garden.
+## Requirements
 
-When starting a new project or when maintaining your existing ones, dealing with the creation and renewal of certificates can easily become a very complex task. Many projects appeared in the last few years to help managing this complexity and one that stood out is [cert-manager](https://github.com/jetstack/cert-manager).
+You need to have an ingress controller configured, that is configured using Ingress resources (e.g. nginx). You can install nginx automatically by setting `setupIngressController: nginx` in your `kubernetes` provider config.
+You also need make sure your DNS and routing are configured to point the domains you will configure below to your ingress controller.
 
-The goal of this integration is to give you a head start when setting the TLS certificates for your project with cert-manager, providing an easy way for installation and some sensible defaults while allowing full control of the underlying configuration.
-We don't aim to fully support all the features of cert-manager, but rather accommodate the most common use case while still allowing full control of the underlying setup.
+## Limitations
 
-Please read the defaults settings and configurations in each of the following sections.
+cert-manager is currently under development. Currently we only support cert-manager v0.11.0, which requires Kubernetes v1.11 or higher.
 
-### Requirements
+If you set `certManager.install: false` garden will expect to find a `cert-manager` installation in the `cert-manager` namespace.
+If you already have installed `cert-manager` please verify it's running by checking the status of the main pods as suggested in the [documentation](https://docs.cert-manager.io/en/latest/getting-started/install/kubernetes.html#verifying-the-installation).
 
-We require you to have configured your DNS and routing so that the domains you will configure below are pointed to your ingress controller.
+The integration currently only supports Let's Encrypt and HTTP-01 challenges. We also only support cert-manager ClusterIssuers and not namespace Issuers.
 
-### Supported versions
+> More configuration options will be implemented, but we need your help to prioritize them! Please [file an issue](https://github.com/garden-io/garden/issues) to request the features you need.
 
-cert-manager is currently under development and will soon go in beta. Currently we only support `cert-manager v0.11.0` which requires `kubernetes >v1.11`.
+## Usage
 
-## Enable the integration and configuration
+### Enabling and configuring cert-manager
 
-To enable cert-manager, you'll need to configure it on your Kubernetes Provider configuration in your project `garden.yml` file:
+To enable cert-manager, you'll need to configure it in the `kubernetes` provider configuration in your project `garden.yml` file:
 
 ```yaml
     kind: Project
@@ -37,30 +39,28 @@ To enable cert-manager, you'll need to configure it on your Kubernetes Provider 
         ...
         certManager:
           install: true  # let garden install cert-manager
-          email: name@example.com  # your email (used to create Let's Encrypt certificates)
-          issuer: acme  # the type of issuer for the certificate generation. This integration supports Let's Encrypt ACME
-          acmeChallengeType: HTTP-01  # type of ACME challenge. This integration supports "HTTP-01"
-          acmeServer: letsencrypt-staging  # ACME server. "letsencrypt-staging" or "letsencrypt-prod"
+          email: name@example.com  # your email (required when requesting Let's Encrypt certificates)
+          issuer: acme  # the type of issuer for the certificate generation (currently only Let's Encrypt ACME is supported)
+          acmeChallengeType: HTTP-01  # type of ACME challenge (currently only "HTTP-01" is supported)
+          acmeServer: letsencrypt-staging  # the ACME server to use ("letsencrypt-staging" or "letsencrypt-prod")
         tlsCertificates:
           ...
 ```
 
-Unless you want to use your own installation of cert-manager, you will need to set the option `install: true`: garden will install cert-manager for you under the `cert-manager` namespace.
+Unless you want to use your own installation of cert-manager, you will need to set the option `install: true`. Garden will then install cert-manager for you under the `cert-manager` namespace.
 
-If nothing is specified or `install: false` garden will assume to find a valid and running cert-manager installation in the `cert-manager` namespace.
+If nothing is specified or `install: false`, Garden will assume you already have a valid and running cert-manager installation in the `cert-manager` namespace.
 
-A valid email address is also required if you are planning to generate Certificates through the integrations (we are using a Let's Encrypt HTTP-01 challenge, see below).
+A valid email address is also required for Let's Encrypt certificate requests.
 
-## Issuing your first certificate
+### Issuing your first certificate
 
-cert-manager is a very powerful tool with a lot of different possible configurations. While integrating it with Garden we decided to implement some opinionated behaviours which should get you up to speed fast without thinking too much about configuration.
-In case you need specific settings or advanced use-cases, you can choose which certificates need to be managed by the integration and which you want to manage yourself by enabling the option `tlsCertificates[].managedBy: cert-manager`.
+cert-manager is a powerful tool with a lot of different possible configurations. While integrating it with Garden we decided to start with an opinionated setup which should get you up to speed quickly, without thinking too much about configuration.
+If/when you need specific settings or advanced use-cases, you can choose which certificates need to be managed by the integration and which you want to manage yourself using the [`tlsCertificates[].managedBy` config field](../reference/providers/kubernetes.md#providerstlscertificatesmanagedby).
 
-For advance configuration please take a look at the official [cert-manager documentation](https://docs.cert-manager.io/en/latest/tasks/index.html).
+#### Example
 
-### Example
-
-The configuration for letting Garden create a Certificate through cert-manager happens at the tlsCertificate level. See the [providers[].tlsCertificates[] reference](https://docs.garden.io/reference/providers/kubernetes#providers-tlscertificates) for more details):
+When you set `managedBy: cert-manager` on a certificate specified in the `tlsCertificates` field, Garden creates a corresponding Certificate resource:
 
 ```yaml
     kind: Project
@@ -79,48 +79,30 @@ The configuration for letting Garden create a Certificate through cert-manager h
           acmeServer: letsencrypt-staging
         tlsCertificates:
           - name: example-certificate-staging-01
-            managedBy: cert-manager  # Allow cert-manager to manage this certificate
-            serverType: staging  # Let's Encrypt server: "staging" or "prod". Defaults to "prod"
+            managedBy: cert-manager  # allow cert-manager to manage this certificate
             hostnames:
-              - your-domain-name.com # The domain name for the certificate
+              - your-domain-name.com # the domain name(s) to be covered by the certificate
             secretRef:
-              name: tls-secret-for-certificate # The secret where cert-manage will store the TLS certificate once it's generated
+              name: tls-secret-for-certificate # the secret where cert-manager will store the TLS certificate once it's generated
               namespace: cert-manager-example
 ```
 
 The above configuration will trigger the following workflow:
 
-1) cert-manager will create a ClusterIssuer in your cluster which will generate your certificate.
-2) It will then create a Certificate resource to request the TLS certificate.
-3) Cert-manager will then automatically spin up an nginx ingress to solve the HTTP-01 acmeChallenge.
-4) Once the challenge is solved the TLS certificate will be stored as a secret using the name/namespace specified above (eg. `cert-manager-example/tls-secret-for-certificate`)
+1) cert-manager will create a ClusterIssuer in your cluster which will generate your certificate. Each certificate gets an associated ClusterIssuer, which will take care of performing the issue challenge.
+2) Garden will then create a Certificate resource to request the TLS certificate.
+3) cert-manager will then automatically create an Ingress to solve the HTTP-01 ACME challenge.
+4) Once the challenge is solved the TLS certificate will be stored as a Secret using the name/namespace specified above (e.g. `cert-manager-example/tls-secret-for-certificate`).
 
 All the steps above will happen at system startup/init. All your services will be built/tested/deployed after all the secrets have been populated.
 
-### ClusterIssuer vs Issuer
-
-cert-manager have two different Certificate issuers: namespaced and cluster one. Garden will only create ClusterIssuers.
-
-### One certificate per tlsCertificate and one ClusterIssuer per certificate
-
-Garden will create one certificate for each certificate with `managedBy: true` in the `tlsCertificates` array. Each certificate will have an associated ClusterIssuer which will take care of starting and carrying on the challenge and creating the secret containing the TLS certificate once it succeeds.
-
-### Challenge Type
-
-The challenge type currently supported is Let's Encrypt [HTTP-01 challenge](https://letsencrypt.org/docs/challenge-types/).
+For advanced configuration, please take a look at the official [cert-manager documentation](https://docs.cert-manager.io/en/latest/tasks/index.html).
 
 ## Troubleshooting
 
-### Couldn't find a cert-manager installation
-
-If you set `certManager.install: false` garden will expect to find a `cert-manager` installation in the `cert-manager` namespace.
-If you already have installed `cert-manager` please verify it's running by checking the status of the main pods as suggested in the [documentation](https://docs.cert-manager.io/en/latest/getting-started/install/kubernetes.html#verifying-the-installation).
-
-At the moment we don't support cert-manager installed in different namespaces.
-
 ### The certificate creation timeouts and garden terminates
 
-> Please make sure your domain name is pointing at the right ip address.
+> Please make sure your domain name is pointing at the right IP address.
 
 The best way to figure out why a certificate is not being generated is using `kubectl describe`.
 
@@ -139,4 +121,4 @@ $: kubectl describe Certificate certificate-name -n your-namespace
 Please find more info in the ["Issuing an ACME certificate using HTTP validation"](https://docs.cert-manager.io/en/release-0.11/tutorials/acme/http-validation.html#issuing-an-acme-certificate-using-http-validation) guide in the official cert-manager documentation.
 
 ---
-If have any issue, found a bug or something is not clear in the documentation, please don't hesitate opening a new [Github issue](https://github.com/garden-io/garden/issues/new?template=BUG_REPORT.md) or ask us any question in our [Slack channel](https://chat.garden.io/).
+If have any issue, find a bug, or something is not clear from the documentation, please don't hesitate opening a new [GitHub issue](https://github.com/garden-io/garden/issues/new?template=BUG_REPORT.md) or ask us questions in our [Slack channel](https://chat.garden.io/).

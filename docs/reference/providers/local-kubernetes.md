@@ -768,7 +768,9 @@ The namespace where the secret is stored. If necessary, the secret may be copied
 
 [providers](#providers) > [tlsCertificates](#providerstlscertificates) > managedBy
 
-A reference to the TLS certificates manager used to generate the certificate.
+Set to `cert-manager` to configure [cert-manager](https://github.com/jetstack/cert-manager) to manage this
+certificate. See our
+[cert-manager integration guide](https://docs.garden.io/using-garden/cert-manager-integration) for details.
 
 | Type     | Required |
 | -------- | -------- |
@@ -787,7 +789,7 @@ providers:
 [providers](#providers) > certManager
 
 cert-manager configuration, for creating and managing TLS certificates. See the
-[Configuration Files guide](https://docs.garden.io/guides/cert-manager-integration) for details
+[cert-manager guide](https://docs.garden.io/guides/cert-manager-integration) for details.
 
 | Type     | Required |
 | -------- | -------- |
@@ -797,7 +799,8 @@ cert-manager configuration, for creating and managing TLS certificates. See the
 
 [providers](#providers) > [certManager](#providerscertmanager) > install
 
-When set to "true" Garden will install cert-manager.
+Automatically install `cert-manager` on initialization. See the
+[cert-manager integration guide](https://docs.garden.io/using-garden/cert-manager-integration) for details.
 
 | Type      | Required | Default |
 | --------- | -------- | ------- |
@@ -807,7 +810,7 @@ When set to "true" Garden will install cert-manager.
 
 [providers](#providers) > [certManager](#providerscertmanager) > email
 
-The email which will be used for creating Let's Encrypt certificates: if your certificates are being created by Garden this field is required.
+The email to use when requesting Let's Encrypt certificates.
 
 | Type     | Required |
 | -------- | -------- |
@@ -826,11 +829,11 @@ providers:
 
 [providers](#providers) > [certManager](#providerscertmanager) > issuer
 
-the type of issuer for the certificate. Currently only supporting ACME Let's Encrypt issuers.
+The type of issuer for the certificate (only ACME is supported for now).
 
 | Type     | Required | Default  |
 | -------- | -------- | -------- |
-| `string` | Yes      | `"acme"` |
+| `string` | No       | `"acme"` |
 
 Example:
 
@@ -845,11 +848,11 @@ providers:
 
 [providers](#providers) > [certManager](#providerscertmanager) > acmeServer
 
-If the certificate is managed by cert-manager, this allows to specify which LetsEncrypt endpoint to use to validate the certificate challenge. Defaults to "letsencrypt-staging."
+Specify which ACME server to request certificates from. Currently Let's Encrypt staging and prod servers are supported.
 
 | Type     | Required | Default                 |
 | -------- | -------- | ----------------------- |
-| `string` | Yes      | `"letsencrypt-staging"` |
+| `string` | No       | `"letsencrypt-staging"` |
 
 Example:
 
@@ -864,11 +867,11 @@ providers:
 
 [providers](#providers) > [certManager](#providerscertmanager) > acmeChallengeType
 
-The acmeChallenge used by the integration to validate hostnames and generate the certificates through Let's Encrypt.
+The type of ACME challenge used to validate hostnames and generate the certificates (only HTTP-01 is supported for now).
 
 | Type     | Required | Default     |
 | -------- | -------- | ----------- |
-| `string` | Yes      | `"HTTP-01"` |
+| `string` | No       | `"HTTP-01"` |
 
 Example:
 

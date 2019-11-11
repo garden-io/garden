@@ -266,7 +266,11 @@ const tlsCertificateSchema = joi.object().keys({
     .example({ name: "my-tls-secret", namespace: "default" }),
   managedBy: joi
     .string()
-    .description("A reference to the TLS certificates manager used to generate the certificate.")
+    .description(dedent`
+      Set to \`cert-manager\` to configure [cert-manager](https://github.com/jetstack/cert-manager) to manage this
+      certificate. See our
+      [cert-manager integration guide](https://docs.garden.io/using-garden/cert-manager-integration) for details.
+    `)
     .allow("cert-manager")
     .example("cert-manager"),
 })
@@ -403,47 +407,41 @@ export const kubernetesConfigBase = providerConfigBaseSchema.keys({
     .object()
     .optional()
     .keys({
-      install: joi
-        .bool()
-        .default(false)
-        .description('When set to "true" Garden will install cert-manager.'),
+      install: joi.bool().default(false).description(dedent`
+          Automatically install \`cert-manager\` on initialization. See the
+          [cert-manager integration guide](https://docs.garden.io/using-garden/cert-manager-integration) for details.
+        `),
       email: joi
         .string()
         .required()
-        .description(
-          deline`
-            The email which will be used for creating Let's Encrypt certificates:
-            if your certificates are being created by Garden this field is required.`
-        )
+        .description("The email to use when requesting Let's Encrypt certificates.")
         .example("yourname@example.com"),
       issuer: joi
         .string()
-        .required()
         .allow("acme")
         .default("acme")
-        .description("the type of issuer for the certificate. Currently only supporting ACME Let's Encrypt issuers.")
+        .description("The type of issuer for the certificate (only ACME is supported for now).")
         .example("acme"),
       acmeServer: joi
         .string()
-        .required()
         .allow("letsencrypt-staging", "letsencrypt-prod")
         .default("letsencrypt-staging")
         .description(
-          deline`If the certificate is managed by cert-manager, this allows to specify which
-          LetsEncrypt endpoint to use to validate the certificate challenge. Defaults to "letsencrypt-staging."`
+          deline`Specify which ACME server to request certificates from. Currently Let's Encrypt staging and prod
+          servers are supported.`
         )
         .example("letsencrypt-staging"),
       acmeChallengeType: joi
         .string()
-        .required()
         .allow("HTTP-01")
         .default("HTTP-01")
         .description(
-          deline`The acmeChallenge used by the integration to validate hostnames and generate the certificates through Let's Encrypt.`
+          deline`The type of ACME challenge used to validate hostnames and generate the certificates
+          (only HTTP-01 is supported for now).`
         )
         .example("HTTP-01"),
     }).description(dedent`cert-manager configuration, for creating and managing TLS certificates. See the
-        [Configuration Files guide](https://docs.garden.io/guides/cert-manager-integration) for details`),
+        [cert-manager guide](https://docs.garden.io/guides/cert-manager-integration) for details.`),
   _systemServices: joiArray(joiIdentifier()).meta({ internal: true }),
   registryProxyTolerations: joiArray(
     joi.object().keys({
