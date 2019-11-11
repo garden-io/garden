@@ -8,10 +8,12 @@
 
 import styled from "@emotion/styled"
 import React from "react"
+import cls from "classnames"
 
 import { colors, fontMedium } from "../styles/variables"
 
 interface CardProps {
+  className?: string
   children: React.ReactNode
   title?: string
   backgroundColor?: string
@@ -35,14 +37,14 @@ export const CardTitle = styled.h3`
   margin: 0;
 `
 
-const Card: React.FC<CardProps> = ({ children, title, backgroundColor }) => {
+const Card: React.FC<CardProps> = ({ className, children, title, backgroundColor, ...props }) => {
   const titleEl = title ? (
     <div className="p-1">
       <CardTitle>{title}</CardTitle>
     </div>
   ) : null
   return (
-    <Wrapper className="mb-2" backgroundColor={backgroundColor}>
+    <Wrapper className={cls(className, "mb-2")} backgroundColor={backgroundColor} {...props}>
       {titleEl}
       {children}
     </Wrapper>

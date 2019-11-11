@@ -28,7 +28,7 @@ const Overview = styled.div`
 const Modules = styled.div`
   display: flex;
   flex-wrap: wrap;
-  overflow-y: scroll;
+  overflow-y: auto;
   max-height: calc(100vh - 2rem);
   padding: 0 0 0 1rem;
 `

@@ -31,6 +31,7 @@ import { ReactComponent as CloseSidebarIcon } from "./assets/close-pane.svg"
 
 import { UiStateProvider, useUiState } from "./contexts/ui"
 import { ApiProvider } from "./contexts/api"
+import { Modal } from "./components/modal"
 
 // Style and align properly
 const Logo = styled.img`
@@ -91,6 +92,7 @@ const App = () => {
         background: ${colors.gardenGrayLighter};
       `}
     >
+      <Modal />
       <SidebarWrapper>
         <SidebarToggleButton onClick={toggleSidebar}>
           {isSidebarOpen ? <CloseSidebarIcon /> : <OpenSidebarIcon />}
