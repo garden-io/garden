@@ -1,3 +1,13 @@
+const plugins = [
+  "@typescript-eslint",
+  "@typescript-eslint/tslint"
+]
+
+// Only warn on lint errors when in development. Otherwise the app won't compile.
+if (process.env.NODE_ENV === "development") {
+  plugins.push("only-warn")
+}
+
 module.exports = {
   "env": {
     "browser": true,
@@ -26,10 +36,7 @@ module.exports = {
       "project": "tsconfig.json",
       "sourceType": "module"
   },
-  "plugins": [
-      "@typescript-eslint",
-      "@typescript-eslint/tslint"
-  ],
+  "plugins": plugins,
   "settings": {
       "react": {
           "version": "detect"

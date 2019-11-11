@@ -13,7 +13,8 @@ import EntityResult from "../components/entity-result"
 import { ErrorNotification } from "../components/notifications"
 import { EntityResultSupportedTypes } from "../contexts/ui"
 import { loadTestResult, loadTaskResult } from "../api/actions"
-import { RunResult } from "garden-service/build/src/types/plugin/base"
+import { GetTaskResultCommandResult } from "garden-service/build/src/commands/get/get-task-result"
+import { GetTestResultCommandResult } from "garden-service/build/src/commands/get/get-test-result"
 
 const ErrorMsg = ({ error, type }) => (
   <ErrorNotification>
@@ -21,13 +22,22 @@ const ErrorMsg = ({ error, type }) => (
   </ErrorNotification>
 )
 
-function prepareData(data: RunResult) {
+function prepareData(data: GetTaskResultCommandResult | GetTestResultCommandResult) {
+  if (!data) {
+    return {}
+  }
+
   const startedAt = data.startedAt
   const completedAt = data.completedAt
   const duration = startedAt && completedAt && getDuration(startedAt, completedAt)
 
-  const output = data.log
-  return { duration, startedAt, completedAt, output }
+  return {
+    duration,
+    startedAt,
+    completedAt,
+    output: data.log,
+    artifacts: data.artifacts,
+  }
 }
 
 interface Props {
@@ -63,11 +73,14 @@ export default ({ name, moduleName, type, onClose }: Props) => {
   if (type === "test") {
     const testKey = getTestKey({ moduleName, testName: name })
 
-    const testResult = tests && tests[testKey] && tests[testKey].result
+    const test = tests[testKey]
+    const testResult = test.result
 
     if (requestStates.testResult.error) {
       return <ErrorMsg error={requestStates.testResult.error} type={type} />
     }
+
+    const results = prepareData(testResult)
 
     return (
       <EntityResult
@@ -77,15 +90,18 @@ export default ({ name, moduleName, type, onClose }: Props) => {
         name={name}
         type={type}
         moduleName={moduleName}
-        {...(!requestStates.testResult.pending && testResult && prepareData(testResult))}
+        {...results}
       />
     )
   } else if (type === "task" || type === "run") {
-    const taskResult = tasks && tasks[name] && tasks[name].result
+    const task = tasks[name]
+    const taskResult = task.result
 
     if (requestStates.taskResult.error) {
       return <ErrorMsg error={requestStates.taskResult.error} type={type} />
     }
+
+    const results = prepareData(taskResult)
 
     return (
       <EntityResult
@@ -95,7 +111,7 @@ export default ({ name, moduleName, type, onClose }: Props) => {
         name={name}
         type={type}
         moduleName={moduleName}
-        {...(!requestStates.taskResult.pending && taskResult && prepareData(taskResult))}
+        {...results}
       />
     )
   } else {

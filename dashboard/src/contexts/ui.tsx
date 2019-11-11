@@ -26,6 +26,10 @@ interface UiState {
     }
   }
   selectedGraphNode: string | null
+  modal: {
+    visible: boolean
+    content: React.ReactNode
+  }
 }
 
 export type SelectGraphNode = (node: string) => void
@@ -56,6 +60,8 @@ interface UiActions {
   selectEntity: SelectEntity
   selectIngress: SelectIngress
   clearGraphNodeSelection: () => void
+  showModal: (content: React.ReactNode) => void
+  hideModal: () => void
 }
 
 const INITIAL_UI_STATE: UiState = {
@@ -81,6 +87,10 @@ const INITIAL_UI_STATE: UiState = {
       deploy: true,
       test: true,
     },
+  },
+  modal: {
+    visible: false,
+    content: null,
   },
   isSidebarOpen: true,
   selectedGraphNode: null,
@@ -161,6 +171,26 @@ const useUiStateProvider = () => {
     })
   }
 
+  const showModal = (content: React.ReactNode) => {
+    setState({
+      ...uiState,
+      modal: {
+        content,
+        visible: true,
+      },
+    })
+  }
+
+  const hideModal = () => {
+    setState({
+      ...uiState,
+      modal: {
+        content: null,
+        visible: false,
+      },
+    })
+  }
+
   return {
     state: uiState,
     actions: {
@@ -171,6 +201,8 @@ const useUiStateProvider = () => {
       clearGraphNodeSelection,
       selectIngress,
       selectEntity,
+      showModal,
+      hideModal,
     },
   }
 }
