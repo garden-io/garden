@@ -161,6 +161,13 @@ export class BuildDir {
     // --exclude is required for modules where the module and project are in the same directory
     const syncOpts = ["-rptgo", `--exclude=${this.buildDirPath}`, "--ignore-missing-args"]
 
+    // We have noticed occasional issues with the default rsync behavior of creating temp files when copying
+    // when using Windows/cwRsync. This workaround appears to do the trick, but is less optimal so we don't apply
+    // it for other platforms.
+    if (process.platform === "win32") {
+      syncOpts.push("--inplace")
+    }
+
     let logMsg =
       `Syncing ${module.version.files.length} files from ` +
       `${relative(this.projectRoot, sourcePath)} to ${relative(this.projectRoot, destinationPath)}`
