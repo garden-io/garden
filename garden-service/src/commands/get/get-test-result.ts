@@ -13,6 +13,7 @@ import { getTestVersion } from "../../tasks/test"
 import { findByName, getNames } from "../../util/util"
 import { printHeader } from "../../logger/util"
 import chalk from "chalk"
+import { getArtifactFileList, getArtifactKey } from "../../util/artifacts"
 
 const getTestResultArgs = {
   module: new StringParameter({
@@ -25,7 +26,11 @@ const getTestResultArgs = {
   }),
 }
 
-export type GetTestResultCommandResult = TestResult | null
+interface Result extends TestResult {
+  artifacts: string[]
+}
+
+export type GetTestResultCommandResult = Result | null
 
 type Args = typeof getTestResultArgs
 
@@ -67,12 +72,26 @@ export class GetTestResultCommand extends Command<Args> {
 
     const testVersion = await getTestVersion(garden, graph, module, testConfig)
 
-    const result = await actions.getTestResult({
+    const testResult = await actions.getTestResult({
       log,
       testName,
       module,
       testVersion,
     })
+
+    let result: GetTestResultCommandResult = null
+
+    if (testResult) {
+      const artifacts = await getArtifactFileList({
+        key: getArtifactKey("test", testName, module.version.versionString),
+        artifactsPath: garden.artifactsPath,
+        log: garden.log,
+      })
+      result = {
+        ...testResult,
+        artifacts,
+      }
+    }
 
     if (result === null) {
       log.info(`Could not find results for test '${testName}'`)

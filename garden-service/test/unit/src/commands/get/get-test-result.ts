@@ -1,4 +1,10 @@
-import { expectError, withDefaultGlobalOpts, configureTestModule, makeTestGardenA } from "../../../../helpers"
+import {
+  expectError,
+  withDefaultGlobalOpts,
+  configureTestModule,
+  makeTestGardenA,
+  cleanProject,
+} from "../../../../helpers"
 import { GetTestResultCommand } from "../../../../../src/commands/get/get-test-result"
 import { expect } from "chai"
 import { GetTestResultParams } from "../../../../../src/types/plugin/module/getTestResult"
@@ -6,6 +12,9 @@ import { Garden } from "../../../../../src/garden"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
 import { joi } from "../../../../../src/config/common"
+import { getArtifactKey } from "../../../../../src/util/artifacts"
+import { join } from "path"
+import { writeFile } from "fs-extra"
 
 const now = new Date()
 
@@ -45,11 +54,15 @@ describe("GetTestResultCommand", () => {
   let garden: Garden
   let log: LogEntry
   const command = new GetTestResultCommand()
-  const module = "module-a"
+  const moduleName = "module-a"
 
-  before(async () => {
+  beforeEach(async () => {
     garden = await makeTestGardenA([testPlugin])
     log = garden.log
+  })
+
+  afterEach(async () => {
+    await cleanProject(garden.gardenDirPath)
   })
 
   it("should throw error if test not found", async () => {
@@ -62,7 +75,7 @@ describe("GetTestResultCommand", () => {
           log,
           headerLog: log,
           footerLog: log,
-          args: { name, module },
+          args: { name, module: moduleName },
           opts: withDefaultGlobalOpts({}),
         }),
       "not-found"
@@ -77,11 +90,51 @@ describe("GetTestResultCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { name, module },
+      args: { name, module: moduleName },
       opts: withDefaultGlobalOpts({}),
     })
 
     expect(res.result).to.eql({
+      artifacts: [],
+      moduleName: "module-a",
+      command: [],
+      completedAt: now,
+      log: "bla bla",
+      outputs: {
+        log: "bla bla",
+      },
+      success: true,
+      startedAt: now,
+      testName: "unit",
+      version: "1234",
+    })
+  })
+
+  it("should include paths to artifacts if artifacts exist", async () => {
+    const name = "unit"
+
+    const graph = await garden.getConfigGraph()
+    const module = await graph.getModule("module-a")
+    const artifactKey = getArtifactKey("test", name, module.version.versionString)
+    const metadataPath = join(garden.artifactsPath, `.metadata.${artifactKey}.json`)
+    const metadata = {
+      key: artifactKey,
+      files: ["/foo/bar.txt", "/bas/bar.txt"],
+    }
+
+    await writeFile(metadataPath, JSON.stringify(metadata))
+
+    const res = await command.action({
+      garden,
+      log,
+      headerLog: log,
+      footerLog: log,
+      args: { name, module: moduleName },
+      opts: withDefaultGlobalOpts({}),
+    })
+
+    expect(res.result).to.eql({
+      artifacts: ["/foo/bar.txt", "/bas/bar.txt"],
       moduleName: "module-a",
       command: [],
       completedAt: now,
@@ -104,7 +157,7 @@ describe("GetTestResultCommand", () => {
       log,
       footerLog: log,
       headerLog: log,
-      args: { name, module },
+      args: { name, module: moduleName },
       opts: withDefaultGlobalOpts({}),
     })
 
