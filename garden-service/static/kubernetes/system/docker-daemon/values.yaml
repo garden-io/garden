@@ -4,7 +4,7 @@
 
 image:
   repository: docker
-  tag: 18.09.3-dind
+  tag: 19.03.4-dind
   pullPolicy: IfNotPresent
 
 nameOverride: "garden-docker-daemon"

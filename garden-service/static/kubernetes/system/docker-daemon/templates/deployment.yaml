@@ -41,16 +41,20 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: docker
-              containerPort: 2375
+              containerPort: 2376
               protocol: TCP
           securityContext:
             privileged: true
-          livenessProbe:
-            tcpSocket:
-              port: 2375
           readinessProbe:
             tcpSocket:
-              port: 2375
+              port: 2376
+            initialDelaySeconds: 10
+            periodSeconds: 2
+          livenessProbe:
+            tcpSocket:
+              port: 2376
+            initialDelaySeconds: 20
+            periodSeconds: 20
           volumeMounts:
             - name: garden-docker-data
               mountPath: /var/lib/docker
