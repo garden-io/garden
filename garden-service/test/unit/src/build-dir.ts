@@ -145,6 +145,7 @@ describe("BuildDir", () => {
       const notCopiedPath = join(buildDirD, "B", "build", "unused.txt")
       expect(await pathExists(notCopiedPath)).to.eql(false)
     } catch (e) {
+      // tslint:disable-next-line: no-console
       console.log(nodetree(garden.buildDir.buildDirPath))
       throw e
     }

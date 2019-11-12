@@ -23,10 +23,12 @@ try {
 
 generateDocs(resolve(GARDEN_SERVICE_ROOT, "..", "docs"))
   .then(() => {
+    // tslint:disable-next-line: no-console
     console.log("Done!")
     process.exit(0)
   })
   .catch((err) => {
+    // tslint:disable-next-line: no-console
     console.error(err)
     process.exit(1)
   })
