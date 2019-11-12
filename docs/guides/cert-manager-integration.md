@@ -48,6 +48,7 @@ To enable cert-manager, you'll need to configure it in the `kubernetes` provider
 ```
 
 Unless you want to use your own installation of cert-manager, you will need to set the option `install: true`. Garden will then install cert-manager for you under the `cert-manager` namespace.
+> Note: Garden will wait until all the pods required by cert-manager will be up and running. This might take more than 2 minutes depending on the cluster.
 
 If nothing is specified or `install: false`, Garden will assume you already have a valid and running cert-manager installation in the `cert-manager` namespace.
 
