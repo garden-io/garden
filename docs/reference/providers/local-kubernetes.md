@@ -764,6 +764,124 @@ The namespace where the secret is stored. If necessary, the secret may be copied
 | -------- | -------- | ----------- |
 | `string` | No       | `"default"` |
 
+### `providers[].tlsCertificates[].managedBy`
+
+[providers](#providers) > [tlsCertificates](#providerstlscertificates) > managedBy
+
+Set to `cert-manager` to configure [cert-manager](https://github.com/jetstack/cert-manager) to manage this
+certificate. See our
+[cert-manager integration guide](https://docs.garden.io/using-garden/cert-manager-integration) for details.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+Example:
+
+```yaml
+providers:
+  - tlsCertificates:
+      - managedBy: "cert-manager"
+```
+
+### `providers[].certManager`
+
+[providers](#providers) > certManager
+
+cert-manager configuration, for creating and managing TLS certificates. See the
+[cert-manager guide](https://docs.garden.io/guides/cert-manager-integration) for details.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `providers[].certManager.install`
+
+[providers](#providers) > [certManager](#providerscertmanager) > install
+
+Automatically install `cert-manager` on initialization. See the
+[cert-manager integration guide](https://docs.garden.io/using-garden/cert-manager-integration) for details.
+
+| Type      | Required | Default |
+| --------- | -------- | ------- |
+| `boolean` | No       | `false` |
+
+### `providers[].certManager.email`
+
+[providers](#providers) > [certManager](#providerscertmanager) > email
+
+The email to use when requesting Let's Encrypt certificates.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+Example:
+
+```yaml
+providers:
+  - certManager:
+      ...
+      email: "yourname@example.com"
+```
+
+### `providers[].certManager.issuer`
+
+[providers](#providers) > [certManager](#providerscertmanager) > issuer
+
+The type of issuer for the certificate (only ACME is supported for now).
+
+| Type     | Required | Default  |
+| -------- | -------- | -------- |
+| `string` | No       | `"acme"` |
+
+Example:
+
+```yaml
+providers:
+  - certManager:
+      ...
+      issuer: "acme"
+```
+
+### `providers[].certManager.acmeServer`
+
+[providers](#providers) > [certManager](#providerscertmanager) > acmeServer
+
+Specify which ACME server to request certificates from. Currently Let's Encrypt staging and prod servers are supported.
+
+| Type     | Required | Default                 |
+| -------- | -------- | ----------------------- |
+| `string` | No       | `"letsencrypt-staging"` |
+
+Example:
+
+```yaml
+providers:
+  - certManager:
+      ...
+      acmeServer: "letsencrypt-staging"
+```
+
+### `providers[].certManager.acmeChallengeType`
+
+[providers](#providers) > [certManager](#providerscertmanager) > acmeChallengeType
+
+The type of ACME challenge used to validate hostnames and generate the certificates (only HTTP-01 is supported for now).
+
+| Type     | Required | Default     |
+| -------- | -------- | ----------- |
+| `string` | No       | `"HTTP-01"` |
+
+Example:
+
+```yaml
+providers:
+  - certManager:
+      ...
+      acmeChallengeType: "HTTP-01"
+```
+
 ### `providers[].registryProxyTolerations[]`
 
 [providers](#providers) > registryProxyTolerations
@@ -946,6 +1064,13 @@ providers:
         secretRef:
           name:
           namespace: default
+        managedBy:
+    certManager:
+      install: false
+      email:
+      issuer: acme
+      acmeServer: letsencrypt-staging
+      acmeChallengeType: HTTP-01
     registryProxyTolerations:
       - effect:
         key:

@@ -22,6 +22,7 @@
   * [Remote Sources](./guides/using-remote-sources.md)
   * [Terraform](./guides/terraform.md)
   * [Variables and templating](./guides/variables-and-templating.md)
+  * [cert-manager Integration](./guides/cert-manager-integration.md)
 * [Example Projects](./examples/README.md)
   * [Demo Project](./examples/demo-project.md)
   * [TLS Project](./examples/tls-project.md)

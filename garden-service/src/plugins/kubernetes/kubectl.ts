@@ -19,10 +19,11 @@ export interface ApplyParams {
   log: LogEntry
   provider: KubernetesProvider
   manifests: KubernetesResource[]
+  namespace?: string
   dryRun?: boolean
   force?: boolean
   pruneSelector?: string
-  namespace?: string
+  validate?: boolean
 }
 
 export const KUBECTL_DEFAULT_TIMEOUT = 300
@@ -35,6 +36,7 @@ export async function apply({
   force = false,
   namespace,
   pruneSelector,
+  validate = true,
 }: ApplyParams) {
   // Add the raw input as an annotation on each manifest (this is helpful beyond kubectl's own annotation, because
   // kubectl applies some normalization/transformation that is sometimes difficult to reason about).
@@ -55,6 +57,7 @@ export async function apply({
   force && args.push("--force")
   pruneSelector && args.push("--prune", "--selector", pruneSelector)
   args.push("--output=json", "-f", "-")
+  !validate && args.push("--validate=false")
 
   const result = await kubectl.stdout({ log, provider, namespace, args, input })
 

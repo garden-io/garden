@@ -154,11 +154,12 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
     ingressHttpsPort: 443,
     ingressClass,
     namespace,
+    registryProxyTolerations: config.registryProxyTolerations,
     resources: config.resources,
     storage: config.storage,
     setupIngressController: config.setupIngressController,
     tlsCertificates: config.tlsCertificates,
-    registryProxyTolerations: config.registryProxyTolerations,
+    certManager: config.certManager,
     _systemServices,
   }
 

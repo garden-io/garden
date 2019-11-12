@@ -19,10 +19,24 @@ export interface ProviderSecretRef {
   namespace: string
 }
 
+export type TlsManager = "cert-manager" | "manual"
+export type LetsEncryptServerType = "letsencrypt-staging" | "letsencrypt-prod"
+export type AcmeChallengeType = "HTTP-01"
+export type IssuerType = "acme"
+
 export interface IngressTlsCertificate {
   name: string
   hostnames?: string[]
   secretRef: ProviderSecretRef
+  managedBy?: TlsManager
+}
+
+export interface CertManagerConfig {
+  install: boolean
+  email?: string
+  issuer?: IssuerType
+  acmeChallengeType?: AcmeChallengeType
+  acmeServer?: LetsEncryptServerType
 }
 
 interface KubernetesResourceSpec {
@@ -80,10 +94,11 @@ export interface KubernetesBaseConfig extends ProviderConfig {
   ingressClass?: string
   kubeconfig?: string
   namespace?: string
+  registryProxyTolerations: Toleration[]
   resources: KubernetesResources
   storage: KubernetesStorage
   tlsCertificates: IngressTlsCertificate[]
-  registryProxyTolerations: Toleration[]
+  certManager?: CertManagerConfig
   _systemServices: string[]
 }
 
@@ -249,6 +264,15 @@ const tlsCertificateSchema = joi.object().keys({
   secretRef: secretRef
     .description("A reference to the Kubernetes secret that contains the TLS certificate and key for the domain.")
     .example({ name: "my-tls-secret", namespace: "default" }),
+  managedBy: joi
+    .string()
+    .description(dedent`
+      Set to \`cert-manager\` to configure [cert-manager](https://github.com/jetstack/cert-manager) to manage this
+      certificate. See our
+      [cert-manager integration guide](https://docs.garden.io/using-garden/cert-manager-integration) for details.
+    `)
+    .allow("cert-manager")
+    .example("cert-manager"),
 })
 
 export const kubernetesConfigBase = providerConfigBaseSchema.keys({
@@ -379,6 +403,45 @@ export const kubernetesConfigBase = providerConfigBaseSchema.keys({
   tlsCertificates: joiArray(tlsCertificateSchema)
     .unique("name")
     .description("One or more certificates to use for ingress."),
+  certManager: joi
+    .object()
+    .optional()
+    .keys({
+      install: joi.bool().default(false).description(dedent`
+          Automatically install \`cert-manager\` on initialization. See the
+          [cert-manager integration guide](https://docs.garden.io/using-garden/cert-manager-integration) for details.
+        `),
+      email: joi
+        .string()
+        .required()
+        .description("The email to use when requesting Let's Encrypt certificates.")
+        .example("yourname@example.com"),
+      issuer: joi
+        .string()
+        .allow("acme")
+        .default("acme")
+        .description("The type of issuer for the certificate (only ACME is supported for now).")
+        .example("acme"),
+      acmeServer: joi
+        .string()
+        .allow("letsencrypt-staging", "letsencrypt-prod")
+        .default("letsencrypt-staging")
+        .description(
+          deline`Specify which ACME server to request certificates from. Currently Let's Encrypt staging and prod
+          servers are supported.`
+        )
+        .example("letsencrypt-staging"),
+      acmeChallengeType: joi
+        .string()
+        .allow("HTTP-01")
+        .default("HTTP-01")
+        .description(
+          deline`The type of ACME challenge used to validate hostnames and generate the certificates
+          (only HTTP-01 is supported for now).`
+        )
+        .example("HTTP-01"),
+    }).description(dedent`cert-manager configuration, for creating and managing TLS certificates. See the
+        [cert-manager guide](https://docs.garden.io/guides/cert-manager-integration) for details.`),
   _systemServices: joiArray(joiIdentifier()).meta({ internal: true }),
   registryProxyTolerations: joiArray(
     joi.object().keys({
