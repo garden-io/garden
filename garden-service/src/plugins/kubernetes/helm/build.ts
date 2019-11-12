@@ -46,6 +46,13 @@ export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<He
   // Merge with the base module's values, if applicable
   const specValues = baseModule ? jsonMerge(baseModule.spec.values, module.spec.values) : module.spec.values
 
+  // Add Garden metadata
+  specValues[".garden"] = {
+    moduleName: module.name,
+    projectName: ctx.projectName,
+    version: module.version.versionString,
+  }
+
   const valuesPath = getGardenValuesPath(chartPath)
   log.silly(`Writing chart values to ${valuesPath}`)
   await dumpYaml(valuesPath, specValues)

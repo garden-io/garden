@@ -53,7 +53,7 @@ export async function deployService({
   const chartPath = await getChartPath(module)
   const namespace = await getAppNamespace(k8sCtx, log, provider)
   const releaseName = getReleaseName(module)
-  const releaseStatus = await getReleaseStatus(k8sCtx, releaseName, log)
+  const releaseStatus = await getReleaseStatus(k8sCtx, module, releaseName, log)
 
   const commonArgs = [
     "--namespace",
