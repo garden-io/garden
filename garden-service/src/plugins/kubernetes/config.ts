@@ -83,6 +83,9 @@ export type DeploymentStrategy = DefaultDeploymentStrategy | "blue-green"
 
 export interface KubernetesBaseConfig extends ProviderConfig {
   buildMode: ContainerBuildMode
+  clusterDocker?: {
+    enableBuildKit?: boolean
+  }
   context: string
   defaultHostname?: string
   defaultUsername?: string
@@ -281,7 +284,9 @@ export const kubernetesConfigBase = providerConfigBaseSchema.keys({
   buildMode: joi
     .string()
     .allow("local-docker", "cluster-docker", "kaniko")
-    .default("local-docker").description(dedent`
+    .default("local-docker")
+    .description(
+      dedent`
         Choose the mechanism for building container images before deploying. By default it uses the local Docker
         daemon, but you can set it to \`cluster-docker\` or \`kaniko\` to sync files to a remote Docker daemon,
         installed in the cluster, and build container images there. This removes the need to run Docker or
@@ -297,7 +302,23 @@ export const kubernetesConfigBase = providerConfigBaseSchema.keys({
         to build. The former uses a normal Docker daemon in the cluster. Because this has to run in privileged mode,
         this is less secure than Kaniko, but in turn it is generally faster. See the
         [Kaniko docs](https://github.com/GoogleContainerTools/kaniko) for more information on Kaniko.
-      `),
+      `
+    ),
+  clusterDocker: joi
+    .object()
+    .keys({
+      enableBuildKit: joi
+        .boolean()
+        .default(false)
+        .description(
+          deline`
+            Enable [BuildKit](https://github.com/moby/buildkit) support. This should in most cases work well and be
+            more performant, but we're opting to keep it optional until it's enabled by default in Docker.
+          `
+        ),
+    })
+    .default(() => {}, "{}")
+    .description("Configuration options for the `cluster-docker` build mode."),
   defaultHostname: joi
     .string()
     .description("A default hostname to use when no hostname is explicitly configured for a service.")
@@ -325,6 +346,7 @@ export const kubernetesConfigBase = providerConfigBaseSchema.keys({
         "is available for a configured hostname on a `container` module."
     ),
   imagePullSecrets: imagePullSecretsSchema,
+  // TODO: invert the resources and storage config schemas
   resources: joi
     .object()
     .keys({

@@ -19,3 +19,5 @@ environments:
         namespace: vote-testing-${local.env.CIRCLE_BUILD_NUM || local.username}
         defaultHostname: vote-testing.dev-1.sys.garden
         buildMode: cluster-docker
+        clusterDocker:
+          enableBuildKit: true
