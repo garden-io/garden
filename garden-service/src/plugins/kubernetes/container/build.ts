@@ -163,11 +163,11 @@ const remoteBuild: BuildHandler = async (params) => {
   let buildLog = ""
 
   // Stream debug log to a status line
-  const outputStream = split2()
+  const stdout = split2()
   const statusLine = log.placeholder(LogLevel.verbose)
 
-  outputStream.on("error", () => {})
-  outputStream.on("data", (line: Buffer) => {
+  stdout.on("error", () => {})
+  stdout.on("data", (line: Buffer) => {
     statusLine.setState(chalk.gray("  → " + line.toString().slice(0, 80)))
   })
 
@@ -175,7 +175,7 @@ const remoteBuild: BuildHandler = async (params) => {
     // Prepare the build command
     const dockerfilePath = posix.join(contextPath, dockerfile)
 
-    const args = [
+    let args = [
       "docker",
       "build",
       "-t",
@@ -190,7 +190,11 @@ const remoteBuild: BuildHandler = async (params) => {
     const podName = await getBuilderPodName(provider, log)
     const buildTimeout = module.spec.build.timeout
 
-    const buildRes = await execInBuilder({ provider, log, args, timeout: buildTimeout, podName, stdout: outputStream })
+    if (provider.config.clusterDocker && provider.config.clusterDocker.enableBuildKit) {
+      args = ["/bin/sh", "-c", "DOCKER_BUILDKIT=1 " + args.join(" ")]
+    }
+
+    const buildRes = await execInBuilder({ provider, log, args, timeout: buildTimeout, podName, stdout })
     buildLog = buildRes.stdout + buildRes.stderr
 
     // Push the image to the registry
@@ -199,7 +203,7 @@ const remoteBuild: BuildHandler = async (params) => {
     const dockerCmd = ["docker", "push", deploymentImageId]
     const pushArgs = ["/bin/sh", "-c", dockerCmd.join(" ")]
 
-    const pushRes = await execInBuilder({ provider, log, args: pushArgs, timeout: 300, podName, stdout: outputStream })
+    const pushRes = await execInBuilder({ provider, log, args: pushArgs, timeout: 300, podName, stdout })
     buildLog += pushRes.stdout + pushRes.stderr
   } else {
     // build with Kaniko
@@ -218,7 +222,7 @@ const remoteBuild: BuildHandler = async (params) => {
     ]
 
     // Execute the build
-    const buildRes = await runKaniko({ provider, log, module, args, outputStream })
+    const buildRes = await runKaniko({ provider, log, module, args, outputStream: stdout })
     buildLog = buildRes.log
   }
 
@@ -236,6 +240,7 @@ export interface BuilderExecParams {
   provider: KubernetesProvider
   log: LogEntry
   args: string[]
+  env?: { [key: string]: string }
   timeout: number
   podName: string
   stdout?: Writable

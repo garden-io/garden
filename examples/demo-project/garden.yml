@@ -20,3 +20,5 @@ environments:
         namespace: demo-project-testing-${local.env.CIRCLE_BUILD_NUM || local.username}
         defaultHostname: demo-project-testing.dev-1.sys.garden
         buildMode: cluster-docker
+        clusterDocker:
+          enableBuildKit: true
