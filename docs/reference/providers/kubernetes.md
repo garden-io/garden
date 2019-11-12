@@ -59,6 +59,26 @@ this is less secure than Kaniko, but in turn it is generally faster. See the
 | -------- | -------- | ---------------- |
 | `string` | No       | `"local-docker"` |
 
+### `providers[].clusterDocker`
+
+[providers](#providers) > clusterDocker
+
+Configuration options for the `cluster-docker` build mode.
+
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `object` | No       | `"{}"`  |
+
+### `providers[].clusterDocker.enableBuildKit`
+
+[providers](#providers) > [clusterDocker](#providersclusterdocker) > enableBuildKit
+
+Enable [BuildKit](https://github.com/moby/buildkit) support. This should in most cases work well and be more performant, but we're opting to keep it optional until it's enabled by default in Docker.
+
+| Type      | Required | Default |
+| --------- | -------- | ------- |
+| `boolean` | No       | `false` |
+
 ### `providers[].defaultHostname`
 
 [providers](#providers) > defaultHostname
@@ -1116,6 +1136,8 @@ The values in the schema below are the default values.
 providers:
   - environments:
     buildMode: local-docker
+    clusterDocker:
+      enableBuildKit: false
     defaultHostname:
     defaultUsername:
     deploymentStrategy: rolling
