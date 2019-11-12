@@ -89,10 +89,10 @@ When you set `managedBy: cert-manager` on a certificate specified in the `tlsCer
 
 The above configuration will trigger the following workflow:
 
-1) cert-manager will create a ClusterIssuer in your cluster which will generate your certificate. Each certificate gets an associated ClusterIssuer, which will take care of performing the issue challenge.
-2) Garden will then create a Certificate resource to request the TLS certificate.
-3) cert-manager will then automatically create an Ingress to solve the HTTP-01 ACME challenge.
-4) Once the challenge is solved the TLS certificate will be stored as a Secret using the name/namespace specified above (e.g. `cert-manager-example/tls-secret-for-certificate`).
+1. cert-manager will create a ClusterIssuer in your cluster which will generate your certificate. Each certificate gets an associated ClusterIssuer, which will take care of performing the issue challenge.
+2. Garden will then create a Certificate resource to request the TLS certificate.
+3. cert-manager will then automatically create an Ingress to solve the HTTP-01 ACME challenge.
+4. Once the challenge is solved the TLS certificate will be stored as a Secret using the name/namespace specified above (e.g. `cert-manager-example/tls-secret-for-certificate`).
 
 All the steps above will happen at system startup/init. All your services will be built/tested/deployed after all the secrets have been populated.
 
