@@ -29,18 +29,22 @@ spec:
             claimName: {{ .Values.pvc.name }}
       containers:
         - name: sync
-          image: "gardendev/rsync:0.1"
+          image: "gardendev/rsync:0.2.0"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: rsync
               containerPort: 873
               protocol: TCP
-          livenessProbe:
-            tcpSocket:
-              port: 873
           readinessProbe:
-            tcpSocket:
-              port: 873
+            exec:
+              command: [pidof, rsync]
+            initialDelaySeconds: 5
+            periodSeconds: 2
+          livenessProbe:
+            exec:
+              command: [pidof, rsync]
+            initialDelaySeconds: 20
+            periodSeconds: 20
           volumeMounts:
             - mountPath: /data
               name: garden-build-sync
@@ -48,6 +52,8 @@ spec:
             # The service is not exposed at all outside the cluster, so this should be all good.
             - name: ALLOW
               value: "0.0.0.0/0"
+            - name: VOLUME
+              value: /data
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
