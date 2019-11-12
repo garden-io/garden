@@ -82,7 +82,7 @@ export async function getServiceStatus({
   } else {
     // Otherwise we trust Helm to report the status of the chart.
     try {
-      const helmStatus = await getReleaseStatus(k8sCtx, releaseName, log)
+      const helmStatus = await getReleaseStatus(k8sCtx, module, releaseName, log)
       state = helmStatus.state
     } catch (err) {
       state = "missing"
@@ -101,6 +101,7 @@ export async function getServiceStatus({
 
 export async function getReleaseStatus(
   ctx: KubernetesPluginContext,
+  module: HelmModule,
   releaseName: string,
   log: LogEntry
 ): Promise<ServiceStatus> {
@@ -108,8 +109,26 @@ export async function getReleaseStatus(
     log.silly(`Getting the release status for ${releaseName}`)
     const res = JSON.parse(await helm({ ctx, log, args: ["status", releaseName, "--output", "json"] }))
     const statusCode = res.info.status.code
+    let state = helmStatusCodeMap[statusCode]
+
+    if (state === "ready") {
+      // Make sure the right version is deployed
+      const deployedValues = JSON.parse(
+        await helm({
+          ctx,
+          log,
+          args: ["get", "values", releaseName, "--output", "json"],
+        })
+      )
+      const deployedVersion = deployedValues[".garden"] && deployedValues[".garden"].version
+
+      if (!deployedVersion || deployedVersion !== module.version.versionString) {
+        state = "outdated"
+      }
+    }
+
     return {
-      state: helmStatusCodeMap[statusCode],
+      state,
       detail: res,
     }
   } catch (_) {
