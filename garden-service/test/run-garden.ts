@@ -20,6 +20,8 @@ export const showLog = !!parsedArgs.showlog
 
 const DEFAULT_ARGS = ["--logger-type", "json", "--log-level", "debug"]
 
+// tslint:disable: no-console
+
 function execGarden(command: string[], cwd: string, opts: execa.Options = {}) {
   showLog && console.log(`Running 'garden ${command.join(" ")}' in ${cwd}`)
   return execa(gardenBinPath, [...command, ...DEFAULT_ARGS], { cwd, ...opts })
