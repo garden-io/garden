@@ -197,81 +197,94 @@ export interface SetupCertManagerParams {
  * @param {SetupCertManagerParams} { ctx, provider, log, status }
  */
 export async function setupCertManager({ ctx, provider, log, status }: SetupCertManagerParams) {
-  const entry = log.info({
-    section: "cert-manager",
-    msg: `Installing to cert-manager namespace...`,
-    status: "active",
-  })
+  const { systemCertManagerReady, systemManagedCertificatesReady } = status.detail
 
-  if (!status.detail.systemCertManagerReady) {
-    const api = await KubeApi.factory(log, provider)
-    await ensureNamespace(api, "cert-manager")
-    const customResourcesPath = join(STATIC_DIR, "kubernetes", "system", "cert-manager", "cert-manager-crd.yaml")
-    const crd = await yaml.safeLoadAll((await readFile(customResourcesPath)).toString()).filter((x) => x)
-    entry.setState("Installing Custom Resources...")
-    await apply({ log, provider, manifests: crd, validate: false })
+  if (!systemCertManagerReady || !systemManagedCertificatesReady) {
+    const entry = log.info({
+      section: "cert-manager",
+      msg: `Verifying installation...`,
+      status: "active",
+    })
 
-    const waitForCertManagerPods: WaitForResourcesParams = {
-      ctx,
-      provider,
-      log,
-      resources: [],
-      resourcesType: "cert-manager pods",
-      predicate: checkForCertManagerPodsReady,
+    if (!systemCertManagerReady) {
+      entry.setState("Installing to cert-manager namespace...")
+      const api = await KubeApi.factory(log, provider)
+      await ensureNamespace(api, "cert-manager")
+      const customResourcesPath = join(STATIC_DIR, "kubernetes", "system", "cert-manager", "cert-manager-crd.yaml")
+      const crd = await yaml.safeLoadAll((await readFile(customResourcesPath)).toString()).filter((x) => x)
+      entry.setState("Installing Custom Resources...")
+      await apply({ log, provider, manifests: crd, validate: false })
+
+      const waitForCertManagerPods: WaitForResourcesParams = {
+        ctx,
+        provider,
+        log: <LogEntry>entry,
+        resources: [],
+        resourcesType: "cert-manager pods",
+        predicate: checkForCertManagerPodsReady,
+      }
+      await waitForResourcesWith(waitForCertManagerPods)
+      entry.setState("Custom Resources installed.")
     }
-    await waitForResourcesWith(waitForCertManagerPods)
-    entry.setState("Custom Resources installed.")
-  }
 
-  if (!status.detail.systemManagedCertificatesReady) {
-    entry.setState("Creating Issuers...")
-    const issuers: any[] = []
-    const certificates: any[] = []
-    const secretNames: string[] = []
-    const namespace = provider.config.namespace || ctx.projectName
-    provider.config.tlsCertificates
-      .filter((cert) => cert.managedBy === "cert-manager")
-      .map((cert) => {
-        const tlsManager = provider.config.certManager
-        if (tlsManager) {
-          const serverType = tlsManager.acmeServer || "letsencrypt-staging"
-          const issuerName = `${cert.name}-${serverType}`
-
-          const issuerManifest = getClusterIssuerFromTls({
-            name: issuerName,
-            tlsManager,
-            tlsCertificate: cert,
-          })
-          issuers.push(issuerManifest)
-
-          const certManifest = getCertificateFromTls({ tlsManager, tlsCertificate: cert, issuerName })
-          certificates.push(certManifest)
-
-          secretNames.push(cert.secretRef.name)
-        }
+    if (!systemManagedCertificatesReady) {
+      const certsLog = entry.info({
+        symbol: "info",
+        section: "TLS certificates",
+        msg: `Processing certificates...`,
+        status: "active",
       })
+      const issuers: any[] = []
+      const certificates: any[] = []
+      const secretNames: string[] = []
+      const namespace = provider.config.namespace || ctx.projectName
+      provider.config.tlsCertificates
+        .filter((cert) => cert.managedBy === "cert-manager")
+        .map((cert) => {
+          const tlsManager = provider.config.certManager
+          if (tlsManager) {
+            const serverType = tlsManager.acmeServer || "letsencrypt-staging"
+            const issuerName = `${cert.name}-${serverType}`
 
-    await apply({ log, provider, manifests: issuers })
-    entry.setState("Issuers created.")
+            const issuerManifest = getClusterIssuerFromTls({
+              name: issuerName,
+              tlsManager,
+              tlsCertificate: cert,
+            })
+            issuers.push(issuerManifest)
 
-    await apply({ log, provider, manifests: certificates, namespace })
-    entry.setState("Creating certificates...")
+            const certManifest = getCertificateFromTls({ tlsManager, tlsCertificate: cert, issuerName })
+            certificates.push(certManifest)
 
-    const certificateNames = certificates.map((cert) => cert.metadata.name)
-    const waitForCertificatesParams: WaitForResourcesParams = {
-      ctx,
-      provider,
-      log,
-      resources: certificateNames,
-      resourcesType: "Certificates",
-      predicate: checkCertificateStatusByName,
+            secretNames.push(cert.secretRef.name)
+          }
+        })
+
+      if (issuers.length > 0) {
+        certsLog.setState("Creating Issuers...")
+        await apply({ log, provider, manifests: issuers })
+        certsLog.setState("Issuers created.")
+
+        await apply({ log, provider, manifests: certificates, namespace })
+        certsLog.setState("Creating Certificates...")
+
+        const certificateNames = certificates.map((cert) => cert.metadata.name)
+        const waitForCertificatesParams: WaitForResourcesParams = {
+          ctx,
+          provider,
+          log,
+          resources: certificateNames,
+          resourcesType: "Certificates",
+          predicate: checkCertificateStatusByName,
+        }
+        await waitForResourcesWith(waitForCertificatesParams)
+        certsLog.setState('Certificates created and "Ready"')
+      } else {
+        certsLog.setState("No certificates found...")
+      }
     }
-    await waitForResourcesWith(waitForCertificatesParams)
-
-    entry.setState('Certificates created and "Ready"')
+    entry.setSuccess({ msg: chalk.green(`Done (took ${entry.getDuration(1)} sec)`), append: true })
   }
-
-  entry.setSuccess({ msg: chalk.green(`Done (took ${entry.getDuration(1)} sec)`), append: true })
 }
 
 /**
