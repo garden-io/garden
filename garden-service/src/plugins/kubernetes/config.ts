@@ -266,11 +266,13 @@ const tlsCertificateSchema = joi.object().keys({
     .example({ name: "my-tls-secret", namespace: "default" }),
   managedBy: joi
     .string()
-    .description(dedent`
+    .description(
+      dedent`
       Set to \`cert-manager\` to configure [cert-manager](https://github.com/jetstack/cert-manager) to manage this
       certificate. See our
       [cert-manager integration guide](https://docs.garden.io/using-garden/cert-manager-integration) for details.
-    `)
+    `
+    )
     .allow("cert-manager")
     .example("cert-manager"),
 })
