@@ -390,6 +390,7 @@ export class GardenCli {
     // --help or --version options were called so we log the cli output and exit
     if (cliOutput && errors.length < 1) {
       logger.stop()
+      // tslint:disable-next-line: no-console
       console.log(cliOutput)
 
       // fix issue where sywac returns exit code 0 even when a command doesn't exist
@@ -406,8 +407,10 @@ export class GardenCli {
     if (output) {
       const renderer = OUTPUT_RENDERERS[output]
       if (gardenErrors.length > 0) {
+        // tslint:disable-next-line: no-console
         console.error(renderer({ success: false, errors: gardenErrors }))
       } else {
+        // tslint:disable-next-line: no-console
         console.log(renderer({ success: true, ...commandResult }))
       }
       await waitForOutputFlush()
@@ -441,6 +444,7 @@ export async function run(): Promise<void> {
     const result = await cli.parse()
     code = result.code
   } catch (err) {
+    // tslint:disable-next-line: no-console
     console.log(err)
     code = 1
   } finally {

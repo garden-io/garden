@@ -573,6 +573,7 @@ function renderBaseConfigReference() {
 }
 
 export async function writeConfigReferenceDocs(docsRoot: string) {
+  // tslint:disable: no-console
   const referenceDir = resolve(docsRoot, "reference")
   const configPath = resolve(referenceDir, "config.md")
 

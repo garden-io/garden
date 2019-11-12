@@ -64,6 +64,7 @@ export function getDataDir(...names: string[]) {
 }
 
 export async function profileBlock(description: string, block: () => Promise<any>) {
+  // tslint:disable: no-console
   const startTime = new Date().getTime()
   const result = await block()
   const executionTime = new Date().getTime() - startTime

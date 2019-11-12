@@ -27,6 +27,7 @@ Example: ./garden-service/bin/e2e-project.ts --binPath=/path/to/garden --project
 `
 
 async function run() {
+  // tslint:disable: no-console
   const project = parsedArgs.project
 
   if (!project) {

@@ -186,7 +186,6 @@ export class Library {
           extractor = tar.x({
             C: tmpPath,
             strict: true,
-            onwarn: (entry) => console.log(entry),
           })
           extractor.on("end", () => resolve())
         } else if (format === "zip") {

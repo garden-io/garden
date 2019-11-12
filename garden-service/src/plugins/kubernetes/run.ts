@@ -414,7 +414,6 @@ export class PodRunner extends PodRunnerParams {
 
     // Wait for Pod to be ready
     while (true) {
-      console.log("tick")
       await sleep(250)
 
       try {

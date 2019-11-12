@@ -13,6 +13,7 @@ import { writeTemplateStringReferenceDocs } from "./template-strings"
 import { writeTableOfContents } from "./table-of-contents"
 
 export async function generateDocs(targetDir: string) {
+  // tslint:disable: no-console
   const docsRoot = resolve(process.cwd(), targetDir)
 
   console.log("Updating command references...")
