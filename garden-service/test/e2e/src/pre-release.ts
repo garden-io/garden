@@ -141,12 +141,6 @@ describe("PreReleaseTests", () => {
   }
 
   if (project === "hot-reload") {
-    /*
-     * TODO: Re-enable once this has been debugged:
-     *
-     * Got error from Kubernetes API - a container name must be specified for pod node-service-85f48587df-lvjlp,
-     * choose one of: [node-service garden-rsync] or one of the init containers: [garden-sync-init]
-     */
     describe("hot-reload", () => {
       it("runs the dev command with hot reloading enabled", async () => {
         const hotReloadProjectPath = resolve(examplesDir, "hot-reload")

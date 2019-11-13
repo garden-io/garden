@@ -13,7 +13,7 @@ import { containerHelpers } from "../../container/helpers"
 import { buildContainerModule, getContainerBuildStatus, getDockerBuildFlags } from "../../container/build"
 import { GetBuildStatusParams, BuildStatus } from "../../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams, BuildResult } from "../../../types/plugin/module/build"
-import { getPods, millicpuToString, megabytesToString } from "../util"
+import { millicpuToString, megabytesToString, getRunningPodInDeployment } from "../util"
 import { systemNamespace } from "../system"
 import { RSYNC_PORT } from "../constants"
 import { posix, resolve } from "path"
@@ -140,13 +140,32 @@ const remoteBuild: BuildHandler = async (params) => {
   // The '/./' trick is used to automatically create the correct target directory with rsync:
   // https://stackoverflow.com/questions/1636889/rsync-how-can-i-configure-it-to-create-target-directory-on-server
   let src = normalizeLocalRsyncPath(`${buildRoot}`) + `/./${module.name}/`
-
   const destination = `rsync://localhost:${syncFwd.localPort}/volume/${ctx.workingCopyId}/`
+  const syncArgs = ["-vrpztgo", "--relative", "--delete", "--temp-dir", "/tmp", src, destination]
 
   log.debug(`Syncing from ${src} to ${destination}`)
 
+  // TODO: remove this after a few releases (from 0.10.15), since this is only necessary for environments initialized
+  // with 0.10.14 or earlier.
+  const buildSyncPod = await getRunningPodInDeployment(buildSyncDeploymentName, provider, log)
+
+  if (!buildSyncPod) {
+    throw new PluginError(`Could not find running build sync Pod`, {
+      deploymentName: buildSyncDeploymentName,
+      systemNamespace,
+    })
+  }
+
+  await kubectl.exec({
+    args: ["exec", "-i", buildSyncPod.metadata.name, "--", "mkdir", "-p", "/data/tmp"],
+    provider,
+    log,
+    namespace: systemNamespace,
+    timeout: 10,
+  })
+
   // We retry a couple of times, because we may get intermittent connection issues or concurrency issues
-  await pRetry(() => exec("rsync", ["-vrpztgo", "--relative", "--delete", src, destination]), {
+  await pRetry(() => exec("rsync", syncArgs), {
     retries: 3,
     minTimeout: 500,
   })
@@ -271,11 +290,7 @@ export async function execInBuilder({ provider, log, args, timeout, podName, std
 }
 
 export async function getBuilderPodName(provider: KubernetesProvider, log: LogEntry) {
-  const api = await KubeApi.factory(log, provider)
-
-  const builderStatusRes = await api.apps.readNamespacedDeployment(dockerDaemonDeploymentName, systemNamespace)
-  const builderPods = await getPods(api, systemNamespace, builderStatusRes.spec.selector.matchLabels)
-  const pod = builderPods[0]
+  const pod = await getRunningPodInDeployment(dockerDaemonDeploymentName, provider, log)
 
   if (!pod) {
     throw new PluginError(`Could not find running image builder`, {
@@ -284,7 +299,7 @@ export async function getBuilderPodName(provider: KubernetesProvider, log: LogEn
     })
   }
 
-  return builderPods[0].metadata.name
+  return pod.metadata.name
 }
 
 interface RunKanikoParams {
