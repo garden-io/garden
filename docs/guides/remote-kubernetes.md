@@ -131,7 +131,7 @@ you will expose for ingress.
 _How you configure DNS and prepare the certificates will depend on how you manage DNS and certificates in general,
 so we won't cover that in detail here._
 
-If you are using cert-manager to manage your TLS certificates you can check out the [cert-manager integration](../guide/cert-manager-integration.md).
+If you are using [cert-manager](https://github.com/jetstack/cert-manager) (or would like to use it) to manage your TLS certificates, you may want to check out the [cert-manager integration](../guide/cert-manager-integration.md), which helps to automate some of the otherwise manual work involved in managing certificates.
 
 If you are manually creating or obtaining the certificates (and you have the `.crt` and `.key` files), create a
 [Secret](https://kubernetes.io/docs/concepts/configuration/secret/) for each cert in the cluster so
@@ -170,12 +170,17 @@ environments:
     ...
 ```
 
-## Production flag
+## Deploying to production
 
-You can define a remote environment as `production` by setting the [production flag](../reference/config.md#environmentsproduction).
+Depending on your setup and requirements, you may or may not want to use Garden to deploy to your production environment. In either case, if you do configure your production environment in your Garden project configuration, we highly recommend that you set the [production flag](../reference/config.md#environmentsproduction) on it.
 
-This will set up some defaults when deploying the container module type:
+This will protect against accidentally messing with your production environments, by prompting for confirmation before e.g. deploying or running tests in the environment.
 
-- Default number of replicas for a service will be 3 (unless specified by the user).
-- A soft AntiAffinity setting will try to schedule pods based over different nodes.
-- RevisionHistoryLimit is set to 10.
+The flag is also given to each provider, which may modify behavior accordingly. For the `kubernetes` provider, specifically, it will do the following:
+
+1. Set the default number of replicas for `container` services to 3 (unless specified by the user).
+2. Set a soft AntiAffinity setting on `container` deployments to try to schedule Pods in a single Deployment across many nodes.
+3. Increase the `RevisionHistoryLimit` on workloads to 10.
+4. By default, running `garden deploy --force` will propagate the `--force` flag to `helm upgrade`, and set the `--replace` flag on `helm install` when deploying `helm` modules. This may be okay while developing but risky in production, so the `production` flag prevents both of those.
+
+We would highly appreciate feedback on other configuration settings that should be altered when `production: true`. Please send us feedback via [GitHub issues](https://github.com/garden-io/garden/issues) or reach out on our Slack channel!
