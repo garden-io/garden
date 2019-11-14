@@ -42,12 +42,16 @@ spec:
             - name: rsync
               containerPort: 873
               protocol: TCP
-          livenessProbe:
-            tcpSocket:
-              port: 873
           readinessProbe:
-            tcpSocket:
-              port: 873
+            exec:
+              command: [pidof, rsync]
+            initialDelaySeconds: 5
+            periodSeconds: 2
+          livenessProbe:
+            exec:
+              command: [pidof, rsync]
+            initialDelaySeconds: 20
+            periodSeconds: 20
           volumeMounts:
             - mountPath: /data
               name: garden-build-sync
