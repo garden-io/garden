@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { get, flatten, uniqBy, sortBy, sample } from "lodash"
+import { get, flatten, uniqBy, sortBy, omit, chain, sample, isEmpty } from "lodash"
 import { V1Pod, V1EnvVar } from "@kubernetes/client-node"
 
 import { KubernetesResource, KubernetesWorkload, KubernetesPod, KubernetesServerResource } from "./types"
@@ -53,9 +53,9 @@ export async function getAllPods(
 }
 
 /**
- * Given a resources, try to retrieve a valid selector or return undefined otherwise.
+ * Given a resources, try to retrieve a valid selector or throw otherwise.
  */
-export function getSelectorFromResource(resource: KubernetesWorkload) {
+export function getSelectorFromResource(resource: KubernetesWorkload): { [key: string]: string } {
   // We check if the resource has its own selector
   if (resource.spec && resource.spec.selector && resource.spec.selector.matchLabels) {
     return resource.spec.selector.matchLabels
@@ -79,10 +79,34 @@ export function getSelectorFromResource(resource: KubernetesWorkload) {
 }
 
 /**
- * Retrieve a list of pods based on the provided label selector.
+ * Deduplicates a list of pods by label, so that only the most recent pod is returned.
+ */
+export function deduplicatePodsByLabel(pods: KubernetesServerResource<V1Pod>[]) {
+  // We don't filter out pods with no labels
+  const noLabel = pods.filter((pod) => isEmpty(pod.metadata.labels))
+  const uniqByLabel = chain(pods)
+    .filter((pod) => !isEmpty(pod.metadata.labels))
+    .sortBy((pod) => pod.metadata.creationTimestamp)
+    .reverse() // We only want the most recent pod in case of duplicates
+    .uniqBy((pod) => JSON.stringify(pod.metadata.labels))
+    .value()
+  return sortBy([...uniqByLabel, ...noLabel], (pod) => pod.metadata.creationTimestamp)
+}
+
+/**
+ * Retrieve a list of pods based on the resource selector, deduplicated so that only the most recent
+ * pod is returned when multiple pods with the same label are found.
+ */
+export async function getCurrentWorkloadPods(api: KubeApi, namespace: string, resource: KubernetesWorkload) {
+  return deduplicatePodsByLabel(await getWorkloadPods(api, namespace, resource))
+}
+
+/**
+ * Retrieve a list of pods based on the resource selector.
  */
 export async function getWorkloadPods(api: KubeApi, namespace: string, resource: KubernetesWorkload) {
-  const selector = getSelectorFromResource(resource)
+  // We don't match on the garden.io/version label because it can fall out of sync during hot reloads
+  const selector = omit(getSelectorFromResource(resource), gardenAnnotationKey("version"))
   const pods = await getPods(api, resource.metadata.namespace || namespace, selector)
 
   if (resource.kind === "Deployment") {

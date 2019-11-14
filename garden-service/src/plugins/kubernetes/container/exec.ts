@@ -16,7 +16,7 @@ import { getContainerServiceStatus } from "./status"
 import { KubernetesPluginContext, KubernetesProvider } from "../config"
 import { ExecInServiceParams } from "../../../types/plugin/service/execInService"
 import { LogEntry } from "../../../logger/log-entry"
-import { getWorkloadPods } from "../util"
+import { getCurrentWorkloadPods } from "../util"
 import { KubernetesWorkload } from "../types"
 
 export async function execInService(params: ExecInServiceParams<ContainerModule>) {
@@ -61,7 +61,7 @@ export async function execInWorkload({
   interactive: boolean
 }) {
   const api = await KubeApi.factory(log, provider)
-  const pods = await getWorkloadPods(api, namespace, workload)
+  const pods = await getCurrentWorkloadPods(api, namespace, workload)
 
   const pod = pods[0]
 
