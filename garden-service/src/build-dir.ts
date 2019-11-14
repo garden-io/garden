@@ -161,14 +161,7 @@ export class BuildDir {
     sourcePath = stripWildcard(sourcePath)
     destinationPath = stripWildcard(destinationPath)
 
-    // --exclude is required for modules where the module and project are in the same directory
-    const syncOpts = [
-      "-rptgo",
-      `--exclude=${this.buildDirPath}`,
-      "--ignore-missing-args",
-      "--temp-dir",
-      normalizeLocalRsyncPath(tmpDir),
-    ]
+    const syncOpts = ["-rptgo", "--ignore-missing-args", "--temp-dir", normalizeLocalRsyncPath(tmpDir)]
 
     let logMsg =
       `Syncing ${module.version.files.length} files from ` +
@@ -192,6 +185,10 @@ export class BuildDir {
       } else {
         // Workaround for this issue: https://stackoverflow.com/questions/1813907
         syncOpts.push("--include-from=-", "--exclude=*", "--delete-excluded")
+
+        // -> Make sure the file list is anchored (otherwise filenames are matched as patterns)
+        files = files.map((f) => "/" + f)
+
         input = "/**/\n" + files.join("\n")
       }
     } else if (files !== undefined) {
@@ -202,6 +199,7 @@ export class BuildDir {
     // Avoid rendering the full file list except when at the silly log level
     if (log.root.level === LogLevel.silly) {
       log.silly(`File list: ${JSON.stringify(files)}`)
+      log.silly(`Rsync args: ${[...syncOpts, sourcePath, destinationPath].join(" ")}`)
     }
 
     await exec("rsync", [...syncOpts, sourcePath, destinationPath], { input })
