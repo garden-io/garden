@@ -1,4 +1,12 @@
 
+<a name="v0.10.15-alpha.2"></a>
+## [v0.10.15-alpha.2](https://github.com/garden-io/garden/compare/v0.10.15-alpha.1...v0.10.15-alpha.2) (2019-11-14)
+
+### Bug Fixes
+
+* **windows:** fix excludes and filename anchoring ([ec5f7e3e](https://github.com/garden-io/garden/commit/ec5f7e3e))
+
+
 <a name="v0.10.15-alpha.1"></a>
 ## [v0.10.15-alpha.1](https://github.com/garden-io/garden/compare/v0.10.15-alpha.0...v0.10.15-alpha.1) (2019-11-14)
 
