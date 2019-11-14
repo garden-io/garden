@@ -74,14 +74,14 @@ export async function deployService({
       "--atomic",
       ...commonArgs,
     ]
-    if (force) {
+    if (force && !ctx.production) {
       installArgs.push("--replace")
     }
     await helm({ ctx: k8sCtx, namespace, log, args: [...installArgs] })
   } else {
     log.silly(`Upgrading Helm release ${releaseName}`)
     const upgradeArgs = ["upgrade", releaseName, chartPath, "--install", ...commonArgs]
-    if (force) {
+    if (force && !ctx.production) {
       upgradeArgs.push("--force")
     }
     await helm({ ctx: k8sCtx, namespace, log, args: [...upgradeArgs] })

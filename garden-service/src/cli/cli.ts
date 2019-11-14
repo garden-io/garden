@@ -142,6 +142,11 @@ export const GLOBAL_OPTIONS = {
     help: "Enable emoji in output (defaults to true if the environment supports it).",
     defaultValue: envSupportsEmoji(),
   }),
+  "yes": new BooleanParameter({
+    alias: "y",
+    help: "Automatically approve any yes/no prompts during execution.",
+    defaultValue: false,
+  }),
 }
 
 export type GlobalOptions = typeof GLOBAL_OPTIONS
@@ -304,7 +309,7 @@ export class GardenCli {
           await this.initFileWriters(logger, garden.projectRoot, garden.gardenDirPath)
 
           // Init Analytics, track command if user opted-in
-          const analytics = await new AnalyticsHandler(garden).init()
+          const analytics = await new AnalyticsHandler(garden, parsedOpts).init()
           analytics.trackCommand(command.getFullName())
 
           // tslint:disable-next-line: no-floating-promises
@@ -312,16 +317,23 @@ export class GardenCli {
 
           await checkForStaticDir()
 
-          // TODO: enforce that commands always output DeepPrimitiveMap
-          result = await command.action({
-            garden,
-            log,
-            footerLog,
-            headerLog,
-            args: parsedArgs,
-            opts: parsedOpts,
-          })
+          // Check if the command is protected and ask for confirmation to proceed if production flag is "true".
+          if (await command.isAllowedToRun(garden, log, parsedOpts)) {
+            // TODO: enforce that commands always output DeepPrimitiveMap
 
+            result = await command.action({
+              garden,
+              log,
+              footerLog,
+              headerLog,
+              args: parsedArgs,
+              opts: parsedOpts,
+            })
+          } else {
+            // The command is protected and the user decided to not continue with the exectution.
+            log.setState("\nCommand aborted.")
+            result = {}
+          }
           await garden.close()
         } catch (err) {
           // Generate a basic report in case Garden.factory(...) fails and command is "get debug-info".

@@ -21,7 +21,6 @@ export interface ApplyParams {
   manifests: KubernetesResource[]
   namespace?: string
   dryRun?: boolean
-  force?: boolean
   pruneSelector?: string
   validate?: boolean
 }
@@ -33,7 +32,6 @@ export async function apply({
   provider,
   manifests,
   dryRun = false,
-  force = false,
   namespace,
   pruneSelector,
   validate = true,
@@ -54,7 +52,6 @@ export async function apply({
 
   let args = ["apply"]
   dryRun && args.push("--dry-run")
-  force && args.push("--force")
   pruneSelector && args.push("--prune", "--selector", pruneSelector)
   args.push("--output=json", "-f", "-")
   !validate && args.push("--validate=false")

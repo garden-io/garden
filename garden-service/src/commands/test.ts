@@ -60,6 +60,7 @@ type Opts = typeof testOpts
 export class TestCommand extends Command<Args, Opts> {
   name = "test"
   help = "Test all or specified modules."
+  protected = true
 
   description = dedent`
     Runs all or specified tests defined in the project. Also builds modules and dependencies,

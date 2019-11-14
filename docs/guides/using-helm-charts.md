@@ -300,6 +300,21 @@ sources:
 The base chart can also be any `helm` module (not just "base" charts specifically made for that purpose), so you have
 a lot of flexibility in how you organize your charts.
 
+## Production flag
+
+You can define a remote environment as `production` by setting the [production flag](../reference/config.md#environmentsproduction).
+
+This will set up some defaults when deploying the container module type:
+
+- Default number of replicas for a service will be 3 (unless specified by the user).
+- A soft AntiAffinity setting will try to schedule pods based over different nodes.
+- RevisionHistoryLimit is set to 10.
+
+Ultimately it won't run the following operations even if you specify the \`--force\` option:
+
+- Replace the installed chart with \`--replace\` when force installing a Helm chart module.
+- Force upgrade a Helm release when using the Helm module type.
+
 ## Next steps
 
 Check out the full [helm module reference](../reference/module-types/helm.md) for more details, and the
@@ -308,3 +323,5 @@ Garden's Helm support.
 
 Also check out the [kubernetes-module](https://github.com/garden-io/garden/tree/v0.10.14/examples/kubernetes-module)
 example for a simpler alternative, if you don't need all the features of Helm.
+
+

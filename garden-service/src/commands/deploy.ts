@@ -59,6 +59,7 @@ type Opts = typeof deployOpts
 export class DeployCommand extends Command<Args, Opts> {
   name = "deploy"
   help = "Deploy service(s) to your environment."
+  protected = true
 
   description = dedent`
     Deploys all or specified services, taking into account service dependency order.

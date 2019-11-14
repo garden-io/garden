@@ -17,6 +17,9 @@ import { LogEntry } from "../logger/log-entry"
 import { printFooter } from "../logger/util"
 import { GlobalOptions } from "../cli/cli"
 import { joi } from "../config/common"
+import inquirer = require("inquirer")
+import dedent = require("dedent")
+import chalk from "chalk"
 
 export interface ParameterConstructor<T> {
   help: string
@@ -268,6 +271,8 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   noProject: boolean = false
   hidden: boolean = false
 
+  protected: boolean = false
+
   subCommands: CommandConstructor[] = []
 
   constructor(private parent?: Command) {
@@ -327,6 +332,42 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   // can't enforce the types of `args` and `opts` automatically at the abstract class level and have to specify
   // the types explicitly on the subclassed methods.
   abstract async action(params: CommandParams<T, U>): Promise<CommandResult>
+
+  /**
+   * Called on all commands and checks if the command is protected.
+   * If it's a protected command, the environment is "production" and the user hasn't specified the "--yes/-y" option
+   * it asks for confirmation to proceed.
+   *
+   * @param {Garden} garden
+   * @param {LogEntry} log
+   * @param {GlobalOptions} opts
+   * @returns {Promise<Boolean>}
+   * @memberof Command
+   */
+  async isAllowedToRun(garden: Garden, log: LogEntry, opts: GlobalOptions): Promise<Boolean> {
+    log.root.stop()
+    if (!opts.yes && this.protected && garden.production) {
+      const defaultMessage = chalk.yellow(dedent`
+        Warning: you are trying to run "garden ${this.getFullName()}" against a production environment ([${
+        garden.environmentName
+      }])!
+          Are you sure you want to continue? (run the command with the "--yes" flag to skip this check).
+
+      `)
+      const answer: any = await inquirer.prompt({
+        name: "continue",
+        message: defaultMessage,
+        type: "confirm",
+        default: false,
+      })
+
+      log.info("")
+
+      return answer.continue
+    }
+
+    return true
+  }
 }
 
 export async function handleTaskResults(

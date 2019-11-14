@@ -26,6 +26,8 @@ import { Garden } from "../garden"
 import { Logger, getLogger } from "../logger/logger"
 import inquirer = require("inquirer")
 import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY } from "../constants"
+import { GlobalOptions } from "../cli/cli"
+import { ParameterValues } from "../commands/base"
 
 const API_KEY = process.env.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
 
@@ -90,8 +92,9 @@ export class AnalyticsHandler {
   private globalConfigStore: GlobalConfigStore
   private localConfigStore: LocalConfigStore
   private systemConfig: SystemInfo
+  private autoAccept: boolean = false
 
-  constructor(garden: Garden) {
+  constructor(garden: Garden, parsedOpts?: ParameterValues<GlobalOptions>) {
     // { flushAt: 1 } means the client will track events as soon as they are created
     // no batching is occurring: this will change once the daemon is implemented
     this.segment = new segmentClient(API_KEY, { flushAt: 1 })
@@ -112,6 +115,7 @@ export class AnalyticsHandler {
       platformVersion: release(),
       gardenVersion: getPackageVersion().toString(),
     }
+    this.autoAccept = !!(parsedOpts && parsedOpts.yes)
   }
 
   /**
@@ -286,6 +290,9 @@ export class AnalyticsHandler {
    * @memberof Analytics
    */
   private async promptAnalytics() {
+    if (this.autoAccept) {
+      return true
+    }
     const defaultMessage = dedent`
       Thanks for installing Garden! We work hard to provide you with the best experience we can.
       It would help us a lot if we could collect some anonymous analytics while you use Garden.

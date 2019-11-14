@@ -81,7 +81,7 @@ async function getServiceStatus({
 }
 
 async function deployService(params: DeployServiceParams<KubernetesModule>): Promise<KubernetesServiceStatus> {
-  const { ctx, force, module, service, log } = params
+  const { ctx, module, service, log } = params
 
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, k8sCtx.provider)
@@ -96,7 +96,7 @@ async function deployService(params: DeployServiceParams<KubernetesModule>): Pro
   const manifests = await getManifests(api, log, module, namespace)
 
   const pruneSelector = getSelector(service)
-  await apply({ log, provider: k8sCtx.provider, manifests, force, pruneSelector })
+  await apply({ log, provider: k8sCtx.provider, manifests, pruneSelector })
 
   await waitForResources({
     ctx: k8sCtx,

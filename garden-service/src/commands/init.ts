@@ -21,6 +21,7 @@ type Opts = typeof initOpts
 export class InitCommand extends Command {
   name = "init"
   help = "Initialize system, environment or other runtime components."
+  protected = true
 
   // This command is generally only used when user input is needed, which will need to happen via the CLI
   cliOnly = true

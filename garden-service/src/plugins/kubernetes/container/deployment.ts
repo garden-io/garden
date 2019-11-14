@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { V1Container } from "@kubernetes/client-node"
+import { V1Container, V1Affinity } from "@kubernetes/client-node"
 import { Service } from "../../../types/service"
 import { extend, find, keyBy, merge, set } from "lodash"
 import { ContainerModule, ContainerService } from "../../container/config"
@@ -34,6 +34,10 @@ import { resolve } from "path"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "64Mi"
+export const REVISION_HISTORY_LIMIT_PROD = 10
+export const REVISION_HISTORY_LIMIT_DEFAULT = 3
+export const DEFAULT_MINIMUM_REPLICAS = 1
+export const PRODUCTION_MINIMUM_REPLICAS = 3
 
 export async function deployContainerService(
   params: DeployServiceParams<ContainerModule>
@@ -50,7 +54,7 @@ export async function deployContainerService(
 export async function deployContainerServiceRolling(
   params: DeployServiceParams<ContainerModule>
 ): Promise<ContainerServiceStatus> {
-  const { ctx, service, runtimeContext, force, log, hotReload } = params
+  const { ctx, service, runtimeContext, log, hotReload } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
@@ -60,7 +64,7 @@ export async function deployContainerServiceRolling(
   const provider = k8sCtx.provider
   const pruneSelector = gardenAnnotationKey("service") + "=" + service.name
 
-  await apply({ log, provider, manifests, force, namespace, pruneSelector })
+  await apply({ log, provider, manifests, namespace, pruneSelector })
 
   await waitForResources({
     ctx: k8sCtx,
@@ -76,7 +80,7 @@ export async function deployContainerServiceRolling(
 export async function deployContainerServiceBlueGreen(
   params: DeployServiceParams<ContainerModule>
 ): Promise<ContainerServiceStatus> {
-  const { ctx, service, runtimeContext, force, log, hotReload } = params
+  const { ctx, service, runtimeContext, log, hotReload } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
@@ -97,7 +101,7 @@ export async function deployContainerServiceBlueGreen(
   if (!isServiceAlreadyDeployed) {
     // No service found, no need to execute a blue-green deployment
     // Just apply all the resources for the Garden service
-    await apply({ log, provider, manifests, force, namespace })
+    await apply({ log, provider, manifests, namespace })
     await waitForResources({
       ctx: k8sCtx,
       provider: k8sCtx.provider,
@@ -115,7 +119,7 @@ export async function deployContainerServiceBlueGreen(
     const filteredManifests = manifests.filter((manifest) => manifest.kind !== "Service")
 
     // Apply new Deployment manifest (deploy the Green version)
-    await apply({ log, provider, manifests: filteredManifests, force, namespace })
+    await apply({ log, provider, manifests: filteredManifests, namespace })
     await waitForResources({
       ctx: k8sCtx,
       provider: k8sCtx.provider,
@@ -149,7 +153,7 @@ export async function deployContainerServiceBlueGreen(
     // If the result is outdated it means something in the Service definition itself changed
     // and we need to apply the whole Service manifest. Otherwise we just patch it.
     if (result.state === "outdated") {
-      await apply({ log, provider, manifests: [patchedServiceManifest], force, namespace })
+      await apply({ log, provider, manifests: [patchedServiceManifest], namespace })
     } else {
       await api.core.patchNamespacedService(service.name, namespace, servicePatchBody)
     }
@@ -187,10 +191,19 @@ export async function createContainerManifests(
   const k8sCtx = <KubernetesPluginContext>ctx
   const version = service.module.version
   const provider = k8sCtx.provider
+  const { production } = ctx
   const namespace = await getAppNamespace(k8sCtx, log, provider)
   const api = await KubeApi.factory(log, provider)
   const ingresses = await createIngressResources(api, provider, namespace, service)
-  const workload = await createWorkloadResource({ provider, service, runtimeContext, namespace, enableHotReload, log })
+  const workload = await createWorkloadResource({
+    provider,
+    service,
+    runtimeContext,
+    namespace,
+    enableHotReload,
+    log,
+    production,
+  })
   const kubeservices = await createServiceResources(service, namespace)
 
   const manifests = [workload, ...kubeservices, ...ingresses]
@@ -212,6 +225,7 @@ interface CreateDeploymentParams {
   namespace: string
   enableHotReload: boolean
   log: LogEntry
+  production: boolean
 }
 
 export async function createWorkloadResource({
@@ -221,12 +235,17 @@ export async function createWorkloadResource({
   namespace,
   enableHotReload,
   log,
+  production,
 }: CreateDeploymentParams): Promise<KubernetesWorkload> {
   const spec = service.spec
-  let configuredReplicas = service.spec.replicas
+  let configuredReplicas = service.spec.replicas || DEFAULT_MINIMUM_REPLICAS
   const deployment: any = deploymentConfig(service, configuredReplicas, namespace)
 
-  if (enableHotReload && service.spec.replicas > 1) {
+  if (production && !service.spec.replicas) {
+    configuredReplicas = PRODUCTION_MINIMUM_REPLICAS
+  }
+
+  if (enableHotReload && configuredReplicas > 1) {
     log.warn({
       msg: chalk.yellow(`Ignoring replicas config on container service ${service.name} while in hot-reload mode`),
       symbol: "warning",
@@ -333,7 +352,7 @@ export async function createWorkloadResource({
         maxSurge: 1,
       },
     }
-    deployment.spec.revisionHistoryLimit = 3
+    deployment.spec.revisionHistoryLimit = production ? REVISION_HISTORY_LIMIT_PROD : REVISION_HISTORY_LIMIT_DEFAULT
   }
 
   if (provider.config.imagePullSecrets.length > 0) {
@@ -347,6 +366,37 @@ export async function createWorkloadResource({
   }
 
   deployment.spec.template.spec.containers = [container]
+
+  if (production) {
+    const affinity: V1Affinity = {
+      podAntiAffinity: {
+        preferredDuringSchedulingIgnoredDuringExecution: [
+          {
+            weight: 100,
+            podAffinityTerm: {
+              labelSelector: {
+                matchExpressions: [
+                  {
+                    key: gardenAnnotationKey("module"),
+                    operator: "In",
+                    values: [service.module.name],
+                  },
+                  {
+                    key: gardenAnnotationKey("service"),
+                    operator: "In",
+                    values: [service.name],
+                  },
+                ],
+              },
+              topologyKey: "kubernetes.io/hostname",
+            },
+          },
+        ],
+      },
+    }
+
+    deployment.spec.template.spec.affinity = affinity
+  }
 
   if (enableHotReload) {
     const hotReloadSpec = service.module.spec.hotReload

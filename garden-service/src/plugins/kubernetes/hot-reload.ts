@@ -198,6 +198,7 @@ export async function hotReloadContainer({
     runtimeContext: { envVars: {}, dependencies: [] },
     namespace,
     enableHotReload: true,
+    production: k8sCtx.production,
     log,
   })
   const selector = labelSelectorToString({

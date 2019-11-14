@@ -98,6 +98,7 @@ export interface GardenParams {
   moduleExcludePatterns?: string[]
   opts: GardenOpts
   plugins: RegisterPluginParam[]
+  production: boolean
   projectName: string
   projectRoot: string
   projectSources?: SourceConfig[]
@@ -126,6 +127,7 @@ export class Garden {
   private actionHelper: ActionRouter
   public readonly events: EventBus
 
+  public readonly production: boolean
   public readonly projectRoot: string
   public readonly projectName: string
   public readonly environmentName: string
@@ -149,6 +151,7 @@ export class Garden {
     this.log = params.log
     this.artifactsPath = params.artifactsPath
     this.opts = params.opts
+    this.production = params.production
     this.projectName = params.projectName
     this.projectRoot = params.projectRoot
     this.projectSources = params.projectSources || []
@@ -225,7 +228,7 @@ export class Garden {
       environmentName = defaultEnvironment
     }
 
-    const { providers, variables } = await pickEnvironment(config, environmentName)
+    const { providers, variables, production } = await pickEnvironment(config, environmentName)
 
     const buildDir = await BuildDir.factory(projectRoot, gardenDirPath)
     const workingCopyId = await getWorkingCopyId(gardenDirPath)
@@ -247,6 +250,7 @@ export class Garden {
       variables,
       projectSources,
       buildDir,
+      production,
       gardenDirPath,
       opts,
       plugins,
