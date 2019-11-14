@@ -11,9 +11,9 @@ import normalizePath = require("normalize-path")
 import { V1Deployment, V1DaemonSet, V1StatefulSet } from "@kubernetes/client-node"
 import { ContainerModule, ContainerHotReloadSpec } from "../container/config"
 import { RuntimeError, ConfigurationError } from "../../exceptions"
-import { resolve as resolvePath, dirname } from "path"
+import { resolve as resolvePath, dirname, posix } from "path"
 import { deline, gardenAnnotationKey } from "../../util/string"
-import { set, sortBy } from "lodash"
+import { set, sortBy, flatten } from "lodash"
 import { Service } from "../../types/service"
 import { LogEntry } from "../../logger/log-entry"
 import { getResourceContainer } from "./helm/common"
@@ -91,7 +91,8 @@ export function configureHotReload({
     return {
       name: syncVolumeName,
       mountPath: t,
-      subPath: rsyncTargetPath(t),
+      // Need to prefix the target with "root" because we need a "tmp" folder next to it while syncing
+      subPath: posix.join("root", rsyncTargetPath(t)),
     }
   })
 
@@ -250,10 +251,15 @@ export function makeCopyCommand(syncTargets: string[]) {
     // Win32 style paths on Windows, whereas the command produced runs inside a container that expects
     // POSIX style paths.
     const syncCopySource = normalizePath(`${target}/`, false)
-    const syncVolumeTarget = normalizePath(`/.garden/hot_reload/${target}/`, false)
-    return `mkdir -p ${dirname(syncVolumeTarget)} && cp -r ${syncCopySource} ${syncVolumeTarget}`
+    const syncVolumeTarget = normalizePath(`/.garden/hot_reload/root/${target}/`, false)
+    const syncVolumeTmp = normalizePath(`/.garden/hot_reload/tmp/${target}/`, false)
+    return [
+      `mkdir -p ${dirname(syncVolumeTarget)}`,
+      `mkdir -p ${syncVolumeTmp}`,
+      `cp -r ${syncCopySource} ${syncVolumeTarget}`,
+    ]
   })
-  return commands.join(" && ")
+  return flatten(commands).join(" && ")
 }
 
 export function removeTrailingSlashes(path: string) {
@@ -296,11 +302,12 @@ export async function syncToService({ ctx, service, hotReloadSpec, namespace, wo
 
     const syncResult = await Bluebird.map(hotReloadSpec.sync, ({ source, target }) => {
       const src = rsyncSourcePath(service.sourceModule.path, source)
-      const destination = `rsync://localhost:${portForward.localPort}/volume/${rsyncTargetPath(target)}`
+      const destination = `rsync://localhost:${portForward.localPort}/volume/root/${rsyncTargetPath(target)}`
+      const tmpDir = `/tmp/${rsyncTargetPath(target)}`.slice(0, -1) // Trim the trailing slash
 
       log.debug(`Hot-reloading from ${src} to ${destination}`)
 
-      return exec("rsync", ["-vrpztgo", src, destination])
+      return exec("rsync", ["-vrpztgo", "--temp-dir", tmpDir, src, destination])
     })
 
     const postSyncCommand = hotReloadSpec.postSyncCommand

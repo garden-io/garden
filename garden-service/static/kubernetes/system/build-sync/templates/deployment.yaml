@@ -27,6 +27,13 @@ spec:
         - name: garden-build-sync
           persistentVolumeClaim:
             claimName: {{ .Values.pvc.name }}
+      initContainers:
+        - name: init
+          image: "busybox:1.31.1"
+          command: ["mkdir", "-p", "/data/tmp"]
+          volumeMounts:
+            - mountPath: /data
+              name: garden-build-sync
       containers:
         - name: sync
           image: "gardendev/rsync:0.1"

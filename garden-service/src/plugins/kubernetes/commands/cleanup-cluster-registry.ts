@@ -371,21 +371,24 @@ async function cleanupBuildSyncVolume(provider: KubernetesProvider, log: LogEntr
     podName,
   })
 
-  // Filter to directories last accessed more than workspaceSyncDirTtl ago
+  // Remove directories last accessed more than workspaceSyncDirTtl ago
   const minTimestamp = new Date().getTime() / 1000 - workspaceSyncDirTtl
 
-  const dirsToDelete = stat.stdout
+  const outdatedDirs = stat.stdout
     .split("\n")
     .filter(Boolean)
     .map((line) => {
       const [dirname, lastAccessed] = line.trim().split(" ")
       return { dirname, lastAccessed: parseInt(lastAccessed, 10) }
     })
-    .filter(({ lastAccessed }) => lastAccessed < minTimestamp)
+    .filter(({ dirname, lastAccessed }) => lastAccessed < minTimestamp && dirname !== "/data/tmp")
+    .map((d) => d.dirname)
+
+  const dirsToDelete = ["/data/tmp/*", ...outdatedDirs]
 
   // Delete the director
   log.info(`Deleting ${dirsToDelete.length} workspace directories.`)
-  const deleteArgs = ["rm", "-rf", ...dirsToDelete.map((d) => d.dirname)]
+  const deleteArgs = ["rm", "-rf", ...dirsToDelete]
   await execInBuildSync({
     provider,
     log,
