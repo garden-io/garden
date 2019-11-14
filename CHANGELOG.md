@@ -1,4 +1,16 @@
 
+<a name="v0.10.15-alpha.1"></a>
+## [v0.10.15-alpha.1](https://github.com/garden-io/garden/compare/v0.10.15-alpha.0...v0.10.15-alpha.1) (2019-11-14)
+
+### Bug Fixes
+
+* **windows:** normalize path for sync temp directory ([01bec7b6](https://github.com/garden-io/garden/commit/01bec7b6))
+
+### Improvement
+
+* **k8s:** tune probes for build-sync pods ([db93b55a](https://github.com/garden-io/garden/commit/db93b55a))
+
+
 <a name="v0.10.15-alpha.0"></a>
 ## [v0.10.15-alpha.0](https://github.com/garden-io/garden/compare/v0.10.14...v0.10.15-alpha.0) (2019-11-14)
 
