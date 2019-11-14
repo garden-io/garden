@@ -162,7 +162,13 @@ export class BuildDir {
     destinationPath = stripWildcard(destinationPath)
 
     // --exclude is required for modules where the module and project are in the same directory
-    const syncOpts = ["-rptgo", `--exclude=${this.buildDirPath}`, "--ignore-missing-args", "--temp-dir", tmpDir]
+    const syncOpts = [
+      "-rptgo",
+      `--exclude=${this.buildDirPath}`,
+      "--ignore-missing-args",
+      "--temp-dir",
+      normalizeLocalRsyncPath(tmpDir),
+    ]
 
     let logMsg =
       `Syncing ${module.version.files.length} files from ` +
