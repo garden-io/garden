@@ -81,17 +81,14 @@ describe("PreReleaseTests", () => {
     it("runs the validate command", async () => {
       await runWithEnv(["validate"])
     })
-
     it("runs the build command", async () => {
       const logEntries = await runWithEnv(["build", "--force"])
       expect(searchLog(logEntries, /Done!/), "expected to find 'Done!' in log output").to.eql("passed")
     })
-
     it("runs the deploy command", async () => {
       const logEntries = await runWithEnv(["deploy"])
       expect(searchLog(logEntries, /Done!/), "expected to find 'Done!' in log output").to.eql("passed")
     })
-
     it("runs the test command", async () => {
       const logEntries = await runWithEnv(["test"])
       expect(searchLog(logEntries, /Done!/), "expected to find 'Done!' in log output").to.eql("passed")
@@ -99,20 +96,22 @@ describe("PreReleaseTests", () => {
   })
 
   if (project === "demo-project") {
-    describe("demo-project: top-level sanity checks", () => {
-      it("runs the dev command", async () => {
-        const gardenWatch = watchWithEnv(["dev"])
+    describe("demo-project", () => {
+      describe("top-level sanity checks", () => {
+        it("runs the dev command", async () => {
+          const gardenWatch = watchWithEnv(["dev"])
 
-        const testSteps = [
-          taskCompletedStep("deploy.backend", 1),
-          waitingForChangesStep(),
-          changeFileStep(resolve(projectPath, "backend/webserver/main.go"), "change app code in backend service"),
-          taskCompletedStep("deploy.backend", 2),
-          changeFileStep(resolve(projectPath, "backend/garden.yml"), "change garden.yml in backend service"),
-          commandReloadedStep(),
-        ]
+          const testSteps = [
+            taskCompletedStep("deploy.backend", 1),
+            waitingForChangesStep(),
+            changeFileStep(resolve(projectPath, "backend/webserver/main.go"), "change app code in backend service"),
+            taskCompletedStep("deploy.backend", 2),
+            changeFileStep(resolve(projectPath, "backend/garden.yml"), "change garden.yml in backend service"),
+            commandReloadedStep(),
+          ]
 
-        await gardenWatch.run({ testSteps })
+          await gardenWatch.run({ testSteps })
+        })
       })
     })
   }
@@ -170,6 +169,31 @@ describe("PreReleaseTests", () => {
         await gardenWatch.run({ testSteps })
       })
 
+      it("should get logs after a hot reload event", async () => {
+        const gardenWatch = watchWithEnv(["dev", "--hot=node-service"])
+        const hotReloadProjectPath = resolve(examplesDir, "hot-reload")
+
+        const testSteps = [
+          waitingForChangesStep(),
+          {
+            description: "get logs for node-service",
+            condition: async () => {
+              const logEntries = await runWithEnv(["logs", "node-service"])
+              return searchLog(logEntries, /node-service-v-.* App started/)
+            },
+          },
+          changeFileStep(resolve(hotReloadProjectPath, "node-service/app.js"), "change node-service/app.js"),
+          {
+            description: "get logs for node-service after hot reload event",
+            condition: async () => {
+              const logEntries = await runWithEnv(["logs", "node-service"])
+              return searchLog(logEntries, /node-service-v-.* App started/)
+            },
+          },
+        ]
+
+        await gardenWatch.run({ testSteps })
+      })
       it("runs the dev command with hot reloading enabled, using a post-sync command", async () => {
         const hotReloadProjectPath = resolve(examplesDir, "hot-reload-post-sync-command")
         const gardenWatch = watchWithEnv(["dev", "--hot=node-service"])

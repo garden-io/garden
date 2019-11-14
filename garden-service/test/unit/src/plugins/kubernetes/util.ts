@@ -1,5 +1,86 @@
 import { expect } from "chai"
-import { millicpuToString, kilobytesToString, flattenResources } from "../../../../../src/plugins/kubernetes/util"
+import { sortBy } from "lodash"
+import {
+  millicpuToString,
+  kilobytesToString,
+  flattenResources,
+  deduplicatePodsByLabel,
+} from "../../../../../src/plugins/kubernetes/util"
+import { KubernetesServerResource } from "../../../../../src/plugins/kubernetes/types"
+import { V1Pod } from "@kubernetes/client-node"
+
+describe("deduplicatePodsByLabel", () => {
+  it("should return a list of pods, unique by label so that the latest pod is kept", () => {
+    const podA = ({
+      apiVersion: "v1",
+      kind: "Pod",
+      metadata: {
+        creationTimestamp: new Date("2019-11-12T14:44:26Z"),
+        labels: {
+          module: "a",
+          service: "a",
+        },
+      },
+      spec: {},
+    } as unknown) as KubernetesServerResource<V1Pod>
+    const podADupe = ({
+      apiVersion: "v1",
+      kind: "Pod",
+      metadata: {
+        creationTimestamp: new Date("2019-11-11T14:44:26Z"), // This one is older than podA
+        labels: {
+          module: "a",
+          service: "a",
+        },
+      },
+    } as unknown) as KubernetesServerResource<V1Pod>
+    const podUndefinedLabelA = ({
+      apiVersion: "v1",
+      kind: "Pod",
+      metadata: {
+        creationTimestamp: new Date("2019-11-13T14:44:26Z"),
+        labels: undefined,
+      },
+    } as unknown) as KubernetesServerResource<V1Pod>
+    const podUndefinedLabelB = ({
+      apiVersion: "v1",
+      kind: "Pod",
+      metadata: {
+        creationTimestamp: new Date("2019-11-14T14:44:26Z"),
+        labels: undefined,
+      },
+    } as unknown) as KubernetesServerResource<V1Pod>
+    const podEmptyLabelA = ({
+      apiVersion: "v1",
+      kind: "Pod",
+      metadata: {
+        creationTimestamp: new Date("2019-11-15T14:44:26Z"),
+        labels: {},
+      },
+    } as unknown) as KubernetesServerResource<V1Pod>
+    const podEmptyLabelB = ({
+      apiVersion: "v1",
+      kind: "Pod",
+      metadata: {
+        creationTimestamp: new Date("2019-11-16T14:44:26Z"),
+        labels: {},
+      },
+    } as unknown) as KubernetesServerResource<V1Pod>
+    const uniq = deduplicatePodsByLabel([
+      podA,
+      podADupe,
+      podUndefinedLabelA,
+      podUndefinedLabelB,
+      podEmptyLabelA,
+      podEmptyLabelB,
+    ])
+    const expected = sortBy(
+      [podA, podUndefinedLabelA, podUndefinedLabelB, podEmptyLabelA, podEmptyLabelB],
+      (pod) => pod.metadata.creationTimestamp
+    )
+    expect(uniq).to.eql(expected)
+  })
+})
 
 describe("millicpuToString", () => {
   it("should return a string suffixed with 'm'", () => {

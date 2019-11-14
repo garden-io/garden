@@ -1,0 +1,9 @@
+kind: Module
+name: simple-service
+description: Test module for a simple service
+type: container
+services:
+  - name: simple-service
+    ports:
+      - name: http
+        containerPort: 8080

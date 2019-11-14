@@ -20,7 +20,7 @@ import {
   V1Event,
 } from "@kubernetes/client-node"
 import dedent = require("dedent")
-import { getWorkloadPods } from "../util"
+import { getCurrentWorkloadPods } from "../util"
 import { getPodLogs, podLogLines } from "./pod"
 import { ResourceStatus, StatusHandlerParams } from "./status"
 import { getResourceEvents } from "./events"
@@ -48,7 +48,7 @@ export async function checkWorkloadStatus({ api, namespace, resource }: StatusHa
 
   const getPods = async () => {
     if (!_pods) {
-      _pods = await getWorkloadPods(api, namespace, workload)
+      _pods = await getCurrentWorkloadPods(api, namespace, workload)
     }
     return _pods
   }

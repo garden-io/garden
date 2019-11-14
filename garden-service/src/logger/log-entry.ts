@@ -68,10 +68,10 @@ export interface LogEntryConstructor extends LogEntryParams {
 }
 
 function resolveParams(params?: string | UpdateLogEntryParams): UpdateLogEntryParams {
-  if (!params) {
-    return {}
-  } else if (typeof params === "string") {
+  if (typeof params === "string") {
     return { msg: params }
+  } else if (!params) {
+    return {}
   } else {
     return params
   }
