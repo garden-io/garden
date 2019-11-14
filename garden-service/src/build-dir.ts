@@ -148,7 +148,10 @@ export class BuildDir {
     files?: string[]
   }): Promise<void> {
     const destinationDir = parse(destinationPath).dir
+    const tmpDir = destinationPath + ".tmp"
+
     await ensureDir(destinationDir)
+    await ensureDir(tmpDir)
 
     // this is so that the cygwin-based rsync client can deal with the paths
     sourcePath = normalizeLocalRsyncPath(sourcePath)
@@ -159,14 +162,7 @@ export class BuildDir {
     destinationPath = stripWildcard(destinationPath)
 
     // --exclude is required for modules where the module and project are in the same directory
-    const syncOpts = ["-rptgo", `--exclude=${this.buildDirPath}`, "--ignore-missing-args"]
-
-    // We have noticed occasional issues with the default rsync behavior of creating temp files when copying
-    // when using Windows/cwRsync. This workaround appears to do the trick, but is less optimal so we don't apply
-    // it for other platforms.
-    if (process.platform === "win32") {
-      syncOpts.push("--inplace")
-    }
+    const syncOpts = ["-rptgo", `--exclude=${this.buildDirPath}`, "--ignore-missing-args", "--temp-dir", tmpDir]
 
     let logMsg =
       `Syncing ${module.version.files.length} files from ` +
@@ -188,8 +184,7 @@ export class BuildDir {
       if (files === undefined) {
         syncOpts.push("--delete")
       } else {
-        // Workaround for this issue:
-        // https://stackoverflow.com/questions/1813907/rsync-delete-files-from-list-dest-does-not-delete-unwanted-files
+        // Workaround for this issue: https://stackoverflow.com/questions/1813907
         syncOpts.push("--include-from=-", "--exclude=*", "--delete-excluded")
         input = "/**/\n" + files.join("\n")
       }

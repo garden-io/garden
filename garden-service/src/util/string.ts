@@ -77,3 +77,10 @@ export function naturalList(list: string[]) {
     return list.slice(0, -1).join(", ") + " and " + list[list.length - 1]
   }
 }
+
+/**
+ * Generate a random string of a specified `length`.
+ */
+export function randomString(length = 8) {
+  return [...Array(length)].map(() => (~~(Math.random() * 36)).toString(36)).join("")
+}

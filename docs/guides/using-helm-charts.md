@@ -252,7 +252,7 @@ The `api` module only contains the `garden.yml` file, but configures the base ch
 sets its own dependencies (those are not inherited) and specifies its `serviceResource.containerModule`.
 
 In our base chart, we make certain values like `name`, `image.repository` and `image.tag` required (using the
-[required](https://helm.sh/docs/developing_charts/#chart-development-tips-and-tricks)
+[required](https://helm.sh/docs/howto/charts_tips_and_tricks/)
 helper function) in order to enforce correct usage. We recommend enforcing constraints like that, so that mistakes
 can be caught quickly.
 

@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { get, flatten, uniqBy, sortBy } from "lodash"
+import { get, flatten, uniqBy, sortBy, sample } from "lodash"
 import { V1Pod, V1EnvVar } from "@kubernetes/client-node"
 
 import { KubernetesResource, KubernetesWorkload, KubernetesPod, KubernetesServerResource } from "./types"
@@ -17,6 +17,9 @@ import { gardenAnnotationKey, base64 } from "../../util/string"
 import { MAX_CONFIGMAP_DATA_SIZE } from "./constants"
 import { ContainerEnvVars } from "../container/config"
 import { ConfigurationError } from "../../exceptions"
+import { KubernetesProvider } from "./config"
+import { systemNamespace } from "./system"
+import { LogEntry } from "../../logger/log-entry"
 
 export const workloadTypes = ["Deployment", "DaemonSet", "ReplicaSet", "StatefulSet"]
 
@@ -344,4 +347,13 @@ export function convertDeprecatedManifestVersion(manifest: KubernetesResource): 
   }
 
   return manifest
+}
+
+export async function getRunningPodInDeployment(deploymentName: string, provider: KubernetesProvider, log: LogEntry) {
+  const api = await KubeApi.factory(log, provider)
+
+  const status = await api.apps.readNamespacedDeployment(deploymentName, systemNamespace)
+  const pods = await getPods(api, systemNamespace, status.spec.selector.matchLabels)
+
+  return sample(pods)
 }

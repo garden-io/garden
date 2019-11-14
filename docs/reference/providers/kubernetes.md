@@ -790,7 +790,7 @@ The namespace where the secret is stored. If necessary, the secret may be copied
 
 Set to `cert-manager` to configure [cert-manager](https://github.com/jetstack/cert-manager) to manage this
 certificate. See our
-[cert-manager integration guide](https://docs.garden.io/using-garden/cert-manager-integration) for details.
+[cert-manager integration guide](https://docs.garden.io/guides/cert-manager-integration) for details.
 
 | Type     | Required |
 | -------- | -------- |
@@ -820,7 +820,7 @@ cert-manager configuration, for creating and managing TLS certificates. See the
 [providers](#providers) > [certManager](#providerscertmanager) > install
 
 Automatically install `cert-manager` on initialization. See the
-[cert-manager integration guide](https://docs.garden.io/using-garden/cert-manager-integration) for details.
+[cert-manager integration guide](https://docs.garden.io/guides/cert-manager-integration) for details.
 
 | Type      | Required | Default |
 | --------- | -------- | ------- |
