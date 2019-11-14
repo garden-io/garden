@@ -377,7 +377,7 @@ const serviceSchema = baseServiceSpecSchema.keys({
     .description("List of ports that the service container exposes."),
   replicas: joi.number().integer().description(deline`
       The number of instances of the service to deploy.
-      Defaults to 3 for environments configured with production: true, otherwise 1.
+      Defaults to 3 for environments configured with \`production: true\`, otherwise 1.
 
       Note: This setting may be overridden or ignored in some cases. For example, when running with \`daemon: true\`,
       with hot-reloading enabled, or if the provider doesn't support multiple replicas.
