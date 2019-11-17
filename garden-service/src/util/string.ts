@@ -84,3 +84,10 @@ export function naturalList(list: string[]) {
 export function randomString(length = 8) {
   return [...Array(length)].map(() => (~~(Math.random() * 36)).toString(36)).join("")
 }
+
+/**
+ * Splits the given string by newlines. Works for both Windows and *nix style breaks.
+ */
+export function splitLines(s: string) {
+  return s.split(/\r?\n/)
+}
