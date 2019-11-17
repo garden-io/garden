@@ -56,15 +56,21 @@ export const augmentGraph = {
     providers: joiArray(providerSchema).description("All configured providers in the project."),
   }),
   resultSchema: joi.object().keys({
-    addBuildDependencies: joiArray(
-      joi.object().keys({
-        by: joiIdentifier().description(
-          "The _dependant_, i.e. the module that should have a build dependency on `on`."
-        ),
-        on: joiIdentifier().description("The _dependency, i.e. the module that `by` should depend on."),
-      })
-    ).description(
-      dedent`
+    addBuildDependencies: joi
+      .array()
+      .items(
+        joi
+          .object()
+          .optional()
+          .keys({
+            by: joiIdentifier().description(
+              "The _dependant_, i.e. the module that should have a build dependency on `on`."
+            ),
+            on: joiIdentifier().description("The _dependency, i.e. the module that `by` should depend on."),
+          })
+      )
+      .description(
+        dedent`
         Add build dependencies between two modules, where \`by\` depends on \`on\`.
 
         Both modules must be previously defined in the project, added by one of the providers that this provider depends
@@ -73,16 +79,22 @@ export const augmentGraph = {
         The most common use case for this field is to make an existing module depend on one of the modules specified
         in \`addModules\`.
       `
-    ),
-    addRuntimeDependencies: joiArray(
-      joi.object().keys({
-        by: joiIdentifier().description(
-          "The _dependant_, i.e. the service or task that should have a runtime dependency on `on`."
-        ),
-        on: joiIdentifier().description("The _dependency, i.e. the service or task that `by` should depend on."),
-      })
-    ).description(
-      dedent`
+      ),
+    addRuntimeDependencies: joi
+      .array()
+      .items(
+        joi
+          .object()
+          .optional()
+          .keys({
+            by: joiIdentifier().description(
+              "The _dependant_, i.e. the service or task that should have a runtime dependency on `on`."
+            ),
+            on: joiIdentifier().description("The _dependency, i.e. the service or task that `by` should depend on."),
+          })
+      )
+      .description(
+        dedent`
         Add runtime dependencies between two services or tasks, where \`by\` depends on \`on\`.
 
         Both services/tasks must be previously defined in the project, added by one of the providers that this provider
@@ -91,9 +103,12 @@ export const augmentGraph = {
         The most common use case for this field is to make an existing service or task depend on one of the
         services/tasks specified under \`addModules\`.
       `
-    ),
-    addModules: joiArray(addModuleSchema).description(
-      dedent`
+      ),
+    addModules: joi
+      .array()
+      .items(addModuleSchema.optional())
+      .description(
+        dedent`
           Add modules (of any defined kind) to the stack graph. Each should be a module spec in the same format as
           a normal module specified in a \`garden.yml\` config file (which will later be passed to the appropriate
           \`configure\` handler(s) for the module type), with the addition of \`path\` being required.
@@ -101,6 +116,6 @@ export const augmentGraph = {
           The added modules can be referenced in \`addBuildDependencies\`, and their services/tasks can be referenced
           in \`addRuntimeDependencies\`.
         `
-    ),
+      ),
   }),
 }

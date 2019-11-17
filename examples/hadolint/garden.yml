@@ -1,0 +1,17 @@
+kind: Project
+name: demo-project
+environments:
+  - name: local
+  - name: testing
+providers:
+  - name: local-kubernetes
+    environments: [local]
+  - name: kubernetes
+    environments: [testing]
+    context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
+    namespace: demo-project-testing-${local.env.CIRCLE_BUILD_NUM || local.username}
+    defaultHostname: demo-project-testing.dev-1.sys.garden
+    buildMode: cluster-docker
+    clusterDocker:
+      enableBuildKit: true
+  - name: hadolint
