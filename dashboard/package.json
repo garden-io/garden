@@ -54,7 +54,7 @@
     "build": "react-scripts build && ./bin/copy-to-static",
     "dev": "EXTEND_ESLINT=true npm run start",
     "fix-format": "prettier --write \"{src,test}/**/*.{ts,tsx}\"",
-    "lint": "tslint -p .",
+    "lint": "eslint \"{src,test}/**/*.{ts,tsx}\"",
     "test-watch": "react-scripts test",
     "test": "CI=true react-scripts test",
     "eject": "react-scripts eject"
