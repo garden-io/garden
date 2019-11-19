@@ -1,3 +1,39 @@
+<a name="v0.10.15"></a>
+## [v0.10.15](https://github.com/garden-io/garden/compare/v0.10.14...v0.10.15) (2019-11-15)
+
+### Bug Fixes
+
+* displaced/wrong logging when setting up cert-manager ([eef701d3](https://github.com/garden-io/garden/commit/eef701d3))
+* **core:** ensure deletes are synced when staging builds ([6cb6a3af](https://github.com/garden-io/garden/commit/6cb6a3af))
+* **examples:** set correct context for demo-project ([d5f82b53](https://github.com/garden-io/garden/commit/d5f82b53))
+* **k8s:** helm status check now compares Garden version ([28c59879](https://github.com/garden-io/garden/commit/28c59879))
+* **k8s:** remove the tick ([7fa781c2](https://github.com/garden-io/garden/commit/7fa781c2))
+* **k8s:** don't match on version label when getting workload pods ([f9b6b069](https://github.com/garden-io/garden/commit/f9b6b069))
+* **logger:** parameters weren't being solved correctly ([aa7d3fa5](https://github.com/garden-io/garden/commit/aa7d3fa5))
+* **sync:** issue with build staging sync procedure on Windows ([785d54f6](https://github.com/garden-io/garden/commit/785d54f6))
+* **sync:** fix intermittent concurrency issues while syncing directories ([385b1dd1](https://github.com/garden-io/garden/commit/385b1dd1))
+* **watcher:** use exclude options to optimize file watching ([#1320](https://github.com/garden-io/garden/issues/1320)) ([aa82e899](https://github.com/garden-io/garden/commit/aa82e899))
+* **windows:** fix excludes and filename anchoring ([b3539c37](https://github.com/garden-io/garden/commit/b3539c37))
+* **windows:** normalize path for sync temp directory ([27617765](https://github.com/garden-io/garden/commit/27617765))
+
+### Features
+
+* implement production flag ([e0bb7be4](https://github.com/garden-io/garden/commit/e0bb7be4))
+* allow exporting artifacts from task and test runs ([a1e4c1c1](https://github.com/garden-io/garden/commit/a1e4c1c1))
+* **commands:** add test/task artifacts to command result ([63f245b2](https://github.com/garden-io/garden/commit/63f245b2))
+* **dashboard:** show artifacts in test/task result sidebar ([770ff304](https://github.com/garden-io/garden/commit/770ff304))
+* **k8s:** add `clusterDocker.enableBuildKit` option ([c1886f55](https://github.com/garden-io/garden/commit/c1886f55))
+* **k8s:** cert-manager integration ([#1261](https://github.com/garden-io/garden/issues/1261)) ([21f2775b](https://github.com/garden-io/garden/commit/21f2775b))
+
+### Improvement
+
+* **core:** delete services in dep order ([7895c926](https://github.com/garden-io/garden/commit/7895c926))
+* **k8s:** tune probes for build-sync pods ([68ba9104](https://github.com/garden-io/garden/commit/68ba9104))
+* **k8s:** update in-cluster docker to 19.03.4 ([a4fb4182](https://github.com/garden-io/garden/commit/a4fb4182))
+* **k8s:** skip superfluous service endpoint check ([93ee43c2](https://github.com/garden-io/garden/commit/93ee43c2))
+* **k8s:** much faster init and status checks ([cca55970](https://github.com/garden-io/garden/commit/cca55970))
+* **openfaas:** updated faas-netes and made more configurable ([4b188ee7](https://github.com/garden-io/garden/commit/4b188ee7))
+
 
 <a name="v0.10.14"></a>
 ## [v0.10.14](https://github.com/garden-io/garden/compare/v0.10.13...v0.10.14) (2019-11-01)
