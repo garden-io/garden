@@ -36,6 +36,13 @@ export default () => {
     }
   }, [dispatch, requestStates.logs, serviceNames])
 
+  const handleRefresh = useCallback(
+    (names: string[]) => {
+      loadLogs(dispatch, names)
+    },
+    [dispatch]
+  )
+
   if (!(requestStates.config.initLoadComplete && requestStates.logs.initLoadComplete)) {
     return <Spinner />
   }
@@ -43,13 +50,6 @@ export default () => {
   if (requestStates.config.error || requestStates.logs.error) {
     return <PageError error={requestStates.config.error || requestStates.logs.error} />
   }
-
-  const handleRefresh = useCallback(
-    (names: string[]) => {
-      loadLogs(dispatch, names)
-    },
-    [dispatch]
-  )
 
   return <Logs onRefresh={handleRefresh} logs={logs} />
 }
