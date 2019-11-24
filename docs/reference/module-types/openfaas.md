@@ -41,7 +41,7 @@ The type of this module.
 Example:
 
 ```yaml
-type: "container"
+type: "openfaas"
 ```
 
 ### `name`
