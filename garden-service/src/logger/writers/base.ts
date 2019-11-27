@@ -8,8 +8,13 @@
 
 import { LogEntry } from "../log-entry"
 import { Logger } from "../logger"
+import { LogLevel } from "../log-node"
 
 export abstract class Writer {
+  abstract type: string
+
+  constructor(public level: LogLevel = LogLevel.info) {}
+
   abstract render(...args): string | string[] | null
   abstract onGraphChange(entry: LogEntry, logger: Logger): void
   abstract stop(): void
