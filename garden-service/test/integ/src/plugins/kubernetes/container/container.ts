@@ -12,6 +12,8 @@ import { TaskTask } from "../../../../../../src/tasks/task"
 import { runAndCopy } from "../../../../../../src/plugins/kubernetes/run"
 import { Provider } from "../../../../../../src/config/provider"
 import { containerHelpers } from "../../../../../../src/plugins/container/helpers"
+import { runContainerService } from "../../../../../../src/plugins/kubernetes/container/run"
+import { prepareRuntimeContext } from "../../../../../../src/runtime-context"
 
 describe("kubernetes container module handlers", () => {
   let garden: Garden
@@ -231,6 +233,66 @@ describe("kubernetes container module handlers", () => {
             `)
         )
       })
+    })
+  })
+
+  describe("runContainerService", () => {
+    it("should run a service", async () => {
+      const service = await graph.getService("echo-service")
+
+      const runtimeContext = await prepareRuntimeContext({
+        garden,
+        graph,
+        dependencies: {
+          build: [],
+          service: [],
+          task: [],
+          test: [],
+        },
+        module: service.module,
+        serviceStatuses: {},
+        taskResults: {},
+      })
+
+      const result = await runContainerService({
+        ctx: garden.getPluginContext(provider),
+        log: garden.log,
+        service,
+        module: service.module,
+        interactive: false,
+        runtimeContext,
+      })
+
+      expect(result.log.trim()).to.eql("ok")
+    })
+
+    it("should add configured env vars to the runtime context", async () => {
+      const service = await graph.getService("env-service")
+
+      const runtimeContext = await prepareRuntimeContext({
+        garden,
+        graph,
+        dependencies: {
+          build: [],
+          service: [],
+          task: [],
+          test: [],
+        },
+        module: service.module,
+        serviceStatuses: {},
+        taskResults: {},
+      })
+
+      const result = await runContainerService({
+        ctx: garden.getPluginContext(provider),
+        log: garden.log,
+        service,
+        module: service.module,
+        interactive: false,
+        runtimeContext,
+      })
+
+      expect(result.log.trim()).to.eql("foo")
     })
   })
 
