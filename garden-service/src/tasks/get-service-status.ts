@@ -14,8 +14,7 @@ import { Garden } from "../garden"
 import { ConfigGraph } from "../config-graph"
 import { TaskResults } from "../task-graph"
 import { prepareRuntimeContext } from "../runtime-context"
-import { GetTaskResultTask } from "./get-task-result"
-import { getTaskVersion } from "./task"
+import { getTaskVersion, TaskTask } from "./task"
 import Bluebird from "bluebird"
 
 export interface GetServiceStatusTaskParams {
@@ -55,17 +54,19 @@ export class GetServiceStatusTask extends BaseTask {
       })
     })
 
-    const taskResultTasks = await Bluebird.map(deps.task, async (task) => {
-      return new GetTaskResultTask({
+    const taskTasks = await Bluebird.map(deps.task, async (task) => {
+      return new TaskTask({
         garden: this.garden,
+        graph: this.graph,
         log: this.log,
         task,
         force: false,
+        forceBuild: false,
         version: await getTaskVersion(this.garden, this.graph, task),
       })
     })
 
-    return [...statusTasks, ...taskResultTasks]
+    return [...statusTasks, ...taskTasks]
   }
 
   getName() {
