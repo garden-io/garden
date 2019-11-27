@@ -152,7 +152,7 @@ export const GLOBAL_OPTIONS = {
 export type GlobalOptions = typeof GLOBAL_OPTIONS
 
 function initLogger({ level, loggerType, emoji }: { level: LogLevel; loggerType: LoggerType; emoji: boolean }) {
-  const writer = getWriterInstance(loggerType)
+  const writer = getWriterInstance(loggerType, level)
   const writers = writer ? [writer] : undefined
   return Logger.initialize({ level, writers, useEmoji: emoji })
 }
