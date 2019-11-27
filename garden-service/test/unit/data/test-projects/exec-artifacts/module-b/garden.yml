@@ -1,9 +1,0 @@
-kind: Module
-name: module-b
-type: exec
-tasks:
-  - name: task-b
-    dependencies: [task-a]
-    command: [sh, -c, '"mkdir -p moo && touch moo/boo.txt"']
-    artifacts:
-      - source: moo/*
