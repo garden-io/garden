@@ -51,7 +51,10 @@ describe("ConfigStore", () => {
     })
 
     it("should optionally set multiple key-value pairs", async () => {
-      await config.set([{ keyPath: ["a", "aa"], value: "value-a" }, { keyPath: ["b", "bb"], value: "value-b" }])
+      await config.set([
+        { keyPath: ["a", "aa"], value: "value-a" },
+        { keyPath: ["b", "bb"], value: "value-b" },
+      ])
       expect(await config.get()).to.eql({
         a: { aa: "value-a" },
         b: { bb: "value-b" },
@@ -112,7 +115,10 @@ describe("ConfigStore", () => {
 
   describe("delete", () => {
     it("should delete the specified key from the configuration", async () => {
-      await config.set([{ keyPath: ["a", "aa"], value: "value-a" }, { keyPath: ["b", "bb"], value: "value-b" }])
+      await config.set([
+        { keyPath: ["a", "aa"], value: "value-a" },
+        { keyPath: ["b", "bb"], value: "value-b" },
+      ])
       await config.delete(["a", "aa"])
 
       expect(await config.get(["b", "bb"])).to.eql("value-b")

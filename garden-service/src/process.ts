@@ -125,7 +125,13 @@ export async function processModules({
     changeHandler = handler
   }
 
-  const buildDependecies = (await graph.getDependenciesForMany("build", modules.map((m) => m.name), true)).build
+  const buildDependecies = (
+    await graph.getDependenciesForMany(
+      "build",
+      modules.map((m) => m.name),
+      true
+    )
+  ).build
   const modulesToWatch = uniqByName(buildDependecies.concat(modules))
   const modulesByName = keyBy(modulesToWatch, "name")
 

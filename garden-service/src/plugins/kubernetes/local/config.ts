@@ -96,7 +96,10 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
   }
 
   if (context === "minikube") {
-    const initCmds = [["config", "set", "WantUpdateNotification", "false"], ["addons", "enable", "dashboard"]]
+    const initCmds = [
+      ["config", "set", "WantUpdateNotification", "false"],
+      ["addons", "enable", "dashboard"],
+    ]
     await Bluebird.map(initCmds, async (cmd) => exec("minikube", cmd))
 
     if (!defaultHostname) {

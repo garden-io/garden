@@ -201,7 +201,10 @@ describe("LogEntry", () => {
 
       entry.setState({ metadata: { task: taskMetadataB } })
       expect(entry.getMetadata()).to.eql({ task: taskMetadataB })
-      expect(entry.getMessageStates()).to.eql([{ ...emptyState, timestamp }, { ...emptyState, timestamp }])
+      expect(entry.getMessageStates()).to.eql([
+        { ...emptyState, timestamp },
+        { ...emptyState, timestamp },
+      ])
     })
   })
   describe("setDone", () => {

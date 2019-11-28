@@ -246,12 +246,14 @@ describe("GitHandler", () => {
       await createFile(pathB)
       await createFile(pathC)
 
-      const files = (await handler.getFiles({
-        path: tmpPath,
-        include: ["module-a/**/*"],
-        exclude: ["**/*.txt"],
-        log,
-      })).map((f) => f.path)
+      const files = (
+        await handler.getFiles({
+          path: tmpPath,
+          include: ["module-a/**/*"],
+          exclude: ["**/*.txt"],
+          log,
+        })
+      ).map((f) => f.path)
 
       expect(files).to.eql([pathC])
     })

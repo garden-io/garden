@@ -429,7 +429,10 @@ export function getExampleProjects() {
 }
 
 export function withDefaultGlobalOpts(opts: any) {
-  return extend(mapValues(GLOBAL_OPTIONS, (opt) => opt.defaultValue), opts)
+  return extend(
+    mapValues(GLOBAL_OPTIONS, (opt) => opt.defaultValue),
+    opts
+  )
 }
 
 export function setPlatform(platform: string) {

@@ -9,11 +9,11 @@
 import { Server } from "http"
 
 import chalk from "chalk"
-import Koa = require("koa")
+import Koa from "koa"
 import mount = require("koa-mount")
 import serve = require("koa-static")
 import Router = require("koa-router")
-import websockify = require("koa-websocket")
+import websockify from "koa-websocket"
 import bodyParser = require("koa-bodyparser")
 import getPort = require("get-port")
 import { omit } from "lodash"
@@ -157,16 +157,19 @@ export class GardenServer {
    * same connection.
    */
   private addWebsocketEndpoint(app: websockify.App, commands: CommandMap) {
-    const ws = new Router()
+    const wsRouter = new Router()
 
-    ws.get("/ws", async (ctx) => {
+    wsRouter.get("/ws", async (ctx) => {
       if (!this.garden) {
         return this.notReady(ctx)
       }
 
+      // The typing for koa-websocket isn't working currently
+      const websocket: Koa.Context["ws"] = ctx["websocket"]
+
       // Helper to make JSON messages, make them type-safe, and to log errors.
       const send = <T extends ServerWebsocketMessageType>(type: T, payload: ServerWebsocketMessages[T]) => {
-        ctx.websocket.send(JSON.stringify({ type, ...(<object>payload) }), (err) => {
+        websocket.send(JSON.stringify({ type, ...(<object>payload) }), (err) => {
           if (err) {
             const error = toGardenError(err)
             this.log.error({ error })
@@ -180,12 +183,12 @@ export class GardenServer {
 
       // Make sure we clean up listeners when connections end.
       // TODO: detect broken connections - https://github.com/websockets/ws#how-to-detect-and-close-broken-connections
-      ctx.websocket.on("close", () => {
+      websocket.on("close", () => {
         this.garden && this.garden.events.offAny(eventListener)
       })
 
       // Respond to commands.
-      ctx.websocket.on("message", (msg) => {
+      websocket.on("message", (msg) => {
         let request: any
 
         try {
@@ -244,8 +247,8 @@ export class GardenServer {
       })
     })
 
-    app.ws.use(<Koa.Middleware<websockify.MiddlewareContext<any>>>ws.routes())
-    app.ws.use(<Koa.Middleware<websockify.MiddlewareContext<any>>>ws.allowedMethods())
+    app.ws.use(<Koa.Middleware<websockify.MiddlewareContext<any>>>wsRouter.routes())
+    app.ws.use(<Koa.Middleware<websockify.MiddlewareContext<any>>>wsRouter.allowedMethods())
   }
 }
 

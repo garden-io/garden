@@ -411,7 +411,10 @@ function removeNull<T>(value: T | Iterable<T>): T | Iterable<T> | { [K in keyof 
   if (isArray(value)) {
     return value.map(removeNull)
   } else if (isPlainObject(value)) {
-    return <{ [K in keyof T]: T[K] }>mapValues(pickBy(<any>value, (v) => v !== null), removeNull)
+    return <{ [K in keyof T]: T[K] }>mapValues(
+      pickBy(<any>value, (v) => v !== null),
+      removeNull
+    )
   } else {
     return value
   }

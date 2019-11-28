@@ -70,7 +70,10 @@ export class GetTasksCommand extends Command<Args> {
     let logStr = ""
 
     for (const m of modules) {
-      const tasksForModule = sortBy(tasks.filter((t) => t.module.name === m.name), (t) => t.name)
+      const tasksForModule = sortBy(
+        tasks.filter((t) => t.module.name === m.name),
+        (t) => t.name
+      )
 
       const logStrForTasks = tasksForModule.map((t) => indentString(prettyPrintTask(t), 2)).join("\n")
 

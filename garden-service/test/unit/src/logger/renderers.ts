@@ -86,11 +86,31 @@ describe("renderers", () => {
     it("should correctly chain log messages", () => {
       const timestamp = Date.now()
       const messageStateTable = [
-        [{ msg: "1", append: true }, { msg: "2", append: true }, { msg: "3", append: true }],
-        [{ msg: "1", append: false }, { msg: "2", append: true }, { msg: "3", append: true }],
-        [{ msg: "1", append: true }, { msg: "2", append: false }, { msg: "3", append: true }],
-        [{ msg: "1", append: false }, { msg: "2", append: false }, { msg: "3", append: true }],
-        [{ msg: "1", append: false }, { msg: "2", append: false }, { msg: "3", append: false }],
+        [
+          { msg: "1", append: true },
+          { msg: "2", append: true },
+          { msg: "3", append: true },
+        ],
+        [
+          { msg: "1", append: false },
+          { msg: "2", append: true },
+          { msg: "3", append: true },
+        ],
+        [
+          { msg: "1", append: true },
+          { msg: "2", append: false },
+          { msg: "3", append: true },
+        ],
+        [
+          { msg: "1", append: false },
+          { msg: "2", append: false },
+          { msg: "3", append: true },
+        ],
+        [
+          { msg: "1", append: false },
+          { msg: "2", append: false },
+          { msg: "3", append: false },
+        ],
       ].map((msgStates) => msgStates.map((msgState) => ({ ...msgState, timestamp })))
       const expects = [["1", "2", "3"], ["1", "2", "3"], ["2", "3"], ["2", "3"], ["3"]]
       messageStateTable.forEach((msgState, index) => {

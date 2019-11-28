@@ -29,7 +29,10 @@ type FileTransportOptions = winston.transports.FileTransportOptions
 const { combine: winstonCombine, timestamp, printf } = winston.format
 
 const DEFAULT_FILE_TRANSPORT_OPTIONS: FileTransportOptions = {
-  format: winstonCombine(timestamp(), printf((info) => `\n[${info.timestamp}] ${info.message}`)),
+  format: winstonCombine(
+    timestamp(),
+    printf((info) => `\n[${info.timestamp}] ${info.message}`)
+  ),
   maxsize: 10000000, // 10 MB
   maxFiles: 1,
 }
