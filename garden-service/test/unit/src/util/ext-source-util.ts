@@ -14,7 +14,10 @@ import { join } from "path"
 
 describe("ext-source-util", () => {
   let garden: Garden
-  const sources = [{ name: "name-a", path: "path-a" }, { name: "name-b", path: "path-b" }]
+  const sources = [
+    { name: "name-a", path: "path-a" },
+    { name: "name-b", path: "path-b" },
+  ]
 
   beforeEach(async () => {
     garden = await makeTestGardenA()

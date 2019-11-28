@@ -75,7 +75,11 @@ describe("VcsHandler", () => {
           include: undefined,
           exclude: undefined,
         })
-      ).thenResolve([{ path: "c", hash: "c" }, { path: "b", hash: "b" }, { path: "d", hash: "d" }])
+      ).thenResolve([
+        { path: "c", hash: "c" },
+        { path: "b", hash: "b" },
+        { path: "d", hash: "d" },
+      ])
       const version = await handlerA.getTreeVersion(gardenA.log, moduleConfig)
       expect(version.files).to.eql(["b", "c", "d"])
     })
@@ -90,7 +94,11 @@ describe("VcsHandler", () => {
           include: undefined,
           exclude: undefined,
         })
-      ).thenResolve([{ path: moduleConfig.configPath, hash: "c" }, { path: "b", hash: "b" }, { path: "d", hash: "d" }])
+      ).thenResolve([
+        { path: moduleConfig.configPath, hash: "c" },
+        { path: "b", hash: "b" },
+        { path: "d", hash: "d" },
+      ])
       const version = await handlerA.getTreeVersion(gardenA.log, moduleConfig)
       expect(version.files).to.eql(["b", "d"])
     })

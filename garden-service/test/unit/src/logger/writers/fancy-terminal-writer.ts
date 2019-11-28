@@ -24,7 +24,10 @@ describe("FancyTerminalWriter", () => {
       const lineNumbers = terminalEntries.map((e) => e.lineNumber)
       const spinners = terminalEntries.filter((e) => !!e.spinnerCoords).map((e) => e.spinnerCoords)
       expect(lineNumbers).to.eql([0, 1, 3, 4, 7, 8])
-      expect(spinners).to.eql([[0, 7], [3, 8]])
+      expect(spinners).to.eql([
+        [0, 7],
+        [3, 8],
+      ])
     })
     it("should skip entry if entry level is geq to writer level", () => {
       logger.verbose("")

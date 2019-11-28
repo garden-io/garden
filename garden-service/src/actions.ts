@@ -786,7 +786,7 @@ export class ActionRouter implements TypeGuard {
     defaultHandler?: TaskActionHandlers[T]
   }) {
     let { task, log } = params
-    const runtimeContext = params["runtimeContext"] as (RuntimeContext | undefined)
+    const runtimeContext = params["runtimeContext"] as RuntimeContext | undefined
     let module = omit(task.module, ["_ConfigType"])
 
     log.silly(`Getting ${actionType} handler for task ${module.name}.${task.name}`)

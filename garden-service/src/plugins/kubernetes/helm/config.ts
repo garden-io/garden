@@ -174,7 +174,10 @@ export type HelmService = Service<HelmModule, ContainerModule>
 const parameterValueSchema = joi.alternatives(
   joiPrimitive(),
   joi.array().items(joi.lazy(() => parameterValueSchema)),
-  joi.object().pattern(/.+/, joi.lazy(() => parameterValueSchema))
+  joi.object().pattern(
+    /.+/,
+    joi.lazy(() => parameterValueSchema)
+  )
 )
 
 export const helmModuleOutputsSchema = joi.object().keys({

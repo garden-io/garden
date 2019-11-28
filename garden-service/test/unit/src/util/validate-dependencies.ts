@@ -83,7 +83,11 @@ describe("validate-dependencies", () => {
     })
 
     it("should preserve dependency order when returning cycles", () => {
-      const cycles = detectCycles([{ from: "foo", to: "bar" }, { from: "bar", to: "baz" }, { from: "baz", to: "foo" }])
+      const cycles = detectCycles([
+        { from: "foo", to: "bar" },
+        { from: "bar", to: "baz" },
+        { from: "baz", to: "foo" },
+      ])
 
       expect(cycles).to.deep.eq([["foo", "bar", "baz"]])
     })

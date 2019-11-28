@@ -824,9 +824,9 @@ export class Garden {
 
     if (this.moduleConfigs[key]) {
       const paths = [this.moduleConfigs[key].path, config.path]
-      const [pathA, pathB] = (await Bluebird.map(paths, async (path) =>
-        relative(this.projectRoot, await getConfigFilePath(path))
-      )).sort()
+      const [pathA, pathB] = (
+        await Bluebird.map(paths, async (path) => relative(this.projectRoot, await getConfigFilePath(path)))
+      ).sort()
 
       throw new ConfigurationError(`Module ${key} is declared multiple times (in '${pathA}' and '${pathB}')`, {
         pathA,

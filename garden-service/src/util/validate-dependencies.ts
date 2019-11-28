@@ -52,7 +52,11 @@ export function detectMissingDependencies(
   const runtimeNames: Set<string> = new Set([...serviceNames, ...taskNames])
   const missingDepDescriptions: string[] = []
 
-  const runtimeDepTypes = [["serviceConfigs", "Service"], ["taskConfigs", "Task"], ["testConfigs", "Test"]]
+  const runtimeDepTypes = [
+    ["serviceConfigs", "Service"],
+    ["taskConfigs", "Task"],
+    ["testConfigs", "Test"],
+  ]
 
   for (const m of moduleConfigs) {
     const buildDepKeys = m.build.dependencies.map((d) => getModuleKey(d.name, d.plugin))

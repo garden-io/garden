@@ -158,7 +158,7 @@ export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
       cmd,
       args,
       code: error.exitCode,
-      output: error.all,
+      output: error.all || error.stdout,
       error: error.stderr,
     })
     error.message = message

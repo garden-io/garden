@@ -474,7 +474,10 @@ function resolveModuleDefinition(
     ...spec,
   }
 
-  const moduleBases = getModuleTypeBases(spec, mapValues(definitions, (d) => d.spec))
+  const moduleBases = getModuleTypeBases(
+    spec,
+    mapValues(definitions, (d) => d.spec)
+  )
 
   // Find the nearest base for each configured handler and attach it
   for (const [name, handler] of Object.entries(resolved.handlers)) {

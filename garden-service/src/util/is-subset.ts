@@ -28,7 +28,7 @@
  */
 
 export const isSubset = (superset, subset) => {
-  if (typeof superset !== "object" || superset === null || (typeof subset !== "object" || subset === null)) {
+  if (typeof superset !== "object" || superset === null || typeof subset !== "object" || subset === null) {
     return false
   }
 
