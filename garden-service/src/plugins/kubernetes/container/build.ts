@@ -27,10 +27,9 @@ import { getRegistryHostname } from "../init"
 import { getManifestFromRegistry } from "./util"
 import { normalizeLocalRsyncPath } from "../../../util/fs"
 import { getPortForward } from "../port-forward"
-import chalk from "chalk"
 import { Writable } from "stream"
 import { LogLevel } from "../../../logger/log-node"
-import { exec } from "../../../util/util"
+import { exec, renderOutputStream } from "../../../util/util"
 
 const dockerDaemonDeploymentName = "garden-docker-daemon"
 const dockerDaemonContainerName = "docker-daemon"
@@ -187,7 +186,7 @@ const remoteBuild: BuildHandler = async (params) => {
 
   stdout.on("error", () => {})
   stdout.on("data", (line: Buffer) => {
-    statusLine.setState(chalk.gray("  → " + line.toString().slice(0, 80)))
+    statusLine.setState(renderOutputStream(line.toString()))
   })
 
   if (provider.config.buildMode === "cluster-docker") {

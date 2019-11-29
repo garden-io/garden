@@ -78,7 +78,7 @@ export async function sleep(msec) {
  * Extracting to a separate function so that we can test output streams
  */
 export function renderOutputStream(msg: string) {
-  return chalk.gray("  → " + msg.toString().slice(0, 80))
+  return chalk.gray("  → " + msg)
 }
 
 /**
