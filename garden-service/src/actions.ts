@@ -764,6 +764,7 @@ export class ActionRouter implements TypeGuard {
     const handlerParams = {
       ...(await this.commonParams(handler, log)),
       ...params,
+      service,
       module,
       runtimeContext,
     }
