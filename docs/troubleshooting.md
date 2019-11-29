@@ -11,7 +11,7 @@ _This section could (obviously) use more work. Contributions are most appreciate
 
 This issue often comes up on Linux, and in other scenarios where the filesystem doesn't support event-based file watching.
 
-Thankfully, you can in most cases avoid this problem using the `modules.exclude` field in your project config, and/or the `exclude` field in your individual module configs. See the [Including/excluding files and directories](./using-garden/configuration-files#including-excluding-files-and-directories) section in our Configuration Files guide for details.
+Thankfully, you can in most cases avoid this problem using the `modules.exclude` field in your project config, and/or the `exclude` field in your individual module configs. See the [Including/excluding files and directories](./guides/configuration-files.md#includingexcluding-files-and-directories) section in our Configuration Files guide for details.
 
 ## I'm getting an "EPERM: operation not permitted, rename..." error on Windows
 
