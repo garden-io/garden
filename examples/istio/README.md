@@ -1,6 +1,6 @@
 # Istio example project
 
-This example project demonstrates how to set up [Istio](https://istio.io/), the open-source service mesh, with a Garden project. Below you'll find brief instructions on how to install Istio via [Helm](https://helm.sh). It is recommended that you also look at the [official guide](https://istio.io/docs/setup/kubernetes/quick-start/) for different install options and in-depth explanations.
+This example project demonstrates how to set up [Istio](https://istio.io/), the open-source service mesh, with a Garden project. Below you'll find brief instructions on how to install Istio via [Helm](https://helm.sh). It is recommended that you also look at the [official guide](https://istio.io/docs/setup/getting-started/) for different install options and in-depth explanations.
 
 Note that if you use Garden for other projects, the default Garden ingress controller may conflict with the Istio ingress gateway, even though the Garden ingress controller is disabled for this particular project. See [Step 2](#step-2---change-default-istio-port-optional) below for how to resolve this.
 
