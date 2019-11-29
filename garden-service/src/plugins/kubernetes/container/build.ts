@@ -23,7 +23,7 @@ import { LogEntry } from "../../../logger/log-entry"
 import { KubernetesProvider, ContainerBuildMode, KubernetesPluginContext } from "../config"
 import { PluginError } from "../../../exceptions"
 import { PodRunner } from "../run"
-import { getRegistryHostname } from "../init"
+import { getRegistryHostname, getKubernetesSystemVariables } from "../init"
 import { getManifestFromRegistry } from "./util"
 import { normalizeLocalRsyncPath } from "../../../util/fs"
 import { getPortForward } from "../port-forward"
@@ -36,7 +36,7 @@ const dockerDaemonContainerName = "docker-daemon"
 // Note: v0.9.0 appears to be completely broken: https://github.com/GoogleContainerTools/kaniko/issues/268
 const kanikoImage = "gcr.io/kaniko-project/executor:v0.8.0"
 const registryPort = 5000
-const syncDataVolumeName = "garden-build-sync"
+
 export const buildSyncDeploymentName = "garden-build-sync"
 
 export async function k8sGetContainerBuildStatus(params: GetBuildStatusParams<ContainerModule>): Promise<BuildStatus> {
@@ -313,6 +313,8 @@ async function runKaniko({ provider, log, module, args, outputStream }: RunKanik
   const api = await KubeApi.factory(log, provider)
   const podName = `kaniko-${module.name}-${Math.round(new Date().getTime())}`
   const registryHostname = getRegistryHostname()
+  const k8sSystemVars = getKubernetesSystemVariables(provider.config)
+  const syncDataVolumeName = k8sSystemVars["sync-volume-name"]
 
   const runner = new PodRunner({
     api,
