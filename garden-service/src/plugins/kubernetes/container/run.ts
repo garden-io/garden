@@ -36,7 +36,9 @@ export async function runContainerService({
   timeout,
   log,
 }: RunServiceParams<ContainerModule>): Promise<RunResult> {
-  const { command, args } = service.spec
+  const { command, args, env } = service.spec
+
+  runtimeContext.envVars = { ...runtimeContext.envVars, ...env }
 
   return runContainerModule({
     ctx,
