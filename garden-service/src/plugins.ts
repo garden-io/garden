@@ -83,6 +83,11 @@ export function loadPlugins(log: LogEntry, registeredPlugins: PluginMap, configs
           { registeredPlugins: Object.keys(registeredPlugins), base: plugin.base }
         )
       }
+
+      // Inherit config schema for base if none is specified
+      if (!plugin.configSchema) {
+        plugin.configSchema = base.configSchema
+      }
     }
 
     for (const dep of plugin.dependencies || []) {

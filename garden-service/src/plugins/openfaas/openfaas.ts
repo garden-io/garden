@@ -115,7 +115,7 @@ async function configureProvider({
 }: ConfigureProviderParams<OpenFaasConfig>): Promise<ConfigureProviderResult> {
   const k8sProvider = getK8sProvider(dependencies)
 
-  if (!config.faasNetes.install || config.faasNetes.values) {
+  if (!config.faasNetes?.install || config.faasNetes?.values) {
     // The user is manually configuring faas-netes
     if (!config.gatewayUrl) {
       throw new ConfigurationError(
