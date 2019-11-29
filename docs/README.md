@@ -42,7 +42,6 @@
   * [Providers](./reference/providers/README.md)
     * [Kubernetes](./reference/providers/kubernetes.md)
     * [Local Kubernetes](./reference/providers/local-kubernetes.md)
-    * [Local Openfaas](./reference/providers/local-openfaas.md)
     * [Maven Container](./reference/providers/maven-container.md)
     * [Openfaas](./reference/providers/openfaas.md)
     * [Terraform](./reference/providers/terraform.md)

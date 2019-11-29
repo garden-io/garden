@@ -595,7 +595,6 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
       providers: [
         { name: "local-kubernetes" },
         { name: "kubernetes" },
-        { name: "local-openfaas" },
         { name: "maven-container" },
         { name: "openfaas" },
         { name: "terraform" },
