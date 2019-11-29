@@ -82,7 +82,7 @@ export type ContainerBuildMode = "local-docker" | "cluster-docker" | "kaniko"
 export type DefaultDeploymentStrategy = "rolling"
 export type DeploymentStrategy = DefaultDeploymentStrategy | "blue-green"
 
-export interface KubernetesBaseConfig extends ProviderConfig {
+export interface KubernetesConfig extends ProviderConfig {
   buildMode: ContainerBuildMode
   clusterDocker?: {
     enableBuildKit?: boolean
@@ -90,6 +90,7 @@ export interface KubernetesBaseConfig extends ProviderConfig {
   context: string
   defaultHostname?: string
   defaultUsername?: string
+  deploymentRegistry?: ContainerRegistryConfig
   deploymentStrategy?: DeploymentStrategy
   forceSsl: boolean
   imagePullSecrets: ProviderSecretRef[]
@@ -105,10 +106,6 @@ export interface KubernetesBaseConfig extends ProviderConfig {
   tlsCertificates: IngressTlsCertificate[]
   certManager?: CertManagerConfig
   _systemServices: string[]
-}
-
-export interface KubernetesConfig extends KubernetesBaseConfig {
-  deploymentRegistry?: ContainerRegistryConfig
 }
 
 export type KubernetesProvider = Provider<KubernetesConfig>

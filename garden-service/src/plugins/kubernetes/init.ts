@@ -8,20 +8,15 @@
 
 import { KubeApi, KubernetesError } from "./api"
 import { getAppNamespace, prepareNamespaces, deleteNamespaces, getMetadataNamespace } from "./namespace"
-import { KubernetesPluginContext, KubernetesConfig } from "./config"
+import { KubernetesPluginContext, KubernetesConfig, KubernetesProvider } from "./config"
 import { checkTillerStatus, installTiller } from "./helm/tiller"
-import {
-  prepareSystemServices,
-  getSystemServiceStatus,
-  getSystemGarden,
-  systemNamespaceUpToDate,
-} from "./system"
+import { prepareSystemServices, getSystemServiceStatus, getSystemGarden, systemNamespaceUpToDate } from "./system"
 import { GetEnvironmentStatusParams, EnvironmentStatus } from "../../types/plugin/provider/getEnvironmentStatus"
 import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "../../types/plugin/provider/prepareEnvironment"
 import { CleanupEnvironmentParams } from "../../types/plugin/provider/cleanupEnvironment"
 import { millicpuToString, megabytesToString } from "./util"
 import chalk from "chalk"
-import { deline } from "../../util/string"
+import { deline, dedent } from "../../util/string"
 import { combineStates, ServiceStatusMap } from "../../types/service"
 import {
   setupCertManager,
@@ -30,9 +25,22 @@ import {
   getCertificateName,
 } from "./integrations/cert-manager"
 import { ConfigurationError } from "../../exceptions"
+import Bluebird from "bluebird"
+import { readSecret } from "./secrets"
+import { extend } from "lodash"
+import { dockerAuthSecretName, dockerAuthSecretKey } from "./constants"
+import { V1Secret } from "@kubernetes/client-node"
+import { KubernetesResource } from "./types"
+import { compareDeployedResources } from "./status/status"
 
 // Note: We need to increment a version number here if we ever make breaking changes to the NFS provisioner StatefulSet
 const nfsStorageClassVersion = 2
+
+const dockerAuthSecretType = "kubernetes.io/dockerconfigjson"
+const dockerAuthDocsLink = `
+See https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/ for how to create
+a registry auth secret.
+`
 
 /**
  * Performs the following actions to check environment status:
@@ -139,6 +147,15 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
   const contextForLog = `Checking Garden system service status for plugin "${ctx.provider.name}"`
   const sysNamespaceUpToDate = await systemNamespaceUpToDate(api, log, systemNamespace, contextForLog)
 
+  // Check if builder auth secret is up-to-date
+  let secretsUpToDate = true
+
+  if (provider.config.buildMode !== "local-docker") {
+    const authSecret = await prepareDockerAuth(api, provider)
+    const comparison = await compareDeployedResources(k8sCtx, api, systemNamespace, [authSecret], log)
+    secretsUpToDate = comparison.state === "ready"
+  }
+
   // Get system service statuses
   const systemServiceStatus = await getSystemServiceStatus({
     ctx: k8sCtx,
@@ -148,7 +165,7 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
     serviceNames: systemServiceNames,
   })
 
-  if (!sysNamespaceUpToDate || systemServiceStatus.state !== "ready") {
+  if (!sysNamespaceUpToDate || !secretsUpToDate || systemServiceStatus.state !== "ready") {
     result.ready = false
     detail.systemReady = false
   }
@@ -254,6 +271,12 @@ export async function prepareSystem({
 
   await installTiller({ ctx: sysCtx, provider: sysCtx.provider, log, force })
 
+  if (provider.config.buildMode !== "local-docker") {
+    const api = await KubeApi.factory(log, provider)
+    const authSecret = await prepareDockerAuth(api, provider)
+    await api.upsert("Secret", systemNamespace, authSecret, log)
+  }
+
   // We need to install the NFS provisioner separately, so that we can optionally install it
   // FIXME: when we've added an `enabled` field, we should get rid of this special case
   if (systemServiceNames.includes("nfs-provisioner")) {
@@ -344,4 +367,82 @@ export function getKubernetesSystemVariables(config: KubernetesConfig) {
 export function getRegistryHostname(config: KubernetesConfig) {
   const systemNamespace = config.gardenSystemNamespace
   return `garden-docker-registry.${systemNamespace}.svc.cluster.local`
+}
+async function prepareDockerAuth(api: KubeApi, provider: KubernetesProvider): Promise<KubernetesResource<V1Secret>> {
+  // Read all configured imagePullSecrets and combine into a docker config file to use in the in-cluster builders.
+  const auths: { [name: string]: any } = {}
+
+  await Bluebird.map(provider.config.imagePullSecrets, async (secretRef) => {
+    const secret = await readSecret(api, secretRef)
+
+    if (secret.type !== dockerAuthSecretType) {
+      throw new ConfigurationError(
+        dedent`
+        Configured imagePullSecret '${secret.metadata.name}' does not appear to be a valid registry secret, because
+        it does not have \`type: ${dockerAuthSecretType}\`.
+        ${dockerAuthDocsLink}
+        `,
+        { secretRef }
+      )
+    }
+
+    // Decode the secret
+    const encoded = secret.data && secret.data![dockerAuthSecretKey]
+
+    if (!encoded) {
+      throw new ConfigurationError(
+        dedent`
+        Configured imagePullSecret '${secret.metadata.name}' does not appear to be a valid registry secret, because
+        it does not contain a ${dockerAuthSecretKey} key.
+        ${dockerAuthDocsLink}
+        `,
+        { secretRef }
+      )
+    }
+
+    let decoded: any
+
+    try {
+      decoded = JSON.parse(Buffer.from(encoded, "base64").toString())
+    } catch (err) {
+      throw new ConfigurationError(
+        dedent`
+        Could not parse configured imagePullSecret '${secret.metadata.name}' as a JSON docker authentication file:
+        ${err.message}.
+        ${dockerAuthDocsLink}
+        `,
+        { secretRef }
+      )
+    }
+
+    if (!decoded.auths) {
+      throw new ConfigurationError(
+        dedent`
+        Could not parse configured imagePullSecret '${secret.metadata.name}' as a valid docker authentication file,
+        because it is missing an "auths" key.
+        ${dockerAuthDocsLink}
+        `,
+        { secretRef }
+      )
+    }
+
+    extend(auths, decoded.auths)
+  })
+
+  const config = { auths }
+
+  // Store the config as a Secret (overwriting if necessary)
+  const systemNamespace = provider.config.gardenSystemNamespace
+
+  return {
+    apiVersion: "v1",
+    kind: "Secret",
+    metadata: {
+      name: dockerAuthSecretName,
+      namespace: systemNamespace,
+    },
+    data: {
+      [dockerAuthSecretKey]: Buffer.from(JSON.stringify(config)).toString("base64"),
+    },
+  }
 }

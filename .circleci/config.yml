@@ -100,14 +100,18 @@ commands:
           name: Install gcloud
           command: |
             mkdir $HOME/gcloud
-            curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz | tar xvz -C $HOME/gcloud
+            curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz | tar xz -C $HOME/gcloud
             $HOME/gcloud/google-cloud-sdk/install.sh --quiet
             echo 'export PATH=$HOME/gcloud/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
       - run:
           name: Configure kubectl context via gcloud and authenticate to Google Container Registry
           command: |
-            echo $GCLOUD_SERVICE_KEY | gcloud auth activate-service-account --key-file=-
-            gcloud --quiet config set project $GOOGLE_PROJECT_ID && gcloud --quiet config set compute/zone $GOOGLE_COMPUTE_ZONE
+            export GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcloud-key.json
+            echo "export GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS" >> $BASH_ENV
+            echo $GCLOUD_SERVICE_KEY > $GOOGLE_APPLICATION_CREDENTIALS
+            gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
+            gcloud --quiet config set project $GOOGLE_PROJECT_ID
+            gcloud --quiet config set compute/zone $GOOGLE_COMPUTE_ZONE
             gcloud --quiet container clusters get-credentials $GOOGLE_CLUSTER_ID --zone $GOOGLE_COMPUTE_ZONE
             gcloud --quiet auth configure-docker
 
@@ -363,6 +367,12 @@ jobs:
       GARDEN_LOGGER_TYPE: basic
     steps:
       - checkout
+      - configure_kubectl_context
+      - run:
+          name: Install system dependencies
+          command: |
+            sudo apt-get update
+            sudo apt install nfs-common
       - run:
           name: Update Node.js
           command: |
@@ -418,6 +428,7 @@ jobs:
           name: Setup remote K8s
           command: |
             gcloud auth activate-service-account --key-file=key.json
+            $env:GOOGLE_APPLICATION_CREDENTIALS = (Get-Location) + '\key.json'
             gcloud --quiet config set project $env:GOOGLE_PROJECT_ID
             gcloud --quiet config set compute/zone $env:GOOGLE_COMPUTE_ZONE
             gcloud --quiet container clusters get-credentials $env:GOOGLE_CLUSTER_ID --zone $env:GOOGLE_COMPUTE_ZONE

@@ -31,7 +31,7 @@ import { kubernetesModuleSpecSchema } from "./kubernetes-module/config"
 import { helmModuleSpecSchema, helmModuleOutputsSchema } from "./helm/config"
 import { isNumber } from "util"
 import chalk from "chalk"
-import pluralize = require("pluralize")
+import pluralize from "pluralize"
 import { getSystemMetadataNamespaceName } from "./system"
 
 export async function configureProvider({
@@ -47,6 +47,10 @@ export async function configureProvider({
 
   if (config.setupIngressController === "nginx") {
     config._systemServices.push("ingress-controller", "default-backend")
+
+    if (!config.ingressClass) {
+      config.ingressClass = "nginx"
+    }
   }
 
   if (config.buildMode === "cluster-docker" || config.buildMode === "kaniko") {

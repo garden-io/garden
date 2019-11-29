@@ -29,12 +29,12 @@ spec:
         - name: garden-build-sync
           persistentVolumeClaim:
             claimName: {{ .Values.buildSync.volume.name }}
-        # - name: garden-registry-tls
-        #   secret:
-        #     secretName: foo
-        #     items:
-        #       - key: tls.crt
-        #         path: localhost:5000/ca.crt
+        - name: docker-config
+          secret:
+            secretName: builder-docker-config
+            items:
+              - key: .dockerconfigjson
+                path: config.json
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -60,9 +60,8 @@ spec:
               mountPath: /var/lib/docker
             - name: garden-build-sync
               mountPath: /garden-build
-              # Need to mount the registry cert so that the daemon trusts it
-            # - name: garden-registry-tls
-            #   mountPath: /etc/docker/certs.d
+            - name: docker-config
+              mountPath: /root/.docker
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
         - name: proxy

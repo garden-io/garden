@@ -194,7 +194,7 @@ export async function createContainerManifests(
   const { production } = ctx
   const namespace = await getAppNamespace(k8sCtx, log, provider)
   const api = await KubeApi.factory(log, provider)
-  const ingresses = await createIngressResources(api, provider, namespace, service)
+  const ingresses = await createIngressResources(api, provider, namespace, service, log)
   const workload = await createWorkloadResource({
     provider,
     service,
