@@ -15,7 +15,6 @@ import {
   getSystemServiceStatus,
   getSystemGarden,
   systemNamespaceUpToDate,
-  systemNamespace,
 } from "./system"
 import { GetEnvironmentStatusParams, EnvironmentStatus } from "../../types/plugin/provider/getEnvironmentStatus"
 import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "../../types/plugin/provider/prepareEnvironment"
@@ -33,7 +32,7 @@ import {
 import { ConfigurationError } from "../../exceptions"
 
 // Note: We need to increment a version number here if we ever make breaking changes to the NFS provisioner StatefulSet
-const nfsStorageClass = "garden-system-nfs-v2"
+const nfsStorageClassVersion = 2
 
 /**
  * Performs the following actions to check environment status:
@@ -57,6 +56,7 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
   }
 
   const systemServiceNames = k8sCtx.provider.config._systemServices
+  const systemNamespace = ctx.provider.config.gardenSystemNamespace
 
   const detail = {
     projectReady,
@@ -248,6 +248,7 @@ export async function prepareSystem({
   const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
   const sysProvider = await sysGarden.resolveProvider(k8sCtx.provider.name)
   const sysCtx = <KubernetesPluginContext>sysGarden.getPluginContext(sysProvider)
+  const systemNamespace = ctx.provider.config.gardenSystemNamespace
 
   await sysGarden.clearBuilds()
 
@@ -298,12 +299,14 @@ export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams)
 }
 
 export function getKubernetesSystemVariables(config: KubernetesConfig) {
+  const nfsStorageClass = `${config.gardenSystemNamespace}-nfs-v${nfsStorageClassVersion}`
   const syncStorageClass = config.storage.sync.storageClass || nfsStorageClass
+  const systemNamespace = config.gardenSystemNamespace
 
   return {
     "namespace": systemNamespace,
 
-    "registry-hostname": getRegistryHostname(),
+    "registry-hostname": getRegistryHostname(config),
     "builder-mode": config.buildMode,
 
     "builder-limits-cpu": millicpuToString(config.resources.builder.limits.cpu),
@@ -338,6 +341,7 @@ export function getKubernetesSystemVariables(config: KubernetesConfig) {
   }
 }
 
-export function getRegistryHostname() {
+export function getRegistryHostname(config: KubernetesConfig) {
+  const systemNamespace = config.gardenSystemNamespace
   return `garden-docker-registry.${systemNamespace}.svc.cluster.local`
 }

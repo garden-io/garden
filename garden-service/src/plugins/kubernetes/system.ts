@@ -34,8 +34,11 @@ const SYSTEM_NAMESPACE_MIN_VERSION = "0.9.0"
 
 const systemProjectPath = join(STATIC_DIR, "kubernetes", "system")
 
-export const systemNamespace = "garden-system"
-export const systemMetadataNamespace = "garden-system--metadata"
+export const defaultSystemNamespace = "garden-system"
+
+export function getSystemMetadataNamespaceName(config: KubernetesConfig) {
+  return `${config.gardenSystemNamespace}--metadata`
+}
 
 /**
  * Note that we initialise system Garden with a custom Garden dir path. This is because
@@ -48,6 +51,8 @@ export async function getSystemGarden(
   variables: PrimitiveMap,
   log: LogEntry
 ): Promise<Garden> {
+  const systemNamespace = ctx.provider.config.gardenSystemNamespace
+
   const sysProvider: KubernetesConfig = {
     ...ctx.provider.config,
     environments: ["default"],
@@ -73,7 +78,7 @@ export async function getSystemGarden(
     },
     commandInfo: ctx.command,
     log: log.debug({
-      section: "garden-system",
+      section: "garden system",
       msg: "Initializing...",
       status: "active",
       indent: 1,

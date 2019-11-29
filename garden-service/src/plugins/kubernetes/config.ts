@@ -13,6 +13,7 @@ import { Provider, providerConfigBaseSchema, ProviderConfig } from "../../config
 import { containerRegistryConfigSchema, ContainerRegistryConfig } from "../container/config"
 import { PluginContext } from "../../plugin-context"
 import { deline } from "../../util/string"
+import { defaultSystemNamespace } from "./system"
 
 export interface ProviderSecretRef {
   name: string
@@ -100,6 +101,7 @@ export interface KubernetesBaseConfig extends ProviderConfig {
   registryProxyTolerations: Toleration[]
   resources: KubernetesResources
   storage: KubernetesStorage
+  gardenSystemNamespace: string
   tlsCertificates: IngressTlsCertificate[]
   certManager?: CertManagerConfig
   _systemServices: string[]
@@ -345,6 +347,16 @@ export const kubernetesConfigBase = providerConfigBaseSchema.keys({
       "Require SSL on all `container` module services. If set to true, an error is raised when no certificate " +
         "is available for a configured hostname on a `container` module."
     ),
+  gardenSystemNamespace: joi
+    .string()
+    .default(defaultSystemNamespace)
+    .description(
+      dedent`
+      Override the garden-system namespace name. This option is mainly used for testing.
+      In most cases you should leave the default value.
+      `
+    )
+    .meta({ internal: true }),
   imagePullSecrets: imagePullSecretsSchema,
   // TODO: invert the resources and storage config schemas
   resources: joi

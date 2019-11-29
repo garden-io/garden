@@ -152,6 +152,7 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
     deploymentRegistry,
     deploymentStrategy,
     forceSsl: false,
+    gardenSystemNamespace: config.gardenSystemNamespace,
     imagePullSecrets: config.imagePullSecrets,
     ingressHttpPort: 80,
     ingressHttpsPort: 443,

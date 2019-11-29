@@ -14,16 +14,12 @@ import { ModuleVersion } from "../../vcs/vcs"
 import { HelmModule } from "./helm/config"
 import { PluginContext } from "../../plugin-context"
 import { KubernetesPluginContext } from "./config"
-import { systemMetadataNamespace } from "./system"
 import { LogEntry } from "../../logger/log-entry"
 import { GetTestResultParams, TestResult } from "../../types/plugin/module/getTestResult"
 import hasha from "hasha"
 import { gardenAnnotationKey } from "../../util/string"
 import { upsertConfigMap } from "./util"
 import { trimRunOutput } from "./helm/common"
-import { ensureNamespace } from "./namespace"
-
-const testResultNamespace = systemMetadataNamespace
 
 export async function getTestResult({
   ctx,
@@ -34,7 +30,8 @@ export async function getTestResult({
 }: GetTestResultParams<ContainerModule | HelmModule>): Promise<TestResult | null> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, k8sCtx.provider)
-  await ensureNamespace(api, testResultNamespace)
+  const testResultNamespace = k8sCtx.provider.config.gardenSystemNamespace
+
   const resultKey = getTestResultKey(k8sCtx, module, testName, testVersion)
 
   try {
@@ -94,7 +91,7 @@ export async function storeTestResult({
 }: StoreTestResultParams): Promise<TestResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, k8sCtx.provider)
-  await ensureNamespace(api, testResultNamespace)
+  const testResultNamespace = k8sCtx.provider.config.gardenSystemNamespace
 
   const data: TestResult = trimRunOutput(result)
 

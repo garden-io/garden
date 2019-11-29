@@ -10,7 +10,7 @@ version: 0.25.1
 values:
   name: ingress-controller
   controller:
-    defaultBackendService: garden-system/default-backend
+    defaultBackendService: ${var.namespace}/default-backend
     kind: DaemonSet
     daemonset:
       useHostPort: true

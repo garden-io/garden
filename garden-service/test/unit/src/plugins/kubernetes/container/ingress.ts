@@ -21,6 +21,7 @@ import {
   ContainerService,
   ContainerServiceSpec,
 } from "../../../../../../src/plugins/container/config"
+import { defaultSystemNamespace } from "../../../../../../src/plugins/kubernetes/system"
 
 const kubeConfigEnvVar = process.env.KUBECONFIG
 const namespace = "my-namespace"
@@ -44,6 +45,7 @@ const basicConfig: KubernetesConfig = {
     namespace: "boo",
   },
   forceSsl: false,
+  gardenSystemNamespace: defaultSystemNamespace,
   imagePullSecrets: [],
   ingressClass: "nginx",
   ingressHttpPort: 80,
