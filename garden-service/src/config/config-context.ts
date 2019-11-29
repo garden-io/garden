@@ -315,7 +315,17 @@ export class ProviderConfigContext extends ProjectConfigContext {
   )
   public providers: Map<string, ProviderContext>
 
-  constructor(garden: Garden, resolvedProviders: Provider[]) {
+  @schema(
+    joiIdentifierMap(joiPrimitive())
+      .description("A map of all variables defined in the project configuration.")
+      .example({ "team-name": "bananaramallama", "some-service-endpoint": "https://someservice.com/api/v2" })
+  )
+  public variables: PrimitiveMap
+
+  @schema(joiIdentifierMap(joiPrimitive()).description("Alias for the variables field."))
+  public var: PrimitiveMap
+
+  constructor(garden: Garden, resolvedProviders: Provider[], variables: PrimitiveMap) {
     super(garden.artifactsPath)
     const _this = this
 
@@ -325,6 +335,8 @@ export class ProviderConfigContext extends ProjectConfigContext {
     this.providers = new Map(
       resolvedProviders.map((p) => <[string, ProviderContext]>[p.name, new ProviderContext(_this, p)])
     )
+
+    this.var = this.variables = variables
   }
 }
 
@@ -494,16 +506,6 @@ export class ModuleConfigContext extends ProviderConfigContext {
   )
   public runtime: RuntimeConfigContext
 
-  @schema(
-    joiIdentifierMap(joiPrimitive())
-      .description("A map of all variables defined in the project configuration.")
-      .example({ "team-name": "bananaramallama", "some-service-endpoint": "https://someservice.com/api/v2" })
-  )
-  public variables: PrimitiveMap
-
-  @schema(joiIdentifierMap(joiPrimitive()).description("Alias for the variables field."))
-  public var: PrimitiveMap
-
   constructor(
     garden: Garden,
     resolvedProviders: Provider[],
@@ -513,7 +515,7 @@ export class ModuleConfigContext extends ProviderConfigContext {
     // Otherwise we pass `${runtime.*} template strings through for later resolution.
     runtimeContext?: RuntimeContext
   ) {
-    super(garden, resolvedProviders)
+    super(garden, resolvedProviders, variables)
 
     const _this = this
 
@@ -540,7 +542,5 @@ export class ModuleConfigContext extends ProviderConfigContext {
     )
 
     this.runtime = new RuntimeConfigContext(this, runtimeContext)
-
-    this.var = this.variables = variables
   }
 }
