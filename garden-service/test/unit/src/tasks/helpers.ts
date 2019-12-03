@@ -58,6 +58,7 @@ describe("TaskHelpers", () => {
           "build.build-dependency",
           "build.good-morning",
           "get-service-status.good-morning",
+          "stage-build.good-morning",
           "task.good-morning-task",
         ].sort()
       )

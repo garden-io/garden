@@ -12,6 +12,7 @@ import { Service, ServiceStatus } from "../types/service"
 import { Garden } from "../garden"
 import { ConfigGraph } from "../config-graph"
 import { TaskResults, TaskResult } from "../task-graph"
+import { StageBuildTask } from "./stage-build"
 
 export interface DeleteServiceTaskParams {
   garden: Garden
@@ -36,14 +37,21 @@ export class DeleteServiceTask extends BaseTask {
   }
 
   async getDependencies() {
+    const stageBuildTask = new StageBuildTask({
+      garden: this.garden,
+      log: this.log,
+      module: this.service.module,
+      force: this.force,
+    })
+
     if (!this.includeDependants) {
-      return []
+      return [stageBuildTask]
     }
 
     // Note: We delete in _reverse_ dependency order, so we query for dependants
     const deps = await this.graph.getDependants("service", this.getName(), false)
 
-    return deps.service.map((service) => {
+    const dependants = deps.service.map((service) => {
       return new DeleteServiceTask({
         garden: this.garden,
         graph: this.graph,
@@ -52,6 +60,8 @@ export class DeleteServiceTask extends BaseTask {
         includeDependants: this.includeDependants,
       })
     })
+
+    return [stageBuildTask, ...dependants]
   }
 
   getName() {

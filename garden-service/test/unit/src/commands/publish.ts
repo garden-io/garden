@@ -79,6 +79,8 @@ describe("PublishCommand", () => {
       "publish.module-a": { published: true },
       "publish.module-b": { published: true },
       "publish.module-c": { published: false },
+      "stage-build.module-a": {},
+      "stage-build.module-b": {},
     })
   })
 
@@ -107,6 +109,8 @@ describe("PublishCommand", () => {
       "publish.module-a": { published: true },
       "publish.module-b": { published: true },
       "publish.module-c": { published: false },
+      "stage-build.module-a": {},
+      "stage-build.module-b": {},
     })
   })
 
@@ -132,6 +136,7 @@ describe("PublishCommand", () => {
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: false },
       "publish.module-a": { published: true },
+      "stage-build.module-a": {},
     })
   })
 
@@ -189,6 +194,7 @@ describe("PublishCommand", () => {
         published: false,
         message: chalk.yellow("No publish handler available for module type test"),
       },
+      "stage-build.module-a": {},
     })
   })
 })

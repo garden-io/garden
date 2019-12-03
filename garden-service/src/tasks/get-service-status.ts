@@ -16,6 +16,7 @@ import { TaskResults } from "../task-graph"
 import { prepareRuntimeContext } from "../runtime-context"
 import { getTaskVersion, TaskTask } from "./task"
 import Bluebird from "bluebird"
+import { StageBuildTask } from "./stage-build"
 
 export interface GetServiceStatusTaskParams {
   garden: Garden
@@ -43,6 +44,13 @@ export class GetServiceStatusTask extends BaseTask {
   async getDependencies() {
     const deps = await this.graph.getDependencies("service", this.getName(), false)
 
+    const stageBuildTask = new StageBuildTask({
+      garden: this.garden,
+      log: this.log,
+      module: this.service.module,
+      force: this.force,
+    })
+
     const statusTasks = deps.service.map((service) => {
       return new GetServiceStatusTask({
         garden: this.garden,
@@ -66,7 +74,7 @@ export class GetServiceStatusTask extends BaseTask {
       })
     })
 
-    return [...statusTasks, ...taskTasks]
+    return [stageBuildTask, ...statusTasks, ...taskTasks]
   }
 
   getName() {
@@ -97,11 +105,6 @@ export class GetServiceStatusTask extends BaseTask {
     })
 
     const actions = await this.garden.getActionRouter()
-
-    // Some handlers expect builds to have been staged when resolving services statuses.
-    const graph = await this.garden.getConfigGraph()
-    await this.garden.buildDir.syncFromSrc(this.service.module, log)
-    await this.garden.buildDir.syncDependencyProducts(this.service.module, graph, log)
 
     let status = await actions.getServiceStatus({
       service: this.service,
