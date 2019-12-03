@@ -71,32 +71,28 @@ export class DeployTask extends BaseTask {
       (depNode) => !(depNode.type === "service" && includes(this.hotReloadServiceNames, depNode.name))
     )
 
-    const tasks: BaseTask[] = deps.service.map((service) => {
-      return new DeployTask({
-        garden: this.garden,
-        graph: this.graph,
-        log: this.log,
-        service,
-        force: false,
-        forceBuild: this.forceBuild,
-        fromWatch: this.fromWatch,
-        hotReloadServiceNames: this.hotReloadServiceNames,
-      })
+    const statusTask = new GetServiceStatusTask({
+      garden: this.garden,
+      graph: this.graph,
+      log: this.log,
+      service: this.service,
+      force: false,
+      hotReloadServiceNames: this.hotReloadServiceNames,
     })
-
-    tasks.push(
-      new GetServiceStatusTask({
-        garden: this.garden,
-        graph: this.graph,
-        log: this.log,
-        service: this.service,
-        force: false,
-        hotReloadServiceNames: this.hotReloadServiceNames,
-      })
-    )
 
     if (this.fromWatch && includes(this.hotReloadServiceNames, this.service.name)) {
       // Only need to get existing statuses and results when hot-reloading
+      const dependencyStatusTasks = deps.service.map((service) => {
+        return new GetServiceStatusTask({
+          garden: this.garden,
+          graph: this.graph,
+          log: this.log,
+          service,
+          force: false,
+          hotReloadServiceNames: this.hotReloadServiceNames,
+        })
+      })
+
       const taskResultTasks = await Bluebird.map(deps.task, async (task) => {
         return new GetTaskResultTask({
           garden: this.garden,
@@ -107,8 +103,21 @@ export class DeployTask extends BaseTask {
         })
       })
 
-      return [...tasks, ...taskResultTasks]
+      return [statusTask, ...dependencyStatusTasks, ...taskResultTasks]
     } else {
+      const deployTasks = deps.service.map((service) => {
+        return new DeployTask({
+          garden: this.garden,
+          graph: this.graph,
+          log: this.log,
+          service,
+          force: false,
+          forceBuild: this.forceBuild,
+          fromWatch: this.fromWatch,
+          hotReloadServiceNames: this.hotReloadServiceNames,
+        })
+      })
+
       const taskTasks = await Bluebird.map(deps.task, (task) => {
         return TaskTask.factory({
           task,
@@ -129,7 +138,7 @@ export class DeployTask extends BaseTask {
         hotReloadServiceNames: this.hotReloadServiceNames,
       })
 
-      return [...tasks, ...taskTasks, buildTask]
+      return [statusTask, ...deployTasks, ...taskTasks, buildTask]
     }
   }
 
