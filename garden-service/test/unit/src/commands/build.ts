@@ -23,6 +23,9 @@ describe("commands.build", () => {
       "build.module-a": { fresh: true, buildLog: "A" },
       "build.module-b": { fresh: true, buildLog: "B" },
       "build.module-c": {},
+      "stage-build.module-a": {},
+      "stage-build.module-b": {},
+      "stage-build.module-c": {},
     })
   })
 
@@ -44,6 +47,8 @@ describe("commands.build", () => {
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: true, buildLog: "A" },
       "build.module-b": { fresh: true, buildLog: "B" },
+      "stage-build.module-a": {},
+      "stage-build.module-b": {},
     })
   })
 })

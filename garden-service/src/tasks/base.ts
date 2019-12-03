@@ -25,6 +25,7 @@ export type TaskType =
   | "hot-reload"
   | "publish"
   | "resolve-provider"
+  | "stage-build"
   | "task"
   | "test"
 

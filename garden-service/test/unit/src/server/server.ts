@@ -98,6 +98,7 @@ describe("startServer", () => {
           buildLog: "A",
           fresh: true,
         },
+        "stage-build.module-a": {},
       })
     })
   })
@@ -243,6 +244,7 @@ describe("startServer", () => {
               buildLog: "A",
               fresh: true,
             },
+            "stage-build.module-a": {},
           },
         })
         done()
