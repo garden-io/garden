@@ -20,35 +20,14 @@ import { parseLogLevel } from "../cli/helpers"
 export type LoggerType = "quiet" | "basic" | "fancy" | "json"
 export const LOGGER_TYPES = new Set<LoggerType>(["quiet", "basic", "fancy", "json"])
 
-export function getLoggerConfig(loggerType: LoggerType): LoggerConfig {
-  const configs: { [key in LoggerType]: LoggerConfig } = {
-    quiet: {
-      level: LogLevel.info,
-    },
-    basic: {
-      level: LogLevel.info,
-      writers: [new BasicTerminalWriter()],
-    },
-    fancy: {
-      level: LogLevel.info,
-      writers: [new FancyTerminalWriter()],
-    },
-    json: {
-      level: LogLevel.info,
-      writers: [new JsonTerminalWriter()],
-    },
-  }
-  return configs[loggerType]
-}
-
-export function getWriterInstance(loggerType: LoggerType) {
+export function getWriterInstance(loggerType: LoggerType, level: LogLevel) {
   switch (loggerType) {
     case "basic":
-      return new BasicTerminalWriter()
+      return new BasicTerminalWriter(level)
     case "fancy":
-      return new FancyTerminalWriter()
+      return new FancyTerminalWriter(level)
     case "json":
-      return new JsonTerminalWriter()
+      return new JsonTerminalWriter(level)
     case "quiet":
       return undefined
   }
@@ -102,7 +81,7 @@ export class Logger extends LogNode {
         })
       }
 
-      const writer = getWriterInstance(loggerType)
+      const writer = getWriterInstance(loggerType, config.level)
       instance = new Logger({
         writers: writer ? [writer] : undefined,
         level: config.level,
@@ -132,7 +111,11 @@ export class Logger extends LogNode {
   }
 
   onGraphChange(entry: LogEntry) {
-    this.writers.forEach((writer) => writer.onGraphChange(entry, this))
+    for (const writer of this.writers) {
+      if (entry.level <= writer.level) {
+        writer.onGraphChange(entry, this)
+      }
+    }
   }
 
   getLogEntries(): LogEntry[] {

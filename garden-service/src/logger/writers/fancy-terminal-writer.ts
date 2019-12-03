@@ -42,6 +42,8 @@ export interface CustomStream extends NodeJS.WriteStream {
 }
 
 export class FancyTerminalWriter extends Writer {
+  type = "fancy"
+
   private spinners: { [key: string]: Function }
   private intervalID: NodeJS.Timer | null
   private stream: CustomStream
@@ -49,10 +51,8 @@ export class FancyTerminalWriter extends Writer {
   private lastInterceptAt: number | null
   private updatePending: boolean
 
-  public level: LogLevel
-
-  constructor() {
-    super()
+  constructor(level: LogLevel = LogLevel.info) {
+    super(level)
     this.intervalID = null
     this.spinners = {} // Each entry has it's own spinner
     this.prevOutput = []

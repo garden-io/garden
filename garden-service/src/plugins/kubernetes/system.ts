@@ -233,7 +233,7 @@ export async function prepareSystemServices({
     if (failed.length === 1) {
       const error = errors[0]
 
-      throw new PluginError(`${provider.name}—an error occurred when configuring environment:\n${error}`, {
+      throw new PluginError(`${provider.name} — an error occurred when configuring environment:\n${error}`, {
         error,
         results,
       })

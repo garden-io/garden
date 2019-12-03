@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogLevel } from "../log-node"
 import { LogEntry, LogEntryMetadata } from "../log-entry"
 import { Logger } from "../logger"
 import { Writer } from "./base"
@@ -21,7 +20,7 @@ export interface JsonLogEntry {
 }
 
 export class JsonTerminalWriter extends Writer {
-  public level: LogLevel
+  type = "json"
 
   render(entry: LogEntry, logger: Logger): string | null {
     const level = this.level || logger.level

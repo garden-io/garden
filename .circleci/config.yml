@@ -315,7 +315,7 @@ jobs:
       - run:
           name: Deploy demo-project with binary
           # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
-          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist garden-service/dist/linux-amd64/garden deploy --root examples/demo-project --env testing --logger-type basic
+          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist garden-service/dist/linux-amd64/garden deploy --root examples/demo-project --env remote --logger-type basic
       - run:
           name: Cleanup
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist kubectl delete --wait=false $(kubectl get ns -o name | grep testing-$CIRCLE_BUILD_NUM) || true
@@ -398,10 +398,10 @@ jobs:
           command: $env:CIRCLE_BUILD_NUM = "$env:CIRCLE_BUILD_NUM-win"
       - run:
           name: Build demo-project
-          command: .\garden-service\dist\windows-amd64\garden.exe build --root .\examples\demo-project\ --logger-type basic --env testing
+          command: .\garden-service\dist\windows-amd64\garden.exe build --root .\examples\demo-project\ --logger-type basic --env remote
       - run:
           name: Deploy demo-project
-          command: .\garden-service\dist\windows-amd64\garden.exe deploy --root .\examples\demo-project\ --logger-type basic --env testing
+          command: .\garden-service\dist\windows-amd64\garden.exe deploy --root .\examples\demo-project\ --logger-type basic --env remote
       - run:
           name: Cleanup
           command: (kubectl delete namespace --wait=false demo-project-testing-$env:CIRCLE_BUILD_NUM demo-project-testing-$env:CIRCLE_BUILD_NUM--metadata) -or $true
