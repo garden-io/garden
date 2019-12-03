@@ -8,12 +8,12 @@
 
 import Bluebird from "bluebird"
 import chalk from "chalk"
-import pluralize = require("pluralize")
 import { Module, getModuleKey } from "../types/module"
 import { BuildResult } from "../types/plugin/module/build"
 import { BaseTask, TaskType } from "../tasks/base"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
+import { StageBuildTask } from "./stage-build"
 
 export interface BuildTaskParams {
   garden: Garden
@@ -42,7 +42,14 @@ export class BuildTask extends BaseTask {
     const dg = await this.garden.getConfigGraph()
     const deps = (await dg.getDependencies("build", this.getName(), false)).build
 
-    return Bluebird.map(deps, async (m: Module) => {
+    const stageBuildTask = new StageBuildTask({
+      garden: this.garden,
+      log: this.log,
+      module: this.module,
+      force: this.force,
+    })
+
+    const buildTasks = await Bluebird.map(deps, async (m: Module) => {
       return new BuildTask({
         garden: this.garden,
         log: this.log,
@@ -52,6 +59,8 @@ export class BuildTask extends BaseTask {
         hotReloadServiceNames: this.hotReloadServiceNames,
       })
     })
+
+    return [stageBuildTask, ...buildTasks]
   }
 
   getName() {
@@ -66,27 +75,24 @@ export class BuildTask extends BaseTask {
     const module = this.module
     const actions = await this.garden.getActionRouter()
 
-    const log = this.log.info({
-      section: this.getName(),
-      msg: `Preparing build (${pluralize("file", module.version.files.length, true)})...`,
-      status: "active",
-    })
+    let log: LogEntry
 
     const logSuccess = () => {
-      log.setSuccess({
-        msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
-        append: true,
-      })
+      if (log) {
+        log.setSuccess({
+          msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
+          append: true,
+        })
+      }
     }
 
-    const graph = await this.garden.getConfigGraph()
-    await this.garden.buildDir.syncFromSrc(this.module, log)
-    await this.garden.buildDir.syncDependencyProducts(this.module, graph, log)
-
     if (!this.force) {
-      log.setState({
+      log = this.log.info({
+        section: this.getName(),
         msg: `Getting build status for ${module.version.versionString}...`,
+        status: "active",
       })
+
       const status = await actions.getBuildStatus({ log: this.log, module })
 
       if (status.ready) {
@@ -95,7 +101,11 @@ export class BuildTask extends BaseTask {
       }
     }
 
-    log.setState({ msg: `Building version ${module.version.versionString}...` })
+    log = this.log.info({
+      section: this.getName(),
+      msg: `Building version ${module.version.versionString}...`,
+      status: "active",
+    })
 
     let result: BuildResult
     try {
