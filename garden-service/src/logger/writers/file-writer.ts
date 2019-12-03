@@ -48,13 +48,14 @@ export function render(level: LogLevel, entry: LogEntry): string | null {
 }
 
 export class FileWriter extends Writer {
+  type = "file"
+
   private fileLogger: winston.Logger | null
   private logFilePath: string
   private fileTransportOptions: FileTransportOptions
-  public level: LogLevel
 
   constructor(logFilePath: string, config: FileWriterConfig) {
-    super()
+    super(config.level)
 
     const { fileTransportOptions = DEFAULT_FILE_TRANSPORT_OPTIONS, level } = config
     this.level = level

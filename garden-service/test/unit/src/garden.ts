@@ -630,6 +630,26 @@ describe("Garden", () => {
         expect(parsed.handlers!.configureProvider!.base!.base).to.be.undefined
       })
 
+      it("should inherit config schema from base, if none is specified", async () => {
+        const base = {
+          name: "base",
+          configSchema: joi.object({ foo: joi.string().default("bar") }),
+        }
+        const foo = {
+          name: "foo",
+          base: "base",
+        }
+
+        const garden = await Garden.factory(pathFoo, {
+          plugins: [base, foo],
+          config: projectConfigFoo,
+        })
+
+        const parsed = await garden.getPlugin("foo")
+
+        expect(parsed.configSchema).to.eql(base.configSchema)
+      })
+
       it("should combine commands from both plugins and attach base handler when overriding", async () => {
         const base = {
           name: "base",
@@ -1855,8 +1875,7 @@ describe("Garden", () => {
           (err) => {
             expect(err.message).to.equal("Failed resolving one or more providers:\n" + "- test")
             expect(stripAnsi(err.detail.messages[0])).to.equal(
-              "- test: Error validating provider configuration (base schema from 'base' plugin) " +
-                "(/garden.yml): key .foo must be a string"
+              "- test: Error validating provider configuration (/garden.yml): key .foo must be a string"
             )
           }
         )
@@ -1873,6 +1892,7 @@ describe("Garden", () => {
         const test = createGardenPlugin({
           name: "test",
           base: "base",
+          configSchema: joi.object(),
           handlers: {
             configureProvider: async () => ({
               config: { name: "test", foo: 123 },

@@ -12,6 +12,8 @@ import { Logger } from "../logger"
 import { Writer } from "./base"
 
 export class BasicTerminalWriter extends Writer {
+  type = "basic"
+
   render(entry: LogEntry, logger: Logger): string | null {
     return basicRender(entry, logger)
   }

@@ -27,6 +27,7 @@ import { combineStates } from "../../types/service"
 import { KubernetesResource } from "./types"
 import { defaultDotIgnoreFiles } from "../../util/fs"
 import { HelmServiceStatus } from "./helm/status"
+import { LogLevel } from "../../logger/log-node"
 
 const GARDEN_VERSION = getPackageVersion()
 const SYSTEM_NAMESPACE_MIN_VERSION = "0.9.0"
@@ -156,7 +157,10 @@ export async function getSystemServiceStatus({
 
   const actions = await sysGarden.getActionRouter()
 
-  const serviceStatuses = await actions.getServiceStatuses({ log, serviceNames })
+  const serviceStatuses = await actions.getServiceStatuses({
+    log: log.placeholder(LogLevel.verbose, true),
+    serviceNames,
+  })
   const state = combineStates(values(serviceStatuses).map((s) => (s && s.state) || "unknown"))
 
   // Add the Kubernetes dashboard to the Garden dashboard
@@ -229,7 +233,7 @@ export async function prepareSystemServices({
     if (failed.length === 1) {
       const error = errors[0]
 
-      throw new PluginError(`${provider.name}—an error occurred when configuring environment:\n${error}`, {
+      throw new PluginError(`${provider.name} — an error occurred when configuring environment:\n${error}`, {
         error,
         results,
       })

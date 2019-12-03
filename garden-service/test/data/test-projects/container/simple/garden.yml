@@ -2,6 +2,13 @@ kind: Module
 name: simple
 type: container
 image: busybox
+services:
+  - name: echo-service
+    command: [sh, -c, "echo ok"]
+  - name: env-service
+    command: [sh, -c, "echo $ENV_VAR"]
+    env:
+      ENV_VAR: foo
 tasks:
   - name: echo-task
     command: [sh, -c, "echo ok"]
