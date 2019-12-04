@@ -144,6 +144,22 @@ project:
 #       clusterHostname: my-cluster.example.com
 #
 providers: {}
+
+# A map of all variables defined in the project configuration.
+#
+# Type: object
+#
+# Example:
+#   team-name: bananaramallama
+#   some-service-endpoint: 'https://someservice.com/api/v2'
+#
+variables: {}
+
+# Alias for the variables field.
+#
+# Type: object
+#
+var: {}
 ```
 
 ## Module configuration context
@@ -226,6 +242,22 @@ project:
 #
 providers: {}
 
+# A map of all variables defined in the project configuration.
+#
+# Type: object
+#
+# Example:
+#   team-name: bananaramallama
+#   some-service-endpoint: 'https://someservice.com/api/v2'
+#
+variables: {}
+
+# Alias for the variables field.
+#
+# Type: object
+#
+var: {}
+
 # Retrieve information about modules that are defined in the project.
 #
 # Type: object
@@ -266,20 +298,4 @@ runtime:
   #       some-key: some value
   #
   tasks: {}
-
-# A map of all variables defined in the project configuration.
-#
-# Type: object
-#
-# Example:
-#   team-name: bananaramallama
-#   some-service-endpoint: 'https://someservice.com/api/v2'
-#
-variables: {}
-
-# Alias for the variables field.
-#
-# Type: object
-#
-var: {}
 ```

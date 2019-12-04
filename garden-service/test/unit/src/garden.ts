@@ -1722,6 +1722,31 @@ describe("Garden", () => {
       expect(providerB.config.foo).to.equal("bar")
     })
 
+    it("should allow providers to reference variables", async () => {
+      const testA = createGardenPlugin({
+        name: "test-a",
+      })
+
+      const projectConfig: ProjectConfig = {
+        apiVersion: "garden.io/v0",
+        kind: "Project",
+        name: "test",
+        path: projectRootA,
+        defaultEnvironment: "default",
+        dotIgnoreFiles: defaultDotIgnoreFiles,
+        environments: [{ name: "default", variables: { "my-variable": "bar" } }],
+        providers: [{ name: "test-a", foo: "${var.my-variable}" }],
+        variables: {},
+      }
+
+      const plugins = [testA]
+      const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins })
+
+      const providerB = await garden.resolveProvider("test-a")
+
+      expect(providerB.config.foo).to.equal("bar")
+    })
+
     it("should match a dependency to a plugin base", async () => {
       const baseA = createGardenPlugin({
         name: "base-a",
