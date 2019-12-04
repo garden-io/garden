@@ -3,6 +3,7 @@ import { loadConfig, findProjectConfig } from "../../../../src/config/base"
 import { resolve } from "path"
 import { dataDir, expectError, getDataDir } from "../../../helpers"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
+import stripAnsi = require("strip-ansi")
 
 const projectPathA = resolve(dataDir, "test-project-a")
 const modulePathA = resolve(projectPathA, "module-a")
@@ -28,6 +29,40 @@ describe("loadConfig", () => {
       async () => await loadConfig(projectPath, resolve(projectPath, "invalid-syntax-module")),
       (err) => {
         expect(err.message).to.match(/Could not parse/)
+      }
+    )
+  })
+
+  it("should throw if a config doesn't specify a kind", async () => {
+    const projectPath = resolve(dataDir, "test-project-invalid-config")
+    await expectError(
+      async () => await loadConfig(projectPath, resolve(projectPath, "missing-kind")),
+      (err) => {
+        expect(err.message).to.equal("Missing `kind` field in config at missing-kind/garden.yml")
+      }
+    )
+  })
+
+  it("should throw if a module config doesn't specify a type", async () => {
+    const projectPath = resolve(dataDir, "test-project-invalid-config")
+    await expectError(
+      async () => await loadConfig(projectPath, resolve(projectPath, "missing-type")),
+      (err) => {
+        expect(stripAnsi(err.message)).to.equal(
+          "Error validating module (missing-type/garden.yml): key .type is required"
+        )
+      }
+    )
+  })
+
+  it("should throw if a module config doesn't specify a name", async () => {
+    const projectPath = resolve(dataDir, "test-project-invalid-config")
+    await expectError(
+      async () => await loadConfig(projectPath, resolve(projectPath, "missing-name")),
+      (err) => {
+        expect(stripAnsi(err.message)).to.equal(
+          "Error validating module (missing-name/garden.yml): key .name is required"
+        )
       }
     )
   })
