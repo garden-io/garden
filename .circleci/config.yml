@@ -199,7 +199,8 @@ jobs:
             npm test
           environment:
             CHOKIDAR_USEPOLLING: "1"
-  e2e-test-service:
+  # (not used atm)
+  e2e-all:
     <<: *node-config
     steps:
       - checkout
@@ -217,6 +218,34 @@ jobs:
       - run:
           name: Cleanup
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-e2e kubectl delete --wait=false $(kubectl get ns -o name | grep testing-$CIRCLE_BUILD_NUM) || true
+          when: always
+  e2e-project:
+    <<: *node-config
+    parameters:
+      project:
+        description: The example project to test
+        type: string
+      environment:
+        description: The project environment to use
+        type: string
+        default: testing
+    steps:
+      - checkout
+      - run: sudo apt-get update && sudo apt-get install rsync
+      - npm_install
+      - configure_kubectl_context
+      - *attach-workspace
+      - run:
+          name: Set environment
+          command: export CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-e2e-<<parameters.project>>
+      - run:
+          name: Run e2e test
+          command: |
+            cd garden-service
+            npm run e2e-project -- --project=<<parameters.project>> --showlog=true --env=<<parameters.environment>>
+      - run:
+          name: Cleanup
+          command: kubectl delete --wait=false $(kubectl get ns -o name | grep testing-$CIRCLE_BUILD_NUM) || true
           when: always
   test-dashboard:
     <<: *node-config
@@ -409,134 +438,97 @@ jobs:
 
 workflows:
   version: 2
+  test-minikube-1.16:
+    jobs:
+      - test-minikube:
+          kubernetesVersion: "1.16.2"
+  test-minikube-1.15.0:
+    jobs:
+      - test-minikube:
+          kubernetesVersion: "1.15.0"
   commit:
     jobs:
+      ### ALL BRANCHES/TAGS ###
+
       - build
       - build-dist:
-          requires:
-            - build
-      - build-docker:
-          requires:
-            - build-dist
-      - test-service:
-          requires:
-            - build
+          requires: [build]
       - lint:
-          requires:
-            - build
-      - e2e-test-service:
+          requires: [build]
+      - build-docker:
+          requires: [build-dist]
+      - test-service:
+          requires: [build]
+      - test-dist:
+          # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
+          <<: *only-internal-prs
+          requires: [build-dist]
+      - test-dashboard:
+          requires: [build]
+      - test-windows:
+          # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
+          <<: *only-internal-prs
+          requires: [build-dist]
+
+      - e2e-project:
           # Don't attempt to run e2e tests for external PRs (they won't have access to the required keys)
           <<: *only-internal-prs
-          requires:
-            - build
-      - test-dist:
-          # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
+          project: demo-project
+          environment: remote
+          requires: [build]
+      - e2e-project:
           <<: *only-internal-prs
-          requires:
-            - build-dist
-      - test-dashboard:
-          requires:
-            - build
-      - test-minikube:
-          kubernetesVersion: "1.16.2"
-      - test-minikube:
-          kubernetesVersion: "1.15.0"
-      - test-windows:
-          # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
+          project: deployment-strategies
+          requires: [build]
+      - e2e-project:
           <<: *only-internal-prs
-          requires:
-            - build-dist
+          project: hot-reload
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          project: openfaas
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          project: project-variables
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          project: remote-sources
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          project: tasks
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          project: vote
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          project: vote-helm
+          requires: [build]
 
+      ### MASTER ONLY ###
 
-  master:
-    jobs:
-      # Duplicated here so we can reference steps that depends on it
-      - build:
-          <<: *only-master
       - build-dist-edge:
           <<: *only-master
-          requires:
-            - build
-      - lint:
-          <<: *only-master
-          requires:
-            - build
-      - test-service:
-          <<: *only-master
-          requires:
-            - build
-      - test-dashboard:
-          <<: *only-master
+          requires: [build]
       - release-service-docker:
           <<: *only-master
           context: docker
-          requires:
-            - build-dist-edge
-      - test-dist:
+          requires: [build-dist-edge]
+      - release-service-dist:
           <<: *only-master
-          # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
-          <<: *only-internal-prs
-          requires:
-            - build-dist-edge
-      - release-service-dist-edge:
-          <<: *only-master
-          requires:
-            - build-dist-edge
-            - test-dist
-      - test-minikube:
-          <<: *only-master
-          kubernetesVersion: "1.16.2"
-      - test-minikube:
-          <<: *only-master
-          kubernetesVersion: "1.15.0"
-      - test-windows:
-          <<: *only-master
-          # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
-          <<: *only-internal-prs
-          requires:
-            - build-dist-edge
+          requires: [build-dist-edge]
 
+      ### TAGS ONLY ###
 
-  tags:
-    jobs:
-      # Duplicated here so we can reference steps that depends on it
-      - build:
-          <<: *only-tags
-      - build-dist:
-          <<: *only-tags
-          requires:
-            - build
-      - lint:
-          <<: *only-tags
-          requires:
-          - build
-      - test-service:
-          <<: *only-tags
-          requires:
-          - build
-      - test-dashboard:
-          <<: *only-tags
       - release-service-docker:
           <<: *only-tags
           context: docker
-          requires:
-            - build-dist
-      - test-dist:
-          <<: *only-tags
-          requires:
-            - build-dist
+          requires: [build-dist]
       - release-service-dist:
           <<: *only-tags
-          requires:
-            - build-dist
-            - test-dist
-      - test-minikube:
-          <<: *only-tags
-          kubernetesVersion: "1.16.2"
-      - test-minikube:
-          <<: *only-tags
-          kubernetesVersion: "1.15.0"
-      - test-windows:
-          <<: *only-tags
-          requires:
-            - build-dist
+          requires: [build-dist]
+
