@@ -55,6 +55,11 @@ describe("DeleteSecretCommand", () => {
       "not-found"
     )
   })
+
+  it("should be protected", async () => {
+    const command = new DeleteSecretCommand()
+    expect(command.protected).to.be.true
+  })
 })
 
 const getServiceStatus = async (): Promise<ServiceStatus> => {
@@ -134,6 +139,10 @@ describe("DeleteEnvironmentCommand", () => {
     })
     expect(deletedServices.sort()).to.eql(["service-a", "service-b", "service-c", "service-d"])
   })
+
+  it("should be protected", async () => {
+    expect(command.protected).to.be.true
+  })
 })
 
 describe("DeleteServiceCommand", () => {
@@ -210,5 +219,9 @@ describe("DeleteServiceCommand", () => {
       "service-a": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {} },
       "service-b": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {} },
     })
+  })
+
+  it("should be protected", async () => {
+    expect(command.protected).to.be.true
   })
 })
