@@ -293,7 +293,7 @@ describe("DependencyGraphNode", () => {
     })
 
     it("should render a deploy node", () => {
-      const node = new DependencyGraphNode("service", "service-a", "module-a")
+      const node = new DependencyGraphNode("deploy", "service-a", "module-a")
       const res = node.render()
       expect(res).to.eql({
         type: "deploy",
@@ -304,7 +304,7 @@ describe("DependencyGraphNode", () => {
     })
 
     it("should render a run node", () => {
-      const node = new DependencyGraphNode("task", "task-a", "module-a")
+      const node = new DependencyGraphNode("run", "task-a", "module-a")
       const res = node.render()
       expect(res).to.eql({
         type: "run",
@@ -322,17 +322,6 @@ describe("DependencyGraphNode", () => {
         name: "test-a",
         moduleName: "module-a",
         key: "test.module-a.test-a",
-      })
-    })
-
-    it("should render a publish node", () => {
-      const node = new DependencyGraphNode("publish", "module-a", "module-a")
-      const res = node.render()
-      expect(res).to.eql({
-        type: "publish",
-        name: "module-a",
-        moduleName: "module-a",
-        key: "publish.module-a",
       })
     })
   })

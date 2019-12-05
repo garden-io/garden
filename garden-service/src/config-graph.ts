@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-const toposort = require("toposort")
+import toposort from "toposort"
 import { flatten, pick, uniq, find, sortBy } from "lodash"
 import { Garden } from "./garden"
 import { BuildDependencyConfig, ModuleConfig } from "./config/module"
@@ -23,44 +23,43 @@ import { ServiceConfig } from "./config/service"
 import { TaskConfig } from "./config/task"
 import { makeTestTaskName } from "./tasks/helpers"
 import { TaskType, makeBaseKey } from "./tasks/base"
+import { ModuleTypeMap } from "./types/plugin/plugin"
 
 // Each of these types corresponds to a Task class (e.g. BuildTask, DeployTask, ...).
-export type DependencyGraphNodeType = "build" | "service" | "task" | "test" | "publish"
+export type DependencyGraphNodeType = "build" | "deploy" | "run" | "test"
 
 // The primary output type (for dependencies and dependants).
 export type DependencyRelations = {
   build: Module[]
-  service: Service[]
-  task: Task[]
+  deploy: Service[]
+  run: Task[]
   test: TestConfig[]
 }
 
 type DependencyRelationNames = {
   build: string[]
-  service: string[]
-  task: string[]
+  deploy: string[]
+  run: string[]
   test: string[]
 }
 
-export type DependencyRelationFilterFn = (DependencyGraphNode) => boolean
+export type DependencyRelationFilterFn = (node: DependencyGraphNode) => boolean
 
 // Output types for rendering/logging
-export type RenderedGraph = {
+export type RenderedActionGraph = {
   nodes: RenderedNode[]
   relationships: RenderedEdge[]
 }
 export type RenderedEdge = { dependant: RenderedNode; dependency: RenderedNode }
-export type RenderedNodeType = "build" | "deploy" | "run" | "test" | "publish"
+
 export interface RenderedNode {
-  type: RenderedNodeType
+  type: DependencyGraphNodeType
   name: string
   moduleName: string
   key: string
 }
+
 type DepNodeTaskTypeMap = { [key in DependencyGraphNodeType]: TaskType }
-type RenderedNodeTypeMap = {
-  [key in DependencyGraphNodeType]: RenderedNodeType
-}
 
 /**
  * A graph data structure that facilitates querying (recursive or non-recursive) of the project's dependency and
@@ -82,7 +81,7 @@ export class ConfigGraph {
     [key: string]: { moduleKey: string; config: TestConfig }
   }
 
-  constructor(private garden: Garden, moduleConfigs: ModuleConfig[]) {
+  constructor(private garden: Garden, moduleConfigs: ModuleConfig[], moduleTypes: ModuleTypeMap) {
     this.garden = garden
     this.dependencyGraph = {}
     this.moduleConfigs = {}
@@ -159,38 +158,60 @@ export class ConfigGraph {
     this.validateDependencies()
 
     for (const moduleConfig of moduleConfigs) {
+      const type = moduleTypes[moduleConfig.type]
+
       const moduleKey = this.keyForModule(moduleConfig)
       this.moduleConfigs[moduleKey] = moduleConfig
 
-      // Build dependencies
-      const buildNode = this.getNode("build", moduleKey, moduleKey)
-      for (const buildDep of moduleConfig.build.dependencies) {
-        const buildDepKey = getModuleKey(buildDep.name, buildDep.plugin)
-        this.addRelation(buildNode, "build", buildDepKey, buildDepKey)
+      const addBuildDeps = (node: DependencyGraphNode) => {
+        for (const buildDep of moduleConfig.build.dependencies) {
+          const buildDepKey = getModuleKey(buildDep.name, buildDep.plugin)
+          this.addRelation(node, "build", buildDepKey, buildDepKey)
+        }
+      }
+
+      if (type.needsBuild) {
+        addBuildDeps(this.getNode("build", moduleKey, moduleKey))
       }
 
       // Service dependencies
       for (const serviceConfig of moduleConfig.serviceConfigs) {
-        const serviceNode = this.getNode("service", serviceConfig.name, moduleKey)
-        this.addRelation(serviceNode, "build", moduleKey, moduleKey)
+        const serviceNode = this.getNode("deploy", serviceConfig.name, moduleKey)
+
+        if (type.needsBuild) {
+          // The service needs its own module to be built
+          this.addRelation(serviceNode, "build", moduleKey, moduleKey)
+        } else {
+          // No build needed for the module, but the service needs the module's build dependencies to be built (if any).
+          addBuildDeps(serviceNode)
+        }
+
         for (const depName of serviceConfig.dependencies) {
           if (this.serviceConfigs[depName]) {
-            this.addRelation(serviceNode, "service", depName, this.serviceConfigs[depName].moduleKey)
+            this.addRelation(serviceNode, "deploy", depName, this.serviceConfigs[depName].moduleKey)
           } else {
-            this.addRelation(serviceNode, "task", depName, this.taskConfigs[depName].moduleKey)
+            this.addRelation(serviceNode, "run", depName, this.taskConfigs[depName].moduleKey)
           }
         }
       }
 
       // Task dependencies
       for (const taskConfig of moduleConfig.taskConfigs) {
-        const taskNode = this.getNode("task", taskConfig.name, moduleKey)
-        this.addRelation(taskNode, "build", moduleKey, moduleKey)
+        const taskNode = this.getNode("run", taskConfig.name, moduleKey)
+
+        if (type.needsBuild) {
+          // The task needs its own module to be built
+          this.addRelation(taskNode, "build", moduleKey, moduleKey)
+        } else {
+          // No build needed for the module, but the task needs the module's build dependencies to be built (if any).
+          addBuildDeps(taskNode)
+        }
+
         for (const depName of taskConfig.dependencies) {
           if (this.serviceConfigs[depName]) {
-            this.addRelation(taskNode, "service", depName, this.serviceConfigs[depName].moduleKey)
+            this.addRelation(taskNode, "deploy", depName, this.serviceConfigs[depName].moduleKey)
           } else {
-            this.addRelation(taskNode, "task", depName, this.taskConfigs[depName].moduleKey)
+            this.addRelation(taskNode, "run", depName, this.taskConfigs[depName].moduleKey)
           }
         }
       }
@@ -202,12 +223,20 @@ export class ConfigGraph {
         this.testConfigs[testConfigName] = { moduleKey, config: testConfig }
 
         const testNode = this.getNode("test", testConfigName, moduleKey)
-        this.addRelation(testNode, "build", moduleKey, moduleKey)
+
+        if (type.needsBuild) {
+          // The test needs its own module to be built
+          this.addRelation(testNode, "build", moduleKey, moduleKey)
+        } else {
+          // No build needed for the module, but the test needs the module's build dependencies to be built (if any).
+          addBuildDeps(testNode)
+        }
+
         for (const depName of testConfig.dependencies) {
           if (this.serviceConfigs[depName]) {
-            this.addRelation(testNode, "service", depName, this.serviceConfigs[depName].moduleKey)
+            this.addRelation(testNode, "deploy", depName, this.serviceConfigs[depName].moduleKey)
           } else {
-            this.addRelation(testNode, "task", depName, this.taskConfigs[depName].moduleKey)
+            this.addRelation(testNode, "run", depName, this.taskConfigs[depName].moduleKey)
           }
         }
       }
@@ -297,8 +326,8 @@ export class ConfigGraph {
     return this.mergeRelations(
       ...(await Bluebird.all([
         this.getDependants("build", module.name, true, filterFn),
-        this.getDependantsForMany("service", module.serviceNames, true, filterFn),
-        this.getDependantsForMany("task", module.taskNames, true, filterFn),
+        this.getDependantsForMany("deploy", module.serviceNames, true, filterFn),
+        this.getDependantsForMany("run", module.taskNames, true, filterFn),
       ]))
     )
   }
@@ -366,14 +395,14 @@ export class ConfigGraph {
    */
   async mergeRelations(...relationArr: DependencyRelations[]): Promise<DependencyRelations> {
     const names = {}
-    for (const type of ["build", "service", "task", "test"]) {
+    for (const type of ["build", "run", "deploy", "test"]) {
       names[type] = uniqByName(flatten(relationArr.map((r) => r[type]))).map((r) => r.name)
     }
 
     return this.relationsFromNames({
       build: names["build"],
-      service: names["service"],
-      task: names["task"],
+      deploy: names["deploy"],
+      run: names["run"],
       test: names["test"],
     })
   }
@@ -385,8 +414,8 @@ export class ConfigGraph {
     const moduleNames = uniq(
       flatten([
         relations.build,
-        relations.service.map((s) => s.module),
-        relations.task.map((w) => w.module),
+        relations.deploy.map((s) => s.module),
+        relations.run.map((w) => w.module),
         await this.getModules(relations.test.map((t) => this.testConfigs[t.name].moduleKey)),
       ]).map((m) => m.name)
     )
@@ -407,8 +436,8 @@ export class ConfigGraph {
     const taskNames = runtimeDependencies.filter((d) => this.taskConfigs[d])
 
     const buildDeps = await this.getDependenciesForMany("build", moduleNames, true)
-    const serviceDeps = await this.getDependenciesForMany("service", serviceNames, true)
-    const taskDeps = await this.getDependenciesForMany("task", taskNames, true)
+    const serviceDeps = await this.getDependenciesForMany("deploy", serviceNames, true)
+    const taskDeps = await this.getDependenciesForMany("run", taskNames, true)
 
     const modules = [
       ...(await this.getModules(moduleNames)),
@@ -418,11 +447,11 @@ export class ConfigGraph {
     return sortBy(uniqByName(modules), "name")
   }
 
-  private async toRelations(nodes): Promise<DependencyRelations> {
+  private async toRelations(nodes: DependencyGraphNode[]): Promise<DependencyRelations> {
     return this.relationsFromNames({
       build: this.uniqueNames(nodes, "build"),
-      service: this.uniqueNames(nodes, "service"),
-      task: this.uniqueNames(nodes, "task"),
+      deploy: this.uniqueNames(nodes, "deploy"),
+      run: this.uniqueNames(nodes, "run"),
       test: this.uniqueNames(nodes, "test"),
     })
   }
@@ -430,8 +459,8 @@ export class ConfigGraph {
   private async relationsFromNames(names: DependencyRelationNames): Promise<DependencyRelations> {
     return Bluebird.props({
       build: this.getModules(names.build),
-      service: this.getServices(names.service),
-      task: this.getTasks(names.task),
+      deploy: this.getServices(names.deploy),
+      run: this.getTasks(names.run),
       test: Object.values(pick(this.testConfigs, names.test)).map((t) => t.config),
     })
   }
@@ -501,12 +530,9 @@ export class ConfigGraph {
     }
   }
 
-  render(): RenderedGraph {
+  render(): RenderedActionGraph {
     const nodes = Object.values(this.dependencyGraph)
-    let edges: {
-      dependant: DependencyGraphNode
-      dependency: DependencyGraphNode
-    }[] = []
+    let edges: DependencyGraphEdge[] = []
     let simpleEdges: string[][] = []
     for (const dependant of nodes) {
       for (const dependency of dependant.dependencies) {
@@ -518,7 +544,7 @@ export class ConfigGraph {
     const sortedNodeKeys = toposort(simpleEdges)
 
     const edgeSortIndex = (e) => {
-      return sortedNodeKeys.findIndex((k) => k === nodeKey(e.dependency.type, e.dependency.name))
+      return sortedNodeKeys.findIndex((k: string) => k === nodeKey(e.dependency.type, e.dependency.name))
     }
     edges = edges.sort((e1, e2) => edgeSortIndex(e2) - edgeSortIndex(e1))
     const renderedEdges = edges.map((e) => ({
@@ -526,8 +552,8 @@ export class ConfigGraph {
       dependency: e.dependency.render(),
     }))
 
-    const nodeSortIndex = (n) => {
-      return sortedNodeKeys.findIndex((k) => k === nodeKey(n.type, n.name))
+    const nodeSortIndex = (n: DependencyGraphNode) => {
+      return sortedNodeKeys.findIndex((k: string) => k === nodeKey(n.type, n.name))
     }
     const renderedNodes = nodes.sort((n1, n2) => nodeSortIndex(n2) - nodeSortIndex(n1)).map((n) => n.render())
 
@@ -538,20 +564,16 @@ export class ConfigGraph {
   }
 }
 
-const renderedNodeTypeMap: RenderedNodeTypeMap = {
-  build: "build",
-  service: "deploy",
-  task: "run",
-  test: "test",
-  publish: "publish",
-}
-
 const depNodeTaskTypeMap: DepNodeTaskTypeMap = {
   build: "build",
-  service: "deploy",
-  task: "task",
+  deploy: "deploy",
+  run: "task",
   test: "test",
-  publish: "publish",
+}
+
+interface DependencyGraphEdge {
+  dependant: DependencyGraphNode
+  dependency: DependencyGraphNode
 }
 
 export class DependencyGraphNode {
@@ -571,11 +593,11 @@ export class DependencyGraphNode {
 
   render(): RenderedNode {
     const name = this.type === "test" ? parseTestKey(this.name).testName : this.name
-    const renderNodeType = <RenderedNodeType>renderedNodeTypeMap[this.type]
     const taskType = <TaskType>depNodeTaskTypeMap[this.type]
+
     return {
       name,
-      type: renderNodeType,
+      type: this.type,
       moduleName: this.moduleName,
       key: makeBaseKey(taskType, this.name),
     }

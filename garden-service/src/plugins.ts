@@ -83,7 +83,7 @@ export function loadPlugins(log: LogEntry, registeredPlugins: PluginMap, configs
     const plugin = loadPlugin(config.name)
 
     if (!plugin) {
-      throw new ConfigurationError(`Configured plugin '${config.name}' has not been registered.`, {
+      throw new ConfigurationError(`Configured provider '${config.name}' has not been registered.`, {
         name: config.name,
         availablePlugins: Object.keys(registeredPlugins),
       })

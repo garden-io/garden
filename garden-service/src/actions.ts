@@ -139,7 +139,7 @@ export class ActionRouter implements TypeGuard {
     this.moduleActionHandlers = <WrappedModuleActionMap>fromPairs(moduleActionNames.map((n) => [n, {}]))
     this.loadedPlugins = keyBy(loadedPlugins, "name")
 
-    garden.log.silly(`Creating ActionRouter with ${configuredPlugins.length} configured plugins`)
+    garden.log.silly(`Creating ActionRouter with ${configuredPlugins.length} configured providers`)
 
     for (const plugin of configuredPlugins) {
       const handlers = plugin.handlers || {}

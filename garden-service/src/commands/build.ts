@@ -15,13 +15,13 @@ import {
   StringsParameter,
   PrepareParams,
 } from "./base"
-import { getBuildTasks } from "../tasks/build"
 import { TaskResults } from "../task-graph"
-import dedent = require("dedent")
+import dedent from "dedent"
 import { processModules } from "../process"
 import { printHeader } from "../logger/util"
 import { startServer, GardenServer } from "../server/server"
 import { flatten } from "lodash"
+import { BuildTask } from "../tasks/build"
 
 const buildArguments = {
   modules: new StringsParameter({
@@ -93,13 +93,13 @@ export class BuildCommand extends Command<Args, Opts> {
       footerLog,
       modules,
       watch: opts.watch,
-      handler: async (_, module) => getBuildTasks({ garden, log, module, force: opts.force }),
-      changeHandler: async (_, module) => {
-        const dependantModules = (await graph.getDependants("build", module.name, true)).build
+      handler: async (_, module) => BuildTask.factory({ garden, log, module, force: opts.force }),
+      changeHandler: async (newGraph, module) => {
+        const deps = await newGraph.getDependants("build", module.name, true)
         const tasks = [module]
-          .concat(dependantModules)
+          .concat(deps.build)
           .filter((m) => moduleNames.includes(m.name))
-          .map((m) => getBuildTasks({ garden, log, module: m, force: true }))
+          .map((m) => BuildTask.factory({ garden, log, module: m, force: true }))
         return flatten(await Promise.all(tasks))
       },
     })

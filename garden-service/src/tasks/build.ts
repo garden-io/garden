@@ -14,7 +14,7 @@ import { BaseTask, TaskType } from "../tasks/base"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { StageBuildTask } from "./stage-build"
-import { some } from "lodash"
+import { some, flatten } from "lodash"
 
 export interface BuildTaskParams {
   garden: Garden
@@ -32,11 +32,53 @@ export class BuildTask extends BaseTask {
   private fromWatch: boolean
   private hotReloadServiceNames: string[]
 
-  constructor({ garden, log, module, force, fromWatch = false, hotReloadServiceNames = [] }: BuildTaskParams) {
+  constructor({
+    garden,
+    log,
+    module,
+    force,
+    fromWatch = false,
+    hotReloadServiceNames = [],
+  }: BuildTaskParams & { _guard: true }) {
+    // Note: The _guard attribute is to prevent accidentally bypassing the factory method
     super({ garden, log, force, version: module.version })
     this.module = module
     this.fromWatch = fromWatch
     this.hotReloadServiceNames = hotReloadServiceNames
+  }
+
+  static async factory(params: BuildTaskParams): Promise<BaseTask[]> {
+    // We need to see if a build step is necessary for the module. If it is, return a build task for the module.
+    // Otherwise, return a build task for each of the module's dependencies.
+    // We do this to avoid displaying no-op build steps in the stack graph.
+
+    const { garden, module } = params
+
+    // We need to build if there is a copy statement on any of the build dependencies.
+    let needsBuild = some(module.build.dependencies, (d) => d.copy && d.copy.length > 0)
+
+    if (!needsBuild) {
+      // We also need to build if there is a build handler for the module type
+      const actions = await garden.getActionRouter()
+      try {
+        await actions.getModuleActionHandler({
+          actionType: "build",
+          moduleType: module.type,
+        })
+
+        needsBuild = true
+      } catch {
+        // No build handler for the module type.
+      }
+    }
+
+    const buildTask = new BuildTask({ ...params, _guard: true })
+
+    if (needsBuild) {
+      return [buildTask]
+    } else {
+      return buildTask.getDependencies()
+    }
   }
 
   async getDependencies() {
@@ -50,16 +92,18 @@ export class BuildTask extends BaseTask {
       force: this.force,
     })
 
-    const buildTasks = await Bluebird.map(deps, async (m: Module) => {
-      return new BuildTask({
-        garden: this.garden,
-        log: this.log,
-        module: m,
-        force: this.force,
-        fromWatch: this.fromWatch,
-        hotReloadServiceNames: this.hotReloadServiceNames,
+    const buildTasks = flatten(
+      await Bluebird.map(deps, async (m: Module) => {
+        return BuildTask.factory({
+          garden: this.garden,
+          log: this.log,
+          module: m,
+          force: this.force,
+          fromWatch: this.fromWatch,
+          hotReloadServiceNames: this.hotReloadServiceNames,
+        })
       })
-    })
+    )
 
     return [stageBuildTask, ...buildTasks]
   }
@@ -123,43 +167,5 @@ export class BuildTask extends BaseTask {
 
     logSuccess()
     return result
-  }
-}
-
-/**
- * Use this method to get the build tasks for a module. This is needed to be able to avoid an unnecessary build step
- * when there is no build handler and no dependency files to copy.
- */
-export async function getBuildTasks(params: BuildTaskParams): Promise<(BuildTask | StageBuildTask)[]> {
-  // We need to see if a build step is necessary for the module. If it is, return a build task for the module.
-  // Otherwise, return a build task for each of the module's dependencies.
-  // We do this to avoid displaying no-op build steps in the stack graph.
-
-  const { garden, module } = params
-
-  // We need to build if there is a copy statement on any of the build dependencies.
-  let needsBuild = some(module.build.dependencies, (d) => d.copy && d.copy.length > 0)
-
-  if (!needsBuild) {
-    // We also need to build if there is a build handler for the module type
-    const actions = await garden.getActionRouter()
-    try {
-      await actions.getModuleActionHandler({
-        actionType: "build",
-        moduleType: module.type,
-      })
-
-      needsBuild = true
-    } catch {
-      // No build handler for the module type.
-    }
-  }
-
-  const buildTask = new BuildTask(params)
-
-  if (needsBuild) {
-    return [buildTask]
-  } else {
-    return buildTask.getDependencies()
   }
 }

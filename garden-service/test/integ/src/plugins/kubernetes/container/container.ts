@@ -253,8 +253,8 @@ describe("kubernetes container module handlers", () => {
         graph,
         dependencies: {
           build: [],
-          service: [],
-          task: [],
+          deploy: [],
+          run: [],
           test: [],
         },
         module: service.module,
@@ -287,8 +287,8 @@ describe("kubernetes container module handlers", () => {
         graph,
         dependencies: {
           build: [],
-          service: [],
-          task: [],
+          deploy: [],
+          run: [],
           test: [],
         },
         module: service.module,

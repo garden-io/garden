@@ -98,7 +98,7 @@ export interface ModuleConfigMap<T extends ModuleConfig = ModuleConfig> {
 export async function moduleFromConfig(garden: Garden, graph: ConfigGraph, config: ModuleConfig): Promise<Module> {
   const configPath = await getConfigFilePath(config.path)
   const version = await garden.resolveVersion(config, config.build.dependencies)
-  const moduleTypes = await garden.getModuleTypeDefinitions()
+  const moduleTypes = await garden.getModuleTypes()
   const compatibleTypes = [config.type, ...getModuleTypeBases(moduleTypes[config.type], moduleTypes).map((t) => t.name)]
 
   const module: Module = {

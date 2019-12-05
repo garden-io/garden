@@ -8,13 +8,13 @@
 
 import Bluebird from "bluebird"
 import { parse, relative, resolve, dirname } from "path"
-import { flatten, isString, sortBy, fromPairs, keyBy } from "lodash"
+import { flatten, isString, sortBy, fromPairs, keyBy, some } from "lodash"
 const AsyncLock = require("async-lock")
 
 import { TreeCache } from "./cache"
 import { builtinPlugins } from "./plugins/plugins"
 import { Module, getModuleCacheContext, getModuleKey, ModuleConfigMap } from "./types/module"
-import { pluginModuleSchema } from "./types/plugin/plugin"
+import { pluginModuleSchema, ModuleTypeMap } from "./types/plugin/plugin"
 import { SourceConfig, ProjectConfig, resolveProjectConfig, pickEnvironment } from "./config/project"
 import { findByName, pickKeys, getPackageVersion, getNames } from "./util/util"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
@@ -383,11 +383,22 @@ export class Garden {
   /**
    * Returns a mapping of all configured module types in the project and their definitions.
    */
-  async getModuleTypeDefinitions() {
+  async getModuleTypes(): Promise<ModuleTypeMap> {
     const plugins = await this.getPlugins()
     const configNames = keyBy(this.getRawProviderConfigs(), "name")
     const configuredPlugins = plugins.filter((p) => configNames[p.name])
-    return keyBy(flatten(configuredPlugins.map((p) => p.createModuleTypes || [])), "name")
+
+    const definitions = flatten(configuredPlugins.map((p) => p.createModuleTypes || []))
+    const extensions = flatten(configuredPlugins.map((p) => p.extendModuleTypes || []))
+
+    return keyBy(
+      definitions.map((definition) => {
+        const typeExtensions = extensions.filter((e) => e.name === definition.name)
+        const needsBuild = !!definition.handlers.build || some(typeExtensions, (e) => !!e.handlers.build)
+        return { ...definition, needsBuild }
+      }),
+      "name"
+    )
   }
 
   getRawProviderConfigs() {
@@ -521,7 +532,7 @@ export class Garden {
   async getActionRouter() {
     if (!this.actionHelper) {
       const loadedPlugins = await this.getPlugins()
-      const moduleTypes = await this.getModuleTypeDefinitions()
+      const moduleTypes = await this.getModuleTypes()
       const plugins = keyBy(loadedPlugins, "name")
 
       // We only pass configured plugins to the router (others won't have the required configuration to call handlers)
@@ -573,6 +584,7 @@ export class Garden {
     // Resolve the project module configs
     const moduleConfigs = await Bluebird.map(configs, (config) => resolveModuleConfig(this, config, opts))
     const actions = await this.getActionRouter()
+    const moduleTypes = await this.getModuleTypes()
 
     let graph: ConfigGraph | undefined = undefined
 
@@ -591,7 +603,7 @@ export class Garden {
 
       // We clear the graph below whenever an augmentGraph handler adds/modifies modules, and re-init here
       if (!graph) {
-        graph = new ConfigGraph(this, moduleConfigs)
+        graph = new ConfigGraph(this, moduleConfigs, moduleTypes)
       }
 
       const { addBuildDependencies, addRuntimeDependencies, addModules } = await actions.augmentGraph({
@@ -677,7 +689,8 @@ export class Garden {
    */
   async getConfigGraph(log: LogEntry, opts: ModuleConfigResolveOpts = {}) {
     const modules = await this.resolveModuleConfigs(log, undefined, opts)
-    return new ConfigGraph(this, modules)
+    const moduleTypes = await this.getModuleTypes()
+    return new ConfigGraph(this, modules, moduleTypes)
   }
 
   /**

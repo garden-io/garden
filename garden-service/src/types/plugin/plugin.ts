@@ -297,6 +297,14 @@ export interface ModuleTypeDefinition extends ModuleTypeExtension {
   title?: string
 }
 
+export interface ModuleType extends ModuleTypeDefinition {
+  needsBuild: boolean
+}
+
+export interface ModuleTypeMap {
+  [name: string]: ModuleType
+}
+
 export interface GardenPluginSpec {
   name: string
   base?: string

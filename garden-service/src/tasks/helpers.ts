@@ -15,7 +15,7 @@ import { Service } from "../types/service"
 import { DependencyGraphNode, ConfigGraph } from "../config-graph"
 import { LogEntry } from "../logger/log-entry"
 import { BaseTask } from "./base"
-import { BuildTask, getBuildTasks } from "./build"
+import { BuildTask } from "./build"
 
 export async function getDependantTasksForModule({
   garden,
@@ -44,7 +44,7 @@ export async function getDependantTasksForModule({
 
   if (!includeDependants) {
     buildTasks.push(
-      ...(await getBuildTasks({
+      ...(await BuildTask.factory({
         garden,
         log,
         module,
@@ -62,15 +62,15 @@ export async function getDependantTasksForModule({
 
     if (intersection(module.serviceNames, hotReloadServiceNames).length) {
       // Hot reloading is enabled for one or more of module's services.
-      const serviceDeps = await graph.getDependantsForMany("service", module.serviceNames, true, dependantFilterFn)
+      const serviceDeps = await graph.getDependantsForMany("deploy", module.serviceNames, true, dependantFilterFn)
 
       dependantBuildModules = serviceDeps.build
-      services = serviceDeps.service
+      services = serviceDeps.deploy
     } else {
       const dependants = await graph.getDependantsForModule(module, dependantFilterFn)
 
       buildTasks.push(
-        ...(await getBuildTasks({
+        ...(await BuildTask.factory({
           garden,
           log,
           module,
@@ -80,13 +80,13 @@ export async function getDependantTasksForModule({
         }))
       )
       dependantBuildModules = dependants.build
-      services = (await graph.getServices(module.serviceNames)).concat(dependants.service)
+      services = (await graph.getServices(module.serviceNames)).concat(dependants.deploy)
     }
   }
 
   const dependantBuildTasks = flatten(
     await Bluebird.map(dependantBuildModules, (m) =>
-      getBuildTasks({
+      BuildTask.factory({
         garden,
         log,
         module: m,

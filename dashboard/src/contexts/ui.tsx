@@ -8,7 +8,7 @@
 
 import React, { useState, useContext } from "react"
 import { ServiceIngress } from "garden-service/build/src/types/service"
-import { RenderedNodeType } from "garden-service/build/src/config-graph"
+import { DependencyGraphNodeType } from "garden-service/build/src/config-graph"
 import { PickFromUnion } from "garden-service/build/src/util/util"
 
 interface UiState {
@@ -44,7 +44,7 @@ export type OverviewSupportedFilterKeys =
   | "tasksInfo"
   | "tests"
   | "testsInfo"
-export type StackGraphSupportedFilterKeys = PickFromUnion<RenderedNodeType, "test" | "deploy" | "build" | "run">
+export type StackGraphSupportedFilterKeys = PickFromUnion<DependencyGraphNodeType, "test" | "deploy" | "build" | "run">
 export type EntityResultSupportedTypes = StackGraphSupportedFilterKeys | "task"
 export type SelectedEntity = {
   type: EntityResultSupportedTypes

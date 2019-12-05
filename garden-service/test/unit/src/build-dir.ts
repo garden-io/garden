@@ -117,6 +117,7 @@ describe("BuildDir", () => {
             log,
             module,
             force: true,
+            _guard: true,
           })
       )
 
