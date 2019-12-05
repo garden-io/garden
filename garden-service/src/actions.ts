@@ -884,7 +884,7 @@ export class ActionRouter implements TypeGuard {
             pluginName,
           })
         }
-        return validate(result, schema, { context: `${actionType} output from plugin ${pluginName}` })
+        return validate(result, schema, { context: `${actionType} ${moduleType} output from provider ${pluginName}` })
       }),
       { actionType, pluginName, moduleType }
     )

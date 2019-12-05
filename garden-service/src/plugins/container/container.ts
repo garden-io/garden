@@ -44,7 +44,7 @@ const taskOutputsSchema = joi.object().keys({
     ),
 })
 
-export async function configureContainerModule({ ctx, moduleConfig }: ConfigureModuleParams<ContainerModule>) {
+export async function configureContainerModule({ ctx, log, moduleConfig }: ConfigureModuleParams<ContainerModule>) {
   // validate hot reload configuration
   // TODO: validate this when validating this action's output
   const hotReloadConfig = moduleConfig.spec.hotReload
@@ -148,6 +148,11 @@ export async function configureContainerModule({ ctx, moduleConfig }: ConfigureM
   moduleConfig.outputs = {
     "local-image-name": await containerHelpers.getLocalImageName(moduleConfig),
     "deployment-image-name": deploymentImageName,
+  }
+
+  // Automatically set the include field based on the Dockerfile and config, if not explicitly set
+  if (!moduleConfig.include) {
+    moduleConfig.include = await containerHelpers.autoResolveIncludes(moduleConfig, log)
   }
 
   return { moduleConfig }
