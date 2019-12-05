@@ -296,6 +296,9 @@ export async function createWorkloadResource({
       },
     },
     imagePullPolicy: "IfNotPresent",
+    securityContext: {
+      allowPrivilegeEscalation: false,
+    },
   }
 
   if (service.spec.command && service.spec.command.length > 0) {
@@ -395,7 +398,14 @@ export async function createWorkloadResource({
       },
     }
 
+    const securityContext = {
+      runAsUser: 1000,
+      runAsGroup: 3000,
+      fsGroup: 2000,
+    }
+
     deployment.spec.template.spec.affinity = affinity
+    deployment.spec.template.spec.securityContext = securityContext
   }
 
   if (enableHotReload) {
