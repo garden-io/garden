@@ -71,8 +71,6 @@ export default () => {
   const nodesWithStatus: RenderedNodeWithStatus[] = graph.nodes.map((node) => {
     let taskState: TaskState = "taskComplete"
     switch (node.type) {
-      case "publish":
-        break
       case "deploy":
         taskState = (services[node.name] && services[node.name].taskState) || taskState
         break

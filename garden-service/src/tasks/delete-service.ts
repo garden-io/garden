@@ -49,9 +49,9 @@ export class DeleteServiceTask extends BaseTask {
     }
 
     // Note: We delete in _reverse_ dependency order, so we query for dependants
-    const deps = await this.graph.getDependants("service", this.getName(), false)
+    const deps = await this.graph.getDependants("deploy", this.getName(), false)
 
-    const dependants = deps.service.map((service) => {
+    const dependants = deps.deploy.map((service) => {
       return new DeleteServiceTask({
         garden: this.garden,
         graph: this.graph,

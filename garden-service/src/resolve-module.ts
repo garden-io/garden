@@ -33,7 +33,7 @@ export async function resolveModuleConfig(
 
   config = await resolveTemplateStrings(cloneDeep(config), opts.configContext, opts)
 
-  const moduleTypeDefinitions = await garden.getModuleTypeDefinitions()
+  const moduleTypeDefinitions = await garden.getModuleTypes()
   const description = moduleTypeDefinitions[config.type]
 
   if (!description) {

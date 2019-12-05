@@ -16,7 +16,7 @@ import { LogEntry } from "../logger/log-entry"
 import { prepareRuntimeContext } from "../runtime-context"
 import { ConfigGraph } from "../config-graph"
 import { ModuleVersion } from "../vcs/vcs"
-import { getBuildTasks } from "./build"
+import { BuildTask } from "./build"
 import { RunTaskResult } from "../types/plugin/task/runTask"
 import { TaskResults } from "../task-graph"
 import { GetTaskResultTask } from "./get-task-result"
@@ -53,7 +53,7 @@ export class TaskTask extends BaseTask {
   }
 
   async getDependencies(): Promise<BaseTask[]> {
-    const buildTasks = await getBuildTasks({
+    const buildTasks = await BuildTask.factory({
       garden: this.garden,
       log: this.log,
       module: this.task.module,
@@ -61,9 +61,9 @@ export class TaskTask extends BaseTask {
     })
 
     const dg = await this.garden.getConfigGraph(this.log)
-    const deps = await dg.getDependencies("task", this.getName(), false)
+    const deps = await dg.getDependencies("run", this.getName(), false)
 
-    const deployTasks = deps.service.map((service) => {
+    const deployTasks = deps.deploy.map((service) => {
       return new DeployTask({
         service,
         log: this.log,
@@ -74,7 +74,7 @@ export class TaskTask extends BaseTask {
       })
     })
 
-    const taskTasks = await Bluebird.map(deps.task, (task) => {
+    const taskTasks = await Bluebird.map(deps.run, (task) => {
       return TaskTask.factory({
         task,
         log: this.log,
@@ -129,7 +129,7 @@ export class TaskTask extends BaseTask {
       status: "active",
     })
 
-    const dependencies = await this.graph.getDependencies("task", this.getName(), false)
+    const dependencies = await this.graph.getDependencies("run", this.getName(), false)
 
     const serviceStatuses = getServiceStatuses(dependencyResults)
     const taskResults = getRunTaskResults(dependencyResults)

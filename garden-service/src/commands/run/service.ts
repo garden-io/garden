@@ -69,7 +69,7 @@ export class RunServiceCommand extends Command<Args, Opts> {
     })
     const dependencyResults = await garden.processTasks(await deployTask.getDependencies())
 
-    const dependencies = await graph.getDependencies("service", serviceName, false)
+    const dependencies = await graph.getDependencies("deploy", serviceName, false)
     const serviceStatuses = getServiceStatuses(dependencyResults)
     const taskResults = getRunTaskResults(dependencyResults)
 

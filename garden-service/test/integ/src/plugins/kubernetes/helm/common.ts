@@ -60,7 +60,7 @@ describe("Helm common functions", () => {
 
   async function buildModules() {
     const modules = await graph.getModules()
-    const tasks = modules.map((module) => new BuildTask({ garden, log, module, force: false }))
+    const tasks = modules.map((module) => new BuildTask({ garden, log, module, force: false, _guard: true }))
     const results = await garden.processTasks(tasks)
 
     const err = first(Object.values(results).map((r) => r && r.error))

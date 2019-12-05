@@ -11,7 +11,7 @@ import { RunResult } from "../../types/plugin/base"
 import { BooleanParameter, Command, CommandParams, StringParameter, CommandResult, StringsParameter } from "../base"
 import { printRuntimeContext } from "./run"
 import { printHeader } from "../../logger/util"
-import { getBuildTasks } from "../../tasks/build"
+import { BuildTask } from "../../tasks/build"
 import { dedent, deline } from "../../util/string"
 import { prepareRuntimeContext } from "../../runtime-context"
 
@@ -85,7 +85,7 @@ export class RunModuleCommand extends Command<Args, Opts> {
 
     const actions = await garden.getActionRouter()
 
-    const buildTasks = await getBuildTasks({
+    const buildTasks = await BuildTask.factory({
       garden,
       log,
       module,

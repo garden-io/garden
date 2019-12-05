@@ -723,7 +723,7 @@ describe("Garden", () => {
           config: projectConfigFoo,
         })
 
-        const moduleTypes = await garden.getModuleTypeDefinitions()
+        const moduleTypes = await garden.getModuleTypes()
 
         expect(Object.keys(moduleTypes).sort()).to.eql(["bar", "container", "exec", "foo"])
       })
@@ -1069,7 +1069,7 @@ describe("Garden", () => {
             config: projectConfigFoo,
           })
 
-          const moduleTypes = await garden.getModuleTypeDefinitions()
+          const moduleTypes = await garden.getModuleTypes()
 
           expect(Object.keys(moduleTypes).sort()).to.eql(["a", "b", "c", "container", "exec"])
         })
@@ -1262,7 +1262,7 @@ describe("Garden", () => {
 
       await expectError(
         () => garden.resolveProviders(),
-        (err) => expect(err.message).to.equal("Configured plugin 'test-plugin' has not been registered.")
+        (err) => expect(err.message).to.equal("Configured provider 'test-plugin' has not been registered.")
       )
     })
 

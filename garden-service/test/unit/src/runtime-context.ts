@@ -22,8 +22,8 @@ describe("prepareRuntimeContext", () => {
       module,
       dependencies: {
         build: [],
-        service: [],
-        task: [],
+        deploy: [],
+        run: [],
         test: [],
       },
       serviceStatuses: {},
@@ -44,8 +44,8 @@ describe("prepareRuntimeContext", () => {
       module,
       dependencies: {
         build: [],
-        service: [],
-        task: [],
+        deploy: [],
+        run: [],
         test: [],
       },
       serviceStatuses: {},
@@ -67,8 +67,8 @@ describe("prepareRuntimeContext", () => {
       module,
       dependencies: {
         build: [moduleB],
-        service: [],
-        task: [],
+        deploy: [],
+        run: [],
         test: [],
       },
       serviceStatuses: {},
@@ -102,8 +102,8 @@ describe("prepareRuntimeContext", () => {
       module,
       dependencies: {
         build: [],
-        service: [serviceB],
-        task: [],
+        deploy: [serviceB],
+        run: [],
         test: [],
       },
       serviceStatuses: {
@@ -143,8 +143,8 @@ describe("prepareRuntimeContext", () => {
       module,
       dependencies: {
         build: [],
-        service: [],
-        task: [taskB],
+        deploy: [],
+        run: [taskB],
         test: [],
       },
       serviceStatuses: {},
@@ -190,8 +190,8 @@ describe("prepareRuntimeContext", () => {
       module,
       dependencies: {
         build: [],
-        service: [serviceB],
-        task: [taskB],
+        deploy: [serviceB],
+        run: [taskB],
         test: [],
       },
       serviceStatuses: {},
@@ -213,8 +213,8 @@ describe("prepareRuntimeContext", () => {
       module,
       dependencies: {
         build: [],
-        service: [serviceB],
-        task: [taskB],
+        deploy: [serviceB],
+        run: [taskB],
         test: [],
       },
       serviceStatuses: {},

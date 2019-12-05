@@ -22,7 +22,7 @@ import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { ConfigGraph } from "../config-graph"
 import { makeTestTaskName } from "./helpers"
-import { getBuildTasks } from "./build"
+import { BuildTask } from "./build"
 import { TaskTask } from "./task"
 import { TaskResults } from "../task-graph"
 
@@ -75,14 +75,14 @@ export class TestTask extends BaseTask {
     const dg = this.graph
     const deps = await dg.getDependencies("test", this.getName(), false)
 
-    const buildTasks = await getBuildTasks({
+    const buildTasks = await BuildTask.factory({
       garden: this.garden,
       log: this.log,
       module: this.module,
       force: this.forceBuild,
     })
 
-    const taskTasks = await Bluebird.map(deps.task, (task) => {
+    const taskTasks = await Bluebird.map(deps.run, (task) => {
       return TaskTask.factory({
         task,
         garden: this.garden,
@@ -93,7 +93,7 @@ export class TestTask extends BaseTask {
       })
     })
 
-    const serviceTasks = deps.service.map(
+    const serviceTasks = deps.deploy.map(
       (service) =>
         new DeployTask({
           garden: this.garden,

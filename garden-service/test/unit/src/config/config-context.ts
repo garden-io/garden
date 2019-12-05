@@ -320,8 +320,8 @@ describe("ModuleConfigContext", () => {
         graph,
         dependencies: {
           build: [],
-          service: [serviceB],
-          task: [taskB],
+          deploy: [serviceB],
+          run: [taskB],
           test: [],
         },
         module: serviceA.module,
