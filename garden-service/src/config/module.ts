@@ -97,7 +97,8 @@ export const baseBuildSpecSchema = joi
   .default(() => ({ dependencies: [] }), "{}")
   .description("Specify how to build the module. Note that plugins may define additional keys on this object.")
 
-export const baseModuleSpecSchema = joi
+// These fields are validated immediately when loading the config file
+export const coreModuleSpecSchema = joi
   .object()
   .keys({
     apiVersion: joi
@@ -117,12 +118,20 @@ export const baseModuleSpecSchema = joi
       .required()
       .description("The name of this module.")
       .example("my-sweet-module"),
-    description: joi.string(),
-    include: joi
-      .array()
-      .items(joi.string().posixPath({ allowGlobs: true, subPathOnly: true }))
-      .description(
-        dedent`Specify a list of POSIX-style paths or globs that should be regarded as the source files for this
+  })
+  .required()
+  .unknown(true)
+  .description("Configure a module whose sources are located in this directory.")
+  .meta({ extendable: true })
+
+// These fields may be resolved later in the process, and allow for usage of template strings
+export const baseModuleSpecSchema = coreModuleSpecSchema.keys({
+  description: joi.string(),
+  include: joi
+    .array()
+    .items(joi.string().posixPath({ allowGlobs: true, subPathOnly: true }))
+    .description(
+      dedent`Specify a list of POSIX-style paths or globs that should be regarded as the source files for this
         module. Files that do *not* match these paths or globs are excluded when computing the version of the module,
         when responding to filesystem watch events, and when staging builds.
 
@@ -131,13 +140,13 @@ export const baseModuleSpecSchema = joi
         [Configuration Files guide](${includeGuideLink}) for details.
 
         Also note that specifying an empty list here means _no sources_ should be included.`
-      )
-      .example([["Dockerfile", "my-app.js"], {}]),
-    exclude: joi
-      .array()
-      .items(joi.string().posixPath({ allowGlobs: true, subPathOnly: true }))
-      .description(
-        dedent`Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that
+    )
+    .example([["Dockerfile", "my-app.js"], {}]),
+  exclude: joi
+    .array()
+    .items(joi.string().posixPath({ allowGlobs: true, subPathOnly: true }))
+    .description(
+      dedent`Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that
         match these paths or globs are excluded when computing the version of the module, when responding to filesystem
         watch events, and when staging builds.
 
@@ -149,24 +158,20 @@ export const baseModuleSpecSchema = joi
         and directories are watched for changes. Use the project \`modules.exclude\` field to affect those, if you have
         large directories that should not be watched for changes.
         `
-      )
-      .example([["tmp/**/*", "*.log"], {}]),
-    repositoryUrl: joiRepositoryUrl().description(
-      dedent`${joiRepositoryUrl().describe().description}
+    )
+    .example([["tmp/**/*", "*.log"], {}]),
+  repositoryUrl: joiRepositoryUrl().description(
+    dedent`${joiRepositoryUrl().describe().description}
 
         Garden will import the repository source code into this module, but read the module's
         config from the local garden.yml file.`
-    ),
-    allowPublish: joi
-      .boolean()
-      .default(true)
-      .description("When false, disables pushing this module to remote registries."),
-    build: baseBuildSpecSchema.unknown(true),
-  })
-  .required()
-  .unknown(true)
-  .description("Configure a module whose sources are located in this directory.")
-  .meta({ extendable: true })
+  ),
+  allowPublish: joi
+    .boolean()
+    .default(true)
+    .description("When false, disables pushing this module to remote registries."),
+  build: baseBuildSpecSchema.unknown(true),
+})
 
 export interface ModuleConfig<
   M extends ModuleSpec = any,
