@@ -9,7 +9,6 @@
 import { resolve } from "url"
 import { ContainerModule } from "../../container/config"
 import { getPortForward } from "../port-forward"
-import { systemNamespace } from "../system"
 import { CLUSTER_REGISTRY_DEPLOYMENT_NAME, CLUSTER_REGISTRY_PORT } from "../constants"
 import { containerHelpers } from "../../container/helpers"
 import { PluginError } from "../../../exceptions"
@@ -32,6 +31,8 @@ export async function queryRegistry(
 }
 
 export async function getRegistryPortForward(ctx: PluginContext, log: LogEntry) {
+  const systemNamespace = ctx.provider.config.gardenSystemNamespace
+
   return getPortForward({
     ctx,
     log,

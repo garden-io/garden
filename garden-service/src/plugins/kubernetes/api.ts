@@ -83,7 +83,7 @@ const apiTypes: { [key: string]: K8sApiConstructor<any> } = {
 
 const crudMap = {
   Secret: {
-    type: V1Secret,
+    cls: new V1Secret(),
     group: "core",
     read: "readNamespacedSecret",
     create: "createNamespacedSecret",
@@ -92,7 +92,8 @@ const crudMap = {
   },
 }
 
-type CrudMapType = typeof crudMap
+type CrudMap = typeof crudMap
+type CrudMapTypes = { [T in keyof CrudMap]: CrudMap[T]["cls"] }
 
 export class KubernetesError extends GardenBaseError {
   type = "kubernetes"
@@ -303,22 +304,29 @@ export class KubeApi {
     return res.body
   }
 
-  async upsert<K extends keyof CrudMapType>(
+  async upsert<K extends keyof CrudMap, O extends KubernetesResource<CrudMapTypes[K]>>(
     kind: K,
     namespace: string,
-    obj: KubernetesResource
-  ): Promise<KubernetesResource> {
+    obj: O,
+    log: LogEntry
+  ) {
     const api = this[crudMap[kind].group]
+    const name = obj.metadata.name
+
+    log.debug(`Upserting ${kind} ${namespace}/${name}`)
 
     try {
-      const res = await api[crudMap[kind].read](obj.metadata.name, namespace)
-      return res.body
+      await api[crudMap[kind].read](name, namespace)
+      await api[crudMap[kind].patch](name, namespace, obj)
+      log.debug(`Patched ${kind} ${namespace}/${name}`)
     } catch (err) {
       if (err.code === 404) {
         try {
           await api[crudMap[kind].create](namespace, <any>obj)
+          log.debug(`Created ${kind} ${namespace}/${name}`)
         } catch (err) {
           if (err.code === 409) {
+            log.debug(`Patched ${kind} ${namespace}/${name}`)
             await api[crudMap[kind].patch](name, namespace, obj)
           } else {
             throw err
@@ -328,8 +336,6 @@ export class KubeApi {
         throw err
       }
     }
-
-    return obj
   }
 
   /**

@@ -1,4 +1,31 @@
 kind: Project
-name: container-artifacts
-providers:
-  - name: local-kubernetes
+name: container
+environments:
+  - name: local
+    providers:
+      - name: local-kubernetes
+  - name: cluster-docker
+    providers:
+      - &clusterDocker
+        name: local-kubernetes
+        buildMode: cluster-docker
+        imagePullSecrets:
+          # Note: We populate this secret in the test code
+          - name: test-docker-auth
+        # This is currently necessary for Docker Desktop, and potentially other local K8s distros
+        # Note: It is _terribly_ slow, so should only be used for testing.
+        storage:
+          builder:
+            storageClass: garden-system-nfs-v2
+  - name: cluster-docker-buildkit
+    providers:
+      - <<: *clusterDocker
+        clusterDocker:
+          enableBuildKit: true
+  - name: cluster-docker-auth
+    providers:
+      - <<: *clusterDocker
+  - name: kaniko
+    providers:
+      - <<: *clusterDocker
+        buildMode: kaniko

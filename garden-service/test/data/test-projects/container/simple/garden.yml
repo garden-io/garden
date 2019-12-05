@@ -1,7 +1,7 @@
 kind: Module
 name: simple
 type: container
-image: busybox
+image: busybox:1.31.1
 services:
   - name: echo-service
     command: [sh, -c, "echo ok"]

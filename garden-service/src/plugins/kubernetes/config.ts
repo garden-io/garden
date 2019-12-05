@@ -13,6 +13,7 @@ import { Provider, providerConfigBaseSchema, ProviderConfig } from "../../config
 import { containerRegistryConfigSchema, ContainerRegistryConfig } from "../container/config"
 import { PluginContext } from "../../plugin-context"
 import { deline } from "../../util/string"
+import { defaultSystemNamespace } from "./system"
 
 export interface ProviderSecretRef {
   name: string
@@ -81,7 +82,7 @@ export type ContainerBuildMode = "local-docker" | "cluster-docker" | "kaniko"
 export type DefaultDeploymentStrategy = "rolling"
 export type DeploymentStrategy = DefaultDeploymentStrategy | "blue-green"
 
-export interface KubernetesBaseConfig extends ProviderConfig {
+export interface KubernetesConfig extends ProviderConfig {
   buildMode: ContainerBuildMode
   clusterDocker?: {
     enableBuildKit?: boolean
@@ -89,6 +90,7 @@ export interface KubernetesBaseConfig extends ProviderConfig {
   context: string
   defaultHostname?: string
   defaultUsername?: string
+  deploymentRegistry?: ContainerRegistryConfig
   deploymentStrategy?: DeploymentStrategy
   forceSsl: boolean
   imagePullSecrets: ProviderSecretRef[]
@@ -100,13 +102,10 @@ export interface KubernetesBaseConfig extends ProviderConfig {
   registryProxyTolerations: Toleration[]
   resources: KubernetesResources
   storage: KubernetesStorage
+  gardenSystemNamespace: string
   tlsCertificates: IngressTlsCertificate[]
   certManager?: CertManagerConfig
   _systemServices: string[]
-}
-
-export interface KubernetesConfig extends KubernetesBaseConfig {
-  deploymentRegistry?: ContainerRegistryConfig
 }
 
 export type KubernetesProvider = Provider<KubernetesConfig>
@@ -345,6 +344,16 @@ export const kubernetesConfigBase = providerConfigBaseSchema.keys({
       "Require SSL on all `container` module services. If set to true, an error is raised when no certificate " +
         "is available for a configured hostname on a `container` module."
     ),
+  gardenSystemNamespace: joi
+    .string()
+    .default(defaultSystemNamespace)
+    .description(
+      dedent`
+      Override the garden-system namespace name. This option is mainly used for testing.
+      In most cases you should leave the default value.
+      `
+    )
+    .meta({ internal: true }),
   imagePullSecrets: imagePullSecretsSchema,
   // TODO: invert the resources and storage config schemas
   resources: joi

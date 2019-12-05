@@ -194,7 +194,7 @@ export async function createContainerManifests(
   const { production } = ctx
   const namespace = await getAppNamespace(k8sCtx, log, provider)
   const api = await KubeApi.factory(log, provider)
-  const ingresses = await createIngressResources(api, provider, namespace, service)
+  const ingresses = await createIngressResources(api, provider, namespace, service, log)
   const workload = await createWorkloadResource({
     provider,
     service,
@@ -296,6 +296,9 @@ export async function createWorkloadResource({
       },
     },
     imagePullPolicy: "IfNotPresent",
+    securityContext: {
+      allowPrivilegeEscalation: false,
+    },
   }
 
   if (service.spec.command && service.spec.command.length > 0) {
@@ -395,7 +398,14 @@ export async function createWorkloadResource({
       },
     }
 
+    const securityContext = {
+      runAsUser: 1000,
+      runAsGroup: 3000,
+      fsGroup: 2000,
+    }
+
     deployment.spec.template.spec.affinity = affinity
+    deployment.spec.template.spec.securityContext = securityContext
   }
 
   if (enableHotReload) {

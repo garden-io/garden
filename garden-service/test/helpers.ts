@@ -23,7 +23,7 @@ import {
   RegisterPluginParam,
   ModuleAndRuntimeActionHandlers,
 } from "../src/types/plugin/plugin"
-import { Garden, GardenParams } from "../src/garden"
+import { Garden, GardenParams, GardenOpts } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { mapValues, fromPairs } from "lodash"
 import { ModuleVersion } from "../src/vcs/vcs"
@@ -329,16 +329,13 @@ export class TestGarden extends Garden {
   }
 }
 
-export const makeTestGarden = async (
-  projectRoot: string,
-  { extraPlugins, gardenDirPath }: { extraPlugins?: RegisterPluginParam[]; gardenDirPath?: string } = {}
-): Promise<TestGarden> => {
-  const plugins = [...testPlugins, ...(extraPlugins || [])]
-  return TestGarden.factory(projectRoot, { plugins, gardenDirPath })
+export const makeTestGarden = async (projectRoot: string, opts: GardenOpts = {}): Promise<TestGarden> => {
+  const plugins = [...testPlugins, ...(opts.plugins || [])]
+  return TestGarden.factory(projectRoot, { ...opts, plugins })
 }
 
 export const makeTestGardenA = async (extraPlugins: RegisterPluginParam[] = []) => {
-  return makeTestGarden(projectRootA, { extraPlugins })
+  return makeTestGarden(projectRootA, { plugins: extraPlugins })
 }
 
 export function stubAction<T extends keyof PluginActionHandlers>(
