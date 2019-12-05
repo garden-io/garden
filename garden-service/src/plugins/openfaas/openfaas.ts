@@ -11,7 +11,7 @@ import { ConfigurationError } from "../../exceptions"
 import { ServiceStatus, ServiceIngress, ServiceProtocol } from "../../types/service"
 import { testExecModule } from "../exec"
 import { getNamespace } from "../kubernetes/namespace"
-import { findByName } from "../../util/util"
+import { findByName, sleep } from "../../util/util"
 import { KubeApi } from "../kubernetes/api"
 import { waitForResources } from "../kubernetes/status/status"
 import { checkWorkloadStatus } from "../kubernetes/status/workload"
@@ -242,6 +242,9 @@ async function getServiceLogs(params: GetServiceLogsParams<OpenFaasModule>) {
   return getAllLogs({ ...params, provider: k8sProvider, defaultNamespace: namespace, resources })
 }
 
+const faasNetesInitTimeout = 10000
+const retryWait = 1000
+
 async function deployService(params: DeployServiceParams<OpenFaasModule>): Promise<ServiceStatus> {
   const { ctx, module, service, log, runtimeContext } = params
   const k8sProvider = getK8sProvider(ctx.provider.dependencies)
@@ -251,11 +254,28 @@ async function deployService(params: DeployServiceParams<OpenFaasModule>): Promi
   await writeStackFile(<OpenFaasProvider>ctx.provider, k8sProvider, module, envVars)
 
   // use faas-cli to do the deployment
-  await faasCli.stdout({
-    log,
-    cwd: module.buildPath,
-    args: ["deploy", "-f", stackFilename],
-  })
+  const start = new Date().getTime()
+
+  while (true) {
+    try {
+      await faasCli.stdout({
+        log,
+        cwd: module.buildPath,
+        args: ["deploy", "-f", stackFilename],
+      })
+      break
+    } catch (err) {
+      const now = new Date().getTime()
+
+      // Retry a few times in case faas-netes is still initializing
+      if (err.all.includes("failed to deploy with status code: 503") && now - start < faasNetesInitTimeout * 1000) {
+        await sleep(retryWait)
+        continue
+      } else {
+        throw err
+      }
+    }
+  }
 
   // wait until deployment is ready
   const namespace = await getFunctionNamespace(
