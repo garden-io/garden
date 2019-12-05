@@ -184,6 +184,7 @@ describe("plugins.container", () => {
           build: { dependencies: [] },
           apiVersion: "garden.io/v0",
           name: "module-a",
+          include: ["Dockerfile"],
           outputs: {
             "local-image-name": "module-a",
             "deployment-image-name": "module-a",
