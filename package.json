@@ -24,7 +24,6 @@
     "deline": "^1.0.4",
     "execa": "^3.4.0",
     "fs-extra": "^8.1.0",
-    "fsevents": "^2.1.2",
     "gulp": "^4.0.2",
     "gulp-cached": "^1.1.1",
     "gulp-license-check": "^1.2.1",
