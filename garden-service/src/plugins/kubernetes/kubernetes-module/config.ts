@@ -79,5 +79,10 @@ export async function configureKubernetesModule({
     },
   ]
 
+  // Unless include is explicitly specified, we should just have it equal the `files` field
+  if (!moduleConfig.include) {
+    moduleConfig.include = moduleConfig.spec.files
+  }
+
   return { moduleConfig }
 }
