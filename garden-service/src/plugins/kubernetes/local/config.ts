@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import { KubernetesConfig, kubernetesConfigBase, k8sContextSchema } from "../config"
 import { ConfigureProviderParams } from "../../../types/plugin/provider/configureProvider"
 import { joiProviderName, joi } from "../../../config/common"
@@ -97,11 +96,7 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
   }
 
   if (config.context === "minikube") {
-    const initCmds = [
-      ["config", "set", "WantUpdateNotification", "false"],
-      ["addons", "enable", "dashboard"],
-    ]
-    await Bluebird.map(initCmds, async (cmd) => exec("minikube", cmd))
+    await exec("minikube", ["config", "set", "WantUpdateNotification", "false"])
 
     if (!config.defaultHostname) {
       // use the nip.io service to give a hostname to the instance, if none is explicitly configured
@@ -117,7 +112,7 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
 
     await setMinikubeDockerEnv()
   } else if (config.context === "microk8s") {
-    const addons = ["dns", "dashboard", "registry", "storage"]
+    const addons = ["dns", "registry", "storage"]
 
     if (config.setupIngressController === "nginx") {
       log.debug("Using microk8s's ingress addon")
@@ -132,8 +127,6 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
       hostname: "localhost:32000",
       namespace,
     }
-  } else {
-    _systemServices.push("kubernetes-dashboard")
   }
 
   if (!config.defaultHostname) {
