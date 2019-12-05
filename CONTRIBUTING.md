@@ -42,6 +42,8 @@ npm install # To install root dependencies
 npm run bootstrap # To bootstrap packages
 ```
 
+from the root directory
+
 ## Developing Garden
 
 ### Initial build
