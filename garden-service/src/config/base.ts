@@ -9,7 +9,7 @@
 import { sep, resolve, relative, basename, dirname } from "path"
 import yaml from "js-yaml"
 import { readFile } from "fs-extra"
-import { omit, flatten, isPlainObject, find } from "lodash"
+import { omit, isPlainObject, find } from "lodash"
 import { ModuleResource, moduleConfigSchema, coreModuleSpecSchema } from "./module"
 import { ConfigurationError } from "../exceptions"
 import { DEFAULT_API_VERSION } from "../constants"
@@ -48,7 +48,7 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
   // Ignore empty resources
   rawSpecs = rawSpecs.filter(Boolean)
 
-  const resources: GardenResource[] = flatten(rawSpecs.map((s) => prepareResources(s, path, configPath, projectRoot)))
+  const resources: GardenResource[] = rawSpecs.map((s) => prepareResource(s, path, configPath, projectRoot))
 
   const projectSpecs = resources.filter((s) => s.kind === "Project")
 
@@ -75,7 +75,7 @@ export type ConfigKind = "Module" | "Project"
  * definitions). The kind key is removed before validation, so that specs following both styles can be validated
  * with the same schema.
  */
-function prepareResources(spec: any, path: string, configPath: string, projectRoot: string): GardenResource[] {
+function prepareResource(spec: any, path: string, configPath: string, projectRoot: string): GardenResource {
   if (!isPlainObject(spec)) {
     throw new ConfigurationError(`Invalid configuration found in ${path}`, {
       spec,
@@ -83,20 +83,6 @@ function prepareResources(spec: any, path: string, configPath: string, projectRo
     })
   }
 
-  // TODO: remove support for the older scoped config style in 0.11
-  if (spec.project || spec.module) {
-    return prepareScopedConfigDoc(spec, path, configPath, projectRoot)
-  } else {
-    return [prepareFlatConfigDoc(spec, path, configPath, projectRoot)]
-  }
-}
-
-/**
- * The new / flat configuration style.
- *
- * The spec defines either a project or a module (determined by its "kind" field).
- */
-function prepareFlatConfigDoc(spec: any, path: string, configPath: string, projectRoot: string): GardenResource {
   const kind = spec.kind
   const relPath = `${relative(projectRoot, path)}/garden.yml`
 
@@ -115,26 +101,6 @@ function prepareFlatConfigDoc(spec: any, path: string, configPath: string, proje
       path: relPath,
     })
   }
-}
-
-/**
- * The old / nested configuration style.
- *
- * The spec defines a project and/or a module, with the config for each nested under the "project" / "module" field,
- * respectively.
- */
-function prepareScopedConfigDoc(spec: any, path: string, configPath: string, projectRoot: string): GardenResource[] {
-  const resources: GardenResource[] = []
-
-  if (spec.project) {
-    resources.push(prepareProjectConfig(spec.project, path, configPath))
-  }
-
-  if (spec.module) {
-    resources.push(prepareModuleResource(spec.module, path, configPath, projectRoot))
-  }
-
-  return resources
 }
 
 function prepareProjectConfig(spec: any, path: string, configPath: string): ProjectResource {

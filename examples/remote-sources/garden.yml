@@ -2,9 +2,9 @@ kind: Project
 name: remote-sources
 sources:
   - name: web-services
-    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-web-services.git#v0.1.0
+    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-web-services.git#v0.1.1
   - name: db-services
-    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#v0.1.0
+    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#v0.1.1
 environments:
   - name: local
     providers:
