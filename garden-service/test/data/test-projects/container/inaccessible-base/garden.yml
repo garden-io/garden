@@ -1,0 +1,4 @@
+kind: Module
+name: inaccessible-base
+description: Test module for attempting to pull from inaccessible registries
+type: container

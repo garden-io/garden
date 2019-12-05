@@ -123,6 +123,7 @@
   "devDependencies": {
     "@commitlint/cli": "^8.2.0",
     "@commitlint/config-conventional": "^8.2.0",
+    "@google-cloud/kms": "^1.5.3",
     "@types/analytics-node": "^3.1.1",
     "@types/async-lock": "^1.1.1",
     "@types/bluebird": "^3.5.29",
@@ -134,6 +135,7 @@
     "@types/deep-diff": "1.0.0",
     "@types/dockerode": "^2.5.20",
     "@types/fs-extra": "^8.0.1",
+    "@types/google-cloud__kms": "^1.5.0",
     "@types/hapi__joi": "^15.0.4",
     "@types/has-ansi": "^3.0.0",
     "@types/inquirer": "6.5.0",

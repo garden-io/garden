@@ -10,7 +10,7 @@ import { PluginCommand } from "../../../types/plugin/command"
 import { prepareSystem, getEnvironmentStatus } from "../init"
 import chalk from "chalk"
 import { helm } from "../helm/helm-cli"
-import { KubernetesPluginContext } from "../config"
+import { KubernetesPluginContext, KubernetesProvider } from "../config"
 
 export const clusterInit: PluginCommand = {
   name: "cluster-init",
@@ -21,6 +21,7 @@ export const clusterInit: PluginCommand = {
   },
 
   handler: async ({ ctx, log }) => {
+    const provider = ctx.provider as KubernetesProvider
     const status = await getEnvironmentStatus({ ctx, log })
     let result = {}
 
@@ -44,7 +45,7 @@ export const clusterInit: PluginCommand = {
       await helm({
         ctx: k8sCtx,
         log,
-        namespace: "garden-system",
+        namespace: provider.config.gardenSystemNamespace,
         args: ["delete", "--purge", "garden-nfs-provisioner"],
       })
     } catch (_) {}

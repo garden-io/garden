@@ -9,7 +9,6 @@ import { TaskLogStatus } from "../src/logger/log-entry"
 import { JsonLogEntry } from "../src/logger/writers/json-terminal-writer"
 import { getExampleProjects } from "./helpers"
 import { WatchTestConditionState } from "./run-garden"
-import { systemMetadataNamespace } from "../src/plugins/kubernetes/system"
 
 export const parsedArgs = parseArgs(process.argv.slice(2))
 
@@ -34,10 +33,6 @@ export async function deleteExampleNamespaces(projectNames?: string[]) {
   namespacesToDelete = intersection(namespacesToDelete, existingNamespaces)
 
   await deleteNamespacesKubectl(namespacesToDelete)
-}
-
-export async function deleteSystemMetadataNamespace() {
-  await deleteExistingNamespacesKubectl([systemMetadataNamespace])
 }
 
 /*

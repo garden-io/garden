@@ -143,6 +143,7 @@ export class Garden {
   public readonly moduleIncludePatterns?: string[]
   public readonly moduleExcludePatterns: string[]
   public readonly persistent: boolean
+  public readonly systemNamespace: string
 
   constructor(params: GardenParams) {
     this.buildDir = params.buildDir

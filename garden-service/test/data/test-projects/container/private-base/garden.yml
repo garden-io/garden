@@ -1,0 +1,4 @@
+kind: Module
+name: private-base
+description: Test module for pulling from private registries
+type: container
