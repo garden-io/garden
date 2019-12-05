@@ -16,7 +16,6 @@ export const builtinPlugins = [
   require("./kubernetes/local/local"),
   require("./npm-package"),
   require("./google/google-app-engine"),
-  require("./openfaas/local"),
   require("./openfaas/openfaas"),
   require("./maven-container/maven-container"),
   require("./terraform/terraform"),
