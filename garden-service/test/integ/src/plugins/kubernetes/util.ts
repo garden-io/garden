@@ -47,14 +47,14 @@ describe("util", () => {
         provider,
         service,
         runtimeContext: emptyRuntimeContext,
-        namespace: "container-artifacts",
+        namespace: "container",
         enableHotReload: false,
         log: garden.log,
         production: false,
       })
       await garden.processTasks([deployTask], { throwOnError: true })
 
-      const pods = await getWorkloadPods(api, "container-artifacts", resource)
+      const pods = await getWorkloadPods(api, "container", resource)
       const services = flatten(pods.map((pod) => pod.spec.containers.map((container) => container.name)))
       expect(services).to.eql(["simple-service"])
     })

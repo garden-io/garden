@@ -232,4 +232,9 @@ describe("DeployCommand", () => {
       "deploy.service-b": { forwardablePorts: [], version: "1", state: "ready", detail: {} },
     })
   })
+
+  it("should be protected", async () => {
+    const command = new DeployCommand()
+    expect(command.protected).to.be.true
+  })
 })

@@ -143,16 +143,30 @@ your own cron jobs.
 
 ## Pulling base images from private registries
 
-Currently, only the _Local Docker_ build mode supports pulling base images from private registries in Dockerfiles. If you see an `ImagePullBackOff` error when using the other build modes, it's likely that it's failing because the Dockerfile for the module contains an entry like this:
+The in-cluster builder may need to be able to pull base images from a private registry, e.g. if your Dockerfile starts with something like this:
 
-```console
+```dockerfile
 FROM my-private-registry.com/my-image:tag
 ```
 
-where `my-private-registry` requires authorization.
+where `my-private-registry.com` requires authorization.
 
-This is because Garden currently can't authenticate against the private registry from inside the cluster.
+For this to work, you need to create a registry secret in your cluster (see [this guide](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/) for how to create the secret) and then configure the [imagePullSecrets](../reference/providers/kubernetes.md#providersimagepullsecrets) field in your `kubernetes` provider configuration:
 
-We do plan on supporting this for more build modes but it's a non-trivial feature to add. You can track the discussion and progress [in this issue](https://github.com/garden-io/garden/issues/1236).
+```yaml
+kind: Project
+name: my-project
+...
+providers:
+  - name: kubernetes
+    ...
+    imagePullSecrets:
+      # The name of the registry auth secret you created.
+    - name: my-registry-secret
+      # Change this if you store the secret in another namespace.
+      namespace: default
+```
 
-Note that you _can reference private images_ in the module config (`image: my-private-registry.com/image:tag`), or in your Helm/Kubernetes modules, as usual. For this you may need to set the `imagePullSecret` directive in the provider configuration.
+This registry auth secret will then be copied and passed to the in-cluster builder. You can specify as many as you like, and they will be merged together.
+
+> Note: Any time you add or modify imagePullSecrets after first initializing your cluster, you need to run `garden plugins kubernetes cluster-init` again for them to work when pulling base images!
