@@ -453,10 +453,22 @@ workflows:
     jobs:
       - test-minikube:
           kubernetesVersion: "1.16.2"
-  test-minikube-1.15.0:
+  test-minikube-1.15:
     jobs:
       - test-minikube:
-          kubernetesVersion: "1.15.0"
+          kubernetesVersion: "1.15.6"
+  test-minikube-1.14:
+    jobs:
+      - test-minikube:
+          kubernetesVersion: "1.14.9"
+  test-minikube-1.13:
+    jobs:
+      - test-minikube:
+          kubernetesVersion: "1.13.12"
+  test-minikube-1.12:
+    jobs:
+      - test-minikube:
+          kubernetesVersion: "1.12.10"
   commit:
     jobs:
       ### ALL BRANCHES/TAGS ###
