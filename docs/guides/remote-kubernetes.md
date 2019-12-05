@@ -180,7 +180,8 @@ The flag is also given to each provider, which may modify behavior accordingly. 
 
 1. Set the default number of replicas for `container` services to 3 (unless specified by the user).
 2. Set a soft AntiAffinity setting on `container` deployments to try to schedule Pods in a single Deployment across many nodes.
-3. Increase the `RevisionHistoryLimit` on workloads to 10.
-4. By default, running `garden deploy --force` will propagate the `--force` flag to `helm upgrade`, and set the `--replace` flag on `helm install` when deploying `helm` modules. This may be okay while developing but risky in production, so the `production` flag prevents both of those.
+3. Set a restricted `securityContext` for Pods (runAsUser: 1000, runAsGroup: 3000, fsGroup: 2000).
+4. Increase the `RevisionHistoryLimit` on workloads to 10.
+5. By default, running `garden deploy --force` will propagate the `--force` flag to `helm upgrade`, and set the `--replace` flag on `helm install` when deploying `helm` modules. This may be okay while developing but risky in production, so the `production` flag prevents both of those.
 
 We would highly appreciate feedback on other configuration settings that should be altered when `production: true`. Please send us feedback via [GitHub issues](https://github.com/garden-io/garden/issues) or reach out on our Slack channel!
