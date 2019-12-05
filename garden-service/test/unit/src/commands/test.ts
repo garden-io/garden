@@ -132,4 +132,9 @@ describe("commands.test", () => {
       })
     ).to.be.false
   })
+
+  it("should be protected", async () => {
+    const command = new TestCommand()
+    expect(command.protected).to.be.true
+  })
 })

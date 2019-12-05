@@ -51,4 +51,9 @@ describe("commands.build", () => {
       "stage-build.module-b": {},
     })
   })
+
+  it("should be protected", async () => {
+    const command = new BuildCommand()
+    expect(command.protected).to.be.true
+  })
 })
