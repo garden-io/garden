@@ -529,7 +529,7 @@ workflows:
           <<: *only-master
           context: docker
           requires: [build-dist-edge]
-      - release-service-dist:
+      - release-service-dist-edge:
           <<: *only-master
           requires: [build-dist-edge]
 
