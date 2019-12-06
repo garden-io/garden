@@ -11,96 +11,114 @@ import { KubernetesResource } from "../types"
 import { helm } from "./helm-cli"
 import { safeLoadAll } from "js-yaml"
 import { KubeApi } from "../api"
-import { getAppNamespace } from "../namespace"
-import { checkResourceStatuses, waitForResources } from "../status/status"
+import { checkResourceStatuses } from "../status/status"
 import { combineStates } from "../../../types/service"
-import { apply } from "../kubectl"
-import { KubernetesProvider, KubernetesPluginContext } from "../config"
-import chalk from "chalk"
+import { KubernetesPluginContext } from "../config"
 import { convertDeprecatedManifestVersion } from "../util"
+import Bluebird from "bluebird"
+
+// DEPRECATED: remove all this in v0.12.0
 
 const serviceAccountName = "garden-tiller"
 
-export async function checkTillerStatus(ctx: KubernetesPluginContext, log: LogEntry) {
-  const api = await KubeApi.factory(log, ctx.provider)
-  const namespace = await getAppNamespace(ctx, log, ctx.provider)
-
-  const resources = [...getRoleResources(namespace), ...(await getTillerResources(ctx, log))]
-
-  const statuses = await checkResourceStatuses(api, namespace, resources, log)
+export async function checkTillerStatus(ctx: KubernetesPluginContext, api: KubeApi, namespace: string, log: LogEntry) {
+  const manifests = await getTillerManifests(ctx, log, namespace)
+  const statuses = await checkResourceStatuses(api, namespace, manifests, log)
 
   return combineStates(statuses.map((s) => s.state))
 }
 
-interface InstallTillerParams {
-  ctx: KubernetesPluginContext
-  provider: KubernetesProvider
-  log: LogEntry
-  force?: boolean
-}
+export async function migrateToHelm3(ctx: KubernetesPluginContext, api: KubeApi, namespace: string, log: LogEntry) {
+  const migrationLog = log.info(`-> Migrating from Helm 2.x (Tiller) to Helm 3 in namespace ${namespace}`)
 
-export async function installTiller({ ctx, log, provider, force = false }: InstallTillerParams) {
-  if (!force && (await checkTillerStatus(ctx, log)) === "ready") {
-    return
+  // List all releases in Helm 2 (Tiller)
+  const res = await helm({
+    ctx,
+    namespace,
+    log,
+    args: ["list", "--output", "json"],
+    version: 2,
+  })
+
+  // ... of course it returns an empty string when there are no releases
+  const listFromTiller = res.trim() === "" ? { Releases: [] } : JSON.parse(res)
+  const tillerReleaseNames = listFromTiller.Releases.map((r: any) => r.Name)
+
+  // List all releases in Helm 3
+  const listFromHelm3 = JSON.parse(
+    await helm({
+      ctx,
+      namespace,
+      log,
+      args: ["list", "--output", "json"],
+    })
+  )
+  const helm3ReleaseNames = listFromHelm3.map((r: any) => r.name)
+
+  // Install the 2to3 plugin
+  try {
+    await helm({
+      ctx,
+      namespace,
+      log,
+      args: ["plugin", "install", "https://github.com/helm/helm-2to3"],
+    })
+  } catch (err) {
+    // Ugh ffs...
+    if (!err.message.includes("plugin already exists")) {
+      throw err
+    }
   }
 
-  const namespace = await getAppNamespace(ctx, log, provider)
+  // Convert each release from Tiller that isn't already in Helm 3
+  for (const releaseName of tillerReleaseNames) {
+    if (helm3ReleaseNames.includes(releaseName)) {
+      continue
+    }
 
-  const entry = log.info({
-    section: "tiller",
-    msg: `Installing to ${namespace}...`,
-    status: "active",
-  })
+    migrationLog.info(`-> Migrating release ${namespace}/${releaseName} from Tiller to Helm 3`)
 
-  // Need to install the RBAC stuff ahead of Tiller
-  const roleResources = getRoleResources(namespace)
-  entry.setState("Applying Tiller RBAC resources...")
-  await apply({ log, provider, manifests: roleResources, namespace })
-  await waitForResources({
-    ctx,
-    provider,
-    serviceName: "tiller",
-    resources: roleResources,
-    log: entry,
-  })
+    log.debug(
+      await helm({
+        ctx,
+        namespace,
+        log,
+        args: ["--tiller-ns", namespace, "2to3", "convert", releaseName],
+      })
+    )
+  }
 
-  const tillerResources = await getTillerResources(ctx, log)
-  const pruneSelector = "app=helm,name=tiller"
-  entry.setState("Deploying Tiller...")
-  await apply({
-    log,
-    provider,
-    manifests: tillerResources,
-    namespace,
-    pruneSelector,
-  })
-  await waitForResources({
-    ctx,
-    provider,
-    serviceName: "tiller",
-    resources: tillerResources,
-    log: entry,
-  })
+  // Remove Tiller
+  log.info(`-> Removing Tiller from namespace ${namespace}`)
+  await removeTiller(ctx, api, namespace, log)
 
-  entry.setSuccess({
-    msg: chalk.green(`Done (took ${entry.getDuration(1)} sec)`),
-    append: true,
-  })
+  log.info(`-> Helm 3 migration complete!`)
 }
 
-async function getTillerResources(ctx: KubernetesPluginContext, log: LogEntry): Promise<KubernetesResource[]> {
+async function removeTiller(ctx: KubernetesPluginContext, api: KubeApi, namespace: string, log: LogEntry) {
+  const manifests = await getTillerManifests(ctx, log, namespace)
+
+  return Bluebird.map(manifests, (resource) => api.deleteBySpec(namespace, resource, log))
+}
+
+async function getTillerManifests(
+  ctx: KubernetesPluginContext,
+  log: LogEntry,
+  namespace: string
+): Promise<KubernetesResource[]> {
   const tillerManifests = await helm({
     ctx,
     log,
     args: ["init", "--service-account", serviceAccountName, "--dry-run", "--debug"],
+    version: 2,
   })
 
   const resources = safeLoadAll(tillerManifests).map(convertDeprecatedManifestVersion)
 
-  return resources
+  return [...getRoleManifests(namespace), ...resources]
 }
 
-function getRoleResources(namespace: string) {
+function getRoleManifests(namespace: string) {
   return [
     {
       apiVersion: "v1",
