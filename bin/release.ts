@@ -23,7 +23,7 @@ const gardenRoot = resolve(__dirname, "..")
  * 7. Tag the commit.
  * 8. Push the tag. This triggers a CircleCI job that creates the release artifacts and publishes them to Github.
  * 9. If we're making a minor release, update links to examples and re-push the tag.
- * 10. Pushes the release branch to Github.
+ * 10. If this is not a pre-release, pushes the release branch to Github.
  *
  * Usage: ./bin/release.ts <minor | patch | preminor | prepatch | prerelease> [--force] [--dry-run]
  */
@@ -171,7 +171,7 @@ async function release() {
     }
   }
 
-  if (!dryRun) {
+  if (!dryRun && !semver.prerelease(version)) {
     console.log("Pushing release branch...")
     const pushArgs = ["push", "origin", branchName, "--no-verify"]
     if (force) {
@@ -180,18 +180,41 @@ async function release() {
     await execa("git", pushArgs, { cwd: gardenRoot })
   }
 
-  console.log(deline`
-    \nVersion ${chalk.bold.cyan(version)} has been ${chalk.bold("tagged")}, ${chalk.bold("committed")},
+  if (dryRun) {
+    console.log(deline`
+    Release ${chalk.bold.cyan(version)} is ready! To release, create and push a release tag with:\n
+
+    ${chalk.bold(`git tag -a ${version} -m "chore(release): release ${version}"`)}
+
+    ${chalk.bold(`git push push origin ${version} --no-verify`)}\n
+
+    Then, if this is not a pre-release, push the branch with:\n
+
+    ${chalk.bold(`git push origin ${branchName} --no-verify`)}\n
+
+    and create a pull request on Github by visiting:
+      https://github.com/garden-io/garden/pull/new/${branchName}\n
+
+    Alternatively, you can undo the commit created by the dry-run and run the script
+    again without the --dry-run flag. This will perform all the steps automatically.
+    `)
+
+  } else {
+    console.log(deline`
+    \nRelease ${chalk.bold.cyan(version)} has been ${chalk.bold(
+      "tagged"
+    )}, ${chalk.bold("committed")},
     and ${chalk.bold("pushed")} to Github! 🎉\n
 
     A CI job that creates the release artifacts is currently in process: https://circleci.com/gh/garden-io/garden\n
 
-    Create a pull request for ${branchName} on Github by visting:
+    If this is not a pre-release, create a pull request for ${branchName} on Github by visiting:
       https://github.com/garden-io/garden/pull/new/${branchName}\n
 
     Please refer to our contributing docs for the next steps:
     https://github.com/garden-io/garden/blob/master/CONTRIBUTING.md
-  `)
+  `);
+  }
 }
 
 async function createTag(version: string, force: boolean) {
