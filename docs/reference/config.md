@@ -160,8 +160,8 @@ environments:
     #
     # Setting this flag to `true` will activate the protection on the `deploy`, `test`, `task`,
     # `build`,
-    # `init` and `dev` commands. A protected command will ask for a user confirmation every time
-    # is run agains
+    # and `dev` commands. A protected command will ask for a user confirmation every time is run
+    # agains
     # an environment marked as production.
     # Run the command with the "--yes" flag to skip the check (e.g. when running Garden in CI).
     #
@@ -493,7 +493,7 @@ The name of the environment.
 Flag the environment as a production environment.
 
 Setting this flag to `true` will activate the protection on the `deploy`, `test`, `task`, `build`,
-`init` and `dev` commands. A protected command will ask for a user confirmation every time is run agains
+and `dev` commands. A protected command will ask for a user confirmation every time is run agains
 an environment marked as production.
 Run the command with the "--yes" flag to skip the check (e.g. when running Garden in CI).
 

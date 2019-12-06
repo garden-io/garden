@@ -46,21 +46,12 @@ describe("PreReleaseTests", () => {
     return new GardenWatch(dir, command)
   }
 
-  async function initIfRemote() {
-    // Assume env is remote if passed as arg
-    if (env) {
-      mlog.log("initing project", project)
-      await runWithEnv(["init"])
-    }
-  }
-
   const namespaces = getProjectNamespaces()
   const projectPath = resolve(examplesDir, project)
 
   before(async () => {
     mlog.log("deleting .garden folder")
     await removeExampleDotGardenDir(projectPath)
-    await initIfRemote()
   })
 
   after(async () => {

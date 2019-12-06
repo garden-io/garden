@@ -5,30 +5,21 @@ one of the modules.
 
 ## Setup
 
-The commands below assume you're running a local Kubernetes cluster. Please adjust the commands accordingly if you're
-running against a remote environment (setting the `--env` parameter and the correct `--namespace` for kubectl).
+_Note: The commands below assume you're running a local Kubernetes cluster. Please adjust the commands accordingly if you're running against a remote environment (setting the `--env` parameter and the correct `--namespace` for kubectl)._
 
-### 1. Initialize the project
-
-```sh
-garden init
-```
-
-### 2. Create the Secret
+First create the Secret in your Kubernetes cluster:
 
 ```sh
 kubectl --namespace=kubernetes-secrets create secret generic my-secret --from-literal=my-key=superdupersecret
 ```
 
-## Usage
-
-First deploy the services:
+Then deploy the services:
 
 ```sh
 garden deploy
 ```
 
-Then try calling the frontend service and observe the value you set in the Secret above:
+Finally, try calling the frontend service and observe the value you set in the Secret above:
 
 ```sh
 garden call backend

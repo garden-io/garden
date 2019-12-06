@@ -62,22 +62,14 @@ kubectl create namespace istio-system
 kubectl apply -f istio.yaml
 ```
 
-### Step 4 - Initialize the Garden project
+### Step 4 - Prepare your project namespace
 
-For Istio to work, we need to label the project namespace. Garden creates a namespace for the project when we run the `init` command:
-
-```sh
-garden init
-```
-
-The namespace name is the same as the project name, in this case `istio-example`.
-
-### Step 5 - Label the namespace with `istio-injection=enabled`
-
+For Istio to work, we need to label the project namespace. The namespace name is by default the same as the project name, in this case `istio-example`.
 Once the project namespace has been created, we need to label it with `istio-injection=enabled` for the Istio-sidecar-injector to work:
 
 ```sh
- kubectl label namespace istio-example istio-injection=enabled
+kubectl create namespace istio-example
+kubectl label namespace istio-example istio-injection=enabled
 ```
 
 ## Usage
