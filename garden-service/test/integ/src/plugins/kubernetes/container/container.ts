@@ -263,6 +263,11 @@ describe("kubernetes container module handlers", () => {
         runtimeContext,
       })
 
+      // Logging to try to figure out why this test flakes sometimes
+      // tslint:disable-next-line: no-console
+      console.log(result)
+
+      expect(result.success).to.be.true
       expect(result.log.trim()).to.eql("ok")
     })
 
