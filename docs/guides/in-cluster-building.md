@@ -66,11 +66,7 @@ In this mode, builds are executed as follows:
 2. A build is triggered in the Docker daemon.
 3. The built image is pushed to an in-cluster registry (which is automatically installed), which makes it available to the cluster.
 
-After enabling this mode (we currently still default to the `local` mode), you will need to run `garden init` for each
-applicable environment, in order to install the
-required cluster-wide services. Those services include the Docker daemon itself, as well as an image registry,
-a sync service for receiving build contexts, two persistent volumes, an NFS volume provisioner for one of those volumes,
-and a couple of small utility services.
+After enabling this mode (we currently still default to the `local-docker` mode), you will need to run `garden plugins kubernetes cluster-init --env=<env-name>` for each applicable environment, in order to install the required cluster-wide services. Those services include the Docker daemon itself, as well as an image registry, a sync service for receiving build contexts, two persistent volumes, an NFS volume provisioner for one of those volumes, and a couple of small utility services.
 
 Make sure your cluster has enough resources and storage to support the required services, and keep in mind that these
 services are shared across all users of the cluster. Please look at the
@@ -80,9 +76,7 @@ details.
 
 ### Kaniko
 
-This mode works _mostly_ the same way as Cluster Docker, but replaces the Docker daemon with
-[Kaniko](https://github.com/GoogleContainerTools/kaniko).
-Enable this by setting `buildMode: kaniko` in your `kubernetes` provider configuration.
+This mode works _mostly_ the same way as Cluster Docker, but replaces the Docker daemon with [Kaniko](https://github.com/GoogleContainerTools/kaniko). Enable this by setting `buildMode: kaniko` in your `kubernetes` provider configuration, and running `garden plugins kubernetes cluster-init --env=<env-name>` to install required cluster-wide service.
 
 The Kaniko project is still improving, but it provides a
 compelling alternative to the standard Docker daemon because it can run without special privileges on the cluster,

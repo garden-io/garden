@@ -213,9 +213,6 @@ jobs:
       - configure_kubectl_context
       - *attach-workspace
       - run:
-          name: Init Garden
-          command: ./garden-service/bin/garden init --root garden-service/test/e2e --logger-type basic
-      - run:
           name: Run e2e tests
           # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-e2e ./garden-service/bin/garden test e2e-tests --root garden-service/test/e2e --logger-type basic
