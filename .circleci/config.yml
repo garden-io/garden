@@ -471,7 +471,7 @@ workflows:
           kubernetesVersion: "1.12.10"
   commit:
     jobs:
-      ### ALL BRANCHES/TAGS ###
+      ### ALL BRANCHES ###
 
       - build
       - build-dist:
@@ -545,8 +545,13 @@ workflows:
           <<: *only-master
           requires: [build-dist-edge]
 
-      ### TAGS ONLY ###
-
+  tags:
+    jobs:
+      - build:
+          <<: *only-tags
+      - build-dist:
+          <<: *only-tags
+          requires: [build]
       - release-service-docker:
           <<: *only-tags
           context: docker
@@ -554,4 +559,3 @@ workflows:
       - release-service-dist:
           <<: *only-tags
           requires: [build-dist]
-
