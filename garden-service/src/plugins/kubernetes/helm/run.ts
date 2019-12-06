@@ -45,7 +45,7 @@ export async function runHelmModule({
     )
   }
 
-  const chartResources = await getChartResources(k8sCtx, module, log)
+  const chartResources = await getChartResources(k8sCtx, module, false, log)
   const target = await findServiceResource({
     ctx: k8sCtx,
     log,
@@ -96,7 +96,7 @@ export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<Ru
   const k8sCtx = <KubernetesPluginContext>ctx
 
   const { command, args } = task.spec
-  const chartResources = await getChartResources(k8sCtx, module, log)
+  const chartResources = await getChartResources(k8sCtx, module, false, log)
   const resourceSpec = task.spec.resource || getServiceResourceSpec(module)
   const target = await findServiceResource({
     ctx: k8sCtx,
