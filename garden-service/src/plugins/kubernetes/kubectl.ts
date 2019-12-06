@@ -65,13 +65,29 @@ export async function apply({
   }
 }
 
-export interface DeleteObjectsParams {
+export async function deleteResources({
+  log,
+  provider,
+  namespace,
+  resources,
+  includeUninitialized = false,
+}: {
   log: LogEntry
   provider: KubernetesProvider
   namespace: string
-  selector: string
-  objectTypes: string[]
+  resources: KubernetesResource[]
   includeUninitialized?: boolean
+}) {
+  const args = [
+    "delete",
+    "--wait=true",
+    "--ignore-not-found=true",
+    ...resources.map((r) => `${r.kind}/${r.metadata.name}`),
+  ]
+
+  includeUninitialized && args.push("--include-uninitialized")
+
+  return kubectl.stdout({ provider, namespace, args, log })
 }
 
 export async function deleteObjectsBySelector({
@@ -81,8 +97,15 @@ export async function deleteObjectsBySelector({
   selector,
   objectTypes,
   includeUninitialized = false,
-}: DeleteObjectsParams) {
-  let args = ["delete", objectTypes.join(","), "-l", selector]
+}: {
+  log: LogEntry
+  provider: KubernetesProvider
+  namespace: string
+  selector: string
+  objectTypes: string[]
+  includeUninitialized?: boolean
+}) {
+  let args = ["delete", objectTypes.join(","), "-l", selector, "--wait=true"]
 
   includeUninitialized && args.push("--include-uninitialized")
 

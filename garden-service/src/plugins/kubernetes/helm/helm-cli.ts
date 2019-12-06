@@ -10,9 +10,12 @@ import { BinaryCmd } from "../../../util/ext-tools"
 import { LogEntry } from "../../../logger/log-entry"
 import { KubernetesPluginContext } from "../config"
 import { getAppNamespace } from "../namespace"
+import { join } from "path"
+import { GARDEN_GLOBAL_PATH } from "../../../constants"
+import { mkdirp } from "fs-extra"
 
-const helmCmd = new BinaryCmd({
-  name: "helm",
+const helm2 = new BinaryCmd({
+  name: "helm2",
   specs: {
     darwin: {
       url: "https://storage.googleapis.com/kubernetes-helm/helm-v2.14.1-darwin-amd64.tar.gz",
@@ -41,30 +44,76 @@ const helmCmd = new BinaryCmd({
   },
 })
 
+const helm3 = new BinaryCmd({
+  name: "helm3",
+  specs: {
+    darwin: {
+      url: "https://get.helm.sh/helm-v3.0.1-darwin-amd64.tar.gz",
+      sha256: "4bffac2b5710fe80d2987efbc046a25968dbf3fb981c499e82fc21fe6178d2f3",
+      extract: {
+        format: "tar",
+        targetPath: ["darwin-amd64", "helm"],
+      },
+    },
+    linux: {
+      url: "https://get.helm.sh/helm-v3.0.1-linux-amd64.tar.gz",
+      sha256: "6de3337bb7683fd62f915d156cfc13c1cf73dc183bd39f2fb4644498c7595805",
+      extract: {
+        format: "tar",
+        targetPath: ["linux-amd64", "helm"],
+      },
+    },
+    win32: {
+      url: "https://get.helm.sh/helm-v3.0.1-windows-amd64.zip",
+      sha256: "60edef2180f94884e6a985c5cf920242fcc3fe8712f2d9768187b14816ed6bd9",
+      extract: {
+        format: "zip",
+        targetPath: ["windows-amd64", "helm.exe"],
+      },
+    },
+  },
+})
+
 export async function helm({
   ctx,
   namespace,
   log,
   args,
+  version = 3,
 }: {
   ctx: KubernetesPluginContext
   namespace?: string
   log: LogEntry
   args: string[]
+  version?: 2 | 3
 }) {
   if (!namespace) {
     namespace = await getAppNamespace(ctx, log, ctx.provider)
   }
 
-  const opts = ["--tiller-namespace", namespace, "--kube-context", ctx.provider.config.context]
+  const opts = ["--kube-context", ctx.provider.config.context]
+
+  if (version === 2) {
+    opts.push("--tiller-namespace", namespace)
+  } else {
+    opts.push("--namespace", namespace)
+  }
 
   if (ctx.provider.config.kubeconfig) {
     opts.push("--kubeconfig", ctx.provider.config.kubeconfig)
   }
 
-  return helmCmd.stdout({
+  const helmHome = join(GARDEN_GLOBAL_PATH, ".helm")
+  await mkdirp(helmHome)
+
+  const cmd = version === 2 ? helm2 : helm3
+
+  return cmd.stdout({
     log,
     args: [...opts, ...args],
+    env: {
+      HELM_HOME: helmHome,
+    },
     // Helm itself will time out pretty reliably, so we shouldn't time out early on our side.
     timeout: 3600,
   })

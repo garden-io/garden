@@ -17,17 +17,13 @@ import { getForwardablePorts } from "../port-forward"
 import { KubernetesServerResource } from "../types"
 import { safeLoadAll } from "js-yaml"
 
-const helmStatusCodeMap: { [code: number]: ServiceState } = {
-  // see https://github.com/kubernetes/helm/blob/master/_proto/hapi/release/status.proto
-  0: "unknown", // UNKNOWN
-  1: "ready", // DEPLOYED
-  2: "missing", // DELETED
-  3: "stopped", // SUPERSEDED
-  4: "unhealthy", // FAILED
-  5: "stopped", // DELETING
-  6: "deploying", // PENDING_INSTALL
-  7: "deploying", // PENDING_UPGRADE
-  8: "deploying", // PENDING_ROLLBACK
+const helmStatusMap: { [status: string]: ServiceState } = {
+  unknown: "unknown",
+  deployed: "ready",
+  deleted: "missing",
+  superseded: "stopped",
+  failed: "unhealthy",
+  deleting: "stopped",
 }
 
 interface HelmStatusDetail {
@@ -58,13 +54,7 @@ export async function getServiceStatus({
   let forwardablePorts: ForwardablePort[] = []
 
   if (state !== "missing") {
-    const deployedResources = safeLoadAll(
-      await helm({
-        ctx: k8sCtx,
-        log,
-        args: ["get", "manifest", releaseName],
-      })
-    )
+    const deployedResources = await getDeployedResources(k8sCtx, releaseName, log)
     forwardablePorts = getForwardablePorts(deployedResources)
   }
 
@@ -74,6 +64,16 @@ export async function getServiceStatus({
     version: state === "ready" ? module.version.versionString : undefined,
     detail,
   }
+}
+
+export async function getDeployedResources(ctx: KubernetesPluginContext, releaseName: string, log: LogEntry) {
+  return safeLoadAll(
+    await helm({
+      ctx,
+      log,
+      args: ["get", "manifest", releaseName],
+    })
+  )
 }
 
 export async function getReleaseStatus(
@@ -86,8 +86,8 @@ export async function getReleaseStatus(
   try {
     log.silly(`Getting the release status for ${releaseName}`)
     const res = JSON.parse(await helm({ ctx, log, args: ["status", releaseName, "--output", "json"] }))
-    const statusCode = res.info.status.code
-    let state = helmStatusCodeMap[statusCode]
+
+    let state = helmStatusMap[res.info.status] || "unknown"
     let values = {}
 
     if (state === "ready") {
@@ -111,8 +111,11 @@ export async function getReleaseStatus(
       state,
       detail: { ...res, values },
     }
-  } catch (_) {
-    // release doesn't exist
-    return { state: "missing", detail: {} }
+  } catch (err) {
+    if (err.message.includes("release: not found")) {
+      return { state: "missing", detail: {} }
+    } else {
+      throw err
+    }
   }
 }
