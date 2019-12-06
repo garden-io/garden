@@ -16,7 +16,7 @@ import {
   getChartResources,
   findServiceResource,
   getServiceResourceSpec,
-  getValueFileArgs,
+  getValueArgs,
 } from "./common"
 import { getReleaseStatus, HelmServiceStatus } from "./status"
 import { configureHotReload, HotReloadableResource } from "../hot-reload"
@@ -28,7 +28,7 @@ import { DeployServiceParams } from "../../../types/plugin/service/deployService
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
 import { getForwardablePorts } from "../port-forward"
 
-export async function deployService({
+export async function deployHelmService({
   ctx,
   module,
   service,
@@ -39,7 +39,7 @@ export async function deployService({
   let hotReloadSpec: ContainerHotReloadSpec | null = null
   let hotReloadTarget: HotReloadableResource | null = null
 
-  const chartResources = await getChartResources(ctx, module, log)
+  const chartResources = await getChartResources(ctx, module, hotReload, log)
 
   if (hotReload) {
     const resourceSpec = service.spec.serviceResource
@@ -53,14 +53,14 @@ export async function deployService({
   const chartPath = await getChartPath(module)
   const namespace = await getAppNamespace(k8sCtx, log, provider)
   const releaseName = getReleaseName(module)
-  const releaseStatus = await getReleaseStatus(k8sCtx, module, releaseName, log)
+  const releaseStatus = await getReleaseStatus(k8sCtx, module, releaseName, log, hotReload)
 
   const commonArgs = [
     "--namespace",
     namespace,
     "--timeout",
     module.spec.timeout.toString(10),
-    ...(await getValueFileArgs(module)),
+    ...(await getValueArgs(module, hotReload)),
   ]
 
   if (releaseStatus.state === "missing") {

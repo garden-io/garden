@@ -19,7 +19,7 @@ export async function getServiceLogs(params: GetServiceLogsParams<HelmModule>) {
   const provider = k8sCtx.provider
   const namespace = await getAppNamespace(k8sCtx, log, provider)
 
-  const resources = await getChartResources(k8sCtx, module, log)
+  const resources = await getChartResources(k8sCtx, module, false, log)
 
   return getAllLogs({ ...params, provider, defaultNamespace: namespace, resources })
 }

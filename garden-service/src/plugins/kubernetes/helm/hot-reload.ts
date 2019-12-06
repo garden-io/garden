@@ -27,7 +27,7 @@ export async function hotReloadHelmChart({
 }: HotReloadServiceParams<HelmModule, ContainerModule>): Promise<HotReloadServiceResult> {
   const hotReloadSpec = getHotReloadSpec(service)
 
-  const chartResources = await getChartResources(ctx, service.module, log)
+  const chartResources = await getChartResources(ctx, service.module, true, log)
   const resourceSpec = service.spec.serviceResource
 
   const workload = await findServiceResource({

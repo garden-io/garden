@@ -10,7 +10,7 @@ import { ModuleAndRuntimeActionHandlers } from "../../../types/plugin/plugin"
 import { HelmModule, configureHelmModule } from "./config"
 import { buildHelmModule } from "./build"
 import { getServiceStatus } from "./status"
-import { deployService, deleteService } from "./deployment"
+import { deployHelmService, deleteService } from "./deployment"
 import { getTestResult } from "../test-results"
 import { runHelmTask, runHelmModule } from "./run"
 import { hotReloadHelmChart } from "./hot-reload"
@@ -23,7 +23,7 @@ export const helmHandlers: Partial<ModuleAndRuntimeActionHandlers<HelmModule>> =
   configure: configureHelmModule,
   // TODO: add execInService handler
   deleteService,
-  deployService,
+  deployService: deployHelmService,
   getPortForward: getPortForwardHandler,
   getServiceLogs,
   getServiceStatus,

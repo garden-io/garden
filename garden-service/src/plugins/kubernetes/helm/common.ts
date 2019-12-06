@@ -42,7 +42,7 @@ export async function containsSource(config: HelmModuleConfig) {
 /**
  * Render the template in the specified Helm module (locally), and return all the resources in the chart.
  */
-export async function getChartResources(ctx: PluginContext, module: Module, log: LogEntry) {
+export async function getChartResources(ctx: PluginContext, module: Module, hotReload: boolean, log: LogEntry) {
   const chartPath = await getChartPath(module)
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespace = await getNamespace({
@@ -64,7 +64,7 @@ export async function getChartResources(ctx: PluginContext, module: Module, log:
         releaseName,
         "--namespace",
         namespace,
-        ...(await getValueFileArgs(module)),
+        ...(await getValueArgs(module, hotReload)),
         chartPath,
       ],
     })
@@ -146,7 +146,7 @@ export function getGardenValuesPath(chartPath: string) {
 /**
  * Get the value files arguments that should be applied to any helm install/render command.
  */
-export async function getValueFileArgs(module: HelmModule) {
+export async function getValueArgs(module: HelmModule, hotReload: boolean) {
   const chartPath = await getChartPath(module)
   const gardenValuesPath = getGardenValuesPath(chartPath)
 
@@ -154,7 +154,13 @@ export async function getValueFileArgs(module: HelmModule) {
   // so it's added to the end of the list.
   const valueFiles = module.spec.valueFiles.map((f) => resolve(module.buildPath, f)).concat([gardenValuesPath])
 
-  return flatten(valueFiles.map((f) => ["--values", f]))
+  const args = flatten(valueFiles.map((f) => ["--values", f]))
+
+  if (hotReload) {
+    args.push("--set", "\\.garden.hotReload=true")
+  }
+
+  return args
 }
 
 /**
@@ -332,7 +338,7 @@ async function renderHelmTemplateString(
           releaseName,
           "--namespace",
           namespace,
-          ...(await getValueFileArgs(module)),
+          ...(await getValueArgs(module, false)),
           "-x",
           tempFilePath,
           chartPath,
