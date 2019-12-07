@@ -14,6 +14,7 @@ import { configureMicrok8sAddons } from "./microk8s"
 import { setMinikubeDockerEnv } from "./minikube"
 import { exec } from "../../../util/util"
 import { remove } from "lodash"
+import { getNfsStorageClass } from "../init"
 
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
 
@@ -127,6 +128,12 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
       hostname: "localhost:32000",
       namespace,
     }
+  }
+
+  // Docker Desktop, minikube and others are unable to run docker-in-docker overlayfs
+  // on top of their default storage class, so we override the default here to use the NFS storage class.
+  if (config.buildMode !== "local-docker" && !config.storage.builder.storageClass) {
+    config.storage.builder.storageClass = getNfsStorageClass(config)
   }
 
   if (!config.defaultHostname) {
