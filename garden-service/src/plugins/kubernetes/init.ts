@@ -236,6 +236,11 @@ export async function prepareSystem({
 
   const remoteCluster = provider.name !== "local-kubernetes"
 
+  // Don't attempt to prepare environment when running the uninstall command
+  if (ctx.command && ctx.command.name === "plugins" && ctx.command.args.command === "uninstall-garden-services") {
+    return {}
+  }
+
   // If we require manual init and system services are ready OR outdated but none are *missing*, we warn
   // in the prepareEnvironment handler, instead of flagging as not ready here. This avoids blocking users where
   // there's variance in configuration between users of the same cluster, that often doesn't affect usage.
@@ -253,8 +258,9 @@ export async function prepareSystem({
           to update them, or contact a cluster admin to do so.
         `),
       })
+
+      return {}
     }
-    return {}
   }
 
   // We require manual init if we're installing any system services to remote clusters, to avoid conflicts
@@ -335,8 +341,12 @@ export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams)
   return {}
 }
 
+export function getNfsStorageClass(config: KubernetesConfig) {
+  return `${config.gardenSystemNamespace}-nfs-v${nfsStorageClassVersion}`
+}
+
 export function getKubernetesSystemVariables(config: KubernetesConfig) {
-  const nfsStorageClass = `${config.gardenSystemNamespace}-nfs-v${nfsStorageClassVersion}`
+  const nfsStorageClass = getNfsStorageClass(config)
   const syncStorageClass = config.storage.sync.storageClass || nfsStorageClass
   const systemNamespace = config.gardenSystemNamespace
 
