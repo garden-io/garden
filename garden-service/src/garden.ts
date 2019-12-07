@@ -415,10 +415,15 @@ export class Garden {
     const provider = findByName(providers, name)
 
     if (!provider) {
-      throw new PluginError(`Could not find provider '${name}'`, {
-        name,
-        providers,
-      })
+      const providerNames = providers.map((p) => p.name)
+      throw new PluginError(
+        `Could not find provider '${name}' in environment '${this.environmentName}' ` +
+          `(configured providers: ${providerNames.join(", ")})`,
+        {
+          name,
+          providers,
+        }
+      )
     }
 
     return provider

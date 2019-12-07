@@ -27,10 +27,26 @@ export const uninstallGardenServices: PluginCommand = {
     const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
     const actions = await sysGarden.getActionRouter()
 
-    const result = await actions.deleteEnvironment(log)
+    const graph = await sysGarden.getConfigGraph(log)
+    const services = await graph.getServices()
+
+    log.info("")
+
+    // We have to delete all services except nfs-provisioner first to avoid volumes getting stuck
+    const serviceNames = services.map((s) => s.name).filter((name) => name !== "nfs-provisioner")
+    const serviceStatuses = await actions.deleteServices(log, serviceNames)
+
+    if (k8sCtx.provider.config._systemServices.includes("nfs-provisioner")) {
+      const service = await graph.getService("nfs-provisioner")
+      await actions.deleteService({ service, log })
+    }
+
+    log.info("")
+
+    const environmentStatuses = await actions.cleanupAll(log)
 
     log.info(chalk.green("\nDone!"))
 
-    return { result }
+    return { result: { serviceStatuses, environmentStatuses } }
   },
 }

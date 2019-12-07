@@ -18,7 +18,7 @@ import { PublishModuleParams, PublishResult } from "./types/plugin/module/publis
 import { SetSecretParams, SetSecretResult } from "./types/plugin/provider/setSecret"
 import { validate } from "./config/common"
 import { defaultProvider } from "./config/provider"
-import { ParameterError, PluginError, ConfigurationError, InternalError } from "./exceptions"
+import { ParameterError, PluginError, ConfigurationError, InternalError, RuntimeError } from "./exceptions"
 import { Garden } from "./garden"
 import { LogEntry } from "./logger/log-entry"
 import { ProcessResults, processServices } from "./process"
@@ -579,14 +579,14 @@ export class ActionRouter implements TypeGuard {
   }
 
   /**
-   * Deletes all services and cleans up the specified environment.
+   * Deletes all or specified services in the environment.
    */
-  async deleteEnvironment(log: LogEntry) {
+  async deleteServices(log: LogEntry, names?: string[]) {
     const graph = await this.garden.getConfigGraph(log)
 
     const servicesLog = log.info({ msg: chalk.white("Deleting services..."), status: "active" })
 
-    const services = await graph.getServices()
+    const services = await graph.getServices(names)
 
     const deleteResults = await this.garden.processTasks(
       services.map((service) => {
@@ -600,12 +600,25 @@ export class ActionRouter implements TypeGuard {
       })
     )
 
+    const failed = Object.values(deleteResults).filter((r) => r && r.error).length
+
+    if (failed) {
+      throw new RuntimeError(`${failed} delete task(s) failed!`, {
+        results: deleteResults,
+      })
+    }
+
     const serviceStatuses = deletedServiceStatuses(deleteResults)
 
     servicesLog.setSuccess()
 
-    log.info("")
+    return serviceStatuses
+  }
 
+  /**
+   * Runs cleanupEnvironment for all configured providers
+   */
+  async cleanupAll(log: LogEntry) {
     const envLog = log.info({ msg: chalk.white("Cleaning up environments..."), status: "active" })
     const environmentStatuses: EnvironmentStatusMap = {}
 
@@ -617,7 +630,7 @@ export class ActionRouter implements TypeGuard {
 
     envLog.setSuccess()
 
-    return { serviceStatuses, environmentStatuses }
+    return environmentStatuses
   }
 
   async getDebugInfo({ log, includeProject }: { log: LogEntry; includeProject: boolean }): Promise<DebugInfoMap> {
