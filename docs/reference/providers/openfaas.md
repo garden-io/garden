@@ -6,8 +6,22 @@ title: Openfaas
 
 Below is the schema reference for the `openfaas` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../guides/configuration-files.md).
 
-The reference is divided into two sections. The [first section](#configuration-keys) lists and describes the available schema keys. The [second section](#complete-yaml-schema) contains the complete YAML schema.
+The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
+## Complete YAML schema
+
+The values in the schema below are the default values.
+
+```yaml
+providers:
+  - environments:
+    name: openfaas
+    gatewayUrl:
+    hostname:
+    faasNetes:
+      install: true
+      values:
+```
 ## Configuration keys
 
 ### `providers`
@@ -125,18 +139,3 @@ ingress configuration etc. so you need to make sure those are correctly configur
 | -------- | -------- |
 | `object` | No       |
 
-
-## Complete YAML schema
-
-The values in the schema below are the default values.
-
-```yaml
-providers:
-  - environments:
-    name: openfaas
-    gatewayUrl:
-    hostname:
-    faasNetes:
-      install: true
-      values:
-```

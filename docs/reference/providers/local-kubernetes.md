@@ -6,8 +6,83 @@ title: Local Kubernetes
 
 Below is the schema reference for the `local-kubernetes` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../guides/configuration-files.md).
 
-The reference is divided into two sections. The [first section](#configuration-keys) lists and describes the available schema keys. The [second section](#complete-yaml-schema) contains the complete YAML schema.
+The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
+## Complete YAML schema
+
+The values in the schema below are the default values.
+
+```yaml
+providers:
+  - environments:
+    buildMode: local-docker
+    clusterDocker:
+      enableBuildKit: false
+    defaultHostname:
+    defaultUsername:
+    deploymentStrategy: rolling
+    forceSsl: false
+    imagePullSecrets:
+      - name:
+        namespace: default
+    resources:
+      builder:
+        limits:
+          cpu: 4000
+          memory: 8192
+        requests:
+          cpu: 200
+          memory: 512
+      registry:
+        limits:
+          cpu: 2000
+          memory: 4096
+        requests:
+          cpu: 200
+          memory: 512
+      sync:
+        limits:
+          cpu: 500
+          memory: 512
+        requests:
+          cpu: 100
+          memory: 64
+    storage:
+      builder:
+        size: 20480
+        storageClass: null
+      nfs:
+        storageClass: null
+      registry:
+        size: 20480
+        storageClass: null
+      sync:
+        size: 10240
+        storageClass: null
+    tlsCertificates:
+      - name:
+        hostnames:
+        secretRef:
+          name:
+          namespace: default
+        managedBy:
+    certManager:
+      install: false
+      email:
+      issuer: acme
+      acmeServer: letsencrypt-staging
+      acmeChallengeType: HTTP-01
+    registryProxyTolerations:
+      - effect:
+        key:
+        operator: Equal
+        tolerationSeconds:
+        value:
+    name: local-kubernetes
+    context:
+    namespace:
+    setupIngressController: nginx
+```
 ## Configuration keys
 
 ### `providers`
@@ -1028,82 +1103,6 @@ Set this to null or false to skip installing/enabling the `nginx` ingress contro
 | -------- | -------- | --------- |
 | `string` | No       | `"nginx"` |
 
-
-## Complete YAML schema
-
-The values in the schema below are the default values.
-
-```yaml
-providers:
-  - environments:
-    buildMode: local-docker
-    clusterDocker:
-      enableBuildKit: false
-    defaultHostname:
-    defaultUsername:
-    deploymentStrategy: rolling
-    forceSsl: false
-    imagePullSecrets:
-      - name:
-        namespace: default
-    resources:
-      builder:
-        limits:
-          cpu: 4000
-          memory: 8192
-        requests:
-          cpu: 200
-          memory: 512
-      registry:
-        limits:
-          cpu: 2000
-          memory: 4096
-        requests:
-          cpu: 200
-          memory: 512
-      sync:
-        limits:
-          cpu: 500
-          memory: 512
-        requests:
-          cpu: 100
-          memory: 64
-    storage:
-      builder:
-        size: 20480
-        storageClass: null
-      nfs:
-        storageClass: null
-      registry:
-        size: 20480
-        storageClass: null
-      sync:
-        size: 10240
-        storageClass: null
-    tlsCertificates:
-      - name:
-        hostnames:
-        secretRef:
-          name:
-          namespace: default
-        managedBy:
-    certManager:
-      install: false
-      email:
-      issuer: acme
-      acmeServer: letsencrypt-staging
-      acmeChallengeType: HTTP-01
-    registryProxyTolerations:
-      - effect:
-        key:
-        operator: Equal
-        tolerationSeconds:
-        value:
-    name: local-kubernetes
-    context:
-    namespace:
-    setupIngressController: nginx
-```
 
 ## Outputs
 

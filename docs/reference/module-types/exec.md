@@ -17,10 +17,54 @@ filtering is done during the sync.
 
 Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../guides/configuration-files.md).
-The [first section](#configuration-keys) lists and describes the available
-schema keys. The [second section](#complete-yaml-schema) contains the complete YAML schema.
+
+The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
 `exec` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
+
+## Complete YAML schema
+
+The values in the schema below are the default values.
+
+```yaml
+apiVersion: garden.io/v0
+kind: Module
+type:
+name:
+description:
+include:
+exclude:
+repositoryUrl:
+allowPublish: true
+build:
+  dependencies:
+    - name:
+      copy:
+        - source:
+          target: <same as source path>
+  command: []
+local: false
+env: {}
+tasks:
+  - name:
+    description:
+    dependencies: []
+    timeout: null
+    artifacts:
+      - source:
+        target: .
+    command:
+    env: {}
+tests:
+  - name:
+    dependencies: []
+    timeout: null
+    command:
+    env: {}
+    artifacts:
+      - source:
+        target: .
+```
 
 ## Configuration keys
 
@@ -451,47 +495,6 @@ A POSIX-style path to copy the artifact to, relative to the project artifacts di
 | -------- | -------- | ------- |
 | `string` | No       | `"."`   |
 
-
-## Complete YAML schema
-```yaml
-apiVersion: garden.io/v0
-kind: Module
-type:
-name:
-description:
-include:
-exclude:
-repositoryUrl:
-allowPublish: true
-build:
-  dependencies:
-    - name:
-      copy:
-        - source:
-          target: <same as source path>
-  command: []
-local: false
-env: {}
-tasks:
-  - name:
-    description:
-    dependencies: []
-    timeout: null
-    artifacts:
-      - source:
-        target: .
-    command:
-    env: {}
-tests:
-  - name:
-    dependencies: []
-    timeout: null
-    command:
-    env: {}
-    artifacts:
-      - source:
-        target: .
-```
 
 ## Outputs
 
