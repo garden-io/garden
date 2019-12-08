@@ -1,0 +1,4 @@
+kind: Module
+name: base-image
+description: Base image for Go services
+type: container
