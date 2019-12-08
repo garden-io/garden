@@ -19,10 +19,106 @@ The provider will automatically fetch and cache Maven and the appropriate OpenJD
 
 Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../guides/configuration-files.md).
-The [first section](#configuration-keys) lists and describes the available
-schema keys. The [second section](#complete-yaml-schema) contains the complete YAML schema.
+
+The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
 `maven-container` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
+
+## Complete YAML schema
+
+The values in the schema below are the default values.
+
+```yaml
+apiVersion: garden.io/v0
+kind: Module
+type:
+name:
+description:
+include:
+exclude:
+repositoryUrl:
+allowPublish: true
+build:
+  dependencies:
+    - name:
+      copy:
+        - source:
+          target: <same as source path>
+  targetImage:
+  timeout: 1200
+buildArgs: {}
+extraFlags:
+image:
+hotReload:
+  sync:
+    - source: .
+      target:
+  postSyncCommand:
+dockerfile:
+services:
+  - name:
+    dependencies: []
+    annotations: {}
+    command:
+    args:
+    daemon: false
+    ingresses:
+      - annotations: {}
+        hostname:
+        linkUrl:
+        path: /
+        port:
+    env: {}
+    healthCheck:
+      httpGet:
+        path:
+        port:
+        scheme: HTTP
+      command:
+      tcpPort:
+    hotReloadCommand:
+    hotReloadArgs:
+    limits:
+      cpu: 1000
+      memory: 1024
+    ports:
+      - name:
+        protocol: TCP
+        containerPort:
+        servicePort: <same as containerPort>
+        hostPort:
+        nodePort:
+    replicas:
+    volumes:
+      - name:
+        containerPath:
+        hostPath:
+tests:
+  - name:
+    dependencies: []
+    timeout: null
+    args:
+    artifacts:
+      - source:
+        target: .
+    command:
+    env: {}
+tasks:
+  - name:
+    description:
+    dependencies: []
+    timeout: null
+    args:
+    artifacts:
+      - source:
+        target: .
+    command:
+    env: {}
+imageVersion:
+jarPath:
+jdkVersion: 8
+mvnOpts: []
+```
 
 ## Configuration keys
 
@@ -1206,99 +1302,6 @@ Options to add to the `mvn package` command when building.
 | --------------- | -------- | ------- |
 | `array[string]` | No       | `[]`    |
 
-
-## Complete YAML schema
-```yaml
-apiVersion: garden.io/v0
-kind: Module
-type:
-name:
-description:
-include:
-exclude:
-repositoryUrl:
-allowPublish: true
-build:
-  dependencies:
-    - name:
-      copy:
-        - source:
-          target: <same as source path>
-  targetImage:
-  timeout: 1200
-buildArgs: {}
-extraFlags:
-image:
-hotReload:
-  sync:
-    - source: .
-      target:
-  postSyncCommand:
-dockerfile:
-services:
-  - name:
-    dependencies: []
-    annotations: {}
-    command:
-    args:
-    daemon: false
-    ingresses:
-      - annotations: {}
-        hostname:
-        linkUrl:
-        path: /
-        port:
-    env: {}
-    healthCheck:
-      httpGet:
-        path:
-        port:
-        scheme: HTTP
-      command:
-      tcpPort:
-    hotReloadCommand:
-    hotReloadArgs:
-    limits:
-      cpu: 1000
-      memory: 1024
-    ports:
-      - name:
-        protocol: TCP
-        containerPort:
-        servicePort: <same as containerPort>
-        hostPort:
-        nodePort:
-    replicas:
-    volumes:
-      - name:
-        containerPath:
-        hostPath:
-tests:
-  - name:
-    dependencies: []
-    timeout: null
-    args:
-    artifacts:
-      - source:
-        target: .
-    command:
-    env: {}
-tasks:
-  - name:
-    description:
-    dependencies: []
-    timeout: null
-    args:
-    artifacts:
-      - source:
-        target: .
-    command:
-    env: {}
-imageVersion:
-jarPath:
-jdkVersion: 8
-mvnOpts: []
-```
 
 ## Outputs
 

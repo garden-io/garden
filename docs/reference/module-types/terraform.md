@@ -23,10 +23,37 @@ provider.
 
 Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../guides/configuration-files.md).
-The [first section](#configuration-keys) lists and describes the available
-schema keys. The [second section](#complete-yaml-schema) contains the complete YAML schema.
+
+The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
 `terraform` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
+
+## Complete YAML schema
+
+The values in the schema below are the default values.
+
+```yaml
+apiVersion: garden.io/v0
+kind: Module
+type:
+name:
+description:
+include:
+exclude:
+repositoryUrl:
+allowPublish: true
+build:
+  dependencies:
+    - name:
+      copy:
+        - source:
+          target: <same as source path>
+autoApply: null
+dependencies: []
+root: .
+variables:
+version: 0.12.7
+```
 
 ## Configuration keys
 
@@ -263,30 +290,6 @@ The version of Terraform to use. Defaults to the version set in the provider con
 | -------- | -------- | ---------- |
 | `string` | No       | `"0.12.7"` |
 
-
-## Complete YAML schema
-```yaml
-apiVersion: garden.io/v0
-kind: Module
-type:
-name:
-description:
-include:
-exclude:
-repositoryUrl:
-allowPublish: true
-build:
-  dependencies:
-    - name:
-      copy:
-        - source:
-          target: <same as source path>
-autoApply: null
-dependencies: []
-root: .
-variables:
-version: 0.12.7
-```
 
 ## Outputs
 

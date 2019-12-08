@@ -8,15 +8,54 @@ title: Config Files Reference
 Below is the schema reference for the [Project](#project-configuration-keys) and [Module](#module-configuration-keys) `garden.yml` configuration files. For an introduction to configuring a Garden project,
 please look at our [configuration guide](../guides/configuration-files.md).
 
-The reference is divided into four sections. The [first section](#project-configuration-keys) lists and describes the available schema keys for the project level configuration, and the [second section](#project-yaml-schema) contains the project level YAML schema.
+The reference is divided into four sections. The [first section](#project-yaml-schema) contains the project level YAML schema, and the [second section](#project-configuration-keys) describes each individual schema key for the project level configuration.
 
-The [third section](#module-configuration-keys) lists and describes the available schema keys for the module level configuration, and the [fourth section](#module-yaml-schema) contains the module level YAML schema.
+The [third section](#module-yaml-schema) contains the module level YAML schema, and the [fourth section](#module-configuration-keys) describes each individual schema key for the module level configuration.
 
 Note that individual providers, e.g. `kubernetes`, add their own project level configuration keys. The provider types are listed on the [Providers page](./providers/README.md).
 
 Likewise, individual module types, e.g. `container`, add additional configuration keys at the module level. Module types are listed on the [Module Types page](./module-types/README.md).
 
 Please refer to those for more details on provider and module configuration.
+
+## Project YAML schema
+
+The values in the schema below are the default values.
+
+```yaml
+apiVersion: garden.io/v0
+kind: Project
+name:
+defaultEnvironment: ''
+dotIgnoreFiles:
+  - .gitignore
+  - .gardenignore
+environmentDefaults:
+  providers:
+    - name:
+      environments:
+  varfile: garden.<env-name>.env
+  variables: {}
+modules:
+  include:
+  exclude:
+providers:
+  - name:
+    environments:
+sources:
+  - name:
+    repositoryUrl:
+varfile: garden.env
+variables: {}
+environments:
+  - providers:
+      - name:
+        environments:
+    varfile: garden.<env-name>.env
+    variables: {}
+    name:
+    production: false
+```
 
 ## Project configuration keys
 
@@ -448,40 +487,23 @@ For more details please check the documentation for the providers in use.
 | `boolean` | No       | `false` |
 
 
-## Project YAML schema
+## Module YAML schema
 ```yaml
 apiVersion: garden.io/v0
-kind: Project
+kind: Module
+type:
 name:
-defaultEnvironment: ''
-dotIgnoreFiles:
-  - .gitignore
-  - .gardenignore
-environmentDefaults:
-  providers:
+description:
+include:
+exclude:
+repositoryUrl:
+allowPublish: true
+build:
+  dependencies:
     - name:
-      environments:
-  varfile: garden.<env-name>.env
-  variables: {}
-modules:
-  include:
-  exclude:
-providers:
-  - name:
-    environments:
-sources:
-  - name:
-    repositoryUrl:
-varfile: garden.env
-variables: {}
-environments:
-  - providers:
-      - name:
-        environments:
-    varfile: garden.<env-name>.env
-    variables: {}
-    name:
-    production: false
+      copy:
+        - source:
+          target: <same as source path>
 ```
 
 ## Module configuration keys
@@ -678,23 +700,4 @@ Defaults to to same as source path.
 | -------- | -------- | ------------------------- |
 | `string` | No       | `"<same as source path>"` |
 
-
-## Module YAML schema
-```yaml
-apiVersion: garden.io/v0
-kind: Module
-type:
-name:
-description:
-include:
-exclude:
-repositoryUrl:
-allowPublish: true
-build:
-  dependencies:
-    - name:
-      copy:
-        - source:
-          target: <same as source path>
-```
 

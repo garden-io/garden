@@ -9,10 +9,82 @@ Refer to the [Helm guide](https://docs.garden.io/guides/using-helm-charts) for u
 
 Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../guides/configuration-files.md).
-The [first section](#configuration-keys) lists and describes the available
-schema keys. The [second section](#complete-yaml-schema) contains the complete YAML schema.
+
+The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
 `helm` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
+
+## Complete YAML schema
+
+The values in the schema below are the default values.
+
+```yaml
+apiVersion: garden.io/v0
+kind: Module
+type:
+name:
+description:
+include:
+exclude:
+repositoryUrl:
+allowPublish: true
+build:
+  dependencies:
+    - name:
+      copy:
+        - source:
+          target: <same as source path>
+base:
+chart:
+chartPath: .
+dependencies: []
+releaseName:
+repo:
+serviceResource:
+  kind: Deployment
+  name:
+  containerName:
+  containerModule:
+  hotReloadArgs:
+skipDeploy: false
+tasks:
+  - name:
+    description:
+    dependencies: []
+    timeout: null
+    resource:
+      kind: Deployment
+      name:
+      containerName:
+      containerModule:
+      hotReloadArgs:
+    command:
+    args:
+    env: {}
+    artifacts:
+      - source:
+        target: .
+tests:
+  - name:
+    dependencies: []
+    timeout: null
+    resource:
+      kind: Deployment
+      name:
+      containerName:
+      containerModule:
+      hotReloadArgs:
+    command:
+    args:
+    env: {}
+    artifacts:
+      - source:
+        target: .
+timeout: 300
+version:
+values: {}
+valueFiles: []
+```
 
 ## Configuration keys
 
@@ -861,75 +933,6 @@ your module directory.
 | --------------- | -------- | ------- |
 | `array[string]` | No       | `[]`    |
 
-
-## Complete YAML schema
-```yaml
-apiVersion: garden.io/v0
-kind: Module
-type:
-name:
-description:
-include:
-exclude:
-repositoryUrl:
-allowPublish: true
-build:
-  dependencies:
-    - name:
-      copy:
-        - source:
-          target: <same as source path>
-base:
-chart:
-chartPath: .
-dependencies: []
-releaseName:
-repo:
-serviceResource:
-  kind: Deployment
-  name:
-  containerName:
-  containerModule:
-  hotReloadArgs:
-skipDeploy: false
-tasks:
-  - name:
-    description:
-    dependencies: []
-    timeout: null
-    resource:
-      kind: Deployment
-      name:
-      containerName:
-      containerModule:
-      hotReloadArgs:
-    command:
-    args:
-    env: {}
-    artifacts:
-      - source:
-        target: .
-tests:
-  - name:
-    dependencies: []
-    timeout: null
-    resource:
-      kind: Deployment
-      name:
-      containerName:
-      containerModule:
-      hotReloadArgs:
-    command:
-    args:
-    env: {}
-    artifacts:
-      - source:
-        target: .
-timeout: 300
-version:
-values: {}
-valueFiles: []
-```
 
 ## Outputs
 
