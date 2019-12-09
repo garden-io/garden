@@ -132,25 +132,16 @@ varfile: garden.env
 variables: {}
 
 environments:
-  # DEPRECATED - Please use the top-level `providers` field instead, and if needed use the
-  # `environments` key on the provider configurations to limit them to specific environments.
-  - providers:
-      # The name of the provider plugin to use.
-      - name:
-        # If specified, this provider will only be used in the listed environments. Note that an
-        # empty array effectively disables the provider. To use a provider in all environments,
-        # omit this field.
-        environments:
-    # Specify a path (relative to the project root) to a file containing variables, that we apply
-    # on top of the
-    # _environment-specific_ `variables` field. The file should be in a standard "dotenv" format,
-    # specified
-    # [here](https://github.com/motdotla/dotenv#rules).
-    #
-    # If you don't set the field and the `garden.<env-name>.env` file does not exist,
-    # we simply ignore it. If you do override the default value and the file doesn't exist, an
-    # error will be thrown.
-    varfile: garden.<env-name>.env
+  # Specify a path (relative to the project root) to a file containing variables, that we apply
+  # on top of the
+  # _environment-specific_ `variables` field. The file should be in a standard "dotenv" format,
+  # specified
+  # [here](https://github.com/motdotla/dotenv#rules).
+  #
+  # If you don't set the field and the `garden.<env-name>.env` file does not exist,
+  # we simply ignore it. If you do override the default value and the file doesn't exist, an
+  # error will be thrown.
+  - varfile: garden.<env-name>.env
     # A key/value map of variables that modules can reference when using this environment. These
     # take precedence over variables defined in the top-level `variables` field.
     variables: {}
@@ -402,54 +393,6 @@ Variables to configure for all environments.
 | Type            | Required |
 | --------------- | -------- |
 | `array[object]` | No       |
-
-### `environments[].providers[]`
-
-[environments](#environments) > providers
-
-DEPRECATED - Please use the top-level `providers` field instead, and if needed use the `environments` key on the provider configurations to limit them to specific environments.
-
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[object]` | No       | `[]`    |
-
-### `environments[].providers[].name`
-
-[environments](#environments) > [providers](#environmentsproviders) > name
-
-The name of the provider plugin to use.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-Example:
-
-```yaml
-environments:
-  - providers:
-      - name: "local-kubernetes"
-```
-
-### `environments[].providers[].environments[]`
-
-[environments](#environments) > [providers](#environmentsproviders) > environments
-
-If specified, this provider will only be used in the listed environments. Note that an empty array effectively disables the provider. To use a provider in all environments, omit this field.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-Example:
-
-```yaml
-environments:
-  - providers:
-      - environments:
-        - dev
-        - stage
-```
 
 ### `environments[].varfile`
 

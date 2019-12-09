@@ -2,10 +2,12 @@ kind: Project
 name: test-project-multiple-modules
 environments:
   - name: local
-    providers:
-      - name: test-plugin
-      - name: test-plugin-b
   - name: other
+providers:
+  - name: test-plugin
+    environments: [local]
+  - name: test-plugin-b
+    environments: [local]
 
 ---
 

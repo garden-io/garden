@@ -44,12 +44,13 @@ name: ci-demo-project
 environments:
   ...
   - name: preview
-    providers:
-      - name: kubernetes
-        context: my-preview-cluster
-        defaultHostname: ci-demo-project-${local.env.CIRCLE_BRANCH || local.username}.preview.my-domain
-        namespace: ci-demo-project-${local.env.CIRCLE_BRANCH || local.username}
-        buildMode: cluster-docker
+providers:
+  - name: kubernetes
+    environments: [preview]
+    context: my-preview-cluster
+    defaultHostname: ci-demo-project-${local.env.CIRCLE_BRANCH || local.username}.preview.my-domain
+    namespace: ci-demo-project-${local.env.CIRCLE_BRANCH || local.username}
+    buildMode: cluster-docker
 ```
 
 Notice that we're using the `CIRCLE_BRANCH` environment variable to label the project namespace. This ensures that each pull request gets deployed into its own namespace.

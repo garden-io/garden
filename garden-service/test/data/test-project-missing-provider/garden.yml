@@ -2,6 +2,6 @@ kind: Project
 name: build-test-project
 environments:
   - name: test
-    providers:
-      - name: test-plugin
-      - name: test-plugin-b
+providers:
+  - name: test-plugin
+  - name: test-plugin-b
