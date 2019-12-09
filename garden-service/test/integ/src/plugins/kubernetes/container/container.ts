@@ -19,6 +19,7 @@ describe("kubernetes container module handlers", () => {
   let garden: Garden
   let graph: ConfigGraph
   let provider: Provider
+  let result: any
 
   before(async () => {
     const root = getDataDir("test-projects", "container")
@@ -29,6 +30,13 @@ describe("kubernetes container module handlers", () => {
 
   after(async () => {
     await garden.close()
+  })
+
+  // Adding logs to try to debug flaky tests
+  // TODO: remove this
+  afterEach(() => {
+    // tslint:disable-next-line: no-console
+    console.log(result)
   })
 
   describe("runAndCopy", () => {
@@ -46,7 +54,7 @@ describe("kubernetes container module handlers", () => {
       const module = await graph.getModule("simple")
       const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
 
-      const result = await runAndCopy({
+      result = await runAndCopy({
         ctx: garden.getPluginContext(provider),
         log: garden.log,
         command: ["sh", "-c", "echo ok"],
@@ -254,7 +262,7 @@ describe("kubernetes container module handlers", () => {
         taskResults: {},
       })
 
-      const result = await runContainerService({
+      result = await runContainerService({
         ctx: garden.getPluginContext(provider),
         log: garden.log,
         service,
@@ -288,7 +296,7 @@ describe("kubernetes container module handlers", () => {
         taskResults: {},
       })
 
-      const result = await runContainerService({
+      result = await runContainerService({
         ctx: garden.getPluginContext(provider),
         log: garden.log,
         service,
@@ -315,7 +323,7 @@ describe("kubernetes container module handlers", () => {
         version: task.module.version,
       })
 
-      const result = await garden.processTasks([testTask], { throwOnError: true })
+      result = await garden.processTasks([testTask], { throwOnError: true })
 
       const key = "task.echo-task"
       expect(result).to.have.property(key)
@@ -378,7 +386,7 @@ describe("kubernetes container module handlers", () => {
           version: task.module.version,
         })
 
-        const result = await garden.processTasks([testTask], { throwOnError: true })
+        result = await garden.processTasks([testTask], { throwOnError: true })
 
         const key = "task.missing-sh-task"
 
@@ -404,7 +412,7 @@ describe("kubernetes container module handlers", () => {
           version: task.module.version,
         })
 
-        const result = await garden.processTasks([testTask], { throwOnError: true })
+        result = await garden.processTasks([testTask], { throwOnError: true })
 
         const key = "task.missing-tar-task"
 
@@ -434,7 +442,7 @@ describe("kubernetes container module handlers", () => {
         version: module.version,
       })
 
-      const result = await garden.processTasks([testTask], { throwOnError: true })
+      result = await garden.processTasks([testTask], { throwOnError: true })
 
       const key = "test.simple.echo-test"
       expect(result).to.have.property(key)
@@ -500,7 +508,7 @@ describe("kubernetes container module handlers", () => {
           version: module.version,
         })
 
-        const result = await garden.processTasks([testTask], { throwOnError: true })
+        result = await garden.processTasks([testTask], { throwOnError: true })
 
         const key = "test.missing-sh.missing-sh-test"
         expect(result).to.have.property(key)
@@ -526,7 +534,7 @@ describe("kubernetes container module handlers", () => {
           version: module.version,
         })
 
-        const result = await garden.processTasks([testTask], { throwOnError: true })
+        result = await garden.processTasks([testTask], { throwOnError: true })
 
         const key = "test.missing-tar.missing-tar-test"
         expect(result).to.have.property(key)
