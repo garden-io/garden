@@ -1,0 +1,7 @@
+kind: Project
+name: demo-project
+environments:
+  - name: dev
+  - name: prod
+providers:
+  - name: local-kubernetes
