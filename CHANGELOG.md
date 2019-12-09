@@ -1,3 +1,37 @@
+
+<a name="v0.10.16"></a>
+## [v0.10.16](https://github.com/garden-io/garden/compare/v0.10.15...v0.10.16) (2019-12-06)
+
+### Bug Fixes
+
+* broken link to 'Using Garden' page ([87142c63](https://github.com/garden-io/garden/commit/87142c63))
+* **build:** build status log line kept spinning when --force=false ([7ea5f31a](https://github.com/garden-io/garden/commit/7ea5f31a))
+* **build:** fix intermittent concurrency issues when staging build ([f7057580](https://github.com/garden-io/garden/commit/f7057580))
+* **cli:** fix janky spinner when initializing providers ([eb0eb33d](https://github.com/garden-io/garden/commit/eb0eb33d))
+* **config:** throw error on base module schema validation errors ([1e129b65](https://github.com/garden-io/garden/commit/1e129b65))
+* **core:** plugins with base now inherit the config schema ([ea3a0060](https://github.com/garden-io/garden/commit/ea3a0060))
+* **core:** error when services had runtime dependencies on task outputs ([d26595f6](https://github.com/garden-io/garden/commit/d26595f6))
+* **dashboard:** fix hooks render order on logs page ([fb80d34b](https://github.com/garden-io/garden/commit/fb80d34b))
+* **k8s:** env vars weren't passed to services with `garden run service` ([8d66f8a8](https://github.com/garden-io/garden/commit/8d66f8a8))
+* **k8s:** don't truncate container build logs ([d31aa8ec](https://github.com/garden-io/garden/commit/d31aa8ec))
+* **k8s:** kaniko would hang when building remote images ([78d2df51](https://github.com/garden-io/garden/commit/78d2df51))
+* **openfaas:** add retry when deploying in case faas-netes is starting ([ec37fd2c](https://github.com/garden-io/garden/commit/ec37fd2c))
+
+### Code Refactoring
+
+* **k8s:** allow overriding the default garden-system namespace ([de8c8253](https://github.com/garden-io/garden/commit/de8c8253))
+
+### Features
+
+* added securityContext for production flag ([a88edfac](https://github.com/garden-io/garden/commit/a88edfac))
+* **k8s:** allow pulling base images when building in cluster ([e8679032](https://github.com/garden-io/garden/commit/e8679032))
+
+### Improvement
+
+* add protection to more commands ([df76dc30](https://github.com/garden-io/garden/commit/df76dc30))
+* **config:** allow provider configs to reference variables ([56175ee1](https://github.com/garden-io/garden/commit/56175ee1))
+
+
 <a name="v0.10.15"></a>
 ## [v0.10.15](https://github.com/garden-io/garden/compare/v0.10.14...v0.10.15) (2019-11-15)
 

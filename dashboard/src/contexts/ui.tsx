@@ -159,6 +159,7 @@ const useUiStateProvider = () => {
       ...uiState,
       overview: {
         ...uiState.overview,
+        selectedIngress: null,
         selectedEntity,
       },
     })

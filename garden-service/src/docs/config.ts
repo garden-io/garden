@@ -50,9 +50,10 @@ const moduleTypes = [
 
 interface RenderOpts {
   level?: number
-  showRequired?: boolean
-  showComment?: boolean
-  showEllipsisBetweenKeys?: boolean
+  renderRequired?: boolean
+  renderBasicDescription?: boolean
+  renderFullDescription?: boolean
+  renderEllipsisBetweenKeys?: boolean
   useExampleForValue?: boolean
 }
 
@@ -247,9 +248,9 @@ function makeMarkdownDescription(description: NormalizedDescription, titlePrefix
   let formattedExample: string | undefined
   if (description.formattedExample) {
     formattedExample = renderSchemaDescriptionYaml([...parentDescriptions, description], {
-      showComment: false,
+      renderFullDescription: false,
       useExampleForValue: true,
-      showEllipsisBetweenKeys: true,
+      renderEllipsisBetweenKeys: true,
     }).replace(/\n$/, "") // strip trailing new line
   }
 
@@ -272,7 +273,13 @@ function makeMarkdownDescription(description: NormalizedDescription, titlePrefix
 
 export function renderSchemaDescriptionYaml(
   descriptions: NormalizedDescription[],
-  { showComment = true, showRequired = true, showEllipsisBetweenKeys = false, useExampleForValue = false }: RenderOpts
+  {
+    renderBasicDescription = false,
+    renderFullDescription = true,
+    renderRequired = true,
+    renderEllipsisBetweenKeys = false,
+    useExampleForValue = false,
+  }: RenderOpts
 ) {
   let prevDesc: NormalizedDescription
 
@@ -304,7 +311,7 @@ export function renderSchemaDescriptionYaml(
       !hasChildren && (stringifiedDefaultVal === "[]" || stringifiedDefaultVal === "{}")
 
     // Prepend new line if applicable (easier then appending). We skip the new line if comments not shown.
-    if (prevDesc && showComment) {
+    if (prevDesc && (renderBasicDescription || renderFullDescription)) {
       // Print new line between keys unless the next key is the first child of the parent key or an array item
       if (!isFirstChild && (!isArrayItem || isFirstArrayItem)) {
         out.push("")
@@ -312,12 +319,15 @@ export function renderSchemaDescriptionYaml(
     }
 
     // Print "..." between keys. Only used when rendering markdown for examples.
-    if (showEllipsisBetweenKeys && parent && parent.hasChildren && !isArrayItem) {
+    if (renderEllipsisBetweenKeys && parent && parent.hasChildren && !isArrayItem) {
       out.push("...")
     }
 
-    // Render comment
-    if (showComment) {
+    // Only print the description
+    if (renderBasicDescription) {
+      description && comment.push(description)
+      // Print the description, type, examples, etc
+    } else if (renderFullDescription) {
       description && comment.push(description, "")
       comment.push(`Type: ${formattedType}`, "")
       if (example && !useExampleForValue) {
@@ -329,9 +339,11 @@ export function renderSchemaDescriptionYaml(
           comment.push("Example:", ...indent(example.split("\n"), 1), "")
         }
       }
-      showRequired && comment.push(required ? "Required." : "Optional.")
+      renderRequired && comment.push(required ? "Required." : "Optional.")
       allowedValues && comment.push(`Allowed values: ${allowedValues}`, "")
+    }
 
+    if (comment.length > 0) {
       const wrap = linewrap(width - 2, { whitespace: "line" })
       const formattedComment = wrap(comment.join("\n"))
         .split("\n")
@@ -394,7 +406,7 @@ export function renderSchemaDescriptionYaml(
 export function renderConfigReference(configSchema: Joi.ObjectSchema, titlePrefix = "") {
   const normalizedDescriptions = normalizeDescriptions(configSchema.describe())
 
-  const yaml = renderSchemaDescriptionYaml(normalizedDescriptions, { showComment: false })
+  const yaml = renderSchemaDescriptionYaml(normalizedDescriptions, { renderBasicDescription: true })
   const keys = normalizedDescriptions.map((d) => makeMarkdownDescription(d, titlePrefix))
 
   const template = handlebars.compile(readFileSync(partialTemplatePath).toString())

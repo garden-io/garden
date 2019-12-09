@@ -23,10 +23,114 @@ provider.
 
 Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../guides/configuration-files.md).
-The [first section](#configuration-keys) lists and describes the available
-schema keys. The [second section](#complete-yaml-schema) contains the complete YAML schema.
+
+The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
 `terraform` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
+
+## Complete YAML schema
+
+The values in the schema below are the default values.
+
+```yaml
+# The schema version of this module's config (currently not used).
+apiVersion: garden.io/v0
+
+kind: Module
+
+# The type of this module.
+type:
+
+# The name of this module.
+name:
+
+description:
+
+# Specify a list of POSIX-style paths or globs that should be regarded as the source files for
+# this
+# module. Files that do *not* match these paths or globs are excluded when computing the version
+# of the module,
+# when responding to filesystem watch events, and when staging builds.
+#
+# Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore`
+# files in your
+# source tree, which use the same format as `.gitignore` files. See the
+# [Configuration Files
+# guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)
+# for details.
+#
+# Also note that specifying an empty list here means _no sources_ should be included.
+include:
+
+# Specify a list of POSIX-style paths or glob patterns that should be excluded from the module.
+# Files that
+# match these paths or globs are excluded when computing the version of the module, when
+# responding to filesystem
+# watch events, and when staging builds.
+#
+# Note that you can also explicitly _include_ files using the `include` field. If you also specify
+# the
+# `include` field, the files/patterns specified here are filtered from the files matched by
+# `include`. See the
+# [Configuration Files
+# guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)for
+# details.
+#
+# Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on
+# which files
+# and directories are watched for changes. Use the project `modules.exclude` field to affect
+# those, if you have
+# large directories that should not be watched for changes.
+exclude:
+
+# A remote repository URL. Currently only supports git servers. Must contain a hash suffix
+# pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
+#
+# Garden will import the repository source code into this module, but read the module's
+# config from the local garden.yml file.
+repositoryUrl:
+
+# When false, disables pushing this module to remote registries.
+allowPublish: true
+
+# Specify how to build the module. Note that plugins may define additional keys on this object.
+build:
+  # A list of modules that must be built before this module is built.
+  dependencies:
+    # Module name to build ahead of this module.
+    - name:
+      # Specify one or more files or directories to copy from the built dependency to this module.
+      copy:
+        # POSIX-style path or filename of the directory or file(s) to copy to the target.
+        - source:
+          # POSIX-style path or filename to copy the directory or file(s), relative to the build
+          # directory.
+          # Defaults to to same as source path.
+          target: <same as source path>
+
+# If set to true, Garden will automatically run `terraform apply -auto-approve` when the stack is
+# not up-to-date. Otherwise, a warning is logged if the stack is out-of-date, and an error thrown
+# if it is missing entirely.
+# Defaults to the value set in the provider config.
+autoApply: null
+
+# The names of any services that this service depends on at runtime, and the names of any tasks
+# that should be executed before this service is deployed.
+dependencies: []
+
+# Specify the path to the working directory root—i.e. where your Terraform files are—relative to
+# the module root.
+root: .
+
+# A map of variables to use when applying the stack. You can define these here or you can place a
+# `terraform.tfvars` file in the working directory root.
+# If you specified `variables` in the `terraform` provider config, those will be included but the
+# variables specified here take precedence.
+variables:
+
+# The version of Terraform to use. Defaults to the version set in the provider config.
+version: 0.12.7
+```
 
 ## Configuration keys
 
@@ -263,30 +367,6 @@ The version of Terraform to use. Defaults to the version set in the provider con
 | -------- | -------- | ---------- |
 | `string` | No       | `"0.12.7"` |
 
-
-## Complete YAML schema
-```yaml
-apiVersion: garden.io/v0
-kind: Module
-type:
-name:
-description:
-include:
-exclude:
-repositoryUrl:
-allowPublish: true
-build:
-  dependencies:
-    - name:
-      copy:
-        - source:
-          target: <same as source path>
-autoApply: null
-dependencies: []
-root: .
-variables:
-version: 0.12.7
-```
 
 ## Outputs
 
