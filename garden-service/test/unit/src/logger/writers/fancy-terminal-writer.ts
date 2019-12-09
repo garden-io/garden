@@ -20,6 +20,7 @@ beforeEach(() => {
 describe("FancyTerminalWriter", () => {
   describe("toTerminalEntries", () => {
     const writer = new FancyTerminalWriter()
+    writer.onGraphChange(logger.placeholder(), logger)
     writer.stop()
     it("should map a LogNode into an array of entries with line numbers and spinner positions", () => {
       logger.info("1 line") // 0
