@@ -188,6 +188,10 @@ export async function waitForResources({ ctx, provider, serviceName, resources, 
     statuses = await checkResourceStatuses(api, namespace, resources, log)
 
     for (const status of statuses) {
+      const resource = status.resource
+
+      log.debug(`Status of ${resource.kind} ${resource.metadata.name} is "${status.state}"`)
+
       if (status.state === "unhealthy") {
         let msg = `Error deploying ${serviceName}: ${status.lastMessage}`
 
