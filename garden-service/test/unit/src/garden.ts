@@ -169,7 +169,6 @@ describe("Garden", () => {
           config: {
             name: "test-plugin",
             path: projectRoot,
-            environments: ["local"],
           },
           dependencies: [],
           moduleConfigs: [],

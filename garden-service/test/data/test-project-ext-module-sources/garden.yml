@@ -2,5 +2,5 @@ kind: Project
 name: test-project-ext-project-sources
 environments:
   - name: local
-    providers:
-      - name: test-plugin
+providers:
+  - name: test-plugin

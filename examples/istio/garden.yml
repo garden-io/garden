@@ -2,6 +2,6 @@ kind: Project
 name: istio-example
 environments:
   - name: local
-    providers:
-      - name: local-kubernetes
-        setupIngressController: false
+providers:
+  - name: local-kubernetes
+    setupIngressController: false

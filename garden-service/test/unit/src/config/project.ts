@@ -36,7 +36,6 @@ describe("resolveProjectConfig", () => {
         {
           name: "default",
           production: false,
-          providers: [],
           varfile: defaultEnvVarfilePath("default"),
           variables: {},
         },
@@ -61,8 +60,8 @@ describe("resolveProjectConfig", () => {
 
     expect(await resolveProjectConfig(config, "/tmp")).to.eql({
       ...config,
-      environments: defaultEnvironments,
       sources: [],
+      environments: defaultEnvironments,
       varfile: defaultVarfilePath,
     })
   })
@@ -104,7 +103,6 @@ describe("resolveProjectConfig", () => {
       environments: [
         {
           name: "default",
-          providers: [],
           production: false,
           varfile: defaultEnvVarfilePath("default"),
           variables: {
@@ -138,12 +136,6 @@ describe("resolveProjectConfig", () => {
       environments: [
         {
           name: "default",
-          providers: [
-            {
-              name: "provider-b",
-              someKey: "${local.env.TEST_ENV_VAR_B}",
-            },
-          ],
           variables: {
             envVar: "foo",
           },
@@ -155,8 +147,9 @@ describe("resolveProjectConfig", () => {
           someKey: "${local.env.TEST_ENV_VAR_A}",
         },
         {
-          name: "provider-c",
-          someKey: "${local.env.TEST_ENV_VAR_C}",
+          name: "provider-b",
+          environments: ["default"],
+          someKey: "${local.env.TEST_ENV_VAR_B}",
         },
       ],
       variables: {},
@@ -164,14 +157,12 @@ describe("resolveProjectConfig", () => {
 
     process.env.TEST_ENV_VAR_A = "foo"
     process.env.TEST_ENV_VAR_B = "boo"
-    process.env.TEST_ENV_VAR_C = "moo"
 
     expect(await resolveProjectConfig(config, "/tmp")).to.eql({
       ...config,
       environments: [
         {
           name: "default",
-          providers: [],
           production: false,
           varfile: defaultEnvVarfilePath("default"),
           variables: {
@@ -185,10 +176,6 @@ describe("resolveProjectConfig", () => {
           someKey: "${local.env.TEST_ENV_VAR_A}",
         },
         {
-          name: "provider-c",
-          someKey: "${local.env.TEST_ENV_VAR_C}",
-        },
-        {
           name: "provider-b",
           environments: ["default"],
           someKey: "${local.env.TEST_ENV_VAR_B}",
@@ -200,7 +187,6 @@ describe("resolveProjectConfig", () => {
 
     delete process.env.TEST_ENV_VAR_A
     delete process.env.TEST_ENV_VAR_B
-    delete process.env.TEST_ENV_VAR_C
   })
 
   it("should set defaultEnvironment to first environment if not configured", async () => {
@@ -258,11 +244,6 @@ describe("resolveProjectConfig", () => {
       environments: [
         {
           name: "default",
-          providers: [
-            {
-              name: "provider-b",
-            },
-          ],
           variables: {
             envVar: "foo",
           },
@@ -271,6 +252,10 @@ describe("resolveProjectConfig", () => {
       providers: [
         {
           name: "provider-a",
+        },
+        {
+          name: "provider-b",
+          environments: ["default"],
         },
         {
           name: "provider-c",
@@ -284,7 +269,6 @@ describe("resolveProjectConfig", () => {
       environments: [
         {
           name: "default",
-          providers: [],
           production: false,
           varfile: defaultEnvVarfilePath("default"),
           variables: {
@@ -297,76 +281,15 @@ describe("resolveProjectConfig", () => {
           name: "provider-a",
         },
         {
+          name: "provider-b",
+          environments: ["default"],
+        },
+        {
           name: "provider-c",
         },
-        {
-          name: "provider-b",
-          environments: ["default"],
-        },
       ],
       sources: [],
       varfile: defaultVarfilePath,
-    })
-  })
-
-  it("should convert old-style environment/provider config to the new canonical form", async () => {
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
-      name: "my-project",
-      path: "/tmp/foo",
-      defaultEnvironment: "default",
-      dotIgnoreFiles: defaultDotIgnoreFiles,
-      environments: [
-        {
-          name: "default",
-          providers: [
-            {
-              name: "provider-b",
-            },
-          ],
-          variables: {
-            envVar: "bar",
-          },
-        },
-      ],
-      providers: [
-        {
-          name: "provider-a",
-        },
-      ],
-      variables: {
-        defaultVar: "foo",
-      },
-    }
-
-    expect(await resolveProjectConfig(config, "/tmp")).to.eql({
-      ...config,
-      environments: [
-        {
-          name: "default",
-          providers: [],
-          production: false,
-          varfile: defaultEnvVarfilePath("default"),
-          variables: {
-            envVar: "bar",
-          },
-        },
-      ],
-      providers: [
-        {
-          name: "provider-a",
-        },
-        {
-          name: "provider-b",
-          environments: ["default"],
-        },
-      ],
-      sources: [],
-      varfile: defaultVarfilePath,
-      variables: {
-        defaultVar: "foo",
-      },
     })
   })
 })

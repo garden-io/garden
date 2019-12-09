@@ -68,8 +68,8 @@ kind: Project
 name: demo-project
 environments:
   - name: local
-    providers:
-      - name: local-kubernetes
+providers:
+  - name: local-kubernetes
 ```
 
 Above, we've specified the name of our project and configured it to use the `local-kubernetes` provider for local development. Note that this file must be located in the project root directory.

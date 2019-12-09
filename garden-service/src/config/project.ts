@@ -39,17 +39,10 @@ export const defaultEnvVarfilePath = (environmentName: string) => `garden.${envi
 const fixedPlugins = ["exec", "container"]
 
 export interface CommonEnvironmentConfig {
-  providers?: ProviderConfig[] // further validated by each plugin
   variables: { [key: string]: Primitive }
 }
 
 export const environmentConfigSchema = joi.object().keys({
-  providers: joiArray(providerConfigBaseSchema)
-    .unique("name")
-    .meta({ deprecated: true }).description(deline`
-        DEPRECATED - Please use the top-level \`providers\` field instead, and if needed use the \`environments\` key
-        on the provider configurations to limit them to specific environments.
-      `),
   varfile: joi
     .string()
     .posixPath()
@@ -144,12 +137,6 @@ export interface ProjectResource extends ProjectConfig {
 export const defaultEnvironments: EnvironmentConfig[] = [
   {
     name: "local",
-    providers: [
-      {
-        name: "local-kubernetes",
-        environments: [],
-      },
-    ],
     varfile: defaultEnvVarfilePath("local"),
     variables: {},
   },
@@ -286,9 +273,6 @@ export const projectSchema = joi
  * @param config raw project configuration
  */
 export async function resolveProjectConfig(config: ProjectConfig, artifactsPath: string): Promise<ProjectConfig> {
-  // Resolve template strings for non-environment-specific fields
-  const { environments = [] } = config
-
   const globalConfig = await resolveTemplateStrings(
     {
       apiVersion: config.apiVersion,
@@ -297,7 +281,7 @@ export async function resolveProjectConfig(config: ProjectConfig, artifactsPath:
       sources: config.sources,
       varfile: config.varfile,
       variables: config.variables,
-      environments: environments.map((e) => omit(e, ["providers"])),
+      environments: config.environments,
     },
     new ProjectConfigContext(artifactsPath)
   )
@@ -313,26 +297,9 @@ export async function resolveProjectConfig(config: ProjectConfig, artifactsPath:
 
   const { defaultEnvironment } = config
 
-  const providers = config.providers
-
-  // TODO: Remove when we deprecate nesting providers under environments
-  for (const environment of environments || []) {
-    for (const provider of environment.providers || []) {
-      providers.push({
-        ...provider,
-        environments: [environment.name],
-      })
-    }
-    environment.providers = []
-  }
-
-  const variables = config.variables
-
   config = {
     ...config,
     environments: config.environments || [],
-    providers,
-    variables,
   }
 
   // TODO: get rid of the default environment config
