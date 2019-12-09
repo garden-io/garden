@@ -6,14 +6,20 @@ chart: stable/nginx-ingress
 releaseName: garden-nginx
 dependencies:
   - default-backend
-version: 0.25.1
+version: 1.26.2
 values:
   name: ingress-controller
   controller:
     defaultBackendService: ${var.namespace}/default-backend
     kind: DaemonSet
+    updateStrategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: 1
     daemonset:
       useHostPort: true
+    service:
+      omitClusterIP: true
     minReadySeconds: 1
   defaultBackend:
     enabled: false
