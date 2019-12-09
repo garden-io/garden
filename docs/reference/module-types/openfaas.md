@@ -19,31 +19,110 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
+# The schema version of this module's config (currently not used).
 apiVersion: garden.io/v0
+
 kind: Module
+
+# The type of this module.
 type:
+
+# The name of this module.
 name:
+
 description:
+
+# Specify a list of POSIX-style paths or globs that should be regarded as the source files for
+# this
+# module. Files that do *not* match these paths or globs are excluded when computing the version
+# of the module,
+# when responding to filesystem watch events, and when staging builds.
+#
+# Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore`
+# files in your
+# source tree, which use the same format as `.gitignore` files. See the
+# [Configuration Files
+# guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)
+# for details.
+#
+# Also note that specifying an empty list here means _no sources_ should be included.
 include:
+
+# Specify a list of POSIX-style paths or glob patterns that should be excluded from the module.
+# Files that
+# match these paths or globs are excluded when computing the version of the module, when
+# responding to filesystem
+# watch events, and when staging builds.
+#
+# Note that you can also explicitly _include_ files using the `include` field. If you also specify
+# the
+# `include` field, the files/patterns specified here are filtered from the files matched by
+# `include`. See the
+# [Configuration Files
+# guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)for
+# details.
+#
+# Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on
+# which files
+# and directories are watched for changes. Use the project `modules.exclude` field to affect
+# those, if you have
+# large directories that should not be watched for changes.
 exclude:
+
+# A remote repository URL. Currently only supports git servers. Must contain a hash suffix
+# pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
+#
+# Garden will import the repository source code into this module, but read the module's
+# config from the local garden.yml file.
 repositoryUrl:
+
+# When false, disables pushing this module to remote registries.
 allowPublish: true
+
+# Specify how to build the module. Note that plugins may define additional keys on this object.
 build:
+  # A list of modules that must be built before this module is built.
   dependencies:
+    # Module name to build ahead of this module.
     - name:
+      # Specify one or more files or directories to copy from the built dependency to this module.
       copy:
+        # POSIX-style path or filename of the directory or file(s) to copy to the target.
         - source:
+          # POSIX-style path or filename to copy the directory or file(s), relative to the build
+          # directory.
+          # Defaults to to same as source path.
           target: <same as source path>
+
+# The names of services/functions that this function depends on at runtime.
 dependencies: []
+
+# Key/value map of environment variables. Keys must be valid POSIX environment variable names
+# (must not start with `GARDEN`) and values must be primitives.
 env: {}
+
+# Specify which directory under the module contains the handler file/function.
 handler: .
+
+# The image name to use for the built OpenFaaS container (defaults to the module name)
 image:
+
+# The OpenFaaS language template to use to build this function.
 lang:
+
+# A list of tests to run in the module.
 tests:
+  # The name of the test.
   - name:
+    # The names of any services that must be running, and the names of any tasks that must be
+    # executed, before the test is run.
     dependencies: []
+    # Maximum duration (in seconds) of the test run.
     timeout: null
+    # The command to run in the module build context in order to test it.
     command:
+    # Key/value map of environment variables. Keys must be valid POSIX environment variable names
+    # (must not start with `GARDEN`) and values must be primitives.
     env: {}
 ```
 
