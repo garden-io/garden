@@ -14,8 +14,7 @@ import { buildContainerModule, getContainerBuildStatus, getDockerBuildFlags } fr
 import { GetBuildStatusParams, BuildStatus } from "../../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams, BuildResult } from "../../../types/plugin/module/build"
 import { millicpuToString, megabytesToString, getRunningPodInDeployment } from "../util"
-import { systemNamespace } from "../system"
-import { RSYNC_PORT } from "../constants"
+import { RSYNC_PORT, dockerAuthSecretName, dockerAuthSecretKey } from "../constants"
 import { posix, resolve } from "path"
 import { KubeApi } from "../api"
 import { kubectl } from "../kubectl"
@@ -118,6 +117,7 @@ const localBuild: BuildHandler = async (params) => {
 const remoteBuild: BuildHandler = async (params) => {
   const { ctx, module, log } = params
   const provider = <KubernetesProvider>ctx.provider
+  const systemNamespace = provider.config.gardenSystemNamespace
 
   if (!(await containerHelpers.hasDockerfile(module))) {
     return {}
@@ -274,6 +274,7 @@ const buildHandlers: { [mode in ContainerBuildMode]: BuildHandler } = {
 // TODO: we should make a simple service around this instead of execing into containers
 export async function execInBuilder({ provider, log, args, timeout, podName, stdout, stderr }: BuilderExecParams) {
   const execCmd = ["exec", "-i", podName, "-c", dockerDaemonContainerName, "--", ...args]
+  const systemNamespace = provider.config.gardenSystemNamespace
 
   log.verbose(`Running: kubectl ${execCmd.join(" ")}`)
 
@@ -290,6 +291,7 @@ export async function execInBuilder({ provider, log, args, timeout, podName, std
 
 export async function getBuilderPodName(provider: KubernetesProvider, log: LogEntry) {
   const pod = await getRunningPodInDeployment(dockerDaemonDeploymentName, provider, log)
+  const systemNamespace = provider.config.gardenSystemNamespace
 
   if (!pod) {
     throw new PluginError(`Could not find running image builder`, {
@@ -311,8 +313,10 @@ interface RunKanikoParams {
 
 async function runKaniko({ provider, log, module, args, outputStream }: RunKanikoParams) {
   const api = await KubeApi.factory(log, provider)
+  const systemNamespace = provider.config.gardenSystemNamespace
+
   const podName = `kaniko-${module.name}-${Math.round(new Date().getTime())}`
-  const registryHostname = getRegistryHostname()
+  const registryHostname = getRegistryHostname(provider.config)
   const k8sSystemVars = getKubernetesSystemVariables(provider.config)
   const syncDataVolumeName = k8sSystemVars["sync-volume-name"]
 
@@ -325,6 +329,21 @@ async function runKaniko({ provider, log, module, args, outputStream }: RunKanik
     namespace: systemNamespace,
     spec: {
       shareProcessNamespace: true,
+      volumes: [
+        // Mount the build sync volume, to get the build context from.
+        {
+          name: syncDataVolumeName,
+          persistentVolumeClaim: { claimName: syncDataVolumeName },
+        },
+        // Mount the docker auth secret, so Kaniko can pull from private registries.
+        {
+          name: dockerAuthSecretName,
+          secret: {
+            secretName: dockerAuthSecretName,
+            items: [{ key: dockerAuthSecretKey, path: "config.json" }],
+          },
+        },
+      ],
       containers: [
         {
           name: "kaniko",
@@ -334,6 +353,11 @@ async function runKaniko({ provider, log, module, args, outputStream }: RunKanik
             {
               name: syncDataVolumeName,
               mountPath: "/garden-build",
+            },
+            {
+              name: dockerAuthSecretName,
+              mountPath: "/kaniko/.docker",
+              readOnly: true,
             },
           ],
           resources: {
@@ -371,12 +395,6 @@ async function runKaniko({ provider, log, module, args, outputStream }: RunKanik
             "-c",
             "while true; do if pidof executor > /dev/null; then sleep 0.5; else killall socat; exit 0; fi done",
           ],
-        },
-      ],
-      volumes: [
-        {
-          name: syncDataVolumeName,
-          persistentVolumeClaim: { claimName: syncDataVolumeName },
         },
       ],
     },

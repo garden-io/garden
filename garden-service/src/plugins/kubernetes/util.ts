@@ -18,7 +18,6 @@ import { MAX_CONFIGMAP_DATA_SIZE } from "./constants"
 import { ContainerEnvVars } from "../container/config"
 import { ConfigurationError } from "../../exceptions"
 import { KubernetesProvider } from "./config"
-import { systemNamespace } from "./system"
 import { LogEntry } from "../../logger/log-entry"
 
 export const workloadTypes = ["Deployment", "DaemonSet", "ReplicaSet", "StatefulSet"]
@@ -375,6 +374,7 @@ export function convertDeprecatedManifestVersion(manifest: KubernetesResource): 
 
 export async function getRunningPodInDeployment(deploymentName: string, provider: KubernetesProvider, log: LogEntry) {
   const api = await KubeApi.factory(log, provider)
+  const systemNamespace = provider.config.gardenSystemNamespace
 
   const status = await api.apps.readNamespacedDeployment(deploymentName, systemNamespace)
   const pods = await getPods(api, systemNamespace, status.spec.selector.matchLabels)

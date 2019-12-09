@@ -17,7 +17,6 @@ import { containerHandlers } from "./container/handlers"
 import { kubernetesHandlers } from "./kubernetes-module/handlers"
 import { ConfigureProviderParams } from "../../types/plugin/provider/configureProvider"
 import { DebugInfo, GetDebugInfoParams } from "../../types/plugin/provider/getDebugInfo"
-import { systemNamespace, systemMetadataNamespace } from "./system"
 import { kubectl } from "./kubectl"
 import { KubernetesConfig, KubernetesPluginContext } from "./config"
 import { configSchema } from "./config"
@@ -32,7 +31,8 @@ import { kubernetesModuleSpecSchema } from "./kubernetes-module/config"
 import { helmModuleSpecSchema, helmModuleOutputsSchema } from "./helm/config"
 import { isNumber } from "util"
 import chalk from "chalk"
-import pluralize = require("pluralize")
+import pluralize from "pluralize"
+import { getSystemMetadataNamespaceName } from "./system"
 
 export async function configureProvider({
   projectName,
@@ -47,6 +47,10 @@ export async function configureProvider({
 
   if (config.setupIngressController === "nginx") {
     config._systemServices.push("ingress-controller", "default-backend")
+
+    if (!config.ingressClass) {
+      config.ingressClass = "nginx"
+    }
   }
 
   if (config.buildMode === "cluster-docker" || config.buildMode === "kaniko") {
@@ -120,6 +124,10 @@ export async function debugInfo({ ctx, log, includeProject }: GetDebugInfoParams
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const entry = log.info({ section: ctx.provider.name, msg: "collecting provider configuration", status: "active" })
+
+  const systemNamespace = ctx.provider.config.gardenSystemNamespace
+  const systemMetadataNamespace = getSystemMetadataNamespaceName(provider.config)
+
   const namespacesList = [systemNamespace, systemMetadataNamespace]
   if (includeProject) {
     const appNamespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)

@@ -11,16 +11,13 @@ variables:
 
 ---
 
-project:
-  name: test-project-duplicate
-  environments:
-    - name: local
-      providers:
-        - name: test-plugin
-    - name: other
-
-module:
-  name: module-from-project-config
-  type: test
-  build:
-    command: [echo, project]
+kind: Project
+name: test-project-duplicate
+environments:
+  - name: local
+    providers:
+      - name: test-plugin
+      - name: test-plugin-b
+  - name: other
+variables:
+  some: variable

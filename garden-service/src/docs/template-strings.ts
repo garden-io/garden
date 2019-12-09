@@ -19,17 +19,17 @@ export function writeTemplateStringReferenceDocs(docsRoot: string) {
 
   const projectDescriptions = normalizeDescriptions(ProjectConfigContext.getSchema().describe())
   const projectContext = renderSchemaDescriptionYaml(projectDescriptions, {
-    showRequired: false,
+    renderRequired: false,
   })
 
   const providerDescriptions = normalizeDescriptions(ProviderConfigContext.getSchema().describe())
   const providerContext = renderSchemaDescriptionYaml(providerDescriptions, {
-    showRequired: false,
+    renderRequired: false,
   })
 
   const moduleDescriptions = normalizeDescriptions(ModuleConfigContext.getSchema().describe())
   const moduleContext = renderSchemaDescriptionYaml(moduleDescriptions, {
-    showRequired: false,
+    renderRequired: false,
   })
 
   const templatePath = resolve(TEMPLATES_DIR, "template-strings.hbs")

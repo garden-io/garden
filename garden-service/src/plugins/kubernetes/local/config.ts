@@ -6,23 +6,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
-import { KubernetesBaseConfig, kubernetesConfigBase, k8sContextSchema } from "../config"
+import { KubernetesConfig, kubernetesConfigBase, k8sContextSchema } from "../config"
 import { ConfigureProviderParams } from "../../../types/plugin/provider/configureProvider"
 import { joiProviderName, joi } from "../../../config/common"
 import { getKubeConfig } from "../api"
 import { configureMicrok8sAddons } from "./microk8s"
 import { setMinikubeDockerEnv } from "./minikube"
-import { ContainerRegistryConfig } from "../../container/config"
 import { exec } from "../../../util/util"
+import { remove } from "lodash"
 
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
 
 // note: this is in order of preference, in case neither is set as the current kubectl context
 // and none is explicitly configured in the garden.yml
 const supportedContexts = ["docker-for-desktop", "microk8s", "minikube"]
+const nginxServices = ["ingress-controller", "default-backend"]
 
-export interface LocalKubernetesConfig extends KubernetesBaseConfig {
+export interface LocalKubernetesConfig extends KubernetesConfig {
   setupIngressController: string | null
 }
 
@@ -45,17 +45,14 @@ export const configSchema = kubernetesConfigBase
   })
   .description("The provider configuration for the local-kubernetes plugin.")
 
-export async function configureProvider({ config, log, projectName }: ConfigureProviderParams<LocalKubernetesConfig>) {
-  let context = config.context
-  let defaultHostname = config.defaultHostname
-  let deploymentRegistry: ContainerRegistryConfig | undefined = undefined
+export async function configureProvider(params: ConfigureProviderParams<LocalKubernetesConfig>) {
+  const { base, log, projectName } = params
+  let { config } = await base!(params)
 
-  const namespace = config.namespace || projectName
-  const _systemServices: string[] = []
+  const namespace = config.namespace!
+  const _systemServices = config._systemServices
 
-  const deploymentStrategy = config.deploymentStrategy || "rolling"
-
-  if (!context) {
+  if (!config.context) {
     // automatically detect supported kubectl context if not explicitly configured
     // create dummy provider with just enough info needed for the getKubeConfig function
     const provider = {
@@ -70,100 +67,70 @@ export async function configureProvider({ config, log, projectName }: ConfigureP
 
     if (currentContext && supportedContexts.includes(currentContext)) {
       // prefer current context if set and supported
-      context = currentContext
-      log.debug({ section: config.name, msg: `Using current context: ${context}` })
+      config.context = currentContext
+      log.debug({ section: config.name, msg: `Using current context: ${config.context}` })
     } else {
-      const availableContexts = kubeConfig.contexts.map((c) => c.name)
+      const availableContexts = kubeConfig.contexts.map((c: any) => c.name)
 
       for (const supportedContext of supportedContexts) {
         if (availableContexts.includes(supportedContext)) {
-          context = supportedContext
-          log.debug({ section: config.name, msg: `Using detected context: ${context}` })
+          config.context = supportedContext
+          log.debug({ section: config.name, msg: `Using detected context: ${config.context}` })
           break
         }
       }
     }
 
-    if (!context && kubeConfig.contexts.length > 0) {
-      context = kubeConfig.contexts[0].name
-      log.debug({ section: config.name, msg: `No kubectl context auto-detected, using first available: ${context}` })
+    if (!config.context && kubeConfig.contexts.length > 0) {
+      config.context = kubeConfig.contexts[0].name
+      log.debug({
+        section: config.name,
+        msg: `No kubectl context auto-detected, using first available: ${config.context}`,
+      })
     }
   }
 
-  if (!context) {
-    context = supportedContexts[0]
-    log.debug({ section: config.name, msg: `No kubectl context configured, using default: ${context}` })
+  if (!config.context) {
+    config.context = supportedContexts[0]
+    log.debug({ section: config.name, msg: `No kubectl context configured, using default: ${config.context}` })
   }
 
-  if (context === "minikube") {
-    const initCmds = [
-      ["config", "set", "WantUpdateNotification", "false"],
-      ["addons", "enable", "dashboard"],
-    ]
-    await Bluebird.map(initCmds, async (cmd) => exec("minikube", cmd))
+  if (config.context === "minikube") {
+    await exec("minikube", ["config", "set", "WantUpdateNotification", "false"])
 
-    if (!defaultHostname) {
+    if (!config.defaultHostname) {
       // use the nip.io service to give a hostname to the instance, if none is explicitly configured
       const { stdout } = await exec("minikube", ["ip"])
-      defaultHostname = `${projectName}.${stdout}.nip.io`
+      config.defaultHostname = `${projectName}.${stdout}.nip.io`
     }
 
     if (config.setupIngressController === "nginx") {
       log.debug("Using minikube's ingress addon")
       await exec("minikube", ["addons", "enable", "ingress"])
+      remove(_systemServices, (s) => nginxServices.includes(s))
     }
 
     await setMinikubeDockerEnv()
-  } else if (context === "microk8s") {
-    const addons = ["dns", "dashboard", "registry", "storage"]
+  } else if (config.context === "microk8s") {
+    const addons = ["dns", "registry", "storage"]
 
     if (config.setupIngressController === "nginx") {
       log.debug("Using microk8s's ingress addon")
       addons.push("ingress")
+      remove(_systemServices, (s) => nginxServices.includes(s))
     }
 
     await configureMicrok8sAddons(log, addons)
 
     // Need to push to the built-in registry
-    deploymentRegistry = {
+    config.deploymentRegistry = {
       hostname: "localhost:32000",
       namespace,
     }
-  } else {
-    _systemServices.push("kubernetes-dashboard")
-    // Install nginx on init
-    if (config.setupIngressController === "nginx") {
-      _systemServices.push("ingress-controller", "default-backend")
-    }
   }
 
-  if (!defaultHostname) {
-    defaultHostname = `${projectName}.local.app.garden`
-  }
-
-  const ingressClass = config.ingressClass || config.setupIngressController || undefined
-
-  config = {
-    // Setting the name to kubernetes, so that plugins that depend on kubernetes can reference it.
-    name: config.name,
-    buildMode: config.buildMode,
-    context,
-    defaultHostname,
-    deploymentRegistry,
-    deploymentStrategy,
-    forceSsl: false,
-    imagePullSecrets: config.imagePullSecrets,
-    ingressHttpPort: 80,
-    ingressHttpsPort: 443,
-    ingressClass,
-    namespace,
-    registryProxyTolerations: config.registryProxyTolerations,
-    resources: config.resources,
-    storage: config.storage,
-    setupIngressController: config.setupIngressController,
-    tlsCertificates: config.tlsCertificates,
-    certManager: config.certManager,
-    _systemServices,
+  if (!config.defaultHostname) {
+    config.defaultHostname = `${projectName}.local.app.garden`
   }
 
   return { config }

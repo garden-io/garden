@@ -6,15 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { sep, resolve, relative, basename } from "path"
+import { sep, resolve, relative, basename, dirname } from "path"
 import yaml from "js-yaml"
 import { readFile } from "fs-extra"
-import { omit, flatten, isPlainObject, find } from "lodash"
-import { ModuleResource, moduleConfigSchema } from "./module"
+import { omit, isPlainObject, find } from "lodash"
+import { ModuleResource, moduleConfigSchema, coreModuleSpecSchema } from "./module"
 import { ConfigurationError } from "../exceptions"
 import { DEFAULT_API_VERSION } from "../constants"
 import { ProjectResource } from "../config/project"
 import { getConfigFilePath } from "../util/fs"
+import { validateWithPath } from "./common"
 
 export interface GardenResource {
   apiVersion: string
@@ -47,7 +48,7 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
   // Ignore empty resources
   rawSpecs = rawSpecs.filter(Boolean)
 
-  const resources: GardenResource[] = flatten(rawSpecs.map((s) => prepareResources(s, path, configPath, projectRoot)))
+  const resources: GardenResource[] = rawSpecs.map((s) => prepareResource(s, path, configPath, projectRoot))
 
   const projectSpecs = resources.filter((s) => s.kind === "Project")
 
@@ -74,7 +75,7 @@ export type ConfigKind = "Module" | "Project"
  * definitions). The kind key is removed before validation, so that specs following both styles can be validated
  * with the same schema.
  */
-function prepareResources(spec: any, path: string, configPath: string, projectRoot: string): GardenResource[] {
+function prepareResource(spec: any, path: string, configPath: string, projectRoot: string): GardenResource {
   if (!isPlainObject(spec)) {
     throw new ConfigurationError(`Invalid configuration found in ${path}`, {
       spec,
@@ -82,52 +83,24 @@ function prepareResources(spec: any, path: string, configPath: string, projectRo
     })
   }
 
-  if (spec.kind) {
-    return [prepareFlatConfigDoc(spec, path, configPath, projectRoot)]
-  } else {
-    return prepareScopedConfigDoc(spec, path, configPath)
-  }
-}
-
-/**
- * The new / flat configuration style.
- *
- * The spec defines either a project or a module (determined by its "kind" field).
- */
-function prepareFlatConfigDoc(spec: any, path: string, configPath: string, projectRoot: string): GardenResource {
   const kind = spec.kind
+  const relPath = `${relative(projectRoot, path)}/garden.yml`
 
   if (kind === "Project") {
     return prepareProjectConfig(spec, path, configPath)
   } else if (kind === "Module") {
-    return prepareModuleResource(spec, path, configPath)
+    return prepareModuleResource(spec, path, configPath, projectRoot)
+  } else if (!kind) {
+    throw new ConfigurationError(`Missing \`kind\` field in config at ${relPath}`, {
+      kind,
+      path: relPath,
+    })
   } else {
-    const relPath = `${relative(projectRoot, path)}/garden.yml`
     throw new ConfigurationError(`Unknown config kind ${kind} in ${relPath}`, {
       kind,
       path: relPath,
     })
   }
-}
-
-/**
- * The old / nested configuration style.
- *
- * The spec defines a project and/or a module, with the config for each nested under the "project" / "module" field,
- * respectively.
- */
-function prepareScopedConfigDoc(spec: any, path: string, configPath: string): GardenResource[] {
-  const resources: GardenResource[] = []
-
-  if (spec.project) {
-    resources.push(prepareProjectConfig(spec.project, path, configPath))
-  }
-
-  if (spec.module) {
-    resources.push(prepareModuleResource(spec.module, path, configPath))
-  }
-
-  return resources
 }
 
 function prepareProjectConfig(spec: any, path: string, configPath: string): ProjectResource {
@@ -142,7 +115,7 @@ function prepareProjectConfig(spec: any, path: string, configPath: string): Proj
   return spec
 }
 
-function prepareModuleResource(spec: any, path: string, configPath: string): ModuleResource {
+function prepareModuleResource(spec: any, path: string, configPath: string, projectRoot: string): ModuleResource {
   /**
    * We allow specifying modules by name only as a shorthand:
    *   dependencies:
@@ -155,7 +128,7 @@ function prepareModuleResource(spec: any, path: string, configPath: string): Mod
       : []
 
   // Built-in keys are validated here and the rest are put into the `spec` field
-  return {
+  const config: ModuleResource = {
     apiVersion: spec.apiVersion || DEFAULT_API_VERSION,
     kind: "Module",
     allowPublish: spec.allowPublish,
@@ -179,6 +152,17 @@ function prepareModuleResource(spec: any, path: string, configPath: string): Mod
     type: spec.type,
     taskConfigs: [],
   }
+
+  validateWithPath({
+    config,
+    schema: coreModuleSpecSchema,
+    path: dirname(configPath),
+    projectRoot,
+    configType: "module",
+    ErrorClass: ConfigurationError,
+  })
+
+  return config
 }
 
 export async function findProjectConfig(path: string, allowInvalid = false): Promise<ProjectResource | undefined> {

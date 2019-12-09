@@ -6,8 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { V1Secret } from "@kubernetes/client-node"
-
 import { KubeApi } from "./api"
 import { ProviderSecretRef, KubernetesPluginContext } from "./config"
 import { ConfigurationError } from "../../exceptions"
@@ -15,8 +13,8 @@ import { getMetadataNamespace } from "./namespace"
 import { GetSecretParams } from "../../types/plugin/provider/getSecret"
 import { SetSecretParams } from "../../types/plugin/provider/setSecret"
 import { DeleteSecretParams } from "../../types/plugin/provider/deleteSecret"
-import { KubernetesResource } from "./types"
 import { pick } from "lodash"
+import { LogEntry } from "../../logger/log-entry"
 
 export async function getSecret({ ctx, log, key }: GetSecretParams) {
   const k8sCtx = <KubernetesPluginContext>ctx
@@ -86,13 +84,11 @@ export async function deleteSecret({ ctx, log, key }: DeleteSecretParams) {
 }
 
 /**
- * Make sure the specified secret exists in the target namespace, copying it if necessary.
+ * Read the specified secret ref from the cluster.
  */
-export async function ensureSecret(api: KubeApi, secretRef: ProviderSecretRef, targetNamespace: string) {
-  let secret: KubernetesResource<V1Secret>
-
+export async function readSecret(api: KubeApi, secretRef: ProviderSecretRef) {
   try {
-    secret = await api.core.readNamespacedSecret(secretRef.name, secretRef.namespace)
+    return await api.core.readNamespacedSecret(secretRef.name, secretRef.namespace)
   } catch (err) {
     if (err.code === 404) {
       throw new ConfigurationError(
@@ -106,6 +102,13 @@ export async function ensureSecret(api: KubeApi, secretRef: ProviderSecretRef, t
       throw err
     }
   }
+}
+
+/**
+ * Make sure the specified secret exists in the target namespace, copying it if necessary.
+ */
+export async function ensureSecret(api: KubeApi, secretRef: ProviderSecretRef, targetNamespace: string, log: LogEntry) {
+  const secret = await readSecret(api, secretRef)
 
   if (secretRef.namespace === targetNamespace) {
     return
@@ -117,5 +120,5 @@ export async function ensureSecret(api: KubeApi, secretRef: ProviderSecretRef, t
     namespace: targetNamespace,
   }
 
-  await api.upsert("Secret", targetNamespace, secret)
+  await api.upsert("Secret", targetNamespace, secret, log)
 }

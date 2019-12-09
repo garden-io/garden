@@ -43,6 +43,7 @@ type DeleteSecretArgs = typeof deleteSecretArgs
 export class DeleteSecretCommand extends Command<typeof deleteSecretArgs> {
   name = "secret"
   help = "Delete a secret from the environment."
+  protected = true
 
   description = dedent`
     Returns with an error if the provided key could not be found by the provider.
@@ -79,6 +80,7 @@ export class DeleteEnvironmentCommand extends Command {
   name = "environment"
   alias = "env"
   help = "Deletes a running environment."
+  protected = true
 
   description = dedent`
     This will delete all services in the specified environment, and trigger providers to clear up any other resources
@@ -111,6 +113,7 @@ export class DeleteServiceCommand extends Command {
   alias = "services"
   help = "Deletes running services."
   arguments = deleteServiceArgs
+  protected = true
 
   description = dedent`
     Deletes (i.e. un-deploys) the specified services. Note that this command does not take into account any

@@ -20,7 +20,6 @@ import { splitFirst, splitLast } from "../../../util/util"
 import { LogEntry } from "../../../logger/log-entry"
 import Bluebird from "bluebird"
 import { CLUSTER_REGISTRY_DEPLOYMENT_NAME } from "../constants"
-import { systemNamespace } from "../system"
 import { PluginError } from "../../../exceptions"
 import { apply, kubectl } from "../kubectl"
 import { waitForResources } from "../status/status"
@@ -199,6 +198,7 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
   })
 
   const provider = ctx.provider
+  const systemNamespace = provider.config.gardenSystemNamespace
 
   // Restart the registry in read-only mode
   // -> Get the original deployment
@@ -404,6 +404,7 @@ async function cleanupBuildSyncVolume(provider: KubernetesProvider, log: LogEntr
 // (doesn't matter which one, they all use the same volume)
 async function getBuildSyncPodName(provider: KubernetesProvider, log: LogEntry) {
   const api = await KubeApi.factory(log, provider)
+  const systemNamespace = provider.config.gardenSystemNamespace
 
   const builderStatusRes = await api.apps.readNamespacedDeployment(buildSyncDeploymentName, systemNamespace)
   const builderPods = await getPods(api, systemNamespace, builderStatusRes.spec.selector.matchLabels)
@@ -421,6 +422,7 @@ async function getBuildSyncPodName(provider: KubernetesProvider, log: LogEntry) 
 
 async function execInBuildSync({ provider, log, args, timeout, podName }: BuilderExecParams) {
   const execCmd = ["exec", "-i", podName, "--", ...args]
+  const systemNamespace = provider.config.gardenSystemNamespace
 
   log.verbose(`Running: kubectl ${execCmd.join(" ")}`)
 

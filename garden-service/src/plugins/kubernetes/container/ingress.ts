@@ -18,6 +18,7 @@ import { ensureSecret } from "../secrets"
 import { getHostnamesFromPem } from "../../../util/tls"
 import { KubernetesResource } from "../types"
 import { V1Secret } from "@kubernetes/client-node"
+import { LogEntry } from "../../../logger/log-entry"
 
 interface ServiceIngressWithCert extends ServiceIngress {
   spec: ContainerIngressSpec
@@ -30,7 +31,8 @@ export async function createIngressResources(
   api: KubeApi,
   provider: KubernetesProvider,
   namespace: string,
-  service: ContainerService
+  service: ContainerService,
+  log: LogEntry
 ) {
   if (service.spec.ingresses.length === 0) {
     return []
@@ -72,7 +74,7 @@ export async function createIngressResources(
 
     if (!!cert) {
       // make sure the TLS secrets exist in this namespace
-      await ensureSecret(api, cert.secretRef, namespace)
+      await ensureSecret(api, cert.secretRef, namespace, log)
 
       spec.tls = [
         {

@@ -1,7 +1,5 @@
-FROM busybox
+FROM busybox:1.31.1
 
 COPY main .
 
 ENTRYPOINT ./main
-
-EXPOSE 8080
