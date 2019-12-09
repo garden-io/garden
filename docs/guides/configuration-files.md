@@ -36,8 +36,7 @@ variables:
   my-variable: hello-variable
 ```
 
-The project-wide `garden.yml` defines the project's name, the default configuration used for each
-[environment](../reference/glossary.md#environment) (via the `environmentDefaults` field), and
+The project-wide `garden.yml` defines the project's name and
 environment-specific [provider](../reference/glossary.md#provider) configuration. The above only configures a `local` environment, but you could add
 further environments, such as a [remote Kubernetes](./remote-kubernetes.md) environment, where you'd use the `kubernetes`
 provider instead of `local-kubernetes`.
