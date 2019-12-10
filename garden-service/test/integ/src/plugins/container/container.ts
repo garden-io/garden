@@ -1,3 +1,4 @@
+import "../../../../setup"
 import { expect } from "chai"
 import { containerHelpers as helpers } from "../../../../../src/plugins/container/helpers"
 

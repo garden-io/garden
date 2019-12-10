@@ -1,3 +1,4 @@
+import "../../../../setup"
 import { expect } from "chai"
 import { flatten } from "lodash"
 import { Garden } from "../../../../../src/garden"

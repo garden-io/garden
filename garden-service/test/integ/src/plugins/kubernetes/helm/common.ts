@@ -1,7 +1,9 @@
+import "../../../../../setup"
 import { TestGarden, makeTestGarden, dataDir, expectError } from "../../../../../helpers"
 import { resolve } from "path"
 import { expect } from "chai"
 import { first } from "lodash"
+import tmp from "tmp-promise"
 
 import {
   containsSource,
@@ -24,29 +26,17 @@ import { getServiceResourceSpec } from "../../../../../../src/plugins/kubernetes
 import { ConfigGraph } from "../../../../../../src/config-graph"
 import { buildHelmModule } from "../../../../../../src/plugins/kubernetes/helm/build"
 
-let helmTestGarden: TestGarden
-
-export async function getHelmTestGarden() {
-  if (helmTestGarden) {
-    return helmTestGarden
-  }
-
-  const projectRoot = resolve(dataDir, "test-projects", "helm")
-  const garden = await makeTestGarden(projectRoot)
-
-  helmTestGarden = garden
-
-  return garden
-}
-
 describe("Helm common functions", () => {
   let garden: TestGarden
   let graph: ConfigGraph
   let ctx: PluginContext
   let log: LogEntry
+  let gardenTmpDir: tmp.DirectoryResult
 
   before(async () => {
-    garden = await getHelmTestGarden()
+    const projectRoot = resolve(dataDir, "test-projects", "helm")
+    gardenTmpDir = await tmp.dir({ unsafeCleanup: true })
+    garden = await makeTestGarden(projectRoot, { gardenDirPath: gardenTmpDir.path })
     const provider = await garden.resolveProvider("local-kubernetes")
     ctx = garden.getPluginContext(provider)
     log = garden.log
@@ -56,6 +46,10 @@ describe("Helm common functions", () => {
 
   beforeEach(async () => {
     graph = await garden.getConfigGraph(garden.log)
+  })
+
+  after(async () => {
+    await gardenTmpDir.cleanup()
   })
 
   async function buildModules() {
@@ -525,16 +519,14 @@ describe("Helm common functions", () => {
     context("module has chart sources", () => {
       it("should return the chart path in the build directory", async () => {
         const module = await graph.getModule("api")
-        expect(await getChartPath(module)).to.equal(resolve(ctx.projectRoot, ".garden", "build", "api"))
+        expect(await getChartPath(module)).to.equal(resolve(garden.gardenDirPath, "build", "api"))
       })
     })
 
     context("module references remote chart", () => {
       it("should construct the chart path based on the chart name", async () => {
         const module = await graph.getModule("postgres")
-        expect(await getChartPath(module)).to.equal(
-          resolve(ctx.projectRoot, ".garden", "build", "postgres", "postgresql")
-        )
+        expect(await getChartPath(module)).to.equal(resolve(garden.gardenDirPath, "build", "postgres", "postgresql"))
       })
     })
   })

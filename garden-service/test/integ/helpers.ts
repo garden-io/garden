@@ -1,3 +1,4 @@
+import "../setup"
 import kms from "@google-cloud/kms"
 import { readFile } from "fs-extra"
 

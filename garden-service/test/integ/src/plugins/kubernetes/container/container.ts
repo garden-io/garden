@@ -1,3 +1,4 @@
+import "../../../../../setup"
 import tmp from "tmp-promise"
 import { getDataDir, makeTestGarden, expectError } from "../../../../../helpers"
 import { TestTask } from "../../../../../../src/tasks/test"

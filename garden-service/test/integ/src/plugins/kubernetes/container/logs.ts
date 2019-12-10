@@ -1,3 +1,4 @@
+import "../../../../../setup"
 import { expect } from "chai"
 import { Garden } from "../../../../../../src/garden"
 import { getDataDir, makeTestGarden } from "../../../../../helpers"

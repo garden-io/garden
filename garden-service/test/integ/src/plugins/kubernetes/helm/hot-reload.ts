@@ -1,21 +1,30 @@
+import "../../../../../setup"
 import { expect } from "chai"
 
-import { TestGarden, expectError } from "../../../../../helpers"
+import { TestGarden, expectError, dataDir, makeTestGarden } from "../../../../../helpers"
 import { getHotReloadSpec } from "../../../../../../src/plugins/kubernetes/helm/hot-reload"
 import { deline } from "../../../../../../src/util/string"
 import { ConfigGraph } from "../../../../../../src/config-graph"
-import { getHelmTestGarden } from "./common"
+import tmp from "tmp-promise"
+import { resolve } from "path"
 
 describe("getHotReloadSpec", () => {
   let garden: TestGarden
   let graph: ConfigGraph
+  let gardenTmpDir: tmp.DirectoryResult
 
   before(async () => {
-    garden = await getHelmTestGarden()
+    const projectRoot = resolve(dataDir, "test-projects", "helm")
+    gardenTmpDir = await tmp.dir({ unsafeCleanup: true })
+    garden = await makeTestGarden(projectRoot, { gardenDirPath: gardenTmpDir.path })
   })
 
   beforeEach(async () => {
     graph = await garden.getConfigGraph(garden.log)
+  })
+
+  after(async () => {
+    await gardenTmpDir.cleanup()
   })
 
   it("should retrieve the hot reload spec on the service's source module", async () => {

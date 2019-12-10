@@ -402,12 +402,6 @@ jobs:
       - run:
           name: Integ tests
           command: cd garden-service && npm run integ -- -b
-      - run:
-          name: Deploy demo-project
-          command: sudo -E ./garden-service/bin/garden deploy --root examples/demo-project --logger-type basic
-      - run:
-          name: Deploy openfaas
-          command: sudo -E ./garden-service/bin/garden deploy --root examples/openfaas --logger-type basic
   test-windows:
     executor: win/vs2019
     steps:

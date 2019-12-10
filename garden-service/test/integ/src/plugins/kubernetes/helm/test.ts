@@ -1,23 +1,31 @@
+import "../../../../../setup"
 import { expect } from "chai"
 
-import { TestGarden } from "../../../../../helpers"
+import { TestGarden, dataDir, makeTestGarden } from "../../../../../helpers"
 import { ConfigGraph } from "../../../../../../src/config-graph"
-import { getHelmTestGarden } from "./common"
 import { TestTask } from "../../../../../../src/tasks/test"
 import { findByName } from "../../../../../../src/util/util"
 import { emptyDir, pathExists } from "fs-extra"
-import { join } from "path"
+import { join, resolve } from "path"
+import tmp from "tmp-promise"
 
 describe("testHelmModule", () => {
   let garden: TestGarden
   let graph: ConfigGraph
+  let gardenTmpDir: tmp.DirectoryResult
 
   before(async () => {
-    garden = await getHelmTestGarden()
+    const projectRoot = resolve(dataDir, "test-projects", "helm")
+    gardenTmpDir = await tmp.dir({ unsafeCleanup: true })
+    garden = await makeTestGarden(projectRoot, { gardenDirPath: gardenTmpDir.path })
   })
 
   beforeEach(async () => {
     graph = await garden.getConfigGraph(garden.log)
+  })
+
+  after(async () => {
+    await gardenTmpDir.cleanup()
   })
 
   it("should run a basic test", async () => {

@@ -6,6 +6,7 @@
     "test/e2e/*.ts",
     "test/e2e/**/*.ts",
     "test/integ/*.ts",
+    "test/integ/examples/**/*.ts",
     "test/integ/src/**/*.ts",
     "test/unit/*.ts",
     "test/unit/src/**/*.ts"

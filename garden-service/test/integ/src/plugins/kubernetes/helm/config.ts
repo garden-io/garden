@@ -1,22 +1,26 @@
+import "../../../../../setup"
 import { resolve } from "path"
 import { expect } from "chai"
 import { cloneDeep } from "lodash"
 
-import { TestGarden, expectError } from "../../../../../helpers"
+import { TestGarden, expectError, dataDir, makeTestGarden } from "../../../../../helpers"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { deline } from "../../../../../../src/util/string"
 import { ModuleConfig } from "../../../../../../src/config/module"
 import { apply } from "json-merge-patch"
-import { getHelmTestGarden } from "./common"
 import { defaultHelmTimeout } from "../../../../../../src/plugins/kubernetes/helm/config"
+import tmp from "tmp-promise"
 
 describe("validateHelmModule", () => {
   let garden: TestGarden
   let ctx: PluginContext
   let moduleConfigs: { [key: string]: ModuleConfig }
+  let gardenTmpDir: tmp.DirectoryResult
 
   before(async () => {
-    garden = await getHelmTestGarden()
+    const projectRoot = resolve(dataDir, "test-projects", "helm")
+    gardenTmpDir = await tmp.dir({ unsafeCleanup: true })
+    garden = await makeTestGarden(projectRoot, { gardenDirPath: gardenTmpDir.path })
     const provider = await garden.resolveProvider("local-kubernetes")
     ctx = garden.getPluginContext(provider)
     await garden["resolveModuleConfigs"](garden.log)
@@ -25,6 +29,10 @@ describe("validateHelmModule", () => {
 
   afterEach(() => {
     garden["moduleConfigs"] = cloneDeep(moduleConfigs)
+  })
+
+  after(async () => {
+    await gardenTmpDir.cleanup()
   })
 
   function patchModuleConfig(name: string, patch: any) {

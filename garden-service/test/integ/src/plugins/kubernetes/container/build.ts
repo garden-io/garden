@@ -1,3 +1,4 @@
+import "../../../../../setup"
 import { getDataDir, makeTestGarden, expectError } from "../../../../../helpers"
 import { Garden } from "../../../../../../src/garden"
 import { ConfigGraph } from "../../../../../../src/config-graph"
