@@ -138,6 +138,9 @@ export class Watcher extends EventEmitter {
         .on("ready", () => {
           this.emit("ready")
         })
+        .on("error", (err) => {
+          this.emit("error", err)
+        })
         .on("all", (name, path, payload) => {
           this.emit(name, path, payload)
           this.log.silly(`FSWatcher event: ${name} ${path} ${JSON.stringify(payload)}`)

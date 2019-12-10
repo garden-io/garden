@@ -142,13 +142,10 @@ interface WsMessageReceived extends ActionBase {
 
 export type Action = ActionStart | ActionError | ActionSuccess | WsMessageReceived
 
-const initialRequestState = requestKeys.reduce(
-  (acc, key) => {
-    acc[key] = { pending: false, initLoadComplete: false }
-    return acc
-  },
-  {} as { [K in RequestKey]: RequestState }
-)
+const initialRequestState = requestKeys.reduce((acc, key) => {
+  acc[key] = { pending: false, initLoadComplete: false }
+  return acc
+}, {} as { [K in RequestKey]: RequestState })
 
 const initialState: Store = {
   entities: {
