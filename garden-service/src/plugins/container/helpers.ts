@@ -6,13 +6,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join } from "path"
+import { join, posix } from "path"
+import { readFile, pathExists, lstat } from "fs-extra"
 import semver from "semver"
+import { parse, CommandEntry } from "docker-file-parser"
+import isGlob from "is-glob"
 import { ConfigurationError, RuntimeError } from "../../exceptions"
 import { splitFirst, spawn, splitLast } from "../../util/util"
 import { ModuleConfig } from "../../config/module"
 import { ContainerModule, ContainerRegistryConfig, defaultTag, defaultNamespace, ContainerModuleConfig } from "./config"
 import { Writable } from "stream"
+import Bluebird from "bluebird"
+import { flatten, uniq } from "lodash"
+import { LogEntry } from "../../logger/log-entry"
+import chalk from "chalk"
+import isUrl from "is-url"
 
 export const DEFAULT_BUILD_TIMEOUT = 600
 export const minDockerVersion = "17.07.0"
@@ -286,6 +294,89 @@ const helpers = {
 
   getDockerfileSourcePath(config: ModuleConfig) {
     return getDockerfilePath(config.path, config.spec.dockerfile)
+  },
+
+  /**
+   * Parses the Dockerfile in the module (if any) and returns a list of include patterns to apply to the module.
+   * Returns undefined if the whole module directory should be included, or if the Dockerfile cannot be parsed.
+   * Returns an empty list if there is no Dockerfile, and an `image` is set.
+   */
+  async autoResolveIncludes(config: ContainerModuleConfig, log: LogEntry) {
+    const dockerfilePath = helpers.getDockerfileSourcePath(config)
+
+    if (!(await pathExists(dockerfilePath))) {
+      // No Dockerfile, nothing to build, return empty list
+      return []
+    }
+
+    const dockerfile = await readFile(dockerfilePath)
+    let commands: CommandEntry[] = []
+
+    try {
+      commands = parse(dockerfile.toString()).filter(
+        (cmd) => (cmd.name === "ADD" || cmd.name === "COPY") && cmd.args && cmd.args.length > 0
+      )
+    } catch (err) {
+      log.warn(chalk.yellow(`Unable to parse Dockerfile ${dockerfilePath}: ${err.message}`))
+      return undefined
+    }
+
+    const paths: string[] = uniq(
+      flatten(
+        commands.map((cmd) => {
+          const args = cmd.args as string[]
+          if (args[0].startsWith("--chown")) {
+            // Ignore --chown args
+            return args.slice(1, -1)
+          } else if (args[0].startsWith("--from")) {
+            // Skip statements copying from another build stage
+            return []
+          } else {
+            return args.slice(0, -1)
+          }
+        })
+        // Ignore URLs
+      ).filter((path) => !isUrl(path))
+    )
+
+    for (const path of paths) {
+      if (path === ".") {
+        // If any path is "." we need the full build context
+        return undefined
+      } else if (path.match(/(?<!\\)(?:\\\\)*\$[{\w]/)) {
+        // If the path contains a template string we can't currently reason about it
+        // TODO: interpolate args into paths
+        return undefined
+      }
+    }
+
+    // Make sure to include the Dockerfile
+    paths.push(config.spec.dockerfile || "Dockerfile")
+
+    return Bluebird.map(paths, async (path) => {
+      const absPath = join(config.path, path)
+
+      // Unescape escaped template strings
+      path = path.replace(/\\\$/g, "$")
+
+      if (isGlob(path, { strict: false })) {
+        // Pass globs through directly
+        return path
+      } else if (await pathExists(absPath)) {
+        const stat = await lstat(absPath)
+
+        if (stat.isDirectory()) {
+          // If it's a directory, we want to match everything in the directory
+          return posix.join(path, "**", "*")
+        } else {
+          // If it's a file, pass it through as-is
+          return path
+        }
+      } else {
+        // Pass the file through directly if it can't be found (an error will occur in the build later)
+        return path
+      }
+    })
   },
 }
 
