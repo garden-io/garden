@@ -2,6 +2,6 @@ kind: Project
 name: ambassador
 environments:
   - name: local
-    providers:
-      - name: local-kubernetes
-        setupIngressController: false
+providers:
+  - name: local-kubernetes
+    setupIngressController: false

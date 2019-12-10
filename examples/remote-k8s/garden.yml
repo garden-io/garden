@@ -2,20 +2,22 @@ kind: Project
 name: local-tls
 defaultEnvironment: local
 environments:
-- name: local
-  providers:
+  - name: local
+    # you can run garden against this environment by adding "--env remote" to your commands,
+    # e.g. garden --env remote deploy
+  - name: remote
+    providers:
+providers:
   - name: local-kubernetes
-# you can run garden against this environment by adding "--env remote" to your commands,
-# e.g. garden --env remote deploy
-- name: remote
-  providers:
+    environments: [local]
   - name: kubernetes
+    environments: [remote]
     context: my-remote-context
     defaultHostname: my-cluster.example.com   # change this to the hostname that points to your cluster
     forceSsl: true
     tlsCertificates:
-    - name: garden-example-tls
-      secretRef:
-        name: garden-example-tls
-        namespace: default
+      - name: garden-example-tls
+        secretRef:
+          name: garden-example-tls
+          namespace: default
     buildMode: cluster-docker

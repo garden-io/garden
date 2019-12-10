@@ -2,10 +2,12 @@ kind: Project
 name: test-project
 environments:
   - name: local
-    providers:
-      - name: test-plugin
-      - name: test-plugin-b
   - name: other
+providers:
+  - name: test-plugin
+    environments: [local]
+  - name: test-plugin-b
+    environments: [local]
 variables:
   some: variable
 
@@ -15,9 +17,11 @@ kind: Project
 name: test-project-duplicate
 environments:
   - name: local
-    providers:
-      - name: test-plugin
-      - name: test-plugin-b
   - name: other
+providers:
+  - name: test-plugin
+    environments: [local]
+  - name: test-plugin-b
+    environments: [local]
 variables:
   some: variable
