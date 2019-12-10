@@ -96,6 +96,7 @@ function attachMetadata(tree: FileTree) {
     }
   } else {
     tree.title = titleize(humanizeString(tree.name))
+    tree.order = Number.MAX_VALUE
   }
   if (tree.children) {
     for (let item in tree.children) {
