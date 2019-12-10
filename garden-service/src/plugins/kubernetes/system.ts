@@ -7,7 +7,7 @@
  */
 
 import { join } from "path"
-import { values, find } from "lodash"
+import { values } from "lodash"
 import { V1Namespace } from "@kubernetes/client-node"
 import semver from "semver"
 
@@ -26,7 +26,6 @@ import { PrimitiveMap } from "../../config/common"
 import { combineStates } from "../../types/service"
 import { KubernetesResource } from "./types"
 import { defaultDotIgnoreFiles } from "../../util/fs"
-import { HelmServiceStatus } from "./helm/status"
 import { LogLevel } from "../../logger/log-node"
 
 const GARDEN_VERSION = getPackageVersion()
@@ -151,13 +150,7 @@ interface GetSystemServicesStatusParams {
   serviceNames: string[]
 }
 
-export async function getSystemServiceStatus({
-  ctx,
-  sysGarden,
-  log,
-  namespace,
-  serviceNames,
-}: GetSystemServicesStatusParams) {
+export async function getSystemServiceStatus({ sysGarden, log, serviceNames }: GetSystemServicesStatusParams) {
   let dashboardPages: DashboardPage[] = []
 
   const actions = await sysGarden.getActionRouter()
@@ -167,27 +160,6 @@ export async function getSystemServiceStatus({
     serviceNames,
   })
   const state = combineStates(values(serviceStatuses).map((s) => (s && s.state) || "unknown"))
-
-  // Add the Kubernetes dashboard to the Garden dashboard
-  if (serviceNames.includes("kubernetes-dashboard")) {
-    const defaultHostname = ctx.provider.config.defaultHostname
-
-    const dashboardStatus = serviceStatuses["kubernetes-dashboard"] as HelmServiceStatus
-    const dashboardServiceResource = find(dashboardStatus.detail.remoteResources, (o) => o.kind === "Service")
-
-    if (!!dashboardServiceResource) {
-      const dashboardPort = dashboardServiceResource.spec.ports[0].nodePort
-
-      if (!!dashboardPort) {
-        dashboardPages.push({
-          title: "Kubernetes",
-          description: "The standard Kubernetes dashboard for this project",
-          url: `http://${defaultHostname}:${dashboardPort}/#!/workload?namespace=${namespace}`,
-          newWindow: true,
-        })
-      }
-    }
-  }
 
   return {
     state,

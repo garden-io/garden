@@ -52,9 +52,9 @@ describe("config", () => {
     .required()
 
   describe("renderSchemaDescriptionYaml", () => {
-    it("should render correct yaml", () => {
+    it("should render the yaml with the full description", () => {
       const schemaDescriptions = normalizeDescriptions(portSchema.describe())
-      const yaml = renderSchemaDescriptionYaml(schemaDescriptions, { showRequired: true })
+      const yaml = renderSchemaDescriptionYaml(schemaDescriptions, { renderRequired: true })
       expect(yaml).to.equal(dedent`
         # description
         #
@@ -102,9 +102,31 @@ describe("config", () => {
         testArray: []
       `)
     })
-    it("should conditionally skip the commented description above the key", () => {
+    it("should optionally render the yaml with a basic description", () => {
       const schemaDescriptions = normalizeDescriptions(portSchema.describe())
-      const yaml = renderSchemaDescriptionYaml(schemaDescriptions, { showComment: false })
+      const yaml = renderSchemaDescriptionYaml(schemaDescriptions, { renderBasicDescription: true })
+      expect(yaml).to.equal(dedent`
+        # description
+        containerPort:
+
+        # description
+        servicePort: <same as containerPort>
+
+        # test object
+        testObject:
+          # key a
+          testKeyA:
+
+          # key b
+          testKeyB:
+
+        # test array
+        testArray: []
+      `)
+    })
+    it("should optionally skip the commented description above the key", () => {
+      const schemaDescriptions = normalizeDescriptions(portSchema.describe())
+      const yaml = renderSchemaDescriptionYaml(schemaDescriptions, { renderFullDescription: false })
       expect(yaml).to.equal(dedent`
         containerPort:
         servicePort: <same as containerPort>
@@ -117,8 +139,8 @@ describe("config", () => {
     it("should conditionally print ellipsis between object keys", () => {
       const schemaDescriptions = normalizeDescriptions(portSchema.describe())
       const yaml = renderSchemaDescriptionYaml(schemaDescriptions, {
-        showComment: false,
-        showEllipsisBetweenKeys: true,
+        renderFullDescription: false,
+        renderEllipsisBetweenKeys: true,
       })
       expect(yaml).to.equal(dedent`
         containerPort:
@@ -141,8 +163,8 @@ describe("config", () => {
       })
       const schemaDescriptions = normalizeDescriptions(schema.describe())
       const yaml = renderSchemaDescriptionYaml(schemaDescriptions, {
-        showComment: false,
-        showEllipsisBetweenKeys: true,
+        renderFullDescription: false,
+        renderEllipsisBetweenKeys: true,
         useExampleForValue: true,
       })
       expect(yaml).to.equal(dedent`
@@ -231,11 +253,21 @@ describe("config", () => {
     it("should return the correct yaml", () => {
       const { yaml } = renderConfigReference(portSchema)
       expect(yaml).to.equal(dedent`
+        # description
         containerPort:
+
+        # description
         servicePort: <same as containerPort>
+
+        # test object
         testObject:
+          # key a
           testKeyA:
+
+          # key b
           testKeyB:
+
+        # test array
         testArray: []
       `)
     })

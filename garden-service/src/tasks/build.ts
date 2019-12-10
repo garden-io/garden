@@ -86,7 +86,13 @@ export class BuildTask extends BaseTask {
       }
     }
 
-    if (!this.force) {
+    if (this.force) {
+      log = this.log.info({
+        section: this.getName(),
+        msg: `Building version ${module.version.versionString}...`,
+        status: "active",
+      })
+    } else {
       log = this.log.info({
         section: this.getName(),
         msg: `Getting build status for ${module.version.versionString}...`,
@@ -99,13 +105,9 @@ export class BuildTask extends BaseTask {
         logSuccess()
         return { fresh: false }
       }
-    }
 
-    log = this.log.info({
-      section: this.getName(),
-      msg: `Building version ${module.version.versionString}...`,
-      status: "active",
-    })
+      log.setState(`Building version ${module.version.versionString}...`)
+    }
 
     let result: BuildResult
     try {

@@ -453,13 +453,25 @@ workflows:
     jobs:
       - test-minikube:
           kubernetesVersion: "1.16.2"
-  test-minikube-1.15.0:
+  test-minikube-1.15:
     jobs:
       - test-minikube:
-          kubernetesVersion: "1.15.0"
+          kubernetesVersion: "1.15.6"
+  test-minikube-1.14:
+    jobs:
+      - test-minikube:
+          kubernetesVersion: "1.14.9"
+  test-minikube-1.13:
+    jobs:
+      - test-minikube:
+          kubernetesVersion: "1.13.12"
+  test-minikube-1.12:
+    jobs:
+      - test-minikube:
+          kubernetesVersion: "1.12.10"
   commit:
     jobs:
-      ### ALL BRANCHES/TAGS ###
+      ### ALL BRANCHES ###
 
       - build
       - build-dist:
@@ -529,12 +541,17 @@ workflows:
           <<: *only-master
           context: docker
           requires: [build-dist-edge]
-      - release-service-dist:
+      - release-service-dist-edge:
           <<: *only-master
           requires: [build-dist-edge]
 
-      ### TAGS ONLY ###
-
+  tags:
+    jobs:
+      - build:
+          <<: *only-tags
+      - build-dist:
+          <<: *only-tags
+          requires: [build]
       - release-service-docker:
           <<: *only-tags
           context: docker
@@ -542,4 +559,3 @@ workflows:
       - release-service-dist:
           <<: *only-tags
           requires: [build-dist]
-
