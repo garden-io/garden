@@ -2,5 +2,5 @@ kind: Project
 name: multiple-modules
 environments:
   - name: local
-    providers:
-      - name: local-kubernetes
+providers:
+  - name: local-kubernetes

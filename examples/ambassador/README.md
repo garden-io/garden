@@ -53,9 +53,9 @@ kind: Project
 name: custom-ingress-controller
 environments:
   - name: local
-    providers:
-      - name: local-kubernetes
-        setupIngressController: false
+providers:
+  - name: local-kubernetes
+    setupIngressController: false
 ```
 
 The `setupIngressController` key is specific to the `local-kubernetes` plugin. Setting it to `false` disables the default Nginx ingress controller.

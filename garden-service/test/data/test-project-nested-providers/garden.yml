@@ -1,5 +1,5 @@
 kind: Project
-name: test-project-flat-config
+name: test-project-nested-providers
 environments:
   - name: local
     providers:

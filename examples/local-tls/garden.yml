@@ -1,12 +1,12 @@
 kind: Project
 name: local-tls
 environments:
-- name: local
-  providers:
+  - name: local
+providers:
   - name: local-kubernetes
     defaultHostname: garden.dev
     tlsCertificates:
-    - name: garden-dev
-      secretRef:
-        name: tls-garden-dev
-        namespace: default
+      - name: garden-dev
+        secretRef:
+          name: tls-garden-dev
+          namespace: default
