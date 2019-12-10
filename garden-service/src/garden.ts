@@ -25,8 +25,9 @@ import { ConfigGraph } from "./config-graph"
 import { TaskGraph, TaskResults, ProcessTasksOpts } from "./task-graph"
 import { getLogger } from "./logger/logger"
 import { PluginActionHandlers, GardenPlugin } from "./types/plugin/plugin"
-import { validate, PrimitiveMap } from "./config/common"
 import { loadConfig, findProjectConfig, prepareModuleResource } from "./config/base"
+import { PrimitiveMap } from "./config/common"
+import { validate } from "./config/validation"
 import { BaseTask } from "./tasks/base"
 import { LocalConfigStore, ConfigStore, GlobalConfigStore } from "./config-store"
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
@@ -207,7 +208,6 @@ export class Garden {
     opts: GardenOpts = {}
   ): Promise<InstanceType<T>> {
     let { environmentName, config, gardenDirPath, plugins = [] } = opts
-
     if (!config) {
       config = await findProjectConfig(currentDirectory)
 

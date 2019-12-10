@@ -17,8 +17,8 @@ import { BaseTask, TaskDefinitionError, TaskType } from "./tasks/base"
 import { LogEntry, LogEntryMetadata, TaskLogStatus } from "./logger/log-entry"
 import { toGardenError, GardenBaseError } from "./exceptions"
 import { Garden } from "./garden"
-import { AnalyticsHandler } from "./analytics/analytics"
 import { dedent } from "./util/string"
+import uuid from "uuid"
 
 class TaskGraphError extends GardenBaseError {
   type = "task-graph"
@@ -32,6 +32,7 @@ export interface TaskResult {
   output?: any
   dependencyResults?: TaskResults
   completedAt: Date
+  batchId: string
   error?: Error
 }
 
@@ -77,6 +78,8 @@ export class TaskGraph {
   private resultCache: ResultCache
   private opQueue: PQueue
 
+  private batchId: string
+
   constructor(private garden: Garden, private log: LogEntry) {
     this.roots = new TaskNodeMap()
     this.index = new TaskNodeMap()
@@ -87,9 +90,13 @@ export class TaskGraph {
     this.resultCache = new ResultCache()
     this.opQueue = new PQueue({ concurrency: 1 })
     this.logEntryMap = {}
+    this.batchId = uuid.v4()
   }
 
   async process(tasks: BaseTask[], opts?: ProcessTasksOpts): Promise<TaskResults> {
+    // We generate a new batchId
+    this.batchId = uuid.v4()
+
     for (const t of tasks) {
       this.latestTasks[t.getKey()] = t
     }
@@ -152,6 +159,7 @@ export class TaskGraph {
     if (this.index.getNode(task)) {
       this.garden.events.emit("taskPending", {
         addedAt: new Date(),
+        batchId: this.batchId,
         key: task.getKey(),
         name: task.getName(),
         type: task.type,
@@ -228,8 +236,6 @@ export class TaskGraph {
 
       this.initLogging()
 
-      const analytics = await new AnalyticsHandler(this.garden).init()
-
       return Bluebird.map(batch, async (node: TaskNode) => {
         const task = node.task
         const name = task.getName()
@@ -255,17 +261,15 @@ export class TaskGraph {
               type,
               key,
               startedAt: new Date(),
+              batchId: this.batchId,
               version: task.version,
             })
-            result = await node.process(dependencyResults)
-
-            // Track task if user has opted-in
-            analytics.trackTask(result.key, result.type)
+            result = await node.process(dependencyResults, this.batchId)
 
             this.garden.events.emit("taskComplete", result)
           } catch (error) {
             success = false
-            result = { type, description, key, name, error, completedAt: new Date() }
+            result = { type, description, key, name, error, completedAt: new Date(), batchId: this.batchId }
             this.garden.events.emit("taskError", result)
             this.logTaskError(node, error)
             this.cancelDependants(node)
@@ -344,6 +348,7 @@ export class TaskGraph {
         key: dependant.getKey(),
         name: dependant.task.getName(),
         type: dependant.getType(),
+        batchId: this.batchId,
       })
       this.remove(dependant)
     }
@@ -413,6 +418,10 @@ export class TaskGraph {
       chalk.red.bold(`\n${divider}\n`)
 
     this.log.error({ msg, error })
+  }
+
+  getBatchId() {
+    return this.batchId
   }
 }
 
@@ -545,7 +554,7 @@ class TaskNode {
     }
   }
 
-  async process(dependencyResults: TaskResults): Promise<TaskResult> {
+  async process(dependencyResults: TaskResults, batchId: string): Promise<TaskResult> {
     const output = await this.task.process(dependencyResults)
 
     return {
@@ -554,6 +563,7 @@ class TaskNode {
       name: this.task.getName(),
       description: this.getDescription(),
       completedAt: new Date(),
+      batchId,
       output,
       dependencyResults,
     }

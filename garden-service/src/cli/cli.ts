@@ -307,9 +307,7 @@ export class GardenCli {
           // Register log file writers. We need to do this after the Garden class is initialised because
           // the file writers depend on the project root.
           await this.initFileWriters(logger, garden.projectRoot, garden.gardenDirPath)
-
-          // Init Analytics, track command if user opted-in
-          const analytics = await new AnalyticsHandler(garden, parsedOpts).init()
+          const analytics = await AnalyticsHandler.init(garden, log)
           analytics.trackCommand(command.getFullName())
 
           // tslint:disable-next-line: no-floating-promises

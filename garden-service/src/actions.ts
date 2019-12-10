@@ -16,7 +16,7 @@ import normalizePath = require("normalize-path")
 
 import { PublishModuleParams, PublishResult } from "./types/plugin/module/publishModule"
 import { SetSecretParams, SetSecretResult } from "./types/plugin/provider/setSecret"
-import { validate } from "./config/common"
+import { validate } from "./config/validation"
 import { defaultProvider } from "./config/provider"
 import { ParameterError, PluginError, ConfigurationError, InternalError, RuntimeError } from "./exceptions"
 import { Garden } from "./garden"

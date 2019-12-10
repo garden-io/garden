@@ -49,7 +49,7 @@ export class EventBus extends EventEmitter2 {
 /**
  * The supported events and their interfaces.
  */
-export interface Events {
+export type Events = {
   // Internal test/control events
   _restart: string
   _test: string
@@ -75,12 +75,14 @@ export interface Events {
   // TaskGraph events
   taskPending: {
     addedAt: Date
+    batchId: string
     key: string
     type: string
     name: string
   }
   taskProcessing: {
     startedAt: Date
+    batchId: string
     key: string
     type: string
     name: string
@@ -90,6 +92,7 @@ export interface Events {
   taskError: TaskResult
   taskCancelled: {
     cancelledAt: Date
+    batchId: string
     type: string
     key: string
     name: string

@@ -11,7 +11,8 @@ import { join } from "path"
 import { ensureFile, readFile } from "fs-extra"
 import { get, isPlainObject, unset } from "lodash"
 
-import { Primitive, validate, joiArray, joiUserIdentifier, joiPrimitive, joi } from "./config/common"
+import { Primitive, joiArray, joiUserIdentifier, joiPrimitive, joi } from "./config/common"
+import { validate } from "./config/validation"
 import { LocalConfigError } from "./exceptions"
 import { dumpYaml } from "./util/util"
 import { LOCAL_CONFIG_FILENAME, GLOBAL_CONFIG_FILENAME, GARDEN_GLOBAL_PATH } from "./constants"
@@ -252,6 +253,7 @@ export interface AnalyticsGlobalConfig {
   userId: string
   optedIn: boolean
   firstRun: boolean
+  showOptInMessage: boolean
 }
 
 export interface VersionCheckGlobalConfig {
@@ -271,6 +273,7 @@ const analyticsGlobalConfigSchema = joi
       .optional(),
     optedIn: joi.boolean().optional(),
     firstRun: joi.boolean().optional(),
+    showOptInMessage: joi.boolean().optional(),
   })
   .meta({ internal: true })
 

@@ -29,7 +29,7 @@ import { ContainerEnvVars } from "../container/config"
 import { getAppNamespace } from "./namespace"
 import { prepareEnvVars } from "./util"
 import { deline } from "../../util/string"
-import { ArtifactSpec } from "../../config/common"
+import { ArtifactSpec } from "../../config/validation"
 import cpy from "cpy"
 
 export async function runAndCopy({

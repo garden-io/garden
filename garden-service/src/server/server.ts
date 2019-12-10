@@ -118,7 +118,7 @@ export class GardenServer {
       }
 
       if (!this.analytics) {
-        this.analytics = await new AnalyticsHandler(this.garden).init()
+        this.analytics = await AnalyticsHandler.init(this.garden, this.log)
       }
 
       this.analytics.trackApi("POST", ctx.originalUrl, { ...ctx.request.body })
