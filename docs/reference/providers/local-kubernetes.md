@@ -6,8 +6,286 @@ title: Local Kubernetes
 
 Below is the schema reference for the `local-kubernetes` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../guides/configuration-files.md).
 
-The reference is divided into two sections. The [first section](#configuration-keys) lists and describes the available schema keys. The [second section](#complete-yaml-schema) contains the complete YAML schema.
+The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
+## Complete YAML schema
+
+The values in the schema below are the default values.
+
+```yaml
+providers:
+  # If specified, this provider will only be used in the listed environments. Note that an empty
+  # array effectively disables the provider. To use a provider in all environments, omit this
+  # field.
+  - environments:
+    # Choose the mechanism for building container images before deploying. By default it uses the
+    # local Docker
+    # daemon, but you can set it to `cluster-docker` or `kaniko` to sync files to a remote Docker
+    # daemon,
+    # installed in the cluster, and build container images there. This removes the need to run
+    # Docker or
+    # Kubernetes locally, and allows you to share layer and image caches between multiple
+    # developers, as well
+    # as between your development and CI workflows.
+    #
+    # This is currently experimental and sometimes not desired, so it's not enabled by default.
+    # For example when using
+    # the `local-kubernetes` provider with Docker for Desktop and Minikube, we directly use the
+    # in-cluster docker
+    # daemon when building. You might also be deploying to a remote cluster that isn't intended as
+    # a development
+    # environment, so you'd want your builds to happen elsewhere.
+    #
+    # Functionally, both `cluster-docker` and `kaniko` do the same thing, but use different
+    # underlying mechanisms
+    # to build. The former uses a normal Docker daemon in the cluster. Because this has to run in
+    # privileged mode,
+    # this is less secure than Kaniko, but in turn it is generally faster. See the
+    # [Kaniko docs](https://github.com/GoogleContainerTools/kaniko) for more information on
+    # Kaniko.
+    buildMode: local-docker
+    # Configuration options for the `cluster-docker` build mode.
+    clusterDocker:
+      # Enable [BuildKit](https://github.com/moby/buildkit) support. This should in most cases
+      # work well and be more performant, but we're opting to keep it optional until it's enabled
+      # by default in Docker.
+      enableBuildKit: false
+    # A default hostname to use when no hostname is explicitly configured for a service.
+    defaultHostname:
+    # Set a default username (used for namespacing within a cluster).
+    defaultUsername:
+    # Defines the strategy for deploying the project services.
+    # Default is "rolling update" and there is experimental support for "blue/green" deployment.
+    # The feature only supports modules of type `container`: other types will just deploy using
+    # the default strategy.
+    deploymentStrategy: rolling
+    # Require SSL on all `container` module services. If set to true, an error is raised when no
+    # certificate is available for a configured hostname on a `container` module.
+    forceSsl: false
+    # References to `docker-registry` secrets to use for authenticating with remote registries
+    # when pulling
+    # images. This is necessary if you reference private images in your module configuration, and
+    # is required
+    # when configuring a remote Kubernetes environment with buildMode=local.
+    imagePullSecrets:
+      # The name of the Kubernetes secret.
+      - name:
+        # The namespace where the secret is stored. If necessary, the secret may be copied to the
+        # appropriate namespace before use.
+        namespace: default
+    # Resource requests and limits for the in-cluster builder, container registry and code sync
+    # service. (which are automatically installed and used when `buildMode` is `cluster-docker` or
+    # `kaniko`).
+    resources:
+      # Resource requests and limits for the in-cluster builder.
+      #
+      # When `buildMode` is `cluster-docker`, this refers to the Docker Daemon that is installed
+      # and run
+      # cluster-wide. This is shared across all users and builds, so it should be resourced
+      # accordingly, factoring
+      # in how many concurrent builds you expect and how heavy your builds tend to be.
+      #
+      # When `buildMode` is `kaniko`, this refers to _each instance_ of Kaniko, so you'd generally
+      # use lower
+      # limits/requests, but you should evaluate based on your needs.
+      builder:
+        limits:
+          # CPU limit in millicpu.
+          cpu: 4000
+
+          # Memory limit in megabytes.
+          memory: 8192
+
+        requests:
+          # CPU request in millicpu.
+          cpu: 200
+
+          # Memory request in megabytes.
+          memory: 512
+
+      # Resource requests and limits for the in-cluster image registry. Built images are pushed to
+      # this registry,
+      # so that they are available to all the nodes in your cluster.
+      #
+      # This is shared across all users and builds, so it should be resourced accordingly,
+      # factoring
+      # in how many concurrent builds you expect and how large your images tend to be.
+      registry:
+        limits:
+          # CPU limit in millicpu.
+          cpu: 2000
+
+          # Memory limit in megabytes.
+          memory: 4096
+
+        requests:
+          # CPU request in millicpu.
+          cpu: 200
+
+          # Memory request in megabytes.
+          memory: 512
+
+      # Resource requests and limits for the code sync service, which we use to sync build
+      # contexts to the cluster
+      # ahead of building images. This generally is not resource intensive, but you might want to
+      # adjust the
+      # defaults if you have many concurrent users.
+      sync:
+        limits:
+          # CPU limit in millicpu.
+          cpu: 500
+
+          # Memory limit in megabytes.
+          memory: 512
+
+        requests:
+          # CPU request in millicpu.
+          cpu: 100
+
+          # Memory request in megabytes.
+          memory: 64
+    # Storage parameters to set for the in-cluster builder, container registry and code sync
+    # persistent volumes
+    # (which are automatically installed and used when `buildMode` is `cluster-docker` or
+    # `kaniko`).
+    #
+    # These are all shared cluster-wide across all users and builds, so they should be resourced
+    # accordingly,
+    # factoring in how many concurrent builds you expect and how large your images and build
+    # contexts tend to be.
+    storage:
+      # Storage parameters for the data volume for the in-cluster Docker Daemon.
+      #
+      # Only applies when `buildMode` is set to `cluster-docker`, ignored otherwise.
+      builder:
+        # Volume size in megabytes.
+        size: 20480
+
+        # Storage class to use for the volume.
+        storageClass: null
+
+      # Storage parameters for the NFS provisioner, which we automatically create for the sync
+      # volume, _unless_
+      # you specify a `storageClass` for the sync volume. See the below `sync` parameter for more.
+      #
+      # Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored otherwise.
+      nfs:
+        # Storage class to use as backing storage for NFS .
+        storageClass: null
+
+      # Storage parameters for the in-cluster Docker registry volume. Built images are stored
+      # here, so that they
+      # are available to all the nodes in your cluster.
+      #
+      # Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored otherwise.
+      registry:
+        # Volume size in megabytes.
+        size: 20480
+
+        # Storage class to use for the volume.
+        storageClass: null
+
+      # Storage parameters for the code sync volume, which build contexts are synced to ahead of
+      # running
+      # in-cluster builds.
+      #
+      # Important: The storage class configured here has to support _ReadWriteMany_ access.
+      # If you don't specify a storage class, Garden creates an NFS provisioner and provisions an
+      # NFS volume for the sync data volume.
+      #
+      # Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored otherwise.
+      sync:
+        # Volume size in megabytes.
+        size: 10240
+
+        # Storage class to use for the volume.
+        storageClass: null
+    # One or more certificates to use for ingress.
+    tlsCertificates:
+      # A unique identifier for this certificate.
+      - name:
+        # A list of hostnames that this certificate should be used for. If you don't specify
+        # these, they will be automatically read from the certificate.
+        hostnames:
+        # A reference to the Kubernetes secret that contains the TLS certificate and key for the
+        # domain.
+        secretRef:
+          # The name of the Kubernetes secret.
+          name:
+
+          # The namespace where the secret is stored. If necessary, the secret may be copied to
+          # the appropriate namespace before use.
+          namespace: default
+        # Set to `cert-manager` to configure
+        # [cert-manager](https://github.com/jetstack/cert-manager) to manage this
+        # certificate. See our
+        # [cert-manager integration guide](https://docs.garden.io/guides/cert-manager-integration)
+        # for details.
+        managedBy:
+    # cert-manager configuration, for creating and managing TLS certificates. See the
+    # [cert-manager guide](https://docs.garden.io/guides/cert-manager-integration) for details.
+    certManager:
+      # Automatically install `cert-manager` on initialization. See the
+      # [cert-manager integration guide](https://docs.garden.io/guides/cert-manager-integration)
+      # for details.
+      install: false
+
+      # The email to use when requesting Let's Encrypt certificates.
+      email:
+
+      # The type of issuer for the certificate (only ACME is supported for now).
+      issuer: acme
+
+      # Specify which ACME server to request certificates from. Currently Let's Encrypt staging
+      # and prod servers are supported.
+      acmeServer: letsencrypt-staging
+
+      # The type of ACME challenge used to validate hostnames and generate the certificates (only
+      # HTTP-01 is supported for now).
+      acmeChallengeType: HTTP-01
+    # For setting tolerations on the registry-proxy when using in-cluster building.
+    # The registry-proxy is a DaemonSet that proxies connections to the docker registry service on
+    # each node.
+    #
+    # Use this only if you're doing in-cluster building and the nodes in your cluster
+    # have [taints](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/).
+    registryProxyTolerations:
+      # "Effect" indicates the taint effect to match. Empty means match all taint effects. When
+      # specified,
+      # allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
+      - effect:
+        # "Key" is the taint key that the toleration applies to. Empty means match all taint keys.
+        # If the key is empty, operator must be "Exists"; this combination means to match all
+        # values and all keys.
+        key:
+        # "Operator" represents a key's relationship to the value. Valid operators are "Exists"
+        # and "Equal". Defaults to
+        # "Equal". "Exists" is equivalent to wildcard for value, so that a pod can tolerate all
+        # taints of a
+        # particular category.
+        operator: Equal
+        # "TolerationSeconds" represents the period of time the toleration (which must be of
+        # effect "NoExecute",
+        # otherwise this field is ignored) tolerates the taint. By default, it is not set, which
+        # means tolerate
+        # the taint forever (do not evict). Zero and negative values will be treated as 0 (evict
+        # immediately)
+        # by the system.
+        tolerationSeconds:
+        # "Value" is the taint value the toleration matches to. If the operator is "Exists", the
+        # value should be empty,
+        # otherwise just a regular string.
+        value:
+    # The name of the provider plugin to use.
+    name: local-kubernetes
+    # The kubectl context to use to connect to the Kubernetes cluster.
+    context:
+    # Specify which namespace to deploy services to (defaults to the project name). Note that the
+    # framework generates other namespaces as well with this name as a prefix.
+    namespace:
+    # Set this to null or false to skip installing/enabling the `nginx` ingress controller.
+    setupIngressController: nginx
+```
 ## Configuration keys
 
 ### `providers`
@@ -1028,82 +1306,6 @@ Set this to null or false to skip installing/enabling the `nginx` ingress contro
 | -------- | -------- | --------- |
 | `string` | No       | `"nginx"` |
 
-
-## Complete YAML schema
-
-The values in the schema below are the default values.
-
-```yaml
-providers:
-  - environments:
-    buildMode: local-docker
-    clusterDocker:
-      enableBuildKit: false
-    defaultHostname:
-    defaultUsername:
-    deploymentStrategy: rolling
-    forceSsl: false
-    imagePullSecrets:
-      - name:
-        namespace: default
-    resources:
-      builder:
-        limits:
-          cpu: 4000
-          memory: 8192
-        requests:
-          cpu: 200
-          memory: 512
-      registry:
-        limits:
-          cpu: 2000
-          memory: 4096
-        requests:
-          cpu: 200
-          memory: 512
-      sync:
-        limits:
-          cpu: 500
-          memory: 512
-        requests:
-          cpu: 100
-          memory: 64
-    storage:
-      builder:
-        size: 20480
-        storageClass: null
-      nfs:
-        storageClass: null
-      registry:
-        size: 20480
-        storageClass: null
-      sync:
-        size: 10240
-        storageClass: null
-    tlsCertificates:
-      - name:
-        hostnames:
-        secretRef:
-          name:
-          namespace: default
-        managedBy:
-    certManager:
-      install: false
-      email:
-      issuer: acme
-      acmeServer: letsencrypt-staging
-      acmeChallengeType: HTTP-01
-    registryProxyTolerations:
-      - effect:
-        key:
-        operator: Equal
-        tolerationSeconds:
-        value:
-    name: local-kubernetes
-    context:
-    namespace:
-    setupIngressController: nginx
-```
 
 ## Outputs
 

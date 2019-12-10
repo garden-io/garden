@@ -8,9 +8,9 @@ title: Config Files Reference
 Below is the schema reference for the [Project](#project-configuration-keys) and [Module](#module-configuration-keys) `garden.yml` configuration files. For an introduction to configuring a Garden project,
 please look at our [configuration guide](../guides/configuration-files.md).
 
-The reference is divided into four sections. The [first section](#project-configuration-keys) lists and describes the available schema keys for the project level configuration, and the [second section](#project-yaml-schema) contains the project level YAML schema.
+The reference is divided into four sections. The [first section](#project-yaml-schema) contains the project level YAML schema, and the [second section](#project-configuration-keys) describes each individual schema key for the project level configuration.
 
-The [third section](#module-configuration-keys) lists and describes the available schema keys for the module level configuration, and the [fourth section](#module-yaml-schema) contains the module level YAML schema.
+The [third section](#module-yaml-schema) contains the module level YAML schema, and the [fourth section](#module-configuration-keys) describes each individual schema key for the module level configuration.
 
 Note that individual providers, e.g. `kubernetes`, add their own project level configuration keys. The provider types are listed on the [Providers page](./providers/README.md).
 
@@ -18,21 +18,24 @@ Likewise, individual module types, e.g. `container`, add additional configuratio
 
 Please refer to those for more details on provider and module configuration.
 
-## Project configuration keys
-
-{{{projectMarkdownReference}}}
-
 ## Project YAML schema
+
+The values in the schema below are the default values.
+
 ```yaml
 {{{projectYaml}}}
 ```
 
-## Module configuration keys
+## Project configuration keys
 
-{{{moduleMarkdownReference}}}
+{{{projectMarkdownReference}}}
 
 ## Module YAML schema
 ```yaml
 {{{moduleYaml}}}
 ```
+
+## Module configuration keys
+
+{{{moduleMarkdownReference}}}
 

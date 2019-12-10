@@ -9,8 +9,8 @@ environments:
 
 ---
 
-module:
-  name: module-from-project-config
-  type: test
-  build:
-    command: [echo, project]
+kind: Module
+name: module-from-project-config
+type: test
+build:
+  command: [echo, project]
