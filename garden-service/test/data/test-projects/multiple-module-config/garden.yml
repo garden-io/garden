@@ -11,6 +11,7 @@ environments:
 
 kind: Module
 name: module-from-project-config
+include: ["*"]
 type: test
 build:
   command: [echo, project]

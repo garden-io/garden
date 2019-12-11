@@ -2,6 +2,7 @@ kind: Module
 name: a
 description: Node service A
 dockerfile: Dockerfile-a
+exclude: [Dockerfile-b]
 type: container
 services:
   - name: a
@@ -22,6 +23,7 @@ kind: Module
 name: b
 description: Node service B
 dockerfile: Dockerfile-b
+exclude: [Dockerfile-a]
 type: container
 services:
   - name: b

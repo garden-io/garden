@@ -9,6 +9,7 @@ providers:
 kind: Module
 type: terraform
 name: tf
+include: ["*"]
 autoApply: true
 root: ./tf
 variables:
@@ -17,6 +18,7 @@ variables:
 kind: Module
 type: test
 name: test
+include: ["*"]
 tasks:
   - name: test-task
     dependencies: [tf]

@@ -40,7 +40,14 @@ import { platform, arch } from "os"
 import { LogEntry } from "./logger/log-entry"
 import { EventBus } from "./events"
 import { Watcher } from "./watch"
-import { findConfigPathsInPath, getConfigFilePath, getWorkingCopyId, fixedExcludes } from "./util/fs"
+import {
+  findConfigPathsInPath,
+  getConfigFilePath,
+  getWorkingCopyId,
+  fixedExcludes,
+  detectModuleOverlap,
+  ModuleOverlap,
+} from "./util/fs"
 import { Provider, ProviderConfig, getAllProviderDependencyNames, defaultProvider } from "./config/provider"
 import { ResolveProviderTask } from "./tasks/resolve-provider"
 import { ActionRouter } from "./actions"
@@ -49,7 +56,8 @@ import chalk from "chalk"
 import { RuntimeContext } from "./runtime-context"
 import { ensureDir } from "fs-extra"
 import { loadPlugins, getDependencyOrder } from "./plugins"
-import { deline } from "./util/string"
+import { deline, naturalList } from "./util/string"
+import dedent from "dedent"
 
 export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
   [actionName: string]: PluginActionHandlers[T]
@@ -784,6 +792,13 @@ export class Garden {
         }
       })
 
+      // Require include/exclude on modules if their paths overlap
+      const overlaps = detectModuleOverlap(rawConfigs)
+      if (overlaps.length > 0) {
+        const { message, detail } = this.makeOverlapError(overlaps)
+        throw new ConfigurationError(message, detail)
+      }
+
       await Bluebird.map(rawConfigs, async (config) => this.addModule(config))
 
       this.log.silly(`Scanned and found ${rawConfigs.length} modules`)
@@ -867,6 +882,33 @@ export class Garden {
     })
 
     return path
+  }
+
+  public makeOverlapError(moduleOverlaps: ModuleOverlap[]) {
+    const overlapList = moduleOverlaps
+      .map(({ module, overlaps }) => {
+        const formatted = overlaps.map((o) => {
+          const detail = o.path === module.path ? "same path" : "nested"
+          return `${chalk.bold(o.name)} (${detail})`
+        })
+        return `Module ${chalk.bold(module.name)} overlaps with module(s) ${naturalList(formatted)}.`
+      })
+      .join("\n\n")
+    const message = chalk.red(dedent`
+      Missing ${chalk.bold("include")} and/or ${chalk.bold("exclude")} directives on modules with overlapping paths.
+      Setting includes/excludes is required when modules have the same path (i.e. are in the same garden.yml file),
+      or when one module is nested within another.
+
+      ${overlapList}
+    `)
+    // Sanitize error details
+    const overlappingModules = moduleOverlaps.map(({ module, overlaps }) => {
+      return {
+        module: { name: module.name, path: resolve(this.projectRoot, module.path) },
+        overlaps: overlaps.map(({ name, path }) => ({ name, path: resolve(this.projectRoot, path) })),
+      }
+    })
+    return { message, detail: { overlappingModules } }
   }
 
   /**
