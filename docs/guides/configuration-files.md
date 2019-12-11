@@ -293,6 +293,7 @@ kind: Module
 description: My container - configuration A
 type: container
 dockerfile: Dockerfile-a
+exclude: ["Dockerfile-b"]
 ...
 tests:
   - name: unit
@@ -308,6 +309,7 @@ kind: Module
 description: My container - configuration B
 type: container
 dockerfile: Dockerfile-b
+exclude: ["Dockerfile-a"]
 ...
 tests:
   - name: unit
@@ -318,8 +320,7 @@ tests:
       - b-integration-testing-backend
 ```
 
-Please note that in many cases you need to specify `include` or `exclude` directives to specify which files should
-belong to which module. See the next section for details.
+Note that you must use the `include` and/or `exclude` directives when module paths overlap. This is to help users steer away from subtle bugs that can occur when modules unintentionally consume source files from other modules. See the next section for details on including and excluding files.
 
 ### Including/excluding files and directories
 

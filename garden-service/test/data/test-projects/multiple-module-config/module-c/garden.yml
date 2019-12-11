@@ -1,6 +1,7 @@
 kind: Module
 name: module-c
 type: test
+include: ["*"]
 services:
   - name: service-c
 build:
