@@ -15,6 +15,8 @@ import { RunModuleParams } from "../../../types/plugin/module/runModule"
 import { RunResult } from "../../../types/plugin/base"
 import { RunServiceParams } from "../../../types/plugin/service/runService"
 import { RunTaskParams, RunTaskResult } from "../../../types/plugin/task/runTask"
+import { createOutputStream } from "../../../util/util"
+import { LogLevel } from "../../../logger/log-node"
 
 export async function runContainerModule(params: RunModuleParams<ContainerModule>): Promise<RunResult> {
   const { module, ctx } = params
@@ -58,6 +60,8 @@ export async function runContainerTask(params: RunTaskParams<ContainerModule>): 
 
   const image = await containerHelpers.getDeploymentImageId(module, ctx.provider.config.deploymentRegistry)
 
+  const outputStream = createOutputStream(log.placeholder(LogLevel.info))
+
   const res = await runAndCopy({
     ...params,
     command,
@@ -69,13 +73,14 @@ export async function runContainerTask(params: RunTaskParams<ContainerModule>): 
     description: `Task '${task.name}' in container module '${module.name}'`,
     timeout: task.spec.timeout || undefined,
     ignoreError: true, // to ensure results get stored when an error occurs
+    stdout: outputStream,
   })
 
-  const result = {
+  const result: RunTaskResult = {
     ...res,
     taskName: task.name,
     outputs: {
-      log: res.output || "",
+      log: res.log || "",
     },
   }
 

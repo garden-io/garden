@@ -65,7 +65,7 @@ export class RunTaskCommand extends Command<Args, Opts> {
       log.info("")
       // TODO: The command will need to be updated to stream logs: see https://github.com/garden-io/garden/issues/630.
       // It's ok with the current providers but the shape might change in the future.
-      log.info(chalk.white(result.output.outputs.log))
+      log.info(chalk.white(result.output.outputs.log.trim()))
       printFooter(footerLog)
     }
 

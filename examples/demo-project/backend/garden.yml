@@ -2,6 +2,10 @@ kind: Module
 name: backend
 description: Backend service container
 type: container
+tasks:
+  - name: test
+    command: [/bin/sh, -c]
+    args: ["echo hello2"]
 services:
   - name: backend
     ports:
@@ -12,3 +16,5 @@ services:
     ingresses:
       - path: /hello-backend
         port: http
+    dependencies:
+      - test
