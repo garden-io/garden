@@ -15,6 +15,7 @@ import { setMinikubeDockerEnv } from "./minikube"
 import { exec } from "../../../util/util"
 import { remove } from "lodash"
 import { getNfsStorageClass } from "../init"
+import { isClusterKind } from "./kind"
 
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
 
@@ -36,7 +37,7 @@ export const configSchema = kubernetesConfigBase
       .default(undefined, "<project name>")
       .description(
         "Specify which namespace to deploy services to (defaults to the project name). " +
-          "Note that the framework generates other namespaces as well with this name as a prefix."
+        "Note that the framework generates other namespaces as well with this name as a prefix."
       ),
     setupIngressController: joi
       .string()
@@ -52,20 +53,19 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
 
   const namespace = config.namespace!
   const _systemServices = config._systemServices
+  // automatically detect supported kubectl context if not explicitly configured
+  // create dummy provider with just enough info needed for the getKubeConfig function
+  const provider = {
+    name: config.name,
+    dependencies: [],
+    config,
+    moduleConfigs: [],
+    status: { ready: true, outputs: {} },
+  }
+  const kubeConfig = await getKubeConfig(log, provider)
+  const currentContext = kubeConfig["current-context"]
 
   if (!config.context) {
-    // automatically detect supported kubectl context if not explicitly configured
-    // create dummy provider with just enough info needed for the getKubeConfig function
-    const provider = {
-      name: config.name,
-      dependencies: [],
-      config,
-      moduleConfigs: [],
-      status: { ready: true, outputs: {} },
-    }
-    const kubeConfig = await getKubeConfig(log, provider)
-    const currentContext = kubeConfig["current-context"]
-
     if (currentContext && supportedContexts.includes(currentContext)) {
       // prefer current context if set and supported
       config.context = currentContext
@@ -96,8 +96,13 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
     log.debug({ section: config.name, msg: `No kubectl context configured, using default: ${config.context}` })
   }
 
+  if (isClusterKind(provider, log)) {
+    config.ClusterType = "kind"
+  }
   if (config.context === "minikube") {
     await exec("minikube", ["config", "set", "WantUpdateNotification", "false"])
+
+    config.ClusterType = "minikube"
 
     if (!config.defaultHostname) {
       // use the nip.io service to give a hostname to the instance, if none is explicitly configured
@@ -114,6 +119,8 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
     await setMinikubeDockerEnv()
   } else if (config.context === "microk8s") {
     const addons = ["dns", "registry", "storage"]
+
+    config.ClusterType = "microk8s"
 
     if (config.setupIngressController === "nginx") {
       log.debug("Using microk8s's ingress addon")
