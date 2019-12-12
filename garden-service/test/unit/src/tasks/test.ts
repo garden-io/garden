@@ -15,7 +15,7 @@ describe("TestTask", () => {
 
   beforeEach(async () => {
     garden = await makeTestGarden(resolve(dataDir, "test-project-test-deps"))
-    graph = await garden.getConfigGraph()
+    graph = await garden.getConfigGraph(garden.log)
     log = garden.log
   })
 
@@ -39,14 +39,19 @@ describe("TestTask", () => {
       files: [],
     }
 
-    td.when(resolveVersion("module-a", [])).thenResolve(versionA)
-    td.when(resolveVersion("module-b", [])).thenResolve(versionB)
+    const configA = await garden.resolveModuleConfig(garden.log, "module-a")
+    const configB = await garden.resolveModuleConfig(garden.log, "module-b")
+
+    td.when(resolveVersion(configA, [])).thenResolve(versionA)
+    td.when(resolveVersion(configB, [])).thenResolve(versionB)
 
     const moduleB = await graph.getModule("module-b")
 
-    td.when(resolveVersion("module-a", [moduleB])).thenResolve(versionA)
+    td.when(resolveVersion(configA, [moduleB])).thenResolve(versionA)
 
     const moduleA = await graph.getModule("module-a")
+
+    td.when(resolveVersion(moduleA, [moduleB])).thenResolve(versionA)
 
     const testConfig = moduleA.testConfigs[0]
 

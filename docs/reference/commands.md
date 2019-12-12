@@ -113,7 +113,7 @@ Examples:
 Deletes a running environment.
 
 This will delete all services in the specified environment, and trigger providers to clear up any other resources
-and reset it. When you then run `garden init` or `garden deploy`, the environment will be reconfigured.
+and reset it. When you then run `garden deploy`, the environment will be reconfigured.
 
 This can be useful if you find the environment to be in an inconsistent state, or need/want to free up
 resources.
@@ -373,28 +373,6 @@ garden get debug-info --include-project  # include provider info for the project
   | `--format` |  | `json` `yaml`  | The output format for plugin-generated debug info.
   | `--include-project` |  | boolean | Include project-specific information from configured providers.
 Note that this may include sensitive data, depending on the provider and your configuration.
-
-### garden init
-
-Initialize system, environment or other runtime components.
-
-This command needs to be run before first deploying a Garden project, and occasionally after updating Garden,
-plugins or project configuration.
-
-Examples:
-
-    garden init
-    garden init --force   # runs the init flows even if status checks report that the environment is ready
-
-##### Usage
-
-    garden init [options]
-
-##### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--force` |  | boolean | Force initalization of environment, ignoring the environment status check.
 
 ### garden link source
 

@@ -16,7 +16,7 @@ describe("runHelmTask", () => {
   })
 
   beforeEach(async () => {
-    graph = await garden.getConfigGraph()
+    graph = await garden.getConfigGraph(garden.log)
   })
 
   it("should run a basic task", async () => {

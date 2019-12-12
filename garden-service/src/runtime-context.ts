@@ -103,8 +103,8 @@ export async function prepareRuntimeContext({
 
   const depModules = uniqByName([
     ...dependencies.build,
-    ...dependencies.service.map((d) => d.module),
-    ...dependencies.task.map((d) => d.module),
+    ...dependencies.deploy.map((d) => d.module),
+    ...dependencies.run.map((d) => d.module),
   ])
 
   for (const m of depModules) {
@@ -125,7 +125,7 @@ export async function prepareRuntimeContext({
     })
   }
 
-  for (const service of dependencies.service) {
+  for (const service of dependencies.deploy) {
     const envName = getEnvVarName(service.name)
 
     // If a service status is not available, we tolerate that here. That may impact dependant service status reports,
@@ -147,7 +147,7 @@ export async function prepareRuntimeContext({
     }
   }
 
-  for (const task of dependencies.task) {
+  for (const task of dependencies.run) {
     const envName = getEnvVarName(task.name)
 
     // If a task result is not available, we tolerate that here. That may impact dependant service status reports,

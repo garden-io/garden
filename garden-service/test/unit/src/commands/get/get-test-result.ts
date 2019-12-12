@@ -113,7 +113,7 @@ describe("GetTestResultCommand", () => {
   it("should include paths to artifacts if artifacts exist", async () => {
     const name = "unit"
 
-    const graph = await garden.getConfigGraph()
+    const graph = await garden.getConfigGraph(garden.log)
     const module = await graph.getModule("module-a")
     const artifactKey = getArtifactKey("test", name, module.version.versionString)
     const metadataPath = join(garden.artifactsPath, `.metadata.${artifactKey}.json`)

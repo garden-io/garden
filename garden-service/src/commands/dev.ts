@@ -105,7 +105,7 @@ export class DevCommand extends Command<Args, Opts> {
   async action({ garden, log, footerLog, opts }: CommandParams<Args, Opts>): Promise<CommandResult> {
     this.server.setGarden(garden)
 
-    const graph = await garden.getConfigGraph()
+    const graph = await garden.getConfigGraph(log)
     const modules = await graph.getModules()
 
     if (modules.length === 0) {

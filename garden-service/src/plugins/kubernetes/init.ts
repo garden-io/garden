@@ -9,7 +9,7 @@
 import { KubeApi, KubernetesError } from "./api"
 import { getAppNamespace, prepareNamespaces, deleteNamespaces, getMetadataNamespace } from "./namespace"
 import { KubernetesPluginContext, KubernetesConfig, KubernetesProvider } from "./config"
-import { checkTillerStatus, installTiller } from "./helm/tiller"
+import { checkTillerStatus, migrateToHelm3 } from "./helm/tiller"
 import { prepareSystemServices, getSystemServiceStatus, getSystemGarden, systemNamespaceUpToDate } from "./system"
 import { GetEnvironmentStatusParams, EnvironmentStatus } from "../../types/plugin/provider/getEnvironmentStatus"
 import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "../../types/plugin/provider/prepareEnvironment"
@@ -53,14 +53,17 @@ a registry auth secret.
 export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusParams): Promise<EnvironmentStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
+  const api = await KubeApi.factory(log, provider)
 
   let projectReady = true
+  let projectTillerInstalled = false
 
   const namespaces = await prepareNamespaces({ ctx, log })
 
   // Check Tiller status in project namespace
-  if ((await checkTillerStatus(k8sCtx, log)) !== "ready") {
+  if ((await checkTillerStatus(k8sCtx, api, namespaces["app-namespace"], log)) !== "missing") {
     projectReady = false
+    projectTillerInstalled = true
   }
 
   const systemServiceNames = k8sCtx.provider.config._systemServices
@@ -68,10 +71,11 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
 
   const detail = {
     projectReady,
+    projectTillerInstalled,
     serviceStatuses: {},
     systemReady: true,
     systemServiceState: "unknown",
-    systemTillerReady: true,
+    systemTillerInstalled: false,
     systemCertManagerReady: true,
     systemManagedCertificatesReady: true,
   }
@@ -97,15 +101,17 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
 
   const variables = getKubernetesSystemVariables(provider.config)
   const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
-  const sysProvider = await sysGarden.resolveProvider(provider.name)
+  const sysProvider = <KubernetesProvider>await sysGarden.resolveProvider(provider.name)
   const sysCtx = <KubernetesPluginContext>sysGarden.getPluginContext(sysProvider)
+  const sysApi = await KubeApi.factory(log, sysProvider)
 
   // Check Tiller status in system namespace
-  const tillerStatus = await checkTillerStatus(sysCtx, log)
+  const sysTillerStatus = await checkTillerStatus(sysCtx, sysApi, systemNamespace, log)
 
-  if (tillerStatus !== "ready") {
+  if (sysTillerStatus !== "missing") {
     result.ready = false
-    detail.systemTillerReady = false
+    detail.systemReady = false
+    detail.systemTillerInstalled = true
   }
 
   if (provider.config.certManager) {
@@ -143,7 +149,6 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
     }
   }
 
-  const api = await KubeApi.factory(log, provider)
   const contextForLog = `Checking Garden system service status for plugin "${ctx.provider.name}"`
   const sysNamespaceUpToDate = await systemNamespaceUpToDate(api, log, systemNamespace, contextForLog)
 
@@ -187,11 +192,17 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
  *  3. Deploys system services (if provider has system services)
  */
 export async function prepareEnvironment(params: PrepareEnvironmentParams): Promise<PrepareEnvironmentResult> {
-  const { ctx, log, force, status } = params
+  const { ctx, log, status } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
-  // Install Tiller to project namespace
-  await installTiller({ ctx: k8sCtx, provider: k8sCtx.provider, log, force })
+  // Migrate from Helm 2.x and remove Tiller from project namespace, if necessary
+  const systemServiceNames = k8sCtx.provider.config._systemServices
+
+  if (systemServiceNames.length === 0 && status.detail.projectTillerInstalled) {
+    const api = await KubeApi.factory(log, k8sCtx.provider)
+    const namespace = await getAppNamespace(ctx, log, k8sCtx.provider)
+    await migrateToHelm3(k8sCtx, api, namespace, log)
+  }
 
   // Prepare system services
   await prepareSystem({ ...params, clusterInit: false })
@@ -225,6 +236,11 @@ export async function prepareSystem({
 
   const remoteCluster = provider.name !== "local-kubernetes"
 
+  // Don't attempt to prepare environment when running the uninstall command
+  if (ctx.command && ctx.command.name === "plugins" && ctx.command.args.command === "uninstall-garden-services") {
+    return {}
+  }
+
   // If we require manual init and system services are ready OR outdated but none are *missing*, we warn
   // in the prepareEnvironment handler, instead of flagging as not ready here. This avoids blocking users where
   // there's variance in configuration between users of the same cluster, that often doesn't affect usage.
@@ -242,8 +258,9 @@ export async function prepareSystem({
           to update them, or contact a cluster admin to do so.
         `),
       })
+
+      return {}
     }
-    return {}
   }
 
   // We require manual init if we're installing any system services to remote clusters, to avoid conflicts
@@ -261,20 +278,23 @@ export async function prepareSystem({
     )
   }
 
-  // Install Tiller to system namespace
   const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
-  const sysProvider = await sysGarden.resolveProvider(k8sCtx.provider.name)
+  const sysProvider = <KubernetesProvider>await sysGarden.resolveProvider(provider.name)
   const sysCtx = <KubernetesPluginContext>sysGarden.getPluginContext(sysProvider)
   const systemNamespace = ctx.provider.config.gardenSystemNamespace
+  const sysApi = await KubeApi.factory(log, sysProvider)
 
   await sysGarden.clearBuilds()
 
-  await installTiller({ ctx: sysCtx, provider: sysCtx.provider, log, force })
+  // Migrate from Helm 2.x and remove Tiller from system namespace, if necessary
+  if (status.detail.systemTillerInstalled) {
+    await migrateToHelm3(sysCtx, sysApi, systemNamespace, log)
+  }
 
+  // Set auth secret for in-cluster builder
   if (provider.config.buildMode !== "local-docker") {
-    const api = await KubeApi.factory(log, provider)
-    const authSecret = await prepareDockerAuth(api, provider)
-    await api.upsert("Secret", systemNamespace, authSecret, log)
+    const authSecret = await prepareDockerAuth(sysApi, sysProvider)
+    await sysApi.upsert("Secret", systemNamespace, authSecret, log)
   }
 
   // We need to install the NFS provisioner separately, so that we can optionally install it
@@ -321,8 +341,12 @@ export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams)
   return {}
 }
 
+export function getNfsStorageClass(config: KubernetesConfig) {
+  return `${config.gardenSystemNamespace}-nfs-v${nfsStorageClassVersion}`
+}
+
 export function getKubernetesSystemVariables(config: KubernetesConfig) {
-  const nfsStorageClass = `${config.gardenSystemNamespace}-nfs-v${nfsStorageClassVersion}`
+  const nfsStorageClass = getNfsStorageClass(config)
   const syncStorageClass = config.storage.sync.storageClass || nfsStorageClass
   const systemNamespace = config.gardenSystemNamespace
 

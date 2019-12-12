@@ -184,7 +184,7 @@ export class ResolveProviderTask extends BaseTask {
       defaultHandler: async () => defaultEnvironmentStatus,
     })
 
-    let status = await handler({ ctx, log: this.log })
+    let status = await handler!({ ctx, log: this.log })
 
     this.log.silly(`${pluginName} status: ${status.ready ? "ready" : "not ready"}`)
 
@@ -204,7 +204,7 @@ export class ResolveProviderTask extends BaseTask {
         pluginName,
         defaultHandler: async () => ({ status }),
       })
-      const result = await prepareHandler({ ctx, log: this.log, force: this.forceInit, status })
+      const result = await prepareHandler!({ ctx, log: this.log, force: this.forceInit, status })
 
       status = result.status
 

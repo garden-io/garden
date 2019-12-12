@@ -174,7 +174,7 @@ export const joi: Joi.Root = Joi.extend({
 
         if (result.error) {
           // tslint:disable-next-line:no-invalid-this
-          return this.createError("posixPath", { v: value }, state, prefs)
+          return this.createError("string.posixPath", { v: value }, state, prefs)
         }
 
         const options = params.options || {}

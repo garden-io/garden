@@ -8,15 +8,167 @@ title: Config Files Reference
 Below is the schema reference for the [Project](#project-configuration-keys) and [Module](#module-configuration-keys) `garden.yml` configuration files. For an introduction to configuring a Garden project,
 please look at our [configuration guide](../guides/configuration-files.md).
 
-The reference is divided into four sections. The [first section](#project-configuration-keys) lists and describes the available schema keys for the project level configuration, and the [second section](#project-yaml-schema) contains the project level YAML schema.
+The reference is divided into four sections. The [first section](#project-yaml-schema) contains the project level YAML schema, and the [second section](#project-configuration-keys) describes each individual schema key for the project level configuration.
 
-The [third section](#module-configuration-keys) lists and describes the available schema keys for the module level configuration, and the [fourth section](#module-yaml-schema) contains the module level YAML schema.
+The [third section](#module-yaml-schema) contains the module level YAML schema, and the [fourth section](#module-configuration-keys) describes each individual schema key for the module level configuration.
 
 Note that individual providers, e.g. `kubernetes`, add their own project level configuration keys. The provider types are listed on the [Providers page](./providers/README.md).
 
 Likewise, individual module types, e.g. `container`, add additional configuration keys at the module level. Module types are listed on the [Module Types page](./module-types/README.md).
 
 Please refer to those for more details on provider and module configuration.
+
+## Project YAML schema
+
+The values in the schema below are the default values.
+
+```yaml
+# The schema version of this project's config (currently not used).
+apiVersion: garden.io/v0
+
+kind: Project
+
+# The name of the project.
+name:
+
+# The default environment to use when calling commands without the `--env` parameter.
+defaultEnvironment: ''
+
+# Specify a list of filenames that should be used as ".ignore" files across the project, using the
+# same syntax and semantics as `.gitignore` files. By default, patterns matched in `.gitignore`
+# and `.gardenignore` files, found anywhere in the project, are ignored when scanning for modules
+# and module sources.
+# Note that these take precedence over the project `module.include` field, and module `include`
+# fields, so any paths matched by the .ignore files will be ignored even if they are explicitly
+# specified in those fields.
+# See the [Configuration Files guide]
+# (https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)
+# for details.
+dotIgnoreFiles:
+  - .gitignore
+  - .gardenignore
+
+modules:
+  # Specify a list of POSIX-style paths or globs that should be scanned for Garden modules.
+  #
+  # Note that you can also _exclude_ path using the `exclude` field or by placing `.gardenignore`
+  # files in your
+  # source tree, which use the same format as `.gitignore` files. See the
+  # [Configuration Files
+  # guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)
+  # for details.
+  #
+  # Unlike the `exclude` field, the paths/globs specified here have _no effect_ on which files and
+  # directories
+  # Garden watches for changes. Use the `exclude` field to affect those, if you have large
+  # directories that
+  # should not be watched for changes.
+  #
+  # Also note that specifying an empty list here means _no paths_ should be included.
+  include:
+
+  # Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for
+  # modules.
+  #
+  # The filters here also affect which files and directories are watched for changes. So if you
+  # have a large number
+  # of directories in your project that should not be watched, you should specify them here.
+  #
+  # For example, you might want to exclude large vendor directories in your project from being
+  # scanned and
+  # watched:
+  #
+  # ```yaml
+  # modules:
+  #   exclude:
+  #     - node_modules/**/*
+  #     - vendor/**/*
+  # ```
+  #
+  # Note that you can also explicitly _include_ files using the `include` field. If you also
+  # specify the
+  # `include` field, the paths/patterns specified here are filtered from the files matched by
+  # `include`.
+  #
+  # The `include` field does _not_ affect which files are watched.
+  #
+  # See the [Configuration Files
+  # guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)
+  # for details.
+  exclude:
+
+# A list of providers that should be used for this project, and their configuration. Please refer
+# to individual plugins/providers for details on how to configure them.
+providers:
+  # The name of the provider plugin to use.
+  - name:
+    # If specified, this provider will only be used in the listed environments. Note that an empty
+    # array effectively disables the provider. To use a provider in all environments, omit this
+    # field.
+    environments:
+
+# A list of remote sources to import into project.
+sources:
+  # The name of the source to import
+  - name:
+    # A remote repository URL. Currently only supports git servers. Must contain a hash suffix
+    # pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
+    repositoryUrl:
+
+# Specify a path (relative to the project root) to a file containing variables, that we apply on
+# top of the
+# project-wide `variables` field. The file should be in a standard "dotenv" format, specified
+# [here](https://github.com/motdotla/dotenv#rules).
+#
+# If you don't set the field and the `garden.env` file does not exist, we simply ignore it.
+# If you do override the default value and the file doesn't exist, an error will be thrown.
+#
+# _Note that in many cases it is advisable to only use environment-specific var files, instead of
+# combining
+# multiple ones. See the `environments[].varfile` field for this option._
+varfile: garden.env
+
+# Variables to configure for all environments.
+variables: {}
+
+environments:
+  # DEPRECATED - Please use the top-level `providers` field instead, and if needed use the
+  # `environments` key on the provider configurations to limit them to specific environments.
+  - providers:
+      # The name of the provider plugin to use.
+      - name:
+        # If specified, this provider will only be used in the listed environments. Note that an
+        # empty array effectively disables the provider. To use a provider in all environments,
+        # omit this field.
+        environments:
+    # Specify a path (relative to the project root) to a file containing variables, that we apply
+    # on top of the
+    # _environment-specific_ `variables` field. The file should be in a standard "dotenv" format,
+    # specified
+    # [here](https://github.com/motdotla/dotenv#rules).
+    #
+    # If you don't set the field and the `garden.<env-name>.env` file does not exist,
+    # we simply ignore it. If you do override the default value and the file doesn't exist, an
+    # error will be thrown.
+    varfile: garden.<env-name>.env
+    # A key/value map of variables that modules can reference when using this environment. These
+    # take precedence over variables defined in the top-level `variables` field.
+    variables: {}
+    # The name of the environment.
+    name:
+    # Flag the environment as a production environment.
+    #
+    # Setting this flag to `true` will activate the protection on the `deploy`, `test`, `task`,
+    # `build`,
+    # and `dev` commands. A protected command will ask for a user confirmation every time is run
+    # agains
+    # an environment marked as production.
+    # Run the command with the "--yes" flag to skip the check (e.g. when running Garden in CI).
+    #
+    # This flag is also passed on to every provider, and may affect how certain providers behave.
+    # For more details please check the documentation for the providers in use.
+    production: false
+```
 
 ## Project configuration keys
 
@@ -66,101 +218,6 @@ See the [Configuration Files guide] (https://docs.garden.io/guides/configuration
 | Type            | Required | Default                          |
 | --------------- | -------- | -------------------------------- |
 | `array[string]` | No       | `[".gitignore",".gardenignore"]` |
-
-### `environmentDefaults`
-
-DEPRECATED - Please use the `providers` field instead, and omit the environments key in the configured provider to use it for all environments, and use the `variables` field to configure variables across all environments.
-
-| Type     | Required | Default                           |
-| -------- | -------- | --------------------------------- |
-| `object` | No       | `{"providers":[],"variables":{}}` |
-
-Example:
-
-```yaml
-environmentDefaults:
-    providers: []
-    variables: {}
-```
-
-### `environmentDefaults.providers[]`
-
-[environmentDefaults](#environmentdefaults) > providers
-
-DEPRECATED - Please use the top-level `providers` field instead, and if needed use the `environments` key on the provider configurations to limit them to specific environments.
-
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[object]` | No       | `[]`    |
-
-### `environmentDefaults.providers[].name`
-
-[environmentDefaults](#environmentdefaults) > [providers](#environmentdefaultsproviders) > name
-
-The name of the provider plugin to use.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-Example:
-
-```yaml
-environmentDefaults:
-    providers: []
-    variables: {}
-  ...
-  providers:
-    - name: "local-kubernetes"
-```
-
-### `environmentDefaults.providers[].environments[]`
-
-[environmentDefaults](#environmentdefaults) > [providers](#environmentdefaultsproviders) > environments
-
-If specified, this provider will only be used in the listed environments. Note that an empty array effectively disables the provider. To use a provider in all environments, omit this field.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-Example:
-
-```yaml
-environmentDefaults:
-    providers: []
-    variables: {}
-  ...
-  providers:
-    - environments:
-      - dev
-      - stage
-```
-
-### `environmentDefaults.varfile`
-
-[environmentDefaults](#environmentdefaults) > varfile
-
-Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
-_environment-specific_ `variables` field. The file should be in a standard "dotenv" format, specified
-[here](https://github.com/motdotla/dotenv#rules).
-
-If you don't set the field and the `garden.<env-name>.env` file does not exist,
-we simply ignore it. If you do override the default value and the file doesn't exist, an error will be thrown.
-
-| Type     | Required | Default                   |
-| -------- | -------- | ------------------------- |
-| `string` | No       | `"garden.<env-name>.env"` |
-
-### `environmentDefaults.variables`
-
-[environmentDefaults](#environmentdefaults) > variables
-
-A key/value map of variables that modules can reference when using this environment. These take precedence over variables defined in the top-level `variables` field.
-
-| Type     | Required | Default |
-| -------- | -------- | ------- |
-| `object` | No       | `{}`    |
 
 ### `modules`
 
@@ -436,7 +493,7 @@ The name of the environment.
 Flag the environment as a production environment.
 
 Setting this flag to `true` will activate the protection on the `deploy`, `test`, `task`, `build`,
-`init` and `dev` commands. A protected command will ask for a user confirmation every time is run agains
+and `dev` commands. A protected command will ask for a user confirmation every time is run agains
 an environment marked as production.
 Run the command with the "--yes" flag to skip the check (e.g. when running Garden in CI).
 
@@ -448,40 +505,82 @@ For more details please check the documentation for the providers in use.
 | `boolean` | No       | `false` |
 
 
-## Project YAML schema
+## Module YAML schema
 ```yaml
+# The schema version of this module's config (currently not used).
 apiVersion: garden.io/v0
-kind: Project
+
+kind: Module
+
+# The type of this module.
+type:
+
+# The name of this module.
 name:
-defaultEnvironment: ''
-dotIgnoreFiles:
-  - .gitignore
-  - .gardenignore
-environmentDefaults:
-  providers:
+
+description:
+
+# Specify a list of POSIX-style paths or globs that should be regarded as the source files for
+# this
+# module. Files that do *not* match these paths or globs are excluded when computing the version
+# of the module,
+# when responding to filesystem watch events, and when staging builds.
+#
+# Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore`
+# files in your
+# source tree, which use the same format as `.gitignore` files. See the
+# [Configuration Files
+# guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)
+# for details.
+#
+# Also note that specifying an empty list here means _no sources_ should be included.
+include:
+
+# Specify a list of POSIX-style paths or glob patterns that should be excluded from the module.
+# Files that
+# match these paths or globs are excluded when computing the version of the module, when
+# responding to filesystem
+# watch events, and when staging builds.
+#
+# Note that you can also explicitly _include_ files using the `include` field. If you also specify
+# the
+# `include` field, the files/patterns specified here are filtered from the files matched by
+# `include`. See the
+# [Configuration Files
+# guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)for
+# details.
+#
+# Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on
+# which files
+# and directories are watched for changes. Use the project `modules.exclude` field to affect
+# those, if you have
+# large directories that should not be watched for changes.
+exclude:
+
+# A remote repository URL. Currently only supports git servers. Must contain a hash suffix
+# pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
+#
+# Garden will import the repository source code into this module, but read the module's
+# config from the local garden.yml file.
+repositoryUrl:
+
+# When false, disables pushing this module to remote registries.
+allowPublish: true
+
+# Specify how to build the module. Note that plugins may define additional keys on this object.
+build:
+  # A list of modules that must be built before this module is built.
+  dependencies:
+    # Module name to build ahead of this module.
     - name:
-      environments:
-  varfile: garden.<env-name>.env
-  variables: {}
-modules:
-  include:
-  exclude:
-providers:
-  - name:
-    environments:
-sources:
-  - name:
-    repositoryUrl:
-varfile: garden.env
-variables: {}
-environments:
-  - providers:
-      - name:
-        environments:
-    varfile: garden.<env-name>.env
-    variables: {}
-    name:
-    production: false
+      # Specify one or more files or directories to copy from the built dependency to this module.
+      copy:
+        # POSIX-style path or filename of the directory or file(s) to copy to the target.
+        - source:
+          # POSIX-style path or filename to copy the directory or file(s), relative to the build
+          # directory.
+          # Defaults to to same as source path.
+          target: <same as source path>
 ```
 
 ## Module configuration keys
@@ -678,23 +777,4 @@ Defaults to to same as source path.
 | -------- | -------- | ------------------------- |
 | `string` | No       | `"<same as source path>"` |
 
-
-## Module YAML schema
-```yaml
-apiVersion: garden.io/v0
-kind: Module
-type:
-name:
-description:
-include:
-exclude:
-repositoryUrl:
-allowPublish: true
-build:
-  dependencies:
-    - name:
-      copy:
-        - source:
-          target: <same as source path>
-```
 

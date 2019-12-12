@@ -17,7 +17,6 @@ spec:
     matchLabels:
       app: {{ template "nfs-provisioner.name" . }}
       release: {{ .Release.Name }}
-  serviceName: {{ template "nfs-provisioner.fullname" . }}
   template:
     metadata:
       labels:

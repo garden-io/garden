@@ -42,7 +42,7 @@ export class GetServiceStatusTask extends BaseTask {
   }
 
   async getDependencies() {
-    const deps = await this.graph.getDependencies("service", this.getName(), false)
+    const deps = await this.graph.getDependencies("deploy", this.getName(), false)
 
     const stageBuildTask = new StageBuildTask({
       garden: this.garden,
@@ -51,7 +51,7 @@ export class GetServiceStatusTask extends BaseTask {
       force: this.force,
     })
 
-    const statusTasks = deps.service.map((service) => {
+    const statusTasks = deps.deploy.map((service) => {
       return new GetServiceStatusTask({
         garden: this.garden,
         graph: this.graph,
@@ -62,7 +62,7 @@ export class GetServiceStatusTask extends BaseTask {
       })
     })
 
-    const taskTasks = await Bluebird.map(deps.task, async (task) => {
+    const taskTasks = await Bluebird.map(deps.run, async (task) => {
       return new TaskTask({
         garden: this.garden,
         graph: this.graph,
@@ -90,7 +90,7 @@ export class GetServiceStatusTask extends BaseTask {
 
     const hotReload = includes(this.hotReloadServiceNames, this.service.name)
 
-    const dependencies = await this.graph.getDependencies("service", this.getName(), false)
+    const dependencies = await this.graph.getDependencies("deploy", this.getName(), false)
 
     const serviceStatuses = getServiceStatuses(dependencyResults)
     const taskResults = getRunTaskResults(dependencyResults)

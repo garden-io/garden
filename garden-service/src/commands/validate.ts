@@ -18,10 +18,10 @@ export class ValidateCommand extends Command {
     Throws an error and exits with code 1 if something's not right in your garden.yml files.
   `
 
-  async action({ garden, headerLog }: CommandParams): Promise<CommandResult> {
+  async action({ garden, log, headerLog }: CommandParams): Promise<CommandResult> {
     printHeader(headerLog, "Validate", "heavy_check_mark")
 
-    const graph = await garden.getConfigGraph()
+    const graph = await garden.getConfigGraph(log)
     await graph.getModules()
 
     return {}

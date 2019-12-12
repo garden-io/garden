@@ -64,7 +64,7 @@ export class RunTestCommand extends Command<Args, Opts> {
     const moduleName = args.module
     const testName = args.test
 
-    const graph = await garden.getConfigGraph()
+    const graph = await garden.getConfigGraph(log)
     const module = await graph.getModule(moduleName)
 
     const testConfig = findByName(module.testConfigs, testName)

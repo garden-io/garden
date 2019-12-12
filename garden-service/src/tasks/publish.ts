@@ -37,14 +37,12 @@ export class PublishTask extends BaseTask {
     if (!this.module.allowPublish) {
       return []
     }
-    return [
-      new BuildTask({
-        garden: this.garden,
-        log: this.log,
-        module: this.module,
-        force: this.forceBuild,
-      }),
-    ]
+    return BuildTask.factory({
+      garden: this.garden,
+      log: this.log,
+      module: this.module,
+      force: this.forceBuild,
+    })
   }
 
   getName() {

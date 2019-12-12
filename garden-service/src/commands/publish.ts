@@ -64,7 +64,7 @@ export class PublishCommand extends Command<Args, Opts> {
   }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
     printHeader(headerLog, "Publish modules", "rocket")
 
-    const graph = await garden.getConfigGraph()
+    const graph = await garden.getConfigGraph(log)
     const modules = await graph.getModules(args.modules)
 
     const results = await publishModules(garden, log, modules, !!opts["force-build"], !!opts["allow-dirty"])

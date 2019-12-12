@@ -12,7 +12,7 @@ import {
   findServiceResource,
   getResourceContainer,
   getBaseModule,
-  getValueFileArgs,
+  getValueArgs,
 } from "../../../../../../src/plugins/kubernetes/helm/common"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { LogEntry } from "../../../../../../src/logger/log-entry"
@@ -50,17 +50,17 @@ describe("Helm common functions", () => {
     const provider = await garden.resolveProvider("local-kubernetes")
     ctx = garden.getPluginContext(provider)
     log = garden.log
-    graph = await garden.getConfigGraph()
+    graph = await garden.getConfigGraph(garden.log)
     await buildModules()
   })
 
   beforeEach(async () => {
-    graph = await garden.getConfigGraph()
+    graph = await garden.getConfigGraph(garden.log)
   })
 
   async function buildModules() {
     const modules = await graph.getModules()
-    const tasks = modules.map((module) => new BuildTask({ garden, log, module, force: false }))
+    const tasks = modules.map((module) => new BuildTask({ garden, log, module, force: false, _guard: true }))
     const results = await garden.processTasks(tasks)
 
     const err = first(Object.values(results).map((r) => r && r.error))
@@ -85,7 +85,7 @@ describe("Helm common functions", () => {
   describe("getChartResources", () => {
     it("should render and return resources for a local template", async () => {
       const module = await graph.getModule("api")
-      const resources = await getChartResources(ctx, module, log)
+      const resources = await getChartResources(ctx, module, false, log)
 
       expect(resources).to.eql([
         {
@@ -97,7 +97,7 @@ describe("Helm common functions", () => {
               "app.kubernetes.io/name": "api",
               "helm.sh/chart": "api-0.1.0",
               "app.kubernetes.io/instance": "api-release",
-              "app.kubernetes.io/managed-by": "Tiller",
+              "app.kubernetes.io/managed-by": "Helm",
             },
             annotations: {},
           },
@@ -126,7 +126,7 @@ describe("Helm common functions", () => {
               "app.kubernetes.io/name": "api",
               "helm.sh/chart": "api-0.1.0",
               "app.kubernetes.io/instance": "api-release",
-              "app.kubernetes.io/managed-by": "Tiller",
+              "app.kubernetes.io/managed-by": "Helm",
             },
             annotations: {},
           },
@@ -175,7 +175,7 @@ describe("Helm common functions", () => {
               "app.kubernetes.io/name": "api",
               "helm.sh/chart": "api-0.1.0",
               "app.kubernetes.io/instance": "api-release",
-              "app.kubernetes.io/managed-by": "Tiller",
+              "app.kubernetes.io/managed-by": "Helm",
             },
             annotations: {},
           },
@@ -203,7 +203,7 @@ describe("Helm common functions", () => {
 
     it("should render and return resources for a remote template", async () => {
       const module = await graph.getModule("postgres")
-      const resources = await getChartResources(ctx, module, log)
+      const resources = await getChartResources(ctx, module, false, log)
 
       expect(resources).to.eql([
         {
@@ -215,7 +215,7 @@ describe("Helm common functions", () => {
               app: "postgresql",
               chart: "postgresql-3.9.2",
               release: "postgres",
-              heritage: "Tiller",
+              heritage: "Helm",
             },
             annotations: {},
           },
@@ -233,7 +233,7 @@ describe("Helm common functions", () => {
               app: "postgresql",
               chart: "postgresql-3.9.2",
               release: "postgres",
-              heritage: "Tiller",
+              heritage: "Helm",
             },
             annotations: {},
           },
@@ -262,7 +262,7 @@ describe("Helm common functions", () => {
               app: "postgresql",
               chart: "postgresql-3.9.2",
               release: "postgres",
-              heritage: "Tiller",
+              heritage: "Helm",
             },
             annotations: {},
           },
@@ -291,7 +291,7 @@ describe("Helm common functions", () => {
               app: "postgresql",
               chart: "postgresql-3.9.2",
               release: "postgres",
-              heritage: "Tiller",
+              heritage: "Helm",
             },
             annotations: {},
           },
@@ -315,7 +315,7 @@ describe("Helm common functions", () => {
                   app: "postgresql",
                   chart: "postgresql-3.9.2",
                   release: "postgres",
-                  heritage: "Tiller",
+                  heritage: "Helm",
                   role: "master",
                 },
               },
@@ -437,12 +437,12 @@ describe("Helm common functions", () => {
 
     it("should handle duplicate keys in template", async () => {
       const module = await graph.getModule("duplicate-keys-in-template")
-      expect(await getChartResources(ctx, module, log)).to.not.throw
+      expect(await getChartResources(ctx, module, false, log)).to.not.throw
     })
 
     it("should filter out resources with hooks", async () => {
       const module = await graph.getModule("chart-with-test-pod")
-      const resources = await getChartResources(ctx, module, log)
+      const resources = await getChartResources(ctx, module, false, log)
 
       expect(resources).to.eql([
         {
@@ -545,12 +545,24 @@ describe("Helm common functions", () => {
     })
   })
 
-  describe("getValueFileArgs", () => {
+  describe("getValueArgs", () => {
     it("should return just garden-values.yml if no valueFiles are configured", async () => {
       const module = await graph.getModule("api")
       module.spec.valueFiles = []
       const gardenValuesPath = getGardenValuesPath(module.buildPath)
-      expect(await getValueFileArgs(module)).to.eql(["--values", gardenValuesPath])
+      expect(await getValueArgs(module, false)).to.eql(["--values", gardenValuesPath])
+    })
+
+    it("should add a --set flag if hotReload=true", async () => {
+      const module = await graph.getModule("api")
+      module.spec.valueFiles = []
+      const gardenValuesPath = getGardenValuesPath(module.buildPath)
+      expect(await getValueArgs(module, true)).to.eql([
+        "--values",
+        gardenValuesPath,
+        "--set",
+        "\\.garden.hotReload=true",
+      ])
     })
 
     it("should return a --values arg for each valueFile configured", async () => {
@@ -558,7 +570,7 @@ describe("Helm common functions", () => {
       module.spec.valueFiles = ["foo.yaml", "bar.yaml"]
       const gardenValuesPath = getGardenValuesPath(module.buildPath)
 
-      expect(await getValueFileArgs(module)).to.eql([
+      expect(await getValueArgs(module, false)).to.eql([
         "--values",
         resolve(module.buildPath, "foo.yaml"),
         "--values",
@@ -645,7 +657,7 @@ describe("Helm common functions", () => {
   describe("findServiceResource", () => {
     it("should return the resource specified by serviceResource", async () => {
       const module = await graph.getModule("api")
-      const chartResources = await getChartResources(ctx, module, log)
+      const chartResources = await getChartResources(ctx, module, false, log)
       const result = await findServiceResource({
         ctx,
         log,
@@ -658,7 +670,7 @@ describe("Helm common functions", () => {
 
     it("should throw if no resourceSpec or serviceResource is specified", async () => {
       const module = await graph.getModule("api")
-      const chartResources = await getChartResources(ctx, module, log)
+      const chartResources = await getChartResources(ctx, module, false, log)
       delete module.spec.serviceResource
       await expectError(
         () => findServiceResource({ ctx, log, module, chartResources }),
@@ -673,7 +685,7 @@ describe("Helm common functions", () => {
 
     it("should throw if no resource of the specified kind is in the chart", async () => {
       const module = await graph.getModule("api")
-      const chartResources = await getChartResources(ctx, module, log)
+      const chartResources = await getChartResources(ctx, module, false, log)
       const resourceSpec = {
         ...module.spec.serviceResource,
         kind: "DaemonSet",
@@ -693,7 +705,7 @@ describe("Helm common functions", () => {
 
     it("should throw if matching resource is not found by name", async () => {
       const module = await graph.getModule("api")
-      const chartResources = await getChartResources(ctx, module, log)
+      const chartResources = await getChartResources(ctx, module, false, log)
       const resourceSpec = {
         ...module.spec.serviceResource,
         name: "foo",
@@ -713,7 +725,7 @@ describe("Helm common functions", () => {
 
     it("should throw if no name is specified and multiple resources are matched", async () => {
       const module = await graph.getModule("api")
-      const chartResources = await getChartResources(ctx, module, log)
+      const chartResources = await getChartResources(ctx, module, false, log)
       const deployment = find(chartResources, (r) => r.kind === "Deployment")
       chartResources.push(deployment!)
       await expectError(
@@ -729,7 +741,7 @@ describe("Helm common functions", () => {
     it("should resolve template string for resource name", async () => {
       const module = await graph.getModule("postgres")
       await buildHelmModule({ ctx, module, log })
-      const chartResources = await getChartResources(ctx, module, log)
+      const chartResources = await getChartResources(ctx, module, false, log)
       module.spec.serviceResource.name = `{{ template "postgresql.master.fullname" . }}`
       const result = await findServiceResource({
         ctx,
@@ -745,7 +757,7 @@ describe("Helm common functions", () => {
   describe("getResourceContainer", () => {
     async function getDeployment() {
       const module = await graph.getModule("api")
-      const chartResources = await getChartResources(ctx, module, log)
+      const chartResources = await getChartResources(ctx, module, false, log)
       return <HotReloadableResource>find(chartResources, (r) => r.kind === "Deployment")!
     }
 

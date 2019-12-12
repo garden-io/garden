@@ -26,7 +26,7 @@ describe("TaskHelpers", () => {
 
   before(async () => {
     garden = await makeTestGarden(resolve(dataDir, "test-project-dependants"))
-    graph = await garden.getConfigGraph()
+    graph = await garden.getConfigGraph(garden.log)
     log = garden.log
   })
 
@@ -37,7 +37,7 @@ describe("TaskHelpers", () => {
   describe("getDependantTasksForModule", () => {
     it("returns the correct set of tasks for the changed module", async () => {
       const module = await graph.getModule("good-morning")
-      await garden.getConfigGraph()
+      await garden.getConfigGraph(garden.log)
 
       const tasks = await getDependantTasksForModule({
         garden,

@@ -19,6 +19,7 @@ import { joiArray, joiIdentifier, joiIdentifierMap, joi } from "../config/common
 import { ConfigGraph } from "../config-graph"
 import Bluebird from "bluebird"
 import { getConfigFilePath } from "../util/fs"
+import { getModuleTypeBases } from "../plugins"
 
 export interface FileCopySpec {
   source: string
@@ -48,6 +49,7 @@ export interface Module<
   taskNames: string[]
   taskDependencyNames: string[]
 
+  compatibleTypes: string[]
   _ConfigType: ModuleConfig<M, S, T, W>
 }
 
@@ -60,6 +62,9 @@ export const moduleSchema = moduleConfigSchema.keys({
     .string()
     .required()
     .description("The path to the build metadata directory for the module."),
+  compatibleTypes: joiArray(joiIdentifier())
+    .required()
+    .description("A list of types that this module is compatible with (i.e. the module type itself + all bases)."),
   configPath: joi
     .string()
     .required()
@@ -92,7 +97,9 @@ export interface ModuleConfigMap<T extends ModuleConfig = ModuleConfig> {
 
 export async function moduleFromConfig(garden: Garden, graph: ConfigGraph, config: ModuleConfig): Promise<Module> {
   const configPath = await getConfigFilePath(config.path)
-  const version = await garden.resolveVersion(config.name, config.build.dependencies)
+  const version = await garden.resolveVersion(config, config.build.dependencies)
+  const moduleTypes = await garden.getModuleTypes()
+  const compatibleTypes = [config.type, ...getModuleTypeBases(moduleTypes[config.type], moduleTypes).map((t) => t.name)]
 
   const module: Module = {
     ...cloneDeep(config),
@@ -115,6 +122,7 @@ export async function moduleFromConfig(garden: Garden, graph: ConfigGraph, confi
       flatten(config.taskConfigs.map((taskConfig) => taskConfig.dependencies).filter((deps) => !!deps))
     ),
 
+    compatibleTypes,
     _ConfigType: config,
   }
 

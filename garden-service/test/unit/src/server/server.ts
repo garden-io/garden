@@ -77,7 +77,7 @@ describe("startServer", () => {
         .post("/api")
         .send({ command: "get.config" })
         .expect(200)
-      const config = await garden.dumpConfig()
+      const config = await garden.dumpConfig(garden.log)
       expect(res.body.result).to.eql(deepOmitUndefined(config))
     })
 
@@ -203,7 +203,7 @@ describe("startServer", () => {
       const id = uuid.v4()
 
       garden
-        .dumpConfig()
+        .dumpConfig(garden.log)
         .then((config) => {
           onMessage((req) => {
             expect(req).to.eql({

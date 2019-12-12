@@ -84,7 +84,7 @@ export class DeleteEnvironmentCommand extends Command {
 
   description = dedent`
     This will delete all services in the specified environment, and trigger providers to clear up any other resources
-    and reset it. When you then run \`garden init\` or \`garden deploy\`, the environment will be reconfigured.
+    and reset it. When you then run \`garden deploy\`, the environment will be reconfigured.
 
     This can be useful if you find the environment to be in an inconsistent state, or need/want to free up
     resources.
@@ -94,9 +94,14 @@ export class DeleteEnvironmentCommand extends Command {
     printHeader(headerLog, `Deleting ${garden.environmentName} environment`, "skull_and_crossbones")
 
     const actions = await garden.getActionRouter()
-    const result = await actions.deleteEnvironment(log)
 
-    return { result }
+    const serviceStatuses = await actions.deleteServices(log)
+
+    log.info("")
+
+    const environmentStatuses = await actions.cleanupAll(log)
+
+    return { result: { serviceStatuses, environmentStatuses } }
   }
 }
 
@@ -126,7 +131,7 @@ export class DeleteServiceCommand extends Command {
   `
 
   async action({ garden, log, headerLog, args }: CommandParams<DeleteServiceArgs>): Promise<CommandResult> {
-    const graph = await garden.getConfigGraph()
+    const graph = await garden.getConfigGraph(log)
     const services = await graph.getServices(args.services)
 
     if (services.length === 0) {

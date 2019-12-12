@@ -12,11 +12,6 @@ environments:
         imagePullSecrets:
           # Note: We populate this secret in the test code
           - name: test-docker-auth
-        # This is currently necessary for Docker Desktop, and potentially other local K8s distros
-        # Note: It is _terribly_ slow, so should only be used for testing.
-        storage:
-          builder:
-            storageClass: garden-system-nfs-v2
   - name: cluster-docker-buildkit
     providers:
       - <<: *clusterDocker

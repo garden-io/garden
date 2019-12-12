@@ -65,10 +65,10 @@ export class DeployTask extends BaseTask {
 
     // We filter out service dependencies on services configured for hot reloading (if any)
     const deps = await dg.getDependencies(
-      "service",
+      "deploy",
       this.getName(),
       false,
-      (depNode) => !(depNode.type === "service" && includes(this.hotReloadServiceNames, depNode.name))
+      (depNode) => !(depNode.type === "deploy" && includes(this.hotReloadServiceNames, depNode.name))
     )
 
     const statusTask = new GetServiceStatusTask({
@@ -82,7 +82,7 @@ export class DeployTask extends BaseTask {
 
     if (this.fromWatch && includes(this.hotReloadServiceNames, this.service.name)) {
       // Only need to get existing statuses and results when hot-reloading
-      const dependencyStatusTasks = deps.service.map((service) => {
+      const dependencyStatusTasks = deps.deploy.map((service) => {
         return new GetServiceStatusTask({
           garden: this.garden,
           graph: this.graph,
@@ -93,7 +93,7 @@ export class DeployTask extends BaseTask {
         })
       })
 
-      const taskResultTasks = await Bluebird.map(deps.task, async (task) => {
+      const taskResultTasks = await Bluebird.map(deps.run, async (task) => {
         return new GetTaskResultTask({
           garden: this.garden,
           log: this.log,
@@ -105,7 +105,7 @@ export class DeployTask extends BaseTask {
 
       return [statusTask, ...dependencyStatusTasks, ...taskResultTasks]
     } else {
-      const deployTasks = deps.service.map((service) => {
+      const deployTasks = deps.deploy.map((service) => {
         return new DeployTask({
           garden: this.garden,
           graph: this.graph,
@@ -118,7 +118,7 @@ export class DeployTask extends BaseTask {
         })
       })
 
-      const taskTasks = await Bluebird.map(deps.task, (task) => {
+      const taskTasks = await Bluebird.map(deps.run, (task) => {
         return TaskTask.factory({
           task,
           garden: this.garden,
@@ -129,7 +129,7 @@ export class DeployTask extends BaseTask {
         })
       })
 
-      const buildTask = new BuildTask({
+      const buildTasks = await BuildTask.factory({
         garden: this.garden,
         log: this.log,
         module: this.service.module,
@@ -138,7 +138,7 @@ export class DeployTask extends BaseTask {
         hotReloadServiceNames: this.hotReloadServiceNames,
       })
 
-      return [statusTask, ...deployTasks, ...taskTasks, buildTask]
+      return [statusTask, ...deployTasks, ...taskTasks, ...buildTasks]
     }
   }
 
@@ -154,7 +154,7 @@ export class DeployTask extends BaseTask {
     let version = this.version
     const hotReload = includes(this.hotReloadServiceNames, this.service.name)
 
-    const dependencies = await this.graph.getDependencies("service", this.getName(), false)
+    const dependencies = await this.graph.getDependencies("deploy", this.getName(), false)
 
     const serviceStatuses = getServiceStatuses(dependencyResults)
     const taskResults = getRunTaskResults(dependencyResults)

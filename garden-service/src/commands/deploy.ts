@@ -102,7 +102,7 @@ export class DeployCommand extends Command<Args, Opts> {
       this.server.setGarden(garden)
     }
 
-    const initGraph = await garden.getConfigGraph()
+    const initGraph = await garden.getConfigGraph(log)
     const services = await initGraph.getServices(args.services)
 
     if (services.length === 0) {

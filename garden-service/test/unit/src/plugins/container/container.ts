@@ -82,7 +82,7 @@ describe("plugins.container", () => {
 
   async function getTestModule(moduleConfig: ContainerModuleConfig) {
     const parsed = await configure({ ctx, moduleConfig, log })
-    const graph = await garden.getConfigGraph()
+    const graph = await garden.getConfigGraph(garden.log)
     return moduleFromConfig(garden, graph, parsed.moduleConfig)
   }
 
@@ -184,6 +184,7 @@ describe("plugins.container", () => {
           build: { dependencies: [] },
           apiVersion: "garden.io/v0",
           name: "module-a",
+          include: ["Dockerfile"],
           outputs: {
             "local-image-name": "module-a",
             "deployment-image-name": "module-a",

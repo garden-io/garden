@@ -39,7 +39,7 @@ export interface PluginModuleActionParamsBase<T extends Module = Module> extends
   module: T
 }
 export const moduleActionParamsSchema = actionParamsSchema.keys({
-  module: moduleSchema,
+  module: joi.lazy(() => moduleSchema),
 })
 
 export interface PluginServiceActionParamsBase<M extends Module = Module, S extends Module = Module>
@@ -70,13 +70,18 @@ export const runBaseParams = {
 }
 
 export interface RunResult {
+  // FIXME: this field can always be inferred
   moduleName: string
+  // FIXME: this field is overly specific, consider replacing with more generic metadata field(s)
   command: string[]
+  // FIXME: this field can always be inferred
   version: string
   success: boolean
+  // FIXME: we should avoid native Date objects
   startedAt: Date
   completedAt: Date
   log: string
+  // DEPRECATED
   output?: string
 }
 

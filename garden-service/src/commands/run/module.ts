@@ -74,7 +74,7 @@ export class RunModuleCommand extends Command<Args, Opts> {
   async action({ garden, log, headerLog, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
     const moduleName = args.module
 
-    const graph = await garden.getConfigGraph()
+    const graph = await garden.getConfigGraph(log)
     const module = await graph.getModule(moduleName)
 
     const msg = args.arguments
@@ -85,13 +85,13 @@ export class RunModuleCommand extends Command<Args, Opts> {
 
     const actions = await garden.getActionRouter()
 
-    const buildTask = new BuildTask({
+    const buildTasks = await BuildTask.factory({
       garden,
       log,
       module,
       force: opts["force-build"],
     })
-    await garden.processTasks([buildTask])
+    await garden.processTasks(buildTasks)
 
     const dependencies = await graph.getDependencies("build", module.name, false)
 

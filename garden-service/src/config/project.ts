@@ -7,7 +7,6 @@
  */
 
 import dotenv = require("dotenv")
-import { safeDump } from "js-yaml"
 import { apply, merge } from "json-merge-patch"
 import { deline, dedent } from "../util/string"
 import {
@@ -85,7 +84,7 @@ export const environmentSchema = environmentConfigSchema.keys({
       Flag the environment as a production environment.
 
       Setting this flag to \`true\` will activate the protection on the \`deploy\`, \`test\`, \`task\`, \`build\`,
-      \`init\` and \`dev\` commands. A protected command will ask for a user confirmation every time is run agains
+      and \`dev\` commands. A protected command will ask for a user confirmation every time is run agains
       an environment marked as production.
       Run the command with the "--yes" flag to skip the check (e.g. when running Garden in CI).
 
@@ -127,7 +126,6 @@ export interface ProjectConfig {
   configPath?: string
   defaultEnvironment: string
   dotIgnoreFiles: string[]
-  environmentDefaults?: CommonEnvironmentConfig
   environments: EnvironmentConfig[]
   modules?: {
     include?: string[]
@@ -156,11 +154,6 @@ export const defaultEnvironments: EnvironmentConfig[] = [
     variables: {},
   },
 ]
-
-const emptyEnvironmentDefaults = {
-  providers: [],
-  variables: {},
-}
 
 export const projectNameSchema = joiIdentifier()
   .required()
@@ -255,14 +248,6 @@ export const projectSchema = joi
         (https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)
         for details.
       `),
-    environmentDefaults: environmentConfigSchema
-      .default(() => emptyEnvironmentDefaults, safeDump(emptyEnvironmentDefaults))
-      .example([emptyEnvironmentDefaults, {}])
-      .meta({ deprecated: true }).description(deline`
-        DEPRECATED - Please use the \`providers\` field instead, and omit the environments key in the configured
-        provider to use it for all environments, and use the \`variables\` field to configure variables across all
-        environments.
-      `),
     environments: environmentsSchema
       .description("A list of environments to configure for the project.")
       .example([defaultEnvironments, {}]),
@@ -302,13 +287,12 @@ export const projectSchema = joi
  */
 export async function resolveProjectConfig(config: ProjectConfig, artifactsPath: string): Promise<ProjectConfig> {
   // Resolve template strings for non-environment-specific fields
-  let { environmentDefaults, environments = [] } = config
+  const { environments = [] } = config
 
   const globalConfig = await resolveTemplateStrings(
     {
       apiVersion: config.apiVersion,
       defaultEnvironment: config.defaultEnvironment,
-      environmentDefaults: { variables: {}, ...(environmentDefaults || {}), providers: <ProviderConfig[]>[] },
       name: config.name,
       sources: config.sources,
       varfile: config.varfile,
@@ -327,16 +311,11 @@ export async function resolveProjectConfig(config: ProjectConfig, artifactsPath:
     projectRoot: config.path,
   })
 
-  // Convert deprecated fields
-  if (!environmentDefaults) {
-    environmentDefaults = config.environmentDefaults
-  }
-
   const { defaultEnvironment } = config
 
-  // Note: The ordering here is important
-  const providers = [...(environmentDefaults!.providers || []), ...config.providers]
+  const providers = config.providers
 
+  // TODO: Remove when we deprecate nesting providers under environments
   for (const environment of environments || []) {
     for (const provider of environment.providers || []) {
       providers.push({
@@ -347,14 +326,10 @@ export async function resolveProjectConfig(config: ProjectConfig, artifactsPath:
     environment.providers = []
   }
 
-  const variables = { ...config.environmentDefaults!.variables, ...config.variables }
+  const variables = config.variables
 
   config = {
     ...config,
-    environmentDefaults: {
-      providers: [],
-      variables: {},
-    },
     environments: config.environments || [],
     providers,
     variables,

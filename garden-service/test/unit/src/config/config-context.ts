@@ -280,17 +280,13 @@ describe("ModuleConfigContext", () => {
   })
 
   it("should should resolve the version of a module", async () => {
-    const { versionString } = await garden.resolveVersion("module-a", [])
+    const config = await garden.resolveModuleConfig(garden.log, "module-a")
+    const { versionString } = await garden.resolveVersion(config, [])
     expect(await c.resolve({ key: ["modules", "module-a", "version"], nodePath: [], opts: {} })).to.equal(versionString)
   })
 
   it("should should resolve the outputs of a module", async () => {
     expect(await c.resolve({ key: ["modules", "module-a", "outputs", "foo"], nodePath: [], opts: {} })).to.equal("bar")
-  })
-
-  it("should should resolve the version of a module", async () => {
-    const { versionString } = await garden.resolveVersion("module-a", [])
-    expect(await c.resolve({ key: ["modules", "module-a", "version"], nodePath: [], opts: {} })).to.equal(versionString)
   })
 
   it("should should resolve a project variable", async () => {
@@ -314,7 +310,7 @@ describe("ModuleConfigContext", () => {
     let serviceA: Service
 
     before(async () => {
-      const graph = await garden.getConfigGraph()
+      const graph = await garden.getConfigGraph(garden.log)
       serviceA = await graph.getService("service-a")
       const serviceB = await graph.getService("service-b")
       const taskB = await graph.getTask("task-b")
@@ -324,8 +320,8 @@ describe("ModuleConfigContext", () => {
         graph,
         dependencies: {
           build: [],
-          service: [serviceB],
-          task: [taskB],
+          deploy: [serviceB],
+          run: [taskB],
           test: [],
         },
         module: serviceA.module,

@@ -527,12 +527,12 @@ export class ModuleConfigContext extends ProviderConfigContext {
             async (opts: ContextResolveOpts) => {
               // NOTE: This is a temporary hacky solution until we implement module resolution as a TaskGraph task
               const stackKey = "modules." + config.name
-              const resolvedConfig = await garden.resolveModuleConfig(config.name, {
+              const resolvedConfig = await garden.resolveModuleConfig(garden.log, config.name, {
                 configContext: _this,
                 ...opts,
                 stack: [...(opts.stack || []), stackKey],
               })
-              const version = await garden.resolveVersion(resolvedConfig.name, resolvedConfig.build.dependencies)
+              const version = await garden.resolveVersion(resolvedConfig, resolvedConfig.build.dependencies)
               const buildPath = await garden.buildDir.buildPath(config)
 
               return new ModuleContext(_this, resolvedConfig, buildPath, version)
