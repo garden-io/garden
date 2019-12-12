@@ -1,0 +1,10 @@
+kind: Project
+name: test-project-fixed-version-hashes-2
+environments:
+  - name: env-name-that-is-different-from-fixed-version-hashes-1
+    providers:
+      - name: test-plugin
+      - name: test-plugin-b
+  - name: other
+variables:
+  some: variable

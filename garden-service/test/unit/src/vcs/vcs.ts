@@ -261,6 +261,21 @@ describe("VcsHandler", () => {
           getVersionString(config, [namedVersionB, namedVersionA, namedVersionC])
         )
       })
+
+      it("should be stable between runtimes", async () => {
+        const projectRoot = getDataDir("test-projects", "fixed-version-hashes-1")
+
+        // fixed-version-hashes-1 expects this var to be set
+        process.env.MODULE_A_TEST_ENV_VAR = "foo"
+
+        const garden = await makeTestGarden(projectRoot)
+        const config = await garden.resolveModuleConfig(garden.log, "module-a")
+
+        const fixedVersionString = "v-72ab6d8477"
+        expect(getVersionString(config, [namedVersionA, namedVersionB, namedVersionC])).to.eql(fixedVersionString)
+
+        delete process.env.TEST_ENV_VAR
+      })
     })
   })
 

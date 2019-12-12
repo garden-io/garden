@@ -237,7 +237,8 @@ export function getVersionString(moduleConfig: ModuleConfig, treeVersions: Named
  * The versions argument should consist of moduleConfig's tree version, and the tree versions of its dependencies.
  */
 export function hashVersions(moduleConfig: ModuleConfig, versions: NamedTreeVersion[]) {
-  const configString = serializeConfig(moduleConfig)
+  // We omit the configPath, path, and outputs fields as these can between users and runtimes
+  const configString = serializeConfig(omit(moduleConfig, ["configPath", "path", "outputs"]))
   const versionStrings = sortBy(versions, "name").map((v) => `${v.name}_${v.contentHash}`)
   return hashStrings([configString, ...versionStrings])
 }

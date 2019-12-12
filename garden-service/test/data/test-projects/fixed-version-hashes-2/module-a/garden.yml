@@ -1,0 +1,24 @@
+kind: Module
+name: module-a
+type: test
+services:
+  - name: service-a
+    env:
+      TEST_LOCAL_ENV: ${local.env.MODULE_A_TEST_ENV_VAR}
+      TEST_ENV: ${var.some}
+build:
+  command: [echo, A]
+tests:
+  - name: unit
+    command: [echo, OK]
+  - name: integration
+    command: [echo, OK]
+tasks:
+  - name: task-a-1
+    command: [echo, task-a-1]
+  - name: task-a-2
+    command: [echo, task-a-2]
+    dependencies:
+      - task-a-1
+    env:
+      TASK_OUTPUT: ${runtime.tasks.task-a-1.outputs.log}

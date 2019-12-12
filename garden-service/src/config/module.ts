@@ -219,7 +219,7 @@ export const moduleConfigSchema = baseModuleSpecSchema
   .description("The configuration for a module.")
   .unknown(false)
 
-export function serializeConfig(moduleConfig: ModuleConfig) {
+export function serializeConfig(moduleConfig: Partial<ModuleConfig>) {
   return stableStringify(moduleConfig)
 }
 
