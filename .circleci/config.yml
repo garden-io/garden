@@ -360,11 +360,10 @@ jobs:
     environment:
       K8S_VERSION: <<parameters.kubernetesVersion>>
       MINIKUBE_VERSION: v1.5.2
-      GARDEN_LOG_LEVEL: silly
+      GARDEN_LOG_LEVEL: debug
       GARDEN_LOGGER_TYPE: basic
     steps:
       - checkout
-      - configure_kubectl_context
       - run:
           name: Install system dependencies
           command: |
