@@ -8,7 +8,7 @@ import { getConfigFilePath } from "../../../src/util/fs"
 import { Garden } from "../../../src/garden"
 
 /*
-  Module dependency diagram for test-project-build-products
+  Module dependency diagram for build-dir test project
 
     a   b
      \ /
@@ -17,7 +17,7 @@ import { Garden } from "../../../src/garden"
           f
  */
 
-const projectRoot = join(dataDir, "test-project-build-products")
+const projectRoot = join(dataDir, "test-projects", "build-dir")
 
 const makeGarden = async () => {
   return await makeTestGarden(projectRoot)
@@ -101,6 +101,37 @@ describe("BuildDir", () => {
       await garden.buildDir.syncFromSrc(moduleA, garden.log)
 
       expect(await pathExists(deleteMe)).to.be.false
+    })
+
+    it("should sync symlinks that point within the module root", async () => {
+      const graph = await garden.getConfigGraph(garden.log)
+      const module = await graph.getModule("symlink-within-module")
+
+      await garden.buildDir.syncFromSrc(module, garden.log)
+
+      const buildDir = await garden.buildDir.buildPath(module)
+      expect(await pathExists(join(buildDir, "symlink.txt"))).to.be.true
+      expect(await pathExists(join(buildDir, "nested", "symlink.txt"))).to.be.true
+    })
+
+    it("should not sync symlinks that point outside the module root", async () => {
+      const graph = await garden.getConfigGraph(garden.log)
+      const module = await graph.getModule("symlink-outside-module")
+
+      await garden.buildDir.syncFromSrc(module, garden.log)
+
+      const buildDir = await garden.buildDir.buildPath(module)
+      expect(await pathExists(join(buildDir, "symlink.txt"))).to.be.false
+    })
+
+    it("should not sync absolute symlinks", async () => {
+      const graph = await garden.getConfigGraph(garden.log)
+      const module = await graph.getModule("symlink-absolute")
+
+      await garden.buildDir.syncFromSrc(module, garden.log)
+
+      const buildDir = await garden.buildDir.buildPath(module)
+      expect(await pathExists(join(buildDir, "symlink.txt"))).to.be.false
     })
   })
 

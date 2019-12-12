@@ -161,7 +161,25 @@ export class BuildDir {
     sourcePath = stripWildcard(sourcePath)
     destinationPath = stripWildcard(destinationPath)
 
-    const syncOpts = ["-rptgo", "--ignore-missing-args", "--temp-dir", normalizeLocalRsyncPath(tmpDir)]
+    const syncOpts = [
+      "--recursive",
+      // Preserve modification times
+      "--times",
+      // Preserve owner + group
+      "--owner",
+      "--group",
+      // Copy permissions
+      "--perms",
+      // Copy symlinks
+      "--links",
+      // Only allow links that point within the copied tree
+      "--safe-links",
+      // Ignore missing files in file list
+      "--ignore-missing-args",
+      // Set a temp directory outside of the target directory to avoid potential conflicts
+      "--temp-dir",
+      normalizeLocalRsyncPath(tmpDir),
+    ]
 
     let logMsg =
       `Syncing ${module.version.files.length} files from ` +

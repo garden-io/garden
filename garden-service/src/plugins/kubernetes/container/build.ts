@@ -140,7 +140,22 @@ const remoteBuild: BuildHandler = async (params) => {
   // https://stackoverflow.com/questions/1636889/rsync-how-can-i-configure-it-to-create-target-directory-on-server
   let src = normalizeLocalRsyncPath(`${buildRoot}`) + `/./${module.name}/`
   const destination = `rsync://localhost:${syncFwd.localPort}/volume/${ctx.workingCopyId}/`
-  const syncArgs = ["-vrpztgo", "--relative", "--delete", "--temp-dir", "/tmp", src, destination]
+  const syncArgs = [
+    "--recursive",
+    "--relative",
+    // Copy symlinks (Note: These are sanitized while syncing to the build staging dir)
+    "--links",
+    // Preserve permissions
+    "--perms",
+    // Preserve modification times
+    "--times",
+    "--compress",
+    "--delete",
+    "--temp-dir",
+    "/tmp",
+    src,
+    destination,
+  ]
 
   log.debug(`Syncing from ${src} to ${destination}`)
 

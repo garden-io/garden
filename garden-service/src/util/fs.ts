@@ -155,7 +155,7 @@ export async function findConfigPathsInPath({
   log: LogEntry
 }) {
   // TODO: we could make this lighter/faster using streaming
-  const files = await vcs.getFiles({ path: dir, include, exclude: exclude || [], log })
+  const files = await vcs.getFiles({ path: dir, pathDescription: "project root", include, exclude: exclude || [], log })
   return files.map((f) => f.path).filter((f) => isConfigFilename(basename(f)))
 }
 
