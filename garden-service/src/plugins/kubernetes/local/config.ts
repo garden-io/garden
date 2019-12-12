@@ -37,7 +37,7 @@ export const configSchema = kubernetesConfigBase
       .default(undefined, "<project name>")
       .description(
         "Specify which namespace to deploy services to (defaults to the project name). " +
-        "Note that the framework generates other namespaces as well with this name as a prefix."
+          "Note that the framework generates other namespaces as well with this name as a prefix."
       ),
     setupIngressController: joi
       .string()

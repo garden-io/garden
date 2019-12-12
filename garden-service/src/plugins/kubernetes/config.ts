@@ -239,7 +239,7 @@ const secretRef = joi
       .default("default")
       .description(
         "The namespace where the secret is stored. " +
-        "If necessary, the secret may be copied to the appropriate namespace before use."
+          "If necessary, the secret may be copied to the appropriate namespace before use."
       ),
   })
   .description("Reference to a Kubernetes secret.")
@@ -247,7 +247,7 @@ const secretRef = joi
 const imagePullSecretsSchema = joiArray(secretRef).description(dedent`
     References to \`docker-registry\` secrets to use for authenticating with remote registries when pulling
     images. This is necessary if you reference private images in your module configuration, and is required
-    when configuring a remote Kubernetes environment with buildMode=local.
+      when configuring a remote Kubernetes environment with buildMode=local.
   `)
 
 const tlsCertificateSchema = joi.object().keys({
@@ -261,7 +261,7 @@ const tlsCertificateSchema = joi.object().keys({
     .items(joi.string().hostname())
     .description(
       "A list of hostnames that this certificate should be used for. " +
-      "If you don't specify these, they will be automatically read from the certificate."
+        "If you don't specify these, they will be automatically read from the certificate."
     )
     .example([["www.mydomain.com"], {}]),
   secretRef: secretRef
@@ -317,7 +317,7 @@ export const kubernetesConfigBase = providerConfigBaseSchema.keys({
           `
         ),
     })
-    .default(() => { }, "{}")
+    .default(() => {}, "{}")
     .description("Configuration options for the `cluster-docker` build mode."),
   defaultHostname: joi
     .string()
@@ -343,7 +343,7 @@ export const kubernetesConfigBase = providerConfigBaseSchema.keys({
     .default(false)
     .description(
       "Require SSL on all `container` module services. If set to true, an error is raised when no certificate " +
-      "is available for a configured hostname on a `container` module."
+        "is available for a configured hostname on a `container` module."
     ),
   gardenSystemNamespace: joi
     .string()
@@ -541,7 +541,7 @@ export const configSchema = kubernetesConfigBase
       .default(undefined, "<project name>")
       .description(
         "Specify which namespace to deploy services to (defaults to <project name>). " +
-        "Note that the framework generates other namespaces as well with this name as a prefix."
+          "Note that the framework generates other namespaces as well with this name as a prefix."
       ),
     setupIngressController: joi
       .string()

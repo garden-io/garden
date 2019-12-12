@@ -97,7 +97,7 @@ const localBuild: BuildHandler = async (params) => {
   const buildResult = await buildContainerModule(params)
 
   if ((ctx.provider.config as KubernetesConfig).ClusterType == "kind") {
-    await loadLocalImage(buildResult, ctx.provider.config)
+    await loadLocalImage(buildResult, ctx.provider.config, log)
   }
 
   if (!ctx.provider.config.deploymentRegistry) {
@@ -196,7 +196,7 @@ const remoteBuild: BuildHandler = async (params) => {
   const stdout = split2()
   const statusLine = log.placeholder(LogLevel.verbose)
 
-  stdout.on("error", () => { })
+  stdout.on("error", () => {})
   stdout.on("data", (line: Buffer) => {
     statusLine.setState(renderOutputStream(line.toString()))
   })
