@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join, resolve, relative } from "path"
+import { join, resolve, relative, isAbsolute } from "path"
 import { flatten } from "lodash"
-import { ensureDir, pathExists, stat, createReadStream } from "fs-extra"
+import { ensureDir, pathExists, createReadStream, Stats, realpath, readlink, lstat } from "fs-extra"
 import { PassThrough } from "stream"
 import hasha from "hasha"
 import split2 = require("split2")
@@ -104,7 +104,7 @@ export class GitHandler extends VcsHandler {
    * Returns a list of files, along with file hashes, under the given path, taking into account the configured
    * .ignore files, and the specified include/exclude filters.
    */
-  async getFiles({ log, path, include, exclude }: GetFilesParams): Promise<VcsFile[]> {
+  async getFiles({ log, path, pathDescription, include, exclude }: GetFilesParams): Promise<VcsFile[]> {
     const git = this.gitCli(log, path)
     const gitRoot = await this.getRepoRoot(log, path)
 
@@ -212,9 +212,9 @@ export class GitHandler extends VcsHandler {
         if (submodulePaths.includes(f.path)) {
           // This path is a submodule, so we recursively call getFiles for that path again.
           // Note: We apply include/exclude filters after listing files from submodule
-          return (await this.getFiles({ log, path: f.path, exclude: [] })).filter((submoduleFile) =>
-            matchPath(relative(path, submoduleFile.path), include, exclude)
-          )
+          return (
+            await this.getFiles({ log, path: f.path, pathDescription: "submodule", exclude: [] })
+          ).filter((submoduleFile) => matchPath(relative(path, submoduleFile.path), include, exclude))
         } else {
           return [f]
         }
@@ -224,26 +224,52 @@ export class GitHandler extends VcsHandler {
     // Make sure we have a fresh hash for each file
     return Bluebird.map(withSubmodules, async (f) => {
       const resolvedPath = resolve(path, f.path)
-      if (!f.hash || modified.has(resolvedPath)) {
-        // If we can't compute the hash, i.e. the file is gone, we filter it out below
-        let hash = ""
-        try {
-          // "git ls-files" returns a symlink even if it points to a directory.
-          // We filter symlinked directories out, since hashObject() will fail to
-          // process them.
-          if (!(await stat(resolvedPath)).isDirectory()) {
-            hash = (await this.hashObject(resolvedPath)) || ""
-          }
-        } catch (err) {
-          // 128 = File no longer exists
-          if (err.exitCode !== 128 && err.code !== "ENOENT") {
-            throw err
+      let output = { path: resolvedPath, hash: f.hash || "" }
+      let stats: Stats
+
+      try {
+        stats = await lstat(resolvedPath)
+      } catch (err) {
+        // 128 = File no longer exists
+        if (err.exitCode === 128 || err.code === "ENOENT") {
+          // If the file is gone, we filter it out below
+          return { path: resolvedPath, hash: "" }
+        } else {
+          throw err
+        }
+      }
+
+      // We need to special-case handling of symlinks. We disallow any "unsafe" symlinks, i.e. any ones that may
+      // link outside of `path` (which is usually a project or module root). The `hashObject` method also special-cases
+      // symlinks, to match git's hashing behavior (which is to hash the link itself, and not what the link points to).
+      if (stats.isSymbolicLink()) {
+        const target = await readlink(resolvedPath)
+
+        // Make sure symlink is relative and points within `path`
+        if (isAbsolute(target)) {
+          log.verbose(`Ignoring symlink with absolute target at ${resolvedPath}`)
+          output.hash = ""
+          return output
+        } else if (target.startsWith("..")) {
+          const realTarget = await realpath(resolvedPath)
+          const relPath = relative(path, realTarget)
+
+          if (relPath.startsWith("..")) {
+            log.verbose(`Ignoring symlink pointing outside of ${pathDescription} at ${resolvedPath}`)
+            output.hash = ""
+            return output
           }
         }
-        return { path: resolvedPath, hash }
-      } else {
-        return { path: resolvedPath, hash: f.hash }
       }
+
+      if (output.hash === "" || modified.has(resolvedPath)) {
+        // Don't attempt to hash directories. Directories will by extension be filtered out of the list.
+        if (!stats.isDirectory()) {
+          output.hash = (await this.hashObject(stats, resolvedPath)) || ""
+        }
+      }
+
+      return output
     }).filter((f) => f.hash !== "")
   }
 
@@ -325,12 +351,20 @@ export class GitHandler extends VcsHandler {
   /**
    * Replicates the `git hash-object` behavior. See https://stackoverflow.com/a/5290484/3290965
    */
-  async hashObject(path: string) {
-    const info = await stat(path)
+  async hashObject(stats: Stats, path: string) {
     const stream = new PassThrough()
     const output = hasha.fromStream(stream, { algorithm: "sha1" })
-    stream.push(`blob ${info.size}\0`)
-    createReadStream(path).pipe(stream)
+    stream.push(`blob ${stats.size}\0`)
+
+    if (stats.isSymbolicLink()) {
+      // For symlinks, we follow git's behavior, which is to hash the link itself (i.e. the path it contains) as
+      // opposed to the file/directory that it points to.
+      stream.push(await readlink(path))
+      stream.end()
+    } else {
+      createReadStream(path).pipe(stream)
+    }
+
     return output
   }
 

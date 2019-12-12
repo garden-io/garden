@@ -74,6 +74,7 @@ describe("VcsHandler", () => {
           path: moduleConfig.path,
           include: undefined,
           exclude: undefined,
+          pathDescription: "module root",
         })
       ).thenResolve([
         { path: "c", hash: "c" },
@@ -93,6 +94,7 @@ describe("VcsHandler", () => {
           path: moduleConfig.path,
           include: undefined,
           exclude: undefined,
+          pathDescription: "module root",
         })
       ).thenResolve([
         { path: moduleConfig.configPath, hash: "c" },

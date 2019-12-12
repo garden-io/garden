@@ -10,7 +10,7 @@ import execa = require("execa")
 import { expect } from "chai"
 import tmp from "tmp-promise"
 import uuid from "uuid"
-import { createFile, writeFile, realpath, mkdir, remove, symlink } from "fs-extra"
+import { createFile, writeFile, realpath, mkdir, remove, symlink, ensureSymlink, lstat } from "fs-extra"
 import { join, resolve, basename, relative } from "path"
 
 import { expectError, makeTestGardenA } from "../../../helpers"
@@ -326,20 +326,42 @@ describe("GitHandler", () => {
       expect(files).to.eql([])
     })
 
-    it("should exclude an untracked symlink to a directory", async () => {
-      const tmpDir2 = await tmp.dir({ unsafeCleanup: true })
-      const tmpPathB = await realpath(tmpDir2.path)
+    it("should include a relative symlink within the path", async () => {
+      const fileName = "foo"
+      const filePath = resolve(tmpPath, fileName)
+      const symlinkPath = resolve(tmpPath, "symlink")
 
-      const name = "a-symlink-to-a-directory"
-      const path = resolve(tmpPath, name)
+      await createFile(filePath)
+      await symlink(fileName, symlinkPath)
 
-      await symlink(tmpPathB, path)
+      const files = (await handler.getFiles({ path: tmpPath, exclude: [], log })).map((f) => f.path)
+      expect(files).to.eql([filePath, symlinkPath])
+    })
 
-      const files = (await handler.getFiles({ path: tmpPath, exclude: [], log })).filter(
-        (f) => !f.path.includes(defaultIgnoreFilename)
-      )
+    it("should exclude a relative symlink that points outside the path", async () => {
+      const subPath = resolve(tmpPath, "subdir")
 
+      const fileName = "foo"
+      const filePath = resolve(tmpPath, fileName)
+      const symlinkPath = resolve(subPath, "symlink")
+
+      await createFile(filePath)
+      await ensureSymlink(join("..", fileName), symlinkPath)
+
+      const files = (await handler.getFiles({ path: subPath, exclude: [], log })).map((f) => f.path)
       expect(files).to.eql([])
+    })
+
+    it("should exclude an absolute symlink that points inside the path", async () => {
+      const fileName = "foo"
+      const filePath = resolve(tmpPath, fileName)
+      const symlinkPath = resolve(tmpPath, "symlink")
+
+      await createFile(filePath)
+      await symlink(filePath, symlinkPath)
+
+      const files = (await handler.getFiles({ path: tmpPath, exclude: [], log })).map((f) => f.path)
+      expect(files).to.eql([filePath])
     })
 
     context("path contains a submodule", () => {
@@ -451,10 +473,42 @@ describe("GitHandler", () => {
     it("should return the same result as `git hash-object` for a file", async () => {
       const path = resolve(tmpPath, "foo.txt")
       await createFile(path)
+      await writeFile(path, "iogjeiojgeowigjewoijoeiw")
+      const stats = await lstat(path)
 
       const expected = (await git("hash-object", path))[0]
 
-      expect(await handler.hashObject(path)).to.equal(expected)
+      expect(await handler.hashObject(stats, path)).to.equal(expected)
+    })
+
+    it("should return the same result as `git ls-files` for a file", async () => {
+      const path = resolve(tmpPath, "foo.txt")
+      await createFile(path)
+      await writeFile(path, "iogjeiojgeowigjewoijoeiw")
+      const stats = await lstat(path)
+      await git("add", path)
+
+      const files = (await git("ls-files", "-s", path))[0]
+      const expected = files.split(" ")[1]
+
+      expect(await handler.hashObject(stats, path)).to.equal(expected)
+    })
+
+    it("should return the same result as `git ls-files` for a symlink", async () => {
+      const filePath = resolve(tmpPath, "foo")
+      const symlinkPath = resolve(tmpPath, "bar")
+      await createFile(filePath)
+      await writeFile(filePath, "kfgjdslgjaslj")
+
+      await symlink("foo", symlinkPath)
+      await git("add", symlinkPath)
+
+      const stats = await lstat(symlinkPath)
+
+      const files = (await git("ls-files", "-s", symlinkPath))[0]
+      const expected = files.split(" ")[1]
+
+      expect(await handler.hashObject(stats, symlinkPath)).to.equal(expected)
     })
   })
 

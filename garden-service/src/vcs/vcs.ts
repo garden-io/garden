@@ -70,6 +70,7 @@ export const moduleVersionSchema = joi.object().keys({
 export interface GetFilesParams {
   log: LogEntry
   path: string
+  pathDescription?: string
   include?: string[]
   exclude?: string[]
 }
@@ -101,6 +102,7 @@ export abstract class VcsHandler {
     let files = await this.getFiles({
       log,
       path: moduleConfig.path,
+      pathDescription: "module root",
       include: moduleConfig.include,
       exclude: moduleConfig.exclude,
     })
