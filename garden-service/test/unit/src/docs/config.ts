@@ -5,6 +5,7 @@ import {
   renderConfigReference,
   NormalizedDescription,
   renderMarkdownLink,
+  sanitizeYamlStringForGitBook,
 } from "../../../../src/docs/config"
 import { expect } from "chai"
 import dedent = require("dedent")
@@ -50,6 +51,60 @@ describe("config", () => {
       testArray,
     })
     .required()
+
+  describe("sanitizeYamlStringForGitBook", () => {
+    it("should remove lines that start with ```", () => {
+      const yaml = dedent`
+      # Example:
+      #
+      # \`\`\`yaml
+      # modules:
+      #   exclude:
+      #     - node_modules/**/*
+      #     - vendor/**/*
+      # \`\`\`
+      #
+      # but our present story is ended.
+    `
+      const js = dedent`
+      # Example:
+      #
+      # \`\`\`javascript
+      # modules:
+      #   exclude:
+      #     - node_modules/**/*
+      #     - vendor/**/*
+      # \`\`\`
+      #
+      # but our present story is ended.
+    `
+      const empty = dedent`
+      # Example:
+      #
+      # \`\`\`
+      # modules:
+      #   exclude:
+      #     - node_modules/**/*
+      #     - vendor/**/*
+      # \`\`\`
+      #
+      # but our present story is ended.
+    `
+      const expected = dedent`
+      # Example:
+      #
+      # modules:
+      #   exclude:
+      #     - node_modules/**/*
+      #     - vendor/**/*
+      #
+      # but our present story is ended.
+    `
+      expect(sanitizeYamlStringForGitBook(yaml)).to.equal(expected)
+      expect(sanitizeYamlStringForGitBook(js)).to.equal(expected)
+      expect(sanitizeYamlStringForGitBook(empty)).to.equal(expected)
+    })
+  })
 
   describe("renderSchemaDescriptionYaml", () => {
     it("should render the yaml with the full description", () => {
