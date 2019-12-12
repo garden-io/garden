@@ -236,8 +236,12 @@ export async function prepareSystem({
 
   const remoteCluster = provider.name !== "local-kubernetes"
 
-  // Don't attempt to prepare environment when running the uninstall command
-  if (ctx.command && ctx.command.name === "plugins" && ctx.command.args.command === "uninstall-garden-services") {
+  // Don't attempt to prepare environment automatically when running the init or uninstall commands
+  if (
+    !clusterInit &&
+    ctx.command?.name === "plugins" &&
+    (ctx.command?.args.command === "uninstall-garden-services" || ctx.command?.args.command === "cluster-init")
+  ) {
     return {}
   }
 
@@ -245,11 +249,7 @@ export async function prepareSystem({
   // in the prepareEnvironment handler, instead of flagging as not ready here. This avoids blocking users where
   // there's variance in configuration between users of the same cluster, that often doesn't affect usage.
   if (!clusterInit && remoteCluster) {
-    if (
-      combinedState === "outdated" &&
-      !serviceStates.includes("missing") &&
-      !(ctx.command && ctx.command.name === "plugins" && ctx.command.args.command === "cluster-init")
-    ) {
+    if (combinedState === "outdated" && !serviceStates.includes("missing")) {
       log.warn({
         symbol: "warning",
         msg: chalk.yellow(deline`
