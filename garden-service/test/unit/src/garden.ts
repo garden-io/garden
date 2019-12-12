@@ -3065,6 +3065,63 @@ describe("Garden", () => {
 
       expect(result).to.not.eql(version)
     })
+
+    context("test against fixed version hashes", async () => {
+      const moduleAVersionString = "v-0cf3cb04c0"
+      const moduleBVersionString = "v-db85090197"
+      const moduleCVersionString = "v-18ffe09ae4"
+
+      it("should return the same module versions between runtimes", async () => {
+        const projectRoot = getDataDir("test-projects", "fixed-version-hashes-1")
+
+        process.env.MODULE_A_TEST_ENV_VAR = "foo"
+
+        const garden = await makeTestGarden(projectRoot)
+        const graph = await garden.getConfigGraph(garden.log)
+        const moduleA = await graph.getModule("module-a")
+        const moduleB = await graph.getModule("module-b")
+        const moduleC = await graph.getModule("module-c")
+        expect(moduleA.version.versionString).to.equal(moduleAVersionString)
+        expect(moduleB.version.versionString).to.equal(moduleBVersionString)
+        expect(moduleC.version.versionString).to.equal(moduleCVersionString)
+
+        delete process.env.TEST_ENV_VAR
+      })
+
+      it("should return the same module versions for identiclal modules in different projects", async () => {
+        const projectRoot = getDataDir("test-projects", "fixed-version-hashes-2")
+
+        process.env.MODULE_A_TEST_ENV_VAR = "foo"
+
+        const garden = await makeTestGarden(projectRoot)
+        const graph = await garden.getConfigGraph(garden.log)
+        const moduleA = await graph.getModule("module-a")
+        const moduleB = await graph.getModule("module-b")
+        const moduleC = await graph.getModule("module-c")
+        expect(moduleA.version.versionString).to.equal(moduleAVersionString)
+        expect(moduleB.version.versionString).to.equal(moduleBVersionString)
+        expect(moduleC.version.versionString).to.equal(moduleCVersionString)
+
+        delete process.env.MODULE_A_TEST_ENV_VAR
+      })
+
+      it("should not return the same module versions if templated variables change", async () => {
+        const projectRoot = getDataDir("test-projects", "fixed-version-hashes-1")
+
+        process.env.MODULE_A_TEST_ENV_VAR = "bar"
+
+        const garden = await makeTestGarden(projectRoot)
+        const graph = await garden.getConfigGraph(garden.log)
+        const moduleA = await graph.getModule("module-a")
+        const moduleB = await graph.getModule("module-b")
+        const moduleC = await graph.getModule("module-c")
+        expect(moduleA.version.versionString).to.not.equal(moduleAVersionString)
+        expect(moduleB.version.versionString).to.equal(moduleBVersionString)
+        expect(moduleC.version.versionString).to.equal(moduleCVersionString)
+
+        delete process.env.MODULE_A_TEST_ENV_VAR
+      })
+    })
   })
 
   describe("loadExtSourcePath", () => {
