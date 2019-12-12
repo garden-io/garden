@@ -1,3 +1,4 @@
+import "../../../../setup"
 import tmp from "tmp-promise"
 import { ProjectConfig } from "../../../../../src/config/project"
 import execa = require("execa")

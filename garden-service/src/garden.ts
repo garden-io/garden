@@ -494,7 +494,7 @@ export class Garden {
           plugin,
           config,
           version,
-          forceInit,
+          forcePrepare: forceInit,
         })
       })
 

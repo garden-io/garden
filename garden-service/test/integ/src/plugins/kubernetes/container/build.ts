@@ -11,6 +11,8 @@ import { GARDEN_SERVICE_ROOT } from "../../../../../../src/constants"
 import { resolve } from "path"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { expect } from "chai"
+import { findByName, getPackageVersion } from "../../../../../../src/util/util"
+import { ResolveProviderTask } from "../../../../../../src/tasks/resolve-provider"
 
 describe("k8sBuildContainer", () => {
   let garden: Garden
@@ -29,21 +31,41 @@ describe("k8sBuildContainer", () => {
   })
 
   const init = async (environmentName: string) => {
+    garden = await makeTestGarden(root, { environmentName })
+
     if (!initialized && environmentName !== "local") {
       // Load the test authentication for private registries
       const authSecret = JSON.parse(
         (await decryptSecretFile(resolve(GARDEN_SERVICE_ROOT, "..", "secrets", "test-docker-auth.json"))).toString()
       )
-      const api = await KubeApi.factory(garden.log, provider)
+
+      const plugin = await garden.getPlugin("local-kubernetes")
+      const config = findByName(garden.getRawProviderConfigs(), "local-kubernetes")!
+      const resolveTask = new ResolveProviderTask({
+        garden,
+        log: garden.log,
+        plugin,
+        config,
+        version: {
+          versionString: getPackageVersion(),
+          dependencyVersions: {},
+          files: [],
+        },
+        force: false,
+        skipPrepare: true,
+        forcePrepare: false,
+      })
+      const result = await garden.processTasks([resolveTask])
+      const tmpProvider = findByName(<any>Object.values(result), "local-kubernetes")!["output"]
+
+      const api = await KubeApi.factory(garden.log, tmpProvider)
       await api.upsert("Secret", "default", authSecret, garden.log)
     }
 
-    garden = await makeTestGarden(root, { environmentName })
     graph = await garden.getConfigGraph(garden.log)
     provider = <KubernetesProvider>await garden.resolveProvider("local-kubernetes")
     ctx = garden.getPluginContext(provider)
 
-    // We only need to run the cluster-init flow once, because the configurations are compatible
     if (!initialized && environmentName !== "local") {
       // Run cluster-init
       await clusterInit.handler({ ctx, log: garden.log })

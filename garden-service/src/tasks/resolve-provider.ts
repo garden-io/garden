@@ -24,7 +24,8 @@ import { getPluginBases, getPluginBaseNames } from "../plugins"
 interface Params extends TaskParams {
   plugin: GardenPlugin
   config: ProviderConfig
-  forceInit: boolean
+  skipPrepare?: boolean
+  forcePrepare: boolean
 }
 
 /**
@@ -35,13 +36,15 @@ export class ResolveProviderTask extends BaseTask {
 
   private config: ProviderConfig
   private plugin: GardenPlugin
-  private forceInit: boolean
+  private skipPrepare: boolean
+  private forcePrepare: boolean
 
   constructor(params: Params) {
     super(params)
     this.config = params.config
     this.plugin = params.plugin
-    this.forceInit = params.forceInit
+    this.skipPrepare = params.skipPrepare || false
+    this.forcePrepare = params.forcePrepare
   }
 
   getName() {
@@ -82,7 +85,7 @@ export class ResolveProviderTask extends BaseTask {
             config,
             log: this.log,
             version: this.version,
-            forceInit: this.forceInit,
+            forcePrepare: this.forcePrepare,
           })
         })
       })
@@ -165,7 +168,7 @@ export class ResolveProviderTask extends BaseTask {
     this.log.silly(`Ensuring ${providerName} provider is ready`)
 
     const tmpProvider = providerFromConfig(resolvedConfig, resolvedProviders, moduleConfigs, defaultEnvironmentStatus)
-    const status = await this.ensurePrepared(tmpProvider)
+    const status = this.skipPrepare ? { ready: true, outputs: {} } : await this.ensurePrepared(tmpProvider)
 
     return providerFromConfig(resolvedConfig, resolvedProviders, moduleConfigs, status)
   }
@@ -188,7 +191,7 @@ export class ResolveProviderTask extends BaseTask {
 
     this.log.silly(`${pluginName} status: ${status.ready ? "ready" : "not ready"}`)
 
-    if (this.forceInit || !status.ready) {
+    if (this.forcePrepare || !status.ready) {
       // Deliberately setting the text on the parent log here
       this.log.setState(`Preparing environment...`)
 
@@ -204,7 +207,7 @@ export class ResolveProviderTask extends BaseTask {
         pluginName,
         defaultHandler: async () => ({ status }),
       })
-      const result = await prepareHandler!({ ctx, log: this.log, force: this.forceInit, status })
+      const result = await prepareHandler!({ ctx, log: this.log, force: this.forcePrepare, status })
 
       status = result.status
 
