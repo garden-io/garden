@@ -353,7 +353,7 @@ export async function compareDeployedResources(
 
     // NOTE: this approach won't fly in the long run, but hopefully we can climb out of this mess when
     //       `kubectl diff` is ready, or server-side apply/diff is ready
-    if (manifest.kind === "DaemonSet" || manifest.kind === "Deployment" || manifest.kind == "StatefulSet") {
+    if (manifest.kind === "DaemonSet" || manifest.kind === "Deployment" || manifest.kind === "StatefulSet") {
       // handle properties that are omitted in the response because they have the default value
       // (another design issue in the K8s API)
       if (manifest.spec.minReadySeconds === 0) {

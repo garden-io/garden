@@ -145,7 +145,7 @@ export async function deployContainerServiceBlueGreen(
     // Update service (divert traffic from Blue to Green)
 
     // First patch the generated service to point to the new version of the deployment
-    const serviceManifest = find(manifests, (manifest) => manifest.kind == "Service")
+    const serviceManifest = find(manifests, (manifest) => manifest.kind === "Service")
     const patchedServiceManifest = merge(serviceManifest, servicePatchBody)
     // Compare with the deployed Service
     const result = await compareDeployedResources(k8sCtx, api, namespace, [patchedServiceManifest], log)

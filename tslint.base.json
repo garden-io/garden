@@ -49,6 +49,7 @@
       "allow-leading-underscore",
       "allow-pascal-case"
     ],
+    "triple-equals": true,
     "whitespace": [true, "check-branch", "check-operator", "check-separator"]
   }
 }
