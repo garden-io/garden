@@ -155,14 +155,6 @@ const remoteBuild: BuildHandler = async (params) => {
     })
   }
 
-  await kubectl.exec({
-    args: ["exec", "-i", buildSyncPod.metadata.name, "--", "mkdir", "-p", "/data/tmp"],
-    provider,
-    log,
-    namespace: systemNamespace,
-    timeout: 10,
-  })
-
   // We retry a couple of times, because we may get intermittent connection issues or concurrency issues
   await pRetry(() => exec("rsync", syncArgs), {
     retries: 3,

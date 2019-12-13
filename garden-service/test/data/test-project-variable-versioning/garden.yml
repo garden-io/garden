@@ -2,7 +2,7 @@ kind: Project
 name: test-project-variable-versioning
 environments:
   - name: local
-    providers:
-      - name: test-plugin
+providers:
+  - name: test-plugin
 variables:
   echo-string: OK

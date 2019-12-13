@@ -70,15 +70,7 @@ export async function getChartResources(ctx: PluginContext, module: Module, hotR
       ctx: k8sCtx,
       log,
       namespace,
-      args: [
-        "template",
-        "--name",
-        releaseName,
-        "--namespace",
-        namespace,
-        ...(await getValueArgs(module, hotReload)),
-        chartPath,
-      ],
+      args: ["template", releaseName, "--namespace", namespace, ...(await getValueArgs(module, hotReload)), chartPath],
     })
   )
 
@@ -316,8 +308,6 @@ export function getResourceContainer(resource: HotReloadableResource, containerN
 /**
  * This is a dirty hack that allows us to resolve Helm template strings ad-hoc.
  * Basically this writes a dummy file to the chart, has Helm resolve it, and then deletes the file.
- *
- * TODO: Cache the results to avoid a performance hit when hot-reloading.
  */
 async function renderHelmTemplateString(
   ctx: PluginContext,
@@ -326,7 +316,8 @@ async function renderHelmTemplateString(
   chartPath: string,
   value: string
 ): Promise<string> {
-  const tempFilePath = join(chartPath, "templates", cryptoRandomString({ length: 16 }))
+  const relPath = join("templates", cryptoRandomString({ length: 16 }) + ".yaml")
+  const tempFilePath = join(chartPath, relPath)
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespace = await getNamespace({
     log,
@@ -337,7 +328,8 @@ async function renderHelmTemplateString(
   const releaseName = getReleaseName(module)
 
   try {
-    await writeFile(tempFilePath, value)
+    // Need to add quotes for this to work as expected. Also makes sense since we only support string outputs here.
+    await writeFile(tempFilePath, `value: '${value}'\n`)
 
     const objects = loadTemplate(
       await helm({
@@ -346,19 +338,18 @@ async function renderHelmTemplateString(
         namespace,
         args: [
           "template",
-          "--name",
           releaseName,
           "--namespace",
           namespace,
           ...(await getValueArgs(module, false)),
-          "-x",
-          tempFilePath,
+          "--show-only",
+          relPath,
           chartPath,
         ],
       })
     )
 
-    return objects[0]
+    return objects[0].value
   } finally {
     await remove(tempFilePath)
   }

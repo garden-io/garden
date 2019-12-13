@@ -61,8 +61,8 @@ describe("resolveProjectConfig", () => {
 
     expect(await resolveProjectConfig(config, "/tmp")).to.eql({
       ...config,
-      environments: defaultEnvironments,
       sources: [],
+      environments: defaultEnvironments,
       varfile: defaultVarfilePath,
     })
   })
@@ -104,8 +104,8 @@ describe("resolveProjectConfig", () => {
       environments: [
         {
           name: "default",
-          providers: [],
           production: false,
+          providers: [],
           varfile: defaultEnvVarfilePath("default"),
           variables: {
             envVar: "foo",
@@ -138,12 +138,6 @@ describe("resolveProjectConfig", () => {
       environments: [
         {
           name: "default",
-          providers: [
-            {
-              name: "provider-b",
-              someKey: "${local.env.TEST_ENV_VAR_B}",
-            },
-          ],
           variables: {
             envVar: "foo",
           },
@@ -155,8 +149,9 @@ describe("resolveProjectConfig", () => {
           someKey: "${local.env.TEST_ENV_VAR_A}",
         },
         {
-          name: "provider-c",
-          someKey: "${local.env.TEST_ENV_VAR_C}",
+          name: "provider-b",
+          environments: ["default"],
+          someKey: "${local.env.TEST_ENV_VAR_B}",
         },
       ],
       variables: {},
@@ -164,15 +159,14 @@ describe("resolveProjectConfig", () => {
 
     process.env.TEST_ENV_VAR_A = "foo"
     process.env.TEST_ENV_VAR_B = "boo"
-    process.env.TEST_ENV_VAR_C = "moo"
 
     expect(await resolveProjectConfig(config, "/tmp")).to.eql({
       ...config,
       environments: [
         {
           name: "default",
-          providers: [],
           production: false,
+          providers: [],
           varfile: defaultEnvVarfilePath("default"),
           variables: {
             envVar: "foo",
@@ -183,10 +177,6 @@ describe("resolveProjectConfig", () => {
         {
           name: "provider-a",
           someKey: "${local.env.TEST_ENV_VAR_A}",
-        },
-        {
-          name: "provider-c",
-          someKey: "${local.env.TEST_ENV_VAR_C}",
         },
         {
           name: "provider-b",
@@ -200,7 +190,6 @@ describe("resolveProjectConfig", () => {
 
     delete process.env.TEST_ENV_VAR_A
     delete process.env.TEST_ENV_VAR_B
-    delete process.env.TEST_ENV_VAR_C
   })
 
   it("should set defaultEnvironment to first environment if not configured", async () => {
@@ -258,11 +247,6 @@ describe("resolveProjectConfig", () => {
       environments: [
         {
           name: "default",
-          providers: [
-            {
-              name: "provider-b",
-            },
-          ],
           variables: {
             envVar: "foo",
           },
@@ -271,6 +255,10 @@ describe("resolveProjectConfig", () => {
       providers: [
         {
           name: "provider-a",
+        },
+        {
+          name: "provider-b",
+          environments: ["default"],
         },
         {
           name: "provider-c",
@@ -284,8 +272,8 @@ describe("resolveProjectConfig", () => {
       environments: [
         {
           name: "default",
-          providers: [],
           production: false,
+          providers: [],
           varfile: defaultEnvVarfilePath("default"),
           variables: {
             envVar: "foo",
@@ -297,11 +285,11 @@ describe("resolveProjectConfig", () => {
           name: "provider-a",
         },
         {
-          name: "provider-c",
-        },
-        {
           name: "provider-b",
           environments: ["default"],
+        },
+        {
+          name: "provider-c",
         },
       ],
       sources: [],

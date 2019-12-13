@@ -2,7 +2,7 @@ kind: Project
 name: kubernetes-module
 environments:
   - name: local
-    providers:
-      - name: local-kubernetes
-    variables:
-      postgres-password: "Y0RGQjBHUmpWZQ=="
+providers:
+  - name: local-kubernetes
+variables:
+  postgres-password: "Y0RGQjBHUmpWZQ=="

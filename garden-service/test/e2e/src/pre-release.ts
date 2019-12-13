@@ -11,9 +11,10 @@ import {
   runGarden,
   taskCompletedStep,
   waitingForChangesStep,
+  sleepStep,
 } from "../../run-garden"
 import { deleteExampleNamespaces, parsedArgs, searchLog, removeExampleDotGardenDir } from "../../e2e-helpers"
-import username = require("username")
+import username from "username"
 
 // TODO: Add test for verifying that CLI returns with an error when called with an unknown command
 describe("PreReleaseTests", () => {
@@ -138,6 +139,7 @@ describe("PreReleaseTests", () => {
 
         const testSteps = [
           waitingForChangesStep(),
+          sleepStep(2000),
           {
             description: "change 'Node' -> 'foo' in node-service/app.js",
             action: async () => {
@@ -148,6 +150,7 @@ describe("PreReleaseTests", () => {
               })
             },
           },
+          sleepStep(2000),
           {
             description: "node-service returns the updated response text",
             condition: async () => {
@@ -191,6 +194,7 @@ describe("PreReleaseTests", () => {
 
         const testSteps = [
           waitingForChangesStep(),
+          sleepStep(2000),
           {
             description: "change 'Node' -> 'foo' in node-service/app.js",
             action: async () => {
@@ -201,6 +205,7 @@ describe("PreReleaseTests", () => {
               })
             },
           },
+          sleepStep(2000),
           {
             description: "node-service returns the updated response text",
             condition: async () => {

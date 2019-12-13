@@ -169,7 +169,6 @@ describe("Garden", () => {
           config: {
             name: "test-plugin",
             path: projectRoot,
-            environments: ["local"],
           },
           dependencies: [],
           moduleConfigs: [],
@@ -2043,6 +2042,25 @@ describe("Garden", () => {
       const moduleConfigs = await garden["resolveModuleConfigs"](garden.log)
 
       expect(getNames(moduleConfigs).sort()).to.eql(["module-a"])
+    })
+
+    it("should throw a nice error if module paths overlap", async () => {
+      const projectRoot = getDataDir("test-projects", "multiple-module-config-bad")
+      const garden = await makeTestGarden(projectRoot)
+      await expectError(
+        () => garden["resolveModuleConfigs"](garden.log),
+        (err) => {
+          expect(stripAnsi(err.message)).to.equal(dedent`
+          Missing include and/or exclude directives on modules with overlapping paths.
+          Setting includes/excludes is required when modules have the same path (i.e. are in the same garden.yml file),
+          or when one module is nested within another.
+
+          Module module-no-include-a overlaps with module(s) module-a1 (nested), module-a2 (nested) and module-no-include-b (same path).
+
+          Module module-no-include-b overlaps with module(s) module-a1 (nested), module-a2 (nested) and module-no-include-a (same path).
+          `)
+        }
+      )
     })
   })
 

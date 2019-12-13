@@ -9,13 +9,174 @@ import {
   getConfigFilePath,
   getWorkingCopyId,
   findConfigPathsInPath,
+  detectModuleOverlap,
 } from "../../../../src/util/fs"
 import { withDir } from "tmp-promise"
+import { ModuleConfig } from "../../../../src/config/module"
 
 const projectYamlFileExtensions = getDataDir("test-project-yaml-file-extensions")
 const projectDuplicateYamlFileExtensions = getDataDir("test-project-duplicate-yaml-file-extensions")
 
 describe("util", () => {
+  describe("detectModuleOverlap", () => {
+    it("should detect if modules have the same root", () => {
+      const moduleA = {
+        name: "module-a",
+        path: join("/", "user", "code", "foo"),
+      } as ModuleConfig
+      const moduleB = {
+        name: "module-b",
+        path: join("/", "user", "code", "foo"),
+      } as ModuleConfig
+      const moduleC = {
+        name: "module-c",
+        path: join("/", "user", "code", "foo"),
+      } as ModuleConfig
+      const moduleD = {
+        name: "module-d",
+        path: join("/", "user", "code", "bas"),
+      } as ModuleConfig
+      expect(detectModuleOverlap([moduleA, moduleB, moduleC, moduleD])).to.eql([
+        {
+          module: moduleA,
+          overlaps: [moduleB, moduleC],
+        },
+        {
+          module: moduleB,
+          overlaps: [moduleA, moduleC],
+        },
+        {
+          module: moduleC,
+          overlaps: [moduleA, moduleB],
+        },
+      ])
+    })
+    it("should detect if a module has another module in its path", () => {
+      const moduleA = {
+        name: "module-a",
+        path: join("/", "user", "code", "foo"),
+      } as ModuleConfig
+      const moduleB = {
+        name: "module-b",
+        path: join("/", "user", "code", "foo", "bar"),
+      } as ModuleConfig
+      const moduleC = {
+        name: "module-c",
+        path: join("/", "user", "code", "foo", "bar", "bas"),
+      } as ModuleConfig
+      const moduleD = {
+        name: "module-d",
+        path: join("/", "user", "code", "bas", "bar", "bas"),
+      } as ModuleConfig
+      expect(detectModuleOverlap([moduleA, moduleB, moduleC, moduleD])).to.eql([
+        {
+          module: moduleA,
+          overlaps: [moduleB, moduleC],
+        },
+        {
+          module: moduleB,
+          overlaps: [moduleC],
+        },
+      ])
+    })
+
+    context("same root", () => {
+      it("should ignore modules that set includes", () => {
+        const moduleA = {
+          name: "module-a",
+          path: join("/", "user", "code", "foo"),
+          include: [""],
+        } as ModuleConfig
+        const moduleB = {
+          name: "module-b",
+          path: join("/", "user", "code", "foo"),
+        } as ModuleConfig
+        expect(detectModuleOverlap([moduleA, moduleB])).to.eql([
+          {
+            module: moduleB,
+            overlaps: [moduleA],
+          },
+        ])
+      })
+      it("should ignore modules that set excludes", () => {
+        const moduleA = {
+          name: "module-a",
+          path: join("/", "user", "code", "foo"),
+          exclude: [""],
+        } as ModuleConfig
+        const moduleB = {
+          name: "module-b",
+          path: join("/", "user", "code", "foo"),
+        } as ModuleConfig
+        expect(detectModuleOverlap([moduleA, moduleB])).to.eql([
+          {
+            module: moduleB,
+            overlaps: [moduleA],
+          },
+        ])
+      })
+    })
+
+    context("nested modules", () => {
+      it("should ignore modules that set includes", () => {
+        const moduleA = {
+          name: "module-a",
+          path: join("/", "user", "code", "foo"),
+          include: [""],
+        } as ModuleConfig
+        const moduleB = {
+          name: "module-b",
+          path: join("/", "user", "code", "foo", "bar"),
+        } as ModuleConfig
+        expect(detectModuleOverlap([moduleA, moduleB])).to.be.empty
+      })
+      it("should ignore modules that set excludes", () => {
+        const moduleA = {
+          name: "module-a",
+          path: join("/", "user", "code", "foo"),
+          exclude: [""],
+        } as ModuleConfig
+        const moduleB = {
+          name: "module-b",
+          path: join("/", "user", "code", "foo", "bar"),
+        } as ModuleConfig
+        expect(detectModuleOverlap([moduleA, moduleB])).to.be.empty
+      })
+      it("should detect overlaps if only nested module has includes/excludes", () => {
+        const moduleA1 = {
+          name: "module-a",
+          path: join("/", "user", "code", "foo"),
+        } as ModuleConfig
+        const moduleB1 = {
+          name: "module-b",
+          path: join("/", "user", "code", "foo", "bar"),
+          include: [""],
+        } as ModuleConfig
+        const moduleA2 = {
+          name: "module-a",
+          path: join("/", "user", "code", "foo"),
+        } as ModuleConfig
+        const moduleB2 = {
+          name: "module-b",
+          path: join("/", "user", "code", "foo", "bar"),
+          exclude: [""],
+        } as ModuleConfig
+        expect(detectModuleOverlap([moduleA1, moduleB1])).to.eql([
+          {
+            module: moduleA1,
+            overlaps: [moduleB1],
+          },
+        ])
+        expect(detectModuleOverlap([moduleA2, moduleB2])).to.eql([
+          {
+            module: moduleA2,
+            overlaps: [moduleB2],
+          },
+        ])
+      })
+    })
+  })
+
   describe("scanDirectory", () => {
     it("should iterate through all files in a directory", async () => {
       const testPath = getDataDir("scanDirectory")

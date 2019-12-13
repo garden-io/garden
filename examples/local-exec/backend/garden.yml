@@ -2,6 +2,7 @@ kind: Module
 type: exec
 local: true
 name: builder
+include: ["*"]
 # This runs in the module directory before the backend container that's specified below is built
 build:
   command: [go, build, -o, bin/backend]
@@ -15,6 +16,7 @@ type: container
 name: backend
 # Setting the "builder" module as a dependency ensures that the Go binary is built
 # before the build step for this module is executed.
+include: []
 build:
   dependencies:
     - name: builder

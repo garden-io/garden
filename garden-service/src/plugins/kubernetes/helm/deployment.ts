@@ -18,9 +18,9 @@ import {
   getServiceResourceSpec,
   getValueArgs,
 } from "./common"
-import { getReleaseStatus, HelmServiceStatus } from "./status"
+import { getReleaseStatus, HelmServiceStatus, getDeployedResources } from "./status"
 import { configureHotReload, HotReloadableResource } from "../hot-reload"
-import { apply } from "../kubectl"
+import { apply, deleteResources } from "../kubectl"
 import { KubernetesPluginContext } from "../config"
 import { ContainerHotReloadSpec } from "../../container/config"
 import { getHotReloadSpec } from "./hot-reload"
@@ -59,7 +59,7 @@ export async function deployHelmService({
     "--namespace",
     namespace,
     "--timeout",
-    module.spec.timeout.toString(10),
+    module.spec.timeout.toString(10) + "s",
     ...(await getValueArgs(module, hotReload)),
   ]
 
@@ -67,9 +67,8 @@ export async function deployHelmService({
     log.silly(`Installing Helm release ${releaseName}`)
     const installArgs = [
       "install",
-      chartPath,
-      "--name",
       releaseName,
+      chartPath,
       // Make sure chart gets purged if it fails to install
       "--atomic",
       ...commonArgs,
@@ -81,9 +80,6 @@ export async function deployHelmService({
   } else {
     log.silly(`Upgrading Helm release ${releaseName}`)
     const upgradeArgs = ["upgrade", releaseName, chartPath, "--install", ...commonArgs]
-    if (force && !ctx.production) {
-      upgradeArgs.push("--force")
-    }
     await helm({ ctx: k8sCtx, namespace, log, args: [...upgradeArgs] })
   }
 
@@ -126,9 +122,17 @@ export async function deleteService(params: DeleteServiceParams): Promise<HelmSe
   const { ctx, log, module } = params
 
   const k8sCtx = <KubernetesPluginContext>ctx
+  const provider = k8sCtx.provider
   const releaseName = getReleaseName(module)
 
-  await helm({ ctx: k8sCtx, log, args: ["delete", "--purge", releaseName] })
+  const resources = await getDeployedResources(k8sCtx, releaseName, log)
+
+  await helm({ ctx: k8sCtx, log, args: ["uninstall", releaseName] })
+
+  // Wait for resources to terminate
+  const namespace = await getAppNamespace(k8sCtx, log, provider)
+  await deleteResources({ log, provider, resources, namespace })
+
   log.setSuccess("Service deleted")
 
   return { state: "missing", detail: { remoteResources: [] } }
