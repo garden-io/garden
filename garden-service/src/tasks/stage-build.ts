@@ -65,9 +65,7 @@ export class StageBuildTask extends BaseTask {
       })
     }
 
-    const graph = await this.garden.getConfigGraph(log || this.log)
     await this.garden.buildDir.syncFromSrc(this.module, log || this.log)
-    await this.garden.buildDir.syncDependencyProducts(this.module, graph, log || this.log)
 
     if (log) {
       log.setSuccess({

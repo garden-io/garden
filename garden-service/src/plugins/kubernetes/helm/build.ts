@@ -7,8 +7,10 @@
  */
 
 import { HelmModule } from "./config"
-import { containsSource, getChartPath, getGardenValuesPath, getBaseModule } from "./common"
+import { containsBuildSource, getChartPath, getGardenValuesPath, getBaseModule } from "./common"
 import { helm } from "./helm-cli"
+import { ConfigurationError } from "../../../exceptions"
+import { deline } from "../../../util/string"
 import { dumpYaml } from "../../../util/util"
 import { LogEntry } from "../../../logger/log-entry"
 import { getNamespace } from "../namespace"
@@ -26,7 +28,14 @@ export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<He
   })
   const baseModule = getBaseModule(module)
 
-  if (!baseModule && !(await containsSource(module))) {
+  if (!baseModule && !(await containsBuildSource(module))) {
+    if (!module.spec.chart) {
+      throw new ConfigurationError(
+        deline`Module '${module.name}' neither specifies a chart name, base module,
+        nor contains chart sources at \`chartPath\`.`,
+        { module }
+      )
+    }
     log.debug("Fetching chart...")
     try {
       await fetchChart(k8sCtx, namespace, log, module)
