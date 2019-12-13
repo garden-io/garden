@@ -11,8 +11,6 @@ orbs:
   garden-env: &garden-env
     GARDEN_DISABLE_VERSION_CHECK: "true"
     GARDEN_TASK_CONCURRENCY_LIMIT: "10"
-    GARDEN_LOG_LEVEL: debug
-    GARDEN_LOGGER_TYPE: basic
 
   # Configuration for our node jobs
   node-config: &node-config
@@ -64,18 +62,20 @@ commands:
   install_node:
     description: Install NVM and Node.js
     steps:
-      - run: |
-          # NVM is already installed, we just need to load it...
-          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-          # ...export for subsequent runs...
-          echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
-          echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
-          nvm install 10
-          nvm alias default 10
-          nvm use default
-          # ...and finally symlink for when calling Garden with sudo below
-          sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/node" "/usr/local/bin/node"
-          sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/npm" "/usr/local/bin/npm"
+      - run:
+          name: Install NVM + Node.js
+          command: |
+            # NVM is already installed, we just need to load it...
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            # ...export for subsequent runs...
+            echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
+            echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
+            nvm install 10
+            nvm alias default 10
+            nvm use default
+            # ...and finally symlink for when calling Garden with sudo below
+            sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/node" "/usr/local/bin/node"
+            sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/npm" "/usr/local/bin/npm"
 
   npm_install:
     parameters:
@@ -243,7 +243,7 @@ jobs:
       - run:
           name: Run e2e tests
           # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
-          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-e2e ./garden-service/bin/garden test e2e-tests --root garden-service/test/e2e
+          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-e2e ./garden-service/bin/garden test e2e-tests --root garden-service/test/e2e --logger-type basic
       - run:
           name: Cleanup
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-e2e kubectl delete --wait=false $(kubectl get ns -o name | grep testing-$CIRCLE_BUILD_NUM) || true
@@ -373,7 +373,7 @@ jobs:
       - run:
           name: Deploy demo-project with binary
           # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
-          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist garden-service/dist/linux-amd64/garden deploy --root examples/demo-project --env remote
+          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist garden-service/dist/linux-amd64/garden deploy --root examples/demo-project --env remote --logger-type basic
       - run:
           name: Cleanup
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist kubectl delete --wait=false $(kubectl get ns -o name | grep testing-$CIRCLE_BUILD_NUM) || true
@@ -389,6 +389,8 @@ jobs:
     environment:
       K8S_VERSION: <<parameters.kubernetesVersion>>
       <<: *garden-env
+      GARDEN_LOG_LEVEL: debug
+      GARDEN_LOGGER_TYPE: basic
     steps:
       - checkout
       - configure_kubectl_context
@@ -398,17 +400,27 @@ jobs:
             sudo apt-get update
             sudo apt install nfs-common
       - install_node
-      - npm_install:
-          platform: ubuntu-1604
       - run:
           name: Install microk8s
           command: |
             mkdir -p .kube
-            sudo snap install microk8s --classic --channel=<<parameters.version>>/stable
+            sudo snap install microk8s --classic --channel=<<parameters.kubernetesVersion>>/stable
+            # Allow privileged containers (for docker builder)
+            echo '--allow-privileged=true' >> /var/snap/microk8s/current/args/kubelet
+            echo '--allow-privileged=true' >> /var/snap/microk8s/current/args/kube-apiserver
+            sudo systemctl restart snap.microk8s.daemon-kubelet.service
+            sudo systemctl restart snap.microk8s.daemon-apiserver.service
+            # Wait until cluster is ready + enable addons
             sudo microk8s.status --wait-ready
-            sudo microk8s.enable dns registry
+            sudo microk8s.enable dns registry ingress storage
+            # Add the current user to the microk8s group to get access to status commands etc.
+            sudo usermod -a -G microk8s $USER
+            # Write the kubeconfig so Garden can access the cluster
             sudo microk8s.kubectl config view --raw > $HOME/.kube/microk8s.config
             echo 'export KUBECONFIG=$HOME/.kube/microk8s.config' >> $BASH_ENV
+      - npm_install:
+          platform: ubuntu-1604
+      - run: npm run build
       - run:
           name: Integ tests
           command: cd garden-service && npm run integ -- -b
@@ -425,6 +437,8 @@ jobs:
       K8S_VERSION: <<parameters.kubernetesVersion>>
       MINIKUBE_VERSION: v1.5.2
       <<: *garden-env
+      GARDEN_LOG_LEVEL: debug
+      GARDEN_LOGGER_TYPE: basic
     steps:
       - checkout
       - configure_kubectl_context
@@ -436,6 +450,7 @@ jobs:
       - install_node
       - npm_install:
           platform: ubuntu-1604
+      - run: npm run build
       - run:
           name: Install Minikube Executable
           command: |

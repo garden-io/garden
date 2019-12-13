@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { RuntimeError } from "../../../exceptions"
 import { LogEntry } from "../../../logger/log-entry"
 import { exec } from "../../../util/util"
+import chalk from "chalk"
 
 export async function configureMicrok8sAddons(log: LogEntry, addons: string[]) {
   let status = ""
@@ -16,13 +16,13 @@ export async function configureMicrok8sAddons(log: LogEntry, addons: string[]) {
   try {
     status = (await exec("microk8s.status", [])).stdout
   } catch {
-    // This is caught below.
-  }
-
-  if (!status.includes("microk8s is running")) {
-    throw new RuntimeError(`Unable to get microk8s status. Is the cluster installed and running?`, {
-      status,
-    })
+    log.warn(
+      chalk.yellow(
+        "Unable to get microk8s status and automatically manage addons. Make sure the cluster is installed and " +
+          "running, and that you have permission to call the microk8s.status command."
+      )
+    )
+    return
   }
 
   const missingAddons = addons.filter((addon) => !status.includes(`${addon}: enabled`))
