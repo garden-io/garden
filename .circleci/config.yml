@@ -8,13 +8,18 @@ orbs:
 # These can be used to inject shared variables
 # see https://blog.daemonl.com/2016/02/yaml.html
 .references:
+  garden-env: &garden-env
+    GARDEN_DISABLE_VERSION_CHECK: "true"
+    GARDEN_TASK_CONCURRENCY_LIMIT: "10"
+    GARDEN_LOG_LEVEL: debug
+    GARDEN_LOGGER_TYPE: basic
+
   # Configuration for our node jobs
   node-config: &node-config
     docker:
       - image: circleci/node:10
         environment:
-          GARDEN_DISABLE_VERSION_CHECK: "true"
-          GARDEN_TASK_CONCURRENCY_LIMIT: "10"
+          <<: *garden-env
     resource_class: large
 
   # Configuration for release jobs
@@ -56,19 +61,42 @@ orbs:
 # see https://circleci.com/docs/2.0/configuration-reference/#commands-requires-version21
 # and example https://github.com/mapbox/mapbox-gl-native/blob/master/circle.yml
 commands:
+  install_node:
+    description: Install NVM and Node.js
+    steps:
+      - run: |
+          # NVM is already installed, we just need to load it...
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          # ...export for subsequent runs...
+          echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
+          echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
+          nvm install 10
+          nvm alias default 10
+          nvm use default
+          # ...and finally symlink for when calling Garden with sudo below
+          sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/node" "/usr/local/bin/node"
+          sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/npm" "/usr/local/bin/npm"
+
   npm_install:
+    parameters:
+      platform:
+        type: string
+        default: default
+      version:
+        type: string
+        default: v3
     description: |
       Installs npm packages for root, garden-service, and dashboard and loads and saves the caches as appropriate
     steps:
       - restore_cache:
           keys:
-          - root-v3-{{ checksum "package-lock.json" }}
+          - root-<<parameters.platform>>-<<parameters.version>>-{{ checksum "package-lock.json" }}
       - restore_cache:
           keys:
-          - garden-service-v3-{{ checksum "garden-service/package-lock.json" }}
+          - garden-service-<<parameters.platform>>-<<parameters.version>>-{{ checksum "garden-service/package-lock.json" }}
       - restore_cache:
           keys:
-          - dashboard-v3-{{ checksum "dashboard/package-lock.json" }}
+          - dashboard-<<parameters.platform>>-<<parameters.version>>-{{ checksum "dashboard/package-lock.json" }}
 
       # only install root dependencies if node_modules wasn't cached
       - run: if [ ! -d "node_modules" ]; then npm ci; fi
@@ -77,13 +105,13 @@ commands:
 
       - save_cache:
           paths: [node_modules]
-          key: root-v3-{{ checksum "package-lock.json" }}
+          key: root-<<parameters.platform>>-<<parameters.version>>-{{ checksum "package-lock.json" }}
       - save_cache:
           paths: [garden-service/node_modules]
-          key: garden-service-v3-{{ checksum "garden-service/package-lock.json" }}
+          key: garden-service-<<parameters.platform>>-<<parameters.version>>-{{ checksum "garden-service/package-lock.json" }}
       - save_cache:
           paths: [dashboard/node_modules]
-          key: dashboard-v3-{{ checksum "dashboard/package-lock.json" }}
+          key: dashboard-<<parameters.platform>>-<<parameters.version>>-{{ checksum "dashboard/package-lock.json" }}
 
   configure_kubectl_context:
     description: Configure the kubectl context so that we can access our remote cluster. Used for e2e testing.
@@ -215,7 +243,7 @@ jobs:
       - run:
           name: Run e2e tests
           # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
-          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-e2e ./garden-service/bin/garden test e2e-tests --root garden-service/test/e2e --logger-type basic
+          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-e2e ./garden-service/bin/garden test e2e-tests --root garden-service/test/e2e
       - run:
           name: Cleanup
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-e2e kubectl delete --wait=false $(kubectl get ns -o name | grep testing-$CIRCLE_BUILD_NUM) || true
@@ -345,11 +373,46 @@ jobs:
       - run:
           name: Deploy demo-project with binary
           # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
-          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist garden-service/dist/linux-amd64/garden deploy --root examples/demo-project --env remote --logger-type basic
+          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist garden-service/dist/linux-amd64/garden deploy --root examples/demo-project --env remote
       - run:
           name: Cleanup
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist kubectl delete --wait=false $(kubectl get ns -o name | grep testing-$CIRCLE_BUILD_NUM) || true
           when: always
+
+  test-microk8s:
+    machine:
+      image: 'ubuntu-1604:201903-01'
+    parameters:
+      kubernetesVersion:
+        description: The Kubernetes version to run
+        type: string
+    environment:
+      K8S_VERSION: <<parameters.kubernetesVersion>>
+      <<: *garden-env
+    steps:
+      - checkout
+      - configure_kubectl_context
+      - run:
+          name: Install system dependencies
+          command: |
+            sudo apt-get update
+            sudo apt install nfs-common
+      - install_node
+      - npm_install:
+          platform: ubuntu-1604
+      - run:
+          name: Install microk8s
+          command: |
+            mkdir -p .kube
+            sudo snap install microk8s --classic --channel=<<parameters.version>>/stable
+            sudo microk8s.status --wait-ready
+            sudo microk8s.enable dns registry
+            sudo microk8s.kubectl config view --raw > $HOME/.kube/microk8s.config
+            echo 'export KUBECONFIG=$HOME/.kube/microk8s.config' >> $BASH_ENV
+      - run:
+          name: Integ tests
+          command: cd garden-service && npm run integ -- -b
+
   test-minikube:
     machine:
       image: 'ubuntu-1604:201903-01'
@@ -360,8 +423,7 @@ jobs:
     environment:
       K8S_VERSION: <<parameters.kubernetesVersion>>
       MINIKUBE_VERSION: v1.5.2
-      GARDEN_LOG_LEVEL: debug
-      GARDEN_LOGGER_TYPE: basic
+      <<: *garden-env
     steps:
       - checkout
       - configure_kubectl_context
@@ -370,24 +432,9 @@ jobs:
           command: |
             sudo apt-get update
             sudo apt install nfs-common
-      - run:
-          name: Update Node.js
-          command: |
-            # NVM is already installed, we just need to load it...
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            # ...export for subsequent runs...
-            echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
-            echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
-            nvm install 10
-            nvm alias default 10
-            nvm use default
-            # ...and finally symlink for when calling Garden with sudo below
-            sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/node" "/usr/local/bin/node"
-            sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/npm" "/usr/local/bin/npm"
-      # Note: We can't use npm_install here because the cache conflicts
-      - run: npm ci
-      - run: npm run bootstrap
-      - run: npm run build
+      - install_node
+      - npm_install:
+          platform: ubuntu-1604
       - run:
           name: Install Minikube Executable
           command: |
@@ -397,13 +444,16 @@ jobs:
       - run:
           name: Start Minikube Cluster
           command: |
-            sudo -E minikube start --vm-driver=none --cpus 2 --memory 4096 --kubernetes-version=$K8S_VERSION
+            sudo -E minikube start --vm-driver=none --cpus 2 --memory 6144 --kubernetes-version=$K8S_VERSION
             sudo chown -R circleci:circleci /home/circleci/.kube /home/circleci/.minikube /etc/kubernetes
       - run:
           name: Integ tests
           command: cd garden-service && npm run integ -- -b
+
   test-windows:
     executor: win/vs2019
+    environment:
+      <<: *garden-env
     steps:
       - checkout
       - *attach-workspace
@@ -440,6 +490,10 @@ jobs:
 
 workflows:
   version: 2
+  test-microk8s-1.16:
+    jobs:
+      - test-microk8s:
+          kubernetesVersion: "1.16"
   test-minikube-1.16:
     jobs:
       - test-minikube:
