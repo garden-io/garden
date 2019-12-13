@@ -31,12 +31,24 @@ import { MAX_RUN_RESULT_OUTPUT_LENGTH } from "../constants"
 
 const gardenValuesFilename = "garden-values.yml"
 
+async function containsChart(basePath: string, config: HelmModuleConfig) {
+  const yamlPath = join(basePath, config.spec.chartPath, "Chart.yaml")
+  return pathExists(yamlPath)
+}
+
 /**
  * Returns true if the specified Helm module contains a template (as opposed to just referencing a remote template).
  */
 export async function containsSource(config: HelmModuleConfig) {
-  const yamlPath = join(config.path, config.spec.chartPath, "Chart.yaml")
-  return pathExists(yamlPath)
+  return containsChart(config.path, config)
+}
+
+/**
+ * Returns true if the specified Helm module contains a template in its build path (as opposed to just referencing
+ * a remote template).
+ */
+export async function containsBuildSource(module: HelmModule) {
+  return containsChart(module.buildPath, module)
 }
 
 /**
@@ -126,7 +138,7 @@ export async function getChartPath(module: HelmModule) {
 
   if (baseModule) {
     return join(module.buildPath, baseModule.spec.chartPath)
-  } else if (await containsSource(module)) {
+  } else if (await containsBuildSource(module)) {
     return join(module.buildPath, module.spec.chartPath)
   } else {
     // This value is validated to exist in the validate module action
