@@ -1,0 +1,5 @@
+kind: Module
+name: local-path-provisioner
+description: Provisioner for local path volumes used by Garden system services
+type: helm
+releaseName: local-path-provisioner

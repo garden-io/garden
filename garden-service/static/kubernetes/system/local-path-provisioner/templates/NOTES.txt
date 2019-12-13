@@ -1,0 +1,13 @@
+You can create a hostpath-backed persistent volume with a persistent volume claim like this:
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: local-path-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ .Values.storageClass.name }}
+  resources:
+    requests:
+      storage: 2Gi

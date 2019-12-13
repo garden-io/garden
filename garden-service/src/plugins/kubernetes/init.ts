@@ -35,6 +35,7 @@ import { compareDeployedResources } from "./status/status"
 
 // Note: We need to increment a version number here if we ever make breaking changes to the NFS provisioner StatefulSet
 const nfsStorageClassVersion = 2
+export const systemStorageProvisioners = ["local-path-provisioner", "nfs-provisioner"]
 
 const dockerAuthSecretType = "kubernetes.io/dockerconfigjson"
 const dockerAuthDocsLink = `
@@ -297,17 +298,19 @@ export async function prepareSystem({
     await sysApi.upsert("Secret", systemNamespace, authSecret, log)
   }
 
-  // We need to install the NFS provisioner separately, so that we can optionally install it
+  // We need to install the storage provisioners separately, so that we can optionally install it
   // FIXME: when we've added an `enabled` field, we should get rid of this special case
-  if (systemServiceNames.includes("nfs-provisioner")) {
-    await prepareSystemServices({
-      log,
-      sysGarden,
-      namespace: systemNamespace,
-      force,
-      ctx: k8sCtx,
-      serviceNames: ["nfs-provisioner"],
-    })
+  for (const name of systemStorageProvisioners) {
+    if (systemServiceNames.includes(name)) {
+      await prepareSystemServices({
+        log,
+        sysGarden,
+        namespace: systemNamespace,
+        force,
+        ctx: k8sCtx,
+        serviceNames: [name],
+      })
+    }
   }
 
   // Install system services
@@ -317,7 +320,7 @@ export async function prepareSystem({
     namespace: systemNamespace,
     force,
     ctx: k8sCtx,
-    serviceNames: systemServiceNames.filter((name) => name !== "nfs-provisioner"),
+    serviceNames: systemServiceNames.filter((name) => !systemStorageProvisioners.includes(name)),
   })
 
   sysGarden.log.setSuccess()

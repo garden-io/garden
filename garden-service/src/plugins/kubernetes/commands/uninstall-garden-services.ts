@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { PluginCommand } from "../../../types/plugin/command"
-import { getKubernetesSystemVariables } from "../init"
+import { getKubernetesSystemVariables, systemStorageProvisioners } from "../init"
 import { KubernetesPluginContext } from "../config"
 import { getSystemGarden } from "../system"
 
@@ -32,13 +32,15 @@ export const uninstallGardenServices: PluginCommand = {
 
     log.info("")
 
-    // We have to delete all services except nfs-provisioner first to avoid volumes getting stuck
-    const serviceNames = services.map((s) => s.name).filter((name) => name !== "nfs-provisioner")
+    // We have to delete all services except storage provisioners first to avoid volumes getting stuck
+    const serviceNames = services.map((s) => s.name).filter((name) => !systemStorageProvisioners.includes(name))
     const serviceStatuses = await actions.deleteServices(log, serviceNames)
 
-    if (k8sCtx.provider.config._systemServices.includes("nfs-provisioner")) {
-      const service = await graph.getService("nfs-provisioner")
-      await actions.deleteService({ service, log })
+    for (const name of systemStorageProvisioners) {
+      if (k8sCtx.provider.config._systemServices.includes(name)) {
+        const service = await graph.getService(name)
+        await actions.deleteService({ service, log })
+      }
     }
 
     log.info("")

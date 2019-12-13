@@ -1,0 +1,16 @@
+{{- if .Values.rbac.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "local-path-provisioner.fullname" . }}
+  labels:
+{{ include "local-path-provisioner.labels" . | indent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ template "local-path-provisioner.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ template "local-path-provisioner.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end -}}
