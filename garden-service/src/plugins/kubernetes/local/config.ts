@@ -14,7 +14,6 @@ import { configureMicrok8sAddons } from "./microk8s"
 import { setMinikubeDockerEnv } from "./minikube"
 import { exec } from "../../../util/util"
 import { remove } from "lodash"
-import { getNfsStorageClass } from "../init"
 
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
 
