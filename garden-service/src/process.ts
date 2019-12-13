@@ -105,11 +105,6 @@ export async function processModules({
       const emoji = printEmoji("hourglass_flowing_sand", footerLog)
       footerLog.setState(`\n${emoji} Processing...`)
     })
-
-    garden.events.on("taskGraphComplete", () => {
-      const emoji = printEmoji("clock2", footerLog)
-      footerLog.setState(`\n${emoji} ${chalk.gray("Waiting for code changes...")}`)
-    })
   }
 
   const results = await garden.processTasks(tasks)
@@ -137,7 +132,19 @@ export async function processModules({
 
   await garden.startWatcher(graph)
 
+  const footerWaiting = () => {
+    if (!!footerLog) {
+      const emoji = printEmoji("clock2", footerLog)
+      footerLog.setState(`\n${emoji} ${chalk.gray("Waiting for code changes...")}`)
+    }
+  }
+  footerWaiting()
+
   const restartPromise = new Promise((resolve) => {
+    garden.events.on("taskGraphComplete", () => {
+      footerWaiting()
+    })
+
     garden.events.on("_restart", () => {
       log.debug({ symbol: "info", msg: `Manual restart triggered` })
       resolve()
