@@ -98,7 +98,7 @@ const localBuild: BuildHandler = async (params) => {
 
   if (!ctx.provider.config.deploymentRegistry) {
     if ((ctx.provider.config as KubernetesConfig).clusterType == "kind") {
-      await loadLocalImage(buildResult, ctx.provider.config as KubernetesConfig, log)
+      await loadLocalImage(buildResult, ctx.provider.config as KubernetesConfig)
     }
     return buildResult
   }

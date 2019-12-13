@@ -7,7 +7,6 @@
  */
 
 import { exec } from "../../../util/util"
-import { kubectl } from "../kubectl"
 import { LogEntry } from "../../../logger/log-entry"
 import { safeLoad } from "js-yaml"
 import { BuildResult } from "../../../types/plugin/module/build"
@@ -18,7 +17,7 @@ import { KubernetesResource } from "../types"
 
 const CLUSTER_NOT_FOUND = "CLUSTER_NOT_FOUND"
 
-export async function loadLocalImage(buildResult: BuildResult, config: KubernetesConfig, log: LogEntry): Promise<void> {
+export async function loadLocalImage(buildResult: BuildResult, config: KubernetesConfig): Promise<void> {
   try {
     const clusterName = await getClusterForContext(config.context)
     if (clusterName != CLUSTER_NOT_FOUND) {
