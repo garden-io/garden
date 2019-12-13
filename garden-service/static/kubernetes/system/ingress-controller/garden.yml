@@ -6,7 +6,7 @@ chart: stable/nginx-ingress
 releaseName: garden-nginx
 dependencies:
   - default-backend
-version: 1.26.1
+version: 1.26.2
 values:
   name: ingress-controller
   controller:
