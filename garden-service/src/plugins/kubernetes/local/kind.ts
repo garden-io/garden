@@ -10,24 +10,29 @@ import { exec } from "../../../util/util"
 import { kubectl } from "../kubectl"
 import { LogEntry } from "../../../logger/log-entry"
 import { safeLoad } from "js-yaml"
+import { BuildResult } from "../../../types/plugin/module/build"
+import { KubernetesConfig, KubernetesProvider } from "../config"
+import { RuntimeError } from "../../../exceptions"
+import { KubeApi } from "../api"
+import { KubernetesResource } from "../types"
 
 const CLUSTER_NOT_FOUND = "CLUSTER_NOT_FOUND"
 
-export async function loadLocalImage(buildResult: any, config: any, log: LogEntry): Promise<void> {
+export async function loadLocalImage(buildResult: BuildResult, config: KubernetesConfig, log: LogEntry): Promise<void> {
   try {
     const clusterName = await getClusterForContext(config.context)
     if (clusterName != CLUSTER_NOT_FOUND) {
       await exec("kind", ["load", "docker-image", buildResult.details.identifier, `--name=${clusterName}`])
     }
   } catch (err) {
-    log.error(
-      `An attempt to load the image ${buildResult.details.identifier} into kind cluster with context ${config.context} failed`
+    throw new RuntimeError(
+      `An attempt to load image ${buildResult.details.identifier} into the kind cluster failed: ${err.message}`,
+      { err }
     )
-    throw err
   }
 }
 
-export async function isClusterKind(provider: any, log: LogEntry) {
+export async function isClusterKind(provider: KubernetesProvider, log: LogEntry): Promise<boolean> {
   return (await isKindInstalled(log)) && (await isKindContext(log, provider))
 }
 
@@ -43,15 +48,17 @@ async function isKindInstalled(log: LogEntry): Promise<boolean> {
   return false
 }
 
-async function isKindContext(log: LogEntry, provider: any): Promise<boolean> {
-  const params = {
-    log,
-    provider,
-    namespace: "kube-system",
-    args: ["get", "DaemonSet", "kindnet"],
+async function isKindContext(log: LogEntry, provider: KubernetesProvider): Promise<boolean> {
+  const kubeApi = await KubeApi.factory(log, provider)
+  const manifest: KubernetesResource = {
+    apiVersion: "apps/v1",
+    kind: "DaemonSet",
+    metadata: {
+      name: "kindnet",
+    },
   }
   try {
-    await kubectl.stdout(params)
+    await kubeApi.readBySpec("kube-system", manifest, log)
     return true
   } catch (err) {
     log.debug(`An attempt to get kindnet deamonset failed with ${err}`)
@@ -66,9 +73,9 @@ async function getKindClusters(): Promise<Array<string>> {
     if (clusters) {
       return clusters.split("\n")
     }
-    return Promise.resolve([])
+    return []
   } catch (err) {}
-  return Promise.resolve([])
+  return []
 }
 
 async function getClusterForContext(context: string): Promise<string> {
@@ -77,7 +84,7 @@ async function getClusterForContext(context: string): Promise<string> {
       return cluster
     }
   }
-  return Promise.resolve(CLUSTER_NOT_FOUND)
+  return CLUSTER_NOT_FOUND
 }
 
 async function isContextAMatch(cluster: string, context: string): Promise<Boolean> {

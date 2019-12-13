@@ -53,7 +53,7 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
 
   const namespace = config.namespace!
   const _systemServices = config._systemServices
-  // automatically detect supported kubectl context if not explicitly configured
+
   // create dummy provider with just enough info needed for the getKubeConfig function
   const provider = {
     name: config.name,
@@ -66,6 +66,7 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
   const currentContext = kubeConfig["current-context"]
 
   if (!config.context) {
+    // automatically detect supported kubectl context if not explicitly configured
     if (currentContext && supportedContexts.includes(currentContext)) {
       // prefer current context if set and supported
       config.context = currentContext
@@ -96,13 +97,13 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
     log.debug({ section: config.name, msg: `No kubectl context configured, using default: ${config.context}` })
   }
 
-  if (isClusterKind(provider, log)) {
-    config.ClusterType = "kind"
+  if (await isClusterKind(provider, log)) {
+    config.clusterType = "kind"
   }
   if (config.context === "minikube") {
     await exec("minikube", ["config", "set", "WantUpdateNotification", "false"])
 
-    config.ClusterType = "minikube"
+    config.clusterType = "minikube"
 
     if (!config.defaultHostname) {
       // use the nip.io service to give a hostname to the instance, if none is explicitly configured
@@ -120,7 +121,7 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
   } else if (config.context === "microk8s") {
     const addons = ["dns", "registry", "storage"]
 
-    config.ClusterType = "microk8s"
+    config.clusterType = "microk8s"
 
     if (config.setupIngressController === "nginx") {
       log.debug("Using microk8s's ingress addon")
