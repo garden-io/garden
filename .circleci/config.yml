@@ -406,8 +406,8 @@ jobs:
             mkdir -p .kube
             sudo snap install microk8s --classic --channel=<<parameters.kubernetesVersion>>/stable
             # Allow privileged containers (for docker builder)
-            echo '--allow-privileged=true' >> /var/snap/microk8s/current/args/kubelet
-            echo '--allow-privileged=true' >> /var/snap/microk8s/current/args/kube-apiserver
+            sudo sh -c 'echo "--allow-privileged=true" >> /var/snap/microk8s/current/args/kubelet'
+            sudo sh -c 'echo "--allow-privileged=true" >> /var/snap/microk8s/current/args/kube-apiserver'
             sudo systemctl restart snap.microk8s.daemon-kubelet.service
             sudo systemctl restart snap.microk8s.daemon-apiserver.service
             # Wait until cluster is ready + enable addons
