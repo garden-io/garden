@@ -15,13 +15,12 @@ import { createGardenPlugin } from "../types/plugin/plugin"
 import { Module } from "../types/module"
 import { CommonServiceSpec } from "../config/service"
 import { BaseTestSpec, baseTestSpecSchema } from "../config/test"
-import { readModuleVersionFile, writeModuleVersionFile, ModuleVersion } from "../vcs/vcs"
+import { writeModuleVersionFile } from "../vcs/vcs"
 import { GARDEN_BUILD_VERSION_FILENAME } from "../constants"
 import { ModuleSpec, BaseBuildSpec, baseBuildSpecSchema, ModuleConfig } from "../config/module"
 import { BaseTaskSpec, baseTaskSpecSchema } from "../config/task"
 import { dedent } from "../util/string"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../types/plugin/module/configure"
-import { GetBuildStatusParams, BuildStatus } from "../types/plugin/module/getBuildStatus"
 import { BuildModuleParams, BuildResult } from "../types/plugin/module/build"
 import { TestModuleParams } from "../types/plugin/module/testModule"
 import { TestResult } from "../types/plugin/module/getTestResult"
@@ -200,23 +199,6 @@ export async function configureExecModule({
   return { moduleConfig }
 }
 
-export async function getExecModuleBuildStatus({ module }: GetBuildStatusParams): Promise<BuildStatus> {
-  const buildVersionFilePath = join(module.buildMetadataPath, GARDEN_BUILD_VERSION_FILENAME)
-  let builtVersion: ModuleVersion | null = null
-
-  try {
-    builtVersion = await readModuleVersionFile(buildVersionFilePath)
-  } catch (_) {
-    // just ignore this error, can be caused by an outdated format
-  }
-
-  if (builtVersion && builtVersion.versionString === module.version.versionString) {
-    return { ready: true }
-  }
-
-  return { ready: false }
-}
-
 export async function buildExecModule({ module }: BuildModuleParams<ExecModule>): Promise<BuildResult> {
   const output: BuildResult = {}
   const { command } = module.spec.build
@@ -353,7 +335,6 @@ export const execPlugin = createGardenPlugin({
       }),
       handlers: {
         configure: configureExecModule,
-        getBuildStatus: getExecModuleBuildStatus,
         build: buildExecModule,
         runTask: runExecTask,
         testModule: testExecModule,
