@@ -63,13 +63,22 @@ export function taskCompletedStep(key: string, completedCount: number, descripti
 }
 
 /**
- * Prepends a newline to the file. Useful for triggering watch changes with a dirty timestamp.
+ * Appends a newline to the file. Useful for triggering watch changes with a dirty timestamp.
  */
 export function changeFileStep(path: string, description: string): WatchTestStep {
   return {
     description, // Mandatory, because we don't want to print the absolute path
     action: async () => {
       await execa(`echo "\n" >> ${path}`, { shell: true })
+    },
+  }
+}
+
+export function sleepStep(msec: number): WatchTestStep {
+  return {
+    description: `Wait for ${msec}ms`,
+    action: async () => {
+      await sleep(msec)
     },
   }
 }
@@ -227,6 +236,8 @@ export class GardenWatch {
     const closeHandler = (code: number) => {
       if (this.running && code !== 0) {
         error = new Error(`Process exited with code ${code}`)
+      } else if (showLog) {
+        console.log(`Process exited with code ${code}`)
       }
       this.running = false
     }
