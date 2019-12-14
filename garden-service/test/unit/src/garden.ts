@@ -2625,6 +2625,7 @@ describe("Garden", () => {
             build: { dependencies: [] },
             outputs: {},
             path: "/tmp",
+            include: [],
             serviceConfigs: [],
             taskConfigs: [],
             testConfigs: [],
@@ -2638,6 +2639,7 @@ describe("Garden", () => {
             build: { dependencies: [] },
             outputs: {},
             path: "/tmp",
+            include: [],
             serviceConfigs: [],
             taskConfigs: [],
             testConfigs: [],
@@ -2656,6 +2658,7 @@ describe("Garden", () => {
           name: "foo",
           outputs: {},
           path: "/tmp",
+          include: [],
           serviceConfigs: [],
           spec: { build: { dependencies: [] } },
           testConfigs: [],
@@ -2674,6 +2677,7 @@ describe("Garden", () => {
               schema: joi.object().keys({ foo: joi.string(), build: baseBuildSpecSchema }),
               handlers: {
                 configure: async ({ moduleConfig }) => {
+                  moduleConfig.include = []
                   moduleConfig.serviceConfigs = [
                     {
                       name: moduleConfig.name,
@@ -2728,6 +2732,7 @@ describe("Garden", () => {
           outputs: {},
           configPath: "/tmp",
           path: "/tmp",
+          include: [],
           serviceConfigs: [
             {
               name: "foo",
@@ -2795,6 +2800,7 @@ describe("Garden", () => {
               schema: joi.object().keys({ foo: joi.string(), build: baseBuildSpecSchema }),
               handlers: {
                 configure: async ({ moduleConfig }) => {
+                  moduleConfig.include = []
                   moduleConfig.serviceConfigs = [
                     {
                       name: moduleConfig.name,
@@ -2859,6 +2865,7 @@ describe("Garden", () => {
           name: "foo",
           outputs: {},
           path: "/tmp",
+          include: [],
           serviceConfigs: [
             {
               name: "foo",

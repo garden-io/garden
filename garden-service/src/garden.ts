@@ -601,6 +601,13 @@ export class Garden {
 
     let graph: ConfigGraph | undefined = undefined
 
+    // Require include/exclude on modules if their paths overlap
+    const overlaps = detectModuleOverlap(moduleConfigs)
+    if (overlaps.length > 0) {
+      const { message, detail } = this.makeOverlapError(overlaps)
+      throw new ConfigurationError(message, detail)
+    }
+
     // Walk through all plugins in dependency order, and allow them to augment the graph
     for (const provider of getDependencyOrder(providers, this.registeredPlugins)) {
       // Skip the routine if the provider doesn't have the handler
@@ -791,13 +798,6 @@ export class Garden {
           rawConfigs.push(...configs)
         }
       })
-
-      // Require include/exclude on modules if their paths overlap
-      const overlaps = detectModuleOverlap(rawConfigs)
-      if (overlaps.length > 0) {
-        const { message, detail } = this.makeOverlapError(overlaps)
-        throw new ConfigurationError(message, detail)
-      }
 
       await Bluebird.map(rawConfigs, async (config) => this.addModule(config))
 
