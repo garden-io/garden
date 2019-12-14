@@ -15,7 +15,6 @@ import serve = require("koa-static")
 import Router = require("koa-router")
 import websockify from "koa-websocket"
 import bodyParser = require("koa-bodyparser")
-import getPort = require("get-port")
 import { omit } from "lodash"
 
 import { Garden } from "../garden"
@@ -28,6 +27,7 @@ import { EventName, Events } from "../events"
 import { ValueOf } from "../util/util"
 import { AnalyticsHandler } from "../analytics/analytics"
 import { joi } from "../config/common"
+import { getPort } from "../util/network"
 
 export const DEFAULT_PORT = 9777
 const notReadyMessage = "Waiting for Garden instance to initialize"

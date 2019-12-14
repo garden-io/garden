@@ -8,7 +8,6 @@
 
 import { ChildProcess } from "child_process"
 
-import getPort = require("get-port")
 const AsyncLock = require("async-lock")
 import { V1Service } from "@kubernetes/client-node"
 
@@ -23,6 +22,7 @@ import { ForwardablePort } from "../../types/service"
 import { isBuiltIn } from "./util"
 import { LogEntry } from "../../logger/log-entry"
 import { RuntimeError } from "../../exceptions"
+import { getPort } from "../../util/network"
 
 // TODO: implement stopPortForward handler
 
