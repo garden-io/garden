@@ -182,6 +182,13 @@ function formatType(description: Description) {
   }
 }
 
+/**
+ * Removes line starting with: # ```
+ */
+export function sanitizeYamlStringForGitBook(yamlStr: string) {
+  return yamlStr.replace(/.*# \`\`\`.*$\n/gm, "")
+}
+
 export function getDefaultValue(description: Joi.Description) {
   const defaultSpec = get(description, "flags.default")
 
@@ -395,7 +402,22 @@ export function renderSchemaDescriptionYaml(
       .join("\n")
   })
 
-  return output.join("\n")
+  const schemaDescriptionYaml = output.join("\n")
+
+  // NOTE: Because of an issue with GitBook, code examples inside YAML strings break the layout.
+  // So something like:
+  //
+  // # Example:
+  // # ```yaml
+  // # foo: bar
+  // # ```
+  //
+  // won't work.
+  //
+  // Note that the above works fine on e.g. GitHub so the issue is with GitBook.
+  // I've opened a ticket but haven't received anything back.
+  // TODO: Remove once issue is resolved on GitBook's end.
+  return sanitizeYamlStringForGitBook(schemaDescriptionYaml)
 }
 
 /**

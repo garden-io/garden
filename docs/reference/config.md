@@ -78,12 +78,10 @@ modules:
   # scanned and
   # watched:
   #
-  # ```yaml
   # modules:
   #   exclude:
   #     - node_modules/**/*
   #     - vendor/**/*
-  # ```
   #
   # Note that you can also explicitly _include_ files using the `include` field. If you also
   # specify the
