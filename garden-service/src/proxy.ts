@@ -169,7 +169,7 @@ async function createProxy(garden: Garden, log: LogEntry, service: Service, spec
     })
   })
 
-  const localPort = await getPort()
+  const localPort = await getPort({ port: spec.targetPort })
   const host = `localhost:${localPort}`
   // For convenience, we try to guess a protocol based on the target port, if no URL protocol is specified
   const protocol = spec.urlProtocol || guessProtocol(spec)
