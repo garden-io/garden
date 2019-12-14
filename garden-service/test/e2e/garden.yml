@@ -3,18 +3,19 @@ name: e2e-tests
 defaultEnvironment: testing
 environments:
   - name: testing
-    providers:
-      - name: kubernetes
-        context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
-        namespace: e2e-tests
-        defaultHostname: dev-1.sys.garden
-        buildMode: cluster-docker
-        setupIngressController: nginx
   - name: local
-    providers:
-      - name: local-kubernetes
     variables:
       show-log: true
+providers:
+  - name: kubernetes
+    environments: [testing]
+    context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
+    namespace: e2e-tests
+    defaultHostname: dev-1.sys.garden
+    buildMode: cluster-docker
+    setupIngressController: nginx
+  - name: local-kubernetes
+    environments: [local]
 variables:
   timeout: 360
   show-log: false

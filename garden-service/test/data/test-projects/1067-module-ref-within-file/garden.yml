@@ -3,6 +3,7 @@ name: issue-1067
 ---
 kind: Module
 name: container-module
+include: ["*"]
 type: container
 allowPublish: false
 build:
@@ -12,7 +13,7 @@ build:
 kind: Module
 type: exec
 allowPublish: false
-include: []
+include: ["*"]
 name: exec-module
 build:
   command:

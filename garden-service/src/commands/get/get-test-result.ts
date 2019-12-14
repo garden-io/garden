@@ -55,7 +55,7 @@ export class GetTestResultCommand extends Command<Args> {
       "heavy_check_mark"
     )
 
-    const graph = await garden.getConfigGraph()
+    const graph = await garden.getConfigGraph(log)
     const actions = await garden.getActionRouter()
 
     const module = await graph.getModule(moduleName)

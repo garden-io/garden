@@ -63,7 +63,7 @@ export class LogsCommand extends Command<Args, Opts> {
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ServiceLogEntry[]>> {
     const { follow, tail } = opts
-    const graph = await garden.getConfigGraph()
+    const graph = await garden.getConfigGraph(log)
     const services = await graph.getServices(args.services)
 
     const result: ServiceLogEntry[] = []

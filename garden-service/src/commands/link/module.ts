@@ -50,7 +50,7 @@ export class LinkModuleCommand extends Command<Args> {
     const sourceType = "module"
 
     const { module: moduleName, path } = args
-    const graph = await garden.getConfigGraph()
+    const graph = await garden.getConfigGraph(log)
     const moduleToLink = await graph.getModule(moduleName)
 
     const isRemote = [moduleToLink].filter(hasRemoteSource)[0]

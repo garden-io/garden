@@ -1,6 +1,7 @@
 kind: Module
 name: module-b1
 type: test
+include: ["*"]
 services:
   - name: service-b1
     dependencies:
@@ -20,6 +21,7 @@ tasks:
 
 kind: Module
 name: module-b2
+include: ["*"]
 type: test
 services:
   - name: service-b2

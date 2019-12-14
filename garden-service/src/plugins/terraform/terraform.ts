@@ -91,8 +91,6 @@ export const gardenPlugin = createGardenPlugin({
       schema,
       handlers: {
         configure: configureTerraformModule,
-        // FIXME: it should not be strictly necessary to provide this handler
-        build: async () => ({}),
         getServiceStatus: getTerraformStatus,
         deployService: deployTerraform,
       },

@@ -18,6 +18,8 @@ import { ValidationError } from "../exceptions"
 import { platform } from "os"
 import { VcsHandler } from "../vcs/vcs"
 import { LogEntry } from "../logger/log-entry"
+import { ModuleConfig } from "../config/module"
+import pathIsInside from "path-is-inside"
 
 const VALID_CONFIG_FILENAMES = ["garden.yml", "garden.yaml"]
 const metadataFilename = "metadata.json"
@@ -56,6 +58,36 @@ export async function* scanDirectory(path: string, opts?: klaw.Options): AsyncIt
 
     yield await promise
   }
+}
+
+/**
+ * Returns a list of overlapping modules.
+ *
+ * If a module does not set `include` or `exclude`, and another module is in its path (including
+ * when the other module has the same path), the module overlaps with the other module.
+ */
+export interface ModuleOverlap {
+  module: ModuleConfig
+  overlaps: ModuleConfig[]
+}
+
+export function detectModuleOverlap(moduleConfigs: ModuleConfig[]): ModuleOverlap[] {
+  let overlaps: ModuleOverlap[] = []
+  for (const config of moduleConfigs) {
+    const setsBuildCtx = !!config.include || !!config.exclude
+    const matches = moduleConfigs
+      .filter((compare) => config.name !== compare.name)
+      .filter((compare) => !setsBuildCtx && pathIsInside(compare.path, config.path))
+      .sort((a, b) => (a.name > b.name ? 1 : -1))
+
+    if (matches.length > 0) {
+      overlaps.push({
+        module: config,
+        overlaps: matches,
+      })
+    }
+  }
+  return overlaps
 }
 
 /**

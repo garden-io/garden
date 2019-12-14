@@ -72,7 +72,7 @@ export class ExecCommand extends Command<Args> {
       "runner"
     )
 
-    const graph = await garden.getConfigGraph()
+    const graph = await garden.getConfigGraph(log)
     const service = await graph.getService(serviceName)
     const actions = await garden.getActionRouter()
     const result = await actions.execInService({

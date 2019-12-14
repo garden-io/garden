@@ -105,11 +105,6 @@ export async function processModules({
       const emoji = printEmoji("hourglass_flowing_sand", footerLog)
       footerLog.setState(`\n${emoji} Processing...`)
     })
-
-    garden.events.on("taskGraphComplete", () => {
-      const emoji = printEmoji("clock2", footerLog)
-      footerLog.setState(`\n${emoji} ${chalk.gray("Waiting for code changes...")}`)
-    })
   }
 
   const results = await garden.processTasks(tasks)
@@ -137,7 +132,19 @@ export async function processModules({
 
   await garden.startWatcher(graph)
 
+  const footerWaiting = () => {
+    if (!!footerLog) {
+      const emoji = printEmoji("clock2", footerLog)
+      footerLog.setState(`\n${emoji} ${chalk.gray("Waiting for code changes...")}`)
+    }
+  }
+  footerWaiting()
+
   const restartPromise = new Promise((resolve) => {
+    garden.events.on("taskGraphComplete", () => {
+      footerWaiting()
+    })
+
     garden.events.on("_restart", () => {
       log.debug({ symbol: "info", msg: `Manual restart triggered` })
       resolve()
@@ -187,7 +194,7 @@ export async function processModules({
     })
 
     garden.events.on("moduleSourcesChanged", async (event) => {
-      graph = await garden.getConfigGraph()
+      graph = await garden.getConfigGraph(log)
       const changedModuleNames = event.names.filter((moduleName) => !!modulesByName[moduleName])
 
       if (changedModuleNames.length === 0) {
@@ -231,7 +238,7 @@ async function validateConfigChange(
 ): Promise<boolean> {
   try {
     const nextGarden = await Garden.factory(garden.projectRoot, garden.opts)
-    await nextGarden.getConfigGraph()
+    await nextGarden.getConfigGraph(log)
   } catch (error) {
     if (error instanceof ConfigurationError) {
       const msg = dedent`

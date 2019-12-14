@@ -281,7 +281,7 @@ const helpers = {
     }
   },
 
-  async hasDockerfile(module: ContainerModule): Promise<Boolean> {
+  async hasDockerfile(module: ContainerModule): Promise<boolean> {
     // If we explicitly set a Dockerfile, we take that to mean you want it to be built.
     // If the file turns out to be missing, this will come up in the build handler.
     const dockerfileSourcePath = helpers.getDockerfileSourcePath(module)

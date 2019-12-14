@@ -53,17 +53,17 @@ export class TaskTask extends BaseTask {
   }
 
   async getDependencies(): Promise<BaseTask[]> {
-    const buildTask = new BuildTask({
+    const buildTasks = await BuildTask.factory({
       garden: this.garden,
       log: this.log,
       module: this.task.module,
       force: this.forceBuild,
     })
 
-    const dg = await this.garden.getConfigGraph()
-    const deps = await dg.getDependencies("task", this.getName(), false)
+    const dg = await this.garden.getConfigGraph(this.log)
+    const deps = await dg.getDependencies("run", this.getName(), false)
 
-    const deployTasks = deps.service.map((service) => {
+    const deployTasks = deps.deploy.map((service) => {
       return new DeployTask({
         service,
         log: this.log,
@@ -74,7 +74,7 @@ export class TaskTask extends BaseTask {
       })
     })
 
-    const taskTasks = await Bluebird.map(deps.task, (task) => {
+    const taskTasks = await Bluebird.map(deps.run, (task) => {
       return TaskTask.factory({
         task,
         log: this.log,
@@ -93,7 +93,7 @@ export class TaskTask extends BaseTask {
       version: this.version,
     })
 
-    return [buildTask, ...deployTasks, ...taskTasks, resultTask]
+    return [...buildTasks, ...deployTasks, ...taskTasks, resultTask]
   }
 
   getName() {
@@ -129,7 +129,7 @@ export class TaskTask extends BaseTask {
       status: "active",
     })
 
-    const dependencies = await this.graph.getDependencies("task", this.getName(), false)
+    const dependencies = await this.graph.getDependencies("run", this.getName(), false)
 
     const serviceStatuses = getServiceStatuses(dependencyResults)
     const taskResults = getRunTaskResults(dependencyResults)
@@ -174,5 +174,5 @@ export class TaskTask extends BaseTask {
 export async function getTaskVersion(garden: Garden, graph: ConfigGraph, task: Task): Promise<ModuleVersion> {
   const { module } = task
   const moduleDeps = await graph.resolveDependencyModules(module.build.dependencies, task.config.dependencies)
-  return garden.resolveVersion(module.name, moduleDeps)
+  return garden.resolveVersion(module, moduleDeps)
 }

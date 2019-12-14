@@ -2,5 +2,5 @@ kind: Project
 name: container-module-test-project
 environments:
   - name: local
-    providers:
-      - name: test-plugin
+providers:
+  - name: test-plugin

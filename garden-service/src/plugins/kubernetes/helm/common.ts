@@ -42,7 +42,7 @@ export async function containsSource(config: HelmModuleConfig) {
 /**
  * Render the template in the specified Helm module (locally), and return all the resources in the chart.
  */
-export async function getChartResources(ctx: PluginContext, module: Module, log: LogEntry) {
+export async function getChartResources(ctx: PluginContext, module: Module, hotReload: boolean, log: LogEntry) {
   const chartPath = await getChartPath(module)
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespace = await getNamespace({
@@ -58,15 +58,7 @@ export async function getChartResources(ctx: PluginContext, module: Module, log:
       ctx: k8sCtx,
       log,
       namespace,
-      args: [
-        "template",
-        "--name",
-        releaseName,
-        "--namespace",
-        namespace,
-        ...(await getValueFileArgs(module)),
-        chartPath,
-      ],
+      args: ["template", releaseName, "--namespace", namespace, ...(await getValueArgs(module, hotReload)), chartPath],
     })
   )
 
@@ -146,7 +138,7 @@ export function getGardenValuesPath(chartPath: string) {
 /**
  * Get the value files arguments that should be applied to any helm install/render command.
  */
-export async function getValueFileArgs(module: HelmModule) {
+export async function getValueArgs(module: HelmModule, hotReload: boolean) {
   const chartPath = await getChartPath(module)
   const gardenValuesPath = getGardenValuesPath(chartPath)
 
@@ -154,7 +146,13 @@ export async function getValueFileArgs(module: HelmModule) {
   // so it's added to the end of the list.
   const valueFiles = module.spec.valueFiles.map((f) => resolve(module.buildPath, f)).concat([gardenValuesPath])
 
-  return flatten(valueFiles.map((f) => ["--values", f]))
+  const args = flatten(valueFiles.map((f) => ["--values", f]))
+
+  if (hotReload) {
+    args.push("--set", "\\.garden.hotReload=true")
+  }
+
+  return args
 }
 
 /**
@@ -298,8 +296,6 @@ export function getResourceContainer(resource: HotReloadableResource, containerN
 /**
  * This is a dirty hack that allows us to resolve Helm template strings ad-hoc.
  * Basically this writes a dummy file to the chart, has Helm resolve it, and then deletes the file.
- *
- * TODO: Cache the results to avoid a performance hit when hot-reloading.
  */
 async function renderHelmTemplateString(
   ctx: PluginContext,
@@ -308,7 +304,8 @@ async function renderHelmTemplateString(
   chartPath: string,
   value: string
 ): Promise<string> {
-  const tempFilePath = join(chartPath, "templates", cryptoRandomString({ length: 16 }))
+  const relPath = join("templates", cryptoRandomString({ length: 16 }) + ".yaml")
+  const tempFilePath = join(chartPath, relPath)
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespace = await getNamespace({
     log,
@@ -319,7 +316,8 @@ async function renderHelmTemplateString(
   const releaseName = getReleaseName(module)
 
   try {
-    await writeFile(tempFilePath, value)
+    // Need to add quotes for this to work as expected. Also makes sense since we only support string outputs here.
+    await writeFile(tempFilePath, `value: '${value}'\n`)
 
     const objects = loadTemplate(
       await helm({
@@ -328,19 +326,18 @@ async function renderHelmTemplateString(
         namespace,
         args: [
           "template",
-          "--name",
           releaseName,
           "--namespace",
           namespace,
-          ...(await getValueFileArgs(module)),
-          "-x",
-          tempFilePath,
+          ...(await getValueArgs(module, false)),
+          "--show-only",
+          relPath,
           chartPath,
         ],
       })
     )
 
-    return objects[0]
+    return objects[0].value
   } finally {
     await remove(tempFilePath)
   }

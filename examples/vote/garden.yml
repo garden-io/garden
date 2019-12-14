@@ -2,22 +2,24 @@ kind: Project
 name: vote
 environments:
   - name: local
-    providers:
-      - name: local-kubernetes
   - name: remote
     providers:
-      - name: kubernetes
-        # Replace these values as appropriate
-        context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
-        namespace: ${local.env.USER || local.username}-vote
-        defaultHostname: ${local.env.USER || local.username}-vote.dev-1.sys.garden
-        buildMode: cluster-docker
   - name: testing
-    providers:
-      - name: kubernetes
-        context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
-        namespace: vote-testing-${local.env.CIRCLE_BUILD_NUM || local.username}
-        defaultHostname: vote-testing.dev-1.sys.garden
-        buildMode: cluster-docker
-        clusterDocker:
-          enableBuildKit: true
+providers:
+  - name: local-kubernetes
+    environments: [local]
+  - name: kubernetes
+    environments: [remote]
+    # Replace these values as appropriate
+    context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
+    namespace: ${local.env.USER || local.username}-vote
+    defaultHostname: ${local.env.USER || local.username}-vote.dev-1.sys.garden
+    buildMode: cluster-docker
+  - name: kubernetes
+    environments: [testing]
+    context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
+    namespace: vote-testing-${local.env.CIRCLE_BUILD_NUM || local.username}
+    defaultHostname: vote-testing.dev-1.sys.garden
+    buildMode: cluster-docker
+    clusterDocker:
+      enableBuildKit: true

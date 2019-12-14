@@ -75,14 +75,14 @@ export class TestTask extends BaseTask {
     const dg = this.graph
     const deps = await dg.getDependencies("test", this.getName(), false)
 
-    const buildTask = new BuildTask({
+    const buildTasks = await BuildTask.factory({
       garden: this.garden,
       log: this.log,
       module: this.module,
       force: this.forceBuild,
     })
 
-    const taskTasks = await Bluebird.map(deps.task, (task) => {
+    const taskTasks = await Bluebird.map(deps.run, (task) => {
       return TaskTask.factory({
         task,
         garden: this.garden,
@@ -93,7 +93,7 @@ export class TestTask extends BaseTask {
       })
     })
 
-    const serviceTasks = deps.service.map(
+    const serviceTasks = deps.deploy.map(
       (service) =>
         new DeployTask({
           garden: this.garden,
@@ -105,7 +105,7 @@ export class TestTask extends BaseTask {
         })
     )
 
-    return [buildTask, ...serviceTasks, ...taskTasks]
+    return [...buildTasks, ...serviceTasks, ...taskTasks]
   }
 
   getName() {
@@ -249,5 +249,5 @@ export async function getTestVersion(
     // Don't include the module itself in the dependencies here
     .filter((m) => m.name !== module.name)
 
-  return garden.resolveVersion(module.name, moduleDeps)
+  return garden.resolveVersion(module, moduleDeps)
 }

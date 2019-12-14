@@ -94,9 +94,14 @@ export class DeleteEnvironmentCommand extends Command {
     printHeader(headerLog, `Deleting ${garden.environmentName} environment`, "skull_and_crossbones")
 
     const actions = await garden.getActionRouter()
-    const result = await actions.deleteEnvironment(log)
 
-    return { result }
+    const serviceStatuses = await actions.deleteServices(log)
+
+    log.info("")
+
+    const environmentStatuses = await actions.cleanupAll(log)
+
+    return { result: { serviceStatuses, environmentStatuses } }
   }
 }
 
@@ -126,7 +131,7 @@ export class DeleteServiceCommand extends Command {
   `
 
   async action({ garden, log, headerLog, args }: CommandParams<DeleteServiceArgs>): Promise<CommandResult> {
-    const graph = await garden.getConfigGraph()
+    const graph = await garden.getConfigGraph(log)
     const services = await graph.getServices(args.services)
 
     if (services.length === 0) {

@@ -17,7 +17,7 @@ describe("testHelmModule", () => {
   })
 
   beforeEach(async () => {
-    graph = await garden.getConfigGraph()
+    graph = await garden.getConfigGraph(garden.log)
   })
 
   it("should run a basic test", async () => {

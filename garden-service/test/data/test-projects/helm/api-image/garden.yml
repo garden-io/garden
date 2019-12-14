@@ -6,4 +6,3 @@ hotReload:
   sync:
   - source: "*"
     target: /app
-include: [Dockerfile]

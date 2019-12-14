@@ -18,6 +18,7 @@ import { ModuleConfig } from "../config/module"
 import { deline } from "./string"
 
 export function validateDependencies(moduleConfigs: ModuleConfig[], serviceNames: string[], taskNames: string[]): void {
+  // TODO: indicate in errors when modules are added by providers
   const missingDepsError = detectMissingDependencies(moduleConfigs, serviceNames, taskNames)
   const circularDepsError = detectCircularModuleDependencies(moduleConfigs)
 
@@ -69,7 +70,7 @@ export function detectMissingDependencies(
 
     for (const [configKey, entityName] of runtimeDepTypes) {
       for (const config of m[configKey]) {
-        for (const missingRuntimeDep of config.dependencies.filter((d) => !runtimeNames.has(d))) {
+        for (const missingRuntimeDep of config.dependencies.filter((d: string) => !runtimeNames.has(d))) {
           missingDepDescriptions.push(deline`
             ${entityName} '${config.name}' (in module '${m.name}'): Unknown service or task '${missingRuntimeDep}'
             referenced in dependencies.`)

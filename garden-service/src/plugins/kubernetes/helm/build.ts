@@ -31,9 +31,16 @@ export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<He
     try {
       await fetchChart(k8sCtx, namespace, log, module)
     } catch {
-      // update the local helm repo and retry
-      log.debug("Updating Helm repo...")
-      await helm({ ctx: k8sCtx, namespace, log, args: [...["repo", "update"]] })
+      // Update the local helm repos and retry
+      log.debug("Updating Helm repos...")
+      // The stable repo is no longer added by default
+      await helm({
+        ctx: k8sCtx,
+        namespace,
+        log,
+        args: ["repo", "add", "stable", "https://kubernetes-charts.storage.googleapis.com/"],
+      })
+      await helm({ ctx: k8sCtx, namespace, log, args: ["repo", "update"] })
       log.debug("Fetching chart (after updating)...")
       await fetchChart(k8sCtx, namespace, log, module)
     }
@@ -62,8 +69,6 @@ export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<He
 
 async function fetchChart(ctx: KubernetesPluginContext, namespace: string, log: LogEntry, module: HelmModule) {
   const buildPath = module.buildPath
-
-  await helm({ ctx, namespace, log, args: ["init", "--client-only"] })
 
   const fetchArgs = ["fetch", module.spec.chart!, "--destination", buildPath, "--untar"]
   if (module.spec.version) {

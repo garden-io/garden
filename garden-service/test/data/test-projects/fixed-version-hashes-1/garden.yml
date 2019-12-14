@@ -1,5 +1,5 @@
 kind: Project
-name: test-project-flat-config
+name: test-project-fixed-version-hashes-1
 environments:
   - name: local
     providers:
@@ -8,11 +8,3 @@ environments:
   - name: other
 variables:
   some: variable
-
----
-
-kind: Module
-name: module-from-project-config
-type: test
-build:
-  command: [echo, project]

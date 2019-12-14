@@ -1,0 +1,18 @@
+kind: Project
+name: test-project-nested-providers
+environments:
+  - name: local
+    providers:
+      - name: test-plugin
+      - name: test-plugin-b
+  - name: other
+variables:
+  some: variable
+
+---
+
+kind: Module
+name: module-from-project-config
+type: test
+build:
+  command: [echo, project]

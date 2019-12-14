@@ -5,5 +5,5 @@ dotIgnoreFiles:
   - .customignore
 environments:
   - name: local
-    providers:
-      - name: test-plugin
+providers:
+  - name: test-plugin

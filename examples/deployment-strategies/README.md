@@ -25,9 +25,9 @@ For more detailed configuration please check out the `garden.yml` file.
 kind: Project
 name: My Project
 environments:
-  # Blue-green deployment strategy on local-kubernetes.
   - name: local-blue-green
-    providers:
-      - name: local-kubernetes
-        deploymentStrategy: blue-green
+  providers:
+    # Blue-green deployment strategy on local-kubernetes.
+    - name: local-kubernetes
+      deploymentStrategy: blue-green
 ```

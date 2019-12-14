@@ -1,0 +1,24 @@
+kind: Project
+name: test-project-multiple-modules-config-bad
+environments:
+  - name: local
+    providers:
+      - name: test-plugin
+      - name: test-plugin-b
+  - name: other
+
+---
+
+kind: Module
+name: module-no-include-a
+type: test
+build:
+  command: [echo, module-a]
+
+---
+
+kind: Module
+name: module-no-include-b
+type: test
+build:
+  command: [echo, module-b]

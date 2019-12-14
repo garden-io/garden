@@ -40,6 +40,7 @@ import { dedent } from "../../util/string"
 import { pluginCommandSchema, PluginCommand } from "./command"
 import { getPortForward, GetPortForwardParams, GetPortForwardResult } from "./service/getPortForward"
 import { StopPortForwardParams, stopPortForward } from "./service/stopPortForward"
+import { AugmentGraphResult, AugmentGraphParams, augmentGraph } from "./provider/augmentGraph"
 
 export interface ActionHandlerParamsBase {
   base?: ActionHandler<any, any>
@@ -104,6 +105,7 @@ export interface PluginActionDescription {
 
 export interface PluginActionParams {
   configureProvider: ConfigureProviderParams
+  augmentGraph: AugmentGraphParams
 
   getEnvironmentStatus: GetEnvironmentStatusParams
   prepareEnvironment: PrepareEnvironmentParams
@@ -118,6 +120,7 @@ export interface PluginActionParams {
 
 export interface PluginActionOutputs {
   configureProvider: ConfigureProviderResult
+  augmentGraph: AugmentGraphResult
 
   getEnvironmentStatus: EnvironmentStatus
   prepareEnvironment: PrepareEnvironmentResult
@@ -132,6 +135,8 @@ export interface PluginActionOutputs {
 
 const _pluginActionDescriptions: { [P in PluginActionName]: PluginActionDescription } = {
   configureProvider,
+  augmentGraph,
+
   getEnvironmentStatus,
   prepareEnvironment,
   cleanupEnvironment,
@@ -290,6 +295,14 @@ export interface ModuleTypeDefinition extends ModuleTypeExtension {
   serviceOutputsSchema?: Joi.ObjectSchema
   taskOutputsSchema?: Joi.ObjectSchema
   title?: string
+}
+
+export interface ModuleType extends ModuleTypeDefinition {
+  needsBuild: boolean
+}
+
+export interface ModuleTypeMap {
+  [name: string]: ModuleType
 }
 
 export interface GardenPluginSpec {

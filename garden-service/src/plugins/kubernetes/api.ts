@@ -281,7 +281,7 @@ export class KubeApi {
     await this.config.applyToRequest(requestOpts)
 
     try {
-      log.silly(`GET ${url}`)
+      log.silly(`${requestOpts.method.toUpperCase()} ${url}`)
       return await request(requestOpts)
     } catch (err) {
       throw handleRequestPromiseError(err)
@@ -289,19 +289,37 @@ export class KubeApi {
   }
 
   async readBySpec(namespace: string, manifest: KubernetesResource, log: LogEntry) {
-    const name = manifest.metadata.name
-    log.silly(`Fetching Kubernetes resource ${manifest.apiVersion}/${manifest.kind}/${name}`)
+    log.silly(`Fetching Kubernetes resource ${manifest.apiVersion}/${manifest.kind}/${manifest.metadata.name}`)
 
-    const resourceInfo = await this.getApiResourceInfo(log, manifest)
-    const apiVersion = manifest.apiVersion
-    const basePath = getGroupBasePath(apiVersion)
-
-    const apiPath = resourceInfo.namespaced
-      ? `${basePath}/namespaces/${namespace}/${resourceInfo.name}/${name}`
-      : `${basePath}/${resourceInfo.name}/${name}`
+    const apiPath = await this.getApiPath(namespace, manifest, log)
 
     const res = await this.request(log, apiPath)
     return res.body
+  }
+
+  async deleteBySpec(namespace: string, manifest: KubernetesResource, log: LogEntry) {
+    log.silly(`Deleting Kubernetes resource ${manifest.apiVersion}/${manifest.kind}/${manifest.metadata.name}`)
+
+    const apiPath = await this.getApiPath(namespace, manifest, log)
+
+    try {
+      await this.request(log, apiPath, { method: "delete" })
+    } catch (err) {
+      if (err.code !== 404) {
+        throw err
+      }
+    }
+  }
+
+  private async getApiPath(namespace: string, manifest: KubernetesResource, log: LogEntry) {
+    const resourceInfo = await this.getApiResourceInfo(log, manifest)
+    const apiVersion = manifest.apiVersion
+    const name = manifest.metadata.name
+    const basePath = getGroupBasePath(apiVersion)
+
+    return resourceInfo.namespaced
+      ? `${basePath}/namespaces/${namespace}/${resourceInfo.name}/${name}`
+      : `${basePath}/${resourceInfo.name}/${name}`
   }
 
   async upsert<K extends keyof CrudMap, O extends KubernetesResource<CrudMapTypes[K]>>(

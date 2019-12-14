@@ -1,16 +1,21 @@
 kind: Project
 name: test-project-multiple-modules
+variables:
+  some: variable
 environments:
   - name: local
-    providers:
-      - name: test-plugin
-      - name: test-plugin-b
   - name: other
+providers:
+  - name: test-plugin
+    environments: [local]
+  - name: test-plugin-b
+    environments: [local]
 
 ---
 
 kind: Module
 name: module-from-project-config
+include: ["*"]
 type: test
 build:
   command: [echo, project]

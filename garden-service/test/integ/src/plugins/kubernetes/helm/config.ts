@@ -19,7 +19,7 @@ describe("validateHelmModule", () => {
     garden = await getHelmTestGarden()
     const provider = await garden.resolveProvider("local-kubernetes")
     ctx = garden.getPluginContext(provider)
-    await garden.resolveModuleConfigs()
+    await garden["resolveModuleConfigs"](garden.log)
     moduleConfigs = cloneDeep((<any>garden).moduleConfigs)
   })
 
@@ -32,8 +32,8 @@ describe("validateHelmModule", () => {
   }
 
   it("should validate a Helm module", async () => {
-    const config = await garden.resolveModuleConfig("api")
-    const graph = await garden.getConfigGraph()
+    const config = await garden.resolveModuleConfig(garden.log, "api")
+    const graph = await garden.getConfigGraph(garden.log)
     const imageModule = await graph.getModule("api-image")
     const { versionString } = imageModule.version
 
@@ -124,14 +124,14 @@ describe("validateHelmModule", () => {
 
   it("should not return a serviceConfig if skipDeploy=true", async () => {
     patchModuleConfig("api", { spec: { skipDeploy: true } })
-    const config = await garden.resolveModuleConfig("api")
+    const config = await garden.resolveModuleConfig(garden.log, "api")
 
     expect(config.serviceConfigs).to.eql([])
   })
 
   it("should add the module specified under 'base' as a build dependency", async () => {
     patchModuleConfig("postgres", { spec: { base: "foo" } })
-    const config = await garden.resolveModuleConfig("postgres")
+    const config = await garden.resolveModuleConfig(garden.log, "postgres")
 
     expect(config.build.dependencies).to.eql([{ name: "foo", copy: [{ source: "*", target: "." }] }])
   })
@@ -141,7 +141,7 @@ describe("validateHelmModule", () => {
       build: { dependencies: [{ name: "foo", copy: [] }] },
       spec: { base: "foo" },
     })
-    const config = await garden.resolveModuleConfig("postgres")
+    const config = await garden.resolveModuleConfig(garden.log, "postgres")
 
     expect(config.build.dependencies).to.eql([{ name: "foo", copy: [{ source: "*", target: "." }] }])
   })
@@ -157,7 +157,7 @@ describe("validateHelmModule", () => {
         ],
       },
     })
-    const config = await garden.resolveModuleConfig("api")
+    const config = await garden.resolveModuleConfig(garden.log, "api")
 
     expect(config.build.dependencies).to.eql([{ name: "foo", copy: [] }])
   })
@@ -173,7 +173,7 @@ describe("validateHelmModule", () => {
         ],
       },
     })
-    const config = await garden.resolveModuleConfig("api")
+    const config = await garden.resolveModuleConfig(garden.log, "api")
 
     expect(config.build.dependencies).to.eql([{ name: "foo", copy: [] }])
   })
@@ -182,7 +182,7 @@ describe("validateHelmModule", () => {
     patchModuleConfig("api", { spec: { base: "foo" } })
 
     await expectError(
-      () => garden.resolveModuleConfig("api"),
+      () => garden.resolveModuleConfig(garden.log, "api"),
       (err) =>
         expect(err.message).to.equal(deline`
         Helm module 'api' both contains sources and specifies a base module.
@@ -196,7 +196,7 @@ describe("validateHelmModule", () => {
     patchModuleConfig("postgres", { spec: { chart: null } })
 
     await expectError(
-      () => garden.resolveModuleConfig("postgres"),
+      () => garden.resolveModuleConfig(garden.log, "postgres"),
       (err) =>
         expect(err.message).to.equal(deline`
         Module 'postgres' neither specifies a chart name, base module, nor contains chart sources at \`chartPath\`.
