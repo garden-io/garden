@@ -143,7 +143,7 @@ interface ExecOpts extends execa.Options {
  */
 export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
   // Ensure buffer is always set to true so that we can read the error output
-  opts = { ...opts, buffer: true }
+  opts = { ...opts, buffer: true, all: true }
   const proc = execa(cmd, args, omit(opts, ["stdout", "stderr"]))
 
   opts.stdout && proc.stdout && proc.stdout.pipe(opts.stdout)
