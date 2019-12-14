@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { join, relative } from "path"
+import { join, relative, resolve } from "path"
 import { pathExists, readFile } from "fs-extra"
 import { createGardenPlugin } from "../../types/plugin/plugin"
 import { providerConfigBaseSchema, ProviderConfig, Provider } from "../../config/provider"
@@ -75,14 +75,40 @@ export const gardenPlugin = createGardenPlugin({
         return {}
       }
 
+      const allModuleNames = new Set(modules.map((m) => m.name))
+
+      const existingHadolintModuleDockerfiles = modules
+        .filter((m) => m.compatibleTypes.includes("hadolint"))
+        .map((m) => resolve(m.path, m.spec.dockerfilePath))
+
       return {
         addModules: await Bluebird.filter(modules, async (module) => {
-          return module.compatibleTypes.includes("container") && (await containerHelpers.hasDockerfile(module))
+          const dockerfilePath = containerHelpers.getDockerfileSourcePath(module)
+
+          return (
+            // Pick all container or container-based modules
+            module.compatibleTypes.includes("container") &&
+            // Make sure we don't step on an existing custom hadolint module
+            !existingHadolintModuleDockerfiles.includes(dockerfilePath) &&
+            // Only create for modules with Dockerfiles
+            (await containerHelpers.hasDockerfile(module))
+          )
         }).map((module) => {
+          const baseName = "hadolint-" + module.name
+
+          let name = baseName
+          let i = 2
+
+          while (allModuleNames.has(name)) {
+            name = `${baseName}-${i++}`
+          }
+
+          allModuleNames.add(name)
+
           return {
             kind: "Module",
             type: "hadolint",
-            name: "hadolint-" + module.name,
+            name,
             description: `hadolint test for module '${module.name}' (auto-generated)`,
             path: module.path,
             dockerfilePath: relative(module.path, containerHelpers.getDockerfileSourcePath(module)),
