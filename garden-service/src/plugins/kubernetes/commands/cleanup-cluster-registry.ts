@@ -393,7 +393,7 @@ async function cleanupBuildSyncVolume(provider: KubernetesProvider, log: LogEntr
     provider,
     log,
     args: deleteArgs,
-    timeout: 30,
+    timeout: 300,
     podName,
   })
 
