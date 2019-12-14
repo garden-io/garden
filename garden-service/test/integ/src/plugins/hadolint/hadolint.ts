@@ -252,7 +252,7 @@ describe("hadolint provider", () => {
       expect(result).to.exist
       expect(result!.error).to.exist
       expect(stripAnsi(result!.error!.message)).to.equal(dedent`
-      hadolint reported 1 error(s) and 0 warning(s):
+      hadolint reported 1 error(s):
 
       DL4000: MAINTAINER is deprecated
       2:   MAINTAINER foo
@@ -311,7 +311,7 @@ describe("hadolint provider", () => {
       expect(result).to.exist
       expect(result!.error).to.exist
       expect(stripAnsi(result!.error!.message)).to.equal(dedent`
-      hadolint reported 1 error(s) and 0 warning(s):
+      hadolint reported 1 error(s):
 
       DL4000: MAINTAINER is deprecated
       2:   MAINTAINER foo
