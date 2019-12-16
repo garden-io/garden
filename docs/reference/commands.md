@@ -449,6 +449,39 @@ Examples:
   | `--follow` | `-f` | boolean | Continuously stream new logs from the service(s).
   | `--tail` | `-t` | number | Number of lines to show for each service. Defaults to -1, showing all log lines.
 
+### garden migrate
+
+Migrate &#x60;garden.yml&#x60; configuration files to version v0.11.x
+
+Scans the project for `garden.yml` configuration files and updates those that are not compatible with version v0.11.
+By default the command prints the updated versions to the terminal. You can optionally update the files in place with the `write` flag.
+
+Note: This command does not validate the configs per se. It will simply try to convert a given configuration file so that
+it is compatible with version v0.11 or greater, regardless of whether that file was ever a valid Garden config. It is therefore
+recommended that this is used on existing `garden.yml` files that were valid in version v0.10.x.
+
+Examples:
+
+    garden migrate              # scans all garden.yml files and prints the updated versions along with the paths to them.
+    garden migrate --write      # scans all garden.yml files and overwrites them with the updated versions.
+    garden migrate ./garden.yml # scans the provided garden.yml file and prints the updated version.
+
+##### Usage
+
+    garden migrate [configPaths] [options]
+
+##### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `configPaths` | No | Specify the path to a &#x60;garden.yml&#x60; file to convert. Use comma as a separator to specify multiple files.
+
+##### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--write` |  | boolean | Update the &#x60;garden.yml&#x60; in place.
+
 ### garden options
 
 Print global options.

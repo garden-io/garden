@@ -1,0 +1,109 @@
+# 0
+kind: Project
+name: test-project-v10-config-noop
+environments:
+  - name: local
+  - name: other
+providers:
+  - name: test-plugin
+    environments: [local]
+  - name: test-plugin-b
+    environments: [other]
+
+---
+
+# 1
+project:
+  name: test-project-v10-config-nested
+  environments:
+    - name: local
+      providers:
+        - name: test-plugin
+        - name: test-plugin-b
+    - name: other
+
+---
+
+# 2
+kind: Project
+name: test-project-v10-config-env-defaults
+variables:
+  some: var
+environmentDefaults:
+  varfile: foobar
+  variables:
+    foo: bar
+  providers:
+    - name: test-plugin-c
+      context: foo
+      environments: ["local", "dev"]
+environments:
+  - name: local
+    providers:
+      - name: test-plugin
+      - name: test-plugin-b
+  - name: other
+
+---
+
+# 3
+kind: Project
+name: test-project-v10-config-local-openfaas
+environments:
+  - name: local
+providers:
+  - name: local-openfaas
+
+---
+
+# 4
+kind: Project
+name: test-project-v10-config-local-openfaas-nested
+environments:
+  - name: local
+    providers:
+      - name: local-openfaas
+
+---
+
+# 5
+module:
+  name: module-nested
+  type: test
+  build:
+    command: [echo, project]
+
+---
+
+# 6
+kind: Module
+name: module-local-openfaas
+type: local-openfaas
+build:
+  command: [echo, project]
+
+---
+
+# 7
+kind: Project
+name: test-project-v10-config-existing-openfaas-nested
+environments:
+  - name: local
+    providers:
+      - name: local-openfaas
+        gatewayUrl: bar
+      - name: openfaas
+        gatewayUrl: foo
+
+---
+
+# 8
+kind: Project
+name: test-project-v10-config-existing-openfaas
+environments:
+  - name: local
+providers:
+  - name: local-openfaas
+    gatewayUrl: bar
+  - name: openfaas
+    gatewayUrl: foo
