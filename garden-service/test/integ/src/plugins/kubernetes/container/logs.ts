@@ -59,7 +59,8 @@ describe("kubernetes", () => {
         follow: false,
         tail: -1,
       })
-
+      console.log(entries)
+      console.log(stream.toArray())
       expect(entries[0].msg).to.include("Server running...")
     })
   })
