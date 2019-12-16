@@ -772,7 +772,11 @@ export class ActionRouter implements TypeGuard {
     })
 
     // Resolve ${runtime.*} template strings if needed.
-    if (runtimeContext && (await getRuntimeTemplateReferences(module)).length > 0) {
+    const runtimeContextIsEmpty = runtimeContext
+      ? Object.keys(runtimeContext.envVars).length === 0 && runtimeContext.dependencies.length === 0
+      : true
+
+    if (!runtimeContextIsEmpty && (await getRuntimeTemplateReferences(module)).length > 0) {
       log.silly(`Resolving runtime template strings for service '${service.name}'`)
       const configContext = await this.garden.getModuleConfigContext(runtimeContext)
       const graph = await this.garden.getConfigGraph(log, { configContext })
