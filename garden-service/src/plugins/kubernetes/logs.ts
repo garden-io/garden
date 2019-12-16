@@ -11,8 +11,6 @@ import { omit } from "lodash"
 import moment = require("moment")
 
 import { GetServiceLogsResult, ServiceLogEntry } from "../../types/plugin/service/getServiceLogs"
-import { splitFirst } from "../../util/util"
-import { kubectl } from "./kubectl"
 import { KubernetesResource, KubernetesPod } from "./types"
 import { getAllPods } from "./util"
 import { KubeApi } from "./api"
@@ -21,6 +19,7 @@ import Stream from "ts-stream"
 import { LogEntry } from "../../logger/log-entry"
 import Bluebird from "bluebird"
 import { KubernetesProvider } from "./config"
+import { BinaryCmd } from "../../util/ext-tools"
 
 interface GetLogsBaseParams {
   defaultNamespace: string
@@ -44,6 +43,27 @@ interface GetLogsParams extends GetLogsBaseParams {
   pod: KubernetesPod
 }
 
+const STERN_NAME = "stern"
+const STERN_TIME_OUT = 300
+const stern = new BinaryCmd({
+  name: STERN_NAME,
+  defaultTimeout: STERN_TIME_OUT,
+  specs: {
+    darwin: {
+      url: "https://github.com/wercker/stern/releases/download/1.11.0/stern_darwin_amd64",
+      sha256: "7aea3b6691d47b3fb844dfc402905790665747c1e6c02c5cabdd41994533d7e9",
+    },
+    linux: {
+      url: "https://github.com/wercker/stern/releases/download/1.11.0/stern_linux_amd64",
+      sha256: "e0b39dc26f3a0c7596b2408e4fb8da533352b76aaffdc18c7ad28c833c9eb7db",
+    },
+    win32: {
+      url: "https://github.com/wercker/stern/releases/download/1.11.0/stern_windows_amd64.exe",
+      sha256: "75708b9acf6ef0eeffbe1f189402adc0405f1402e6b764f1f5152ca288e3109e",
+    },
+  },
+})
+
 /**
  * Stream all logs for the given pod names and service.
  */
@@ -56,11 +76,9 @@ export async function getPodLogs(params: GetPodLogsParams) {
       return resolve({})
     }
     for (const proc of procs) {
-      proc.on("error", reject)
+      proc.on("error", () => reject)
 
-      proc.on("exit", () => {
-        resolve({})
-      })
+      proc.on("exit", () => resolve({}))
     }
   })
 }
@@ -74,21 +92,20 @@ export async function getAllLogs(params: GetAllLogsParams) {
   return getPodLogs({ ...params, pods })
 }
 
-async function getLogs({ log, provider, service, stream, tail, follow, pod }: GetLogsParams) {
-  // TODO: do this via API instead of kubectl
-  const kubectlArgs = ["logs", "--tail", String(tail), "--timestamps=true", "--all-containers=true"]
+async function getLogs({ log, provider, service, stream, tail, pod }: GetLogsParams) {
+  const sternArgs = [
+    `--context=${provider.config.context}`,
+    `--namespace=${pod.metadata.namespace}`,
+    "--tail",
+    String(tail),
+    "-t",
+  ]
 
-  if (follow) {
-    kubectlArgs.push("--follow=true")
-  }
+  sternArgs.push(`-l module=${service.module.name}`)
 
-  kubectlArgs.push(`pod/${pod.metadata.name}`)
-
-  const proc = await kubectl.spawn({
-    args: kubectlArgs,
+  const proc = await stern.spawn({
+    args: sternArgs,
     log,
-    provider,
-    namespace: pod.metadata.namespace,
   })
   let timestamp: Date
 
@@ -96,16 +113,20 @@ async function getLogs({ log, provider, service, stream, tail, follow, pod }: Ge
     if (!s) {
       return
     }
-    const [timestampStr, msg] = splitFirst(s, " ")
+    const [timestampStr, msg] = parseSternLogMessage(s)
     try {
       timestamp = moment(timestampStr).toDate()
     } catch {}
     void stream.write({
-      serviceName: service.name,
+      serviceName: service.name.trim(),
       timestamp,
       msg: `${pod.metadata.name} ${msg}`,
     })
   })
 
   return proc
+}
+function parseSternLogMessage(message: string): string[] {
+  const risk = message.split(" ")
+  return [risk[2], risk.slice(3, risk.length - 1).join(" ")]
 }
