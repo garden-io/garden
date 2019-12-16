@@ -1,0 +1,13 @@
+kind: Project
+name: test-project-v10-config-errors-varfile
+environments:
+  - name: local
+  - name: other
+environmentDefaults:
+  varfile: foo.env
+varfile: bar.env
+providers:
+  - name: test-plugin
+    environments: [local]
+  - name: test-plugin-b
+    environments: [other]
