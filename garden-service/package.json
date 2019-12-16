@@ -23,7 +23,7 @@
     "static"
   ],
   "dependencies": {
-    "@hapi/joi": "^15.1.1",
+    "@hapi/joi": "https://github.com/garden-io/joi#master",
     "@kubernetes/client-node": "^0.11.0",
     "JSONStream": "^1.3.5",
     "analytics-node": "3.3.0",
@@ -144,7 +144,7 @@
     "@types/fs-extra": "^8.0.1",
     "@types/glob": "^7.1.1",
     "@types/google-cloud__kms": "^1.5.0",
-    "@types/hapi__joi": "^15.0.4",
+    "@types/hapi__joi": "^16.0.5",
     "@types/has-ansi": "^3.0.0",
     "@types/inquirer": "6.5.0",
     "@types/ip": "^1.1.0",

@@ -75,7 +75,7 @@ const resourceSchema = joi.object().keys({
   // TODO: allow using a Pod directly
   kind: joi
     .string()
-    .only(...hotReloadableKinds)
+    .valid(...hotReloadableKinds)
     .default("Deployment")
     .description("The type of Kubernetes resource to sync files to."),
   name: joi.string().description(
@@ -106,7 +106,7 @@ const resourceSchema = joi.object().keys({
     .array()
     .items(joi.string())
     .description("If specified, overrides the arguments for the main container when running in hot-reload mode.")
-    .example([["nodemon", "my-server.js"], {}]),
+    .example(["nodemon", "my-server.js"]),
 })
 
 export const taskSchema = baseTaskSpecSchema.keys({
@@ -119,12 +119,12 @@ export const taskSchema = baseTaskSpecSchema.keys({
     .array()
     .items(joi.string())
     .description("The command/entrypoint used to run the task inside the container.")
-    .example([commandExample, {}]),
+    .example(commandExample),
   args: joi
     .array()
     .items(joi.string())
     .description("The arguments to pass to the pod used for execution.")
-    .example([["rake", "db:migrate"], {}]),
+    .example(["rake", "db:migrate"]),
   env: containerEnvVarsSchema,
   artifacts: joiArray(containerArtifactSchema).description(
     "Specify artifacts to copy out of the container after the task is complete."
@@ -141,12 +141,12 @@ export const testSchema = baseTestSpecSchema.keys({
     .array()
     .items(joi.string())
     .description("The command/entrypoint used to run the test inside the container.")
-    .example([commandExample, {}]),
+    .example(commandExample),
   args: joi
     .array()
     .items(joi.string())
     .description("The arguments to pass to the pod used for testing.")
-    .example([["npm", "test"], {}]),
+    .example(["npm", "test"]),
   env: containerEnvVarsSchema,
   artifacts: joiArray(containerArtifactSchema).description(
     "Specify artifacts to copy out of the container after the test is complete."
@@ -172,14 +172,13 @@ export interface HelmServiceSpec extends ServiceSpec {
 
 export type HelmService = Service<HelmModule, ContainerModule>
 
-const parameterValueSchema = joi.alternatives(
-  joiPrimitive(),
-  joi.array().items(joi.lazy(() => parameterValueSchema)),
-  joi.object().pattern(
-    /.+/,
-    joi.lazy(() => parameterValueSchema)
+const parameterValueSchema = joi
+  .alternatives(
+    joiPrimitive(),
+    joi.array().items(joi.link("#parameterValue")),
+    joi.object().pattern(/.+/, joi.link("#parameterValue"))
   )
-)
+  .id("parameterValue")
 
 export const helmModuleOutputsSchema = joi.object().keys({
   "release-name": joi
@@ -209,8 +208,8 @@ export const helmModuleSpecSchema = joi.object().keys({
     )
     .example("stable/nginx-ingress"),
   chartPath: joi
-    .string()
-    .posixPath({ subPathOnly: true })
+    .posixPath()
+    .subPathOnly()
     .description(
       deline`The path, relative to the module path, to the chart sources (i.e. where the Chart.yaml file is, if any).
       Not used when \`base\` is specified.`
@@ -259,12 +258,12 @@ export const helmModuleSpecSchema = joi.object().keys({
   values: joi
     .object()
     .pattern(/.+/, parameterValueSchema)
-    .default(() => ({}), "{}").description(deline`
+    .default(() => ({})).description(deline`
       Map of values to pass to Helm when rendering the templates. May include arrays and nested objects.
       When specified, these take precedence over the values in the \`values.yaml\` file (or the files specified
       in \`valueFiles\`).
     `),
-  valueFiles: joiArray(joi.string().posixPath({ subPathOnly: true })).description(dedent`
+  valueFiles: joiArray(joi.posixPath().subPathOnly()).description(dedent`
       Specify value files to use when rendering the Helm chart. These will take precedence over the \`values.yaml\` file
       bundled in the Helm chart, and should be specified in ascending order of precedence. Meaning, the last file in
       this list will have the highest precedence.

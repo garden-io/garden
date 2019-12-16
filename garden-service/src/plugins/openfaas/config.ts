@@ -52,9 +52,9 @@ export const openfaasModuleSpecSchema = joi
     ),
     env: joiEnvVars(),
     handler: joi
-      .string()
+      .posixPath()
+      .subPathOnly()
       .default(".")
-      .posixPath({ subPathOnly: true })
       .description("Specify which directory under the module contains the handler file/function."),
     image: joi
       .string()

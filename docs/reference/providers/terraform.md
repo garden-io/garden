@@ -100,9 +100,9 @@ This is useful when other providers need to be able to reference the outputs fro
 
 See the [Terraform guide](../../guides/terraform.md) for more information.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | No       |
 
 ### `providers[].variables`
 

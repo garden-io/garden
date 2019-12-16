@@ -62,7 +62,7 @@ export const kubernetesModuleSpecSchema = joi.object().keys({
           List of Kubernetes resource manifests to deploy. Use this instead of the \`files\` field if you need to
           resolve template strings in any of the manifests.`
   ),
-  files: joiArray(joi.string().posixPath({ subPathOnly: true })).description(
+  files: joiArray(joi.posixPath().subPathOnly()).description(
     "POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests."
   ),
   include: joiModuleIncludeDirective(dedent`

@@ -72,7 +72,7 @@ export const moduleSchema = moduleConfigSchema.keys({
     .required()
     .description("The path to the module config file."),
   version: moduleVersionSchema.required(),
-  buildDependencies: joiIdentifierMap(joi.lazy(() => moduleSchema))
+  buildDependencies: joiIdentifierMap(joi.link("..."))
     .required()
     .description("A map of all modules referenced under `build.dependencies`."),
   needsBuild: joi

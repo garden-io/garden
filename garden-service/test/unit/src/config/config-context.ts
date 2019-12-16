@@ -207,23 +207,12 @@ describe("ConfigContext", () => {
       expect(description).to.eql({
         type: "object",
         flags: { presence: "required" },
-        children: {
-          key: {
-            type: "string",
-            description: "Some description",
-            invalids: [""],
-          },
+        keys: {
+          key: { type: "string", flags: { description: "Some description" } },
           nested: {
             type: "object",
-            flags: { presence: "required" },
-            description: "A nested context",
-            children: {
-              nestedKey: {
-                type: "string",
-                description: "Nested description",
-                invalids: [""],
-              },
-            },
+            flags: { presence: "required", description: "A nested context" },
+            keys: { nestedKey: { type: "string", flags: { description: "Nested description" } } },
           },
         },
       })

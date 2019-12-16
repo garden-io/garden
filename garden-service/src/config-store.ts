@@ -12,7 +12,7 @@ import { ensureFile, readFile } from "fs-extra"
 import { get, isPlainObject, unset } from "lodash"
 
 import { Primitive, joiArray, joiUserIdentifier, joiPrimitive, joi } from "./config/common"
-import { validate } from "./config/validation"
+import { validateSchema } from "./config/validation"
 import { LocalConfigError } from "./exceptions"
 import { dumpYaml } from "./util/util"
 import { LOCAL_CONFIG_FILENAME, GLOBAL_CONFIG_FILENAME, GARDEN_GLOBAL_PATH } from "./constants"
@@ -215,7 +215,7 @@ export class LocalConfigStore extends ConfigStore<LocalConfig> {
   }
 
   validate(config): LocalConfig {
-    return validate(config, localConfigSchema, {
+    return validateSchema(config, localConfigSchema, {
       context: this.configPath,
       ErrorClass: LocalConfigError,
     })
@@ -300,7 +300,7 @@ export class GlobalConfigStore extends ConfigStore<GlobalConfig> {
   }
 
   validate(config): GlobalConfig {
-    return validate(config, globalConfigSchema, {
+    return validateSchema(config, globalConfigSchema, {
       context: this.configPath,
       ErrorClass: LocalConfigError,
     })

@@ -96,7 +96,7 @@ build:
           # POSIX-style path or filename to copy the directory or file(s), relative to the build
           # directory.
           # Defaults to to same as source path.
-          target: <same as source path>
+          target: ''
 
 # Specify a module whose sources we want to test.
 sourceModule:
@@ -177,9 +177,9 @@ source tree, which use the same format as `.gitignore` files. See the
 
 Also note that specifying an empty list here means _no sources_ should be included.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `array[posixPath]` | No       |
 
 Example:
 
@@ -203,9 +203,9 @@ Unlike the `modules.exclude` field in the project config, the filters here have 
 and directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have
 large directories that should not be watched for changes.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `array[posixPath]` | No       |
 
 Example:
 
@@ -222,9 +222,9 @@ A remote repository URL. Currently only supports git servers. Must contain a has
 Garden will import the repository source code into this module, but read the module's
 config from the local garden.yml file.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
+| Type              | Required |
+| ----------------- | -------- |
+| `gitUrl | string` | No       |
 
 Example:
 
@@ -293,9 +293,9 @@ Specify one or more files or directories to copy from the built dependency to th
 
 POSIX-style path or filename of the directory or file(s) to copy to the target.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
 
 ### `build.dependencies[].copy[].target`
 
@@ -304,9 +304,9 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
 Defaults to to same as source path.
 
-| Type     | Required | Default                   |
-| -------- | -------- | ------------------------- |
-| `string` | No       | `"<same as source path>"` |
+| Type        | Required | Default |
+| ----------- | -------- | ------- |
+| `posixPath` | No       | `""`    |
 
 ### `sourceModule`
 
@@ -322,9 +322,9 @@ POSIX-style path to a directory containing the policies to match the config agai
 Must be a relative path, and should in most cases be within the project root.
 Defaults to the `policyPath` set in the provider config.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | No       |
 
 ### `namespace`
 
@@ -338,9 +338,9 @@ The policy namespace in which to find _deny_ and _warn_ rules.
 
 A list of files to test with the given policy. Must be POSIX-style paths, and may include wildcards.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | Yes      |
+| Type               | Required |
+| ------------------ | -------- |
+| `array[posixPath]` | Yes      |
 
 
 ## Outputs

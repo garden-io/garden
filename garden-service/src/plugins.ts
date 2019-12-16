@@ -13,7 +13,7 @@ import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
 import { uniq, mapValues, fromPairs, flatten } from "lodash"
 import { findByName, pushToKey, getNames } from "./util/util"
 import { deline, naturalList } from "./util/string"
-import { validate } from "./config/validation"
+import { validateSchema } from "./config/validation"
 import { LogEntry } from "./logger/log-entry"
 
 export function loadPlugins(log: LogEntry, registeredPlugins: PluginMap, configs: ProviderConfig[]) {
@@ -31,7 +31,7 @@ export function loadPlugins(log: LogEntry, registeredPlugins: PluginMap, configs
       return null
     }
 
-    plugin = validate(plugin, pluginSchema, {
+    plugin = validateSchema(plugin, pluginSchema, {
       context: `plugin "${name}"`,
     })
 

@@ -68,9 +68,9 @@ const mavenKeys = {
     .example("11-jdk"),
   include: joiModuleIncludeDirective(),
   jarPath: joi
-    .string()
+    .posixPath()
+    .subPathOnly()
     .required()
-    .posixPath({ subPathOnly: true })
     .description("POSIX-style path to the packaged JAR artifact, relative to the module directory.")
     .example("target/my-module.jar"),
   jdkVersion: joi

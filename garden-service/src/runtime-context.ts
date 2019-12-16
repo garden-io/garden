@@ -39,7 +39,7 @@ const runtimeDependencySchema = joi.object().keys({
   outputs: joiEnvVars().description("The outputs provided by the service (e.g. ingress URLs etc.)."),
   type: joi
     .string()
-    .only("service", "task")
+    .valid("service", "task")
     .description("The type of the dependency."),
   version: moduleVersionSchema,
 })
@@ -51,7 +51,7 @@ export const runtimeContextSchema = joi
     envVars: joi
       .object()
       .pattern(/.+/, joiPrimitive())
-      .default(() => ({}), "{}")
+      .default(() => ({}))
       .unknown(false)
       .description(
         "Key/value map of environment variables. Keys must be valid POSIX environment variable names " +

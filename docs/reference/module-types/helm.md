@@ -98,7 +98,7 @@ build:
           # POSIX-style path or filename to copy the directory or file(s), relative to the build
           # directory.
           # Defaults to to same as source path.
-          target: <same as source path>
+          target: ''
 
 # The name of another `helm` module to use as a base for this one. Use this to re-use a Helm chart
 # across multiple services. For example, you might have an organization-wide base chart for
@@ -372,9 +372,9 @@ automatically sets `include` to: `["*", "charts/**/*", "templates/**/*"]`.
 If neither `include` nor `exclude` is set and the module specifies a remote chart, Garden
 automatically sets `ìnclude` to `[]`.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `array[posixPath]` | No       |
 
 Example:
 
@@ -398,9 +398,9 @@ Unlike the `modules.exclude` field in the project config, the filters here have 
 and directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have
 large directories that should not be watched for changes.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `array[posixPath]` | No       |
 
 Example:
 
@@ -417,9 +417,9 @@ A remote repository URL. Currently only supports git servers. Must contain a has
 Garden will import the repository source code into this module, but read the module's
 config from the local garden.yml file.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
+| Type              | Required |
+| ----------------- | -------- |
+| `gitUrl | string` | No       |
 
 Example:
 
@@ -488,9 +488,9 @@ Specify one or more files or directories to copy from the built dependency to th
 
 POSIX-style path or filename of the directory or file(s) to copy to the target.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
 
 ### `build.dependencies[].copy[].target`
 
@@ -499,9 +499,9 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
 Defaults to to same as source path.
 
-| Type     | Required | Default                   |
-| -------- | -------- | ------------------------- |
-| `string` | No       | `"<same as source path>"` |
+| Type        | Required | Default |
+| ----------- | -------- | ------- |
+| `posixPath` | No       | `""`    |
 
 ### `base`
 
@@ -537,9 +537,9 @@ chart: "stable/nginx-ingress"
 
 The path, relative to the module path, to the chart sources (i.e. where the Chart.yaml file is, if any). Not used when `base` is specified.
 
-| Type     | Required | Default |
-| -------- | -------- | ------- |
-| `string` | No       | `"."`   |
+| Type        | Required | Default |
+| ----------- | -------- | ------- |
+| `posixPath` | No       | `"."`   |
 
 ### `dependencies`
 
@@ -837,11 +837,12 @@ Example:
 ```yaml
 tasks:
   - env:
-      MY_VAR: some-value
-      MY_SECRET_VAR:
-        secretRef:
-          name: my-secret
-          key: some-key
+      - MY_VAR: some-value
+        MY_SECRET_VAR:
+          secretRef:
+            name: my-secret
+            key: some-key
+      - {}
 ```
 
 ### `tasks[].artifacts[]`
@@ -860,9 +861,9 @@ Specify artifacts to copy out of the container after the task is complete.
 
 A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
 
 Example:
 
@@ -878,9 +879,9 @@ tasks:
 
 A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
 
-| Type     | Required | Default |
-| -------- | -------- | ------- |
-| `string` | No       | `"."`   |
+| Type        | Required | Default |
+| ----------- | -------- | ------- |
+| `posixPath` | No       | `"."`   |
 
 Example:
 
@@ -1064,11 +1065,12 @@ Example:
 ```yaml
 tests:
   - env:
-      MY_VAR: some-value
-      MY_SECRET_VAR:
-        secretRef:
-          name: my-secret
-          key: some-key
+      - MY_VAR: some-value
+        MY_SECRET_VAR:
+          secretRef:
+            name: my-secret
+            key: some-key
+      - {}
 ```
 
 ### `tests[].artifacts[]`
@@ -1087,9 +1089,9 @@ Specify artifacts to copy out of the container after the test is complete.
 
 A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
 
 Example:
 
@@ -1105,9 +1107,9 @@ tests:
 
 A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
 
-| Type     | Required | Default |
-| -------- | -------- | ------- |
-| `string` | No       | `"."`   |
+| Type        | Required | Default |
+| ----------- | -------- | ------- |
+| `posixPath` | No       | `"."`   |
 
 Example:
 
@@ -1153,9 +1155,9 @@ of this list, so they will take precedence over other files listed here.
 Note that the paths here should be relative to the _module_ root, and the files should be contained in
 your module directory.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[string]` | No       | `[]`    |
+| Type               | Required | Default |
+| ------------------ | -------- | ------- |
+| `array[posixPath]` | No       | `[]`    |
 
 
 ## Outputs

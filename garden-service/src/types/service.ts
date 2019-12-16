@@ -128,7 +128,7 @@ export const serviceIngressSpecSchema = joi.object().keys({
     .description("The ingress path that should be matched to route to this service."),
   protocol: joi
     .string()
-    .only("http", "https")
+    .valid("http", "https")
     .required()
     .description("The protocol to use for the ingress."),
 })
@@ -228,7 +228,7 @@ export const serviceStatusSchema = joi.object().keys({
   runningReplicas: joi.number().description("How many replicas of the service are currently running."),
   state: joi
     .string()
-    .only("ready", "deploying", "stopped", "unhealthy", "unknown", "outdated", "missing")
+    .valid("ready", "deploying", "stopped", "unhealthy", "unknown", "outdated", "missing")
     .default("unknown")
     .description("The current deployment status of the service."),
   updatedAt: joi.string().description("When the service was last updated by the provider."),

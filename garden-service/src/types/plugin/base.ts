@@ -39,7 +39,7 @@ export interface PluginModuleActionParamsBase<T extends Module = Module> extends
   module: T
 }
 export const moduleActionParamsSchema = actionParamsSchema.keys({
-  module: joi.lazy(() => moduleSchema),
+  module: moduleSchema,
 })
 
 export interface PluginServiceActionParamsBase<M extends Module = Module, S extends Module = Module>
