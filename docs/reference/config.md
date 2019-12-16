@@ -31,7 +31,8 @@ kind: Project
 # The name of the project.
 name:
 
-# The default environment to use when calling commands without the `--env` parameter.
+# The default environment to use when calling commands without the `--env` parameter. Defaults to
+# the first configured environment.
 defaultEnvironment: ''
 
 # Specify a list of filenames that should be used as ".ignore" files across the project, using the
@@ -148,7 +149,7 @@ environments:
     # If you don't set the field and the `garden.<env-name>.env` file does not exist,
     # we simply ignore it. If you do override the default value and the file doesn't exist, an
     # error will be thrown.
-    varfile: garden.<env-name>.env
+    varfile:
     # A key/value map of variables that modules can reference when using this environment. These
     # take precedence over variables defined in the top-level `variables` field.
     variables: {}
@@ -201,7 +202,7 @@ name: "my-sweet-project"
 
 ### `defaultEnvironment`
 
-The default environment to use when calling commands without the `--env` parameter.
+The default environment to use when calling commands without the `--env` parameter. Defaults to the first configured environment.
 
 | Type     | Required | Default |
 | -------- | -------- | ------- |
@@ -213,9 +214,9 @@ Specify a list of filenames that should be used as ".ignore" files across the pr
 Note that these take precedence over the project `module.include` field, and module `include` fields, so any paths matched by the .ignore files will be ignored even if they are explicitly specified in those fields.
 See the [Configuration Files guide] (https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
 
-| Type            | Required | Default                          |
-| --------------- | -------- | -------------------------------- |
-| `array[string]` | No       | `[".gitignore",".gardenignore"]` |
+| Type               | Required | Default                          |
+| ------------------ | -------- | -------------------------------- |
+| `array[posixPath]` | No       | `[".gitignore",".gardenignore"]` |
 
 ### `modules`
 
@@ -239,9 +240,9 @@ should not be watched for changes.
 
 Also note that specifying an empty list here means _no paths_ should be included.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `array[posixPath]` | No       |
 
 Example:
 
@@ -278,9 +279,9 @@ The `include` field does _not_ affect which files are watched.
 
 See the [Configuration Files guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `array[posixPath]` | No       |
 
 Example:
 
@@ -360,9 +361,9 @@ The name of the source to import
 
 A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type              | Required |
+| ----------------- | -------- |
+| `gitUrl | string` | Yes      |
 
 Example:
 
@@ -383,9 +384,9 @@ If you do override the default value and the file doesn't exist, an error will b
 _Note that in many cases it is advisable to only use environment-specific var files, instead of combining
 multiple ones. See the `environments[].varfile` field for this option._
 
-| Type     | Required | Default        |
-| -------- | -------- | -------------- |
-| `string` | No       | `"garden.env"` |
+| Type        | Required | Default        |
+| ----------- | -------- | -------------- |
+| `posixPath` | No       | `"garden.env"` |
 
 ### `variables`
 
@@ -460,9 +461,9 @@ _environment-specific_ `variables` field. The file should be in a standard "dote
 If you don't set the field and the `garden.<env-name>.env` file does not exist,
 we simply ignore it. If you do override the default value and the file doesn't exist, an error will be thrown.
 
-| Type     | Required | Default                   |
-| -------- | -------- | ------------------------- |
-| `string` | No       | `"garden.<env-name>.env"` |
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | No       |
 
 ### `environments[].variables`
 
@@ -578,7 +579,7 @@ build:
           # POSIX-style path or filename to copy the directory or file(s), relative to the build
           # directory.
           # Defaults to to same as source path.
-          target: <same as source path>
+          target: ''
 ```
 
 ## Module configuration keys
@@ -644,9 +645,9 @@ source tree, which use the same format as `.gitignore` files. See the
 
 Also note that specifying an empty list here means _no sources_ should be included.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `array[posixPath]` | No       |
 
 Example:
 
@@ -670,9 +671,9 @@ Unlike the `modules.exclude` field in the project config, the filters here have 
 and directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have
 large directories that should not be watched for changes.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `array[posixPath]` | No       |
 
 Example:
 
@@ -689,9 +690,9 @@ A remote repository URL. Currently only supports git servers. Must contain a has
 Garden will import the repository source code into this module, but read the module's
 config from the local garden.yml file.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
+| Type              | Required |
+| ----------------- | -------- |
+| `gitUrl | string` | No       |
 
 Example:
 
@@ -760,9 +761,9 @@ Specify one or more files or directories to copy from the built dependency to th
 
 POSIX-style path or filename of the directory or file(s) to copy to the target.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
 
 ### `build.dependencies[].copy[].target`
 
@@ -771,8 +772,8 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
 Defaults to to same as source path.
 
-| Type     | Required | Default                   |
-| -------- | -------- | ------------------------- |
-| `string` | No       | `"<same as source path>"` |
+| Type        | Required | Default |
+| ----------- | -------- | ------- |
+| `posixPath` | No       | `""`    |
 
 

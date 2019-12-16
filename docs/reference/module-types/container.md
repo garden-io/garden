@@ -104,7 +104,7 @@ build:
           # POSIX-style path or filename to copy the directory or file(s), relative to the build
           # directory.
           # Defaults to to same as source path.
-          target: <same as source path>
+          target: ''
 
   # For multi-stage Dockerfiles, specify which image to build (see
   # https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target
@@ -244,7 +244,7 @@ services:
         # directly with http://my-service/some-endpoint.
         # The service port maps to the container port:
         # `servicePort:80 -> containerPort:8080 -> process:8080`
-        servicePort: <same as containerPort>
+        servicePort:
         hostPort:
         # Set this to expose the service on the specified port on the host node (may not be
         # supported by all providers). Set to `true` to have the cluster pick a port
@@ -398,9 +398,9 @@ folders added to the Docker image (via the `COPY` and `ADD` directives in the Do
 If neither `include` nor `exclude` is set, and the module
 specifies a remote image, Garden automatically sets `include` to `[]`.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `array[posixPath]` | No       |
 
 Example:
 
@@ -424,9 +424,9 @@ Unlike the `modules.exclude` field in the project config, the filters here have 
 and directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have
 large directories that should not be watched for changes.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `array[posixPath]` | No       |
 
 Example:
 
@@ -443,9 +443,9 @@ A remote repository URL. Currently only supports git servers. Must contain a has
 Garden will import the repository source code into this module, but read the module's
 config from the local garden.yml file.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
+| Type              | Required |
+| ----------------- | -------- |
+| `gitUrl | string` | No       |
 
 Example:
 
@@ -514,9 +514,9 @@ Specify one or more files or directories to copy from the built dependency to th
 
 POSIX-style path or filename of the directory or file(s) to copy to the target.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
 
 ### `build.dependencies[].copy[].target`
 
@@ -525,9 +525,9 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
 Defaults to to same as source path.
 
-| Type     | Required | Default                   |
-| -------- | -------- | ------------------------- |
-| `string` | No       | `"<same as source path>"` |
+| Type        | Required | Default |
+| ----------- | -------- | ------- |
+| `posixPath` | No       | `""`    |
 
 ### `build.targetImage`
 
@@ -597,9 +597,9 @@ Specify one or more source files or directories to automatically sync into the r
 
 POSIX-style path of the directory to sync to the target, relative to the module's top-level directory. Must be a relative path if provided. Defaults to the module's top-level directory if no value is provided.
 
-| Type     | Required | Default |
-| -------- | -------- | ------- |
-| `string` | No       | `"."`   |
+| Type        | Required | Default |
+| ----------- | -------- | ------- |
+| `posixPath` | No       | `"."`   |
 
 Example:
 
@@ -616,9 +616,9 @@ hotReload:
 
 POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is not allowed.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
 
 Example:
 
@@ -652,9 +652,9 @@ hotReload:
 
 POSIX-style name of Dockerfile, relative to module root.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | No       |
 
 ### `services`
 
@@ -854,11 +854,12 @@ Example:
 ```yaml
 services:
   - env:
-      MY_VAR: some-value
-      MY_SECRET_VAR:
-        secretRef:
-          name: my-secret
-          key: some-key
+      - MY_VAR: some-value
+        MY_SECRET_VAR:
+          secretRef:
+            name: my-secret
+            key: some-key
+      - {}
 ```
 
 ### `services[].healthCheck`
@@ -1059,9 +1060,9 @@ It is common to use port 80, the default port number, so that you can call the s
 The service port maps to the container port:
 `servicePort:80 -> containerPort:8080 -> process:8080`
 
-| Type     | Required | Default                     |
-| -------- | -------- | --------------------------- |
-| `number` | No       | `"<same as containerPort>"` |
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
 
 Example:
 
@@ -1127,9 +1128,9 @@ The name of the allocated volume.
 
 The path where the volume should be mounted in the container.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
 
 ### `services[].volumes[].hostPath`
 
@@ -1141,9 +1142,9 @@ and providers. Some providers may not support it at all._
 A local path or path on the node that's running the container, to mount in the container, relative to the
 module source path (or absolute).
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | No       |
 
 Example:
 
@@ -1235,9 +1236,9 @@ tests:
 
 A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
 
 Example:
 
@@ -1254,9 +1255,9 @@ tests:
 
 A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
 
-| Type     | Required | Default |
-| -------- | -------- | ------- |
-| `string` | No       | `"."`   |
+| Type        | Required | Default |
+| ----------- | -------- | ------- |
+| `posixPath` | No       | `"."`   |
 
 Example:
 
@@ -1301,11 +1302,12 @@ Example:
 ```yaml
 tests:
   - env:
-      MY_VAR: some-value
-      MY_SECRET_VAR:
-        secretRef:
-          name: my-secret
-          key: some-key
+      - MY_VAR: some-value
+        MY_SECRET_VAR:
+          secretRef:
+            name: my-secret
+            key: some-key
+      - {}
 ```
 
 ### `tasks`
@@ -1400,9 +1402,9 @@ tasks:
 
 A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
 
 Example:
 
@@ -1419,9 +1421,9 @@ tasks:
 
 A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
 
-| Type     | Required | Default |
-| -------- | -------- | ------- |
-| `string` | No       | `"."`   |
+| Type        | Required | Default |
+| ----------- | -------- | ------- |
+| `posixPath` | No       | `"."`   |
 
 Example:
 
@@ -1466,11 +1468,12 @@ Example:
 ```yaml
 tasks:
   - env:
-      MY_VAR: some-value
-      MY_SECRET_VAR:
-        secretRef:
-          name: my-secret
-          key: some-key
+      - MY_VAR: some-value
+        MY_SECRET_VAR:
+          secretRef:
+            name: my-secret
+            key: some-key
+      - {}
 ```
 
 

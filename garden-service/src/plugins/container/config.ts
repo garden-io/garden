@@ -99,8 +99,10 @@ export const commandExample = ["/bin/sh", "-c"]
 
 const hotReloadSyncSchema = joi.object().keys({
   source: joi
-    .string()
-    .posixPath({ allowGlobs: true, subPathOnly: true, relativeOnly: true })
+    .posixPath()
+    .relativeOnly()
+    .subPathOnly()
+    .allowGlobs()
     .default(".")
     .description(
       deline`
@@ -109,8 +111,8 @@ const hotReloadSyncSchema = joi.object().keys({
     )
     .example("src"),
   target: joi
-    .string()
-    .posixPath({ absoluteOnly: true })
+    .posixPath()
+    .absoluteOnly()
     .required()
     .description(
       deline`
@@ -136,7 +138,7 @@ const hotReloadConfigSchema = joi.object().keys({
     .items(joi.string())
     .optional()
     .description(`An optional command to run inside the container after syncing.`)
-    .example([["rebuild-static-assets.sh"], {}]),
+    .example(["rebuild-static-assets.sh"]),
 }).description(deline`
     Specifies which files or directories to sync to which paths inside the running containers of hot reload-enabled
     services when those files or directories are modified. Applies to this module's services, and to services
@@ -147,7 +149,7 @@ export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
 
 const annotationsSchema = joiStringMap(joi.string())
   .example({ "nginx.ingress.kubernetes.io/proxy-body-size": "0" })
-  .default(() => ({}), "{}")
+  .default(() => ({}))
 
 export interface EnvSecretRef {
   secretRef: {
@@ -181,7 +183,7 @@ export interface ContainerEnvVars {
 export const containerEnvVarsSchema = joi
   .object()
   .pattern(envVarRegex, joi.alternatives(joiPrimitive(), secretRefSchema))
-  .default(() => ({}), "{}")
+  .default(() => ({}))
   .unknown(false)
   .description(
     "Key/value map of environment variables. Keys must be valid POSIX environment variable names " +
@@ -279,7 +281,7 @@ export const portSchema = joi.object().keys({
         \`servicePort:80 -> containerPort:8080 -> process:8080\``),
   servicePort: joi
     .number()
-    .default((context) => context.containerPort, "<same as containerPort>")
+    .default((context) => context.containerPort)
     .example(80).description(deline`
         The port exposed on the service.
         Defaults to \`containerPort\` if not specified.
@@ -310,12 +312,10 @@ const volumeSchema = joi.object().keys({
     .required()
     .description("The name of the allocated volume."),
   containerPath: joi
-    .string()
     .posixPath()
     .required()
     .description("The path where the volume should be mounted in the container."),
   hostPath: joi
-    .string()
     .posixPath()
     .description(
       dedent`
@@ -337,19 +337,19 @@ const serviceSchema = baseServiceSpecSchema.keys({
     .array()
     .items(joi.string())
     .description("The command/entrypoint to run the container with when starting the service.")
-    .example([commandExample, {}]),
+    .example(commandExample),
   args: joi
     .array()
     .items(joi.string())
     .description("The arguments to run the container with when starting the service.")
-    .example([["npm", "start"], {}]),
+    .example(["npm", "start"]),
   daemon: joi.boolean().default(false).description(deline`
         Whether to run the service as a daemon (to ensure exactly one instance runs per node).
         May not be supported by all providers.
       `),
   ingresses: joiArray(ingressSchema)
     .description("List of ingress endpoints that the service exposes.")
-    .example([[{ path: "/api", port: "http" }], {}]),
+    .example([{ path: "/api", port: "http" }]),
   env: containerEnvVarsSchema,
   healthCheck: healthCheckSchema.description("Specify how the service's health should be checked after deploying."),
   hotReloadCommand: joi
@@ -360,7 +360,7 @@ const serviceSchema = baseServiceSpecSchema.keys({
         If this module uses the \`hotReload\` field, the container will be run with
         this command/entrypoint when the service is deployed with hot reloading enabled.`
     )
-    .example([commandExample, {}]),
+    .example(commandExample),
   hotReloadArgs: joi
     .array()
     .items(joi.string())
@@ -369,10 +369,8 @@ const serviceSchema = baseServiceSpecSchema.keys({
         If this module uses the \`hotReload\` field, the container will be run with
         these arguments when the service is deployed with hot reloading enabled.`
     )
-    .example([["npm", "run", "dev"], {}]),
-  limits: limitsSchema
-    .description("Specify resource limits for the service.")
-    .default(() => defaultContainerLimits, JSON.stringify(defaultContainerLimits)),
+    .example(["npm", "run", "dev"]),
+  limits: limitsSchema.description("Specify resource limits for the service.").default(defaultContainerLimits),
   ports: joiArray(portSchema)
     .unique("name")
     .description("List of ports that the service container exposes."),
@@ -418,14 +416,16 @@ export interface ContainerService extends Service<ContainerModule> {}
 
 export const containerArtifactSchema = joi.object().keys({
   source: joi
-    .string()
-    .posixPath({ allowGlobs: true, absoluteOnly: true })
+    .posixPath()
+    .allowGlobs()
+    .absoluteOnly()
     .required()
     .description("A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.")
     .example("/output/**/*"),
   target: joi
-    .string()
-    .posixPath({ subPathOnly: true, relativeOnly: true })
+    .posixPath()
+    .relativeOnly()
+    .subPathOnly()
     .default(".")
     .description("A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.")
     .example("outputs/foo/"),
@@ -442,7 +442,7 @@ const artifactsSchema = joi
       to enable the file transfer.
     `
   )
-  .example([[{ source: "/report/**/*" }], {}])
+  .example([{ source: "/report/**/*" }])
 
 export interface ContainerTestSpec extends BaseTestSpec {
   args: string[]
@@ -456,13 +456,13 @@ export const containerTestSchema = baseTestSpecSchema.keys({
     .array()
     .items(joi.string())
     .description("The arguments used to run the test inside the container.")
-    .example([["npm", "test"], {}]),
+    .example(["npm", "test"]),
   artifacts: artifactsSchema,
   command: joi
     .array()
     .items(joi.string())
     .description("The command/entrypoint used to run the test inside the container.")
-    .example([commandExample, {}]),
+    .example(commandExample),
   env: containerEnvVarsSchema,
 })
 
@@ -479,13 +479,13 @@ export const containerTaskSchema = baseTaskSpecSchema
       .array()
       .items(joi.string())
       .description("The arguments used to run the task inside the container.")
-      .example([["rake", "db:migrate"], {}]),
+      .example(["rake", "db:migrate"]),
     artifacts: artifactsSchema,
     command: joi
       .array()
       .items(joi.string())
       .description("The command/entrypoint used to run the task inside the container.")
-      .example([commandExample, {}]),
+      .example(commandExample),
     env: containerEnvVarsSchema,
   })
   .description("A task that can be run in the container.")
@@ -530,7 +530,7 @@ export const containerModuleSpecSchema = joi
     buildArgs: joi
       .object()
       .pattern(/.+/, joiPrimitive())
-      .default(() => ({}), "{}")
+      .default(() => ({}))
       .description("Specify build arguments to use when building the container image."),
     extraFlags: joi.array().items(joi.string()).description(deline`
         Specify extra flags to use when building the container image.
@@ -550,8 +550,8 @@ export const containerModuleSpecSchema = joi
     `),
     hotReload: hotReloadConfigSchema,
     dockerfile: joi
-      .string()
-      .posixPath({ subPathOnly: true })
+      .posixPath()
+      .subPathOnly()
       .description("POSIX-style name of Dockerfile, relative to module root."),
     services: joiArray(serviceSchema)
       .unique("name")

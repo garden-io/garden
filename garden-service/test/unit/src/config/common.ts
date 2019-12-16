@@ -1,7 +1,7 @@
 import { expect } from "chai"
 const stripAnsi = require("strip-ansi")
 import { identifierRegex, envVarRegex, userIdentifierRegex, joi, joiRepositoryUrl } from "../../../../src/config/common"
-import { validate } from "../../../../src/config/validation"
+import { validateSchema } from "../../../../src/config/validation"
 import { expectError } from "../../../helpers"
 
 describe("envVarRegex", () => {
@@ -107,7 +107,7 @@ describe("validate", () => {
       my: "object",
     }
 
-    validate(obj, joi.object().keys({ my: joi.string() }))
+    validateSchema(obj, joi.object().keys({ my: joi.string() }))
   })
 
   it("should throw a nice error when keys are missing", async () => {
@@ -123,7 +123,7 @@ describe("validate", () => {
     })
 
     await expectError(
-      () => validate(obj, schema),
+      () => validateSchema(obj, schema),
       (err) => {
         expect(stripAnsi(err.detail.errorDescription)).to.equal("key .A is required, key .B.b is required")
       }
@@ -150,7 +150,7 @@ describe("validate", () => {
     })
 
     await expectError(
-      () => validate(obj, schema),
+      () => validateSchema(obj, schema),
       (err) => {
         expect(stripAnsi(err.detail.errorDescription)).to.equal("key .A.B[c].C is required")
       }
@@ -159,10 +159,13 @@ describe("validate", () => {
 
   it("should throw a nice error when key is invalid", async () => {
     const obj = { 123: "abc" }
-    const schema = joi.object().pattern(/[a-z]+/, joi.string())
+    const schema = joi
+      .object()
+      .pattern(/[a-z]+/, joi.string())
+      .unknown(false)
 
     await expectError(
-      () => validate(obj, schema),
+      () => validateSchema(obj, schema),
       (err) => {
         expect(stripAnsi(err.detail.errorDescription)).to.equal('key "123" is not allowed at path .')
       }
@@ -174,7 +177,7 @@ describe("validate", () => {
     const schema = joi.object().keys({ a: joi.object().pattern(/[a-z]+/, joi.string()) })
 
     await expectError(
-      () => validate(obj, schema),
+      () => validateSchema(obj, schema),
       (err) => {
         expect(stripAnsi(err.detail.errorDescription)).to.equal('key "123" is not allowed at path .a')
       }
@@ -192,9 +195,9 @@ describe("validate", () => {
       .xor("a", "b")
 
     await expectError(
-      () => validate(obj, schema),
+      () => validateSchema(obj, schema),
       (err) => {
-        expect(stripAnsi(err.detail.errorDescription)).to.equal("object at . only allows one of [a, b]")
+        expect(stripAnsi(err.detail.errorDescription)).to.equal("object at . can only contain one of [a, b]")
       }
     )
   })
@@ -203,68 +206,56 @@ describe("validate", () => {
 describe("joi.posixPath", () => {
   it("should validate a POSIX-style path", () => {
     const path = "/foo/bar.js"
-    const schema = joi.string().posixPath()
+    const schema = joi.posixPath()
     const result = schema.validate(path)
-    expect(result.error).to.be.null
+    expect(result.error).to.be.undefined
   })
 
   it("should return error with a Windows-style path", () => {
     const path = "C:\\Something\\Blorg"
-    const schema = joi.string().posixPath()
+    const schema = joi.posixPath()
     const result = schema.validate(path)
     expect(result.error).to.exist
   })
 
-  it("should error if attempting to set absoluteOnly and relativeOnly at same time", async () => {
-    return expectError(() => joi.string().posixPath({ absoluteOnly: true, relativeOnly: true }))
-  })
-
-  it("should error if attempting to set absoluteOnly and subPathOnly at same time", async () => {
-    return expectError(() => joi.string().posixPath({ absoluteOnly: true, subPathOnly: true }))
-  })
-
-  it("should error if attempting to set absoluteOnly and filenameOnly at same time", async () => {
-    return expectError(() => joi.string().posixPath({ absoluteOnly: true, filenameOnly: true }))
-  })
-
   it("should respect absoluteOnly parameter", () => {
     const path = "foo/bar.js"
-    const schema = joi.string().posixPath({ absoluteOnly: true })
+    const schema = joi.posixPath().absoluteOnly()
     const result = schema.validate(path)
     expect(result.error).to.exist
   })
 
   it("should respect relativeOnly parameter", () => {
     const path = "/foo/bar.js"
-    const schema = joi.string().posixPath({ relativeOnly: true })
+    const schema = joi.posixPath().relativeOnly()
     const result = schema.validate(path)
     expect(result.error).to.exist
   })
 
   it("should respect subPathOnly parameter by rejecting absolute paths", () => {
     const path = "/foo/bar.js"
-    const schema = joi.string().posixPath({ subPathOnly: true })
+    const schema = joi.posixPath().subPathOnly()
     const result = schema.validate(path)
     expect(result.error).to.exist
   })
 
   it("should respect subPathOnly parameter by rejecting paths with '..' segments", () => {
     const path = "foo/../../bar"
-    const schema = joi.string().posixPath({ subPathOnly: true })
+    const schema = joi.posixPath().subPathOnly()
     const result = schema.validate(path)
     expect(result.error).to.exist
   })
 
   it("should allow paths with '..' segments when subPathOnly=false", () => {
     const path = "foo/../../bar"
-    const schema = joi.string().posixPath()
+    const schema = joi.posixPath()
     const result = schema.validate(path)
-    expect(result.error).to.be.null
+    expect(result.error).to.be.undefined
   })
 
   it("should respect filenameOnly parameter", () => {
     const path = "foo/bar.js"
-    const schema = joi.string().posixPath({ filenameOnly: true })
+    const schema = joi.posixPath().filenameOnly()
     const result = schema.validate(path)
     expect(result.error).to.exist
   })
@@ -275,49 +266,49 @@ describe("joiRepositoryUrl", () => {
     const url = "git://github.com/garden-io/garden-example-remote-sources-web-services.git#my-tag"
     const schema = joiRepositoryUrl()
     const result = schema.validate(url)
-    expect(result.error).to.be.null
+    expect(result.error).to.be.undefined
   })
 
   it("should accept an HTTPS Git URL", () => {
     const url = "https://github.com/garden-io/garden-example-remote-sources-web-services.git#my-tag"
     const schema = joiRepositoryUrl()
     const result = schema.validate(url)
-    expect(result.error).to.be.null
+    expect(result.error).to.be.undefined
   })
 
   it("should accept an scp-like SSH GitHub URL", () => {
     const url = "git@github.com:garden-io/garden-example-remote-sources-web-services.git#my-tag"
     const schema = joiRepositoryUrl()
     const result = schema.validate(url)
-    expect(result.error).to.be.null
+    expect(result.error).to.be.undefined
   })
 
   it("should accept an ssh:// GitHub URL", () => {
     const url = "ssh://git@github.com/garden-io/garden-example-remote-sources-web-services.git#my-tag"
     const schema = joiRepositoryUrl()
     const result = schema.validate(url)
-    expect(result.error).to.be.null
+    expect(result.error).to.be.undefined
   })
 
   it("should accept a git+https// URL", () => {
     const url = "git+https://git@github.com:garden-io/garden-example-remote-sources-web-services.git#my-tag"
     const schema = joiRepositoryUrl()
     const result = schema.validate(url)
-    expect(result.error).to.be.null
+    expect(result.error).to.be.undefined
   })
 
   it("should accept a git+ssh// URL", () => {
     const url = "git+ssh://git@github.com:garden-io/garden-example-remote-sources-web-services.git#my-tag"
     const schema = joiRepositoryUrl()
     const result = schema.validate(url)
-    expect(result.error).to.be.null
+    expect(result.error).to.be.undefined
   })
 
   it("should accept a local file:// URL", () => {
     const url = "file:///some/dir"
     const schema = joiRepositoryUrl()
     const result = schema.validate(url)
-    expect(result.error).to.be.null
+    expect(result.error).to.be.undefined
   })
 
   it("should reject non-string values", () => {
@@ -332,5 +323,34 @@ describe("joiRepositoryUrl", () => {
     const schema = joiRepositoryUrl()
     const result = schema.validate(url)
     expect(result.error).to.exist
+  })
+})
+
+describe("validateSchema", () => {
+  it("should format a basic object validation error", async () => {
+    const schema = joi.object().keys({ foo: joi.string() })
+    const value = { foo: 123 }
+    await expectError(
+      () => validateSchema(value, schema),
+      (err) => expect(stripAnsi(err.message)).to.equal("Validation error: key .foo must be a string")
+    )
+  })
+
+  it("should format a nested object validation error", async () => {
+    const schema = joi.object().keys({ foo: joi.object().keys({ bar: joi.string() }) })
+    const value = { foo: { bar: 123 } }
+    await expectError(
+      () => validateSchema(value, schema),
+      (err) => expect(stripAnsi(err.message)).to.equal("Validation error: key .foo.bar must be a string")
+    )
+  })
+
+  it("should format a nested pattern object validation error", async () => {
+    const schema = joi.object().keys({ foo: joi.object().pattern(/.+/, joi.string()) })
+    const value = { foo: { bar: 123 } }
+    await expectError(
+      () => validateSchema(value, schema),
+      (err) => expect(stripAnsi(err.message)).to.equal("Validation error: key .foo[bar] must be a string")
+    )
   })
 })

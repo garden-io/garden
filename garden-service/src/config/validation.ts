@@ -14,17 +14,27 @@ import uuid from "uuid"
 
 const joiPathPlaceholder = uuid.v4()
 const joiPathPlaceholderRegex = new RegExp(joiPathPlaceholder, "g")
-const joiOptions = {
-  abortEarly: false,
-  language: {
-    key: `key ${joiPathPlaceholder} `,
-    object: {
-      allowUnknown: `!!key "{{!child}}" is not allowed at path ${joiPathPlaceholder}`,
-      child: '!!"{{!child}}": {{reason}}',
-      xor: `!!object at ${joiPathPlaceholder} only allows one of {{peersWithLabels}}`,
-    },
+const errorPrefs: any = {
+  wrap: {
+    label: "⟿↬",
   },
 }
+const joiLabelPlaceholderRegex = /⟿(.+)↬/g
+const joiOptions: Joi.ValidationOptions = {
+  abortEarly: false,
+  // Overriding some error messages to make them friendlier
+  messages: {
+    "any.unknown": `{{#label}} is not allowed at path ${joiPathPlaceholder}`,
+    "object.missing": `object at ${joiPathPlaceholder} must contain at least one of {{#peersWithLabels}}`,
+    "object.nand": `{{#mainWithLabel}} can\'t be specified simultaneously with {{#peersWithLabels}}`,
+    "object.unknown": `key "{{#child}}" is not allowed at path ${joiPathPlaceholder}`,
+    "object.with": `"{{#mainWithLabel}}" must be specified with "{{#peerWithLabel}}"`,
+    "object.without": `"{{#mainWithLabel}}" can\'t be specified with "{{#peerWithLabel}}"`,
+    "object.xor": `object at ${joiPathPlaceholder} can only contain one of {{#peersWithLabels}}`,
+  },
+  errors: errorPrefs,
+}
+
 export interface ValidateOptions {
   context?: string // Descriptive text to include in validation error messages, e.g. "module at some/local/path"
   ErrorClass?: typeof ConfigurationError | typeof LocalConfigError
@@ -63,10 +73,10 @@ export function validateWithPath<T>({
     validateOpts["ErrorClass"] = ErrorClass
   }
 
-  return <T>validate(config, schema, validateOpts)
+  return <T>validateSchema(config, schema, validateOpts)
 }
 
-export function validate<T>(
+export function validateSchema<T>(
   value: T,
   schema: Joi.Schema,
   { context = "", ErrorClass = ConfigurationError }: ValidateOptions = {}
@@ -86,9 +96,9 @@ export function validate<T>(
         let d = description
 
         for (const part of e.path) {
-          if (d.children && d.children[part]) {
+          if (d.keys && d.keys[part]) {
             renderedPath += "." + part
-            d = d.children[part]
+            d = d.keys[part]
           } else if (d.patterns) {
             for (const p of d.patterns) {
               if (part.toString().match(new RegExp(p.regex.slice(1, -1)))) {
@@ -104,6 +114,7 @@ export function validate<T>(
       }
 
       // a little hack to always use full key paths instead of just the label
+      e.message = e.message.replace(joiLabelPlaceholderRegex, "key " + chalk.underline(renderedPath || "."))
       e.message = e.message.replace(joiPathPlaceholderRegex, chalk.underline(renderedPath || "."))
 
       return e

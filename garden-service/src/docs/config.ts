@@ -14,7 +14,7 @@ import titleize from "titleize"
 import humanize from "humanize-string"
 import { resolve } from "path"
 import { projectSchema, environmentSchema } from "../config/project"
-import { get, flatten, startCase, uniq, keyBy, find } from "lodash"
+import { get, flatten, startCase, uniq, keyBy, find, isFunction } from "lodash"
 import { baseModuleSpecSchema } from "../config/module"
 import handlebars = require("handlebars")
 import { joiArray, joi } from "../config/common"
@@ -59,17 +59,25 @@ interface RenderOpts {
   useExampleForValue?: boolean
 }
 
-interface Description extends Joi.Description {
+// Need this to fix the Joi typing
+export interface Description extends Joi.Description {
   name: string
   level: number
-  parent?: NormalizedDescription
+  parent?: NormalizedSchemaDescription
+  flags?: {
+    default?: any
+    description?: string
+    presence?: string
+    only?: boolean
+  }
 }
 
-export interface NormalizedDescription extends Description {
+export interface NormalizedSchemaDescription extends Description {
   required: boolean
   defaultValue?: string
   hasChildren: boolean
   allowedValues?: string
+  description?: string
   formattedExample?: string
   formattedName: string
   formattedType: string
@@ -77,24 +85,24 @@ export interface NormalizedDescription extends Description {
 
 // Maps a Joi schema description into an array of descriptions and normalizes each entry.
 // Filters out internal descriptions.
-export function normalizeDescriptions(joiDescription: Joi.Description): NormalizedDescription[] {
+export function normalizeSchemaDescriptions(joiDescription: Description): NormalizedSchemaDescription[] {
   const normalize = (
-    joiDesc: Joi.Description,
-    { level = 0, name, parent }: { level?: number; name?: string; parent?: NormalizedDescription } = {}
-  ): NormalizedDescription[] => {
-    let description: NormalizedDescription | undefined
-    let childDescriptions: NormalizedDescription[] = []
+    joiDesc: Description,
+    { level = 0, name, parent }: { level?: number; name?: string; parent?: NormalizedSchemaDescription } = {}
+  ): NormalizedSchemaDescription[] => {
+    let schemaDescription: NormalizedSchemaDescription | undefined
+    let childDescriptions: NormalizedSchemaDescription[] = []
 
     // Skip descriptions without names since they merely point to the keys we're interested in.
     // This means that we implicitly skip the first key of the schema.
     if (name) {
-      description = normalizeKeyDescription({ ...joiDesc, name, level, parent })
+      schemaDescription = normalizeKeyDescription({ ...joiDesc, name, level, parent })
     }
 
     if (joiDesc.type === "object") {
-      const children = Object.entries(joiDesc.children || {}) || []
+      const children = Object.entries(joiDesc.keys || {}) || []
       const nextLevel = name ? level + 1 : level
-      const nextParent = name ? description : parent
+      const nextParent = name ? schemaDescription : parent
       childDescriptions = flatten(
         children.map(([childName, childDescription]) =>
           normalize(childDescription as Description, { level: nextLevel, parent: nextParent, name: childName })
@@ -103,38 +111,38 @@ export function normalizeDescriptions(joiDescription: Joi.Description): Normaliz
     } else if (joiDesc.type === "array") {
       // We only use the first array item
       const item = joiDesc.items[0]
-      childDescriptions = item ? normalize(item, { level: level + 2, parent: description }) : []
+      childDescriptions = item ? normalize(item, { level: level + 2, parent: schemaDescription }) : []
     }
 
-    if (!description) {
+    if (!schemaDescription) {
       return childDescriptions
     }
-    return [description, ...childDescriptions]
+    return [schemaDescription, ...childDescriptions]
   }
 
-  return normalize(joiDescription).filter((key) => !get(key, "meta[0].internal"))
+  return normalize(joiDescription).filter((key) => !get(key, "metas[0].internal"))
 }
 
 // Normalizes the key description
-function normalizeKeyDescription(description: Description): NormalizedDescription {
-  const defaultValue = getDefaultValue(description)
+function normalizeKeyDescription(schemaDescription: Description): NormalizedSchemaDescription {
+  const defaultValue = getDefaultValue(schemaDescription)
 
   let allowedValues: string | undefined = undefined
-  const allowOnly = get(description, "flags.allowOnly") === true
+  const allowOnly = schemaDescription.flags?.only === true
   if (allowOnly) {
-    allowedValues = description.valids!.map((v) => JSON.stringify(v)).join(", ")
+    allowedValues = schemaDescription.allow!.map((v: any) => JSON.stringify(v)).join(", ")
   }
 
-  const presenceRequired = get(description, "flags.presence") === "required"
+  const presenceRequired = schemaDescription.flags?.presence === "required"
   const required = presenceRequired || allowOnly
 
   let hasChildren: boolean = false
   let arrayType: string | undefined
-  const { type } = description
-  const formattedType = formatType(description)
+  const { type } = schemaDescription
+  const formattedType = formatType(schemaDescription)
 
-  const children = type === "object" && Object.entries(description.children || {})
-  const items = type === "array" && description.items
+  const children = type === "object" && Object.entries(schemaDescription.keys || {})
+  const items = type === "array" && schemaDescription.items
 
   if (children && children.length > 0) {
     hasChildren = true
@@ -145,19 +153,20 @@ function normalizeKeyDescription(description: Description): NormalizedDescriptio
   }
 
   let formattedExample: string | undefined
-  if (description.examples && description.examples.length) {
-    const example = description.examples[0].value
-    if (description.type === "object" || description.type === "array") {
+  if (schemaDescription.examples && schemaDescription.examples.length) {
+    const example = schemaDescription.examples[0]
+    if (schemaDescription.type === "object" || schemaDescription.type === "array") {
       formattedExample = safeDump(example).trim()
     } else {
       formattedExample = JSON.stringify(example)
     }
   }
 
-  const formattedName = type === "array" ? `${description.name}[]` : description.name
+  const formattedName = type === "array" ? `${schemaDescription.name}[]` : schemaDescription.name
 
   return {
-    ...description,
+    ...schemaDescription,
+    description: schemaDescription.flags?.description,
     formattedName,
     formattedType,
     defaultValue,
@@ -178,7 +187,7 @@ function formatType(description: Description) {
     return `array[${arrayType}]`
   } else if (type === "alternatives") {
     // returns e.g. "string|number"
-    return uniq(description.alternatives.map(formatType)).join(" | ")
+    return uniq(description.matches.map(({ schema }) => formatType(schema))).join(" | ")
   } else {
     return type || ""
   }
@@ -191,36 +200,23 @@ export function sanitizeYamlStringForGitBook(yamlStr: string) {
   return yamlStr.replace(/.*# \`\`\`.*$\n/gm, "")
 }
 
-export function getDefaultValue(description: Joi.Description) {
-  const defaultSpec = get(description, "flags.default")
-
-  if (defaultSpec === undefined) {
-    return
-  } else if (defaultSpec && defaultSpec.function) {
-    const value = defaultSpec.function({})
-    if (!value) {
-      return defaultSpec.description
-    } else {
-      return value
-    }
-  } else if (defaultSpec && defaultSpec.description) {
-    return defaultSpec.description
-  } else {
-    return defaultSpec
-  }
+export function getDefaultValue(schemaDescription: Description) {
+  const flags: any = schemaDescription.flags
+  const defaultSpec = flags?.default
+  return isFunction(defaultSpec) ? defaultSpec(schemaDescription.parent) : defaultSpec
 }
 
 function getParentDescriptions(
-  description: NormalizedDescription,
-  descriptions: NormalizedDescription[] = []
-): NormalizedDescription[] {
-  if (description.parent) {
-    return getParentDescriptions(description.parent, [description.parent, ...descriptions])
+  schemaDescription: NormalizedSchemaDescription,
+  schemaDescriptions: NormalizedSchemaDescription[] = []
+): NormalizedSchemaDescription[] {
+  if (schemaDescription.parent) {
+    return getParentDescriptions(schemaDescription.parent, [schemaDescription.parent, ...schemaDescriptions])
   }
-  return descriptions
+  return schemaDescriptions
 }
 
-function renderMarkdownTitle(description: NormalizedDescription, prefix = "") {
+function renderMarkdownTitle(description: NormalizedSchemaDescription, prefix = "") {
   const parentDescriptions = getParentDescriptions(description)
   const title =
     parentDescriptions.length > 0
@@ -229,7 +225,7 @@ function renderMarkdownTitle(description: NormalizedDescription, prefix = "") {
   return prefix + title
 }
 
-export function renderMarkdownLink(description: NormalizedDescription) {
+export function renderMarkdownLink(description: NormalizedSchemaDescription) {
   const path = renderMarkdownTitle(description)
     .replace(/\s+/g, "-") // Replace " " with "-""
     .replace(/(\.)|(\[\])/g, "") // Replace "." and "[]" with ""
@@ -237,7 +233,7 @@ export function renderMarkdownLink(description: NormalizedDescription) {
   return `[${description.name}](#${path})`
 }
 
-function makeMarkdownDescription(description: NormalizedDescription, titlePrefix = "") {
+function makeMarkdownDescription(description: NormalizedSchemaDescription, titlePrefix = "") {
   const { formattedType, required, allowedValues, defaultValue } = description
   let experimentalFeature = false
   if (description.meta) {
@@ -281,7 +277,7 @@ function makeMarkdownDescription(description: NormalizedDescription, titlePrefix
 }
 
 export function renderSchemaDescriptionYaml(
-  descriptions: NormalizedDescription[],
+  schemaDescriptions: NormalizedSchemaDescription[],
   {
     renderBasicDescription = false,
     renderFullDescription = true,
@@ -290,9 +286,9 @@ export function renderSchemaDescriptionYaml(
     useExampleForValue = false,
   }: RenderOpts
 ) {
-  let prevDesc: NormalizedDescription
+  let prevDesc: NormalizedSchemaDescription
 
-  const output = descriptions.map((desc) => {
+  const output = schemaDescriptions.map((desc) => {
     const {
       description,
       formattedExample: example,
@@ -315,7 +311,9 @@ export function renderSchemaDescriptionYaml(
     const isFirstArrayItem = isArrayItem && isFirstChild
     const isPrimitive = type !== "array" && type !== "object"
 
-    const stringifiedDefaultVal = useExampleForValue ? example : JSON.stringify(defaultValue)
+    const stringifiedDefaultVal = useExampleForValue
+      ? example
+      : JSON.stringify(isFunction(defaultValue) ? defaultValue() : defaultValue)
     const exceptionallyTreatAsPrimitive =
       !hasChildren && (stringifiedDefaultVal === "[]" || stringifiedDefaultVal === "{}")
 
@@ -369,19 +367,18 @@ export function renderSchemaDescriptionYaml(
       value = isPrimitive || exceptionallyTreatAsPrimitive ? example : indent(example.split("\n"), levels)
     } else {
       // Non-primitive values get rendered in the line below, indented by one
-      value =
-        isPrimitive || exceptionallyTreatAsPrimitive
-          ? defaultValue === undefined
-            ? ""
-            : safeDump(defaultValue)
-          : defaultValue === undefined
-          ? ""
-          : indent(
-              safeDump(defaultValue)
-                .trim()
-                .split("\n"),
-              1
-            )
+      if (defaultValue === undefined) {
+        value = ""
+      } else if (isPrimitive || exceptionallyTreatAsPrimitive) {
+        value = safeDump(defaultValue)
+      } else {
+        value = indent(
+          safeDump(defaultValue)
+            .trim()
+            .split("\n"),
+          1
+        )
+      }
     }
 
     if (isPrimitive || exceptionallyTreatAsPrimitive) {
@@ -428,7 +425,7 @@ export function renderSchemaDescriptionYaml(
  * and a YAML schema.
  */
 export function renderConfigReference(configSchema: Joi.ObjectSchema, titlePrefix = "") {
-  const normalizedDescriptions = normalizeDescriptions(configSchema.describe())
+  const normalizedDescriptions = normalizeSchemaDescriptions(configSchema.describe() as Description)
 
   const yaml = renderSchemaDescriptionYaml(normalizedDescriptions, { renderBasicDescription: true })
   const keys = normalizedDescriptions.map((d) => makeMarkdownDescription(d, titlePrefix))
@@ -451,9 +448,9 @@ function renderTemplateStringReference({
   placeholder: string
   exampleName: string
 }): string {
-  const normalizedDescriptions = normalizeDescriptions(schema.describe())
+  const normalizedSchemaDescriptions = normalizeSchemaDescriptions(schema.describe() as Description)
 
-  const keys = normalizedDescriptions
+  const keys = normalizedSchemaDescriptions
     .map((d) => makeMarkdownDescription(d))
     .map((d) => {
       const title = d.title
@@ -464,7 +461,7 @@ function renderTemplateStringReference({
       return d
     })
     // Omit empty objects without descriptions
-    .filter((d) => !(d.name === "outputs" && d.hasChildren === false && !d.description))
+    .filter((d) => !(d.name === "outputs" && d.hasChildren === false && !d.flags?.description))
 
   const template = handlebars.compile(readFileSync(partialTemplatePath).toString())
   return template({ keys })

@@ -30,8 +30,9 @@ export interface ConftestProvider extends Provider<ConftestProviderConfig> {}
 export const configSchema = providerConfigBaseSchema
   .keys({
     policyPath: joi
-      .string()
-      .posixPath({ relativeOnly: true, subPathOnly: true })
+      .posixPath()
+      .relativeOnly()
+      .subPathOnly()
       .default("./policy")
       .description("Path to the default policy directory or rego file to use for `conftest` modules."),
     namespace: joi.string().description("Default policy namespace to use for `conftest` modules."),
@@ -76,8 +77,8 @@ export const gardenPlugin = createGardenPlugin({
         build: baseBuildSpecSchema,
         sourceModule: joiIdentifier().description("Specify a module whose sources we want to test."),
         policyPath: joi
-          .string()
-          .posixPath({ relativeOnly: true })
+          .posixPath()
+          .relativeOnly()
           .description(
             dedent`
               POSIX-style path to a directory containing the policies to match the config against, or a specific .rego file, relative to the module root.
@@ -91,7 +92,13 @@ export const gardenPlugin = createGardenPlugin({
           .description("The policy namespace in which to find _deny_ and _warn_ rules."),
         files: joi
           .array()
-          .items(joi.string().posixPath({ subPathOnly: true, relativeOnly: true, allowGlobs: true }))
+          .items(
+            joi
+              .posixPath()
+              .subPathOnly()
+              .relativeOnly()
+              .allowGlobs()
+          )
           .required()
           .description(
             dedent`

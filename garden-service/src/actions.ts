@@ -16,7 +16,7 @@ import normalizePath = require("normalize-path")
 
 import { PublishModuleParams, PublishResult } from "./types/plugin/module/publishModule"
 import { SetSecretParams, SetSecretResult } from "./types/plugin/provider/setSecret"
-import { validate } from "./config/validation"
+import { validateSchema } from "./config/validation"
 import { defaultProvider } from "./config/provider"
 import { ParameterError, PluginError, ConfigurationError, InternalError, RuntimeError } from "./exceptions"
 import { Garden } from "./garden"
@@ -367,7 +367,7 @@ export class ActionRouter implements TypeGuard {
     const spec = this.moduleTypes[service.module.type]
 
     if (spec.serviceOutputsSchema) {
-      result.outputs = validate(result.outputs, spec.serviceOutputsSchema, {
+      result.outputs = validateSchema(result.outputs, spec.serviceOutputsSchema, {
         context: `outputs from service '${service.name}'`,
         ErrorClass: PluginError,
       })
@@ -375,7 +375,7 @@ export class ActionRouter implements TypeGuard {
 
     for (const base of getModuleTypeBases(spec, this.moduleTypes)) {
       if (base.serviceOutputsSchema) {
-        result.outputs = validate(result.outputs, base.serviceOutputsSchema.unknown(true), {
+        result.outputs = validateSchema(result.outputs, base.serviceOutputsSchema.unknown(true), {
           context: `outputs from service '${service.name}' (base schema from '${base.name}' plugin)`,
           ErrorClass: PluginError,
         })
@@ -491,7 +491,7 @@ export class ActionRouter implements TypeGuard {
     const spec = this.moduleTypes[task.module.type]
 
     if (spec.taskOutputsSchema) {
-      result.outputs = validate(result.outputs, spec.taskOutputsSchema, {
+      result.outputs = validateSchema(result.outputs, spec.taskOutputsSchema, {
         context: `outputs from task '${task.name}'`,
         ErrorClass: PluginError,
       })
@@ -499,7 +499,7 @@ export class ActionRouter implements TypeGuard {
 
     for (const base of getModuleTypeBases(spec, this.moduleTypes)) {
       if (base.taskOutputsSchema) {
-        result.outputs = validate(result.outputs, base.taskOutputsSchema.unknown(true), {
+        result.outputs = validateSchema(result.outputs, base.taskOutputsSchema.unknown(true), {
           context: `outputs from task '${task.name}' (base schema from '${base.name}' plugin)`,
           ErrorClass: PluginError,
         })
@@ -894,7 +894,7 @@ export class ActionRouter implements TypeGuard {
             pluginName,
           })
         }
-        return validate(result, schema, { context: `${actionType} output from plugin ${pluginName}` })
+        return validateSchema(result, schema, { context: `${actionType} output from plugin ${pluginName}` })
       },
       { actionType, pluginName }
     )
@@ -926,7 +926,9 @@ export class ActionRouter implements TypeGuard {
             pluginName,
           })
         }
-        return validate(result, schema, { context: `${actionType} ${moduleType} output from provider ${pluginName}` })
+        return validateSchema(result, schema, {
+          context: `${actionType} ${moduleType} output from provider ${pluginName}`,
+        })
       }),
       { actionType, pluginName, moduleType }
     )

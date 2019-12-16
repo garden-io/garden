@@ -99,7 +99,7 @@ build:
           # POSIX-style path or filename to copy the directory or file(s), relative to the build
           # directory.
           # Defaults to to same as source path.
-          target: <same as source path>
+          target: ''
 
 # POSIX-style path to a Dockerfile that you want to lint with `hadolint`.
 dockerfilePath:
@@ -167,9 +167,9 @@ source tree, which use the same format as `.gitignore` files. See the
 
 Also note that specifying an empty list here means _no sources_ should be included.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `array[posixPath]` | No       |
 
 Example:
 
@@ -193,9 +193,9 @@ Unlike the `modules.exclude` field in the project config, the filters here have 
 and directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have
 large directories that should not be watched for changes.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `array[posixPath]` | No       |
 
 Example:
 
@@ -212,9 +212,9 @@ A remote repository URL. Currently only supports git servers. Must contain a has
 Garden will import the repository source code into this module, but read the module's
 config from the local garden.yml file.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
+| Type              | Required |
+| ----------------- | -------- |
+| `gitUrl | string` | No       |
 
 Example:
 
@@ -283,9 +283,9 @@ Specify one or more files or directories to copy from the built dependency to th
 
 POSIX-style path or filename of the directory or file(s) to copy to the target.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
 
 ### `build.dependencies[].copy[].target`
 
@@ -294,17 +294,17 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
 Defaults to to same as source path.
 
-| Type     | Required | Default                   |
-| -------- | -------- | ------------------------- |
-| `string` | No       | `"<same as source path>"` |
+| Type        | Required | Default |
+| ----------- | -------- | ------- |
+| `posixPath` | No       | `""`    |
 
 ### `dockerfilePath`
 
 POSIX-style path to a Dockerfile that you want to lint with `hadolint`.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
 
 
 ## Outputs

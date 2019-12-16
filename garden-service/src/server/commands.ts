@@ -10,7 +10,7 @@ import Joi = require("@hapi/joi")
 import Koa = require("koa")
 import { Command, Parameters, ParameterValues } from "../commands/base"
 import { joi } from "../config/common"
-import { validate } from "../config/validation"
+import { validateSchema } from "../config/validation"
 import { extend, mapValues, omitBy } from "lodash"
 import { Garden } from "../garden"
 import { LogLevel } from "../logger/log-node"
@@ -35,7 +35,7 @@ const baseRequestSchema = joi.object().keys({
     .object()
     .keys({})
     .unknown(true)
-    .default(() => ({}), "{}")
+    .default(() => ({}))
     .description("The parameters for the command."),
 })
 
@@ -51,7 +51,7 @@ export async function resolveRequest(
 ) {
   // Perform basic validation and find command.
   try {
-    request = validate(request, baseRequestSchema, { context: "API request" })
+    request = validateSchema(request, baseRequestSchema, { context: "API request" })
   } catch {
     ctx.throw(400, "Invalid request format")
   }
@@ -64,7 +64,7 @@ export async function resolveRequest(
 
   // Validate command parameters.
   try {
-    request = validate(request, commandSpec.requestSchema)
+    request = validateSchema(request, commandSpec.requestSchema)
   } catch {
     ctx.throw(400, `Invalid request format for command ${request.command}`)
   }

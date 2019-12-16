@@ -33,7 +33,7 @@ const configSchema = providerConfigBaseSchema
         up-to-date. Otherwise, a warning is logged if the stack is out-of-date, and an error thrown if it is missing
         entirely.
       `),
-    initRoot: joi.string().posixPath({ subPathOnly: true }).description(dedent`
+    initRoot: joi.posixPath().subPathOnly().description(dedent`
         Specify the path to a Terraform config directory, that should be resolved when initializing the provider.
         This is useful when other providers need to be able to reference the outputs from the stack.
 
