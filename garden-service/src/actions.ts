@@ -538,7 +538,7 @@ export class ActionRouter implements TypeGuard {
     const tasks = services.map(
       (service) =>
         new GetServiceStatusTask({
-          force: false,
+          force: true,
           garden: this.garden,
           graph,
           log,
