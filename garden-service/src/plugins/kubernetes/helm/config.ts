@@ -352,5 +352,10 @@ export async function configureHelmModule({
     "release-name": getReleaseName(moduleConfig),
   }
 
+  // Automatically set the include if not explicitly set
+  if (!moduleConfig.include) {
+    moduleConfig.include = containsSources ? ["*", "charts/**/*", "templates/**/*"] : []
+  }
+
   return { moduleConfig }
 }
