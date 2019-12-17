@@ -6,6 +6,9 @@ chart: stable/docker-registry
 releaseName: garden-docker-registry
 version: 1.8.3
 values:
+  # This is to avoid a multi-attach error when updating
+  updateStrategy:
+    type: Recreate
   resources:
     limits:
       cpu: ${var.registry-limits-cpu}

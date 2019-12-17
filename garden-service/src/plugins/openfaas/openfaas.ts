@@ -268,7 +268,7 @@ async function deployService(params: DeployServiceParams<OpenFaasModule>): Promi
       const now = new Date().getTime()
 
       // Retry a few times in case faas-netes is still initializing
-      if (err.stderr?.includes("failed to deploy with status code: 503") && now - start < faasNetesInitTimeout * 1000) {
+      if (err.all?.includes("failed to deploy with status code: 503") && now - start < faasNetesInitTimeout * 1000) {
         await sleep(retryWait)
         continue
       } else {

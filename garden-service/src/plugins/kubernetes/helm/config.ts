@@ -272,7 +272,7 @@ export const helmModuleSpecSchema = joi.object().keys({
 export async function configureHelmModule({
   moduleConfig,
 }: ConfigureModuleParams<HelmModule>): Promise<ConfigureModuleResult<HelmModule>> {
-  const { base, chart, dependencies, serviceResource, skipDeploy, tasks, tests } = moduleConfig.spec
+  const { base, dependencies, serviceResource, skipDeploy, tasks, tests } = moduleConfig.spec
 
   const sourceModuleName = serviceResource ? serviceResource.containerModule : undefined
 
@@ -291,14 +291,6 @@ export async function configureHelmModule({
   }
 
   const containsSources = await containsSource(moduleConfig)
-
-  if (!chart && !base && !containsSources) {
-    throw new ConfigurationError(
-      deline`Module '${moduleConfig.name}' neither specifies a chart name, base module,
-      nor contains chart sources at \`chartPath\`.`,
-      { moduleConfig }
-    )
-  }
 
   // Make sure referenced modules are included as build dependencies
   // (This happens automatically for the service source module).

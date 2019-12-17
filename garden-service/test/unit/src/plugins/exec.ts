@@ -7,7 +7,7 @@ import { LogEntry } from "../../../../src/logger/log-entry"
 import { keyBy } from "lodash"
 import { getDataDir, makeTestModule, expectError } from "../../../helpers"
 import { TaskTask } from "../../../../src/tasks/task"
-import { writeModuleVersionFile, readModuleVersionFile } from "../../../../src/vcs/vcs"
+import { readModuleVersionFile } from "../../../../src/vcs/vcs"
 import { dataDir, makeTestGarden } from "../../../helpers"
 import { ModuleConfig } from "../../../../src/config/module"
 import { ConfigGraph } from "../../../../src/config-graph"
@@ -246,22 +246,6 @@ describe("exec plugin", () => {
       const provider = await garden.resolveProvider("test-plugin")
       const ctx = garden.getPluginContext(provider)
       await expectError(async () => await configureExecModule({ ctx, moduleConfig, log }), "configuration")
-    })
-  })
-
-  describe("getBuildStatus", () => {
-    it("should read a build version file if it exists", async () => {
-      const module = await graph.getModule(moduleName)
-      const version = module.version
-      const buildMetadataPath = module.buildMetadataPath
-      const versionFilePath = join(buildMetadataPath, GARDEN_BUILD_VERSION_FILENAME)
-
-      await writeModuleVersionFile(versionFilePath, version)
-
-      const actions = await garden.getActionRouter()
-      const result = await actions.getBuildStatus({ log, module })
-
-      expect(result.ready).to.be.true
     })
   })
 

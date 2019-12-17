@@ -191,16 +191,4 @@ describe("validateHelmModule", () => {
       `)
     )
   })
-
-  it("should throw if chart contains no sources and doesn't specify chart name nor base", async () => {
-    patchModuleConfig("postgres", { spec: { chart: null } })
-
-    await expectError(
-      () => garden.resolveModuleConfig(garden.log, "postgres"),
-      (err) =>
-        expect(err.message).to.equal(deline`
-        Module 'postgres' neither specifies a chart name, base module, nor contains chart sources at \`chartPath\`.
-      `)
-    )
-  })
 })

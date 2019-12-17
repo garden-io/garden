@@ -154,6 +154,9 @@ export class BuildTask extends BaseTask {
       log.setState(`Building version ${module.version.versionString}...`)
     }
 
+    const graph = await this.garden.getConfigGraph(log)
+    await this.garden.buildDir.syncDependencyProducts(this.module, graph, log)
+
     let result: BuildResult
     try {
       result = await actions.build({

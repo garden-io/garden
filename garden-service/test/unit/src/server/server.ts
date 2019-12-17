@@ -14,8 +14,8 @@ import { expect } from "chai"
 import { deepOmitUndefined } from "../../../../src/util/util"
 import uuid from "uuid"
 import request = require("supertest")
-import getPort = require("get-port")
 import WebSocket = require("ws")
+import { getPort } from "../../../../src/util/network"
 
 describe("startServer", () => {
   let garden: Garden
