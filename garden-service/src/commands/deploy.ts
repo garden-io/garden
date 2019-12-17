@@ -51,6 +51,11 @@ const deployOpts = {
     `,
     alias: "hot",
   }),
+  "exclude": new StringsParameter({
+    help: deline`The name(s) of the service(s) to exclude from the deployment.
+      Use comma as a separator to specify multiple services.
+    `,
+  }),
 }
 
 type Args = typeof deployArgs
@@ -73,6 +78,7 @@ export class DeployCommand extends Command<Args, Opts> {
         garden deploy                      # deploy all modules in the project
         garden deploy my-service           # only deploy my-service
         garden deploy service-a,service-b  # only deploy service-a and service-b
+        garden deploy --exclude svc1,svc2  # exclude certain services from deployment
         garden deploy --force              # force re-deploy of modules, even if they're already deployed
         garden deploy --watch              # watch for changes to code
         garden deploy --hot=my-service     # deploys all services, with hot reloading enabled for my-service
@@ -103,11 +109,16 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const initGraph = await garden.getConfigGraph(log)
-    const services = await initGraph.getServices(args.services)
+    let services = await initGraph.getServices(args.services)
 
     if (services.length === 0) {
       log.error({ msg: "No services found. Aborting." })
       return { result: {} }
+    }
+
+    // If exclude is specified, omit services whose names match
+    if (opts.exclude) {
+      services = services.filter(service => !opts.exclude!.includes(service.name))
     }
 
     const hotReloadServiceNames = await getHotReloadServiceNames(opts["hot-reload"], initGraph)
