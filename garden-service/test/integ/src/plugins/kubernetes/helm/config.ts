@@ -46,7 +46,7 @@ describe("validateHelmModule", () => {
       },
       configPath: resolve(ctx.projectRoot, "api", "garden.yml"),
       description: "The API backend for the voting UI",
-      include: undefined,
+      include: ["*", "charts/**/*", "templates/**/*"],
       exclude: undefined,
       name: "api",
       outputs: {
@@ -120,6 +120,19 @@ describe("validateHelmModule", () => {
       type: "helm",
       taskConfigs: [],
     })
+  })
+
+  it("should not set default includes if they have already been explicitly set", async () => {
+    patchModuleConfig("api", { include: ["foo"] })
+    const config = await garden.resolveModuleConfig(garden.log, "api")
+    expect(config.include).to.eql(["foo"])
+  })
+
+  it("should set include to empty if module does not have local chart sources", async () => {
+    // So that Chart.yaml isn't found
+    patchModuleConfig("api", { spec: { chartPath: "invalid-path" } })
+    const config = await garden.resolveModuleConfig(garden.log, "api")
+    expect(config.include).to.eql([])
   })
 
   it("should not return a serviceConfig if skipDeploy=true", async () => {
