@@ -35,7 +35,7 @@ to start the `garden-service` API server. Then run:
 
 ```sh
 cd dashboard
-npm dev
+npm run dev
 ```
 
 to start the dashboard development server. The `start` command returns a link to the development version of the dashboard. The default is `http://localhost:3000`.
