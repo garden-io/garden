@@ -3,7 +3,6 @@ name: vote
 environments:
   - name: local
   - name: remote
-    providers:
   - name: testing
 providers:
   - name: local-kubernetes
