@@ -20,23 +20,26 @@ export interface StageBuildTaskParams {
   log: LogEntry
   module: Module
   force: boolean
+  dependencies?: BaseTask[]
 }
 
 export class StageBuildTask extends BaseTask {
   type: TaskType = "stage-build"
 
   private module: Module
+  private extraDependencies: BaseTask[]
 
-  constructor({ garden, log, module, force }: StageBuildTaskParams) {
+  constructor({ garden, log, module, force, dependencies }: StageBuildTaskParams) {
     super({ garden, log, force, version: module.version })
     this.module = module
+    this.extraDependencies = dependencies || []
   }
 
   async getDependencies() {
     const dg = await this.garden.getConfigGraph(this.log)
     const deps = (await dg.getDependencies("build", this.getName(), false)).build
 
-    return Bluebird.map(deps, async (m: Module) => {
+    const stageDeps = await Bluebird.map(deps, async (m: Module) => {
       return new StageBuildTask({
         garden: this.garden,
         log: this.log,
@@ -44,6 +47,8 @@ export class StageBuildTask extends BaseTask {
         force: this.force,
       })
     })
+
+    return [...stageDeps, ...this.extraDependencies]
   }
 
   getName() {

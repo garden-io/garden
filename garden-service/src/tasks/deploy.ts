@@ -134,8 +134,6 @@ export class DeployTask extends BaseTask {
         log: this.log,
         module: this.service.module,
         force: this.forceBuild,
-        fromWatch: this.fromWatch,
-        hotReloadServiceNames: this.hotReloadServiceNames,
       })
 
       return [statusTask, ...deployTasks, ...taskTasks, ...buildTasks]

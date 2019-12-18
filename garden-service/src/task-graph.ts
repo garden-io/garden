@@ -105,7 +105,7 @@ export class TaskGraph {
     // to return the latest result for each requested task.
     const resultKeys = tasks.map((t) => t.getKey())
 
-    const results = this.opQueue.add(() => this.processTasksInternal(tasksToProcess, resultKeys, opts))
+    const results = await this.opQueue.add(() => this.processTasksInternal(tasksToProcess, resultKeys, opts))
 
     if (opts && opts.throwOnError) {
       const failed = Object.entries(results).filter(([_, result]) => result && result.error)
@@ -114,7 +114,7 @@ export class TaskGraph {
         throw new TaskGraphError(
           dedent`
             ${failed.length} task(s) failed:
-            ${failed.map(([key, result]) => `- ${key}: ${result.error.toString()}`).join("\n")}
+            ${failed.map(([key, result]) => `- ${key}: ${result?.error?.toString()}`).join("\n")}
           `,
           { results }
         )
