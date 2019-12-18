@@ -647,7 +647,16 @@ export class ActionRouter implements TypeGuard {
    * @param artifactsPath the temporary directory path given to the plugin handler
    */
   private async copyArtifacts(log: LogEntry, artifactsPath: string, key: string) {
-    let files = await cpy("**/*", this.garden.artifactsPath, { cwd: artifactsPath, parents: true })
+    let files: string[] = []
+
+    try {
+      files = await cpy("**/*", this.garden.artifactsPath, { cwd: artifactsPath, parents: true })
+    } catch (err) {
+      // Ignore error thrown when the directory is empty
+      if (err.name !== "CpyError" || !err.message.includes("the file doesn't exist")) {
+        throw err
+      }
+    }
 
     const count = files.length
 
