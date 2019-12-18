@@ -6,8 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { join } from "path"
+import { writeFile } from "fs-extra"
 import { HelmModule } from "./config"
-import { containsBuildSource, getChartPath, getGardenValuesPath, getBaseModule } from "./common"
+import { containsBuildSource, getChartPath, getGardenValuesPath, getBaseModule, renderTemplates } from "./common"
 import { helm } from "./helm-cli"
 import { ConfigurationError } from "../../../exceptions"
 import { deline } from "../../../util/string"
@@ -72,6 +74,11 @@ export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<He
   const valuesPath = getGardenValuesPath(chartPath)
   log.silly(`Writing chart values to ${valuesPath}`)
   await dumpYaml(valuesPath, specValues)
+
+  const renderedPath = join(module.buildPath, ".rendered.yaml")
+  log.silly(`Writing rendered template to ${renderedPath}`)
+  const rendered = await renderTemplates(k8sCtx, module, false, log)
+  await writeFile(renderedPath, rendered)
 
   return { fresh: true }
 }

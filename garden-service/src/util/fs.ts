@@ -7,6 +7,7 @@
  */
 
 import klaw = require("klaw")
+import glob from "glob"
 import _spawn from "cross-spawn"
 import Bluebird from "bluebird"
 import { pathExists, readFile, writeFile } from "fs-extra"
@@ -177,10 +178,25 @@ export function normalizeLocalRsyncPath(path: string) {
 }
 
 /**
- * Checks if the given `path` matches any of the given glob `patterns`.
+ * Return a list of all files in directory at `path`
  */
-export function matchGlobs(path: string, patterns: string[]): boolean {
-  return some(patterns, (pattern) => minimatch(path, pattern))
+export async function listDirectory(path: string): Promise<string[]> {
+  return new Promise((resolve, reject) => {
+    glob("**/*", { cwd: path, dot: true }, (err, files) => {
+      if (err) {
+        reject(err)
+      } else {
+        resolve(files)
+      }
+    })
+  })
+}
+
+/**
+ * Given a list of `paths`, return a list of paths that match any of the given `patterns`
+ */
+export function matchGlobs(paths: string[], patterns: string[]): string[] {
+  return paths.filter((path) => some(patterns, (pattern) => minimatch(path, pattern)))
 }
 
 /**
@@ -191,7 +207,9 @@ export function matchGlobs(path: string, patterns: string[]): boolean {
  * @param exclude List of globs to match for exclusion, or undefined
  */
 export function matchPath(path: string, include?: string[], exclude?: string[]) {
-  return (!include || matchGlobs(path, include)) && (!exclude || !matchGlobs(path, exclude))
+  return (
+    (!include || matchGlobs([path], include).length === 1) && (!exclude || matchGlobs([path], exclude).length === 0)
+  )
 }
 
 /**

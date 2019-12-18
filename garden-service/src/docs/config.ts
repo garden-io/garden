@@ -41,6 +41,8 @@ const maxWidth = 100
 const moduleTypes = [
   { name: "exec" },
   { name: "container" },
+  { name: "conftest", pluginName: "conftest" },
+  { name: "hadolint" },
   { name: "helm", pluginName: "local-kubernetes" },
   { name: "kubernetes", pluginName: "local-kubernetes" },
   { name: "maven-container" },
@@ -627,8 +629,12 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
         },
       ],
       providers: [
-        { name: "local-kubernetes" },
+        { name: "conftest" },
+        { name: "conftest-container" },
+        { name: "conftest-kubernetes" },
+        { name: "hadolint" },
         { name: "kubernetes" },
+        { name: "local-kubernetes" },
         { name: "maven-container" },
         { name: "openfaas" },
         { name: "terraform" },
