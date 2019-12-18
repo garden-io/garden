@@ -1,0 +1,5 @@
+kind: Module
+name: module-b
+type: local-openfaas
+build:
+  command: [echo, project]

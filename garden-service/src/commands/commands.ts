@@ -15,6 +15,7 @@ import { DevCommand } from "./dev"
 import { GetCommand } from "./get/get"
 import { LinkCommand } from "./link/link"
 import { LogsCommand } from "./logs"
+import { MigrateCommand } from "./migrate"
 import { PublishCommand } from "./publish"
 import { RunCommand } from "./run/run"
 import { ScanCommand } from "./scan"
@@ -39,6 +40,7 @@ export const coreCommands: Command[] = [
   new GetCommand(),
   new LinkCommand(),
   new LogsCommand(),
+  new MigrateCommand(),
   new OptionsCommand(),
   new PluginsCommand(),
   new PublishCommand(),
