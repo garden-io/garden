@@ -32,12 +32,14 @@ interface ChangedPath {
   change: ChangeType
 }
 
+let watcher: FSWatcher | undefined
+
 /**
  * Wrapper around the Chokidar file watcher. Emits events on `garden.events` when project files are changed.
  * This needs to be enabled by calling the `.start()` method, and stopped with the `.stop()` method.
  */
 export class Watcher extends EventEmitter {
-  private watcher: FSWatcher
+  private watcher?: FSWatcher
   private buffer: { [path: string]: ChangedPath }
   private running: boolean
   public processing: boolean
@@ -62,7 +64,10 @@ export class Watcher extends EventEmitter {
     if (this.watcher) {
       this.log.debug(`Watcher: Clearing handlers`)
       this.watcher.removeAllListeners()
-      await this.watcher.close()
+      // We re-use the FSWatcher instance on Mac to avoid fsevents segfaults, but don't need to on other platforms
+      if (process.platform !== "darwin") {
+        await this.watcher.close()
+      }
       delete this.watcher
     }
   }
@@ -73,37 +78,56 @@ export class Watcher extends EventEmitter {
     this.running = true
 
     if (!this.watcher) {
-      // Make sure that fsevents works when we're on macOS. This has come up before without us noticing, which has
-      // a dramatic performance impact, so it's best if we simply throw here so that our tests catch such issues.
-      if (process.platform === "darwin") {
-        try {
-          require("fsevents")
-        } catch (error) {
-          throw new InternalError(`Unable to load fsevents module: ${error}`, {
-            error,
-          })
-        }
-      }
-
       // Collect all the configured excludes and pass to the watcher.
       // This allows chokidar to optimize polling based on the exclusions.
       // See https://github.com/garden-io/garden/issues/1269.
       // TODO: see if we can extract paths from dotignore files as well (we'd have to deal with negations etc. somehow).
       const projectExcludes = this.garden.moduleExcludePatterns.map((p) => resolve(this.garden.projectRoot, p))
+      const ignored = [...projectExcludes]
       // TODO: filter paths based on module excludes as well
       //       (requires more complex logic to handle overlapping module sources).
       // const moduleExcludes = flatten(this.modules.map((m) => (m.exclude || []).map((p) => resolve(m.path, p))))
 
-      this.watcher = watch(this.paths, {
-        ignoreInitial: true,
-        ignorePermissionErrors: true,
-        persistent: true,
-        awaitWriteFinish: {
-          stabilityThreshold: 300,
-          pollInterval: 100,
-        },
-        ignored: [...projectExcludes],
-      })
+      // We keep a single instance of FSWatcher to avoid segfault issues on Mac
+      if (watcher) {
+        this.log.debug(`Watcher: Using existing FSWatcher`)
+        this.watcher = watcher
+
+        this.log.debug(`Watcher: Ignore ${ignored.join(", ")}`)
+        watcher.unwatch(ignored)
+
+        this.log.debug(`Watcher: Watch ${this.paths}`)
+        watcher.add(this.paths)
+      } else {
+        // Make sure that fsevents works when we're on macOS. This has come up before without us noticing, which has
+        // a dramatic performance impact, so it's best if we simply throw here so that our tests catch such issues.
+        if (process.platform === "darwin") {
+          try {
+            require("fsevents")
+          } catch (error) {
+            throw new InternalError(`Unable to load fsevents module: ${error}`, {
+              error,
+            })
+          }
+        }
+
+        this.log.debug(`Watcher: Starting FSWatcher`)
+        this.watcher = watch(this.paths, {
+          ignoreInitial: true,
+          ignorePermissionErrors: true,
+          persistent: true,
+          awaitWriteFinish: {
+            stabilityThreshold: 300,
+            pollInterval: 100,
+          },
+          ignored,
+        })
+
+        if (process.platform === "darwin") {
+          // We re-use the FSWatcher instance on Mac to avoid fsevents segfaults, but don't need to on other platforms
+          watcher = this.watcher
+        }
+      }
 
       this.watcher
         .on("add", this.makeFileAddedHandler())
@@ -123,7 +147,7 @@ export class Watcher extends EventEmitter {
     this.processBuffer().catch((err: Error) => {
       // Log error and restart loop
       this.processing = false
-      this.watcher.emit("error", err)
+      this.watcher?.emit("error", err)
       this.start()
     })
   }

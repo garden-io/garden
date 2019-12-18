@@ -20,7 +20,7 @@ import { sleep } from "../../../src/util/util"
 import { Garden } from "../../../src/garden"
 
 function emitEvent(garden: TestGarden, name: string, payload: any) {
-  garden["watcher"]["watcher"].emit(name, payload)
+  garden["watcher"]["watcher"]!.emit(name, payload)
 }
 
 describe("Watcher", () => {
@@ -331,7 +331,7 @@ describe("Watcher", () => {
     it("should watch all linked repositories", () => {
       const watcher = garden["watcher"]["watcher"]
       const shouldWatch = [garden.projectRoot, localModulePathA, localModulePathB]
-      const watched = Object.keys(watcher.getWatched())
+      const watched = Object.keys(watcher!.getWatched())
       expect(shouldWatch.every((path) => watched.includes(path))).to.be.true
     })
 
@@ -394,7 +394,7 @@ describe("Watcher", () => {
     it("should watch all linked repositories", () => {
       const watcher = garden["watcher"]["watcher"]
       const shouldWatch = [garden.projectRoot, localSourcePathA, localSourcePathB]
-      const watched = Object.keys(watcher.getWatched())
+      const watched = Object.keys(watcher!.getWatched())
       expect(shouldWatch.every((path) => watched.includes(path))).to.be.true
     })
 
