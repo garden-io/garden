@@ -8,6 +8,9 @@
 
 // These plugins are always registered
 export const builtinPlugins = [
+  require("./conftest/conftest"),
+  require("./conftest/conftest-container"),
+  require("./conftest/conftest-kubernetes"),
   require("./container/container"),
   require("./exec"),
   require("./google/google-app-engine"),
