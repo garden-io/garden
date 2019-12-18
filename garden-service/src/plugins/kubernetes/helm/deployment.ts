@@ -79,7 +79,7 @@ export async function deployHelmService({
     await helm({ ctx: k8sCtx, namespace, log, args: [...installArgs] })
   } else {
     log.silly(`Upgrading Helm release ${releaseName}`)
-    const upgradeArgs = ["upgrade", releaseName, chartPath, "--install", ...commonArgs]
+    const upgradeArgs = ["upgrade", releaseName, chartPath, "--install", "--atomic", ...commonArgs]
     await helm({ ctx: k8sCtx, namespace, log, args: [...upgradeArgs] })
   }
 
