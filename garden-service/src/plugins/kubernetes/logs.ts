@@ -12,7 +12,7 @@ import moment = require("moment")
 
 import { GetServiceLogsResult, ServiceLogEntry } from "../../types/plugin/service/getServiceLogs"
 import { KubernetesResource, KubernetesPod } from "./types"
-import { getAllPods } from "./util"
+import { getAllPods, getStaticLabelsFromPod, getSelectorString } from "./util"
 import { KubeApi } from "./api"
 import { Service } from "../../types/service"
 import Stream from "ts-stream"
@@ -20,6 +20,9 @@ import { LogEntry } from "../../logger/log-entry"
 import Bluebird from "bluebird"
 import { KubernetesProvider } from "./config"
 import { BinaryCmd } from "../../util/ext-tools"
+import { kubectl } from "./kubectl"
+import { splitFirst } from "../../util/util"
+import { ChildProcess } from "child_process"
 
 interface GetLogsBaseParams {
   defaultNamespace: string
@@ -92,41 +95,102 @@ export async function getAllLogs(params: GetAllLogsParams) {
   return getPodLogs({ ...params, pods })
 }
 
-async function getLogs({ log, provider, service, stream, tail, pod }: GetLogsParams) {
+async function getLogs({ log, provider, service, stream, tail, follow, pod }: GetLogsParams) {
+  if (follow) {
+    return followLogs(log, provider, service, stream, tail, pod)
+  }
+
+  return readLogs(log, provider, service, stream, tail, pod)
+}
+
+async function readLogs(
+  log: LogEntry,
+  provider: KubernetesProvider,
+  service: Service,
+  stream: Stream<ServiceLogEntry>,
+  tail: number,
+  pod: KubernetesPod
+) {
+  const kubectlArgs = ["logs", "--tail", String(tail), "--timestamps=true", "--all-containers=true"]
+
+  kubectlArgs.push(`pod/${pod.metadata.name}`)
+
+  const proc = await kubectl.spawn({
+    args: kubectlArgs,
+    log,
+    provider,
+    namespace: pod.metadata.namespace,
+  })
+
+  handleLogMessageStreamFromProcess(proc, stream, service)
+  return proc
+}
+async function followLogs(
+  log: LogEntry,
+  provider: KubernetesProvider,
+  service: Service,
+  stream: Stream<ServiceLogEntry>,
+  tail: number,
+  pod: KubernetesPod
+) {
   const sternArgs = [
     `--context=${provider.config.context}`,
     `--namespace=${pod.metadata.namespace}`,
+    `--exclude-container=garden-*`,
     "--tail",
     String(tail),
+    "--output=json",
     "-t",
   ]
 
-  sternArgs.push(`-l module=${service.module.name}`)
+  const labels = getStaticLabelsFromPod(pod)
+  if (Object.keys(labels).length > 0) {
+    sternArgs.push(`${getSelectorString(labels)}`)
+  } else {
+    sternArgs.push(`${service.name}`)
+  }
 
   const proc = await stern.spawn({
     args: sternArgs,
     log,
   })
+
+  handleLogMessageStreamFromProcess(proc, stream, service, true)
+  return proc
+}
+
+function handleLogMessageStreamFromProcess(
+  proc: ChildProcess,
+  stream: Stream<ServiceLogEntry>,
+  service: Service,
+  json?: boolean
+) {
   let timestamp: Date
 
   proc.stdout!.pipe(split()).on("data", (s) => {
     if (!s) {
       return
     }
-    const [timestampStr, msg] = parseSternLogMessage(s)
+    const [timestampStr, msg] = json === true ? parseSternLogMessage(s) : splitFirst(s, " ")
     try {
       timestamp = moment(timestampStr).toDate()
     } catch {}
     void stream.write({
-      serviceName: service.name.trim(),
+      serviceName: service.name,
       timestamp,
-      msg: `${pod.metadata.name} ${msg}`,
+      msg: `${msg}`,
     })
   })
-
-  return proc
 }
+
 function parseSternLogMessage(message: string): string[] {
-  const risk = message.split(" ")
-  return [risk[2], risk.slice(3, risk.length - 1).join(" ")]
+  let log = JSON.parse(message)
+  const logMessageChunks = log.message.split(" ")
+  return [
+    logMessageChunks[0],
+    logMessageChunks
+      .slice(1, logMessageChunks.length)
+      .join(" ")
+      .trimEnd(),
+  ]
 }

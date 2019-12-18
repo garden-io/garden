@@ -20,6 +20,7 @@ import { ConfigurationError } from "../../exceptions"
 import { KubernetesProvider } from "./config"
 import { LogEntry } from "../../logger/log-entry"
 
+const STATIC_LABEL_REGEX = /[0-9]/g
 export const workloadTypes = ["Deployment", "DaemonSet", "ReplicaSet", "StatefulSet"]
 
 export function getAnnotation(obj: KubernetesResource, key: string): string | null {
@@ -380,4 +381,23 @@ export async function getRunningPodInDeployment(deploymentName: string, provider
   const pods = await getPods(api, systemNamespace, status.spec.selector.matchLabels)
 
   return sample(pods)
+}
+
+export function getStaticLabelsFromPod(pod: KubernetesPod): { [key: string]: string } {
+  const labels: { [key: string]: string } = {}
+
+  for (let label in pod.metadata.labels) {
+    if (!pod.metadata.labels[label].match(STATIC_LABEL_REGEX)) {
+      labels[label] = pod.metadata.labels[label]
+    }
+  }
+  return labels
+}
+
+export function getSelectorString(labels: { [key: string]: string }) {
+  let selectorString: string = "-l"
+  for (let label in labels) {
+    selectorString += `${label}=${labels[label]},`
+  }
+  return selectorString.trimEnd().slice(0, -1)
 }
