@@ -6,7 +6,6 @@ environments:
     # you can run garden against this environment by adding "--env remote" to your commands,
     # e.g. garden --env remote deploy
   - name: remote
-    providers:
 providers:
   - name: local-kubernetes
     environments: [local]
