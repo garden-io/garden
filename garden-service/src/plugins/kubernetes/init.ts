@@ -196,9 +196,9 @@ export async function prepareEnvironment(params: PrepareEnvironmentParams): Prom
   const k8sCtx = <KubernetesPluginContext>ctx
 
   // Migrate from Helm 2.x and remove Tiller from project namespace, if necessary
-  const systemServiceNames = k8sCtx.provider.config._systemServices
+  const systemNamespace = k8sCtx.provider.config.gardenSystemNamespace
 
-  if (systemServiceNames.length === 0 && status.detail.projectTillerInstalled) {
+  if (k8sCtx.provider.config.namespace !== systemNamespace && status.detail.projectTillerInstalled) {
     const api = await KubeApi.factory(log, k8sCtx.provider)
     const namespace = await getAppNamespace(ctx, log, k8sCtx.provider)
     await migrateToHelm3(k8sCtx, api, namespace, log)
