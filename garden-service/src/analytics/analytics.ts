@@ -10,7 +10,7 @@ import uuidv4 from "uuid/v4"
 import segmentClient = require("analytics-node")
 import { platform, release } from "os"
 import ci = require("ci-info")
-
+import { flatten } from "lodash"
 import { globalConfigKeys, AnalyticsGlobalConfig, GlobalConfigStore } from "../config-store"
 import { getPackageVersion } from "../util/util"
 import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY } from "../constants"
@@ -22,7 +22,6 @@ import uuid from "uuid"
 import { Garden } from "../garden"
 import { Events, EventName } from "../events"
 import { AnalyticsType } from "./analytics-types"
-import { TestConfig } from "../config/test"
 import dedent from "dedent"
 
 const API_KEY = process.env.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
@@ -111,7 +110,7 @@ export class AnalyticsHandler {
   private systemConfig: SystemInfo
   private isCI = ci.isCI
   private sessionId = uuid.v4()
-  private garden: Garden
+  protected garden: Garden
   private projectMetadata
 
   private constructor(garden: Garden, log: LogEntry) {
@@ -135,7 +134,14 @@ export class AnalyticsHandler {
 
   static async init(garden: Garden, log: LogEntry) {
     if (!AnalyticsHandler.instance) {
-      AnalyticsHandler.instance = await new AnalyticsHandler(garden, log).initialize()
+      AnalyticsHandler.instance = await new AnalyticsHandler(garden, log).factory()
+    } else {
+      /**
+       * This init is called from within the do while loop in the cli
+       * If the instance is already present it means a restart happened and we need to
+       * refresh the garden instance and event listeners.
+       */
+      await AnalyticsHandler.refreshGarden(garden)
     }
     return AnalyticsHandler.instance
   }
@@ -149,14 +155,14 @@ export class AnalyticsHandler {
 
   /**
    * A private initialization function which returns an initialized Analytics object, ready to be used.
-   * This function will load global update it if needed.
+   * This function will load the globalConfigStore and update it if needed.
    * The globalConfigStore contains info about optIn, first run, machine info, etc.,
    * This method always needs to be called after instantiation.
    *
    * @returns
    * @memberof AnalyticsHandler
    */
-  private async initialize() {
+  private async factory() {
     const globalConf = await this.globalConfigStore.get()
     this.globalConfig = {
       ...this.globalConfig,
@@ -164,8 +170,8 @@ export class AnalyticsHandler {
     }
 
     const vcs = new GitHandler(process.cwd(), [])
-    const originName = await vcs.getOriginName()
-    this.projectId = originName ? hasha(await vcs.getOriginName(), { algorithm: "sha256" }) : "unset"
+    const originName = await vcs.getOriginName(this.log)
+    this.projectId = originName ? hasha(originName, { algorithm: "sha256" }) : "unset"
 
     if (this.globalConfig.firstRun || this.globalConfig.showOptInMessage) {
       if (!this.isCI) {
@@ -174,7 +180,7 @@ export class AnalyticsHandler {
           dedent`
           Thanks for installing Garden! We work hard to provide you with the best experience we can.
           We collect some anonymized usage data while you use Garden. If you'd like to know more about what we collect
-          or you'd like to to opt-out, please read more at https://github.com/garden-io/garden/blob/master/README.md#Analytics`
+          or if you'd like to opt out of telemetry, please read more at https://github.com/garden-io/garden/blob/master/README.md#Analytics`
         )
       }
 
@@ -215,6 +221,13 @@ export class AnalyticsHandler {
     }
   }
 
+  static async refreshGarden(garden: Garden) {
+    AnalyticsHandler.instance.garden = garden
+    AnalyticsHandler.instance.garden.events.onAny((name, payload) =>
+      AnalyticsHandler.instance.processEvent(name, payload)
+    )
+  }
+
   /**
    * Typeguard to check wether we can process or not an event
    */
@@ -238,16 +251,16 @@ export class AnalyticsHandler {
   private async generateProjectMetadata() {
     const configGraph = await this.garden.getConfigGraph(this.log)
     const modules = await configGraph.getModules()
-    const modulesTypes = [...new Set(modules.map((m) => m.type))]
+    const moduleTypes = [...new Set(modules.map((m) => m.type))]
 
     const tasks = await configGraph.getTasks()
     const services = await configGraph.getServices()
     const tests = modules.map((m) => m.testConfigs)
-    const numberOfTests = ([] as TestConfig[]).concat(...tests).length
+    const numberOfTests = flatten(tests).length
 
     return {
       numberOfModules: modules.length,
-      modulesTypes,
+      moduleTypes,
       numberOfTasks: tasks.length,
       numberOfServices: services.length,
       numberOfTests,
@@ -385,11 +398,13 @@ export class AnalyticsHandler {
    * @returns
    * @memberof AnalyticsHandler
    */
-  trackModuleConfigError(moduleType: string) {
+  trackModuleConfigError(name: string, moduleType: string) {
+    const moduleName = hasha(name, { algorithm: "sha256" })
     return this.track(<AnalyticsEvent>{
       type: AnalyticsType.MODULE_CONFIG_ERROR,
       properties: <AnalyticsConfigErrorProperties>{
         ...this.getBasicAnalyticsProperties(),
+        moduleName,
         moduleType,
       },
     })

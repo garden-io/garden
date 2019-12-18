@@ -78,8 +78,6 @@ export class TaskGraph {
   private resultCache: ResultCache
   private opQueue: PQueue
 
-  private batchId: string
-
   constructor(private garden: Garden, private log: LogEntry) {
     this.roots = new TaskNodeMap()
     this.index = new TaskNodeMap()
@@ -90,12 +88,11 @@ export class TaskGraph {
     this.resultCache = new ResultCache()
     this.opQueue = new PQueue({ concurrency: 1 })
     this.logEntryMap = {}
-    this.batchId = uuid.v4()
   }
 
   async process(tasks: BaseTask[], opts?: ProcessTasksOpts): Promise<TaskResults> {
     // We generate a new batchId
-    this.batchId = uuid.v4()
+    const batchId = uuid.v4()
 
     for (const t of tasks) {
       this.latestTasks[t.getKey()] = t
@@ -112,7 +109,7 @@ export class TaskGraph {
     // to return the latest result for each requested task.
     const resultKeys = tasks.map((t) => t.getKey())
 
-    const results = await this.opQueue.add(() => this.processTasksInternal(tasksToProcess, resultKeys, opts))
+    const results = await this.opQueue.add(() => this.processTasksInternal(batchId, tasksToProcess, resultKeys, opts))
 
     if (opts && opts.throwOnError) {
       const failed = Object.entries(results).filter(([_, result]) => result && result.error)
@@ -153,13 +150,13 @@ export class TaskGraph {
     this.roots.setNodes(newRootNodes)
   }
 
-  private async addTask(task: BaseTask) {
+  private async addTask(batchId: string, task: BaseTask) {
     await this.addNodeWithDependencies(task)
     this.rebuild()
     if (this.index.getNode(task)) {
       this.garden.events.emit("taskPending", {
         addedAt: new Date(),
-        batchId: this.batchId,
+        batchId,
         key: task.getKey(),
         name: task.getName(),
         type: task.type,
@@ -198,6 +195,7 @@ export class TaskGraph {
    * Process the graph until it's complete.
    */
   private async processTasksInternal(
+    batchId: string,
     tasks: BaseTask[],
     resultKeys: string[],
     opts?: ProcessTasksOpts
@@ -205,7 +203,7 @@ export class TaskGraph {
     const { concurrencyLimit = defaultTaskConcurrency } = opts || {}
 
     for (const task of tasks) {
-      await this.addTask(this.latestTasks[task.getKey()])
+      await this.addTask(batchId, this.latestTasks[task.getKey()])
     }
 
     this.log.silly("")
@@ -261,18 +259,18 @@ export class TaskGraph {
               type,
               key,
               startedAt: new Date(),
-              batchId: this.batchId,
+              batchId,
               version: task.version,
             })
-            result = await node.process(dependencyResults, this.batchId)
+            result = await node.process(dependencyResults, batchId)
 
             this.garden.events.emit("taskComplete", result)
           } catch (error) {
             success = false
-            result = { type, description, key, name, error, completedAt: new Date(), batchId: this.batchId }
+            result = { type, description, key, name, error, completedAt: new Date(), batchId }
             this.garden.events.emit("taskError", result)
             this.logTaskError(node, error)
-            this.cancelDependants(node)
+            this.cancelDependants(batchId, node)
           } finally {
             // We know the result got assigned in either the try or catch clause
             results[key] = result!
@@ -339,7 +337,7 @@ export class TaskGraph {
   }
 
   // Recursively remove node's dependants, without removing node.
-  private cancelDependants(node: TaskNode) {
+  private cancelDependants(batchId: string, node: TaskNode) {
     const cancelledAt = new Date()
     for (const dependant of this.getDependants(node)) {
       this.logTaskComplete(dependant, false)
@@ -348,7 +346,7 @@ export class TaskGraph {
         key: dependant.getKey(),
         name: dependant.task.getName(),
         type: dependant.getType(),
-        batchId: this.batchId,
+        batchId,
       })
       this.remove(dependant)
     }
@@ -418,10 +416,6 @@ export class TaskGraph {
       chalk.red.bold(`\n${divider}\n`)
 
     this.log.error({ msg, error })
-  }
-
-  getBatchId() {
-    return this.batchId
   }
 }
 

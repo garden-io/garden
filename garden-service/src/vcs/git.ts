@@ -21,7 +21,6 @@ import { deline } from "../util/string"
 import { splitLast, exec } from "../util/util"
 import { LogEntry } from "../logger/log-entry"
 import parseGitConfig from "parse-git-config"
-import { Logger } from "../logger/logger"
 
 export function getCommitIdFromRefList(refList: string[]): string {
   try {
@@ -387,11 +386,9 @@ export class GitHandler extends VcsHandler {
     return submodules
   }
 
-  async getOriginName() {
+  async getOriginName(log: LogEntry) {
     const cwd = process.cwd()
-    const log = Logger.getInstance().placeholder()
     const git = this.gitCli(log, cwd)
-
     return (await git("config", "--get", "remote.origin.url"))[0]
   }
 }

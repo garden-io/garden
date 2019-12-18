@@ -6,6 +6,7 @@ import { TaskGraph, TaskResult, TaskResults } from "../../../src/task-graph"
 import { makeTestGarden, freezeTime, dataDir, defer } from "../../helpers"
 import { Garden } from "../../../src/garden"
 import { deepFilter } from "../../../src/util/util"
+import uuid from "uuid"
 
 const projectRoot = join(dataDir, "test-project-empty")
 
@@ -93,6 +94,7 @@ describe("task-graph", () => {
       const task = new TestTask(garden, "a", false)
 
       const results = await graph.process([task])
+      const generatedBatchId = results?.a?.batchId || uuid.v4()
 
       const expected: TaskResults = {
         a: {
@@ -101,7 +103,7 @@ describe("task-graph", () => {
           key: "a",
           name: "a",
           completedAt: now,
-          batchId: graph.getBatchId(),
+          batchId: generatedBatchId,
           output: {
             result: "result-a",
             dependencyResults: {},
@@ -121,14 +123,14 @@ describe("task-graph", () => {
       const task = new TestTask(garden, "a", false)
 
       const result = await graph.process([task])
-      const batchId = graph.getBatchId()
+      const generatedBatchId = result?.a?.batchId || uuid.v4()
 
       expect(garden.events.eventLog).to.eql([
         {
           name: "taskPending",
           payload: {
             addedAt: now,
-            batchId,
+            batchId: generatedBatchId,
             key: task.getKey(),
             name: task.name,
             type: task.type,
@@ -139,7 +141,7 @@ describe("task-graph", () => {
           name: "taskProcessing",
           payload: {
             startedAt: now,
-            batchId,
+            batchId: generatedBatchId,
             key: task.getKey(),
             name: task.name,
             type: task.type,
@@ -162,13 +164,13 @@ describe("task-graph", () => {
       const graph = new TaskGraph(garden, garden.log)
       const task = new TestTask(garden, "a", false)
       await graph.process([task])
-      const batchId = graph.getBatchId()
 
       garden.events.eventLog = []
 
       // repeatedTask has the same key and version as task, so its result is already cached
       const repeatedTask = new TestTask(garden, "a", false)
-      await graph.process([repeatedTask])
+      const results = await graph.process([repeatedTask])
+      const generatedBatchId = results?.a?.batchId || uuid.v4()
 
       expect(garden.events.eventLog).to.eql([
         {
@@ -176,7 +178,7 @@ describe("task-graph", () => {
           payload: {
             completedAt: now,
             dependencyResults: {},
-            batchId,
+            batchId: generatedBatchId,
             description: "a",
             key: task.getKey(),
             type: "test",
@@ -197,14 +199,14 @@ describe("task-graph", () => {
       const task = new TestTask(garden, "a", false, { throwError: true })
 
       const result = await graph.process([task])
-      const batchId = graph.getBatchId()
+      const generatedBatchId = result?.a?.batchId || uuid.v4()
 
       expect(garden.events.eventLog).to.eql([
         {
           name: "taskPending",
           payload: {
             addedAt: now,
-            batchId,
+            batchId: generatedBatchId,
             key: task.getKey(),
             name: task.name,
             type: task.type,
@@ -215,7 +217,7 @@ describe("task-graph", () => {
           name: "taskProcessing",
           payload: {
             startedAt: now,
-            batchId,
+            batchId: generatedBatchId,
             key: task.getKey(),
             name: task.name,
             type: task.type,
@@ -262,7 +264,7 @@ describe("task-graph", () => {
 
       // we should be able to add tasks multiple times and in any order
       const results = await graph.process([taskA, taskB, taskC, taskC, taskD, taskA, taskD, taskB, taskD, taskA])
-      const updatedBatchId = graph.getBatchId()
+      const generatedBatchId = results?.a?.batchId || uuid.v4()
 
       // repeat
 
@@ -295,7 +297,7 @@ describe("task-graph", () => {
         key: "a",
         name: "a",
         completedAt: now,
-        batchId: updatedBatchId,
+        batchId: generatedBatchId,
         output: {
           result: "result-a.a1",
           dependencyResults: {},
@@ -308,7 +310,7 @@ describe("task-graph", () => {
         name: "b",
         description: "b.b1",
         completedAt: now,
-        batchId: updatedBatchId,
+        batchId: generatedBatchId,
         output: {
           result: "result-b.b1",
           dependencyResults: { a: resultA },
@@ -321,7 +323,7 @@ describe("task-graph", () => {
         key: "c",
         name: "c",
         completedAt: now,
-        batchId: updatedBatchId,
+        batchId: generatedBatchId,
         output: {
           result: "result-c.c1",
           dependencyResults: { b: resultB },
@@ -339,7 +341,7 @@ describe("task-graph", () => {
           key: "d",
           name: "d",
           completedAt: now,
-          batchId: updatedBatchId,
+          batchId: generatedBatchId,
           output: {
             result: "result-d.d1",
             dependencyResults: {
@@ -437,7 +439,8 @@ describe("task-graph", () => {
       const taskD = new TestTask(garden, "d", true, { ...opts, dependencies: [taskB, taskC] })
 
       const results = await graph.process([taskA, taskB, taskC, taskD])
-      const batchId = graph.getBatchId()
+
+      const generatedBatchId = results?.a?.batchId || uuid.v4()
 
       const resultA: TaskResult = {
         type: "test",
@@ -445,7 +448,7 @@ describe("task-graph", () => {
         key: "a",
         name: "a",
         completedAt: now,
-        batchId,
+        batchId: generatedBatchId,
         output: {
           result: "result-a",
           dependencyResults: {},
@@ -470,12 +473,12 @@ describe("task-graph", () => {
       expect(results.b).to.have.property("error")
       expect(resultOrder).to.eql(["a", "b"])
       expect(filteredEventLog).to.eql([
-        { name: "taskPending", payload: { key: "a", name: "a", type: "test", batchId } },
-        { name: "taskPending", payload: { key: "b", name: "b", type: "test", batchId } },
-        { name: "taskPending", payload: { key: "c", name: "c", type: "test", batchId } },
-        { name: "taskPending", payload: { key: "d", name: "d", type: "test", batchId } },
+        { name: "taskPending", payload: { key: "a", name: "a", type: "test", batchId: generatedBatchId } },
+        { name: "taskPending", payload: { key: "b", name: "b", type: "test", batchId: generatedBatchId } },
+        { name: "taskPending", payload: { key: "c", name: "c", type: "test", batchId: generatedBatchId } },
+        { name: "taskPending", payload: { key: "d", name: "d", type: "test", batchId: generatedBatchId } },
         { name: "taskGraphProcessing", payload: {} },
-        { name: "taskProcessing", payload: { key: "a", name: "a", type: "test", batchId } },
+        { name: "taskProcessing", payload: { key: "a", name: "a", type: "test", batchId: generatedBatchId } },
         {
           name: "taskComplete",
           payload: {
@@ -485,14 +488,17 @@ describe("task-graph", () => {
             name: "a",
             output: { dependencyResults: {}, result: "result-a" },
             type: "test",
-            batchId,
+            batchId: generatedBatchId,
           },
         },
-        { name: "taskProcessing", payload: { key: "b", name: "b", type: "test", batchId } },
-        { name: "taskError", payload: { description: "b", key: "b", name: "b", type: "test", batchId } },
-        { name: "taskCancelled", payload: { key: "c", name: "c", type: "test", batchId } },
-        { name: "taskCancelled", payload: { key: "d", name: "d", type: "test", batchId } },
-        { name: "taskCancelled", payload: { key: "d", name: "d", type: "test", batchId } },
+        { name: "taskProcessing", payload: { key: "b", name: "b", type: "test", batchId: generatedBatchId } },
+        {
+          name: "taskError",
+          payload: { description: "b", key: "b", name: "b", type: "test", batchId: generatedBatchId },
+        },
+        { name: "taskCancelled", payload: { key: "c", name: "c", type: "test", batchId: generatedBatchId } },
+        { name: "taskCancelled", payload: { key: "d", name: "d", type: "test", batchId: generatedBatchId } },
+        { name: "taskCancelled", payload: { key: "d", name: "d", type: "test", batchId: generatedBatchId } },
         { name: "taskGraphComplete", payload: {} },
       ])
     })
