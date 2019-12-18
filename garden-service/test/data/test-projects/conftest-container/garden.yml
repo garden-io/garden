@@ -1,0 +1,10 @@
+kind: Project
+name: conftest-container
+environments:
+  - local
+providers:
+  - name: conftest-container
+---
+kind: Module
+type: container
+name: container

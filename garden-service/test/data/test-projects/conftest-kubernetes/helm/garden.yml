@@ -1,0 +1,6 @@
+kind: Module
+description: Test Helm chart
+type: helm
+name: helm
+chart: stable/postgresql
+version: 3.9.2

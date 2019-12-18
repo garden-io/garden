@@ -1,0 +1,16 @@
+kind: Project
+name: conftest
+environments:
+  - local
+providers:
+  - name: conftest
+---
+kind: Module
+type: conftest
+name: warn
+files: [warn.yaml]
+---
+kind: Module
+type: conftest
+name: warn-and-fail
+files: [warn-and-fail.yaml]

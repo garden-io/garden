@@ -11,7 +11,7 @@ import toposort from "toposort"
 import { flatten, pick, uniq, find, sortBy } from "lodash"
 import { Garden } from "./garden"
 import { BuildDependencyConfig, ModuleConfig } from "./config/module"
-import { Module, getModuleKey, moduleFromConfig } from "./types/module"
+import { Module, getModuleKey, moduleFromConfig, moduleNeedsBuild } from "./types/module"
 import { Service, serviceFromConfig } from "./types/service"
 import { Task, taskFromConfig } from "./types/task"
 import { TestConfig } from "./config/test"
@@ -159,6 +159,7 @@ export class ConfigGraph {
 
     for (const moduleConfig of moduleConfigs) {
       const type = moduleTypes[moduleConfig.type]
+      const needsBuild = moduleNeedsBuild(moduleConfig, type)
 
       const moduleKey = this.keyForModule(moduleConfig)
       this.moduleConfigs[moduleKey] = moduleConfig
@@ -170,7 +171,7 @@ export class ConfigGraph {
         }
       }
 
-      if (type.needsBuild) {
+      if (needsBuild) {
         addBuildDeps(this.getNode("build", moduleKey, moduleKey))
       }
 
@@ -178,7 +179,7 @@ export class ConfigGraph {
       for (const serviceConfig of moduleConfig.serviceConfigs) {
         const serviceNode = this.getNode("deploy", serviceConfig.name, moduleKey)
 
-        if (type.needsBuild) {
+        if (needsBuild) {
           // The service needs its own module to be built
           this.addRelation(serviceNode, "build", moduleKey, moduleKey)
         } else {
@@ -199,7 +200,7 @@ export class ConfigGraph {
       for (const taskConfig of moduleConfig.taskConfigs) {
         const taskNode = this.getNode("run", taskConfig.name, moduleKey)
 
-        if (type.needsBuild) {
+        if (needsBuild) {
           // The task needs its own module to be built
           this.addRelation(taskNode, "build", moduleKey, moduleKey)
         } else {
@@ -224,7 +225,7 @@ export class ConfigGraph {
 
         const testNode = this.getNode("test", testConfigName, moduleKey)
 
-        if (type.needsBuild) {
+        if (needsBuild) {
           // The test needs its own module to be built
           this.addRelation(testNode, "build", moduleKey, moduleKey)
         } else {

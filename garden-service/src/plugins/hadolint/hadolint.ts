@@ -7,12 +7,12 @@
  */
 
 import Bluebird from "bluebird"
-import { join, relative } from "path"
+import { join, relative, resolve } from "path"
 import { pathExists, readFile } from "fs-extra"
 import { createGardenPlugin } from "../../types/plugin/plugin"
 import { providerConfigBaseSchema, ProviderConfig, Provider } from "../../config/provider"
 import { joi } from "../../config/common"
-import { dedent, splitLines } from "../../util/string"
+import { dedent, splitLines, naturalList } from "../../util/string"
 import { TestModuleParams } from "../../types/plugin/module/testModule"
 import { Module } from "../../types/module"
 import { BinaryCmd } from "../../util/ext-tools"
@@ -75,14 +75,40 @@ export const gardenPlugin = createGardenPlugin({
         return {}
       }
 
+      const allModuleNames = new Set(modules.map((m) => m.name))
+
+      const existingHadolintModuleDockerfiles = modules
+        .filter((m) => m.compatibleTypes.includes("hadolint"))
+        .map((m) => resolve(m.path, m.spec.dockerfilePath))
+
       return {
         addModules: await Bluebird.filter(modules, async (module) => {
-          return module.compatibleTypes.includes("container") && (await containerHelpers.hasDockerfile(module))
+          const dockerfilePath = containerHelpers.getDockerfileSourcePath(module)
+
+          return (
+            // Pick all container or container-based modules
+            module.compatibleTypes.includes("container") &&
+            // Make sure we don't step on an existing custom hadolint module
+            !existingHadolintModuleDockerfiles.includes(dockerfilePath) &&
+            // Only create for modules with Dockerfiles
+            (await containerHelpers.hasDockerfile(module))
+          )
         }).map((module) => {
+          const baseName = "hadolint-" + module.name
+
+          let name = baseName
+          let i = 2
+
+          while (allModuleNames.has(name)) {
+            name = `${baseName}-${i++}`
+          }
+
+          allModuleNames.add(name)
+
           return {
             kind: "Module",
             type: "hadolint",
-            name: "hadolint-" + module.name,
+            name,
             description: `hadolint test for module '${module.name}' (auto-generated)`,
             path: module.path,
             dockerfilePath: relative(module.path, containerHelpers.getDockerfileSourcePath(module)),
@@ -157,21 +183,25 @@ export const gardenPlugin = createGardenPlugin({
           const errors = parsed.filter((p: any) => p.level === "error")
           const warnings = parsed.filter((p: any) => p.level === "warning")
           const provider = ctx.provider as HadolintProvider
-          const threshold = provider.config.testFailureThreshold
 
-          if (warnings.length > 0 && threshold === "warning") {
-            success = false
-          } else if (errors.length > 0 && threshold !== "none") {
-            success = false
+          const resultCategories: string[] = []
+          let formattedResult = "OK"
+
+          if (errors.length > 0) {
+            resultCategories.push(`${errors.length} error(s)`)
           }
 
-          let formattedResult = "OK"
+          if (warnings.length > 0) {
+            resultCategories.push(`${warnings.length} warning(s)`)
+          }
+
+          let formattedHeader = `hadolint reported ${naturalList(resultCategories)}`
 
           if (parsed.length > 0) {
             const dockerfileLines = splitLines(dockerfile)
 
             formattedResult =
-              `hadolint reported ${errors.length} error(s) and ${warnings.length} warning(s):\n\n` +
+              `${formattedHeader}:\n\n` +
               parsed
                 .map((msg: any) => {
                   const color = msg.level === "error" ? chalk.bold.red : chalk.bold.yellow
@@ -186,6 +216,16 @@ export const gardenPlugin = createGardenPlugin({
                   `
                 })
                 .join("\n")
+          }
+
+          const threshold = provider.config.testFailureThreshold
+
+          if (warnings.length > 0 && threshold === "warning") {
+            success = false
+          } else if (errors.length > 0 && threshold !== "none") {
+            success = false
+          } else if (warnings.length > 0) {
+            log.warn(chalk.yellow(formattedHeader))
           }
 
           return {

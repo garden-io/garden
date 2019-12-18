@@ -55,24 +55,9 @@ export async function containsBuildSource(module: HelmModule) {
  * Render the template in the specified Helm module (locally), and return all the resources in the chart.
  */
 export async function getChartResources(ctx: PluginContext, module: Module, hotReload: boolean, log: LogEntry) {
-  const chartPath = await getChartPath(module)
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespace = await getNamespace({
-    log,
-    projectName: k8sCtx.projectName,
-    provider: k8sCtx.provider,
-    skipCreate: true,
-  })
-  const releaseName = getReleaseName(module)
 
-  const objects = <KubernetesResource[]>loadTemplate(
-    await helm({
-      ctx: k8sCtx,
-      log,
-      namespace,
-      args: ["template", releaseName, "--namespace", namespace, ...(await getValueArgs(module, hotReload)), chartPath],
-    })
-  )
+  const objects = <KubernetesResource[]>loadTemplate(await renderTemplates(k8sCtx, module, hotReload, log))
 
   const resources = objects.filter((obj) => {
     // Don't try to check status of hooks
@@ -90,6 +75,24 @@ export async function getChartResources(ctx: PluginContext, module: Module, hotR
   })
 
   return flattenResources(resources)
+}
+
+export async function renderTemplates(ctx: KubernetesPluginContext, module: Module, hotReload: boolean, log: LogEntry) {
+  const chartPath = await getChartPath(module)
+  const releaseName = getReleaseName(module)
+  const namespace = await getNamespace({
+    log,
+    projectName: ctx.projectName,
+    provider: ctx.provider,
+    skipCreate: true,
+  })
+
+  return helm({
+    ctx,
+    log,
+    namespace,
+    args: ["template", releaseName, "--namespace", namespace, ...(await getValueArgs(module, hotReload)), chartPath],
+  })
 }
 
 /**

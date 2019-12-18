@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { flatten, uniq, cloneDeep, keyBy } from "lodash"
+import { flatten, uniq, cloneDeep, keyBy, some } from "lodash"
 import { getNames } from "../util/util"
 import { TestSpec } from "../config/test"
 import { ModuleSpec, ModuleConfig, moduleConfigSchema } from "../config/module"
@@ -20,6 +20,7 @@ import { ConfigGraph } from "../config-graph"
 import Bluebird from "bluebird"
 import { getConfigFilePath } from "../util/fs"
 import { getModuleTypeBases } from "../plugins"
+import { ModuleType } from "./plugin/plugin"
 
 export interface FileCopySpec {
   source: string
@@ -38,6 +39,7 @@ export interface Module<
   buildPath: string
   buildMetadataPath: string
   configPath: string
+  needsBuild: boolean
 
   version: ModuleVersion
 
@@ -73,6 +75,12 @@ export const moduleSchema = moduleConfigSchema.keys({
   buildDependencies: joiIdentifierMap(joi.lazy(() => moduleSchema))
     .required()
     .description("A map of all modules referenced under `build.dependencies`."),
+  needsBuild: joi
+    .boolean()
+    .required()
+    .description(
+      "Indicate whether the module needs to be built (i.e. has a build handler or needs to copy dependencies)."
+    ),
   serviceNames: joiArray(joiIdentifier())
     .required()
     .description("The names of the services that the module provides."),
@@ -109,6 +117,7 @@ export async function moduleFromConfig(garden: Garden, graph: ConfigGraph, confi
     configPath,
 
     version,
+    needsBuild: moduleNeedsBuild(config, moduleTypes[config.type]),
 
     buildDependencies: {},
 
@@ -132,6 +141,10 @@ export async function moduleFromConfig(garden: Garden, graph: ConfigGraph, confi
   module.buildDependencies = keyBy(buildDependencyModules, "name")
 
   return module
+}
+
+export function moduleNeedsBuild(moduleConfig: ModuleConfig, moduleType: ModuleType) {
+  return moduleType.needsBuild || some(moduleConfig.build.dependencies, (d) => d.copy && d.copy.length > 0)
 }
 
 export function getModuleCacheContext(config: ModuleConfig) {
