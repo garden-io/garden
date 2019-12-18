@@ -4,7 +4,6 @@ name: demo-project
 environments:
   - name: local
   - name: remote
-    providers:
 providers:
   - name: local-kubernetes
     environments: [local]
