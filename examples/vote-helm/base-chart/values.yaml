@@ -5,12 +5,15 @@
 replicaCount: 1
 
 image:
-  repository:
-  tag:
+  repository: busybox
+  tag: latest
 
-fullnameOverride: ""
+name: "base-chart"
 
 args: []
+
+service:
+  type: ClusterIP
 
 servicePort: 80
 

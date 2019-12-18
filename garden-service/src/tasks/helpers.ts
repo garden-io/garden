@@ -49,8 +49,6 @@ export async function getDependantTasksForModule({
         log,
         module,
         force: forceBuild,
-        fromWatch,
-        hotReloadServiceNames,
       }))
     )
     services = await graph.getServices(module.serviceNames)
@@ -75,8 +73,6 @@ export async function getDependantTasksForModule({
           log,
           module,
           force: true,
-          fromWatch,
-          hotReloadServiceNames,
         }))
       )
       dependantBuildModules = dependants.build
@@ -91,8 +87,6 @@ export async function getDependantTasksForModule({
         log,
         module: m,
         force: forceBuild,
-        fromWatch,
-        hotReloadServiceNames,
       })
     )
   )

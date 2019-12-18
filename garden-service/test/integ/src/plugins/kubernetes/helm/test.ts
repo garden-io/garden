@@ -34,11 +34,12 @@ describe("testHelmModule", () => {
       version: module.version,
     })
 
-    const result = await garden.processTasks([testTask], { throwOnError: true })
+    const key = testTask.getKey()
+    const { [key]: result } = await garden.processTasks([testTask], { throwOnError: true })
 
-    const key = "test.artifacts.echo-test"
-    expect(result).to.have.property(key)
-    expect(result[key]!.output.log.trim()).to.equal("ok")
+    expect(result).to.exist
+    expect(result).to.have.property("output")
+    expect(result!.output.log.trim()).to.equal("ok")
   })
 
   context("artifacts are specified", () => {

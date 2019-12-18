@@ -386,7 +386,7 @@ describe("kubernetes container module handlers", () => {
           version: task.module.version,
         })
 
-        result = await garden.processTasks([testTask], { throwOnError: true })
+        result = await garden.processTasks([testTask])
 
         const key = "task.missing-sh-task"
 
@@ -412,7 +412,7 @@ describe("kubernetes container module handlers", () => {
           version: task.module.version,
         })
 
-        result = await garden.processTasks([testTask], { throwOnError: true })
+        result = await garden.processTasks([testTask])
 
         const key = "task.missing-tar-task"
 
@@ -508,7 +508,7 @@ describe("kubernetes container module handlers", () => {
           version: module.version,
         })
 
-        result = await garden.processTasks([testTask], { throwOnError: true })
+        result = await garden.processTasks([testTask])
 
         const key = "test.missing-sh.missing-sh-test"
         expect(result).to.have.property(key)
@@ -534,7 +534,7 @@ describe("kubernetes container module handlers", () => {
           version: module.version,
         })
 
-        result = await garden.processTasks([testTask], { throwOnError: true })
+        result = await garden.processTasks([testTask])
 
         const key = "test.missing-tar.missing-tar-test"
         expect(result).to.have.property(key)
