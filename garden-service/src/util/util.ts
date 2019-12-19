@@ -442,6 +442,7 @@ export async function loadYamlFile(path: string): Promise<any> {
 
 export interface ObjectWithName {
   name: string
+  [key: string]: any
 }
 
 export function getNames<T extends ObjectWithName>(array: T[]) {
