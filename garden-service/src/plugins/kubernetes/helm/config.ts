@@ -17,6 +17,7 @@ import {
   DeepPrimitiveMap,
   joi,
   ArtifactSpec,
+  joiModuleIncludeDirective,
 } from "../../../config/common"
 import { Module, FileCopySpec } from "../../../types/module"
 import { containsSource, getReleaseName } from "./common"
@@ -238,6 +239,13 @@ export const helmModuleSpecSchema = joi.object().keys({
       deline`Set this to true if the chart should only be built, but not deployed as a service.
       Use this, for example, if the chart should only be used as a base for other modules.`
     ),
+  include: joiModuleIncludeDirective(dedent`
+    If neither \`include\` nor \`exclude\` is set, and the module has local chart sources, Garden
+    automatically set \`include\` to: \`["*", "charts/**/*", "templates/**/*"]\`.
+
+    If neither \`include\` nor \`exclude\` is set and the module specifies a remote chart, Garden
+    automatically sets \`ìnclude\` to \`[]\`.
+  `),
   tasks: joiArray(taskSchema).description("The task definitions for this module."),
   tests: joiArray(testSchema).description("The test suite definitions for this module."),
   timeout: joi
@@ -353,7 +361,7 @@ export async function configureHelmModule({
   }
 
   // Automatically set the include if not explicitly set
-  if (!moduleConfig.include) {
+  if (!(moduleConfig.include || moduleConfig.exclude)) {
     moduleConfig.include = containsSources ? ["*", "charts/**/*", "templates/**/*"] : []
   }
 

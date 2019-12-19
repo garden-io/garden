@@ -51,6 +51,13 @@ description:
 # for details.
 #
 # Also note that specifying an empty list here means _no sources_ should be included.
+#
+# If neither `include` nor `exclude` is set, and the module has a Dockerfile, Garden
+# will parse the Dockerfile and automatically set `include` to match the files and
+# folders added to the Docker image (via the `COPY` and `ADD` directives in the Dockerfile).
+#
+# If neither `include` nor `exclude` is set, and the module
+# specifies a remote image, Garden automatically sets `include` to `[]`.
 include:
 
 # Specify a list of POSIX-style paths or glob patterns that should be excluded from the module.
@@ -383,6 +390,13 @@ source tree, which use the same format as `.gitignore` files. See the
 [Configuration Files guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
 
 Also note that specifying an empty list here means _no sources_ should be included.
+
+If neither `include` nor `exclude` is set, and the module has a Dockerfile, Garden
+will parse the Dockerfile and automatically set `include` to match the files and
+folders added to the Docker image (via the `COPY` and `ADD` directives in the Dockerfile).
+
+If neither `include` nor `exclude` is set, and the module
+specifies a remote image, Garden automatically sets `include` to `[]`.
 
 | Type            | Required |
 | --------------- | -------- |

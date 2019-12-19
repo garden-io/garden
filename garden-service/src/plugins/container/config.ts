@@ -18,6 +18,7 @@ import {
   envVarRegex,
   Primitive,
   ArtifactSpec,
+  joiModuleIncludeDirective,
 } from "../../config/common"
 import { Service, ingressHostnameSchema, linkUrlSchema } from "../../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../../constants"
@@ -539,6 +540,14 @@ export const containerModuleSpecSchema = joi
         Specify the image name for the container. Should be a valid Docker image identifier. If specified and
         the module does not contain a Dockerfile, this image will be used to deploy services for this module.
         If specified and the module does contain a Dockerfile, this identifier is used when pushing the built image.`),
+    include: joiModuleIncludeDirective(dedent`
+      If neither \`include\` nor \`exclude\` is set, and the module has a Dockerfile, Garden
+      will parse the Dockerfile and automatically set \`include\` to match the files and
+      folders added to the Docker image (via the \`COPY\` and \`ADD\` directives in the Dockerfile).
+
+      If neither \`include\` nor \`exclude\` is set, and the module
+      specifies a remote image, Garden automatically sets \`include\` to \`[]\`.
+    `),
     hotReload: hotReloadConfigSchema,
     dockerfile: joi
       .string()

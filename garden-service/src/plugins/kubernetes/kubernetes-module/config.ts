@@ -7,14 +7,14 @@
  */
 
 import { ServiceSpec, dependenciesSchema } from "../../../config/service"
-import { joiArray, joi } from "../../../config/common"
+import { joiArray, joi, joiModuleIncludeDirective } from "../../../config/common"
 import { Module } from "../../../types/module"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../../types/plugin/module/configure"
 import { Service } from "../../../types/service"
 import { ContainerModule } from "../../container/config"
 import { baseBuildSpecSchema } from "../../../config/module"
 import { KubernetesResource } from "../types"
-import { deline } from "../../../util/string"
+import { deline, dedent } from "../../../util/string"
 
 // A Kubernetes Module always maps to a single Service
 export type KubernetesModuleSpec = KubernetesServiceSpec
@@ -65,6 +65,10 @@ export const kubernetesModuleSpecSchema = joi.object().keys({
   files: joiArray(joi.string().posixPath({ subPathOnly: true })).description(
     "POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests."
   ),
+  include: joiModuleIncludeDirective(dedent`
+    If neither \`include\` nor \`exclude\` is set, Garden automatically sets \`include\` to equal the
+    \`files\` directive so that only the Kubernetes manifests get included.
+  `),
 })
 
 export async function configureKubernetesModule({
@@ -80,7 +84,7 @@ export async function configureKubernetesModule({
   ]
 
   // Unless include is explicitly specified, we should just have it equal the `files` field
-  if (!moduleConfig.include) {
+  if (!(moduleConfig.include || moduleConfig.exclude)) {
     moduleConfig.include = moduleConfig.spec.files
   }
 

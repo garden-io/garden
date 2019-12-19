@@ -151,7 +151,7 @@ export async function configureContainerModule({ ctx, log, moduleConfig }: Confi
   }
 
   // Automatically set the include field based on the Dockerfile and config, if not explicitly set
-  if (!moduleConfig.include) {
+  if (!(moduleConfig.include || moduleConfig.exclude)) {
     moduleConfig.include = await containerHelpers.autoResolveIncludes(moduleConfig, log)
   }
 
