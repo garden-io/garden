@@ -16,7 +16,7 @@ import {
   ContainerModuleConfig,
   ContainerTaskSpec,
 } from "../container/config"
-import { joiArray, joiProviderName, joi } from "../../config/common"
+import { joiArray, joiProviderName, joi, joiModuleIncludeDirective } from "../../config/common"
 import { Module } from "../../types/module"
 import { resolve } from "path"
 import { RuntimeError, ConfigurationError } from "../../exceptions"
@@ -66,6 +66,7 @@ const mavenKeys = {
     `
     )
     .example("11-jdk"),
+  include: joiModuleIncludeDirective(),
   jarPath: joi
     .string()
     .required()

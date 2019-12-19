@@ -1,0 +1,4 @@
+kind: Project
+name: kubernetes-module-test
+providers:
+  - name: local-kubernetes

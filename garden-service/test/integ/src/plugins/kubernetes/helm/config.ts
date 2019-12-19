@@ -122,10 +122,16 @@ describe("validateHelmModule", () => {
     })
   })
 
-  it("should not set default includes if they have already been explicitly set", async () => {
+  it("should not set default includes if include has already been explicitly set", async () => {
     patchModuleConfig("api", { include: ["foo"] })
-    const config = await garden.resolveModuleConfig(garden.log, "api")
-    expect(config.include).to.eql(["foo"])
+    const configInclude = await garden.resolveModuleConfig(garden.log, "api")
+    expect(configInclude.include).to.eql(["foo"])
+  })
+
+  it("should not set default includes if exclude has already been explicitly set", async () => {
+    patchModuleConfig("api", { exclude: ["bar"] })
+    const configExclude = await garden.resolveModuleConfig(garden.log, "api")
+    expect(configExclude.include).to.be.undefined
   })
 
   it("should set include to empty if module does not have local chart sources", async () => {
