@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import dedent = require("dedent")
 import stableStringify = require("json-stable-stringify")
 import { ServiceConfig, ServiceSpec, serviceConfigSchema } from "./service"
 import {
@@ -24,6 +23,7 @@ import { TestConfig, TestSpec, testConfigSchema } from "./test"
 import { TaskConfig, TaskSpec, taskConfigSchema } from "./task"
 import { DEFAULT_API_VERSION } from "../constants"
 import { joiVariables } from "./common"
+import { dedent } from "../util/string"
 
 export interface BuildCopySpec {
   source: string

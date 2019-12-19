@@ -14,7 +14,7 @@ import chalk from "chalk"
 import { relative } from "path"
 import { splitLast } from "../util/util"
 import isGitUrl from "is-git-url"
-import { deline } from "../util/string"
+import { deline, dedent } from "../util/string"
 
 export type Primitive = string | number | boolean | null
 
@@ -234,6 +234,30 @@ export const envVarRegex = /^(?!garden)[a-z_][a-z0-9_\.]*$/i
 export const joiIdentifierDescription =
   "valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, " +
   "and cannot end with a dash) and must not be longer than 63 characters."
+
+const moduleIncludeDescription = (extraDescription?: string) => {
+  const desc = dedent`
+  Specify a list of POSIX-style paths or globs that should be regarded as the source files for this
+  module. Files that do *not* match these paths or globs are excluded when computing the version of the module,
+  when responding to filesystem watch events, and when staging builds.
+
+  Note that you can also _exclude_ files using the \`exclude\` field or by placing \`.gardenignore\` files in your
+  source tree, which use the same format as \`.gitignore\` files. See the
+  [Configuration Files guide](${includeGuideLink}) for details.
+
+  Also note that specifying an empty list here means _no sources_ should be included.
+  `
+  if (extraDescription) {
+    return desc + "\n\n" + extraDescription
+  }
+  return desc
+}
+
+export const joiModuleIncludeDirective = (extraDescription?: string) =>
+  joi
+    .array()
+    .items(joi.string().posixPath({ allowGlobs: true, subPathOnly: true }))
+    .description(moduleIncludeDescription(extraDescription))
 
 export const joiIdentifier = () =>
   joi
