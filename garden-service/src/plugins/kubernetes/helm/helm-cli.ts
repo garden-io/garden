@@ -48,24 +48,24 @@ const helm3 = new BinaryCmd({
   name: "helm3",
   specs: {
     darwin: {
-      url: "https://get.helm.sh/helm-v3.0.1-darwin-amd64.tar.gz",
-      sha256: "4bffac2b5710fe80d2987efbc046a25968dbf3fb981c499e82fc21fe6178d2f3",
+      url: "https://get.helm.sh/helm-v3.0.2-darwin-amd64.tar.gz",
+      sha256: "05c7748da0ea8d5f85576491cd3c615f94063f20986fd82a0f5658ddc286cdb1",
       extract: {
         format: "tar",
         targetPath: ["darwin-amd64", "helm"],
       },
     },
     linux: {
-      url: "https://get.helm.sh/helm-v3.0.1-linux-amd64.tar.gz",
-      sha256: "6de3337bb7683fd62f915d156cfc13c1cf73dc183bd39f2fb4644498c7595805",
+      url: "https://get.helm.sh/helm-v3.0.2-linux-amd64.tar.gz",
+      sha256: "c6b7aa7e4ffc66e8abb4be328f71d48c643cb8f398d95c74d075cfb348710e1d",
       extract: {
         format: "tar",
         targetPath: ["linux-amd64", "helm"],
       },
     },
     win32: {
-      url: "https://get.helm.sh/helm-v3.0.1-windows-amd64.zip",
-      sha256: "60edef2180f94884e6a985c5cf920242fcc3fe8712f2d9768187b14816ed6bd9",
+      url: "https://get.helm.sh/helm-v3.0.2-windows-amd64.zip",
+      sha256: "b76dabf4e25166ebf1db7337145b02cc986fcfcee06e195df983c39c36722f46",
       extract: {
         format: "zip",
         targetPath: ["windows-amd64", "helm.exe"],
@@ -80,12 +80,14 @@ export async function helm({
   log,
   args,
   version = 3,
+  env = {},
 }: {
   ctx: KubernetesPluginContext
   namespace?: string
   log: LogEntry
   args: string[]
   version?: 2 | 3
+  env?: { [key: string]: string }
 }) {
   if (!namespace) {
     namespace = await getAppNamespace(ctx, log, ctx.provider)
@@ -103,7 +105,7 @@ export async function helm({
     opts.push("--kubeconfig", ctx.provider.config.kubeconfig)
   }
 
-  const helmHome = join(GARDEN_GLOBAL_PATH, ".helm")
+  const helmHome = join(GARDEN_GLOBAL_PATH, `.helm${version}`)
   await mkdirp(helmHome)
 
   const cmd = version === 2 ? helm2 : helm3
@@ -112,7 +114,10 @@ export async function helm({
     log,
     args: [...opts, ...args],
     env: {
+      ...process.env,
+      ...env,
       HELM_HOME: helmHome,
+      TILLER_NAMESPACE: namespace,
     },
     // Helm itself will time out pretty reliably, so we shouldn't time out early on our side.
     timeout: 3600,

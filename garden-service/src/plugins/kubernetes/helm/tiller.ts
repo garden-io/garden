@@ -9,13 +9,18 @@
 import { LogEntry } from "../../../logger/log-entry"
 import { KubernetesResource } from "../types"
 import { helm } from "./helm-cli"
-import { safeLoadAll } from "js-yaml"
-import { KubeApi } from "../api"
+import { safeLoadAll, safeDump } from "js-yaml"
+import { KubeApi, getKubeConfig } from "../api"
 import { checkResourceStatuses } from "../status/status"
 import { combineStates } from "../../../types/service"
 import { KubernetesPluginContext } from "../config"
 import { convertDeprecatedManifestVersion } from "../util"
 import Bluebird from "bluebird"
+import tmp from "tmp-promise"
+import { findByName, getNames } from "../../../util/util"
+import { ConfigurationError } from "../../../exceptions"
+import { writeFile } from "fs-extra"
+import { resolve } from "path"
 
 // DEPRECATED: remove all this in v0.12.0
 
@@ -65,7 +70,14 @@ export async function migrateToHelm3(ctx: KubernetesPluginContext, api: KubeApi,
     })
   } catch (err) {
     // Ugh ffs...
-    if (!err.message.includes("plugin already exists")) {
+    if (err.message.includes("plugin already exists")) {
+      await helm({
+        ctx,
+        namespace,
+        log,
+        args: ["plugin", "update", "2to3"],
+      })
+    } else {
       throw err
     }
   }
@@ -78,14 +90,74 @@ export async function migrateToHelm3(ctx: KubernetesPluginContext, api: KubeApi,
 
     migrationLog.info(`-> Migrating release ${namespace}/${releaseName} from Tiller to Helm 3`)
 
-    log.debug(
-      await helm({
-        ctx,
-        namespace,
-        log,
-        args: ["--tiller-ns", namespace, "2to3", "convert", releaseName],
-      })
-    )
+    // The 2to3 plugin doesn't support multiple files in KUBECONFIG, and does not support/respect the
+    // --kube-context parameter at all. I'm sure for really good reasons because this is not important
+    // at all. (Yeah I'm pissed off because this has wasted a lot of my time, sorrynotsorry.)
+    // So (breathe deep) we need to extract a temporary kube config file for the occasion.
+    const tmpDir = await tmp.dir({ unsafeCleanup: true })
+
+    try {
+      const config = await getKubeConfig(log, ctx.provider)
+
+      const contextName = ctx.provider.config.context
+      const context = findByName(config.contexts, contextName)
+
+      if (!context) {
+        const contextNames = getNames(config.contexts)
+        throw new ConfigurationError(`Could not find context ${contextName}`, { contextName, contextNames })
+      }
+
+      const clusterName = context.context.cluster
+      const cluster = findByName(config.clusters, clusterName)
+
+      if (!cluster) {
+        const clusterNames = getNames(config.clusters)
+        throw new ConfigurationError(`Could not find cluster ${clusterName} referenced in context ${contextName}`, {
+          clusterName,
+          contextName,
+          clusterNames,
+        })
+      }
+
+      const userName = context.context.user
+      const user = findByName(config.users, userName)
+
+      if (!user) {
+        const userNames = getNames(config.users)
+        throw new ConfigurationError(`Could not find user ${userName} referenced in context ${contextName}`, {
+          userName,
+          contextName,
+          clusterNames: userNames,
+        })
+      }
+
+      const resolvedConfig = {
+        "apiVersion": "v1",
+        "kind": "Config",
+        "preferences": config.preferences || {},
+        "current-context": context.name,
+        "contexts": [context],
+        "clusters": [cluster],
+        "users": [user],
+      }
+
+      const configPath = resolve(tmpDir.path, "kubeconfig.json")
+      await writeFile(configPath, safeDump(resolvedConfig))
+
+      log.debug(
+        await helm({
+          ctx,
+          namespace,
+          log,
+          args: ["2to3", "convert", releaseName, "--tiller-ns", namespace],
+          env: {
+            KUBECONFIG: configPath,
+          },
+        })
+      )
+    } finally {
+      await tmpDir.cleanup()
+    }
   }
 
   // Remove Tiller
