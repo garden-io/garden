@@ -10,12 +10,12 @@ import { isEqual, invert } from "lodash"
 import Bluebird from "bluebird"
 import { createServer, Server, Socket } from "net"
 const AsyncLock = require("async-lock")
+import getPort = require("get-port")
 import { Service, ServiceStatus, ForwardablePort } from "./types/service"
 import { Garden } from "./garden"
 import { registerCleanupFunction } from "./util/util"
 import { LogEntry } from "./logger/log-entry"
 import { GetPortForwardResult } from "./types/plugin/service/getPortForward"
-import { getPort } from "./util/network"
 
 interface PortProxy {
   key: string
