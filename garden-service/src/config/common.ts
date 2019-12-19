@@ -8,7 +8,6 @@
 
 import Joi from "@hapi/joi"
 import { splitLast } from "../util/util"
-import isGitUrl from "is-git-url"
 import { deline, dedent } from "../util/string"
 
 export type Primitive = string | number | boolean | null
@@ -209,16 +208,11 @@ joi = joi.extend({
     requireHash: "{{#label}} must specify a branch/tag hash",
   },
   validate(value: string, { error }) {
-    // Make sure it's a string
-    const baseSchema = Joi.string()
+    const baseSchema = joi.string().regex(gitUrlRegex)
     const result = baseSchema.validate(value)
 
     if (result.error) {
-      return { value, errors: result.error }
-    }
-
-    if (!isGitUrl(value)) {
-      return { value, errors: error("gitUrl") }
+      return { value, errors: error("base") }
     }
 
     return { value }
@@ -259,6 +253,7 @@ export const absolutePathRegex = /^\/.*/ // Note: Only checks for the leading sl
 export const identifierRegex = /^(?![0-9]+$)(?!.*-$)(?!-)[a-z0-9-]{1,63}$/
 export const userIdentifierRegex = /^(?!garden)(?=.{1,63}$)[a-z][a-z0-9]*(-[a-z0-9]+)*$/
 export const envVarRegex = /^(?!garden)[a-z_][a-z0-9_\.]*$/i
+export const gitUrlRegex = /(?:git|ssh|https?|git@[-\w.]+):(\/\/)?(.*?)(\/?|\#[-\d\w._\/]+?)$/
 
 export const joiIdentifierDescription =
   "valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, " +
