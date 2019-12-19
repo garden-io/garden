@@ -46,6 +46,12 @@ description:
 # for details.
 #
 # Also note that specifying an empty list here means _no sources_ should be included.
+#
+# If neither `include` nor `exclude` is set, and the module has local chart sources, Garden
+# automatically set `include` to: `["*", "charts/**/*", "templates/**/*"]`.
+#
+# If neither `include` nor `exclude` is set and the module specifies a remote chart, Garden
+# automatically sets `ìnclude` to `[]`.
 include:
 
 # Specify a list of POSIX-style paths or glob patterns that should be excluded from the module.
@@ -359,6 +365,12 @@ source tree, which use the same format as `.gitignore` files. See the
 [Configuration Files guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
 
 Also note that specifying an empty list here means _no sources_ should be included.
+
+If neither `include` nor `exclude` is set, and the module has local chart sources, Garden
+automatically set `include` to: `["*", "charts/**/*", "templates/**/*"]`.
+
+If neither `include` nor `exclude` is set and the module specifies a remote chart, Garden
+automatically sets `ìnclude` to `[]`.
 
 | Type            | Required |
 | --------------- | -------- |
