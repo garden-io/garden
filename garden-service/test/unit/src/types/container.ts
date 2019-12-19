@@ -1,5 +1,5 @@
 import { expect } from "chai"
-import { validate } from "../../../../src/config/common"
+import { validate } from "../../../../src/config/validation"
 import { portSchema } from "../../../../src/plugins/container/config"
 
 describe("portSchema", () => {

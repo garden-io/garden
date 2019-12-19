@@ -9,7 +9,8 @@
 import Joi = require("@hapi/joi")
 import Koa = require("koa")
 import { Command, Parameters, ParameterValues } from "../commands/base"
-import { validate, joi } from "../config/common"
+import { joi } from "../config/common"
+import { validate } from "../config/validation"
 import { extend, mapValues, omitBy } from "lodash"
 import { Garden } from "../garden"
 import { LogLevel } from "../logger/log-node"

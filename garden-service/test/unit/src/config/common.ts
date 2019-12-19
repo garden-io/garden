@@ -1,13 +1,7 @@
 import { expect } from "chai"
 const stripAnsi = require("strip-ansi")
-import {
-  identifierRegex,
-  validate,
-  envVarRegex,
-  userIdentifierRegex,
-  joi,
-  joiRepositoryUrl,
-} from "../../../../src/config/common"
+import { identifierRegex, envVarRegex, userIdentifierRegex, joi, joiRepositoryUrl } from "../../../../src/config/common"
+import { validate } from "../../../../src/config/validation"
 import { expectError } from "../../../helpers"
 
 describe("envVarRegex", () => {

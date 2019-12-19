@@ -6,36 +6,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import dedent = require("dedent")
 import uuidv4 from "uuid/v4"
-import md5 = require("md5")
 import segmentClient = require("analytics-node")
 import { platform, release } from "os"
 import ci = require("ci-info")
-
-import {
-  globalConfigKeys,
-  AnalyticsGlobalConfig,
-  GlobalConfigStore,
-  LocalConfigStore,
-  AnalyticsLocalConfig,
-  localConfigKeys,
-} from "../config-store"
+import { flatten } from "lodash"
+import { globalConfigKeys, AnalyticsGlobalConfig, GlobalConfigStore } from "../config-store"
 import { getPackageVersion } from "../util/util"
-import { Garden } from "../garden"
-import { Logger, getLogger } from "../logger/logger"
-import inquirer = require("inquirer")
 import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY } from "../constants"
-import { GlobalOptions } from "../cli/cli"
-import { ParameterValues } from "../commands/base"
+import { LogEntry } from "../logger/log-entry"
+import { printWarningMessage } from "../logger/util"
+import { GitHandler } from "../vcs/git"
+import hasha = require("hasha")
+import uuid from "uuid"
+import { Garden } from "../garden"
+import { Events, EventName } from "../events"
+import { AnalyticsType } from "./analytics-types"
+import dedent from "dedent"
 
 const API_KEY = process.env.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
-
-export enum AnalyticsType {
-  COMMAND = "Run Command",
-  TASK = "Run Task",
-  CALL_API = "Call API",
-}
 
 export interface SystemInfo {
   gardenVersion: string
@@ -44,18 +33,41 @@ export interface SystemInfo {
 }
 
 export interface AnalyticsEventProperties {
-  name: string
   projectId: string
   system: SystemInfo
+  isCI: boolean
+  sessionId: string
+  projectMetadata: any
+}
+
+export interface AnalyticsCommandEventProperties extends AnalyticsEventProperties {
+  name: string
 }
 
 export interface AnalyticsTaskEventProperties extends AnalyticsEventProperties {
+  batchId: string
+  taskType: string
   taskName: string
+  taskStatus: string
 }
 export interface AnalyticsApiEventProperties extends AnalyticsEventProperties {
   path: string
   command: string
+  name: string
 }
+
+export interface AnalyticsConfigErrorProperties extends AnalyticsEventProperties {
+  moduleType: string
+}
+
+export interface AnalyticsProjectErrorProperties extends AnalyticsEventProperties {
+  fields: Array<string>
+}
+
+export interface AnalyticsValidationErrorProperties extends AnalyticsEventProperties {
+  fields: Array<string>
+}
+
 export interface ApiRequestBody {
   command: string
 }
@@ -71,90 +83,115 @@ export interface SegmentEvent {
   properties: AnalyticsEventProperties
 }
 
+type SupportedEvents = Events["taskPending"] | Events["taskProcessing"] | Events["taskComplete"] | Events["taskError"]
+
 /**
- * A Segment client wrapper with utility functionalities like local and global config and info,
+ * A Segment client wrapper with utility functionalities global config and info,
  * prompt for opt-in/opt-out and wrappers for single events.
  *
- * Usage:
+ * Initalization:
+ * const analyticsClient = await AnalyticsHanlder.init(garden: Garden, log: LogEntry)
+ * analyticsClient.trackCommand(commandName)
  *
- * const analyticsClient = await new Analytics(garden: Garden).init()
+ * Subsequent usage:
+ * const analyticsClient = AnalyticsHanlder.getInstance()
  * analyticsClient.trackCommand(commandName)
  *
  * @export
- * @class Analytics
+ * @class AnalyticsHandler
  */
 export class AnalyticsHandler {
-  private garden: Garden
+  private static instance: AnalyticsHandler
   private segment: any
-  private logger: Logger
+  private log: LogEntry
   private globalConfig: AnalyticsGlobalConfig
-  private localConfig: AnalyticsLocalConfig
   private globalConfigStore: GlobalConfigStore
-  private localConfigStore: LocalConfigStore
+  private projectId = ""
   private systemConfig: SystemInfo
-  private autoAccept: boolean = false
+  private isCI = ci.isCI
+  private sessionId = uuid.v4()
+  protected garden: Garden
+  private projectMetadata
 
-  constructor(garden: Garden, parsedOpts?: ParameterValues<GlobalOptions>) {
-    // { flushAt: 1 } means the client will track events as soon as they are created
-    // no batching is occurring: this will change once the daemon is implemented
-    this.segment = new segmentClient(API_KEY, { flushAt: 1 })
+  private constructor(garden: Garden, log: LogEntry) {
+    this.segment = new segmentClient(API_KEY, { flushAt: 10, flushInterval: 300 })
+    this.log = log
     this.garden = garden
-    this.logger = getLogger()
-    this.globalConfigStore = garden.globalConfigStore
-    this.localConfigStore = garden.configStore
+    this.globalConfigStore = new GlobalConfigStore()
     this.globalConfig = {
       userId: "",
       firstRun: true,
       optedIn: false,
+      showOptInMessage: true,
     }
-    this.localConfig = {
-      projectId: "",
-    }
+
     this.systemConfig = {
       platform: platform(),
       platformVersion: release(),
       gardenVersion: getPackageVersion().toString(),
     }
-    this.autoAccept = !!(parsedOpts && parsedOpts.yes)
+  }
+
+  static async init(garden: Garden, log: LogEntry) {
+    if (!AnalyticsHandler.instance) {
+      AnalyticsHandler.instance = await new AnalyticsHandler(garden, log).factory()
+    } else {
+      /**
+       * This init is called from within the do while loop in the cli
+       * If the instance is already present it means a restart happened and we need to
+       * refresh the garden instance and event listeners.
+       */
+      await AnalyticsHandler.refreshGarden(garden)
+    }
+    return AnalyticsHandler.instance
+  }
+
+  static getInstance(): AnalyticsHandler {
+    if (!AnalyticsHandler.instance) {
+      throw Error("Analytics not initialized. Init first")
+    }
+    return AnalyticsHandler.instance
   }
 
   /**
-   * A factory function which returns an initialized Analytics object, ready to be used.
-   * This function will load global and local config stores and update them if needed.
-   * The globalConfigStore contains info about optIn, first run, machine info, etc., while
-   * the localStore contains info about the project.
-   * If the Analytics has never been initalized, this function will prompt the user to ask
-   * permission for the collection of the data. This method always needs to be called after
-   * instantiation.
+   * A private initialization function which returns an initialized Analytics object, ready to be used.
+   * This function will load the globalConfigStore and update it if needed.
+   * The globalConfigStore contains info about optIn, first run, machine info, etc.,
+   * This method always needs to be called after instantiation.
    *
    * @returns
-   * @memberof Analytics
+   * @memberof AnalyticsHandler
    */
-  async init() {
-    if (ci.isCI) {
-      return this
-    }
+  private async factory() {
     const globalConf = await this.globalConfigStore.get()
-    const localConf = await this.localConfigStore.get()
     this.globalConfig = {
       ...this.globalConfig,
       ...globalConf.analytics,
     }
-    this.localConfig = {
-      ...localConf.analytics,
-    }
 
-    if (this.globalConfig.firstRun) {
-      this.logger.stop()
-      this.localConfig.projectId = md5(this.garden.projectName)
+    const vcs = new GitHandler(process.cwd(), [])
+    const originName = await vcs.getOriginName(this.log)
+    this.projectId = originName ? hasha(originName, { algorithm: "sha256" }) : "unset"
+
+    if (this.globalConfig.firstRun || this.globalConfig.showOptInMessage) {
+      if (!this.isCI) {
+        printWarningMessage(
+          this.log,
+          dedent`
+          Thanks for installing Garden! We work hard to provide you with the best experience we can.
+          We collect some anonymized usage data while you use Garden. If you'd like to know more about what we collect
+          or if you'd like to opt out of telemetry, please read more at https://github.com/garden-io/garden/blob/master/README.md#Analytics`
+        )
+      }
+
       this.globalConfig = {
         firstRun: false,
-        userId: uuidv4(),
-        optedIn: await this.promptAnalytics(),
+        userId: this.globalConfig.userId || uuidv4(),
+        optedIn: true,
+        showOptInMessage: false,
       }
 
       await this.globalConfigStore.set([globalConfigKeys.analytics], this.globalConfig)
-      await this.localConfigStore.set([localConfigKeys.analytics], this.localConfig)
 
       if (this.segment && this.globalConfig.optedIn) {
         this.segment.identify({
@@ -167,11 +204,80 @@ export class AnalyticsHandler {
         })
       }
     }
+    // Subscribe to the TaskGraph events
+    this.garden.events.onAny((name, payload) => this.processEvent(name, payload))
+
+    this.projectMetadata = await this.generateProjectMetadata()
+
     return this
   }
 
-  hasOptedIn(): boolean {
+  /**
+   * Handler used internally to process the TaskGraph events.
+   */
+  private processEvent<T extends EventName>(name: T, payload: Events[T]) {
+    if (AnalyticsHandler.isSupportedEvent(name, payload)) {
+      this.trackTask(payload.batchId, payload.name, payload.type, name)
+    }
+  }
+
+  static async refreshGarden(garden: Garden) {
+    AnalyticsHandler.instance.garden = garden
+    AnalyticsHandler.instance.garden.events.onAny((name, payload) =>
+      AnalyticsHandler.instance.processEvent(name, payload)
+    )
+  }
+
+  /**
+   * Typeguard to check wether we can process or not an event
+   */
+  static isSupportedEvent(name: EventName, _event: Events[EventName]): _event is SupportedEvents {
+    const supportedEventsKeys = ["taskPending", "taskProcessing", "taskComplete", "taskError"]
+    return supportedEventsKeys.includes(name)
+  }
+
+  /**
+   * Used internally to check if a users has opted-in or not.
+   */
+  private hasOptedIn(): boolean {
     return this.globalConfig.optedIn || false
+  }
+
+  /**
+   * Returns some Project metadata to be used on each event.
+   *
+   * eg. number of modules, types of modules, number of tests, etc.
+   */
+  private async generateProjectMetadata() {
+    const configGraph = await this.garden.getConfigGraph(this.log)
+    const modules = await configGraph.getModules()
+    const moduleTypes = [...new Set(modules.map((m) => m.type))]
+
+    const tasks = await configGraph.getTasks()
+    const services = await configGraph.getServices()
+    const tests = modules.map((m) => m.testConfigs)
+    const numberOfTests = flatten(tests).length
+
+    return {
+      numberOfModules: modules.length,
+      moduleTypes,
+      numberOfTasks: tasks.length,
+      numberOfServices: services.length,
+      numberOfTests,
+    }
+  }
+
+  /**
+   * Returns some common metadata to be used on each event.
+   */
+  private getBasicAnalyticsProperties(): AnalyticsEventProperties {
+    return {
+      projectId: this.projectId,
+      system: this.systemConfig,
+      isCI: this.isCI,
+      sessionId: this.sessionId,
+      projectMetadata: this.projectMetadata,
+    }
   }
 
   /**
@@ -179,7 +285,7 @@ export class AnalyticsHandler {
    * This is the property checked to decide if an event should be tracked or not.
    *
    * @param {boolean} isOptedIn
-   * @memberof Analytics
+   * @memberof AnalyticsHandler
    */
   async setAnalyticsOptIn(isOptedIn: boolean) {
     this.globalConfig.optedIn = isOptedIn
@@ -192,22 +298,23 @@ export class AnalyticsHandler {
    * @private
    * @param {AnalyticsEvent} event The event to track
    * @returns
-   * @memberof Analytics
+   * @memberof AnalyticsHandler
    */
   private track(event: AnalyticsEvent) {
-    if (this.segment && this.hasOptedIn() && !ci.isCI) {
+    if (this.segment && this.hasOptedIn()) {
       const segmentEvent: SegmentEvent = {
         userId: this.globalConfig.userId,
         event: event.type,
         properties: {
+          ...this.getBasicAnalyticsProperties(),
           ...event.properties,
         },
       }
 
       const trackToRemote = (eventToTrack: SegmentEvent) => {
         this.segment.track(eventToTrack, (err) => {
-          if (err) {
-            this.garden.log.debug(`Error sending tracking event: ${err}`)
+          if (err && this.log) {
+            this.log.debug(`Error sending tracking event: ${err}`)
           }
         })
       }
@@ -222,15 +329,14 @@ export class AnalyticsHandler {
    *
    * @param {string} commandName The name of the command
    * @returns
-   * @memberof Analytics
+   * @memberof AnalyticsHandler
    */
   trackCommand(commandName: string) {
     return this.track({
       type: AnalyticsType.COMMAND,
-      properties: {
+      properties: <AnalyticsCommandEventProperties>{
         name: commandName,
-        projectId: this.localConfig.projectId,
-        system: this.systemConfig,
+        ...this.getBasicAnalyticsProperties(),
       },
     })
   }
@@ -238,17 +344,21 @@ export class AnalyticsHandler {
   /**
    * Tracks a Garden Task. The taskName is hashed since it could contain sensitive information
    *
+   * @param {string} batchId An id representing the current TaskGraph execution batch
    * @param {string} taskName The name of the Task. Usually in the format '<taskType>.<moduleName>'
    * @param {string} taskType The type of the Task
+   * @param {string} taskStatus the status of the task: "taskPending", "taskProcessing", "taskComplete" or "taskError"
    * @returns
-   * @memberof Analytics
+   * @memberof AnalyticsHandler
    */
-  trackTask(taskName: string, taskType: string) {
+  trackTask(batchId: string, taskName: string, taskType: string, taskStatus: string) {
+    const hashedTaskName = hasha(taskName, { algorithm: "sha256" })
     const properties: AnalyticsTaskEventProperties = {
-      name: taskType,
-      taskName: md5(taskName),
-      projectId: this.localConfig.projectId,
-      system: this.systemConfig,
+      batchId,
+      taskName: hashedTaskName,
+      taskType,
+      ...this.getBasicAnalyticsProperties(),
+      taskStatus,
     }
 
     return this.track({
@@ -265,15 +375,14 @@ export class AnalyticsHandler {
    * @param {ApiRequestBody} body The body of the request.
    * NOTE: for privacy issues we only collect the 'command' from the body
    * @returns
-   * @memberof Analytics
+   * @memberof AnalyticsHandler
    */
   trackApi(method: string, path: string, body: ApiRequestBody) {
     const properties: AnalyticsApiEventProperties = {
       name: `${method} request`,
       path,
       command: body.command,
-      projectId: this.localConfig.projectId,
-      system: this.systemConfig,
+      ...this.getBasicAnalyticsProperties(),
     }
 
     return this.track({
@@ -283,29 +392,72 @@ export class AnalyticsHandler {
   }
 
   /**
-   * Prompts the user to ask to opt-in the analytics collection
+   *  Tracks a Garden Module configuration error
    *
-   * @private
-   * @returns the user answer (boolean)
-   * @memberof Analytics
+   * @param {string} moduleType The type of the module causing the configuration error
+   * @returns
+   * @memberof AnalyticsHandler
    */
-  private async promptAnalytics() {
-    if (this.autoAccept) {
-      return true
-    }
-    const defaultMessage = dedent`
-      Thanks for installing Garden! We work hard to provide you with the best experience we can.
-      It would help us a lot if we could collect some anonymous analytics while you use Garden.
-      You can read more about what we collect at https://github.com/garden-io/garden/blob/master/README.md#Analytics
-
-      Are you OK with us collecting anonymized data about your CLI usage? (Y/n)
-
-    `
-    const ans: any = await inquirer.prompt({
-      name: "continue",
-      message: defaultMessage,
+  trackModuleConfigError(name: string, moduleType: string) {
+    const moduleName = hasha(name, { algorithm: "sha256" })
+    return this.track(<AnalyticsEvent>{
+      type: AnalyticsType.MODULE_CONFIG_ERROR,
+      properties: <AnalyticsConfigErrorProperties>{
+        ...this.getBasicAnalyticsProperties(),
+        moduleName,
+        moduleType,
+      },
     })
+  }
 
-    return ans.continue.startsWith("y")
+  /**
+   *  Tracks a Project configuration error
+   *
+   * @param {Array<string>} fields The fields containing the errors
+   * @returns
+   * @memberof AnalyticsHandler
+   */
+  trackProjectConfigError(fields: Array<string>) {
+    return this.track({
+      type: AnalyticsType.PROJECT_CONFIG_ERROR,
+      properties: <AnalyticsProjectErrorProperties>{
+        ...this.getBasicAnalyticsProperties(),
+        fields,
+      },
+    })
+  }
+
+  /**
+   *  Tracks a generic configuration error
+   *
+   * @param {Array<string>} fields The fields containing the errors
+   * @returns
+   * @memberof AnalyticsHandler
+   */
+  trackConfigValidationError(fields: Array<string>) {
+    return this.track({
+      type: AnalyticsType.VALIDATION_ERROR,
+      properties: <AnalyticsValidationErrorProperties>{
+        ...this.getBasicAnalyticsProperties(),
+        fields,
+      },
+    })
+  }
+
+  /**
+   *  Make sure the Segment client flushes the events queue
+   *
+   * @returns
+   * @memberof AnalyticsHandler
+   */
+  flush() {
+    return new Promise((resolve) =>
+      this.segment.flush((err, _data) => {
+        if (err && this.log) {
+          this.log.debug(`Error flushing analytics: ${err}`)
+        }
+        resolve()
+      })
+    )
   }
 }

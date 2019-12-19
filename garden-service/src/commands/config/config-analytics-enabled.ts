@@ -42,7 +42,7 @@ export class ConfigAnalyticsEnabled extends Command {
   `
 
   async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult> {
-    const analyticsClient = await new AnalyticsHandler(garden).init()
+    const analyticsClient = await AnalyticsHandler.init(garden, log)
     await analyticsClient.setAnalyticsOptIn(args.enable)
 
     if (args.enable) {

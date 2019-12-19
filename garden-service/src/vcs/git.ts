@@ -385,4 +385,10 @@ export class GitHandler extends VcsHandler {
 
     return submodules
   }
+
+  async getOriginName(log: LogEntry) {
+    const cwd = process.cwd()
+    const git = this.gitCli(log, cwd)
+    return (await git("config", "--get", "remote.origin.url"))[0]
+  }
 }

@@ -16,9 +16,9 @@ import {
   joiUserIdentifier,
   DeepPrimitiveMap,
   joi,
-  ArtifactSpec,
   joiModuleIncludeDirective,
 } from "../../../config/common"
+import { ArtifactSpec } from "../../../config/validation"
 import { Module, FileCopySpec } from "../../../types/module"
 import { containsSource, getReleaseName } from "./common"
 import { ConfigurationError } from "../../../exceptions"

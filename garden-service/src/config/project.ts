@@ -16,10 +16,10 @@ import {
   Primitive,
   joiRepositoryUrl,
   joiUserIdentifier,
-  validateWithPath,
   joi,
   includeGuideLink,
 } from "./common"
+import { validateWithPath } from "./validation"
 import { resolveTemplateStrings } from "../template-string"
 import { ProjectConfigContext } from "./config-context"
 import { findByName, getNames } from "../util/util"

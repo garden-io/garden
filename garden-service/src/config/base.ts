@@ -15,7 +15,7 @@ import { ConfigurationError } from "../exceptions"
 import { DEFAULT_API_VERSION } from "../constants"
 import { ProjectResource } from "../config/project"
 import { getConfigFilePath } from "../util/fs"
-import { validateWithPath } from "./common"
+import { validateWithPath } from "./validation"
 
 export interface GardenResource {
   apiVersion: string

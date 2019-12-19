@@ -7,7 +7,7 @@
  */
 
 import { cloneDeep } from "lodash"
-import { validateWithPath } from "./config/common"
+import { validateWithPath } from "./config/validation"
 import { resolveTemplateStrings } from "./template-string"
 import { ContextResolveOpts, ModuleConfigContext } from "./config/config-context"
 import { relative } from "path"

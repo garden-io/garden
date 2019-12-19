@@ -17,8 +17,8 @@ import { BaseTask, TaskDefinitionError, TaskType } from "./tasks/base"
 import { LogEntry, LogEntryMetadata, TaskLogStatus } from "./logger/log-entry"
 import { toGardenError, GardenBaseError } from "./exceptions"
 import { Garden } from "./garden"
-import { AnalyticsHandler } from "./analytics/analytics"
 import { dedent } from "./util/string"
+import uuid from "uuid"
 
 class TaskGraphError extends GardenBaseError {
   type = "task-graph"
@@ -32,6 +32,7 @@ export interface TaskResult {
   output?: any
   dependencyResults?: TaskResults
   completedAt: Date
+  batchId: string
   error?: Error
 }
 
@@ -90,6 +91,9 @@ export class TaskGraph {
   }
 
   async process(tasks: BaseTask[], opts?: ProcessTasksOpts): Promise<TaskResults> {
+    // We generate a new batchId
+    const batchId = uuid.v4()
+
     for (const t of tasks) {
       this.latestTasks[t.getKey()] = t
     }
@@ -105,7 +109,7 @@ export class TaskGraph {
     // to return the latest result for each requested task.
     const resultKeys = tasks.map((t) => t.getKey())
 
-    const results = await this.opQueue.add(() => this.processTasksInternal(tasksToProcess, resultKeys, opts))
+    const results = await this.opQueue.add(() => this.processTasksInternal(batchId, tasksToProcess, resultKeys, opts))
 
     if (opts && opts.throwOnError) {
       const failed = Object.entries(results).filter(([_, result]) => result && result.error)
@@ -146,12 +150,13 @@ export class TaskGraph {
     this.roots.setNodes(newRootNodes)
   }
 
-  private async addTask(task: BaseTask) {
+  private async addTask(batchId: string, task: BaseTask) {
     await this.addNodeWithDependencies(task)
     this.rebuild()
     if (this.index.getNode(task)) {
       this.garden.events.emit("taskPending", {
         addedAt: new Date(),
+        batchId,
         key: task.getKey(),
         name: task.getName(),
         type: task.type,
@@ -190,6 +195,7 @@ export class TaskGraph {
    * Process the graph until it's complete.
    */
   private async processTasksInternal(
+    batchId: string,
     tasks: BaseTask[],
     resultKeys: string[],
     opts?: ProcessTasksOpts
@@ -197,7 +203,7 @@ export class TaskGraph {
     const { concurrencyLimit = defaultTaskConcurrency } = opts || {}
 
     for (const task of tasks) {
-      await this.addTask(this.latestTasks[task.getKey()])
+      await this.addTask(batchId, this.latestTasks[task.getKey()])
     }
 
     this.log.silly("")
@@ -228,8 +234,6 @@ export class TaskGraph {
 
       this.initLogging()
 
-      const analytics = await new AnalyticsHandler(this.garden).init()
-
       return Bluebird.map(batch, async (node: TaskNode) => {
         const task = node.task
         const name = task.getName()
@@ -255,20 +259,18 @@ export class TaskGraph {
               type,
               key,
               startedAt: new Date(),
+              batchId,
               version: task.version,
             })
-            result = await node.process(dependencyResults)
-
-            // Track task if user has opted-in
-            analytics.trackTask(result.key, result.type)
+            result = await node.process(dependencyResults, batchId)
 
             this.garden.events.emit("taskComplete", result)
           } catch (error) {
             success = false
-            result = { type, description, key, name, error, completedAt: new Date() }
+            result = { type, description, key, name, error, completedAt: new Date(), batchId }
             this.garden.events.emit("taskError", result)
             this.logTaskError(node, error)
-            this.cancelDependants(node)
+            this.cancelDependants(batchId, node)
           } finally {
             // We know the result got assigned in either the try or catch clause
             results[key] = result!
@@ -335,7 +337,7 @@ export class TaskGraph {
   }
 
   // Recursively remove node's dependants, without removing node.
-  private cancelDependants(node: TaskNode) {
+  private cancelDependants(batchId: string, node: TaskNode) {
     const cancelledAt = new Date()
     for (const dependant of this.getDependants(node)) {
       this.logTaskComplete(dependant, false)
@@ -344,6 +346,7 @@ export class TaskGraph {
         key: dependant.getKey(),
         name: dependant.task.getName(),
         type: dependant.getType(),
+        batchId,
       })
       this.remove(dependant)
     }
@@ -545,7 +548,7 @@ class TaskNode {
     }
   }
 
-  async process(dependencyResults: TaskResults): Promise<TaskResult> {
+  async process(dependencyResults: TaskResults, batchId: string): Promise<TaskResult> {
     const output = await this.task.process(dependencyResults)
 
     return {
@@ -554,6 +557,7 @@ class TaskNode {
       name: this.task.getName(),
       description: this.getDescription(),
       completedAt: new Date(),
+      batchId,
       output,
       dependencyResults,
     }
