@@ -41,6 +41,7 @@ interface MessageBase {
   symbol?: LogSymbol
   append?: boolean
   data?: any
+  maxSectionWidth?: number
 }
 
 export interface MessageState extends MessageBase {
@@ -106,6 +107,7 @@ export class LogEntry extends LogNode {
         symbol: params.symbol,
         status: params.level === LogLevel.error ? "error" : params.status,
         data: params.data,
+        maxSectionWidth: params.maxSectionWidth,
       })
     }
   }
@@ -131,6 +133,7 @@ export class LogEntry extends LogNode {
       // Next state does not inherit the append field
       append: updateParams.append,
       timestamp: Date.now(),
+      maxSectionWidth: updateParams.maxSectionWidth || messageState.maxSectionWidth,
     }
 
     // Hack to preserve section alignment if spinner disappears

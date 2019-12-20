@@ -67,6 +67,7 @@ describe("LogEntry", () => {
       status: undefined,
       data: undefined,
       append: undefined,
+      maxSectionWidth: undefined,
     }
     it("should update entry state", () => {
       const timestamp = freezeTime().valueOf()
@@ -86,6 +87,7 @@ describe("LogEntry", () => {
         status: "done",
         data: { some: "data" },
         metadata: { task: taskMetadata },
+        maxSectionWidth: 8,
       })
 
       expect(entry.getMessageStates()).to.eql([
@@ -98,6 +100,7 @@ describe("LogEntry", () => {
           data: { some: "data" },
           append: undefined,
           timestamp,
+          maxSectionWidth: 8,
         },
       ])
       expect(entry.getMetadata()).to.eql({ task: taskMetadata })
@@ -112,11 +115,13 @@ describe("LogEntry", () => {
         symbol: "info",
         status: "done",
         data: { some: "data" },
+        maxSectionWidth: 8,
       })
       entry.setState({
         msg: "world",
         emoji: "hamburger",
         data: { some: "data_updated" },
+        maxSectionWidth: 10,
       })
       expect(entry.getMessageStates()).to.eql([
         {
@@ -128,6 +133,7 @@ describe("LogEntry", () => {
           data: { some: "data" },
           append: undefined,
           timestamp,
+          maxSectionWidth: 8,
         },
         {
           msg: "world",
@@ -138,6 +144,7 @@ describe("LogEntry", () => {
           data: { some: "data_updated" },
           append: undefined,
           timestamp,
+          maxSectionWidth: 10,
         },
       ])
     })
