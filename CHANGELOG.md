@@ -1,6 +1,14 @@
 
+<a name="v0.11.0-alpha.1"></a>
+## [v0.11.0-alpha.1](https://github.com/garden-io/garden/compare/v0.11.0-alpha.0...v0.11.0-alpha.1) (2019-12-20)
+
+### Bug Fixes
+
+* failing init if remote is not set ([5b19e026](https://github.com/garden-io/garden/commit/5b19e026))
+
+
 <a name="v0.11.0-alpha.0"></a>
-## [v0.11.0-alpha.0](https://github.com/garden-io/garden/compare/v0.10.16...v0.11.0-alpha.0) (2019-12-19)
+## [v0.11.0-alpha.0](https://github.com/garden-io/garden/compare/v0.10.16...v0.11.0-alpha.0) (2019-12-20)
 
 ### Bug Fixes
 
