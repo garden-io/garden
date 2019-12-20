@@ -241,7 +241,7 @@ export const helmModuleSpecSchema = joi.object().keys({
     ),
   include: joiModuleIncludeDirective(dedent`
     If neither \`include\` nor \`exclude\` is set, and the module has local chart sources, Garden
-    automatically set \`include\` to: \`["*", "charts/**/*", "templates/**/*"]\`.
+    automatically sets \`include\` to: \`["*", "charts/**/*", "templates/**/*"]\`.
 
     If neither \`include\` nor \`exclude\` is set and the module specifies a remote chart, Garden
     automatically sets \`ìnclude\` to \`[]\`.

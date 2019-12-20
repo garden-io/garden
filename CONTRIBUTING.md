@@ -231,7 +231,7 @@ To make a new release, set your current working directory to the garden root dir
 2. The next step depends on the release type:
     * If you're making the first pre-release:
         1. Reset `latest-release` to `master` with `git reset --hard origin/master`
-        2. Run `./bin/release.ts prerelease`.
+        2. Run `./bin/release.ts preminor|prepatch`.
     * If you’ve already created a prerelease, e.g. `v1.2.3-0`, and want to create a new prerelease `v1.2.3-1` which includes fixes merged to master since `v1.2.3-0` was created, do the following:
         1. Checkout to `latest-release` and cherry-pick the appropriate commits from `master`
         2. Then checkout to the version branch: `git checkout release-v1.2.3-0`
@@ -242,7 +242,7 @@ To make a new release, set your current working directory to the garden root dir
 4. Manual testing (using the pre-release/release binary)
     * On a **Windows** machine, run `garden dev --hot=vote` in the `vote` example project.
         * Change a file in the `vote` service and verify that the hot reload was successful.
-        * Open the dashboard, verify that the initial page loads without errors. 
+        * Open the dashboard, verify that the initial page loads without errors.
 5. Go to our Github [Releases page](https://github.com/garden-io/garden/releases) and click the **Edit** button for the draft just created from CI. Note that for drafts, a new one is always created instead of replacing a previous one.
 6. Write release notes. The notes should give an overview of the release and mention all relevant features. They should also **acknowledge all external contributors** and contain the changelog for that release.
     * To generate a changelog for just that tag, run `git-chglog <tag-name>`
