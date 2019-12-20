@@ -85,8 +85,10 @@ async function getClusterForContext(context: string) {
 }
 
 async function isContextAMatch(cluster: string, context: string): Promise<Boolean> {
-  const kubeConfigString = (await exec("kind", ["get", "kubeconfig", `--name=${cluster}`])).stdout
-  const kubeConfig = safeLoad(kubeConfigString)
-
-  return kubeConfig["current-context"] === context
+  try {
+    const kubeConfigString = (await exec("kind", ["get", "kubeconfig", `--name=${cluster}`])).stdout
+    const kubeConfig = safeLoad(kubeConfigString)
+    return kubeConfig["current-context"] === context
+  } catch (err) {}
+  return false
 }
