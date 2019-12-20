@@ -389,6 +389,11 @@ export class GitHandler extends VcsHandler {
   async getOriginName(log: LogEntry) {
     const cwd = process.cwd()
     const git = this.gitCli(log, cwd)
-    return (await git("config", "--get", "remote.origin.url"))[0]
+    try {
+      return (await git("config", "--get", "remote.origin.url"))[0]
+    } catch (error) {
+      log.silly(`Trying to retrieve "git remote origin.url" but encountered an error: ${error}`)
+    }
+    return undefined
   }
 }
