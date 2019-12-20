@@ -21,6 +21,8 @@ import { findByName, getNames } from "../../../util/util"
 import { ConfigurationError } from "../../../exceptions"
 import { writeFile } from "fs-extra"
 import { resolve } from "path"
+import { getValueArgs, getChartPath, getReleaseName } from "./common"
+import { Garden } from "../../../garden"
 
 // DEPRECATED: remove all this in v0.12.0
 
@@ -33,7 +35,19 @@ export async function checkTillerStatus(ctx: KubernetesPluginContext, api: KubeA
   return combineStates(statuses.map((s) => s.state))
 }
 
-export async function migrateToHelm3(ctx: KubernetesPluginContext, api: KubeApi, namespace: string, log: LogEntry) {
+export async function migrateToHelm3({
+  ctx,
+  api,
+  namespace,
+  log,
+  sysGarden,
+}: {
+  ctx: KubernetesPluginContext
+  api: KubeApi
+  namespace: string
+  log: LogEntry
+  sysGarden?: Garden
+}) {
   const migrationLog = log.info(`-> Migrating from Helm 2.x (Tiller) to Helm 3 in namespace ${namespace}`)
   let res
   // List all releases in Helm 2 (Tiller)
@@ -57,6 +71,44 @@ export async function migrateToHelm3(ctx: KubernetesPluginContext, api: KubeApi,
     const tillerReleaseNames = listFromTiller.Releases.filter((r: any) => r.Status === "DEPLOYED").map(
       (r: any) => r.Name
     )
+
+    // Ok, so, here's the deal:
+    //
+    // We had to upgrade the nginx-ingress chart because the previous version was outdated
+    // and buggy. That wasn't an issue with Helm 2.
+    //
+    // However, Helm 3 is unable to upgrade the chart because of this issue:
+    // https://github.com/helm/helm/issues/6646#issuecomment-547650430 (basically, Helm 3 can't upgrade
+    // because the new chart has a different apiVersion).
+    //
+    // So users that still have the old garden-nginx release but have migrated to Helm 3 will have issues.
+    //
+    // We therefore check if the garden-nginx release is deployed, and if so, use the chance to upgrade
+    // it with Helm 2 before migrating to Helm 3. This should be a no-op if the chart is alrady up to date.
+    const nginxDeployed = !!listFromTiller.Releases.find(
+      (r: any) => r.Name === "garden-nginx" && r.Status === "DEPLOYED"
+    )
+    if (nginxDeployed && sysGarden) {
+      log.debug("Using Helm 2 to upgrade the garden-nginx release")
+      const actionRouter = await sysGarden.getActionRouter()
+      const dg = await sysGarden.getConfigGraph(log)
+      const module = await dg.getModule("ingress-controller")
+      // Ensure the module is built
+      await actionRouter.build({ module, log })
+
+      const commonArgs = [
+        "--namespace",
+        namespace,
+        "--timeout",
+        module.spec.timeout.toString(10), // Helm 2 style, without "+s"
+        ...(await getValueArgs(module, false)),
+      ]
+
+      const chartPath = await getChartPath(module)
+      const releaseName = getReleaseName(module)
+      const upgradeArgs = ["upgrade", releaseName, chartPath, "--install", "--force", ...commonArgs]
+      await helm({ ctx, namespace, log, args: [...upgradeArgs], version: 2 })
+    }
 
     // List all releases in Helm 3
     const listFromHelm3 = JSON.parse(
