@@ -105,6 +105,42 @@ describe("LogEntry", () => {
       ])
       expect(entry.getMetadata()).to.eql({ task: taskMetadata })
     })
+    it("should update maxSectionWidth to zero", () => {
+      const timestamp = freezeTime().valueOf()
+      const taskMetadata: TaskMetadata = {
+        type: "a",
+        key: "a",
+        status: "active",
+        uid: "1",
+        versionString: "123",
+      }
+      const entry = logger.placeholder()
+      entry.setState({
+        msg: "hello",
+        emoji: "haircut",
+        section: "caesar",
+        symbol: "info",
+        status: "done",
+        data: { some: "data" },
+        metadata: { task: taskMetadata },
+        maxSectionWidth: 0,
+      })
+
+      expect(entry.getMessageStates()).to.eql([
+        {
+          msg: "hello",
+          emoji: "haircut",
+          section: "caesar",
+          symbol: "info",
+          status: "done",
+          data: { some: "data" },
+          append: undefined,
+          timestamp,
+          maxSectionWidth: 0,
+        },
+      ])
+      expect(entry.getMetadata()).to.eql({ task: taskMetadata })
+    })
     it("should overwrite previous values", () => {
       const timestamp = freezeTime().valueOf()
       const entry = logger.placeholder()
@@ -122,6 +158,10 @@ describe("LogEntry", () => {
         emoji: "hamburger",
         data: { some: "data_updated" },
         maxSectionWidth: 10,
+      })
+
+      entry.setState({
+        maxSectionWidth: 0,
       })
       expect(entry.getMessageStates()).to.eql([
         {
@@ -145,6 +185,17 @@ describe("LogEntry", () => {
           append: undefined,
           timestamp,
           maxSectionWidth: 10,
+        },
+        {
+          msg: "world",
+          emoji: "hamburger",
+          section: "caesar",
+          symbol: "info",
+          status: "done",
+          data: { some: "data_updated" },
+          append: undefined,
+          timestamp,
+          maxSectionWidth: 0,
         },
       ])
     })

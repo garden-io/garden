@@ -133,7 +133,8 @@ export class LogEntry extends LogNode {
       // Next state does not inherit the append field
       append: updateParams.append,
       timestamp: Date.now(),
-      maxSectionWidth: updateParams.maxSectionWidth || messageState.maxSectionWidth,
+      maxSectionWidth:
+        updateParams.maxSectionWidth !== undefined ? updateParams.maxSectionWidth : messageState.maxSectionWidth,
     }
 
     // Hack to preserve section alignment if spinner disappears
