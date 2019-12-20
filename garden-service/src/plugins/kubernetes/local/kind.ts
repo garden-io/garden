@@ -15,12 +15,10 @@ import { RuntimeError } from "../../../exceptions"
 import { KubeApi } from "../api"
 import { KubernetesResource } from "../types"
 
-const CLUSTER_NOT_FOUND = "CLUSTER_NOT_FOUND"
-
 export async function loadLocalImage(buildResult: BuildResult, config: KubernetesConfig): Promise<void> {
   try {
     const clusterName = await getClusterForContext(config.context)
-    if (clusterName != CLUSTER_NOT_FOUND) {
+    if (clusterName !== null) {
       await exec("kind", ["load", "docker-image", buildResult.details.identifier, `--name=${clusterName}`])
     }
   } catch (err) {
@@ -77,13 +75,13 @@ async function getKindClusters(): Promise<Array<string>> {
   return []
 }
 
-async function getClusterForContext(context: string): Promise<string> {
+async function getClusterForContext(context: string) {
   for (let cluster of await getKindClusters()) {
     if (await isContextAMatch(cluster, context)) {
       return cluster
     }
   }
-  return CLUSTER_NOT_FOUND
+  return null
 }
 
 async function isContextAMatch(cluster: string, context: string): Promise<Boolean> {

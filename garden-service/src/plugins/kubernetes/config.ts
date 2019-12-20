@@ -247,7 +247,7 @@ const secretRef = joi
 const imagePullSecretsSchema = joiArray(secretRef).description(dedent`
     References to \`docker-registry\` secrets to use for authenticating with remote registries when pulling
     images. This is necessary if you reference private images in your module configuration, and is required
-      when configuring a remote Kubernetes environment with buildMode=local.
+    when configuring a remote Kubernetes environment with buildMode=local.
   `)
 
 const tlsCertificateSchema = joi.object().keys({
