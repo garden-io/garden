@@ -5,6 +5,8 @@ import {
   kilobytesToString,
   flattenResources,
   deduplicatePodsByLabel,
+  getStaticLabelsFromPod,
+  getSelectorString,
 } from "../../../../../src/plugins/kubernetes/util"
 import { KubernetesServerResource } from "../../../../../src/plugins/kubernetes/types"
 import { V1Pod } from "@kubernetes/client-node"
@@ -257,5 +259,43 @@ describe("flattenResources", () => {
       },
     ]
     expect(flattenResources(resources).map((r) => r.metadata.name)).to.eql(["a", "d", "e"])
+  })
+})
+
+describe("getStaticLabelsFromPod", () => {
+  it("It should should only select labels without characters", () => {
+    const pod = ({
+      apiVersion: "v1",
+      kind: "Pod",
+      metadata: {
+        creationTimestamp: new Date("2019-11-12T14:44:26Z"),
+        labels: {
+          module: "a",
+          service: "a",
+          lean: "5",
+          checksum: "a1b2c3d4",
+        },
+      },
+      spec: {},
+    } as unknown) as KubernetesServerResource<V1Pod>
+
+    const labels = getStaticLabelsFromPod(pod)
+
+    expect(labels).to.eql({
+      module: "a",
+      service: "a",
+    })
+  })
+})
+
+describe("getSelectorString", () => {
+  it("It for format a label map to comma separated key value string ", () => {
+    const labels = {
+      module: "a",
+      service: "a",
+    }
+    const selectorString = getSelectorString(labels)
+
+    expect(selectorString).to.eql("-lmodule=a,service=a")
   })
 })
