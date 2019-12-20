@@ -47,7 +47,7 @@ export async function migrateToHelm3(ctx: KubernetesPluginContext, api: KubeApi,
 
   // ... of course it returns an empty string when there are no releases
   const listFromTiller = res.trim() === "" ? { Releases: [] } : JSON.parse(res)
-  const tillerReleaseNames = listFromTiller.Releases.map((r: any) => r.Name)
+  const tillerReleaseNames = listFromTiller.Releases.filter((r: any) => r.Status === "DEPLOYED").map((r: any) => r.Name)
 
   // List all releases in Helm 3
   const listFromHelm3 = JSON.parse(
