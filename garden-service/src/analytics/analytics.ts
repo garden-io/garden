@@ -34,6 +34,7 @@ export interface SystemInfo {
 
 export interface AnalyticsEventProperties {
   projectId: string
+  projectName: string
   system: SystemInfo
   isCI: boolean
   sessionId: string
@@ -107,6 +108,7 @@ export class AnalyticsHandler {
   private globalConfig: AnalyticsGlobalConfig
   private globalConfigStore: GlobalConfigStore
   private projectId = ""
+  private projectName = ""
   private systemConfig: SystemInfo
   private isCI = ci.isCI
   private sessionId = uuid.v4()
@@ -171,7 +173,8 @@ export class AnalyticsHandler {
 
     const vcs = new GitHandler(process.cwd(), [])
     const originName = await vcs.getOriginName(this.log)
-    this.projectId = originName ? hasha(originName, { algorithm: "sha256" }) : "unset"
+    this.projectName = hasha(this.garden.projectName, { algorithm: "sha256" })
+    this.projectId = originName ? hasha(originName, { algorithm: "sha256" }) : this.projectName
 
     if (this.globalConfig.firstRun || this.globalConfig.showOptInMessage) {
       if (!this.isCI) {
@@ -273,6 +276,7 @@ export class AnalyticsHandler {
   private getBasicAnalyticsProperties(): AnalyticsEventProperties {
     return {
       projectId: this.projectId,
+      projectName: this.projectName,
       system: this.systemConfig,
       isCI: this.isCI,
       sessionId: this.sessionId,
