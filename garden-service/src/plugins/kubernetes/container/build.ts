@@ -19,7 +19,7 @@ import { posix, resolve } from "path"
 import { KubeApi } from "../api"
 import { kubectl } from "../kubectl"
 import { LogEntry } from "../../../logger/log-entry"
-import { KubernetesProvider, ContainerBuildMode, KubernetesPluginContext } from "../config"
+import { KubernetesProvider, ContainerBuildMode, KubernetesPluginContext, KubernetesConfig } from "../config"
 import { PluginError } from "../../../exceptions"
 import { PodRunner } from "../run"
 import { getRegistryHostname, getKubernetesSystemVariables } from "../init"
@@ -29,6 +29,7 @@ import { getPortForward } from "../port-forward"
 import { Writable } from "stream"
 import { LogLevel } from "../../../logger/log-node"
 import { exec, renderOutputStream } from "../../../util/util"
+import { loadLocalImage } from "../local/kind"
 
 const dockerDaemonDeploymentName = "garden-docker-daemon"
 const dockerDaemonContainerName = "docker-daemon"
@@ -96,6 +97,9 @@ const localBuild: BuildHandler = async (params) => {
   const buildResult = await buildContainerModule(params)
 
   if (!ctx.provider.config.deploymentRegistry) {
+    if ((ctx.provider.config as KubernetesConfig).clusterType === "kind") {
+      await loadLocalImage(buildResult, ctx.provider.config as KubernetesConfig)
+    }
     return buildResult
   }
 

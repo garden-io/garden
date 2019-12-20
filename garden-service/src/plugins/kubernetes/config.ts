@@ -105,6 +105,7 @@ export interface KubernetesConfig extends ProviderConfig {
   gardenSystemNamespace: string
   tlsCertificates: IngressTlsCertificate[]
   certManager?: CertManagerConfig
+  clusterType?: "kind" | "minikube" | "microk8s"
   _systemServices: string[]
 }
 
