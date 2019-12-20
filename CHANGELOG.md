@@ -1,4 +1,19 @@
 
+<a name="v0.11.0-alpha.2"></a>
+## [v0.11.0-alpha.2](https://github.com/garden-io/garden/compare/v0.11.0-alpha.1...v0.11.0-alpha.2) (2019-12-20)
+
+### Bug Fixes
+
+* remove resources only when tiller not deployed ([b2b30b17](https://github.com/garden-io/garden/commit/b2b30b17))
+* failing init if remote is not set ([938bb200](https://github.com/garden-io/garden/commit/938bb200))
+* **k8s:** ensure Garden can upgrade garden-nginx release ([b244c8e0](https://github.com/garden-io/garden/commit/b244c8e0))
+* **k8s:** helm migration issue with non-deployed releases ([d97adf78](https://github.com/garden-io/garden/commit/d97adf78))
+
+### Features
+
+* **k8s:** add support for KinD ([87a69787](https://github.com/garden-io/garden/commit/87a69787))
+
+
 <a name="v0.11.0-alpha.1"></a>
 ## [v0.11.0-alpha.1](https://github.com/garden-io/garden/compare/v0.11.0-alpha.0...v0.11.0-alpha.1) (2019-12-20)
 
