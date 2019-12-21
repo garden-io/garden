@@ -16,6 +16,7 @@ import { Garden } from "./garden"
 import { registerCleanupFunction } from "./util/util"
 import { LogEntry } from "./logger/log-entry"
 import { GetPortForwardResult } from "./types/plugin/service/getPortForward"
+import { LocalAddress } from "./db/entities/local-address"
 
 interface PortProxy {
   key: string
@@ -35,6 +36,12 @@ registerCleanupFunction("kill-service-port-proxies", () => {
 })
 
 const portLock = new AsyncLock()
+
+export async function startPortProxies(garden: Garden, log: LogEntry, service: Service, status: ServiceStatus) {
+  return Bluebird.map(status.forwardablePorts || [], (spec) => {
+    return startPortProxy(garden, log, service, spec)
+  })
+}
 
 async function startPortProxy(garden: Garden, log: LogEntry, service: Service, spec: ForwardablePort) {
   const key = getPortKey(service, spec)
@@ -57,6 +64,29 @@ async function createProxy(garden: Garden, log: LogEntry, service: Service, spec
   const actions = await garden.getActionRouter()
   const key = getPortKey(service, spec)
   let fwd: GetPortForwardResult
+
+  // get preferred IP from db
+  const localAddress = await LocalAddress.resolve({
+    projectName: garden.projectName,
+    moduleName: service.module.name,
+    serviceName: service.name,
+    hostname: getHostname(service, spec),
+  })
+  let localIp = localAddress.getIp()
+  let localPort: number
+
+  try {
+    localPort = await getPort({ host: localIp, port: spec.targetPort })
+  } catch (err) {
+    if (err.errno === "EADDRNOTAVAIL") {
+      // If we're not allowed to bind to other 127.x.x.x addresses, we fall back to localhost. This will almost always
+      // be the case on Mac, until we come up with something more clever (that doesn't require sudo).
+      localIp = "127.0.0.1"
+      localPort = await getPort({ host: localIp, port: spec.targetPort })
+    } else {
+      throw err
+    }
+  }
 
   const getPortForward = async () => {
     if (fwd) {
@@ -169,14 +199,13 @@ async function createProxy(garden: Garden, log: LogEntry, service: Service, spec
     })
   })
 
-  const localPort = await getPort({ port: spec.targetPort })
-  const host = `localhost:${localPort}`
+  const host = `${localIp}:${localPort}`
   // For convenience, we try to guess a protocol based on the target port, if no URL protocol is specified
   const protocol = spec.urlProtocol || guessProtocol(spec)
   const localUrl = protocol ? `${protocol.toLowerCase()}://${host}` : host
 
-  log.debug(`Starting proxy to ${key} on port ${localPort}`)
-  server.listen(localPort)
+  log.debug(`Starting proxy to ${key} on ${host}`)
+  server.listen(localPort, localIp)
 
   return { key, server, service, spec, localPort, localUrl }
 }
@@ -188,14 +217,12 @@ function stopPortProxy(proxy: PortProxy, log?: LogEntry) {
   proxy.server.close()
 }
 
-export async function startPortProxies(garden: Garden, log: LogEntry, service: Service, status: ServiceStatus) {
-  return Bluebird.map(status.forwardablePorts || [], (spec) => {
-    return startPortProxy(garden, log, service, spec)
-  })
+function getHostname(service: Service, spec: ForwardablePort) {
+  return spec.targetHostname || service.name
 }
 
 function getPortKey(service: Service, spec: ForwardablePort) {
-  return `${service.name}/${spec.targetHostname || ""}:${spec.targetPort}`
+  return `${service.name}/${getHostname(service, spec)}:${spec.targetPort}`
 }
 
 const standardProtocolPorts = {

@@ -59,6 +59,7 @@ import { ensureDir } from "fs-extra"
 import { loadPlugins, getDependencyOrder } from "./plugins"
 import { deline, naturalList } from "./util/string"
 import dedent from "dedent"
+import { ensureConnected } from "./db/connection"
 
 export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
   [actionName: string]: PluginActionHandlers[T]
@@ -246,6 +247,9 @@ export class Garden {
     // Ensure the project root is in a git repo
     const vcs = new GitHandler(gardenDirPath, config.dotIgnoreFiles)
     await vcs.getRepoRoot(log, projectRoot)
+
+    // Connect to the state storage
+    await ensureConnected()
 
     const garden = new this({
       artifactsPath,
