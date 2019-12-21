@@ -37,9 +37,9 @@ export abstract class ConfigStore<T extends object = any> {
    * Would've been nice to allow something like: set(["path", "to", "valA", valA], ["path", "to", "valB", valB]...)
    * but Typescript support is missing at the moment
    */
-  public async set(param: SetManyParam)
-  public async set(keyPath: string[], value: ConfigValue)
-  public async set(...args) {
+  public async set(param: SetManyParam): Promise<void>
+  public async set(keyPath: string[], value: ConfigValue): Promise<void>
+  public async set(...args): Promise<void> {
     let config = await this.getConfig()
     let entries: SetManyParam
 
@@ -160,12 +160,6 @@ export abstract class ConfigStore<T extends object = any> {
  *                                           *
  **********************************************/
 
-// TODO: Camel case previous usernames
-export interface KubernetesLocalConfig {
-  "username"?: string
-  "previous-usernames"?: Array<string>
-}
-
 export interface LinkedSource {
   name: string
   path: string
@@ -176,24 +170,10 @@ export interface AnalyticsLocalConfig {
 }
 
 export interface LocalConfig {
-  kubernetes?: KubernetesLocalConfig
   linkedModuleSources?: LinkedSource[] // TODO Use KeyedSet instead of array
   linkedProjectSources?: LinkedSource[]
   analytics: AnalyticsLocalConfig
 }
-
-const kubernetesLocalConfigSchema = joi
-  .object()
-  .keys({
-    "username": joiUserIdentifier()
-      .allow("")
-      .optional(),
-    "previous-usernames": joi
-      .array()
-      .items(joiUserIdentifier())
-      .optional(),
-  })
-  .meta({ internal: true })
 
 const linkedSourceSchema = joi
   .object()
@@ -211,7 +191,6 @@ const AnalyticsLocalConfigSchema = joi
   .meta({ internal: true })
 
 const localConfigSchemaKeys = {
-  kubernetes: kubernetesLocalConfigSchema,
   linkedModuleSources: joiArray(linkedSourceSchema),
   linkedProjectSources: joiArray(linkedSourceSchema),
   analytics: AnalyticsLocalConfigSchema,
