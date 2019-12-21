@@ -275,6 +275,7 @@ export class Garden {
    * Clean up before shutting down.
    */
   async close() {
+    this.log.silly(`Closing Garden instance`)
     this.watcher && (await this.watcher.stop())
   }
 

@@ -7,7 +7,7 @@
  */
 
 import { watch, FSWatcher } from "chokidar"
-import { parse, basename, resolve } from "path"
+import { parse, basename, resolve, posix } from "path"
 import { pathToCacheContext } from "./cache"
 import { Module } from "./types/module"
 import { Garden } from "./garden"
@@ -21,6 +21,7 @@ import { EventEmitter } from "events"
 
 // How long we wait between processing added files and directories
 const DEFAULT_BUFFER_INTERVAL = 400
+const useFsevents = process.platform === "darwin" && process.env.CHOKIDAR_USEPOLLING !== "1"
 
 export type ChangeHandler = (module: Module | null, configChanged: boolean) => Promise<void>
 
@@ -43,6 +44,7 @@ export class Watcher extends EventEmitter {
   private buffer: { [path: string]: ChangedPath }
   private running: boolean
   public processing: boolean
+  public ready: boolean
 
   constructor(
     private garden: Garden,
@@ -55,6 +57,7 @@ export class Watcher extends EventEmitter {
     this.buffer = {}
     this.running = false
     this.processing = false
+    this.ready = false
     this.start()
   }
 
@@ -65,7 +68,7 @@ export class Watcher extends EventEmitter {
       this.log.debug(`Watcher: Clearing handlers`)
       this.watcher.removeAllListeners()
       // We re-use the FSWatcher instance on Mac to avoid fsevents segfaults, but don't need to on other platforms
-      if (process.platform !== "darwin") {
+      if (useFsevents) {
         await this.watcher.close()
       }
       delete this.watcher
@@ -89,6 +92,8 @@ export class Watcher extends EventEmitter {
       // const moduleExcludes = flatten(this.modules.map((m) => (m.exclude || []).map((p) => resolve(m.path, p))))
 
       // We keep a single instance of FSWatcher to avoid segfault issues on Mac
+      const newWatcher = !watcher
+
       if (watcher) {
         this.log.debug(`Watcher: Using existing FSWatcher`)
         this.watcher = watcher
@@ -101,8 +106,9 @@ export class Watcher extends EventEmitter {
       } else {
         // Make sure that fsevents works when we're on macOS. This has come up before without us noticing, which has
         // a dramatic performance impact, so it's best if we simply throw here so that our tests catch such issues.
-        if (process.platform === "darwin") {
+        if (useFsevents) {
           try {
+            this.log.silly("Loading fsevents")
             require("fsevents")
           } catch (error) {
             throw new InternalError(`Unable to load fsevents module: ${error}`, {
@@ -123,7 +129,7 @@ export class Watcher extends EventEmitter {
           ignored,
         })
 
-        if (process.platform === "darwin") {
+        if (useFsevents) {
           // We re-use the FSWatcher instance on Mac to avoid fsevents segfaults, but don't need to on other platforms
           watcher = this.watcher
         }
@@ -136,6 +142,7 @@ export class Watcher extends EventEmitter {
         .on("addDir", this.makeDirAddedHandler())
         .on("unlinkDir", this.makeDirRemovedHandler())
         .on("ready", () => {
+          this.ready = true
           this.emit("ready")
         })
         .on("error", (err) => {
@@ -145,6 +152,12 @@ export class Watcher extends EventEmitter {
           this.emit(name, path, payload)
           this.log.silly(`FSWatcher event: ${name} ${path} ${JSON.stringify(payload)}`)
         })
+
+      // Make sure the ready event is fired
+      if (!newWatcher) {
+        this.ready = true
+        this.emit("ready")
+      }
     }
 
     this.processBuffer().catch((err: Error) => {
@@ -156,6 +169,8 @@ export class Watcher extends EventEmitter {
   }
 
   private async processBuffer() {
+    let wasProcessing = false
+
     while (this.running) {
       this.processing = false
       await sleep(this.bufferInterval)
@@ -165,38 +180,45 @@ export class Watcher extends EventEmitter {
       this.buffer = {}
 
       if (allChanged.length === 0) {
+        if (wasProcessing) {
+          wasProcessing = false
+          this.log.silly(`Watcher: Done processing events`)
+          this.emit("processingDone")
+        }
         continue
       }
 
+      wasProcessing = true
+
       const added = allChanged.filter((c) => c.change === "added")
       const removed = allChanged.filter((c) => c.change === "removed")
+      const changed = allChanged.filter((c) => c.change === "changed")
 
-      this.log.silly(`Watcher: Processing ${added.length} added and ${removed.length} removed path(s)`)
+      this.log.silly(
+        `Watcher: Processing ${added.length} added, ${changed.length} changed and ${removed.length} removed path(s)`
+      )
 
       // These three checks all emit the appropriate events and then return true if configuration is affected.
       // If configuration is affected, there is no need to proceed because that will trigger a full reload of the
       // Garden instance.
-
-      // Check if any added file is a config file
-      if (this.checkForAddedConfig(added)) {
-        continue
-      }
-
-      // Check if any config file or module dir was removed
-      if (this.checkForRemovedConfig(removed)) {
-        continue
-      }
 
       // Check if any directories containing config files were added
       if (await this.checkForAddedDirWithConfig(added)) {
         continue
       }
 
+      // Check for changes to config files
+      if (this.checkForConfigChanges(allChanged)) {
+        continue
+      }
+
       // First filter modules by path prefix, and include/exclude filters if applicable
       const applicableModules = this.modules.filter((m) => {
         return some(allChanged, (p) => {
+          const relPath = posix.relative(m.path, p.path)
           return (
-            p.path.startsWith(m.path) && (isConfigFilename(basename(p.path)) || matchPath(p.path, m.include, m.exclude))
+            p.path.startsWith(m.path) &&
+            (isConfigFilename(basename(p.path)) || matchPath(relPath, m.include, m.exclude))
           )
         })
       })
@@ -217,35 +239,50 @@ export class Watcher extends EventEmitter {
       await this.updateModules()
 
       added.length > 0 && this.sourcesChanged(added)
+      changed.length > 0 && this.sourcesChanged(changed)
     }
 
     this.processing = false
   }
 
-  private checkForAddedConfig(added: ChangedPath[]) {
-    for (const p of added) {
-      if (isConfigFilename(basename(p.path))) {
-        this.invalidateCached(this.modules)
-        this.garden.events.emit("configAdded", { path: p.path })
-        return true
-      }
-    }
-
-    return false
-  }
-
-  private checkForRemovedConfig(removed: ChangedPath[]) {
-    for (const p of removed) {
+  private checkForConfigChanges(changed: ChangedPath[]) {
+    for (const { type, path, change } of changed) {
       // Check if project config was removed
-      const { dir, base } = parse(p.path)
-      if (dir === this.garden.projectRoot && isConfigFilename(base)) {
+      const { dir, base } = parse(path)
+
+      const isIgnoreFile = this.garden.dotIgnoreFiles.includes(base)
+
+      if (isIgnoreFile) {
+        // TODO: check to see if the project structure actually changed after the ignore file change
+        this.invalidateCached(this.modules)
         this.garden.events.emit("projectConfigChanged", {})
-        return true
+
+        // No need to emit other events if config changed
+        return
+      }
+
+      if (isConfigFilename(base)) {
+        this.log.silly(`Config file ${path} ${change}`)
+        this.invalidateCached(this.modules)
+
+        if (dir === this.garden.projectRoot) {
+          this.garden.events.emit("projectConfigChanged", {})
+          return true
+        }
+
+        if (change === "added") {
+          this.garden.events.emit("configAdded", { path })
+        } else if (change === "removed") {
+          this.garden.events.emit("configRemoved", { path })
+        }
+
+        // No need to emit other events if config changed
+        return
       }
 
       // Check if any module directory was removed
       for (const module of this.modules) {
-        if (p.type === "dir" && module.path.startsWith(p.path)) {
+        if (type === "dir" && module.path.startsWith(path)) {
           // at least one module's root dir was removed
           this.invalidateCached(this.modules)
           this.garden.events.emit("moduleRemoved", {})
@@ -315,8 +352,8 @@ export class Watcher extends EventEmitter {
 
   private makeFileChangedHandler() {
     return (path: string) => {
+      this.buffer[path] = { type: "file", path, change: "changed" }
       this.log.silly(`Watcher: File ${path} modified`)
-      this.sourcesChanged([{ type: "file", path, change: "changed" }])
     }
   }
 
@@ -343,17 +380,6 @@ export class Watcher extends EventEmitter {
       const parsed = parse(path)
       const filename = parsed.base
 
-      const isIgnoreFile = this.garden.dotIgnoreFiles.includes(filename)
-
-      if (isIgnoreFile) {
-        // TODO: check to see if the project structure actually changed after the ignore file change
-        this.invalidateCached(this.modules)
-        this.garden.events.emit("projectConfigChanged", {})
-
-        // No need to emit other events if config changed
-        return
-      }
-
       if (isConfigFilename(filename)) {
         this.log.silly(`Config file ${path} ${change}`)
         this.invalidateCached(this.modules)
@@ -364,13 +390,7 @@ export class Watcher extends EventEmitter {
           if (changedModuleConfigs.length > 0) {
             const names = changedModuleConfigs.map((m) => m.name)
             this.garden.events.emit("moduleConfigChanged", { names, path })
-          } else if (parsed.dir === this.garden.projectRoot) {
-            this.garden.events.emit("projectConfigChanged", {})
           }
-        } else if (change === "added") {
-          this.garden.events.emit("configAdded", { path })
-        } else if (change === "removed") {
-          this.garden.events.emit("configRemoved", { path })
         }
 
         // No need to emit other events if config changed
