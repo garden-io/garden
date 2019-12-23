@@ -16,20 +16,20 @@ and detailed help for each command using `garden <command> -h/--help`
 
 The following option flags can be used with any of the CLI commands:
 
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--root` | `-r` | string | Override project root directory (defaults to working directory).
-  | `--silent` | `-s` | boolean | Suppress log output. Same as setting --logger-type&#x3D;quiet.
-  | `--env` | `-e` | string | The environment (and optionally namespace) to work against.
-  | `--logger-type` |  | `quiet` `basic` `fancy` `json`  | Set logger type.
-fancy: updates log lines in-place when their status changes (e.g. when tasks complete),
-basic: appends a new log line when a log line&#x27;s status changes,
-json: same as basic, but renders log lines as JSON,
-quiet: suppresses all log output, same as --silent.
-  | `--log-level` | `-l` | `error` `warn` `info` `verbose` `debug` `silly` `0` `1` `2` `3` `4` `5`  | Set logger level. Values can be either string or numeric and are prioritized from 0 to 5 (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5.
-  | `--output` | `-o` | `json` `yaml`  | Output command result in specified format (note: disables progress logging and interactive functionality).
-  | `--emoji` |  | boolean | Enable emoji in output (defaults to true if the environment supports it).
-  | `--yes` | `-y` | boolean | Automatically approve any yes/no prompts during execution.
+| Argument                                                                                | Alias | Type                                                                    | Description                                                                                                                                                                          |
+| --------------------------------------------------------------------------------------- | ----- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--root`                                                                                | `-r`  | string                                                                  | Override project root directory (defaults to working directory).                                                                                                                     |
+| `--silent`                                                                              | `-s`  | boolean                                                                 | Suppress log output. Same as setting --logger-type&#x3D;quiet.                                                                                                                       |
+| `--env`                                                                                 | `-e`  | string                                                                  | The environment (and optionally namespace) to work against.                                                                                                                          |
+| `--logger-type`                                                                         |       | `quiet` `basic` `fancy` `json`                                          | Set logger type.                                                                                                                                                                     |
+| fancy: updates log lines in-place when their status changes (e.g. when tasks complete), |       |                                                                         |                                                                                                                                                                                      |
+| basic: appends a new log line when a log line&#x27;s status changes,                    |       |                                                                         |                                                                                                                                                                                      |
+| json: same as basic, but renders log lines as JSON,                                     |       |                                                                         |                                                                                                                                                                                      |
+| quiet: suppresses all log output, same as --silent.                                     |       |                                                                         |                                                                                                                                                                                      |
+| `--log-level`                                                                           | `-l`  | `error` `warn` `info` `verbose` `debug` `silly` `0` `1` `2` `3` `4` `5` | Set logger level. Values can be either string or numeric and are prioritized from 0 to 5 (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5. |
+| `--output`                                                                              | `-o`  | `json` `yaml`                                                           | Output command result in specified format (note: disables progress logging and interactive functionality).                                                                           |
+| `--emoji`                                                                               |       | boolean                                                                 | Enable emoji in output (defaults to true if the environment supports it).                                                                                                            |
+| `--yes`                                                                                 | `-y`  | boolean                                                                 | Automatically approve any yes/no prompts during execution.                                                                                                                           |
 
 ### garden build
 
@@ -51,16 +51,16 @@ Examples:
 
 ##### Arguments
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `modules` | No | Specify module(s) to build. Use comma as a separator to specify multiple modules.
+| Argument  | Required | Description                                                                       |
+| --------- | -------- | --------------------------------------------------------------------------------- |
+| `modules` | No       | Specify module(s) to build. Use comma as a separator to specify multiple modules. |
 
 ##### Options
 
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--force` |  | boolean | Force rebuild of module(s).
-  | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-build.
+| Argument  | Alias | Type    | Description                                    |
+| --------- | ----- | ------- | ---------------------------------------------- |
+| `--force` |       | boolean | Force rebuild of module(s).                    |
+| `--watch` | `-w`  | boolean | Watch for changes in module(s) and auto-build. |
 
 ### garden call
 
@@ -82,9 +82,9 @@ Note: Currently only supports simple GET requests for HTTP/HTTPS ingresses.
 
 ##### Arguments
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `serviceAndPath` | Yes | The name of the service to call followed by the ingress path (e.g. my-container/somepath).
+| Argument         | Required | Description                                                                                |
+| ---------------- | -------- | ------------------------------------------------------------------------------------------ |
+| `serviceAndPath` | Yes      | The name of the service to call followed by the ingress path (e.g. my-container/somepath). |
 
 ### garden delete secret
 
@@ -103,10 +103,10 @@ Examples:
 
 ##### Arguments
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `provider` | Yes | The name of the provider to remove the secret from.
-  | `key` | Yes | The key of the configuration variable. Separate with dots to get a nested key (e.g. key.nested).
+| Argument   | Required | Description                                                                                      |
+| ---------- | -------- | ------------------------------------------------------------------------------------------------ |
+| `provider` | Yes      | The name of the provider to remove the secret from.                                              |
+| `key`      | Yes      | The key of the configuration variable. Separate with dots to get a nested key (e.g. key.nested). |
 
 ### garden delete environment
 
@@ -140,9 +140,9 @@ Examples:
 
 ##### Arguments
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `services` | Yes | The name(s) of the service(s) to delete. Use comma as a separator to specify multiple services.
+| Argument   | Required | Description                                                                                     |
+| ---------- | -------- | ----------------------------------------------------------------------------------------------- |
+| `services` | Yes      | The name(s) of the service(s) to delete. Use comma as a separator to specify multiple services. |
 
 ### garden deploy
 
@@ -171,18 +171,19 @@ Examples:
 
 ##### Arguments
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `services` | No | The name(s) of the service(s) to deploy (skip to deploy all services). Use comma as a separator to specify multiple services.
+| Argument   | Required | Description                                                                                                                   |
+| ---------- | -------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `services` | No       | The name(s) of the service(s) to deploy (skip to deploy all services). Use comma as a separator to specify multiple services. |
 
 ##### Options
 
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--force` |  | boolean | Force redeploy of service(s).
-  | `--force-build` |  | boolean | Force rebuild of module(s).
-  | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-deploy.
-  | `--hot-reload` | `-hot` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with hot reloading enabled (ignores services belonging to modules that don&#x27;t support or haven&#x27;t configured hot reloading). When this option is used, the command is run in watch mode (i.e. implicitly assumes the --watch/-w flag).
+| Argument            | Alias      | Type         | Description                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------- | ---------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--force`           |            | boolean      | Force redeploy of service(s).                                                                                                                                                                                                                                                                                                                                                                          |
+| `--force-build`     |            | boolean      | Force rebuild of module(s).                                                                                                                                                                                                                                                                                                                                                                            |
+| `--watch`           | `-w`       | boolean      | Watch for changes in module(s) and auto-deploy.                                                                                                                                                                                                                                                                                                                                                        |
+| `--hot-reload`      | `-hot`     | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with hot reloading enabled (ignores services belonging to modules that don&#x27;t support or haven&#x27;t configured hot reloading). When this option is used, the command is run in watch mode (i.e. implicitly assumes the --watch/-w flag). |
+| `--exclude-service` | `-exclude` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with hot reloading enabled (ignores services belonging to modules that don&#x27;t support or haven&#x27;t configured hot reloading). When this option is used, the command is run in watch mode (i.e. implicitly assumes the --watch/-w flag). |
 
 ### garden dev
 
@@ -207,11 +208,11 @@ Examples:
 
 ##### Options
 
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--hot-reload` | `-hot` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with hot reloading enabled (ignores services belonging to modules that don&#x27;t support or haven&#x27;t configured hot reloading).
-  | `--skip-tests` |  | boolean | Disable running the tests.
-  | `--test-names` | `-tn` | array:string | Filter the tests to run by test name across all modules (leave unset to run all tests). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
+| Argument       | Alias  | Type         | Description                                                                                                                                                                                                                                                                                  |
+| -------------- | ------ | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--hot-reload` | `-hot` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with hot reloading enabled (ignores services belonging to modules that don&#x27;t support or haven&#x27;t configured hot reloading). |
+| `--skip-tests` |        | boolean      | Disable running the tests.                                                                                                                                                                                                                                                                   |
+| `--test-names` | `-tn`  | array:string | Filter the tests to run by test name across all modules (leave unset to run all tests). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).                                                                                                    |
 
 ### garden exec
 
@@ -232,21 +233,20 @@ Examples:
 
 ##### Arguments
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `service` | Yes | The service to exec the command in.
-  | `command` | Yes | The command to run.
+| Argument  | Required | Description                         |
+| --------- | -------- | ----------------------------------- |
+| `service` | Yes      | The service to exec the command in. |
+| `command` | Yes      | The command to run.                 |
 
 ##### Options
 
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--interactive` |  | boolean | Set to false to skip interactive mode and just output the command result
+| Argument        | Alias | Type    | Description                                                              |
+| --------------- | ----- | ------- | ------------------------------------------------------------------------ |
+| `--interactive` |       | boolean | Set to false to skip interactive mode and just output the command result |
 
 ### garden get graph
 
 Outputs the dependency relationships specified in this project&#x27;s garden.yml files.
-
 
 ##### Usage
 
@@ -255,7 +255,6 @@ Outputs the dependency relationships specified in this project&#x27;s garden.yml
 ### garden get config
 
 Outputs the fully resolved configuration for this project and environment.
-
 
 ##### Usage
 
@@ -277,9 +276,9 @@ Get a secret from the environment.
 
 Returns with an error if the provided key could not be found.
 
->**Note**: The `get|set secret` commands are currently quite limited.
-For Kubernetes secrets, we recommend using kubectl for
-most non-trivial use-cases.
+> **Note**: The `get|set secret` commands are currently quite limited.
+> For Kubernetes secrets, we recommend using kubectl for
+> most non-trivial use-cases.
 
 Examples:
 
@@ -292,15 +291,14 @@ Examples:
 
 ##### Arguments
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `provider` | Yes | The name of the provider to read the secret from.
-  | `key` | Yes | The key of the configuration variable.
+| Argument   | Required | Description                                       |
+| ---------- | -------- | ------------------------------------------------- |
+| `provider` | Yes      | The name of the provider to read the secret from. |
+| `key`      | Yes      | The key of the configuration variable.            |
 
 ### garden get status
 
 Outputs the status of your environment.
-
 
 ##### Usage
 
@@ -310,21 +308,19 @@ Outputs the status of your environment.
 
 Lists the tasks defined in your project&#x27;s modules.
 
-
 ##### Usage
 
     garden get tasks [tasks] 
 
 ##### Arguments
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `tasks` | No | Specify task(s) to list. Use comma as a separator to specify multiple tasks.
+| Argument | Required | Description                                                                  |
+| -------- | -------- | ---------------------------------------------------------------------------- |
+| `tasks`  | No       | Specify task(s) to list. Use comma as a separator to specify multiple tasks. |
 
 ### garden get task-result
 
 Outputs the latest execution result of a provided task.
-
 
 ##### Usage
 
@@ -332,14 +328,13 @@ Outputs the latest execution result of a provided task.
 
 ##### Arguments
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `name` | Yes | The name of the task
+| Argument | Required | Description          |
+| -------- | -------- | -------------------- |
+| `name`   | Yes      | The name of the task |
 
 ### garden get test-result
 
 Outputs the latest execution result of a provided test.
-
 
 ##### Usage
 
@@ -347,10 +342,10 @@ Outputs the latest execution result of a provided test.
 
 ##### Arguments
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `module` | Yes | Module name of where the test runs.
-  | `name` | Yes | Test name.
+| Argument | Required | Description                         |
+| -------- | -------- | ----------------------------------- |
+| `module` | Yes      | Module name of where the test runs. |
+| `name`   | Yes      | Test name.                          |
 
 ### garden get debug-info
 
@@ -368,11 +363,11 @@ garden get debug-info --include-project  # include provider info for the project
 
 ##### Options
 
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--format` |  | `json` `yaml`  | The output format for plugin-generated debug info.
-  | `--include-project` |  | boolean | Include project-specific information from configured providers.
-Note that this may include sensitive data, depending on the provider and your configuration.
+| Argument                                                                                     | Alias | Type          | Description                                                     |
+| -------------------------------------------------------------------------------------------- | ----- | ------------- | --------------------------------------------------------------- |
+| `--format`                                                                                   |       | `json` `yaml` | The output format for plugin-generated debug info.              |
+| `--include-project`                                                                          |       | boolean       | Include project-specific information from configured providers. |
+| Note that this may include sensitive data, depending on the provider and your configuration. |       |               |                                                                 |
 
 ### garden link source
 
@@ -392,10 +387,10 @@ Examples:
 
 ##### Arguments
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `source` | Yes | Name of the source to link as declared in the project config.
-  | `path` | Yes | Path to the local directory that containes the source.
+| Argument | Required | Description                                                   |
+| -------- | -------- | ------------------------------------------------------------- |
+| `source` | Yes      | Name of the source to link as declared in the project config. |
+| `path`   | Yes      | Path to the local directory that containes the source.        |
 
 ### garden link module
 
@@ -415,10 +410,10 @@ Examples:
 
 ##### Arguments
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `module` | Yes | Name of the module to link.
-  | `path` | Yes | Path to the local directory that containes the module.
+| Argument | Required | Description                                            |
+| -------- | -------- | ------------------------------------------------------ |
+| `module` | Yes      | Name of the module to link.                            |
+| `path`   | Yes      | Path to the local directory that containes the module. |
 
 ### garden logs
 
@@ -438,16 +433,16 @@ Examples:
 
 ##### Arguments
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `services` | No | The name(s) of the service(s) to log (skip to log all services). Use comma as a separator to specify multiple services.
+| Argument   | Required | Description                                                                                                             |
+| ---------- | -------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `services` | No       | The name(s) of the service(s) to log (skip to log all services). Use comma as a separator to specify multiple services. |
 
 ##### Options
 
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--follow` | `-f` | boolean | Continuously stream new logs from the service(s).
-  | `--tail` | `-t` | number | Number of lines to show for each service. Defaults to -1, showing all log lines.
+| Argument   | Alias | Type    | Description                                                                      |
+| ---------- | ----- | ------- | -------------------------------------------------------------------------------- |
+| `--follow` | `-f`  | boolean | Continuously stream new logs from the service(s).                                |
+| `--tail`   | `-t`  | number  | Number of lines to show for each service. Defaults to -1, showing all log lines. |
 
 ### garden options
 
@@ -471,10 +466,10 @@ Examples:
 
     # Run the `cleanup-cluster-registry` command from the `kubernetes` plugin.
     garden plugins kubernetes cleanup-cluster-registry
-
+    
     # List all available commands.
     garden plugins
-
+    
     # List all the commands from the `kubernetes` plugin.
     garden plugins kubernetes
 
@@ -484,10 +479,10 @@ Examples:
 
 ##### Arguments
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `plugin` | No | The name of the plugin, whose command you wish to run.
-  | `command` | No | The name of the command to run.
+| Argument  | Required | Description                                            |
+| --------- | -------- | ------------------------------------------------------ |
+| `plugin`  | No       | The name of the plugin, whose command you wish to run. |
+| `command` | No       | The name of the command to run.                        |
 
 ### garden publish
 
@@ -509,16 +504,16 @@ Examples:
 
 ##### Arguments
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `modules` | No | The name(s) of the module(s) to publish (skip to publish all modules). Use comma as a separator to specify multiple modules.
+| Argument  | Required | Description                                                                                                                  |
+| --------- | -------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `modules` | No       | The name(s) of the module(s) to publish (skip to publish all modules). Use comma as a separator to specify multiple modules. |
 
 ##### Options
 
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--force-build` |  | boolean | Force rebuild of module(s) before publishing.
-  | `--allow-dirty` |  | boolean | Allow publishing dirty builds (with untracked/uncommitted changes).
+| Argument        | Alias | Type    | Description                                                         |
+| --------------- | ----- | ------- | ------------------------------------------------------------------- |
+| `--force-build` |       | boolean | Force rebuild of module(s) before publishing.                       |
+| `--allow-dirty` |       | boolean | Allow publishing dirty builds (with untracked/uncommitted changes). |
 
 ### garden run module
 
@@ -538,18 +533,18 @@ Examples:
 
 ##### Arguments
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `module` | Yes | The name of the module to run.
-  | `arguments` | No | The arguments to run the module with. Example: &#x27;npm run my-script&#x27;.
+| Argument    | Required | Description                                                                   |
+| ----------- | -------- | ----------------------------------------------------------------------------- |
+| `module`    | Yes      | The name of the module to run.                                                |
+| `arguments` | No       | The arguments to run the module with. Example: &#x27;npm run my-script&#x27;. |
 
 ##### Options
 
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--interactive` |  | boolean | Set to false to skip interactive mode and just output the command result.
-  | `--force-build` |  | boolean | Force rebuild of module before running.
-  | `--command` | `-c` | array:string | The base command (a.k.a. entrypoint) to run in the module. For container modules, for example, this overrides the image&#x27;s default command/entrypoint. This option may not be relevant for all module types. Example: &#x27;/bin/sh -c&#x27;.
+| Argument        | Alias | Type         | Description                                                                                                                                                                                                                                       |
+| --------------- | ----- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--interactive` |       | boolean      | Set to false to skip interactive mode and just output the command result.                                                                                                                                                                         |
+| `--force-build` |       | boolean      | Force rebuild of module before running.                                                                                                                                                                                                           |
+| `--command`     | `-c`  | array:string | The base command (a.k.a. entrypoint) to run in the module. For container modules, for example, this overrides the image&#x27;s default command/entrypoint. This option may not be relevant for all module types. Example: &#x27;/bin/sh -c&#x27;. |
 
 ### garden run service
 
@@ -567,15 +562,15 @@ Examples:
 
 ##### Arguments
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `service` | Yes | The service to run.
+| Argument  | Required | Description         |
+| --------- | -------- | ------------------- |
+| `service` | Yes      | The service to run. |
 
 ##### Options
 
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--force-build` |  | boolean | Force rebuild of module.
+| Argument        | Alias | Type    | Description              |
+| --------------- | ----- | ------- | ------------------------ |
+| `--force-build` |       | boolean | Force rebuild of module. |
 
 ### garden run task
 
@@ -593,15 +588,15 @@ Examples:
 
 ##### Arguments
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `task` | Yes | The name of the task to run.
+| Argument | Required | Description                  |
+| -------- | -------- | ---------------------------- |
+| `task`   | Yes      | The name of the task to run. |
 
 ##### Options
 
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--force-build` |  | boolean | Force rebuild of module before running.
+| Argument        | Alias | Type    | Description                             |
+| --------------- | ----- | ------- | --------------------------------------- |
+| `--force-build` |       | boolean | Force rebuild of module before running. |
 
 ### garden run test
 
@@ -620,22 +615,21 @@ Examples:
 
 ##### Arguments
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `module` | Yes | The name of the module to run.
-  | `test` | Yes | The name of the test to run in the module.
+| Argument | Required | Description                                |
+| -------- | -------- | ------------------------------------------ |
+| `module` | Yes      | The name of the module to run.             |
+| `test`   | Yes      | The name of the test to run in the module. |
 
 ##### Options
 
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--interactive` |  | boolean | Set to false to skip interactive mode and just output the command result.
-  | `--force-build` |  | boolean | Force rebuild of module before running.
+| Argument        | Alias | Type    | Description                                                               |
+| --------------- | ----- | ------- | ------------------------------------------------------------------------- |
+| `--interactive` |       | boolean | Set to false to skip interactive mode and just output the command result. |
+| `--force-build` |       | boolean | Force rebuild of module before running.                                   |
 
 ### garden scan
 
 Scans your project and outputs an overview of all modules.
-
 
 ##### Usage
 
@@ -655,9 +649,9 @@ Starts an HTTP server that exposes Garden commands and events.
 
 ##### Options
 
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--port` |  | number | The port number for the Garden service to listen on.
+| Argument | Alias | Type   | Description                                          |
+| -------- | ----- | ------ | ---------------------------------------------------- |
+| `--port` |       | number | The port number for the Garden service to listen on. |
 
 ### garden set secret
 
@@ -669,9 +663,9 @@ and configured.
 
 The value is currently always stored as a string.
 
->**Note**: The `get|set secret` commands are currently quite limited.
-For Kubernetes secrets, we recommend using kubectl for
-most non-trivial use-cases.
+> **Note**: The `get|set secret` commands are currently quite limited.
+> For Kubernetes secrets, we recommend using kubectl for
+> most non-trivial use-cases.
 
 Examples:
 
@@ -684,11 +678,11 @@ Examples:
 
 ##### Arguments
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `provider` | Yes | The name of the provider to store the secret with.
-  | `key` | Yes | A unique identifier for the secret.
-  | `value` | Yes | The value of the secret.
+| Argument   | Required | Description                                        |
+| ---------- | -------- | -------------------------------------------------- |
+| `provider` | Yes      | The name of the provider to store the secret with. |
+| `key`      | Yes      | A unique identifier for the secret.                |
+| `value`    | Yes      | The value of the secret.                           |
 
 ### garden test
 
@@ -715,18 +709,18 @@ Examples:
 
 ##### Arguments
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `modules` | No | The name(s) of the module(s) to test (skip to test all modules). Use comma as a separator to specify multiple modules.
+| Argument  | Required | Description                                                                                                            |
+| --------- | -------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `modules` | No       | The name(s) of the module(s) to test (skip to test all modules). Use comma as a separator to specify multiple modules. |
 
 ##### Options
 
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--name` | `-n` | string | Only run tests with the specfied name (e.g. unit or integ). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;)
-  | `--force` | `-f` | boolean | Force re-test of module(s).
-  | `--force-build` |  | boolean | Force rebuild of module(s).
-  | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-test.
+| Argument        | Alias | Type    | Description                                                                                                                                                  |
+| --------------- | ----- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--name`        | `-n`  | string  | Only run tests with the specfied name (e.g. unit or integ). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;) |
+| `--force`       | `-f`  | boolean | Force re-test of module(s).                                                                                                                                  |
+| `--force-build` |       | boolean | Force rebuild of module(s).                                                                                                                                  |
+| `--watch`       | `-w`  | boolean | Watch for changes in module(s) and auto-test.                                                                                                                |
 
 ### garden unlink source
 
@@ -746,15 +740,15 @@ Examples:
 
 ##### Arguments
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `sources` | No | The name(s) of the source(s) to unlink. Use comma as a separator to specify multiple sources.
+| Argument  | Required | Description                                                                                   |
+| --------- | -------- | --------------------------------------------------------------------------------------------- |
+| `sources` | No       | The name(s) of the source(s) to unlink. Use comma as a separator to specify multiple sources. |
 
 ##### Options
 
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--all` | `-a` | boolean | Unlink all sources.
+| Argument | Alias | Type    | Description         |
+| -------- | ----- | ------- | ------------------- |
+| `--all`  | `-a`  | boolean | Unlink all sources. |
 
 ### garden unlink module
 
@@ -774,15 +768,15 @@ Examples:
 
 ##### Arguments
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `modules` | No | The name(s) of the module(s) to unlink. Use comma as a separator to specify multiple modules.
+| Argument  | Required | Description                                                                                   |
+| --------- | -------- | --------------------------------------------------------------------------------------------- |
+| `modules` | No       | The name(s) of the module(s) to unlink. Use comma as a separator to specify multiple modules. |
 
 ##### Options
 
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--all` | `-a` | boolean | Unlink all modules.
+| Argument | Alias | Type    | Description         |
+| -------- | ----- | ------- | ------------------- |
+| `--all`  | `-a`  | boolean | Unlink all modules. |
 
 ### garden update-remote sources
 
@@ -801,9 +795,9 @@ Examples:
 
 ##### Arguments
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `sources` | No | The name(s) of the remote source(s) to update. Use comma as a separator to specify multiple sources.
+| Argument  | Required | Description                                                                                          |
+| --------- | -------- | ---------------------------------------------------------------------------------------------------- |
+| `sources` | No       | The name(s) of the remote source(s) to update. Use comma as a separator to specify multiple sources. |
 
 ### garden update-remote modules
 
@@ -823,9 +817,9 @@ Examples:
 
 ##### Arguments
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `modules` | No | The name(s) of the remote module(s) to update. Use comma as a separator to specify multiple modules.
+| Argument  | Required | Description                                                                                          |
+| --------- | -------- | ---------------------------------------------------------------------------------------------------- |
+| `modules` | No       | The name(s) of the remote module(s) to update. Use comma as a separator to specify multiple modules. |
 
 ### garden update-remote all
 
@@ -873,7 +867,6 @@ Examples:
 
 ##### Arguments
 
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `enable` | No | Enable analytics. Defaults to &quot;true&quot;
-
+| Argument | Required | Description                                    |
+| -------- | -------- | ---------------------------------------------- |
+| `enable` | No       | Enable analytics. Defaults to &quot;true&quot; |

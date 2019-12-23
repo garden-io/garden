@@ -118,7 +118,7 @@ export class DeployCommand extends Command<Args, Opts> {
 
     // If exclude is specified, omit services whose names match
     if (opts.exclude) {
-      services = services.filter(service => !opts.exclude!.includes(service.name))
+      services = services.filter((service) => !opts.exclude!.includes(service.name))
     }
 
     const hotReloadServiceNames = await getHotReloadServiceNames(opts["hot-reload"], initGraph)
