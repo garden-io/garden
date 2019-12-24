@@ -1,4 +1,3 @@
-
 <a name="v0.11.0-alpha.2"></a>
 ## [v0.11.0-alpha.2](https://github.com/garden-io/garden/compare/v0.11.0-alpha.1...v0.11.0-alpha.2) (2019-12-20)
 
@@ -81,6 +80,7 @@
 
 ### BREAKING CHANGE
 
+#### Default include on Helm modules ([fca600dd](https://github.com/garden-io/garden/commit/fca600dd))
 
 If not set by the user, the `include` field on Helm modules now defaults to:
 
@@ -101,6 +101,48 @@ If your Helm modules doesn't have `include` set and depends
 on content that's not captured with the default include, you will need
 to update the relevant `garden.yml` file and set the includes manually.
 
+#### Require include/exclude on overlapping modules ([f726c5b](https://github.com/garden-io/garden/commit/f726c5b))
+
+It is now required to set the `include` and/or `exclude` directive on
+modules that overlap. This is to prevent subtle errors that can occur
+when two modules share the same build context.
+
+Module level `garden.yml` files that have overlapping modules and no
+includes/excludes will need to be updated. A common case is when there
+are multiple modules in the same `garden.yml` file.
+
+For example, this:
+
+```yaml
+kind: Module
+name: module-a
+type: container
+
+---
+
+kind: Module
+name: module-b
+type: container
+```
+
+becomes:
+
+```yaml
+kind: Module
+name: module-a
+type: container
+include: ["src-a/**/*"]
+
+---
+
+kind: Module
+name: module-b
+type: container
+include: ["src-b/**/*"]
+```
+
+#### Switch to Helm 3 and remove Tiller ([a6940e0a](https://github.com/garden-io/garden/commit/a6940e0a))
+
 Helm 2.x is no longer supported. The migration (both for garden-system
 services and your project namespace) is handled automatically
 via the `helm 2to3` plugin. It is _possible_ that the automatic
@@ -115,9 +157,34 @@ deployment throw errors.
 If you do run into tricky issues, please don't hesitate to log issues
 on GitHub or ping us on Slack and we'll be happy to help.
 
+#### Remve `environomentDefaults` field ([72588dc](https://github.com/garden-io/garden/commit/72588dc))
+
+Project level garden.yml files that used the `environmentDefaults` field
+will need to be updated.
+
+Please use the top-level `providers` field instead, and omit
+the environments key in the configured provider to use it for all
+environments.
+
+Use the top-level `variables` field to configure variables across
+all environments.
+
+#### Remove `local-openfaas` plugin ([9acda7d](https://github.com/garden-io/garden/commit/9acda7d))
+
+Projects that reference the `local-openfaas` provider need to change
+to the `openfaas` provider. The two are compatible, so that should
+just be a simple string replacement.
+
+#### Remove support for old config style ([03c15f1](https://github.com/garden-io/garden/commit/03c15f1))
+
+garden.yml files with top-level `module` and `project` keys will need
+to be update to use the newer config style (with `kind: Module` or
+`kind: Project` at the top level).
+
+#### Remove `garden init` command ([3f9da06](https://github.com/garden-io/garden/commit/3f9da06))
+
 Any user scripts that run `garden init` will need to be updated to
 remove those references.
-
 
 <a name="v0.10.16"></a>
 ## [v0.10.16](https://github.com/garden-io/garden/compare/v0.10.15...v0.10.16) (2019-12-06)
