@@ -70,7 +70,7 @@ export class GardenServer {
     }
 
     if (!this.port) {
-      this.port = await getPort()
+      this.port = await getPort({ port: DEFAULT_PORT })
     }
 
     this.app = await this.createApp()
