@@ -26,7 +26,7 @@ import { ContainerHotReloadSpec } from "../../container/config"
 import { getHotReloadSpec } from "./hot-reload"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
-import { getForwardablePorts } from "../port-forward"
+import { getForwardablePorts, killPortForwards } from "../port-forward"
 
 export async function deployHelmService({
   ctx,
@@ -109,6 +109,9 @@ export async function deployHelmService({
   })
 
   const forwardablePorts = getForwardablePorts(chartResources)
+
+  // Make sure port forwards work after redeployment
+  killPortForwards(service, forwardablePorts || [], log)
 
   return {
     forwardablePorts,

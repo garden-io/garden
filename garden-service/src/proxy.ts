@@ -59,11 +59,10 @@ async function startPortProxy(garden: Garden, log: LogEntry, service: Service, s
   return proxy
 }
 
-// TODO: handle dead port forwards
 async function createProxy(garden: Garden, log: LogEntry, service: Service, spec: ForwardablePort): Promise<PortProxy> {
   const actions = await garden.getActionRouter()
   const key = getPortKey(service, spec)
-  let fwd: GetPortForwardResult
+  let fwd: GetPortForwardResult | null = null
 
   // get preferred IP from db
   const localAddress = await LocalAddress.resolve({
@@ -117,12 +116,9 @@ async function createProxy(garden: Garden, log: LogEntry, service: Service, spec
 
     const getRemote = async () => {
       if (!_remote) {
-        const { hostname, port } = await getPortForward()
-
-        log.debug(`Connecting to ${key} port forward at ${hostname}:${port}`)
+        const forwardResult = await getPortForward()
 
         _remote = new Socket()
-        _remote.connect(port, hostname)
 
         _remote.on("data", (data) => {
           if (!local.writable) {
@@ -145,7 +141,17 @@ async function createProxy(garden: Garden, log: LogEntry, service: Service, spec
 
         _remote.on("error", (err) => {
           log.debug(`Remote socket error: ${err.message}`)
+          // Existing port forward doesn't seem to be healthy, retry forward on next connection
+          // TODO: it would be nice (but much more intricate) to hold the local connection open while reconnecting,
+          // plus we don't really know if the connection is dead until a connection attempt is made.
+          fwd = null
         })
+
+        if (forwardResult) {
+          const { port, hostname } = forwardResult
+          log.debug(`Connecting to ${key} port forward at ${hostname}:${port}`)
+          _remote.connect(port, hostname)
+        }
 
         // Local connection was closed while remote connection was being created
         if (localDidClose) {
