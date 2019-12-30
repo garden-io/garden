@@ -171,7 +171,7 @@ function handleLogMessageStreamFromProcess(
     if (!s) {
       return
     }
-    const [timestampStr, msg] = json === true ? parseSternLogMessage(s) : splitFirst(s, " ")
+    const [timestampStr, msg] = json ? parseSternLogMessage(s) : splitFirst(s, " ")
     try {
       timestamp = moment(timestampStr).toDate()
     } catch {}
