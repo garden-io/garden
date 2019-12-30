@@ -30,7 +30,7 @@ GARDEN_VERSION=$(curl -sL https://github.com/garden-io/garden/releases/latest -H
 if [ "$(uname -s)" = "Darwin" ]; then
   OS=macos
 else
-  OS=linux
+  OS=`ldd 2>&1|grep musl >/dev/null && echo "alpine" || echo "linux"`
 fi
 PLATFORM=${OS}-amd64
 
