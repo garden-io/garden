@@ -93,7 +93,7 @@ And if you're building and running services locally, you need the following:
 * [Docker](https://docs.docker.com/)
 * A local installation of Kubernetes and [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
-The alpine linux distribution also require `gcc` to be installed
+The Alpine linux distribution also requires `gcc` to be installed.
 
 ### Step 1: Install core dependencies
 
