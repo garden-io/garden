@@ -263,7 +263,7 @@ describe("flattenResources", () => {
 })
 
 describe("getStaticLabelsFromPod", () => {
-  it("It should should only select labels without characters", () => {
+  it("should should only select labels without characters", () => {
     const pod = ({
       apiVersion: "v1",
       kind: "Pod",
@@ -289,7 +289,7 @@ describe("getStaticLabelsFromPod", () => {
 })
 
 describe("getSelectorString", () => {
-  it("It for format a label map to comma separated key value string ", () => {
+  it("should format a label map to comma separated key value string ", () => {
     const labels = {
       module: "a",
       service: "a",

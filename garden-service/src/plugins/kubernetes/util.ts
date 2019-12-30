@@ -386,7 +386,7 @@ export async function getRunningPodInDeployment(deploymentName: string, provider
 export function getStaticLabelsFromPod(pod: KubernetesPod): { [key: string]: string } {
   const labels: { [key: string]: string } = {}
 
-  for (let label in pod.metadata.labels) {
+  for (const label in pod.metadata.labels) {
     if (!pod.metadata.labels[label].match(STATIC_LABEL_REGEX)) {
       labels[label] = pod.metadata.labels[label]
     }
@@ -396,7 +396,7 @@ export function getStaticLabelsFromPod(pod: KubernetesPod): { [key: string]: str
 
 export function getSelectorString(labels: { [key: string]: string }) {
   let selectorString: string = "-l"
-  for (let label in labels) {
+  for (const label in labels) {
     selectorString += `${label}=${labels[label]},`
   }
   return selectorString.trimEnd().slice(0, -1)

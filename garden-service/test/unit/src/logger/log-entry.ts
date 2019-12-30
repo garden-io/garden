@@ -107,13 +107,6 @@ describe("LogEntry", () => {
     })
     it("should update maxSectionWidth to zero", () => {
       const timestamp = freezeTime().valueOf()
-      const taskMetadata: TaskMetadata = {
-        type: "a",
-        key: "a",
-        status: "active",
-        uid: "1",
-        versionString: "123",
-      }
       const entry = logger.placeholder()
       entry.setState({
         msg: "hello",
@@ -122,7 +115,6 @@ describe("LogEntry", () => {
         symbol: "info",
         status: "done",
         data: { some: "data" },
-        metadata: { task: taskMetadata },
         maxSectionWidth: 0,
       })
 
@@ -139,7 +131,6 @@ describe("LogEntry", () => {
           maxSectionWidth: 0,
         },
       ])
-      expect(entry.getMetadata()).to.eql({ task: taskMetadata })
     })
     it("should overwrite previous values", () => {
       const timestamp = freezeTime().valueOf()
