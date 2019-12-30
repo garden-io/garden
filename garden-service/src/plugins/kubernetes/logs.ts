@@ -143,7 +143,9 @@ async function followLogs(
     "-t",
   ]
 
-  //Getting labels on the pod with no numbers, The Idea is these labels are less likely to change between different deployments of these pods
+  /* Getting labels on the pod with no numbers,
+  The Idea is these labels are less likely to change between different deployments of these pods
+  */
   const labels = getStaticLabelsFromPod(pod)
   if (Object.keys(labels).length > 0) {
     sternArgs.push(`${getSelectorString(labels)}`)
