@@ -11,8 +11,10 @@ echo "Building version ${version}"
 
 docker build -t gardendev/garden:${version} .
 docker build -t gardendev/garden-gcloud:${version} --build-arg TAG=${version} -f gcloud.Dockerfile .
+docker build -t gardendev/garden-azure:${version} --build-arg TAG=${version} -f azure.Dockerfile .
 
 echo "Sanity checking..."
 
 docker run --rm -it gardendev/garden:${version} version
 docker run --rm -it gardendev/garden-gcloud:${version} version
+docker run --rm -it gardendev/garden-azure:${version} version
