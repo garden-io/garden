@@ -7,18 +7,17 @@
  */
 
 import { Module } from "./module"
-import { TaskConfig } from "../config/task"
+import { TestConfig } from "../config/test"
 
-export interface Task<M extends Module = Module> {
+export interface Test<M extends Module = Module> {
   name: string
-  description?: string
   module: M
   disabled: boolean
-  config: M["taskConfigs"][0]
-  spec: M["taskConfigs"][0]["spec"]
+  config: M["testConfigs"][0]
+  spec: M["testConfigs"][0]["spec"]
 }
 
-export function taskFromConfig<M extends Module = Module>(module: M, config: TaskConfig): Task<M> {
+export function testFromConfig<M extends Module = Module>(module: M, config: TestConfig): Test<M> {
   return {
     name: config.name,
     module,

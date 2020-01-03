@@ -1,17 +1,22 @@
-import { resolve } from "path"
+import { resolve, join } from "path"
 import { expect } from "chai"
+import { ensureDir } from "fs-extra"
 import { makeTestGardenA, makeTestGarden, dataDir, expectError } from "../../helpers"
 import { getNames } from "../../../src/util/util"
 import { ConfigGraph, DependencyGraphNode } from "../../../src/config-graph"
 import { Garden } from "../../../src/garden"
+import { DEFAULT_API_VERSION, GARDEN_SERVICE_ROOT } from "../../../src/constants"
 
 describe("ConfigGraph", () => {
   let gardenA: Garden
   let graphA: ConfigGraph
+  let tmpPath: string
 
   before(async () => {
     gardenA = await makeTestGardenA()
     graphA = await gardenA.getConfigGraph(gardenA.log)
+    tmpPath = join(GARDEN_SERVICE_ROOT, "tmp")
+    await ensureDir(tmpPath)
   })
 
   it("should throw when two services have the same name", async () => {
@@ -67,13 +72,51 @@ describe("ConfigGraph", () => {
     })
 
     it("should optionally return specified modules in the context", async () => {
-      const modules = await graphA.getModules(["module-b", "module-c"])
+      const modules = await graphA.getModules({ names: ["module-b", "module-c"] })
       expect(getNames(modules).sort()).to.eql(["module-b", "module-c"])
+    })
+
+    it("should omit disabled modules", async () => {
+      const garden = await makeTestGardenA()
+
+      await garden.scanModules()
+      garden["moduleConfigs"]["module-c"].disabled = true
+
+      const graph = await garden.getConfigGraph(garden.log)
+      const modules = await graph.getModules()
+
+      expect(modules.map((m) => m.name).sort()).to.eql(["module-a", "module-b"])
+    })
+
+    it("should optionally include disabled modules", async () => {
+      const garden = await makeTestGardenA()
+
+      await garden.scanModules()
+      garden["moduleConfigs"]["module-c"].disabled = true
+
+      const graph = await garden.getConfigGraph(garden.log)
+      const modules = await graph.getModules({ includeDisabled: true })
+
+      expect(modules.map((m) => m.name).sort()).to.eql(["module-a", "module-b", "module-c"])
+    })
+
+    it("should throw if specifically requesting a disabled module", async () => {
+      const garden = await makeTestGardenA()
+
+      await garden.scanModules()
+      garden["moduleConfigs"]["module-c"].disabled = true
+
+      const graph = await garden.getConfigGraph(garden.log)
+
+      await expectError(
+        () => graph.getModules({ names: ["module-c"] }),
+        (err) => expect(err.message).to.equal("Could not find module(s): module-c")
+      )
     })
 
     it("should throw if named module is missing", async () => {
       try {
-        await graphA.getModules(["bla"])
+        await graphA.getModules({ names: ["bla"] })
       } catch (err) {
         expect(err.type).to.equal("parameter")
         return
@@ -91,14 +134,124 @@ describe("ConfigGraph", () => {
     })
 
     it("should optionally return specified services in the context", async () => {
-      const services = await graphA.getServices(["service-b", "service-c"])
+      const services = await graphA.getServices({ names: ["service-b", "service-c"] })
 
       expect(getNames(services).sort()).to.eql(["service-b", "service-c"])
     })
 
+    it("should omit disabled services", async () => {
+      const garden = await makeTestGardenA()
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          name: "foo",
+          outputs: {},
+          path: tmpPath,
+          serviceConfigs: [],
+          taskConfigs: [],
+          spec: {
+            services: [
+              {
+                name: "disabled-service",
+                dependencies: [],
+                disabled: true,
+                hotReloadable: false,
+                spec: {},
+              },
+            ],
+          },
+          testConfigs: [],
+          type: "test",
+        },
+      ])
+
+      const graph = await garden.getConfigGraph(garden.log)
+      const deps = await graph.getServices()
+
+      expect(deps).to.eql([])
+    })
+
+    it("should optionally include disabled services", async () => {
+      const garden = await makeTestGardenA()
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          name: "foo",
+          outputs: {},
+          path: tmpPath,
+          serviceConfigs: [],
+          taskConfigs: [],
+          spec: {
+            services: [
+              {
+                name: "disabled-service",
+                dependencies: [],
+                disabled: true,
+                hotReloadable: false,
+                spec: {},
+              },
+            ],
+          },
+          testConfigs: [],
+          type: "test",
+        },
+      ])
+
+      const graph = await garden.getConfigGraph(garden.log)
+      const deps = await graph.getServices({ includeDisabled: true })
+
+      expect(deps.map((s) => s.name)).to.eql(["disabled-service"])
+    })
+
+    it("should throw if specifically requesting a disabled service", async () => {
+      const garden = await makeTestGardenA()
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          name: "foo",
+          outputs: {},
+          path: tmpPath,
+          serviceConfigs: [],
+          taskConfigs: [],
+          spec: {
+            services: [
+              {
+                name: "service-a",
+                dependencies: [],
+                disabled: true,
+                hotReloadable: false,
+                spec: {},
+              },
+            ],
+          },
+          testConfigs: [],
+          type: "test",
+        },
+      ])
+
+      const graph = await garden.getConfigGraph(garden.log)
+
+      await expectError(
+        () => graph.getServices({ names: ["service-a"] }),
+        (err) => expect(err.message).to.equal("Could not find service(s): service-a")
+      )
+    })
+
     it("should throw if named service is missing", async () => {
       try {
-        await graphA.getServices(["bla"])
+        await graphA.getServices({ names: ["bla"] })
       } catch (err) {
         expect(err.type).to.equal("parameter")
         return
@@ -134,13 +287,117 @@ describe("ConfigGraph", () => {
     })
 
     it("should optionally return specified tasks in the context", async () => {
-      const tasks = await graphA.getTasks(["task-b", "task-c"])
+      const tasks = await graphA.getTasks({ names: ["task-b", "task-c"] })
       expect(getNames(tasks).sort()).to.eql(["task-b", "task-c"])
+    })
+
+    it("should omit disabled tasks", async () => {
+      const garden = await makeTestGardenA()
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          name: "foo",
+          outputs: {},
+          path: tmpPath,
+          serviceConfigs: [],
+          taskConfigs: [],
+          spec: {
+            tasks: [
+              {
+                name: "disabled-task",
+                dependencies: [],
+                disabled: true,
+              },
+            ],
+          },
+          testConfigs: [],
+          type: "test",
+        },
+      ])
+
+      const graph = await garden.getConfigGraph(garden.log)
+      const deps = await graph.getTasks()
+
+      expect(deps).to.eql([])
+    })
+
+    it("should optionally include disabled tasks", async () => {
+      const garden = await makeTestGardenA()
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          name: "foo",
+          outputs: {},
+          path: tmpPath,
+          serviceConfigs: [],
+          taskConfigs: [],
+          spec: {
+            tasks: [
+              {
+                name: "disabled-task",
+                dependencies: [],
+                disabled: true,
+              },
+            ],
+          },
+          testConfigs: [],
+          type: "test",
+        },
+      ])
+
+      const graph = await garden.getConfigGraph(garden.log)
+      const deps = await graph.getTasks({ includeDisabled: true })
+
+      expect(deps.map((t) => t.name)).to.eql(["disabled-task"])
+    })
+
+    it("should throw if specifically requesting a disabled task", async () => {
+      const garden = await makeTestGardenA()
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          name: "foo",
+          outputs: {},
+          path: tmpPath,
+          serviceConfigs: [],
+          taskConfigs: [],
+          spec: {
+            tasks: [
+              {
+                name: "disabled-task",
+                dependencies: [],
+                disabled: true,
+              },
+            ],
+          },
+          testConfigs: [],
+          type: "test",
+        },
+      ])
+
+      const graph = await garden.getConfigGraph(garden.log)
+
+      await expectError(
+        () => graph.getTasks({ names: ["disabled-task"] }),
+        (err) => expect(err.message).to.equal("Could not find task(s): disabled-task")
+      )
     })
 
     it("should throw if named task is missing", async () => {
       try {
-        await graphA.getTasks(["bla"])
+        await graphA.getTasks({ names: ["bla"] })
       } catch (err) {
         expect(err.type).to.equal("parameter")
         return
@@ -166,6 +423,349 @@ describe("ConfigGraph", () => {
       }
 
       throw new Error("Expected error")
+    })
+  })
+
+  describe("getDependencies", () => {
+    it("should include disabled modules in build dependencies", async () => {
+      const garden = await makeTestGardenA()
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: true,
+          name: "module-a",
+          include: [],
+          outputs: {},
+          path: tmpPath,
+          serviceConfigs: [],
+          taskConfigs: [],
+          spec: {},
+          testConfigs: [],
+          type: "test",
+        },
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [{ name: "module-a", copy: [] }] },
+          disabled: false,
+          name: "module-b",
+          include: [],
+          outputs: {},
+          path: tmpPath,
+          serviceConfigs: [],
+          taskConfigs: [],
+          spec: {},
+          testConfigs: [],
+          type: "test",
+        },
+      ])
+
+      const graph = await garden.getConfigGraph(garden.log)
+
+      const deps = await graph.getDependencies({
+        nodeType: "build",
+        name: "module-b",
+        recursive: false,
+      })
+
+      expect(deps.build.map((m) => m.name)).to.eql(["module-a"])
+    })
+
+    it("should ignore dependencies by services on disabled services", async () => {
+      const garden = await makeTestGardenA()
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          name: "foo",
+          outputs: {},
+          path: tmpPath,
+          serviceConfigs: [
+            {
+              name: "disabled-service",
+              dependencies: [],
+              disabled: true,
+              hotReloadable: false,
+              spec: {},
+            },
+            {
+              name: "enabled-service",
+              dependencies: ["disabled-service"],
+              disabled: true,
+              hotReloadable: false,
+              spec: {},
+            },
+          ],
+          taskConfigs: [],
+          spec: {},
+          testConfigs: [],
+          type: "test",
+        },
+      ])
+
+      const graph = await garden.getConfigGraph(garden.log)
+
+      const deps = await graph.getDependencies({
+        nodeType: "deploy",
+        name: "enabled-service",
+        recursive: false,
+      })
+
+      expect(deps.deploy).to.eql([])
+    })
+
+    it("should ignore dependencies by services on disabled tasks", async () => {
+      const garden = await makeTestGardenA()
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          name: "foo",
+          outputs: {},
+          path: tmpPath,
+          serviceConfigs: [
+            {
+              name: "enabled-service",
+              dependencies: ["disabled-task"],
+              disabled: true,
+              hotReloadable: false,
+              spec: {},
+            },
+          ],
+          taskConfigs: [
+            {
+              name: "disabled-task",
+              dependencies: [],
+              disabled: true,
+              spec: {},
+              timeout: null,
+            },
+          ],
+          spec: {},
+          testConfigs: [],
+          type: "test",
+        },
+      ])
+
+      const graph = await garden.getConfigGraph(garden.log)
+
+      const deps = await graph.getDependencies({
+        nodeType: "deploy",
+        name: "enabled-service",
+        recursive: false,
+      })
+
+      expect(deps.run).to.eql([])
+    })
+
+    it("should ignore dependencies by services on services in disabled modules", async () => {
+      const garden = await makeTestGardenA()
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          name: "module-a",
+          include: [],
+          outputs: {},
+          path: tmpPath,
+          serviceConfigs: [
+            {
+              name: "disabled-service",
+              dependencies: [],
+              disabled: true,
+              hotReloadable: false,
+              spec: {},
+            },
+          ],
+          taskConfigs: [],
+          spec: {},
+          testConfigs: [],
+          type: "test",
+        },
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          name: "module-b",
+          include: [],
+          outputs: {},
+          path: tmpPath,
+          serviceConfigs: [
+            {
+              name: "enabled-service",
+              dependencies: ["disabled-service"],
+              disabled: true,
+              hotReloadable: false,
+              spec: {},
+            },
+          ],
+          taskConfigs: [],
+          spec: {},
+          testConfigs: [],
+          type: "test",
+        },
+      ])
+
+      const graph = await garden.getConfigGraph(garden.log)
+
+      const deps = await graph.getDependencies({
+        nodeType: "deploy",
+        name: "enabled-service",
+        recursive: false,
+      })
+
+      expect(deps.deploy).to.eql([])
+    })
+
+    it("should ignore dependencies by tasks on disabled services", async () => {
+      const garden = await makeTestGardenA()
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          name: "foo",
+          outputs: {},
+          path: tmpPath,
+          serviceConfigs: [
+            {
+              name: "disabled-service",
+              dependencies: [],
+              disabled: true,
+              hotReloadable: false,
+              spec: {},
+            },
+          ],
+          taskConfigs: [
+            {
+              name: "enabled-task",
+              dependencies: ["disabled-service"],
+              disabled: false,
+              spec: {},
+              timeout: null,
+            },
+          ],
+          spec: {},
+          testConfigs: [],
+          type: "test",
+        },
+      ])
+
+      const graph = await garden.getConfigGraph(garden.log)
+
+      const deps = await graph.getDependencies({
+        nodeType: "deploy",
+        name: "enabled-task",
+        recursive: false,
+      })
+
+      expect(deps.deploy).to.eql([])
+    })
+
+    it("should ignore dependencies by tests on disabled services", async () => {
+      const garden = await makeTestGardenA()
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          name: "foo",
+          outputs: {},
+          path: tmpPath,
+          serviceConfigs: [
+            {
+              name: "disabled-service",
+              dependencies: [],
+              disabled: true,
+              hotReloadable: false,
+              spec: {},
+            },
+          ],
+          taskConfigs: [],
+          spec: {},
+          testConfigs: [
+            {
+              name: "enabled-test",
+              dependencies: ["disabled-service"],
+              disabled: false,
+              spec: {},
+              timeout: null,
+            },
+          ],
+          type: "test",
+        },
+      ])
+
+      const graph = await garden.getConfigGraph(garden.log)
+
+      const deps = await graph.getDependencies({
+        nodeType: "deploy",
+        name: "enabled-test",
+        recursive: false,
+      })
+
+      expect(deps.deploy).to.eql([])
+    })
+  })
+
+  describe("resolveDependencyModules", () => {
+    it("should include disabled modules in build dependencies", async () => {
+      const garden = await makeTestGardenA()
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: true,
+          name: "module-a",
+          include: [],
+          outputs: {},
+          path: tmpPath,
+          serviceConfigs: [],
+          taskConfigs: [],
+          spec: {},
+          testConfigs: [],
+          type: "test",
+        },
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          name: "module-b",
+          include: [],
+          outputs: {},
+          path: tmpPath,
+          serviceConfigs: [],
+          taskConfigs: [],
+          spec: {},
+          testConfigs: [],
+          type: "test",
+        },
+      ])
+
+      const graph = await garden.getConfigGraph(garden.log)
+      const deps = await graph.resolveDependencyModules([{ name: "module-a", copy: [] }], [])
+
+      expect(deps.map((m) => m.name)).to.eql(["module-a"])
     })
   })
 

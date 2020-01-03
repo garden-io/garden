@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 import toposort from "toposort"
-import { flatten, pick, uniq, find, sortBy } from "lodash"
+import { flatten, pick, uniq, find, sortBy, pickBy } from "lodash"
 import { Garden } from "./garden"
 import { BuildDependencyConfig, ModuleConfig } from "./config/module"
 import { Module, getModuleKey, moduleFromConfig, moduleNeedsBuild } from "./types/module"
@@ -61,6 +61,14 @@ export interface RenderedNode {
 
 type DepNodeTaskTypeMap = { [key in DependencyGraphNodeType]: TaskType }
 
+type EntityConfig = ServiceConfig | TaskConfig | TestConfig
+
+interface EntityConfigEntry<T extends string, C extends EntityConfig> {
+  type: T
+  moduleKey: string
+  config: C
+}
+
 /**
  * A graph data structure that facilitates querying (recursive or non-recursive) of the project's dependency and
  * dependant relationships.
@@ -72,13 +80,13 @@ export class ConfigGraph {
   private moduleConfigs: { [key: string]: ModuleConfig }
 
   private serviceConfigs: {
-    [key: string]: { moduleKey: string; config: ServiceConfig }
+    [key: string]: EntityConfigEntry<"service", ServiceConfig>
   }
   private taskConfigs: {
-    [key: string]: { moduleKey: string; config: TaskConfig }
+    [key: string]: EntityConfigEntry<"task", TaskConfig>
   }
   private testConfigs: {
-    [key: string]: { moduleKey: string; config: TestConfig }
+    [key: string]: EntityConfigEntry<"test", TestConfig>
   }
 
   constructor(private garden: Garden, moduleConfigs: ModuleConfig[], moduleTypes: ModuleTypeMap) {
@@ -89,6 +97,7 @@ export class ConfigGraph {
     this.taskConfigs = {}
     this.testConfigs = {}
 
+    // Add nodes to graph and validate
     for (const moduleConfig of moduleConfigs) {
       const moduleKey = this.keyForModule(moduleConfig)
       this.moduleConfigs[moduleKey] = moduleConfig
@@ -125,7 +134,7 @@ export class ConfigGraph {
           })
         }
 
-        this.serviceConfigs[serviceName] = { moduleKey, config: serviceConfig }
+        this.serviceConfigs[serviceName] = { type: "service", moduleKey, config: serviceConfig }
       }
 
       // Add tasks
@@ -151,12 +160,13 @@ export class ConfigGraph {
           )
         }
 
-        this.taskConfigs[taskName] = { moduleKey, config: taskConfig }
+        this.taskConfigs[taskName] = { type: "task", moduleKey, config: taskConfig }
       }
     }
 
     this.validateDependencies()
 
+    // Add relations between nodes
     for (const moduleConfig of moduleConfigs) {
       const type = moduleTypes[moduleConfig.type]
       const needsBuild = moduleNeedsBuild(moduleConfig, type)
@@ -167,7 +177,12 @@ export class ConfigGraph {
       const addBuildDeps = (node: DependencyGraphNode) => {
         for (const buildDep of moduleConfig.build.dependencies) {
           const buildDepKey = getModuleKey(buildDep.name, buildDep.plugin)
-          this.addRelation(node, "build", buildDepKey, buildDepKey)
+          this.addRelation({
+            dependant: node,
+            dependencyType: "build",
+            dependencyName: buildDepKey,
+            dependencyModuleName: buildDepKey,
+          })
         }
       }
 
@@ -181,18 +196,19 @@ export class ConfigGraph {
 
         if (needsBuild) {
           // The service needs its own module to be built
-          this.addRelation(serviceNode, "build", moduleKey, moduleKey)
+          this.addRelation({
+            dependant: serviceNode,
+            dependencyType: "build",
+            dependencyName: moduleKey,
+            dependencyModuleName: moduleKey,
+          })
         } else {
           // No build needed for the module, but the service needs the module's build dependencies to be built (if any).
           addBuildDeps(serviceNode)
         }
 
         for (const depName of serviceConfig.dependencies) {
-          if (this.serviceConfigs[depName]) {
-            this.addRelation(serviceNode, "deploy", depName, this.serviceConfigs[depName].moduleKey)
-          } else {
-            this.addRelation(serviceNode, "run", depName, this.taskConfigs[depName].moduleKey)
-          }
+          this.addRuntimeRelation(serviceNode, depName)
         }
       }
 
@@ -202,18 +218,19 @@ export class ConfigGraph {
 
         if (needsBuild) {
           // The task needs its own module to be built
-          this.addRelation(taskNode, "build", moduleKey, moduleKey)
+          this.addRelation({
+            dependant: taskNode,
+            dependencyType: "build",
+            dependencyName: moduleKey,
+            dependencyModuleName: moduleKey,
+          })
         } else {
           // No build needed for the module, but the task needs the module's build dependencies to be built (if any).
           addBuildDeps(taskNode)
         }
 
         for (const depName of taskConfig.dependencies) {
-          if (this.serviceConfigs[depName]) {
-            this.addRelation(taskNode, "deploy", depName, this.serviceConfigs[depName].moduleKey)
-          } else {
-            this.addRelation(taskNode, "run", depName, this.taskConfigs[depName].moduleKey)
-          }
+          this.addRuntimeRelation(taskNode, depName)
         }
       }
 
@@ -221,24 +238,25 @@ export class ConfigGraph {
       for (const testConfig of moduleConfig.testConfigs) {
         const testConfigName = makeTestTaskName(moduleConfig.name, testConfig.name)
 
-        this.testConfigs[testConfigName] = { moduleKey, config: testConfig }
+        this.testConfigs[testConfigName] = { type: "test", moduleKey, config: testConfig }
 
         const testNode = this.getNode("test", testConfigName, moduleKey)
 
         if (needsBuild) {
           // The test needs its own module to be built
-          this.addRelation(testNode, "build", moduleKey, moduleKey)
+          this.addRelation({
+            dependant: testNode,
+            dependencyType: "build",
+            dependencyName: moduleKey,
+            dependencyModuleName: moduleKey,
+          })
         } else {
           // No build needed for the module, but the test needs the module's build dependencies to be built (if any).
           addBuildDeps(testNode)
         }
 
         for (const depName of testConfig.dependencies) {
-          if (this.serviceConfigs[depName]) {
-            this.addRelation(testNode, "deploy", depName, this.serviceConfigs[depName].moduleKey)
-          } else {
-            this.addRelation(testNode, "run", depName, this.taskConfigs[depName].moduleKey)
-          }
+          this.addRuntimeRelation(testNode, depName)
         }
       }
     }
@@ -257,32 +275,56 @@ export class ConfigGraph {
     )
   }
 
-  /**
-   * Returns the Service with the specified name. Throws error if it doesn't exist.
-   */
-  async getModule(name: string): Promise<Module> {
-    return (await this.getModules([name]))[0]
+  private addRuntimeRelation(node: DependencyGraphNode, depName: string) {
+    const dep = this.serviceConfigs[depName] || this.taskConfigs[depName]
+
+    // Ignore runtime dependencies on disabled tasks/services
+    if (this.isDisabled(dep)) {
+      return
+    }
+
+    const depType = dep.type === "service" ? "deploy" : "run"
+
+    this.addRelation({
+      dependant: node,
+      dependencyType: depType,
+      dependencyName: depName,
+      dependencyModuleName: dep.moduleKey,
+    })
+  }
+
+  private isDisabled(dep: EntityConfigEntry<any, any>) {
+    const moduleConfig = this.moduleConfigs[dep.moduleKey]
+    return moduleConfig.disabled || dep.config.disabled
   }
 
   /**
    * Returns the Service with the specified name. Throws error if it doesn't exist.
    */
-  async getService(name: string): Promise<Service> {
-    return (await this.getServices([name]))[0]
+  async getModule(name: string, includeDisabled?: boolean): Promise<Module> {
+    return (await this.getModules({ names: [name], includeDisabled }))[0]
+  }
+
+  /**
+   * Returns the Service with the specified name. Throws error if it doesn't exist.
+   */
+  async getService(name: string, includeDisabled?: boolean): Promise<Service> {
+    return (await this.getServices({ names: [name], includeDisabled }))[0]
   }
 
   /**
    * Returns the Task with the specified name. Throws error if it doesn't exist.
    */
-  async getTask(name: string): Promise<Task> {
-    return (await this.getTasks([name]))[0]
+  async getTask(name: string, includeDisabled?: boolean): Promise<Task> {
+    return (await this.getTasks({ names: [name], includeDisabled }))[0]
   }
 
   /*
     Returns all modules defined in this configuration graph, or the ones specified.
    */
-  async getModules(names?: string[]): Promise<Module[]> {
-    const configs = Object.values(names ? pickKeys(this.moduleConfigs, names, "module") : this.moduleConfigs)
+  async getModules({ names, includeDisabled = false }: { names?: string[]; includeDisabled?: boolean } = {}) {
+    const moduleConfigs = includeDisabled ? this.moduleConfigs : pickBy(this.moduleConfigs, (c) => !c.disabled)
+    const configs = Object.values(names ? pickKeys(moduleConfigs, names, "module") : moduleConfigs)
 
     return Bluebird.map(configs, (config) => moduleFromConfig(this.garden, this, config))
   }
@@ -290,19 +332,26 @@ export class ConfigGraph {
   /*
     Returns all services defined in this configuration graph, or the ones specified.
    */
-  async getServices(names?: string[]): Promise<Service[]> {
-    const entries = Object.values(names ? pickKeys(this.serviceConfigs, names, "service") : this.serviceConfigs)
+  async getServices({ names, includeDisabled = false }: { names?: string[]; includeDisabled?: boolean } = {}) {
+    const serviceConfigs = includeDisabled
+      ? this.serviceConfigs
+      : pickBy(this.serviceConfigs, (s) => !this.isDisabled(s))
 
-    return Bluebird.map(entries, async (e) => serviceFromConfig(this, await this.getModule(e.moduleKey), e.config))
+    const configs = Object.values(names ? pickKeys(serviceConfigs, names, "service") : serviceConfigs)
+
+    return Bluebird.map(configs, async (c) =>
+      serviceFromConfig(this, await this.getModule(c.moduleKey, true), c.config)
+    )
   }
 
   /*
     Returns all tasks defined in this configuration graph, or the ones specified.
    */
-  async getTasks(names?: string[]): Promise<Task[]> {
-    const entries = Object.values(names ? pickKeys(this.taskConfigs, names, "task") : this.taskConfigs)
+  async getTasks({ names, includeDisabled = false }: { names?: string[]; includeDisabled?: boolean } = {}) {
+    const taskConfigs = includeDisabled ? this.taskConfigs : pickBy(this.taskConfigs, (t) => !this.isDisabled(t))
+    const configs = Object.values(names ? pickKeys(taskConfigs, names, "task") : taskConfigs)
 
-    return Bluebird.map(entries, async (e) => taskFromConfig(await this.getModule(e.moduleKey), e.config))
+    return Bluebird.map(configs, async (c) => taskFromConfig(await this.getModule(c.moduleKey, true), c.config))
   }
 
   /*
@@ -317,7 +366,7 @@ export class ConfigGraph {
     const dependants = flatten(await Bluebird.map(modules, (m) => this.getDependantsForModule(m, filterFn)))
     // We call getModules to ensure that the returned modules have up-to-date versions.
     const dependantModules = await this.modulesForRelations(await this.mergeRelations(...dependants))
-    return this.getModules(uniq(modules.concat(dependantModules).map((m) => m.name)))
+    return this.getModules({ names: uniq(modules.concat(dependantModules).map((m) => m.name)), includeDisabled: true })
   }
 
   /**
@@ -326,9 +375,9 @@ export class ConfigGraph {
   async getDependantsForModule(module: Module, filterFn?: DependencyRelationFilterFn): Promise<DependencyRelations> {
     return this.mergeRelations(
       ...(await Bluebird.all([
-        this.getDependants("build", module.name, true, filterFn),
-        this.getDependantsForMany("deploy", module.serviceNames, true, filterFn),
-        this.getDependantsForMany("run", module.taskNames, true, filterFn),
+        this.getDependants({ nodeType: "build", name: module.name, recursive: true, filterFn }),
+        this.getDependantsForMany({ nodeType: "deploy", names: module.serviceNames, recursive: true, filterFn }),
+        this.getDependantsForMany({ nodeType: "run", names: module.taskNames, recursive: true, filterFn }),
       ]))
     )
   }
@@ -340,13 +389,18 @@ export class ConfigGraph {
    *
    * If recursive = true, also includes those dependencies' dependencies, etc.
    */
-  async getDependencies(
-    nodeType: DependencyGraphNodeType,
-    name: string,
-    recursive: boolean,
+  async getDependencies({
+    nodeType,
+    name,
+    recursive,
+    filterFn,
+  }: {
+    nodeType: DependencyGraphNodeType
+    name: string
+    recursive: boolean
     filterFn?: DependencyRelationFilterFn
-  ): Promise<DependencyRelations> {
-    return this.toRelations(this.getDependencyNodes(nodeType, name, recursive, filterFn))
+  }): Promise<DependencyRelations> {
+    return this.toRelations(this.getDependencyNodes({ nodeType, name, recursive, filterFn }))
   }
 
   /**
@@ -356,39 +410,58 @@ export class ConfigGraph {
    *
    * If recursive = true, also includes those dependants' dependants, etc.
    */
-  async getDependants(
-    nodeType: DependencyGraphNodeType,
-    name: string,
-    recursive: boolean,
+  async getDependants({
+    nodeType,
+    name,
+    recursive,
+    filterFn,
+  }: {
+    nodeType: DependencyGraphNodeType
+    name: string
+    recursive: boolean
     filterFn?: DependencyRelationFilterFn
-  ): Promise<DependencyRelations> {
-    return this.toRelations(this.getDependantNodes(nodeType, name, recursive, filterFn))
+  }): Promise<DependencyRelations> {
+    return this.toRelations(this.getDependantNodes({ nodeType, name, recursive, filterFn }))
   }
 
   /**
    * Same as getDependencies above, but returns the set union of the dependencies of the nodes in the graph
    * having type = nodeType and name = name (computed recursively or shallowly for all).
    */
-  async getDependenciesForMany(
-    nodeType: DependencyGraphNodeType,
-    names: string[],
-    recursive: boolean,
+  async getDependenciesForMany({
+    nodeType,
+    names,
+    recursive,
+    filterFn,
+  }: {
+    nodeType: DependencyGraphNodeType
+    names: string[]
+    recursive: boolean
     filterFn?: DependencyRelationFilterFn
-  ): Promise<DependencyRelations> {
-    return this.toRelations(flatten(names.map((name) => this.getDependencyNodes(nodeType, name, recursive, filterFn))))
+  }): Promise<DependencyRelations> {
+    return this.toRelations(
+      flatten(names.map((name) => this.getDependencyNodes({ nodeType, name, recursive, filterFn })))
+    )
   }
 
   /**
    * Same as getDependants above, but returns the set union of the dependants of the nodes in the graph
    * having type = nodeType and name = name (computed recursively or shallowly for all).
    */
-  async getDependantsForMany(
-    nodeType: DependencyGraphNodeType,
-    names: string[],
-    recursive: boolean,
+  async getDependantsForMany({
+    nodeType,
+    names,
+    recursive,
+    filterFn,
+  }: {
+    nodeType: DependencyGraphNodeType
+    names: string[]
+    recursive: boolean
     filterFn?: DependencyRelationFilterFn
-  ): Promise<DependencyRelations> {
-    return this.toRelations(flatten(names.map((name) => this.getDependantNodes(nodeType, name, recursive, filterFn))))
+  }): Promise<DependencyRelations> {
+    return this.toRelations(
+      flatten(names.map((name) => this.getDependantNodes({ nodeType, name, recursive, filterFn })))
+    )
   }
 
   /**
@@ -411,17 +484,17 @@ export class ConfigGraph {
   /**
    * Returns the (unique by name) list of modules represented in relations.
    */
-  async modulesForRelations(relations: DependencyRelations): Promise<Module[]> {
+  private async modulesForRelations(relations: DependencyRelations): Promise<Module[]> {
     const moduleNames = uniq(
       flatten([
         relations.build,
         relations.deploy.map((s) => s.module),
         relations.run.map((w) => w.module),
-        await this.getModules(relations.test.map((t) => this.testConfigs[t.name].moduleKey)),
+        await this.getModules({ names: relations.test.map((t) => this.testConfigs[t.name].moduleKey) }),
       ]).map((m) => m.name)
     )
     // We call getModules to ensure that the returned modules have up-to-date versions.
-    return this.getModules(moduleNames)
+    return this.getModules({ names: moduleNames, includeDisabled: true })
   }
 
   /**
@@ -433,15 +506,17 @@ export class ConfigGraph {
     runtimeDependencies: string[]
   ): Promise<Module[]> {
     const moduleNames = buildDependencies.map((d) => getModuleKey(d.name, d.plugin))
-    const serviceNames = runtimeDependencies.filter((d) => this.serviceConfigs[d])
-    const taskNames = runtimeDependencies.filter((d) => this.taskConfigs[d])
+    const serviceNames = runtimeDependencies.filter(
+      (d) => this.serviceConfigs[d] && !this.isDisabled(this.serviceConfigs[d])
+    )
+    const taskNames = runtimeDependencies.filter((d) => this.taskConfigs[d] && !this.isDisabled(this.taskConfigs[d]))
 
-    const buildDeps = await this.getDependenciesForMany("build", moduleNames, true)
-    const serviceDeps = await this.getDependenciesForMany("deploy", serviceNames, true)
-    const taskDeps = await this.getDependenciesForMany("run", taskNames, true)
+    const buildDeps = await this.getDependenciesForMany({ nodeType: "build", names: moduleNames, recursive: true })
+    const serviceDeps = await this.getDependenciesForMany({ nodeType: "deploy", names: serviceNames, recursive: true })
+    const taskDeps = await this.getDependenciesForMany({ nodeType: "run", names: taskNames, recursive: true })
 
     const modules = [
-      ...(await this.getModules(moduleNames)),
+      ...(await this.getModules({ names: moduleNames, includeDisabled: true })),
       ...(await this.modulesForRelations(await this.mergeRelations(buildDeps, serviceDeps, taskDeps))),
     ]
 
@@ -459,19 +534,24 @@ export class ConfigGraph {
 
   private async relationsFromNames(names: DependencyRelationNames): Promise<DependencyRelations> {
     return Bluebird.props({
-      build: this.getModules(names.build),
-      deploy: this.getServices(names.deploy),
-      run: this.getTasks(names.run),
+      build: this.getModules({ names: names.build, includeDisabled: true }),
+      deploy: this.getServices({ names: names.deploy }),
+      run: this.getTasks({ names: names.run }),
       test: Object.values(pick(this.testConfigs, names.test)).map((t) => t.config),
     })
   }
 
-  private getDependencyNodes(
-    nodeType: DependencyGraphNodeType,
-    name: string,
-    recursive: boolean,
+  private getDependencyNodes({
+    nodeType,
+    name,
+    recursive,
+    filterFn,
+  }: {
+    nodeType: DependencyGraphNodeType
+    name: string
+    recursive: boolean
     filterFn?: DependencyRelationFilterFn
-  ): DependencyGraphNode[] {
+  }): DependencyGraphNode[] {
     const node = this.dependencyGraph[nodeKey(nodeType, name)]
     if (node) {
       if (recursive) {
@@ -484,12 +564,17 @@ export class ConfigGraph {
     }
   }
 
-  private getDependantNodes(
-    nodeType: DependencyGraphNodeType,
-    name: string,
-    recursive: boolean,
+  private getDependantNodes({
+    nodeType,
+    name,
+    recursive,
+    filterFn,
+  }: {
+    nodeType: DependencyGraphNodeType
+    name: string
+    recursive: boolean
     filterFn?: DependencyRelationFilterFn
-  ): DependencyGraphNode[] {
+  }): DependencyGraphNode[] {
     const node = this.dependencyGraph[nodeKey(nodeType, name)]
     if (node) {
       if (recursive) {
@@ -507,12 +592,17 @@ export class ConfigGraph {
   }
 
   // Idempotent.
-  private addRelation(
-    dependant: DependencyGraphNode,
-    dependencyType: DependencyGraphNodeType,
-    dependencyName: string,
+  private addRelation({
+    dependant,
+    dependencyType,
+    dependencyName,
+    dependencyModuleName,
+  }: {
+    dependant: DependencyGraphNode
+    dependencyType: DependencyGraphNodeType
+    dependencyName: string
     dependencyModuleName: string
-  ) {
+  }) {
     const dependency = this.getNode(dependencyType, dependencyName, dependencyModuleName)
     dependant.addDependency(dependency)
     dependency.addDependant(dependant)

@@ -32,6 +32,7 @@ describe("testHelmModule", () => {
       force: true,
       forceBuild: false,
       version: module.version,
+      _guard: true,
     })
 
     const key = testTask.getKey()
@@ -55,6 +56,7 @@ describe("testHelmModule", () => {
         force: true,
         forceBuild: false,
         version: module.version,
+        _guard: true,
       })
 
       await emptyDir(garden.artifactsPath)
@@ -77,6 +79,7 @@ describe("testHelmModule", () => {
         force: true,
         forceBuild: false,
         version: module.version,
+        _guard: true,
       })
 
       await emptyDir(garden.artifactsPath)

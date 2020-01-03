@@ -98,6 +98,24 @@ services:
 
 ## Advanced
 
+### Disabling Services
+
+Modules that allow you to configure services generally also allow you to disable services by setting `disabled: true` in the service configuration. You can also disable them conditionally using template strings. For example, to disable a `container` module service for a specific environment, you could do something like this:
+
+```yaml
+kind: Module
+type: container
+...
+services:
+  - name: frontend
+    disabled: ${environment.name == "prod"}
+    ...
+```
+
+Services are also implicitly disabled when the parent module is disabled.
+
+### How Services Map to Kubernetes Resources
+
 A container service maps to a Kubernetes [Deployment object](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/). If you specify a `port`, Garden will create a [Service object](https://kubernetes.io/docs/concepts/services-networking/service/) for the Deployment. And if you specify an `ingress`, Garden will create a corresponding Kubernetes [Ingress object](https://kubernetes.io/docs/concepts/services-networking/ingress/).
 
 By default the Kubernetes provider does a rolling update for deployments.

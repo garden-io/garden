@@ -18,14 +18,15 @@ import {
   StringsParameter,
   PrepareParams,
 } from "./base"
-import { getDependantTasksForModule } from "../tasks/helpers"
+import { getModuleWatchTasks } from "../tasks/helpers"
 import { TaskResults } from "../task-graph"
-import { processServices } from "../process"
+import { processModules } from "../process"
 import { printHeader } from "../logger/util"
-import { HotReloadTask } from "../tasks/hot-reload"
 import { BaseTask } from "../tasks/base"
 import { getHotReloadServiceNames, validateHotReloadServiceNames } from "./helpers"
 import { startServer, GardenServer } from "../server/server"
+import { DeployTask } from "../tasks/deploy"
+import { naturalList } from "../util/string"
 
 const deployArgs = {
   services: new StringsParameter({
@@ -103,18 +104,28 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const initGraph = await garden.getConfigGraph(log)
-    const services = await initGraph.getServices(args.services)
+    let services = await initGraph.getServices({ names: args.services, includeDisabled: true })
+
+    const disabled = services.filter((s) => s.disabled).map((s) => s.name)
+
+    if (disabled.length > 0) {
+      log.info({ symbol: "info", msg: `Services ${naturalList(disabled)} are disabled` })
+    }
+
+    services = services.filter((s) => !s.disabled)
+    const serviceNames = services.map((s) => s.name)
 
     if (services.length === 0) {
-      log.error({ msg: "No services found. Aborting." })
+      log.error({ msg: "No services to deploy. Aborting." })
       return { result: {} }
     }
 
+    const modules = Array.from(new Set(services.map((s) => s.module)))
     const hotReloadServiceNames = await getHotReloadServiceNames(opts["hot-reload"], initGraph)
     let watch: boolean
 
     if (hotReloadServiceNames.length > 0) {
-      await initGraph.getServices(hotReloadServiceNames) // validate the existence of these services
+      await initGraph.getServices({ names: hotReloadServiceNames }) // validate the existence of these services
       const errMsg = await validateHotReloadServiceNames(hotReloadServiceNames, initGraph)
       if (errMsg) {
         log.error({ msg: errMsg })
@@ -125,43 +136,40 @@ export class DeployCommand extends Command<Args, Opts> {
       watch = opts.watch
     }
 
-    const results = await processServices({
+    const force = opts.force
+    const forceBuild = opts["force-build"]
+
+    const initialTasks = services.map(
+      (service) =>
+        new DeployTask({
+          garden,
+          log,
+          graph: initGraph,
+          service,
+          force,
+          forceBuild,
+          fromWatch: false,
+          hotReloadServiceNames,
+        })
+    )
+
+    const results = await processModules({
       garden,
       graph: initGraph,
       log,
       footerLog,
-      services,
+      modules,
+      initialTasks,
       watch,
-      handler: async (graph, module) =>
-        getDependantTasksForModule({
-          garden,
-          graph,
-          log,
-          module,
-          fromWatch: false,
-          hotReloadServiceNames,
-          force: opts.force,
-          forceBuild: opts["force-build"],
-        }),
       changeHandler: async (graph, module) => {
-        const tasks: BaseTask[] = await getDependantTasksForModule({
+        const tasks: BaseTask[] = await getModuleWatchTasks({
           garden,
           graph,
           log,
           module,
+          serviceNames: module.serviceNames.filter((name) => serviceNames.includes(name)),
           hotReloadServiceNames,
-          force: true,
-          forceBuild: opts["force-build"],
-          fromWatch: true,
-          includeDependants: true,
         })
-
-        const hotReloadServices = await graph.getServices(hotReloadServiceNames)
-        const hotReloadTasks = hotReloadServices
-          .filter((service) => service.module.name === module.name || service.sourceModule.name === module.name)
-          .map((service) => new HotReloadTask({ garden, graph, log, service, force: true }))
-
-        tasks.push(...hotReloadTasks)
 
         return tasks
       },

@@ -15,8 +15,7 @@ import { flatten } from "lodash"
 import moment = require("moment")
 import { join } from "path"
 
-import { BaseTask } from "../tasks/base"
-import { getDependantTasksForModule } from "../tasks/helpers"
+import { getModuleWatchTasks } from "../tasks/helpers"
 import {
   Command,
   CommandResult,
@@ -30,10 +29,11 @@ import { STATIC_DIR } from "../constants"
 import { processModules } from "../process"
 import { Module } from "../types/module"
 import { getTestTasks } from "../tasks/test"
-import { HotReloadTask } from "../tasks/hot-reload"
 import { ConfigGraph } from "../config-graph"
 import { getHotReloadServiceNames, validateHotReloadServiceNames } from "./helpers"
 import { GardenServer, startServer } from "../server/server"
+import { BuildTask } from "../tasks/build"
+import { DeployTask } from "../tasks/deploy"
 
 const ansiBannerPath = join(STATIC_DIR, "garden-banner-2.txt")
 
@@ -59,11 +59,11 @@ const devOpts = {
   }),
 }
 
-type Args = typeof devArgs
-type Opts = typeof devOpts
+export type DevCommandArgs = typeof devArgs
+export type DevCommandOpts = typeof devOpts
 
 // TODO: allow limiting to certain modules and/or services
-export class DevCommand extends Command<Args, Opts> {
+export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
   name = "dev"
   help = "Starts the garden development console."
   protected = true
@@ -90,7 +90,7 @@ export class DevCommand extends Command<Args, Opts> {
 
   private server: GardenServer
 
-  async prepare({ log, footerLog }: PrepareParams<Args, Opts>) {
+  async prepare({ log, footerLog }: PrepareParams<DevCommandArgs, DevCommandOpts>) {
     // print ANSI banner image
     const data = await readFile(ansiBannerPath)
     log.info(data.toString())
@@ -102,15 +102,22 @@ export class DevCommand extends Command<Args, Opts> {
     return { persistent: true }
   }
 
-  async action({ garden, log, footerLog, opts }: CommandParams<Args, Opts>): Promise<CommandResult> {
+  async action({
+    garden,
+    log,
+    footerLog,
+    opts,
+  }: CommandParams<DevCommandArgs, DevCommandOpts>): Promise<CommandResult> {
     this.server.setGarden(garden)
 
     const graph = await garden.getConfigGraph(log)
     const modules = await graph.getModules()
 
+    const skipTests = opts["skip-tests"]
+
     if (modules.length === 0) {
       footerLog && footerLog.setState({ msg: "" })
-      log.info({ msg: "No modules found in project." })
+      log.info({ msg: "No enabled modules found in project." })
       log.info({ msg: "Aborting..." })
       return {}
     }
@@ -124,32 +131,71 @@ export class DevCommand extends Command<Args, Opts> {
       }
     }
 
-    const tasksForModule = (watch: boolean) => {
-      return async (updatedGraph: ConfigGraph, module: Module) => {
-        const tasks: BaseTask[] = []
+    const initialTasks = flatten(
+      await Bluebird.map(modules, async (module) => {
+        // Build the module (in case there are no tests, tasks or services here that need to be run)
+        const buildTasks = await BuildTask.factory({
+          garden,
+          log,
+          module,
+          force: false,
+        })
 
-        if (watch) {
-          const hotReloadServices = await updatedGraph.getServices(hotReloadServiceNames)
-          const hotReloadTasks = hotReloadServices
-            .filter((service) => service.module.name === module.name || service.sourceModule.name === module.name)
-            .map(
-              (service) =>
-                new HotReloadTask({
-                  garden,
-                  graph: updatedGraph,
-                  log,
-                  service,
-                  force: true,
-                })
-            )
+        // Run all tests in module
+        const testTasks = skipTests
+          ? []
+          : await getTestTasks({
+              garden,
+              graph,
+              log,
+              module,
+              force: false,
+              forceBuild: false,
+            })
 
-          tasks.push(...hotReloadTasks)
-        }
+        // Deploy all enabled services in module
+        const services = await graph.getServices({ names: module.serviceNames, includeDisabled: true })
+        const deployTasks = services
+          .filter((s) => !s.disabled)
+          .map(
+            (service) =>
+              new DeployTask({
+                garden,
+                log,
+                graph,
+                service,
+                force: false,
+                forceBuild: false,
+                fromWatch: false,
+                hotReloadServiceNames,
+              })
+          )
 
-        const testModules: Module[] = watch ? await updatedGraph.withDependantModules([module]) : [module]
+        return [...buildTasks, ...testTasks, ...deployTasks]
+      })
+    )
 
-        if (!opts["skip-tests"]) {
+    const results = await processModules({
+      garden,
+      graph,
+      log,
+      footerLog,
+      modules,
+      watch: true,
+      initialTasks,
+      changeHandler: async (updatedGraph: ConfigGraph, module: Module) => {
+        const tasks = await getModuleWatchTasks({
+          garden,
+          log,
+          graph: updatedGraph,
+          module,
+          serviceNames: module.serviceNames,
+          hotReloadServiceNames,
+        })
+
+        if (!skipTests) {
           const filterNames = opts["test-names"]
+          const testModules: Module[] = await updatedGraph.withDependantModules([module])
           tasks.push(
             ...flatten(
               await Bluebird.map(testModules, (m) =>
@@ -165,33 +211,8 @@ export class DevCommand extends Command<Args, Opts> {
           )
         }
 
-        tasks.push(
-          ...(await getDependantTasksForModule({
-            garden,
-            log,
-            graph: updatedGraph,
-            module,
-            fromWatch: watch,
-            hotReloadServiceNames,
-            force: watch,
-            forceBuild: false,
-            includeDependants: watch,
-          }))
-        )
-
         return tasks
-      }
-    }
-
-    const results = await processModules({
-      garden,
-      graph,
-      log,
-      footerLog,
-      modules,
-      watch: true,
-      handler: tasksForModule(false),
-      changeHandler: tasksForModule(true),
+      },
     })
 
     return handleTaskResults(footerLog, "dev", results)

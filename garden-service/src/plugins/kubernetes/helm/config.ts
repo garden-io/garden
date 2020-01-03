@@ -8,7 +8,6 @@
 
 import { find } from "lodash"
 
-import { ServiceSpec } from "../../../config/service"
 import {
   joiPrimitive,
   joiArray,
@@ -153,7 +152,7 @@ export const testSchema = baseTestSpecSchema.keys({
   ),
 })
 
-export interface HelmServiceSpec extends ServiceSpec {
+export interface HelmServiceSpec {
   base?: string
   chart?: string
   chartPath: string
@@ -288,6 +287,7 @@ export async function configureHelmModule({
       {
         name: moduleConfig.name,
         dependencies,
+        disabled: moduleConfig.disabled,
         // Note: We can't tell here if the source module supports hot-reloading,
         // so we catch it in the handler if need be.
         hotReloadable: !!sourceModuleName,
@@ -337,6 +337,7 @@ export async function configureHelmModule({
     return {
       name: spec.name,
       dependencies: spec.dependencies,
+      disabled: moduleConfig.disabled,
       timeout: spec.timeout,
       spec,
     }
@@ -350,6 +351,7 @@ export async function configureHelmModule({
     return {
       name: spec.name,
       dependencies: spec.dependencies,
+      disabled: moduleConfig.disabled,
       timeout: spec.timeout,
       spec,
     }

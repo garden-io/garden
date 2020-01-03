@@ -7,7 +7,7 @@
  */
 
 import stableStringify = require("json-stable-stringify")
-import { ServiceConfig, ServiceSpec, serviceConfigSchema } from "./service"
+import { ServiceConfig, serviceConfigSchema } from "./service"
 import {
   joiArray,
   joiIdentifier,
@@ -19,8 +19,8 @@ import {
   joi,
   includeGuideLink,
 } from "./common"
-import { TestConfig, TestSpec, testConfigSchema } from "./test"
-import { TaskConfig, TaskSpec, taskConfigSchema } from "./task"
+import { TestConfig, testConfigSchema } from "./test"
+import { TaskConfig, taskConfigSchema } from "./task"
 import { DEFAULT_API_VERSION } from "../constants"
 import { joiVariables } from "./common"
 import { dedent } from "../util/string"
@@ -77,21 +77,22 @@ export interface ModuleSpec {}
 
 export interface AddModuleSpec {
   apiVersion?: string
-  name: string
-  path: string
   allowPublish?: boolean
   build?: BaseBuildSpec
   description?: string
-  include?: string[]
   exclude?: string[]
-  type: string
+  include?: string[]
+  name: string
+  path: string
   repositoryUrl?: string
+  type: string
 }
 
 export interface BaseModuleSpec extends AddModuleSpec {
   apiVersion: string
   allowPublish: boolean
   build: BaseBuildSpec
+  disabled: boolean
 }
 
 export const baseBuildSpecSchema = joi
@@ -134,6 +135,27 @@ export const coreModuleSpecSchema = joi
 // These fields may be resolved later in the process, and allow for usage of template strings
 export const baseModuleSpecSchema = coreModuleSpecSchema.keys({
   description: joi.string(),
+  disabled: joi
+    .boolean()
+    .default(false)
+    .description(
+      dedent`
+        Set this to \`true\` to disable the module. You can use this with conditional template strings to
+        disable modules based on, for example, the current environment or other variables (e.g.
+        \`disabled: \${environment.name == "prod"}\`). This can be handy when you only need certain modules for
+        specific environments, e.g. only for development.
+
+        Disabling a module means that any services, tasks and tests contained in it will not be deployed or run.
+        It also means that the module is not built _unless_ it is declared as a build dependency by another enabled
+        module (in which case building this module is necessary for the dependant to be built).
+
+        If you disable the module, and its services, tasks or tests are referenced as _runtime_ dependencies, Garden
+        will automatically ignore those dependency declarations. Note however that template strings referencing the
+        module's service or task outputs (i.e. runtime outputs) will fail to resolve when the module is disabled,
+        so you need to make sure to provide alternate values for those if you're using them, using conditional
+        expressions.
+      `
+    ),
   include: joi
     .array()
     .items(
@@ -190,12 +212,8 @@ export const baseModuleSpecSchema = coreModuleSpecSchema.keys({
   build: baseBuildSpecSchema.unknown(true),
 })
 
-export interface ModuleConfig<
-  M extends ModuleSpec = any,
-  S extends ServiceSpec = any,
-  T extends TestSpec = any,
-  W extends TaskSpec = any
-> extends BaseModuleSpec {
+export interface ModuleConfig<M extends {} = any, S extends {} = any, T extends {} = any, W extends {} = any>
+  extends BaseModuleSpec {
   outputs: PrimitiveMap
   path: string
   configPath?: string

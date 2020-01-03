@@ -1402,6 +1402,7 @@ describe("Garden", () => {
         apiVersion: DEFAULT_API_VERSION,
         allowPublish: false,
         build: { dependencies: [] },
+        disabled: false,
         name: "foo",
         outputs: {},
         path: "/tmp",
@@ -2155,6 +2156,7 @@ describe("Garden", () => {
           type: "foo",
           allowPublish: false,
           build: { dependencies: [] },
+          disabled: false,
           outputs: {},
           path: pathFoo,
           serviceConfigs: [],
@@ -2205,6 +2207,7 @@ describe("Garden", () => {
           type: "foo",
           allowPublish: false,
           build: { dependencies: [] },
+          disabled: false,
           outputs: {},
           path: pathFoo,
           serviceConfigs: [],
@@ -2276,6 +2279,7 @@ describe("Garden", () => {
           type: "foo",
           allowPublish: false,
           build: { dependencies: [] },
+          disabled: false,
           outputs: {},
           path: pathFoo,
           serviceConfigs: [],
@@ -2342,6 +2346,7 @@ describe("Garden", () => {
           type: "foo",
           allowPublish: false,
           build: { dependencies: [] },
+          disabled: false,
           outputs: {},
           path: pathFoo,
           serviceConfigs: [],
@@ -2426,6 +2431,7 @@ describe("Garden", () => {
             type: "foo",
             allowPublish: false,
             build: { dependencies: [] },
+            disabled: false,
             outputs: {},
             path: pathFoo,
             serviceConfigs: [],
@@ -2504,6 +2510,7 @@ describe("Garden", () => {
             type: "foo",
             allowPublish: false,
             build: { dependencies: [] },
+            disabled: false,
             outputs: {},
             path: pathFoo,
             serviceConfigs: [],
@@ -2569,6 +2576,7 @@ describe("Garden", () => {
           kind: "Module",
           allowPublish: true,
           build: { dependencies: [] },
+          disabled: false,
           name: "foo",
           outputs: {},
           configPath: "/tmp",
@@ -2617,6 +2625,7 @@ describe("Garden", () => {
             type: "foo",
             allowPublish: false,
             build: { dependencies: [] },
+            disabled: false,
             outputs: {},
             path: "/tmp",
             include: [],
@@ -2631,6 +2640,7 @@ describe("Garden", () => {
             type: "foo",
             allowPublish: false,
             build: { dependencies: [] },
+            disabled: false,
             outputs: {},
             path: "/tmp",
             include: [],
@@ -2649,6 +2659,7 @@ describe("Garden", () => {
           kind: "Module",
           allowPublish: false,
           build: { dependencies: [{ name: "bar", copy: [] }] },
+          disabled: false,
           name: "foo",
           outputs: {},
           path: "/tmp",
@@ -2722,6 +2733,7 @@ describe("Garden", () => {
           kind: "Module",
           allowPublish: true,
           build: { dependencies: [{ name: "bar", copy: [] }] },
+          disabled: false,
           name: "foo",
           outputs: {},
           configPath: "/tmp",
@@ -2731,6 +2743,7 @@ describe("Garden", () => {
             {
               name: "foo",
               dependencies: ["bar"],
+              disabled: false,
               hotReloadable: false,
             },
           ],
@@ -2826,6 +2839,7 @@ describe("Garden", () => {
             type: "foo",
             allowPublish: false,
             build: { dependencies: [] },
+            disabled: false,
             outputs: {},
             path: "/tmp",
             serviceConfigs: [],
@@ -2839,6 +2853,7 @@ describe("Garden", () => {
             type: "foo",
             allowPublish: false,
             build: { dependencies: [] },
+            disabled: false,
             outputs: {},
             path: "/tmp",
             serviceConfigs: [],
@@ -2856,6 +2871,7 @@ describe("Garden", () => {
           kind: "Module",
           allowPublish: false,
           build: { dependencies: [] },
+          disabled: false,
           name: "foo",
           outputs: {},
           path: "/tmp",
@@ -2864,6 +2880,7 @@ describe("Garden", () => {
             {
               name: "foo",
               dependencies: ["bar"],
+              disabled: false,
               hotReloadable: false,
             },
           ],
@@ -2915,6 +2932,7 @@ describe("Garden", () => {
             type: "foo",
             allowPublish: false,
             build: { dependencies: [] },
+            disabled: false,
             outputs: {},
             path: "/tmp",
             serviceConfigs: [],
@@ -3000,6 +3018,7 @@ describe("Garden", () => {
           kind: "Module",
           allowPublish: true,
           build: { dependencies: [{ name: "bar", copy: [] }] },
+          disabled: false,
           name: "foo",
           outputs: {},
           configPath: "/tmp",
@@ -3086,9 +3105,9 @@ describe("Garden", () => {
     })
 
     context("test against fixed version hashes", async () => {
-      const moduleAVersionString = "v-0cf3cb04c0"
-      const moduleBVersionString = "v-db85090197"
-      const moduleCVersionString = "v-18ffe09ae4"
+      const moduleAVersionString = "v-58abca9921"
+      const moduleBVersionString = "v-f25bb29260"
+      const moduleCVersionString = "v-b4f769e846"
 
       it("should return the same module versions between runtimes", async () => {
         const projectRoot = getDataDir("test-projects", "fixed-version-hashes-1")

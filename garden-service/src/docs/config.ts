@@ -35,7 +35,7 @@ const populateProviderSchema = (schema: Joi.ObjectSchema) =>
     providers: joiArray(schema),
   })
 
-const maxWidth = 100
+const maxWidth = 120
 const moduleTypes = [
   { name: "exec" },
   { name: "container" },

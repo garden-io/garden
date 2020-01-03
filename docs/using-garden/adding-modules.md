@@ -105,6 +105,24 @@ type: container
 image: postgres:11.4-alpine
 ```
 
+## Advanced
+
+### Disabling Modules
+
+You can disable modules by setting `disabled: true` in the module config file. You can also disable it conditionally using template strings. For example, to disable a particular module for a specific environment, you could do something like this:
+
+```yaml
+kind: Module
+name: backend
+description: Postgres DB container
+type: container
+disabled: ${environment.name == "prod"}
+image: postgres:11.4-alpine
+```
+
+Disabling a module disables all services, tasks and tests defined in the module.
+Note however, that if a disabled module is referenced as a build dependency of another module, the module will still be built when needed, to ensure the dependant module can be built as expected.
+
 ## Further Reading
 
 * [Module type reference docs](../module-types/README.md).

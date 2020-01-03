@@ -37,7 +37,7 @@ export class StageBuildTask extends BaseTask {
 
   async getDependencies() {
     const dg = await this.garden.getConfigGraph(this.log)
-    const deps = (await dg.getDependencies("build", this.getName(), false)).build
+    const deps = (await dg.getDependencies({ nodeType: "build", name: this.getName(), recursive: false })).build
 
     const stageDeps = await Bluebird.map(deps, async (m: Module) => {
       return new StageBuildTask({

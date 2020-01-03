@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ServiceSpec, dependenciesSchema } from "../../../config/service"
+import { dependenciesSchema } from "../../../config/service"
 import { joiArray, joi, joiModuleIncludeDirective } from "../../../config/common"
 import { Module } from "../../../types/module"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../../types/plugin/module/configure"
@@ -22,7 +22,7 @@ export type KubernetesModuleSpec = KubernetesServiceSpec
 export interface KubernetesModule extends Module<KubernetesModuleSpec, KubernetesServiceSpec> {}
 export type KubernetesModuleConfig = KubernetesModule["_ConfigType"]
 
-export interface KubernetesServiceSpec extends ServiceSpec {
+export interface KubernetesServiceSpec {
   dependencies: string[]
   files: string[]
   manifests: KubernetesResource[]
@@ -78,6 +78,7 @@ export async function configureKubernetesModule({
     {
       name: moduleConfig.name,
       dependencies: moduleConfig.spec.dependencies,
+      disabled: moduleConfig.disabled,
       hotReloadable: false,
       spec: moduleConfig.spec,
     },

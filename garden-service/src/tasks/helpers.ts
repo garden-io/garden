@@ -16,68 +16,59 @@ import { DependencyGraphNode, ConfigGraph } from "../config-graph"
 import { LogEntry } from "../logger/log-entry"
 import { BaseTask } from "./base"
 import { BuildTask } from "./build"
+import { HotReloadTask } from "./hot-reload"
 
-export async function getDependantTasksForModule({
+/**
+ * Helper used by the `garden dev` and `garden deploy --watch` commands, to get all the tasks that should be
+ * executed for those when a particular module changes.
+ */
+export async function getModuleWatchTasks({
   garden,
   log,
   graph,
   module,
+  serviceNames,
   hotReloadServiceNames,
-  force = false,
-  forceBuild = false,
-  fromWatch = false,
-  includeDependants = false,
 }: {
   garden: Garden
   log: LogEntry
   graph: ConfigGraph
   module: Module
+  serviceNames: string[]
   hotReloadServiceNames: string[]
-  force?: boolean
-  forceBuild?: boolean
-  fromWatch?: boolean
-  includeDependants?: boolean
 }): Promise<BaseTask[]> {
   let buildTasks: BaseTask[] = []
   let dependantBuildModules: Module[] = []
-  let services: Service[] = []
+  let servicesToDeploy: Service[] = []
 
-  if (!includeDependants) {
-    buildTasks.push(
-      ...(await BuildTask.factory({
-        garden,
-        log,
-        module,
-        force: forceBuild,
-      }))
-    )
-    services = await graph.getServices(module.serviceNames)
+  const hotReloadModuleNames = await getModuleNames(graph, hotReloadServiceNames)
+
+  const dependantFilterFn = (dependantNode: DependencyGraphNode) =>
+    !hotReloadModuleNames.includes(dependantNode.moduleName)
+
+  if (intersection(module.serviceNames, hotReloadServiceNames).length) {
+    // Hot reloading is enabled for one or more of module's services.
+    const serviceDeps = await graph.getDependantsForMany({
+      nodeType: "deploy",
+      names: module.serviceNames,
+      recursive: true,
+      filterFn: dependantFilterFn,
+    })
+
+    dependantBuildModules = serviceDeps.build
+    servicesToDeploy = serviceDeps.deploy
   } else {
-    const hotReloadModuleNames = await getModuleNames(graph, hotReloadServiceNames)
+    const dependants = await graph.getDependantsForModule(module, dependantFilterFn)
 
-    const dependantFilterFn = (dependantNode: DependencyGraphNode) =>
-      !hotReloadModuleNames.includes(dependantNode.moduleName)
+    buildTasks = await BuildTask.factory({
+      garden,
+      log,
+      module,
+      force: true,
+    })
 
-    if (intersection(module.serviceNames, hotReloadServiceNames).length) {
-      // Hot reloading is enabled for one or more of module's services.
-      const serviceDeps = await graph.getDependantsForMany("deploy", module.serviceNames, true, dependantFilterFn)
-
-      dependantBuildModules = serviceDeps.build
-      services = serviceDeps.deploy
-    } else {
-      const dependants = await graph.getDependantsForModule(module, dependantFilterFn)
-
-      buildTasks.push(
-        ...(await BuildTask.factory({
-          garden,
-          log,
-          module,
-          force: true,
-        }))
-      )
-      dependantBuildModules = dependants.build
-      services = (await graph.getServices(module.serviceNames)).concat(dependants.deploy)
-    }
+    dependantBuildModules = dependants.build
+    servicesToDeploy = (await graph.getServices({ names: serviceNames })).concat(dependants.deploy)
   }
 
   const dependantBuildTasks = flatten(
@@ -86,34 +77,40 @@ export async function getDependantTasksForModule({
         garden,
         log,
         module: m,
-        force: forceBuild,
+        force: false,
       })
     )
   )
 
-  const deployTasks = services.map(
+  const deployTasks = servicesToDeploy.map(
     (service) =>
       new DeployTask({
         garden,
         log,
         graph,
         service,
-        force,
-        forceBuild,
-        fromWatch,
+        force: true,
+        forceBuild: false,
+        fromWatch: true,
         hotReloadServiceNames,
       })
   )
 
-  const outputTasks = [...buildTasks, ...dependantBuildTasks, ...deployTasks]
-  log.silly(`getDependantTasksForModule called for module ${module.name}, returning the following tasks:`)
+  const hotReloadServices = await graph.getServices({ names: hotReloadServiceNames })
+  const hotReloadTasks = hotReloadServices
+    .filter((service) => service.module.name === module.name || service.sourceModule.name === module.name)
+    .map((service) => new HotReloadTask({ garden, graph, log, service, force: true }))
+
+  const outputTasks = [...buildTasks, ...dependantBuildTasks, ...deployTasks, ...hotReloadTasks]
+
+  log.silly(`getModuleWatchTasks called for module ${module.name}, returning the following tasks:`)
   log.silly(`  ${outputTasks.map((t) => t.getKey()).join(", ")}`)
 
   return outputTasks
 }
 
 async function getModuleNames(dg: ConfigGraph, hotReloadServiceNames: string[]) {
-  const services = await dg.getServices(hotReloadServiceNames)
+  const services = await dg.getServices({ names: hotReloadServiceNames })
   return uniq(services.map((s) => s.module.name))
 }
 

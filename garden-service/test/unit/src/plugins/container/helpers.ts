@@ -27,10 +27,11 @@ describe("containerHelpers", () => {
 
   const baseConfig: ModuleConfig<ContainerModuleSpec, any, any> = {
     allowPublish: false,
+    apiVersion: "garden.io/v0",
     build: {
       dependencies: [],
     },
-    apiVersion: "garden.io/v0",
+    disabled: false,
     name: "test",
     outputs: {},
     path: modulePath,
@@ -222,12 +223,13 @@ describe("containerHelpers", () => {
 
     it("should use image name if specified with commit hash if no version is set", async () => {
       const module = await getTestModule({
+        apiVersion: "garden.io/v0",
         allowPublish: false,
         build: {
           dependencies: [],
         },
+        disabled: false,
         name: "test",
-        apiVersion: "garden.io/v0",
         outputs: {},
         path: modulePath,
         type: "container",
@@ -425,6 +427,7 @@ describe("containerHelpers", () => {
         type: "container",
         allowPublish: false,
         build: { dependencies: [] },
+        disabled: false,
         name: "test",
         path: tmpDir.path,
         outputs: {},

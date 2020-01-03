@@ -6,18 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import deline = require("deline")
 import { joiIdentifier, joiArray, joiUserIdentifier, joi, joiVariables } from "./common"
-
-export interface ServiceSpec {}
+import { deline, dedent } from "../util/string"
 
 /**
  * This interface provides a common set of Service attributes, that are also required for the higher-level
  * ServiceConfig. It is exported as a convenience for plugins.
  */
-export interface CommonServiceSpec extends ServiceSpec {
+export interface CommonServiceSpec {
   name: string
   dependencies: string[]
+  disabled: boolean
 }
 
 export const serviceOutputsSchema = joiVariables()
@@ -32,12 +31,30 @@ export const baseServiceSpecSchema = joi
   .keys({
     name: joiUserIdentifier().required(),
     dependencies: dependenciesSchema,
+    disabled: joi
+      .boolean()
+      .default(false)
+      .description(
+        dedent`
+          Set this to \`true\` to disable the service. You can use this with conditional template strings to
+          enable/disable services based on, for example, the current environment or other variables (e.g.
+          \`enabled: \${environment.name != "prod"}\`). This can be handy when you only need certain services for
+          specific environments, e.g. only for development.
+
+          Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a
+          runtime dependency for another service, test or task.
+
+          Note however that template strings referencing the service's outputs (i.e. runtime outputs) will fail to
+          resolve when the service is disabled, so you need to make sure to provide alternate values for those if
+          you're using them, using conditional expressions.
+        `
+      ),
   })
   .unknown(true)
   .meta({ extendable: true })
   .description("The required attributes of a service. This is generally further defined by plugins.")
 
-export interface ServiceConfig<T extends ServiceSpec = ServiceSpec> extends CommonServiceSpec {
+export interface ServiceConfig<T extends {} = {}> extends CommonServiceSpec {
   hotReloadable: boolean
   sourceModuleName?: string
 

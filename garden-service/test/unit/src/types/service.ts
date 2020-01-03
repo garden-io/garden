@@ -1,5 +1,7 @@
 import { expect } from "chai"
-import { combineStates, serviceStates } from "../../../../src/types/service"
+import { combineStates, serviceStates, serviceFromConfig } from "../../../../src/types/service"
+import { ServiceConfig } from "../../../../src/config/service"
+import { makeTestGardenA } from "../../../helpers"
 
 describe("combineStates", () => {
   it("should return ready if all states are ready", () => {
@@ -27,5 +29,42 @@ describe("combineStates", () => {
   it("should return outdated none of the above applies", () => {
     const result = combineStates(["ready", "missing", "unknown"])
     expect(result).to.equal("outdated")
+  })
+})
+
+describe("serviceFromConfig", () => {
+  it("should propagate the disabled flag from the config", async () => {
+    const config: ServiceConfig = {
+      name: "test",
+      dependencies: [],
+      disabled: true,
+      hotReloadable: false,
+      spec: {},
+    }
+
+    const garden = await makeTestGardenA()
+    const graph = await garden.getConfigGraph(garden.log)
+    const module = await graph.getModule("module-a")
+    const service = await serviceFromConfig(graph, module, config)
+
+    expect(service.disabled).to.be.true
+  })
+
+  it("should set disabled=true if the module is disabled", async () => {
+    const config: ServiceConfig = {
+      name: "test",
+      dependencies: [],
+      disabled: false,
+      hotReloadable: false,
+      spec: {},
+    }
+
+    const garden = await makeTestGardenA()
+    const graph = await garden.getConfigGraph(garden.log)
+    const module = await graph.getModule("module-a")
+    module.disabled = true
+    const service = await serviceFromConfig(graph, module, config)
+
+    expect(service.disabled).to.be.true
   })
 })
