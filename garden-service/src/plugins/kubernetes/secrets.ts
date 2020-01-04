@@ -120,5 +120,5 @@ export async function ensureSecret(api: KubeApi, secretRef: ProviderSecretRef, t
     namespace: targetNamespace,
   }
 
-  await api.upsert("Secret", targetNamespace, secret, log)
+  await api.upsert({ kind: "Secret", namespace: targetNamespace, obj: secret, log })
 }

@@ -14,6 +14,9 @@ import { deline, dedent } from "../util/string"
 
 export type Primitive = string | number | boolean | null
 
+export interface StringMap {
+  [key: string]: string
+}
 export interface PrimitiveMap {
   [key: string]: Primitive
 }

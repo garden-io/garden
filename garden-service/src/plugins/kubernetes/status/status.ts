@@ -134,7 +134,7 @@ export async function checkResourceStatus(
   let resourceVersion: number | undefined
 
   try {
-    resource = await api.readBySpec(namespace, manifest, log)
+    resource = await api.readBySpec({ namespace, manifest, log })
     resourceVersion = parseInt(resource.metadata.resourceVersion!, 10)
   } catch (err) {
     if (err.code === 404) {
@@ -397,7 +397,7 @@ async function getDeployedResource(
   const namespace = resource.metadata.namespace || (await getAppNamespace(ctx, log, provider))
 
   try {
-    const res = await api.readBySpec(namespace, resource, log)
+    const res = await api.readBySpec({ namespace, manifest: resource, log })
     return <KubernetesResource>res
   } catch (err) {
     if (err.code === 404) {
