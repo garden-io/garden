@@ -39,6 +39,7 @@ import { LogEntry } from "../../logger/log-entry"
 import { kubectl } from "./kubectl"
 import { urlJoin } from "../../util/string"
 import { KubernetesProvider } from "./config"
+import { StringMap } from "../../config/common"
 
 interface ApiGroupMap {
   [groupVersion: string]: V1APIGroup
@@ -244,7 +245,7 @@ export class KubeApi {
         }
 
         log.debug(`Kubernetes: Getting API resource info for group ${apiVersion}`)
-        const res = await this.request(log, getGroupBasePath(apiVersion))
+        const res = await this.request({ log, path: getGroupBasePath(apiVersion) })
 
         // We're only interested in the entities themselves, not the sub-resources
         const resources = res.body.resources.filter((r: any) => !r.name.includes("/"))
@@ -264,7 +265,15 @@ export class KubeApi {
     return resource
   }
 
-  async request(log: LogEntry, path: string, opts: Omit<request.OptionsWithUrl, "url"> = {}): Promise<any> {
+  async request({
+    log,
+    path,
+    opts = {},
+  }: {
+    log: LogEntry
+    path: string
+    opts?: Omit<request.OptionsWithUrl, "url">
+  }): Promise<any> {
     const baseUrl = this.config.getCurrentCluster()!.server
     const url = urlJoin(baseUrl, path)
 
@@ -288,22 +297,58 @@ export class KubeApi {
     }
   }
 
-  async readBySpec(namespace: string, manifest: KubernetesResource, log: LogEntry) {
+  async readBySpec({ log, namespace, manifest }: { log: LogEntry; namespace: string; manifest: KubernetesResource }) {
     log.silly(`Fetching Kubernetes resource ${manifest.apiVersion}/${manifest.kind}/${manifest.metadata.name}`)
 
-    const apiPath = await this.getApiPath(namespace, manifest, log)
+    const apiPath = await this.getApiPath({ manifest, log, namespace })
 
-    const res = await this.request(log, apiPath)
+    const res = await this.request({ log, path: apiPath })
     return res.body
   }
 
-  async deleteBySpec(namespace: string, manifest: KubernetesResource, log: LogEntry) {
+  async replace({
+    log,
+    resource,
+    namespace,
+  }: {
+    log: LogEntry
+    resource: KubernetesServerResource
+    namespace?: string
+  }) {
+    log.silly(`Replacing Kubernetes resource ${resource.apiVersion}/${resource.kind}/${resource.metadata.name}`)
+
+    const apiPath = await this.getApiPath({ manifest: resource, log, namespace })
+
+    const res = await this.request({ log, path: apiPath, opts: { method: "put", body: resource } })
+    return res.body
+  }
+
+  /**
+   * Applies the specified `annotations` to the given resource and persists to the cluster.
+   * Assumes the resource already exists in the cluster.
+   */
+  async annotateResource({
+    log,
+    resource,
+    annotations,
+  }: {
+    log: LogEntry
+    resource: KubernetesServerResource
+    annotations: StringMap
+  }) {
+    // TODO: use patch instead of replacing (it's weirdly complex, unfortunately)
+    resource.metadata.annotations = { ...resource.metadata.annotations, ...annotations }
+    await this.replace({ log, resource })
+    return resource
+  }
+
+  async deleteBySpec({ namespace, manifest, log }: { namespace: string; manifest: KubernetesResource; log: LogEntry }) {
     log.silly(`Deleting Kubernetes resource ${manifest.apiVersion}/${manifest.kind}/${manifest.metadata.name}`)
 
-    const apiPath = await this.getApiPath(namespace, manifest, log)
+    const apiPath = await this.getApiPath({ manifest, log, namespace })
 
     try {
-      await this.request(log, apiPath, { method: "delete" })
+      await this.request({ log, path: apiPath, opts: { method: "delete" } })
     } catch (err) {
       if (err.code !== 404) {
         throw err
@@ -311,23 +356,36 @@ export class KubeApi {
     }
   }
 
-  private async getApiPath(namespace: string, manifest: KubernetesResource, log: LogEntry) {
+  private async getApiPath({
+    manifest,
+    log,
+    namespace,
+  }: {
+    manifest: KubernetesResource
+    log: LogEntry
+    namespace?: string
+  }) {
     const resourceInfo = await this.getApiResourceInfo(log, manifest)
     const apiVersion = manifest.apiVersion
     const name = manifest.metadata.name
     const basePath = getGroupBasePath(apiVersion)
 
     return resourceInfo.namespaced
-      ? `${basePath}/namespaces/${namespace}/${resourceInfo.name}/${name}`
+      ? `${basePath}/namespaces/${namespace || manifest.metadata.namespace}/${resourceInfo.name}/${name}`
       : `${basePath}/${resourceInfo.name}/${name}`
   }
 
-  async upsert<K extends keyof CrudMap, O extends KubernetesResource<CrudMapTypes[K]>>(
-    kind: K,
-    namespace: string,
-    obj: O,
+  async upsert<K extends keyof CrudMap, O extends KubernetesResource<CrudMapTypes[K]>>({
+    kind,
+    namespace,
+    obj,
+    log,
+  }: {
+    kind: K
+    namespace: string
+    obj: O
     log: LogEntry
-  ) {
+  }) {
     const api = this[crudMap[kind].group]
     const name = obj.metadata.name
 

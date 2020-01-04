@@ -8,16 +8,15 @@
 
 import { PluginActionParamsBase, actionParamsSchema } from "../base"
 import { dedent } from "../../../util/string"
-import { PrimitiveMap } from "../../../config/common"
 import { DashboardPage, environmentStatusSchema } from "../../../config/status"
 
 export interface GetEnvironmentStatusParams extends PluginActionParamsBase {}
 
-export interface EnvironmentStatus<T extends PrimitiveMap = PrimitiveMap> {
+export interface EnvironmentStatus<O extends {} = any, D extends {} = any> {
   ready: boolean
   dashboardPages?: DashboardPage[]
-  detail?: any
-  outputs: T
+  detail?: D
+  outputs: O
 }
 
 export const defaultEnvironmentStatus: EnvironmentStatus = {
