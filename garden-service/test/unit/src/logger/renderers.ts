@@ -9,11 +9,14 @@ import {
   chainMessages,
   renderError,
   formatForJson,
+  renderSection,
+  MAX_SECTION_WIDTH,
 } from "../../../../src/logger/renderers"
 import { GardenError } from "../../../../src/exceptions"
 import dedent = require("dedent")
 import { TaskMetadata } from "../../../../src/logger/log-entry"
 import logSymbols = require("log-symbols")
+import stripAnsi = require("strip-ansi")
 
 const logger: any = getLogger()
 
@@ -58,28 +61,54 @@ describe("renderers", () => {
         expect(renderMsg(entry)).to.equal(errorStyle("error a") + errorStyle(" → ") + errorStyle("error b"))
       }
     )
-    describe("renderError", () => {
-      it("should render error object if present", () => {
-        const error: GardenError = {
-          message: "hello error",
-          type: "a",
-          detail: {
-            foo: "bar",
-            _internal: "no show",
-          },
-        }
-        const entry = logger.info({ msg: "foo", error })
-        expect(renderError(entry)).to.equal(dedent`
+  })
+  describe("renderError", () => {
+    it("should render error object if present", () => {
+      const error: GardenError = {
+        message: "hello error",
+        type: "a",
+        detail: {
+          foo: "bar",
+          _internal: "no show",
+        },
+      }
+      const entry = logger.info({ msg: "foo", error })
+      expect(renderError(entry)).to.equal(dedent`
           hello error
           Error Details:
           foo: bar\n
         `)
-      })
-      it("should join an array of messages if no error object", () => {
-        const entry = logger.info({ msg: "error a" })
-        entry.setState({ msg: "moar", append: true })
-        expect(renderError(entry)).to.eql("error a moar")
-      })
+    })
+    it("should join an array of messages if no error object", () => {
+      const entry = logger.info({ msg: "error a" })
+      entry.setState({ msg: "moar", append: true })
+      expect(renderError(entry)).to.eql("error a moar")
+    })
+  })
+  describe("renderSection", () => {
+    it("should render the log entry section", () => {
+      const entry = logger.info({ msg: "foo", section: "hello" })
+      const withWhitespace = "hello".padEnd(MAX_SECTION_WIDTH, " ")
+      const rendered = stripAnsi(renderSection(entry))
+      expect(rendered).to.equal(`${withWhitespace} → `)
+    })
+    it("should not render arrow if message is empty", () => {
+      const entry = logger.info({ section: "hello" })
+      const withWhitespace = "hello".padEnd(MAX_SECTION_WIDTH, " ")
+      const rendered = stripAnsi(renderSection(entry))
+      expect(rendered).to.equal(`${withWhitespace}`)
+    })
+    it("should optionally set a custom section width", () => {
+      const entry = logger.info({ msg: "foo", section: "hello", maxSectionWidth: 8 })
+      const withWhitespace = "hello".padEnd(8, " ")
+      const rendered = stripAnsi(renderSection(entry))
+      expect(rendered).to.equal(`${withWhitespace} → `)
+    })
+    it("should not let custom section width exceed max section width", () => {
+      const entry = logger.info({ msg: "foo", section: "hello", maxSectionWidth: 99 })
+      const withWhitespace = "hello".padEnd(MAX_SECTION_WIDTH, " ")
+      const rendered = stripAnsi(renderSection(entry))
+      expect(rendered).to.equal(`${withWhitespace} → `)
     })
   })
   describe("chainMessages", () => {

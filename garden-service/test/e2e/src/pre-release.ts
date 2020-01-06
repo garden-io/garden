@@ -173,7 +173,7 @@ describe("PreReleaseTests", () => {
             description: "get logs for node-service",
             condition: async () => {
               const logEntries = await runWithEnv(["logs", "node-service"])
-              return searchLog(logEntries, /node-service-v-.* App started/)
+              return searchLog(logEntries, /App started/)
             },
           },
           changeFileStep(resolve(hotReloadProjectPath, "node-service/app.js"), "change node-service/app.js"),
@@ -181,7 +181,7 @@ describe("PreReleaseTests", () => {
             description: "get logs for node-service after hot reload event",
             condition: async () => {
               const logEntries = await runWithEnv(["logs", "node-service"])
-              return searchLog(logEntries, /node-service-v-.* App started/)
+              return searchLog(logEntries, /App started/)
             },
           },
         ]

@@ -8,6 +8,7 @@
 
 import { Command, CommandResult, CommandParams, StringsParameter, IntegerParameter, BooleanParameter } from "./base"
 import chalk from "chalk"
+import { maxBy } from "lodash"
 import { ServiceLogEntry } from "../types/plugin/service/getServiceLogs"
 import Bluebird = require("bluebird")
 import { Service } from "../types/service"
@@ -65,6 +66,8 @@ export class LogsCommand extends Command<Args, Opts> {
     const { follow, tail } = opts
     const graph = await garden.getConfigGraph(log)
     const services = await graph.getServices(args.services)
+    const serviceNames = services.map((s) => s.name).filter(Boolean)
+    const maxServiceName = (maxBy(serviceNames, (serviceName) => serviceName.length) || "").length
 
     const result: ServiceLogEntry[] = []
     const stream = new Stream<ServiceLogEntry>()
@@ -82,7 +85,8 @@ export class LogsCommand extends Command<Args, Opts> {
 
       log.info({
         section: entry.serviceName,
-        msg: `${timestamp} → ${chalk.white(entry.msg)}`,
+        msg: `${chalk.yellowBright(timestamp)} → ${chalk.white(entry.msg)}`,
+        maxSectionWidth: maxServiceName,
       })
 
       if (!follow) {
