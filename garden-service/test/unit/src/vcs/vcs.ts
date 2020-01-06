@@ -33,6 +33,10 @@ class TestVcsHandler extends VcsHandler {
     return []
   }
 
+  async getOriginName() {
+    return undefined
+  }
+
   async getTreeVersion(log: LogEntry, moduleConfig: ModuleConfig) {
     return this.testVersions[moduleConfig.path] || super.getTreeVersion(log, moduleConfig)
   }
