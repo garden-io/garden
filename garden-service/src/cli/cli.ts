@@ -48,12 +48,10 @@ import {
   checkForUpdates,
   checkForStaticDir,
 } from "./helpers"
-import { defaultEnvironments, ProjectConfig } from "../config/project"
-import { ERROR_LOG_FILENAME, DEFAULT_API_VERSION, DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME } from "../constants"
+import { ERROR_LOG_FILENAME, DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME } from "../constants"
 import stringify = require("json-stringify-safe")
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 import { AnalyticsHandler } from "../analytics/analytics"
-import { defaultDotIgnoreFiles } from "../util/fs"
 
 const OUTPUT_RENDERERS = {
   json: (data: DeepPrimitiveMap) => {
@@ -66,23 +64,6 @@ const OUTPUT_RENDERERS = {
 
 const GLOBAL_OPTIONS_GROUP_NAME = "Global options"
 const DEFAULT_CLI_LOGGER_TYPE = "fancy"
-
-// For initializing garden without a project config
-export const MOCK_CONFIG: ProjectConfig = {
-  path: process.cwd(),
-  apiVersion: DEFAULT_API_VERSION,
-  kind: "Project",
-  name: "mock-project",
-  defaultEnvironment: "local",
-  dotIgnoreFiles: defaultDotIgnoreFiles,
-  environments: defaultEnvironments,
-  providers: [
-    {
-      name: "local-kubernetes",
-    },
-  ],
-  variables: {},
-}
 
 // The help text for these commands is only displayed when calling `garden options`.
 // However, we can't include them with the global options since that causes the CLI
@@ -285,10 +266,7 @@ export class GardenCli {
         environmentName: env,
         log,
       }
-      if (command.noProject) {
-        contextOpts.config = MOCK_CONFIG
-      }
-      let garden: Garden
+
       let result: any
 
       const { persistent } = await command.prepare({
@@ -301,48 +279,59 @@ export class GardenCli {
 
       contextOpts.persistent = persistent
 
-      do {
-        try {
-          garden = await Garden.factory(root, contextOpts)
-          // Register log file writers. We need to do this after the Garden class is initialised because
-          // the file writers depend on the project root.
-          await this.initFileWriters(logger, garden.projectRoot, garden.gardenDirPath)
-          const analytics = await AnalyticsHandler.init(garden, log)
-          analytics.trackCommand(command.getFullName())
+      // Run the command without initialising the Garden class (and by extension file writers and analytics)
+      if (command.noProject) {
+        result = await command.action({
+          log,
+          footerLog,
+          headerLog,
+          args: parsedArgs,
+          opts: parsedOpts,
+        })
+      } else {
+        do {
+          try {
+            const garden = await Garden.factory(root, contextOpts)
+            // Register log file writers. We need to do this after the Garden class is initialised because
+            // the file writers depend on the project root.
+            await this.initFileWriters(logger, garden.projectRoot, garden.gardenDirPath)
+            const analytics = await AnalyticsHandler.init(garden, log)
+            analytics.trackCommand(command.getFullName())
 
-          // tslint:disable-next-line: no-floating-promises
-          checkForUpdates(garden.globalConfigStore, headerLog)
+            // tslint:disable-next-line: no-floating-promises
+            checkForUpdates(garden.globalConfigStore, headerLog)
 
-          await checkForStaticDir()
+            await checkForStaticDir()
 
-          // Check if the command is protected and ask for confirmation to proceed if production flag is "true".
-          if (await command.isAllowedToRun(garden, log, parsedOpts)) {
-            // TODO: enforce that commands always output DeepPrimitiveMap
+            // Check if the command is protected and ask for confirmation to proceed if production flag is "true".
+            if (await command.isAllowedToRun(garden, log, parsedOpts)) {
+              // TODO: enforce that commands always output DeepPrimitiveMap
 
-            result = await command.action({
-              garden,
-              log,
-              footerLog,
-              headerLog,
-              args: parsedArgs,
-              opts: parsedOpts,
-            })
-          } else {
-            // The command is protected and the user decided to not continue with the exectution.
-            log.setState("\nCommand aborted.")
-            result = {}
+              result = await command.action({
+                garden,
+                log,
+                footerLog,
+                headerLog,
+                args: parsedArgs,
+                opts: parsedOpts,
+              })
+            } else {
+              // The command is protected and the user decided to not continue with the exectution.
+              log.setState("\nCommand aborted.")
+              result = {}
+            }
+            await garden.close()
+          } catch (err) {
+            // Generate a basic report in case Garden.factory(...) fails and command is "get debug-info".
+            // Other exceptions are handled within the implementation of "get debug-info".
+            if (command.name === "debug-info") {
+              // Use default Garden dir name as fallback since Garden class hasn't been initialised
+              await generateBasicDebugInfoReport(root, join(root, DEFAULT_GARDEN_DIR_NAME), log, parsedOpts.format)
+            }
+            throw err
           }
-          await garden.close()
-        } catch (err) {
-          // Generate a basic report in case Garden.factory(...) fails and command is "get debug-info".
-          // Other exceptions are handled within the implementation of "get debug-info".
-          if (command.name === "debug-info") {
-            // Use default Garden dir name as fallback since Garden class hasn't been initialised
-            await generateBasicDebugInfoReport(root, join(root, DEFAULT_GARDEN_DIR_NAME), log, parsedOpts.format)
-          }
-          throw err
-        }
-      } while (result.restartRequired)
+        } while (result.restartRequired)
+      }
 
       // We attach the action result to cli context so that we can process it in the parse method
       cliContext.details.result = result

@@ -248,7 +248,7 @@ export interface PrepareParams<T extends Parameters = {}, U extends Parameters =
 }
 
 export interface CommandParams<T extends Parameters = {}, U extends Parameters = {}> extends PrepareParams<T, U> {
-  garden: Garden
+  garden?: Garden
 }
 
 interface PrepareOutput {
