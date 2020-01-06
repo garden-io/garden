@@ -423,6 +423,9 @@ export function getKubernetesSystemVariables(config: KubernetesConfig) {
     "builder-storage-size": megabytesToString(config.storage.builder.size!),
     "builder-storage-class": config.storage.builder.storageClass,
 
+    "ingress-http-port": config.ingressHttpPort,
+    "ingress-https-port": config.ingressHttpsPort,
+
     // We only use NFS for the build-sync volume, so we allocate the space we need for that plus 1GB for margin.
     "nfs-storage-size": megabytesToString(config.storage.sync.size! + 1024),
     "nfs-storage-class": config.storage.nfs.storageClass,
