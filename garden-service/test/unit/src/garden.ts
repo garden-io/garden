@@ -20,7 +20,6 @@ import {
   testGitUrl,
 } from "../../helpers"
 import { getNames, findByName, deepOmitUndefined } from "../../../src/util/util"
-import { MOCK_CONFIG } from "../../../src/cli/cli"
 import { LinkedSource } from "../../../src/config-store"
 import { ModuleVersion } from "../../../src/vcs/vcs"
 import { getModuleCacheContext } from "../../../src/types/module"
@@ -78,11 +77,6 @@ describe("Garden", () => {
 
       expect((<any>actions).actionHandlers.prepareEnvironment["test-plugin"]).to.be.ok
       expect((<any>actions).actionHandlers.prepareEnvironment["test-plugin-b"]).to.be.ok
-    })
-
-    it("should initialize with MOCK_CONFIG", async () => {
-      const garden = await Garden.factory("./", { config: MOCK_CONFIG })
-      expect(garden).to.be.ok
     })
 
     it("should initialize a project with config files with yaml and yml extensions", async () => {
