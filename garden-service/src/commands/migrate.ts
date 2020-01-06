@@ -142,7 +142,7 @@ export class MigrateCommand extends Command<Args, Opts> {
         await writeFile(path, out)
       } else {
         if (configPaths.length > 1) {
-          log.info(`# Updated config for garden.yml file at path ${path}`)
+          log.info(`# Updated config for garden.yml file at path ${path}:`)
         }
         log.info(out)
       }
