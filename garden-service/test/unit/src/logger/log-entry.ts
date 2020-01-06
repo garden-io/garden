@@ -67,6 +67,7 @@ describe("LogEntry", () => {
       status: undefined,
       data: undefined,
       append: undefined,
+      maxSectionWidth: undefined,
     }
     it("should update entry state", () => {
       const timestamp = freezeTime().valueOf()
@@ -86,6 +87,7 @@ describe("LogEntry", () => {
         status: "done",
         data: { some: "data" },
         metadata: { task: taskMetadata },
+        maxSectionWidth: 8,
       })
 
       expect(entry.getMessageStates()).to.eql([
@@ -98,9 +100,37 @@ describe("LogEntry", () => {
           data: { some: "data" },
           append: undefined,
           timestamp,
+          maxSectionWidth: 8,
         },
       ])
       expect(entry.getMetadata()).to.eql({ task: taskMetadata })
+    })
+    it("should update maxSectionWidth to zero", () => {
+      const timestamp = freezeTime().valueOf()
+      const entry = logger.placeholder()
+      entry.setState({
+        msg: "hello",
+        emoji: "haircut",
+        section: "caesar",
+        symbol: "info",
+        status: "done",
+        data: { some: "data" },
+        maxSectionWidth: 0,
+      })
+
+      expect(entry.getMessageStates()).to.eql([
+        {
+          msg: "hello",
+          emoji: "haircut",
+          section: "caesar",
+          symbol: "info",
+          status: "done",
+          data: { some: "data" },
+          append: undefined,
+          timestamp,
+          maxSectionWidth: 0,
+        },
+      ])
     })
     it("should overwrite previous values", () => {
       const timestamp = freezeTime().valueOf()
@@ -112,11 +142,17 @@ describe("LogEntry", () => {
         symbol: "info",
         status: "done",
         data: { some: "data" },
+        maxSectionWidth: 8,
       })
       entry.setState({
         msg: "world",
         emoji: "hamburger",
         data: { some: "data_updated" },
+        maxSectionWidth: 10,
+      })
+
+      entry.setState({
+        maxSectionWidth: 0,
       })
       expect(entry.getMessageStates()).to.eql([
         {
@@ -128,6 +164,7 @@ describe("LogEntry", () => {
           data: { some: "data" },
           append: undefined,
           timestamp,
+          maxSectionWidth: 8,
         },
         {
           msg: "world",
@@ -138,6 +175,18 @@ describe("LogEntry", () => {
           data: { some: "data_updated" },
           append: undefined,
           timestamp,
+          maxSectionWidth: 10,
+        },
+        {
+          msg: "world",
+          emoji: "hamburger",
+          section: "caesar",
+          symbol: "info",
+          status: "done",
+          data: { some: "data_updated" },
+          append: undefined,
+          timestamp,
+          maxSectionWidth: 0,
         },
       ])
     })
