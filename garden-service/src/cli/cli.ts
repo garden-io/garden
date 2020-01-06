@@ -67,21 +67,33 @@ const OUTPUT_RENDERERS = {
 const GLOBAL_OPTIONS_GROUP_NAME = "Global options"
 const DEFAULT_CLI_LOGGER_TYPE = "fancy"
 
-// For initializing garden without a project config
-export const MOCK_CONFIG: ProjectConfig = {
-  path: process.cwd(),
-  apiVersion: DEFAULT_API_VERSION,
-  kind: "Project",
-  name: "mock-project",
-  defaultEnvironment: "local",
-  dotIgnoreFiles: defaultDotIgnoreFiles,
-  environments: defaultEnvironments,
-  providers: [
-    {
-      name: "local-kubernetes",
-    },
-  ],
-  variables: {},
+/**
+ * Dummy Garden class that doesn't scan for modules nor resolves providers.
+ * Used by commands that have noProject=true. That is, commands that need
+ * to run outside of valid Garden projects.
+ */
+class DummyGarden extends Garden {
+  async resolveProviders() {
+    return []
+  }
+  async scanModules() {}
+}
+
+export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
+  const config: ProjectConfig = {
+    path: root,
+    apiVersion: DEFAULT_API_VERSION,
+    kind: "Project",
+    name: "no-project",
+    defaultEnvironment: "",
+    dotIgnoreFiles: defaultDotIgnoreFiles,
+    environments: defaultEnvironments,
+    providers: [],
+    variables: {},
+  }
+  gardenOpts.config = config
+
+  return DummyGarden.factory(root, gardenOpts)
 }
 
 // The help text for these commands is only displayed when calling `garden options`.
@@ -285,9 +297,7 @@ export class GardenCli {
         environmentName: env,
         log,
       }
-      if (command.noProject) {
-        contextOpts.config = MOCK_CONFIG
-      }
+
       let garden: Garden
       let result: any
 
@@ -303,7 +313,11 @@ export class GardenCli {
 
       do {
         try {
-          garden = await Garden.factory(root, contextOpts)
+          if (command.noProject) {
+            garden = await makeDummyGarden(root, contextOpts)
+          } else {
+            garden = await Garden.factory(root, contextOpts)
+          }
           // Register log file writers. We need to do this after the Garden class is initialised because
           // the file writers depend on the project root.
           await this.initFileWriters(logger, garden.projectRoot, garden.gardenDirPath)
