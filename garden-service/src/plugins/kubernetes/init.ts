@@ -277,37 +277,43 @@ export async function prepareSystem({
     return {}
   }
 
-  // If we require manual init and system services are ready OR outdated but none are *missing*, we warn
-  // in the prepareEnvironment handler, instead of flagging as not ready here. This avoids blocking users where
-  // there's variance in configuration between users of the same cluster, that often doesn't affect usage.
+  // We require manual init if we're installing any system services to remote clusters, to avoid conflicts
+  // between users or unnecessary work.
   if (!clusterInit && remoteCluster) {
-    if (combinedState === "outdated" && !serviceStates.includes("missing")) {
+    const initCommand = chalk.white.bold(`garden --env=${ctx.environmentName} plugins kubernetes cluster-init`)
+
+    if (combinedState === "ready") {
+      return {}
+    } else if (
+      combinedState === "deploying" ||
+      combinedState === "unhealthy" ||
+      serviceStates.includes("missing") ||
+      serviceStates.includes("unknown")
+    ) {
+      // If any of the services are not ready or missing, we throw, since builds and deployments are likely to fail.
+      throw new KubernetesError(
+        deline`
+        One or more cluster-wide system services are missing or not ready. You need to run ${initCommand}
+        to initialize them, or contact a cluster admin to do so, before deploying services to this cluster.
+      `,
+        {
+          status,
+        }
+      )
+    } else {
+      // If system services are outdated but none are *missing*, we warn instead of flagging as not ready here.
+      // This avoids blocking users where there's variance in configuration between users of the same cluster,
+      // that often doesn't affect usage.
       log.warn({
         symbol: "warning",
-        msg: chalk.yellow(deline`
+        msg: chalk.gray(deline`
           One or more cluster-wide system services are outdated or their configuration does not match your current
-          configuration. You may want to run \`garden --env=${ctx.environmentName} plugins kubernetes cluster-init\`
-          to update them, or contact a cluster admin to do so.
+          configuration. You may want to run ${initCommand} to update them, or contact a cluster admin to do so.
         `),
       })
 
       return {}
     }
-  }
-
-  // We require manual init if we're installing any system services to remote clusters, to avoid conflicts
-  // between users or unnecessary work.
-  if (!clusterInit && remoteCluster && !systemReady) {
-    throw new KubernetesError(
-      deline`
-      One or more cluster-wide system services are missing or not ready. You need to run
-      \`garden --env=${ctx.environmentName} plugins kubernetes cluster-init\`
-      to initialize them, or contact a cluster admin to do so, before deploying services to this cluster.
-    `,
-      {
-        status,
-      }
-    )
   }
 
   const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
