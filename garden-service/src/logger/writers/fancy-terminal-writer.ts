@@ -198,7 +198,6 @@ export class FancyTerminalWriter extends Writer {
             wrapAnsi(str, getTerminalWidth(this.stream), {
               trim: false,
               hard: true,
-              wordWrap: false,
             })
           )
           .pop()!
