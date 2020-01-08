@@ -12,8 +12,9 @@ import { dedent } from "../../../util/string"
 import { joi } from "../../../config/common"
 import { environmentStatusSchema } from "../../../config/status"
 
-export interface PrepareEnvironmentParams extends PluginActionParamsBase {
-  status: EnvironmentStatus
+export interface PrepareEnvironmentParams<T extends EnvironmentStatus = EnvironmentStatus>
+  extends PluginActionParamsBase {
+  status: T
   force: boolean
 }
 

@@ -23,6 +23,8 @@ import { writeFile } from "fs-extra"
 import { resolve } from "path"
 import { getValueArgs, getChartPath, getReleaseName } from "./common"
 import { Garden } from "../../../garden"
+import chalk from "chalk"
+import { gardenAnnotationKey } from "../../../util/string"
 
 // DEPRECATED: remove all this in v0.12.0
 
@@ -41,15 +43,18 @@ export async function migrateToHelm3({
   namespace,
   log,
   sysGarden,
+  cleanup,
 }: {
   ctx: KubernetesPluginContext
   api: KubeApi
   namespace: string
   log: LogEntry
   sysGarden?: Garden
+  cleanup: boolean
 }) {
   const migrationLog = log.info(`-> Migrating from Helm 2.x (Tiller) to Helm 3 in namespace ${namespace}`)
-  let res
+
+  let res: any
   // List all releases in Helm 2 (Tiller)
   try {
     res = await helm({
@@ -89,6 +94,7 @@ export async function migrateToHelm3({
       (r: any) => r.Name === "garden-nginx" && r.Status === "DEPLOYED"
     )
     if (nginxDeployed && sysGarden) {
+      log.info(chalk.gray(`-> Migrating release ${namespace}/garden-nginx from Tiller to Helm 3`))
       log.debug("Using Helm 2 to upgrade the garden-nginx release")
       const actionRouter = await sysGarden.getActionRouter()
       const dg = await sysGarden.getConfigGraph(log)
@@ -222,17 +228,29 @@ export async function migrateToHelm3({
     }
   }
 
-  // Remove Tiller resources
-  log.info(`-> Removing Tiller from namespace ${namespace}`)
-  await removeTiller(ctx, api, namespace, log)
+  // Mark namespace as migrated
+  const ns = await api.core.readNamespace(namespace)
+  const annotations = { [gardenAnnotationKey("helm-migrated")]: "true" }
+  await api.annotateResource({ log, resource: ns, annotations })
 
-  log.info(`-> Helm 3 migration complete!`)
+  if (cleanup) {
+    log.info(`-> Removing Tiller from namespace ${namespace}`)
+    await removeTiller(ctx, api, namespace, log)
+
+    log.info(`-> Helm 3 migration complete!`)
+  } else {
+    const removeTillerCmd = chalk.yellow.bold.underline(
+      `garden plugins ${ctx.provider.name} remove-tiller --env ${ctx.environmentName}`
+    )
+    log.info(`-> Helm 3 migration complete!`)
+    log.info(chalk.yellow(`-> Please run ${removeTillerCmd} to remove Tiller and related resources.`))
+  }
 }
 
-async function removeTiller(ctx: KubernetesPluginContext, api: KubeApi, namespace: string, log: LogEntry) {
+export async function removeTiller(ctx: KubernetesPluginContext, api: KubeApi, namespace: string, log: LogEntry) {
   const manifests = await getTillerManifests(ctx, log, namespace)
 
-  return Bluebird.map(manifests, (resource) => api.deleteBySpec(namespace, resource, log))
+  return Bluebird.map(manifests, (resource) => api.deleteBySpec({ namespace, manifest: resource, log }))
 }
 
 async function getTillerManifests(

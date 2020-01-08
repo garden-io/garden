@@ -597,7 +597,7 @@ describe("createIngressResources", () => {
     const api = await getKubeApi(singleTlsProvider)
     const ingresses = await createIngressResources(api, singleTlsProvider, namespace, service, garden.log)
 
-    td.verify(api.upsert("Secret", namespace, myDomainCertSecret, garden.log))
+    td.verify(api.upsert({ kind: "Secret", namespace, obj: myDomainCertSecret, log: garden.log }))
 
     expect(ingresses).to.eql([
       {
@@ -758,7 +758,7 @@ describe("createIngressResources", () => {
     const api = await getKubeApi(multiTlsProvider)
     const ingresses = await createIngressResources(api, multiTlsProvider, namespace, service, garden.log)
 
-    td.verify(api.upsert("Secret", namespace, wildcardDomainCertSecret, garden.log))
+    td.verify(api.upsert({ kind: "Secret", namespace, obj: wildcardDomainCertSecret, log: garden.log }))
 
     expect(ingresses).to.eql([
       {
@@ -829,7 +829,7 @@ describe("createIngressResources", () => {
     td.when(api.core.readNamespacedSecret("foo", "default")).thenResolve(myDomainCertSecret)
     const ingresses = await createIngressResources(api, provider, namespace, service, garden.log)
 
-    td.verify(api.upsert("Secret", namespace, myDomainCertSecret, garden.log))
+    td.verify(api.upsert({ kind: "Secret", namespace, obj: myDomainCertSecret, log: garden.log }))
 
     expect(ingresses).to.eql([
       {

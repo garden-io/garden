@@ -17,7 +17,7 @@ import { CleanupEnvironmentParams } from "../../types/plugin/provider/cleanupEnv
 import { millicpuToString, megabytesToString } from "./util"
 import chalk from "chalk"
 import { deline, dedent, gardenAnnotationKey } from "../../util/string"
-import { combineStates, ServiceStatusMap } from "../../types/service"
+import { combineStates, ServiceStatusMap, ServiceState } from "../../types/service"
 import {
   setupCertManager,
   checkCertManagerStatus,
@@ -32,6 +32,7 @@ import { dockerAuthSecretName, dockerAuthSecretKey } from "./constants"
 import { V1Secret } from "@kubernetes/client-node"
 import { KubernetesResource } from "./types"
 import { compareDeployedResources } from "./status/status"
+import { PrimitiveMap } from "../../config/common"
 
 // Note: We need to increment a version number here if we ever make breaking changes to the NFS provisioner StatefulSet
 const nfsStorageClassVersion = 2
@@ -42,6 +43,25 @@ See https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-
 a registry auth secret.
 `
 
+interface KubernetesProviderOutputs extends PrimitiveMap {
+  "app-namespace": string
+  "metadata-namespace": string
+  "default-hostname": string | null
+}
+
+interface KubernetesEnvironmentDetail {
+  projectHelmMigrated: boolean
+  projectTillerInstalled: boolean
+  serviceStatuses: ServiceStatusMap
+  systemReady: boolean
+  systemServiceState: ServiceState
+  systemTillerInstalled: boolean
+  systemCertManagerReady: boolean
+  systemManagedCertificatesReady: boolean
+}
+
+type KubernetesEnvironmentStatus = EnvironmentStatus<KubernetesProviderOutputs, KubernetesEnvironmentDetail>
+
 /**
  * Performs the following actions to check environment status:
  *   1. Checks Tiller status in the project namespace
@@ -50,38 +70,46 @@ a registry auth secret.
  *
  * Returns ready === true if all the above are ready.
  */
-export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusParams): Promise<EnvironmentStatus> {
+export async function getEnvironmentStatus({
+  ctx,
+  log,
+}: GetEnvironmentStatusParams): Promise<KubernetesEnvironmentStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, provider)
 
-  let projectReady = true
+  let projectHelmMigrated = true
   let projectTillerInstalled = false
 
   const namespaces = await prepareNamespaces({ ctx, log })
 
   // Check Tiller status in project namespace
   if ((await checkTillerStatus(k8sCtx, api, namespaces["app-namespace"], log)) !== "missing") {
-    projectReady = false
     projectTillerInstalled = true
+
+    // Check if Helm 2->3 migration has been performed
+    const projectNamespace = await api.core.readNamespace(namespaces["app-namespace"])
+    if (projectNamespace.metadata.annotations?.[gardenAnnotationKey("helm-migrated")] !== "true") {
+      projectHelmMigrated = false
+    }
   }
 
   const systemServiceNames = k8sCtx.provider.config._systemServices
   const systemNamespace = ctx.provider.config.gardenSystemNamespace
 
-  const detail = {
-    projectReady,
+  const detail: KubernetesEnvironmentDetail = {
+    projectHelmMigrated,
     projectTillerInstalled,
     serviceStatuses: {},
     systemReady: true,
-    systemServiceState: "unknown",
+    systemServiceState: <ServiceState>"unknown",
     systemTillerInstalled: false,
     systemCertManagerReady: true,
     systemManagedCertificatesReady: true,
   }
 
-  const result: EnvironmentStatus = {
-    ready: projectReady,
+  const result: KubernetesEnvironmentStatus = {
+    ready: true,
     detail,
     dashboardPages: [],
     outputs: {
@@ -109,8 +137,6 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
   const sysTillerStatus = await checkTillerStatus(sysCtx, sysApi, systemNamespace, log)
 
   if (sysTillerStatus !== "missing") {
-    result.ready = false
-    detail.systemReady = false
     detail.systemTillerInstalled = true
   }
 
@@ -191,17 +217,23 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
  *  2. Installs Tiller in system namespace (if provider has system services)
  *  3. Deploys system services (if provider has system services)
  */
-export async function prepareEnvironment(params: PrepareEnvironmentParams): Promise<PrepareEnvironmentResult> {
+export async function prepareEnvironment(
+  params: PrepareEnvironmentParams<KubernetesEnvironmentStatus>
+): Promise<PrepareEnvironmentResult> {
   const { ctx, log, status } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
   // Migrate from Helm 2.x and remove Tiller from project namespace, if necessary
   const systemNamespace = k8sCtx.provider.config.gardenSystemNamespace
 
-  if (k8sCtx.provider.config.namespace !== systemNamespace && status.detail.projectTillerInstalled) {
+  if (
+    k8sCtx.provider.config.namespace !== systemNamespace &&
+    status.detail!.projectTillerInstalled &&
+    !status.detail!.projectHelmMigrated
+  ) {
     const api = await KubeApi.factory(log, k8sCtx.provider)
     const namespace = await getAppNamespace(ctx, log, k8sCtx.provider)
-    await migrateToHelm3({ ctx: k8sCtx, api, namespace, log })
+    await migrateToHelm3({ ctx: k8sCtx, api, namespace, log, cleanup: false })
   }
 
   // Prepare system services
@@ -218,7 +250,7 @@ export async function prepareSystem({
   force,
   status,
   clusterInit,
-}: PrepareEnvironmentParams & { clusterInit: boolean }) {
+}: PrepareEnvironmentParams<KubernetesEnvironmentStatus> & { clusterInit: boolean }) {
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const variables = getKubernetesSystemVariables(provider.config)
@@ -245,37 +277,43 @@ export async function prepareSystem({
     return {}
   }
 
-  // If we require manual init and system services are ready OR outdated but none are *missing*, we warn
-  // in the prepareEnvironment handler, instead of flagging as not ready here. This avoids blocking users where
-  // there's variance in configuration between users of the same cluster, that often doesn't affect usage.
+  // We require manual init if we're installing any system services to remote clusters, to avoid conflicts
+  // between users or unnecessary work.
   if (!clusterInit && remoteCluster) {
-    if (combinedState === "outdated" && !serviceStates.includes("missing")) {
+    const initCommand = chalk.white.bold(`garden --env=${ctx.environmentName} plugins kubernetes cluster-init`)
+
+    if (combinedState === "ready") {
+      return {}
+    } else if (
+      combinedState === "deploying" ||
+      combinedState === "unhealthy" ||
+      serviceStates.includes("missing") ||
+      serviceStates.includes("unknown")
+    ) {
+      // If any of the services are not ready or missing, we throw, since builds and deployments are likely to fail.
+      throw new KubernetesError(
+        deline`
+        One or more cluster-wide system services are missing or not ready. You need to run ${initCommand}
+        to initialize them, or contact a cluster admin to do so, before deploying services to this cluster.
+      `,
+        {
+          status,
+        }
+      )
+    } else {
+      // If system services are outdated but none are *missing*, we warn instead of flagging as not ready here.
+      // This avoids blocking users where there's variance in configuration between users of the same cluster,
+      // that often doesn't affect usage.
       log.warn({
         symbol: "warning",
-        msg: chalk.yellow(deline`
+        msg: chalk.gray(deline`
           One or more cluster-wide system services are outdated or their configuration does not match your current
-          configuration. You may want to run \`garden --env=${ctx.environmentName} plugins kubernetes cluster-init\`
-          to update them, or contact a cluster admin to do so.
+          configuration. You may want to run ${initCommand} to update them, or contact a cluster admin to do so.
         `),
       })
 
       return {}
     }
-  }
-
-  // We require manual init if we're installing any system services to remote clusters, to avoid conflicts
-  // between users or unnecessary work.
-  if (!clusterInit && remoteCluster && !systemReady) {
-    throw new KubernetesError(
-      deline`
-      One or more cluster-wide system services are missing or not ready. You need to run
-      \`garden --env=${ctx.environmentName} plugins kubernetes cluster-init\`
-      to initialize them, or contact a cluster admin to do so, before deploying services to this cluster.
-    `,
-      {
-        status,
-      }
-    )
   }
 
   const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
@@ -287,14 +325,14 @@ export async function prepareSystem({
   await sysGarden.clearBuilds()
 
   // Migrate from Helm 2.x and remove Tiller from system namespace, if necessary
-  if (status.detail.systemTillerInstalled) {
-    await migrateToHelm3({ ctx: sysCtx, api: sysApi, namespace: systemNamespace, sysGarden, log })
+  if (status.detail!.systemTillerInstalled) {
+    await migrateToHelm3({ ctx: sysCtx, api: sysApi, namespace: systemNamespace, sysGarden, log, cleanup: true })
   }
 
   // Set auth secret for in-cluster builder
   if (provider.config.buildMode !== "local-docker") {
     const authSecret = await prepareDockerAuth(sysApi, sysProvider)
-    await sysApi.upsert("Secret", systemNamespace, authSecret, log)
+    await sysApi.upsert({ kind: "Secret", namespace: systemNamespace, obj: authSecret, log })
   }
 
   // We need to install the NFS provisioner separately, so that we can optionally install it
@@ -390,6 +428,9 @@ export function getKubernetesSystemVariables(config: KubernetesConfig) {
     "builder-requests-memory": megabytesToString(config.resources.builder.requests.memory),
     "builder-storage-size": megabytesToString(config.storage.builder.size!),
     "builder-storage-class": config.storage.builder.storageClass,
+
+    "ingress-http-port": config.ingressHttpPort,
+    "ingress-https-port": config.ingressHttpsPort,
 
     // We only use NFS for the build-sync volume, so we allocate the space we need for that plus 1GB for margin.
     "nfs-storage-size": megabytesToString(config.storage.sync.size! + 1024),

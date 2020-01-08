@@ -55,7 +55,7 @@ async function isKindContext(log: LogEntry, provider: KubernetesProvider): Promi
     },
   }
   try {
-    await kubeApi.readBySpec("kube-system", manifest, log)
+    await kubeApi.readBySpec({ namespace: "kube-system", manifest, log })
     return true
   } catch (err) {
     log.debug(`An attempt to get kindnet deamonset failed with ${err}`)

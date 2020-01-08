@@ -18,6 +18,9 @@ values:
         maxUnavailable: 1
     daemonset:
       useHostPort: true
+      hostPorts:
+        http: ${var.ingress-http-port}
+        https: ${var.ingress-https-port}
     service:
       omitClusterIP: true
     minReadySeconds: 1
