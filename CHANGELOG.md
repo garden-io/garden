@@ -1,4 +1,15 @@
 
+<a name="v0.11.0-alpha.3"></a>
+## [v0.11.0-alpha.3](https://github.com/garden-io/garden/compare/v0.11.0-alpha.2...v0.11.0-alpha.3) (2020-01-06)
+
+### Bug Fixes
+
+* **cli:** ensure 'noProject' commands run in invalid projects ([0766ee0a](https://github.com/garden-io/garden/commit/0766ee0a))
+* **k8s:** don't throw init error if garden-system services are modified ([1d4f3e14](https://github.com/garden-io/garden/commit/1d4f3e14))
+* **k8s:** use configured ingress ports when installing nginx ([779eeaf6](https://github.com/garden-io/garden/commit/779eeaf6))
+* **k8s:** play nice with Helm 2 (Tiller) when users still need it ([b95c57f7](https://github.com/garden-io/garden/commit/b95c57f7))
+
+
 <a name="v0.11.0-alpha.2"></a>
 ## [v0.11.0-alpha.2](https://github.com/garden-io/garden/compare/v0.11.0-alpha.1...v0.11.0-alpha.2) (2019-12-20)
 
