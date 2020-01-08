@@ -249,11 +249,13 @@ export class LocalConfigStore extends ConfigStore<LocalConfig> {
  *                                           *
  **********************************************/
 
-export interface AnalyticsGlobalConfig {
-  userId: string
-  optedIn: boolean
-  firstRun: boolean
-  showOptInMessage: boolean
+export type AnalyticsGlobalConfig = {
+  userId?: string
+  optedIn?: boolean
+  firstRun?: boolean
+  showOptInMessage?: boolean
+} & {
+  [key: string]: any
 }
 
 export interface VersionCheckGlobalConfig {
@@ -275,6 +277,7 @@ const analyticsGlobalConfigSchema = joi
     firstRun: joi.boolean().optional(),
     showOptInMessage: joi.boolean().optional(),
   })
+  .unknown(true)
   .meta({ internal: true })
 
 const versionCheckGlobalConfigSchema = joi

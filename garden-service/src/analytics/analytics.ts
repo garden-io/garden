@@ -15,7 +15,6 @@ import { globalConfigKeys, AnalyticsGlobalConfig, GlobalConfigStore } from "../c
 import { getPackageVersion } from "../util/util"
 import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY } from "../constants"
 import { LogEntry } from "../logger/log-entry"
-import { printWarningMessage } from "../logger/util"
 import { GitHandler } from "../vcs/git"
 import hasha = require("hasha")
 import uuid from "uuid"
@@ -178,8 +177,7 @@ export class AnalyticsHandler {
 
     if (this.globalConfig.firstRun || this.globalConfig.showOptInMessage) {
       if (!this.isCI) {
-        printWarningMessage(
-          this.log,
+        this.log.info(
           dedent`
           Thanks for installing Garden! We work hard to provide you with the best experience we can.
           We collect some anonymized usage data while you use Garden. If you'd like to know more about what we collect
@@ -307,7 +305,7 @@ export class AnalyticsHandler {
   private track(event: AnalyticsEvent) {
     if (this.segment && this.hasOptedIn()) {
       const segmentEvent: SegmentEvent = {
-        userId: this.globalConfig.userId,
+        userId: this.globalConfig.userId || "unknown",
         event: event.type,
         properties: {
           ...this.getBasicAnalyticsProperties(),
