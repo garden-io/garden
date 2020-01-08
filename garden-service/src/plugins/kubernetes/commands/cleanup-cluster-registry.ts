@@ -185,6 +185,9 @@ async function deleteImagesFromRegistry(ctx: KubernetesPluginContext, log: LogEn
         method: "DELETE",
       })
     } catch (err) {
+      if (err.response && !(err.response.status === 404)) {
+        throw err
+      }
       log.debug(`${err.message} happend when deleting ${image}`)
     }
   })
