@@ -1,6 +1,15 @@
 
+<a name="v0.11.0-alpha.4"></a>
+## [v0.11.0-alpha.4](https://github.com/garden-io/garden/compare/v0.11.0-alpha.3...v0.11.0-alpha.4) (2020-01-09)
+
+### Bug Fixes
+
+* **cli:** enable running 'config analytics-enabled' with no project ([d06b3726](https://github.com/garden-io/garden/commit/d06b3726))
+* **k8s:** ensure helm migration works on Windows ([39645c33](https://github.com/garden-io/garden/commit/39645c33))
+
+
 <a name="v0.11.0-alpha.3"></a>
-## [v0.11.0-alpha.3](https://github.com/garden-io/garden/compare/v0.11.0-alpha.2...v0.11.0-alpha.3) (2020-01-06)
+## [v0.11.0-alpha.3](https://github.com/garden-io/garden/compare/v0.11.0-alpha.2...v0.11.0-alpha.3) (2020-01-08)
 
 ### Bug Fixes
 
