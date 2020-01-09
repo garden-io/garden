@@ -169,20 +169,26 @@ async function deleteImagesFromRegistry(ctx: KubernetesPluginContext, log: LogEn
   })
 
   await Bluebird.map(images, async (image) => {
-    // Get the digest for the image
-    const [name, tag] = splitLast(image, ":")
-    const res = await queryRegistry(ctx, log, `${name}/manifests/${tag}`, {
-      method: "HEAD",
-      headers: {
-        Accept: "application/vnd.docker.distribution.manifest.v2+json",
-      },
-    })
-    const digest = res.headers["docker-content-digest"]
+    try {
+      // Get the digest for the image
+      const [name, tag] = splitLast(image, ":")
+      const res = await queryRegistry(ctx, log, `${name}/manifests/${tag}`, {
+        method: "HEAD",
+        headers: {
+          Accept: "application/vnd.docker.distribution.manifest.v2+json",
+        },
+      })
+      const digest = res.headers["docker-content-digest"]
 
-    // Issue the delete request
-    await queryRegistry(ctx, log, `${name}/manifests/${digest}`, {
-      method: "DELETE",
-    })
+      // Issue the delete request
+      await queryRegistry(ctx, log, `${name}/manifests/${digest}`, {
+        method: "DELETE",
+      })
+    } catch (err) {
+      if (err.response && err.response.status !== 404) {
+        throw err
+      }
+    }
   })
 
   log.info(`Flagged ${images.length} images as deleted in the registry.`)
