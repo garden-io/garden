@@ -74,6 +74,36 @@ const helm3 = new BinaryCmd({
   },
 })
 
+export const helmPlugin2to3 = new BinaryCmd({
+  name: "helm-plugin-2to3",
+  specs: {
+    darwin: {
+      url: "https://github.com/helm/helm-2to3/releases/download/v0.2.1/helm-2to3_0.2.1_darwin_amd64.tar.gz",
+      sha256: "b0ab2f81da90aa3d53731784a4c93ceb5c316d86098425aac0f09c8014acc2c1",
+      extract: {
+        format: "tar",
+        targetPath: ["2to3"],
+      },
+    },
+    linux: {
+      url: "https://github.com/helm/helm-2to3/releases/download/v0.2.1/helm-2to3_0.2.1_linux_amd64.tar.gz",
+      sha256: "f90c6cc3f4670be71d89d2f74739f53fd4b1b190d4b1dd4af5fa8002978a41f6",
+      extract: {
+        format: "tar",
+        targetPath: ["2to3"],
+      },
+    },
+    win32: {
+      url: "https://github.com/helm/helm-2to3/releases/download/v0.2.1/helm-2to3_0.2.1_windows_amd64.tar.gz",
+      sha256: "01b2671103b05b6b0d698dbec89ea09ee99d83380fc70c1e89324b2c8615cd0f",
+      extract: {
+        format: "tar",
+        targetPath: ["2to3.exe"],
+      },
+    },
+  },
+})
+
 export async function helm({
   ctx,
   namespace,
