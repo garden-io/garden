@@ -15,8 +15,6 @@ import { globalConfigKeys, AnalyticsGlobalConfig, GlobalConfigStore } from "../c
 import { getPackageVersion } from "../util/util"
 import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY } from "../constants"
 import { LogEntry } from "../logger/log-entry"
-import { printWarningMessage } from "../logger/util"
-import { GitHandler } from "../vcs/git"
 import hasha = require("hasha")
 import uuid from "uuid"
 import { Garden } from "../garden"
@@ -32,13 +30,23 @@ export interface SystemInfo {
   platformVersion: string
 }
 
+// Note that we pluralise the entity names in the count fields (e.g. modulesCount, tasksCount).
+// This is for consistency for when we add fields like modules, tasks, etc.
+interface ProjectMetadata {
+  modulesCount: number
+  tasksCount: number
+  servicesCount: number
+  testsCount: number
+  moduleTypes: string[]
+}
+
 export interface AnalyticsEventProperties {
   projectId: string
   projectName: string
   system: SystemInfo
   isCI: boolean
   sessionId: string
-  projectMetadata: any
+  projectMetadata: ProjectMetadata
 }
 
 export interface AnalyticsCommandEventProperties extends AnalyticsEventProperties {
@@ -113,7 +121,7 @@ export class AnalyticsHandler {
   private isCI = ci.isCI
   private sessionId = uuid.v4()
   protected garden: Garden
-  private projectMetadata
+  private projectMetadata: ProjectMetadata
 
   private constructor(garden: Garden, log: LogEntry) {
     this.segment = new segmentClient(API_KEY, { flushAt: 10, flushInterval: 300 })
@@ -171,20 +179,16 @@ export class AnalyticsHandler {
       ...globalConf.analytics,
     }
 
-    const vcs = new GitHandler(process.cwd(), [])
-    const originName = await vcs.getOriginName(this.log)
+    const originName = await this.garden.vcs.getOriginName(this.log)
     this.projectName = hasha(this.garden.projectName, { algorithm: "sha256" })
     this.projectId = originName ? hasha(originName, { algorithm: "sha256" }) : this.projectName
 
     if (this.globalConfig.firstRun || this.globalConfig.showOptInMessage) {
       if (!this.isCI) {
-        printWarningMessage(
-          this.log,
-          dedent`
-          Thanks for installing Garden! We work hard to provide you with the best experience we can.
-          We collect some anonymized usage data while you use Garden. If you'd like to know more about what we collect
-          or if you'd like to opt out of telemetry, please read more at https://github.com/garden-io/garden/blob/master/README.md#Analytics`
-        )
+        const msg = dedent`
+          Thanks for installing Garden! We work hard to provide you with the best experience we can. We collect some anonymized usage data while you use Garden. If you'd like to know more about what we collect or if you'd like to opt out of telemetry, please read more at https://github.com/garden-io/garden/blob/master/README.md#Analytics
+        `
+        this.log.info({ symbol: "info", msg })
       }
 
       this.globalConfig = {
@@ -251,7 +255,7 @@ export class AnalyticsHandler {
    *
    * eg. number of modules, types of modules, number of tests, etc.
    */
-  private async generateProjectMetadata() {
+  private async generateProjectMetadata(): Promise<ProjectMetadata> {
     const configGraph = await this.garden.getConfigGraph(this.log)
     const modules = await configGraph.getModules()
     const moduleTypes = [...new Set(modules.map((m) => m.type))]
@@ -259,14 +263,14 @@ export class AnalyticsHandler {
     const tasks = await configGraph.getTasks()
     const services = await configGraph.getServices()
     const tests = modules.map((m) => m.testConfigs)
-    const numberOfTests = flatten(tests).length
+    const testsCount = flatten(tests).length
 
     return {
-      numberOfModules: modules.length,
+      modulesCount: modules.length,
       moduleTypes,
-      numberOfTasks: tasks.length,
-      numberOfServices: services.length,
-      numberOfTests,
+      tasksCount: tasks.length,
+      servicesCount: services.length,
+      testsCount,
     }
   }
 
@@ -307,7 +311,7 @@ export class AnalyticsHandler {
   private track(event: AnalyticsEvent) {
     if (this.segment && this.hasOptedIn()) {
       const segmentEvent: SegmentEvent = {
-        userId: this.globalConfig.userId,
+        userId: this.globalConfig.userId || "unknown",
         event: event.type,
         properties: {
           ...this.getBasicAnalyticsProperties(),

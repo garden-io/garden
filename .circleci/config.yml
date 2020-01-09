@@ -379,8 +379,8 @@ jobs:
             # ...export for subsequent runs...
             echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
             echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
-            nvm install 10
-            nvm alias default 10
+            nvm install 12
+            nvm alias default 12
             nvm use default
             # ...and finally symlink for when calling Garden with sudo below
             sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/node" "/usr/local/bin/node"

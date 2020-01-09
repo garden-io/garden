@@ -1,10 +1,6 @@
 .garden
-bin/
-build/
-dist/garden-*
-dist/linux-*
-dist/macos-*
-dist/windows-*
+.git
+dist/
 lib/
 src/
 test/
@@ -17,4 +13,3 @@ gulpfile.ts
 tsconfig.*
 **/.garden
 **/node_modules
-*.json
