@@ -15,17 +15,20 @@ echo "[0;40;36m[48;2;35;163;116m  [48;2;30m[48;2;67;136;127m  [36m[48;2;92
 echo "❊ Installing the Garden CLI ❊"
 echo ""
 
-echo "→ Finding the latest version..."
-
-# Find version to run through GitHub release API
-function jsonValue() {
-  # see https://gist.github.com/cjus/1047794
-  KEY=$1
-  num=$2
-  awk -F"[,:}]" '{for(i=1;i<=NF;i++){if($i~/'$KEY'\042/){print $(i+1)}}}' | tr -d '"' | sed -n ${num}p
-}
-
-GARDEN_VERSION=$(curl -sL https://github.com/garden-io/garden/releases/latest -H "Accept: application/json" | jsonValue tag_name 1)
+if [[ -n $1 ]]
+then
+  GARDEN_VERSION=$1
+else
+  echo "→ Finding the latest version..."
+  # Find version to run through GitHub release API
+  function jsonValue() {
+    # see https://gist.github.com/cjus/1047794
+    KEY=$1
+    num=$2
+    awk -F"[,:}]" '{for(i=1;i<=NF;i++){if($i~/'$KEY'\042/){print $(i+1)}}}' | tr -d '"' | sed -n ${num}p
+  }
+  GARDEN_VERSION=$(curl -sL https://github.com/garden-io/garden/releases/latest -H "Accept: application/json" | jsonValue tag_name 1)
+fi
 
 if [ "$(uname -s)" = "Darwin" ]; then
   OS=macos
