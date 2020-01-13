@@ -23,7 +23,7 @@ import { configureHotReload, HotReloadableResource } from "../hot-reload"
 import { apply, deleteResources } from "../kubectl"
 import { KubernetesPluginContext } from "../config"
 import { ContainerHotReloadSpec } from "../../container/config"
-import { getHotReloadSpec } from "./hot-reload"
+import { getHotReloadSpec, getHotReloadContainerName } from "./hot-reload"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
 import { getForwardablePorts, killPortForwards } from "../port-forward"
@@ -91,8 +91,8 @@ export async function deployHelmService({
     configureHotReload({
       target: hotReloadTarget,
       hotReloadSpec,
-      hotReloadArgs: resourceSpec && resourceSpec.hotReloadArgs,
-      containerName: resourceSpec && resourceSpec.containerName,
+      hotReloadArgs: resourceSpec.hotReloadArgs,
+      containerName: getHotReloadContainerName(module),
     })
 
     await apply({ log, provider, manifests: [hotReloadTarget], namespace })
