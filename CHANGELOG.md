@@ -1,4 +1,188 @@
 
+<a name="v0.11.0"></a>
+## [v0.11.0](https://github.com/garden-io/garden/compare/v0.10.16...v0.11.0) (2020-01-13)
+
+### Bug Fixes
+
+* failing init if remote is not set ([938bb200](https://github.com/garden-io/garden/commit/938bb200))
+* force anlytics events queue flush ([89ea096c](https://github.com/garden-io/garden/commit/89ea096c))
+* occasional unhelpful error messages when shelling out ([92849a01](https://github.com/garden-io/garden/commit/92849a01))
+* remove resources only when tiller not deployed ([b2b30b17](https://github.com/garden-io/garden/commit/b2b30b17))
+* **build:** ensure that exec modules are rebuilt on when garden is run ([4d2cccea](https://github.com/garden-io/garden/commit/4d2cccea))
+* **build:** validate helm modules at build rather than configure phase ([7551646a](https://github.com/garden-io/garden/commit/7551646a))
+* **cli:** enable running 'config analytics-enabled' with no project ([cc151a3a](https://github.com/garden-io/garden/commit/cc151a3a))
+* **cli:** ensure 'noProject' commands run in invalid projects ([4e7ff830](https://github.com/garden-io/garden/commit/4e7ff830))
+* **config:** detect overlap after resolving module configs ([3fd520e9](https://github.com/garden-io/garden/commit/3fd520e9))
+* **config:** do not set default include if exclude is set + add tests ([5f7dd186](https://github.com/garden-io/garden/commit/5f7dd186))
+* **core:** use fresh statuses in get status cmd ([b0ebf22f](https://github.com/garden-io/garden/commit/b0ebf22f))
+* **core:** fix empty runtimeContext check ([0b2eae5e](https://github.com/garden-io/garden/commit/0b2eae5e))
+* **core:** error when attempting to forward to restricted local port ([e6a103bf](https://github.com/garden-io/garden/commit/e6a103bf))
+* **core:** extraneous build step in stack graph when no build is needed ([f452c00e](https://github.com/garden-io/garden/commit/f452c00e))
+* **core:** ensure builds are staged when module has no build handler ([c4c13d23](https://github.com/garden-io/garden/commit/c4c13d23))
+* **dashboard:** hide ingress view when showing task/test results ([6879bf1c](https://github.com/garden-io/garden/commit/6879bf1c))
+* **docs:** fix dashboard README ([5152dded](https://github.com/garden-io/garden/commit/5152dded))
+* **k8s:** use configured ingress ports when installing nginx ([919e4f35](https://github.com/garden-io/garden/commit/919e4f35))
+* **k8s:** only cleanup generated namespaces ([c94b2ca8](https://github.com/garden-io/garden/commit/c94b2ca8))
+* **k8s:** fix issues with helm 2to3 migration ([4b3629bf](https://github.com/garden-io/garden/commit/4b3629bf))
+* **k8s:** helm migration issue with non-deployed releases ([d97adf78](https://github.com/garden-io/garden/commit/d97adf78))
+* **k8s:** timeout error in cleanup-cluster-registry script ([b5451e3b](https://github.com/garden-io/garden/commit/b5451e3b))
+* **k8s:** in-cluster registry updates would hang with RWO volumes ([fd264141](https://github.com/garden-io/garden/commit/fd264141))
+* **k8s:** ensure Garden can upgrade garden-nginx release ([b244c8e0](https://github.com/garden-io/garden/commit/b244c8e0))
+* **k8s:** play nice with Helm 2 (Tiller) when users still need it ([8f803c3c](https://github.com/garden-io/garden/commit/8f803c3c))
+* **k8s:** ensure helm migration works on Windows ([2771a982](https://github.com/garden-io/garden/commit/2771a982))
+* **k8s:** don't throw init error if garden-system services are modified ([0aff683e](https://github.com/garden-io/garden/commit/0aff683e))
+* **k8s:** uninstall-garden-services command now works more reliably ([a9671543](https://github.com/garden-io/garden/commit/a9671543))
+* **k8s:** error when running cluster-init command ([dd94e05b](https://github.com/garden-io/garden/commit/dd94e05b))
+* **k8s:** default to NFS for in-cluster builder storage for local k8s ([10b90e14](https://github.com/garden-io/garden/commit/10b90e14))
+* **k8s:** make sure Helm 3 migration is run for project namespaces ([70403730](https://github.com/garden-io/garden/commit/70403730))
+* **openfaas:** fix issue in deployment retry handler ([f6e2cf3a](https://github.com/garden-io/garden/commit/f6e2cf3a))
+* **vcs:** ensure module versions are stable between runtimes ([3b438a4e](https://github.com/garden-io/garden/commit/3b438a4e))
+* **watcher:** fix segfault on Mac when reloading config ([265696e9](https://github.com/garden-io/garden/commit/265696e9))
+
+### Code Refactoring
+
+* **core:** allow plugins to augment the module graph ([b2509e9c](https://github.com/garden-io/garden/commit/b2509e9c))
+* **k8s:** avoid building Helm chart before getting deploy status ([aa06e8e3](https://github.com/garden-io/garden/commit/aa06e8e3))
+
+### Features
+
+* add a migration command for migrating from v0.10 to v0.11 ([765b324e](https://github.com/garden-io/garden/commit/765b324e))
+* hadolint provider ([715abe06](https://github.com/garden-io/garden/commit/715abe06))
+* **core:** use service's port when forwarding to localhost if available ([26bbeca3](https://github.com/garden-io/garden/commit/26bbeca3))
+* **k8s:** add support for KinD ([87a69787](https://github.com/garden-io/garden/commit/87a69787))
+* **providers:** add conftest providers ([da24e775](https://github.com/garden-io/garden/commit/da24e775))
+
+### Improvement
+
+* set default include on Helm modules ([fca600dd](https://github.com/garden-io/garden/commit/fca600dd))
+* **analytics:** improve the data collection ([#1438](https://github.com/garden-io/garden/issues/1438)) ([04ffbbe6](https://github.com/garden-io/garden/commit/04ffbbe6))
+* **cli:** remove `garden init` command ([3f9da06c](https://github.com/garden-io/garden/commit/3f9da06c))
+* **container:** automatically set include field based on config ([7cef10eb](https://github.com/garden-io/garden/commit/7cef10eb))
+* **core:** update to get-port with restricted port fix ([ca0992bb](https://github.com/garden-io/garden/commit/ca0992bb))
+* **core:** allow relative symlinks within module root for builds ([f7449e17](https://github.com/garden-io/garden/commit/f7449e17))
+* **hadolint:** log one-line warning message when applicable ([08b86968](https://github.com/garden-io/garden/commit/08b86968))
+* **hadolint:** gracefully handle conflicting modules and names ([600bedfb](https://github.com/garden-io/garden/commit/600bedfb))
+* **k8s:** set --atomic flag on helm upgrade ([7a9ed310](https://github.com/garden-io/garden/commit/7a9ed310))
+* **k8s:** update bundled nginx controller version ([40729a46](https://github.com/garden-io/garden/commit/40729a46))
+* **k8s:** switch to Helm 3 and remove Tiller ([a6940e0a](https://github.com/garden-io/garden/commit/a6940e0a))
+* **k8s:** auto-set include field on kubernetes module type ([03033ba4](https://github.com/garden-io/garden/commit/03033ba4))
+* **k8s:** stop bundling kubernetes-dashboard in garden-system ([e3d32e27](https://github.com/garden-io/garden/commit/e3d32e27))
+
+### BREAKING CHANGE
+
+#### Default include on Helm modules ([fca600dd](https://github.com/garden-io/garden/commit/fca600dd))
+
+If not set by the user, the `include` field on Helm modules now defaults to:
+
+```javascript
+["*", "charts/**/*", "templates/**/*"]
+```
+
+if the module has local chart sources, otherwise to:
+
+```javascript
+["*", "charts/**/*", "templates/**/*"]
+```
+
+Previously, Helm modules would simply include all content under the
+module path.
+
+If your Helm modules doesn't have `include` set and depend
+on content that's not captured with the default include, you will need
+to update the relevant `garden.yml` file and set the includes manually.
+
+#### Require include/exclude on overlapping modules ([f726c5b](https://github.com/garden-io/garden/commit/f726c5b))
+
+It is now required to set the `include` and/or `exclude` directive on
+modules that overlap. This is to prevent subtle errors that can occur
+when two modules share the same build context.
+
+Module level `garden.yml` files that have overlapping modules and no
+includes/excludes will need to be updated. A common case is when there
+are multiple modules in the same `garden.yml` file.
+
+For example, this:
+
+```yaml
+kind: Module
+name: module-a
+type: container
+
+---
+
+kind: Module
+name: module-b
+type: container
+```
+
+becomes:
+
+```yaml
+kind: Module
+name: module-a
+type: container
+include: ["src-a/**/*"]
+
+---
+
+kind: Module
+name: module-b
+type: container
+include: ["src-b/**/*"]
+```
+
+#### Switch to Helm 3 and remove Tiller ([a6940e0a](https://github.com/garden-io/garden/commit/a6940e0a))
+
+Helm 2.x is no longer supported. The migration (both for garden-system
+services and your project namespace) is handled automatically
+via the `helm 2to3` plugin. It is _possible_ that the automatic
+migration fails though (due to any number of potential issues with
+Helm or issues exposed with individual charts upon upgrade).
+
+We've tried to cover and test for these cases as best we can, but can't
+rule out issues, so you may need to intervene (by e.g. manually removing
+resources or using the helm CLI directly) if the migration or upgrades after
+deployment throw errors.
+
+If you do run into tricky issues, please don't hesitate to log issues
+on GitHub or ping us on Slack and we'll be happy to help.
+
+Note that Garden does not remove Tiller from project namespaces automatically
+as some users may still need it there. To remove Tiller from a project namespace, run:
+
+```console
+garden plugins kubernetes|local-kubernetes remove-tiller --env <env-name>
+```
+
+#### Remve `environomentDefaults` field ([72588dc](https://github.com/garden-io/garden/commit/72588dc))
+
+Project level garden.yml files that used the `environmentDefaults` field
+will need to be updated.
+
+Please use the top-level `providers` field instead, and omit
+the environments key in the configured provider to use it for all
+environments.
+
+Use the top-level `variables` field to configure variables across
+all environments.
+
+#### Remove `local-openfaas` plugin ([9acda7d](https://github.com/garden-io/garden/commit/9acda7d))
+
+Projects that reference the `local-openfaas` provider need to change
+to the `openfaas` provider. The two are compatible, so that should
+just be a simple string replacement.
+
+#### Remove support for old config style ([03c15f1](https://github.com/garden-io/garden/commit/03c15f1))
+
+garden.yml files with top-level `module` and `project` keys will need
+to be update to use the newer config style (with `kind: Module` or
+`kind: Project` at the top level).
+
+#### Remove `garden init` command ([3f9da06](https://github.com/garden-io/garden/commit/3f9da06))
+
+Any user scripts that run `garden init` will need to be updated to
+remove those references.
+
 <a name="v0.10.16"></a>
 ## [v0.10.16](https://github.com/garden-io/garden/compare/v0.10.15...v0.10.16) (2019-12-06)
 
