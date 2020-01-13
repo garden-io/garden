@@ -1,10 +1,18 @@
 import { expect } from "chai"
 
 import { TestGarden, expectError } from "../../../../../helpers"
-import { getHotReloadSpec } from "../../../../../../src/plugins/kubernetes/helm/hot-reload"
+import { getHotReloadSpec, getHotReloadContainerName } from "../../../../../../src/plugins/kubernetes/helm/hot-reload"
 import { deline } from "../../../../../../src/util/string"
 import { ConfigGraph } from "../../../../../../src/config-graph"
 import { getHelmTestGarden } from "./common"
+import {
+  findServiceResource,
+  getChartResources,
+  getServiceResourceSpec,
+} from "../../../../../../src/plugins/kubernetes/helm/common"
+import { PluginContext } from "../../../../../../src/plugin-context"
+import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
+import { configureHotReload } from "../../../../../../src/plugins/kubernetes/hot-reload"
 
 describe("getHotReloadSpec", () => {
   let garden: TestGarden
@@ -69,5 +77,43 @@ describe("getHotReloadSpec", () => {
         module in order to enable hot-reloading.
       `)
     )
+  })
+})
+
+describe("configureHotReload", () => {
+  let garden: TestGarden
+  let graph: ConfigGraph
+  let provider: KubernetesProvider
+  let ctx: PluginContext
+
+  before(async () => {
+    garden = await getHelmTestGarden()
+    provider = <KubernetesProvider>await garden.resolveProvider("local-kubernetes")
+    ctx = garden.getPluginContext(provider)
+  })
+
+  beforeEach(async () => {
+    graph = await garden.getConfigGraph(garden.log)
+  })
+
+  it("should only mount the sync volume on the main/resource container", async () => {
+    const log = garden.log
+    const service = await graph.getService("two-containers")
+    const module = service.module
+    const chartResources = await getChartResources(ctx, module, true, log)
+    const resourceSpec = getServiceResourceSpec(module)
+    const hotReloadSpec = getHotReloadSpec(service)
+    const hotReloadTarget = await findServiceResource({ ctx, log, module, chartResources, resourceSpec })
+    const containerName = getHotReloadContainerName(module)
+    configureHotReload({
+      containerName,
+      hotReloadSpec,
+      target: hotReloadTarget,
+    })
+    const containers: any[] = hotReloadTarget.spec.template.spec.containers
+    // This is a second, non-main/resource container included by the Helm chart, which should not mount the sync volume.
+    const secondContainer = containers.find((c) => c.name === "second-container")
+
+    expect(secondContainer.volumeMounts || []).to.be.empty
   })
 })
