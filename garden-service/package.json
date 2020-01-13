@@ -1,6 +1,6 @@
 {
   "name": "garden-service",
-  "version": "0.11.0-alpha.4",
+  "version": "0.11.0-alpha.5",
   "description": "A full-featured development framework for containers and serverless",
   "repository": {
     "type": "git",

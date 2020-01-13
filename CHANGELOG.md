@@ -1,4 +1,12 @@
 
+<a name="v0.11.0-alpha.5"></a>
+## [v0.11.0-alpha.5](https://github.com/garden-io/garden/compare/v0.11.0-alpha.4...v0.11.0-alpha.5) (2020-01-13)
+
+### Bug Fixes
+
+* force anlytics events queue flush ([386621e2](https://github.com/garden-io/garden/commit/386621e2))
+
+
 <a name="v0.11.0-alpha.4"></a>
 ## [v0.11.0-alpha.4](https://github.com/garden-io/garden/compare/v0.11.0-alpha.3...v0.11.0-alpha.4) (2020-01-09)
 
