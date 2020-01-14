@@ -58,14 +58,10 @@ export function configureHotReload({
   hotReloadCommand,
   hotReloadArgs,
   containerName,
-}: ConfigureHotReloadParams) {
+}: ConfigureHotReloadParams): void {
   const kind = <HotReloadableKind>target.kind
-
   set(target, ["metadata", "annotations", gardenAnnotationKey("hot-reload")], "true")
-
-  const containers = target.spec.template.spec.containers || []
   const mainContainer = getResourceContainer(target, containerName)
-
   const syncVolumeName = `garden-sync`
 
   // We're copying the target folder, not just its contents
@@ -96,31 +92,29 @@ export function configureHotReload({
     }
   })
 
-  for (const container of containers) {
-    if (!container.volumeMounts) {
-      container.volumeMounts = []
-    }
-    // This any cast (and a couple below) are necessary because of flaws in the TS definitions in the client library.
-    container.volumeMounts.push(...(<any>syncMounts))
+  if (!mainContainer.volumeMounts) {
+    mainContainer.volumeMounts = []
+  }
+  // This any cast (and a couple below) are necessary because of flaws in the TS definitions in the client library.
+  mainContainer.volumeMounts.push(...(<any>syncMounts))
 
-    if (!container.ports) {
-      container.ports = []
-    }
+  if (!mainContainer.ports) {
+    mainContainer.ports = []
+  }
 
-    if (container.ports.find((p) => p.containerPort === RSYNC_PORT)) {
-      throw new Error(deline`
-        ${kind} ${target.metadata.name} is configured for hot reload, but one of its containers uses
-        port ${RSYNC_PORT}, which is reserved for internal use while hot reload is active. Please remove
-        ${RSYNC_PORT} from your services' port config.`)
-    }
+  if (mainContainer.ports.find((p) => p.containerPort === RSYNC_PORT)) {
+    throw new Error(deline`
+      ${kind} ${target.metadata.name} is configured for hot reload, but one of its containers uses
+      port ${RSYNC_PORT}, which is reserved for internal use while hot reload is active. Please remove
+      ${RSYNC_PORT} from your services' port config.`)
+  }
 
-    if (hotReloadCommand) {
-      container.command = hotReloadCommand
-    }
+  if (hotReloadCommand) {
+    mainContainer.command = hotReloadCommand
+  }
 
-    if (hotReloadArgs) {
-      container.args = hotReloadArgs
-    }
+  if (hotReloadArgs) {
+    mainContainer.args = hotReloadArgs
   }
 
   const rsyncContainer = {

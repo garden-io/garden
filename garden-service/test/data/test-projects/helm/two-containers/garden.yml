@@ -1,0 +1,11 @@
+kind: Module
+description: Helm module with two containers
+type: helm
+name: two-containers
+releaseName: two-containers-release
+serviceResource:
+  kind: Deployment
+  containerModule: api-image
+values:
+  image:
+    tag: ${modules.api-image.version}
