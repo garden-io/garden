@@ -195,17 +195,13 @@ Garden would not be possible without an amazing ecosystem of open-source project
 
 Garden, as a company, is also a proud member of the [CNCF](https://www.cncf.io/).
 
-## Analytics
+## Telemetry
 
 We are trying to make Garden the best tool possible, and it's very useful for us to inform the future development of Garden with data on how it's being used.
 
 When you use Garden we collect information about the commands you run, the tasks getting executed, the project and operating system. We care about your privacy and we take special care to anonymize all the information. For example, we hash module names, and use randomly generated IDs to identify projects.
 
-If you would like to update your analytics settings, please run (from within a project):
-
-```sh
-    garden config analytics-enabled true|false
-```
+If you are curious to see an example of the data we collect or if you would like to update your preference, please visit the [Telemetry](https://docs.garden.io/telemetry) page.
 
 ## License
 
