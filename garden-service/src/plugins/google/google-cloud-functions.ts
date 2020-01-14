@@ -91,6 +91,7 @@ const configSchema = providerConfigBaseSchema.keys({
 
 export const gardenPlugin = createGardenPlugin({
   name: "google-cloud-function",
+  docs: "EXPERIMENTAL",
   configSchema,
   handlers: {
     getEnvironmentStatus,

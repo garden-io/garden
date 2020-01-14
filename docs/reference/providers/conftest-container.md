@@ -1,14 +1,24 @@
 ---
-title: Conftest Container
+title: conftest-container
 ---
 
-# `conftest-container` reference
+# `conftest-container` Provider
+
+This provider automatically generates [conftest modules](../module-types/conftest.md) for `container` modules
+in your project. A `conftest` module is created for each `container` module that includes a Dockerfile that
+can be validated.
+
+Simply add this provider to your project configuration, and configure your policies. Check out the below
+reference for how to configure default policies, default namespaces, and test failure thresholds for the generated
+modules.
+
+## Reference
 
 Below is the schema reference for the `conftest-container` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../guides/configuration-files.md).
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
-## Complete YAML schema
+### Complete YAML Schema
 
 The values in the schema below are the default values.
 
@@ -29,15 +39,15 @@ providers:
     # Set to `"none"` to always mark the tests as successful.
     testFailureThreshold: error
 ```
-## Configuration keys
+### Configuration Keys
 
-### `providers`
+#### `providers`
 
 | Type            | Required | Default |
 | --------------- | -------- | ------- |
 | `array[object]` | No       | `[]`    |
 
-### `providers[].name`
+#### `providers[].name`
 
 [providers](#providers) > name
 
@@ -54,7 +64,7 @@ providers:
   - name: "local-kubernetes"
 ```
 
-### `providers[].environments[]`
+#### `providers[].environments[]`
 
 [providers](#providers) > environments
 
@@ -73,7 +83,7 @@ providers:
     - stage
 ```
 
-### `providers[].policyPath`
+#### `providers[].policyPath`
 
 [providers](#providers) > policyPath
 
@@ -83,7 +93,7 @@ Path to the default policy directory or rego file to use for `conftest` modules.
 | ----------- | -------- | ------------ |
 | `posixPath` | No       | `"./policy"` |
 
-### `providers[].namespace`
+#### `providers[].namespace`
 
 [providers](#providers) > namespace
 
@@ -93,7 +103,7 @@ Default policy namespace to use for `conftest` modules.
 | -------- | -------- |
 | `string` | No       |
 
-### `providers[].testFailureThreshold`
+#### `providers[].testFailureThreshold`
 
 [providers](#providers) > testFailureThreshold
 

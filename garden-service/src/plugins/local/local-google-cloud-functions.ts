@@ -25,6 +25,7 @@ const emulatorPort = 8010
 
 export const gardenPlugin = createGardenPlugin({
   name: pluginName,
+  docs: "EXPERIMENTAL",
   handlers: {
     async configureProvider({ config }: ConfigureProviderParams) {
       const emulatorConfig: ContainerModuleConfig = {

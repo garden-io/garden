@@ -166,6 +166,19 @@ const outputsSchema = joi.object().keys({
 export const gardenPlugin = createGardenPlugin({
   name: "kubernetes",
   dependencies: ["container"],
+  docs: dedent`
+    The \`kubernetes\` provider allows you to deploy [\`container\` modules](../module-types/container.md) to
+    Kubernetes clusters, and adds the [\`helm\`](../module-types/helm.md) and
+    [\`kubernetes\`](../module-types/kubernetes.md) module types.
+
+    For usage information, please refer to the [guides section](../guides/README.md). A good place to start is
+    the [Remote Kubernetes guide](../guides/remote-kubernetes.md) guide if you're connecting to remote clusters.
+    The [demo-project](../examples/demo-project.md) example project and guide are also helpful as an introduction.
+
+    Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the
+    [local-kubernetes provider](./local-kubernetes.md) simplifies (and automates) the configuration and setup quite a
+    bit.
+  `,
   configSchema,
   outputsSchema,
   commands: [cleanupClusterRegistry, clusterInit, removeTillerCmd, uninstallGardenServices],

@@ -1,11 +1,16 @@
 ---
-order: 5
+order: 4
 title: Providers
 ---
+
 # Providers
 
-* [Kubernetes](./kubernetes.md)
-* [Local Kubernetes](./local-kubernetes.md)
-* [Maven Container](./maven-container.md)
-* [Openfaas](./openfaas.md)
-* [Terraform](./terraform.md)
+* [conftest](./conftest.md)
+* [conftest-container](./conftest-container.md)
+* [kubernetes](./kubernetes.md)
+* [conftest-kubernetes](./conftest-kubernetes.md)
+* [hadolint](./hadolint.md)
+* [local-kubernetes](./local-kubernetes.md)
+* [maven-container](./maven-container.md)
+* [openfaas](./openfaas.md)
+* [terraform](./terraform.md)

@@ -485,6 +485,7 @@ function renderProviderReference(name: string, plugin: GardenPlugin, allPlugins:
   }
 
   const schema = populateProviderSchema(configSchema || providerConfigBaseSchema)
+  const docs = plugin.docs || ""
 
   const moduleOutputsSchema = plugin.outputsSchema
 
@@ -503,8 +504,8 @@ function renderProviderReference(name: string, plugin: GardenPlugin, allPlugins:
     })
 
   const template = handlebars.compile(readFileSync(providerTemplatePath).toString())
-  const frontmatterTitle = titleize(humanize(name))
-  return template({ name, frontmatterTitle, markdownReference, yaml, moduleOutputsReference })
+  const frontmatterTitle = name
+  return template({ name, docs, frontmatterTitle, markdownReference, yaml, moduleOutputsReference })
 }
 
 /**
@@ -568,7 +569,7 @@ function renderModuleTypeReference(name: string, definitions: { [name: string]: 
     exampleName: "my-tasks",
   })
 
-  const frontmatterTitle = titleize(humanize(name))
+  const frontmatterTitle = name
   const template = handlebars.compile(readFileSync(moduleTemplatePath).toString())
   return template({
     frontmatterTitle,
@@ -642,6 +643,7 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
   const providerDir = resolve(referenceDir, "providers")
   const plugins = await garden.getPlugins()
   const pluginsByName = keyBy(plugins, "name")
+  const providersReadme = ["---", "order: 4", "title: Providers", "---", "", "# Providers", ""]
 
   for (const plugin of plugins) {
     const name = plugin.name
@@ -654,11 +656,14 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
     const path = resolve(providerDir, `${name}.md`)
     console.log("->", path)
     writeFileSync(path, renderProviderReference(name, plugin, pluginsByName))
-  }
 
-  // Render module type docs
+    providersReadme.push(`* [${name}](./${name}.md)`)
+  }
+  writeFileSync(resolve(providerDir, `README.md`), providersReadme.join("\n"))
+
+  // Render module types
   const moduleTypeDir = resolve(referenceDir, "module-types")
-  const readme = ["---", "order: 4", "title: Module Types", "---", "", "# Module Types", ""]
+  const readme = ["---", "order: 5", "title: Module Types", "---", "", "# Module Types", ""]
   const moduleTypeDefinitions = await garden.getModuleTypes()
 
   for (const { name } of moduleTypes) {

@@ -57,6 +57,10 @@ const configSchema = providerConfigBaseSchema
 
 export const gardenPlugin = createGardenPlugin({
   name: "terraform",
+  docs: dedent`
+    This provider allows you to integrate Terraform stacks into your Garden project.
+    See the [Terraform guide](../guides/terraform.md) for details and usage information.
+  `,
   configSchema,
   handlers: {
     configureProvider,
