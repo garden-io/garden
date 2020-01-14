@@ -124,7 +124,7 @@ export class AnalyticsHandler {
   private projectMetadata: ProjectMetadata
 
   private constructor(garden: Garden, log: LogEntry) {
-    this.segment = new segmentClient(API_KEY, { flushAt: 10, flushInterval: 300 })
+    this.segment = new segmentClient(API_KEY, { flushAt: 20, flushInterval: 300 })
     this.log = log
     this.garden = garden
     this.globalConfigStore = new GlobalConfigStore()
@@ -207,6 +207,7 @@ export class AnalyticsHandler {
             platform: platform(),
             platformVersion: release(),
             gardenVersion: getPackageVersion(),
+            isCI: this.isCI,
           },
         })
       }
@@ -222,9 +223,9 @@ export class AnalyticsHandler {
   /**
    * Handler used internally to process the TaskGraph events.
    */
-  private processEvent<T extends EventName>(name: T, payload: Events[T]) {
+  private async processEvent<T extends EventName>(name: T, payload: Events[T]) {
     if (AnalyticsHandler.isSupportedEvent(name, payload)) {
-      this.trackTask(payload.batchId, payload.name, payload.type, name)
+      await this.trackTask(payload.batchId, payload.name, payload.type, name)
     }
   }
 
@@ -308,7 +309,7 @@ export class AnalyticsHandler {
    * @returns
    * @memberof AnalyticsHandler
    */
-  private track(event: AnalyticsEvent) {
+  private async track(event: AnalyticsEvent) {
     if (this.segment && this.hasOptedIn()) {
       const segmentEvent: SegmentEvent = {
         userId: this.globalConfig.userId || "unknown",
@@ -319,15 +320,20 @@ export class AnalyticsHandler {
         },
       }
 
+      // NOTE: We need to wrap the track method in a Promise because of the race condition
+      // when tracking flushing the first event. See: https://github.com/segmentio/analytics-node/issues/219
       const trackToRemote = (eventToTrack: SegmentEvent) => {
-        this.segment.track(eventToTrack, (err) => {
-          if (err && this.log) {
-            this.log.debug(`Error sending tracking event: ${err}`)
-          }
+        return new Promise((resolve) => {
+          this.segment.track(eventToTrack, (err) => {
+            if (err && this.log) {
+              this.log.debug(`Error sending tracking event: ${err}`)
+            }
+            resolve(true)
+          })
         })
       }
 
-      return trackToRemote(segmentEvent)
+      return await trackToRemote(segmentEvent)
     }
     return false
   }
