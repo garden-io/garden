@@ -53,3 +53,4 @@
   * [Config Files Reference](./reference/config.md)
   * [Template Strings Reference](./reference/template-strings.md)
 * [Troubleshooting](./troubleshooting.md)
+* [Telemetry](./telemetry.md)

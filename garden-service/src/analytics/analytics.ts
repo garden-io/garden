@@ -325,15 +325,19 @@ export class AnalyticsHandler {
       const trackToRemote = (eventToTrack: SegmentEvent) => {
         return new Promise((resolve) => {
           this.segment.track(eventToTrack, (err) => {
+            this.log.silly(dedent`Tracking ${eventToTrack.event} event.
+              Payload:
+                ${JSON.stringify(eventToTrack)}
+            `)
             if (err && this.log) {
-              this.log.debug(`Error sending tracking event: ${err}`)
+              this.log.debug(`Error sending ${eventToTrack.event} tracking event: ${err}`)
             }
             resolve(true)
           })
         })
       }
 
-      return await trackToRemote(segmentEvent)
+      return trackToRemote(segmentEvent)
     }
     return false
   }
