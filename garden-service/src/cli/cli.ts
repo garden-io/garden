@@ -322,7 +322,7 @@ export class GardenCli {
           // the file writers depend on the project root.
           await this.initFileWriters(logger, garden.projectRoot, garden.gardenDirPath)
           const analytics = await AnalyticsHandler.init(garden, log)
-          analytics.trackCommand(command.getFullName())
+          await analytics.trackCommand(command.getFullName())
 
           cliContext.details.analytics = analytics
 
