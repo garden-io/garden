@@ -1,18 +1,20 @@
 ---
-title: Hadolint
+title: hadolint
 ---
 
-# `hadolint` reference
+# `hadolint` Module Type
 
 Runs `hadolint` on the specified Dockerfile.
 
-> Note: In most cases, you'll let the provider create this module type automatically, but you may in some cases want or need to manually specify a Dockerfile to lint.
+> Note: In most cases, you'll let the [provider](../providers/hadolint.md) create this module type automatically, but you may in some cases want or need to manually specify a Dockerfile to lint.
 
 To configure `hadolint`, you can use `.hadolint.yaml` config files. For each test, we first look for one in
 the module root. If none is found there, we check the project root, and if none is there we fall back to default
 configuration. Note that for reasons of portability, we do not fall back to global/user configuration files.
 
 See the [hadolint docs](https://github.com/hadolint/hadolint#configure) for details on how to configure it.
+
+## Reference
 
 Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../guides/configuration-files.md).
@@ -21,7 +23,7 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 
 `hadolint` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 
-## Complete YAML schema
+### Complete YAML Schema
 
 The values in the schema below are the default values.
 
@@ -105,9 +107,9 @@ build:
 dockerfilePath:
 ```
 
-## Configuration keys
+### Configuration Keys
 
-### `apiVersion`
+#### `apiVersion`
 
 The schema version of this module's config (currently not used).
 
@@ -115,13 +117,13 @@ The schema version of this module's config (currently not used).
 | -------- | -------- | -------------- | ---------------- |
 | `string` | Yes      | "garden.io/v0" | `"garden.io/v0"` |
 
-### `kind`
+#### `kind`
 
 | Type     | Required | Allowed Values | Default    |
 | -------- | -------- | -------------- | ---------- |
 | `string` | Yes      | "Module"       | `"Module"` |
 
-### `type`
+#### `type`
 
 The type of this module.
 
@@ -135,7 +137,7 @@ Example:
 type: "container"
 ```
 
-### `name`
+#### `name`
 
 The name of this module.
 
@@ -149,13 +151,13 @@ Example:
 name: "my-sweet-module"
 ```
 
-### `description`
+#### `description`
 
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
 
-### `include`
+#### `include`
 
 Specify a list of POSIX-style paths or globs that should be regarded as the source files for this
 module. Files that do *not* match these paths or globs are excluded when computing the version of the module,
@@ -179,7 +181,7 @@ include:
   - my-app.js
 ```
 
-### `exclude`
+#### `exclude`
 
 Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that
 match these paths or globs are excluded when computing the version of the module, when responding to filesystem
@@ -205,7 +207,7 @@ exclude:
   - '*.log'
 ```
 
-### `repositoryUrl`
+#### `repositoryUrl`
 
 A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
 
@@ -222,7 +224,7 @@ Example:
 repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
 ```
 
-### `allowPublish`
+#### `allowPublish`
 
 When false, disables pushing this module to remote registries.
 
@@ -230,7 +232,7 @@ When false, disables pushing this module to remote registries.
 | --------- | -------- | ------- |
 | `boolean` | No       | `true`  |
 
-### `build`
+#### `build`
 
 Specify how to build the module. Note that plugins may define additional keys on this object.
 
@@ -238,7 +240,7 @@ Specify how to build the module. Note that plugins may define additional keys on
 | -------- | -------- | --------------------- |
 | `object` | No       | `{"dependencies":[]}` |
 
-### `build.dependencies[]`
+#### `build.dependencies[]`
 
 [build](#build) > dependencies
 
@@ -257,7 +259,7 @@ build:
     - name: some-other-module-name
 ```
 
-### `build.dependencies[].name`
+#### `build.dependencies[].name`
 
 [build](#build) > [dependencies](#builddependencies) > name
 
@@ -267,7 +269,7 @@ Module name to build ahead of this module.
 | -------- | -------- |
 | `string` | Yes      |
 
-### `build.dependencies[].copy[]`
+#### `build.dependencies[].copy[]`
 
 [build](#build) > [dependencies](#builddependencies) > copy
 
@@ -277,7 +279,7 @@ Specify one or more files or directories to copy from the built dependency to th
 | --------------- | -------- | ------- |
 | `array[object]` | No       | `[]`    |
 
-### `build.dependencies[].copy[].source`
+#### `build.dependencies[].copy[].source`
 
 [build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > source
 
@@ -287,7 +289,7 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 | ----------- | -------- |
 | `posixPath` | Yes      |
 
-### `build.dependencies[].copy[].target`
+#### `build.dependencies[].copy[].target`
 
 [build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > target
 
@@ -298,7 +300,7 @@ Defaults to to same as source path.
 | ----------- | -------- | ------- |
 | `posixPath` | No       | `""`    |
 
-### `dockerfilePath`
+#### `dockerfilePath`
 
 POSIX-style path to a Dockerfile that you want to lint with `hadolint`.
 
@@ -307,14 +309,14 @@ POSIX-style path to a Dockerfile that you want to lint with `hadolint`.
 | `posixPath` | Yes      |
 
 
-## Outputs
+### Outputs
 
-### Module outputs
+#### Module Outputs
 
 The following keys are available via the `${modules.<module-name>}` template string key for `hadolint`
 modules.
 
-### `${modules.<module-name>.buildPath}`
+#### `${modules.<module-name>.buildPath}`
 
 The build path of the module.
 
@@ -328,7 +330,7 @@ Example:
 my-variable: ${modules.my-module.buildPath}
 ```
 
-### `${modules.<module-name>.path}`
+#### `${modules.<module-name>.path}`
 
 The local path of the module.
 
@@ -342,7 +344,7 @@ Example:
 my-variable: ${modules.my-module.path}
 ```
 
-### `${modules.<module-name>.version}`
+#### `${modules.<module-name>.version}`
 
 The current version of the module.
 

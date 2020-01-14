@@ -4,7 +4,7 @@ import execa from "execa"
 import { ProjectConfig } from "../../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { Garden } from "../../../../src/garden"
-import { GardenPlugin } from "../../../../src/types/plugin/plugin"
+import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
 import { joi } from "../../../../src/config/common"
 import { ServiceState } from "../../../../src/types/service"
 import { RunTaskParams } from "../../../../src/types/plugin/task/runTask"
@@ -40,7 +40,7 @@ describe("GetServiceStatusTask", () => {
 
   describe("process", () => {
     it("should correctly resolve runtime outputs from tasks", async () => {
-      const testPlugin: GardenPlugin = {
+      const testPlugin = createGardenPlugin({
         name: "test",
         createModuleTypes: [
           {
@@ -74,7 +74,7 @@ describe("GetServiceStatusTask", () => {
             },
           },
         ],
-      }
+      })
 
       const garden = await Garden.factory(tmpDir.path, { config, plugins: [testPlugin] })
 

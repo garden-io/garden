@@ -10,6 +10,7 @@ import Bluebird from "bluebird"
 import { createGardenPlugin } from "../../types/plugin/plugin"
 import { ConftestProvider } from "./conftest"
 import { relative, resolve } from "path"
+import { dedent } from "../../util/string"
 
 /**
  * Auto-generates a conftest module for each helm and kubernetes module in your project
@@ -18,6 +19,17 @@ export const gardenPlugin = createGardenPlugin({
   name: "conftest-kubernetes",
   base: "conftest",
   dependencies: ["kubernetes"],
+  docs: dedent`
+    This provider automatically generates [conftest modules](../module-types/conftest.md) for \`kubernetes\` and
+    \`helm\` modules in your project. A \`conftest\` module is created for each of those module types.
+
+    Simply add this provider to your project configuration, and configure your policies. Check out the below
+    reference for how to configure default policies, default namespaces, and test failure thresholds for the generated
+    modules.
+
+    See the [conftest example project](https://github.com/garden-io/garden/tree/master/examples/conftest) for a simple
+    usage example.
+  `,
   handlers: {
     augmentGraph: async ({ ctx, modules }) => {
       const provider = ctx.provider as ConftestProvider

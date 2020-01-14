@@ -1,14 +1,18 @@
 ---
-title: Openfaas
+title: openfaas
 ---
 
-# `openfaas` reference
+# `openfaas` Provider
+
+
+
+## Reference
 
 Below is the schema reference for the `openfaas` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../guides/configuration-files.md).
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
-## Complete YAML schema
+### Complete YAML Schema
 
 The values in the schema below are the default values.
 
@@ -51,15 +55,15 @@ providers:
       # your use case.
       values:
 ```
-## Configuration keys
+### Configuration Keys
 
-### `providers`
+#### `providers`
 
 | Type            | Required | Default |
 | --------------- | -------- | ------- |
 | `array[object]` | No       | `[]`    |
 
-### `providers[].environments[]`
+#### `providers[].environments[]`
 
 [providers](#providers) > environments
 
@@ -78,7 +82,7 @@ providers:
     - stage
 ```
 
-### `providers[].name`
+#### `providers[].name`
 
 [providers](#providers) > name
 
@@ -95,7 +99,7 @@ providers:
   - name: "openfaas"
 ```
 
-### `providers[].gatewayUrl`
+#### `providers[].gatewayUrl`
 
 [providers](#providers) > gatewayUrl
 
@@ -113,7 +117,7 @@ providers:
   - gatewayUrl: "https://functions.mydomain.com"
 ```
 
-### `providers[].hostname`
+#### `providers[].hostname`
 
 [providers](#providers) > hostname
 
@@ -134,7 +138,7 @@ providers:
   - hostname: "functions.mydomain.com"
 ```
 
-### `providers[].faasNetes`
+#### `providers[].faasNetes`
 
 [providers](#providers) > faasNetes
 
@@ -142,7 +146,7 @@ providers:
 | -------- | -------- | ------------------ |
 | `object` | No       | `{"install":true}` |
 
-### `providers[].faasNetes.install`
+#### `providers[].faasNetes.install`
 
 [providers](#providers) > [faasNetes](#providersfaasnetes) > install
 
@@ -153,7 +157,7 @@ See the [official instructions](https://docs.openfaas.com/deployment/kubernetes/
 | --------- | -------- | ------- |
 | `boolean` | No       | `true`  |
 
-### `providers[].faasNetes.values`
+#### `providers[].faasNetes.values`
 
 [providers](#providers) > [faasNetes](#providersfaasnetes) > values
 

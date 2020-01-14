@@ -10,6 +10,7 @@ import { dedent } from "../../../../../src/util/string"
 import { TestTask } from "../../../../../src/tasks/test"
 import { writeFile, remove, pathExists } from "fs-extra"
 import { join } from "path"
+import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
 
 describe("hadolint provider", () => {
   let tmpDir: tmp.DirectoryResult
@@ -96,7 +97,7 @@ describe("hadolint provider", () => {
   })
 
   it("should add a hadolint module for module types inheriting from container", async () => {
-    const foo = {
+    const foo = createGardenPlugin({
       name: "foo",
       dependencies: ["container"],
       createModuleTypes: [
@@ -107,7 +108,7 @@ describe("hadolint provider", () => {
           handlers: {},
         },
       ],
-    }
+    })
 
     const garden = await Garden.factory(tmpPath, {
       plugins: [foo],

@@ -1,12 +1,12 @@
 import { expect } from "chai"
 import { ProviderConfig, getAllProviderDependencyNames } from "../../../../src/config/provider"
 import { expectError } from "../../../helpers"
-import { GardenPlugin } from "../../../../src/types/plugin/plugin"
+import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
 
 describe("getProviderDependencies", () => {
-  const plugin: GardenPlugin = {
+  const plugin = createGardenPlugin({
     name: "test",
-  }
+  })
 
   it("should extract implicit provider dependencies from template strings", async () => {
     const config: ProviderConfig = {

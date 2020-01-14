@@ -2,7 +2,7 @@ import { join } from "path"
 import { Garden } from "../../../../src/garden"
 import { CallCommand } from "../../../../src/commands/call"
 import { expect } from "chai"
-import { GardenPlugin } from "../../../../src/types/plugin/plugin"
+import { GardenPlugin, createGardenPlugin } from "../../../../src/types/plugin/plugin"
 import { GetServiceStatusParams } from "../../../../src/types/plugin/service/getServiceStatus"
 import { ServiceStatus } from "../../../../src/types/service"
 import nock = require("nock")
@@ -73,7 +73,7 @@ function makeTestProvider(serviceStatuses: { [key: string]: ServiceStatus }): Ga
     return serviceStatuses[params.service.name] || {}
   }
 
-  return {
+  return createGardenPlugin({
     name: "test-plugin",
     createModuleTypes: [
       {
@@ -86,7 +86,7 @@ function makeTestProvider(serviceStatuses: { [key: string]: ServiceStatus }): Ga
         },
       },
     ],
-  }
+  })
 }
 
 describe("commands.call", () => {

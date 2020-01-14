@@ -1,14 +1,26 @@
 ---
-title: Local Kubernetes
+title: local-kubernetes
 ---
 
-# `local-kubernetes` reference
+# `local-kubernetes` Provider
+
+The `local-kubernetes` provider is a specialized version of the [`kubernetes` provider](./kubernetes.md) that
+automates and simplifies working with local Kubernetes clusters.
+
+For general Kubernetes usage information, please refer to the [guides section](../guides/README.md). For local
+clusters a good place to start is the [Local Kubernetes guide](../guides/local-kubernetes.md) guide.
+The [demo-project](../examples/demo-project.md) example project and guide is also helpful as an introduction.
+
+If you're working with a remote Kubernetes cluster, please refer to the [`kubernetes` provider](./kubernetes.md)
+docs, and the [Remote Kubernetes guide](../guides/remote-kubernetes.md) guide.
+
+## Reference
 
 Below is the schema reference for the `local-kubernetes` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../guides/configuration-files.md).
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
-## Complete YAML schema
+### Complete YAML Schema
 
 The values in the schema below are the default values.
 
@@ -286,15 +298,15 @@ providers:
     # Set this to null or false to skip installing/enabling the `nginx` ingress controller.
     setupIngressController: nginx
 ```
-## Configuration keys
+### Configuration Keys
 
-### `providers`
+#### `providers`
 
 | Type            | Required | Default |
 | --------------- | -------- | ------- |
 | `array[object]` | No       | `[]`    |
 
-### `providers[].environments[]`
+#### `providers[].environments[]`
 
 [providers](#providers) > environments
 
@@ -313,7 +325,7 @@ providers:
     - stage
 ```
 
-### `providers[].buildMode`
+#### `providers[].buildMode`
 
 [providers](#providers) > buildMode
 
@@ -337,7 +349,7 @@ this is less secure than Kaniko, but in turn it is generally faster. See the
 | -------- | -------- | ---------------- |
 | `string` | No       | `"local-docker"` |
 
-### `providers[].clusterDocker`
+#### `providers[].clusterDocker`
 
 [providers](#providers) > clusterDocker
 
@@ -347,7 +359,7 @@ Configuration options for the `cluster-docker` build mode.
 | -------- | -------- |
 | `object` | No       |
 
-### `providers[].clusterDocker.enableBuildKit`
+#### `providers[].clusterDocker.enableBuildKit`
 
 [providers](#providers) > [clusterDocker](#providersclusterdocker) > enableBuildKit
 
@@ -357,7 +369,7 @@ Enable [BuildKit](https://github.com/moby/buildkit) support. This should in most
 | --------- | -------- | ------- |
 | `boolean` | No       | `false` |
 
-### `providers[].defaultHostname`
+#### `providers[].defaultHostname`
 
 [providers](#providers) > defaultHostname
 
@@ -374,7 +386,7 @@ providers:
   - defaultHostname: "api.mydomain.com"
 ```
 
-### `providers[].defaultUsername`
+#### `providers[].defaultUsername`
 
 [providers](#providers) > defaultUsername
 
@@ -384,7 +396,7 @@ Set a default username (used for namespacing within a cluster).
 | -------- | -------- |
 | `string` | No       |
 
-### `providers[].deploymentStrategy`
+#### `providers[].deploymentStrategy`
 
 [providers](#providers) > deploymentStrategy
 
@@ -396,7 +408,7 @@ The feature only supports modules of type `container`: other types will just dep
 | -------- | -------- | ----------- |
 | `string` | No       | `"rolling"` |
 
-### `providers[].forceSsl`
+#### `providers[].forceSsl`
 
 [providers](#providers) > forceSsl
 
@@ -406,7 +418,7 @@ Require SSL on all `container` module services. If set to true, an error is rais
 | --------- | -------- | ------- |
 | `boolean` | No       | `false` |
 
-### `providers[].imagePullSecrets[]`
+#### `providers[].imagePullSecrets[]`
 
 [providers](#providers) > imagePullSecrets
 
@@ -418,7 +430,7 @@ when configuring a remote Kubernetes environment with buildMode=local.
 | --------------- | -------- | ------- |
 | `array[object]` | No       | `[]`    |
 
-### `providers[].imagePullSecrets[].name`
+#### `providers[].imagePullSecrets[].name`
 
 [providers](#providers) > [imagePullSecrets](#providersimagepullsecrets) > name
 
@@ -436,7 +448,7 @@ providers:
       - name: "my-secret"
 ```
 
-### `providers[].imagePullSecrets[].namespace`
+#### `providers[].imagePullSecrets[].namespace`
 
 [providers](#providers) > [imagePullSecrets](#providersimagepullsecrets) > namespace
 
@@ -446,7 +458,7 @@ The namespace where the secret is stored. If necessary, the secret may be copied
 | -------- | -------- | ----------- |
 | `string` | No       | `"default"` |
 
-### `providers[].resources`
+#### `providers[].resources`
 
 [providers](#providers) > resources
 
@@ -456,7 +468,7 @@ Resource requests and limits for the in-cluster builder, container registry and 
 | -------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `object` | No       | `{"builder":{"limits":{"cpu":4000,"memory":8192},"requests":{"cpu":200,"memory":512}},"registry":{"limits":{"cpu":2000,"memory":4096},"requests":{"cpu":200,"memory":512}},"sync":{"limits":{"cpu":500,"memory":512},"requests":{"cpu":100,"memory":64}}}` |
 
-### `providers[].resources.builder`
+#### `providers[].resources.builder`
 
 [providers](#providers) > [resources](#providersresources) > builder
 
@@ -473,7 +485,7 @@ limits/requests, but you should evaluate based on your needs.
 | -------- | -------- | --------------------------------------------------------------------------- |
 | `object` | No       | `{"limits":{"cpu":4000,"memory":8192},"requests":{"cpu":200,"memory":512}}` |
 
-### `providers[].resources.builder.limits`
+#### `providers[].resources.builder.limits`
 
 [providers](#providers) > [resources](#providersresources) > [builder](#providersresourcesbuilder) > limits
 
@@ -481,7 +493,7 @@ limits/requests, but you should evaluate based on your needs.
 | -------- | -------- | ---------------------------- |
 | `object` | No       | `{"cpu":4000,"memory":8192}` |
 
-### `providers[].resources.builder.limits.cpu`
+#### `providers[].resources.builder.limits.cpu`
 
 [providers](#providers) > [resources](#providersresources) > [builder](#providersresourcesbuilder) > [limits](#providersresourcesbuilderlimits) > cpu
 
@@ -504,7 +516,7 @@ providers:
           cpu: 4000
 ```
 
-### `providers[].resources.builder.limits.memory`
+#### `providers[].resources.builder.limits.memory`
 
 [providers](#providers) > [resources](#providersresources) > [builder](#providersresourcesbuilder) > [limits](#providersresourcesbuilderlimits) > memory
 
@@ -527,7 +539,7 @@ providers:
           memory: 8192
 ```
 
-### `providers[].resources.builder.requests`
+#### `providers[].resources.builder.requests`
 
 [providers](#providers) > [resources](#providersresources) > [builder](#providersresourcesbuilder) > requests
 
@@ -535,7 +547,7 @@ providers:
 | -------- | -------- | -------------------------- |
 | `object` | No       | `{"cpu":200,"memory":512}` |
 
-### `providers[].resources.builder.requests.cpu`
+#### `providers[].resources.builder.requests.cpu`
 
 [providers](#providers) > [resources](#providersresources) > [builder](#providersresourcesbuilder) > [requests](#providersresourcesbuilderrequests) > cpu
 
@@ -558,7 +570,7 @@ providers:
           cpu: 200
 ```
 
-### `providers[].resources.builder.requests.memory`
+#### `providers[].resources.builder.requests.memory`
 
 [providers](#providers) > [resources](#providersresources) > [builder](#providersresourcesbuilder) > [requests](#providersresourcesbuilderrequests) > memory
 
@@ -581,7 +593,7 @@ providers:
           memory: 512
 ```
 
-### `providers[].resources.registry`
+#### `providers[].resources.registry`
 
 [providers](#providers) > [resources](#providersresources) > registry
 
@@ -595,7 +607,7 @@ in how many concurrent builds you expect and how large your images tend to be.
 | -------- | -------- | --------------------------------------------------------------------------- |
 | `object` | No       | `{"limits":{"cpu":2000,"memory":4096},"requests":{"cpu":200,"memory":512}}` |
 
-### `providers[].resources.registry.limits`
+#### `providers[].resources.registry.limits`
 
 [providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > limits
 
@@ -603,7 +615,7 @@ in how many concurrent builds you expect and how large your images tend to be.
 | -------- | -------- | ---------------------------- |
 | `object` | No       | `{"cpu":2000,"memory":4096}` |
 
-### `providers[].resources.registry.limits.cpu`
+#### `providers[].resources.registry.limits.cpu`
 
 [providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > [limits](#providersresourcesregistrylimits) > cpu
 
@@ -626,7 +638,7 @@ providers:
           cpu: 2000
 ```
 
-### `providers[].resources.registry.limits.memory`
+#### `providers[].resources.registry.limits.memory`
 
 [providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > [limits](#providersresourcesregistrylimits) > memory
 
@@ -649,7 +661,7 @@ providers:
           memory: 4096
 ```
 
-### `providers[].resources.registry.requests`
+#### `providers[].resources.registry.requests`
 
 [providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > requests
 
@@ -657,7 +669,7 @@ providers:
 | -------- | -------- | -------------------------- |
 | `object` | No       | `{"cpu":200,"memory":512}` |
 
-### `providers[].resources.registry.requests.cpu`
+#### `providers[].resources.registry.requests.cpu`
 
 [providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > [requests](#providersresourcesregistryrequests) > cpu
 
@@ -680,7 +692,7 @@ providers:
           cpu: 200
 ```
 
-### `providers[].resources.registry.requests.memory`
+#### `providers[].resources.registry.requests.memory`
 
 [providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > [requests](#providersresourcesregistryrequests) > memory
 
@@ -703,7 +715,7 @@ providers:
           memory: 512
 ```
 
-### `providers[].resources.sync`
+#### `providers[].resources.sync`
 
 [providers](#providers) > [resources](#providersresources) > sync
 
@@ -715,7 +727,7 @@ defaults if you have many concurrent users.
 | -------- | -------- | ------------------------------------------------------------------------ |
 | `object` | No       | `{"limits":{"cpu":500,"memory":512},"requests":{"cpu":100,"memory":64}}` |
 
-### `providers[].resources.sync.limits`
+#### `providers[].resources.sync.limits`
 
 [providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > limits
 
@@ -723,7 +735,7 @@ defaults if you have many concurrent users.
 | -------- | -------- | -------------------------- |
 | `object` | No       | `{"cpu":500,"memory":512}` |
 
-### `providers[].resources.sync.limits.cpu`
+#### `providers[].resources.sync.limits.cpu`
 
 [providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > [limits](#providersresourcessynclimits) > cpu
 
@@ -746,7 +758,7 @@ providers:
           cpu: 500
 ```
 
-### `providers[].resources.sync.limits.memory`
+#### `providers[].resources.sync.limits.memory`
 
 [providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > [limits](#providersresourcessynclimits) > memory
 
@@ -769,7 +781,7 @@ providers:
           memory: 512
 ```
 
-### `providers[].resources.sync.requests`
+#### `providers[].resources.sync.requests`
 
 [providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > requests
 
@@ -777,7 +789,7 @@ providers:
 | -------- | -------- | ------------------------- |
 | `object` | No       | `{"cpu":100,"memory":64}` |
 
-### `providers[].resources.sync.requests.cpu`
+#### `providers[].resources.sync.requests.cpu`
 
 [providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > [requests](#providersresourcessyncrequests) > cpu
 
@@ -800,7 +812,7 @@ providers:
           cpu: 100
 ```
 
-### `providers[].resources.sync.requests.memory`
+#### `providers[].resources.sync.requests.memory`
 
 [providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > [requests](#providersresourcessyncrequests) > memory
 
@@ -823,7 +835,7 @@ providers:
           memory: 64
 ```
 
-### `providers[].storage`
+#### `providers[].storage`
 
 [providers](#providers) > storage
 
@@ -837,7 +849,7 @@ factoring in how many concurrent builds you expect and how large your images and
 | -------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `object` | No       | `{"builder":{"size":20480,"storageClass":null},"nfs":{"storageClass":null},"registry":{"size":20480,"storageClass":null},"sync":{"size":10240,"storageClass":null}}` |
 
-### `providers[].storage.builder`
+#### `providers[].storage.builder`
 
 [providers](#providers) > [storage](#providersstorage) > builder
 
@@ -849,7 +861,7 @@ Only applies when `buildMode` is set to `cluster-docker`, ignored otherwise.
 | -------- | -------- | ------------------------------------ |
 | `object` | No       | `{"size":20480,"storageClass":null}` |
 
-### `providers[].storage.builder.size`
+#### `providers[].storage.builder.size`
 
 [providers](#providers) > [storage](#providersstorage) > [builder](#providersstoragebuilder) > size
 
@@ -859,7 +871,7 @@ Volume size in megabytes.
 | -------- | -------- | ------- |
 | `number` | No       | `20480` |
 
-### `providers[].storage.builder.storageClass`
+#### `providers[].storage.builder.storageClass`
 
 [providers](#providers) > [storage](#providersstorage) > [builder](#providersstoragebuilder) > storageClass
 
@@ -869,7 +881,7 @@ Storage class to use for the volume.
 | -------- | -------- | ------- |
 | `string` | No       | `null`  |
 
-### `providers[].storage.nfs`
+#### `providers[].storage.nfs`
 
 [providers](#providers) > [storage](#providersstorage) > nfs
 
@@ -882,7 +894,7 @@ Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored ot
 | -------- | -------- | ----------------------- |
 | `object` | No       | `{"storageClass":null}` |
 
-### `providers[].storage.nfs.storageClass`
+#### `providers[].storage.nfs.storageClass`
 
 [providers](#providers) > [storage](#providersstorage) > [nfs](#providersstoragenfs) > storageClass
 
@@ -892,7 +904,7 @@ Storage class to use as backing storage for NFS .
 | -------- | -------- | ------- |
 | `string` | No       | `null`  |
 
-### `providers[].storage.registry`
+#### `providers[].storage.registry`
 
 [providers](#providers) > [storage](#providersstorage) > registry
 
@@ -905,7 +917,7 @@ Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored ot
 | -------- | -------- | ------------------------------------ |
 | `object` | No       | `{"size":20480,"storageClass":null}` |
 
-### `providers[].storage.registry.size`
+#### `providers[].storage.registry.size`
 
 [providers](#providers) > [storage](#providersstorage) > [registry](#providersstorageregistry) > size
 
@@ -915,7 +927,7 @@ Volume size in megabytes.
 | -------- | -------- | ------- |
 | `number` | No       | `20480` |
 
-### `providers[].storage.registry.storageClass`
+#### `providers[].storage.registry.storageClass`
 
 [providers](#providers) > [storage](#providersstorage) > [registry](#providersstorageregistry) > storageClass
 
@@ -925,7 +937,7 @@ Storage class to use for the volume.
 | -------- | -------- | ------- |
 | `string` | No       | `null`  |
 
-### `providers[].storage.sync`
+#### `providers[].storage.sync`
 
 [providers](#providers) > [storage](#providersstorage) > sync
 
@@ -942,7 +954,7 @@ Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored ot
 | -------- | -------- | ------------------------------------ |
 | `object` | No       | `{"size":10240,"storageClass":null}` |
 
-### `providers[].storage.sync.size`
+#### `providers[].storage.sync.size`
 
 [providers](#providers) > [storage](#providersstorage) > [sync](#providersstoragesync) > size
 
@@ -952,7 +964,7 @@ Volume size in megabytes.
 | -------- | -------- | ------- |
 | `number` | No       | `10240` |
 
-### `providers[].storage.sync.storageClass`
+#### `providers[].storage.sync.storageClass`
 
 [providers](#providers) > [storage](#providersstorage) > [sync](#providersstoragesync) > storageClass
 
@@ -962,7 +974,7 @@ Storage class to use for the volume.
 | -------- | -------- | ------- |
 | `string` | No       | `null`  |
 
-### `providers[].tlsCertificates[]`
+#### `providers[].tlsCertificates[]`
 
 [providers](#providers) > tlsCertificates
 
@@ -972,7 +984,7 @@ One or more certificates to use for ingress.
 | --------------- | -------- | ------- |
 | `array[object]` | No       | `[]`    |
 
-### `providers[].tlsCertificates[].name`
+#### `providers[].tlsCertificates[].name`
 
 [providers](#providers) > [tlsCertificates](#providerstlscertificates) > name
 
@@ -990,7 +1002,7 @@ providers:
       - name: "www"
 ```
 
-### `providers[].tlsCertificates[].hostnames[]`
+#### `providers[].tlsCertificates[].hostnames[]`
 
 [providers](#providers) > [tlsCertificates](#providerstlscertificates) > hostnames
 
@@ -1009,7 +1021,7 @@ providers:
         - www.mydomain.com
 ```
 
-### `providers[].tlsCertificates[].secretRef`
+#### `providers[].tlsCertificates[].secretRef`
 
 [providers](#providers) > [tlsCertificates](#providerstlscertificates) > secretRef
 
@@ -1029,7 +1041,7 @@ providers:
           namespace: default
 ```
 
-### `providers[].tlsCertificates[].secretRef.name`
+#### `providers[].tlsCertificates[].secretRef.name`
 
 [providers](#providers) > [tlsCertificates](#providerstlscertificates) > [secretRef](#providerstlscertificatessecretref) > name
 
@@ -1051,7 +1063,7 @@ providers:
           name: "my-secret"
 ```
 
-### `providers[].tlsCertificates[].secretRef.namespace`
+#### `providers[].tlsCertificates[].secretRef.namespace`
 
 [providers](#providers) > [tlsCertificates](#providerstlscertificates) > [secretRef](#providerstlscertificatessecretref) > namespace
 
@@ -1061,7 +1073,7 @@ The namespace where the secret is stored. If necessary, the secret may be copied
 | -------- | -------- | ----------- |
 | `string` | No       | `"default"` |
 
-### `providers[].tlsCertificates[].managedBy`
+#### `providers[].tlsCertificates[].managedBy`
 
 [providers](#providers) > [tlsCertificates](#providerstlscertificates) > managedBy
 
@@ -1081,7 +1093,7 @@ providers:
       - managedBy: "cert-manager"
 ```
 
-### `providers[].certManager`
+#### `providers[].certManager`
 
 [providers](#providers) > certManager
 
@@ -1092,7 +1104,7 @@ cert-manager configuration, for creating and managing TLS certificates. See the
 | -------- | -------- |
 | `object` | No       |
 
-### `providers[].certManager.install`
+#### `providers[].certManager.install`
 
 [providers](#providers) > [certManager](#providerscertmanager) > install
 
@@ -1103,7 +1115,7 @@ Automatically install `cert-manager` on initialization. See the
 | --------- | -------- | ------- |
 | `boolean` | No       | `false` |
 
-### `providers[].certManager.email`
+#### `providers[].certManager.email`
 
 [providers](#providers) > [certManager](#providerscertmanager) > email
 
@@ -1122,7 +1134,7 @@ providers:
       email: "yourname@example.com"
 ```
 
-### `providers[].certManager.issuer`
+#### `providers[].certManager.issuer`
 
 [providers](#providers) > [certManager](#providerscertmanager) > issuer
 
@@ -1141,7 +1153,7 @@ providers:
       issuer: "acme"
 ```
 
-### `providers[].certManager.acmeServer`
+#### `providers[].certManager.acmeServer`
 
 [providers](#providers) > [certManager](#providerscertmanager) > acmeServer
 
@@ -1160,7 +1172,7 @@ providers:
       acmeServer: "letsencrypt-staging"
 ```
 
-### `providers[].certManager.acmeChallengeType`
+#### `providers[].certManager.acmeChallengeType`
 
 [providers](#providers) > [certManager](#providerscertmanager) > acmeChallengeType
 
@@ -1179,7 +1191,7 @@ providers:
       acmeChallengeType: "HTTP-01"
 ```
 
-### `providers[].registryProxyTolerations[]`
+#### `providers[].registryProxyTolerations[]`
 
 [providers](#providers) > registryProxyTolerations
 
@@ -1193,7 +1205,7 @@ have [taints](https://kubernetes.io/docs/concepts/configuration/taint-and-tolera
 | --------------- | -------- | ------- |
 | `array[object]` | No       | `[]`    |
 
-### `providers[].registryProxyTolerations[].effect`
+#### `providers[].registryProxyTolerations[].effect`
 
 [providers](#providers) > [registryProxyTolerations](#providersregistryproxytolerations) > effect
 
@@ -1204,7 +1216,7 @@ allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
 | -------- | -------- |
 | `string` | No       |
 
-### `providers[].registryProxyTolerations[].key`
+#### `providers[].registryProxyTolerations[].key`
 
 [providers](#providers) > [registryProxyTolerations](#providersregistryproxytolerations) > key
 
@@ -1215,7 +1227,7 @@ If the key is empty, operator must be "Exists"; this combination means to match 
 | -------- | -------- |
 | `string` | No       |
 
-### `providers[].registryProxyTolerations[].operator`
+#### `providers[].registryProxyTolerations[].operator`
 
 [providers](#providers) > [registryProxyTolerations](#providersregistryproxytolerations) > operator
 
@@ -1227,7 +1239,7 @@ particular category.
 | -------- | -------- | --------- |
 | `string` | No       | `"Equal"` |
 
-### `providers[].registryProxyTolerations[].tolerationSeconds`
+#### `providers[].registryProxyTolerations[].tolerationSeconds`
 
 [providers](#providers) > [registryProxyTolerations](#providersregistryproxytolerations) > tolerationSeconds
 
@@ -1240,7 +1252,7 @@ by the system.
 | -------- | -------- |
 | `string` | No       |
 
-### `providers[].registryProxyTolerations[].value`
+#### `providers[].registryProxyTolerations[].value`
 
 [providers](#providers) > [registryProxyTolerations](#providersregistryproxytolerations) > value
 
@@ -1251,7 +1263,7 @@ otherwise just a regular string.
 | -------- | -------- |
 | `string` | No       |
 
-### `providers[].name`
+#### `providers[].name`
 
 [providers](#providers) > name
 
@@ -1268,7 +1280,7 @@ providers:
   - name: "local-kubernetes"
 ```
 
-### `providers[].context`
+#### `providers[].context`
 
 [providers](#providers) > context
 
@@ -1285,7 +1297,7 @@ providers:
   - context: "my-dev-context"
 ```
 
-### `providers[].namespace`
+#### `providers[].namespace`
 
 [providers](#providers) > namespace
 
@@ -1295,7 +1307,7 @@ Specify which namespace to deploy services to (defaults to the project name). No
 | -------- | -------- |
 | `string` | No       |
 
-### `providers[].setupIngressController`
+#### `providers[].setupIngressController`
 
 [providers](#providers) > setupIngressController
 
@@ -1306,17 +1318,17 @@ Set this to null or false to skip installing/enabling the `nginx` ingress contro
 | `string` | No       | `"nginx"` |
 
 
-## Outputs
+### Outputs
 
 The following keys are available via the `${providers.<provider-name>}` template string key for `local-kubernetes` providers.
 
-### `${providers.<provider-name>.outputs}`
+#### `${providers.<provider-name>.outputs}`
 
 | Type     | Required |
 | -------- | -------- |
 | `object` | Yes      |
 
-### `${providers.<provider-name>.outputs.app-namespace}`
+#### `${providers.<provider-name>.outputs.app-namespace}`
 
 [outputs](#outputs) > app-namespace
 
@@ -1326,7 +1338,7 @@ The primary namespace used for resource deployments.
 | -------- | -------- |
 | `string` | Yes      |
 
-### `${providers.<provider-name>.outputs.default-hostname}`
+#### `${providers.<provider-name>.outputs.default-hostname}`
 
 [outputs](#outputs) > default-hostname
 
@@ -1336,7 +1348,7 @@ The default hostname configured on the provider.
 | -------- | -------- |
 | `string` | No       |
 
-### `${providers.<provider-name>.outputs.metadata-namespace}`
+#### `${providers.<provider-name>.outputs.metadata-namespace}`
 
 [outputs](#outputs) > metadata-namespace
 
