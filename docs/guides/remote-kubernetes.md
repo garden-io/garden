@@ -13,6 +13,12 @@ not yet completed.
 Our [cloud provider setup guide](./cloud-provider-setup.md) includes instructions for getting started with a few prominent
 hosted Kubernetes providers, and for configuring your Garden project to connect with them.
 
+## Requirements
+
+Garden is committed to supporting the _latest six_ stable versions of Kubernetes (i.e. if the latest stable version is v1.17.x, Garden supports v1.12.x and newer). Any conformant cluster should work fine.
+
+Using [in-cluster building](./in-cluster-building.md) introduces additional requirements. Please look at the [in-cluster building guide](./in-cluster-building.md) for details.
+
 ## Connecting to the cluster
 
 Start by making sure you have a [kubectl context](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/)

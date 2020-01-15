@@ -3,23 +3,35 @@ title: Local Kubernetes
 ---
 # Local Kubernetes clusters
 
-Garden works great with local Kubernetes "clusters". Below you'll find installation and usage instructions for some
+Garden works great with local Kubernetes "clusters". Below you'll find requirements, installation and usage instructions for some
 common flavors of local Kubernetes setups, such as Minikube, Docker for Desktop and MicroK8s.
+
+## Requirements
+
+Garden is committed to supporting the _latest six_ stable versions of Kubernetes (i.e. if the latest stable version is v1.17.x, Garden supports v1.12.x and newer).
+
+The officially supported variants of local Kubernetes are the latest stable versions of
+
+- [Docker Desktop](https://docs.docker.com/engine)
+- [Minikube](https://github.com/kubernetes/minikube)
+- [MicroK8s](https://microk8s.io)
+- [KinD](https://github.com/kubernetes-sigs/kind)
+
+Other distributions may also work, but are not routinely tested or explicitly supported. Please don't hesitate to file issues, PRs or requests for your distribution of choice!
+
+For any variant that runs in a VM on your machine (such as Docker Desktop and Minikube), we recommend tuning the size of the VM (in terms of CPU and RAM) to your needs, which will vary by the weight of the project(s) you're running.
 
 ## Installation
 
-### Docker for Desktop
+### Docker Desktop
 
-[Docker for Desktop](https://docs.docker.com/engine) is our recommended option for local Kubernetes on Mac and Windows.
+[Docker Desktop](https://docs.docker.com/engine) is our recommended option for local Kubernetes on Mac and Windows.
 
-Please refer to their [installation guide](https://docs.docker.com/engine/installation/) for how to download and install
-it (which is a pretty simple process).
+Please refer to their [installation guide](https://docs.docker.com/engine/installation/) for how to download and install it (which is a pretty simple process).
 
-_Note: If you have an older version installed, you may need to update it in
-order to enable Kubernetes support._
+_Note: If you have an older version installed, you may need to update it in order to enable Kubernetes support._
 
-Once installed, open Docker for Mac's preferences, go to the Kubernetes section,
-tick `Enable Kubernetes` and save.
+Once installed, open Docker Desktop's preferences, go to the Kubernetes section, tick `Enable Kubernetes` and save.
 
 ### MicroK8s
 
