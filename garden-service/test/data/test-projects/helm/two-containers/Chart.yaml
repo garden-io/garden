@@ -1,0 +1,14 @@
+apiVersion: v1
+appVersion: "1.0"
+description: Helm chart with two containers
+name: two-containers
+version: 0.1.0
+image:
+  repository: busybox
+  tag: latest
+  pullPolicy: IfNotPresent
+service:
+  name: busybox
+  type: ClusterIP
+  externalPort: 80
+  internalPort: 80
