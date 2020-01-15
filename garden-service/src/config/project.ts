@@ -50,11 +50,7 @@ export const environmentConfigSchema = joi.object().keys({
         DEPRECATED - Please use the top-level \`providers\` field instead, and if needed use the \`environments\` key
         on the provider configurations to limit them to specific environments.
       `),
-  varfile: joi
-    .string()
-    .posixPath()
-    .default((context: any) => defaultEnvVarfilePath(context.name || "<env-name>"), defaultEnvVarfilePath("<env-name>"))
-    .description(dedent`
+  varfile: joi.posixPath().description(dedent`
         Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
         _environment-specific_ \`variables\` field. The file should be in a standard "dotenv" format, specified
         [here](https://github.com/motdotla/dotenv#rules).
@@ -165,7 +161,12 @@ export const projectRootSchema = joi.string().description("The path to the proje
 const projectModulesSchema = joi.object().keys({
   include: joi
     .array()
-    .items(joi.string().posixPath({ allowGlobs: true, subPathOnly: true }))
+    .items(
+      joi
+        .posixPath()
+        .allowGlobs()
+        .subPathOnly()
+    )
     .description(
       dedent`
         Specify a list of POSIX-style paths or globs that should be scanned for Garden modules.
@@ -180,10 +181,15 @@ const projectModulesSchema = joi.object().keys({
 
         Also note that specifying an empty list here means _no paths_ should be included.`
     )
-    .example([["modules/**/*"], {}]),
+    .example(["modules/**/*"]),
   exclude: joi
     .array()
-    .items(joi.string().posixPath({ allowGlobs: true, subPathOnly: true }))
+    .items(
+      joi
+        .posixPath()
+        .allowGlobs()
+        .subPathOnly()
+    )
     .description(
       dedent`
         Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for modules.
@@ -209,7 +215,7 @@ const projectModulesSchema = joi.object().keys({
         See the [Configuration Files guide](${includeGuideLink}) for details.
       `
     )
-    .example([["public/**/*", "tmp/**/*"], {}]),
+    .example(["public/**/*", "tmp/**/*"]),
 })
 
 export const projectSchema = joi
@@ -218,12 +224,12 @@ export const projectSchema = joi
     apiVersion: joi
       .string()
       .default(DEFAULT_API_VERSION)
-      .only(DEFAULT_API_VERSION)
+      .valid(DEFAULT_API_VERSION)
       .description("The schema version of this project's config (currently not used)."),
     kind: joi
       .string()
       .default("Project")
-      .only("Project"),
+      .valid("Project"),
     path: projectRootSchema.meta({ internal: true }),
     configPath: joi
       .string()
@@ -233,10 +239,11 @@ export const projectSchema = joi
     defaultEnvironment: joi
       .string()
       .allow("")
-      .default("", "<first specified environment>")
-      .description("The default environment to use when calling commands without the `--env` parameter."),
-    dotIgnoreFiles: joiArray(joi.string().posixPath({ filenameOnly: true })).default(defaultDotIgnoreFiles)
-      .description(deline`
+      .default("").description(deline`
+        The default environment to use when calling commands without the \`--env\` parameter.
+        Defaults to the first configured environment.
+      `),
+    dotIgnoreFiles: joiArray(joi.posixPath().filenameOnly()).default(defaultDotIgnoreFiles).description(deline`
         Specify a list of filenames that should be used as ".ignore" files across the project, using the same syntax and
         semantics as \`.gitignore\` files. By default, patterns matched in \`.gitignore\` and \`.gardenignore\`
         files, found anywhere in the project, are ignored when scanning for modules and module sources.
@@ -250,17 +257,14 @@ export const projectSchema = joi
       `),
     environments: environmentsSchema
       .description("A list of environments to configure for the project.")
-      .example([defaultEnvironments, {}]),
+      .example(defaultEnvironments),
     modules: projectModulesSchema,
     providers: joiArray(providerConfigBaseSchema).description(
       "A list of providers that should be used for this project, and their configuration. " +
         "Please refer to individual plugins/providers for details on how to configure them."
     ),
     sources: projectSourcesSchema,
-    varfile: joi
-      .string()
-      .posixPath()
-      .default(defaultVarfilePath).description(dedent`
+    varfile: joi.posixPath().default(defaultVarfilePath).description(dedent`
         Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
         project-wide \`variables\` field. The file should be in a standard "dotenv" format, specified
         [here](https://github.com/motdotla/dotenv#rules).

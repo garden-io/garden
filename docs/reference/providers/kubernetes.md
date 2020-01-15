@@ -365,9 +365,9 @@ this is less secure than Kaniko, but in turn it is generally faster. See the
 
 Configuration options for the `cluster-docker` build mode.
 
-| Type     | Required | Default |
-| -------- | -------- | ------- |
-| `object` | No       | `"{}"`  |
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
 
 ### `providers[].clusterDocker.enableBuildKit`
 
@@ -409,7 +409,6 @@ Set a default username (used for namespacing within a cluster).
 ### `providers[].deploymentStrategy`
 
 [providers](#providers) > deploymentStrategy
-> ⚠️ **Experimental**: this is an experimental feature and the API might change in the future.  
 
 Defines the strategy for deploying the project services.
 Default is "rolling update" and there is experimental support for "blue/green" deployment.
@@ -1010,7 +1009,7 @@ Example:
 ```yaml
 providers:
   - tlsCertificates:
-      - name: "wildcard"
+      - name: "www"
 ```
 
 ### `providers[].tlsCertificates[].hostnames[]`
@@ -1403,9 +1402,9 @@ The external HTTPS port of the cluster's ingress controller.
 
 Path to kubeconfig file to use instead of the system default. Must be a POSIX-style path.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | No       |
 
 ### `providers[].namespace`
 

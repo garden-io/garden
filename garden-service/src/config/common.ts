@@ -7,7 +7,6 @@
  */
 
 import Joi from "@hapi/joi"
-import { JoiObject } from "@hapi/joi"
 import { splitLast } from "../util/util"
 import isGitUrl from "is-git-url"
 import { deline, dedent } from "../util/string"
@@ -32,18 +31,6 @@ export const includeGuideLink =
   "https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories"
 
 export const enumToArray = (Enum) => Object.values(Enum).filter((k) => typeof k === "string") as string[]
-
-interface JoiGitUrlParams {
-  requireHash?: boolean
-}
-
-interface JoiPosixPathParams {
-  absoluteOnly?: boolean
-  allowGlobs?: boolean
-  relativeOnly?: boolean
-  subPathOnly?: boolean
-  filenameOnly?: boolean
-}
 
 // Extend the Joi module with our custom rules
 interface MetadataKeys {
@@ -93,8 +80,6 @@ declare module "@hapi/joi" {
 
   export interface StringSchema {
     meta(keys: MetadataKeys): this
-    gitUrl: (params: JoiGitUrlParams) => this
-    posixPath: (params?: JoiPosixPathParams) => this
   }
 
   export interface LazySchema {
@@ -102,113 +87,158 @@ declare module "@hapi/joi" {
   }
 }
 
-export const joi: Joi.Root = Joi.extend({
+export interface GitUrlSchema extends Joi.StringSchema {
+  requireHash(): this
+}
+
+export interface PosixPathSchema extends Joi.StringSchema {
+  absoluteOnly(): this
+  allowGlobs(): this
+  filenameOnly(): this
+  relativeOnly(): this
+  subPathOnly(): this
+}
+
+interface CustomJoi extends Joi.Root {
+  gitUrl: () => GitUrlSchema
+  posixPath: () => PosixPathSchema
+}
+
+export let joi: CustomJoi = Joi.extend({
   base: Joi.string(),
-  name: "string",
-  language: {
-    gitUrl: "must be a valid Git repository URL",
-    requireHash: "must specify a branch/tag hash",
-    posixPath: "must be a POSIX-style path", // Used below as 'string.posixPath'
-    absoluteOnly: "must be a an absolute path",
-    allowGlobs: "must not include globs (wildcards)",
-    relativeOnly: "must be a relative path (may not be an absolute path)",
-    subPathOnly: "must be a relative sub-path (may not contain '..' segments or be an absolute path)",
-    filenameOnly: "must be a filename (may not contain slashes)",
+  type: "posixPath",
+  flags: {
+    allowGlobs: { default: false },
   },
-  rules: [
-    {
-      name: "gitUrl",
-      params: {
-        options: Joi.object().keys({
-          requireHash: Joi.boolean().description("Only allow Git URLs with a branch/tag hash."),
-        }),
+  messages: {
+    base: "{{#label}} must be a POSIX-style path",
+    absoluteOnly: "{{#label}} must be a an absolute path",
+    allowGlobs: "{{#label}} must not include globs (wildcards)",
+    filenameOnly: "{{#label}} must be a filename (may not contain slashes)",
+    relativeOnly: "{{#label}} must be a relative path (may not be an absolute path)",
+    subPathOnly: "{{#label}} must be a relative sub-path (may not contain '..' segments or be an absolute path)",
+  },
+  validate(value, { schema, error }) {
+    // Note: This relativeOnly param is in the context of URLs.
+    // Our own relativeOnly param is in the context of file paths.
+    const baseSchema = Joi.string().uri({ relativeOnly: true })
+    const result = baseSchema.validate(value)
+
+    if (result.error) {
+      return { value, errors: error("posixPath") }
+    }
+
+    if (!schema.$_getFlag("allowGlobs") && (value.includes("*") || value.includes("?"))) {
+      return { value, errors: error("allowGlobs") }
+    }
+
+    return { value }
+  },
+  rules: {
+    allowGlobs: {
+      method() {
+        // tslint:disable-next-line: no-invalid-this
+        return this.$_setFlag("allowGlobs", true)
       },
-      validate(params: { options?: JoiGitUrlParams }, value: string, state, prefs) {
-        // Make sure it's a string
-        const baseSchema = Joi.string()
-        const result = baseSchema.validate(value)
-
-        if (result.error) {
-          return result.error
-        }
-
-        if (!isGitUrl(value)) {
-          // tslint:disable-next-line:no-invalid-this
-          return this.createError("string.gitUrl", { v: value }, state, prefs)
-        }
-
-        if (params.options && params.options.requireHash === true) {
-          const url = splitLast(value, "#")[0]
-          if (!url) {
-            // tslint:disable-next-line:no-invalid-this
-            return this.createError("string.requireHash", { v: value }, state, prefs)
-          }
+      validate(value) {
+        // This is validated above ^
+        return value
+      },
+    },
+    absoluteOnly: {
+      method() {
+        // tslint:disable-next-line: no-invalid-this
+        return this.$_addRule("absoluteOnly")
+      },
+      validate(value, { error }) {
+        if (!value.startsWith("/")) {
+          return error("absoluteOnly")
         }
 
         return value
       },
     },
-    {
-      name: "posixPath",
-      params: {
-        options: Joi.object()
-          .keys({
-            absoluteOnly: Joi.boolean().description("Only allow absolute paths (starting with /)."),
-            allowGlobs: Joi.boolean().description("Allow globs (wildcards) in path."),
-            relativeOnly: Joi.boolean().description("Disallow absolute paths (starting with /)."),
-            subPathOnly: Joi.boolean().description(
-              "Only allow sub-paths. That is, disallow '..' path segments and absolute paths."
-            ),
-            filenameOnly: Joi.boolean().description("Only allow filenames. That is, disallow '/' in the path."),
-          })
-          .oxor("absoluteOnly", "relativeOnly")
-          .oxor("absoluteOnly", "filenameOnly")
-          .oxor("absoluteOnly", "subPathOnly"),
+    filenameOnly: {
+      method() {
+        // tslint:disable-next-line: no-invalid-this
+        return this.$_addRule("filenameOnly")
       },
-      validate(params: { options?: JoiPosixPathParams }, value: string, state, prefs) {
-        // Note: This relativeOnly param is in the context of URLs.
-        // Our own relativeOnly param is in the context of file paths.
-        const baseSchema = Joi.string().uri({ relativeOnly: true })
-        const result = baseSchema.validate(value)
-
-        if (result.error) {
-          // tslint:disable-next-line:no-invalid-this
-          return this.createError("string.posixPath", { v: value }, state, prefs)
+      validate(value, { error }) {
+        if (value.includes("/")) {
+          return error("filenameOnly")
         }
 
-        const options = params.options || {}
-
-        if (options.absoluteOnly) {
-          if (!value.startsWith("/")) {
-            // tslint:disable-next-line:no-invalid-this
-            return this.createError("string.absoluteOnly", { v: value }, state, prefs)
-          }
-        } else if (options.subPathOnly) {
-          if (value.startsWith("/") || value.split("/").includes("..")) {
-            // tslint:disable-next-line:no-invalid-this
-            return this.createError("string.subPathOnly", { v: value }, state, prefs)
-          }
-        } else if (options.relativeOnly) {
-          if (value.startsWith("/")) {
-            // tslint:disable-next-line:no-invalid-this
-            return this.createError("string.relativeOnly", { v: value }, state, prefs)
-          }
-        }
-
-        if (options.filenameOnly && value.includes("/")) {
-          // tslint:disable-next-line:no-invalid-this
-          return this.createError("string.filenameOnly", { v: value }, state, prefs)
-        }
-
-        if (!options.allowGlobs && (value.includes("*") || value.includes("?"))) {
-          // tslint:disable-next-line:no-invalid-this
-          return this.createError("string.allowGlobs", { v: value }, state, prefs)
-        }
-
-        return value // Everything is OK
+        return value
       },
     },
-  ],
+    relativeOnly: {
+      method() {
+        // tslint:disable-next-line: no-invalid-this
+        return this.$_addRule("relativeOnly")
+      },
+      validate(value, { error }) {
+        if (value.startsWith("/")) {
+          return error("relativeOnly")
+        }
+
+        return value
+      },
+    },
+    subPathOnly: {
+      method() {
+        // tslint:disable-next-line: no-invalid-this
+        return this.$_addRule("subPathOnly")
+      },
+      validate(value, { error }) {
+        if (value.startsWith("/") || value.split("/").includes("..")) {
+          return error("subPathOnly")
+        }
+
+        return value
+      },
+    },
+  },
+})
+
+// We're supposed to be able to chain extend calls
+joi = joi.extend({
+  base: Joi.string(),
+  type: "gitUrl",
+  messages: {
+    base: "{{#label}} must be a valid Git repository URL",
+    requireHash: "{{#label}} must specify a branch/tag hash",
+  },
+  validate(value: string, { error }) {
+    // Make sure it's a string
+    const baseSchema = Joi.string()
+    const result = baseSchema.validate(value)
+
+    if (result.error) {
+      return { value, errors: result.error }
+    }
+
+    if (!isGitUrl(value)) {
+      return { value, errors: error("gitUrl") }
+    }
+
+    return { value }
+  },
+  rules: {
+    requireHash: {
+      method() {
+        // tslint:disable-next-line: no-invalid-this
+        return this.$_addRule("requireHash")
+      },
+      validate(value, { error }) {
+        const url = splitLast(value, "#")[0]
+        if (!url) {
+          return error("requireHash")
+        }
+
+        return value
+      },
+    },
+  },
 })
 
 export const joiPrimitive = () =>
@@ -255,7 +285,12 @@ const moduleIncludeDescription = (extraDescription?: string) => {
 export const joiModuleIncludeDirective = (extraDescription?: string) =>
   joi
     .array()
-    .items(joi.string().posixPath({ allowGlobs: true, subPathOnly: true }))
+    .items(
+      joi
+        .posixPath()
+        .allowGlobs()
+        .subPathOnly()
+    )
     .description(moduleIncludeDescription(extraDescription))
 
 export const joiIdentifier = () =>
@@ -271,7 +306,7 @@ export const joiProviderName = (name: string) =>
     .default(name)
     .example(name)
 
-export const joiStringMap = (valueSchema: JoiObject) => joi.object().pattern(/.+/, valueSchema)
+export const joiStringMap = (valueSchema: Joi.Schema) => joi.object().pattern(/.+/, valueSchema)
 
 export const joiUserIdentifier = () =>
   joi
@@ -285,18 +320,18 @@ export const joiUserIdentifier = () =>
       `
     )
 
-export const joiIdentifierMap = (valueSchema: JoiObject) =>
+export const joiIdentifierMap = (valueSchema: Joi.Schema) =>
   joi
     .object()
     .pattern(identifierRegex, valueSchema)
-    .default(() => ({}), "{}")
+    .default(() => ({}))
     .description("Key/value map. Keys must be valid identifiers.")
 
 export const joiVariables = () =>
   joi
     .object()
     .pattern(/[a-zA-Z][a-zA-Z0-9_\-]+/i, joiPrimitive())
-    .default(() => ({}), "{}")
+    .default(() => ({}))
     .unknown(false)
     .description("Key/value map. Keys may contain letters and numbers, and values must be primitives.")
 
@@ -304,23 +339,23 @@ export const joiEnvVars = () =>
   joi
     .object()
     .pattern(envVarRegex, joiPrimitive())
-    .default(() => ({}), "{}")
+    .default(() => ({}))
     .unknown(false)
     .description(
       "Key/value map of environment variables. Keys must be valid POSIX environment variable names " +
         "(must not start with `GARDEN`) and values must be primitives."
     )
 
-export const joiArray = (schema) =>
+export const joiArray = (schema: Joi.Schema) =>
   joi
     .array()
     .items(schema)
-    .default(() => [], "[]")
+    .default([])
 
 export const joiRepositoryUrl = () =>
   joi
     .alternatives(
-      joi.string().gitUrl({ requireHash: true }),
+      joi.gitUrl().requireHash(),
       // Allow file URLs as well
       joi.string().uri({ scheme: ["file"] })
     )
@@ -330,15 +365,8 @@ export const joiRepositoryUrl = () =>
     )
     .example("git+https://github.com/org/repo.git#v2.0")
 
-export const joiSchema = () =>
-  joi
-    .object({
-      isJoi: joi
-        .boolean()
-        .only(true)
-        .required(),
-    })
-    .unknown(true)
+// TODO
+export const joiSchema = () => joi.object().unknown(true)
 
 export function isPrimitive(value: any) {
   return typeof value === "string" || typeof value === "number" || typeof value === "boolean" || value === null

@@ -134,8 +134,9 @@ export const gardenPlugin = createGardenPlugin({
       schema: joi.object().keys({
         build: baseBuildSpecSchema,
         dockerfilePath: joi
-          .string()
-          .posixPath({ relativeOnly: true, subPathOnly: true })
+          .posixPath()
+          .relativeOnly()
+          .subPathOnly()
           .required()
           .description("POSIX-style path to a Dockerfile that you want to lint with `hadolint`."),
       }),

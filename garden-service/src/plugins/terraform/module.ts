@@ -33,7 +33,7 @@ export const schema = joi.object().keys({
   autoApply: joi
     .boolean()
     .allow(null)
-    .default(null, "<provider setting>").description(deline`
+    .default(null).description(deline`
         If set to true, Garden will automatically run \`terraform apply -auto-approve\` when the stack is not
         up-to-date. Otherwise, a warning is logged if the stack is out-of-date, and an error thrown if it is missing
         entirely.
@@ -42,8 +42,8 @@ export const schema = joi.object().keys({
       `),
   dependencies: dependenciesSchema,
   root: joi
-    .string()
-    .posixPath({ subPathOnly: true })
+    .posixPath()
+    .subPathOnly()
     .default(".").description(deline`
         Specify the path to the working directory root—i.e. where your Terraform files are—relative to the module root.
       `),
@@ -57,7 +57,7 @@ export const schema = joi.object().keys({
   version: joi
     .string()
     .allow(...supportedVersions)
-    .default(defaultTerraformVersion, "<provider setting>").description(deline`
+    .default(defaultTerraformVersion).description(deline`
         The version of Terraform to use. Defaults to the version set in the provider config.
       `),
 })

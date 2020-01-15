@@ -70,7 +70,7 @@ export const pluginContextSchema = joi
     projectName: projectNameSchema,
     projectRoot: joi.string().description("The absolute path of the project root."),
     projectSources: projectSourcesSchema,
-    provider: providerSchema.description("The provider being used for this context."),
+    provider: providerSchema.description("The provider being used for this context.").id("ctxProviderSchema"),
     workingCopyId: joi.string().description("A unique ID assigned to the current project working copy."),
   })
 

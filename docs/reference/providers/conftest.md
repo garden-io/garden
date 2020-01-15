@@ -79,9 +79,9 @@ providers:
 
 Path to the default policy directory or rego file to use for `conftest` modules.
 
-| Type     | Required | Default      |
-| -------- | -------- | ------------ |
-| `string` | No       | `"./policy"` |
+| Type        | Required | Default      |
+| ----------- | -------- | ------------ |
+| `posixPath` | No       | `"./policy"` |
 
 ### `providers[].namespace`
 

@@ -89,3 +89,11 @@ export function getHotReloadSpec(service: HelmService) {
 
   return hotReloadSpec
 }
+
+/**
+ * Used to determine which container in the target resource to attach the hot reload sync volume to.
+ */
+export function getHotReloadContainerName(module: HelmModule) {
+  const resourceSpec = getServiceResourceSpec(module)
+  return resourceSpec.containerName || module.name
+}

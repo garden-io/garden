@@ -239,7 +239,6 @@ export class FancyTerminalWriter extends Writer {
             wrapAnsi(str, width, {
               trim: false,
               hard: true,
-              wordWrap: false,
             })
           )
           .pop()!

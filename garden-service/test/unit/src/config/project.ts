@@ -37,7 +37,6 @@ describe("resolveProjectConfig", () => {
           name: "default",
           production: false,
           providers: [],
-          varfile: defaultEnvVarfilePath("default"),
           variables: {},
         },
       ],
@@ -106,7 +105,6 @@ describe("resolveProjectConfig", () => {
           name: "default",
           production: false,
           providers: [],
-          varfile: defaultEnvVarfilePath("default"),
           variables: {
             envVar: "foo",
           },
@@ -167,7 +165,6 @@ describe("resolveProjectConfig", () => {
           name: "default",
           production: false,
           providers: [],
-          varfile: defaultEnvVarfilePath("default"),
           variables: {
             envVar: "foo",
           },
@@ -274,7 +271,6 @@ describe("resolveProjectConfig", () => {
           name: "default",
           production: false,
           providers: [],
-          varfile: defaultEnvVarfilePath("default"),
           variables: {
             envVar: "foo",
           },
@@ -335,7 +331,6 @@ describe("resolveProjectConfig", () => {
           name: "default",
           providers: [],
           production: false,
-          varfile: defaultEnvVarfilePath("default"),
           variables: {
             envVar: "bar",
           },

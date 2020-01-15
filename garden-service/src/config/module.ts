@@ -35,14 +35,15 @@ export interface BuildCopySpec {
 const copySchema = joi.object().keys({
   // TODO: allow array of strings here
   source: joi
-    .string()
-    .posixPath({ allowGlobs: true, subPathOnly: true })
+    .posixPath()
+    .allowGlobs()
+    .subPathOnly()
     .required()
     .description("POSIX-style path or filename of the directory or file(s) to copy to the target."),
   target: joi
-    .string()
-    .posixPath({ subPathOnly: true })
-    .default(() => "", "<same as source path>").description(dedent`
+    .posixPath()
+    .subPathOnly()
+    .default("").description(dedent`
         POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
         Defaults to to same as source path.
       `),
@@ -98,9 +99,9 @@ export const baseBuildSpecSchema = joi
   .keys({
     dependencies: joiArray(buildDependencySchema)
       .description("A list of modules that must be built before this module is built.")
-      .example([[{ name: "some-other-module-name" }], {}]),
+      .example([{ name: "some-other-module-name" }]),
   })
-  .default(() => ({ dependencies: [] }), "{}")
+  .default(() => ({ dependencies: [] }))
   .description("Specify how to build the module. Note that plugins may define additional keys on this object.")
 
 // These fields are validated immediately when loading the config file
@@ -110,12 +111,12 @@ export const coreModuleSpecSchema = joi
     apiVersion: joi
       .string()
       .default(DEFAULT_API_VERSION)
-      .only(DEFAULT_API_VERSION)
+      .valid(DEFAULT_API_VERSION)
       .description("The schema version of this module's config (currently not used)."),
     kind: joi
       .string()
       .default("Module")
-      .only("Module"),
+      .valid("Module"),
     type: joiIdentifier()
       .required()
       .description("The type of this module.")
@@ -135,7 +136,12 @@ export const baseModuleSpecSchema = coreModuleSpecSchema.keys({
   description: joi.string(),
   include: joi
     .array()
-    .items(joi.string().posixPath({ allowGlobs: true, subPathOnly: true }))
+    .items(
+      joi
+        .posixPath()
+        .allowGlobs()
+        .subPathOnly()
+    )
     .description(
       dedent`Specify a list of POSIX-style paths or globs that should be regarded as the source files for this
         module. Files that do *not* match these paths or globs are excluded when computing the version of the module,
@@ -147,10 +153,15 @@ export const baseModuleSpecSchema = coreModuleSpecSchema.keys({
 
         Also note that specifying an empty list here means _no sources_ should be included.`
     )
-    .example([["Dockerfile", "my-app.js"], {}]),
+    .example(["Dockerfile", "my-app.js"]),
   exclude: joi
     .array()
-    .items(joi.string().posixPath({ allowGlobs: true, subPathOnly: true }))
+    .items(
+      joi
+        .posixPath()
+        .allowGlobs()
+        .subPathOnly()
+    )
     .description(
       dedent`Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that
         match these paths or globs are excluded when computing the version of the module, when responding to filesystem
@@ -165,9 +176,9 @@ export const baseModuleSpecSchema = coreModuleSpecSchema.keys({
         large directories that should not be watched for changes.
         `
     )
-    .example([["tmp/**/*", "*.log"], {}]),
+    .example(["tmp/**/*", "*.log"]),
   repositoryUrl: joiRepositoryUrl().description(
-    dedent`${joiRepositoryUrl().describe().description}
+    dedent`${(<any>joiRepositoryUrl().describe().flags).description}
 
         Garden will import the repository source code into this module, but read the module's
         config from the local garden.yml file.`
@@ -218,6 +229,8 @@ export const moduleConfigSchema = baseModuleSpecSchema
   })
   .description("The configuration for a module.")
   .unknown(false)
+
+export const baseModuleSchemaKeys = Object.keys(moduleConfigSchema.describe().keys).concat(["kind"])
 
 export function serializeConfig(moduleConfig: Partial<ModuleConfig>) {
   return stableStringify(moduleConfig)

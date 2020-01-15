@@ -27,7 +27,7 @@ import { getLogger } from "./logger/logger"
 import { PluginActionHandlers, GardenPlugin } from "./types/plugin/plugin"
 import { loadConfig, findProjectConfig, prepareModuleResource } from "./config/base"
 import { PrimitiveMap } from "./config/common"
-import { validate } from "./config/validation"
+import { validateSchema } from "./config/validation"
 import { BaseTask } from "./tasks/base"
 import { LocalConfigStore, ConfigStore, GlobalConfigStore } from "./config-store"
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
@@ -331,7 +331,7 @@ export class Garden {
       }
 
       try {
-        pluginModule = validate(pluginModule, pluginModuleSchema, {
+        pluginModule = validateSchema(pluginModule, pluginModuleSchema, {
           context: `plugin module "${moduleNameOrLocation}"`,
         })
       } catch (err) {

@@ -8,7 +8,7 @@
 
 import dedent = require("dedent")
 import { projectNameSchema, projectRootSchema } from "../../../config/project"
-import { ProviderConfig, Provider, providerConfigBaseSchema, providersSchema } from "../../../config/provider"
+import { ProviderConfig, Provider, providerConfigBaseSchema, providerSchema } from "../../../config/provider"
 import { logEntrySchema } from "../base"
 import { configStoreSchema, ConfigStore } from "../../../config-store"
 import { joiArray, joi } from "../../../config/common"
@@ -50,7 +50,7 @@ export const configureProvider = {
     log: logEntrySchema,
     projectName: projectNameSchema,
     projectRoot: projectRootSchema,
-    dependencies: providersSchema,
+    dependencies: joiArray(providerSchema).description("All providers that this provider depends on."),
     configStore: configStoreSchema,
   }),
   resultSchema: joi.object().keys({
