@@ -4,11 +4,12 @@ title: terraform
 
 # `terraform` Provider
 
-
+This provider allows you to integrate Terraform stacks into your Garden project.
+See the [Terraform guide](../guides/terraform.md) for details and usage information.
 
 ## Reference
 
-Below is the schema reference for the `terraform` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../guides/configuration-files.md).
+Below is the schema reference for the `terraform` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../guides/configuration-files.md).
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
@@ -32,7 +33,7 @@ providers:
     # the provider.
     # This is useful when other providers need to be able to reference the outputs from the stack.
     #
-    # See the [Terraform guide](../../guides/terraform.md) for more information.
+    # See the [Terraform guide](../guides/terraform.md) for more information.
     initRoot:
     # A map of variables to use when applying Terraform stacks. You can define these here, in
     # individual `terraform` module configs, or you can place a `terraform.tfvars` file in each
@@ -102,7 +103,7 @@ If set to true, Garden will automatically run `terraform apply -auto-approve` wh
 Specify the path to a Terraform config directory, that should be resolved when initializing the provider.
 This is useful when other providers need to be able to reference the outputs from the stack.
 
-See the [Terraform guide](../../guides/terraform.md) for more information.
+See the [Terraform guide](../guides/terraform.md) for more information.
 
 | Type        | Required |
 | ----------- | -------- |

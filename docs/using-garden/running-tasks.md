@@ -15,7 +15,7 @@ You add tasks when you want Garden to execute specific commands before deploying
       - name: db-clear
         args: [rake, db:rollback]
 
-> Note that not all [modules types](../reference/module-types/README.md) support tasks.
+> Note that not all [modules types](../module-types/README.md) support tasks.
 
 ## How it Works
 
@@ -110,7 +110,7 @@ tasks:
 
 After running `my-task`, you can find the contents of the `report` directory in the task's container, locally under `.garden/artifacts/my-task-report`.
 
-Please look at individual [module type references](../reference/module-types/README.md) to see how to configure each module type's tasks to extract artifacts after running them.
+Please look at individual [module type references](../module-types/README.md) to see how to configure each module type's tasks to extract artifacts after running them.
 
 ### Kubernetes Provider
 
@@ -131,7 +131,7 @@ source directory instead.
 
 ## Further Reading
 
-* For full task configuration by module type, please take a look at our [reference docs](../reference/module-types/README.md).
+* For full task configuration by module type, please take a look at our [reference docs](../module-types/README.md).
 
 ## Next Steps
 

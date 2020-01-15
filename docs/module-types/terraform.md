@@ -1,27 +1,34 @@
 ---
-title: hadolint
+title: terraform
 ---
 
-# `hadolint` Module Type
+# `terraform` Module Type
 
-Runs `hadolint` on the specified Dockerfile.
+Resolves a Terraform stack and either applies it automatically (if `autoApply: true`) or errors when the stack
+resources are not up-to-date.
 
-> Note: In most cases, you'll let the [provider](../providers/hadolint.md) create this module type automatically, but you may in some cases want or need to manually specify a Dockerfile to lint.
+Stack outputs are made available as service outputs, that can be referenced by other modules under
+`\${runtime.services.<module-name>.outputs.<key>}`. You can template in those values as e.g. command arguments
+or environment variables for other services.
 
-To configure `hadolint`, you can use `.hadolint.yaml` config files. For each test, we first look for one in
-the module root. If none is found there, we check the project root, and if none is there we fall back to default
-configuration. Note that for reasons of portability, we do not fall back to global/user configuration files.
+Note that you can also declare a Terraform root in the `terraform` provider configuration by setting the
+`initRoot` parameter.
+This may be preferable if you need the outputs of the Terraform stack to be available to other provider
+configurations, e.g. if you spin up an environment with the Terraform provider, and then use outputs from
+that to configure another provider or other modules via `\${providers.terraform.outputs.<key>}` template
+strings.
 
-See the [hadolint docs](https://github.com/hadolint/hadolint#configure) for details on how to configure it.
+See the [Terraform guide](../guides/terraform.md) for a high-level introduction to the `terraform`
+provider.
 
 ## Reference
 
 Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
-guide](../../guides/configuration-files.md).
+guide](../guides/configuration-files.md).
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
-`hadolint` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
+`terraform` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 
 ### Complete YAML Schema
 
@@ -103,8 +110,28 @@ build:
           # Defaults to to same as source path.
           target: ''
 
-# POSIX-style path to a Dockerfile that you want to lint with `hadolint`.
-dockerfilePath:
+# If set to true, Garden will automatically run `terraform apply -auto-approve` when the stack is
+# not up-to-date. Otherwise, a warning is logged if the stack is out-of-date, and an error thrown
+# if it is missing entirely.
+# Defaults to the value set in the provider config.
+autoApply: null
+
+# The names of any services that this service depends on at runtime, and the names of any tasks
+# that should be executed before this service is deployed.
+dependencies: []
+
+# Specify the path to the working directory root—i.e. where your Terraform files are—relative to
+# the module root.
+root: .
+
+# A map of variables to use when applying the stack. You can define these here or you can place a
+# `terraform.tfvars` file in the working directory root.
+# If you specified `variables` in the `terraform` provider config, those will be included but the
+# variables specified here take precedence.
+variables:
+
+# The version of Terraform to use. Defaults to the version set in the provider config.
+version: 0.12.7
 ```
 
 ### Configuration Keys
@@ -300,20 +327,54 @@ Defaults to to same as source path.
 | ----------- | -------- | ------- |
 | `posixPath` | No       | `""`    |
 
-#### `dockerfilePath`
+#### `autoApply`
 
-POSIX-style path to a Dockerfile that you want to lint with `hadolint`.
+If set to true, Garden will automatically run `terraform apply -auto-approve` when the stack is not up-to-date. Otherwise, a warning is logged if the stack is out-of-date, and an error thrown if it is missing entirely.
+Defaults to the value set in the provider config.
 
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | Yes      |
+| Type      | Required | Default |
+| --------- | -------- | ------- |
+| `boolean` | No       | `null`  |
+
+#### `dependencies`
+
+The names of any services that this service depends on at runtime, and the names of any tasks that should be executed before this service is deployed.
+
+| Type            | Required | Default |
+| --------------- | -------- | ------- |
+| `array[string]` | No       | `[]`    |
+
+#### `root`
+
+Specify the path to the working directory root—i.e. where your Terraform files are—relative to the module root.
+
+| Type        | Required | Default |
+| ----------- | -------- | ------- |
+| `posixPath` | No       | `"."`   |
+
+#### `variables`
+
+A map of variables to use when applying the stack. You can define these here or you can place a `terraform.tfvars` file in the working directory root.
+If you specified `variables` in the `terraform` provider config, those will be included but the variables specified here take precedence.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+#### `version`
+
+The version of Terraform to use. Defaults to the version set in the provider config.
+
+| Type     | Required | Default    |
+| -------- | -------- | ---------- |
+| `string` | No       | `"0.12.7"` |
 
 
 ### Outputs
 
 #### Module Outputs
 
-The following keys are available via the `${modules.<module-name>}` template string key for `hadolint`
+The following keys are available via the `${modules.<module-name>}` template string key for `terraform`
 modules.
 
 #### `${modules.<module-name>.buildPath}`
@@ -357,4 +418,18 @@ Example:
 ```yaml
 my-variable: ${modules.my-module.version}
 ```
+
+
+#### Service Outputs
+
+The following keys are available via the `${runtime.services.<service-name>}` template string key for `terraform` module services.
+Note that these are only resolved when deploying/running dependants of the service, so they are not usable for every field.
+
+#### `${runtime.services.<service-name>.outputs}`
+
+A map of all the outputs defined in the Terraform stack.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | Yes      |
 

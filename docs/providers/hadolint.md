@@ -4,20 +4,21 @@ title: hadolint
 
 # `hadolint` Provider
 
-This providers creates a [`hadolint`](../module-types/hadolint.md) module type, and (by default) generates one
+This provider creates a [`hadolint`](../module-types/hadolint.md) module type, and (by default) generates one
 such module for each `container` module that contains a Dockerfile in your project. Each module creates a single
 test that runs [hadolint](https://github.com/hadolint/hadolint) against the Dockerfile in question, in order to
-ensure the Dockerfile is valid and follows best practices.
+ensure that the Dockerfile is valid and follows best practices.
 
 To configure `hadolint`, you can use `.hadolint.yaml` config files. For each test, we first look for one in
 the relevant module root. If none is found there, we check the project root, and if none is there we fall back to
 default configuration. Note that for reasons of portability, we do not fall back to global/user configuration files.
 
-See the [hadolint docs](https://github.com/hadolint/hadolint#configure) for details on how to configure it.
+See the [hadolint docs](https://github.com/hadolint/hadolint#configure) for details on how to configure it, and the
+[hadolint example project](https://github.com/garden-io/garden/tree/master/examples/hadolint) for a usage example.
 
 ## Reference
 
-Below is the schema reference for the `hadolint` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../guides/configuration-files.md).
+Below is the schema reference for the `hadolint` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../guides/configuration-files.md).
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 

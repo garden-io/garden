@@ -18,7 +18,7 @@ filtering is done during the sync.
 ## Reference
 
 Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
-guide](../../guides/configuration-files.md).
+guide](../guides/configuration-files.md).
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 

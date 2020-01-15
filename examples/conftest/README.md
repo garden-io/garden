@@ -18,4 +18,4 @@ For the example, we've copied the [kubernetes example](https://github.com/instru
 
 To test this, simply run `garden test` in this directory. You should quickly see a few tests failing because resources don't match the policies defined under the `policy` directory.
 
-Note that you could also manually specify tests using the [conftest module type](https://docs.garden.io/reference/module-types/conftest).
+Note that you could also manually specify tests using the [conftest module type](https://docs.garden.io/module-types/conftest).

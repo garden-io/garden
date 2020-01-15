@@ -1,29 +1,20 @@
 ---
-title: conftest
+title: conftest-container
 ---
 
-# `conftest` Provider
+# `conftest-container` Provider
 
-This provider allows you to validate your configuration files against policies that you specify, using the
-[conftest tool](https://github.com/instrumenta/conftest) and Open Policy Agent rego query files.
-The provider creates a module type of the same name, which allows you to specify files to validate.
-Each module then creates a Garden test, that becomes part of your Stack Graph.
+This provider automatically generates [conftest modules](../module-types/conftest.md) for `container` modules
+in your project. A `conftest` module is created for each `container` module that includes a Dockerfile that
+can be validated.
 
-Note that, in many cases, you'll actually want to use more specific providers that can automatically configure your
-`conftest` modules, e.g. the [`conftest-container`](./conftest-container.md) and/or
-[`conftest-kubernetes`](./conftest-kubernetes.md) providers. See the
-[conftest example project](https://github.com/garden-io/garden/tree/master/examples/conftest) for a simple usage
-example of the latter.
-
-If those don't match your needs, you can use this provider directly and manually configure your `conftest`
-modules. Simply add this provider to your project configuration, and see the
-[conftest module documentation](../module-types/conftest.md) for a detailed reference. Also, check out the below
-reference for how to configure default policies, default namespaces, and test failure thresholds for all
-`conftest` modules.
+Simply add this provider to your project configuration, and configure your policies. Check out the below
+reference for how to configure default policies, default namespaces, and test failure thresholds for the generated
+modules.
 
 ## Reference
 
-Below is the schema reference for the `conftest` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../guides/configuration-files.md).
+Below is the schema reference for the `conftest-container` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../guides/configuration-files.md).
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 

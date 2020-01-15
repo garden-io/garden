@@ -1,30 +1,25 @@
 ---
-title: maven-container
+title: container
 ---
 
-# `maven-container` Module Type
+# `container` Module Type
 
-A specialized version of the [container](https://docs.garden.io/reference/module-types/container) module type
-that has special semantics for JAR files built with Maven.
+Specify a container image to build or pull from a remote registry.
+You may also optionally specify services to deploy, tasks or tests to run inside the container.
 
-Rather than build the JAR inside the container (or in a multi-stage build) this plugin runs `mvn package`
-ahead of building the container, which tends to be much more performant, especially when building locally
-with a warm artifact cache.
-
-A default Dockerfile is also provided for convenience, but you may override it by including one in the module
-directory.
-
-To use it, make sure to add the `maven-container` provider to your project configuration.
-The provider will automatically fetch and cache Maven and the appropriate OpenJDK version ahead of building.
+Note that the runtime services have somewhat limited features in this module type. For example, you cannot
+specify replicas for redundancy, and various platform-specific options are not included. For those, look at
+other module types like [helm](https://docs.garden.io/module-types/helm) or
+[kubernetes](https://github.com/garden-io/garden/blob/master/docs/module-types/kubernetes.md).
 
 ## Reference
 
 Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
-guide](../../guides/configuration-files.md).
+guide](../guides/configuration-files.md).
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
-`maven-container` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
+`container` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 
 ### Complete YAML Schema
 
@@ -58,6 +53,13 @@ description:
 # for details.
 #
 # Also note that specifying an empty list here means _no sources_ should be included.
+#
+# If neither `include` nor `exclude` is set, and the module has a Dockerfile, Garden
+# will parse the Dockerfile and automatically set `include` to match the files and
+# folders added to the Docker image (via the `COPY` and `ADD` directives in the Dockerfile).
+#
+# If neither `include` nor `exclude` is set, and the module
+# specifies a remote image, Garden automatically sets `include` to `[]`.
 include:
 
 # Specify a list of POSIX-style paths or glob patterns that should be excluded from the module.
@@ -327,20 +329,6 @@ tasks:
     # Key/value map of environment variables. Keys must be valid POSIX environment variable names
     # (must not start with `GARDEN`) and values must be primitives or references to secrets.
     env: {}
-
-# Set this to override the default OpenJDK container image version. Make sure the image version
-# matches the
-# configured `jdkVersion`. Ignored if you provide your own Dockerfile.
-imageVersion:
-
-# POSIX-style path to the packaged JAR artifact, relative to the module directory.
-jarPath:
-
-# The JDK version to use.
-jdkVersion: 8
-
-# Options to add to the `mvn package` command when building.
-mvnOpts: []
 ```
 
 ### Configuration Keys
@@ -404,6 +392,13 @@ source tree, which use the same format as `.gitignore` files. See the
 [Configuration Files guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
 
 Also note that specifying an empty list here means _no sources_ should be included.
+
+If neither `include` nor `exclude` is set, and the module has a Dockerfile, Garden
+will parse the Dockerfile and automatically set `include` to match the files and
+folders added to the Docker image (via the `COPY` and `ADD` directives in the Dockerfile).
+
+If neither `include` nor `exclude` is set, and the module
+specifies a remote image, Garden automatically sets `include` to `[]`.
 
 | Type               | Required |
 | ------------------ | -------- |
@@ -1483,57 +1478,12 @@ tasks:
       - {}
 ```
 
-#### `imageVersion`
-
-Set this to override the default OpenJDK container image version. Make sure the image version matches the
-configured `jdkVersion`. Ignored if you provide your own Dockerfile.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-Example:
-
-```yaml
-imageVersion: "11-jdk"
-```
-
-#### `jarPath`
-
-POSIX-style path to the packaged JAR artifact, relative to the module directory.
-
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | Yes      |
-
-Example:
-
-```yaml
-jarPath: "target/my-module.jar"
-```
-
-#### `jdkVersion`
-
-The JDK version to use.
-
-| Type     | Required | Default |
-| -------- | -------- | ------- |
-| `number` | No       | `8`     |
-
-#### `mvnOpts`
-
-Options to add to the `mvn package` command when building.
-
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[string]` | No       | `[]`    |
-
 
 ### Outputs
 
 #### Module Outputs
 
-The following keys are available via the `${modules.<module-name>}` template string key for `maven-container`
+The following keys are available via the `${modules.<module-name>}` template string key for `container`
 modules.
 
 #### `${modules.<module-name>.buildPath}`
@@ -1577,4 +1527,64 @@ Example:
 ```yaml
 my-variable: ${modules.my-module.version}
 ```
+
+#### `${modules.<module-name>.outputs}`
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | Yes      |
+
+#### `${modules.<module-name>.outputs.local-image-name}`
+
+[outputs](#outputs) > local-image-name
+
+The name of the image (without tag/version) that the module uses for local builds and deployments.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+Example:
+
+```yaml
+my-variable: ${modules.my-module.outputs.local-image-name}
+```
+
+#### `${modules.<module-name>.outputs.deployment-image-name}`
+
+[outputs](#outputs) > deployment-image-name
+
+The name of the image (without tag/version) that the module will use during deployment.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+Example:
+
+```yaml
+my-variable: ${modules.my-module.outputs.deployment-image-name}
+```
+
+
+#### Task Outputs
+
+The following keys are available via the `${runtime.tasks.<task-name>}` template string key for `container` module tasks.
+Note that these are only resolved when deploying/running dependants of the task, so they are not usable for every field.
+
+#### `${runtime.tasks.<task-name>.outputs}`
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | Yes      |
+
+#### `${runtime.tasks.<task-name>.outputs.log}`
+
+[outputs](#outputs) > log
+
+The full log from the executed task. (Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)
+
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `string` | No       | `""`    |
 

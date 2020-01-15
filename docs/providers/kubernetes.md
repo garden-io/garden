@@ -10,7 +10,7 @@ Kubernetes clusters, and adds the [`helm`](../module-types/helm.md) and
 
 For usage information, please refer to the [guides section](../guides/README.md). A good place to start is
 the [Remote Kubernetes guide](../guides/remote-kubernetes.md) guide if you're connecting to remote clusters.
-The [demo-project](../examples/demo-project.md) example project and guide is also helpful as an introduction.
+The [demo-project](../examples/demo-project.md) example project and guide are also helpful as an introduction.
 
 Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the
 [local-kubernetes provider](./local-kubernetes.md) simplifies (and automates) the configuration and setup quite a
@@ -18,7 +18,7 @@ bit.
 
 ## Reference
 
-Below is the schema reference for the `kubernetes` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../guides/configuration-files.md).
+Below is the schema reference for the `kubernetes` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../guides/configuration-files.md).
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 

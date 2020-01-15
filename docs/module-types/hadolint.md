@@ -1,28 +1,27 @@
 ---
-title: kubernetes
+title: hadolint
 ---
 
-# `kubernetes` Module Type
+# `hadolint` Module Type
 
-Specify one or more Kubernetes manifests to deploy.
+Runs `hadolint` on the specified Dockerfile.
 
-You can either (or both) specify the manifests as part of the `garden.yml` configuration, or you can refer to
-one or more files with existing manifests.
+> Note: In most cases, you'll let the [provider](../providers/hadolint.md) create this module type automatically, but you may in some cases want or need to manually specify a Dockerfile to lint.
 
-Note that if you include the manifests in the `garden.yml` file, you can use
-[template strings](https://docs.garden.io/reference/template-strings) to interpolate values into the manifests.
+To configure `hadolint`, you can use `.hadolint.yaml` config files. For each test, we first look for one in
+the module root. If none is found there, we check the project root, and if none is there we fall back to default
+configuration. Note that for reasons of portability, we do not fall back to global/user configuration files.
 
-If you need more advanced templating features you can use the
-[helm](https://docs.garden.io/reference/module-types/helm) module type.
+See the [hadolint docs](https://github.com/hadolint/hadolint#configure) for details on how to configure it.
 
 ## Reference
 
 Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
-guide](../../guides/configuration-files.md).
+guide](../guides/configuration-files.md).
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
-`kubernetes` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
+`hadolint` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 
 ### Complete YAML Schema
 
@@ -56,9 +55,6 @@ description:
 # for details.
 #
 # Also note that specifying an empty list here means _no sources_ should be included.
-#
-# If neither `include` nor `exclude` is set, Garden automatically sets `include` to equal the
-# `files` directive so that only the Kubernetes manifests get included.
 include:
 
 # Specify a list of POSIX-style paths or glob patterns that should be excluded from the module.
@@ -107,23 +103,8 @@ build:
           # Defaults to to same as source path.
           target: ''
 
-# The names of any services that this service depends on at runtime, and the names of any tasks
-# that should be executed before this service is deployed.
-dependencies: []
-
-# List of Kubernetes resource manifests to deploy. Use this instead of the `files` field if you
-# need to resolve template strings in any of the manifests.
-manifests:
-  # The API version of the resource.
-  - apiVersion:
-    # The kind of the resource.
-    kind:
-    metadata:
-      # The name of the resource.
-      name:
-
-# POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests.
-files: []
+# POSIX-style path to a Dockerfile that you want to lint with `hadolint`.
+dockerfilePath:
 ```
 
 ### Configuration Keys
@@ -187,9 +168,6 @@ source tree, which use the same format as `.gitignore` files. See the
 [Configuration Files guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
 
 Also note that specifying an empty list here means _no sources_ should be included.
-
-If neither `include` nor `exclude` is set, Garden automatically sets `include` to equal the
-`files` directive so that only the Kubernetes manifests get included.
 
 | Type               | Required |
 | ------------------ | -------- |
@@ -322,74 +300,20 @@ Defaults to to same as source path.
 | ----------- | -------- | ------- |
 | `posixPath` | No       | `""`    |
 
-#### `dependencies`
+#### `dockerfilePath`
 
-The names of any services that this service depends on at runtime, and the names of any tasks that should be executed before this service is deployed.
+POSIX-style path to a Dockerfile that you want to lint with `hadolint`.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[string]` | No       | `[]`    |
-
-#### `manifests`
-
-List of Kubernetes resource manifests to deploy. Use this instead of the `files` field if you need to resolve template strings in any of the manifests.
-
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[object]` | No       | `[]`    |
-
-#### `manifests[].apiVersion`
-
-[manifests](#manifests) > apiVersion
-
-The API version of the resource.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-#### `manifests[].kind`
-
-[manifests](#manifests) > kind
-
-The kind of the resource.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-#### `manifests[].metadata`
-
-[manifests](#manifests) > metadata
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | Yes      |
-
-#### `manifests[].metadata.name`
-
-[manifests](#manifests) > [metadata](#manifestsmetadata) > name
-
-The name of the resource.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-#### `files`
-
-POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests.
-
-| Type               | Required | Default |
-| ------------------ | -------- | ------- |
-| `array[posixPath]` | No       | `[]`    |
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
 
 
 ### Outputs
 
 #### Module Outputs
 
-The following keys are available via the `${modules.<module-name>}` template string key for `kubernetes`
+The following keys are available via the `${modules.<module-name>}` template string key for `hadolint`
 modules.
 
 #### `${modules.<module-name>.buildPath}`

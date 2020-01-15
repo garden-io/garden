@@ -1,34 +1,28 @@
 ---
-title: terraform
+title: kubernetes
 ---
 
-# `terraform` Module Type
+# `kubernetes` Module Type
 
-Resolves a Terraform stack and either applies it automatically (if `autoApply: true`) or errors when the stack
-resources are not up-to-date.
+Specify one or more Kubernetes manifests to deploy.
 
-Stack outputs are made available as service outputs, that can be referenced by other modules under
-`\${runtime.services.<module-name>.outputs.<key>}`. You can template in those values as e.g. command arguments
-or environment variables for other services.
+You can either (or both) specify the manifests as part of the `garden.yml` configuration, or you can refer to
+one or more files with existing manifests.
 
-Note that you can also declare a Terraform root in the `terraform` provider configuration by setting the
-`initRoot` parameter.
-This may be preferable if you need the outputs of the Terraform stack to be available to other provider
-configurations, e.g. if you spin up an environment with the Terraform provider, and then use outputs from
-that to configure another provider or other modules via `\${providers.terraform.outputs.<key>}` template
-strings.
+Note that if you include the manifests in the `garden.yml` file, you can use
+[template strings](../guides/variables-and-templating.md) to interpolate values into the manifests.
 
-See the [Terraform guide](../../guides/terraform.md) for a high-level introduction to the `terraform`
-provider.
+If you need more advanced templating features you can use the
+[helm](./helm.md) module type.
 
 ## Reference
 
 Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
-guide](../../guides/configuration-files.md).
+guide](../guides/configuration-files.md).
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
-`terraform` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
+`kubernetes` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 
 ### Complete YAML Schema
 
@@ -62,6 +56,9 @@ description:
 # for details.
 #
 # Also note that specifying an empty list here means _no sources_ should be included.
+#
+# If neither `include` nor `exclude` is set, Garden automatically sets `include` to equal the
+# `files` directive so that only the Kubernetes manifests get included.
 include:
 
 # Specify a list of POSIX-style paths or glob patterns that should be excluded from the module.
@@ -110,28 +107,23 @@ build:
           # Defaults to to same as source path.
           target: ''
 
-# If set to true, Garden will automatically run `terraform apply -auto-approve` when the stack is
-# not up-to-date. Otherwise, a warning is logged if the stack is out-of-date, and an error thrown
-# if it is missing entirely.
-# Defaults to the value set in the provider config.
-autoApply: null
-
 # The names of any services that this service depends on at runtime, and the names of any tasks
 # that should be executed before this service is deployed.
 dependencies: []
 
-# Specify the path to the working directory root—i.e. where your Terraform files are—relative to
-# the module root.
-root: .
+# List of Kubernetes resource manifests to deploy. Use this instead of the `files` field if you
+# need to resolve template strings in any of the manifests.
+manifests:
+  # The API version of the resource.
+  - apiVersion:
+    # The kind of the resource.
+    kind:
+    metadata:
+      # The name of the resource.
+      name:
 
-# A map of variables to use when applying the stack. You can define these here or you can place a
-# `terraform.tfvars` file in the working directory root.
-# If you specified `variables` in the `terraform` provider config, those will be included but the
-# variables specified here take precedence.
-variables:
-
-# The version of Terraform to use. Defaults to the version set in the provider config.
-version: 0.12.7
+# POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests.
+files: []
 ```
 
 ### Configuration Keys
@@ -195,6 +187,9 @@ source tree, which use the same format as `.gitignore` files. See the
 [Configuration Files guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
 
 Also note that specifying an empty list here means _no sources_ should be included.
+
+If neither `include` nor `exclude` is set, Garden automatically sets `include` to equal the
+`files` directive so that only the Kubernetes manifests get included.
 
 | Type               | Required |
 | ------------------ | -------- |
@@ -327,15 +322,6 @@ Defaults to to same as source path.
 | ----------- | -------- | ------- |
 | `posixPath` | No       | `""`    |
 
-#### `autoApply`
-
-If set to true, Garden will automatically run `terraform apply -auto-approve` when the stack is not up-to-date. Otherwise, a warning is logged if the stack is out-of-date, and an error thrown if it is missing entirely.
-Defaults to the value set in the provider config.
-
-| Type      | Required | Default |
-| --------- | -------- | ------- |
-| `boolean` | No       | `null`  |
-
 #### `dependencies`
 
 The names of any services that this service depends on at runtime, and the names of any tasks that should be executed before this service is deployed.
@@ -344,37 +330,66 @@ The names of any services that this service depends on at runtime, and the names
 | --------------- | -------- | ------- |
 | `array[string]` | No       | `[]`    |
 
-#### `root`
+#### `manifests`
 
-Specify the path to the working directory root—i.e. where your Terraform files are—relative to the module root.
+List of Kubernetes resource manifests to deploy. Use this instead of the `files` field if you need to resolve template strings in any of the manifests.
 
-| Type        | Required | Default |
-| ----------- | -------- | ------- |
-| `posixPath` | No       | `"."`   |
+| Type            | Required | Default |
+| --------------- | -------- | ------- |
+| `array[object]` | No       | `[]`    |
 
-#### `variables`
+#### `manifests[].apiVersion`
 
-A map of variables to use when applying the stack. You can define these here or you can place a `terraform.tfvars` file in the working directory root.
-If you specified `variables` in the `terraform` provider config, those will be included but the variables specified here take precedence.
+[manifests](#manifests) > apiVersion
+
+The API version of the resource.
 
 | Type     | Required |
 | -------- | -------- |
-| `object` | No       |
+| `string` | Yes      |
 
-#### `version`
+#### `manifests[].kind`
 
-The version of Terraform to use. Defaults to the version set in the provider config.
+[manifests](#manifests) > kind
 
-| Type     | Required | Default    |
-| -------- | -------- | ---------- |
-| `string` | No       | `"0.12.7"` |
+The kind of the resource.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+#### `manifests[].metadata`
+
+[manifests](#manifests) > metadata
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | Yes      |
+
+#### `manifests[].metadata.name`
+
+[manifests](#manifests) > [metadata](#manifestsmetadata) > name
+
+The name of the resource.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+#### `files`
+
+POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests.
+
+| Type               | Required | Default |
+| ------------------ | -------- | ------- |
+| `array[posixPath]` | No       | `[]`    |
 
 
 ### Outputs
 
 #### Module Outputs
 
-The following keys are available via the `${modules.<module-name>}` template string key for `terraform`
+The following keys are available via the `${modules.<module-name>}` template string key for `kubernetes`
 modules.
 
 #### `${modules.<module-name>.buildPath}`
@@ -418,18 +433,4 @@ Example:
 ```yaml
 my-variable: ${modules.my-module.version}
 ```
-
-
-#### Service Outputs
-
-The following keys are available via the `${runtime.services.<service-name>}` template string key for `terraform` module services.
-Note that these are only resolved when deploying/running dependants of the service, so they are not usable for every field.
-
-#### `${runtime.services.<service-name>.outputs}`
-
-A map of all the outputs defined in the Terraform stack.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | Yes      |
 
