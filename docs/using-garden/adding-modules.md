@@ -60,7 +60,7 @@ Modules correspond to a **build** action in the Stack Graph.
 
 ## Examples
 
-You can learn more about different module types in the [module type reference docs](../reference/module-types/README.md).
+You can learn more about different module types in the [module type reference docs](../module-types/README.md).
 
 ### Container Module
 
@@ -107,7 +107,7 @@ image: postgres:11.4-alpine
 
 ## Further Reading
 
-* [Module type reference docs](../reference/module-types/README.md).
+* [Module type reference docs](../module-types/README.md).
 * [Multiple modules in the same configuration file](../guides/configuration-files.md#multiple-modules-in-the-same-file).
 * [A guide on the container module type](../guides/container-modules.md).
 

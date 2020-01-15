@@ -9,14 +9,14 @@ automates and simplifies working with local Kubernetes clusters.
 
 For general Kubernetes usage information, please refer to the [guides section](../guides/README.md). For local
 clusters a good place to start is the [Local Kubernetes guide](../guides/local-kubernetes.md) guide.
-The [demo-project](../examples/demo-project.md) example project and guide is also helpful as an introduction.
+The [demo-project](../examples/demo-project.md) example project and guide are also helpful as an introduction.
 
 If you're working with a remote Kubernetes cluster, please refer to the [`kubernetes` provider](./kubernetes.md)
 docs, and the [Remote Kubernetes guide](../guides/remote-kubernetes.md) guide.
 
 ## Reference
 
-Below is the schema reference for the `local-kubernetes` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../guides/configuration-files.md).
+Below is the schema reference for the `local-kubernetes` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../guides/configuration-files.md).
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 

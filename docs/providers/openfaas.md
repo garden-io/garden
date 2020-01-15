@@ -4,11 +4,19 @@ title: openfaas
 
 # `openfaas` Provider
 
+This provider adds support for [OpenFaaS](https://www.openfaas.com/). It adds the
+[`openfaas` module type](../module-types/openfaas.md) and (by default) installs the `faas-netes` runtime to
+the project namespace. Each `openfaas` module maps to a single OpenFaaS function.
 
+See the [reference](#reference) below for configuration options for `faas-netes`, and the
+[module type docs](../module-types/openfaas.md) for how to configure the individual functions.
+
+Also see the [openfaas example project](https://github.com/garden-io/garden/tree/master/examples/openfaas) for a
+simple usage example.
 
 ## Reference
 
-Below is the schema reference for the `openfaas` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../guides/configuration-files.md).
+Below is the schema reference for the `openfaas` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../guides/configuration-files.md).
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 

@@ -172,7 +172,7 @@ function resolvePlugin(plugin: GardenPlugin, loadedPlugins: PluginMap, configs: 
   }
 
   // Merge commands
-  resolved.commands = [...(plugin.commands)]
+  resolved.commands = [...plugin.commands]
 
   for (const baseCommand of base.commands) {
     const command = findByName(resolved.commands, baseCommand.name)
@@ -185,8 +185,8 @@ function resolvePlugin(plugin: GardenPlugin, loadedPlugins: PluginMap, configs: 
 
   // If the base is not expressly configured for the environment, we pull and coalesce its module declarations.
   // We also make sure the plugin doesn't redeclare a module type from the base.
-  resolved.createModuleTypes = [...(plugin.createModuleTypes)]
-  resolved.extendModuleTypes = [...(plugin.extendModuleTypes)]
+  resolved.createModuleTypes = [...plugin.createModuleTypes]
+  resolved.extendModuleTypes = [...plugin.extendModuleTypes]
 
   for (const spec of base.createModuleTypes) {
     if (findByName(plugin.createModuleTypes, spec.name)) {
@@ -371,7 +371,7 @@ function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: ProviderC
   // Return the plugins with the resolved module definitions
   return mapValues(resolvedPlugins, (plugin) => {
     // Validate module extensions and add base handlers where appropriate
-    const extendModuleTypes = (plugin.extendModuleTypes).map((spec) => {
+    const extendModuleTypes = plugin.extendModuleTypes.map((spec) => {
       const moduleType = spec.name
       const definition = moduleDefinitions[moduleType]
 
@@ -416,7 +416,7 @@ function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: ProviderC
 
     return {
       ...plugin,
-      createModuleTypes: (plugin.createModuleTypes).map((spec) => resolvedDefinitions[spec.name].spec),
+      createModuleTypes: plugin.createModuleTypes.map((spec) => resolvedDefinitions[spec.name].spec),
       extendModuleTypes,
     }
   })

@@ -5,12 +5,12 @@ title: helm
 # `helm` Module Type
 
 Specify a Helm chart (either in your repository or remote from a registry) to deploy.
-Refer to the [Helm guide](https://docs.garden.io/guides/using-helm-charts) for usage instructions.
+Refer to the [Helm guide](../guides/using-helm-charts.md) for usage instructions.
 
 ## Reference
 
 Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
-guide](../../guides/configuration-files.md).
+guide](../guides/configuration-files.md).
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 

@@ -10,8 +10,6 @@ import Joi = require("@hapi/joi")
 import { readFileSync, writeFileSync } from "fs"
 import { safeDump } from "js-yaml"
 import linewrap from "linewrap"
-import titleize from "titleize"
-import humanize from "humanize-string"
 import { resolve } from "path"
 import { projectSchema, environmentSchema } from "../config/project"
 import { get, flatten, startCase, uniq, keyBy, find, isFunction } from "lodash"
@@ -640,10 +638,10 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
     },
   })
 
-  const providerDir = resolve(referenceDir, "providers")
+  const providerDir = resolve(docsRoot, "providers")
   const plugins = await garden.getPlugins()
   const pluginsByName = keyBy(plugins, "name")
-  const providersReadme = ["---", "order: 4", "title: Providers", "---", "", "# Providers", ""]
+  const providersReadme = ["---", "order: 6", "title: Providers", "---", "", "# Providers", ""]
 
   for (const plugin of plugins) {
     const name = plugin.name
@@ -662,8 +660,8 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
   writeFileSync(resolve(providerDir, `README.md`), providersReadme.join("\n"))
 
   // Render module types
-  const moduleTypeDir = resolve(referenceDir, "module-types")
-  const readme = ["---", "order: 5", "title: Module Types", "---", "", "# Module Types", ""]
+  const moduleTypeDir = resolve(docsRoot, "module-types")
+  const readme = ["---", "order: 7", "title: Module Types", "---", "", "# Module Types", ""]
   const moduleTypeDefinitions = await garden.getModuleTypes()
 
   for (const { name } of moduleTypes) {

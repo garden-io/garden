@@ -197,7 +197,7 @@ export const gardenPlugin = createGardenPlugin({
       name: "helm",
       docs: dedent`
         Specify a Helm chart (either in your repository or remote from a registry) to deploy.
-        Refer to the [Helm guide](https://docs.garden.io/guides/using-helm-charts) for usage instructions.
+        Refer to the [Helm guide](../guides/using-helm-charts.md) for usage instructions.
       `,
       moduleOutputsSchema: helmModuleOutputsSchema,
       schema: helmModuleSpecSchema,
@@ -212,10 +212,10 @@ export const gardenPlugin = createGardenPlugin({
         one or more files with existing manifests.
 
         Note that if you include the manifests in the \`garden.yml\` file, you can use
-        [template strings](https://docs.garden.io/reference/template-strings) to interpolate values into the manifests.
+        [template strings](../guides/variables-and-templating.md) to interpolate values into the manifests.
 
         If you need more advanced templating features you can use the
-        [helm](https://docs.garden.io/reference/module-types/helm) module type.
+        [helm](./helm.md) module type.
       `,
       moduleOutputsSchema: joi.object().keys({}),
       schema: kubernetesModuleSpecSchema,

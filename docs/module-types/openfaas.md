@@ -1,24 +1,20 @@
 ---
-title: conftest
+title: openfaas
 ---
 
-# `conftest` Module Type
+# `openfaas` Module Type
 
-Creates a test that runs `conftest` on the specified files, with the specified (or default) policy and
-namespace.
-
-> Note: In many cases, you'll let conftest providers (e.g. [`conftest-container`](../providers/conftest-container.md) and [`conftest-kubernetes`](../providers/conftest-kubernetes.md) create this module type automatically, but you may in some cases want or need to manually specify files to test.
-
-See the [conftest docs](https://github.com/instramenta/conftest) for details on how to configure policies.
+Deploy a [OpenFaaS](https://www.openfaas.com/) function using Garden. Requires the `openfaas` provider
+to be configured.
 
 ## Reference
 
 Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
-guide](../../guides/configuration-files.md).
+guide](../guides/configuration-files.md).
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
-`conftest` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
+`openfaas` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 
 ### Complete YAML Schema
 
@@ -100,21 +96,36 @@ build:
           # Defaults to to same as source path.
           target: ''
 
-# Specify a module whose sources we want to test.
-sourceModule:
+# The names of services/functions that this function depends on at runtime.
+dependencies: []
 
-# POSIX-style path to a directory containing the policies to match the config against, or a
-# specific .rego file, relative to the module root.
-# Must be a relative path, and should in most cases be within the project root.
-# Defaults to the `policyPath` set in the provider config.
-policyPath:
+# Key/value map of environment variables. Keys must be valid POSIX environment variable names
+# (must not start with `GARDEN`) and values must be primitives.
+env: {}
 
-# The policy namespace in which to find _deny_ and _warn_ rules.
-namespace: main
+# Specify which directory under the module contains the handler file/function.
+handler: .
 
-# A list of files to test with the given policy. Must be POSIX-style paths, and may include
-# wildcards.
-files:
+# The image name to use for the built OpenFaaS container (defaults to the module name)
+image:
+
+# The OpenFaaS language template to use to build this function.
+lang:
+
+# A list of tests to run in the module.
+tests:
+  # The name of the test.
+  - name:
+    # The names of any services that must be running, and the names of any tasks that must be
+    # executed, before the test is run.
+    dependencies: []
+    # Maximum duration (in seconds) of the test run.
+    timeout: null
+    # The command to run in the module build context in order to test it.
+    command:
+    # Key/value map of environment variables. Keys must be valid POSIX environment variable names
+    # (must not start with `GARDEN`) and values must be primitives.
+    env: {}
 ```
 
 ### Configuration Keys
@@ -310,47 +321,110 @@ Defaults to to same as source path.
 | ----------- | -------- | ------- |
 | `posixPath` | No       | `""`    |
 
-#### `sourceModule`
+#### `dependencies`
 
-Specify a module whose sources we want to test.
+The names of services/functions that this function depends on at runtime.
+
+| Type            | Required | Default |
+| --------------- | -------- | ------- |
+| `array[string]` | No       | `[]`    |
+
+#### `env`
+
+Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
+
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `object` | No       | `{}`    |
+
+#### `handler`
+
+Specify which directory under the module contains the handler file/function.
+
+| Type        | Required | Default |
+| ----------- | -------- | ------- |
+| `posixPath` | No       | `"."`   |
+
+#### `image`
+
+The image name to use for the built OpenFaaS container (defaults to the module name)
 
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
 
-#### `policyPath`
+#### `lang`
 
-POSIX-style path to a directory containing the policies to match the config against, or a
-specific .rego file, relative to the module root.
-Must be a relative path, and should in most cases be within the project root.
-Defaults to the `policyPath` set in the provider config.
+The OpenFaaS language template to use to build this function.
 
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | No       |
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
 
-#### `namespace`
+#### `tests`
 
-The policy namespace in which to find _deny_ and _warn_ rules.
+A list of tests to run in the module.
 
-| Type     | Required | Default  |
-| -------- | -------- | -------- |
-| `string` | No       | `"main"` |
+| Type            | Required | Default |
+| --------------- | -------- | ------- |
+| `array[object]` | No       | `[]`    |
 
-#### `files`
+#### `tests[].name`
 
-A list of files to test with the given policy. Must be POSIX-style paths, and may include wildcards.
+[tests](#tests) > name
 
-| Type               | Required |
-| ------------------ | -------- |
-| `array[posixPath]` | Yes      |
+The name of the test.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+#### `tests[].dependencies[]`
+
+[tests](#tests) > dependencies
+
+The names of any services that must be running, and the names of any tasks that must be executed, before the test is run.
+
+| Type            | Required | Default |
+| --------------- | -------- | ------- |
+| `array[string]` | No       | `[]`    |
+
+#### `tests[].timeout`
+
+[tests](#tests) > timeout
+
+Maximum duration (in seconds) of the test run.
+
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `number` | No       | `null`  |
+
+#### `tests[].command[]`
+
+[tests](#tests) > command
+
+The command to run in the module build context in order to test it.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | Yes      |
+
+#### `tests[].env`
+
+[tests](#tests) > env
+
+Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
+
+| Type     | Required | Default |
+| -------- | -------- | ------- |
+| `object` | No       | `{}`    |
 
 
 ### Outputs
 
 #### Module Outputs
 
-The following keys are available via the `${modules.<module-name>}` template string key for `conftest`
+The following keys are available via the `${modules.<module-name>}` template string key for `openfaas`
 modules.
 
 #### `${modules.<module-name>.buildPath}`
@@ -394,4 +468,20 @@ Example:
 ```yaml
 my-variable: ${modules.my-module.version}
 ```
+
+#### `${modules.<module-name>.outputs}`
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | Yes      |
+
+#### `${modules.<module-name>.outputs.endpoint}`
+
+[outputs](#outputs) > endpoint
+
+The full URL to query this service _from within_ the cluster.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
 
