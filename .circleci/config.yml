@@ -174,7 +174,7 @@ jobs:
     <<: *node-config
     steps:
       - checkout
-      - run: sudo apt-get update && sudo apt-get -y install parallel
+      - run: sudo apt-get update && sudo apt-get -y install parallel rsync
       - npm_install
       - *attach-workspace
       - run:
