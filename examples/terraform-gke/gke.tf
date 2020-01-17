@@ -39,14 +39,14 @@ resource "google_compute_subnetwork" "default" {
 }
 
 data "google_container_engine_versions" "default" {
-  zone = "${var.gcp_zone}"
+  location = "${var.gcp_zone}"
 }
 
 
 # See all available options at https://www.terraform.io/docs/providers/google/r/container_cluster.html
 resource "google_container_cluster" "primary" {
   name               = "my-gke-cluster"
-  zone               = "${var.gcp_zone}"
+  location           = "${var.gcp_zone}"
   initial_node_count = 3
   min_master_version = "${data.google_container_engine_versions.default.latest_master_version}"
   network            = "${google_compute_subnetwork.default.name}"
