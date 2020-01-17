@@ -65,14 +65,14 @@ export class PluginsCommand extends Command<Args> {
 
     // We're executing a command
     const plugin = await garden.getPlugin(args.plugin)
-    const command = findByName(plugin.commands || [], args.command)
+    const command = findByName(plugin.commands, args.command)
 
     if (!command) {
       return {
         errors: [
           new ParameterError(`Could not find command '${args.command}' on plugin ${args.plugin}`, {
             args,
-            availableCommands: (plugin.commands || []).map((c) => c.name),
+            availableCommands: plugin.commands.map((c) => c.name),
           }),
         ],
       }
@@ -102,7 +102,7 @@ async function listPlugins(garden: Garden, log: LogEntry, pluginsToList: string[
   const plugins = await Bluebird.map(pluginsToList, async (pluginName) => {
     const plugin = await garden.getPlugin(pluginName)
 
-    const commands = plugin.commands || []
+    const commands = plugin.commands
     if (commands.length === 0) {
       return plugin
     }

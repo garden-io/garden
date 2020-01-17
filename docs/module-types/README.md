@@ -1,5 +1,5 @@
 ---
-order: 4
+order: 7
 title: Module Types
 ---
 

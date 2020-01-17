@@ -57,7 +57,7 @@ A valid email address is also required for Let's Encrypt certificate requests.
 ### Issuing your first certificate
 
 cert-manager is a powerful tool with a lot of different possible configurations. While integrating it with Garden we decided to start with an opinionated setup which should get you up to speed quickly, without thinking too much about configuration.
-If/when you need specific settings or advanced use-cases, you can choose which certificates need to be managed by the integration and which you want to manage yourself using the [`tlsCertificates[].managedBy` config field](../reference/providers/kubernetes.md#providerstlscertificatesmanagedby).
+If/when you need specific settings or advanced use-cases, you can choose which certificates need to be managed by the integration and which you want to manage yourself using the [`tlsCertificates[].managedBy` config field](../providers/kubernetes.md#providerstlscertificatesmanagedby).
 
 #### Example
 

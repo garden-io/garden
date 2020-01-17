@@ -400,8 +400,8 @@ export class Garden {
     const configNames = keyBy(this.getRawProviderConfigs(), "name")
     const configuredPlugins = plugins.filter((p) => configNames[p.name])
 
-    const definitions = flatten(configuredPlugins.map((p) => p.createModuleTypes || []))
-    const extensions = flatten(configuredPlugins.map((p) => p.extendModuleTypes || []))
+    const definitions = flatten(configuredPlugins.map((p) => p.createModuleTypes))
+    const extensions = flatten(configuredPlugins.map((p) => p.extendModuleTypes))
 
     return keyBy(
       definitions.map((definition) => {

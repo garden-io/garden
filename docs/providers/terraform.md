@@ -1,14 +1,19 @@
 ---
-title: Terraform
+title: terraform
 ---
 
-# `terraform` reference
+# `terraform` Provider
 
-Below is the schema reference for the `terraform` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../guides/configuration-files.md).
+This provider allows you to integrate Terraform stacks into your Garden project.
+See the [Terraform guide](../guides/terraform.md) for details and usage information.
+
+## Reference
+
+Below is the schema reference for the `terraform` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../guides/configuration-files.md).
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
-## Complete YAML schema
+### Complete YAML Schema
 
 The values in the schema below are the default values.
 
@@ -28,7 +33,7 @@ providers:
     # the provider.
     # This is useful when other providers need to be able to reference the outputs from the stack.
     #
-    # See the [Terraform guide](../../guides/terraform.md) for more information.
+    # See the [Terraform guide](../guides/terraform.md) for more information.
     initRoot:
     # A map of variables to use when applying Terraform stacks. You can define these here, in
     # individual `terraform` module configs, or you can place a `terraform.tfvars` file in each
@@ -37,15 +42,15 @@ providers:
     # The version of Terraform to use.
     version: 0.12.7
 ```
-## Configuration keys
+### Configuration Keys
 
-### `providers`
+#### `providers`
 
 | Type            | Required | Default |
 | --------------- | -------- | ------- |
 | `array[object]` | No       | `[]`    |
 
-### `providers[].name`
+#### `providers[].name`
 
 [providers](#providers) > name
 
@@ -62,7 +67,7 @@ providers:
   - name: "local-kubernetes"
 ```
 
-### `providers[].environments[]`
+#### `providers[].environments[]`
 
 [providers](#providers) > environments
 
@@ -81,7 +86,7 @@ providers:
     - stage
 ```
 
-### `providers[].autoApply`
+#### `providers[].autoApply`
 
 [providers](#providers) > autoApply
 
@@ -91,20 +96,20 @@ If set to true, Garden will automatically run `terraform apply -auto-approve` wh
 | --------- | -------- | ------- |
 | `boolean` | No       | `false` |
 
-### `providers[].initRoot`
+#### `providers[].initRoot`
 
 [providers](#providers) > initRoot
 
 Specify the path to a Terraform config directory, that should be resolved when initializing the provider.
 This is useful when other providers need to be able to reference the outputs from the stack.
 
-See the [Terraform guide](../../guides/terraform.md) for more information.
+See the [Terraform guide](../guides/terraform.md) for more information.
 
 | Type        | Required |
 | ----------- | -------- |
 | `posixPath` | No       |
 
-### `providers[].variables`
+#### `providers[].variables`
 
 [providers](#providers) > variables
 
@@ -114,7 +119,7 @@ A map of variables to use when applying Terraform stacks. You can define these h
 | -------- | -------- |
 | `object` | No       |
 
-### `providers[].version`
+#### `providers[].version`
 
 [providers](#providers) > version
 

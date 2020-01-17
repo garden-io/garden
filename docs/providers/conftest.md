@@ -1,14 +1,33 @@
 ---
-title: Conftest
+title: conftest
 ---
 
-# `conftest` reference
+# `conftest` Provider
 
-Below is the schema reference for the `conftest` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../guides/configuration-files.md).
+This provider allows you to validate your configuration files against policies that you specify, using the
+[conftest tool](https://github.com/instrumenta/conftest) and Open Policy Agent rego query files.
+The provider creates a module type of the same name, which allows you to specify files to validate.
+Each module then creates a Garden test that becomes part of your Stack Graph.
+
+Note that, in many cases, you'll actually want to use more specific providers that can automatically configure your
+`conftest` modules, e.g. the [`conftest-container`](./conftest-container.md) and/or
+[`conftest-kubernetes`](./conftest-kubernetes.md) providers. See the
+[conftest example project](https://github.com/garden-io/garden/tree/master/examples/conftest) for a simple usage
+example of the latter.
+
+If those don't match your needs, you can use this provider directly and manually configure your `conftest`
+modules. Simply add this provider to your project configuration, and see the
+[conftest module documentation](../module-types/conftest.md) for a detailed reference. Also, check out the below
+[reference](#reference) for how to configure default policies, default namespaces, and test failure thresholds for
+all `conftest` modules.
+
+## Reference
+
+Below is the schema reference for the `conftest` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../guides/configuration-files.md).
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
-## Complete YAML schema
+### Complete YAML Schema
 
 The values in the schema below are the default values.
 
@@ -29,15 +48,15 @@ providers:
     # Set to `"none"` to always mark the tests as successful.
     testFailureThreshold: error
 ```
-## Configuration keys
+### Configuration Keys
 
-### `providers`
+#### `providers`
 
 | Type            | Required | Default |
 | --------------- | -------- | ------- |
 | `array[object]` | No       | `[]`    |
 
-### `providers[].name`
+#### `providers[].name`
 
 [providers](#providers) > name
 
@@ -54,7 +73,7 @@ providers:
   - name: "local-kubernetes"
 ```
 
-### `providers[].environments[]`
+#### `providers[].environments[]`
 
 [providers](#providers) > environments
 
@@ -73,7 +92,7 @@ providers:
     - stage
 ```
 
-### `providers[].policyPath`
+#### `providers[].policyPath`
 
 [providers](#providers) > policyPath
 
@@ -83,7 +102,7 @@ Path to the default policy directory or rego file to use for `conftest` modules.
 | ----------- | -------- | ------------ |
 | `posixPath` | No       | `"./policy"` |
 
-### `providers[].namespace`
+#### `providers[].namespace`
 
 [providers](#providers) > namespace
 
@@ -93,7 +112,7 @@ Default policy namespace to use for `conftest` modules.
 | -------- | -------- |
 | `string` | No       |
 
-### `providers[].testFailureThreshold`
+#### `providers[].testFailureThreshold`
 
 [providers](#providers) > testFailureThreshold
 

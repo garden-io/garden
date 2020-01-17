@@ -3,6 +3,7 @@ import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { Garden } from "../../../../../src/garden"
 import { getDataDir } from "../../../../helpers"
 import { expect } from "chai"
+import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
 
 describe("conftest-container provider", () => {
   const projectRoot = getDataDir("test-projects", "conftest-container")
@@ -38,7 +39,7 @@ describe("conftest-container provider", () => {
   })
 
   it("should add a conftest module for module types inheriting from container", async () => {
-    const foo = {
+    const foo = createGardenPlugin({
       name: "foo",
       dependencies: ["container"],
       createModuleTypes: [
@@ -49,7 +50,7 @@ describe("conftest-container provider", () => {
           handlers: {},
         },
       ],
-    }
+    })
 
     const garden = await Garden.factory(projectRoot, {
       plugins: [foo],

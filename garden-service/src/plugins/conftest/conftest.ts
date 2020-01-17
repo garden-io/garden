@@ -60,16 +60,34 @@ type ConftestModule = Module<ConftestModuleSpec>
 
 export const gardenPlugin = createGardenPlugin({
   name: "conftest",
+  docs: dedent`
+    This provider allows you to validate your configuration files against policies that you specify, using the
+    [conftest tool](https://github.com/instrumenta/conftest) and Open Policy Agent rego query files.
+    The provider creates a module type of the same name, which allows you to specify files to validate.
+    Each module then creates a Garden test that becomes part of your Stack Graph.
+
+    Note that, in many cases, you'll actually want to use more specific providers that can automatically configure your
+    \`conftest\` modules, e.g. the [\`conftest-container\`](./conftest-container.md) and/or
+    [\`conftest-kubernetes\`](./conftest-kubernetes.md) providers. See the
+    [conftest example project](https://github.com/garden-io/garden/tree/master/examples/conftest) for a simple usage
+    example of the latter.
+
+    If those don't match your needs, you can use this provider directly and manually configure your \`conftest\`
+    modules. Simply add this provider to your project configuration, and see the
+    [conftest module documentation](../module-types/conftest.md) for a detailed reference. Also, check out the below
+    [reference](#reference) for how to configure default policies, default namespaces, and test failure thresholds for
+    all \`conftest\` modules.
+  `,
   dependencies: [],
   configSchema,
   createModuleTypes: [
     {
       name: "conftest",
       docs: dedent`
-        Runs \`conftest\` on the specified files, with the specified (or default) policy and namespace.
+        Creates a test that runs \`conftest\` on the specified files, with the specified (or default) policy and
+        namespace.
 
-        > Note: In many cases, you'll let conftest providers (e.g. \`conftest-container\` and \`conftest-kubernetes\`
-        create this module type automatically, but you may in some cases want or need to manually specify files to test.
+        > Note: In many cases, you'll let specific conftest providers (e.g. [\`conftest-container\`](../providers/conftest-container.md) and [\`conftest-kubernetes\`](../providers/conftest-kubernetes.md) create this module type automatically, but you may in some cases want or need to manually specify files to test.
 
         See the [conftest docs](https://github.com/instramenta/conftest) for details on how to configure policies.
       `,
@@ -81,7 +99,8 @@ export const gardenPlugin = createGardenPlugin({
           .relativeOnly()
           .description(
             dedent`
-              POSIX-style path to a directory containing the policies to match the config against, or a specific .rego file, relative to the module root.
+              POSIX-style path to a directory containing the policies to match the config against, or a
+              specific .rego file, relative to the module root.
               Must be a relative path, and should in most cases be within the project root.
               Defaults to the \`policyPath\` set in the provider config.
             `

@@ -84,6 +84,6 @@ Much like other modules, you can also reference Terraform definitions in other r
 
 ## Next steps
 
-Check out the [terraform-gke example](https://github.com/garden-io/garden/tree/v0.11.0/examples/terraform-gke) project. Also take a look at the [Terraform provider reference](../reference/providers/terraform.md) and the [Terraform module type reference](../reference/module-types/terraform.md) for details on all the configuration parameters.
+Check out the [terraform-gke example](https://github.com/garden-io/garden/tree/v0.11.0/examples/terraform-gke) project. Also take a look at the [Terraform provider reference](../providers/terraform.md) and the [Terraform module type reference](../module-types/terraform.md) for details on all the configuration parameters.
 
 If you're having issues with Terraform itself, please refer to the [official docs](https://www.terraform.io/docs/index.html).

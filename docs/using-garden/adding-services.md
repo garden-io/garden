@@ -17,7 +17,7 @@ services:
         containerPort: 8080
 ```
 
-> Note that not all [modules types](../reference/module-types/README.md) have services.
+> Note that not all [modules types](../module-types/README.md) have services.
 
 ## How it Works
 
@@ -104,7 +104,7 @@ By default the Kubernetes provider does a rolling update for deployments.
 
 ## Further Reading
 
-* For full service configuration by module type, please take a look at our [reference docs](../reference/module-types/README.md).
+* For full service configuration by module type, please take a look at our [reference docs](../module-types/README.md).
 
 ## Next Steps
 
