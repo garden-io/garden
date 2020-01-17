@@ -8,19 +8,20 @@
 
 import { css } from "emotion"
 import styled from "@emotion/styled"
-import React, { Component } from "react"
+import React from "react"
 
 import { NavLink } from "./links"
 import { Page } from "../containers/sidebar"
 
+import logo from "../assets/logo.png"
+import { ReactComponent as OpenSidebarIcon } from "../assets/open-pane.svg"
+import { ReactComponent as CloseSidebarIcon } from "../assets/close-pane.svg"
+
 import { colors, fontRegular } from "../styles/variables"
+import { useUiState } from "../contexts/ui"
 
 interface Props {
   pages: Page[]
-}
-
-interface State {
-  selectedTab: string
 }
 
 const Button = styled.li`
@@ -46,44 +47,82 @@ const linkStyle = `
 const A = styled.a(linkStyle)
 const Link = styled(NavLink)(linkStyle)
 
-class Sidebar extends Component<Props, State> {
-  constructor(props) {
-    super(props)
+// Style and align properly
+const Logo = styled.img`
+  width: 144px;
+  height: 60px;
+  max-width: 9rem;
+`
 
-    // TODO Use tab id instead of title
-    this.state = {
-      selectedTab: this.props.pages[0].path,
-    }
-  }
+type SidebarContainerProps = {
+  visible: boolean
+}
+const SidebarContainer = styled.div<SidebarContainerProps>`
+  display: ${(props) => (props.visible ? `block` : "none")};
+  width: ${(props) => (props.visible ? `11.5rem` : "0")};
+`
 
-  render() {
-    return (
-      <div className="pb-1">
-        <nav>
-          <ul className="pt-1">
-            {this.props.pages.map((page) => {
-              let link: React.ReactNode
-              if (page.url) {
-                link = (
-                  <A href={page.url} target="_blank" title={page.description}>
-                    {page.title}
-                    <i className={`${css("color: #ccc; margin-left: 0.5em;")} fas fa-external-link-alt`} />
-                  </A>
-                )
-              } else {
-                link = (
-                  <Link exact to={{ pathname: page.path, state: page }} title={page.description}>
-                    {page.title}
-                  </Link>
-                )
-              }
-              return <Button key={page.title}>{link}</Button>
-            })}
-          </ul>
-        </nav>
-      </div>
+const SidebarToggleButton = styled.div`
+  position: absolute;
+  right: -2.3rem;
+  top: 2rem;
+  width: 1.5rem;
+  cursor: pointer;
+  font-size: 1.125rem;
+`
+
+const Sidebar: React.FC<Props> = ({ pages }) => {
+  const {
+    state: { isSidebarOpen },
+    actions: { toggleSidebar },
+  } = useUiState()
+
+  return (
+    <>
+      <SidebarToggleButton onClick={toggleSidebar}>
+        {isSidebarOpen ? <CloseSidebarIcon /> : <OpenSidebarIcon />}
+      </SidebarToggleButton>
+      <SidebarContainer visible={isSidebarOpen}>
+        <div className={"ml-1"}>
+          <NavLink to="/">
+            <Logo src={logo} alt="Home" />
+          </NavLink>
+        </div>
+        <div className="pb-1">
+          <nav>
+            <ul className="pt-1">
+              {pages.map((page) => (
+                <SidebarButton key={page.path} page={page} />
+              ))}
+            </ul>
+          </nav>
+        </div>
+      </SidebarContainer>
+    </>
+  )
+}
+
+interface SidebarButtonProps {
+  page: Page
+}
+
+const SidebarButton: React.FC<SidebarButtonProps> = ({ page }) => {
+  let link: React.ReactNode
+  if (page.url) {
+    link = (
+      <A href={page.url} target="_blank" title={page.description}>
+        {page.title}
+        <i className={`${css("color: #ccc; margin-left: 0.5em;")} fas fa-external-link-alt`} />
+      </A>
+    )
+  } else {
+    link = (
+      <Link exact to={{ pathname: page.path, state: page }} title={page.description}>
+        {page.title}
+      </Link>
     )
   }
+  return <Button key={page.title}>{link}</Button>
 }
 
 export default Sidebar
