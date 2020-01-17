@@ -15,7 +15,7 @@ Modules can reference `outputs` defined by other modules, via the `${modules.<mo
 as service and task outputs via the `${runtime.services.<service-name>.outputs}` and
 `${runtime.tasks.<task-name>.outputs}`.
 For details on which outputs are available for a given module type, please refer to the
-[reference](https://docs.garden.io/reference/module-types) docs for the module type in question, and look for the
+[reference](https://docs.garden.io/module-types) docs for the module type in question, and look for the
 _Outputs_ section.
 
 ## Project configuration context

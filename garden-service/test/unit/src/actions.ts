@@ -5,7 +5,6 @@ import {
   pluginActionDescriptions,
   createGardenPlugin,
   ActionHandler,
-  GardenPlugin,
   ModuleActionHandler,
 } from "../../../src/types/plugin/plugin"
 import { Service, ServiceState } from "../../../src/types/service"
@@ -727,7 +726,7 @@ describe("ActionRouter", () => {
 
     context("when no providers extend the module type with requested handler", () => {
       it("should return the handler from the provider that created it", async () => {
-        const foo: GardenPlugin = {
+        const foo = createGardenPlugin({
           name: "foo",
           createModuleTypes: [
             {
@@ -739,7 +738,7 @@ describe("ActionRouter", () => {
               },
             },
           ],
-        }
+        })
 
         const _garden = await Garden.factory(path, {
           plugins: [foo],
@@ -768,7 +767,7 @@ describe("ActionRouter", () => {
 
     context("when one provider overrides the requested handler on the module type", () => {
       it("should return the handler from the extending provider", async () => {
-        const base: GardenPlugin = {
+        const base = createGardenPlugin({
           name: "base",
           createModuleTypes: [
             {
@@ -780,8 +779,8 @@ describe("ActionRouter", () => {
               },
             },
           ],
-        }
-        const foo: GardenPlugin = {
+        })
+        const foo = createGardenPlugin({
           name: "foo",
           dependencies: ["base"],
           extendModuleTypes: [
@@ -792,7 +791,7 @@ describe("ActionRouter", () => {
               },
             },
           ],
-        }
+        })
 
         const _garden = await Garden.factory(path, {
           plugins: [base, foo],
@@ -821,7 +820,7 @@ describe("ActionRouter", () => {
 
     context("when multiple providers extend the module type with requested handler", () => {
       it("should return the handler that is not being overridden by another handler", async () => {
-        const base: GardenPlugin = {
+        const base = createGardenPlugin({
           name: "base",
           createModuleTypes: [
             {
@@ -833,8 +832,8 @@ describe("ActionRouter", () => {
               },
             },
           ],
-        }
-        const foo: GardenPlugin = {
+        })
+        const foo = createGardenPlugin({
           name: "foo",
           dependencies: ["base"],
           extendModuleTypes: [
@@ -845,8 +844,8 @@ describe("ActionRouter", () => {
               },
             },
           ],
-        }
-        const too: GardenPlugin = {
+        })
+        const too = createGardenPlugin({
           name: "too",
           dependencies: ["base", "foo"],
           extendModuleTypes: [
@@ -857,7 +856,7 @@ describe("ActionRouter", () => {
               },
             },
           ],
-        }
+        })
 
         const _garden = await Garden.factory(path, {
           plugins: [base, too, foo],
@@ -890,7 +889,7 @@ describe("ActionRouter", () => {
 
       context("when multiple providers are side by side in the dependency graph", () => {
         it("should return the last configured handler for the specified module action type", async () => {
-          const base: GardenPlugin = {
+          const base = createGardenPlugin({
             name: "base",
             createModuleTypes: [
               {
@@ -902,8 +901,8 @@ describe("ActionRouter", () => {
                 },
               },
             ],
-          }
-          const foo: GardenPlugin = {
+          })
+          const foo = createGardenPlugin({
             name: "foo",
             dependencies: ["base"],
             extendModuleTypes: [
@@ -914,8 +913,8 @@ describe("ActionRouter", () => {
                 },
               },
             ],
-          }
-          const too: GardenPlugin = {
+          })
+          const too = createGardenPlugin({
             name: "too",
             dependencies: ["base"],
             extendModuleTypes: [
@@ -926,7 +925,7 @@ describe("ActionRouter", () => {
                 },
               },
             ],
-          }
+          })
 
           const _garden = await Garden.factory(path, {
             plugins: [base, too, foo],
@@ -961,7 +960,7 @@ describe("ActionRouter", () => {
 
     context("when the handler was added by a provider and not specified in the creating provider", () => {
       it("should return the added handler", async () => {
-        const base: GardenPlugin = {
+        const base = createGardenPlugin({
           name: "base",
           createModuleTypes: [
             {
@@ -971,8 +970,8 @@ describe("ActionRouter", () => {
               handlers: {},
             },
           ],
-        }
-        const foo: GardenPlugin = {
+        })
+        const foo = createGardenPlugin({
           name: "foo",
           dependencies: ["base"],
           extendModuleTypes: [
@@ -983,7 +982,7 @@ describe("ActionRouter", () => {
               },
             },
           ],
-        }
+        })
 
         const _garden = await Garden.factory(path, {
           plugins: [base, foo],
@@ -1024,7 +1023,7 @@ describe("ActionRouter", () => {
       }
 
       it("should return the handler for the specific module type, if available", async () => {
-        const base: GardenPlugin = {
+        const base = createGardenPlugin({
           name: "base",
           createModuleTypes: [
             {
@@ -1036,8 +1035,8 @@ describe("ActionRouter", () => {
               },
             },
           ],
-        }
-        const foo: GardenPlugin = {
+        })
+        const foo = createGardenPlugin({
           name: "foo",
           dependencies: ["base"],
           createModuleTypes: [
@@ -1051,7 +1050,7 @@ describe("ActionRouter", () => {
               },
             },
           ],
-        }
+        })
 
         const _garden = await Garden.factory(path, {
           plugins: [base, foo],
@@ -1068,7 +1067,7 @@ describe("ActionRouter", () => {
       })
 
       it("should fall back on the base if no specific handler is available", async () => {
-        const base: GardenPlugin = {
+        const base = createGardenPlugin({
           name: "base",
           createModuleTypes: [
             {
@@ -1080,8 +1079,8 @@ describe("ActionRouter", () => {
               },
             },
           ],
-        }
-        const foo: GardenPlugin = {
+        })
+        const foo = createGardenPlugin({
           name: "foo",
           dependencies: ["base"],
           createModuleTypes: [
@@ -1093,7 +1092,7 @@ describe("ActionRouter", () => {
               handlers: {},
             },
           ],
-        }
+        })
 
         const _garden = await Garden.factory(path, {
           plugins: [base, foo],
@@ -1111,7 +1110,7 @@ describe("ActionRouter", () => {
       })
 
       it("should recursively fall back on the base's bases if needed", async () => {
-        const baseA: GardenPlugin = {
+        const baseA = createGardenPlugin({
           name: "base-a",
           createModuleTypes: [
             {
@@ -1123,8 +1122,8 @@ describe("ActionRouter", () => {
               },
             },
           ],
-        }
-        const baseB: GardenPlugin = {
+        })
+        const baseB = createGardenPlugin({
           name: "base-b",
           dependencies: ["base-a"],
           createModuleTypes: [
@@ -1136,8 +1135,8 @@ describe("ActionRouter", () => {
               handlers: {},
             },
           ],
-        }
-        const foo: GardenPlugin = {
+        })
+        const foo = createGardenPlugin({
           name: "foo",
           dependencies: ["base-b"],
           createModuleTypes: [
@@ -1149,7 +1148,7 @@ describe("ActionRouter", () => {
               handlers: {},
             },
           ],
-        }
+        })
 
         const _garden = await Garden.factory(path, {
           plugins: [baseA, baseB, foo],
@@ -1209,7 +1208,7 @@ describe("ActionRouter", () => {
     })
 
     it("should recursively override the base parameter when calling a base handler", async () => {
-      const baseA: GardenPlugin = {
+      const baseA = createGardenPlugin({
         name: "base-a",
         handlers: {
           getSecret: async (params) => {
@@ -1217,8 +1216,8 @@ describe("ActionRouter", () => {
             return { value: params.key }
           },
         },
-      }
-      const baseB: GardenPlugin = {
+      })
+      const baseB = createGardenPlugin({
         name: "base-b",
         base: "base-a",
         handlers: {
@@ -1228,8 +1227,8 @@ describe("ActionRouter", () => {
             return params.base!(params)
           },
         },
-      }
-      const foo: GardenPlugin = {
+      })
+      const foo = createGardenPlugin({
         name: "foo",
         base: "base-b",
         handlers: {
@@ -1239,7 +1238,7 @@ describe("ActionRouter", () => {
             return params.base!(params)
           },
         },
-      }
+      })
 
       const path = process.cwd()
 

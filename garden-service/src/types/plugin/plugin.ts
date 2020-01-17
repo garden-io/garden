@@ -305,12 +305,12 @@ export interface ModuleTypeMap {
   [name: string]: ModuleType
 }
 
-export interface GardenPluginSpec {
+interface GardenPluginSpec {
   name: string
   base?: string
+  docs?: string
 
   configSchema?: Joi.ObjectSchema
-  configKeys?: string[]
   outputsSchema?: Joi.ObjectSchema
 
   dependencies?: string[]
@@ -322,7 +322,15 @@ export interface GardenPluginSpec {
   extendModuleTypes?: ModuleTypeExtension[]
 }
 
-export interface GardenPlugin extends GardenPluginSpec {}
+export interface GardenPlugin extends GardenPluginSpec {
+  dependencies: string[]
+
+  handlers: Partial<PluginActionHandlers>
+  commands: PluginCommand[]
+
+  createModuleTypes: ModuleTypeDefinition[]
+  extendModuleTypes: ModuleTypeExtension[]
+}
 
 export interface PluginMap {
   [name: string]: GardenPlugin
@@ -427,6 +435,11 @@ export const pluginSchema = joi
         dependency may result in a match with multiple other plugins, if they share a matching base plugin.
       `),
 
+    docs: joi.string().description(dedent`
+        A description of the provider, in markdown format. Please provide a useful introduction, and link to any
+        other relevant documentation, such as guides, examples and module types.
+      `),
+
     // TODO: make this a JSON/OpenAPI schema for portability
     configSchema: joiSchema().unknown(true).description(dedent`
         The schema for the provider configuration (which the user specifies in the Garden Project configuration).
@@ -492,5 +505,16 @@ export const pluginModuleSchema = joi
 
 // This doesn't do much at the moment, but it makes sense to make this an SDK function to make it more future-proof
 export function createGardenPlugin(spec: GardenPluginSpec | (() => GardenPluginSpec)): GardenPlugin {
-  return typeof spec === "function" ? spec() : spec
+  if (typeof spec === "function") {
+    spec = spec()
+  }
+
+  return {
+    ...spec,
+    dependencies: spec.dependencies || [],
+    commands: spec.commands || [],
+    createModuleTypes: spec.createModuleTypes || [],
+    extendModuleTypes: spec.extendModuleTypes || [],
+    handlers: spec.handlers || {},
+  }
 }

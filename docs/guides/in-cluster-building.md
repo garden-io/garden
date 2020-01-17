@@ -32,8 +32,8 @@ Specifically, the clusters need the following:
 - Support for `PersistentVolumeClaim`s and enough disk space for layer caches and the in-cluster image registry.
 
 You can—_and should_—adjust the allocated resources and storage in the provider configuration, under
-[resources](../reference/providers/kubernetes.md#providersresources) and
-[storage](../reference/providers/kubernetes.md#providersstorage). See the individual modes below as well for more
+[resources](../providers/kubernetes.md#providersresources) and
+[storage](../providers/kubernetes.md#providersstorage). See the individual modes below as well for more
 information on how to allocate resources appropriately.
 
 ## Build modes
@@ -70,8 +70,8 @@ After enabling this mode (we currently still default to the `local-docker` mode)
 
 Make sure your cluster has enough resources and storage to support the required services, and keep in mind that these
 services are shared across all users of the cluster. Please look at the
-[resources](../reference/providers/kubernetes.md#providersresources) and
-[storage](../reference/providers/kubernetes.md#providersstorage) sections in the provider reference for
+[resources](../providers/kubernetes.md#providersresources) and
+[storage](../providers/kubernetes.md#providersstorage) sections in the provider reference for
 details.
 
 ### Kaniko
@@ -88,7 +88,7 @@ The trade-off is generally in performance, at least for the moment, partly becau
 cache layers. There are also some known issues and incompatibilities, so your mileage may vary.
 
 Note the difference in how resources for the builder are allocated. See the
-[builder resources](../reference/providers/kubernetes.md#providersresourcesbuilder) reference for details.
+[builder resources](../providers/kubernetes.md#providersresourcesbuilder) reference for details.
 
 ### Local Docker
 
@@ -145,7 +145,7 @@ FROM my-private-registry.com/my-image:tag
 
 where `my-private-registry.com` requires authorization.
 
-For this to work, you need to create a registry secret in your cluster (see [this guide](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/) for how to create the secret) and then configure the [imagePullSecrets](../reference/providers/kubernetes.md#providersimagepullsecrets) field in your `kubernetes` provider configuration:
+For this to work, you need to create a registry secret in your cluster (see [this guide](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/) for how to create the secret) and then configure the [imagePullSecrets](../providers/kubernetes.md#providersimagepullsecrets) field in your `kubernetes` provider configuration:
 
 ```yaml
 kind: Project

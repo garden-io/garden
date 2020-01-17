@@ -1,14 +1,22 @@
 ---
-title: Maven Container
+title: maven-container
 ---
 
-# `maven-container` reference
+# `maven-container` Provider
 
-Below is the schema reference for the `maven-container` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../guides/configuration-files.md).
+Adds the [maven-container module type](../module-types/maven-container.md), which is a specialized version of the
+`container` module type that has special semantics for building JAR files using Maven.
+
+To use it, simply add the provider to your provider configuration, and refer to the
+[maven-container module docs](../module-types/maven-container.md) for details on how to configure the modules.
+
+## Reference
+
+Below is the schema reference for the `maven-container` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../guides/configuration-files.md).
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
-## Complete YAML schema
+### Complete YAML Schema
 
 The values in the schema below are the default values.
 
@@ -21,15 +29,15 @@ providers:
     # field.
     environments:
 ```
-## Configuration keys
+### Configuration Keys
 
-### `providers`
+#### `providers`
 
 | Type            | Required | Default |
 | --------------- | -------- | ------- |
 | `array[object]` | No       | `[]`    |
 
-### `providers[].name`
+#### `providers[].name`
 
 [providers](#providers) > name
 
@@ -46,7 +54,7 @@ providers:
   - name: "local-kubernetes"
 ```
 
-### `providers[].environments[]`
+#### `providers[].environments[]`
 
 [providers](#providers) > environments
 

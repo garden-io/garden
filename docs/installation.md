@@ -17,6 +17,18 @@ for installation and usage information.
 
 If you want to install Garden from source, see the instructions in our [contributor guide](https://github.com/garden-io/garden/tree/master/CONTRIBUTING.md).
 
+## Requirements
+
+You need the following dependencies on your local machine to use Garden:
+
+* Git (v2.14 or newer)
+* rsync (v3.1.0 or newer)
+
+And if you're building and running services locally, you need the following:
+
+* [Docker](https://docs.docker.com/) (v17.07.0 or newer)
+* A local installation of Kubernetes. Garden is committed to supporting the _latest six_ stable versions (i.e. if the latest stable version is v1.17.x, Garden supports v1.12.x and newer).
+
 ## macOS
 
 For Mac, we recommend the following steps to install Garden. You can also follow the manual installation
@@ -28,7 +40,8 @@ If you haven't already set up Homebrew, please follow [their installation instru
 
 ### Step 2: Install Garden (macOS)
 
-You can easily install Garden using [Homebrew](https://brew.sh) or using our installation script.
+You can easily install Garden using [Homebrew](https://brew.sh) or using our installation script. You may also
+manually download Garden from the [releases page](https://github.com/garden-io/garden/releases) on GitHub.
 
 #### Homebrew
 
@@ -39,7 +52,9 @@ brew install garden-cli
 
 To later upgrade to the newest version, simply run `brew update` and then `brew upgrade garden-cli`.
 
-#### Installation script
+#### Installation script (macOS)
+
+Fisrt make sure the [requirements](#requirements) listed above are installed. Then run our automated installation script:
 
 ```sh
 curl -sL https://get.garden.io/install.sh | bash
@@ -47,22 +62,29 @@ curl -sL https://get.garden.io/install.sh | bash
 
 To later upgrade to the latest version, simply run the script again.
 
+#### Manual download and install (macOS)
+
+If you prefer, you can perform the installation manually, as follows:
+
+1. Make sure the [requirements](#requirements) listed above are installed.
+2. Visit the Garden [releases page](https://github.com/garden-io/garden/releases) on GitHub and download the macOS archive (under _Assets_).
+3. Next create a `~/.garden/bin` directory, and extract the archive to that directory. _Make sure to include the whole contents of the archive._
+4. Lastly, either add the `~/.garden/bin` directory to your PATH, or add a symlink from your `/usr/local/bin/garden` to the binary at `~/.garden/bin/garden`.
+
 ### Step 3 (optional): Docker and local Kubernetes
 
 To install Docker, Kubernetes and kubectl, we recommend Docker for Mac.
 
 Please refer to their [installation guide](https://docs.docker.com/engine/installation/) for how to download and install it (which is a pretty simple process).
 
-If you'd like to use a local Kubernetes cluster, please refer to the [local Kubernetes guide](./guides/local-kubernetes.md)
-for further information.
+If you'd like to use a local Kubernetes cluster, please refer to the [Local Kubernetes guide](./guides/local-kubernetes.md)
+for further information. For remote clusters, take a look at the [Remote Kubernetes guide](./guides/remote-kubernetes.md).
 
 ## Windows
 
 You can run Garden on Windows 10 Home, Pro or Enterprise editions.
 
-_Note: The Home edition doesn't support virtualization, but you can still use Garden if you're working with
-[remote Kubernetes](./guides/remote-kubernetes.md) and
-[in-cluster building](./guides/in-cluster-building.md)._
+_Note: The Home edition doesn't support virtualization, but you can still use Garden if you're working with [remote Kubernetes](./guides/remote-kubernetes.md) and [in-cluster building](./guides/in-cluster-building.md)._
 
 To install the Garden CLI and its dependencies, please use our installation script. To run the script, open PowerShell as an administrator and run:
 
@@ -83,23 +105,15 @@ To later upgrade to the newest version, simply re-run the above script.
 
 ## Linux
 
-You need the following dependencies on your local machine to use Garden:
-
-* Git
-* rsync
-
-And if you're building and running services locally, you need the following:
-
-* [Docker](https://docs.docker.com/)
-* A local installation of Kubernetes and [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
-
-The Alpine linux distribution also requires `gcc` to be installed.
-
 ### Step 1: Install core dependencies
 
-Use your preferred method or package manager to install `git` and `rsync`. On Ubuntu, that's `sudo apt install git rsync`, on Alpine `apk add --no-cache git rsync gcc`
+Use your preferred method or package manager to install `git` and `rsync`. On Ubuntu, that's `sudo apt install git rsync`, on Alpine `apk add --no-cache git rsync`
+
+The Alpine linux distribution also requires `gcc` to be installed: `apk add --no-cache gcc`.
 
 ### Step 2: Install Garden
+
+#### Installation script (Linux)
 
 You can use our installation script to install Garden automatically:
 
@@ -109,11 +123,13 @@ curl -sL https://get.garden.io/install.sh | bash
 
 To later upgrade to the latest version, simply run the script again.
 
-Or if you prefer to do it manually, download the Garden CLI for your platform from our
-[latest release](https://github.com/garden-io/garden/releases/latest) page, extract and make sure it is on your PATH.
-E.g. by extracting to `~/.garden/bin` and adding `export PATH=$PATH:~/.garden/bin` to your `.bashrc` or `.zshrc` file.
+#### Manual download and install (Linux)
 
-If you're installing manually, please make sure you copy _all the files_ in the release package to the directory you're including in your PATH. For Windows and Linux, there's a `garden` binary and `static` directory, and for macOS there's an additional `fse.node` binary. The `garden` CLI expects these files to be next to the `garden` binary.
+If you prefer, you can perform the installation manually, as follows:
+
+1. Visit the Garden [releases page](https://github.com/garden-io/garden/releases) on GitHub and download the linux archive (under _Assets_).
+2. Next create a `~/.garden/bin` directory, and extract the archive to that directory. _Make sure to include the whole contents of the archive._
+3. Lastly, either add the `~/.garden/bin` directory to your PATH, or add a symlink from your `/usr/local/bin/garden` to the binary at `~/.garden/bin/garden`.
 
 ### Step 3 (optional): Docker
 

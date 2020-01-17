@@ -166,6 +166,19 @@ const outputsSchema = joi.object().keys({
 export const gardenPlugin = createGardenPlugin({
   name: "kubernetes",
   dependencies: ["container"],
+  docs: dedent`
+    The \`kubernetes\` provider allows you to deploy [\`container\` modules](../module-types/container.md) to
+    Kubernetes clusters, and adds the [\`helm\`](../module-types/helm.md) and
+    [\`kubernetes\`](../module-types/kubernetes.md) module types.
+
+    For usage information, please refer to the [guides section](../guides/README.md). A good place to start is
+    the [Remote Kubernetes guide](../guides/remote-kubernetes.md) guide if you're connecting to remote clusters.
+    The [demo-project](../examples/demo-project.md) example project and guide are also helpful as an introduction.
+
+    Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the
+    [local-kubernetes provider](./local-kubernetes.md) simplifies (and automates) the configuration and setup quite a
+    bit.
+  `,
   configSchema,
   outputsSchema,
   commands: [cleanupClusterRegistry, clusterInit, removeTillerCmd, uninstallGardenServices],
@@ -184,7 +197,7 @@ export const gardenPlugin = createGardenPlugin({
       name: "helm",
       docs: dedent`
         Specify a Helm chart (either in your repository or remote from a registry) to deploy.
-        Refer to the [Helm guide](https://docs.garden.io/guides/using-helm-charts) for usage instructions.
+        Refer to the [Helm guide](../guides/using-helm-charts.md) for usage instructions.
       `,
       moduleOutputsSchema: helmModuleOutputsSchema,
       schema: helmModuleSpecSchema,
@@ -199,10 +212,10 @@ export const gardenPlugin = createGardenPlugin({
         one or more files with existing manifests.
 
         Note that if you include the manifests in the \`garden.yml\` file, you can use
-        [template strings](https://docs.garden.io/reference/template-strings) to interpolate values into the manifests.
+        [template strings](../guides/variables-and-templating.md) to interpolate values into the manifests.
 
         If you need more advanced templating features you can use the
-        [helm](https://docs.garden.io/reference/module-types/helm) module type.
+        [helm](./helm.md) module type.
       `,
       moduleOutputsSchema: joi.object().keys({}),
       schema: kubernetesModuleSpecSchema,

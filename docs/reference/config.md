@@ -12,9 +12,9 @@ The reference is divided into four sections. The [first section](#project-yaml-s
 
 The [third section](#module-yaml-schema) contains the module level YAML schema, and the [fourth section](#module-configuration-keys) describes each individual schema key for the module level configuration.
 
-Note that individual providers, e.g. `kubernetes`, add their own project level configuration keys. The provider types are listed on the [Providers page](./providers/README.md).
+Note that individual providers, e.g. `kubernetes`, add their own project level configuration keys. The provider types are listed on the [Providers page](../providers/README.md).
 
-Likewise, individual module types, e.g. `container`, add additional configuration keys at the module level. Module types are listed on the [Module Types page](./module-types/README.md).
+Likewise, individual module types, e.g. `container`, add additional configuration keys at the module level. Module types are listed on the [Module Types page](../module-types/README.md).
 
 Please refer to those for more details on provider and module configuration.
 
@@ -172,7 +172,7 @@ environments:
 ## Project configuration keys
 
 
-### `apiVersion`
+#### `apiVersion`
 
 The schema version of this project's config (currently not used).
 
@@ -180,13 +180,13 @@ The schema version of this project's config (currently not used).
 | -------- | -------- | -------------- | ---------------- |
 | `string` | Yes      | "garden.io/v0" | `"garden.io/v0"` |
 
-### `kind`
+#### `kind`
 
 | Type     | Required | Allowed Values | Default     |
 | -------- | -------- | -------------- | ----------- |
 | `string` | Yes      | "Project"      | `"Project"` |
 
-### `name`
+#### `name`
 
 The name of the project.
 
@@ -200,7 +200,7 @@ Example:
 name: "my-sweet-project"
 ```
 
-### `defaultEnvironment`
+#### `defaultEnvironment`
 
 The default environment to use when calling commands without the `--env` parameter. Defaults to the first configured environment.
 
@@ -208,7 +208,7 @@ The default environment to use when calling commands without the `--env` paramet
 | -------- | -------- | ------- |
 | `string` | No       | `""`    |
 
-### `dotIgnoreFiles`
+#### `dotIgnoreFiles`
 
 Specify a list of filenames that should be used as ".ignore" files across the project, using the same syntax and semantics as `.gitignore` files. By default, patterns matched in `.gitignore` and `.gardenignore` files, found anywhere in the project, are ignored when scanning for modules and module sources.
 Note that these take precedence over the project `module.include` field, and module `include` fields, so any paths matched by the .ignore files will be ignored even if they are explicitly specified in those fields.
@@ -218,13 +218,13 @@ See the [Configuration Files guide] (https://docs.garden.io/guides/configuration
 | ------------------ | -------- | -------------------------------- |
 | `array[posixPath]` | No       | `[".gitignore",".gardenignore"]` |
 
-### `modules`
+#### `modules`
 
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
 
-### `modules.include[]`
+#### `modules.include[]`
 
 [modules](#modules) > include
 
@@ -253,7 +253,7 @@ modules:
     - modules/**/*
 ```
 
-### `modules.exclude[]`
+#### `modules.exclude[]`
 
 [modules](#modules) > exclude
 
@@ -293,7 +293,7 @@ modules:
     - tmp/**/*
 ```
 
-### `providers`
+#### `providers`
 
 A list of providers that should be used for this project, and their configuration. Please refer to individual plugins/providers for details on how to configure them.
 
@@ -301,7 +301,7 @@ A list of providers that should be used for this project, and their configuratio
 | --------------- | -------- | ------- |
 | `array[object]` | No       | `[]`    |
 
-### `providers[].name`
+#### `providers[].name`
 
 [providers](#providers) > name
 
@@ -318,7 +318,7 @@ providers:
   - name: "local-kubernetes"
 ```
 
-### `providers[].environments[]`
+#### `providers[].environments[]`
 
 [providers](#providers) > environments
 
@@ -337,7 +337,7 @@ providers:
     - stage
 ```
 
-### `sources`
+#### `sources`
 
 A list of remote sources to import into project.
 
@@ -345,7 +345,7 @@ A list of remote sources to import into project.
 | --------------- | -------- | ------- |
 | `array[object]` | No       | `[]`    |
 
-### `sources[].name`
+#### `sources[].name`
 
 [sources](#sources) > name
 
@@ -355,7 +355,7 @@ The name of the source to import
 | -------- | -------- |
 | `string` | Yes      |
 
-### `sources[].repositoryUrl`
+#### `sources[].repositoryUrl`
 
 [sources](#sources) > repositoryUrl
 
@@ -372,7 +372,7 @@ sources:
   - repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
 ```
 
-### `varfile`
+#### `varfile`
 
 Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
 project-wide `variables` field. The file should be in a standard "dotenv" format, specified
@@ -388,7 +388,7 @@ multiple ones. See the `environments[].varfile` field for this option._
 | ----------- | -------- | -------------- |
 | `posixPath` | No       | `"garden.env"` |
 
-### `variables`
+#### `variables`
 
 Variables to configure for all environments.
 
@@ -396,13 +396,13 @@ Variables to configure for all environments.
 | -------- | -------- | ------- |
 | `object` | No       | `{}`    |
 
-### `environments`
+#### `environments`
 
 | Type            | Required |
 | --------------- | -------- |
 | `array[object]` | No       |
 
-### `environments[].providers[]`
+#### `environments[].providers[]`
 
 [environments](#environments) > providers
 
@@ -412,7 +412,7 @@ DEPRECATED - Please use the top-level `providers` field instead, and if needed u
 | --------------- | -------- | ------- |
 | `array[object]` | No       | `[]`    |
 
-### `environments[].providers[].name`
+#### `environments[].providers[].name`
 
 [environments](#environments) > [providers](#environmentsproviders) > name
 
@@ -430,7 +430,7 @@ environments:
       - name: "local-kubernetes"
 ```
 
-### `environments[].providers[].environments[]`
+#### `environments[].providers[].environments[]`
 
 [environments](#environments) > [providers](#environmentsproviders) > environments
 
@@ -450,7 +450,7 @@ environments:
         - stage
 ```
 
-### `environments[].varfile`
+#### `environments[].varfile`
 
 [environments](#environments) > varfile
 
@@ -465,7 +465,7 @@ we simply ignore it. If you do override the default value and the file doesn't e
 | ----------- | -------- |
 | `posixPath` | No       |
 
-### `environments[].variables`
+#### `environments[].variables`
 
 [environments](#environments) > variables
 
@@ -475,7 +475,7 @@ A key/value map of variables that modules can reference when using this environm
 | -------- | -------- | ------- |
 | `object` | No       | `{}`    |
 
-### `environments[].name`
+#### `environments[].name`
 
 [environments](#environments) > name
 
@@ -485,7 +485,7 @@ The name of the environment.
 | -------- | -------- |
 | `string` | Yes      |
 
-### `environments[].production`
+#### `environments[].production`
 
 [environments](#environments) > production
 
@@ -585,7 +585,7 @@ build:
 ## Module configuration keys
 
 
-### `apiVersion`
+#### `apiVersion`
 
 The schema version of this module's config (currently not used).
 
@@ -593,13 +593,13 @@ The schema version of this module's config (currently not used).
 | -------- | -------- | -------------- | ---------------- |
 | `string` | Yes      | "garden.io/v0" | `"garden.io/v0"` |
 
-### `kind`
+#### `kind`
 
 | Type     | Required | Allowed Values | Default    |
 | -------- | -------- | -------------- | ---------- |
 | `string` | Yes      | "Module"       | `"Module"` |
 
-### `type`
+#### `type`
 
 The type of this module.
 
@@ -613,7 +613,7 @@ Example:
 type: "container"
 ```
 
-### `name`
+#### `name`
 
 The name of this module.
 
@@ -627,13 +627,13 @@ Example:
 name: "my-sweet-module"
 ```
 
-### `description`
+#### `description`
 
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
 
-### `include`
+#### `include`
 
 Specify a list of POSIX-style paths or globs that should be regarded as the source files for this
 module. Files that do *not* match these paths or globs are excluded when computing the version of the module,
@@ -657,7 +657,7 @@ include:
   - my-app.js
 ```
 
-### `exclude`
+#### `exclude`
 
 Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that
 match these paths or globs are excluded when computing the version of the module, when responding to filesystem
@@ -683,7 +683,7 @@ exclude:
   - '*.log'
 ```
 
-### `repositoryUrl`
+#### `repositoryUrl`
 
 A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
 
@@ -700,7 +700,7 @@ Example:
 repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
 ```
 
-### `allowPublish`
+#### `allowPublish`
 
 When false, disables pushing this module to remote registries.
 
@@ -708,7 +708,7 @@ When false, disables pushing this module to remote registries.
 | --------- | -------- | ------- |
 | `boolean` | No       | `true`  |
 
-### `build`
+#### `build`
 
 Specify how to build the module. Note that plugins may define additional keys on this object.
 
@@ -716,7 +716,7 @@ Specify how to build the module. Note that plugins may define additional keys on
 | -------- | -------- | --------------------- |
 | `object` | No       | `{"dependencies":[]}` |
 
-### `build.dependencies[]`
+#### `build.dependencies[]`
 
 [build](#build) > dependencies
 
@@ -735,7 +735,7 @@ build:
     - name: some-other-module-name
 ```
 
-### `build.dependencies[].name`
+#### `build.dependencies[].name`
 
 [build](#build) > [dependencies](#builddependencies) > name
 
@@ -745,7 +745,7 @@ Module name to build ahead of this module.
 | -------- | -------- |
 | `string` | Yes      |
 
-### `build.dependencies[].copy[]`
+#### `build.dependencies[].copy[]`
 
 [build](#build) > [dependencies](#builddependencies) > copy
 
@@ -755,7 +755,7 @@ Specify one or more files or directories to copy from the built dependency to th
 | --------------- | -------- | ------- |
 | `array[object]` | No       | `[]`    |
 
-### `build.dependencies[].copy[].source`
+#### `build.dependencies[].copy[].source`
 
 [build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > source
 
@@ -765,7 +765,7 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 | ----------- | -------- |
 | `posixPath` | Yes      |
 
-### `build.dependencies[].copy[].target`
+#### `build.dependencies[].copy[].target`
 
 [build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > target
 

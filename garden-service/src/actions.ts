@@ -149,14 +149,14 @@ export class ActionRouter implements TypeGuard {
         handler && this.addActionHandler(plugin, actionType, handler)
       }
 
-      for (const spec of plugin.createModuleTypes || []) {
+      for (const spec of plugin.createModuleTypes) {
         for (const actionType of moduleActionNames) {
           const handler = spec.handlers[actionType]
           handler && this.addModuleActionHandler(plugin, actionType, spec.name, handler)
         }
       }
 
-      for (const spec of plugin.extendModuleTypes || []) {
+      for (const spec of plugin.extendModuleTypes) {
         for (const actionType of moduleActionNames) {
           const handler = spec.handlers[actionType]
           handler && this.addModuleActionHandler(plugin, actionType, spec.name, handler)
