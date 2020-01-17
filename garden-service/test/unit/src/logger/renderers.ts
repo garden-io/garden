@@ -11,12 +11,15 @@ import {
   formatForJson,
   renderSection,
   MAX_SECTION_WIDTH,
+  renderData,
 } from "../../../../src/logger/renderers"
 import { GardenError } from "../../../../src/exceptions"
 import dedent = require("dedent")
 import { TaskMetadata } from "../../../../src/logger/log-entry"
 import logSymbols = require("log-symbols")
 import stripAnsi = require("strip-ansi")
+import yaml from "js-yaml"
+import { highlightYaml } from "../../../../src/util/util"
 
 const logger: any = getLogger()
 
@@ -232,6 +235,37 @@ describe("renderers", () => {
         data: undefined,
         metadata: undefined,
       })
+    })
+  })
+  describe.only("renderData", () => {
+    const sampleData = {
+      key: "value",
+      key2: {
+        value: [
+          {
+            key1: "value",
+            key2: 3,
+          },
+        ],
+      },
+    }
+    it("should render an empty string when no data is passed", () => {
+      const entry = logger.placeholder()
+      expect(renderData(entry)).to.eql("")
+    })
+    it("should render yaml by default if data is passed", () => {
+      const entry = logger.info({ data: sampleData })
+      const dataAsYaml = yaml.safeDump(sampleData, { noRefs: true, skipInvalid: true })
+      expect(renderData(entry)).to.eql(highlightYaml(dataAsYaml))
+    })
+    it('should render yaml if dataFormat is "yaml"', () => {
+      const entry = logger.info({ data: sampleData, dataFormat: "yaml" })
+      const dataAsYaml = yaml.safeDump(sampleData, { noRefs: true, skipInvalid: true })
+      expect(renderData(entry)).to.eql(highlightYaml(dataAsYaml))
+    })
+    it('should render json if dataFormat is "json"', () => {
+      const entry = logger.info({ data: sampleData, dataFormat: "json" })
+      expect(renderData(entry)).to.eql(JSON.stringify(sampleData, null, 2))
     })
   })
 })
