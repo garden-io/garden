@@ -50,7 +50,6 @@ const SidebarContainer = () => {
       requestStates,
     },
   } = useApi()
-
   useEffect(() => {
     const fetchData = async () => loadStatus(dispatch)
 
