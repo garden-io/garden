@@ -237,7 +237,7 @@ describe("renderers", () => {
       })
     })
   })
-  describe.only("renderData", () => {
+  describe("renderData", () => {
     const sampleData = {
       key: "value",
       key2: {
