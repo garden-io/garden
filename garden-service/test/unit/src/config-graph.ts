@@ -486,24 +486,22 @@ describe("ConfigGraph", () => {
           name: "foo",
           outputs: {},
           path: tmpPath,
-          serviceConfigs: [
-            {
-              name: "disabled-service",
-              dependencies: [],
-              disabled: true,
-              hotReloadable: false,
-              spec: {},
-            },
-            {
-              name: "enabled-service",
-              dependencies: ["disabled-service"],
-              disabled: true,
-              hotReloadable: false,
-              spec: {},
-            },
-          ],
+          serviceConfigs: [],
           taskConfigs: [],
-          spec: {},
+          spec: {
+            services: [
+              {
+                name: "disabled-service",
+                dependencies: [],
+                disabled: true,
+              },
+              {
+                name: "enabled-service",
+                dependencies: ["disabled-service"],
+                disabled: true,
+              },
+            ],
+          },
           testConfigs: [],
           type: "test",
         },
@@ -532,25 +530,24 @@ describe("ConfigGraph", () => {
           name: "foo",
           outputs: {},
           path: tmpPath,
-          serviceConfigs: [
-            {
-              name: "enabled-service",
-              dependencies: ["disabled-task"],
-              disabled: true,
-              hotReloadable: false,
-              spec: {},
-            },
-          ],
-          taskConfigs: [
-            {
-              name: "disabled-task",
-              dependencies: [],
-              disabled: true,
-              spec: {},
-              timeout: null,
-            },
-          ],
-          spec: {},
+          serviceConfigs: [],
+          taskConfigs: [],
+          spec: {
+            services: [
+              {
+                name: "enabled-service",
+                dependencies: ["disabled-task"],
+                disabled: false,
+              },
+            ],
+            tasks: [
+              {
+                name: "disabled-task",
+                dependencies: [],
+                disabled: true,
+              },
+            ],
+          },
           testConfigs: [],
           type: "test",
         },
@@ -580,17 +577,17 @@ describe("ConfigGraph", () => {
           include: [],
           outputs: {},
           path: tmpPath,
-          serviceConfigs: [
-            {
-              name: "disabled-service",
-              dependencies: [],
-              disabled: true,
-              hotReloadable: false,
-              spec: {},
-            },
-          ],
+          serviceConfigs: [],
           taskConfigs: [],
-          spec: {},
+          spec: {
+            services: [
+              {
+                name: "disabled-service",
+                dependencies: [],
+                disabled: true,
+              },
+            ],
+          },
           testConfigs: [],
           type: "test",
         },
@@ -603,17 +600,17 @@ describe("ConfigGraph", () => {
           include: [],
           outputs: {},
           path: tmpPath,
-          serviceConfigs: [
-            {
-              name: "enabled-service",
-              dependencies: ["disabled-service"],
-              disabled: true,
-              hotReloadable: false,
-              spec: {},
-            },
-          ],
+          serviceConfigs: [],
           taskConfigs: [],
-          spec: {},
+          spec: {
+            services: [
+              {
+                name: "enabled-service",
+                dependencies: ["disabled-service"],
+                disabled: false,
+              },
+            ],
+          },
           testConfigs: [],
           type: "test",
         },
@@ -642,25 +639,24 @@ describe("ConfigGraph", () => {
           name: "foo",
           outputs: {},
           path: tmpPath,
-          serviceConfigs: [
-            {
-              name: "disabled-service",
-              dependencies: [],
-              disabled: true,
-              hotReloadable: false,
-              spec: {},
-            },
-          ],
-          taskConfigs: [
-            {
-              name: "enabled-task",
-              dependencies: ["disabled-service"],
-              disabled: false,
-              spec: {},
-              timeout: null,
-            },
-          ],
-          spec: {},
+          serviceConfigs: [],
+          taskConfigs: [],
+          spec: {
+            services: [
+              {
+                name: "disabled-service",
+                dependencies: [],
+                disabled: true,
+              },
+            ],
+            tasks: [
+              {
+                name: "enabled-task",
+                dependencies: ["disabled-service"],
+                disabled: false,
+              },
+            ],
+          },
           testConfigs: [],
           type: "test",
         },
@@ -689,26 +685,25 @@ describe("ConfigGraph", () => {
           name: "foo",
           outputs: {},
           path: tmpPath,
-          serviceConfigs: [
-            {
-              name: "disabled-service",
-              dependencies: [],
-              disabled: true,
-              hotReloadable: false,
-              spec: {},
-            },
-          ],
+          serviceConfigs: [],
           taskConfigs: [],
-          spec: {},
-          testConfigs: [
-            {
-              name: "enabled-test",
-              dependencies: ["disabled-service"],
-              disabled: false,
-              spec: {},
-              timeout: null,
-            },
-          ],
+          spec: {
+            services: [
+              {
+                name: "disabled-service",
+                dependencies: [],
+                disabled: true,
+              },
+            ],
+            tests: [
+              {
+                name: "enabled-test",
+                dependencies: ["disabled-service"],
+                disabled: false,
+              },
+            ],
+          },
+          testConfigs: [],
           type: "test",
         },
       ])
@@ -766,6 +761,127 @@ describe("ConfigGraph", () => {
       const deps = await graph.resolveDependencyModules([{ name: "module-a", copy: [] }], [])
 
       expect(deps.map((m) => m.name)).to.eql(["module-a"])
+    })
+  })
+
+  describe("getDependants", () => {
+    it("should not traverse past disabled services", async () => {
+      const garden = await makeTestGardenA()
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          name: "module-a",
+          include: [],
+          outputs: {},
+          path: tmpPath,
+          serviceConfigs: [],
+          taskConfigs: [],
+          spec: {
+            services: [
+              {
+                name: "service-a",
+                dependencies: [],
+                disabled: true,
+              },
+            ],
+          },
+          testConfigs: [],
+          type: "test",
+        },
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          name: "module-b",
+          include: [],
+          outputs: {},
+          path: tmpPath,
+          serviceConfigs: [],
+          taskConfigs: [],
+          spec: {
+            services: [
+              {
+                name: "service-b",
+                dependencies: ["service-a"],
+                disabled: false,
+              },
+            ],
+          },
+          testConfigs: [],
+          type: "test",
+        },
+      ])
+
+      const graph = await garden.getConfigGraph(garden.log)
+      const deps = await graph.getDependants({ nodeType: "build", name: "module-a", recursive: true })
+
+      expect(deps.deploy.map((m) => m.name)).to.eql(["service-a"])
+    })
+  })
+
+  describe("getDependantsForModule", () => {
+    it("should return services and tasks for a build dependant of the given module", async () => {
+      const garden = await makeTestGardenA()
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          name: "module-a",
+          include: [],
+          outputs: {},
+          path: tmpPath,
+          serviceConfigs: [],
+          taskConfigs: [],
+          spec: {},
+          testConfigs: [],
+          type: "test",
+        },
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [{ name: "module-a", copy: [] }] },
+          disabled: false,
+          name: "module-b",
+          include: [],
+          outputs: {},
+          path: tmpPath,
+          serviceConfigs: [],
+          taskConfigs: [],
+          spec: {
+            services: [
+              {
+                name: "service-b",
+                dependencies: [],
+                disabled: false,
+              },
+            ],
+            tasks: [
+              {
+                name: "task-b",
+                dependencies: [],
+                disabled: false,
+              },
+            ],
+          },
+          testConfigs: [],
+          type: "test",
+        },
+      ])
+
+      const graph = await garden.getConfigGraph(garden.log)
+      const moduleA = await graph.getModule("module-a")
+      const deps = await graph.getDependantsForModule(moduleA, true)
+
+      expect(deps.deploy.map((m) => m.name)).to.eql(["service-b"])
+      expect(deps.run.map((m) => m.name)).to.eql(["task-b"])
     })
   })
 

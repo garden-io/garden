@@ -7,12 +7,11 @@
  */
 
 import Bluebird from "bluebird"
-import { intersection, uniq, flatten } from "lodash"
+import { intersection, flatten, uniqBy } from "lodash"
 import { DeployTask } from "./deploy"
 import { Garden } from "../garden"
 import { Module } from "../types/module"
-import { Service } from "../types/service"
-import { DependencyGraphNode, ConfigGraph } from "../config-graph"
+import { ConfigGraph } from "../config-graph"
 import { LogEntry } from "../logger/log-entry"
 import { BaseTask } from "./base"
 import { BuildTask } from "./build"
@@ -27,78 +26,62 @@ export async function getModuleWatchTasks({
   log,
   graph,
   module,
-  serviceNames,
   hotReloadServiceNames,
 }: {
   garden: Garden
   log: LogEntry
   graph: ConfigGraph
   module: Module
-  serviceNames: string[]
   hotReloadServiceNames: string[]
 }): Promise<BaseTask[]> {
   let buildTasks: BaseTask[] = []
-  let dependantBuildModules: Module[] = []
-  let servicesToDeploy: Service[] = []
 
-  const hotReloadModuleNames = await getModuleNames(graph, hotReloadServiceNames)
+  const dependants = await graph.getDependantsForModule(module, true)
 
-  const dependantFilterFn = (dependantNode: DependencyGraphNode) =>
-    !hotReloadModuleNames.includes(dependantNode.moduleName)
-
-  if (intersection(module.serviceNames, hotReloadServiceNames).length) {
-    // Hot reloading is enabled for one or more of module's services.
-    const serviceDeps = await graph.getDependantsForMany({
-      nodeType: "deploy",
-      names: module.serviceNames,
-      recursive: true,
-      filterFn: dependantFilterFn,
-    })
-
-    dependantBuildModules = serviceDeps.build
-    servicesToDeploy = serviceDeps.deploy
-  } else {
-    const dependants = await graph.getDependantsForModule(module, dependantFilterFn)
-
+  if (intersection(module.serviceNames, hotReloadServiceNames).length === 0) {
     buildTasks = await BuildTask.factory({
       garden,
       log,
       module,
       force: true,
     })
-
-    dependantBuildModules = dependants.build
-    servicesToDeploy = (await graph.getServices({ names: serviceNames })).concat(dependants.deploy)
   }
 
   const dependantBuildTasks = flatten(
-    await Bluebird.map(dependantBuildModules, (m) =>
-      BuildTask.factory({
-        garden,
-        log,
-        module: m,
-        force: false,
-      })
+    await Bluebird.map(
+      dependants.build.filter((m) => !m.disabled),
+      (m) =>
+        BuildTask.factory({
+          garden,
+          log,
+          module: m,
+          force: false,
+        })
     )
   )
 
-  const deployTasks = servicesToDeploy.map(
-    (service) =>
-      new DeployTask({
-        garden,
-        log,
-        graph,
-        service,
-        force: true,
-        forceBuild: false,
-        fromWatch: true,
-        hotReloadServiceNames,
-      })
-  )
+  const deployTasks = dependants.deploy
+    .filter((s) => !s.disabled && !hotReloadServiceNames.includes(s.name))
+    .map(
+      (service) =>
+        new DeployTask({
+          garden,
+          log,
+          graph,
+          service,
+          force: true,
+          forceBuild: false,
+          fromWatch: true,
+          hotReloadServiceNames,
+        })
+    )
 
-  const hotReloadServices = await graph.getServices({ names: hotReloadServiceNames })
+  const hotReloadServices = await graph.getServices({ names: hotReloadServiceNames, includeDisabled: true })
   const hotReloadTasks = hotReloadServices
-    .filter((service) => service.module.name === module.name || service.sourceModule.name === module.name)
+    .filter(
+      (service) =>
+        !service.disabled && (service.module.name === module.name || service.sourceModule.name === module.name)
+    )
     .map((service) => new HotReloadTask({ garden, graph, log, service, force: true }))
 
   const outputTasks = [...buildTasks, ...dependantBuildTasks, ...deployTasks, ...hotReloadTasks]
@@ -106,12 +89,7 @@ export async function getModuleWatchTasks({
   log.silly(`getModuleWatchTasks called for module ${module.name}, returning the following tasks:`)
   log.silly(`  ${outputTasks.map((t) => t.getKey()).join(", ")}`)
 
-  return outputTasks
-}
-
-async function getModuleNames(dg: ConfigGraph, hotReloadServiceNames: string[]) {
-  const services = await dg.getServices({ names: hotReloadServiceNames })
-  return uniq(services.map((s) => s.module.name))
+  return uniqBy(outputTasks, (t) => t.getKey())
 }
 
 export function makeTestTaskName(moduleName: string, testConfigName: string) {

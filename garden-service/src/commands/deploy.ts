@@ -113,7 +113,6 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     services = services.filter((s) => !s.disabled)
-    const serviceNames = services.map((s) => s.name)
 
     if (services.length === 0) {
       log.error({ msg: "No services to deploy. Aborting." })
@@ -167,7 +166,6 @@ export class DeployCommand extends Command<Args, Opts> {
           graph,
           log,
           module,
-          serviceNames: module.serviceNames.filter((name) => serviceNames.includes(name)),
           hotReloadServiceNames,
         })
 

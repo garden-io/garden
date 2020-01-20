@@ -113,7 +113,7 @@ Please look at individual [module type references](../module-types/README.md) to
 
 ### Disabling Tasks
 
-Modules that allow you to configure tasks generally also allow you to disable tasks by setting `disabled: true` in the task configuration. You can also disable them conditionally using template strings. For example, to disable a `container` module task for a specific environment, you could do something like this:
+Module types that allow you to configure tasks generally also allow you to disable tasks by setting `disabled: true` in the task configuration. You can also disable them conditionally using template strings. For example, to disable a `container` module task for a specific environment, you could do something like this:
 
 ```yaml
 kind: Module

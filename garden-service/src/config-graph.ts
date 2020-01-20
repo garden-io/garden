@@ -362,24 +362,20 @@ export class ConfigGraph {
   /**
    * Returns the set union of modules with the set union of their dependants (across all dependency types, recursively).
    */
-  async withDependantModules(modules: Module[], filterFn?: DependencyRelationFilterFn): Promise<Module[]> {
-    const dependants = flatten(await Bluebird.map(modules, (m) => this.getDependantsForModule(m, filterFn)))
+  async withDependantModules(modules: Module[]): Promise<Module[]> {
+    const dependants = flatten(await Bluebird.map(modules, (m) => this.getDependantsForModule(m, true)))
     // We call getModules to ensure that the returned modules have up-to-date versions.
     const dependantModules = await this.modulesForRelations(await this.mergeRelations(...dependants))
     return this.getModules({ names: uniq(modules.concat(dependantModules).map((m) => m.name)), includeDisabled: true })
   }
 
   /**
-   * Returns all build and runtime dependants of module and its services & tasks (recursively).
+   * Returns all build and runtime dependants of a module and its services & tasks (recursively).
+   * Includes the services and tasks contained in the given module, but does _not_ contain the build node for the
+   * module itself.
    */
-  async getDependantsForModule(module: Module, filterFn?: DependencyRelationFilterFn): Promise<DependencyRelations> {
-    return this.mergeRelations(
-      ...(await Bluebird.all([
-        this.getDependants({ nodeType: "build", name: module.name, recursive: true, filterFn }),
-        this.getDependantsForMany({ nodeType: "deploy", names: module.serviceNames, recursive: true, filterFn }),
-        this.getDependantsForMany({ nodeType: "run", names: module.taskNames, recursive: true, filterFn }),
-      ]))
-    )
+  async getDependantsForModule(module: Module, recursive: boolean): Promise<DependencyRelations> {
+    return this.getDependants({ nodeType: "build", name: module.name, recursive })
   }
 
   /**
@@ -535,8 +531,8 @@ export class ConfigGraph {
   private async relationsFromNames(names: DependencyRelationNames): Promise<DependencyRelations> {
     return Bluebird.props({
       build: this.getModules({ names: names.build, includeDisabled: true }),
-      deploy: this.getServices({ names: names.deploy }),
-      run: this.getTasks({ names: names.run }),
+      deploy: this.getServices({ names: names.deploy, includeDisabled: true }),
+      run: this.getTasks({ names: names.run, includeDisabled: true }),
       test: Object.values(pick(this.testConfigs, names.test)).map((t) => t.config),
     })
   }

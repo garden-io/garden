@@ -189,7 +189,6 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
           log,
           graph: updatedGraph,
           module,
-          serviceNames: module.serviceNames,
           hotReloadServiceNames,
         })
 

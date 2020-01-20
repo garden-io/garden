@@ -100,7 +100,7 @@ services:
 
 ### Disabling Services
 
-Modules that allow you to configure services generally also allow you to disable services by setting `disabled: true` in the service configuration. You can also disable them conditionally using template strings. For example, to disable a `container` module service for a specific environment, you could do something like this:
+Module types that allow you to configure services generally also allow you to disable services by setting `disabled: true` in the service configuration. You can also disable them conditionally using template strings. For example, to disable a `container` module service for a specific environment, you could do something like this:
 
 ```yaml
 kind: Module

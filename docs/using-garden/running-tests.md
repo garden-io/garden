@@ -111,7 +111,7 @@ Please look at individual [module type references](../module-types/README.md) to
 
 ### Disabling Tests
 
-Modules that allow you to configure tests generally also allow you to disable tests by setting `disabled: true` in the test configuration. You can also disable them conditionally using template strings. For example, to disable a `container` module test for a specific environment, you could do something like this:
+Module types that allow you to configure tests generally also allow you to disable tests by setting `disabled: true` in the test configuration. You can also disable them conditionally using template strings. For example, to disable a `container` module test for a specific environment, you could do something like this:
 
 ```yaml
 kind: Module
