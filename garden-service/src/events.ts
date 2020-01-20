@@ -62,6 +62,10 @@ export type Events = {
   configRemoved: {
     path: string
   }
+  internalError: {
+    timestamp: Date
+    error: Error
+  }
   projectConfigChanged: {}
   moduleConfigChanged: {
     names: string[]
