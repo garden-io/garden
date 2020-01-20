@@ -23,9 +23,9 @@ labels: feature request
 
 <!-- How could we implement this feature? What does the user experience look like? -->
 
-### How do you prioritize this feature?
+### How important is this feature for you/your team?
 
-- [ ] Urgent (Garden is unusable for you without it)
-- [ ] High (Garden is still usable, but not having this feature makes it painful)
-- [ ] Medium (Using garden without it is mildly inconvenient)
+- [ ] Crucial (Garden is unusable for us without it)
+- [ ] High (Not having this feature makes using Garden painful)
+- [ ] Medium (Using Garden without it is mildly inconvenient)
 - [ ] Low (Nice to have someday)
