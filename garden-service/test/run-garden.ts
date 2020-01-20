@@ -101,10 +101,10 @@ export function commandReloadedStep(): WatchTestStep {
   }
 }
 
-function stringifyJsonLog(entries: UpdateLogEntryParams[]) {
+function stringifyJsonLog(entries: UpdateLogEntryParams[], opts = { error: false }) {
   return entries
     .map((l) => {
-      const msg = chalk.white(<string>l.msg || "")
+      const msg = (opts.error ? chalk.red : chalk.white)(<string>l.msg || "")
       return l.section ? `${chalk.cyanBright(l.section)}${chalk.gray(":")} ${msg}` : msg
     })
     .join("\n")
@@ -128,7 +128,7 @@ export async function runGarden(dir: string, command: string[]): Promise<JsonLog
     let msg = err.message.split("\n")[0]
     if (err.stdout) {
       const parsedLog = parseLogEntries(err.stdout.split("\n").filter(Boolean))
-      msg += "\n" + stringifyJsonLog(parsedLog)
+      msg += "\n" + stringifyJsonLog(parsedLog, { error: true })
     }
     throw new Error(`Failed running command '${command.join(" ")}': ${msg}`)
   }
