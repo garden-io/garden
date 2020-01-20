@@ -506,9 +506,7 @@ export class Garden {
       })
 
       // Process as many providers in parallel as possible
-      const taskResults = await this.processTasks(tasks, {
-        concurrencyLimit: tasks.length,
-      })
+      const taskResults = await this.processTasks(tasks, { unlimitedConcurrency: true })
 
       const failed = Object.values(taskResults).filter((r) => r && r.error)
 

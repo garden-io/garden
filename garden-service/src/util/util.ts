@@ -17,7 +17,7 @@ import _spawn from "cross-spawn"
 import { readFile, writeFile } from "fs-extra"
 import { find, pick, difference, fromPairs, uniqBy } from "lodash"
 import { TimeoutError, ParameterError, RuntimeError, GardenError } from "../exceptions"
-import { isArray, isPlainObject, extend, mapValues, pickBy } from "lodash"
+import { isArray, isPlainObject, extend, mapValues, pickBy, range, some } from "lodash"
 import highlight from "cli-highlight"
 import chalk from "chalk"
 import { safeDump } from "js-yaml"
@@ -73,6 +73,20 @@ export function getPackageVersion(): string {
 
 export async function sleep(msec) {
   return new Promise((resolve) => setTimeout(resolve, msec))
+}
+
+/**
+ * Returns a promise that can be resolved/rejected by calling resolver/rejecter.
+ */
+export function defer<T>() {
+  let outerResolve
+  let outerReject
+  const promise = new Promise<T>((res, rej) => {
+    outerResolve = res
+    outerReject = rej
+  })
+
+  return { promise, resolver: outerResolve, rejecter: outerReject }
 }
 
 /**
@@ -456,6 +470,32 @@ export function findByName<T extends ObjectWithName>(array: T[], name: string): 
 
 export function uniqByName<T extends ObjectWithName>(array: T[]): T[] {
   return uniqBy(array, (item) => item.name)
+}
+
+/**
+ * Returns an array of arrays, where the elements of a given array are the elements of items for which
+ * isRelated returns true for one or more elements of its class.
+ *
+ * I.e. an element is related to at least one element of its class, transitively.
+ */
+export function relationshipClasses<I>(items: I[], isRelated: (item1: I, item2: I) => boolean): I[][] {
+  const classes: I[][] = []
+  for (const item of items) {
+    let found = false
+    for (const classIndex of range(0, classes.length)) {
+      const cls = classes[classIndex]
+      if (cls && cls.length && some(cls, (classItem) => isRelated(classItem, item))) {
+        found = true
+        cls.push(item)
+      }
+    }
+
+    if (!found) {
+      classes.push([item])
+    }
+  }
+
+  return classes
 }
 
 /**

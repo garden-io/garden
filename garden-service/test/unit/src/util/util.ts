@@ -8,6 +8,7 @@
 
 import { expect } from "chai"
 import { describe } from "mocha"
+import { includes } from "lodash"
 import {
   pickKeys,
   getEnvVarName,
@@ -19,6 +20,7 @@ import {
   makeErrorMsg,
   renderOutputStream,
   spawn,
+  relationshipClasses,
 } from "../../../../src/util/util"
 import { expectError } from "../../../helpers"
 import { splitFirst } from "../../../../src/util/util"
@@ -324,6 +326,22 @@ describe("util", () => {
 
     it("should return the whole string as last element when no delimiter is found in string", () => {
       expect(splitLast("foo", ":")).to.eql(["", "foo"])
+    })
+  })
+
+  describe("relationshipClasses", () => {
+    it("should correctly partition related items", () => {
+      const items = ["ab", "b", "c", "a", "cd"]
+      const isRelated = (s1: string, s2: string) => includes(s1, s2) || includes(s2, s1)
+      expect(relationshipClasses(items, isRelated)).to.eql([
+        ["ab", "b", "a"],
+        ["c", "cd"],
+      ])
+    })
+
+    it("should return a single partition when only one item is passed", () => {
+      const isRelated = (s1: string, s2: string) => s1[0] === s2[0]
+      expect(relationshipClasses(["a"], isRelated)).to.eql([["a"]])
     })
   })
 })
