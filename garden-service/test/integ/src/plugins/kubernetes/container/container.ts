@@ -330,6 +330,37 @@ describe("kubernetes container module handlers", () => {
       expect(result[key]!.output.log.trim()).to.equal("ok")
     })
 
+    it("should fail if an error occurs, but store the result", async () => {
+      const task = await graph.getTask("echo-task")
+      task.config.spec.command = ["bork"] // this will fail
+
+      const testTask = new TaskTask({
+        garden,
+        graph,
+        task,
+        log: garden.log,
+        force: true,
+        forceBuild: false,
+        version: task.module.version,
+      })
+
+      await expectError(
+        async () => await garden.processTasks([testTask], { throwOnError: true }),
+        (err) => expect(err.message).to.match(/bork/)
+      )
+
+      const actions = await garden.getActionRouter()
+
+      // We also verify that, despite the task failing, its result was still saved.
+      result = await actions.getTaskResult({
+        log: garden.log,
+        task,
+        taskVersion: task.module.version,
+      })
+
+      expect(result).to.exist
+    })
+
     context("artifacts are specified", () => {
       it("should copy artifacts out of the container", async () => {
         const task = await graph.getTask("artifacts-task")
@@ -448,6 +479,42 @@ describe("kubernetes container module handlers", () => {
       const key = "test.simple.echo-test"
       expect(result).to.have.property(key)
       expect(result[key]!.output.log.trim()).to.equal("ok")
+    })
+
+    it("should fail if an error occurs, but store the result", async () => {
+      const module = await graph.getModule("simple")
+
+      const testConfig = findByName(module.testConfigs, "echo-test")!
+      testConfig.spec.command = ["bork"] // this will fail
+
+      const testTask = new TestTask({
+        garden,
+        graph,
+        module,
+        testConfig,
+        log: garden.log,
+        force: true,
+        forceBuild: false,
+        version: module.version,
+        _guard: true,
+      })
+
+      await expectError(
+        async () => await garden.processTasks([testTask], { throwOnError: true }),
+        (err) => expect(err.message).to.match(/bork/)
+      )
+
+      const actions = await garden.getActionRouter()
+
+      // We also verify that, despite the test failing, its result was still saved.
+      result = await actions.getTestResult({
+        log: garden.log,
+        module,
+        testName: testConfig.name,
+        testVersion: testTask.version,
+      })
+
+      expect(result).to.exist
     })
 
     context("artifacts are specified", () => {

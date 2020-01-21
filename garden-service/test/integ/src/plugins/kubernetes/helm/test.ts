@@ -1,6 +1,6 @@
 import { expect } from "chai"
 
-import { TestGarden } from "../../../../../helpers"
+import { TestGarden, expectError } from "../../../../../helpers"
 import { ConfigGraph } from "../../../../../../src/config-graph"
 import { getHelmTestGarden } from "./common"
 import { TestTask } from "../../../../../../src/tasks/test"
@@ -41,6 +41,42 @@ describe("testHelmModule", () => {
     expect(result).to.exist
     expect(result).to.have.property("output")
     expect(result!.output.log.trim()).to.equal("ok")
+  })
+
+  it("should fail if an error occurs, but store the result", async () => {
+    const module = await graph.getModule("artifacts")
+
+    const testConfig = findByName(module.testConfigs, "echo-test")!
+    testConfig.spec.command = ["bork"] // this will fail
+
+    const testTask = new TestTask({
+      garden,
+      graph,
+      module,
+      testConfig,
+      log: garden.log,
+      force: true,
+      forceBuild: false,
+      version: module.version,
+      _guard: true,
+    })
+
+    await expectError(
+      async () => await garden.processTasks([testTask], { throwOnError: true }),
+      (err) => expect(err.message).to.match(/bork/)
+    )
+
+    const actions = await garden.getActionRouter()
+
+    // We also verify that, despite the test failing, its result was still saved.
+    const result = await actions.getTestResult({
+      log: garden.log,
+      module,
+      testName: testConfig.name,
+      testVersion: testTask.version,
+    })
+
+    expect(result).to.exist
   })
 
   context("artifacts are specified", () => {

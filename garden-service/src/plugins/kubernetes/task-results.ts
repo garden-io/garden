@@ -82,12 +82,19 @@ interface StoreTaskResultParams {
  *
  * TODO: Implement a CRD for this.
  */
-export async function storeTaskResult({ ctx, log, module, taskName, taskVersion, result }: StoreTaskResultParams) {
+export async function storeTaskResult({
+  ctx,
+  log,
+  module,
+  taskName,
+  taskVersion,
+  result,
+}: StoreTaskResultParams): Promise<RunTaskResult> {
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, provider)
   const namespace = await getMetadataNamespace(ctx, log, provider)
 
-  const data = trimRunOutput(result)
+  const data: RunTaskResult = trimRunOutput(result)
 
   await upsertConfigMap({
     api,
@@ -101,4 +108,6 @@ export async function storeTaskResult({ ctx, log, module, taskName, taskVersion,
     },
     data,
   })
+
+  return data
 }

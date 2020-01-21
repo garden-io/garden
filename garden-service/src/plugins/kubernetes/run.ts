@@ -376,7 +376,7 @@ export class PodRunner extends PodRunnerParams {
       version: module.version.versionString,
       startedAt,
       completedAt: new Date(),
-      log: res.output,
+      log: res.output + res.stderr,
       success: res.code === 0,
     }
   }

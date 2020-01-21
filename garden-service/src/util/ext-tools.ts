@@ -320,8 +320,17 @@ export class BinaryCmd extends Library {
 
   async spawnAndWait({ args, cwd, env, log, ignoreError, stdout, stderr, timeout, tty }: SpawnParams) {
     const path = await this.getPath(log)
+
+    if (!args) {
+      args = []
+    }
+    if (!cwd) {
+      cwd = dirname(path)
+    }
+
+    log.debug(`Spawning '${path} ${args.join(" ")}' in ${cwd}`)
     return spawn(path, args || [], {
-      cwd: cwd || dirname(path),
+      cwd,
       timeout: this.getTimeout(timeout),
       ignoreError,
       env,
