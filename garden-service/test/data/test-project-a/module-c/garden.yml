@@ -3,6 +3,7 @@ name: module-c
 type: test
 services:
   - name: service-c
+    dependencies: [task-c]
 build:
   dependencies:
     - module-b

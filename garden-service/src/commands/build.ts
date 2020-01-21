@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import Bluebird from "bluebird"
 import {
   BooleanParameter,
   Command,
@@ -83,8 +84,12 @@ export class BuildCommand extends Command<Args, Opts> {
     await garden.clearBuilds()
 
     const graph = await garden.getConfigGraph(log)
-    const modules = await graph.getModules(args.modules)
+    const modules = await graph.getModules({ names: args.modules })
     const moduleNames = modules.map((m) => m.name)
+
+    const initialTasks = flatten(
+      await Bluebird.map(modules, (module) => BuildTask.factory({ garden, log, module, force: opts.force }))
+    )
 
     const results = await processModules({
       garden,
@@ -93,9 +98,9 @@ export class BuildCommand extends Command<Args, Opts> {
       footerLog,
       modules,
       watch: opts.watch,
-      handler: async (_, module) => BuildTask.factory({ garden, log, module, force: opts.force }),
+      initialTasks,
       changeHandler: async (newGraph, module) => {
-        const deps = await newGraph.getDependants("build", module.name, true)
+        const deps = await newGraph.getDependants({ nodeType: "build", name: module.name, recursive: true })
         const tasks = [module]
           .concat(deps.build)
           .filter((m) => moduleNames.includes(m.name))

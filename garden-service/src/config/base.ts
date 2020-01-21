@@ -140,6 +140,7 @@ export function prepareModuleResource(
     },
     configPath,
     description: spec.description,
+    disabled: spec.disabled,
     include: spec.include,
     exclude: spec.exclude,
     name: spec.name,

@@ -87,6 +87,7 @@ export async function configureTerraformModule({ ctx, moduleConfig }: ConfigureM
     {
       name: moduleConfig.name,
       dependencies: moduleConfig.spec.dependencies,
+      disabled: false,
       hotReloadable: false,
       spec: moduleConfig.spec,
     },

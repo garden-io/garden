@@ -103,17 +103,28 @@ export class TestCommand extends Command<Args, Opts> {
 
     const graph = await garden.getConfigGraph(log)
 
-    let modules: Module[]
-    if (args.modules) {
-      modules = await graph.withDependantModules(await graph.getModules(args.modules))
-    } else {
-      // All modules are included in this case, so there's no need to compute dependants.
-      modules = await graph.getModules()
-    }
+    const modules: Module[] = args.modules
+      ? await graph.withDependantModules(await graph.getModules({ names: args.modules }))
+      : // All modules are included in this case, so there's no need to compute dependants.
+        await graph.getModules()
 
     const filterNames = opts.name ? [opts.name] : []
     const force = opts.force
     const forceBuild = opts["force-build"]
+
+    const initialTasks = flatten(
+      await Bluebird.map(modules, (module) =>
+        getTestTasks({
+          garden,
+          log,
+          graph,
+          module,
+          filterNames,
+          force,
+          forceBuild,
+        })
+      )
+    )
 
     const results = await processModules({
       garden,
@@ -121,17 +132,8 @@ export class TestCommand extends Command<Args, Opts> {
       log,
       footerLog,
       modules,
+      initialTasks,
       watch: opts.watch,
-      handler: async (updatedGraph, module) =>
-        getTestTasks({
-          garden,
-          log,
-          graph: updatedGraph,
-          module,
-          filterNames,
-          force,
-          forceBuild,
-        }),
       changeHandler: async (updatedGraph, module) => {
         const modulesToProcess = await updatedGraph.withDependantModules([module])
         return flatten(

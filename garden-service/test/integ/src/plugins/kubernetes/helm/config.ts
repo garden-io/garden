@@ -46,6 +46,7 @@ describe("validateHelmModule", () => {
       },
       configPath: resolve(ctx.projectRoot, "api", "garden.yml"),
       description: "The API backend for the voting UI",
+      disabled: false,
       include: ["*", "charts/**/*", "templates/**/*"],
       exclude: undefined,
       name: "api",
@@ -58,6 +59,7 @@ describe("validateHelmModule", () => {
         {
           name: "api",
           dependencies: [],
+          disabled: false,
           hotReloadable: true,
           sourceModuleName: "api-image",
           spec: {

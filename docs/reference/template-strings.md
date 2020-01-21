@@ -30,8 +30,7 @@ The following keys are available in any template strings within project definiti
 # Type: object
 #
 local:
-  # The absolute path to the directory where exported artifacts from test and task runs are
-  # stored.
+  # The absolute path to the directory where exported artifacts from test and task runs are stored.
   #
   # Type: string
   #
@@ -39,8 +38,7 @@ local:
   #
   artifactsPath:
 
-  # A map of all local environment variables (see
-  # https://nodejs.org/api/process.html#process_process_env).
+  # A map of all local environment variables (see https://nodejs.org/api/process.html#process_process_env).
   #
   # Type: object
   #
@@ -75,8 +73,7 @@ in `garden.yml` project config files:
 # Type: object
 #
 local:
-  # The absolute path to the directory where exported artifacts from test and task runs are
-  # stored.
+  # The absolute path to the directory where exported artifacts from test and task runs are stored.
   #
   # Type: string
   #
@@ -84,8 +81,7 @@ local:
   #
   artifactsPath:
 
-  # A map of all local environment variables (see
-  # https://nodejs.org/api/process.html#process_process_env).
+  # A map of all local environment variables (see https://nodejs.org/api/process.html#process_process_env).
   #
   # Type: object
   #
@@ -172,8 +168,7 @@ The following keys are available in template strings with module definitions in 
 # Type: object
 #
 local:
-  # The absolute path to the directory where exported artifacts from test and task runs are
-  # stored.
+  # The absolute path to the directory where exported artifacts from test and task runs are stored.
   #
   # Type: string
   #
@@ -181,8 +176,7 @@ local:
   #
   artifactsPath:
 
-  # A map of all local environment variables (see
-  # https://nodejs.org/api/process.html#process_process_env).
+  # A map of all local environment variables (see https://nodejs.org/api/process.html#process_process_env).
   #
   # Type: object
   #
@@ -271,8 +265,8 @@ var: {}
 #
 modules: {}
 
-# Runtime outputs and information from services and tasks (only resolved at runtime when deploying
-# services and running tasks).
+# Runtime outputs and information from services and tasks (only resolved at runtime when deploying services and
+# running tasks).
 #
 # Type: object
 #

@@ -46,24 +46,28 @@ describe("exec plugin", () => {
       {
         name: "banana",
         dependencies: ["orange"],
+        disabled: false,
         timeout: null,
         spec: {
           name: "banana",
           command: ["echo", "BANANA"],
           env: {},
           dependencies: ["orange"],
+          disabled: false,
           timeout: null,
         },
       },
       {
         name: "orange",
         dependencies: [],
+        disabled: false,
         timeout: 999,
         spec: {
           name: "orange",
           command: ["echo", "ORANGE"],
           env: {},
           dependencies: [],
+          disabled: false,
           timeout: 999,
         },
       },
@@ -72,10 +76,12 @@ describe("exec plugin", () => {
       {
         name: "unit",
         dependencies: [],
+        disabled: false,
         timeout: null,
         spec: {
           name: "unit",
           dependencies: [],
+          disabled: false,
           command: ["echo", "OK"],
           env: {
             FOO: "boo",
@@ -98,10 +104,12 @@ describe("exec plugin", () => {
       {
         name: "unit",
         dependencies: [],
+        disabled: false,
         timeout: null,
         spec: {
           name: "unit",
           dependencies: [],
+          disabled: false,
           command: ["echo", "OK"],
           env: {},
           timeout: null,
@@ -122,10 +130,12 @@ describe("exec plugin", () => {
       {
         name: "unit",
         dependencies: [],
+        disabled: false,
         timeout: null,
         spec: {
           name: "unit",
           dependencies: [],
+          disabled: false,
           command: ["echo", "OK"],
           env: {},
           timeout: null,
@@ -146,12 +156,14 @@ describe("exec plugin", () => {
       {
         name: "pwd",
         dependencies: [],
+        disabled: false,
         timeout: null,
         spec: {
           name: "pwd",
           env: {},
           command: ["pwd"],
           dependencies: [],
+          disabled: false,
           timeout: null,
         },
       },
@@ -216,6 +228,7 @@ describe("exec plugin", () => {
       force: false,
       forceBuild: false,
       version: module.version,
+      _guard: true,
     })
 
     await emptyDir(_garden.artifactsPath)
@@ -289,6 +302,7 @@ describe("exec plugin", () => {
         testConfig: {
           name: "test",
           dependencies: [],
+          disabled: false,
           timeout: 1234,
           spec: {
             command: ["pwd"],

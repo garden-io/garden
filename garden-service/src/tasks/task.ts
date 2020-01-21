@@ -61,7 +61,7 @@ export class TaskTask extends BaseTask {
     })
 
     const dg = await this.garden.getConfigGraph(this.log)
-    const deps = await dg.getDependencies("run", this.getName(), false)
+    const deps = await dg.getDependencies({ nodeType: "run", name: this.getName(), recursive: false })
 
     const deployTasks = deps.deploy.map((service) => {
       return new DeployTask({
@@ -129,7 +129,7 @@ export class TaskTask extends BaseTask {
       status: "active",
     })
 
-    const dependencies = await this.graph.getDependencies("run", this.getName(), false)
+    const dependencies = await this.graph.getDependencies({ nodeType: "run", name: this.getName(), recursive: false })
 
     const serviceStatuses = getServiceStatuses(dependencyResults)
     const taskResults = getRunTaskResults(dependencyResults)

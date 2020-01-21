@@ -34,18 +34,30 @@ name:
 
 description:
 
-# Specify a list of POSIX-style paths or globs that should be regarded as the source files for
-# this
-# module. Files that do *not* match these paths or globs are excluded when computing the version
-# of the module,
+# Set this to `true` to disable the module. You can use this with conditional template strings to
+# disable modules based on, for example, the current environment or other variables (e.g.
+# `disabled: \${environment.name == "prod"}`). This can be handy when you only need certain modules for
+# specific environments, e.g. only for development.
+#
+# Disabling a module means that any services, tasks and tests contained in it will not be deployed or run.
+# It also means that the module is not built _unless_ it is declared as a build dependency by another enabled
+# module (in which case building this module is necessary for the dependant to be built).
+#
+# If you disable the module, and its services, tasks or tests are referenced as _runtime_ dependencies, Garden
+# will automatically ignore those dependency declarations. Note however that template strings referencing the
+# module's service or task outputs (i.e. runtime outputs) will fail to resolve when the module is disabled,
+# so you need to make sure to provide alternate values for those if you're using them, using conditional
+# expressions.
+disabled: false
+
+# Specify a list of POSIX-style paths or globs that should be regarded as the source files for this
+# module. Files that do *not* match these paths or globs are excluded when computing the version of the module,
 # when responding to filesystem watch events, and when staging builds.
 #
-# Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore`
-# files in your
+# Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
 # source tree, which use the same format as `.gitignore` files. See the
 # [Configuration Files
-# guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)
-# for details.
+# guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
 #
 # Also note that specifying an empty list here means _no sources_ should be included.
 #
@@ -56,29 +68,22 @@ description:
 # automatically sets `ìnclude` to `[]`.
 include:
 
-# Specify a list of POSIX-style paths or glob patterns that should be excluded from the module.
-# Files that
-# match these paths or globs are excluded when computing the version of the module, when
-# responding to filesystem
+# Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that
+# match these paths or globs are excluded when computing the version of the module, when responding to filesystem
 # watch events, and when staging builds.
 #
-# Note that you can also explicitly _include_ files using the `include` field. If you also specify
-# the
-# `include` field, the files/patterns specified here are filtered from the files matched by
-# `include`. See the
+# Note that you can also explicitly _include_ files using the `include` field. If you also specify the
+# `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the
 # [Configuration Files
-# guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)for
-# details.
+# guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)for details.
 #
-# Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on
-# which files
-# and directories are watched for changes. Use the project `modules.exclude` field to affect
-# those, if you have
+# Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files
+# and directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have
 # large directories that should not be watched for changes.
 exclude:
 
-# A remote repository URL. Currently only supports git servers. Must contain a hash suffix
-# pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
+# A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific
+# branch or tag, with the format: <git remote url>#<branch|tag>
 #
 # Garden will import the repository source code into this module, but read the module's
 # config from the local garden.yml file.
@@ -97,26 +102,23 @@ build:
       copy:
         # POSIX-style path or filename of the directory or file(s) to copy to the target.
         - source:
-          # POSIX-style path or filename to copy the directory or file(s), relative to the build
-          # directory.
+          # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
           # Defaults to to same as source path.
           target: ''
 
-# The name of another `helm` module to use as a base for this one. Use this to re-use a Helm chart
-# across multiple services. For example, you might have an organization-wide base chart for
-# certain types of services.
-# If set, this module will by default inherit the following properties from the base module:
-# `serviceResource`, `values`
-# Each of those can be overridden in this module. They will be merged with a JSON Merge Patch (RFC
-# 7396).
+# The name of another `helm` module to use as a base for this one. Use this to re-use a Helm chart across multiple
+# services. For example, you might have an organization-wide base chart for certain types of services.
+# If set, this module will by default inherit the following properties from the base module: `serviceResource`,
+# `values`
+# Each of those can be overridden in this module. They will be merged with a JSON Merge Patch (RFC 7396).
 base:
 
-# A valid Helm chart name or URI (same as you'd input to `helm install`). Required if the module
-# doesn't contain the Helm chart itself.
+# A valid Helm chart name or URI (same as you'd input to `helm install`). Required if the module doesn't contain the
+# Helm chart itself.
 chart:
 
-# The path, relative to the module path, to the chart sources (i.e. where the Chart.yaml file is,
-# if any). Not used when `base` is specified.
+# The path, relative to the module path, to the chart sources (i.e. where the Chart.yaml file is, if any). Not used
+# when `base` is specified.
 chartPath: .
 
 # List of names of services that should be deployed before this chart.
@@ -128,42 +130,39 @@ releaseName:
 # The repository URL to fetch the chart from.
 repo:
 
-# The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in
-# this module (not to be confused with Kubernetes Service resources). Because a Helm chart can
-# contain any number of Kubernetes resources, this needs to be specified for certain Garden
-# features and commands to work, such as hot-reloading.
-# We currently map a Helm chart to a single Garden service, because all the resources in a Helm
-# chart are deployed at once.
+# The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module (not to be
+# confused with Kubernetes Service resources). Because a Helm chart can contain any number of Kubernetes resources,
+# this needs to be specified for certain Garden features and commands to work, such as hot-reloading.
+# We currently map a Helm chart to a single Garden service, because all the resources in a Helm chart are deployed at
+# once.
 serviceResource:
   # The type of Kubernetes resource to sync files to.
   kind: Deployment
 
-  # The name of the resource to sync to. If the chart contains a single resource of the specified
-  # Kind, this can be omitted.
-  # This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'. This
-  # allows you to easily match the dynamic names given by Helm. In most cases you should copy this
-  # directly from the template in question in order to match it. Note that you may need to add
-  # single quotes around the string for the YAML to be parsed correctly.
+  # The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can be
+  # omitted.
+  # This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'. This allows you to easily
+  # match the dynamic names given by Helm. In most cases you should copy this directly from the template in question
+  # in order to match it. Note that you may need to add single quotes around the string for the YAML to be parsed
+  # correctly.
   name:
 
-  # The name of a container in the target. Specify this if the target contains more than one
-  # container and the main container is not the first container in the spec.
+  # The name of a container in the target. Specify this if the target contains more than one container and the main
+  # container is not the first container in the spec.
   containerName:
 
-  # The Garden module that contains the sources for the container. This needs to be specified
-  # under `serviceResource` in order to enable hot-reloading for the chart, but is not necessary
-  # for tasks and tests.
-  # Must be a `container` module, and for hot-reloading to work you must specify the `hotReload`
-  # field on the container module.
-  # Note: If you specify a module here, you don't need to specify it additionally under
-  # `build.dependencies`
+  # The Garden module that contains the sources for the container. This needs to be specified under `serviceResource`
+  # in order to enable hot-reloading for the chart, but is not necessary for tasks and tests.
+  # Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the
+  # container module.
+  # Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
   containerModule:
 
   # If specified, overrides the arguments for the main container when running in hot-reload mode.
   hotReloadArgs:
 
-# Set this to true if the chart should only be built, but not deployed as a service. Use this, for
-# example, if the chart should only be used as a base for other modules.
+# Set this to true if the chart should only be built, but not deployed as a service. Use this, for example, if the
+# chart should only be used as a base for other modules.
 skipDeploy: false
 
 # The task definitions for this module.
@@ -172,136 +171,137 @@ tasks:
   - name:
     # A description of the task.
     description:
-    # The names of any tasks that must be executed, and the names of any services that must be
-    # running, before this task is executed.
+    # The names of any tasks that must be executed, and the names of any services that must be running, before this
+    # task is executed.
     dependencies: []
+    # Set this to `true` to disable the task. You can use this with conditional template strings to
+    # enable/disable tasks based on, for example, the current environment or other variables (e.g.
+    # `enabled: \${environment.name != "prod"}`). This can be handy when you only want certain tasks to run in
+    # specific environments, e.g. only for development.
+    #
+    # Disabling a task means that it will not be run, and will also be ignored if it is declared as a
+    # runtime dependency for another service, test or task.
+    #
+    # Note however that template strings referencing the task's outputs (i.e. runtime outputs) will fail to
+    # resolve when the task is disabled, so you need to make sure to provide alternate values for those if
+    # you're using them, using conditional expressions.
+    disabled: false
     # Maximum duration (in seconds) of the task's execution.
     timeout: null
-    # The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task. If not
-    # specified, the `serviceResource` configured on the module will be used. If neither is
-    # specified, an error will be thrown.
+    # The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task. If not specified, the
+    # `serviceResource` configured on the module will be used. If neither is specified, an error will be thrown.
     resource:
       # The type of Kubernetes resource to sync files to.
       kind: Deployment
 
-      # The name of the resource to sync to. If the chart contains a single resource of the
-      # specified Kind, this can be omitted.
-      # This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'. This
-      # allows you to easily match the dynamic names given by Helm. In most cases you should copy
-      # this directly from the template in question in order to match it. Note that you may need
-      # to add single quotes around the string for the YAML to be parsed correctly.
+      # The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can
+      # be omitted.
+      # This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'. This allows you to
+      # easily match the dynamic names given by Helm. In most cases you should copy this directly from the template in
+      # question in order to match it. Note that you may need to add single quotes around the string for the YAML to
+      # be parsed correctly.
       name:
 
-      # The name of a container in the target. Specify this if the target contains more than one
-      # container and the main container is not the first container in the spec.
+      # The name of a container in the target. Specify this if the target contains more than one container and the
+      # main container is not the first container in the spec.
       containerName:
 
-      # The Garden module that contains the sources for the container. This needs to be specified
-      # under `serviceResource` in order to enable hot-reloading for the chart, but is not
-      # necessary for tasks and tests.
-      # Must be a `container` module, and for hot-reloading to work you must specify the
-      # `hotReload` field on the container module.
-      # Note: If you specify a module here, you don't need to specify it additionally under
-      # `build.dependencies`
+      # The Garden module that contains the sources for the container. This needs to be specified under
+      # `serviceResource` in order to enable hot-reloading for the chart, but is not necessary for tasks and tests.
+      # Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the
+      # container module.
+      # Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
       containerModule:
 
-      # If specified, overrides the arguments for the main container when running in hot-reload
-      # mode.
+      # If specified, overrides the arguments for the main container when running in hot-reload mode.
       hotReloadArgs:
     # The command/entrypoint used to run the task inside the container.
     command:
     # The arguments to pass to the pod used for execution.
     args:
-    # Key/value map of environment variables. Keys must be valid POSIX environment variable names
-    # (must not start with `GARDEN`) and values must be primitives or references to secrets.
+    # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
+    # `GARDEN`) and values must be primitives or references to secrets.
     env: {}
     # Specify artifacts to copy out of the container after the task is complete.
     artifacts:
       # A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
       - source:
-        # A POSIX-style path to copy the artifacts to, relative to the project artifacts
-        # directory.
+        # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
         target: .
 
 # The test suite definitions for this module.
 tests:
   # The name of the test.
   - name:
-    # The names of any services that must be running, and the names of any tasks that must be
-    # executed, before the test is run.
+    # The names of any services that must be running, and the names of any tasks that must be executed, before the
+    # test is run.
     dependencies: []
+    # Set this to `true` to disable the test. You can use this with conditional template strings to
+    # enable/disable tests based on, for example, the current environment or other variables (e.g.
+    # `enabled: \${environment.name != "prod"}`). This is handy when you only want certain tests to run in
+    # specific environments, e.g. only during CI.
+    disabled: false
     # Maximum duration (in seconds) of the test run.
     timeout: null
-    # The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite.
-    # If not specified, the `serviceResource` configured on the module will be used. If neither is
-    # specified, an error will be thrown.
+    # The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite. If not specified,
+    # the `serviceResource` configured on the module will be used. If neither is specified, an error will be thrown.
     resource:
       # The type of Kubernetes resource to sync files to.
       kind: Deployment
 
-      # The name of the resource to sync to. If the chart contains a single resource of the
-      # specified Kind, this can be omitted.
-      # This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'. This
-      # allows you to easily match the dynamic names given by Helm. In most cases you should copy
-      # this directly from the template in question in order to match it. Note that you may need
-      # to add single quotes around the string for the YAML to be parsed correctly.
+      # The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can
+      # be omitted.
+      # This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'. This allows you to
+      # easily match the dynamic names given by Helm. In most cases you should copy this directly from the template in
+      # question in order to match it. Note that you may need to add single quotes around the string for the YAML to
+      # be parsed correctly.
       name:
 
-      # The name of a container in the target. Specify this if the target contains more than one
-      # container and the main container is not the first container in the spec.
+      # The name of a container in the target. Specify this if the target contains more than one container and the
+      # main container is not the first container in the spec.
       containerName:
 
-      # The Garden module that contains the sources for the container. This needs to be specified
-      # under `serviceResource` in order to enable hot-reloading for the chart, but is not
-      # necessary for tasks and tests.
-      # Must be a `container` module, and for hot-reloading to work you must specify the
-      # `hotReload` field on the container module.
-      # Note: If you specify a module here, you don't need to specify it additionally under
-      # `build.dependencies`
+      # The Garden module that contains the sources for the container. This needs to be specified under
+      # `serviceResource` in order to enable hot-reloading for the chart, but is not necessary for tasks and tests.
+      # Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the
+      # container module.
+      # Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
       containerModule:
 
-      # If specified, overrides the arguments for the main container when running in hot-reload
-      # mode.
+      # If specified, overrides the arguments for the main container when running in hot-reload mode.
       hotReloadArgs:
     # The command/entrypoint used to run the test inside the container.
     command:
     # The arguments to pass to the pod used for testing.
     args:
-    # Key/value map of environment variables. Keys must be valid POSIX environment variable names
-    # (must not start with `GARDEN`) and values must be primitives or references to secrets.
+    # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
+    # `GARDEN`) and values must be primitives or references to secrets.
     env: {}
     # Specify artifacts to copy out of the container after the test is complete.
     artifacts:
       # A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
       - source:
-        # A POSIX-style path to copy the artifacts to, relative to the project artifacts
-        # directory.
+        # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
         target: .
 
-# Time in seconds to wait for Helm to complete any individual Kubernetes operation (like Jobs for
-# hooks).
+# Time in seconds to wait for Helm to complete any individual Kubernetes operation (like Jobs for hooks).
 timeout: 300
 
 # The chart version to deploy.
 version:
 
-# Map of values to pass to Helm when rendering the templates. May include arrays and nested
-# objects. When specified, these take precedence over the values in the `values.yaml` file (or the
-# files specified in `valueFiles`).
+# Map of values to pass to Helm when rendering the templates. May include arrays and nested objects. When specified,
+# these take precedence over the values in the `values.yaml` file (or the files specified in `valueFiles`).
 values: {}
 
-# Specify value files to use when rendering the Helm chart. These will take precedence over the
-# `values.yaml` file
-# bundled in the Helm chart, and should be specified in ascending order of precedence. Meaning,
-# the last file in
+# Specify value files to use when rendering the Helm chart. These will take precedence over the `values.yaml` file
+# bundled in the Helm chart, and should be specified in ascending order of precedence. Meaning, the last file in
 # this list will have the highest precedence.
 #
-# If you _also_ specify keys under the `values` field, those will effectively be added as another
-# file at the end
+# If you _also_ specify keys under the `values` field, those will effectively be added as another file at the end
 # of this list, so they will take precedence over other files listed here.
 #
-# Note that the paths here should be relative to the _module_ root, and the files should be
-# contained in
+# Note that the paths here should be relative to the _module_ root, and the files should be contained in
 # your module directory.
 valueFiles: []
 ```
@@ -355,6 +355,27 @@ name: "my-sweet-module"
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+#### `disabled`
+
+Set this to `true` to disable the module. You can use this with conditional template strings to
+disable modules based on, for example, the current environment or other variables (e.g.
+`disabled: \${environment.name == "prod"}`). This can be handy when you only need certain modules for
+specific environments, e.g. only for development.
+
+Disabling a module means that any services, tasks and tests contained in it will not be deployed or run.
+It also means that the module is not built _unless_ it is declared as a build dependency by another enabled
+module (in which case building this module is necessary for the dependant to be built).
+
+If you disable the module, and its services, tasks or tests are referenced as _runtime_ dependencies, Garden
+will automatically ignore those dependency declarations. Note however that template strings referencing the
+module's service or task outputs (i.e. runtime outputs) will fail to resolve when the module is disabled,
+so you need to make sure to provide alternate values for those if you're using them, using conditional
+expressions.
+
+| Type      | Required | Default |
+| --------- | -------- | ------- |
+| `boolean` | No       | `false` |
 
 #### `include`
 
@@ -693,6 +714,26 @@ The names of any tasks that must be executed, and the names of any services that
 | --------------- | -------- | ------- |
 | `array[string]` | No       | `[]`    |
 
+#### `tasks[].disabled`
+
+[tasks](#tasks) > disabled
+
+Set this to `true` to disable the task. You can use this with conditional template strings to
+enable/disable tasks based on, for example, the current environment or other variables (e.g.
+`enabled: \${environment.name != "prod"}`). This can be handy when you only want certain tasks to run in
+specific environments, e.g. only for development.
+
+Disabling a task means that it will not be run, and will also be ignored if it is declared as a
+runtime dependency for another service, test or task.
+
+Note however that template strings referencing the task's outputs (i.e. runtime outputs) will fail to
+resolve when the task is disabled, so you need to make sure to provide alternate values for those if
+you're using them, using conditional expressions.
+
+| Type      | Required | Default |
+| --------- | -------- | ------- |
+| `boolean` | No       | `false` |
+
 #### `tasks[].timeout`
 
 [tasks](#tasks) > timeout
@@ -920,6 +961,19 @@ The names of any services that must be running, and the names of any tasks that 
 | Type            | Required | Default |
 | --------------- | -------- | ------- |
 | `array[string]` | No       | `[]`    |
+
+#### `tests[].disabled`
+
+[tests](#tests) > disabled
+
+Set this to `true` to disable the test. You can use this with conditional template strings to
+enable/disable tests based on, for example, the current environment or other variables (e.g.
+`enabled: \${environment.name != "prod"}`). This is handy when you only want certain tests to run in
+specific environments, e.g. only during CI.
+
+| Type      | Required | Default |
+| --------- | -------- | ------- |
+| `boolean` | No       | `false` |
 
 #### `tests[].timeout`
 

@@ -59,7 +59,7 @@ export async function updateRemoteModules({
 }): Promise<CommandResult<SourceConfig[]>> {
   const { modules: moduleNames } = args
   const graph = await garden.getConfigGraph(log)
-  const modules = await graph.getModules(moduleNames)
+  const modules = await graph.getModules({ names: moduleNames })
 
   const moduleSources = <SourceConfig[]>(
     modules.filter(hasRemoteSource).filter((src) => (moduleNames ? moduleNames.includes(src.name) : true))

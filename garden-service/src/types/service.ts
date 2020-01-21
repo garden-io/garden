@@ -19,6 +19,7 @@ export interface Service<M extends Module = Module, S extends Module = Module> {
   name: string
   module: M
   config: M["serviceConfigs"][0]
+  disabled: boolean
   sourceModule: S
   spec: M["serviceConfigs"][0]["spec"]
 }
@@ -30,6 +31,10 @@ export const serviceSchema = joi
     name: joiUserIdentifier().description("The name of the service."),
     module: joi.object().unknown(true), // This causes a stack overflow: joi.lazy(() => moduleSchema),
     sourceModule: joi.object().unknown(true), // This causes a stack overflow: joi.lazy(() => moduleSchema),
+    disabled: joi
+      .boolean()
+      .default(false)
+      .description("Set to true if the service or its module is disabled."),
     config: serviceConfigSchema,
     spec: joi.object().description("The raw configuration of the service (specific to each plugin)."),
   })
@@ -45,6 +50,7 @@ export async function serviceFromConfig<M extends Module = Module>(
     name: config.name,
     module,
     config,
+    disabled: module.disabled || config.disabled,
     sourceModule,
     spec: config.spec,
   }

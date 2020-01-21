@@ -38,6 +38,7 @@ describe("plugins.container", () => {
     build: {
       dependencies: [],
     },
+    disabled: false,
     apiVersion: "garden.io/v0",
     name: "test",
     outputs: {},
@@ -93,6 +94,7 @@ describe("plugins.container", () => {
         build: {
           dependencies: [],
         },
+        disabled: false,
         apiVersion: "garden.io/v0",
         name: "module-a",
         outputs: {},
@@ -113,6 +115,7 @@ describe("plugins.container", () => {
               args: ["echo"],
               dependencies: [],
               daemon: false,
+              disabled: false,
               ingresses: [
                 {
                   annotations: {},
@@ -151,6 +154,7 @@ describe("plugins.container", () => {
               args: ["echo", "OK"],
               artifacts: [],
               dependencies: [],
+              disabled: false,
               env: {
                 TASK_ENV_VAR: "value",
               },
@@ -163,6 +167,7 @@ describe("plugins.container", () => {
               args: ["echo", "OK"],
               artifacts: [],
               dependencies: [],
+              disabled: false,
               env: {
                 TEST_ENV_VAR: "value",
               },
@@ -182,6 +187,7 @@ describe("plugins.container", () => {
         moduleConfig: {
           allowPublish: false,
           build: { dependencies: [] },
+          disabled: false,
           apiVersion: "garden.io/v0",
           name: "module-a",
           include: ["Dockerfile"],
@@ -204,6 +210,7 @@ describe("plugins.container", () => {
                 annotations: {},
                 args: ["echo"],
                 dependencies: [],
+                disabled: false,
                 daemon: false,
                 ingresses: [
                   {
@@ -231,6 +238,7 @@ describe("plugins.container", () => {
                 args: ["echo", "OK"],
                 artifacts: [],
                 dependencies: [],
+                disabled: false,
                 env: {
                   TASK_ENV_VAR: "value",
                 },
@@ -243,6 +251,7 @@ describe("plugins.container", () => {
                 args: ["echo", "OK"],
                 artifacts: [],
                 dependencies: [],
+                disabled: false,
                 env: {
                   TEST_ENV_VAR: "value",
                 },
@@ -254,12 +263,14 @@ describe("plugins.container", () => {
             {
               name: "service-a",
               dependencies: [],
+              disabled: false,
               hotReloadable: false,
               spec: {
                 name: "service-a",
                 annotations: {},
                 args: ["echo"],
                 dependencies: [],
+                disabled: false,
                 daemon: false,
                 ingresses: [
                   {
@@ -285,11 +296,13 @@ describe("plugins.container", () => {
           taskConfigs: [
             {
               dependencies: [],
+              disabled: false,
               name: "task-a",
               spec: {
                 args: ["echo", "OK"],
                 artifacts: [],
                 dependencies: [],
+                disabled: false,
                 env: {
                   TASK_ENV_VAR: "value",
                 },
@@ -303,11 +316,13 @@ describe("plugins.container", () => {
             {
               name: "unit",
               dependencies: [],
+              disabled: false,
               spec: {
                 name: "unit",
                 args: ["echo", "OK"],
                 artifacts: [],
                 dependencies: [],
+                disabled: false,
                 env: {
                   TEST_ENV_VAR: "value",
                 },
@@ -326,6 +341,7 @@ describe("plugins.container", () => {
         build: {
           dependencies: [],
         },
+        disabled: false,
         apiVersion: "garden.io/v0",
         name: "module-a",
         outputs: {},
@@ -346,6 +362,7 @@ describe("plugins.container", () => {
               args: ["echo"],
               dependencies: [],
               daemon: false,
+              disabled: false,
               ingresses: [
                 {
                   annotations: {},
@@ -366,6 +383,7 @@ describe("plugins.container", () => {
               args: ["echo"],
               artifacts: [],
               dependencies: [],
+              disabled: false,
               env: {},
               timeout: null,
             },
@@ -376,6 +394,7 @@ describe("plugins.container", () => {
               args: ["echo", "OK"],
               artifacts: [],
               dependencies: [],
+              disabled: false,
               env: {},
               timeout: null,
             },
@@ -396,6 +415,7 @@ describe("plugins.container", () => {
         build: {
           dependencies: [],
         },
+        disabled: false,
         apiVersion: "garden.io/v0",
         name: "module-a",
         outputs: {},
@@ -416,6 +436,7 @@ describe("plugins.container", () => {
               args: ["echo"],
               dependencies: [],
               daemon: false,
+              disabled: false,
               ingresses: [],
               env: {},
               healthCheck: {
@@ -436,6 +457,7 @@ describe("plugins.container", () => {
               args: ["echo"],
               artifacts: [],
               dependencies: [],
+              disabled: false,
               env: {},
               timeout: null,
             },
@@ -457,6 +479,7 @@ describe("plugins.container", () => {
         build: {
           dependencies: [],
         },
+        disabled: false,
         apiVersion: "garden.io/v0",
         name: "module-a",
         outputs: {},
@@ -477,6 +500,7 @@ describe("plugins.container", () => {
               args: ["echo"],
               dependencies: [],
               daemon: false,
+              disabled: false,
               ingresses: [],
               env: {},
               healthCheck: {
@@ -494,6 +518,7 @@ describe("plugins.container", () => {
               args: ["echo"],
               artifacts: [],
               dependencies: [],
+              disabled: false,
               env: {},
               timeout: null,
             },

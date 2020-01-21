@@ -91,6 +91,7 @@ describe("DeployTask", () => {
           name: "test",
           type: "test",
           allowPublish: false,
+          disabled: false,
           build: { dependencies: [] },
           outputs: {},
           path: tmpDir.path,
@@ -98,6 +99,7 @@ describe("DeployTask", () => {
             {
               name: "test-service",
               dependencies: ["test-task"],
+              disabled: false,
               hotReloadable: false,
               spec: {
                 log: "${runtime.tasks.test-task.outputs.log}",
@@ -108,6 +110,7 @@ describe("DeployTask", () => {
             {
               name: "test-task",
               dependencies: [],
+              disabled: false,
               spec: {
                 log: "test output",
               },
