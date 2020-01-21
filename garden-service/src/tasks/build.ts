@@ -69,10 +69,10 @@ export class BuildTask extends BaseTask {
 
   async getDependencies() {
     const dg = await this.garden.getConfigGraph(this.log)
-    const deps = (await dg.getDependencies("build", this.getName(), false)).build
+    const deps = await dg.getDependencies({ nodeType: "build", name: this.getName(), recursive: false })
 
     const buildTasks = flatten(
-      await Bluebird.map(deps, async (m: Module) => {
+      await Bluebird.map(deps.build, async (m: Module) => {
         return BuildTask.factory({
           garden: this.garden,
           log: this.log,

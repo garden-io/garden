@@ -32,9 +32,6 @@ const placeholderTaskResult = (moduleName: string, taskName: string, command: st
   },
 })
 
-const taskResultA = placeholderTaskResult("module-a", "task-a", ["echo", "A"])
-const taskResultC = placeholderTaskResult("module-c", "task-c", ["echo", "C"])
-
 const testProvider = () =>
   createGardenPlugin(() => {
     const testStatuses: { [key: string]: ServiceStatus } = {
@@ -96,13 +93,13 @@ const testProvider = () =>
   })
 
 describe("DeployCommand", () => {
+  const plugins = [testProvider()]
   const projectRootB = join(dataDir, "test-project-b")
 
   // TODO: Verify that services don't get redeployed when same version is already deployed.
   // TODO: Test with --watch flag
 
   it("should build and deploy all modules in a project", async () => {
-    const plugins = [testProvider()]
     const garden = await Garden.factory(projectRootB, { plugins })
     const log = garden.log
     const command = new DeployCommand()
@@ -127,54 +124,29 @@ describe("DeployCommand", () => {
       throw errors[0]
     }
 
-    expect(taskResultOutputs(result!)).to.eql({
-      "stage-build.module-a": {},
-      "stage-build.module-b": {},
-      "stage-build.module-c": {},
-      "build.module-a": { fresh: true, buildLog: "A" },
-      "build.module-b": { fresh: true, buildLog: "B" },
-      "build.module-c": {},
-      "get-task-result.task-a": null,
-      "get-task-result.task-c": null,
-      "task.task-a": taskResultA,
-      "task.task-c": taskResultC,
-      "get-service-status.service-a": {
-        forwardablePorts: [],
-        ingresses: [
-          {
-            hostname: "service-a.test-project-b.local.app.garden",
-            path: "/path-a",
-            port: 80,
-            protocol: "http",
-          },
-        ],
-        state: "ready",
-        detail: {},
-      },
-      "get-service-status.service-b": {
-        forwardablePorts: [],
-        state: "unknown",
-        detail: {},
-      },
-      "get-service-status.service-c": {
-        forwardablePorts: [],
-        state: "ready",
-        detail: {},
-      },
-      "get-service-status.service-d": {
-        forwardablePorts: [],
-        state: "unknown",
-        detail: {},
-      },
-      "deploy.service-a": { forwardablePorts: [], version: "1", state: "ready", detail: {} },
-      "deploy.service-b": { forwardablePorts: [], version: "1", state: "ready", detail: {} },
-      "deploy.service-c": { forwardablePorts: [], version: "1", state: "ready", detail: {} },
-      "deploy.service-d": { forwardablePorts: [], version: "1", state: "ready", detail: {} },
-    })
+    expect(Object.keys(taskResultOutputs(result!)).sort()).to.eql([
+      "build.module-a",
+      "build.module-b",
+      "build.module-c",
+      "deploy.service-a",
+      "deploy.service-b",
+      "deploy.service-c",
+      "deploy.service-d",
+      "get-service-status.service-a",
+      "get-service-status.service-b",
+      "get-service-status.service-c",
+      "get-service-status.service-d",
+      "get-task-result.task-a",
+      "get-task-result.task-c",
+      "stage-build.module-a",
+      "stage-build.module-b",
+      "stage-build.module-c",
+      "task.task-a",
+      "task.task-c",
+    ])
   })
 
   it("should optionally build and deploy single service and its dependencies", async () => {
-    const plugins = [testProvider()]
     const garden = await Garden.factory(projectRootB, { plugins })
     const log = garden.log
     const command = new DeployCommand()
@@ -199,42 +171,116 @@ describe("DeployCommand", () => {
       throw errors[0]
     }
 
-    expect(taskResultOutputs(result!)).to.eql({
-      "stage-build.module-a": {},
-      "stage-build.module-b": {},
-      "stage-build.module-c": {},
-      "build.module-a": { fresh: true, buildLog: "A" },
-      "build.module-b": { fresh: true, buildLog: "B" },
-      "build.module-c": {},
-      "get-task-result.task-a": null,
-      "get-task-result.task-c": null,
-      "task.task-a": taskResultA,
-      "task.task-c": taskResultC,
-      "get-service-status.service-a": {
-        forwardablePorts: [],
-        ingresses: [
-          {
-            hostname: "service-a.test-project-b.local.app.garden",
-            path: "/path-a",
-            port: 80,
-            protocol: "http",
-          },
-        ],
-        state: "ready",
-        detail: {},
-      },
-      "get-service-status.service-b": {
-        forwardablePorts: [],
-        state: "unknown",
-        detail: {},
-      },
-      "deploy.service-a": { forwardablePorts: [], version: "1", state: "ready", detail: {} },
-      "deploy.service-b": { forwardablePorts: [], version: "1", state: "ready", detail: {} },
-    })
+    expect(Object.keys(taskResultOutputs(result!)).sort()).to.eql([
+      "build.module-a",
+      "build.module-b",
+      "build.module-c",
+      "deploy.service-a",
+      "deploy.service-b",
+      "get-service-status.service-a",
+      "get-service-status.service-b",
+      "get-task-result.task-a",
+      "get-task-result.task-c",
+      "stage-build.module-a",
+      "stage-build.module-b",
+      "stage-build.module-c",
+      "task.task-a",
+      "task.task-c",
+    ])
   })
 
   it("should be protected", async () => {
     const command = new DeployCommand()
     expect(command.protected).to.be.true
+  })
+
+  it("should skip disabled services", async () => {
+    const garden = await Garden.factory(projectRootB, { plugins })
+    const log = garden.log
+    const command = new DeployCommand()
+
+    await garden.scanModules()
+    garden["moduleConfigs"]["module-c"].spec.services[0].disabled = true
+
+    const { result, errors } = await command.action({
+      garden,
+      log,
+      headerLog: log,
+      footerLog: log,
+      args: {
+        services: undefined,
+      },
+      opts: withDefaultGlobalOpts({
+        "hot-reload": undefined,
+        "watch": false,
+        "force": false,
+        "force-build": true,
+      }),
+    })
+
+    if (errors) {
+      throw errors[0]
+    }
+
+    expect(Object.keys(taskResultOutputs(result!)).sort()).to.eql([
+      "build.module-a",
+      "build.module-b",
+      "build.module-c",
+      "deploy.service-a",
+      "deploy.service-b",
+      "deploy.service-d",
+      "get-service-status.service-a",
+      "get-service-status.service-b",
+      "get-service-status.service-d",
+      "get-task-result.task-a",
+      "get-task-result.task-c",
+      "stage-build.module-a",
+      "stage-build.module-b",
+      "stage-build.module-c",
+      "task.task-a",
+      "task.task-c",
+    ])
+  })
+
+  it("should skip services from disabled modules", async () => {
+    const garden = await Garden.factory(projectRootB, { plugins })
+    const log = garden.log
+    const command = new DeployCommand()
+
+    await garden.scanModules()
+    garden["moduleConfigs"]["module-c"].disabled = true
+
+    const { result, errors } = await command.action({
+      garden,
+      log,
+      headerLog: log,
+      footerLog: log,
+      args: {
+        services: undefined,
+      },
+      opts: withDefaultGlobalOpts({
+        "hot-reload": undefined,
+        "watch": false,
+        "force": false,
+        "force-build": true,
+      }),
+    })
+
+    if (errors) {
+      throw errors[0]
+    }
+
+    expect(Object.keys(taskResultOutputs(result!)).sort()).to.eql([
+      "build.module-a",
+      "build.module-b",
+      "deploy.service-a",
+      "deploy.service-b",
+      "get-service-status.service-a",
+      "get-service-status.service-b",
+      "get-task-result.task-a",
+      "stage-build.module-a",
+      "stage-build.module-b",
+      "task.task-a",
+    ])
   })
 })

@@ -63,6 +63,7 @@ describe("hadolint provider", () => {
         type: "container",
         allowPublish: false,
         build: { dependencies: [] },
+        disabled: false,
         outputs: {},
         path: tmpPath,
         serviceConfigs: [],
@@ -77,6 +78,7 @@ describe("hadolint provider", () => {
         type: "container",
         allowPublish: false,
         build: { dependencies: [] },
+        disabled: false,
         outputs: {},
         path: tmpPath,
         serviceConfigs: [],
@@ -125,6 +127,7 @@ describe("hadolint provider", () => {
         type: "foo",
         allowPublish: false,
         build: { dependencies: [] },
+        disabled: false,
         outputs: {},
         path: tmpPath,
         serviceConfigs: [],
@@ -160,11 +163,12 @@ describe("hadolint provider", () => {
           type: "hadolint",
           allowPublish: false,
           build: { dependencies: [] },
+          disabled: false,
           outputs: {},
           path,
           serviceConfigs: [],
           taskConfigs: [],
-          testConfigs: [{ name: "foo", dependencies: [], spec: {}, timeout: 10 }],
+          testConfigs: [{ name: "foo", dependencies: [], disabled: false, spec: {}, timeout: 10 }],
           spec: { dockerfilePath: "errAndWarn.Dockerfile" },
         },
       }
@@ -181,6 +185,7 @@ describe("hadolint provider", () => {
         force: true,
         forceBuild: false,
         version: module.version,
+        _guard: true,
       })
 
       const key = testTask.getKey()
@@ -224,11 +229,12 @@ describe("hadolint provider", () => {
           type: "hadolint",
           allowPublish: false,
           build: { dependencies: [] },
+          disabled: false,
           outputs: {},
           path: modulePath,
           serviceConfigs: [],
           taskConfigs: [],
-          testConfigs: [{ name: "foo", dependencies: [], spec: {}, timeout: 10 }],
+          testConfigs: [{ name: "foo", dependencies: [], disabled: false, spec: {}, timeout: 10 }],
           spec: { dockerfilePath: "errAndWarn.Dockerfile" },
         },
       }
@@ -245,6 +251,7 @@ describe("hadolint provider", () => {
         force: true,
         forceBuild: false,
         version: module.version,
+        _guard: true,
       })
 
       const key = testTask.getKey()
@@ -283,11 +290,12 @@ describe("hadolint provider", () => {
           type: "hadolint",
           allowPublish: false,
           build: { dependencies: [] },
+          disabled: false,
           outputs: {},
           path,
           serviceConfigs: [],
           taskConfigs: [],
-          testConfigs: [{ name: "foo", dependencies: [], spec: {}, timeout: 10 }],
+          testConfigs: [{ name: "foo", dependencies: [], disabled: false, spec: {}, timeout: 10 }],
           spec: { dockerfilePath: "errAndWarn.Dockerfile" },
         },
       }
@@ -304,6 +312,7 @@ describe("hadolint provider", () => {
         force: true,
         forceBuild: false,
         version: module.version,
+        _guard: true,
       })
 
       const key = testTask.getKey()
@@ -336,11 +345,12 @@ describe("hadolint provider", () => {
           type: "hadolint",
           allowPublish: false,
           build: { dependencies: [] },
+          disabled: false,
           outputs: {},
           path,
           serviceConfigs: [],
           taskConfigs: [],
-          testConfigs: [{ name: "foo", dependencies: [], spec: {}, timeout: 10 }],
+          testConfigs: [{ name: "foo", dependencies: [], disabled: false, spec: {}, timeout: 10 }],
           spec: { dockerfilePath: "warn.Dockerfile" },
         },
       }
@@ -357,6 +367,7 @@ describe("hadolint provider", () => {
         force: true,
         forceBuild: false,
         version: module.version,
+        _guard: true,
       })
 
       const key = testTask.getKey()
@@ -379,11 +390,12 @@ describe("hadolint provider", () => {
           type: "hadolint",
           allowPublish: false,
           build: { dependencies: [] },
+          disabled: false,
           outputs: {},
           path,
           serviceConfigs: [],
           taskConfigs: [],
-          testConfigs: [{ name: "foo", dependencies: [], spec: {}, timeout: 10 }],
+          testConfigs: [{ name: "foo", dependencies: [], disabled: false, spec: {}, timeout: 10 }],
           spec: { dockerfilePath: "warn.Dockerfile" },
         },
       }
@@ -400,6 +412,7 @@ describe("hadolint provider", () => {
         force: true,
         forceBuild: false,
         version: module.version,
+        _guard: true,
       })
 
       const key = testTask.getKey()
@@ -425,11 +438,12 @@ describe("hadolint provider", () => {
           type: "hadolint",
           allowPublish: false,
           build: { dependencies: [] },
+          disabled: false,
           outputs: {},
           path,
           serviceConfigs: [],
           taskConfigs: [],
-          testConfigs: [{ name: "foo", dependencies: [], spec: {}, timeout: 10 }],
+          testConfigs: [{ name: "foo", dependencies: [], disabled: false, spec: {}, timeout: 10 }],
           spec: { dockerfilePath: "errAndWarn.Dockerfile" },
         },
       }
@@ -446,6 +460,7 @@ describe("hadolint provider", () => {
         force: true,
         forceBuild: false,
         version: module.version,
+        _guard: true,
       })
 
       const key = testTask.getKey()

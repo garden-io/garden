@@ -31,20 +31,17 @@ kind: Project
 # The name of the project.
 name:
 
-# The default environment to use when calling commands without the `--env` parameter. Defaults to
-# the first configured environment.
+# The default environment to use when calling commands without the `--env` parameter. Defaults to the first configured
+# environment.
 defaultEnvironment: ''
 
-# Specify a list of filenames that should be used as ".ignore" files across the project, using the
-# same syntax and semantics as `.gitignore` files. By default, patterns matched in `.gitignore`
-# and `.gardenignore` files, found anywhere in the project, are ignored when scanning for modules
-# and module sources.
-# Note that these take precedence over the project `module.include` field, and module `include`
-# fields, so any paths matched by the .ignore files will be ignored even if they are explicitly
-# specified in those fields.
+# Specify a list of filenames that should be used as ".ignore" files across the project, using the same syntax and
+# semantics as `.gitignore` files. By default, patterns matched in `.gitignore` and `.gardenignore` files, found
+# anywhere in the project, are ignored when scanning for modules and module sources.
+# Note that these take precedence over the project `module.include` field, and module `include` fields, so any paths
+# matched by the .ignore files will be ignored even if they are explicitly specified in those fields.
 # See the [Configuration Files guide]
-# (https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)
-# for details.
+# (https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
 dotIgnoreFiles:
   - .gitignore
   - .gardenignore
@@ -52,31 +49,24 @@ dotIgnoreFiles:
 modules:
   # Specify a list of POSIX-style paths or globs that should be scanned for Garden modules.
   #
-  # Note that you can also _exclude_ path using the `exclude` field or by placing `.gardenignore`
-  # files in your
+  # Note that you can also _exclude_ path using the `exclude` field or by placing `.gardenignore` files in your
   # source tree, which use the same format as `.gitignore` files. See the
   # [Configuration Files
-  # guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)
-  # for details.
+  # guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
   #
-  # Unlike the `exclude` field, the paths/globs specified here have _no effect_ on which files and
-  # directories
-  # Garden watches for changes. Use the `exclude` field to affect those, if you have large
-  # directories that
+  # Unlike the `exclude` field, the paths/globs specified here have _no effect_ on which files and directories
+  # Garden watches for changes. Use the `exclude` field to affect those, if you have large directories that
   # should not be watched for changes.
   #
   # Also note that specifying an empty list here means _no paths_ should be included.
   include:
 
-  # Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for
-  # modules.
+  # Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for modules.
   #
-  # The filters here also affect which files and directories are watched for changes. So if you
-  # have a large number
+  # The filters here also affect which files and directories are watched for changes. So if you have a large number
   # of directories in your project that should not be watched, you should specify them here.
   #
-  # For example, you might want to exclude large vendor directories in your project from being
-  # scanned and
+  # For example, you might want to exclude large vendor directories in your project from being scanned and
   # watched:
   #
   # modules:
@@ -84,46 +74,40 @@ modules:
   #     - node_modules/**/*
   #     - vendor/**/*
   #
-  # Note that you can also explicitly _include_ files using the `include` field. If you also
-  # specify the
-  # `include` field, the paths/patterns specified here are filtered from the files matched by
-  # `include`.
+  # Note that you can also explicitly _include_ files using the `include` field. If you also specify the
+  # `include` field, the paths/patterns specified here are filtered from the files matched by `include`.
   #
   # The `include` field does _not_ affect which files are watched.
   #
   # See the [Configuration Files
-  # guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)
-  # for details.
+  # guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
   exclude:
 
-# A list of providers that should be used for this project, and their configuration. Please refer
-# to individual plugins/providers for details on how to configure them.
+# A list of providers that should be used for this project, and their configuration. Please refer to individual
+# plugins/providers for details on how to configure them.
 providers:
   # The name of the provider plugin to use.
   - name:
-    # If specified, this provider will only be used in the listed environments. Note that an empty
-    # array effectively disables the provider. To use a provider in all environments, omit this
-    # field.
+    # If specified, this provider will only be used in the listed environments. Note that an empty array effectively
+    # disables the provider. To use a provider in all environments, omit this field.
     environments:
 
 # A list of remote sources to import into project.
 sources:
   # The name of the source to import
   - name:
-    # A remote repository URL. Currently only supports git servers. Must contain a hash suffix
-    # pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
+    # A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific
+    # branch or tag, with the format: <git remote url>#<branch|tag>
     repositoryUrl:
 
-# Specify a path (relative to the project root) to a file containing variables, that we apply on
-# top of the
+# Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
 # project-wide `variables` field. The file should be in a standard "dotenv" format, specified
 # [here](https://github.com/motdotla/dotenv#rules).
 #
 # If you don't set the field and the `garden.env` file does not exist, we simply ignore it.
 # If you do override the default value and the file doesn't exist, an error will be thrown.
 #
-# _Note that in many cases it is advisable to only use environment-specific var files, instead of
-# combining
+# _Note that in many cases it is advisable to only use environment-specific var files, instead of combining
 # multiple ones. See the `environments[].varfile` field for this option._
 varfile: garden.env
 
@@ -131,36 +115,30 @@ varfile: garden.env
 variables: {}
 
 environments:
-  # DEPRECATED - Please use the top-level `providers` field instead, and if needed use the
-  # `environments` key on the provider configurations to limit them to specific environments.
+  # DEPRECATED - Please use the top-level `providers` field instead, and if needed use the `environments` key on the
+  # provider configurations to limit them to specific environments.
   - providers:
       # The name of the provider plugin to use.
       - name:
-        # If specified, this provider will only be used in the listed environments. Note that an
-        # empty array effectively disables the provider. To use a provider in all environments,
-        # omit this field.
+        # If specified, this provider will only be used in the listed environments. Note that an empty array
+        # effectively disables the provider. To use a provider in all environments, omit this field.
         environments:
-    # Specify a path (relative to the project root) to a file containing variables, that we apply
-    # on top of the
-    # _environment-specific_ `variables` field. The file should be in a standard "dotenv" format,
-    # specified
+    # Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
+    # _environment-specific_ `variables` field. The file should be in a standard "dotenv" format, specified
     # [here](https://github.com/motdotla/dotenv#rules).
     #
     # If you don't set the field and the `garden.<env-name>.env` file does not exist,
-    # we simply ignore it. If you do override the default value and the file doesn't exist, an
-    # error will be thrown.
+    # we simply ignore it. If you do override the default value and the file doesn't exist, an error will be thrown.
     varfile:
-    # A key/value map of variables that modules can reference when using this environment. These
-    # take precedence over variables defined in the top-level `variables` field.
+    # A key/value map of variables that modules can reference when using this environment. These take precedence over
+    # variables defined in the top-level `variables` field.
     variables: {}
     # The name of the environment.
     name:
     # Flag the environment as a production environment.
     #
-    # Setting this flag to `true` will activate the protection on the `deploy`, `test`, `task`,
-    # `build`,
-    # and `dev` commands. A protected command will ask for a user confirmation every time is run
-    # agains
+    # Setting this flag to `true` will activate the protection on the `deploy`, `test`, `task`, `build`,
+    # and `dev` commands. A protected command will ask for a user confirmation every time is run agains
     # an environment marked as production.
     # Run the command with the "--yes" flag to skip the check (e.g. when running Garden in CI).
     #
@@ -519,45 +497,50 @@ name:
 
 description:
 
-# Specify a list of POSIX-style paths or globs that should be regarded as the source files for
-# this
-# module. Files that do *not* match these paths or globs are excluded when computing the version
-# of the module,
+# Set this to `true` to disable the module. You can use this with conditional template strings to
+# disable modules based on, for example, the current environment or other variables (e.g.
+# `disabled: \${environment.name == "prod"}`). This can be handy when you only need certain modules for
+# specific environments, e.g. only for development.
+#
+# Disabling a module means that any services, tasks and tests contained in it will not be deployed or run.
+# It also means that the module is not built _unless_ it is declared as a build dependency by another enabled
+# module (in which case building this module is necessary for the dependant to be built).
+#
+# If you disable the module, and its services, tasks or tests are referenced as _runtime_ dependencies, Garden
+# will automatically ignore those dependency declarations. Note however that template strings referencing the
+# module's service or task outputs (i.e. runtime outputs) will fail to resolve when the module is disabled,
+# so you need to make sure to provide alternate values for those if you're using them, using conditional
+# expressions.
+disabled: false
+
+# Specify a list of POSIX-style paths or globs that should be regarded as the source files for this
+# module. Files that do *not* match these paths or globs are excluded when computing the version of the module,
 # when responding to filesystem watch events, and when staging builds.
 #
-# Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore`
-# files in your
+# Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
 # source tree, which use the same format as `.gitignore` files. See the
 # [Configuration Files
-# guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)
-# for details.
+# guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
 #
 # Also note that specifying an empty list here means _no sources_ should be included.
 include:
 
-# Specify a list of POSIX-style paths or glob patterns that should be excluded from the module.
-# Files that
-# match these paths or globs are excluded when computing the version of the module, when
-# responding to filesystem
+# Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that
+# match these paths or globs are excluded when computing the version of the module, when responding to filesystem
 # watch events, and when staging builds.
 #
-# Note that you can also explicitly _include_ files using the `include` field. If you also specify
-# the
-# `include` field, the files/patterns specified here are filtered from the files matched by
-# `include`. See the
+# Note that you can also explicitly _include_ files using the `include` field. If you also specify the
+# `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the
 # [Configuration Files
-# guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)for
-# details.
+# guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)for details.
 #
-# Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on
-# which files
-# and directories are watched for changes. Use the project `modules.exclude` field to affect
-# those, if you have
+# Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files
+# and directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have
 # large directories that should not be watched for changes.
 exclude:
 
-# A remote repository URL. Currently only supports git servers. Must contain a hash suffix
-# pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
+# A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific
+# branch or tag, with the format: <git remote url>#<branch|tag>
 #
 # Garden will import the repository source code into this module, but read the module's
 # config from the local garden.yml file.
@@ -576,8 +559,7 @@ build:
       copy:
         # POSIX-style path or filename of the directory or file(s) to copy to the target.
         - source:
-          # POSIX-style path or filename to copy the directory or file(s), relative to the build
-          # directory.
+          # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
           # Defaults to to same as source path.
           target: ''
 ```
@@ -632,6 +614,27 @@ name: "my-sweet-module"
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+#### `disabled`
+
+Set this to `true` to disable the module. You can use this with conditional template strings to
+disable modules based on, for example, the current environment or other variables (e.g.
+`disabled: \${environment.name == "prod"}`). This can be handy when you only need certain modules for
+specific environments, e.g. only for development.
+
+Disabling a module means that any services, tasks and tests contained in it will not be deployed or run.
+It also means that the module is not built _unless_ it is declared as a build dependency by another enabled
+module (in which case building this module is necessary for the dependant to be built).
+
+If you disable the module, and its services, tasks or tests are referenced as _runtime_ dependencies, Garden
+will automatically ignore those dependency declarations. Note however that template strings referencing the
+module's service or task outputs (i.e. runtime outputs) will fail to resolve when the module is disabled,
+so you need to make sure to provide alternate values for those if you're using them, using conditional
+expressions.
+
+| Type      | Required | Default |
+| --------- | -------- | ------- |
+| `boolean` | No       | `false` |
 
 #### `include`
 

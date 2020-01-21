@@ -43,7 +43,6 @@ Tasks correspond to a **run** action in the Stack Graph.
 
 ## Examples
 
-
 ### Database Migration
 
 Below is an example of a Helm module that uses the `postgresql` Helm chart. The module has a task for initializing the database and another one for clearing it. In the example we use environment variables to set the password. Notice also that the tasks depend on the `postgres` service being deployed.
@@ -111,6 +110,22 @@ tasks:
 After running `my-task`, you can find the contents of the `report` directory in the task's container, locally under `.garden/artifacts/my-task-report`.
 
 Please look at individual [module type references](../module-types/README.md) to see how to configure each module type's tasks to extract artifacts after running them.
+
+### Disabling Tasks
+
+Module types that allow you to configure tasks generally also allow you to disable tasks by setting `disabled: true` in the task configuration. You can also disable them conditionally using template strings. For example, to disable a `container` module task for a specific environment, you could do something like this:
+
+```yaml
+kind: Module
+type: container
+...
+tasks:
+  - name: database-reset
+    disabled: ${environment.name == "prod"}
+    ...
+```
+
+Tasks are also implicitly disabled when the parent module is disabled.
 
 ### Kubernetes Provider
 

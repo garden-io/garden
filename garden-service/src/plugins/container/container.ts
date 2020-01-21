@@ -120,6 +120,7 @@ export async function configureContainerModule({ ctx, log, moduleConfig }: Confi
     return {
       name,
       dependencies: spec.dependencies,
+      disabled: spec.disabled,
       hotReloadable,
       spec,
     }
@@ -128,6 +129,7 @@ export async function configureContainerModule({ ctx, log, moduleConfig }: Confi
   moduleConfig.testConfigs = moduleConfig.spec.tests.map((t) => ({
     name: t.name,
     dependencies: t.dependencies,
+    disabled: t.disabled,
     spec: t,
     timeout: t.timeout,
   }))
@@ -135,6 +137,7 @@ export async function configureContainerModule({ ctx, log, moduleConfig }: Confi
   moduleConfig.taskConfigs = moduleConfig.spec.tasks.map((t) => ({
     name: t.name,
     dependencies: t.dependencies,
+    disabled: t.disabled,
     spec: t,
     timeout: t.timeout,
   }))

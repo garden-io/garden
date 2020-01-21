@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import deline = require("deline")
 import { joiArray, joiUserIdentifier, joi } from "./common"
+import { deline, dedent } from "../util/string"
 
 export interface TaskSpec {}
 
@@ -15,6 +15,7 @@ export interface BaseTaskSpec extends TaskSpec {
   name: string
   dependencies: string[]
   description?: string
+  disabled: boolean
   timeout: number | null
 }
 
@@ -32,6 +33,24 @@ export const baseTaskSpecSchema = joi
         The names of any tasks that must be executed, and the names of any
         services that must be running, before this task is executed.
       `),
+    disabled: joi
+      .boolean()
+      .default(false)
+      .description(
+        dedent`
+          Set this to \`true\` to disable the task. You can use this with conditional template strings to
+          enable/disable tasks based on, for example, the current environment or other variables (e.g.
+          \`enabled: \${environment.name != "prod"}\`). This can be handy when you only want certain tasks to run in
+          specific environments, e.g. only for development.
+
+          Disabling a task means that it will not be run, and will also be ignored if it is declared as a
+          runtime dependency for another service, test or task.
+
+          Note however that template strings referencing the task's outputs (i.e. runtime outputs) will fail to
+          resolve when the task is disabled, so you need to make sure to provide alternate values for those if
+          you're using them, using conditional expressions.
+        `
+      ),
     timeout: joi
       .number()
       .optional()
@@ -64,6 +83,10 @@ export const taskSchema = joi
       .string()
       .optional()
       .description("A description of the task."),
+    disabled: joi
+      .boolean()
+      .default(false)
+      .description("Set to true if the task or its module is disabled."),
     module: joi.object().unknown(true),
     config: taskConfigSchema,
     spec: joi

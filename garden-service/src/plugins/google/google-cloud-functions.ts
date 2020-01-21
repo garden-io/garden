@@ -68,6 +68,7 @@ export async function configureGcfModule({
     {
       name,
       dependencies: spec.dependencies,
+      disabled: spec.disabled,
       hotReloadable: false,
       spec,
     },
@@ -76,6 +77,7 @@ export async function configureGcfModule({
   moduleConfig.testConfigs = moduleConfig.spec.tests.map((t) => ({
     name: t.name,
     dependencies: t.dependencies,
+    disabled: t.disabled,
     timeout: t.timeout,
     spec: t,
   }))

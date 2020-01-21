@@ -58,6 +58,7 @@ describe("conftest-kubernetes provider", () => {
         force: true,
         forceBuild: true,
         version: module.version,
+        _guard: true,
       })
 
       const key = testTask.getKey()

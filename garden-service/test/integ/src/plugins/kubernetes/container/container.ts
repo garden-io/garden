@@ -440,6 +440,7 @@ describe("kubernetes container module handlers", () => {
         force: true,
         forceBuild: false,
         version: module.version,
+        _guard: true,
       })
 
       result = await garden.processTasks([testTask], { throwOnError: true })
@@ -462,6 +463,7 @@ describe("kubernetes container module handlers", () => {
           force: true,
           forceBuild: false,
           version: module.version,
+          _guard: true,
         })
 
         await emptyDir(garden.artifactsPath)
@@ -484,6 +486,7 @@ describe("kubernetes container module handlers", () => {
           force: true,
           forceBuild: false,
           version: module.version,
+          _guard: true,
         })
 
         await emptyDir(garden.artifactsPath)
@@ -506,6 +509,7 @@ describe("kubernetes container module handlers", () => {
           force: true,
           forceBuild: false,
           version: module.version,
+          _guard: true,
         })
 
         result = await garden.processTasks([testTask])
@@ -532,6 +536,7 @@ describe("kubernetes container module handlers", () => {
           force: true,
           forceBuild: false,
           version: module.version,
+          _guard: true,
         })
 
         result = await garden.processTasks([testTask])

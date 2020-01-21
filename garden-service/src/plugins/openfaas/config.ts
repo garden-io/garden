@@ -204,11 +204,13 @@ export async function configureModule({
   moduleConfig.serviceConfigs = [
     {
       dependencies,
+      disabled: moduleConfig.disabled,
       hotReloadable: false,
       name: moduleConfig.name,
       spec: {
         name: moduleConfig.name,
         dependencies,
+        disabled: moduleConfig.disabled,
       },
     },
   ]
@@ -216,6 +218,7 @@ export async function configureModule({
   moduleConfig.testConfigs = moduleConfig.spec.tests.map((t) => ({
     name: t.name,
     dependencies: union(t.dependencies, dependencies),
+    disabled: t.disabled,
     spec: t,
     timeout: t.timeout,
   }))

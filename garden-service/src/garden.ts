@@ -117,10 +117,10 @@ export interface GardenParams {
 export class Garden {
   public readonly log: LogEntry
   private loadedPlugins: GardenPlugin[]
-  private moduleConfigs: ModuleConfigMap
+  protected moduleConfigs: ModuleConfigMap
   private pluginModuleConfigs: ModuleConfig[]
   private resolvedProviders: Provider[]
-  private modulesScanned: boolean
+  protected modulesScanned: boolean
   private readonly registeredPlugins: { [key: string]: GardenPlugin }
   private readonly taskGraph: TaskGraph
   private watcher: Watcher

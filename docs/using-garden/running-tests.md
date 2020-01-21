@@ -109,6 +109,22 @@ After running `my-test`, you can find the contents of the `report` directory in 
 
 Please look at individual [module type references](../module-types/README.md) to see how to configure each module type's tests to extract artifacts after running them.
 
+### Disabling Tests
+
+Module types that allow you to configure tests generally also allow you to disable tests by setting `disabled: true` in the test configuration. You can also disable them conditionally using template strings. For example, to disable a `container` module test for a specific environment, you could do something like this:
+
+```yaml
+kind: Module
+type: container
+...
+tests:
+  - name: e2e
+    disabled: ${environment.name == "prod"}
+    ...
+```
+
+Tests are also implicitly disabled when the parent module is disabled.
+
 ### Kubernetes Provider
 
 Tests are executed in their own Pod inside the project namespace. The Pod is removed once the test has finished running.

@@ -15,6 +15,8 @@ import { printHeader } from "../../logger/util"
 import { DeployTask } from "../../tasks/deploy"
 import { getServiceStatuses, getRunTaskResults } from "../../tasks/base"
 import { prepareRuntimeContext } from "../../runtime-context"
+import { deline } from "../../util/string"
+import { CommandError } from "../../exceptions"
 
 const runArgs = {
   service: new StringParameter({
@@ -24,7 +26,12 @@ const runArgs = {
 }
 
 const runOpts = {
-  "force-build": new BooleanParameter({ help: "Force rebuild of module." }),
+  "force": new BooleanParameter({
+    help: "Run the service even if it's disabled for the environment.",
+  }),
+  "force-build": new BooleanParameter({
+    help: "Force rebuild of module.",
+  }),
 }
 
 type Args = typeof runArgs
@@ -51,8 +58,19 @@ export class RunServiceCommand extends Command<Args, Opts> {
   async action({ garden, log, headerLog, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
     const serviceName = args.service
     const graph = await garden.getConfigGraph(log)
-    const service = await graph.getService(serviceName)
+    const service = await graph.getService(serviceName, true)
     const module = service.module
+
+    if (service.disabled && !opts.force) {
+      throw new CommandError(
+        chalk.red(deline`
+          Service ${chalk.redBright(service.name)} is disabled for the ${chalk.redBright(garden.environmentName)}
+          environment. If you're sure you want to run it anyway, please run the command again with the
+          ${chalk.redBright("--force")} flag.
+        `),
+        { serviceName: service.name, environmentName: garden.environmentName }
+      )
+    }
 
     printHeader(headerLog, `Running service ${chalk.cyan(serviceName)} in module ${chalk.cyan(module.name)}`, "runner")
 
@@ -69,7 +87,7 @@ export class RunServiceCommand extends Command<Args, Opts> {
     })
     const dependencyResults = await garden.processTasks(await deployTask.getDependencies())
 
-    const dependencies = await graph.getDependencies("deploy", serviceName, false)
+    const dependencies = await graph.getDependencies({ nodeType: "deploy", name: serviceName, recursive: false })
     const serviceStatuses = getServiceStatuses(dependencyResults)
     const taskResults = getRunTaskResults(dependencyResults)
 
