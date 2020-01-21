@@ -71,15 +71,15 @@ export async function runContainerTask(params: RunTaskParams<ContainerModule>): 
     ignoreError: true, // to ensure results get stored when an error occurs
   })
 
-  const result = {
+  const result: RunTaskResult = {
     ...res,
     taskName: task.name,
     outputs: {
-      log: res.output || "",
+      log: res.log || "",
     },
   }
 
-  await storeTaskResult({
+  return storeTaskResult({
     ctx,
     log,
     module,
@@ -87,6 +87,4 @@ export async function runContainerTask(params: RunTaskParams<ContainerModule>): 
     taskVersion,
     taskName: task.name,
   })
-
-  return result
 }
