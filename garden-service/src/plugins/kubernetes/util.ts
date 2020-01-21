@@ -7,18 +7,24 @@
  */
 
 import Bluebird from "bluebird"
-import { get, flatten, uniqBy, sortBy, omit, chain, sample, isEmpty } from "lodash"
+import { get, flatten, uniqBy, sortBy, omit, chain, sample, isEmpty, find } from "lodash"
 import { V1Pod, V1EnvVar } from "@kubernetes/client-node"
+import { apply as jsonMerge } from "json-merge-patch"
 
 import { KubernetesResource, KubernetesWorkload, KubernetesPod, KubernetesServerResource } from "./types"
-import { splitLast, serializeValues } from "../../util/util"
+import { splitLast, serializeValues, findByName } from "../../util/util"
 import { KubeApi, KubernetesError } from "./api"
-import { gardenAnnotationKey, base64 } from "../../util/string"
+import { gardenAnnotationKey, base64, deline } from "../../util/string"
 import { MAX_CONFIGMAP_DATA_SIZE } from "./constants"
 import { ContainerEnvVars } from "../container/config"
 import { ConfigurationError } from "../../exceptions"
-import { KubernetesProvider } from "./config"
+import { KubernetesProvider, ServiceResourceSpec } from "./config"
 import { LogEntry } from "../../logger/log-entry"
+import { PluginContext } from "../../plugin-context"
+import { HelmModule } from "./helm/config"
+import { KubernetesModule } from "./kubernetes-module/config"
+import { getChartPath, renderHelmTemplateString } from "./helm/common"
+import { HotReloadableResource } from "./hot-reload"
 
 const STATIC_LABEL_REGEX = /[0-9]/g
 export const workloadTypes = ["Deployment", "DaemonSet", "ReplicaSet", "StatefulSet"]
@@ -400,4 +406,136 @@ export function getSelectorString(labels: { [key: string]: string }) {
     selectorString += `${label}=${labels[label]},`
   }
   return selectorString.trimEnd().slice(0, -1)
+}
+
+/**
+ * Returns the `serviceResource` spec on the module. If the module has a base module, the two resource specs
+ * are merged using a JSON Merge Patch (RFC 7396).
+ *
+ * Throws error if no resource spec is configured, or it is empty.
+ */
+export function getServiceResourceSpec(
+  module: HelmModule | KubernetesModule,
+  baseModule: HelmModule | undefined
+): ServiceResourceSpec {
+  let resourceSpec = module.spec.serviceResource || {}
+
+  if (baseModule) {
+    resourceSpec = jsonMerge(baseModule.spec.serviceResource || {}, resourceSpec)
+  }
+
+  if (isEmpty(resourceSpec)) {
+    throw new ConfigurationError(
+      deline`Helm module '${module.name}' doesn't specify a \`serviceResource\` in its configuration.
+      You must specify a resource in the module config in order to use certain Garden features,
+      such as hot reloading.`,
+      { resourceSpec }
+    )
+  }
+
+  return <ServiceResourceSpec>resourceSpec
+}
+
+interface GetServiceResourceParams {
+  ctx: PluginContext
+  log: LogEntry
+  manifests: KubernetesResource[]
+  module: HelmModule | KubernetesModule
+  baseModule: HelmModule | undefined
+  resourceSpec?: ServiceResourceSpec
+}
+
+/**
+ * Finds and returns the configured service resource from the specified chart resources, that we can use for
+ * hot-reloading and other service-specific functionality.
+ *
+ * Optionally provide a `resourceSpec`, which is then used instead of the default `module.serviceResource` spec.
+ * This is used when individual tasks or tests specify a resource.
+ *
+ * Throws an error if no valid resource spec is given, or the resource spec doesn't match any of the given resources.
+ */
+export async function findServiceResource({
+  ctx,
+  log,
+  manifests,
+  module,
+  baseModule,
+  resourceSpec,
+}: GetServiceResourceParams): Promise<HotReloadableResource> {
+  const resourceMsgName = resourceSpec ? "resource" : "serviceResource"
+
+  if (!resourceSpec) {
+    resourceSpec = getServiceResourceSpec(module, baseModule)
+  }
+
+  const targetKind = resourceSpec.kind
+  let targetName = resourceSpec.name
+
+  const chartResourceNames = manifests.map((o) => `${o.kind}/${o.metadata.name}`)
+  const applicableChartResources = manifests.filter((o) => o.kind === targetKind)
+
+  let target: HotReloadableResource
+
+  if (targetName) {
+    if (module.type === "helm" && targetName.includes("{{")) {
+      // need to resolve the template string
+      const chartPath = await getChartPath(<HelmModule>module)
+      targetName = await renderHelmTemplateString(ctx, log, module, chartPath, targetName)
+    }
+
+    target = find(<HotReloadableResource[]>manifests, (o) => o.kind === targetKind && o.metadata.name === targetName)!
+
+    if (!target) {
+      throw new ConfigurationError(
+        `Helm module '${module.name}' does not contain specified ${targetKind} '${targetName}'`,
+        { resourceSpec, chartResourceNames }
+      )
+    }
+  } else {
+    if (applicableChartResources.length === 0) {
+      throw new ConfigurationError(`Helm module '${module.name}' contains no ${targetKind}s.`, {
+        resourceSpec,
+        chartResourceNames,
+      })
+    }
+
+    if (applicableChartResources.length > 1) {
+      throw new ConfigurationError(
+        deline`Helm module '${module.name}' contains multiple ${targetKind}s.
+        You must specify \`${resourceMsgName}.name\` in the module config in order to identify
+        the correct ${targetKind} to use.`,
+        { resourceSpec, chartResourceNames }
+      )
+    }
+
+    target = <HotReloadableResource>applicableChartResources[0]
+  }
+
+  return target
+}
+
+/**
+ * From the given Deployment, DaemonSet or StatefulSet resource, get either the first container spec,
+ * or if `containerName` is specified, the one matching that name.
+ */
+export function getResourceContainer(resource: HotReloadableResource, containerName?: string) {
+  const kind = resource.kind
+  const name = resource.metadata.name
+
+  const containers = resource.spec.template.spec.containers || []
+
+  if (containers.length === 0) {
+    throw new ConfigurationError(`${kind} ${resource.metadata.name} has no containers configured.`, { resource })
+  }
+
+  const container = containerName ? findByName(containers, containerName) : containers[0]
+
+  if (!container) {
+    throw new ConfigurationError(`Could not find container '${containerName}' in ${kind} '${name}'`, {
+      resource,
+      containerName,
+    })
+  }
+
+  return container
 }

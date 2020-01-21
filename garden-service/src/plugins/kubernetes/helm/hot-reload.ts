@@ -10,7 +10,8 @@ import { HelmService, HelmModule } from "./config"
 import { ConfigurationError } from "../../../exceptions"
 import { deline } from "../../../util/string"
 import { ContainerModule } from "../../container/config"
-import { getChartResources, findServiceResource, getServiceResourceSpec } from "./common"
+import { getChartResources, getBaseModule } from "./common"
+import { findServiceResource, getServiceResourceSpec } from "../util"
 import { syncToService } from "../hot-reload"
 import { KubernetesPluginContext } from "../config"
 import { HotReloadServiceParams, HotReloadServiceResult } from "../../../types/plugin/service/hotReloadService"
@@ -27,14 +28,16 @@ export async function hotReloadHelmChart({
 }: HotReloadServiceParams<HelmModule, ContainerModule>): Promise<HotReloadServiceResult> {
   const hotReloadSpec = getHotReloadSpec(service)
 
-  const chartResources = await getChartResources(ctx, service.module, true, log)
+  const manifests = await getChartResources(ctx, service.module, true, log)
+  const baseModule = getBaseModule(module)
   const resourceSpec = service.spec.serviceResource
 
   const workload = await findServiceResource({
     ctx,
     log,
     module,
-    chartResources,
+    baseModule,
+    manifests,
     resourceSpec,
   })
 
@@ -55,7 +58,8 @@ export async function hotReloadHelmChart({
 
 export function getHotReloadSpec(service: HelmService) {
   const module = service.module
-  const resourceSpec = getServiceResourceSpec(module)
+  const baseModule = getBaseModule(module)
+  const resourceSpec = getServiceResourceSpec(module, baseModule)
 
   if (!resourceSpec || !resourceSpec.containerModule) {
     throw new ConfigurationError(
@@ -94,6 +98,7 @@ export function getHotReloadSpec(service: HelmService) {
  * Used to determine which container in the target resource to attach the hot reload sync volume to.
  */
 export function getHotReloadContainerName(module: HelmModule) {
-  const resourceSpec = getServiceResourceSpec(module)
+  const baseModule = getBaseModule(module)
+  const resourceSpec = getServiceResourceSpec(module, baseModule)
   return resourceSpec.containerName || module.name
 }

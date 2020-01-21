@@ -10,14 +10,7 @@ import { getAppNamespace } from "../namespace"
 import { waitForResources } from "../status/status"
 import { helm } from "./helm-cli"
 import { HelmModule } from "./config"
-import {
-  getChartPath,
-  getReleaseName,
-  getChartResources,
-  findServiceResource,
-  getServiceResourceSpec,
-  getValueArgs,
-} from "./common"
+import { getChartPath, getReleaseName, getChartResources, getValueArgs, getBaseModule } from "./common"
 import { getReleaseStatus, HelmServiceStatus, getDeployedResources } from "./status"
 import { configureHotReload, HotReloadableResource } from "../hot-reload"
 import { apply, deleteResources } from "../kubectl"
@@ -27,6 +20,7 @@ import { getHotReloadSpec, getHotReloadContainerName } from "./hot-reload"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
 import { getForwardablePorts, killPortForwards } from "../port-forward"
+import { findServiceResource, getServiceResourceSpec } from "../util"
 
 export async function deployHelmService({
   ctx,
@@ -39,11 +33,12 @@ export async function deployHelmService({
   let hotReloadSpec: ContainerHotReloadSpec | null = null
   let hotReloadTarget: HotReloadableResource | null = null
 
-  const chartResources = await getChartResources(ctx, module, hotReload, log)
+  const manifests = await getChartResources(ctx, module, hotReload, log)
 
   if (hotReload) {
     const resourceSpec = service.spec.serviceResource
-    hotReloadTarget = await findServiceResource({ ctx, log, module, chartResources, resourceSpec })
+    const baseModule = getBaseModule(module)
+    hotReloadTarget = await findServiceResource({ ctx, log, module, baseModule, manifests, resourceSpec })
     hotReloadSpec = getHotReloadSpec(service)
   }
 
@@ -86,7 +81,7 @@ export async function deployHelmService({
   if (hotReload && hotReloadSpec && hotReloadTarget) {
     // Because we need to modify the Deployment, and because there is currently no reliable way to do that before
     // installing/upgrading via Helm, we need to separately update the target here.
-    const resourceSpec = getServiceResourceSpec(module)
+    const resourceSpec = getServiceResourceSpec(module, getBaseModule(module))
 
     configureHotReload({
       target: hotReloadTarget,
@@ -104,11 +99,11 @@ export async function deployHelmService({
     ctx,
     provider,
     serviceName: service.name,
-    resources: chartResources,
+    resources: manifests,
     log,
   })
 
-  const forwardablePorts = getForwardablePorts(chartResources)
+  const forwardablePorts = getForwardablePorts(manifests)
 
   // Make sure port forwards work after redeployment
   killPortForwards(service, forwardablePorts || [], log)

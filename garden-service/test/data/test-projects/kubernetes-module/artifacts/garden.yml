@@ -1,0 +1,58 @@
+kind: Module
+type: kubernetes
+name: artifacts
+manifests:
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: busybox-deployment
+      labels:
+        app: busybox
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: busybox
+      template:
+        metadata:
+          labels:
+            app: busybox
+        spec:
+          containers:
+            - name: busybox
+              image: busybox:1.31.1
+              ports:
+                - containerPort: 80
+serviceResource:
+  kind: Deployment
+  name: busybox-deployment
+tasks:
+  - name: echo-task
+    command: [sh, -c, "echo ok"]
+  - name: artifacts-task
+    command: [sh, -c, "touch /task.txt"]
+    artifacts:
+      - source: /task.txt
+      - source: /task.txt
+        target: subdir
+  - name: globs-task
+    command: [sh, -c, "touch /task.txt && mkdir -p /tasks && touch /tasks/output.txt"]
+    artifacts:
+      - source: /task.*
+        target: subdir
+      - source: /tasks/*
+tests:
+  - name: echo-test
+    command: [sh, -c, "echo ok"]
+  - name: artifacts-test
+    command: [sh, -c, "touch /test.txt"]
+    artifacts:
+      - source: /test.txt
+      - source: /test.txt
+        target: subdir
+  - name: globs-test
+    command: [sh, -c, "touch /test.txt && mkdir -p /tests && touch /tests/output.txt"]
+    artifacts:
+      - source: /test.*
+        target: subdir
+      - source: /tests/*

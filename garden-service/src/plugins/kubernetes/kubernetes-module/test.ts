@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2020 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,23 +8,31 @@
 
 import { DEFAULT_TEST_TIMEOUT } from "../../../constants"
 import { storeTestResult } from "../test-results"
-import { HelmModule } from "./config"
+import { KubernetesModule } from "./config"
 import { runAndCopy } from "../run"
-import { getChartResources, getBaseModule } from "./common"
 import { KubernetesPluginContext } from "../config"
 import { TestModuleParams } from "../../../types/plugin/module/testModule"
 import { TestResult } from "../../../types/plugin/module/getTestResult"
+import { getNamespace } from "../namespace"
+import { KubeApi } from "../api"
+import { getManifests } from "./common"
 import { getServiceResourceSpec, findServiceResource, getResourceContainer } from "../util"
 
-export async function testHelmModule(params: TestModuleParams<HelmModule>): Promise<TestResult> {
+export async function testKubernetesModule(params: TestModuleParams<KubernetesModule>): Promise<TestResult> {
   const { ctx, log, module, testConfig, testVersion } = params
   const k8sCtx = <KubernetesPluginContext>ctx
+  const namespace = await getNamespace({
+    log,
+    projectName: k8sCtx.projectName,
+    provider: k8sCtx.provider,
+    skipCreate: true,
+  })
+  const api = await KubeApi.factory(log, k8sCtx.provider)
 
   // Get the container spec to use for running
-  const manifests = await getChartResources(k8sCtx, module, false, log)
-  const baseModule = getBaseModule(module)
-  const resourceSpec = testConfig.spec.resource || getServiceResourceSpec(module, baseModule)
-  const target = await findServiceResource({ ctx: k8sCtx, log, manifests, module, baseModule, resourceSpec })
+  const manifests = await getManifests(api, log, module, namespace)
+  const resourceSpec = testConfig.spec.resource || getServiceResourceSpec(module, undefined)
+  const target = await findServiceResource({ ctx: k8sCtx, log, manifests, module, resourceSpec, baseModule: undefined })
   const container = getResourceContainer(target, resourceSpec.containerName)
 
   const testName = testConfig.name

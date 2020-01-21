@@ -139,6 +139,10 @@ serviceResource:
   # The type of Kubernetes resource to sync files to.
   kind: Deployment
 
+  # The name of a container in the target. Specify this if the target contains more than one container and the main
+  # container is not the first container in the spec.
+  containerName:
+
   # The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can be
   # omitted.
   # This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'. This allows you to easily
@@ -146,10 +150,6 @@ serviceResource:
   # in order to match it. Note that you may need to add single quotes around the string for the YAML to be parsed
   # correctly.
   name:
-
-  # The name of a container in the target. Specify this if the target contains more than one container and the main
-  # container is not the first container in the spec.
-  containerName:
 
   # The Garden module that contains the sources for the container. This needs to be specified under `serviceResource`
   # in order to enable hot-reloading for the chart, but is not necessary for tasks and tests.
@@ -188,33 +188,6 @@ tasks:
     disabled: false
     # Maximum duration (in seconds) of the task's execution.
     timeout: null
-    # The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task. If not specified, the
-    # `serviceResource` configured on the module will be used. If neither is specified, an error will be thrown.
-    resource:
-      # The type of Kubernetes resource to sync files to.
-      kind: Deployment
-
-      # The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can
-      # be omitted.
-      # This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'. This allows you to
-      # easily match the dynamic names given by Helm. In most cases you should copy this directly from the template in
-      # question in order to match it. Note that you may need to add single quotes around the string for the YAML to
-      # be parsed correctly.
-      name:
-
-      # The name of a container in the target. Specify this if the target contains more than one container and the
-      # main container is not the first container in the spec.
-      containerName:
-
-      # The Garden module that contains the sources for the container. This needs to be specified under
-      # `serviceResource` in order to enable hot-reloading for the chart, but is not necessary for tasks and tests.
-      # Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the
-      # container module.
-      # Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
-      containerModule:
-
-      # If specified, overrides the arguments for the main container when running in hot-reload mode.
-      hotReloadArgs:
     # The command/entrypoint used to run the task inside the container.
     command:
     # The arguments to pass to the pod used for execution.
@@ -228,6 +201,33 @@ tasks:
       - source:
         # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
         target: .
+    # The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task. If not specified, the
+    # `serviceResource` configured on the module will be used. If neither is specified, an error will be thrown.
+    resource:
+      # The type of Kubernetes resource to sync files to.
+      kind: Deployment
+
+      # The name of a container in the target. Specify this if the target contains more than one container and the
+      # main container is not the first container in the spec.
+      containerName:
+
+      # The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can
+      # be omitted.
+      # This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'. This allows you to
+      # easily match the dynamic names given by Helm. In most cases you should copy this directly from the template in
+      # question in order to match it. Note that you may need to add single quotes around the string for the YAML to
+      # be parsed correctly.
+      name:
+
+      # The Garden module that contains the sources for the container. This needs to be specified under
+      # `serviceResource` in order to enable hot-reloading for the chart, but is not necessary for tasks and tests.
+      # Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the
+      # container module.
+      # Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
+      containerModule:
+
+      # If specified, overrides the arguments for the main container when running in hot-reload mode.
+      hotReloadArgs:
 
 # The test suite definitions for this module.
 tests:
@@ -243,33 +243,6 @@ tests:
     disabled: false
     # Maximum duration (in seconds) of the test run.
     timeout: null
-    # The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite. If not specified,
-    # the `serviceResource` configured on the module will be used. If neither is specified, an error will be thrown.
-    resource:
-      # The type of Kubernetes resource to sync files to.
-      kind: Deployment
-
-      # The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can
-      # be omitted.
-      # This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'. This allows you to
-      # easily match the dynamic names given by Helm. In most cases you should copy this directly from the template in
-      # question in order to match it. Note that you may need to add single quotes around the string for the YAML to
-      # be parsed correctly.
-      name:
-
-      # The name of a container in the target. Specify this if the target contains more than one container and the
-      # main container is not the first container in the spec.
-      containerName:
-
-      # The Garden module that contains the sources for the container. This needs to be specified under
-      # `serviceResource` in order to enable hot-reloading for the chart, but is not necessary for tasks and tests.
-      # Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the
-      # container module.
-      # Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
-      containerModule:
-
-      # If specified, overrides the arguments for the main container when running in hot-reload mode.
-      hotReloadArgs:
     # The command/entrypoint used to run the test inside the container.
     command:
     # The arguments to pass to the pod used for testing.
@@ -283,6 +256,33 @@ tests:
       - source:
         # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
         target: .
+    # The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite. If not specified,
+    # the `serviceResource` configured on the module will be used. If neither is specified, an error will be thrown.
+    resource:
+      # The type of Kubernetes resource to sync files to.
+      kind: Deployment
+
+      # The name of a container in the target. Specify this if the target contains more than one container and the
+      # main container is not the first container in the spec.
+      containerName:
+
+      # The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can
+      # be omitted.
+      # This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'. This allows you to
+      # easily match the dynamic names given by Helm. In most cases you should copy this directly from the template in
+      # question in order to match it. Note that you may need to add single quotes around the string for the YAML to
+      # be parsed correctly.
+      name:
+
+      # The Garden module that contains the sources for the container. This needs to be specified under
+      # `serviceResource` in order to enable hot-reloading for the chart, but is not necessary for tasks and tests.
+      # Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the
+      # container module.
+      # Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
+      containerModule:
+
+      # If specified, overrides the arguments for the main container when running in hot-reload mode.
+      hotReloadArgs:
 
 # Time in seconds to wait for Helm to complete any individual Kubernetes operation (like Jobs for hooks).
 timeout: 300
@@ -607,22 +607,22 @@ The type of Kubernetes resource to sync files to.
 | -------- | ---------------------------------------- | -------------- | -------- |
 | `string` | "Deployment", "DaemonSet", "StatefulSet" | `"Deployment"` | Yes      |
 
+#### `serviceResource.containerName`
+
+[serviceResource](#serviceresource) > containerName
+
+The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
 #### `serviceResource.name`
 
 [serviceResource](#serviceresource) > name
 
 The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can be omitted.
 This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'. This allows you to easily match the dynamic names given by Helm. In most cases you should copy this directly from the template in question in order to match it. Note that you may need to add single quotes around the string for the YAML to be parsed correctly.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-#### `serviceResource.containerName`
-
-[serviceResource](#serviceresource) > containerName
-
-The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.
 
 | Type     | Required |
 | -------- | -------- |
@@ -744,89 +744,6 @@ Maximum duration (in seconds) of the task's execution.
 | -------- | ------- | -------- |
 | `number` | `null`  | No       |
 
-#### `tasks[].resource`
-
-[tasks](#tasks) > resource
-
-The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task. If not specified, the `serviceResource` configured on the module will be used. If neither is specified, an error will be thrown.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-#### `tasks[].resource.kind`
-
-[tasks](#tasks) > [resource](#tasksresource) > kind
-
-The type of Kubernetes resource to sync files to.
-
-| Type     | Allowed Values                           | Default        | Required |
-| -------- | ---------------------------------------- | -------------- | -------- |
-| `string` | "Deployment", "DaemonSet", "StatefulSet" | `"Deployment"` | Yes      |
-
-#### `tasks[].resource.name`
-
-[tasks](#tasks) > [resource](#tasksresource) > name
-
-The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can be omitted.
-This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'. This allows you to easily match the dynamic names given by Helm. In most cases you should copy this directly from the template in question in order to match it. Note that you may need to add single quotes around the string for the YAML to be parsed correctly.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-#### `tasks[].resource.containerName`
-
-[tasks](#tasks) > [resource](#tasksresource) > containerName
-
-The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-#### `tasks[].resource.containerModule`
-
-[tasks](#tasks) > [resource](#tasksresource) > containerModule
-
-The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading for the chart, but is not necessary for tasks and tests.
-Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the container module.
-Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-Example:
-
-```yaml
-tasks:
-  - resource:
-      ...
-      containerModule: "my-container-module"
-```
-
-#### `tasks[].resource.hotReloadArgs[]`
-
-[tasks](#tasks) > [resource](#tasksresource) > hotReloadArgs
-
-If specified, overrides the arguments for the main container when running in hot-reload mode.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-Example:
-
-```yaml
-tasks:
-  - resource:
-      ...
-      hotReloadArgs:
-        - nodemon
-        - my-server.js
-```
-
 #### `tasks[].command[]`
 
 [tasks](#tasks) > command
@@ -934,6 +851,89 @@ tasks:
       - target: "outputs/foo/"
 ```
 
+#### `tasks[].resource`
+
+[tasks](#tasks) > resource
+
+The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task. If not specified, the `serviceResource` configured on the module will be used. If neither is specified, an error will be thrown.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+#### `tasks[].resource.kind`
+
+[tasks](#tasks) > [resource](#tasksresource) > kind
+
+The type of Kubernetes resource to sync files to.
+
+| Type     | Allowed Values                           | Default        | Required |
+| -------- | ---------------------------------------- | -------------- | -------- |
+| `string` | "Deployment", "DaemonSet", "StatefulSet" | `"Deployment"` | Yes      |
+
+#### `tasks[].resource.containerName`
+
+[tasks](#tasks) > [resource](#tasksresource) > containerName
+
+The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+#### `tasks[].resource.name`
+
+[tasks](#tasks) > [resource](#tasksresource) > name
+
+The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can be omitted.
+This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'. This allows you to easily match the dynamic names given by Helm. In most cases you should copy this directly from the template in question in order to match it. Note that you may need to add single quotes around the string for the YAML to be parsed correctly.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+#### `tasks[].resource.containerModule`
+
+[tasks](#tasks) > [resource](#tasksresource) > containerModule
+
+The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading for the chart, but is not necessary for tasks and tests.
+Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the container module.
+Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+Example:
+
+```yaml
+tasks:
+  - resource:
+      ...
+      containerModule: "my-container-module"
+```
+
+#### `tasks[].resource.hotReloadArgs[]`
+
+[tasks](#tasks) > [resource](#tasksresource) > hotReloadArgs
+
+If specified, overrides the arguments for the main container when running in hot-reload mode.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+Example:
+
+```yaml
+tasks:
+  - resource:
+      ...
+      hotReloadArgs:
+        - nodemon
+        - my-server.js
+```
+
 #### `tests`
 
 The test suite definitions for this module.
@@ -984,89 +984,6 @@ Maximum duration (in seconds) of the test run.
 | Type     | Default | Required |
 | -------- | ------- | -------- |
 | `number` | `null`  | No       |
-
-#### `tests[].resource`
-
-[tests](#tests) > resource
-
-The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite. If not specified, the `serviceResource` configured on the module will be used. If neither is specified, an error will be thrown.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-#### `tests[].resource.kind`
-
-[tests](#tests) > [resource](#testsresource) > kind
-
-The type of Kubernetes resource to sync files to.
-
-| Type     | Allowed Values                           | Default        | Required |
-| -------- | ---------------------------------------- | -------------- | -------- |
-| `string` | "Deployment", "DaemonSet", "StatefulSet" | `"Deployment"` | Yes      |
-
-#### `tests[].resource.name`
-
-[tests](#tests) > [resource](#testsresource) > name
-
-The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can be omitted.
-This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'. This allows you to easily match the dynamic names given by Helm. In most cases you should copy this directly from the template in question in order to match it. Note that you may need to add single quotes around the string for the YAML to be parsed correctly.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-#### `tests[].resource.containerName`
-
-[tests](#tests) > [resource](#testsresource) > containerName
-
-The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-#### `tests[].resource.containerModule`
-
-[tests](#tests) > [resource](#testsresource) > containerModule
-
-The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading for the chart, but is not necessary for tasks and tests.
-Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the container module.
-Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-Example:
-
-```yaml
-tests:
-  - resource:
-      ...
-      containerModule: "my-container-module"
-```
-
-#### `tests[].resource.hotReloadArgs[]`
-
-[tests](#tests) > [resource](#testsresource) > hotReloadArgs
-
-If specified, overrides the arguments for the main container when running in hot-reload mode.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-Example:
-
-```yaml
-tests:
-  - resource:
-      ...
-      hotReloadArgs:
-        - nodemon
-        - my-server.js
-```
 
 #### `tests[].command[]`
 
@@ -1173,6 +1090,89 @@ Example:
 tests:
   - artifacts:
       - target: "outputs/foo/"
+```
+
+#### `tests[].resource`
+
+[tests](#tests) > resource
+
+The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite. If not specified, the `serviceResource` configured on the module will be used. If neither is specified, an error will be thrown.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+#### `tests[].resource.kind`
+
+[tests](#tests) > [resource](#testsresource) > kind
+
+The type of Kubernetes resource to sync files to.
+
+| Type     | Allowed Values                           | Default        | Required |
+| -------- | ---------------------------------------- | -------------- | -------- |
+| `string` | "Deployment", "DaemonSet", "StatefulSet" | `"Deployment"` | Yes      |
+
+#### `tests[].resource.containerName`
+
+[tests](#tests) > [resource](#testsresource) > containerName
+
+The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+#### `tests[].resource.name`
+
+[tests](#tests) > [resource](#testsresource) > name
+
+The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can be omitted.
+This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'. This allows you to easily match the dynamic names given by Helm. In most cases you should copy this directly from the template in question in order to match it. Note that you may need to add single quotes around the string for the YAML to be parsed correctly.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+#### `tests[].resource.containerModule`
+
+[tests](#tests) > [resource](#testsresource) > containerModule
+
+The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading for the chart, but is not necessary for tasks and tests.
+Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the container module.
+Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+Example:
+
+```yaml
+tests:
+  - resource:
+      ...
+      containerModule: "my-container-module"
+```
+
+#### `tests[].resource.hotReloadArgs[]`
+
+[tests](#tests) > [resource](#testsresource) > hotReloadArgs
+
+If specified, overrides the arguments for the main container when running in hot-reload mode.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+Example:
+
+```yaml
+tests:
+  - resource:
+      ...
+      hotReloadArgs:
+        - nodemon
+        - my-server.js
 ```
 
 #### `timeout`

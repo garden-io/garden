@@ -10,10 +10,11 @@ import { resolve } from "path"
 import { expect } from "chai"
 import { cloneDeep } from "lodash"
 
-import { TestGarden, dataDir, makeTestGarden } from "../../../../../helpers"
+import { TestGarden } from "../../../../../helpers"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { ModuleConfig } from "../../../../../../src/config/module"
 import { apply } from "json-merge-patch"
+import { getKubernetesTestGarden } from "./common"
 
 describe("validateKubernetesModule", () => {
   let garden: TestGarden
@@ -21,8 +22,7 @@ describe("validateKubernetesModule", () => {
   let moduleConfigs: { [key: string]: ModuleConfig }
 
   before(async () => {
-    const projectRoot = resolve(dataDir, "test-projects", "kubernetes-module")
-    garden = await makeTestGarden(projectRoot)
+    garden = await getKubernetesTestGarden()
     const provider = await garden.resolveProvider("local-kubernetes")
     ctx = garden.getPluginContext(provider)
     await garden["resolveModuleConfigs"](garden.log)
@@ -39,6 +39,35 @@ describe("validateKubernetesModule", () => {
 
   it("should validate a Kubernetes module", async () => {
     const config = await garden.resolveModuleConfig(garden.log, "module-simple")
+
+    const serviceResource = {
+      kind: "Deployment",
+      name: "busybox-deployment",
+    }
+
+    const taskSpecs = [
+      {
+        name: "echo-task",
+        command: ["echo", "ok"],
+        dependencies: [],
+        disabled: false,
+        timeout: null,
+        env: {},
+        artifacts: [],
+      },
+    ]
+
+    const testSpecs = [
+      {
+        name: "echo-test",
+        command: ["echo", "ok"],
+        dependencies: [],
+        disabled: false,
+        timeout: null,
+        env: {},
+        artifacts: [],
+      },
+    ]
 
     expect(config).to.eql({
       allowPublish: true,
@@ -108,6 +137,9 @@ describe("validateKubernetesModule", () => {
                 },
               },
             ],
+            serviceResource,
+            tasks: taskSpecs,
+            tests: testSpecs,
           },
         },
       ],
@@ -157,9 +189,28 @@ describe("validateKubernetesModule", () => {
             },
           },
         ],
+        serviceResource,
+        tasks: taskSpecs,
+        tests: testSpecs,
       },
-      taskConfigs: [],
-      testConfigs: [],
+      taskConfigs: [
+        {
+          name: "echo-task",
+          dependencies: [],
+          disabled: false,
+          spec: taskSpecs[0],
+          timeout: null,
+        },
+      ],
+      testConfigs: [
+        {
+          name: "echo-test",
+          dependencies: [],
+          disabled: false,
+          spec: testSpecs[0],
+          timeout: null,
+        },
+      ],
       type: "kubernetes",
     })
   })
