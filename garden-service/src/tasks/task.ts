@@ -30,6 +30,12 @@ export interface TaskTaskParams {
   forceBuild: boolean
 }
 
+class RunTaskError extends Error {
+  toString() {
+    return this.message
+  }
+}
+
 export class TaskTask extends BaseTask {
   // ... to be renamed soon.
   type: TaskType = "task"
@@ -158,11 +164,15 @@ export class TaskTask extends BaseTask {
       log.setError()
       throw err
     }
-
-    log.setSuccess({
-      msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
-      append: true,
-    })
+    if (result.success) {
+      log.setSuccess({
+        msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
+        append: true,
+      })
+    } else {
+      log.setError(`Failed!`)
+      throw new RunTaskError(result.log)
+    }
 
     return result
   }
