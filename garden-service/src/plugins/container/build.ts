@@ -64,7 +64,7 @@ export async function buildContainerModule({ module, log }: BuildModuleParams<Co
   }
 
   // Stream log to a status line
-  const outputStream = createOutputStream(log.placeholder(LogLevel.debug))
+  const outputStream = createOutputStream(log.placeholder(LogLevel.info))
   const timeout = module.spec.build.timeout
   const buildLog = await containerHelpers.dockerCli(module, [...cmdOpts, buildPath], { outputStream, timeout })
 
