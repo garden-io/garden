@@ -17,6 +17,7 @@ import { hotReloadHelmChart } from "./hot-reload"
 import { getServiceLogs } from "./logs"
 import { testHelmModule } from "./test"
 import { getPortForwardHandler } from "../port-forward"
+import { getTaskResult } from "../task-results"
 
 export const helmHandlers: Partial<ModuleAndRuntimeActionHandlers<HelmModule>> = {
   build: buildHelmModule,
@@ -27,6 +28,7 @@ export const helmHandlers: Partial<ModuleAndRuntimeActionHandlers<HelmModule>> =
   getPortForward: getPortForwardHandler,
   getServiceLogs,
   getServiceStatus,
+  getTaskResult,
   getTestResult,
   hotReloadService: hotReloadHelmChart,
   // TODO: add publishModule handler
