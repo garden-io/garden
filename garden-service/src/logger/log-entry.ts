@@ -41,6 +41,7 @@ interface MessageBase {
   symbol?: LogSymbol
   append?: boolean
   data?: any
+  dataFormat?: "json" | "yaml"
   maxSectionWidth?: number
 }
 
@@ -55,6 +56,7 @@ export interface UpdateLogEntryParams extends MessageBase {
 export interface LogEntryParams extends UpdateLogEntryParams {
   error?: GardenError
   data?: any // to be rendered as e.g. YAML or JSON
+  dataFormat?: "json" | "yaml" // how to render the data object
   indent?: number
   childEntriesInheritLevel?: boolean
   fromStdStream?: boolean
@@ -107,6 +109,7 @@ export class LogEntry extends LogNode {
         symbol: params.symbol,
         status: params.level === LogLevel.error ? "error" : params.status,
         data: params.data,
+        dataFormat: params.dataFormat,
         maxSectionWidth: params.maxSectionWidth,
       })
     }
@@ -130,6 +133,7 @@ export class LogEntry extends LogNode {
       status: updateParams.status || messageState.status,
       symbol: updateParams.symbol || messageState.symbol,
       data: updateParams.data || messageState.data,
+      dataFormat: updateParams.dataFormat || messageState.dataFormat,
       // Next state does not inherit the append field
       append: updateParams.append,
       timestamp: Date.now(),
