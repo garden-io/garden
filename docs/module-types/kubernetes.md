@@ -136,7 +136,7 @@ serviceResource:
   # The type of Kubernetes resource to sync files to.
   kind: Deployment
 
-  # The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can be
+  # The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can be
   # omitted.
   name:
 
@@ -172,7 +172,7 @@ tasks:
       # The type of Kubernetes resource to sync files to.
       kind: Deployment
 
-      # The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can
+      # The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can
       # be omitted.
       name:
 
@@ -181,7 +181,7 @@ tasks:
       containerName:
     # The command/entrypoint used to run the task inside the container.
     command:
-    # The arguments to pass to the pod used for execution.
+    # The arguments to pass to the container used for execution.
     args:
     # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
     # `GARDEN`) and values must be primitives or references to secrets.
@@ -212,7 +212,7 @@ tests:
       # The type of Kubernetes resource to sync files to.
       kind: Deployment
 
-      # The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can
+      # The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can
       # be omitted.
       name:
 
@@ -221,7 +221,7 @@ tests:
       containerName:
     # The command/entrypoint used to run the test inside the container.
     command:
-    # The arguments to pass to the pod used for testing.
+    # The arguments to pass to the container used for testing.
     args:
     # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
     # `GARDEN`) and values must be primitives or references to secrets.
@@ -535,7 +535,7 @@ The type of Kubernetes resource to sync files to.
 
 [serviceResource](#serviceresource) > name
 
-The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can be omitted.
+The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can be omitted.
 
 | Type     | Required |
 | -------- | -------- |
@@ -641,7 +641,7 @@ The type of Kubernetes resource to sync files to.
 
 [tasks](#tasks) > [resource](#tasksresource) > name
 
-The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can be omitted.
+The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can be omitted.
 
 | Type     | Required |
 | -------- | -------- |
@@ -680,7 +680,7 @@ tasks:
 
 [tasks](#tasks) > args
 
-The arguments to pass to the pod used for execution.
+The arguments to pass to the container used for execution.
 
 | Type            | Required |
 | --------------- | -------- |
@@ -837,7 +837,7 @@ The type of Kubernetes resource to sync files to.
 
 [tests](#tests) > [resource](#testsresource) > name
 
-The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can be omitted.
+The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can be omitted.
 
 | Type     | Required |
 | -------- | -------- |
@@ -876,7 +876,7 @@ tests:
 
 [tests](#tests) > args
 
-The arguments to pass to the pod used for testing.
+The arguments to pass to the container used for testing.
 
 | Type            | Required |
 | --------------- | -------- |

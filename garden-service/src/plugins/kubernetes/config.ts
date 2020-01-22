@@ -593,7 +593,7 @@ export const serviceResourceSchema = joi.object().keys({
     .default("Deployment")
     .description("The type of Kubernetes resource to sync files to."),
   name: joi.string().description(
-    deline`The name of the resource to sync to. If the chart contains a single resource of the specified Kind,
+    deline`The name of the resource to sync to. If the module contains a single resource of the specified Kind,
         this can be omitted.`
   ),
   containerName: joi.string().description(
@@ -617,7 +617,7 @@ export const kubernetesTaskSchema = baseTaskSpecSchema
     args: joi
       .array()
       .items(joi.string())
-      .description("The arguments to pass to the pod used for execution.")
+      .description("The arguments to pass to the container used for execution.")
       .example(["rake", "db:migrate"]),
     env: containerEnvVarsSchema,
     artifacts: joiArray(containerArtifactSchema).description(
@@ -641,7 +641,7 @@ export const kubernetesTestSchema = baseTestSpecSchema
     args: joi
       .array()
       .items(joi.string())
-      .description("The arguments to pass to the pod used for testing.")
+      .description("The arguments to pass to the container used for testing.")
       .example(["npm", "test"]),
     env: containerEnvVarsSchema,
     artifacts: joiArray(containerArtifactSchema).description(

@@ -10,7 +10,7 @@ import { HelmModule } from "./config"
 import { getAppNamespace } from "../namespace"
 import { PodRunner, runAndCopy } from "../run"
 import { getChartResources, getBaseModule } from "./common"
-import { findServiceResource, getResourceContainer, getServiceResourceSpec } from "../util"
+import { findServiceResource, getResourceContainer, getServiceResourceSpec, makePodName } from "../util"
 import { ConfigurationError } from "../../../exceptions"
 import { KubernetesPluginContext } from "../config"
 import { storeTaskResult } from "../task-results"
@@ -73,7 +73,7 @@ export async function runHelmModule({
   }
 
   const api = await KubeApi.factory(log, provider)
-  const podName = `run-${module.name}-${Math.round(new Date().getTime())}`
+  const podName = makePodName("run", module.name, Math.round(new Date().getTime()).toString())
 
   const runner = new PodRunner({
     api,
@@ -120,7 +120,7 @@ export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<Ru
     artifacts: task.spec.artifacts,
     envVars: task.spec.env,
     image: container.image,
-    podName: `task-${module.name}-${task.name}-${Math.round(new Date().getTime())}`,
+    podName: makePodName("task", module.name, task.name),
     description: `Task '${task.name}' in container module '${module.name}'`,
     timeout,
     ignoreError: true, // to ensure results get stored when an error occurs

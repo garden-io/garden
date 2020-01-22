@@ -8,7 +8,7 @@
 
 import { KubernetesModule } from "./config"
 import { runAndCopy } from "../run"
-import { findServiceResource, getResourceContainer, getServiceResourceSpec } from "../util"
+import { findServiceResource, getResourceContainer, getServiceResourceSpec, makePodName } from "../util"
 import { KubernetesPluginContext } from "../config"
 import { storeTaskResult } from "../task-results"
 import { RunTaskParams, RunTaskResult } from "../../../types/plugin/task/runTask"
@@ -49,7 +49,7 @@ export async function runKubernetesTask(params: RunTaskParams<KubernetesModule>)
     artifacts: task.spec.artifacts,
     envVars: task.spec.env,
     image: container.image,
-    podName: `task-${module.name}-${task.name}-${Math.round(new Date().getTime())}`,
+    podName: makePodName("task", module.name, task.name),
     description: `Task '${task.name}' in container module '${module.name}'`,
     timeout,
     ignoreError: true, // to ensure results get stored when an error occurs

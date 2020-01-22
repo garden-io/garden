@@ -190,7 +190,7 @@ tasks:
     timeout: null
     # The command/entrypoint used to run the task inside the container.
     command:
-    # The arguments to pass to the pod used for execution.
+    # The arguments to pass to the container used for execution.
     args:
     # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
     # `GARDEN`) and values must be primitives or references to secrets.
@@ -245,7 +245,7 @@ tests:
     timeout: null
     # The command/entrypoint used to run the test inside the container.
     command:
-    # The arguments to pass to the pod used for testing.
+    # The arguments to pass to the container used for testing.
     args:
     # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
     # `GARDEN`) and values must be primitives or references to secrets.
@@ -767,7 +767,7 @@ tasks:
 
 [tasks](#tasks) > args
 
-The arguments to pass to the pod used for execution.
+The arguments to pass to the container used for execution.
 
 | Type            | Required |
 | --------------- | -------- |
@@ -1008,7 +1008,7 @@ tests:
 
 [tests](#tests) > args
 
-The arguments to pass to the pod used for testing.
+The arguments to pass to the container used for testing.
 
 | Type            | Required |
 | --------------- | -------- |

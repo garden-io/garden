@@ -14,7 +14,7 @@ import { getChartResources, getBaseModule } from "./common"
 import { KubernetesPluginContext } from "../config"
 import { TestModuleParams } from "../../../types/plugin/module/testModule"
 import { TestResult } from "../../../types/plugin/module/getTestResult"
-import { getServiceResourceSpec, findServiceResource, getResourceContainer } from "../util"
+import { getServiceResourceSpec, findServiceResource, getResourceContainer, makePodName } from "../util"
 
 export async function testHelmModule(params: TestModuleParams<HelmModule>): Promise<TestResult> {
   const { ctx, log, module, testConfig, testVersion } = params
@@ -40,7 +40,7 @@ export async function testHelmModule(params: TestModuleParams<HelmModule>): Prom
     artifacts: testConfig.spec.artifacts,
     envVars: testConfig.spec.env,
     image,
-    podName: `test-${module.name}-${testName}-${Math.round(new Date().getTime())}`,
+    podName: makePodName("test", module.name, testName),
     description: `Test '${testName}' in container module '${module.name}'`,
     timeout,
     ignoreError: true, // to ensure results get stored when an error occurs

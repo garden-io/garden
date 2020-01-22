@@ -13,6 +13,7 @@ import { TestModuleParams } from "../../../types/plugin/module/testModule"
 import { TestResult } from "../../../types/plugin/module/getTestResult"
 import { runAndCopy } from "../run"
 import { containerHelpers } from "../../container/helpers"
+import { makePodName } from "../util"
 
 export async function testContainerModule(params: TestModuleParams<ContainerModule>): Promise<TestResult> {
   const { ctx, module, testConfig, testVersion, log } = params
@@ -29,7 +30,7 @@ export async function testContainerModule(params: TestModuleParams<ContainerModu
     artifacts: testConfig.spec.artifacts,
     envVars: testConfig.spec.env,
     image,
-    podName: `test-${module.name}-${testName}-${Math.round(new Date().getTime())}`,
+    podName: makePodName("test", module.name, testName),
     description: `Test '${testName}' in container module '${module.name}'`,
     timeout,
     ignoreError: true, // to ensure results get stored when an error occurs

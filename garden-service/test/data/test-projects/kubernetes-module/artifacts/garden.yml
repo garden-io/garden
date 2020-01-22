@@ -27,8 +27,6 @@ serviceResource:
   kind: Deployment
   name: busybox-deployment
 tasks:
-  - name: echo-task
-    command: [sh, -c, "echo ok"]
   - name: artifacts-task
     command: [sh, -c, "touch /task.txt"]
     artifacts:

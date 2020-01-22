@@ -13,7 +13,7 @@ import { containerHelpers } from "../../container/helpers"
 import { buildContainerModule, getContainerBuildStatus, getDockerBuildFlags } from "../../container/build"
 import { GetBuildStatusParams, BuildStatus } from "../../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams, BuildResult } from "../../../types/plugin/module/build"
-import { millicpuToString, megabytesToString, getRunningPodInDeployment } from "../util"
+import { millicpuToString, megabytesToString, getRunningPodInDeployment, makePodName } from "../util"
 import { RSYNC_PORT, dockerAuthSecretName, dockerAuthSecretKey } from "../constants"
 import { posix, resolve } from "path"
 import { KubeApi } from "../api"
@@ -326,7 +326,7 @@ async function runKaniko({ provider, log, module, args, outputStream }: RunKanik
   const api = await KubeApi.factory(log, provider)
   const systemNamespace = provider.config.gardenSystemNamespace
 
-  const podName = `kaniko-${module.name}-${Math.round(new Date().getTime())}`
+  const podName = makePodName("kaniko", module.name, Math.round(new Date().getTime()).toString())
   const registryHostname = getRegistryHostname(provider.config)
   const k8sSystemVars = getKubernetesSystemVariables(provider.config)
   const syncDataVolumeName = k8sSystemVars["sync-volume-name"]

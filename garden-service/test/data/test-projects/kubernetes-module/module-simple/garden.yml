@@ -29,7 +29,7 @@ serviceResource:
   name: busybox-deployment
 tests:
   - name: echo-test
-    command: [echo, ok]
+    command: [sh, -c, "echo ok"]
 tasks:
   - name: echo-task
-    command: [echo, ok]
+    command: [sh, -c, "echo ok"]

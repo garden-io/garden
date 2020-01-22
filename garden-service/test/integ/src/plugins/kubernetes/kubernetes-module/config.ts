@@ -48,7 +48,7 @@ describe("validateKubernetesModule", () => {
     const taskSpecs = [
       {
         name: "echo-task",
-        command: ["echo", "ok"],
+        command: ["sh", "-c", "echo ok"],
         dependencies: [],
         disabled: false,
         timeout: null,
@@ -60,7 +60,7 @@ describe("validateKubernetesModule", () => {
     const testSpecs = [
       {
         name: "echo-test",
-        command: ["echo", "ok"],
+        command: ["sh", "-c", "echo ok"],
         dependencies: [],
         disabled: false,
         timeout: null,

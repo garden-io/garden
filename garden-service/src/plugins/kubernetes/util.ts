@@ -10,6 +10,8 @@ import Bluebird from "bluebird"
 import { get, flatten, uniqBy, sortBy, omit, chain, sample, isEmpty, find } from "lodash"
 import { V1Pod, V1EnvVar } from "@kubernetes/client-node"
 import { apply as jsonMerge } from "json-merge-patch"
+import chalk from "chalk"
+import hasha from "hasha"
 
 import { KubernetesResource, KubernetesWorkload, KubernetesPod, KubernetesServerResource } from "./types"
 import { splitLast, serializeValues, findByName } from "../../util/util"
@@ -426,9 +428,11 @@ export function getServiceResourceSpec(
 
   if (isEmpty(resourceSpec)) {
     throw new ConfigurationError(
-      deline`Helm module '${module.name}' doesn't specify a \`serviceResource\` in its configuration.
-      You must specify a resource in the module config in order to use certain Garden features,
-      such as hot reloading.`,
+      chalk.red(
+        deline`${module.type} module ${chalk.white(module.name)} doesn't specify a ${chalk.underline("serviceResource")}
+        in its configuration. You must specify a resource in the module config in order to use certain Garden features,
+        such as hot reloading, tasks and tests.`
+      ),
       { resourceSpec }
     )
   }
@@ -487,13 +491,16 @@ export async function findServiceResource({
 
     if (!target) {
       throw new ConfigurationError(
-        `Helm module '${module.name}' does not contain specified ${targetKind} '${targetName}'`,
+        chalk.red(
+          deline`${module.type} module ${chalk.white(module.name)} does not contain specified ${targetKind}
+          ${chalk.white(targetName)}`
+        ),
         { resourceSpec, chartResourceNames }
       )
     }
   } else {
     if (applicableChartResources.length === 0) {
-      throw new ConfigurationError(`Helm module '${module.name}' contains no ${targetKind}s.`, {
+      throw new ConfigurationError(`${module.type} module ${chalk.white(module.name)} contains no ${targetKind}s.`, {
         resourceSpec,
         chartResourceNames,
       })
@@ -501,9 +508,11 @@ export async function findServiceResource({
 
     if (applicableChartResources.length > 1) {
       throw new ConfigurationError(
-        deline`Helm module '${module.name}' contains multiple ${targetKind}s.
-        You must specify \`${resourceMsgName}.name\` in the module config in order to identify
-        the correct ${targetKind} to use.`,
+        chalk.red(
+          deline`${module.type} module ${chalk.white(module.name)} contains multiple ${targetKind}s.
+          You must specify ${chalk.underline(`${resourceMsgName}.name`)} in the module config in order to identify
+          the correct ${targetKind} to use.`
+        ),
         { resourceSpec, chartResourceNames }
       )
     }
@@ -538,4 +547,22 @@ export function getResourceContainer(resource: HotReloadableResource, containerN
   }
 
   return container
+}
+
+const maxPodNameLength = 63
+const podNameHashLength = 6
+const maxPodNamePrefixLength = maxPodNameLength - podNameHashLength - 1
+
+/**
+ * Generates a valid Pod name, given a type, module and a key (e.g. a task name, test name). Creates a hash suffix
+ * to uniquely identify the Pod, and composes the type, module name and key into a prefix (up to a maximum length).
+ *
+ * @param type the type of Pod, e.g. `task` or `test`
+ * @param moduleName the name of the module associated with the Pod
+ * @param key the specific key of the task, test etc.
+ */
+export function makePodName(type: string, moduleName: string, key: string) {
+  const id = `${type}-${moduleName}-${key}`
+  const hash = hasha(key, { algorithm: "sha1" })
+  return id.slice(0, maxPodNamePrefixLength) + "-" + hash.slice(0, podNameHashLength)
 }

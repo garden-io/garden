@@ -23,13 +23,8 @@ import {
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { LogEntry } from "../../../../../../src/logger/log-entry"
 import { BuildTask } from "../../../../../../src/tasks/build"
-import { find } from "lodash"
 import { deline } from "../../../../../../src/util/string"
-import { HotReloadableResource } from "../../../../../../src/plugins/kubernetes/hot-reload"
-import { getServiceResourceSpec } from "../../../../../../src/plugins/kubernetes/util"
 import { ConfigGraph } from "../../../../../../src/config-graph"
-import { buildHelmModule } from "../../../../../../src/plugins/kubernetes/helm/build"
-import { findServiceResource, getResourceContainer } from "../../../../../../src/plugins/kubernetes/util"
 
 let helmTestGarden: TestGarden
 
@@ -502,8 +497,7 @@ describe("Helm common functions", () => {
         () => getBaseModule(module),
         (err) =>
           expect(err.message).to.equal(
-            deline`Helm module 'api' references base module 'postgres'
-          but it is missing from the module's build dependencies.`
+            deline`Helm module 'api' references base module 'postgres' but it is missing from the module's build dependencies.`
           )
       )
     })
@@ -522,7 +516,7 @@ describe("Helm common functions", () => {
         (err) =>
           expect(err.message).to.equal(
             deline`Helm module 'api' references base module 'postgres' which is a 'foo' module,
-          but should be a helm module.`
+            but should be a helm module.`
           )
       )
     })
@@ -598,207 +592,6 @@ describe("Helm common functions", () => {
     it("should return the configured release name if any", async () => {
       const module = await graph.getModule("api")
       expect(getReleaseName(module)).to.equal("api-release")
-    })
-  })
-
-  describe("getServiceResourceSpec", () => {
-    it("should return the spec on the given module if it has no base module", async () => {
-      const module = await graph.getModule("api")
-      expect(await getServiceResourceSpec(module, undefined)).to.eql(module.spec.serviceResource)
-    })
-
-    it("should return the spec on the base module if there is none on the module", async () => {
-      const module = await graph.getModule("api")
-      const baseModule = await graph.getModule("postgres")
-      module.spec.base = "postgres"
-      delete module.spec.serviceResource
-      module.buildDependencies = { postgres: baseModule }
-      expect(await getServiceResourceSpec(module, baseModule)).to.eql(baseModule.spec.serviceResource)
-    })
-
-    it("should merge the specs if both module and base have specs", async () => {
-      const module = await graph.getModule("api")
-      const baseModule = await graph.getModule("postgres")
-      module.spec.base = "postgres"
-      module.buildDependencies = { postgres: baseModule }
-      expect(await getServiceResourceSpec(module, baseModule)).to.eql({
-        containerModule: "api-image",
-        kind: "Deployment",
-        name: "postgres",
-      })
-    })
-
-    it("should throw if there is no base module and the module has no serviceResource spec", async () => {
-      const module = await graph.getModule("api")
-      delete module.spec.serviceResource
-      await expectError(
-        () => getServiceResourceSpec(module, undefined),
-        (err) =>
-          expect(err.message).to.equal(
-            deline`Helm module 'api' doesn't specify a \`serviceResource\` in its configuration.
-          You must specify a resource in the module config in order to use certain Garden features,
-          such as hot reloading.`
-          )
-      )
-    })
-
-    it("should throw if there is a base module but neither module has a spec", async () => {
-      const module = await graph.getModule("api")
-      const baseModule = await graph.getModule("postgres")
-      module.spec.base = "postgres"
-      module.buildDependencies = { postgres: baseModule }
-      delete module.spec.serviceResource
-      delete baseModule.spec.serviceResource
-      await expectError(
-        () => getServiceResourceSpec(module, getBaseModule(module)),
-        (err) =>
-          expect(err.message).to.equal(
-            deline`Helm module 'api' doesn't specify a \`serviceResource\` in its configuration.
-          You must specify a resource in the module config in order to use certain Garden features,
-          such as hot reloading.`
-          )
-      )
-    })
-  })
-
-  describe("findServiceResource", () => {
-    it("should return the resource specified by serviceResource", async () => {
-      const module = await graph.getModule("api")
-      const manifests = await getChartResources(ctx, module, false, log)
-      const result = await findServiceResource({
-        ctx,
-        log,
-        module,
-        manifests,
-        baseModule: undefined,
-      })
-      const expected = find(manifests, (r) => r.kind === "Deployment")
-      expect(result).to.eql(expected)
-    })
-
-    it("should throw if no resourceSpec or serviceResource is specified", async () => {
-      const module = await graph.getModule("api")
-      const manifests = await getChartResources(ctx, module, false, log)
-      delete module.spec.serviceResource
-      await expectError(
-        () => findServiceResource({ ctx, log, module, manifests, baseModule: undefined }),
-        (err) =>
-          expect(err.message).to.equal(
-            deline`Helm module 'api' doesn't specify a \`serviceResource\` in its configuration.
-          You must specify a resource in the module config in order to use certain Garden features,
-          such as hot reloading.`
-          )
-      )
-    })
-
-    it("should throw if no resource of the specified kind is in the chart", async () => {
-      const module = await graph.getModule("api")
-      const manifests = await getChartResources(ctx, module, false, log)
-      const resourceSpec = {
-        ...module.spec.serviceResource,
-        kind: "DaemonSet",
-      }
-      await expectError(
-        () =>
-          findServiceResource({
-            ctx,
-            log,
-            module,
-            manifests,
-            resourceSpec,
-            baseModule: undefined,
-          }),
-        (err) => expect(err.message).to.equal("Helm module 'api' contains no DaemonSets.")
-      )
-    })
-
-    it("should throw if matching resource is not found by name", async () => {
-      const module = await graph.getModule("api")
-      const manifests = await getChartResources(ctx, module, false, log)
-      const resourceSpec = {
-        ...module.spec.serviceResource,
-        name: "foo",
-      }
-      await expectError(
-        () =>
-          findServiceResource({
-            ctx,
-            log,
-            module,
-            manifests,
-            resourceSpec,
-            baseModule: undefined,
-          }),
-        (err) => expect(err.message).to.equal("Helm module 'api' does not contain specified Deployment 'foo'")
-      )
-    })
-
-    it("should throw if no name is specified and multiple resources are matched", async () => {
-      const module = await graph.getModule("api")
-      const manifests = await getChartResources(ctx, module, false, log)
-      const deployment = find(manifests, (r) => r.kind === "Deployment")
-      manifests.push(deployment!)
-      await expectError(
-        () => findServiceResource({ ctx, log, module, manifests, baseModule: undefined }),
-        (err) =>
-          expect(err.message).to.equal(deline`
-          Helm module 'api' contains multiple Deployments.
-          You must specify \`serviceResource.name\` in the module config in order to
-          identify the correct Deployment to use.`)
-      )
-    })
-
-    it("should resolve template string for resource name", async () => {
-      const module = await graph.getModule("postgres")
-      await buildHelmModule({ ctx, module, log })
-      const manifests = await getChartResources(ctx, module, false, log)
-      module.spec.serviceResource.name = `{{ template "postgresql.master.fullname" . }}`
-      const result = await findServiceResource({
-        ctx,
-        log,
-        module,
-        manifests,
-        baseModule: undefined,
-      })
-      const expected = find(manifests, (r) => r.kind === "StatefulSet")
-      expect(result).to.eql(expected)
-    })
-  })
-
-  describe("getResourceContainer", () => {
-    async function getDeployment() {
-      const module = await graph.getModule("api")
-      const manifests = await getChartResources(ctx, module, false, log)
-      return <HotReloadableResource>find(manifests, (r) => r.kind === "Deployment")!
-    }
-
-    it("should get the first container on the resource if no name is specified", async () => {
-      const deployment = await getDeployment()
-      const expected = deployment.spec.template.spec.containers[0]
-      expect(getResourceContainer(deployment)).to.equal(expected)
-    })
-
-    it("should pick the container by name if specified", async () => {
-      const deployment = await getDeployment()
-      const expected = deployment.spec.template.spec.containers[0]
-      expect(getResourceContainer(deployment, "api")).to.equal(expected)
-    })
-
-    it("should throw if no containers are in resource", async () => {
-      const deployment = await getDeployment()
-      deployment.spec.template.spec.containers = []
-      await expectError(
-        () => getResourceContainer(deployment),
-        (err) => expect(err.message).to.equal("Deployment api-release has no containers configured.")
-      )
-    })
-
-    it("should throw if name is specified and no containers match", async () => {
-      const deployment = await getDeployment()
-      await expectError(
-        () => getResourceContainer(deployment, "foo"),
-        (err) => expect(err.message).to.equal("Could not find container 'foo' in Deployment 'api-release'")
-      )
     })
   })
 })
