@@ -1,4 +1,8 @@
 
+<a name="v0.11.1-alpha.3"></a>
+## [v0.11.1-alpha.3](https://github.com/garden-io/garden/compare/v0.11.1-alpha.2...v0.11.1-alpha.3) (2020-01-22)
+
+
 <a name="v0.11.1-alpha.2"></a>
 ## [v0.11.1-alpha.2](https://github.com/garden-io/garden/compare/v0.11.1-alpha.1...v0.11.1-alpha.2) (2020-01-22)
 
