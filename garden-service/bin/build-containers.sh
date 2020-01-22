@@ -14,17 +14,17 @@ buster_tag=gardendev/garden:${version}-buster
 echo "Building version ${version}"
 
 echo "-> Build ${base_tag}"
-docker build -t gardendev/garden:${version} -f Dockerfile .
+docker build -t ${base_tag} -f Dockerfile .
 echo "-> Check ${base_tag}"
-docker run --rm -it gardendev/garden:${version} version
+docker run --rm -it ${base_tag} version
 
 echo "-> Build ${gcloud_tag}"
-docker build -t gardendev/garden-gcloud:${version} --build-arg TAG=${version} -f gcloud.Dockerfile .
+docker build -t ${gcloud_tag} --build-arg TAG=${version} -f gcloud.Dockerfile .
 echo "-> Check ${gcloud_tag}"
-docker run --rm -it gardendev/garden-gcloud:${version} version
+docker run --rm -it ${gcloud_tag} version
 
 echo "-> Build ${buster_tag}"
-docker build -t gardendev/garden:${version}-buster -f buster.Dockerfile dist/linux-amd64
+docker build -t ${buster_tag} -f buster.Dockerfile dist/linux-amd64
 echo "-> Check ${buster_tag}"
-docker run --rm -it gardendev/garden:${version}-buster version
+docker run --rm -it ${buster_tag} version
 
