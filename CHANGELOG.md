@@ -1,4 +1,12 @@
 
+<a name="v0.11.1-alpha.4"></a>
+## [v0.11.1-alpha.4](https://github.com/garden-io/garden/compare/v0.11.1-alpha.3...v0.11.1-alpha.4) (2020-01-22)
+
+### Code Refactoring
+
+* **container:** revert build logs log level to debug ([ba25da32](https://github.com/garden-io/garden/commit/ba25da32))
+
+
 <a name="v0.11.1-alpha.3"></a>
 ## [v0.11.1-alpha.3](https://github.com/garden-io/garden/compare/v0.11.1-alpha.2...v0.11.1-alpha.3) (2020-01-22)
 
