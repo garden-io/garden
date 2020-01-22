@@ -8,10 +8,11 @@
 
 import chalk from "chalk"
 import { BooleanParameter, Command, CommandParams, StringParameter, CommandResult } from "../base"
-import dedent = require("dedent")
 import { TaskTask } from "../../tasks/task"
 import { TaskResult } from "../../task-graph"
 import { printHeader, printFooter } from "../../logger/util"
+import { CommandError } from "../../exceptions"
+import { dedent, deline } from "../../util/string"
 
 const runArgs = {
   task: new StringParameter({
@@ -21,7 +22,12 @@ const runArgs = {
 }
 
 const runOpts = {
-  "force-build": new BooleanParameter({ help: "Force rebuild of module before running." }),
+  "force": new BooleanParameter({
+    help: "Run the task even if it's disabled for the environment.",
+  }),
+  "force-build": new BooleanParameter({
+    help: "Force rebuild of module before running.",
+  }),
 }
 
 type Args = typeof runArgs
@@ -52,7 +58,18 @@ export class RunTaskCommand extends Command<Args, Opts> {
     opts,
   }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResult | null>> {
     const graph = await garden.getConfigGraph(log)
-    const task = await graph.getTask(args.task)
+    const task = await graph.getTask(args.task, true)
+
+    if (task.disabled && !opts.force) {
+      throw new CommandError(
+        chalk.red(deline`
+          Task ${chalk.redBright(task.name)} is disabled for the ${chalk.redBright(garden.environmentName)}
+          environment. If you're sure you want to run it anyway, please run the command again with the
+          ${chalk.redBright("--force")} flag.
+        `),
+        { moduleName: task.module.name, taskName: task.name, environmentName: garden.environmentName }
+      )
+    }
 
     const msg = `Running task ${chalk.white(task.name)}`
 

@@ -11,7 +11,7 @@ import { dedent } from "../../../util/string"
 import { joi, joiArray, joiIdentifier } from "../../../config/common"
 import { baseModuleSpecSchema, AddModuleSpec, modulePathSchema } from "../../../config/module"
 import { Provider, providerSchema } from "../../../config/provider"
-import { moduleSchema, Module } from "../../module"
+import { Module, moduleSchema } from "../../module"
 
 export interface AugmentGraphParams extends PluginActionParamsBase {
   modules: Module[]
@@ -47,7 +47,7 @@ export const augmentGraph = {
     and avoid any external I/O.
   `,
   paramsSchema: actionParamsSchema.keys({
-    modules: joiArray(joi.lazy(() => moduleSchema)).description(
+    modules: joiArray(moduleSchema).description(
       dedent`
           A list of all previously defined modules in the project, including all modules added by any \`augmentGraph\`
           handlers defined by other providers that this provider depends on.

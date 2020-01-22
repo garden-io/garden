@@ -10,6 +10,7 @@ import { dedent } from "../../../../../src/util/string"
 import { TestTask } from "../../../../../src/tasks/test"
 import { writeFile, remove, pathExists } from "fs-extra"
 import { join } from "path"
+import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
 
 describe("hadolint provider", () => {
   let tmpDir: tmp.DirectoryResult
@@ -62,6 +63,7 @@ describe("hadolint provider", () => {
         type: "container",
         allowPublish: false,
         build: { dependencies: [] },
+        disabled: false,
         outputs: {},
         path: tmpPath,
         serviceConfigs: [],
@@ -76,6 +78,7 @@ describe("hadolint provider", () => {
         type: "container",
         allowPublish: false,
         build: { dependencies: [] },
+        disabled: false,
         outputs: {},
         path: tmpPath,
         serviceConfigs: [],
@@ -96,7 +99,7 @@ describe("hadolint provider", () => {
   })
 
   it("should add a hadolint module for module types inheriting from container", async () => {
-    const foo = {
+    const foo = createGardenPlugin({
       name: "foo",
       dependencies: ["container"],
       createModuleTypes: [
@@ -107,7 +110,7 @@ describe("hadolint provider", () => {
           handlers: {},
         },
       ],
-    }
+    })
 
     const garden = await Garden.factory(tmpPath, {
       plugins: [foo],
@@ -124,6 +127,7 @@ describe("hadolint provider", () => {
         type: "foo",
         allowPublish: false,
         build: { dependencies: [] },
+        disabled: false,
         outputs: {},
         path: tmpPath,
         serviceConfigs: [],
@@ -159,11 +163,12 @@ describe("hadolint provider", () => {
           type: "hadolint",
           allowPublish: false,
           build: { dependencies: [] },
+          disabled: false,
           outputs: {},
           path,
           serviceConfigs: [],
           taskConfigs: [],
-          testConfigs: [{ name: "foo", dependencies: [], spec: {}, timeout: 10 }],
+          testConfigs: [{ name: "foo", dependencies: [], disabled: false, spec: {}, timeout: 10 }],
           spec: { dockerfilePath: "errAndWarn.Dockerfile" },
         },
       }
@@ -180,6 +185,7 @@ describe("hadolint provider", () => {
         force: true,
         forceBuild: false,
         version: module.version,
+        _guard: true,
       })
 
       const key = testTask.getKey()
@@ -223,11 +229,12 @@ describe("hadolint provider", () => {
           type: "hadolint",
           allowPublish: false,
           build: { dependencies: [] },
+          disabled: false,
           outputs: {},
           path: modulePath,
           serviceConfigs: [],
           taskConfigs: [],
-          testConfigs: [{ name: "foo", dependencies: [], spec: {}, timeout: 10 }],
+          testConfigs: [{ name: "foo", dependencies: [], disabled: false, spec: {}, timeout: 10 }],
           spec: { dockerfilePath: "errAndWarn.Dockerfile" },
         },
       }
@@ -244,6 +251,7 @@ describe("hadolint provider", () => {
         force: true,
         forceBuild: false,
         version: module.version,
+        _guard: true,
       })
 
       const key = testTask.getKey()
@@ -282,11 +290,12 @@ describe("hadolint provider", () => {
           type: "hadolint",
           allowPublish: false,
           build: { dependencies: [] },
+          disabled: false,
           outputs: {},
           path,
           serviceConfigs: [],
           taskConfigs: [],
-          testConfigs: [{ name: "foo", dependencies: [], spec: {}, timeout: 10 }],
+          testConfigs: [{ name: "foo", dependencies: [], disabled: false, spec: {}, timeout: 10 }],
           spec: { dockerfilePath: "errAndWarn.Dockerfile" },
         },
       }
@@ -303,6 +312,7 @@ describe("hadolint provider", () => {
         force: true,
         forceBuild: false,
         version: module.version,
+        _guard: true,
       })
 
       const key = testTask.getKey()
@@ -335,11 +345,12 @@ describe("hadolint provider", () => {
           type: "hadolint",
           allowPublish: false,
           build: { dependencies: [] },
+          disabled: false,
           outputs: {},
           path,
           serviceConfigs: [],
           taskConfigs: [],
-          testConfigs: [{ name: "foo", dependencies: [], spec: {}, timeout: 10 }],
+          testConfigs: [{ name: "foo", dependencies: [], disabled: false, spec: {}, timeout: 10 }],
           spec: { dockerfilePath: "warn.Dockerfile" },
         },
       }
@@ -356,6 +367,7 @@ describe("hadolint provider", () => {
         force: true,
         forceBuild: false,
         version: module.version,
+        _guard: true,
       })
 
       const key = testTask.getKey()
@@ -378,11 +390,12 @@ describe("hadolint provider", () => {
           type: "hadolint",
           allowPublish: false,
           build: { dependencies: [] },
+          disabled: false,
           outputs: {},
           path,
           serviceConfigs: [],
           taskConfigs: [],
-          testConfigs: [{ name: "foo", dependencies: [], spec: {}, timeout: 10 }],
+          testConfigs: [{ name: "foo", dependencies: [], disabled: false, spec: {}, timeout: 10 }],
           spec: { dockerfilePath: "warn.Dockerfile" },
         },
       }
@@ -399,6 +412,7 @@ describe("hadolint provider", () => {
         force: true,
         forceBuild: false,
         version: module.version,
+        _guard: true,
       })
 
       const key = testTask.getKey()
@@ -424,11 +438,12 @@ describe("hadolint provider", () => {
           type: "hadolint",
           allowPublish: false,
           build: { dependencies: [] },
+          disabled: false,
           outputs: {},
           path,
           serviceConfigs: [],
           taskConfigs: [],
-          testConfigs: [{ name: "foo", dependencies: [], spec: {}, timeout: 10 }],
+          testConfigs: [{ name: "foo", dependencies: [], disabled: false, spec: {}, timeout: 10 }],
           spec: { dockerfilePath: "errAndWarn.Dockerfile" },
         },
       }
@@ -445,6 +460,7 @@ describe("hadolint provider", () => {
         force: true,
         forceBuild: false,
         version: module.version,
+        _guard: true,
       })
 
       const key = testTask.getKey()

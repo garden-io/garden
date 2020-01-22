@@ -1,5 +1,5 @@
 import { expect } from "chai"
-import { validate } from "../../../../src/config/validation"
+import { validateSchema } from "../../../../src/config/validation"
 import { portSchema } from "../../../../src/plugins/container/config"
 
 describe("portSchema", () => {
@@ -7,7 +7,7 @@ describe("portSchema", () => {
     const containerPort = 8080
     const obj = { name: "a", containerPort }
 
-    const value = validate(obj, portSchema)
+    const value = validateSchema(obj, portSchema)
     expect(value["servicePort"]).to.equal(containerPort)
   })
 
@@ -16,7 +16,7 @@ describe("portSchema", () => {
     const servicePort = 9090
     const obj = { name: "a", containerPort, servicePort }
 
-    const value = validate(obj, portSchema)
+    const value = validateSchema(obj, portSchema)
     expect(value["servicePort"]).to.equal(servicePort)
   })
 })

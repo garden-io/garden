@@ -10,7 +10,7 @@ import { sep, resolve, relative, basename, dirname } from "path"
 import yaml from "js-yaml"
 import { readFile } from "fs-extra"
 import { omit, isPlainObject, find } from "lodash"
-import { ModuleResource, moduleConfigSchema, coreModuleSpecSchema } from "./module"
+import { ModuleResource, coreModuleSpecSchema, baseModuleSchemaKeys } from "./module"
 import { ConfigurationError } from "../exceptions"
 import { DEFAULT_API_VERSION } from "../constants"
 import { ProjectResource } from "../config/project"
@@ -23,8 +23,6 @@ export interface GardenResource {
   name: string
   path: string
 }
-
-const baseModuleSchemaKeys = Object.keys(moduleConfigSchema.describe().children).concat(["kind"])
 
 export async function loadConfig(projectRoot: string, path: string): Promise<GardenResource[]> {
   // TODO: nicer error messages when load/validation fails
@@ -142,6 +140,7 @@ export function prepareModuleResource(
     },
     configPath,
     description: spec.description,
+    disabled: spec.disabled,
     include: spec.include,
     exclude: spec.exclude,
     name: spec.name,

@@ -26,13 +26,19 @@ export async function validateHotReloadServiceNames(
   serviceNames: string[],
   configGraph: ConfigGraph
 ): Promise<string | null> {
-  const services = await configGraph.getServices(serviceNames)
-  const invalidNames = services.filter((s) => !supportsHotReloading(s)).map((s) => s.name)
-  if (invalidNames.length > 0) {
-    return `The following requested services are not configured for hot reloading: ${invalidNames.join(", ")}`
-  } else {
-    return null
+  const services = await configGraph.getServices({ names: serviceNames, includeDisabled: true })
+
+  const notHotreloadable = services.filter((s) => !supportsHotReloading(s)).map((s) => s.name)
+  if (notHotreloadable.length > 0) {
+    return `The following requested services are not configured for hot reloading: ${notHotreloadable.join(", ")}`
   }
+
+  const disabled = services.filter((s) => s.config.disabled).map((s) => s.name)
+  if (disabled.length > 0) {
+    return `The following requested services are disabled for the specified environment: ${disabled.join(", ")}`
+  }
+
+  return null
 }
 
 function supportsHotReloading(service: Service) {

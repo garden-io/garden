@@ -51,8 +51,9 @@ export class EventBus extends EventEmitter2 {
  */
 export type Events = {
   // Internal test/control events
-  _restart: string
-  _test: string
+  _exit: {}
+  _restart: {}
+  _test: any
 
   // Watcher events
   configAdded: {
@@ -103,6 +104,8 @@ export type Events = {
   taskGraphComplete: {
     completedAt: Date
   }
+
+  watchingForChanges: {}
 }
 
 export type EventName = keyof Events

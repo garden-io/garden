@@ -174,7 +174,7 @@ services:
 
 Providers often expose useful variables that other provider configs and modules can reference, under `${providers.<name>.outputs.<key>}`. Each provider exposes different outputs, and some providers have dynamic output keys depending on their configuration.
 
-For example, you may want to reference the app namespace from the [Kubernetes provider](../reference/providers/kubernetes.md) in module configs:
+For example, you may want to reference the app namespace from the [Kubernetes provider](../providers/kubernetes.md) in module configs:
 
 ```yaml
 kind: Module
@@ -195,13 +195,13 @@ services:
     DATABASE_URL: `${providers.terraform.outputs.database_url}` # <- resolves the "database_url" stack output
 ```
 
-Check out the individual [provider reference](../reference/providers/README.md) guides for details on what outputs each provider exposes.
+Check out the individual [provider reference](../providers/README.md) guides for details on what outputs each provider exposes.
 
 ## Module outputs
 
 Modules often output useful information, that other modules can reference (provider configs cannot reference module outputs). Every module also exposes certain keys, like the module version.
 
-For example, you may want to reference the image name and version of a [container module](../reference/module-types/container.md):
+For example, you may want to reference the image name and version of a [container module](../module-types/container.md):
 
 ```yaml
 kind: Module
@@ -212,7 +212,7 @@ values:
   image: `${modules.my-image.outputs.deployment-image-name}:${modules.my-image.version}`
 ```
 
-Check out the individual [module type reference](../reference/module-types/README.md) guides for details on what outputs each module type exposes.
+Check out the individual [module type reference](../module-types/README.md) guides for details on what outputs each module type exposes.
 
 ## Runtime outputs
 
@@ -242,8 +242,8 @@ Here the output from `prep-task` is copied to an environment variable for `my-se
 
 For a practical use case, you might for example make a task that provisions some infrastructure or prepares some data, and then passes information about it to services.
 
-Different module types expose different output keys for their services and tasks. Please refer to the [module type reference docs](https://docs.garden.io/reference/module-types) for details.
+Different module types expose different output keys for their services and tasks. Please refer to the [module type reference docs](https://docs.garden.io/module-types) for details.
 
 ## Next steps
 
-For a full reference of the keys available in template strings, please look at the [Template Strings Reference](../reference/template-strings.md), as well as individual [providers](../reference/providers/README.md) for provider outputs, and [module types](../reference/module-types/README.md) for module and runtime output keys.
+For a full reference of the keys available in template strings, please look at the [Template Strings Reference](../reference/template-strings.md), as well as individual [providers](../providers/README.md) for provider outputs, and [module types](../module-types/README.md) for module and runtime output keys.

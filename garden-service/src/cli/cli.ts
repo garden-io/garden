@@ -177,7 +177,7 @@ export interface ParseResults {
 
 interface SywacParseResults extends ParseResults {
   output: string
-  details: { logger: Logger; result?: CommandResult }
+  details: { logger: Logger; result?: CommandResult; analytics?: AnalyticsHandler }
 }
 
 export class GardenCli {
@@ -322,7 +322,9 @@ export class GardenCli {
           // the file writers depend on the project root.
           await this.initFileWriters(logger, garden.projectRoot, garden.gardenDirPath)
           const analytics = await AnalyticsHandler.init(garden, log)
-          analytics.trackCommand(command.getFullName())
+          await analytics.trackCommand(command.getFullName())
+
+          cliContext.details.analytics = analytics
 
           // tslint:disable-next-line: no-floating-promises
           checkForUpdates(garden.globalConfigStore, headerLog)
@@ -409,6 +411,12 @@ export class GardenCli {
         level: LogLevel.info,
         writers: [new BasicTerminalWriter()],
       })
+    }
+
+    // Flushes the Analytics events queue in case there are some remaining events.
+    const { analytics } = details
+    if (analytics) {
+      await analytics.flush()
     }
 
     // --help or --version options were called so we log the cli output and exit

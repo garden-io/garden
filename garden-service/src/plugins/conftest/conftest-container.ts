@@ -11,6 +11,7 @@ import { relative, resolve } from "path"
 import { createGardenPlugin } from "../../types/plugin/plugin"
 import { containerHelpers } from "../container/helpers"
 import { ConftestProvider } from "./conftest"
+import { dedent } from "../../util/string"
 
 /**
  * Auto-generates a conftest module for each container module in your project
@@ -19,6 +20,15 @@ export const gardenPlugin = createGardenPlugin({
   name: "conftest-container",
   base: "conftest",
   dependencies: ["container"],
+  docs: dedent`
+    This provider automatically generates [conftest modules](../module-types/conftest.md) for \`container\` modules
+    in your project. A \`conftest\` module is created for each \`container\` module that includes a Dockerfile that
+    can be validated.
+
+    Simply add this provider to your project configuration, and configure your policies. Check out the below
+    reference for how to configure default policies, default namespaces, and test failure thresholds for the generated
+    modules.
+  `,
   handlers: {
     augmentGraph: async ({ ctx, modules }) => {
       const provider = ctx.provider as ConftestProvider

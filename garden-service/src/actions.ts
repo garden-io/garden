@@ -16,13 +16,11 @@ import normalizePath = require("normalize-path")
 
 import { PublishModuleParams, PublishResult } from "./types/plugin/module/publishModule"
 import { SetSecretParams, SetSecretResult } from "./types/plugin/provider/setSecret"
-import { validate } from "./config/validation"
+import { validateSchema } from "./config/validation"
 import { defaultProvider } from "./config/provider"
 import { ParameterError, PluginError, ConfigurationError, InternalError, RuntimeError } from "./exceptions"
 import { Garden } from "./garden"
 import { LogEntry } from "./logger/log-entry"
-import { ProcessResults, processServices } from "./process"
-import { getDependantTasksForModule } from "./tasks/helpers"
 import { Module } from "./types/module"
 import {
   PluginActionContextParams,
@@ -98,6 +96,7 @@ import { realpath, writeFile } from "fs-extra"
 import { relative, join } from "path"
 import { getArtifactKey } from "./util/artifacts"
 import { AugmentGraphResult, AugmentGraphParams } from "./types/plugin/provider/augmentGraph"
+import { DeployTask } from "./tasks/deploy"
 
 const maxArtifactLogLines = 5 // max number of artifacts to list in console after task+test runs
 
@@ -149,14 +148,14 @@ export class ActionRouter implements TypeGuard {
         handler && this.addActionHandler(plugin, actionType, handler)
       }
 
-      for (const spec of plugin.createModuleTypes || []) {
+      for (const spec of plugin.createModuleTypes) {
         for (const actionType of moduleActionNames) {
           const handler = spec.handlers[actionType]
           handler && this.addModuleActionHandler(plugin, actionType, spec.name, handler)
         }
       }
 
-      for (const spec of plugin.extendModuleTypes || []) {
+      for (const spec of plugin.extendModuleTypes) {
         for (const actionType of moduleActionNames) {
           const handler = spec.handlers[actionType]
           handler && this.addModuleActionHandler(plugin, actionType, spec.name, handler)
@@ -367,7 +366,7 @@ export class ActionRouter implements TypeGuard {
     const spec = this.moduleTypes[service.module.type]
 
     if (spec.serviceOutputsSchema) {
-      result.outputs = validate(result.outputs, spec.serviceOutputsSchema, {
+      result.outputs = validateSchema(result.outputs, spec.serviceOutputsSchema, {
         context: `outputs from service '${service.name}'`,
         ErrorClass: PluginError,
       })
@@ -375,7 +374,7 @@ export class ActionRouter implements TypeGuard {
 
     for (const base of getModuleTypeBases(spec, this.moduleTypes)) {
       if (base.serviceOutputsSchema) {
-        result.outputs = validate(result.outputs, base.serviceOutputsSchema.unknown(true), {
+        result.outputs = validateSchema(result.outputs, base.serviceOutputsSchema.unknown(true), {
           context: `outputs from service '${service.name}' (base schema from '${base.name}' plugin)`,
           ErrorClass: PluginError,
         })
@@ -491,7 +490,7 @@ export class ActionRouter implements TypeGuard {
     const spec = this.moduleTypes[task.module.type]
 
     if (spec.taskOutputsSchema) {
-      result.outputs = validate(result.outputs, spec.taskOutputsSchema, {
+      result.outputs = validateSchema(result.outputs, spec.taskOutputsSchema, {
         context: `outputs from task '${task.name}'`,
         ErrorClass: PluginError,
       })
@@ -499,7 +498,7 @@ export class ActionRouter implements TypeGuard {
 
     for (const base of getModuleTypeBases(spec, this.moduleTypes)) {
       if (base.taskOutputsSchema) {
-        result.outputs = validate(result.outputs, base.taskOutputsSchema.unknown(true), {
+        result.outputs = validateSchema(result.outputs, base.taskOutputsSchema.unknown(true), {
           context: `outputs from task '${task.name}' (base schema from '${base.name}' plugin)`,
           ErrorClass: PluginError,
         })
@@ -533,7 +532,7 @@ export class ActionRouter implements TypeGuard {
     serviceNames?: string[]
   }): Promise<ServiceStatusMap> {
     const graph = await this.garden.getConfigGraph(log)
-    const services = await graph.getServices(serviceNames)
+    const services = await graph.getServices({ names: serviceNames })
 
     const tasks = services.map(
       (service) =>
@@ -550,32 +549,25 @@ export class ActionRouter implements TypeGuard {
     return getServiceStatuses(results)
   }
 
-  async deployServices({
-    serviceNames,
-    force = false,
-    forceBuild = false,
-    log,
-  }: DeployServicesParams): Promise<ProcessResults> {
+  async deployServices({ serviceNames, force = false, forceBuild = false, log }: DeployServicesParams) {
     const graph = await this.garden.getConfigGraph(log)
-    const services = await graph.getServices(serviceNames)
+    const services = await graph.getServices({ names: serviceNames })
 
-    return processServices({
-      services,
-      garden: this.garden,
-      graph,
-      log,
-      watch: false,
-      handler: async (_, module) =>
-        getDependantTasksForModule({
+    const tasks = services.map(
+      (service) =>
+        new DeployTask({
           garden: this.garden,
           log,
           graph,
-          module,
-          hotReloadServiceNames: [],
+          service,
           force,
           forceBuild,
-        }),
-    })
+          fromWatch: false,
+          hotReloadServiceNames: [],
+        })
+    )
+
+    return this.garden.processTasks(tasks)
   }
 
   /**
@@ -586,7 +578,7 @@ export class ActionRouter implements TypeGuard {
 
     const servicesLog = log.info({ msg: chalk.white("Deleting services..."), status: "active" })
 
-    const services = await graph.getServices(names)
+    const services = await graph.getServices({ names })
 
     const deleteResults = await this.garden.processTasks(
       services.map((service) => {
@@ -894,7 +886,7 @@ export class ActionRouter implements TypeGuard {
             pluginName,
           })
         }
-        return validate(result, schema, { context: `${actionType} output from plugin ${pluginName}` })
+        return validateSchema(result, schema, { context: `${actionType} output from plugin ${pluginName}` })
       },
       { actionType, pluginName }
     )
@@ -926,7 +918,9 @@ export class ActionRouter implements TypeGuard {
             pluginName,
           })
         }
-        return validate(result, schema, { context: `${actionType} ${moduleType} output from provider ${pluginName}` })
+        return validateSchema(result, schema, {
+          context: `${actionType} ${moduleType} output from provider ${pluginName}`,
+        })
       }),
       { actionType, pluginName, moduleType }
     )

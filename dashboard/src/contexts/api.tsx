@@ -182,7 +182,6 @@ const reducer = (store: Store, action: Action) =>
       case "fetchFailure":
         draft.requestStates[action.requestKey].pending = false
         draft.requestStates[action.requestKey].error = action.error
-        draft.requestStates[action.requestKey].initLoadComplete = true
         break
       case "wsMessageReceived":
         draft.entities = action.processResults(store.entities)

@@ -8,7 +8,7 @@
 
 import { LogEntry } from "../../../logger/log-entry"
 import { KubernetesResource } from "../types"
-import { helm } from "./helm-cli"
+import { helm, helmPlugin2to3 } from "./helm-cli"
 import { safeLoadAll, safeDump } from "js-yaml"
 import { KubeApi, getKubeConfig } from "../api"
 import { checkResourceStatuses } from "../status/status"
@@ -127,28 +127,6 @@ export async function migrateToHelm3({
     )
     const helm3ReleaseNames = listFromHelm3.map((r: any) => r.name)
 
-    // Install the 2to3 plugin
-    try {
-      await helm({
-        ctx,
-        namespace,
-        log,
-        args: ["plugin", "install", "https://github.com/helm/helm-2to3"],
-      })
-    } catch (err) {
-      // Ugh ffs...
-      if (err.message.includes("plugin already exists")) {
-        await helm({
-          ctx,
-          namespace,
-          log,
-          args: ["plugin", "update", "2to3"],
-        })
-      } else {
-        throw err
-      }
-    }
-
     // Convert each release from Tiller that isn't already in Helm 3
     for (const releaseName of tillerReleaseNames) {
       if (helm3ReleaseNames.includes(releaseName)) {
@@ -212,11 +190,12 @@ export async function migrateToHelm3({
         await writeFile(configPath, safeDump(resolvedConfig))
 
         log.debug(
-          await helm({
-            ctx,
-            namespace,
+          // It's not possible to install/update/execute Helm plugins on Windows because of this:
+          // https://github.com/helm/helm-2to3/issues/55
+          // So instead we download and execute the plugin binary directly, without passing it through the Helm CLI.
+          await helmPlugin2to3.stdout({
             log,
-            args: ["2to3", "convert", releaseName, "--tiller-ns", namespace],
+            args: ["convert", releaseName, "--tiller-ns", namespace],
             env: {
               KUBECONFIG: configPath,
             },

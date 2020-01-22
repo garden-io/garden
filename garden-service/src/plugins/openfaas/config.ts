@@ -52,9 +52,9 @@ export const openfaasModuleSpecSchema = joi
     ),
     env: joiEnvVars(),
     handler: joi
-      .string()
+      .posixPath()
+      .subPathOnly()
       .default(".")
-      .posixPath({ subPathOnly: true })
       .description("Specify which directory under the module contains the handler file/function."),
     image: joi
       .string()
@@ -204,11 +204,13 @@ export async function configureModule({
   moduleConfig.serviceConfigs = [
     {
       dependencies,
+      disabled: moduleConfig.disabled,
       hotReloadable: false,
       name: moduleConfig.name,
       spec: {
         name: moduleConfig.name,
         dependencies,
+        disabled: moduleConfig.disabled,
       },
     },
   ]
@@ -216,6 +218,7 @@ export async function configureModule({
   moduleConfig.testConfigs = moduleConfig.spec.tests.map((t) => ({
     name: t.name,
     dependencies: union(t.dependencies, dependencies),
+    disabled: t.disabled,
     spec: t,
     timeout: t.timeout,
   }))

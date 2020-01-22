@@ -137,7 +137,7 @@ export class StringsParameter extends Parameter<string[] | undefined> {
 
 export class PathParameter extends Parameter<string> {
   type = "path"
-  schema = joi.string().posixPath()
+  schema = joi.posixPath()
 
   parseString(input: string) {
     return input
@@ -146,7 +146,7 @@ export class PathParameter extends Parameter<string> {
 
 export class PathsParameter extends Parameter<string[]> {
   type = "array:path"
-  schema = joi.array().items(joi.string().posixPath())
+  schema = joi.array().items(joi.posixPath())
 
   parseString(input: string) {
     return input.split(",")
@@ -182,7 +182,7 @@ export class ChoicesParameter extends Parameter<string> {
     super(args)
 
     this.choices = args.choices
-    this.schema = joi.string().only(args.choices)
+    this.schema = joi.string().valid(...args.choices)
   }
 
   parseString(input: string) {

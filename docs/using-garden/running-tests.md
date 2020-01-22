@@ -19,7 +19,7 @@ tests:
       - backend
 ```
 
-> Note that not all [modules types](../reference/module-types/README.md) support tests.
+> Note that not all [modules types](../module-types/README.md) support tests.
 
 ## How it Works
 
@@ -45,7 +45,7 @@ Tests correspond to a **test** action in the Stack Graph.
 
 ## Examples
 
-For full test configuration by module type, please take a look at our [reference docs](../reference/module-types/README.md).
+For full test configuration by module type, please take a look at our [reference docs](../module-types/README.md).
 
 ### Integration Testing
 
@@ -107,7 +107,23 @@ tests:
 
 After running `my-test`, you can find the contents of the `report` directory in the test's container, locally under `.garden/artifacts/my-test-report`.
 
-Please look at individual [module type references](../reference/module-types/README.md) to see how to configure each module type's tests to extract artifacts after running them.
+Please look at individual [module type references](../module-types/README.md) to see how to configure each module type's tests to extract artifacts after running them.
+
+### Disabling Tests
+
+Module types that allow you to configure tests generally also allow you to disable tests by setting `disabled: true` in the test configuration. You can also disable them conditionally using template strings. For example, to disable a `container` module test for a specific environment, you could do something like this:
+
+```yaml
+kind: Module
+type: container
+...
+tests:
+  - name: e2e
+    disabled: ${environment.name == "prod"}
+    ...
+```
+
+Tests are also implicitly disabled when the parent module is disabled.
 
 ### Kubernetes Provider
 

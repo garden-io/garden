@@ -120,6 +120,7 @@ export async function configureContainerModule({ ctx, log, moduleConfig }: Confi
     return {
       name,
       dependencies: spec.dependencies,
+      disabled: spec.disabled,
       hotReloadable,
       spec,
     }
@@ -128,6 +129,7 @@ export async function configureContainerModule({ ctx, log, moduleConfig }: Confi
   moduleConfig.testConfigs = moduleConfig.spec.tests.map((t) => ({
     name: t.name,
     dependencies: t.dependencies,
+    disabled: t.disabled,
     spec: t,
     timeout: t.timeout,
   }))
@@ -135,6 +137,7 @@ export async function configureContainerModule({ ctx, log, moduleConfig }: Confi
   moduleConfig.taskConfigs = moduleConfig.spec.tasks.map((t) => ({
     name: t.name,
     dependencies: t.dependencies,
+    disabled: t.disabled,
     spec: t,
     timeout: t.timeout,
   }))
@@ -169,8 +172,8 @@ export const gardenPlugin = createGardenPlugin({
 
         Note that the runtime services have somewhat limited features in this module type. For example, you cannot
         specify replicas for redundancy, and various platform-specific options are not included. For those, look at
-        other module types like [helm](https://docs.garden.io/reference/module-types/helm) or
-        [kubernetes](https://github.com/garden-io/garden/blob/master/docs/reference/module-types/kubernetes.md).
+        other module types like [helm](https://docs.garden.io/module-types/helm) or
+        [kubernetes](https://github.com/garden-io/garden/blob/master/docs/module-types/kubernetes.md).
       `,
       moduleOutputsSchema: containerModuleOutputsSchema,
       schema: containerModuleSpecSchema,

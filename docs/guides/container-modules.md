@@ -4,7 +4,7 @@ Garden includes a `container` module type, which provides a high-level abstracti
 
 `container` modules can be used to just _build_ container images, or they can specify deployable services through the optional `services` key, as well as `tasks` and `tests`. So you might in one scenario use a `container` module to both build and deploy services, and in another you might only build the image using a `container` module, and then refer to that image in a `helm` or `kubernetes` module.
 
-Below we'll walk through some usage examples. For a full reference of the `container` module type, please take a look at the [reference](../reference/module-types/container.md).
+Below we'll walk through some usage examples. For a full reference of the `container` module type, please take a look at the [reference](../module-types/container.md).
 
 _Note: Even though we've spent the most time on supporting Kubernetes, we've tried to design this module type in a way that makes it generically applicable to other container orchestrators as well, such as Docker Swarm, Docker Compose, AWS ECS etc. This will come in handy as we add more providers, that can then use the same module type._
 
@@ -57,7 +57,7 @@ If you specify a tag as well, for example `image: my-org/my-container:v1.2.3`, t
 
 In the case of Kubernetes, Garden will take the simplified `container` service specification and convert it to the corresponding Kubernetes manifests, i.e. Deployment, Service and (if applicable) Ingress resources.
 
-Here, for example, is the spec for the `frontend` service in our example [demo project](https://github.com/garden-io/garden/tree/v0.10.16/examples/demo-project):
+Here, for example, is the spec for the `frontend` service in our example [demo project](https://github.com/garden-io/garden/tree/v0.11.0/examples/demo-project):
 
 ```yaml
 kind: Module
@@ -83,7 +83,7 @@ services:
 ...
 ```
 
-This, first of all, tells Garden that it should deploy the built `frontend` container as a service with the same name. We also configure a health check, a couple of ingress endpoints, and specify that this service depends on the `backend` service. There is a number of other options, which you can find in the `container` module [reference](../reference/module-types/container.md#services).
+This, first of all, tells Garden that it should deploy the built `frontend` container as a service with the same name. We also configure a health check, a couple of ingress endpoints, and specify that this service depends on the `backend` service. There is a number of other options, which you can find in the `container` module [reference](../module-types/container.md#services).
 
 If you need to use advanced (or otherwise very specific) features of the underlying platform, you may need to use more platform-specific module types (e.g. `kubernetes` or `helm`). The `container` module type is not intended to capture all those features.
 
@@ -141,7 +141,7 @@ kubectl --namespace <my-app-namespace> create secret generic --from-literal=some
 
 Where `<my-app-namespace>` is your project namespace (which is either set with `namespace` in your provider config, or defaults to your project name). There are notably other, more secure ways to create secrets via `kubectl`. Please refer to the offical [Kubernetes Secrets docs](https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret-using-kubectl-create-secret) for details.
 
-Also check out the [Kubernetes Secrets example project](https://github.com/garden-io/garden/tree/v0.10.16/examples/kubernetes-secrets) for a working example.
+Also check out the [Kubernetes Secrets example project](https://github.com/garden-io/garden/tree/v0.11.0/examples/kubernetes-secrets) for a working example.
 
 ## Running tests
 
@@ -168,7 +168,7 @@ When you run `garden test` or `garden dev` we will run those tests. In both case
 
 The names and commands to run are of course completely up to you, but we suggest naming the test suites consistently across your different modules.
 
-See the [reference](../reference/module-types/container.md#tests) for all the configurable parameters for container tests.
+See the [reference](../module-types/container.md#tests) for all the configurable parameters for container tests.
 
 ## Running tasks
 
@@ -193,7 +193,7 @@ Unlike tests, tasks can also be dependencies for services and other tasks. For e
 
 One thing to note, is that tasks should in most cases be _idempotent_, meaning that running the same task multiple times should be safe.
 
-See the [reference](../reference/module-types/container.md#tasks) for all the configurable parameters for container tasks.
+See the [reference](../module-types/container.md#tasks) for all the configurable parameters for container tasks.
 
 ## Referencing from other modules
 
@@ -215,4 +215,4 @@ values:
 
 Here, we declare `my-image` as a dependency for the `my-service` Helm chart. In order for the Helm chart to be able to reference the built container image, we must provide the correct image name and version.
 
-For a full list of keys that are available for the `container` module type, take a look at the [outputs reference](../reference/module-types/container.md#outputs).
+For a full list of keys that are available for the `container` module type, take a look at the [outputs reference](../module-types/container.md#outputs).

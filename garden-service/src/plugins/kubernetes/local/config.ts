@@ -34,7 +34,6 @@ export const configSchema = kubernetesConfigBase
     context: k8sContextSchema.optional(),
     namespace: joi
       .string()
-      .default(undefined, "<project name>")
       .description(
         "Specify which namespace to deploy services to (defaults to the project name). " +
           "Note that the framework generates other namespaces as well with this name as a prefix."

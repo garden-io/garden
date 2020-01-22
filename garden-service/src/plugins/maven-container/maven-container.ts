@@ -68,9 +68,9 @@ const mavenKeys = {
     .example("11-jdk"),
   include: joiModuleIncludeDirective(),
   jarPath: joi
-    .string()
+    .posixPath()
+    .subPathOnly()
     .required()
-    .posixPath({ subPathOnly: true })
     .description("POSIX-style path to the packaged JAR artifact, relative to the module directory.")
     .example("target/my-module.jar"),
   jdkVersion: joi
@@ -91,12 +91,20 @@ export const gardenPlugin = createGardenPlugin({
   name: "maven-container",
   dependencies: ["container"],
 
+  docs: dedent`
+    Adds the [maven-container module type](../module-types/maven-container.md), which is a specialized version of the
+    \`container\` module type that has special semantics for building JAR files using Maven.
+
+    To use it, simply add the provider to your provider configuration, and refer to the
+    [maven-container module docs](../module-types/maven-container.md) for details on how to configure the modules.
+  `,
+
   createModuleTypes: [
     {
       name: "maven-container",
       base: "container",
       docs: dedent`
-      A specialized version of the [container](https://docs.garden.io/reference/module-types/container) module type
+      A specialized version of the [container](https://docs.garden.io/module-types/container) module type
       that has special semantics for JAR files built with Maven.
 
       Rather than build the JAR inside the container (or in a multi-stage build) this plugin runs \`mvn package\`

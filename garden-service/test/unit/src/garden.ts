@@ -23,7 +23,7 @@ import { getNames, findByName, deepOmitUndefined } from "../../../src/util/util"
 import { LinkedSource } from "../../../src/config-store"
 import { ModuleVersion } from "../../../src/vcs/vcs"
 import { getModuleCacheContext } from "../../../src/types/module"
-import { createGardenPlugin, GardenPlugin } from "../../../src/types/plugin/plugin"
+import { createGardenPlugin } from "../../../src/types/plugin/plugin"
 import { ConfigureProviderParams } from "../../../src/types/plugin/provider/configureProvider"
 import { ProjectConfig } from "../../../src/config/project"
 import { ModuleConfig, baseModuleSpecSchema, baseBuildSpecSchema } from "../../../src/config/module"
@@ -267,7 +267,7 @@ describe("Garden", () => {
 
   describe("getPlugins", () => {
     it("should attach base from createModuleTypes when overriding a handler via extendModuleTypes", async () => {
-      const base: GardenPlugin = {
+      const base = createGardenPlugin({
         name: "base",
         createModuleTypes: [
           {
@@ -279,8 +279,8 @@ describe("Garden", () => {
             },
           },
         ],
-      }
-      const foo: GardenPlugin = {
+      })
+      const foo = createGardenPlugin({
         name: "foo",
         dependencies: ["base"],
         extendModuleTypes: [
@@ -291,7 +291,7 @@ describe("Garden", () => {
             },
           },
         ],
-      }
+      })
 
       const garden = await Garden.factory(pathFoo, {
         plugins: [base, foo],
@@ -302,7 +302,7 @@ describe("Garden", () => {
       })
 
       const parsed = await garden.getPlugin("foo")
-      const extended = findByName(parsed.extendModuleTypes || [], "foo")!
+      const extended = findByName(parsed.extendModuleTypes, "foo")!
 
       expect(extended).to.exist
       expect(extended.name).to.equal("foo")
@@ -333,7 +333,7 @@ describe("Garden", () => {
     })
 
     it("should throw if a plugin extends a module type that hasn't been declared elsewhere", async () => {
-      const foo = {
+      const foo = createGardenPlugin({
         name: "foo",
         extendModuleTypes: [
           {
@@ -341,7 +341,7 @@ describe("Garden", () => {
             handlers: {},
           },
         ],
-      }
+      })
 
       const garden = await Garden.factory(pathFoo, {
         plugins: [foo],
@@ -361,7 +361,7 @@ describe("Garden", () => {
 
     context("module type declaration has a base", () => {
       it("should allow recursive inheritance when defining module types", async () => {
-        const baseA: GardenPlugin = {
+        const baseA = createGardenPlugin({
           name: "base-a",
           createModuleTypes: [
             {
@@ -376,8 +376,8 @@ describe("Garden", () => {
               },
             },
           ],
-        }
-        const baseB: GardenPlugin = {
+        })
+        const baseB = createGardenPlugin({
           name: "base-b",
           dependencies: ["base-a"],
           createModuleTypes: [
@@ -392,8 +392,8 @@ describe("Garden", () => {
               },
             },
           ],
-        }
-        const foo: GardenPlugin = {
+        })
+        const foo = createGardenPlugin({
           name: "foo",
           dependencies: ["base-b"],
           createModuleTypes: [
@@ -409,7 +409,7 @@ describe("Garden", () => {
               },
             },
           ],
-        }
+        })
 
         const garden = await Garden.factory(pathFoo, {
           plugins: [baseA, baseB, foo],
@@ -417,7 +417,7 @@ describe("Garden", () => {
         })
 
         const parsed = await garden.getPlugin("foo")
-        const spec = findByName(parsed.createModuleTypes || [], "foo-c")!
+        const spec = findByName(parsed.createModuleTypes, "foo-c")!
 
         // Make sure properties are correctly inherited
         expect(spec).to.exist
@@ -456,7 +456,7 @@ describe("Garden", () => {
       })
 
       it("should throw when a module type has a base that is not defined", async () => {
-        const foo = {
+        const foo = createGardenPlugin({
           name: "foo",
           createModuleTypes: [
             {
@@ -466,7 +466,7 @@ describe("Garden", () => {
               handlers: {},
             },
           ],
-        }
+        })
 
         const garden = await Garden.factory(pathFoo, {
           plugins: [foo],
@@ -484,7 +484,7 @@ describe("Garden", () => {
       })
 
       it("should throw when a module type has a base that is not declared in the plugin's dependencies", async () => {
-        const base = {
+        const base = createGardenPlugin({
           name: "base",
           createModuleTypes: [
             {
@@ -493,8 +493,8 @@ describe("Garden", () => {
               handlers: {},
             },
           ],
-        }
-        const foo = {
+        })
+        const foo = createGardenPlugin({
           name: "foo",
           createModuleTypes: [
             {
@@ -504,7 +504,7 @@ describe("Garden", () => {
               handlers: {},
             },
           ],
-        }
+        })
 
         const garden = await Garden.factory(pathFoo, {
           plugins: [base, foo],
@@ -526,7 +526,7 @@ describe("Garden", () => {
       })
 
       it("should throw on circular module type base definitions", async () => {
-        const foo = {
+        const foo = createGardenPlugin({
           name: "foo",
           createModuleTypes: [
             {
@@ -542,7 +542,7 @@ describe("Garden", () => {
               handlers: {},
             },
           ],
-        }
+        })
 
         const garden = await Garden.factory(pathFoo, {
           plugins: [foo],
@@ -561,27 +561,27 @@ describe("Garden", () => {
 
     context("when a plugin has a base defined", () => {
       it("should add and deduplicate declared dependencies on top of the dependencies of the base", async () => {
-        const depA = {
+        const depA = createGardenPlugin({
           name: "test-plugin",
           dependencies: [],
-        }
-        const depB = {
+        })
+        const depB = createGardenPlugin({
           name: "test-plugin-b",
           dependencies: [],
-        }
-        const depC = {
+        })
+        const depC = createGardenPlugin({
           name: "test-plugin-c",
           dependencies: [],
-        }
-        const base = {
+        })
+        const base = createGardenPlugin({
           name: "base",
           dependencies: ["test-plugin", "test-plugin-b"],
-        }
-        const foo = {
+        })
+        const foo = createGardenPlugin({
           name: "foo",
           dependencies: ["test-plugin-b", "test-plugin-c"],
           base: "base",
-        }
+        })
 
         const garden = await Garden.factory(pathFoo, {
           plugins: [depA, depB, depC, base, foo],
@@ -594,20 +594,20 @@ describe("Garden", () => {
       })
 
       it("should combine handlers from both plugins and attach base to the handler when overriding", async () => {
-        const base = {
+        const base = createGardenPlugin({
           name: "base",
           handlers: {
             configureProvider: async ({ config }) => ({ config }),
             getEnvironmentStatus: async () => ({ ready: true, outputs: {} }),
           },
-        }
-        const foo = {
+        })
+        const foo = createGardenPlugin({
           name: "foo",
           base: "base",
           handlers: {
             configureProvider: async ({ config }) => ({ config }),
           },
-        }
+        })
 
         const garden = await Garden.factory(pathFoo, {
           plugins: [base, foo],
@@ -616,22 +616,22 @@ describe("Garden", () => {
 
         const parsed = await garden.getPlugin("foo")
 
-        expect(parsed.handlers!.getEnvironmentStatus).to.equal(base.handlers.getEnvironmentStatus)
-        expect(parsed.handlers!.configureProvider!.base).to.equal(base.handlers.configureProvider)
-        expect(parsed.handlers!.configureProvider!.base!.actionType).to.equal("configureProvider")
-        expect(parsed.handlers!.configureProvider!.base!.pluginName).to.equal("base")
-        expect(parsed.handlers!.configureProvider!.base!.base).to.be.undefined
+        expect(parsed.handlers.getEnvironmentStatus).to.equal(base.handlers.getEnvironmentStatus)
+        expect(parsed.handlers.configureProvider!.base).to.equal(base.handlers.configureProvider)
+        expect(parsed.handlers.configureProvider!.base!.actionType).to.equal("configureProvider")
+        expect(parsed.handlers.configureProvider!.base!.pluginName).to.equal("base")
+        expect(parsed.handlers.configureProvider!.base!.base).to.be.undefined
       })
 
       it("should inherit config schema from base, if none is specified", async () => {
-        const base = {
+        const base = createGardenPlugin({
           name: "base",
           configSchema: joi.object({ foo: joi.string().default("bar") }),
-        }
-        const foo = {
+        })
+        const foo = createGardenPlugin({
           name: "foo",
           base: "base",
-        }
+        })
 
         const garden = await Garden.factory(pathFoo, {
           plugins: [base, foo],
@@ -644,7 +644,7 @@ describe("Garden", () => {
       })
 
       it("should combine commands from both plugins and attach base handler when overriding", async () => {
-        const base = {
+        const base = createGardenPlugin({
           name: "base",
           commands: [
             {
@@ -653,8 +653,8 @@ describe("Garden", () => {
               handler: () => ({ result: {} }),
             },
           ],
-        }
-        const foo = {
+        })
+        const foo = createGardenPlugin({
           name: "foo",
           base: "base",
           commands: [
@@ -669,7 +669,7 @@ describe("Garden", () => {
               handler: () => ({ result: {} }),
             },
           ],
-        }
+        })
 
         const garden = await Garden.factory(pathFoo, {
           plugins: [base, foo],
@@ -687,7 +687,7 @@ describe("Garden", () => {
       })
 
       it("should register module types from both plugins", async () => {
-        const base: GardenPlugin = {
+        const base = createGardenPlugin({
           name: "base",
           createModuleTypes: [
             {
@@ -697,8 +697,8 @@ describe("Garden", () => {
               handlers: {},
             },
           ],
-        }
-        const foo: GardenPlugin = {
+        })
+        const foo = createGardenPlugin({
           name: "foo",
           base: "base",
           createModuleTypes: [
@@ -709,7 +709,7 @@ describe("Garden", () => {
               handlers: {},
             },
           ],
-        }
+        })
 
         const garden = await Garden.factory(pathFoo, {
           plugins: [base, foo],
@@ -722,7 +722,7 @@ describe("Garden", () => {
       })
 
       it("should throw if attempting to redefine a module type defined in the base", async () => {
-        const base: GardenPlugin = {
+        const base = createGardenPlugin({
           name: "base",
           createModuleTypes: [
             {
@@ -732,12 +732,12 @@ describe("Garden", () => {
               handlers: {},
             },
           ],
-        }
-        const foo: GardenPlugin = {
+        })
+        const foo = createGardenPlugin({
           name: "foo",
           base: "base",
           createModuleTypes: base.createModuleTypes,
-        }
+        })
 
         const garden = await Garden.factory(pathFoo, {
           plugins: [base, foo],
@@ -752,7 +752,7 @@ describe("Garden", () => {
       })
 
       it("should allow extending a module type from the base", async () => {
-        const base: GardenPlugin = {
+        const base = createGardenPlugin({
           name: "base",
           createModuleTypes: [
             {
@@ -764,8 +764,8 @@ describe("Garden", () => {
               },
             },
           ],
-        }
-        const foo: GardenPlugin = {
+        })
+        const foo = createGardenPlugin({
           name: "foo",
           base: "base",
           extendModuleTypes: [
@@ -777,7 +777,7 @@ describe("Garden", () => {
               },
             },
           ],
-        }
+        })
 
         const garden = await Garden.factory(pathFoo, {
           plugins: [base, foo],
@@ -785,14 +785,14 @@ describe("Garden", () => {
         })
 
         const parsed = await garden.getPlugin("foo")
-        const extended = findByName(parsed.extendModuleTypes || [], "foo")
+        const extended = findByName(parsed.extendModuleTypes, "foo")
 
         expect(extended).to.exist
         expect(extended!.name).to.equal("foo")
       })
 
       it("should only extend (and not also create) a module type if the base is also a configured plugin", async () => {
-        const base: GardenPlugin = {
+        const base = createGardenPlugin({
           name: "base",
           createModuleTypes: [
             {
@@ -804,8 +804,8 @@ describe("Garden", () => {
               },
             },
           ],
-        }
-        const foo: GardenPlugin = {
+        })
+        const foo = createGardenPlugin({
           name: "foo",
           base: "base",
           extendModuleTypes: [
@@ -817,7 +817,7 @@ describe("Garden", () => {
               },
             },
           ],
-        }
+        })
 
         const garden = await Garden.factory(pathFoo, {
           plugins: [base, foo],
@@ -830,16 +830,16 @@ describe("Garden", () => {
         const parsedFoo = await garden.getPlugin("foo")
         const parsedBase = await garden.getPlugin("base")
 
-        expect(findByName(parsedBase.createModuleTypes || [], "foo")).to.exist
-        expect(findByName(parsedFoo.createModuleTypes || [], "foo")).to.not.exist
-        expect(findByName(parsedFoo.extendModuleTypes || [], "foo")).to.exist
+        expect(findByName(parsedBase.createModuleTypes, "foo")).to.exist
+        expect(findByName(parsedFoo.createModuleTypes, "foo")).to.not.exist
+        expect(findByName(parsedFoo.extendModuleTypes, "foo")).to.exist
       })
 
       it("should throw if the base plugin is not registered", async () => {
-        const foo = {
+        const foo = createGardenPlugin({
           name: "foo",
           base: "base",
-        }
+        })
 
         const garden = await Garden.factory(pathFoo, {
           plugins: [foo],
@@ -856,14 +856,14 @@ describe("Garden", () => {
       })
 
       it("should throw if plugins have circular bases", async () => {
-        const foo = {
+        const foo = createGardenPlugin({
           name: "foo",
           base: "bar",
-        }
-        const bar = {
+        })
+        const bar = createGardenPlugin({
           name: "bar",
           base: "foo",
-        }
+        })
 
         const garden = await Garden.factory(pathFoo, {
           plugins: [foo, bar],
@@ -879,29 +879,29 @@ describe("Garden", () => {
 
       context("when a plugin's base has a base defined", () => {
         it("should add and deduplicate declared dependencies for the whole chain", async () => {
-          const depA = {
+          const depA = createGardenPlugin({
             name: "test-plugin",
-          }
-          const depB = {
+          })
+          const depB = createGardenPlugin({
             name: "test-plugin-b",
-          }
-          const depC = {
+          })
+          const depC = createGardenPlugin({
             name: "test-plugin-c",
-          }
-          const baseA = {
+          })
+          const baseA = createGardenPlugin({
             name: "base-a",
             dependencies: ["test-plugin"],
-          }
-          const b = {
+          })
+          const b = createGardenPlugin({
             name: "b",
             dependencies: ["test-plugin", "test-plugin-b"],
             base: "base-a",
-          }
-          const foo = {
+          })
+          const foo = createGardenPlugin({
             name: "foo",
             dependencies: ["test-plugin-c"],
             base: "b",
-          }
+          })
 
           const garden = await Garden.factory(pathFoo, {
             plugins: [depA, depB, depC, baseA, b, foo],
@@ -914,27 +914,27 @@ describe("Garden", () => {
         })
 
         it("should combine handlers from both plugins and recursively attach base handlers", async () => {
-          const baseA = {
+          const baseA = createGardenPlugin({
             name: "base-a",
             handlers: {
               configureProvider: async ({ config }) => ({ config }),
               getEnvironmentStatus: async () => ({ ready: true, outputs: {} }),
             },
-          }
-          const baseB = {
+          })
+          const baseB = createGardenPlugin({
             name: "base-b",
             base: "base-a",
             handlers: {
               configureProvider: async ({ config }) => ({ config }),
             },
-          }
-          const foo = {
+          })
+          const foo = createGardenPlugin({
             name: "foo",
             base: "base-b",
             handlers: {
               configureProvider: async ({ config }) => ({ config }),
             },
-          }
+          })
 
           const garden = await Garden.factory(pathFoo, {
             plugins: [baseA, baseB, foo],
@@ -943,14 +943,14 @@ describe("Garden", () => {
 
           const parsed = await garden.getPlugin("foo")
 
-          expect(parsed.handlers!.getEnvironmentStatus).to.equal(baseA.handlers.getEnvironmentStatus)
-          expect(parsed.handlers!.configureProvider!.base).to.equal(baseB.handlers.configureProvider)
-          expect(parsed.handlers!.configureProvider!.base!.base).to.equal(baseA.handlers.configureProvider)
-          expect(parsed.handlers!.configureProvider!.base!.base!.base).to.be.undefined
+          expect(parsed.handlers.getEnvironmentStatus).to.equal(baseA.handlers.getEnvironmentStatus)
+          expect(parsed.handlers.configureProvider!.base).to.equal(baseB.handlers.configureProvider)
+          expect(parsed.handlers.configureProvider!.base!.base).to.equal(baseA.handlers.configureProvider)
+          expect(parsed.handlers.configureProvider!.base!.base!.base).to.be.undefined
         })
 
         it("should combine commands from all plugins and recursively set base handlers when overriding", async () => {
-          const baseA = {
+          const baseA = createGardenPlugin({
             name: "base-a",
             commands: [
               {
@@ -959,8 +959,8 @@ describe("Garden", () => {
                 handler: () => ({ result: {} }),
               },
             ],
-          }
-          const baseB = {
+          })
+          const baseB = createGardenPlugin({
             name: "base-b",
             base: "base-a",
             commands: [
@@ -975,8 +975,8 @@ describe("Garden", () => {
                 handler: () => ({ result: {} }),
               },
             ],
-          }
-          const foo = {
+          })
+          const foo = createGardenPlugin({
             name: "foo",
             base: "base-b",
             commands: [
@@ -991,7 +991,7 @@ describe("Garden", () => {
                 handler: () => ({ result: {} }),
               },
             ],
-          }
+          })
 
           const garden = await Garden.factory(pathFoo, {
             plugins: [baseA, baseB, foo],
@@ -1021,7 +1021,7 @@ describe("Garden", () => {
         })
 
         it("should register defined module types from all plugins in the chain", async () => {
-          const baseA: GardenPlugin = {
+          const baseA = createGardenPlugin({
             name: "base-a",
             createModuleTypes: [
               {
@@ -1031,8 +1031,8 @@ describe("Garden", () => {
                 handlers: {},
               },
             ],
-          }
-          const baseB: GardenPlugin = {
+          })
+          const baseB = createGardenPlugin({
             name: "base-b",
             base: "base-a",
             createModuleTypes: [
@@ -1043,8 +1043,8 @@ describe("Garden", () => {
                 handlers: {},
               },
             ],
-          }
-          const foo: GardenPlugin = {
+          })
+          const foo = createGardenPlugin({
             name: "foo",
             base: "base-b",
             createModuleTypes: [
@@ -1055,7 +1055,7 @@ describe("Garden", () => {
                 handlers: {},
               },
             ],
-          }
+          })
 
           const garden = await Garden.factory(pathFoo, {
             plugins: [baseA, baseB, foo],
@@ -1068,7 +1068,7 @@ describe("Garden", () => {
         })
 
         it("should throw if attempting to redefine a module type defined in the base's base", async () => {
-          const baseA: GardenPlugin = {
+          const baseA = createGardenPlugin({
             name: "base-a",
             createModuleTypes: [
               {
@@ -1078,13 +1078,13 @@ describe("Garden", () => {
                 handlers: {},
               },
             ],
-          }
-          const baseB: GardenPlugin = {
+          })
+          const baseB = createGardenPlugin({
             name: "base-b",
             base: "base-a",
             createModuleTypes: [],
-          }
-          const foo: GardenPlugin = {
+          })
+          const foo = createGardenPlugin({
             name: "foo",
             base: "base-b",
             createModuleTypes: [
@@ -1095,7 +1095,7 @@ describe("Garden", () => {
                 handlers: {},
               },
             ],
-          }
+          })
 
           const garden = await Garden.factory(pathFoo, {
             plugins: [baseA, baseB, foo],
@@ -1112,7 +1112,7 @@ describe("Garden", () => {
         })
 
         it("should allow extending module types from the base's base", async () => {
-          const baseA: GardenPlugin = {
+          const baseA = createGardenPlugin({
             name: "base-a",
             createModuleTypes: [
               {
@@ -1124,12 +1124,12 @@ describe("Garden", () => {
                 },
               },
             ],
-          }
-          const baseB: GardenPlugin = {
+          })
+          const baseB = createGardenPlugin({
             name: "base-b",
             base: "base-a",
-          }
-          const foo: GardenPlugin = {
+          })
+          const foo = createGardenPlugin({
             name: "foo",
             base: "base-b",
             extendModuleTypes: [
@@ -1141,7 +1141,7 @@ describe("Garden", () => {
                 },
               },
             ],
-          }
+          })
 
           const garden = await Garden.factory(pathFoo, {
             plugins: [baseA, baseB, foo],
@@ -1150,11 +1150,11 @@ describe("Garden", () => {
 
           const parsed = await garden.getPlugin("foo")
 
-          expect(findByName(parsed.extendModuleTypes || [], "foo")).to.exist
+          expect(findByName(parsed.extendModuleTypes, "foo")).to.exist
         })
 
         it("should coalesce module type extensions if base plugin is not configured", async () => {
-          const baseA: GardenPlugin = {
+          const baseA = createGardenPlugin({
             name: "base-a",
             createModuleTypes: [
               {
@@ -1166,8 +1166,8 @@ describe("Garden", () => {
                 },
               },
             ],
-          }
-          const baseB: GardenPlugin = {
+          })
+          const baseB = createGardenPlugin({
             name: "base-b",
             base: "base-a",
             dependencies: ["base-a"],
@@ -1179,8 +1179,8 @@ describe("Garden", () => {
                 },
               },
             ],
-          }
-          const baseC: GardenPlugin = {
+          })
+          const baseC = createGardenPlugin({
             name: "base-c",
             base: "base-b",
             dependencies: ["base-a"],
@@ -1193,11 +1193,11 @@ describe("Garden", () => {
                 },
               },
             ],
-          }
-          const foo: GardenPlugin = {
+          })
+          const foo = createGardenPlugin({
             name: "foo",
             base: "base-c",
-          }
+          })
 
           const garden = await Garden.factory(pathFoo, {
             plugins: [baseA, baseB, baseC, foo],
@@ -1207,7 +1207,7 @@ describe("Garden", () => {
           const parsed = await garden.getPlugin("foo")
 
           // Module type extensions should be a combination of base-b and base-c extensions
-          const fooExtension = findByName(parsed.extendModuleTypes || [], "foo")!
+          const fooExtension = findByName(parsed.extendModuleTypes, "foo")!
 
           expect(fooExtension).to.exist
           expect(fooExtension.handlers.build).to.exist
@@ -1219,18 +1219,18 @@ describe("Garden", () => {
         })
 
         it("should throw if plugins have circular bases", async () => {
-          const baseA = {
+          const baseA = createGardenPlugin({
             name: "base-a",
             base: "foo",
-          }
-          const baseB = {
+          })
+          const baseB = createGardenPlugin({
             name: "base-b",
             base: "base-a",
-          }
-          const foo = {
+          })
+          const foo = createGardenPlugin({
             name: "foo",
             base: "base-b",
-          }
+          })
 
           const garden = await Garden.factory(pathFoo, {
             plugins: [baseA, baseB, foo],
@@ -1402,6 +1402,7 @@ describe("Garden", () => {
         apiVersion: DEFAULT_API_VERSION,
         allowPublish: false,
         build: { dependencies: [] },
+        disabled: false,
         name: "foo",
         outputs: {},
         path: "/tmp",
@@ -2131,7 +2132,7 @@ describe("Garden", () => {
     })
 
     it("should throw if the module config doesn't match the declared schema", async () => {
-      const foo = {
+      const foo = createGardenPlugin({
         name: "foo",
         createModuleTypes: [
           {
@@ -2141,7 +2142,7 @@ describe("Garden", () => {
             handlers: {},
           },
         ],
-      }
+      })
 
       const garden = await Garden.factory(pathFoo, {
         plugins: [foo],
@@ -2155,6 +2156,7 @@ describe("Garden", () => {
           type: "foo",
           allowPublish: false,
           build: { dependencies: [] },
+          disabled: false,
           outputs: {},
           path: pathFoo,
           serviceConfigs: [],
@@ -2174,7 +2176,7 @@ describe("Garden", () => {
     })
 
     it("should throw if the module outputs don't match the declared outputs schema", async () => {
-      const foo = {
+      const foo = createGardenPlugin({
         name: "foo",
         createModuleTypes: [
           {
@@ -2191,7 +2193,7 @@ describe("Garden", () => {
             },
           },
         ],
-      }
+      })
 
       const garden = await Garden.factory(pathFoo, {
         plugins: [foo],
@@ -2205,6 +2207,7 @@ describe("Garden", () => {
           type: "foo",
           allowPublish: false,
           build: { dependencies: [] },
+          disabled: false,
           outputs: {},
           path: pathFoo,
           serviceConfigs: [],
@@ -2226,7 +2229,7 @@ describe("Garden", () => {
 
   context("module type has a base", () => {
     it("should throw if the configure handler output doesn't match the module type's base schema", async () => {
-      const base = {
+      const base = createGardenPlugin({
         name: "base",
         createModuleTypes: [
           {
@@ -2236,8 +2239,8 @@ describe("Garden", () => {
             handlers: {},
           },
         ],
-      }
-      const foo = {
+      })
+      const foo = createGardenPlugin({
         name: "foo",
         dependencies: ["base"],
         createModuleTypes: [
@@ -2259,7 +2262,7 @@ describe("Garden", () => {
             },
           },
         ],
-      }
+      })
 
       const garden = await Garden.factory(pathFoo, {
         plugins: [base, foo],
@@ -2276,6 +2279,7 @@ describe("Garden", () => {
           type: "foo",
           allowPublish: false,
           build: { dependencies: [] },
+          disabled: false,
           outputs: {},
           path: pathFoo,
           serviceConfigs: [],
@@ -2296,7 +2300,7 @@ describe("Garden", () => {
     })
 
     it("should throw if the module outputs don't match the base's declared outputs schema", async () => {
-      const base = {
+      const base = createGardenPlugin({
         name: "base",
         createModuleTypes: [
           {
@@ -2306,8 +2310,8 @@ describe("Garden", () => {
             handlers: {},
           },
         ],
-      }
-      const foo = {
+      })
+      const foo = createGardenPlugin({
         name: "foo",
         dependencies: ["base"],
         createModuleTypes: [
@@ -2325,7 +2329,7 @@ describe("Garden", () => {
             },
           },
         ],
-      }
+      })
 
       const garden = await Garden.factory(pathFoo, {
         plugins: [base, foo],
@@ -2342,6 +2346,7 @@ describe("Garden", () => {
           type: "foo",
           allowPublish: false,
           build: { dependencies: [] },
+          disabled: false,
           outputs: {},
           path: pathFoo,
           serviceConfigs: [],
@@ -2363,7 +2368,7 @@ describe("Garden", () => {
 
     context("module type's base has a base", () => {
       it("should throw if the configure handler output doesn't match the schema of the base's base", async () => {
-        const baseA = {
+        const baseA = createGardenPlugin({
           name: "base-a",
           createModuleTypes: [
             {
@@ -2373,8 +2378,8 @@ describe("Garden", () => {
               handlers: {},
             },
           ],
-        }
-        const baseB = {
+        })
+        const baseB = createGardenPlugin({
           name: "base-b",
           dependencies: ["base-a"],
           createModuleTypes: [
@@ -2386,8 +2391,8 @@ describe("Garden", () => {
               handlers: {},
             },
           ],
-        }
-        const foo = {
+        })
+        const foo = createGardenPlugin({
           name: "foo",
           dependencies: ["base-b"],
           createModuleTypes: [
@@ -2409,7 +2414,7 @@ describe("Garden", () => {
               },
             },
           ],
-        }
+        })
 
         const garden = await Garden.factory(pathFoo, {
           plugins: [baseA, baseB, foo],
@@ -2426,6 +2431,7 @@ describe("Garden", () => {
             type: "foo",
             allowPublish: false,
             build: { dependencies: [] },
+            disabled: false,
             outputs: {},
             path: pathFoo,
             serviceConfigs: [],
@@ -2446,7 +2452,7 @@ describe("Garden", () => {
       })
 
       it("should throw if the module outputs don't match the base's base's declared outputs schema", async () => {
-        const baseA = {
+        const baseA = createGardenPlugin({
           name: "base-a",
           createModuleTypes: [
             {
@@ -2456,8 +2462,8 @@ describe("Garden", () => {
               handlers: {},
             },
           ],
-        }
-        const baseB = {
+        })
+        const baseB = createGardenPlugin({
           name: "base-b",
           dependencies: ["base-a"],
           createModuleTypes: [
@@ -2468,8 +2474,8 @@ describe("Garden", () => {
               handlers: {},
             },
           ],
-        }
-        const foo = {
+        })
+        const foo = createGardenPlugin({
           name: "foo",
           dependencies: ["base-b"],
           createModuleTypes: [
@@ -2487,7 +2493,7 @@ describe("Garden", () => {
               },
             },
           ],
-        }
+        })
 
         const garden = await Garden.factory(pathFoo, {
           plugins: [baseA, baseB, foo],
@@ -2504,6 +2510,7 @@ describe("Garden", () => {
             type: "foo",
             allowPublish: false,
             build: { dependencies: [] },
+            disabled: false,
             outputs: {},
             path: pathFoo,
             serviceConfigs: [],
@@ -2526,7 +2533,7 @@ describe("Garden", () => {
 
     context("when a provider has an augmentGraph handler", () => {
       it("should correctly add and resolve modules from the handler", async () => {
-        const foo = {
+        const foo = createGardenPlugin({
           name: "foo",
           createModuleTypes: [
             {
@@ -2555,7 +2562,7 @@ describe("Garden", () => {
               }
             },
           },
-        }
+        })
 
         const garden = await Garden.factory(pathFoo, {
           plugins: [foo],
@@ -2569,6 +2576,7 @@ describe("Garden", () => {
           kind: "Module",
           allowPublish: true,
           build: { dependencies: [] },
+          disabled: false,
           name: "foo",
           outputs: {},
           configPath: "/tmp",
@@ -2582,7 +2590,7 @@ describe("Garden", () => {
       })
 
       it("should apply returned build dependency relationships", async () => {
-        const foo = {
+        const foo = createGardenPlugin({
           name: "foo",
           createModuleTypes: [
             {
@@ -2603,7 +2611,7 @@ describe("Garden", () => {
               }
             },
           },
-        }
+        })
 
         const garden = await Garden.factory(pathFoo, {
           plugins: [foo],
@@ -2617,6 +2625,7 @@ describe("Garden", () => {
             type: "foo",
             allowPublish: false,
             build: { dependencies: [] },
+            disabled: false,
             outputs: {},
             path: "/tmp",
             include: [],
@@ -2631,6 +2640,7 @@ describe("Garden", () => {
             type: "foo",
             allowPublish: false,
             build: { dependencies: [] },
+            disabled: false,
             outputs: {},
             path: "/tmp",
             include: [],
@@ -2649,6 +2659,7 @@ describe("Garden", () => {
           kind: "Module",
           allowPublish: false,
           build: { dependencies: [{ name: "bar", copy: [] }] },
+          disabled: false,
           name: "foo",
           outputs: {},
           path: "/tmp",
@@ -2662,7 +2673,7 @@ describe("Garden", () => {
       })
 
       it("should add modules before applying dependencies", async () => {
-        const foo = {
+        const foo = createGardenPlugin({
           name: "foo",
           createModuleTypes: [
             {
@@ -2707,7 +2718,7 @@ describe("Garden", () => {
               }
             },
           },
-        }
+        })
 
         const garden = await Garden.factory(pathFoo, {
           plugins: [foo],
@@ -2722,6 +2733,7 @@ describe("Garden", () => {
           kind: "Module",
           allowPublish: true,
           build: { dependencies: [{ name: "bar", copy: [] }] },
+          disabled: false,
           name: "foo",
           outputs: {},
           configPath: "/tmp",
@@ -2731,6 +2743,7 @@ describe("Garden", () => {
             {
               name: "foo",
               dependencies: ["bar"],
+              disabled: false,
               hotReloadable: false,
             },
           ],
@@ -2747,7 +2760,7 @@ describe("Garden", () => {
       })
 
       it("should throw if a build dependency's `by` reference can't be resolved", async () => {
-        const foo = {
+        const foo = createGardenPlugin({
           name: "foo",
           createModuleTypes: [
             {
@@ -2768,7 +2781,7 @@ describe("Garden", () => {
               }
             },
           },
-        }
+        })
 
         const garden = await Garden.factory(pathFoo, {
           plugins: [foo],
@@ -2785,7 +2798,7 @@ describe("Garden", () => {
       })
 
       it("should apply returned runtime dependency relationships", async () => {
-        const foo = {
+        const foo = createGardenPlugin({
           name: "foo",
           createModuleTypes: [
             {
@@ -2812,7 +2825,7 @@ describe("Garden", () => {
               }
             },
           },
-        }
+        })
 
         const garden = await Garden.factory(pathFoo, {
           plugins: [foo],
@@ -2826,6 +2839,7 @@ describe("Garden", () => {
             type: "foo",
             allowPublish: false,
             build: { dependencies: [] },
+            disabled: false,
             outputs: {},
             path: "/tmp",
             serviceConfigs: [],
@@ -2839,6 +2853,7 @@ describe("Garden", () => {
             type: "foo",
             allowPublish: false,
             build: { dependencies: [] },
+            disabled: false,
             outputs: {},
             path: "/tmp",
             serviceConfigs: [],
@@ -2856,6 +2871,7 @@ describe("Garden", () => {
           kind: "Module",
           allowPublish: false,
           build: { dependencies: [] },
+          disabled: false,
           name: "foo",
           outputs: {},
           path: "/tmp",
@@ -2864,6 +2880,7 @@ describe("Garden", () => {
             {
               name: "foo",
               dependencies: ["bar"],
+              disabled: false,
               hotReloadable: false,
             },
           ],
@@ -2875,7 +2892,7 @@ describe("Garden", () => {
       })
 
       it("should throw if a runtime dependency's `by` reference can't be resolved", async () => {
-        const foo = {
+        const foo = createGardenPlugin({
           name: "foo",
           createModuleTypes: [
             {
@@ -2901,7 +2918,7 @@ describe("Garden", () => {
               }
             },
           },
-        }
+        })
 
         const garden = await Garden.factory(pathFoo, {
           plugins: [foo],
@@ -2915,6 +2932,7 @@ describe("Garden", () => {
             type: "foo",
             allowPublish: false,
             build: { dependencies: [] },
+            disabled: false,
             outputs: {},
             path: "/tmp",
             serviceConfigs: [],
@@ -2936,7 +2954,7 @@ describe("Garden", () => {
 
       it("should process augmentGraph handlers in dependency order", async () => {
         // Ensure modules added by the dependency are in place before adding dependencies in dependant.
-        const foo = {
+        const foo = createGardenPlugin({
           name: "foo",
           dependencies: <string[]>[],
           createModuleTypes: [
@@ -2966,9 +2984,9 @@ describe("Garden", () => {
               }
             },
           },
-        }
+        })
 
-        const bar = {
+        const bar = createGardenPlugin({
           name: "bar",
           dependencies: ["foo"],
           handlers: {
@@ -2979,7 +2997,7 @@ describe("Garden", () => {
               }
             },
           },
-        }
+        })
 
         const config = {
           ...projectConfigFoo,
@@ -3000,6 +3018,7 @@ describe("Garden", () => {
           kind: "Module",
           allowPublish: true,
           build: { dependencies: [{ name: "bar", copy: [] }] },
+          disabled: false,
           name: "foo",
           outputs: {},
           configPath: "/tmp",
@@ -3086,9 +3105,9 @@ describe("Garden", () => {
     })
 
     context("test against fixed version hashes", async () => {
-      const moduleAVersionString = "v-0cf3cb04c0"
-      const moduleBVersionString = "v-db85090197"
-      const moduleCVersionString = "v-18ffe09ae4"
+      const moduleAVersionString = "v-58abca9921"
+      const moduleBVersionString = "v-f25bb29260"
+      const moduleCVersionString = "v-b4f769e846"
 
       it("should return the same module versions between runtimes", async () => {
         const projectRoot = getDataDir("test-projects", "fixed-version-hashes-1")

@@ -28,7 +28,7 @@ cd istio-1.0.6
 
 ### Step 2 - Change default Istio port (optional)
 
-When initializing a project that uses the `local-kubernetes` provider, Garden will install a Nginx ingress controller into the `garden-system` namespace, unless the [`setupIngressController`](https://docs.garden.io/reference/providers/local-kubernetes#project-environments-providers-setupingresscontroller) directive is set to false. In this example we have done just that:
+When initializing a project that uses the `local-kubernetes` provider, Garden will install a Nginx ingress controller into the `garden-system` namespace, unless the [`setupIngressController`](https://docs.garden.io/providers/local-kubernetes#project-environments-providers-setupingresscontroller) directive is set to false. In this example we have done just that:
 
 ```yaml
     providers:
@@ -86,6 +86,6 @@ To verify that it works, open `http://localhost:8080/productpage` in your browse
 
 The `details`, `productpage` and `ratings` services are Garden container modules that point to remote container images.
 
-The `reviews` service is a [Helm module](https://docs.garden.io/reference/module-types/helm). That's because in the original Bookinfo example, the `reviews` service has three versions that each get deployed and routed to in a round robin fashion. So to stay true to the example, and because Garden doesn't currently support multiple deployments for a single service, we use the original example manifests and deploy them via the Helm plugin.
+The `reviews` service is a [Helm module](https://docs.garden.io/module-types/helm). That's because in the original Bookinfo example, the `reviews` service has three versions that each get deployed and routed to in a round robin fashion. So to stay true to the example, and because Garden doesn't currently support multiple deployments for a single service, we use the original example manifests and deploy them via the Helm plugin.
 
 The `gateway` service is a also Helm module, that wraps the Istio Gateway. It contains the Custom Resource Definitions (CRDs) needed for Istio to handle routing for our project.

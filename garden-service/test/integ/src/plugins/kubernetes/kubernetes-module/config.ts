@@ -40,6 +40,7 @@ describe("validateKubernetesModule", () => {
       },
       configPath: resolve(ctx.projectRoot, "module-simple", "garden.yml"),
       description: "Simple Kubernetes module with minimum config",
+      disabled: false,
       exclude: undefined,
       include: [],
       kind: "Module",
@@ -50,6 +51,7 @@ describe("validateKubernetesModule", () => {
       serviceConfigs: [
         {
           dependencies: [],
+          disabled: false,
           hotReloadable: false,
           name: "module-simple",
           spec: {

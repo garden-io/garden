@@ -10,6 +10,8 @@ import { GARDEN_SERVICE_ROOT } from "../../../../../../src/constants"
 import { resolve } from "path"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { expect } from "chai"
+import { V1Secret } from "@kubernetes/client-node"
+import { KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
 
 describe("k8sBuildContainer", () => {
   let garden: Garden
@@ -21,6 +23,11 @@ describe("k8sBuildContainer", () => {
 
   const root = getDataDir("test-projects", "container")
 
+  before(async () => {
+    garden = await makeTestGarden(root, { environmentName: "local" })
+    provider = <KubernetesProvider>await garden.resolveProvider("local-kubernetes")
+  })
+
   after(async () => {
     if (garden) {
       await garden.close()
@@ -28,16 +35,36 @@ describe("k8sBuildContainer", () => {
   })
 
   const init = async (environmentName: string) => {
+    garden = await makeTestGarden(root, { environmentName })
+
     if (!initialized && environmentName !== "local") {
       // Load the test authentication for private registries
-      const authSecret = JSON.parse(
-        (await decryptSecretFile(resolve(GARDEN_SERVICE_ROOT, "..", "secrets", "test-docker-auth.json"))).toString()
-      )
       const api = await KubeApi.factory(garden.log, provider)
-      await api.upsert({ kind: "Secret", namespace: "default", obj: authSecret, log: garden.log })
+      try {
+        const authSecret = JSON.parse(
+          (await decryptSecretFile(resolve(GARDEN_SERVICE_ROOT, "..", "secrets", "test-docker-auth.json"))).toString()
+        )
+        await api.upsert({ kind: "Secret", namespace: "default", obj: authSecret, log: garden.log })
+      } catch (err) {
+        // This is expected when running without access to gcloud (e.g. in minikube tests)
+        // tslint:disable-next-line: no-console
+        console.log("Warning: Unable to decrypt docker auth secret")
+        const authSecret: KubernetesResource<V1Secret> = {
+          apiVersion: "v1",
+          kind: "Secret",
+          type: "kubernetes.io/dockerconfigjson",
+          metadata: {
+            name: "test-docker-auth",
+            namespace: "default",
+          },
+          stringData: {
+            ".dockerconfigjson": JSON.stringify({ auths: {} }),
+          },
+        }
+        await api.upsert({ kind: "Secret", namespace: "default", obj: authSecret, log: garden.log })
+      }
     }
 
-    garden = await makeTestGarden(root, { environmentName })
     graph = await garden.getConfigGraph(garden.log)
     provider = <KubernetesProvider>await garden.resolveProvider("local-kubernetes")
     ctx = garden.getPluginContext(provider)
@@ -55,7 +82,7 @@ describe("k8sBuildContainer", () => {
       await init("local")
     })
 
-    it("should build a simple container", async () => {
+    it("should build a simple container (local only)", async () => {
       const module = await graph.getModule("simple-service")
       await garden.buildDir.syncFromSrc(module, garden.log)
 
@@ -83,7 +110,7 @@ describe("k8sBuildContainer", () => {
       })
     })
 
-    it("should support pulling from private registries", async () => {
+    it("should support pulling from private registries (remote only)", async () => {
       const module = await graph.getModule("private-base")
       await garden.buildDir.syncFromSrc(module, garden.log)
 
@@ -131,7 +158,7 @@ describe("k8sBuildContainer", () => {
       expect(result.buildLog!).to.include("load build definition from Dockerfile")
     })
 
-    it("should support pulling from private registries", async () => {
+    it("should support pulling from private registries (remote only)", async () => {
       const module = await graph.getModule("private-base")
       await garden.buildDir.syncFromSrc(module, garden.log)
 
@@ -176,7 +203,7 @@ describe("k8sBuildContainer", () => {
       })
     })
 
-    it("should support pulling from private registries", async () => {
+    it("should support pulling from private registries (remote only)", async () => {
       const module = await graph.getModule("private-base")
       await garden.buildDir.syncFromSrc(module, garden.log)
 

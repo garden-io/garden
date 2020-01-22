@@ -50,7 +50,17 @@ export class TestTask extends BaseTask {
   private testConfig: TestConfig
   private forceBuild: boolean
 
-  constructor({ garden, graph, log, module, testConfig, force, forceBuild, version }: TestTaskParams & TaskParams) {
+  constructor({
+    garden,
+    graph,
+    log,
+    module,
+    testConfig,
+    force,
+    forceBuild,
+    version,
+  }: TestTaskParams & TaskParams & { _guard: true }) {
+    // Note: The _guard attribute is to prevent accidentally bypassing the factory method
     super({ garden, log, force, version })
     this.module = module
     this.graph = graph
@@ -62,7 +72,7 @@ export class TestTask extends BaseTask {
   static async factory(initArgs: TestTaskParams): Promise<TestTask> {
     const { garden, graph, module, testConfig } = initArgs
     const version = await getTestVersion(garden, graph, module, testConfig)
-    return new TestTask({ ...initArgs, version })
+    return new TestTask({ ...initArgs, version, _guard: true })
   }
 
   async getDependencies() {
@@ -73,7 +83,7 @@ export class TestTask extends BaseTask {
     }
 
     const dg = this.graph
-    const deps = await dg.getDependencies("test", this.getName(), false)
+    const deps = await dg.getDependencies({ nodeType: "test", name: this.getName(), recursive: false })
 
     const buildTasks = await BuildTask.factory({
       garden: this.garden,
@@ -138,7 +148,11 @@ export class TestTask extends BaseTask {
       status: "active",
     })
 
-    const dependencies = await this.graph.getDependencies("test", this.testConfig.name, false)
+    const dependencies = await this.graph.getDependencies({
+      nodeType: "test",
+      name: this.testConfig.name,
+      recursive: false,
+    })
     const serviceStatuses = getServiceStatuses(dependencyResults)
     const taskResults = getRunTaskResults(dependencyResults)
 
@@ -220,7 +234,9 @@ export async function getTestTasks({
   // If there are no filters we return the test otherwise
   // we check if the test name matches against the filterNames array
   const configs = module.testConfigs.filter(
-    (test) => !filterNames || filterNames.length === 0 || find(filterNames, (n: string) => minimatch(test.name, n))
+    (test) =>
+      !test.disabled &&
+      (!filterNames || filterNames.length === 0 || find(filterNames, (n: string) => minimatch(test.name, n)))
   )
 
   return Bluebird.map(configs, (test) =>

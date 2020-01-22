@@ -7,7 +7,7 @@
  */
 
 import { resolve } from "path"
-import { renderSchemaDescriptionYaml, normalizeDescriptions, TEMPLATES_DIR } from "./config"
+import { renderSchemaDescriptionYaml, normalizeSchemaDescriptions, TEMPLATES_DIR, Description } from "./config"
 import { ProjectConfigContext, ModuleConfigContext, ProviderConfigContext } from "../config/config-context"
 import { readFileSync, writeFileSync } from "fs"
 import handlebars from "handlebars"
@@ -17,17 +17,17 @@ export function writeTemplateStringReferenceDocs(docsRoot: string) {
   const referenceDir = resolve(docsRoot, "reference")
   const outputPath = resolve(referenceDir, "template-strings.md")
 
-  const projectDescriptions = normalizeDescriptions(ProjectConfigContext.getSchema().describe())
+  const projectDescriptions = normalizeSchemaDescriptions(ProjectConfigContext.getSchema().describe() as Description)
   const projectContext = renderSchemaDescriptionYaml(projectDescriptions, {
     renderRequired: false,
   })
 
-  const providerDescriptions = normalizeDescriptions(ProviderConfigContext.getSchema().describe())
+  const providerDescriptions = normalizeSchemaDescriptions(ProviderConfigContext.getSchema().describe() as Description)
   const providerContext = renderSchemaDescriptionYaml(providerDescriptions, {
     renderRequired: false,
   })
 
-  const moduleDescriptions = normalizeDescriptions(ModuleConfigContext.getSchema().describe())
+  const moduleDescriptions = normalizeSchemaDescriptions(ModuleConfigContext.getSchema().describe() as Description)
   const moduleContext = renderSchemaDescriptionYaml(moduleDescriptions, {
     renderRequired: false,
   })

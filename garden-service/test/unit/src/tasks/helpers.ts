@@ -1,75 +1,168 @@
-import Bluebird from "bluebird"
 import { expect } from "chai"
-import { flatten, uniq } from "lodash"
+import { uniq } from "lodash"
 import { resolve } from "path"
 import { Garden } from "../../../../src/garden"
-import { makeTestGarden, dataDir } from "../../../helpers"
-import { getDependantTasksForModule } from "../../../../src/tasks/helpers"
+import { makeTestGarden, dataDir, makeTestGardenA } from "../../../helpers"
+import { getModuleWatchTasks } from "../../../../src/tasks/helpers"
 import { BaseTask } from "../../../../src/tasks/base"
 import { LogEntry } from "../../../../src/logger/log-entry"
-import { ConfigGraph } from "../../../../src/config-graph"
-
-async function dependencyBaseKeys(tasks: BaseTask[]): Promise<string[]> {
-  const dependencies = await Bluebird.map(tasks, async (t) => t.getDependencies(), { concurrency: 1 })
-  const tasksdependencyTasks = flatten(dependencies)
-  return sortedBaseKeys(tasksdependencyTasks)
-}
+import { DEFAULT_API_VERSION } from "../../../../src/constants"
 
 function sortedBaseKeys(tasks: BaseTask[]): string[] {
   return uniq(tasks.map((t) => t.getKey())).sort()
 }
 
 describe("TaskHelpers", () => {
-  let garden: Garden
-  let graph: ConfigGraph
+  let depGarden: Garden
   let log: LogEntry
 
   before(async () => {
-    garden = await makeTestGarden(resolve(dataDir, "test-project-dependants"))
-    graph = await garden.getConfigGraph(garden.log)
-    log = garden.log
+    depGarden = await makeTestGarden(resolve(dataDir, "test-project-dependants"))
+    log = depGarden.log
   })
 
   /**
    * Note: Since we also test with dependencies included in the task lists generated , these tests also check the
    * getDependencies methods of the task classes in question.
    */
-  describe("getDependantTasksForModule", () => {
-    it("returns the correct set of tasks for the changed module", async () => {
-      const module = await graph.getModule("good-morning")
-      await garden.getConfigGraph(garden.log)
+  describe("getModuleWatchTasks", () => {
+    it("should return no deploy tasks for a disabled module, but include its dependant tasks", async () => {
+      const garden = await makeTestGardenA()
 
-      const tasks = await getDependantTasksForModule({
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: true, // <---------------
+          name: "module-a",
+          include: [],
+          outputs: {},
+          path: garden.projectRoot,
+          serviceConfigs: [],
+          taskConfigs: [],
+          spec: {
+            services: [
+              {
+                name: "service-a",
+                dependencies: [],
+                disabled: false,
+              },
+            ],
+          },
+          testConfigs: [],
+          type: "test",
+        },
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [{ name: "module-a", copy: [] }] },
+          disabled: false,
+          name: "module-b",
+          include: [],
+          outputs: {},
+          path: garden.projectRoot,
+          serviceConfigs: [],
+          taskConfigs: [],
+          spec: {
+            services: [
+              {
+                name: "service-b",
+                dependencies: [],
+                disabled: false,
+              },
+            ],
+          },
+          testConfigs: [],
+          type: "test",
+        },
+      ])
+
+      const graph = await garden.getConfigGraph(garden.log)
+      const module = await graph.getModule("module-a", true)
+
+      const tasks = await getModuleWatchTasks({
         garden,
         graph,
         log,
         module,
         hotReloadServiceNames: [],
-        force: true,
-        forceBuild: true,
-        fromWatch: false,
-        includeDependants: false,
       })
 
-      expect(sortedBaseKeys(tasks)).to.eql(["build.good-morning", "deploy.good-morning"])
+      expect(sortedBaseKeys(tasks)).to.eql(["build.module-a", "build.module-b", "deploy.service-b"])
+    })
 
-      expect(await dependencyBaseKeys(tasks)).to.eql(
-        [
-          "build.build-dependency",
-          "build.good-morning",
-          "get-service-status.good-morning",
-          "stage-build.good-morning",
-          "task.good-morning-task",
-        ].sort()
-      )
+    it("should omit tasks for disabled dependant modules", async () => {
+      const garden = await makeTestGardenA()
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          name: "module-a",
+          include: [],
+          outputs: {},
+          path: garden.projectRoot,
+          serviceConfigs: [],
+          taskConfigs: [],
+          spec: {
+            services: [
+              {
+                name: "service-a",
+                dependencies: [],
+                disabled: false,
+              },
+            ],
+          },
+          testConfigs: [],
+          type: "test",
+        },
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [{ name: "module-a", copy: [] }] },
+          disabled: true, // <---------------
+          name: "module-b",
+          include: [],
+          outputs: {},
+          path: garden.projectRoot,
+          serviceConfigs: [],
+          taskConfigs: [],
+          spec: {
+            services: [
+              {
+                name: "service-b",
+                dependencies: [],
+                disabled: false,
+              },
+            ],
+          },
+          testConfigs: [],
+          type: "test",
+        },
+      ])
+
+      const graph = await garden.getConfigGraph(garden.log)
+      const module = await graph.getModule("module-a", true)
+
+      const tasks = await getModuleWatchTasks({
+        garden,
+        graph,
+        log,
+        module,
+        hotReloadServiceNames: [],
+      })
+
+      expect(sortedBaseKeys(tasks)).to.eql(["build.module-a", "deploy.service-a"])
     })
 
     context("without hot reloading enabled", () => {
       const expectedBaseKeysByChangedModule = [
         {
           moduleName: "build-dependency",
-          taskKeys: ["build.build-dependency", "deploy.build-dependency"],
-          withDependants: [
+          expectedTasks: [
             "build.build-dependant",
             "build.build-dependency",
             "build.good-morning",
@@ -82,8 +175,7 @@ describe("TaskHelpers", () => {
         },
         {
           moduleName: "good-morning",
-          taskKeys: ["build.good-morning", "deploy.good-morning"],
-          withDependants: [
+          expectedTasks: [
             "build.build-dependant",
             "build.good-morning",
             "deploy.build-dependant",
@@ -94,118 +186,306 @@ describe("TaskHelpers", () => {
         },
         {
           moduleName: "good-evening",
-          taskKeys: ["build.good-evening", "deploy.good-evening"],
-          withDependants: ["build.good-evening", "deploy.good-evening"],
+          expectedTasks: ["build.good-evening", "deploy.good-evening"],
         },
         {
           moduleName: "build-dependant",
-          taskKeys: ["build.build-dependant", "deploy.build-dependant"],
-          withDependants: ["build.build-dependant", "deploy.build-dependant"],
+          expectedTasks: ["build.build-dependant", "deploy.build-dependant"],
         },
         {
           moduleName: "service-dependant",
-          taskKeys: ["build.service-dependant", "deploy.service-dependant"],
-          withDependants: ["build.service-dependant", "deploy.service-dependant"],
+          expectedTasks: ["build.service-dependant", "deploy.service-dependant"],
         },
       ]
 
-      for (const { moduleName, taskKeys, withDependants } of expectedBaseKeysByChangedModule) {
-        it(`returns the correct set of tasks for ${moduleName}`, async () => {
-          const module = await graph.getModule(<string>moduleName)
-          const tasks = await getDependantTasksForModule({
-            garden,
-            graph,
-            log,
-            module,
-            hotReloadServiceNames: [],
-            force: true,
-            forceBuild: true,
-            fromWatch: true,
-            includeDependants: false,
-          })
-          expect(sortedBaseKeys(tasks)).to.eql(taskKeys.sort())
-        })
-
+      for (const { moduleName, expectedTasks } of expectedBaseKeysByChangedModule) {
         it(`returns the correct set of tasks for ${moduleName} with dependants`, async () => {
+          const graph = await depGarden.getConfigGraph(depGarden.log)
           const module = await graph.getModule(<string>moduleName)
-          const tasks = await getDependantTasksForModule({
-            garden,
+
+          const tasks = await getModuleWatchTasks({
+            garden: depGarden,
             graph,
             log,
             module,
             hotReloadServiceNames: [],
-            force: true,
-            forceBuild: true,
-            fromWatch: true,
-            includeDependants: true,
           })
-          expect(sortedBaseKeys(tasks)).to.eql(withDependants.sort())
+          expect(sortedBaseKeys(tasks)).to.eql(expectedTasks.sort())
         })
       }
+
+      it("should omit deploy tasks for disabled services in the module", async () => {
+        const garden = await makeTestGardenA()
+
+        garden.setModuleConfigs([
+          {
+            apiVersion: DEFAULT_API_VERSION,
+            allowPublish: false,
+            build: { dependencies: [] },
+            disabled: false,
+            name: "module-a",
+            include: [],
+            outputs: {},
+            path: garden.projectRoot,
+            serviceConfigs: [],
+            taskConfigs: [],
+            spec: {
+              services: [
+                {
+                  name: "service-a",
+                  dependencies: [],
+                  disabled: true, // <---------------
+                },
+              ],
+            },
+            testConfigs: [],
+            type: "test",
+          },
+        ])
+
+        const graph = await garden.getConfigGraph(garden.log)
+        const module = await graph.getModule("module-a", true)
+
+        const tasks = await getModuleWatchTasks({
+          garden,
+          graph,
+          log,
+          module,
+          hotReloadServiceNames: [],
+        })
+
+        expect(sortedBaseKeys(tasks)).to.eql(["build.module-a"])
+      })
+
+      it("should omit deploy tasks for disabled dependant services", async () => {
+        const garden = await makeTestGardenA()
+
+        garden.setModuleConfigs([
+          {
+            apiVersion: DEFAULT_API_VERSION,
+            allowPublish: false,
+            build: { dependencies: [] },
+            disabled: false,
+            name: "module-a",
+            include: [],
+            outputs: {},
+            path: garden.projectRoot,
+            serviceConfigs: [],
+            taskConfigs: [],
+            spec: {
+              services: [
+                {
+                  name: "service-a",
+                  dependencies: [],
+                  disabled: false,
+                },
+              ],
+            },
+            testConfigs: [],
+            type: "test",
+          },
+          {
+            apiVersion: DEFAULT_API_VERSION,
+            allowPublish: false,
+            build: { dependencies: [{ name: "module-a", copy: [] }] },
+            disabled: false,
+            name: "module-b",
+            include: [],
+            outputs: {},
+            path: garden.projectRoot,
+            serviceConfigs: [],
+            taskConfigs: [],
+            spec: {
+              services: [
+                {
+                  name: "service-b",
+                  dependencies: [],
+                  disabled: true, // <---------------
+                },
+              ],
+            },
+            testConfigs: [],
+            type: "test",
+          },
+        ])
+
+        const graph = await garden.getConfigGraph(garden.log)
+        const module = await graph.getModule("module-a", true)
+
+        const tasks = await getModuleWatchTasks({
+          garden,
+          graph,
+          log,
+          module,
+          hotReloadServiceNames: [],
+        })
+
+        expect(sortedBaseKeys(tasks)).to.eql(["build.module-a", "build.module-b", "deploy.service-a"])
+      })
     })
 
     context("with hot reloading enabled", () => {
       const expectedBaseKeysByChangedModule = [
         {
           moduleName: "build-dependency",
-          taskKeys: ["build.build-dependency", "deploy.build-dependency"],
-          withDependants: ["build.build-dependency", "deploy.build-dependency"],
+          expectedTasks: [
+            "build.build-dependant",
+            "build.build-dependency",
+            "build.good-morning",
+            "deploy.build-dependant",
+            "deploy.build-dependency",
+            "deploy.service-dependant",
+            "deploy.service-dependant2",
+          ],
         },
         {
           moduleName: "good-morning",
-          taskKeys: ["build.good-morning", "deploy.good-morning"],
-          withDependants: ["deploy.service-dependant", "deploy.service-dependant2"],
+          expectedTasks: [
+            "build.build-dependant",
+            "deploy.build-dependant",
+            "deploy.service-dependant",
+            "deploy.service-dependant2",
+            "hot-reload.good-morning",
+          ],
         },
         {
           moduleName: "good-evening",
-          taskKeys: ["build.good-evening", "deploy.good-evening"],
-          withDependants: ["build.good-evening", "deploy.good-evening"],
+          expectedTasks: ["build.good-evening", "deploy.good-evening"],
         },
         {
           moduleName: "build-dependant",
-          taskKeys: ["build.build-dependant", "deploy.build-dependant"],
-          withDependants: ["build.build-dependant", "deploy.build-dependant"],
+          expectedTasks: ["build.build-dependant", "deploy.build-dependant"],
         },
         {
           moduleName: "service-dependant",
-          taskKeys: ["build.service-dependant", "deploy.service-dependant"],
-          withDependants: ["build.service-dependant", "deploy.service-dependant"],
+          expectedTasks: ["build.service-dependant", "deploy.service-dependant"],
         },
       ]
 
-      for (const { moduleName, taskKeys, withDependants } of expectedBaseKeysByChangedModule) {
-        it(`returns the correct set of tasks for ${moduleName}`, async () => {
-          const module = await graph.getModule(<string>moduleName)
-          const tasks = await getDependantTasksForModule({
-            garden,
-            graph,
-            log,
-            module,
-            hotReloadServiceNames: ["good-morning"],
-            force: true,
-            forceBuild: true,
-            fromWatch: true,
-            includeDependants: false,
-          })
-          expect(sortedBaseKeys(tasks)).to.eql(taskKeys.sort())
-        })
-
+      for (const { moduleName, expectedTasks } of expectedBaseKeysByChangedModule) {
         it(`returns the correct set of tasks for ${moduleName} with dependants`, async () => {
+          const graph = await depGarden.getConfigGraph(depGarden.log)
           const module = await graph.getModule(<string>moduleName)
-          const tasks = await getDependantTasksForModule({
-            garden,
+
+          const tasks = await getModuleWatchTasks({
+            garden: depGarden,
             graph,
             log,
             module,
             hotReloadServiceNames: ["good-morning"],
-            force: true,
-            forceBuild: true,
-            fromWatch: true,
-            includeDependants: true,
           })
-          expect(sortedBaseKeys(tasks)).to.eql(withDependants.sort())
+          expect(sortedBaseKeys(tasks)).to.eql(expectedTasks.sort())
         })
       }
+
+      it("should omit hot reload tasks for disabled services in the module", async () => {
+        const garden = await makeTestGardenA()
+
+        garden.setModuleConfigs([
+          {
+            apiVersion: DEFAULT_API_VERSION,
+            allowPublish: false,
+            build: { dependencies: [] },
+            disabled: false,
+            name: "module-a",
+            include: [],
+            outputs: {},
+            path: garden.projectRoot,
+            serviceConfigs: [],
+            taskConfigs: [],
+            spec: {
+              services: [
+                {
+                  name: "service-a",
+                  dependencies: [],
+                  disabled: true, // <---------------
+                },
+              ],
+            },
+            testConfigs: [],
+            type: "test",
+          },
+        ])
+
+        const graph = await garden.getConfigGraph(garden.log)
+        const module = await graph.getModule("module-a", true)
+
+        const tasks = await getModuleWatchTasks({
+          garden,
+          graph,
+          log,
+          module,
+          hotReloadServiceNames: ["service-a"],
+        })
+
+        expect(sortedBaseKeys(tasks)).to.eql([])
+      })
+
+      it("should omit hot reload tasks for disabled dependant services", async () => {
+        const garden = await makeTestGardenA()
+
+        garden.setModuleConfigs([
+          {
+            apiVersion: DEFAULT_API_VERSION,
+            allowPublish: false,
+            build: { dependencies: [] },
+            disabled: false,
+            name: "module-a",
+            include: [],
+            outputs: {},
+            path: garden.projectRoot,
+            serviceConfigs: [],
+            taskConfigs: [],
+            spec: {
+              services: [
+                {
+                  name: "service-a",
+                  dependencies: [],
+                  disabled: false,
+                },
+              ],
+            },
+            testConfigs: [],
+            type: "test",
+          },
+          {
+            apiVersion: DEFAULT_API_VERSION,
+            allowPublish: false,
+            build: { dependencies: [{ name: "module-a", copy: [] }] },
+            disabled: false,
+            name: "module-b",
+            include: [],
+            outputs: {},
+            path: garden.projectRoot,
+            serviceConfigs: [],
+            taskConfigs: [],
+            spec: {
+              services: [
+                {
+                  name: "service-b",
+                  dependencies: [],
+                  disabled: true, // <---------------
+                },
+              ],
+            },
+            testConfigs: [],
+            type: "test",
+          },
+        ])
+
+        const graph = await garden.getConfigGraph(garden.log)
+        const module = await graph.getModule("module-a", true)
+
+        const tasks = await getModuleWatchTasks({
+          garden,
+          graph,
+          log,
+          module,
+          hotReloadServiceNames: ["service-a", "service-b"],
+        })
+
+        expect(sortedBaseKeys(tasks)).to.eql(["build.module-b", "hot-reload.service-a"])
+      })
     })
   })
 })

@@ -9,7 +9,7 @@
 import td from "testdouble"
 import Bluebird = require("bluebird")
 import { resolve, join } from "path"
-import { extend } from "lodash"
+import { extend, keyBy } from "lodash"
 import { remove, readdirSync, existsSync, copy, mkdirp, pathExists, truncate } from "fs-extra"
 import execa = require("execa")
 
@@ -106,6 +106,7 @@ export async function configureTestModule({ moduleConfig }: ConfigureModuleParam
   moduleConfig.serviceConfigs = moduleConfig.spec.services.map((spec) => ({
     name: spec.name,
     dependencies: spec.dependencies,
+    disabled: spec.disabled,
     sourceModuleName: spec.sourceModuleName,
     spec,
   }))
@@ -113,6 +114,7 @@ export async function configureTestModule({ moduleConfig }: ConfigureModuleParam
   moduleConfig.taskConfigs = moduleConfig.spec.tasks.map((t) => ({
     name: t.name,
     dependencies: t.dependencies,
+    disabled: t.disabled,
     spec: t,
     timeout: t.timeout,
   }))
@@ -120,6 +122,7 @@ export async function configureTestModule({ moduleConfig }: ConfigureModuleParam
   moduleConfig.testConfigs = moduleConfig.spec.tests.map((t) => ({
     name: t.name,
     dependencies: t.dependencies,
+    disabled: t.disabled,
     spec: t,
     timeout: t.timeout,
   }))
@@ -267,6 +270,7 @@ const defaultModuleConfig: ModuleConfig = {
   path: "bla",
   allowPublish: false,
   build: { dependencies: [] },
+  disabled: false,
   outputs: {},
   spec: {
     services: [
@@ -280,6 +284,7 @@ const defaultModuleConfig: ModuleConfig = {
     {
       name: "test-service",
       dependencies: [],
+      disabled: false,
       hotReloadable: false,
       spec: {},
     },
@@ -326,6 +331,11 @@ export class TestGarden extends Garden {
   constructor(params: GardenParams) {
     super(params)
     this.events = new TestEventBus(this.log)
+  }
+
+  setModuleConfigs(moduleConfigs: ModuleConfig[]) {
+    this.modulesScanned = true
+    this.moduleConfigs = keyBy(moduleConfigs, "name")
   }
 }
 

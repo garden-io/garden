@@ -31,6 +31,7 @@ import { millicpuToString, kilobytesToString, prepareEnvVars, workloadTypes } fr
 import { gardenAnnotationKey } from "../../../util/string"
 import { RuntimeContext } from "../../../runtime-context"
 import { resolve } from "path"
+import { killPortForwards } from "../port-forward"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "64Mi"
@@ -74,7 +75,12 @@ export async function deployContainerServiceRolling(
     log,
   })
 
-  return getContainerServiceStatus(params)
+  const status = await getContainerServiceStatus(params)
+
+  // Make sure port forwards work after redeployment
+  killPortForwards(service, status.forwardablePorts || [], log)
+
+  return status
 }
 
 export async function deployContainerServiceBlueGreen(
@@ -178,7 +184,13 @@ export async function deployContainerServiceBlueGreen(
       selector: `${gardenAnnotationKey("service")}=${service.name},` + `${versionKey}!=${newVersion}`,
     })
   }
-  return getContainerServiceStatus(params)
+
+  const status = await getContainerServiceStatus(params)
+
+  // Make sure port forwards work after redeployment
+  killPortForwards(service, status.forwardablePorts || [], log)
+
+  return status
 }
 
 export async function createContainerManifests(
