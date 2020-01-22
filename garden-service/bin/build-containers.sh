@@ -8,7 +8,7 @@ args=( $@ )
 version=${args[0]:-$(git rev-parse --short HEAD)}
 
 base_tag=gardendev/garden:${version}
-gcloud_tag=gardendev/garden-azure:${version}
+azure_tag=gardendev/garden-azure:${version}
 gcloud_tag=gardendev/garden-gcloud:${version}
 buster_tag=gardendev/garden:${version}-buster
 
