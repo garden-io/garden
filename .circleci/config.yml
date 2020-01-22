@@ -348,6 +348,9 @@ jobs:
       - *attach-workspace
       - run: sudo apt-get update && sudo apt-get -y install rsync
       - run:
+          name: Test that the binary works with the fancy logger enabled
+          command: garden-service/dist/linux-amd64/garden options
+      - run:
           name: Deploy demo-project with binary
           # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist garden-service/dist/linux-amd64/garden deploy --root examples/demo-project --env remote --logger-type basic
