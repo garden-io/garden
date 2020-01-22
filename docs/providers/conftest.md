@@ -12,7 +12,7 @@ Each module then creates a Garden test that becomes part of your Stack Graph.
 Note that, in many cases, you'll actually want to use more specific providers that can automatically configure your
 `conftest` modules, e.g. the [`conftest-container`](./conftest-container.md) and/or
 [`conftest-kubernetes`](./conftest-kubernetes.md) providers. See the
-[conftest example project](https://github.com/garden-io/garden/tree/master/examples/conftest) for a simple usage
+[conftest example project](https://github.com/garden-io/garden/tree/v0.11.1/examples/conftest) for a simple usage
 example of the latter.
 
 If those don't match your needs, you can use this provider directly and manually configure your `conftest`
