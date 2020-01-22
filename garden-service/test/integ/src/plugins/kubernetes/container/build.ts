@@ -34,7 +34,7 @@ describe("k8sBuildContainer", () => {
         (await decryptSecretFile(resolve(GARDEN_SERVICE_ROOT, "..", "secrets", "test-docker-auth.json"))).toString()
       )
       const api = await KubeApi.factory(garden.log, provider)
-      await api.upsert("Secret", "default", authSecret, garden.log)
+      await api.upsert({ kind: "Secret", namespace: "default", obj: authSecret, log: garden.log })
     }
 
     garden = await makeTestGarden(root, { environmentName })

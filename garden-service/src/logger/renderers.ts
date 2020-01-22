@@ -26,13 +26,21 @@ type RenderFn = (entry: LogEntry) => string
 
 /*** STYLE HELPERS ***/
 
-const SECTION_PREFIX_WIDTH = 25
+export const MAX_SECTION_WIDTH = 25
 const cliPadEnd = (s: string, width: number): string => {
   const diff = width - stringWidth(s)
   return diff <= 0 ? s : s + repeat(" ", diff)
 }
-const truncateSection = (s: string) => cliTruncate(s, SECTION_PREFIX_WIDTH)
-const sectionStyle = (s: string) => chalk.cyan.italic(cliPadEnd(truncateSection(s), SECTION_PREFIX_WIDTH))
+
+function styleSection(section: string, width: number = MAX_SECTION_WIDTH) {
+  const minWidth = Math.min(width, MAX_SECTION_WIDTH)
+  const formattedSection = [section]
+    .map((s) => cliTruncate(s, minWidth))
+    .map((s) => cliPadEnd(s, minWidth))
+    .pop()
+  return chalk.cyan.italic(formattedSection)
+}
+
 export const msgStyle = (s: string) => (hasAnsi(s) ? s : chalk.gray(s))
 export const errorStyle = (s: string) => (hasAnsi(s) ? s : chalk.red(s))
 
@@ -153,11 +161,11 @@ export function renderData(entry: LogEntry): string {
 }
 
 export function renderSection(entry: LogEntry): string {
-  const { msg, section } = entry.getMessageState()
+  const { msg, section, maxSectionWidth } = entry.getMessageState()
   if (section && msg) {
-    return `${sectionStyle(section)} → `
+    return `${styleSection(section, maxSectionWidth)} → `
   } else if (section) {
-    return sectionStyle(section)
+    return styleSection(section, maxSectionWidth)
   }
   return ""
 }

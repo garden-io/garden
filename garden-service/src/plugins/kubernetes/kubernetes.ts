@@ -33,6 +33,7 @@ import { isNumber } from "util"
 import chalk from "chalk"
 import pluralize from "pluralize"
 import { getSystemMetadataNamespaceName } from "./system"
+import { removeTillerCmd } from "./commands/remove-tiller"
 
 export async function configureProvider({
   projectName,
@@ -167,7 +168,7 @@ export const gardenPlugin = createGardenPlugin({
   dependencies: ["container"],
   configSchema,
   outputsSchema,
-  commands: [cleanupClusterRegistry, clusterInit, uninstallGardenServices],
+  commands: [cleanupClusterRegistry, clusterInit, removeTillerCmd, uninstallGardenServices],
   handlers: {
     configureProvider,
     getEnvironmentStatus,

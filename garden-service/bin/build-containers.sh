@@ -7,14 +7,31 @@ cd ${garden_service_root}
 args=( $@ )
 version=${args[0]:-$(git rev-parse --short HEAD)}
 
+base_tag=gardendev/garden:${version}
+gcloud_tag=gardendev/garden-azure:${version}
+gcloud_tag=gardendev/garden-gcloud:${version}
+buster_tag=gardendev/garden:${version}-buster
+
 echo "Building version ${version}"
 
-docker build -t gardendev/garden:${version} .
-docker build -t gardendev/garden-gcloud:${version} --build-arg TAG=${version} -f gcloud.Dockerfile .
-docker build -t gardendev/garden-azure:${version} --build-arg TAG=${version} -f azure.Dockerfile .
-
-echo "Sanity checking..."
-
+echo "-> Build ${base_tag}"
+docker build -t gardendev/garden:${version} -f Dockerfile .
+echo "-> Check ${base_tag}"
 docker run --rm -it gardendev/garden:${version} version
-docker run --rm -it gardendev/garden-gcloud:${version} version
+
+echo "-> Build ${azure_tag}"
+docker build -t gardendev/garden-azure:${version} --build-arg TAG=${version} -f azure.Dockerfile .
+echo "-> Check ${azure_tag}"
 docker run --rm -it gardendev/garden-azure:${version} version
+
+echo "-> Build ${gcloud_tag}"
+docker build -t gardendev/garden-gcloud:${version} --build-arg TAG=${version} -f gcloud.Dockerfile .
+echo "-> Check ${gcloud_tag}"
+docker run --rm -it gardendev/garden-gcloud:${version} version
+
+echo "-> Build ${buster_tag}"
+docker build -t gardendev/garden:${version}-buster -f buster.Dockerfile dist/linux-amd64
+echo "-> Check ${buster_tag}"
+docker run --rm -it gardendev/garden:${version}-buster version
+
+
