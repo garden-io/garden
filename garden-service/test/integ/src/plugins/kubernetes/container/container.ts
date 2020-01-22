@@ -265,7 +265,7 @@ describe("kubernetes container module handlers", () => {
           run: [],
           test: [],
         },
-        module: service.module,
+        version: service.module.version,
         serviceStatuses: {},
         taskResults: {},
       })
@@ -299,7 +299,7 @@ describe("kubernetes container module handlers", () => {
           run: [],
           test: [],
         },
-        module: service.module,
+        version: service.module.version,
         serviceStatuses: {},
         taskResults: {},
       })

@@ -142,15 +142,15 @@ version: 0.12.7
 
 The schema version of this module's config (currently not used).
 
-| Type     | Required | Allowed Values | Default          |
-| -------- | -------- | -------------- | ---------------- |
-| `string` | Yes      | "garden.io/v0" | `"garden.io/v0"` |
+| Type     | Allowed Values | Default          | Required |
+| -------- | -------------- | ---------------- | -------- |
+| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
 
 #### `kind`
 
-| Type     | Required | Allowed Values | Default    |
-| -------- | -------- | -------------- | ---------- |
-| `string` | Yes      | "Module"       | `"Module"` |
+| Type     | Allowed Values | Default    | Required |
+| -------- | -------------- | ---------- | -------- |
+| `string` | "Module"       | `"Module"` | Yes      |
 
 #### `type`
 
@@ -203,9 +203,9 @@ module's service or task outputs (i.e. runtime outputs) will fail to resolve whe
 so you need to make sure to provide alternate values for those if you're using them, using conditional
 expressions.
 
-| Type      | Required | Default |
-| --------- | -------- | ------- |
-| `boolean` | No       | `false` |
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 #### `include`
 
@@ -278,17 +278,17 @@ repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
 
 When false, disables pushing this module to remote registries.
 
-| Type      | Required | Default |
-| --------- | -------- | ------- |
-| `boolean` | No       | `true`  |
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `true`  | No       |
 
 #### `build`
 
 Specify how to build the module. Note that plugins may define additional keys on this object.
 
-| Type     | Required | Default               |
-| -------- | -------- | --------------------- |
-| `object` | No       | `{"dependencies":[]}` |
+| Type     | Default               | Required |
+| -------- | --------------------- | -------- |
+| `object` | `{"dependencies":[]}` | No       |
 
 #### `build.dependencies[]`
 
@@ -296,9 +296,9 @@ Specify how to build the module. Note that plugins may define additional keys on
 
 A list of modules that must be built before this module is built.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[object]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 Example:
 
@@ -325,9 +325,9 @@ Module name to build ahead of this module.
 
 Specify one or more files or directories to copy from the built dependency to this module.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[object]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 #### `build.dependencies[].copy[].source`
 
@@ -346,34 +346,34 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
 Defaults to to same as source path.
 
-| Type        | Required | Default |
-| ----------- | -------- | ------- |
-| `posixPath` | No       | `""`    |
+| Type        | Default | Required |
+| ----------- | ------- | -------- |
+| `posixPath` | `""`    | No       |
 
 #### `autoApply`
 
 If set to true, Garden will automatically run `terraform apply -auto-approve` when the stack is not up-to-date. Otherwise, a warning is logged if the stack is out-of-date, and an error thrown if it is missing entirely.
 Defaults to the value set in the provider config.
 
-| Type      | Required | Default |
-| --------- | -------- | ------- |
-| `boolean` | No       | `null`  |
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `null`  | No       |
 
 #### `dependencies`
 
 The names of any services that this service depends on at runtime, and the names of any tasks that should be executed before this service is deployed.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[string]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[string]` | `[]`    | No       |
 
 #### `root`
 
 Specify the path to the working directory root—i.e. where your Terraform files are—relative to the module root.
 
-| Type        | Required | Default |
-| ----------- | -------- | ------- |
-| `posixPath` | No       | `"."`   |
+| Type        | Default | Required |
+| ----------- | ------- | -------- |
+| `posixPath` | `"."`   | No       |
 
 #### `variables`
 
@@ -388,9 +388,9 @@ If you specified `variables` in the `terraform` provider config, those will be 
 
 The version of Terraform to use. Defaults to the version set in the provider config.
 
-| Type     | Required | Default    |
-| -------- | -------- | ---------- |
-| `string` | No       | `"0.12.7"` |
+| Type     | Default    | Required |
+| -------- | ---------- | -------- |
+| `string` | `"0.12.7"` | No       |
 
 
 ### Outputs
@@ -404,9 +404,9 @@ modules.
 
 The build path of the module.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type     |
+| -------- |
+| `string` |
 
 Example:
 
@@ -418,9 +418,9 @@ my-variable: ${modules.my-module.buildPath}
 
 The local path of the module.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type     |
+| -------- |
+| `string` |
 
 Example:
 
@@ -432,9 +432,9 @@ my-variable: ${modules.my-module.path}
 
 The current version of the module.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type     |
+| -------- |
+| `string` |
 
 Example:
 
@@ -448,11 +448,17 @@ my-variable: ${modules.my-module.version}
 The following keys are available via the `${runtime.services.<service-name>}` template string key for `terraform` module services.
 Note that these are only resolved when deploying/running dependants of the service, so they are not usable for every field.
 
-#### `${runtime.services.<service-name>.outputs}`
+#### `${runtime.services.<service-name>.outputs.*}`
 
 A map of all the outputs defined in the Terraform stack.
 
-| Type     | Required |
-| -------- | -------- |
-| `object` | Yes      |
+| Type     |
+| -------- |
+| `object` |
+
+#### `${runtime.services.<service-name>.outputs.<name>}`
+
+| Type  |
+| ----- |
+| `any` |
 

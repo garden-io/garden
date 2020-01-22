@@ -312,15 +312,15 @@ valueFiles: []
 
 The schema version of this module's config (currently not used).
 
-| Type     | Required | Allowed Values | Default          |
-| -------- | -------- | -------------- | ---------------- |
-| `string` | Yes      | "garden.io/v0" | `"garden.io/v0"` |
+| Type     | Allowed Values | Default          | Required |
+| -------- | -------------- | ---------------- | -------- |
+| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
 
 #### `kind`
 
-| Type     | Required | Allowed Values | Default    |
-| -------- | -------- | -------------- | ---------- |
-| `string` | Yes      | "Module"       | `"Module"` |
+| Type     | Allowed Values | Default    | Required |
+| -------- | -------------- | ---------- | -------- |
+| `string` | "Module"       | `"Module"` | Yes      |
 
 #### `type`
 
@@ -373,9 +373,9 @@ module's service or task outputs (i.e. runtime outputs) will fail to resolve whe
 so you need to make sure to provide alternate values for those if you're using them, using conditional
 expressions.
 
-| Type      | Required | Default |
-| --------- | -------- | ------- |
-| `boolean` | No       | `false` |
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 #### `include`
 
@@ -454,17 +454,17 @@ repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
 
 When false, disables pushing this module to remote registries.
 
-| Type      | Required | Default |
-| --------- | -------- | ------- |
-| `boolean` | No       | `true`  |
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `true`  | No       |
 
 #### `build`
 
 Specify how to build the module. Note that plugins may define additional keys on this object.
 
-| Type     | Required | Default               |
-| -------- | -------- | --------------------- |
-| `object` | No       | `{"dependencies":[]}` |
+| Type     | Default               | Required |
+| -------- | --------------------- | -------- |
+| `object` | `{"dependencies":[]}` | No       |
 
 #### `build.dependencies[]`
 
@@ -472,9 +472,9 @@ Specify how to build the module. Note that plugins may define additional keys on
 
 A list of modules that must be built before this module is built.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[object]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 Example:
 
@@ -501,9 +501,9 @@ Module name to build ahead of this module.
 
 Specify one or more files or directories to copy from the built dependency to this module.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[object]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 #### `build.dependencies[].copy[].source`
 
@@ -522,9 +522,9 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
 Defaults to to same as source path.
 
-| Type        | Required | Default |
-| ----------- | -------- | ------- |
-| `posixPath` | No       | `""`    |
+| Type        | Default | Required |
+| ----------- | ------- | -------- |
+| `posixPath` | `""`    | No       |
 
 #### `base`
 
@@ -560,17 +560,17 @@ chart: "stable/nginx-ingress"
 
 The path, relative to the module path, to the chart sources (i.e. where the Chart.yaml file is, if any). Not used when `base` is specified.
 
-| Type        | Required | Default |
-| ----------- | -------- | ------- |
-| `posixPath` | No       | `"."`   |
+| Type        | Default | Required |
+| ----------- | ------- | -------- |
+| `posixPath` | `"."`   | No       |
 
 #### `dependencies`
 
 List of names of services that should be deployed before this chart.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[string]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[string]` | `[]`    | No       |
 
 #### `releaseName`
 
@@ -603,9 +603,9 @@ We currently map a Helm chart to a single Garden service, because all the resour
 
 The type of Kubernetes resource to sync files to.
 
-| Type     | Required | Allowed Values                           | Default        |
-| -------- | -------- | ---------------------------------------- | -------------- |
-| `string` | Yes      | "Deployment", "DaemonSet", "StatefulSet" | `"Deployment"` |
+| Type     | Allowed Values                           | Default        | Required |
+| -------- | ---------------------------------------- | -------------- | -------- |
+| `string` | "Deployment", "DaemonSet", "StatefulSet" | `"Deployment"` | Yes      |
 
 #### `serviceResource.name`
 
@@ -672,17 +672,17 @@ serviceResource:
 
 Set this to true if the chart should only be built, but not deployed as a service. Use this, for example, if the chart should only be used as a base for other modules.
 
-| Type      | Required | Default |
-| --------- | -------- | ------- |
-| `boolean` | No       | `false` |
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 #### `tasks`
 
 The task definitions for this module.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[object]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 #### `tasks[].name`
 
@@ -710,9 +710,9 @@ A description of the task.
 
 The names of any tasks that must be executed, and the names of any services that must be running, before this task is executed.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[string]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[string]` | `[]`    | No       |
 
 #### `tasks[].disabled`
 
@@ -730,9 +730,9 @@ Note however that template strings referencing the task's outputs (i.e. runtime 
 resolve when the task is disabled, so you need to make sure to provide alternate values for those if
 you're using them, using conditional expressions.
 
-| Type      | Required | Default |
-| --------- | -------- | ------- |
-| `boolean` | No       | `false` |
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 #### `tasks[].timeout`
 
@@ -740,9 +740,9 @@ you're using them, using conditional expressions.
 
 Maximum duration (in seconds) of the task's execution.
 
-| Type     | Required | Default |
-| -------- | -------- | ------- |
-| `number` | No       | `null`  |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `null`  | No       |
 
 #### `tasks[].resource`
 
@@ -760,9 +760,9 @@ The Deployment, DaemonSet or StatefulSet that Garden should use to execute this 
 
 The type of Kubernetes resource to sync files to.
 
-| Type     | Required | Allowed Values                           | Default        |
-| -------- | -------- | ---------------------------------------- | -------------- |
-| `string` | Yes      | "Deployment", "DaemonSet", "StatefulSet" | `"Deployment"` |
+| Type     | Allowed Values                           | Default        | Required |
+| -------- | ---------------------------------------- | -------------- | -------- |
+| `string` | "Deployment", "DaemonSet", "StatefulSet" | `"Deployment"` | Yes      |
 
 #### `tasks[].resource.name`
 
@@ -871,9 +871,9 @@ tasks:
 
 Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives or references to secrets.
 
-| Type     | Required | Default |
-| -------- | -------- | ------- |
-| `object` | No       | `{}`    |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
 
 Example:
 
@@ -894,9 +894,9 @@ tasks:
 
 Specify artifacts to copy out of the container after the task is complete.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[object]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 #### `tasks[].artifacts[].source`
 
@@ -922,9 +922,9 @@ tasks:
 
 A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
 
-| Type        | Required | Default |
-| ----------- | -------- | ------- |
-| `posixPath` | No       | `"."`   |
+| Type        | Default | Required |
+| ----------- | ------- | -------- |
+| `posixPath` | `"."`   | No       |
 
 Example:
 
@@ -938,9 +938,9 @@ tasks:
 
 The test suite definitions for this module.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[object]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 #### `tests[].name`
 
@@ -958,9 +958,9 @@ The name of the test.
 
 The names of any services that must be running, and the names of any tasks that must be executed, before the test is run.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[string]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[string]` | `[]`    | No       |
 
 #### `tests[].disabled`
 
@@ -971,9 +971,9 @@ enable/disable tests based on, for example, the current environment or other var
 `enabled: \${environment.name != "prod"}`). This is handy when you only want certain tests to run in
 specific environments, e.g. only during CI.
 
-| Type      | Required | Default |
-| --------- | -------- | ------- |
-| `boolean` | No       | `false` |
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 #### `tests[].timeout`
 
@@ -981,9 +981,9 @@ specific environments, e.g. only during CI.
 
 Maximum duration (in seconds) of the test run.
 
-| Type     | Required | Default |
-| -------- | -------- | ------- |
-| `number` | No       | `null`  |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `null`  | No       |
 
 #### `tests[].resource`
 
@@ -1001,9 +1001,9 @@ The Deployment, DaemonSet or StatefulSet that Garden should use to execute this 
 
 The type of Kubernetes resource to sync files to.
 
-| Type     | Required | Allowed Values                           | Default        |
-| -------- | -------- | ---------------------------------------- | -------------- |
-| `string` | Yes      | "Deployment", "DaemonSet", "StatefulSet" | `"Deployment"` |
+| Type     | Allowed Values                           | Default        | Required |
+| -------- | ---------------------------------------- | -------------- | -------- |
+| `string` | "Deployment", "DaemonSet", "StatefulSet" | `"Deployment"` | Yes      |
 
 #### `tests[].resource.name`
 
@@ -1112,9 +1112,9 @@ tests:
 
 Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives or references to secrets.
 
-| Type     | Required | Default |
-| -------- | -------- | ------- |
-| `object` | No       | `{}`    |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
 
 Example:
 
@@ -1135,9 +1135,9 @@ tests:
 
 Specify artifacts to copy out of the container after the test is complete.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[object]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 #### `tests[].artifacts[].source`
 
@@ -1163,9 +1163,9 @@ tests:
 
 A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
 
-| Type        | Required | Default |
-| ----------- | -------- | ------- |
-| `posixPath` | No       | `"."`   |
+| Type        | Default | Required |
+| ----------- | ------- | -------- |
+| `posixPath` | `"."`   | No       |
 
 Example:
 
@@ -1179,9 +1179,9 @@ tests:
 
 Time in seconds to wait for Helm to complete any individual Kubernetes operation (like Jobs for hooks).
 
-| Type     | Required | Default |
-| -------- | -------- | ------- |
-| `number` | No       | `300`   |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `300`   | No       |
 
 #### `version`
 
@@ -1195,9 +1195,9 @@ The chart version to deploy.
 
 Map of values to pass to Helm when rendering the templates. May include arrays and nested objects. When specified, these take precedence over the values in the `values.yaml` file (or the files specified in `valueFiles`).
 
-| Type     | Required | Default |
-| -------- | -------- | ------- |
-| `object` | No       | `{}`    |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
 
 #### `valueFiles`
 
@@ -1211,9 +1211,9 @@ of this list, so they will take precedence over other files listed here.
 Note that the paths here should be relative to the _module_ root, and the files should be contained in
 your module directory.
 
-| Type               | Required | Default |
-| ------------------ | -------- | ------- |
-| `array[posixPath]` | No       | `[]`    |
+| Type               | Default | Required |
+| ------------------ | ------- | -------- |
+| `array[posixPath]` | `[]`    | No       |
 
 
 ### Outputs
@@ -1227,9 +1227,9 @@ modules.
 
 The build path of the module.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type     |
+| -------- |
+| `string` |
 
 Example:
 
@@ -1241,9 +1241,9 @@ my-variable: ${modules.my-module.buildPath}
 
 The local path of the module.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type     |
+| -------- |
+| `string` |
 
 Example:
 
@@ -1255,9 +1255,9 @@ my-variable: ${modules.my-module.path}
 
 The current version of the module.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type     |
+| -------- |
+| `string` |
 
 Example:
 
@@ -1265,19 +1265,11 @@ Example:
 my-variable: ${modules.my-module.version}
 ```
 
-#### `${modules.<module-name>.outputs}`
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | Yes      |
-
 #### `${modules.<module-name>.outputs.release-name}`
-
-[outputs](#outputs) > release-name
 
 The Helm release name of the service.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type     |
+| -------- |
+| `string` |
 

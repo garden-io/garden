@@ -80,7 +80,7 @@ describe("ActionRouter", () => {
         run: [],
         test: [],
       },
-      module,
+      version: module.version,
       serviceStatuses: {},
       taskResults: {},
     })
@@ -1388,7 +1388,7 @@ describe("ActionRouter", () => {
           run: [],
           test: [],
         },
-        module: serviceA.module,
+        version: serviceA.module.version,
         serviceStatuses: {
           "service-b": {
             state: "ready",
@@ -1439,7 +1439,7 @@ describe("ActionRouter", () => {
           run: [],
           test: [],
         },
-        module: serviceA.module,
+        version: serviceA.module.version,
         serviceStatuses: {},
         taskResults: {},
       })
@@ -1551,7 +1551,7 @@ describe("ActionRouter", () => {
           run: [],
           test: [],
         },
-        module: taskA.module,
+        version: taskA.module.version,
         serviceStatuses: {
           "service-b": {
             state: "ready",
@@ -1613,7 +1613,7 @@ describe("ActionRouter", () => {
           run: [],
           test: [],
         },
-        module: taskA.module,
+        version: taskA.module.version,
         // Omitting the service-b outputs here
         serviceStatuses: {},
         taskResults: {},

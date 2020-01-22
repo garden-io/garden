@@ -44,9 +44,9 @@ providers:
 
 #### `providers`
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[object]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 #### `providers[].name`
 
@@ -91,9 +91,9 @@ providers:
 By default, the provider automatically creates a `hadolint` module for every `container` module in your
 project. Set this to `false` to disable this behavior.
 
-| Type      | Required | Default |
-| --------- | -------- | ------- |
-| `boolean` | No       | `true`  |
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `true`  | No       |
 
 #### `providers[].testFailureThreshold`
 
@@ -102,7 +102,7 @@ project. Set this to `false` to disable this behavior.
 Set this to `"warning"` if you'd like tests to be marked as failed if one or more warnings are returned.
 Set to `"none"` to always mark the tests as successful.
 
-| Type     | Required | Default   |
-| -------- | -------- | --------- |
-| `string` | No       | `"error"` |
+| Type     | Default   | Required |
+| -------- | --------- | -------- |
+| `string` | `"error"` | No       |
 

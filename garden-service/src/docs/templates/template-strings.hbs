@@ -4,43 +4,42 @@ title: Template Strings Reference
 
 # Template string reference
 
-Below you'll find the schema of the keys available when interpolating template strings (see our
-[Configuration Files](../guides/configuration-files.md) guide for more information and usage examples).
+Below you'll find the schema of the keys available when interpolating template strings (see our [Configuration Files](../guides/configuration-files.md) guide for more information and usage examples).
 
-Note that there are three sections below, since Project configs and Module configs have different keys available to
-them, and since additional keys are available under `providers` in Project configs.
-Please make sure to refer to the correct section.
-
-Modules can reference `outputs` defined by other modules, via the `${modules.<module-name>.outputs}` key, as well
-as service and task outputs via the `${runtime.services.<service-name>.outputs}` and
-`${runtime.tasks.<task-name>.outputs}`.
-For details on which outputs are available for a given module type, please refer to the
-[reference](https://docs.garden.io/module-types) docs for the module type in question, and look for the
-_Outputs_ section.
+Note that there are four sections below, since different configuration sections have different keys available to them. Please make sure to refer to the correct section.
 
 ## Project configuration context
 
-The following keys are available in any template strings within project definitions in `garden.yml` config files
-(see the [Provider](#provider-configuration-context) section below for additional keys available when configuring
-`providers`):
+The following keys are available in any template strings within project definitions in `garden.yml` config files (see the [Provider](#provider-configuration-context) section below for additional keys available when configuring `providers`):
 
-```yaml
 {{{projectContext}}}
-```
 
 ## Provider configuration context
 
-The following keys are available in template strings under the `providers` key (or `environments[].providers)
-in `garden.yml` project config files:
+The following keys are available in template strings under the `providers` key (or `environments[].providers) in project configs.
 
-```yaml
+Providers can also reference outputs defined by other providers, via the `${providers.<provider-name>.outputs}` key. For details on which outputs are available for a given provider, please refer to the [reference](https://docs.garden.io/providers) docs for the provider in question, and look for the _Outputs_ section.
+
 {{{providerContext}}}
-```
 
 ## Module configuration context
 
-The following keys are available in template strings with module definitions in `garden.yml` config files:
+The below keys are available in template strings in module configs. These include all the keys from the sections above.
 
-```yaml
+Modules can reference outputs defined by providers, via the `${providers.<provider-name>.outputs}` key. For details on which outputs are available for a given provider, please refer to the [reference](https://docs.garden.io/providers) docs for the provider in question, and look for the _Outputs_ section.
+
+Modules can also reference outputs defined by other modules, via the `${modules.<module-name>.outputs}` key, as well as service and task outputs via the `${runtime.services.<service-name>.outputs}` and `${runtime.tasks.<task-name>.outputs}` keys.
+For details on which outputs are available for a given module type, please refer to the [reference](https://docs.garden.io/module-types) docs for the module type in question, and look for the _Outputs_ section.
+
 {{{moduleContext}}}
-```
+
+## Output configuration context
+
+The below keys are available in template strings for _project outputs_, specified in `outputs[].value` keys in project config files. These include all the keys from the sections above.
+
+Output values can reference outputs defined by providers, via the `${providers.<provider-name>.outputs}` key. For details on which outputs are available for a given provider, please refer to the [reference](https://docs.garden.io/providers) docs for the provider in question, and look for the _Outputs_ section.
+
+Output values may also reference outputs defined by modules, via the `${modules.<module-name>.outputs}` key, as well as service and task outputs via the `${runtime.services.<service-name>.outputs}` and `${runtime.tasks.<task-name>.outputs}` keys.
+For details on which outputs are available for a given module type, please refer to the [reference](https://docs.garden.io/module-types) docs for the module type in question, and look for the _Outputs_ section.
+
+{{{outputContext}}}

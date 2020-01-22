@@ -12,3 +12,6 @@ services:
     ingresses:
       - path: /hello-backend
         port: http
+tasks:
+  - name: test
+    command: ["sh", "-c", "echo task output"]

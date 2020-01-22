@@ -321,7 +321,7 @@ describe("ModuleConfigContext", () => {
           run: [taskB],
           test: [],
         },
-        module: serviceA.module,
+        version: serviceA.module.version,
         serviceStatuses: {
           "service-b": {
             state: "ready",

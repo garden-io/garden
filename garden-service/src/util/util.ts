@@ -36,6 +36,7 @@ export type PickFromUnion<T, U extends T> = U
 export type ValueOf<T> = T[keyof T]
 export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
 export type Diff<T, U> = T extends U ? never : T
+export type Mutable<T> = { -readonly [K in keyof T]: T[K] }
 export type Nullable<T> = { [P in keyof T]: T[P] | null }
 // From: https://stackoverflow.com/a/49936686/5629940
 export type DeepPartial<T> = {

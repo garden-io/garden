@@ -15,7 +15,7 @@ import { TreeCache } from "./cache"
 import { builtinPlugins } from "./plugins/plugins"
 import { Module, getModuleCacheContext, getModuleKey, ModuleConfigMap } from "./types/module"
 import { pluginModuleSchema, ModuleTypeMap } from "./types/plugin/plugin"
-import { SourceConfig, ProjectConfig, resolveProjectConfig, pickEnvironment } from "./config/project"
+import { SourceConfig, ProjectConfig, resolveProjectConfig, pickEnvironment, OutputSpec } from "./config/project"
 import { findByName, pickKeys, getPackageVersion, getNames } from "./util/util"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
 import { VcsHandler, ModuleVersion } from "./vcs/vcs"
@@ -33,7 +33,7 @@ import { LocalConfigStore, ConfigStore, GlobalConfigStore } from "./config-store
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
 import { BuildDependencyConfig, ModuleConfig, ModuleResource } from "./config/module"
 import { resolveModuleConfig, ModuleConfigResolveOpts } from "./resolve-module"
-import { ModuleConfigContext } from "./config/config-context"
+import { ModuleConfigContext, OutputConfigContext } from "./config/config-context"
 import { createPluginContext, CommandInfo } from "./plugin-context"
 import { ModuleAndRuntimeActionHandlers, RegisterPluginParam } from "./types/plugin/plugin"
 import { SUPPORTED_PLATFORMS, SupportedPlatform, DEFAULT_GARDEN_DIR_NAME } from "./constants"
@@ -103,6 +103,7 @@ export interface GardenParams {
   moduleIncludePatterns?: string[]
   moduleExcludePatterns?: string[]
   opts: GardenOpts
+  outputs: OutputSpec[]
   plugins: RegisterPluginParam[]
   production: boolean
   projectName: string
@@ -149,7 +150,9 @@ export class Garden {
   public readonly moduleIncludePatterns?: string[]
   public readonly moduleExcludePatterns: string[]
   public readonly persistent: boolean
+  public readonly rawOutputs: OutputSpec[]
   public readonly systemNamespace: string
+  public readonly version: ModuleVersion
 
   constructor(params: GardenParams) {
     this.buildDir = params.buildDir
@@ -158,6 +161,7 @@ export class Garden {
     this.log = params.log
     this.artifactsPath = params.artifactsPath
     this.opts = params.opts
+    this.rawOutputs = params.outputs
     this.production = params.production
     this.projectName = params.projectName
     this.projectRoot = params.projectRoot
@@ -200,6 +204,13 @@ export class Garden {
     // Register plugins
     for (const plugin of [...builtinPlugins, ...params.plugins]) {
       this.registerPlugin(plugin)
+    }
+
+    // TODO: actually resolve version, based on the VCS version of the plugin and its dependencies
+    this.version = {
+      versionString: getPackageVersion(),
+      dependencyVersions: {},
+      files: [],
     }
   }
 
@@ -262,6 +273,7 @@ export class Garden {
       production,
       gardenDirPath,
       opts,
+      outputs: config.outputs || [],
       plugins,
       providerConfigs: providers,
       moduleExcludePatterns,
@@ -481,15 +493,6 @@ export class Garden {
       }
 
       const tasks = rawConfigs.map((config) => {
-        // TODO: actually resolve version, based on the VCS version of the plugin and its dependencies
-        const version = {
-          versionString: getPackageVersion(),
-          dirtyTimestamp: null,
-          commitHash: getPackageVersion(),
-          dependencyVersions: {},
-          files: [],
-        }
-
         const plugin = plugins[config.name]
 
         return new ResolveProviderTask({
@@ -497,7 +500,7 @@ export class Garden {
           log,
           plugin,
           config,
-          version,
+          version: this.version,
           forceInit,
         })
       })
@@ -575,8 +578,12 @@ export class Garden {
 
   async getModuleConfigContext(runtimeContext?: RuntimeContext) {
     const providers = await this.resolveProviders()
-
     return new ModuleConfigContext(this, providers, this.variables, Object.values(this.moduleConfigs), runtimeContext)
+  }
+
+  async getOutputConfigContext(runtimeContext: RuntimeContext) {
+    const providers = await this.resolveProviders()
+    return new OutputConfigContext(this, providers, this.variables, Object.values(this.moduleConfigs), runtimeContext)
   }
 
   /**

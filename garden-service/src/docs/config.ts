@@ -12,7 +12,7 @@ import { safeDump } from "js-yaml"
 import linewrap from "linewrap"
 import { resolve } from "path"
 import { projectSchema, environmentSchema } from "../config/project"
-import { get, flatten, startCase, uniq, keyBy, find, isFunction } from "lodash"
+import { get, flatten, startCase, uniq, keyBy, find, isFunction, extend } from "lodash"
 import { baseModuleSpecSchema } from "../config/module"
 import handlebars = require("handlebars")
 import { joiArray, joi } from "../config/common"
@@ -83,7 +83,10 @@ export interface NormalizedSchemaDescription extends Description {
 
 // Maps a Joi schema description into an array of descriptions and normalizes each entry.
 // Filters out internal descriptions.
-export function normalizeSchemaDescriptions(joiDescription: Description): NormalizedSchemaDescription[] {
+export function normalizeSchemaDescriptions(
+  joiDescription: Description,
+  { renderPatternKeys = false } = {}
+): NormalizedSchemaDescription[] {
   const normalize = (
     joiDesc: Description,
     { level = 0, name, parent }: { level?: number; name?: string; parent?: NormalizedSchemaDescription } = {}
@@ -106,6 +109,16 @@ export function normalizeSchemaDescriptions(joiDescription: Description): Normal
           normalize(childDescription as Description, { level: nextLevel, parent: nextParent, name: childName })
         )
       )
+      if (renderPatternKeys && joiDesc.patterns && joiDesc.patterns.length > 0) {
+        const metas: any = extend({}, ...(joiDesc.metas || []))
+        childDescriptions.push(
+          ...normalize(joiDesc.patterns[0].rule as Description, {
+            level: nextLevel,
+            parent: nextParent,
+            name: metas.keyPlaceholder || "<name>",
+          })
+        )
+      }
     } else if (joiDesc.type === "array") {
       // We only use the first array item
       const item = joiDesc.items[0]
@@ -226,12 +239,15 @@ function renderMarkdownTitle(description: NormalizedSchemaDescription, prefix = 
 export function renderMarkdownLink(description: NormalizedSchemaDescription) {
   const path = renderMarkdownTitle(description)
     .replace(/\s+/g, "-") // Replace " " with "-""
-    .replace(/(\.)|(\[\])/g, "") // Replace "." and "[]" with ""
+    .replace(/[\.\[\]\<\>]/g, "") // Replace ".", "[]" and "<>" with ""
     .toLowerCase()
   return `[${description.name}](#${path})`
 }
 
-function makeMarkdownDescription(description: NormalizedSchemaDescription, titlePrefix = "") {
+function makeMarkdownDescription(
+  description: NormalizedSchemaDescription,
+  { titlePrefix = "", showRequiredColumn = true } = {}
+) {
   const { formattedType, required, allowedValues, defaultValue } = description
   let experimentalFeature = false
   if (description.meta) {
@@ -257,12 +273,17 @@ function makeMarkdownDescription(description: NormalizedSchemaDescription, title
     }).replace(/\n$/, "") // strip trailing new line
   }
 
-  const table = renderMarkdownTable({
+  const tableData: any = {
     Type: "`" + formattedType + "`",
-    Required: required ? "Yes" : "No",
     ...(allowedValues ? { "Allowed Values": allowedValues } : {}),
     ...(defaultValue !== undefined ? { Default: "`" + JSON.stringify(defaultValue) + "`" } : {}),
-  })
+  }
+
+  if (showRequiredColumn) {
+    tableData.Required = required ? "Yes" : "No"
+  }
+
+  const table = renderMarkdownTable(tableData)
 
   return {
     ...description,
@@ -426,7 +447,7 @@ export function renderConfigReference(configSchema: Joi.ObjectSchema, titlePrefi
   const normalizedDescriptions = normalizeSchemaDescriptions(configSchema.describe() as Description)
 
   const yaml = renderSchemaDescriptionYaml(normalizedDescriptions, { renderBasicDescription: true })
-  const keys = normalizedDescriptions.map((d) => makeMarkdownDescription(d, titlePrefix))
+  const keys = normalizedDescriptions.map((d) => makeMarkdownDescription(d, { titlePrefix }))
 
   const template = handlebars.compile(readFileSync(partialTemplatePath).toString())
   return { markdownReference: template({ keys }), yaml }
@@ -435,31 +456,57 @@ export function renderConfigReference(configSchema: Joi.ObjectSchema, titlePrefi
 /**
  * Generates a markdown reference for template string output schemas.
  */
-function renderTemplateStringReference({
+export function renderTemplateStringReference({
   schema,
   prefix,
   placeholder,
   exampleName,
 }: {
   schema: Joi.ObjectSchema
-  prefix: string
-  placeholder: string
-  exampleName: string
+  prefix?: string
+  placeholder?: string
+  exampleName?: string
 }): string {
-  const normalizedSchemaDescriptions = normalizeSchemaDescriptions(schema.describe() as Description)
+  const normalizedSchemaDescriptions = normalizeSchemaDescriptions(schema.describe() as Description, {
+    renderPatternKeys: true,
+  })
 
   const keys = normalizedSchemaDescriptions
-    .map((d) => makeMarkdownDescription(d))
+    .map((d) => makeMarkdownDescription(d, { showRequiredColumn: false }))
+    // Omit objects without descriptions
+    .filter((d) => !(d.type === "object" && !d.flags?.description))
     .map((d) => {
-      const title = d.title
-      d.title = `\${${prefix}.${placeholder}.${title}}`
-      if (d.formattedExample) {
-        d.formattedExample = `my-variable: \${${prefix}.${exampleName}.${title}}`
+      let orgTitle = d.title
+
+      if (placeholder) {
+        d.title = `${placeholder}.${d.title}`
       }
+      if (prefix) {
+        d.title = `${prefix}.${d.title}`
+      }
+
+      if (d.type === "object") {
+        d.title += ".*"
+      } else if (d.formattedExample) {
+        let exampleTitle = orgTitle
+
+        if (exampleName) {
+          exampleTitle = `${exampleName}.${exampleTitle}`
+        }
+        if (prefix) {
+          exampleTitle = `${prefix}.${exampleTitle}`
+        }
+
+        d.formattedExample = `my-variable: \${${exampleTitle}}`
+      }
+
+      d.title = `\${${d.title}}`
+
+      // The breadcrumbs don't really make sense here
+      d.breadCrumbs = ""
+
       return d
     })
-    // Omit empty objects without descriptions
-    .filter((d) => !(d.name === "outputs" && d.hasChildren === false && !d.flags?.description))
 
   const template = handlebars.compile(readFileSync(partialTemplatePath).toString())
   return template({ keys })

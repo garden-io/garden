@@ -27,7 +27,7 @@ describe("prepareRuntimeContext", () => {
     const runtimeContext = await prepareRuntimeContext({
       garden,
       graph,
-      module,
+      version: module.version,
       dependencies: {
         build: [],
         deploy: [],
@@ -49,7 +49,7 @@ describe("prepareRuntimeContext", () => {
     const runtimeContext = await prepareRuntimeContext({
       garden,
       graph,
-      module,
+      version: module.version,
       dependencies: {
         build: [],
         deploy: [],
@@ -72,7 +72,7 @@ describe("prepareRuntimeContext", () => {
     const runtimeContext = await prepareRuntimeContext({
       garden,
       graph,
-      module,
+      version: module.version,
       dependencies: {
         build: [moduleB],
         deploy: [],
@@ -107,7 +107,7 @@ describe("prepareRuntimeContext", () => {
     const runtimeContext = await prepareRuntimeContext({
       garden,
       graph,
-      module,
+      version: module.version,
       dependencies: {
         build: [],
         deploy: [serviceB],
@@ -148,7 +148,7 @@ describe("prepareRuntimeContext", () => {
     const runtimeContext = await prepareRuntimeContext({
       garden,
       graph,
-      module,
+      version: module.version,
       dependencies: {
         build: [],
         deploy: [],
@@ -195,7 +195,7 @@ describe("prepareRuntimeContext", () => {
     const runtimeContext = await prepareRuntimeContext({
       garden,
       graph,
-      module,
+      version: module.version,
       dependencies: {
         build: [],
         deploy: [serviceB],
@@ -218,7 +218,7 @@ describe("prepareRuntimeContext", () => {
     const runtimeContext = await prepareRuntimeContext({
       garden,
       graph,
-      module,
+      version: module.version,
       dependencies: {
         build: [],
         deploy: [serviceB],

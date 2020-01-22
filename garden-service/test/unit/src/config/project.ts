@@ -34,6 +34,7 @@ describe("resolveProjectConfig", () => {
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [{ name: "default", variables: {} }],
+      outputs: [],
       providers: [{ name: "some-provider" }],
       variables: {},
     }
@@ -62,6 +63,7 @@ describe("resolveProjectConfig", () => {
       defaultEnvironment: "local",
       dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [],
+      outputs: [],
       providers: [{ name: "some-provider" }],
       variables: {},
     }
@@ -118,6 +120,7 @@ describe("resolveProjectConfig", () => {
           },
         },
       ],
+      outputs: [],
       sources: [
         {
           name: "foo",
@@ -178,6 +181,7 @@ describe("resolveProjectConfig", () => {
           },
         },
       ],
+      outputs: [],
       providers: [
         {
           name: "provider-a",
@@ -206,6 +210,7 @@ describe("resolveProjectConfig", () => {
       defaultEnvironment: "",
       dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [],
+      outputs: [],
       providers: [{ name: "some-provider" }],
       variables: {},
     }
@@ -228,6 +233,7 @@ describe("resolveProjectConfig", () => {
       defaultEnvironment: "",
       dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [],
+      outputs: [],
       providers: [{ name: "some-provider" }],
       variables: {},
     }
@@ -257,6 +263,7 @@ describe("resolveProjectConfig", () => {
           },
         },
       ],
+      outputs: [],
       providers: [
         {
           name: "provider-a",
@@ -284,6 +291,7 @@ describe("resolveProjectConfig", () => {
           },
         },
       ],
+      outputs: [],
       providers: [
         {
           name: "provider-a",
@@ -322,6 +330,7 @@ describe("resolveProjectConfig", () => {
           },
         },
       ],
+      outputs: [],
       providers: [
         {
           name: "provider-a",
@@ -344,6 +353,7 @@ describe("resolveProjectConfig", () => {
           },
         },
       ],
+      outputs: [],
       providers: [
         {
           name: "provider-a",

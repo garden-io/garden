@@ -14,3 +14,10 @@ providers:
     namespace: demo-project-testing-${local.env.USER || local.username}
     defaultHostname: ${local.env.USER || local.username}-demo-project.dev-1.sys.garden
     buildMode: cluster-docker
+outputs:
+  - name: namespace
+    value: ${providers.local-kubernetes.outputs.app-namespace}
+  - name: backend-image
+    value: ${modules.backend.outputs.deployment-image-name}
+  - name: task-output
+    value: ${runtime.tasks.test.outputs.log}

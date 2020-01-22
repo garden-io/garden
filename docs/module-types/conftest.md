@@ -9,7 +9,7 @@ namespace.
 
 > Note: In many cases, you'll let specific conftest providers (e.g. [`conftest-container`](../providers/conftest-container.md) and [`conftest-kubernetes`](../providers/conftest-kubernetes.md) create this module type automatically, but you may in some cases want or need to manually specify files to test.
 
-See the [conftest docs](https://github.com/instramenta/conftest) for details on how to configure policies.
+See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
 
 ## Reference
 
@@ -126,15 +126,15 @@ files:
 
 The schema version of this module's config (currently not used).
 
-| Type     | Required | Allowed Values | Default          |
-| -------- | -------- | -------------- | ---------------- |
-| `string` | Yes      | "garden.io/v0" | `"garden.io/v0"` |
+| Type     | Allowed Values | Default          | Required |
+| -------- | -------------- | ---------------- | -------- |
+| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
 
 #### `kind`
 
-| Type     | Required | Allowed Values | Default    |
-| -------- | -------- | -------------- | ---------- |
-| `string` | Yes      | "Module"       | `"Module"` |
+| Type     | Allowed Values | Default    | Required |
+| -------- | -------------- | ---------- | -------- |
+| `string` | "Module"       | `"Module"` | Yes      |
 
 #### `type`
 
@@ -187,9 +187,9 @@ module's service or task outputs (i.e. runtime outputs) will fail to resolve whe
 so you need to make sure to provide alternate values for those if you're using them, using conditional
 expressions.
 
-| Type      | Required | Default |
-| --------- | -------- | ------- |
-| `boolean` | No       | `false` |
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 #### `include`
 
@@ -262,17 +262,17 @@ repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
 
 When false, disables pushing this module to remote registries.
 
-| Type      | Required | Default |
-| --------- | -------- | ------- |
-| `boolean` | No       | `true`  |
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `true`  | No       |
 
 #### `build`
 
 Specify how to build the module. Note that plugins may define additional keys on this object.
 
-| Type     | Required | Default               |
-| -------- | -------- | --------------------- |
-| `object` | No       | `{"dependencies":[]}` |
+| Type     | Default               | Required |
+| -------- | --------------------- | -------- |
+| `object` | `{"dependencies":[]}` | No       |
 
 #### `build.dependencies[]`
 
@@ -280,9 +280,9 @@ Specify how to build the module. Note that plugins may define additional keys on
 
 A list of modules that must be built before this module is built.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[object]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 Example:
 
@@ -309,9 +309,9 @@ Module name to build ahead of this module.
 
 Specify one or more files or directories to copy from the built dependency to this module.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[object]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 #### `build.dependencies[].copy[].source`
 
@@ -330,9 +330,9 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
 Defaults to to same as source path.
 
-| Type        | Required | Default |
-| ----------- | -------- | ------- |
-| `posixPath` | No       | `""`    |
+| Type        | Default | Required |
+| ----------- | ------- | -------- |
+| `posixPath` | `""`    | No       |
 
 #### `sourceModule`
 
@@ -357,9 +357,9 @@ Defaults to the `policyPath` set in the provider config.
 
 The policy namespace in which to find _deny_ and _warn_ rules.
 
-| Type     | Required | Default  |
+| Type     | Default  | Required |
 | -------- | -------- | -------- |
-| `string` | No       | `"main"` |
+| `string` | `"main"` | No       |
 
 #### `files`
 
@@ -381,9 +381,9 @@ modules.
 
 The build path of the module.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type     |
+| -------- |
+| `string` |
 
 Example:
 
@@ -395,9 +395,9 @@ my-variable: ${modules.my-module.buildPath}
 
 The local path of the module.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type     |
+| -------- |
+| `string` |
 
 Example:
 
@@ -409,9 +409,9 @@ my-variable: ${modules.my-module.path}
 
 The current version of the module.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type     |
+| -------- |
+| `string` |
 
 Example:
 

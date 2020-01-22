@@ -43,9 +43,9 @@ providers:
 
 #### `providers`
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[object]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 #### `providers[].name`
 
@@ -89,9 +89,9 @@ providers:
 
 Path to the default policy directory or rego file to use for `conftest` modules.
 
-| Type        | Required | Default      |
-| ----------- | -------- | ------------ |
-| `posixPath` | No       | `"./policy"` |
+| Type        | Default      | Required |
+| ----------- | ------------ | -------- |
+| `posixPath` | `"./policy"` | No       |
 
 #### `providers[].namespace`
 
@@ -110,7 +110,7 @@ Default policy namespace to use for `conftest` modules.
 Set this to `"warn"` if you'd like tests to be marked as failed if one or more _warn_ rules are matched.
 Set to `"none"` to always mark the tests as successful.
 
-| Type     | Required | Default   |
-| -------- | -------- | --------- |
-| `string` | No       | `"error"` |
+| Type     | Default   | Required |
+| -------- | --------- | -------- |
+| `string` | `"error"` | No       |
 

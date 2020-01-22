@@ -83,6 +83,23 @@ modules:
   # guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
   exclude:
 
+# A list of output values that the project should export. These are exported by the `garden outputs` command,
+# as well as when referencing a project as a sub-project within another project.
+#
+# You may use any template strings to specify the values, including references to provider outputs, module
+# outputs and runtime outputs. For a full reference, see the
+# [Output configuration context](../reference/template-strings.md#output-configuration-context) section in the
+# Template String Reference.
+#
+# Note that if any runtime outputs are referenced, the referenced services and tasks will be deployed and run
+# if necessary when resolving the outputs.
+outputs:
+  # The name of the output value.
+  - name:
+    # The value for the output. Must be a primitive (string, number, boolean or null). May also be any valid template
+    # string.
+    value:
+
 # A list of providers that should be used for this project, and their configuration. Please refer to individual
 # plugins/providers for details on how to configure them.
 providers:
@@ -154,15 +171,15 @@ environments:
 
 The schema version of this project's config (currently not used).
 
-| Type     | Required | Allowed Values | Default          |
-| -------- | -------- | -------------- | ---------------- |
-| `string` | Yes      | "garden.io/v0" | `"garden.io/v0"` |
+| Type     | Allowed Values | Default          | Required |
+| -------- | -------------- | ---------------- | -------- |
+| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
 
 #### `kind`
 
-| Type     | Required | Allowed Values | Default     |
-| -------- | -------- | -------------- | ----------- |
-| `string` | Yes      | "Project"      | `"Project"` |
+| Type     | Allowed Values | Default     | Required |
+| -------- | -------------- | ----------- | -------- |
+| `string` | "Project"      | `"Project"` | Yes      |
 
 #### `name`
 
@@ -182,9 +199,9 @@ name: "my-sweet-project"
 
 The default environment to use when calling commands without the `--env` parameter. Defaults to the first configured environment.
 
-| Type     | Required | Default |
-| -------- | -------- | ------- |
-| `string` | No       | `""`    |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `string` | `""`    | No       |
 
 #### `dotIgnoreFiles`
 
@@ -192,9 +209,9 @@ Specify a list of filenames that should be used as ".ignore" files across the pr
 Note that these take precedence over the project `module.include` field, and module `include` fields, so any paths matched by the .ignore files will be ignored even if they are explicitly specified in those fields.
 See the [Configuration Files guide] (https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
 
-| Type               | Required | Default                          |
-| ------------------ | -------- | -------------------------------- |
-| `array[posixPath]` | No       | `[".gitignore",".gardenignore"]` |
+| Type               | Default                          | Required |
+| ------------------ | -------------------------------- | -------- |
+| `array[posixPath]` | `[".gitignore",".gardenignore"]` | No       |
 
 #### `modules`
 
@@ -271,13 +288,51 @@ modules:
     - tmp/**/*
 ```
 
+#### `outputs`
+
+A list of output values that the project should export. These are exported by the `garden outputs` command,
+as well as when referencing a project as a sub-project within another project.
+
+You may use any template strings to specify the values, including references to provider outputs, module
+outputs and runtime outputs. For a full reference, see the
+[Output configuration context](../reference/template-strings.md#output-configuration-context) section in the
+Template String Reference.
+
+Note that if any runtime outputs are referenced, the referenced services and tasks will be deployed and run
+if necessary when resolving the outputs.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+#### `outputs[].name`
+
+[outputs](#outputs) > name
+
+The name of the output value.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+#### `outputs[].value`
+
+[outputs](#outputs) > value
+
+The value for the output. Must be a primitive (string, number, boolean or null). May also be any valid template
+string.
+
+| Type                        | Required |
+| --------------------------- | -------- |
+| `number | string | boolean` | Yes      |
+
 #### `providers`
 
 A list of providers that should be used for this project, and their configuration. Please refer to individual plugins/providers for details on how to configure them.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[object]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 #### `providers[].name`
 
@@ -319,9 +374,9 @@ providers:
 
 A list of remote sources to import into project.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[object]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 #### `sources[].name`
 
@@ -362,17 +417,17 @@ If you do override the default value and the file doesn't exist, an error will b
 _Note that in many cases it is advisable to only use environment-specific var files, instead of combining
 multiple ones. See the `environments[].varfile` field for this option._
 
-| Type        | Required | Default        |
-| ----------- | -------- | -------------- |
-| `posixPath` | No       | `"garden.env"` |
+| Type        | Default        | Required |
+| ----------- | -------------- | -------- |
+| `posixPath` | `"garden.env"` | No       |
 
 #### `variables`
 
 Variables to configure for all environments.
 
-| Type     | Required | Default |
-| -------- | -------- | ------- |
-| `object` | No       | `{}`    |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
 
 #### `environments`
 
@@ -386,9 +441,9 @@ Variables to configure for all environments.
 
 DEPRECATED - Please use the top-level `providers` field instead, and if needed use the `environments` key on the provider configurations to limit them to specific environments.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[object]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 #### `environments[].providers[].name`
 
@@ -449,9 +504,9 @@ we simply ignore it. If you do override the default value and the file doesn't e
 
 A key/value map of variables that modules can reference when using this environment. These take precedence over variables defined in the top-level `variables` field.
 
-| Type     | Required | Default |
-| -------- | -------- | ------- |
-| `object` | No       | `{}`    |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
 
 #### `environments[].name`
 
@@ -477,9 +532,9 @@ Run the command with the "--yes" flag to skip the check (e.g. when running Garde
 This flag is also passed on to every provider, and may affect how certain providers behave.
 For more details please check the documentation for the providers in use.
 
-| Type      | Required | Default |
-| --------- | -------- | ------- |
-| `boolean` | No       | `false` |
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 
 ## Module YAML schema
@@ -571,15 +626,15 @@ build:
 
 The schema version of this module's config (currently not used).
 
-| Type     | Required | Allowed Values | Default          |
-| -------- | -------- | -------------- | ---------------- |
-| `string` | Yes      | "garden.io/v0" | `"garden.io/v0"` |
+| Type     | Allowed Values | Default          | Required |
+| -------- | -------------- | ---------------- | -------- |
+| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
 
 #### `kind`
 
-| Type     | Required | Allowed Values | Default    |
-| -------- | -------- | -------------- | ---------- |
-| `string` | Yes      | "Module"       | `"Module"` |
+| Type     | Allowed Values | Default    | Required |
+| -------- | -------------- | ---------- | -------- |
+| `string` | "Module"       | `"Module"` | Yes      |
 
 #### `type`
 
@@ -632,9 +687,9 @@ module's service or task outputs (i.e. runtime outputs) will fail to resolve whe
 so you need to make sure to provide alternate values for those if you're using them, using conditional
 expressions.
 
-| Type      | Required | Default |
-| --------- | -------- | ------- |
-| `boolean` | No       | `false` |
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 #### `include`
 
@@ -707,17 +762,17 @@ repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
 
 When false, disables pushing this module to remote registries.
 
-| Type      | Required | Default |
-| --------- | -------- | ------- |
-| `boolean` | No       | `true`  |
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `true`  | No       |
 
 #### `build`
 
 Specify how to build the module. Note that plugins may define additional keys on this object.
 
-| Type     | Required | Default               |
-| -------- | -------- | --------------------- |
-| `object` | No       | `{"dependencies":[]}` |
+| Type     | Default               | Required |
+| -------- | --------------------- | -------- |
+| `object` | `{"dependencies":[]}` | No       |
 
 #### `build.dependencies[]`
 
@@ -725,9 +780,9 @@ Specify how to build the module. Note that plugins may define additional keys on
 
 A list of modules that must be built before this module is built.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[object]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 Example:
 
@@ -754,9 +809,9 @@ Module name to build ahead of this module.
 
 Specify one or more files or directories to copy from the built dependency to this module.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[object]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 #### `build.dependencies[].copy[].source`
 
@@ -775,8 +830,8 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
 Defaults to to same as source path.
 
-| Type        | Required | Default |
-| ----------- | -------- | ------- |
-| `posixPath` | No       | `""`    |
+| Type        | Default | Required |
+| ----------- | ------- | -------- |
+| `posixPath` | `""`    | No       |
 
 

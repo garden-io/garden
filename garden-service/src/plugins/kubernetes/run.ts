@@ -459,7 +459,9 @@ export class PodRunner extends PodRunnerParams {
   /**
    * Executes a command in the running Pod. Must be called after `start()`.
    */
-  async exec({ log, command, container, ignoreError, stdout, stderr, timeout }: ExecParams) {
+  async exec(params: ExecParams) {
+    const { log, command, container, ignoreError, stdout, stderr, timeout } = params
+
     if (!this.proc) {
       throw new PodRunnerError(`Attempting to exec a command in Pod before starting it`, { command })
     }

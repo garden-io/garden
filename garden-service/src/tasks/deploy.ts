@@ -166,7 +166,7 @@ export class DeployTask extends BaseTask {
       garden: this.garden,
       graph: this.graph,
       dependencies,
-      module: this.service.module,
+      version: this.version,
       serviceStatuses,
       taskResults,
     })

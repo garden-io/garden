@@ -95,7 +95,7 @@ export class RunServiceCommand extends Command<Args, Opts> {
       garden,
       graph,
       dependencies,
-      module,
+      version: module.version,
       serviceStatuses,
       taskResults,
     })

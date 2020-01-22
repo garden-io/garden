@@ -160,7 +160,7 @@ export class TestTask extends BaseTask {
       garden: this.garden,
       graph: this.graph,
       dependencies,
-      module: this.module,
+      version: this.module.version,
       serviceStatuses,
       taskResults,
     })
