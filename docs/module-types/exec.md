@@ -199,15 +199,15 @@ tests:
 
 The schema version of this module's config (currently not used).
 
-| Type     | Required | Allowed Values | Default          |
-| -------- | -------- | -------------- | ---------------- |
-| `string` | Yes      | "garden.io/v0" | `"garden.io/v0"` |
+| Type     | Allowed Values | Default          | Required |
+| -------- | -------------- | ---------------- | -------- |
+| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
 
 #### `kind`
 
-| Type     | Required | Allowed Values | Default    |
-| -------- | -------- | -------------- | ---------- |
-| `string` | Yes      | "Module"       | `"Module"` |
+| Type     | Allowed Values | Default    | Required |
+| -------- | -------------- | ---------- | -------- |
+| `string` | "Module"       | `"Module"` | Yes      |
 
 #### `type`
 
@@ -260,9 +260,9 @@ module's service or task outputs (i.e. runtime outputs) will fail to resolve whe
 so you need to make sure to provide alternate values for those if you're using them, using conditional
 expressions.
 
-| Type      | Required | Default |
-| --------- | -------- | ------- |
-| `boolean` | No       | `false` |
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 #### `include`
 
@@ -335,17 +335,17 @@ repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
 
 When false, disables pushing this module to remote registries.
 
-| Type      | Required | Default |
-| --------- | -------- | ------- |
-| `boolean` | No       | `true`  |
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `true`  | No       |
 
 #### `build`
 
 Specify how to build the module. Note that plugins may define additional keys on this object.
 
-| Type     | Required | Default               |
-| -------- | -------- | --------------------- |
-| `object` | No       | `{"dependencies":[]}` |
+| Type     | Default               | Required |
+| -------- | --------------------- | -------- |
+| `object` | `{"dependencies":[]}` | No       |
 
 #### `build.dependencies[]`
 
@@ -353,9 +353,9 @@ Specify how to build the module. Note that plugins may define additional keys on
 
 A list of modules that must be built before this module is built.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[object]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 Example:
 
@@ -382,9 +382,9 @@ Module name to build ahead of this module.
 
 Specify one or more files or directories to copy from the built dependency to this module.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[object]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 #### `build.dependencies[].copy[].source`
 
@@ -403,9 +403,9 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
 Defaults to to same as source path.
 
-| Type        | Required | Default |
-| ----------- | -------- | ------- |
-| `posixPath` | No       | `""`    |
+| Type        | Default | Required |
+| ----------- | ------- | -------- |
+| `posixPath` | `""`    | No       |
 
 #### `build.command[]`
 
@@ -416,9 +416,9 @@ The command to run to perform the build.
 By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
 If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[string]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[string]` | `[]`    | No       |
 
 Example:
 
@@ -439,25 +439,25 @@ instead of in the Garden build directory (under .garden/build/<module-name>).
 Garden will therefore not stage the build for local exec modules. This means that include/exclude filters
 and ignore files are not applied to local exec modules.
 
-| Type      | Required | Default |
-| --------- | -------- | ------- |
-| `boolean` | No       | `false` |
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 #### `env`
 
 Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
 
-| Type     | Required | Default |
-| -------- | -------- | ------- |
-| `object` | No       | `{}`    |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
 
 #### `tasks`
 
 A list of tasks that can be run in this module.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[object]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 #### `tasks[].name`
 
@@ -485,9 +485,9 @@ A description of the task.
 
 The names of any tasks that must be executed, and the names of any services that must be running, before this task is executed.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[string]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[string]` | `[]`    | No       |
 
 #### `tasks[].disabled`
 
@@ -505,9 +505,9 @@ Note however that template strings referencing the task's outputs (i.e. runtime 
 resolve when the task is disabled, so you need to make sure to provide alternate values for those if
 you're using them, using conditional expressions.
 
-| Type      | Required | Default |
-| --------- | -------- | ------- |
-| `boolean` | No       | `false` |
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 #### `tasks[].timeout`
 
@@ -515,9 +515,9 @@ you're using them, using conditional expressions.
 
 Maximum duration (in seconds) of the task's execution.
 
-| Type     | Required | Default |
-| -------- | -------- | ------- |
-| `number` | No       | `null`  |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `null`  | No       |
 
 #### `tasks[].artifacts[]`
 
@@ -545,9 +545,9 @@ A POSIX-style path or glob to copy, relative to the build root.
 
 A POSIX-style path to copy the artifact to, relative to the project artifacts directory.
 
-| Type        | Required | Default |
-| ----------- | -------- | ------- |
-| `posixPath` | No       | `"."`   |
+| Type        | Default | Required |
+| ----------- | ------- | -------- |
+| `posixPath` | `"."`   | No       |
 
 #### `tasks[].command[]`
 
@@ -568,17 +568,17 @@ If the top level `local` directive is set to `true`, the command runs in the mod
 
 Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
 
-| Type     | Required | Default |
-| -------- | -------- | ------- |
-| `object` | No       | `{}`    |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
 
 #### `tests`
 
 A list of tests to run in the module.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[object]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 #### `tests[].name`
 
@@ -596,9 +596,9 @@ The name of the test.
 
 The names of any services that must be running, and the names of any tasks that must be executed, before the test is run.
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[string]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[string]` | `[]`    | No       |
 
 #### `tests[].disabled`
 
@@ -609,9 +609,9 @@ enable/disable tests based on, for example, the current environment or other var
 `enabled: \${environment.name != "prod"}`). This is handy when you only want certain tests to run in
 specific environments, e.g. only during CI.
 
-| Type      | Required | Default |
-| --------- | -------- | ------- |
-| `boolean` | No       | `false` |
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 #### `tests[].timeout`
 
@@ -619,9 +619,9 @@ specific environments, e.g. only during CI.
 
 Maximum duration (in seconds) of the test run.
 
-| Type     | Required | Default |
-| -------- | -------- | ------- |
-| `number` | No       | `null`  |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `null`  | No       |
 
 #### `tests[].command[]`
 
@@ -642,9 +642,9 @@ If the top level `local` directive is set to `true`, the command runs in the mod
 
 Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
 
-| Type     | Required | Default |
-| -------- | -------- | ------- |
-| `object` | No       | `{}`    |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
 
 #### `tests[].artifacts[]`
 
@@ -672,9 +672,9 @@ A POSIX-style path or glob to copy, relative to the build root.
 
 A POSIX-style path to copy the artifact to, relative to the project artifacts directory.
 
-| Type        | Required | Default |
-| ----------- | -------- | ------- |
-| `posixPath` | No       | `"."`   |
+| Type        | Default | Required |
+| ----------- | ------- | -------- |
+| `posixPath` | `"."`   | No       |
 
 
 ### Outputs
@@ -688,9 +688,9 @@ modules.
 
 The build path of the module.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type     |
+| -------- |
+| `string` |
 
 Example:
 
@@ -702,9 +702,9 @@ my-variable: ${modules.my-module.buildPath}
 
 The local path of the module.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type     |
+| -------- |
+| `string` |
 
 Example:
 
@@ -716,9 +716,9 @@ my-variable: ${modules.my-module.path}
 
 The current version of the module.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type     |
+| -------- |
+| `string` |
 
 Example:
 
@@ -732,19 +732,11 @@ my-variable: ${modules.my-module.version}
 The following keys are available via the `${runtime.tasks.<task-name>}` template string key for `exec` module tasks.
 Note that these are only resolved when deploying/running dependants of the task, so they are not usable for every field.
 
-#### `${runtime.tasks.<task-name>.outputs}`
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | Yes      |
-
 #### `${runtime.tasks.<task-name>.outputs.log}`
-
-[outputs](#outputs) > log
 
 The full log from the executed task. (Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)
 
-| Type     | Required | Default |
-| -------- | -------- | ------- |
-| `string` | No       | `""`    |
+| Type     | Default |
+| -------- | ------- |
+| `string` | `""`    |
 

@@ -144,7 +144,7 @@ export class TaskTask extends BaseTask {
       garden: this.garden,
       graph: this.graph,
       dependencies,
-      module: this.task.module,
+      version: this.task.module.version,
       serviceStatuses,
       taskResults,
     })

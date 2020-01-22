@@ -42,9 +42,9 @@ providers:
 
 #### `providers`
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[object]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 #### `providers[].name`
 
@@ -88,9 +88,9 @@ providers:
 
 If set to true, Garden will automatically run `terraform apply -auto-approve` when a stack is not up-to-date. Otherwise, a warning is logged if the stack is out-of-date, and an error thrown if it is missing entirely.
 
-| Type      | Required | Default |
-| --------- | -------- | ------- |
-| `boolean` | No       | `false` |
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 #### `providers[].initRoot`
 
@@ -121,7 +121,7 @@ A map of variables to use when applying Terraform stacks. You can define these h
 
 The version of Terraform to use.
 
-| Type     | Required | Default    |
-| -------- | -------- | ---------- |
-| `string` | No       | `"0.12.7"` |
+| Type     | Default    | Required |
+| -------- | ---------- | -------- |
+| `string` | `"0.12.7"` | No       |
 

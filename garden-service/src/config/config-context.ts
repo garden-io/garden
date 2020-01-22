@@ -19,6 +19,7 @@ import { ModuleVersion } from "../vcs/vcs"
 import { joi } from "../config/common"
 import { KeyedSet } from "../util/keyed-set"
 import { RuntimeContext } from "../runtime-context"
+import { deline } from "../util/string"
 
 export type ContextKey = string[]
 
@@ -187,9 +188,11 @@ class LocalContext extends ConfigContext {
   public artifactsPath: string
 
   @schema(
-    joiStringMap(joi.string()).description(
-      "A map of all local environment variables (see https://nodejs.org/api/process.html#process_process_env)."
-    )
+    joiStringMap(joi.string().description("The environment variable value."))
+      .description(
+        "A map of all local environment variables (see https://nodejs.org/api/process.html#process_process_env)."
+      )
+      .meta({ keyPlaceholder: "<env-var-name>" })
   )
   public env: typeof process.env
 
@@ -274,21 +277,35 @@ class EnvironmentContext extends ConfigContext {
   }
 }
 
-const providersExample = { kubernetes: { config: { clusterHostname: "my-cluster.example.com" } } }
-
 class ProviderContext extends ConfigContext {
   @schema(
     joi
       .object()
+      .pattern(
+        /.*/,
+        joiPrimitive().description(
+          deline`
+          The provider config key value. Refer to individual [provider references](../providers/README.md) for details.
+          `
+        )
+      )
       .description("The resolved configuration for the provider.")
-      .example(providersExample.kubernetes)
+      .example({ clusterHostname: "my-cluster.example.com" })
+      .meta({ keyPlaceholder: "<config-key>" })
   )
   public config: ProviderConfig
 
   @schema(
-    joiIdentifierMap(joiPrimitive())
+    joiIdentifierMap(
+      joiPrimitive().description(
+        deline`
+        The provider output value. Refer to individual [provider references](../providers/README.md) for details.
+        `
+      )
+    )
       .description("The outputs defined by the provider (see individual plugin docs for details).")
       .example({ "cluster-ip": "1.2.3.4" })
+      .meta({ keyPlaceholder: "<output-key>" })
   )
   public outputs: PrimitiveMap
 
@@ -311,14 +328,14 @@ export class ProviderConfigContext extends ProjectConfigContext {
   @schema(
     joiIdentifierMap(ProviderContext.getSchema())
       .description("Retrieve information about providers that are defined in the project.")
-      .example(providersExample)
+      .meta({ keyPlaceholder: "<provider-name>" })
   )
   public providers: Map<string, ProviderContext>
 
   @schema(
-    joiIdentifierMap(joiPrimitive())
+    joiIdentifierMap(joiPrimitive().description("The value of the variable."))
       .description("A map of all variables defined in the project configuration.")
-      .example({ "team-name": "bananaramallama", "some-service-endpoint": "https://someservice.com/api/v2" })
+      .meta({ keyPlaceholder: "<variable-name>" })
   )
   public variables: PrimitiveMap
 
@@ -340,7 +357,6 @@ export class ProviderConfigContext extends ProjectConfigContext {
   }
 }
 
-const exampleOutputs = { endpoint: "http://my-service/path/to/endpoint" }
 const exampleVersion = "v-17ad4cb3fd"
 
 export class ModuleContext extends ConfigContext {
@@ -354,13 +370,19 @@ export class ModuleContext extends ConfigContext {
   public buildPath: string
 
   @schema(
-    joiIdentifierMap(joiPrimitive())
+    joiIdentifierMap(
+      joiPrimitive().description(
+        deline`
+        The module output value. Refer to individual [module type references](../module-types/README.md) for details.
+        `
+      )
+    )
       .required()
       .description(
         "The outputs defined by the module (see individual module type " +
           "[references](https://docs.garden.io/module-types) for details)."
       )
-      .example(exampleOutputs)
+      .meta({ keyPlaceholder: "<output-name>" })
   )
   public outputs: PrimitiveMap
 
@@ -391,22 +413,21 @@ export class ModuleContext extends ConfigContext {
   }
 }
 
-const exampleModule = {
-  buildPath: "/home/me/code/my-project/.garden/build/my-module",
-  path: "/home/me/code/my-project/my-module",
-  outputs: {},
-  version: exampleVersion,
-}
-
 export class ServiceRuntimeContext extends ConfigContext {
   @schema(
-    joiIdentifierMap(joiPrimitive())
+    joiIdentifierMap(
+      joiPrimitive().description(
+        deline`
+        The service output value. Refer to individual [module type references](../module-types/README.md) for details.
+        `
+      )
+    )
       .required()
       .description(
         "The runtime outputs defined by the service (see individual module type " +
           "[references](https://docs.garden.io/module-types) for details)."
       )
-      .example({ "some-key": "some value" })
+      .meta({ keyPlaceholder: "<output-name>" })
   )
   public outputs: PrimitiveMap
 
@@ -425,13 +446,19 @@ export class ServiceRuntimeContext extends ConfigContext {
 
 export class TaskRuntimeContext extends ServiceRuntimeContext {
   @schema(
-    joiIdentifierMap(joiPrimitive())
+    joiIdentifierMap(
+      joiPrimitive().description(
+        deline`
+        The task output value. Refer to individual [module type references](../module-types/README.md) for details.
+        `
+      )
+    )
       .required()
       .description(
         "The runtime outputs defined by the task (see individual module type " +
           "[references](https://docs.garden.io/module-types) for details)."
       )
-      .example({ "some-key": "some value" })
+      .meta({ keyPlaceholder: "<output-name>" })
   )
   public outputs: PrimitiveMap
 }
@@ -441,7 +468,7 @@ class RuntimeConfigContext extends ConfigContext {
     joiIdentifierMap(ServiceRuntimeContext.getSchema())
       .required()
       .description("Runtime information from the services that the service/task being run depends on.")
-      .example({ "my-service": { outputs: { "some-key": "some value" } } })
+      .meta({ keyPlaceholder: "<service-name>" })
   )
   public services: Map<string, ServiceRuntimeContext>
 
@@ -449,7 +476,7 @@ class RuntimeConfigContext extends ConfigContext {
     joiIdentifierMap(TaskRuntimeContext.getSchema())
       .required()
       .description("Runtime information from the tasks that the service/task being run depends on.")
-      .example({ "my-task": { outputs: { "some-key": "some value" } } })
+      .meta({ keyPlaceholder: "<task-name>" })
   )
   public tasks: Map<string, TaskRuntimeContext>
 
@@ -494,7 +521,7 @@ export class ModuleConfigContext extends ProviderConfigContext {
   @schema(
     joiIdentifierMap(ModuleContext.getSchema())
       .description("Retrieve information about modules that are defined in the project.")
-      .example({ "my-module": exampleModule })
+      .meta({ keyPlaceholder: "<module-name>" })
   )
   public modules: Map<string, () => Promise<ModuleContext>>
 
@@ -542,5 +569,20 @@ export class ModuleConfigContext extends ProviderConfigContext {
     )
 
     this.runtime = new RuntimeConfigContext(this, runtimeContext)
+  }
+}
+
+/**
+ * This context is available for template strings under the `outputs` key in project configuration files.
+ */
+export class OutputConfigContext extends ModuleConfigContext {
+  constructor(
+    garden: Garden,
+    resolvedProviders: Provider[],
+    variables: PrimitiveMap,
+    moduleConfigs: ModuleConfig[],
+    runtimeContext: RuntimeContext
+  ) {
+    super(garden, resolvedProviders, variables, moduleConfigs, runtimeContext)
   }
 }

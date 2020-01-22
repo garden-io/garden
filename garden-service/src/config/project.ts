@@ -18,6 +18,7 @@ import {
   joiUserIdentifier,
   joi,
   includeGuideLink,
+  joiPrimitive,
 } from "./common"
 import { validateWithPath } from "./validation"
 import { resolveTemplateStrings } from "../template-string"
@@ -114,6 +115,11 @@ export const projectSourcesSchema = joiArray(projectSourceSchema)
   .unique("name")
   .description("A list of remote sources to import into project.")
 
+export interface OutputSpec {
+  name: string
+  value: Primitive
+}
+
 export interface ProjectConfig {
   apiVersion: string
   kind: "Project"
@@ -127,6 +133,7 @@ export interface ProjectConfig {
     include?: string[]
     exclude?: string[]
   }
+  outputs?: OutputSpec[]
   providers: ProviderConfig[]
   sources?: SourceConfig[]
   varfile?: string
@@ -218,6 +225,22 @@ const projectModulesSchema = joi.object().keys({
     .example(["public/**/*", "tmp/**/*"]),
 })
 
+const projectOutputSchema = joi.object().keys({
+  name: joi
+    .string()
+    .max(255)
+    .required()
+    .description("The name of the output value."),
+  value: joiPrimitive()
+    .required()
+    .description(
+      dedent`
+        The value for the output. Must be a primitive (string, number, boolean or null). May also be any valid template
+        string.
+      `
+    ),
+})
+
 export const projectSchema = joi
   .object()
   .keys({
@@ -259,6 +282,22 @@ export const projectSchema = joi
       .description("A list of environments to configure for the project.")
       .example(defaultEnvironments),
     modules: projectModulesSchema,
+    outputs: joiArray(projectOutputSchema)
+      .unique("name")
+      .description(
+        dedent`
+        A list of output values that the project should export. These are exported by the \`garden outputs\` command,
+        as well as when referencing a project as a sub-project within another project.
+
+        You may use any template strings to specify the values, including references to provider outputs, module
+        outputs and runtime outputs. For a full reference, see the
+        [Output configuration context](../reference/template-strings.md#output-configuration-context) section in the
+        Template String Reference.
+
+        Note that if any runtime outputs are referenced, the referenced services and tasks will be deployed and run
+        if necessary when resolving the outputs.
+        `
+      ),
     providers: joiArray(providerConfigBaseSchema).description(
       "A list of providers that should be used for this project, and their configuration. " +
         "Please refer to individual plugins/providers for details on how to configure them."

@@ -57,9 +57,9 @@ providers:
 
 #### `providers`
 
-| Type            | Required | Default |
-| --------------- | -------- | ------- |
-| `array[object]` | No       | `[]`    |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
 
 #### `providers[].environments[]`
 
@@ -86,9 +86,9 @@ providers:
 
 The name of the provider plugin to use.
 
-| Type     | Required | Default      |
-| -------- | -------- | ------------ |
-| `string` | Yes      | `"openfaas"` |
+| Type     | Default      | Required |
+| -------- | ------------ | -------- |
+| `string` | `"openfaas"` | Yes      |
 
 Example:
 
@@ -140,9 +140,9 @@ providers:
 
 [providers](#providers) > faasNetes
 
-| Type     | Required | Default            |
-| -------- | -------- | ------------------ |
-| `object` | No       | `{"install":true}` |
+| Type     | Default            | Required |
+| -------- | ------------------ | -------- |
+| `object` | `{"install":true}` | No       |
 
 #### `providers[].faasNetes.install`
 
@@ -151,9 +151,9 @@ providers:
 Set to false if you'd like to install and configure faas-netes yourself.
 See the [official instructions](https://docs.openfaas.com/deployment/kubernetes/) for details.
 
-| Type      | Required | Default |
-| --------- | -------- | ------- |
-| `boolean` | No       | `true`  |
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `true`  | No       |
 
 #### `providers[].faasNetes.values`
 

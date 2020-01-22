@@ -9,6 +9,7 @@
 import _dedent = require("dedent")
 import _deline = require("deline")
 import _urlJoin = require("proper-url-join")
+import CliTable from "cli-table3"
 
 // Exporting these here for convenience and ease of imports (otherwise we need to require modules instead of using
 // the import syntax, and it for some reason doesn't play nice with IDEs).
@@ -91,4 +92,35 @@ export function randomString(length = 8) {
  */
 export function splitLines(s: string) {
   return s.split(/\r?\n/)
+}
+
+const defaultTableConfig: CliTable.TableConstructorOptions = {
+  // chars: {
+  //   "top": "",
+  //   "top-mid": "",
+  //   "top-left": "",
+  //   "top-right": "",
+  //   "bottom": "",
+  //   "bottom-mid": "",
+  //   "bottom-left": "",
+  //   "bottom-right": "",
+  //   "left": "",
+  //   "left-mid": "",
+  //   "mid": " ",
+  //   "mid-mid": "",
+  //   "right": "",
+  //   "right-mid": "",
+  //   "middle": "",
+  // },
+  wordWrap: true,
+  // truncate: " ",
+}
+
+type TableRow = CliTable.CrossTableRow | CliTable.HorizontalTableRow | CliTable.VerticalTableRow
+
+export function renderTable(rows: TableRow[], opts?: CliTable.TableConstructorOptions) {
+  const table = new CliTable({ ...defaultTableConfig, ...(opts || {}) })
+  // The typings here are a complete mess
+  table.push(...(<any>rows))
+  return table.toString()
 }

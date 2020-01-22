@@ -271,6 +271,23 @@ Just try it.
 
     garden get eysi 
 
+### garden get outputs
+
+Resolves and returns the outputs of the project.
+
+Resolves and returns the outputs of the project. If necessary, this may involve deploying services and/or running
+tasks referenced by the outputs in the project configuration.
+
+Examples:
+
+    garden get outputs                 # resolve and print the outputs from the project
+    garden get outputs --env=prod      # resolve and print the outputs from the project for the prod environment
+    garden get outputs --output=json   # resolve and return the project outputs in JSON format
+
+##### Usage
+
+    garden get outputs 
+
 ### garden get secret
 
 Get a secret from the environment.

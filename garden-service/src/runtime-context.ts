@@ -8,8 +8,7 @@
 
 import { getEnvVarName, uniqByName } from "./util/util"
 import { PrimitiveMap, joiEnvVars, joiPrimitive, joi, joiIdentifier } from "./config/common"
-import { Module } from "./types/module"
-import { moduleVersionSchema } from "./vcs/vcs"
+import { moduleVersionSchema, ModuleVersion } from "./vcs/vcs"
 import { Garden } from "./garden"
 import { ConfigGraph, DependencyRelations } from "./config-graph"
 import { ServiceStatus } from "./types/service"
@@ -65,10 +64,10 @@ export const runtimeContextSchema = joi
 interface PrepareRuntimeContextParams {
   garden: Garden
   graph: ConfigGraph
-  module: Module
   dependencies: DependencyRelations
   serviceStatuses: { [name: string]: ServiceStatus }
   taskResults: { [name: string]: RunTaskResult }
+  version: ModuleVersion
 }
 
 /**
@@ -81,12 +80,12 @@ interface PrepareRuntimeContextParams {
  */
 export async function prepareRuntimeContext({
   garden,
-  module,
   dependencies,
   serviceStatuses,
   taskResults,
+  version,
 }: PrepareRuntimeContextParams): Promise<RuntimeContext> {
-  const { versionString } = module.version
+  const { versionString } = version
   const envVars = {
     GARDEN_VERSION: versionString,
   }

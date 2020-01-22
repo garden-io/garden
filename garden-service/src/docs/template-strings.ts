@@ -7,8 +7,13 @@
  */
 
 import { resolve } from "path"
-import { renderSchemaDescriptionYaml, normalizeSchemaDescriptions, TEMPLATES_DIR, Description } from "./config"
-import { ProjectConfigContext, ModuleConfigContext, ProviderConfigContext } from "../config/config-context"
+import { TEMPLATES_DIR, renderTemplateStringReference } from "./config"
+import {
+  ProjectConfigContext,
+  ModuleConfigContext,
+  ProviderConfigContext,
+  OutputConfigContext,
+} from "../config/config-context"
 import { readFileSync, writeFileSync } from "fs"
 import handlebars from "handlebars"
 import { GARDEN_SERVICE_ROOT } from "../constants"
@@ -17,24 +22,25 @@ export function writeTemplateStringReferenceDocs(docsRoot: string) {
   const referenceDir = resolve(docsRoot, "reference")
   const outputPath = resolve(referenceDir, "template-strings.md")
 
-  const projectDescriptions = normalizeSchemaDescriptions(ProjectConfigContext.getSchema().describe() as Description)
-  const projectContext = renderSchemaDescriptionYaml(projectDescriptions, {
-    renderRequired: false,
+  const projectContext = renderTemplateStringReference({
+    schema: ProjectConfigContext.getSchema().required(),
   })
 
-  const providerDescriptions = normalizeSchemaDescriptions(ProviderConfigContext.getSchema().describe() as Description)
-  const providerContext = renderSchemaDescriptionYaml(providerDescriptions, {
-    renderRequired: false,
+  const providerContext = renderTemplateStringReference({
+    schema: ProviderConfigContext.getSchema().required(),
   })
 
-  const moduleDescriptions = normalizeSchemaDescriptions(ModuleConfigContext.getSchema().describe() as Description)
-  const moduleContext = renderSchemaDescriptionYaml(moduleDescriptions, {
-    renderRequired: false,
+  const moduleContext = renderTemplateStringReference({
+    schema: ModuleConfigContext.getSchema().required(),
+  })
+
+  const outputContext = renderTemplateStringReference({
+    schema: OutputConfigContext.getSchema().required(),
   })
 
   const templatePath = resolve(TEMPLATES_DIR, "template-strings.hbs")
   const template = handlebars.compile(readFileSync(templatePath).toString())
-  const markdown = template({ projectContext, providerContext, moduleContext })
+  const markdown = template({ projectContext, providerContext, moduleContext, outputContext })
 
   writeFileSync(outputPath, markdown)
 }

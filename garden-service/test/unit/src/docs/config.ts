@@ -296,17 +296,17 @@ describe("config", () => {
 
         key b
 
-        | Type     | Required | Allowed Values |
-        | -------- | -------- | -------------- |
-        | \`string\` | Yes      | "b"            |
+        | Type     | Allowed Values | Required |
+        | -------- | -------------- | -------- |
+        | \`string\` | "b"            | Yes      |
 
         #### \`testArray\`
 
         test array
 
-        | Type            | Required | Default |
-        | --------------- | -------- | ------- |
-        | \`array[number]\` | No       | \`[]\`    |\n
+        | Type            | Default | Required |
+        | --------------- | ------- | -------- |
+        | \`array[number]\` | \`[]\`    | No       |\n
       `)
     })
     it("should return the correct yaml", () => {
