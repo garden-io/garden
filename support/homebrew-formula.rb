@@ -8,7 +8,7 @@ class GardenCli < Formula
   depends_on "rsync"
 
   def install
-    libexec.install "garden", "fsevents.node", "static"
+    libexec.install "garden", "*.node", "static"
     bin.install_symlink libexec/"garden"
   end
 
