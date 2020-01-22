@@ -8,7 +8,6 @@
 
 import ansiEscapes from "ansi-escapes"
 import cliCursor from "cli-cursor"
-import { Terminal, createTerminal, terminal } from "terminal-kit"
 import elegantSpinner from "elegant-spinner"
 import wrapAnsi from "wrap-ansi"
 import chalk from "chalk"
@@ -17,7 +16,7 @@ import { formatForTerminal, leftPad, renderMsg, basicRender } from "../renderers
 import { LogEntry } from "../log-entry"
 import { Logger } from "../logger"
 import { LogLevel } from "../log-node"
-import { getChildEntries, interceptStream, getTerminalWidth } from "../util"
+import { getChildEntries, getTerminalWidth, interceptStream } from "../util"
 import { Writer } from "./base"
 
 const INTERVAL_MS = 60
@@ -48,11 +47,9 @@ export class FancyTerminalWriter extends Writer {
   private spinners: { [key: string]: Function }
   private intervalID: NodeJS.Timer | null
   private stream: CustomStream
-  private term: Terminal | undefined
   private prevOutput: string[]
   private lastInterceptAt: number | null
   private updatePending: boolean
-  private cleanup: () => void
 
   constructor(level: LogLevel = LogLevel.info) {
     super(level)
@@ -61,62 +58,41 @@ export class FancyTerminalWriter extends Writer {
     this.prevOutput = []
     this.lastInterceptAt = null
     this.updatePending = false
-    this.cleanup = () => {}
   }
 
-  private initTerm(logger: Logger) {
+  private initStream(logger: Logger): CustomStream {
     // Create custom stream that calls write method with the 'noIntercept' option.
-    const stream: any = {
+    const stream = <CustomStream>{
       ...process.stdout,
-      write: (str: string, enc: string, cb: any) => (<any>process.stdout.write)(str, enc, cb, { noIntercept: true }),
+      write: (str, enc, cb) => (<any>process.stdout.write)(str, enc, cb, { noIntercept: true }),
     }
 
-    const onIntercept = (msg: string) => logger.info({ msg, fromStdStream: true })
+    const onIntercept = (msg) => logger.info({ msg, fromStdStream: true })
 
     const restoreStreamFns = [
       interceptStream(process.stdout, onIntercept),
       interceptStream(process.stderr, onIntercept),
     ]
 
-    // Note: terminal-kit doesn't support Windows at the moment, so we fall back to the ansi-escapes method.
-    const term =
-      process.platform === "win32"
-        ? undefined
-        : createTerminal({
-            appId: terminal.app,
-            appName: terminal.appName,
-            generic: terminal.generic,
-            stdout: stream,
-          })
-
-    this.cleanup = () => {
-      cliCursor.show(stream)
+    stream.cleanUp = () => {
+      cliCursor.show(this.stream)
       restoreStreamFns.forEach((restoreStream) => restoreStream())
     }
 
-    return { term, stream }
+    return stream
   }
 
   private spin(entries: TerminalEntryWithSpinner[], totalLines: number): void {
     entries.forEach((e) => {
+      let out = ""
       const x = e.spinnerCoords[0]
       const y = -(totalLines - e.spinnerCoords[1] - 1)
-
-      if (this.term) {
-        this.term.saveCursor()
-        this.term.column(0)
-        this.term.move(x, y)
-        this.term(spinnerStyle(this.tickSpinner(e.key)))
-        this.term.restoreCursor()
-      } else {
-        let out = ""
-        out += ansiEscapes.cursorSavePosition
-        out += ansiEscapes.cursorTo(0) // Ensure cursor is to the left
-        out += ansiEscapes.cursorMove(x, y)
-        out += spinnerStyle(this.tickSpinner(e.key))
-        out += ansiEscapes.cursorRestorePosition
-        this.stream.write(out)
-      }
+      out += ansiEscapes.cursorSavePosition
+      out += ansiEscapes.cursorTo(0) // Ensure cursor is to the left
+      out += ansiEscapes.cursorMove(x, y)
+      out += spinnerStyle(this.tickSpinner(e.key))
+      out += ansiEscapes.cursorRestorePosition
+      this.stream.write(out)
     })
   }
 
@@ -144,15 +120,7 @@ export class FancyTerminalWriter extends Writer {
 
     const lineNumber = output.length >= this.prevOutput.length ? nextEntry.lineNumber : 0
     const nLinesToErase = this.prevOutput.length - lineNumber
-
-    if (this.term) {
-      this.term.column(0)
-      this.term.move(0, -(nLinesToErase - 1))
-      this.term.eraseDisplayBelow()
-      this.term(output.slice(lineNumber).join("\n"))
-    } else {
-      this.stream.write(ansiEscapes.eraseLines(nLinesToErase) + output.slice(lineNumber).join("\n"))
-    }
+    this.stream.write(ansiEscapes.eraseLines(nLinesToErase) + output.slice(lineNumber).join("\n"))
   }
 
   private handleGraphChange(log: LogEntry, logger: Logger, didWrite: boolean = false) {
@@ -166,14 +134,7 @@ export class FancyTerminalWriter extends Writer {
 
       if (throttleProcessing) {
         this.stopLoop()
-        const renderedMsg = renderMsg(log)
-
-        if (this.term) {
-          this.term(renderedMsg)
-        } else {
-          this.stream.write(renderedMsg)
-        }
-
+        this.stream.write(renderMsg(log))
         this.updatePending = true
 
         // Resume processing if idle and original update is still pending
@@ -217,7 +178,7 @@ export class FancyTerminalWriter extends Writer {
       .filter((entry) => logger.level >= entry.level)
       .reduce((acc: TerminalEntry[], entry: LogEntry): TerminalEntry[] => {
         let spinnerFrame = ""
-        let spinnerX: number
+        let spinnerX
         let spinnerCoords: Coords | undefined
 
         if (entry.getMessageState().status === "active") {
@@ -228,15 +189,13 @@ export class FancyTerminalWriter extends Writer {
           delete this.spinners[entry.key]
         }
 
-        const width = this.term ? this.term.width : getTerminalWidth(this.stream)
-
         const text = [entry]
           .map((e) => (e.fromStdStream ? renderMsg(e) : formatForTerminal(e, "fancy")))
           .map((str) =>
             spinnerFrame ? `${str.slice(0, spinnerX)}${spinnerStyle(spinnerFrame)} ${str.slice(spinnerX)}` : str
           )
           .map((str) =>
-            wrapAnsi(str, width, {
+            wrapAnsi(str, getTerminalWidth(this.stream), {
               trim: false,
               hard: true,
             })
@@ -275,10 +234,8 @@ export class FancyTerminalWriter extends Writer {
       return
     }
 
-    if (!this.term || !this.stream) {
-      const { term, stream } = this.initTerm(logger)
-      this.term = term
-      this.stream = stream
+    if (!this.stream) {
+      this.stream = this.initStream(logger)
     }
 
     this.handleGraphChange(entry, logger, false)
@@ -286,6 +243,6 @@ export class FancyTerminalWriter extends Writer {
 
   public stop(): void {
     this.stopLoop()
-    this.cleanup()
+    this.stream && this.stream.cleanUp()
   }
 }
