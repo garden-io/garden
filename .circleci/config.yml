@@ -97,10 +97,9 @@ commands:
             chmod +x kubectl
             echo 'export PATH=$HOME/bin:$PATH' >> $BASH_ENV
 
-  configure_kubectl_context:
-    description: Configure the kubectl context so that we can access our remote cluster. Used for e2e testing.
+  install_gcloud:
+    description: Install the gcloud SDK
     steps:
-      - install_kubectl
       - run:
           name: Install gcloud
           command: |
@@ -108,6 +107,10 @@ commands:
             curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz | tar xz -C $HOME/gcloud
             $HOME/gcloud/google-cloud-sdk/install.sh --quiet
             echo 'export PATH=$HOME/gcloud/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
+
+  configure_kubectl_context:
+    description: Configure the kubectl context via gcloud so that we can access our remote cluster. Used for e2e testing.
+    steps:
       - run:
           name: Configure kubectl context via gcloud and authenticate to Google Container Registry
           command: |
@@ -215,6 +218,8 @@ jobs:
       - checkout
       - run: sudo apt-get update && sudo apt-get install rsync
       - npm_install
+      - install_kubectl
+      - install_gcloud
       - configure_kubectl_context
       - *attach-workspace
       - run:
@@ -239,6 +244,8 @@ jobs:
       - checkout
       - run: sudo apt-get update && sudo apt-get install rsync
       - npm_install
+      - install_kubectl
+      - install_gcloud
       - configure_kubectl_context
       - *attach-workspace
       - run:
@@ -270,12 +277,63 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: true
       - checkout
-      # This is to copy the pre-build build output from test-service (this should be a different step)
       - *attach-workspace
       - run:
-          name: Build docker images
+          name: Build image and push to registry
           command: |
-            ./garden-service/bin/build-containers.sh
+            docker login -u $DOCKER_USER -p $DOCKER_PASS
+            TAG=gardendev/garden:${CIRCLE_SHA1}
+            cd garden-service
+            docker build -t ${TAG} -f Dockerfile .
+            docker push ${TAG}
+  build-docker-gcloud:
+    <<: *node-config
+    steps:
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - checkout
+      - *attach-workspace
+      - run:
+          name: Build image and push to registry
+          command: |
+            docker login -u $DOCKER_USER -p $DOCKER_PASS
+            TAG=gardendev/garden-gcloud:${CIRCLE_SHA1}
+            cd garden-service
+            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f gcloud.Dockerfile .
+            docker push ${TAG}
+  build-docker-buster:
+    <<: *node-config
+    steps:
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - checkout
+      - *attach-workspace
+      - run:
+          name: Build image and push to registry
+          command: |
+            docker login -u $DOCKER_USER -p $DOCKER_PASS
+            TAG=gardendev/garden:${CIRCLE_SHA1}-buster
+            cd garden-service
+            docker build -t ${TAG} -f buster.Dockerfile dist/linux-amd64
+  test-docker-gcloud:
+    docker:
+      - image: gardendev/garden-gcloud:${CIRCLE_SHA1}
+        environment:
+          GARDEN_DISABLE_VERSION_CHECK: "true"
+          GARDEN_TASK_CONCURRENCY_LIMIT: "10"
+    steps:
+      # Need to checkout to run example project
+      - checkout
+      - configure_kubectl_context
+      - *attach-workspace
+      - run:
+          name: Deploy demo-project with container
+          # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
+          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-docker /garden/garden build --root examples/demo-project --env remote --logger-type basic
+      - run:
+          name: Cleanup
+          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-docker kubectl delete --wait=false $(kubectl get ns -o name | grep testing-$CIRCLE_BUILD_NUM) || true
+          when: always
   release-service-docker:
     <<: *node-config
     steps:
@@ -344,6 +402,8 @@ jobs:
     steps:
       # Need to checkout to run example project
       - checkout
+      - install_kubectl
+      - install_gcloud
       - configure_kubectl_context
       - *attach-workspace
       - run: sudo apt-get update && sudo apt-get -y install rsync
@@ -486,7 +546,21 @@ workflows:
       - lint:
           requires: [build]
       - build-docker:
+          <<: *only-internal-prs
+          context: docker
+          requires: [build]
+      - build-docker-gcloud:
+          <<: *only-internal-prs
+          context: docker
+          requires: [build-docker]
+      - build-docker-buster:
+          <<: *only-internal-prs
+          context: docker
           requires: [build-dist]
+      - test-docker-gcloud:
+          <<: *only-internal-prs
+          context: docker
+          requires: [build-docker-gcloud]
       - test-service:
           requires: [build]
       - test-dist:
