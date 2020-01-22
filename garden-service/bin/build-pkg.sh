@@ -101,7 +101,7 @@ node-pre-gyp install --target_arch=x64 --target_platform=darwin
 cp lib/binding/node-v72-darwin-x64/node_sqlite3.node ${target_path}
 cd ${dist_path}
 # include the .node binary for fsevents
-cp ${garden_service_root}/lib/fsevents/node-v72-darwin-x64/fse.node macos-amd64/fsevents.node
+cp ${garden_service_root}/lib/fsevents.node macos-amd64/fsevents.node
 
 echo "    -> tar"
 tar -czf garden-${version}-macos-amd64.tar.gz macos-amd64
