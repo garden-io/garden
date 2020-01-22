@@ -1,6 +1,15 @@
 
+<a name="v0.11.1-alpha.1"></a>
+## [v0.11.1-alpha.1](https://github.com/garden-io/garden/compare/v0.11.1-alpha.0...v0.11.1-alpha.1) (2020-01-22)
+
+### Bug Fixes
+
+* **container:** more verbose logging during builds ([7376375a](https://github.com/garden-io/garden/commit/7376375a))
+* **k8s:** fix failing tasks not throwing errors ([74e11d95](https://github.com/garden-io/garden/commit/74e11d95))
+
+
 <a name="v0.11.1-alpha.0"></a>
-## [v0.11.1-alpha.0](https://github.com/garden-io/garden/compare/v0.11.0...v0.11.1-alpha.0) (2020-01-14)
+## [v0.11.1-alpha.0](https://github.com/garden-io/garden/compare/v0.11.0...v0.11.1-alpha.0) (2020-01-22)
 
 ### Bug Fixes
 
