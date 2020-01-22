@@ -269,6 +269,13 @@ describe("joiRepositoryUrl", () => {
     expect(result.error).to.be.undefined
   })
 
+  it("should accept a git:// URL not ending in .git", () => {
+    const url = "git://github.com/garden-io/garden-example-remote-sources-web-services#my-tag"
+    const schema = joiRepositoryUrl()
+    const result = schema.validate(url)
+    expect(result.error).to.be.undefined
+  })
+
   it("should accept an HTTPS Git URL", () => {
     const url = "https://github.com/garden-io/garden-example-remote-sources-web-services.git#my-tag"
     const schema = joiRepositoryUrl()
@@ -313,6 +320,13 @@ describe("joiRepositoryUrl", () => {
 
   it("should reject non-string values", () => {
     const url = 123
+    const schema = joiRepositoryUrl()
+    const result = schema.validate(url)
+    expect(result.error).to.exist
+  })
+
+  it("should reject values missing a schema", () => {
+    const url = "garden-io/garden-example-remote-sources-web-services.git#my-tag"
     const schema = joiRepositoryUrl()
     const result = schema.validate(url)
     expect(result.error).to.exist
