@@ -183,7 +183,7 @@ export function getReleaseName(config: HelmModuleConfig) {
  *
  * Throws error if no resource spec is configured, or it is empty.
  */
-export function getServiceResourceSpec(module: HelmModule) {
+export function getServiceResourceSpec(module: HelmModule): HelmResourceSpec {
   const baseModule = getBaseModule(module)
   let resourceSpec = module.spec.serviceResource || {}
 

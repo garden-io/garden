@@ -40,6 +40,7 @@ describe("conftest provider", () => {
         force: true,
         forceBuild: false,
         version: module.version,
+        _guard: true,
       })
 
       const key = testTask.getKey()
@@ -76,6 +77,7 @@ describe("conftest provider", () => {
         force: true,
         forceBuild: false,
         version: module.version,
+        _guard: true,
       })
 
       const key = testTask.getKey()
@@ -103,6 +105,7 @@ describe("conftest provider", () => {
         force: true,
         forceBuild: false,
         version: module.version,
+        _guard: true,
       })
 
       const key = testTask.getKey()
@@ -133,6 +136,7 @@ describe("conftest provider", () => {
         force: true,
         forceBuild: false,
         version: module.version,
+        _guard: true,
       })
 
       const key = testTask.getKey()

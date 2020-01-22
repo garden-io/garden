@@ -2,24 +2,28 @@
 title: {{{frontmatterTitle}}}
 ---
 
-# `{{{name}}}` reference
+# `{{{name}}}` Provider
 
-Below is the schema reference for the `{{{name}}}` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../guides/configuration-files.md).
+{{{docs}}}
+
+## Reference
+
+Below is the schema reference for the `{{{name}}}` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../guides/configuration-files.md).
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
-## Complete YAML schema
+### Complete YAML Schema
 
 The values in the schema below are the default values.
 
 ```yaml
 {{{yaml}}}
 ```
-## Configuration keys
+### Configuration Keys
 {{{markdownReference}}}
 {{#if moduleOutputsReference}}
 
-## Outputs
+### Outputs
 
 The following keys are available via the `${providers.<provider-name>}` template string key for `{{{name}}}` providers.
 {{{moduleOutputsReference}}}{{/if}}

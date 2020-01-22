@@ -152,12 +152,15 @@ export function renderMsg(entry: LogEntry): string {
 }
 
 export function renderData(entry: LogEntry): string {
-  const { data } = entry.getMessageState()
+  const { data, dataFormat } = entry.getMessageState()
   if (!data) {
     return ""
   }
-  const asYaml = yaml.safeDump(data, { noRefs: true, skipInvalid: true })
-  return highlightYaml(asYaml)
+  if (!dataFormat || dataFormat === "yaml") {
+    const asYaml = yaml.safeDump(data, { noRefs: true, skipInvalid: true })
+    return highlightYaml(asYaml)
+  }
+  return JSON.stringify(data, null, 2)
 }
 
 export function renderSection(entry: LogEntry): string {

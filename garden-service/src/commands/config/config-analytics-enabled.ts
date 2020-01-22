@@ -21,6 +21,7 @@ type Args = typeof configAnalyticsEnabledArgs
 
 export class ConfigAnalyticsEnabled extends Command {
   name = "analytics-enabled"
+  noProject = true
   help = "Update your preferences regarding analytics."
 
   arguments = configAnalyticsEnabledArgs

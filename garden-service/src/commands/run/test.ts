@@ -7,16 +7,17 @@
  */
 
 import chalk from "chalk"
-import { ParameterError } from "../../exceptions"
+import { ParameterError, CommandError } from "../../exceptions"
 import { RunResult } from "../../types/plugin/base"
 import { findByName, getNames } from "../../util/util"
 import { BooleanParameter, Command, CommandParams, CommandResult, StringParameter } from "../base"
 import { printRuntimeContext } from "./run"
-import dedent = require("dedent")
 import { prepareRuntimeContext } from "../../runtime-context"
 import { printHeader } from "../../logger/util"
-import { getTestVersion, TestTask } from "../../tasks/test"
+import { TestTask } from "../../tasks/test"
 import { getRunTaskResults, getServiceStatuses } from "../../tasks/base"
+import { dedent, deline } from "../../util/string"
+import { testFromConfig } from "../../types/test"
 
 const runArgs = {
   module: new StringParameter({
@@ -35,6 +36,9 @@ const runOpts = {
     defaultValue: false,
     cliDefault: true,
     cliOnly: true,
+  }),
+  "force": new BooleanParameter({
+    help: "Run the test even if it's disabled for the environment.",
   }),
   "force-build": new BooleanParameter({
     help: "Force rebuild of module before running.",
@@ -65,7 +69,7 @@ export class RunTestCommand extends Command<Args, Opts> {
     const testName = args.test
 
     const graph = await garden.getConfigGraph(log)
-    const module = await graph.getModule(moduleName)
+    const module = await graph.getModule(moduleName, true)
 
     const testConfig = findByName(module.testConfigs, testName)
 
@@ -77,13 +81,25 @@ export class RunTestCommand extends Command<Args, Opts> {
       })
     }
 
+    const test = testFromConfig(module, testConfig)
+
+    if ((module.disabled || test.disabled) && !opts.force) {
+      throw new CommandError(
+        chalk.red(deline`
+          Test ${chalk.redBright(`${module.name}.${test.name}`)} is disabled for the
+          ${chalk.redBright(garden.environmentName)} environment. If you're sure you want to run it anyway,
+          please run the command again with the ${chalk.redBright("--force")} flag.
+        `),
+        { moduleName: module.name, testName: test.name, environmentName: garden.environmentName }
+      )
+    }
+
     printHeader(headerLog, `Running test ${chalk.cyan(testName)} in module ${chalk.cyan(moduleName)}`, "runner")
 
     const actions = await garden.getActionRouter()
-    const version = await getTestVersion(garden, graph, module, testConfig)
 
     // Make sure all dependencies are ready and collect their outputs for the runtime context
-    const testTask = new TestTask({
+    const testTask = await TestTask.factory({
       force: true,
       forceBuild: opts["force-build"],
       garden,
@@ -91,12 +107,11 @@ export class RunTestCommand extends Command<Args, Opts> {
       log,
       module,
       testConfig,
-      version,
     })
     const dependencyResults = await garden.processTasks(await testTask.getDependencies())
 
     const interactive = opts.interactive
-    const dependencies = await graph.getDependencies("test", testConfig.name, false)
+    const dependencies = await graph.getDependencies({ nodeType: "test", name: test.name, recursive: false })
 
     const serviceStatuses = getServiceStatuses(dependencyResults)
     const taskResults = getRunTaskResults(dependencyResults)
@@ -119,7 +134,7 @@ export class RunTestCommand extends Command<Args, Opts> {
       runtimeContext,
       silent: false,
       testConfig,
-      testVersion: version,
+      testVersion: testTask.version,
     })
 
     return { result }

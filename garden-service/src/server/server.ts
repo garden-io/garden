@@ -121,7 +121,7 @@ export class GardenServer {
         this.analytics = await AnalyticsHandler.init(this.garden, this.log)
       }
 
-      this.analytics.trackApi("POST", ctx.originalUrl, { ...ctx.request.body })
+      await this.analytics.trackApi("POST", ctx.originalUrl, { ...ctx.request.body })
 
       // TODO: set response code when errors are in result object?
       const result = await resolveRequest(ctx, this.garden, this.log, commands, ctx.request.body)

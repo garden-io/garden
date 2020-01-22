@@ -39,7 +39,7 @@ export interface PluginModuleActionParamsBase<T extends Module = Module> extends
   module: T
 }
 export const moduleActionParamsSchema = actionParamsSchema.keys({
-  module: joi.lazy(() => moduleSchema),
+  module: moduleSchema,
 })
 
 export interface PluginServiceActionParamsBase<M extends Module = Module, S extends Module = Module>
@@ -85,36 +85,39 @@ export interface RunResult {
   output?: string
 }
 
-export const runResultSchema = joi.object().keys({
-  moduleName: joi.string().description("The name of the module that was run."),
-  command: joi
-    .array()
-    .items(joi.string())
-    .required()
-    .description("The command that was run in the module."),
-  version: joi.string().description("The string version of the module."),
-  success: joi
-    .boolean()
-    .required()
-    .description("Whether the module was successfully run."),
-  startedAt: joi
-    .date()
-    .required()
-    .description("When the module run was started."),
-  completedAt: joi
-    .date()
-    .required()
-    .description("When the module run was completed."),
-  log: joi
-    .string()
-    .allow("")
-    .default("")
-    .description("The output log from the run."),
-  output: joi
-    .string()
-    .allow("")
-    .description("[DEPRECATED - use `log` instead] The output log from the run."),
-})
+export const runResultSchema = joi
+  .object()
+  .unknown(true)
+  .keys({
+    moduleName: joi.string().description("The name of the module that was run."),
+    command: joi
+      .array()
+      .items(joi.string())
+      .required()
+      .description("The command that was run in the module."),
+    version: joi.string().description("The string version of the module."),
+    success: joi
+      .boolean()
+      .required()
+      .description("Whether the module was successfully run."),
+    startedAt: joi
+      .date()
+      .required()
+      .description("When the module run was started."),
+    completedAt: joi
+      .date()
+      .required()
+      .description("When the module run was completed."),
+    log: joi
+      .string()
+      .allow("")
+      .default("")
+      .description("The output log from the run."),
+    output: joi
+      .string()
+      .allow("")
+      .description("[DEPRECATED - use `log` instead] The output log from the run."),
+  })
 
 export const artifactsPathSchema = joi
   .string()

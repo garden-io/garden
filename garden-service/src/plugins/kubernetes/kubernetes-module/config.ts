@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ServiceSpec, dependenciesSchema } from "../../../config/service"
+import { dependenciesSchema } from "../../../config/service"
 import { joiArray, joi, joiModuleIncludeDirective } from "../../../config/common"
 import { Module } from "../../../types/module"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../../types/plugin/module/configure"
@@ -22,7 +22,7 @@ export type KubernetesModuleSpec = KubernetesServiceSpec
 export interface KubernetesModule extends Module<KubernetesModuleSpec, KubernetesServiceSpec> {}
 export type KubernetesModuleConfig = KubernetesModule["_ConfigType"]
 
-export interface KubernetesServiceSpec extends ServiceSpec {
+export interface KubernetesServiceSpec {
   dependencies: string[]
   files: string[]
   manifests: KubernetesResource[]
@@ -62,7 +62,7 @@ export const kubernetesModuleSpecSchema = joi.object().keys({
           List of Kubernetes resource manifests to deploy. Use this instead of the \`files\` field if you need to
           resolve template strings in any of the manifests.`
   ),
-  files: joiArray(joi.string().posixPath({ subPathOnly: true })).description(
+  files: joiArray(joi.posixPath().subPathOnly()).description(
     "POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests."
   ),
   include: joiModuleIncludeDirective(dedent`
@@ -78,6 +78,7 @@ export async function configureKubernetesModule({
     {
       name: moduleConfig.name,
       dependencies: moduleConfig.spec.dependencies,
+      disabled: moduleConfig.disabled,
       hotReloadable: false,
       spec: moduleConfig.spec,
     },

@@ -6,14 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { css } from "emotion"
-import React from "react"
 import styled from "@emotion/styled"
+import React from "react"
 import { Route } from "react-router-dom"
 
-import Graph from "./containers/graph"
-import Logs from "./containers/logs"
-import Overview from "./containers/overview"
 import Sidebar from "./containers/sidebar"
 import Provider from "./components/provider"
 
@@ -23,21 +19,30 @@ import "./styles/padding-margin-mixin.scss"
 import "./styles/custom-flexboxgrid.scss"
 import "./styles/icons.scss"
 
-import { NavLink } from "./components/links"
-
-import logo from "./assets/logo.png"
-import { ReactComponent as OpenSidebarIcon } from "./assets/open-pane.svg"
-import { ReactComponent as CloseSidebarIcon } from "./assets/close-pane.svg"
-
-import { UiStateProvider, useUiState } from "./contexts/ui"
+import { UiStateProvider } from "./contexts/ui"
 import { ApiProvider } from "./contexts/api"
 import { Modal } from "./components/modal"
+import ErrorBoundary from "./components/error-boundary"
 
-// Style and align properly
-const Logo = styled.img`
-  width: 144px;
-  height: 60px;
-  max-width: 9rem;
+const Graph = React.lazy(() => import("./containers/graph"))
+const Logs = React.lazy(() => import("./containers/logs"))
+const Overview = React.lazy(() => import("./containers/overview"))
+
+const AppWrapper = styled.div`
+  display: flex;
+  height: 100vh;
+  max-height: 100vh;
+  overflow-y: hidden;
+  background: ${colors.gardenGrayLighter};
+`
+
+const RouteWrapper = styled.div`
+  background-color: ${colors.gardenGrayLighter};
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow-y: hidden;
+  padding: 1rem 1rem 1rem 2rem;
 `
 
 const SidebarWrapper = styled.div`
@@ -47,88 +52,33 @@ const SidebarWrapper = styled.div`
   box-shadow: 6px 0px 18px rgba(0, 0, 0, 0.06);
 `
 
-type SidebarContainerProps = {
-  visible: boolean
-}
-const SidebarContainer = styled.div<SidebarContainerProps>`
-  display: ${(props) => (props.visible ? `block` : "none")};
-  width: ${(props) => (props.visible ? `11.5rem` : "0")};
-`
-
-const SidebarToggleButton = styled.div`
-  position: absolute;
-  right: -2.3rem;
-  top: 2rem;
-  width: 1.5rem;
-  cursor: pointer;
-  font-size: 1.125rem;
-`
-
-const AppContainer = () => {
+const App = () => {
   return (
-    <div>
+    <ErrorBoundary errorMsg={"Unable to load dashboard"}>
       <ApiProvider>
         <UiStateProvider>
-          <App />
+          <AppWrapper>
+            <Modal />
+            <SidebarWrapper>
+              <ErrorBoundary errorMsg={"Unable to load sidebar"}>
+                <Sidebar />
+              </ErrorBoundary>
+            </SidebarWrapper>
+            <RouteWrapper>
+              <ErrorBoundary errorMsg={"Unable to load page"}>
+                <React.Suspense fallback={<div />}>
+                  <Route exact path="/" component={Overview} />
+                  <Route path="/logs/" component={Logs} />
+                  <Route path="/graph/" component={Graph} />
+                  <Route path="/providers/:id" component={Provider} />
+                </React.Suspense>
+              </ErrorBoundary>
+            </RouteWrapper>
+          </AppWrapper>
         </UiStateProvider>
       </ApiProvider>
-    </div>
+    </ErrorBoundary>
   )
 }
 
-const App = () => {
-  const {
-    state: { isSidebarOpen },
-    actions: { toggleSidebar },
-  } = useUiState()
-
-  return (
-    <div
-      className={css`
-        display: flex;
-        height: 100vh;
-        max-height: 100vh;
-        overflow-y: hidden;
-        background: ${colors.gardenGrayLighter};
-      `}
-    >
-      <Modal />
-      <SidebarWrapper>
-        <SidebarToggleButton onClick={toggleSidebar}>
-          {isSidebarOpen ? <CloseSidebarIcon /> : <OpenSidebarIcon />}
-        </SidebarToggleButton>
-        <SidebarContainer visible={isSidebarOpen}>
-          <div className={"ml-1"}>
-            <NavLink to="/">
-              <Logo src={logo} alt="Home" />
-            </NavLink>
-          </div>
-          <Sidebar />
-        </SidebarContainer>
-      </SidebarWrapper>
-      <div
-        className={css`
-          display: flex;
-          flex-direction: column;
-          flex-grow: 1;
-          overflow-y: hidden;
-        `}
-      >
-        <div
-          className={css`
-            background-color: ${colors.gardenGrayLighter};
-            flex-grow: 1;
-            padding: 1rem 1rem 1rem 2rem;
-          `}
-        >
-          <Route exact path="/" component={Overview} />
-          <Route path="/logs/" component={Logs} />
-          <Route path="/graph/" component={Graph} />
-          <Route path="/providers/:id" component={Provider} />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-export default AppContainer
+export default App

@@ -351,6 +351,7 @@ describe("createIngressResources", () => {
       args: [],
       daemon: false,
       dependencies: [],
+      disabled: false,
       env: {},
       ingresses,
       limits: defaultContainerLimits,
@@ -360,6 +361,7 @@ describe("createIngressResources", () => {
     }
     const moduleConfig = {
       allowPublish: false,
+      disabled: false,
       build: {
         command: [],
         dependencies: [],
@@ -394,9 +396,11 @@ describe("createIngressResources", () => {
       config: {
         name: spec.name,
         dependencies: [],
+        disabled: false,
         hotReloadable: false,
         spec,
       },
+      disabled: false,
       module,
       sourceModule: module,
       spec,

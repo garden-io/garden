@@ -27,7 +27,7 @@ import { getLogger } from "./logger/logger"
 import { PluginActionHandlers, GardenPlugin } from "./types/plugin/plugin"
 import { loadConfig, findProjectConfig, prepareModuleResource } from "./config/base"
 import { PrimitiveMap } from "./config/common"
-import { validate } from "./config/validation"
+import { validateSchema } from "./config/validation"
 import { BaseTask } from "./tasks/base"
 import { LocalConfigStore, ConfigStore, GlobalConfigStore } from "./config-store"
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
@@ -59,6 +59,7 @@ import { ensureDir } from "fs-extra"
 import { loadPlugins, getDependencyOrder } from "./plugins"
 import { deline, naturalList } from "./util/string"
 import dedent from "dedent"
+import { ensureConnected } from "./db/connection"
 
 export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
   [actionName: string]: PluginActionHandlers[T]
@@ -116,10 +117,10 @@ export interface GardenParams {
 export class Garden {
   public readonly log: LogEntry
   private loadedPlugins: GardenPlugin[]
-  private moduleConfigs: ModuleConfigMap
+  protected moduleConfigs: ModuleConfigMap
   private pluginModuleConfigs: ModuleConfig[]
   private resolvedProviders: Provider[]
-  private modulesScanned: boolean
+  protected modulesScanned: boolean
   private readonly registeredPlugins: { [key: string]: GardenPlugin }
   private readonly taskGraph: TaskGraph
   private watcher: Watcher
@@ -247,6 +248,9 @@ export class Garden {
     const vcs = new GitHandler(gardenDirPath, config.dotIgnoreFiles)
     await vcs.getRepoRoot(log, projectRoot)
 
+    // Connect to the state storage
+    await ensureConnected()
+
     const garden = new this({
       artifactsPath,
       projectRoot,
@@ -327,7 +331,7 @@ export class Garden {
       }
 
       try {
-        pluginModule = validate(pluginModule, pluginModuleSchema, {
+        pluginModule = validateSchema(pluginModule, pluginModuleSchema, {
           context: `plugin module "${moduleNameOrLocation}"`,
         })
       } catch (err) {
@@ -396,8 +400,8 @@ export class Garden {
     const configNames = keyBy(this.getRawProviderConfigs(), "name")
     const configuredPlugins = plugins.filter((p) => configNames[p.name])
 
-    const definitions = flatten(configuredPlugins.map((p) => p.createModuleTypes || []))
-    const extensions = flatten(configuredPlugins.map((p) => p.extendModuleTypes || []))
+    const definitions = flatten(configuredPlugins.map((p) => p.createModuleTypes))
+    const extensions = flatten(configuredPlugins.map((p) => p.extendModuleTypes))
 
     return keyBy(
       definitions.map((definition) => {

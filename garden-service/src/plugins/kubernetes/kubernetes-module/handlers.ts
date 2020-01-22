@@ -28,7 +28,7 @@ import { DeployServiceParams } from "../../../types/plugin/service/deployService
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
 import { GetServiceLogsParams } from "../../../types/plugin/service/getServiceLogs"
 import { gardenAnnotationKey } from "../../../util/string"
-import { getForwardablePorts, getPortForwardHandler } from "../port-forward"
+import { getForwardablePorts, getPortForwardHandler, killPortForwards } from "../port-forward"
 import { LogEntry } from "../../../logger/log-entry"
 
 export const kubernetesHandlers: Partial<ModuleAndRuntimeActionHandlers<KubernetesModule>> = {
@@ -106,7 +106,12 @@ async function deployService(params: DeployServiceParams<KubernetesModule>): Pro
     log,
   })
 
-  return getServiceStatus(params)
+  const status = await getServiceStatus(params)
+
+  // Make sure port forwards work after redeployment
+  killPortForwards(service, status.forwardablePorts || [], log)
+
+  return status
 }
 
 async function deleteService(params: DeleteServiceParams): Promise<KubernetesServiceStatus> {

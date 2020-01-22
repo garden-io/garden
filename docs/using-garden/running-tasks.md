@@ -15,7 +15,7 @@ You add tasks when you want Garden to execute specific commands before deploying
       - name: db-clear
         args: [rake, db:rollback]
 
-> Note that not all [modules types](../reference/module-types/README.md) support tasks.
+> Note that not all [modules types](../module-types/README.md) support tasks.
 
 ## How it Works
 
@@ -42,7 +42,6 @@ Tasks correspond to a **run** action in the Stack Graph.
 - Services and tests can depend on tasks.
 
 ## Examples
-
 
 ### Database Migration
 
@@ -85,7 +84,7 @@ tasks:
       - postgres
 ```
 
-The full example is [available here](https://github.com/garden-io/garden/blob/v0.10.11/examples/vote-helm/postgres/garden.yml). There's [also a version](https://github.com/garden-io/garden/tree/v0.10.16/examples/vote) that uses the `container` module type instead of Helm charts.
+The full example is [available here](https://github.com/garden-io/garden/blob/v0.10.11/examples/vote-helm/postgres/garden.yml). There's [also a version](https://github.com/garden-io/garden/tree/v0.11.0/examples/vote) that uses the `container` module type instead of Helm charts.
 
 ## Advanced
 
@@ -110,7 +109,23 @@ tasks:
 
 After running `my-task`, you can find the contents of the `report` directory in the task's container, locally under `.garden/artifacts/my-task-report`.
 
-Please look at individual [module type references](../reference/module-types/README.md) to see how to configure each module type's tasks to extract artifacts after running them.
+Please look at individual [module type references](../module-types/README.md) to see how to configure each module type's tasks to extract artifacts after running them.
+
+### Disabling Tasks
+
+Module types that allow you to configure tasks generally also allow you to disable tasks by setting `disabled: true` in the task configuration. You can also disable them conditionally using template strings. For example, to disable a `container` module task for a specific environment, you could do something like this:
+
+```yaml
+kind: Module
+type: container
+...
+tasks:
+  - name: database-reset
+    disabled: ${environment.name == "prod"}
+    ...
+```
+
+Tasks are also implicitly disabled when the parent module is disabled.
 
 ### Kubernetes Provider
 
@@ -131,7 +146,7 @@ source directory instead.
 
 ## Further Reading
 
-* For full task configuration by module type, please take a look at our [reference docs](../reference/module-types/README.md).
+* For full task configuration by module type, please take a look at our [reference docs](../module-types/README.md).
 
 ## Next Steps
 

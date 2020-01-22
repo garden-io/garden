@@ -608,6 +608,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
+  | `--force` |  | boolean | Run the service even if it&#x27;s disabled for the environment.
   | `--force-build` |  | boolean | Force rebuild of module.
 
 ### garden run task
@@ -634,6 +635,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
+  | `--force` |  | boolean | Run the task even if it&#x27;s disabled for the environment.
   | `--force-build` |  | boolean | Force rebuild of module before running.
 
 ### garden run test
@@ -663,6 +665,7 @@ Examples:
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--interactive` |  | boolean | Set to false to skip interactive mode and just output the command result.
+  | `--force` |  | boolean | Run the test even if it&#x27;s disabled for the environment.
   | `--force-build` |  | boolean | Force rebuild of module before running.
 
 ### garden scan

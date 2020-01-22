@@ -3,9 +3,10 @@ import { join } from "path"
 import { pathExists, readdir, createFile } from "fs-extra"
 import { expect } from "chai"
 import { BuildTask } from "../../../src/tasks/build"
-import { makeTestGarden, dataDir } from "../../helpers"
+import { makeTestGarden, dataDir, expectError, getDataDir } from "../../helpers"
 import { getConfigFilePath } from "../../../src/util/fs"
 import { Garden } from "../../../src/garden"
+import { BuildDir } from "../../../src/build-dir"
 
 /*
   Module dependency diagram for build-dir test project
@@ -48,6 +49,59 @@ describe("BuildDir", () => {
     const moduleA = await garden.resolveModuleConfig(garden.log, "module-a")
     const buildPath = await garden.buildDir.buildPath(moduleA)
     expect(await pathExists(buildPath)).to.eql(true)
+  })
+
+  it("should throw if rsync is not on PATH", async () => {
+    const orgPath = process.env.PATH
+
+    try {
+      process.env.PATH = ""
+      await expectError(
+        () => BuildDir.factory(garden.projectRoot, garden.gardenDirPath),
+        (err) =>
+          expect(err.message).to.equal(
+            "Could not find rsync binary. Please make sure rsync (version 3.1.0 or later) is installed " +
+              "and on your PATH."
+          )
+      )
+    } finally {
+      process.env.PATH = orgPath
+    }
+  })
+
+  it("should throw if rsync is too old", async () => {
+    const orgPath = process.env.PATH
+
+    try {
+      process.env.PATH = getDataDir("dummy-rsync", "old-version")
+      await expectError(
+        () => BuildDir.factory(garden.projectRoot, garden.gardenDirPath),
+        (err) =>
+          expect(err.message).to.equal(
+            "Found rsync binary but the version is too old (2.1.2). Please install version 3.1.0 or later."
+          )
+      )
+    } finally {
+      process.env.PATH = orgPath
+    }
+  })
+
+  it("should throw if rsync returns invalid version", async () => {
+    const orgPath = process.env.PATH
+
+    try {
+      process.env.PATH = getDataDir("dummy-rsync", "invalid")
+      await expectError(
+        () => BuildDir.factory(garden.projectRoot, garden.gardenDirPath),
+        (err) =>
+          expect(err.message).to.equal(
+            "Could not detect rsync version. Please make sure rsync version 3.1.0 or later is installed " +
+              "and on your PATH."
+          )
+      )
+    } finally {
+      process.env.PATH = orgPath
+    }
   })
 
   describe("syncFromSrc", () => {

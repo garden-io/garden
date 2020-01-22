@@ -29,6 +29,7 @@ const pluginName = "local-docker-swarm"
 
 export const gardenPlugin = createGardenPlugin({
   name: pluginName,
+  docs: "EXPERIMENTAL",
   handlers: {
     getEnvironmentStatus,
     prepareEnvironment,

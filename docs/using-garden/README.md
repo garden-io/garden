@@ -23,5 +23,5 @@ Services are the basic unit of deployment in Garden. In this guide you'll learn 
 ## [Running Tests](./running-tests.md)
 This guide shows you how Garden can run your tests for you.
 
-## [Running Tasks](./running-tests.md)
+## [Running Tasks](./running-tasks.md)
 This guide shows you how Garden can run tasks for you, for example database migrations.

@@ -263,7 +263,7 @@ const tlsCertificateSchema = joi.object().keys({
       "A list of hostnames that this certificate should be used for. " +
         "If you don't specify these, they will be automatically read from the certificate."
     )
-    .example([["www.mydomain.com"], {}]),
+    .example(["www.mydomain.com"]),
   secretRef: secretRef
     .description("A reference to the Kubernetes secret that contains the TLS certificate and key for the domain.")
     .example({ name: "my-tls-secret", namespace: "default" }),
@@ -317,7 +317,7 @@ export const kubernetesConfigBase = providerConfigBaseSchema.keys({
           `
         ),
     })
-    .default(() => {}, "{}")
+    .default(() => {})
     .description("Configuration options for the `cluster-docker` build mode."),
   defaultHostname: joi
     .string()
@@ -533,12 +533,10 @@ export const configSchema = kubernetesConfigBase
       .default(443)
       .description("The external HTTPS port of the cluster's ingress controller."),
     kubeconfig: joi
-      .string()
       .posixPath()
       .description("Path to kubeconfig file to use instead of the system default. Must be a POSIX-style path."),
     namespace: joi
       .string()
-      .default(undefined, "<project name>")
       .description(
         "Specify which namespace to deploy services to (defaults to <project name>). " +
           "Note that the framework generates other namespaces as well with this name as a prefix."

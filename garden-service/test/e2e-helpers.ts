@@ -1,5 +1,5 @@
+import chalk from "chalk"
 import execa from "execa"
-import mlog from "mocha-logger"
 import { remove } from "fs-extra"
 import { get, intersection, padEnd } from "lodash"
 import parseArgs = require("minimist")
@@ -70,8 +70,8 @@ export function parseLogEntries(entries: string[]): JsonLogEntry[] {
     try {
       return JSON.parse(line)
     } catch (error) {
-      mlog.log("Unable to parse line", line)
-      return {}
+      // Unable to parse line, so we assume it's a line from an error message.
+      return { msg: chalk.red(line) }
     }
   })
 }

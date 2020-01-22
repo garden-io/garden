@@ -37,13 +37,16 @@ const execPathDoc = dedent`
 
 const artifactSchema = joi.object().keys({
   source: joi
-    .string()
-    .posixPath({ allowGlobs: true, subPathOnly: true, relativeOnly: true })
+    .posixPath()
+    .allowGlobs()
+    .relativeOnly()
+    .subPathOnly()
     .required()
     .description("A POSIX-style path or glob to copy, relative to the build root."),
   target: joi
-    .string()
-    .posixPath({ subPathOnly: true, relativeOnly: true })
+    .posixPath()
+    .relativeOnly()
+    .subPathOnly()
     .default(".")
     .description("A POSIX-style path to copy the artifact to, relative to the project artifacts directory."),
 })
@@ -124,7 +127,7 @@ export const execBuildSpecSchema = baseBuildSpecSchema.keys({
         ${execPathDoc}
       `
     )
-    .example([["npm", "run", "build"], {}]),
+    .example(["npm", "run", "build"]),
 })
 
 export const execModuleSpecSchema = joi
@@ -186,6 +189,7 @@ export async function configureExecModule({
   moduleConfig.taskConfigs = moduleConfig.spec.tasks.map((t) => ({
     name: t.name,
     dependencies: t.dependencies,
+    disabled: t.disabled,
     timeout: t.timeout,
     spec: t,
   }))
@@ -193,6 +197,7 @@ export async function configureExecModule({
   moduleConfig.testConfigs = moduleConfig.spec.tests.map((t) => ({
     name: t.name,
     dependencies: t.dependencies,
+    disabled: t.disabled,
     spec: t,
     timeout: t.timeout,
   }))

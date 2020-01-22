@@ -6,12 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird = require("bluebird")
+import Bluebird from "bluebird"
 import chalk from "chalk"
 import { padEnd, keyBy, flatten } from "lodash"
 
 import { Module } from "./types/module"
-import { Service } from "./types/service"
 import { BaseTask } from "./tasks/base"
 import { TaskResults } from "./task-graph"
 import { isModuleLinked } from "./util/ext-source-util"
@@ -31,46 +30,18 @@ interface ProcessParams {
   log: LogEntry
   footerLog?: LogEntry
   watch: boolean
-  handler: ProcessHandler
+  initialTasks: BaseTask[]
   // use this if the behavior should be different on watcher changes than on initial processing
-  changeHandler?: ProcessHandler
+  changeHandler: ProcessHandler
 }
 
 export interface ProcessModulesParams extends ProcessParams {
   modules: Module[]
 }
 
-export interface ProcessServicesParams extends ProcessParams {
-  services: Service[]
-}
-
 export interface ProcessResults {
   taskResults: TaskResults
   restartRequired?: boolean
-}
-
-export async function processServices({
-  garden,
-  graph,
-  log,
-  footerLog,
-  services,
-  watch,
-  handler,
-  changeHandler,
-}: ProcessServicesParams): Promise<ProcessResults> {
-  const modules = Array.from(new Set(services.map((s) => s.module)))
-
-  return processModules({
-    modules,
-    garden,
-    graph,
-    log,
-    footerLog,
-    watch,
-    handler,
-    changeHandler,
-  })
 }
 
 export async function processModules({
@@ -79,8 +50,8 @@ export async function processModules({
   log,
   footerLog,
   modules,
+  initialTasks,
   watch,
-  handler,
   changeHandler,
 }: ProcessModulesParams): Promise<ProcessResults> {
   log.silly("Starting processModules")
@@ -98,8 +69,6 @@ export async function processModules({
     log.info(divider)
   }
 
-  const tasks: BaseTask[] = flatten(await Bluebird.map(modules, (module) => handler(graph, module)))
-
   if (watch && !!footerLog) {
     garden.events.on("taskGraphProcessing", () => {
       const emoji = printEmoji("hourglass_flowing_sand", footerLog)
@@ -107,7 +76,7 @@ export async function processModules({
     })
   }
 
-  const results = await garden.processTasks(tasks)
+  const results = await garden.processTasks(initialTasks)
 
   if (!watch) {
     return {
@@ -116,37 +85,40 @@ export async function processModules({
     }
   }
 
-  if (!changeHandler) {
-    changeHandler = handler
-  }
-
-  const buildDependecies = (
-    await graph.getDependenciesForMany(
-      "build",
-      modules.map((m) => m.name),
-      true
-    )
-  ).build
-  const modulesToWatch = uniqByName(buildDependecies.concat(modules))
+  const deps = await graph.getDependenciesForMany({
+    nodeType: "build",
+    names: modules.map((m) => m.name),
+    recursive: true,
+  })
+  const modulesToWatch = uniqByName(deps.build.concat(modules))
   const modulesByName = keyBy(modulesToWatch, "name")
 
   await garden.startWatcher(graph)
 
-  const footerWaiting = () => {
+  const waiting = () => {
     if (!!footerLog) {
       const emoji = printEmoji("clock2", footerLog)
       footerLog.setState(`\n${emoji} ${chalk.gray("Waiting for code changes...")}`)
     }
-  }
-  footerWaiting()
 
-  const restartPromise = new Promise((resolve) => {
+    garden.events.emit("watchingForChanges", {})
+  }
+
+  let restartRequired = true
+
+  await new Promise((resolve) => {
     garden.events.on("taskGraphComplete", () => {
-      footerWaiting()
+      waiting()
     })
 
     garden.events.on("_restart", () => {
       log.debug({ symbol: "info", msg: `Manual restart triggered` })
+      resolve()
+    })
+
+    garden.events.on("_exit", () => {
+      log.debug({ symbol: "info", msg: `Manual exit triggered` })
+      restartRequired = false
       resolve()
     })
 
@@ -202,7 +174,7 @@ export async function processModules({
       }
 
       // Make sure the modules' versions are up to date.
-      const changedModules = await graph.getModules(changedModuleNames)
+      const changedModules = await graph.getModules({ names: changedModuleNames })
 
       const moduleTasks = flatten(
         await Bluebird.map(changedModules, async (m) => {
@@ -212,13 +184,13 @@ export async function processModules({
       )
       await garden.processTasks(moduleTasks)
     })
-  })
 
-  await restartPromise
+    waiting()
+  })
 
   return {
     taskResults: {}, // TODO: Return latest results for each task key processed between restarts?
-    restartRequired: true,
+    restartRequired,
   }
 }
 

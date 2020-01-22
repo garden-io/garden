@@ -13,6 +13,7 @@ export interface Task<M extends Module = Module> {
   name: string
   description?: string
   module: M
+  disabled: boolean
   config: M["taskConfigs"][0]
   spec: M["taskConfigs"][0]["spec"]
 }
@@ -21,6 +22,7 @@ export function taskFromConfig<M extends Module = Module>(module: M, config: Tas
   return {
     name: config.name,
     module,
+    disabled: module.disabled || config.disabled,
     config,
     spec: config.spec,
   }

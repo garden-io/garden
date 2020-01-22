@@ -28,6 +28,7 @@ const configSchema = providerConfigBaseSchema.keys({
 
 export const gardenPlugin = createGardenPlugin({
   name: "google-app-engine",
+  docs: "EXPERIMENTAL",
   configSchema,
   handlers: {
     getEnvironmentStatus,

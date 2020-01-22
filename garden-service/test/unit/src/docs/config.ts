@@ -1,11 +1,12 @@
 import {
   renderSchemaDescriptionYaml,
   getDefaultValue,
-  normalizeDescriptions,
+  normalizeSchemaDescriptions,
   renderConfigReference,
-  NormalizedDescription,
+  NormalizedSchemaDescription,
   renderMarkdownLink,
   sanitizeYamlStringForGitBook,
+  Description,
 } from "../../../../src/docs/config"
 import { expect } from "chai"
 import dedent = require("dedent")
@@ -14,13 +15,13 @@ import { joiArray, joi, joiEnvVars } from "../../../../src/config/common"
 describe("config", () => {
   const servicePortSchema = joi
     .number()
-    .default((context) => context.containerPort, "<same as containerPort>")
+    .default((parent) => (parent ? parent.containerPort : undefined))
     .example("8080")
     .description("description")
 
   const testDefaultSchema = joi
     .number()
-    .default(() => "result", "default value")
+    .default(() => "result")
     .description("description")
 
   const testObject = joi
@@ -32,7 +33,7 @@ describe("config", () => {
         .description("key a"),
       testKeyB: joi
         .string()
-        .only("b")
+        .valid("b")
         .description("key b"),
     })
     .description("test object")
@@ -108,7 +109,7 @@ describe("config", () => {
 
   describe("renderSchemaDescriptionYaml", () => {
     it("should render the yaml with the full description", () => {
-      const schemaDescriptions = normalizeDescriptions(portSchema.describe())
+      const schemaDescriptions = normalizeSchemaDescriptions(portSchema.describe() as Description)
       const yaml = renderSchemaDescriptionYaml(schemaDescriptions, { renderRequired: true })
       expect(yaml).to.equal(dedent`
         # description
@@ -125,7 +126,7 @@ describe("config", () => {
         # Example: "8080"
         #
         # Optional.
-        servicePort: <same as containerPort>
+        servicePort:
 
         # test object
         #
@@ -158,14 +159,14 @@ describe("config", () => {
       `)
     })
     it("should optionally render the yaml with a basic description", () => {
-      const schemaDescriptions = normalizeDescriptions(portSchema.describe())
+      const schemaDescriptions = normalizeSchemaDescriptions(portSchema.describe() as Description)
       const yaml = renderSchemaDescriptionYaml(schemaDescriptions, { renderBasicDescription: true })
       expect(yaml).to.equal(dedent`
         # description
         containerPort:
 
         # description
-        servicePort: <same as containerPort>
+        servicePort:
 
         # test object
         testObject:
@@ -180,11 +181,11 @@ describe("config", () => {
       `)
     })
     it("should optionally skip the commented description above the key", () => {
-      const schemaDescriptions = normalizeDescriptions(portSchema.describe())
+      const schemaDescriptions = normalizeSchemaDescriptions(portSchema.describe() as Description)
       const yaml = renderSchemaDescriptionYaml(schemaDescriptions, { renderFullDescription: false })
       expect(yaml).to.equal(dedent`
         containerPort:
-        servicePort: <same as containerPort>
+        servicePort:
         testObject:
           testKeyA:
           testKeyB:
@@ -192,14 +193,14 @@ describe("config", () => {
       `)
     })
     it("should conditionally print ellipsis between object keys", () => {
-      const schemaDescriptions = normalizeDescriptions(portSchema.describe())
+      const schemaDescriptions = normalizeSchemaDescriptions(portSchema.describe() as Description)
       const yaml = renderSchemaDescriptionYaml(schemaDescriptions, {
         renderFullDescription: false,
         renderEllipsisBetweenKeys: true,
       })
       expect(yaml).to.equal(dedent`
         containerPort:
-        servicePort: <same as containerPort>
+        servicePort:
         testObject:
           ...
           testKeyA:
@@ -216,7 +217,7 @@ describe("config", () => {
           boo: "far",
         }),
       })
-      const schemaDescriptions = normalizeDescriptions(schema.describe())
+      const schemaDescriptions = normalizeSchemaDescriptions(schema.describe() as Description)
       const yaml = renderSchemaDescriptionYaml(schemaDescriptions, {
         renderFullDescription: false,
         renderEllipsisBetweenKeys: true,
@@ -232,21 +233,16 @@ describe("config", () => {
 
   describe("getDefaultValue", () => {
     it("should get the default return of the function over the param", () => {
-      const value = getDefaultValue(testDefaultSchema.describe())
+      const value = getDefaultValue(testDefaultSchema.describe() as Description)
       expect(value).to.eq("result")
-    })
-
-    it("should get the default value of a function with context", () => {
-      const value = getDefaultValue(servicePortSchema.describe())
-      expect(value).to.eq("<same as containerPort>")
     })
   })
 
-  describe("generateConfigReference", () => {
+  describe("renderConfigReference", () => {
     it("should return the correct markdown", () => {
       const { markdownReference } = renderConfigReference(portSchema)
       expect(markdownReference).to.equal(dedent`
-        \n### \`containerPort\`
+        \n#### \`containerPort\`
 
         description
 
@@ -254,13 +250,13 @@ describe("config", () => {
         | -------- | -------- |
         | \`number\` | Yes      |
 
-        ### \`servicePort\`
+        #### \`servicePort\`
 
         description
 
-        | Type     | Required | Default                     |
-        | -------- | -------- | --------------------------- |
-        | \`number\` | No       | \`"<same as containerPort>"\` |
+        | Type     | Required |
+        | -------- | -------- |
+        | \`number\` | No       |
 
         Example:
 
@@ -268,7 +264,7 @@ describe("config", () => {
         servicePort: "8080"
         \`\`\`
 
-        ### \`testObject\`
+        #### \`testObject\`
 
         test object
 
@@ -276,7 +272,7 @@ describe("config", () => {
         | -------- | -------- |
         | \`object\` | No       |
 
-        ### \`testObject.testKeyA\`
+        #### \`testObject.testKeyA\`
 
         [testObject](#testobject) > testKeyA
 
@@ -286,7 +282,7 @@ describe("config", () => {
         | -------- | -------- |
         | \`number\` | Yes      |
 
-        ### \`testObject.testKeyB\`
+        #### \`testObject.testKeyB\`
 
         [testObject](#testobject) > testKeyB
 
@@ -296,7 +292,7 @@ describe("config", () => {
         | -------- | -------- | -------------- |
         | \`string\` | Yes      | "b"            |
 
-        ### \`testArray\`
+        #### \`testArray\`
 
         test array
 
@@ -312,7 +308,7 @@ describe("config", () => {
         containerPort:
 
         # description
-        servicePort: <same as containerPort>
+        servicePort:
 
         # test object
         testObject:
@@ -330,7 +326,7 @@ describe("config", () => {
 
   describe("renderMarkdownLink", () => {
     it("should return a markdown link with a name and relative path", () => {
-      const happy: NormalizedDescription = {
+      const happy: NormalizedSchemaDescription = {
         name: "happy",
         level: 0,
         required: false,
@@ -338,7 +334,7 @@ describe("config", () => {
         formattedName: "happy",
         formattedType: "string",
       }
-      const families: NormalizedDescription = {
+      const families: NormalizedSchemaDescription = {
         name: "families",
         level: 0,
         required: false,
@@ -347,7 +343,7 @@ describe("config", () => {
         formattedType: "array",
         parent: happy,
       }
-      const are: NormalizedDescription = {
+      const are: NormalizedSchemaDescription = {
         name: "happy",
         level: 0,
         required: false,
@@ -356,7 +352,7 @@ describe("config", () => {
         formattedType: "string",
         parent: families,
       }
-      const all: NormalizedDescription = {
+      const all: NormalizedSchemaDescription = {
         name: "all",
         level: 0,
         required: false,
@@ -365,7 +361,7 @@ describe("config", () => {
         formattedType: "array",
         parent: are,
       }
-      const alike: NormalizedDescription = {
+      const alike: NormalizedSchemaDescription = {
         name: "alike",
         level: 0,
         required: false,

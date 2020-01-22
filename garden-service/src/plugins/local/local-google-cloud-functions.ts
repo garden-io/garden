@@ -25,6 +25,7 @@ const emulatorPort = 8010
 
 export const gardenPlugin = createGardenPlugin({
   name: pluginName,
+  docs: "EXPERIMENTAL",
   handlers: {
     async configureProvider({ config }: ConfigureProviderParams) {
       const emulatorConfig: ContainerModuleConfig = {
@@ -34,6 +35,7 @@ export const gardenPlugin = createGardenPlugin({
           dependencies: [],
         },
         description: "Base container for running Google Cloud Functions emulator",
+        disabled: false,
         name: "local-gcf-container",
         path: emulatorBaseModulePath,
         outputs: {},
@@ -75,6 +77,7 @@ export const gardenPlugin = createGardenPlugin({
             const spec = {
               name: s.name,
               dependencies: s.dependencies,
+              disabled: parsed.disabled,
               outputs: {
                 ingress: `http://${s.name}:${emulatorPort}/local/local/${functionEntrypoint}`,
               },
@@ -108,6 +111,7 @@ export const gardenPlugin = createGardenPlugin({
             return {
               name: spec.name,
               dependencies: spec.dependencies,
+              disabled: parsed.disabled,
               hotReloadable: false,
               outputs: spec.outputs,
               spec,
@@ -132,6 +136,7 @@ export const gardenPlugin = createGardenPlugin({
                 },
               ]),
             },
+            disabled: parsed.disabled,
             name: parsed.name,
             outputs: {},
             path: parsed.path,

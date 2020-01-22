@@ -42,7 +42,7 @@ export class GetServiceStatusTask extends BaseTask {
   }
 
   async getDependencies() {
-    const deps = await this.graph.getDependencies("deploy", this.getName(), false)
+    const deps = await this.graph.getDependencies({ nodeType: "deploy", name: this.getName(), recursive: false })
 
     const stageBuildTask = new StageBuildTask({
       garden: this.garden,
@@ -90,7 +90,11 @@ export class GetServiceStatusTask extends BaseTask {
 
     const hotReload = includes(this.hotReloadServiceNames, this.service.name)
 
-    const dependencies = await this.graph.getDependencies("deploy", this.getName(), false)
+    const dependencies = await this.graph.getDependencies({
+      nodeType: "deploy",
+      name: this.getName(),
+      recursive: false,
+    })
 
     const serviceStatuses = getServiceStatuses(dependencyResults)
     const taskResults = getRunTaskResults(dependencyResults)

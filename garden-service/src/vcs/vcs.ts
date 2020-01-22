@@ -12,7 +12,7 @@ import normalize = require("normalize-path")
 import { mapValues, keyBy, sortBy, omit } from "lodash"
 import { createHash } from "crypto"
 import { joiArray, joi } from "../config/common"
-import { validate } from "../config/validation"
+import { validateSchema } from "../config/validation"
 import { join, relative, isAbsolute } from "path"
 import { GARDEN_VERSIONFILE_NAME as GARDEN_TREEVERSION_FILENAME } from "../constants"
 import { pathExists, readFile, writeFile } from "fs-extra"
@@ -63,7 +63,7 @@ export const moduleVersionSchema = joi.object().keys({
   dependencyVersions: joi
     .object()
     .pattern(/.+/, treeVersionSchema)
-    .default(() => ({}), "{}")
+    .default(() => ({}))
     .description("The version of each of the dependencies of the module."),
   files: fileNamesSchema,
 })
@@ -132,7 +132,7 @@ export abstract class VcsHandler {
   ): Promise<ModuleVersion> {
     const treeVersion = await this.resolveTreeVersion(log, moduleConfig)
 
-    validate(treeVersion, treeVersionSchema, {
+    validateSchema(treeVersion, treeVersionSchema, {
       context: `${this.name} tree version for module at ${moduleConfig.path}`,
     })
 
@@ -188,7 +188,7 @@ async function readVersionFile(path: string, schema: Joi.Schema): Promise<any> {
   }
 
   try {
-    return validate(JSON.parse(versionFileContents), schema)
+    return validateSchema(JSON.parse(versionFileContents), schema)
   } catch (error) {
     throw new ConfigurationError(`Unable to parse ${path} as valid version file`, {
       path,

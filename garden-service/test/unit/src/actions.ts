@@ -5,7 +5,6 @@ import {
   pluginActionDescriptions,
   createGardenPlugin,
   ActionHandler,
-  GardenPlugin,
   ModuleActionHandler,
 } from "../../../src/types/plugin/plugin"
 import { Service, ServiceState } from "../../../src/types/service"
@@ -21,7 +20,7 @@ import { Task } from "../../../src/types/task"
 import { expect } from "chai"
 import { omit } from "lodash"
 import { joi } from "../../../src/config/common"
-import { validate } from "../../../src/config/validation"
+import { validateSchema } from "../../../src/config/validation"
 import { ProjectConfig } from "../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../src/constants"
 import { defaultProvider } from "../../../src/config/provider"
@@ -132,6 +131,7 @@ describe("ActionRouter", () => {
               services: [{ name }],
               allowPublish: true,
               build: { dependencies: [] },
+              disabled: false,
             },
           ],
         })
@@ -266,6 +266,7 @@ describe("ActionRouter", () => {
           testConfig: {
             name: "test",
             dependencies: [],
+            disabled: false,
             timeout: 1234,
             spec: {},
           },
@@ -292,6 +293,7 @@ describe("ActionRouter", () => {
         const testConfig = {
           name: "test",
           dependencies: [],
+          disabled: false,
           timeout: 1234,
           spec: {
             artifacts: [
@@ -727,7 +729,7 @@ describe("ActionRouter", () => {
 
     context("when no providers extend the module type with requested handler", () => {
       it("should return the handler from the provider that created it", async () => {
-        const foo: GardenPlugin = {
+        const foo = createGardenPlugin({
           name: "foo",
           createModuleTypes: [
             {
@@ -739,7 +741,7 @@ describe("ActionRouter", () => {
               },
             },
           ],
-        }
+        })
 
         const _garden = await Garden.factory(path, {
           plugins: [foo],
@@ -768,7 +770,7 @@ describe("ActionRouter", () => {
 
     context("when one provider overrides the requested handler on the module type", () => {
       it("should return the handler from the extending provider", async () => {
-        const base: GardenPlugin = {
+        const base = createGardenPlugin({
           name: "base",
           createModuleTypes: [
             {
@@ -780,8 +782,8 @@ describe("ActionRouter", () => {
               },
             },
           ],
-        }
-        const foo: GardenPlugin = {
+        })
+        const foo = createGardenPlugin({
           name: "foo",
           dependencies: ["base"],
           extendModuleTypes: [
@@ -792,7 +794,7 @@ describe("ActionRouter", () => {
               },
             },
           ],
-        }
+        })
 
         const _garden = await Garden.factory(path, {
           plugins: [base, foo],
@@ -821,7 +823,7 @@ describe("ActionRouter", () => {
 
     context("when multiple providers extend the module type with requested handler", () => {
       it("should return the handler that is not being overridden by another handler", async () => {
-        const base: GardenPlugin = {
+        const base = createGardenPlugin({
           name: "base",
           createModuleTypes: [
             {
@@ -833,8 +835,8 @@ describe("ActionRouter", () => {
               },
             },
           ],
-        }
-        const foo: GardenPlugin = {
+        })
+        const foo = createGardenPlugin({
           name: "foo",
           dependencies: ["base"],
           extendModuleTypes: [
@@ -845,8 +847,8 @@ describe("ActionRouter", () => {
               },
             },
           ],
-        }
-        const too: GardenPlugin = {
+        })
+        const too = createGardenPlugin({
           name: "too",
           dependencies: ["base", "foo"],
           extendModuleTypes: [
@@ -857,7 +859,7 @@ describe("ActionRouter", () => {
               },
             },
           ],
-        }
+        })
 
         const _garden = await Garden.factory(path, {
           plugins: [base, too, foo],
@@ -890,7 +892,7 @@ describe("ActionRouter", () => {
 
       context("when multiple providers are side by side in the dependency graph", () => {
         it("should return the last configured handler for the specified module action type", async () => {
-          const base: GardenPlugin = {
+          const base = createGardenPlugin({
             name: "base",
             createModuleTypes: [
               {
@@ -902,8 +904,8 @@ describe("ActionRouter", () => {
                 },
               },
             ],
-          }
-          const foo: GardenPlugin = {
+          })
+          const foo = createGardenPlugin({
             name: "foo",
             dependencies: ["base"],
             extendModuleTypes: [
@@ -914,8 +916,8 @@ describe("ActionRouter", () => {
                 },
               },
             ],
-          }
-          const too: GardenPlugin = {
+          })
+          const too = createGardenPlugin({
             name: "too",
             dependencies: ["base"],
             extendModuleTypes: [
@@ -926,7 +928,7 @@ describe("ActionRouter", () => {
                 },
               },
             ],
-          }
+          })
 
           const _garden = await Garden.factory(path, {
             plugins: [base, too, foo],
@@ -961,7 +963,7 @@ describe("ActionRouter", () => {
 
     context("when the handler was added by a provider and not specified in the creating provider", () => {
       it("should return the added handler", async () => {
-        const base: GardenPlugin = {
+        const base = createGardenPlugin({
           name: "base",
           createModuleTypes: [
             {
@@ -971,8 +973,8 @@ describe("ActionRouter", () => {
               handlers: {},
             },
           ],
-        }
-        const foo: GardenPlugin = {
+        })
+        const foo = createGardenPlugin({
           name: "foo",
           dependencies: ["base"],
           extendModuleTypes: [
@@ -983,7 +985,7 @@ describe("ActionRouter", () => {
               },
             },
           ],
-        }
+        })
 
         const _garden = await Garden.factory(path, {
           plugins: [base, foo],
@@ -1024,7 +1026,7 @@ describe("ActionRouter", () => {
       }
 
       it("should return the handler for the specific module type, if available", async () => {
-        const base: GardenPlugin = {
+        const base = createGardenPlugin({
           name: "base",
           createModuleTypes: [
             {
@@ -1036,8 +1038,8 @@ describe("ActionRouter", () => {
               },
             },
           ],
-        }
-        const foo: GardenPlugin = {
+        })
+        const foo = createGardenPlugin({
           name: "foo",
           dependencies: ["base"],
           createModuleTypes: [
@@ -1051,7 +1053,7 @@ describe("ActionRouter", () => {
               },
             },
           ],
-        }
+        })
 
         const _garden = await Garden.factory(path, {
           plugins: [base, foo],
@@ -1068,7 +1070,7 @@ describe("ActionRouter", () => {
       })
 
       it("should fall back on the base if no specific handler is available", async () => {
-        const base: GardenPlugin = {
+        const base = createGardenPlugin({
           name: "base",
           createModuleTypes: [
             {
@@ -1080,8 +1082,8 @@ describe("ActionRouter", () => {
               },
             },
           ],
-        }
-        const foo: GardenPlugin = {
+        })
+        const foo = createGardenPlugin({
           name: "foo",
           dependencies: ["base"],
           createModuleTypes: [
@@ -1093,7 +1095,7 @@ describe("ActionRouter", () => {
               handlers: {},
             },
           ],
-        }
+        })
 
         const _garden = await Garden.factory(path, {
           plugins: [base, foo],
@@ -1111,7 +1113,7 @@ describe("ActionRouter", () => {
       })
 
       it("should recursively fall back on the base's bases if needed", async () => {
-        const baseA: GardenPlugin = {
+        const baseA = createGardenPlugin({
           name: "base-a",
           createModuleTypes: [
             {
@@ -1123,8 +1125,8 @@ describe("ActionRouter", () => {
               },
             },
           ],
-        }
-        const baseB: GardenPlugin = {
+        })
+        const baseB = createGardenPlugin({
           name: "base-b",
           dependencies: ["base-a"],
           createModuleTypes: [
@@ -1136,8 +1138,8 @@ describe("ActionRouter", () => {
               handlers: {},
             },
           ],
-        }
-        const foo: GardenPlugin = {
+        })
+        const foo = createGardenPlugin({
           name: "foo",
           dependencies: ["base-b"],
           createModuleTypes: [
@@ -1149,7 +1151,7 @@ describe("ActionRouter", () => {
               handlers: {},
             },
           ],
-        }
+        })
 
         const _garden = await Garden.factory(path, {
           plugins: [baseA, baseB, foo],
@@ -1209,7 +1211,7 @@ describe("ActionRouter", () => {
     })
 
     it("should recursively override the base parameter when calling a base handler", async () => {
-      const baseA: GardenPlugin = {
+      const baseA = createGardenPlugin({
         name: "base-a",
         handlers: {
           getSecret: async (params) => {
@@ -1217,8 +1219,8 @@ describe("ActionRouter", () => {
             return { value: params.key }
           },
         },
-      }
-      const baseB: GardenPlugin = {
+      })
+      const baseB = createGardenPlugin({
         name: "base-b",
         base: "base-a",
         handlers: {
@@ -1228,8 +1230,8 @@ describe("ActionRouter", () => {
             return params.base!(params)
           },
         },
-      }
-      const foo: GardenPlugin = {
+      })
+      const foo = createGardenPlugin({
         name: "foo",
         base: "base-b",
         handlers: {
@@ -1239,7 +1241,7 @@ describe("ActionRouter", () => {
             return params.base!(params)
           },
         },
-      }
+      })
 
       const path = process.cwd()
 
@@ -1658,12 +1660,12 @@ const testPlugin = createGardenPlugin({
 
   handlers: <PluginActionHandlers>{
     configureProvider: async (params) => {
-      validate(params, pluginActionDescriptions.configureProvider.paramsSchema)
+      validateSchema(params, pluginActionDescriptions.configureProvider.paramsSchema)
       return { config: params.config }
     },
 
     getEnvironmentStatus: async (params) => {
-      validate(params, pluginActionDescriptions.getEnvironmentStatus.paramsSchema)
+      validateSchema(params, pluginActionDescriptions.getEnvironmentStatus.paramsSchema)
       return {
         ready: false,
         outputs: {},
@@ -1671,7 +1673,7 @@ const testPlugin = createGardenPlugin({
     },
 
     augmentGraph: async (params) => {
-      validate(params, pluginActionDescriptions.augmentGraph.paramsSchema)
+      validateSchema(params, pluginActionDescriptions.augmentGraph.paramsSchema)
 
       const moduleName = "added-by-" + params.ctx.provider.name
 
@@ -1695,32 +1697,32 @@ const testPlugin = createGardenPlugin({
     },
 
     getDebugInfo: async (params) => {
-      validate(params, pluginActionDescriptions.getDebugInfo.paramsSchema)
+      validateSchema(params, pluginActionDescriptions.getDebugInfo.paramsSchema)
       return { info: {} }
     },
 
     prepareEnvironment: async (params) => {
-      validate(params, pluginActionDescriptions.prepareEnvironment.paramsSchema)
+      validateSchema(params, pluginActionDescriptions.prepareEnvironment.paramsSchema)
       return { status: { ready: true, outputs: {} } }
     },
 
     cleanupEnvironment: async (params) => {
-      validate(params, pluginActionDescriptions.cleanupEnvironment.paramsSchema)
+      validateSchema(params, pluginActionDescriptions.cleanupEnvironment.paramsSchema)
       return {}
     },
 
     getSecret: async (params) => {
-      validate(params, pluginActionDescriptions.getSecret.paramsSchema)
+      validateSchema(params, pluginActionDescriptions.getSecret.paramsSchema)
       return { value: params.key }
     },
 
     setSecret: async (params) => {
-      validate(params, pluginActionDescriptions.setSecret.paramsSchema)
+      validateSchema(params, pluginActionDescriptions.setSecret.paramsSchema)
       return {}
     },
 
     deleteSecret: async (params) => {
-      validate(params, pluginActionDescriptions.deleteSecret.paramsSchema)
+      validateSchema(params, pluginActionDescriptions.deleteSecret.paramsSchema)
       return { found: true }
     },
   },
@@ -1739,11 +1741,12 @@ const testPlugin = createGardenPlugin({
 
       handlers: <ModuleAndRuntimeActionHandlers>{
         configure: async (params) => {
-          validate(params, moduleActionDescriptions.configure.paramsSchema)
+          validateSchema(params, moduleActionDescriptions.configure.paramsSchema)
 
           const serviceConfigs = params.moduleConfig.spec.services.map((spec) => ({
             name: spec.name,
             dependencies: spec.dependencies || [],
+            disabled: false,
             hotReloadable: false,
             spec,
           }))
@@ -1751,6 +1754,7 @@ const testPlugin = createGardenPlugin({
           const taskConfigs = (params.moduleConfig.spec.tasks || []).map((spec) => ({
             name: spec.name,
             dependencies: spec.dependencies || [],
+            disabled: false,
             spec,
           }))
 
@@ -1764,27 +1768,27 @@ const testPlugin = createGardenPlugin({
         },
 
         getBuildStatus: async (params) => {
-          validate(params, moduleActionDescriptions.getBuildStatus.paramsSchema)
+          validateSchema(params, moduleActionDescriptions.getBuildStatus.paramsSchema)
           return { ready: true }
         },
 
         build: async (params) => {
-          validate(params, moduleActionDescriptions.build.paramsSchema)
+          validateSchema(params, moduleActionDescriptions.build.paramsSchema)
           return {}
         },
 
         publish: async (params) => {
-          validate(params, moduleActionDescriptions.publish.paramsSchema)
+          validateSchema(params, moduleActionDescriptions.publish.paramsSchema)
           return { published: true }
         },
 
         hotReloadService: async (params) => {
-          validate(params, moduleActionDescriptions.hotReloadService.paramsSchema)
+          validateSchema(params, moduleActionDescriptions.hotReloadService.paramsSchema)
           return {}
         },
 
         runModule: async (params) => {
-          validate(params, moduleActionDescriptions.runModule.paramsSchema)
+          validateSchema(params, moduleActionDescriptions.runModule.paramsSchema)
           return {
             moduleName: params.module.name,
             command: params.args,
@@ -1797,7 +1801,7 @@ const testPlugin = createGardenPlugin({
         },
 
         testModule: async (params) => {
-          validate(params, moduleActionDescriptions.testModule.paramsSchema)
+          validateSchema(params, moduleActionDescriptions.testModule.paramsSchema)
 
           // Create artifacts, to test artifact copying
           for (const artifact of params.testConfig.spec.artifacts || []) {
@@ -1820,7 +1824,7 @@ const testPlugin = createGardenPlugin({
         },
 
         getTestResult: async (params) => {
-          validate(params, moduleActionDescriptions.getTestResult.paramsSchema)
+          validateSchema(params, moduleActionDescriptions.getTestResult.paramsSchema)
           return {
             moduleName: params.module.name,
             command: [],
@@ -1837,22 +1841,22 @@ const testPlugin = createGardenPlugin({
         },
 
         getServiceStatus: async (params) => {
-          validate(params, moduleActionDescriptions.getServiceStatus.paramsSchema)
+          validateSchema(params, moduleActionDescriptions.getServiceStatus.paramsSchema)
           return { state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } }
         },
 
         deployService: async (params) => {
-          validate(params, moduleActionDescriptions.deployService.paramsSchema)
+          validateSchema(params, moduleActionDescriptions.deployService.paramsSchema)
           return { state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } }
         },
 
         deleteService: async (params) => {
-          validate(params, moduleActionDescriptions.deleteService.paramsSchema)
+          validateSchema(params, moduleActionDescriptions.deleteService.paramsSchema)
           return { state: "ready", detail: {} }
         },
 
         execInService: async (params) => {
-          validate(params, moduleActionDescriptions.execInService.paramsSchema)
+          validateSchema(params, moduleActionDescriptions.execInService.paramsSchema)
           return {
             code: 0,
             output: "bla bla",
@@ -1860,12 +1864,12 @@ const testPlugin = createGardenPlugin({
         },
 
         getServiceLogs: async (params) => {
-          validate(params, moduleActionDescriptions.getServiceLogs.paramsSchema)
+          validateSchema(params, moduleActionDescriptions.getServiceLogs.paramsSchema)
           return {}
         },
 
         runService: async (params) => {
-          validate(params, moduleActionDescriptions.runService.paramsSchema)
+          validateSchema(params, moduleActionDescriptions.runService.paramsSchema)
           return {
             moduleName: params.module.name,
             command: ["foo"],
@@ -1878,7 +1882,7 @@ const testPlugin = createGardenPlugin({
         },
 
         getPortForward: async (params) => {
-          validate(params, moduleActionDescriptions.getPortForward.paramsSchema)
+          validateSchema(params, moduleActionDescriptions.getPortForward.paramsSchema)
           return {
             hostname: "bla",
             port: 123,
@@ -1886,12 +1890,12 @@ const testPlugin = createGardenPlugin({
         },
 
         stopPortForward: async (params) => {
-          validate(params, moduleActionDescriptions.stopPortForward.paramsSchema)
+          validateSchema(params, moduleActionDescriptions.stopPortForward.paramsSchema)
           return {}
         },
 
         getTaskResult: async (params) => {
-          validate(params, moduleActionDescriptions.getTaskResult.paramsSchema)
+          validateSchema(params, moduleActionDescriptions.getTaskResult.paramsSchema)
           const module = params.task.module
           return {
             moduleName: module.name,
@@ -1907,7 +1911,7 @@ const testPlugin = createGardenPlugin({
         },
 
         runTask: async (params) => {
-          validate(params, moduleActionDescriptions.runTask.paramsSchema)
+          validateSchema(params, moduleActionDescriptions.runTask.paramsSchema)
 
           const module = params.task.module
 

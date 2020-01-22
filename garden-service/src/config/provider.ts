@@ -37,10 +37,13 @@ const providerFixedFieldsSchema = joi.object().keys({
         disables the provider. To use a provider in all environments, omit this field.
       `
     )
-    .example([["dev", "stage"], {}]),
+    .example(["dev", "stage"]),
 })
 
-export const providerConfigBaseSchema = providerFixedFieldsSchema.unknown(true).meta({ extendable: true })
+export const providerConfigBaseSchema = providerFixedFieldsSchema
+  .unknown(true)
+  .meta({ extendable: true })
+  .id("providerConfig")
 
 export interface Provider<T extends ProviderConfig = ProviderConfig> {
   name: string
@@ -51,16 +54,16 @@ export interface Provider<T extends ProviderConfig = ProviderConfig> {
   status: EnvironmentStatus
 }
 
-export const providerSchema = providerFixedFieldsSchema.keys({
-  dependencies: joi.lazy(() => providersSchema).required(),
-  config: joi.lazy(() => providerConfigBaseSchema).required(),
-  moduleConfigs: joiArray(moduleConfigSchema.optional()),
-  status: environmentStatusSchema,
-})
-
-export const providersSchema = joiArray(providerSchema).description(
-  "List of all the providers that this provider depdends on."
-)
+export const providerSchema = providerFixedFieldsSchema
+  .keys({
+    dependencies: joiArray(joi.link("..."))
+      .description("List of all the providers that this provider depends on.")
+      .required(),
+    config: providerConfigBaseSchema.required(),
+    moduleConfigs: joiArray(moduleConfigSchema.optional()),
+    status: environmentStatusSchema,
+  })
+  .id("provider")
 
 export interface ProviderMap {
   [name: string]: Provider

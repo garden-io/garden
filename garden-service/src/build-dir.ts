@@ -7,10 +7,11 @@
  */
 
 import { map as bluebirdMap } from "bluebird"
+import semver from "semver"
 import normalize = require("normalize-path")
 import { isAbsolute, join, parse, resolve, sep, relative } from "path"
 import { emptyDir, ensureDir } from "fs-extra"
-import { ConfigurationError } from "./exceptions"
+import { ConfigurationError, RuntimeError } from "./exceptions"
 import { FileCopySpec, Module, getModuleKey } from "./types/module"
 import { normalizeLocalRsyncPath } from "./util/fs"
 import { LogEntry } from "./logger/log-entry"
@@ -18,6 +19,10 @@ import { ModuleConfig } from "./config/module"
 import { ConfigGraph } from "./config-graph"
 import { exec } from "./util/util"
 import { LogLevel } from "./logger/log-node"
+import { deline } from "./util/string"
+
+const minRsyncVersion = "3.1.0"
+const versionRegex = /rsync  version ([\d\.]+)  /
 
 // FIXME: We don't want to keep special casing this module type so we need to think
 // of a better way around this.
@@ -25,16 +30,64 @@ function isLocalExecModule(moduleConfig: ModuleConfig) {
   return moduleConfig.type === "exec" && moduleConfig.spec.local
 }
 
+const versionDetectFailure = new RuntimeError(
+  deline`
+  Could not detect rsync version.
+  Please make sure rsync version ${minRsyncVersion} or later is installed and on your PATH.
+  `,
+  {}
+)
+
 // Lazily construct a directory of modules inside which all build steps are performed.
 
 export class BuildDir {
   constructor(private projectRoot: string, public buildDirPath: string, public buildMetadataDirPath: string) {}
 
   static async factory(projectRoot: string, gardenDirPath: string) {
+    // Make sure rsync is installed and is recent enough
+    let version: string | undefined = undefined
+
+    try {
+      const versionOutput = (await exec("rsync", ["--version"])).stdout
+      version = versionOutput.split("\n")[0].match(versionRegex)?.[1]
+    } catch (error) {
+      throw new RuntimeError(
+        deline`
+        Could not find rsync binary.
+        Please make sure rsync (version ${minRsyncVersion} or later) is installed and on your PATH.
+        `,
+        { error }
+      )
+    }
+
+    if (!version) {
+      throw versionDetectFailure
+    }
+
+    let versionGte = true
+
+    try {
+      versionGte = semver.gte(version, minRsyncVersion)
+    } catch (_) {
+      throw versionDetectFailure
+    }
+
+    if (!versionGte) {
+      throw new RuntimeError(
+        deline`
+        Found rsync binary but the version is too old (${version}).
+        Please install version ${minRsyncVersion} or later.
+        `,
+        { version }
+      )
+    }
+
+    // Make sure build directories exist
     const buildDirPath = join(gardenDirPath, "build")
     const buildMetadataDirPath = join(gardenDirPath, "build-metadata")
     await ensureDir(buildDirPath)
     await ensureDir(buildMetadataDirPath)
+
     return new BuildDir(projectRoot, buildDirPath, buildMetadataDirPath)
   }
 
@@ -68,7 +121,7 @@ export class BuildDir {
         return
       }
 
-      const sourceModule = await graph.getModule(getModuleKey(buildDepConfig.name, buildDepConfig.plugin))
+      const sourceModule = await graph.getModule(getModuleKey(buildDepConfig.name, buildDepConfig.plugin), true)
       const sourceBuildPath = await this.buildPath(sourceModule)
 
       // Sync to the module's top-level dir by default.

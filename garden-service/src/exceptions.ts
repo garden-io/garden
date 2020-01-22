@@ -43,6 +43,10 @@ export class ConfigurationError extends GardenBaseError {
   type = "configuration"
 }
 
+export class CommandError extends GardenBaseError {
+  type = "command"
+}
+
 export class LocalConfigError extends GardenBaseError {
   type = "local-config"
 }

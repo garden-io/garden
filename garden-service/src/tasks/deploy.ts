@@ -64,12 +64,12 @@ export class DeployTask extends BaseTask {
     const dg = this.graph
 
     // We filter out service dependencies on services configured for hot reloading (if any)
-    const deps = await dg.getDependencies(
-      "deploy",
-      this.getName(),
-      false,
-      (depNode) => !(depNode.type === "deploy" && includes(this.hotReloadServiceNames, depNode.name))
-    )
+    const deps = await dg.getDependencies({
+      nodeType: "deploy",
+      name: this.getName(),
+      recursive: false,
+      filterFn: (depNode) => !(depNode.type === "deploy" && includes(this.hotReloadServiceNames, depNode.name)),
+    })
 
     const statusTask = new GetServiceStatusTask({
       garden: this.garden,
@@ -152,7 +152,11 @@ export class DeployTask extends BaseTask {
     let version = this.version
     const hotReload = includes(this.hotReloadServiceNames, this.service.name)
 
-    const dependencies = await this.graph.getDependencies("deploy", this.getName(), false)
+    const dependencies = await this.graph.getDependencies({
+      nodeType: "deploy",
+      name: this.getName(),
+      recursive: false,
+    })
 
     const serviceStatuses = getServiceStatuses(dependencyResults)
     const taskResults = getRunTaskResults(dependencyResults)
