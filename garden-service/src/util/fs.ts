@@ -196,7 +196,7 @@ export async function listDirectory(path: string): Promise<string[]> {
  * Given a list of `paths`, return a list of paths that match any of the given `patterns`
  */
 export function matchGlobs(paths: string[], patterns: string[]): string[] {
-  return paths.filter((path) => some(patterns, (pattern) => minimatch(path, pattern)))
+  return paths.filter((path) => some(patterns, (pattern) => minimatch(path, pattern, { dot: true })))
 }
 
 /**
