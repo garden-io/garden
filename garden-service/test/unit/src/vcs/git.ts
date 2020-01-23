@@ -229,6 +229,14 @@ describe("GitHandler", () => {
       expect(await handler.getFiles({ path: tmpPath, include: ["foo.*"], exclude: [], log })).to.eql([{ path, hash }])
     })
 
+    it("should include hidden files that match the include filter, if specified", async () => {
+      const path = resolve(tmpPath, ".foo")
+      const hash = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      await createFile(path)
+
+      expect(await handler.getFiles({ path: tmpPath, include: ["*"], exclude: [], log })).to.eql([{ path, hash }])
+    })
+
     it("should filter out files that match the exclude filter, if specified", async () => {
       const path = resolve(tmpPath, "foo.txt")
       await createFile(path)
