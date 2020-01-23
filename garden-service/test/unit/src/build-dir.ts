@@ -157,6 +157,17 @@ describe("BuildDir", () => {
       expect(await pathExists(deleteMe)).to.be.false
     })
 
+    it("should sync hidden files and directories (names starting with .)", async () => {
+      const graph = await garden.getConfigGraph(garden.log)
+      const module = await graph.getModule("hidden-files")
+
+      await garden.buildDir.syncFromSrc(module, garden.log)
+
+      const buildDir = await garden.buildDir.buildPath(module)
+      expect(await pathExists(join(buildDir, ".hidden-file"))).to.be.true
+      expect(await pathExists(join(buildDir, ".hidden-dir", "something"))).to.be.true
+    })
+
     it("should sync symlinks that point within the module root", async () => {
       const graph = await garden.getConfigGraph(garden.log)
       const module = await graph.getModule("symlink-within-module")
