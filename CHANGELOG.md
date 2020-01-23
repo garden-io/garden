@@ -1,4 +1,51 @@
 
+<a name="v0.11.1"></a>
+## [v0.11.1](https://github.com/garden-io/garden/compare/v0.11.0...v0.11.1) (2020-01-23)
+
+### Bug Fixes
+
+* analytics make sure first event is flushed ([c4d69351](https://github.com/garden-io/garden/commit/c4d69351))
+* force anlytics events queue flush ([4531c189](https://github.com/garden-io/garden/commit/4531c189))
+* **build:** error in alpine container image builds ([d87ea71c](https://github.com/garden-io/garden/commit/d87ea71c))
+* **cli:** ensure 'noProject' commands run in invalid projects ([5354777d](https://github.com/garden-io/garden/commit/5354777d))
+* **cli:** enable running 'config analytics-enabled' with no project ([a611df7e](https://github.com/garden-io/garden/commit/a611df7e))
+* **container:** more verbose logging during builds ([131b10f4](https://github.com/garden-io/garden/commit/131b10f4))
+* **core:** allow git URLs not ending in .git ([542e205f](https://github.com/garden-io/garden/commit/542e205f))
+* **core:** allow unknown in task & test results ([c6a0fed9](https://github.com/garden-io/garden/commit/c6a0fed9))
+* **docs:** fix incorrect link in guide ([79f35290](https://github.com/garden-io/garden/commit/79f35290))
+* **helm:** only hot reload serviceResource ([1235fc71](https://github.com/garden-io/garden/commit/1235fc71))
+* **k8s:** fix failing tasks not throwing errors ([0d204c23](https://github.com/garden-io/garden/commit/0d204c23))
+* **k8s:** reconnect port-forwards automatically ([553a34a4](https://github.com/garden-io/garden/commit/553a34a4))
+* **k8s:** use configured ingress ports when installing nginx ([710f8348](https://github.com/garden-io/garden/commit/710f8348))
+* **k8s:** ensure helm migration works on Windows ([6b3bacb1](https://github.com/garden-io/garden/commit/6b3bacb1))
+* **k8s:** handle 404 exception when tagging image for deletion ([#1485](https://github.com/garden-io/garden/issues/1485)) ([f7c5ed47](https://github.com/garden-io/garden/commit/f7c5ed47))
+* **k8s:** play nice with Helm 2 (Tiller) when users still need it ([b6ebbbab](https://github.com/garden-io/garden/commit/b6ebbbab))
+* **k8s:** don't throw init error if garden-system services are modified ([7c42b084](https://github.com/garden-io/garden/commit/7c42b084))
+* **log:** updated to stern from kubectl ([#1437](https://github.com/garden-io/garden/issues/1437)) ([138e3dfc](https://github.com/garden-io/garden/commit/138e3dfc))
+* **logger:** wrap words when splitting fancy log lines ([3c3c7d2b](https://github.com/garden-io/garden/commit/3c3c7d2b))
+* **test:** improve error logging in e2e tests ([c308f466](https://github.com/garden-io/garden/commit/c308f466))
+
+### Code Refactoring
+
+* update Joi library ([f35d1a5d](https://github.com/garden-io/garden/commit/f35d1a5d))
+* **container:** revert build logs log level to debug ([f7fc5f50](https://github.com/garden-io/garden/commit/f7fc5f50))
+* **logger:** add dataFormat to LogEntry ([bac4f746](https://github.com/garden-io/garden/commit/bac4f746))
+* **test:** added tslint rule + removed js ([8271fc4a](https://github.com/garden-io/garden/commit/8271fc4a))
+
+### Features
+
+* **core:** allow disabling modules, services, tests + tasks in configs ([#1515](https://github.com/garden-io/garden/issues/1515)) ([54d74ccb](https://github.com/garden-io/garden/commit/54d74ccb))
+* **core:** remember IP per service for forwards on supported platforms ([1bbcf490](https://github.com/garden-io/garden/commit/1bbcf490))
+
+### Improvements
+
+* allow to specify release to install ([699fd379](https://github.com/garden-io/garden/commit/699fd379))
+* switch to Node.js 12 ([4c51aaef](https://github.com/garden-io/garden/commit/4c51aaef))
+* **cli:** use terminal-kit for better terminal compatibility ([4030881a](https://github.com/garden-io/garden/commit/4030881a))
+* **core:** detect rsync and ensure the version is recent enough ([f3df17dd](https://github.com/garden-io/garden/commit/f3df17dd))
+* **dashboard:** default to port 9777 when available ([add9bc63](https://github.com/garden-io/garden/commit/add9bc63))
+
+
 <a name="v0.11.0"></a>
 ## [v0.11.0](https://github.com/garden-io/garden/compare/v0.10.16...v0.11.0) (2020-01-13)
 
@@ -52,7 +99,7 @@
 * **k8s:** add support for KinD ([87a69787](https://github.com/garden-io/garden/commit/87a69787))
 * **providers:** add conftest providers ([da24e775](https://github.com/garden-io/garden/commit/da24e775))
 
-### Improvement
+### Improvements
 
 * set default include on Helm modules ([fca600dd](https://github.com/garden-io/garden/commit/fca600dd))
 * **analytics:** improve the data collection ([#1438](https://github.com/garden-io/garden/issues/1438)) ([04ffbbe6](https://github.com/garden-io/garden/commit/04ffbbe6))
@@ -70,7 +117,6 @@
 
 ### BREAKING CHANGE
 
-#### Default include on Helm modules ([fca600dd](https://github.com/garden-io/garden/commit/fca600dd))
 
 If not set by the user, the `include` field on Helm modules now defaults to:
 
@@ -87,51 +133,9 @@ if the module has local chart sources, otherwise to:
 Previously, Helm modules would simply include all content under the
 module path.
 
-If your Helm modules doesn't have `include` set and depend
+If your Helm modules doesn't have `include` set and depends
 on content that's not captured with the default include, you will need
 to update the relevant `garden.yml` file and set the includes manually.
-
-#### Require include/exclude on overlapping modules ([f726c5b](https://github.com/garden-io/garden/commit/f726c5b))
-
-It is now required to set the `include` and/or `exclude` directive on
-modules that overlap. This is to prevent subtle errors that can occur
-when two modules share the same build context.
-
-Module level `garden.yml` files that have overlapping modules and no
-includes/excludes will need to be updated. A common case is when there
-are multiple modules in the same `garden.yml` file.
-
-For example, this:
-
-```yaml
-kind: Module
-name: module-a
-type: container
-
----
-
-kind: Module
-name: module-b
-type: container
-```
-
-becomes:
-
-```yaml
-kind: Module
-name: module-a
-type: container
-include: ["src-a/**/*"]
-
----
-
-kind: Module
-name: module-b
-type: container
-include: ["src-b/**/*"]
-```
-
-#### Switch to Helm 3 and remove Tiller ([a6940e0a](https://github.com/garden-io/garden/commit/a6940e0a))
 
 Helm 2.x is no longer supported. The migration (both for garden-system
 services and your project namespace) is handled automatically
@@ -139,49 +143,17 @@ via the `helm 2to3` plugin. It is _possible_ that the automatic
 migration fails though (due to any number of potential issues with
 Helm or issues exposed with individual charts upon upgrade).
 
-We've tried to cover and test for these cases as best we can, but can't
+We've tried to cover and test for these  cases as best we can, but can't
 rule out issues, so you may need to intervene (by e.g. manually removing
-resources or using the helm CLI directly) if the migration or upgrades after
+resources or using the helm CLI directly) if migration or upgrades after
 deployment throw errors.
 
 If you do run into tricky issues, please don't hesitate to log issues
 on GitHub or ping us on Slack and we'll be happy to help.
 
-Note that Garden does not remove Tiller from project namespaces automatically
-as some users may still need it there. To remove Tiller from a project namespace, run:
-
-```console
-garden plugins kubernetes|local-kubernetes remove-tiller --env <env-name>
-```
-
-#### Remve `environomentDefaults` field ([72588dc](https://github.com/garden-io/garden/commit/72588dc))
-
-Project level garden.yml files that used the `environmentDefaults` field
-will need to be updated.
-
-Please use the top-level `providers` field instead, and omit
-the environments key in the configured provider to use it for all
-environments.
-
-Use the top-level `variables` field to configure variables across
-all environments.
-
-#### Remove `local-openfaas` plugin ([9acda7d](https://github.com/garden-io/garden/commit/9acda7d))
-
-Projects that reference the `local-openfaas` provider need to change
-to the `openfaas` provider. The two are compatible, so that should
-just be a simple string replacement.
-
-#### Remove support for old config style ([03c15f1](https://github.com/garden-io/garden/commit/03c15f1))
-
-garden.yml files with top-level `module` and `project` keys will need
-to be update to use the newer config style (with `kind: Module` or
-`kind: Project` at the top level).
-
-#### Remove `garden init` command ([3f9da06](https://github.com/garden-io/garden/commit/3f9da06))
-
 Any user scripts that run `garden init` will need to be updated to
 remove those references.
+
 
 <a name="v0.10.16"></a>
 ## [v0.10.16](https://github.com/garden-io/garden/compare/v0.10.15...v0.10.16) (2019-12-06)
@@ -210,7 +182,7 @@ remove those references.
 * added securityContext for production flag ([a88edfac](https://github.com/garden-io/garden/commit/a88edfac))
 * **k8s:** allow pulling base images when building in cluster ([e8679032](https://github.com/garden-io/garden/commit/e8679032))
 
-### Improvement
+### Improvements
 
 * add protection to more commands ([df76dc30](https://github.com/garden-io/garden/commit/df76dc30))
 * **config:** allow provider configs to reference variables ([56175ee1](https://github.com/garden-io/garden/commit/56175ee1))
@@ -243,7 +215,7 @@ remove those references.
 * **k8s:** add `clusterDocker.enableBuildKit` option ([c1886f55](https://github.com/garden-io/garden/commit/c1886f55))
 * **k8s:** cert-manager integration ([#1261](https://github.com/garden-io/garden/issues/1261)) ([21f2775b](https://github.com/garden-io/garden/commit/21f2775b))
 
-### Improvement
+### Improvements
 
 * **core:** delete services in dep order ([7895c926](https://github.com/garden-io/garden/commit/7895c926))
 * **k8s:** tune probes for build-sync pods ([68ba9104](https://github.com/garden-io/garden/commit/68ba9104))
@@ -275,7 +247,7 @@ remove those references.
 * **k8s:** allow specifying tolerations for registry-proxy ([#1296](https://github.com/garden-io/garden/issues/1296)) ([1fc83103](https://github.com/garden-io/garden/commit/1fc83103))
 * **plugins:** add local flag to exec module type ([3c1fa5a6](https://github.com/garden-io/garden/commit/3c1fa5a6))
 
-### Improvement
+### Improvements
 
 * **k8s:** move back to upstream kubernetes client library ([7af3ceb5](https://github.com/garden-io/garden/commit/7af3ceb5))
 * **k8s:** also delete metadata namespace when cleaning up ([f3af8777](https://github.com/garden-io/garden/commit/f3af8777))
@@ -308,7 +280,7 @@ remove those references.
 * **core:** only set config names once in resolveModuleConfigs ([baabb98e](https://github.com/garden-io/garden/commit/baabb98e))
 * **dashboard:** pass deps to useEffect hook ([2f291ecc](https://github.com/garden-io/garden/commit/2f291ecc))
 
-### Improvement
+### Improvements
 
 * **config:** add linkUrl field ([b77fe934](https://github.com/garden-io/garden/commit/b77fe934))
 * **logger:** skip fancy rendering when log level > info ([ff22a48d](https://github.com/garden-io/garden/commit/ff22a48d))
@@ -349,7 +321,7 @@ remove those references.
 * experimental blue-green deployment ([01f59f5b](https://github.com/garden-io/garden/commit/01f59f5b))
 * **k8s:** add timeout parameter to helm module type ([373beeb9](https://github.com/garden-io/garden/commit/373beeb9))
 
-### Improvement
+### Improvements
 
 * better error output when ext commands fail (e.g. kubectl) ([43220575](https://github.com/garden-io/garden/commit/43220575))
 * better error when attempting to run outside of git repo ([11887d7b](https://github.com/garden-io/garden/commit/11887d7b))
@@ -377,7 +349,7 @@ remove those references.
 * **config:** add a number of new operators for template expressions ([0a764695](https://github.com/garden-io/garden/commit/0a764695))
 * **config:** add support for varFiles ([e2ade318](https://github.com/garden-io/garden/commit/e2ade318))
 
-### Improvement
+### Improvements
 
 * added more headers to checkForUpdates ([8f1c4437](https://github.com/garden-io/garden/commit/8f1c4437))
 * tweak debugging log levels ([7ecbacc0](https://github.com/garden-io/garden/commit/7ecbacc0))
@@ -391,7 +363,7 @@ remove those references.
 * add success/error logging for get task result ([d9efa0fa](https://github.com/garden-io/garden/commit/d9efa0fa))
 * error in test result output schema ([85137217](https://github.com/garden-io/garden/commit/85137217))
 
-### Improvement
+### Improvements
 
 * check that the static dir exists ([5ba7b341](https://github.com/garden-io/garden/commit/5ba7b341))
 
@@ -423,7 +395,7 @@ remove those references.
 * **core:** expose service and task dependency outputs at runtime ([#1123](https://github.com/garden-io/garden/issues/1123)) ([fca6a72a](https://github.com/garden-io/garden/commit/fca6a72a))
 * **k8s:** allow setting custom kubeconfig path ([8b4a6d5e](https://github.com/garden-io/garden/commit/8b4a6d5e))
 
-### Improvement
+### Improvements
 
 * **logger:** store all message states ([b68f3435](https://github.com/garden-io/garden/commit/b68f3435))
 
@@ -460,7 +432,7 @@ remove those references.
 
 * **core:** providers can now reference each others' outputs ([2ca2774c](https://github.com/garden-io/garden/commit/2ca2774c))
 
-### Improvement
+### Improvements
 
 * **watcher:** adding/removing many files/dirs more performant ([#1087](https://github.com/garden-io/garden/issues/1087)) ([b1d0f9a9](https://github.com/garden-io/garden/commit/b1d0f9a9))
 
@@ -481,7 +453,7 @@ remove those references.
 * automatic port forwarding for deployed services ([43b414f5](https://github.com/garden-io/garden/commit/43b414f5))
 * **container:** add extraFlags option for docker builder ([2a740686](https://github.com/garden-io/garden/commit/2a740686))
 
-### Improvement
+### Improvements
 
 * update the get debug-info command ([117efe30](https://github.com/garden-io/garden/commit/117efe30))
 
@@ -509,7 +481,7 @@ remove those references.
 * **core:** add exclude field for modules ([92210c50](https://github.com/garden-io/garden/commit/92210c50))
 * **openfaas:** enable remote building for openfaas modules ([a0d913d8](https://github.com/garden-io/garden/commit/a0d913d8))
 
-### Improvement
+### Improvements
 
 * install kubectl in garden-gcloud image ([#1035](https://github.com/garden-io/garden/issues/1035)) ([2a49adc3](https://github.com/garden-io/garden/commit/2a49adc3))
 * removed get debug-info request due ([6bd8af1c](https://github.com/garden-io/garden/commit/6bd8af1c))
@@ -536,7 +508,7 @@ remove those references.
 
 * **k8s:** add uninstall-garden-services command ([93521763](https://github.com/garden-io/garden/commit/93521763))
 
-### Improvement
+### Improvements
 
 * **core:** crucial enhancements to command ([4dbdc154](https://github.com/garden-io/garden/commit/4dbdc154))
 * **core:** make contributor more visible in CLI ([0f9a7ffc](https://github.com/garden-io/garden/commit/0f9a7ffc))
@@ -578,7 +550,7 @@ remove those references.
 * add env var for setting max task concurrency ([c3383d23](https://github.com/garden-io/garden/commit/c3383d23))
 * **container:** allow referencing Kubernetes secrets in container modules ([4c603c38](https://github.com/garden-io/garden/commit/4c603c38))
 
-### Improvement
+### Improvements
 
 * updated PATH to include all gcloud bin-s ([413fd02a](https://github.com/garden-io/garden/commit/413fd02a))
 * **dashboard:** add taskCancelled support to stack graph page ([76c154b6](https://github.com/garden-io/garden/commit/76c154b6))
@@ -664,7 +636,7 @@ remove those references.
 * **k8s:** in-cluster building ([5d351025](https://github.com/garden-io/garden/commit/5d351025))
 * **k8s:** add mechanism for cleaning up unused images in clusters ([773365c3](https://github.com/garden-io/garden/commit/773365c3))
 
-### Improvement
+### Improvements
 
 * get source maps working in error tracebacks ([36959cea](https://github.com/garden-io/garden/commit/36959cea))
 * **cli:** rename --loglevel to --log-level + refactor log init ([de5e78a3](https://github.com/garden-io/garden/commit/de5e78a3))
@@ -737,7 +709,7 @@ cluster after upgrading.
 * **dashboard:** overall dashboard improvements ([253316f2](https://github.com/garden-io/garden/commit/253316f2))
 * **dashboard:** implement new overview page ([d3ae347f](https://github.com/garden-io/garden/commit/d3ae347f))
 
-### Improvement
+### Improvements
 
 * font sizes and header ([55f7d961](https://github.com/garden-io/garden/commit/55f7d961))
 * **commands:** added task/test fields to get-status response ([1f34f294](https://github.com/garden-io/garden/commit/1f34f294))
@@ -775,7 +747,7 @@ remove without a minor version bump.
 
 * **dashboard:** add 'more info' pane to stack graph ([bee72e65](https://github.com/garden-io/garden/commit/bee72e65))
 
-### Improvement
+### Improvements
 
 * **k8s:** better status checks ([615c02aa](https://github.com/garden-io/garden/commit/615c02aa))
 * **tasks:** minor logging improvements ([18e04859](https://github.com/garden-io/garden/commit/18e04859))
@@ -808,7 +780,7 @@ remove without a minor version bump.
 * **vcs:** handle case when file is removed while listing VCS files ([7aeec2fa](https://github.com/garden-io/garden/commit/7aeec2fa))
 * **vcs:** exclude .garden from version hashing ([0dc12082](https://github.com/garden-io/garden/commit/0dc12082))
 
-### Improvement
+### Improvements
 
 * **config-graph:** add more data to rendered graph nodes ([05f32c33](https://github.com/garden-io/garden/commit/05f32c33))
 
@@ -834,7 +806,7 @@ remove without a minor version bump.
 * **config:** add var alias for variables template key ([ede49e5d](https://github.com/garden-io/garden/commit/ede49e5d))
 * **core:** add module include field and use content hash for versions ([8bd0b5bb](https://github.com/garden-io/garden/commit/8bd0b5bb))
 
-### Improvement
+### Improvements
 
 * **k8s:** store test results cluster-wide ([61ea396a](https://github.com/garden-io/garden/commit/61ea396a))
 
@@ -856,7 +828,7 @@ remove without a minor version bump.
 
 * **k8s:** add kubernetes module type ([1488cd82](https://github.com/garden-io/garden/commit/1488cd82))
 
-### Improvement
+### Improvements
 
 * **container:** check for Docker version on first use ([b898c403](https://github.com/garden-io/garden/commit/b898c403))
 
@@ -897,7 +869,7 @@ remove without a minor version bump.
 * **maven-container:** add mvnOpts field and remove default option ([187dc7d9](https://github.com/garden-io/garden/commit/187dc7d9))
 * **maven-container:** automatically fetch Maven and OpenJDK ([5045cd34](https://github.com/garden-io/garden/commit/5045cd34))
 
-### Improvement
+### Improvements
 
 * **k8s:** better deployment status checking ([d84c97e4](https://github.com/garden-io/garden/commit/d84c97e4))
 * **k8s:** don't require username input when namespace is set ([d61290ac](https://github.com/garden-io/garden/commit/d61290ac))
@@ -933,7 +905,7 @@ remove without a minor version bump.
 * add maven-container plugin type ([74148980](https://github.com/garden-io/garden/commit/74148980))
 * **container:** add env field to task spec ([950536f0](https://github.com/garden-io/garden/commit/950536f0))
 
-### Improvement
+### Improvements
 
 * **k8s:** better logging while deploying services ([4cd5d053](https://github.com/garden-io/garden/commit/4cd5d053))
 * **k8s:** update helm to v2.13.0 ([0685a9b7](https://github.com/garden-io/garden/commit/0685a9b7))

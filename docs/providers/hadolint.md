@@ -14,7 +14,7 @@ the relevant module root. If none is found there, we check the project root, and
 default configuration. Note that for reasons of portability, we do not fall back to global/user configuration files.
 
 See the [hadolint docs](https://github.com/hadolint/hadolint#configure) for details on how to configure it, and the
-[hadolint example project](https://github.com/garden-io/garden/tree/master/examples/hadolint) for a usage example.
+[hadolint example project](https://github.com/garden-io/garden/tree/v0.11.1/examples/hadolint) for a usage example.
 
 ## Reference
 
