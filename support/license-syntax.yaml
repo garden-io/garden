@@ -25,25 +25,25 @@ ruby:
     close:  '#\n'
     prefix: '# '
 
-perl:
-  ext: ['.pl']
-  after: ['^#!', '^#.*encoding:']
-  comment:
-    open:   '#\n'
-    close:  '#\n'
-    prefix: '# '
+# perl:
+#   ext: ['.pl']
+#   after: ['^#!', '^#.*encoding:']
+#   comment:
+#     open:   '#\n'
+#     close:  '#\n'
+#     prefix: '# '
 
-# Support PEP 0263 comments:
-# coding=<encoding name>
-# -*- coding: <encoding name> -*-
-# vim: set fileencoding=<encoding name> :
-python:
-  ext: ['.py']
-  after: ['^#!', '^#.*coding:', '^#.*coding=', '^#.*fileencoding=']
-  comment:
-    open:   '\n'
-    close:  '\n'
-    prefix: '# '
+# # Support PEP 0263 comments:
+# # coding=<encoding name>
+# # -*- coding: <encoding name> -*-
+# # vim: set fileencoding=<encoding name> :
+# python:
+#   ext: ['.py']
+#   after: ['^#!', '^#.*coding:', '^#.*coding=', '^#.*fileencoding=']
+#   comment:
+#     open:   '\n'
+#     close:  '\n'
+#     prefix: '# '
 
 html:
   ext: ['.html', '.htm', '.xhtml']
@@ -52,16 +52,16 @@ html:
     close:  '-->\n'
     prefix: '    '
 
-php:
-  ext: ['.php']
-  after: [ '^#!' ]
-  comment:
-    open:   '<?php \n/*\n'
-    close:  ' */ ?>\n'
-    prefix: ' * '
+# php:
+#   ext: ['.php']
+#   after: [ '^#!' ]
+#   comment:
+#     open:   '<?php \n/*\n'
+#     close:  ' */ ?>\n'
+#     prefix: ' * '
 
 javacript:
-  ext: ['.js', '.jsx', '.ts']
+  ext: ['.js', '.jsx', '.ts', '.pegjs']
   comment:
     open:   '/*\n'
     close:  ' */\n\n'
@@ -74,62 +74,62 @@ css:
     close:  ' */\n\n'
     prefix: ' * '
 
-c:
-  ext: ['.c', '.h']
-  comment:
-    open:   '/*'
-    close:  ' */\n\n'
-    prefix: ' * '
+# c:
+#   ext: ['.c', '.h']
+#   comment:
+#     open:   '/*'
+#     close:  ' */\n\n'
+#     prefix: ' * '
 
-cpp:
-  ext: ['.cpp', '.hpp', '.cc', '.hh']
-  comment:
-    open:   '//\n'
-    close:  '//\n\n'
-    prefix: '// '
+# cpp:
+#   ext: ['.cpp', '.hpp', '.cc', '.hh']
+#   comment:
+#     open:   '//\n'
+#     close:  '//\n\n'
+#     prefix: '// '
 
-java:
-  ext: ['.java']
-  comment:
-    open:   '/*\n'
-    close:  ' */\n\n'
-    prefix: ' * '
+# java:
+#   ext: ['.java']
+#   comment:
+#     open:   '/*\n'
+#     close:  ' */\n\n'
+#     prefix: ' * '
 
-golang:
-  ext: ['.go']
-  comment:
-    open:   '/*\n'
-    close:  ' */\n\n'
-    prefix: ' * '
+# golang:
+#   ext: ['.go']
+#   comment:
+#     open:   '/*\n'
+#     close:  ' */\n\n'
+#     prefix: ' * '
 
-groovy:
-  ext: ['.groovy']
-  comment:
-    open:   '/*\n'
-    close:  ' */\n\n'
-    prefix: ' * '
+# groovy:
+#   ext: ['.groovy']
+#   comment:
+#     open:   '/*\n'
+#     close:  ' */\n\n'
+#     prefix: ' * '
 
-haml:
-  ext: ['.haml', '.hamlc']
-  comment:
-    open:   '-#\n'
-    close:  '-#\n'
-    prefix: '-# '
+# haml:
+#   ext: ['.haml', '.hamlc']
+#   comment:
+#     open:   '-#\n'
+#     close:  '-#\n'
+#     prefix: '-# '
 
-coffee:
-  ext: ['.coffee']
-  comment:
-    open:   '###\n'
-    close:  '###\n'
-    prefix: ''
+# coffee:
+#   ext: ['.coffee']
+#   comment:
+#     open:   '###\n'
+#     close:  '###\n'
+#     prefix: ''
 
-# M4 macro language, use #, not dnl
-m4:
-  ext:  ['.m4']
-  comment:
-    open:   '#\n'
-    close:  '#\n'
-    prefix: '# '
+# # M4 macro language, use #, not dnl
+# m4:
+#   ext:  ['.m4']
+#   comment:
+#     open:   '#\n'
+#     close:  '#\n'
+#     prefix: '# '
 
 # Most shells, really
 shell:
@@ -140,38 +140,38 @@ shell:
     close:  '#\n'
     prefix: '# '
 
-# Use "-- " to make sure e.g. MySQL understands it
-sql:
-  ext:  ['.sql']
-  comment:
-    open:   '-- \n'
-    close:  '-- \n'
-    prefix: '-- '
+# # Use "-- " to make sure e.g. MySQL understands it
+# sql:
+#   ext:  ['.sql']
+#   comment:
+#     open:   '-- \n'
+#     close:  '-- \n'
+#     prefix: '-- '
 
-# XML is *not* the same as HTML, and the comments need to go after a
-# preprocessing directive, if present.
-# FIXME: only supports single line directives
-xml:
-  ext: ['.xml', '.xsd', '.mxml']
-  after: ['^<\?']
-  comment:
-    open:   '<!--\n'
-    close:  '-->\n'
-    prefix: '    '
+# # XML is *not* the same as HTML, and the comments need to go after a
+# # preprocessing directive, if present.
+# # FIXME: only supports single line directives
+# xml:
+#   ext: ['.xml', '.xsd', '.mxml']
+#   after: ['^<\?']
+#   comment:
+#     open:   '<!--\n'
+#     close:  '-->\n'
+#     prefix: '    '
 
-yaml:
-  ext:  ['.yml', '.yaml']
-  comment:
-    open:   '#\n'
-    close:  '#\n'
-    prefix: '# '
+# yaml:
+#   ext:  ['.yml', '.yaml']
+#   comment:
+#     open:   '#\n'
+#     close:  '#\n'
+#     prefix: '# '
 
-action_script:
-  ext: ['.as']
-  comment:
-    open:   '//\n'
-    close:  '//\n\n'
-    prefix: '// '
+# action_script:
+#   ext: ['.as']
+#   comment:
+#     open:   '//\n'
+#     close:  '//\n\n'
+#     prefix: '// '
 
 sass:
   ext: ['.sass', '.scss']
@@ -180,30 +180,30 @@ sass:
     close:  ' */\n\n'
     prefix: ' * '
 
-verilog:
-  ext: ['.v', '.sv']
-  comment:
-    open:   '//\n'
-    close:  '//\n\n'
-    prefix: '// '
+# verilog:
+#   ext: ['.v', '.sv']
+#   comment:
+#     open:   '//\n'
+#     close:  '//\n\n'
+#     prefix: '// '
 
-vhdl:
-  ext: ['.vhd']
-  comment:
-    open:   '--\n'
-    close:  '--\n\n'
-    prefix: '-- '
+# vhdl:
+#   ext: ['.vhd']
+#   comment:
+#     open:   '--\n'
+#     close:  '--\n\n'
+#     prefix: '-- '
 
-elm:
-  ext: ['.elm']
-  comment:
-    open: '{-\n'
-    close: '-}\n\n'
-    prefix: '  '
+# elm:
+#   ext: ['.elm']
+#   comment:
+#     open: '{-\n'
+#     close: '-}\n\n'
+#     prefix: '  '
 
-swift:
-  ext: ['.swift']
-  comment:
-    open:   '/*\n'
-    close:  ' */\n\n'
-    prefix: ' * '
+# swift:
+#   ext: ['.swift']
+#   comment:
+#     open:   '/*\n'
+#     close:  ' */\n\n'
+#     prefix: ' * '
