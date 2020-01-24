@@ -1,27 +1,19 @@
-
 <a name="v0.11.1"></a>
 ## [v0.11.1](https://github.com/garden-io/garden/compare/v0.11.0...v0.11.1) (2020-01-24)
 
 ### Bug Fixes
 
-* force anlytics events queue flush ([4531c189](https://github.com/garden-io/garden/commit/4531c189))
 * analytics make sure first event is flushed ([c4d69351](https://github.com/garden-io/garden/commit/c4d69351))
 * **build:** error in alpine container image builds ([d87ea71c](https://github.com/garden-io/garden/commit/d87ea71c))
-* **cli:** enable running 'config analytics-enabled' with no project ([a611df7e](https://github.com/garden-io/garden/commit/a611df7e))
-* **cli:** ensure 'noProject' commands run in invalid projects ([5354777d](https://github.com/garden-io/garden/commit/5354777d))
 * **container:** more verbose logging during builds ([131b10f4](https://github.com/garden-io/garden/commit/131b10f4))
 * **core:** allow git URLs not ending in .git ([542e205f](https://github.com/garden-io/garden/commit/542e205f))
 * **core:** include hidden files when using include filters ([320eb63f](https://github.com/garden-io/garden/commit/320eb63f))
 * **core:** allow unknown in task & test results ([c6a0fed9](https://github.com/garden-io/garden/commit/c6a0fed9))
 * **docs:** fix incorrect link in guide ([79f35290](https://github.com/garden-io/garden/commit/79f35290))
 * **helm:** only hot reload serviceResource ([1235fc71](https://github.com/garden-io/garden/commit/1235fc71))
-* **k8s:** don't throw init error if garden-system services are modified ([7c42b084](https://github.com/garden-io/garden/commit/7c42b084))
 * **k8s:** reconnect port-forwards automatically ([553a34a4](https://github.com/garden-io/garden/commit/553a34a4))
-* **k8s:** play nice with Helm 2 (Tiller) when users still need it ([b6ebbbab](https://github.com/garden-io/garden/commit/b6ebbbab))
-* **k8s:** ensure helm migration works on Windows ([6b3bacb1](https://github.com/garden-io/garden/commit/6b3bacb1))
 * **k8s:** handle 404 exception when tagging image for deletion ([#1485](https://github.com/garden-io/garden/issues/1485)) ([f7c5ed47](https://github.com/garden-io/garden/commit/f7c5ed47))
 * **k8s:** fix failing tasks not throwing errors ([0d204c23](https://github.com/garden-io/garden/commit/0d204c23))
-* **k8s:** use configured ingress ports when installing nginx ([710f8348](https://github.com/garden-io/garden/commit/710f8348))
 * **log:** updated to stern from kubectl ([#1437](https://github.com/garden-io/garden/issues/1437)) ([138e3dfc](https://github.com/garden-io/garden/commit/138e3dfc))
 * **logger:** wrap words when splitting fancy log lines ([3c3c7d2b](https://github.com/garden-io/garden/commit/3c3c7d2b))
 * **test:** improve error logging in e2e tests ([c308f466](https://github.com/garden-io/garden/commit/c308f466))
@@ -42,10 +34,8 @@
 
 * allow to specify release to install ([699fd379](https://github.com/garden-io/garden/commit/699fd379))
 * switch to Node.js 12 ([4c51aaef](https://github.com/garden-io/garden/commit/4c51aaef))
-* **cli:** use terminal-kit for better terminal compatibility ([4030881a](https://github.com/garden-io/garden/commit/4030881a))
 * **core:** detect rsync and ensure the version is recent enough ([f3df17dd](https://github.com/garden-io/garden/commit/f3df17dd))
 * **dashboard:** default to port 9777 when available ([add9bc63](https://github.com/garden-io/garden/commit/add9bc63))
-
 
 <a name="v0.11.0"></a>
 ## [v0.11.0](https://github.com/garden-io/garden/compare/v0.10.16...v0.11.0) (2020-01-13)
