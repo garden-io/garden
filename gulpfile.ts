@@ -9,14 +9,19 @@
 const gulp = require("gulp")
 const checkLicense = require("gulp-license-check")
 
-const tsSources = ["garden-service/src/**/*.ts", "dashboard/src/**/*.ts*"]
-const pegjsSources = "garden-service/src/*.pegjs"
-const licenseHeaderPath = "support/license-header.txt"
+const sources = [
+  "dashboard/src/**/*.ts*",
+  "dashboard/src/**/*.scss",
+  "garden-service/src/**/*.ts",
+  "garden-service/test/**/*.ts",
+  "garden-service/src/*.pegjs",
+]
+const licenseHeaderPath = "support/license-header-js.txt"
 
 process.env.FORCE_COLOR = "true"
 
 gulp.task("check-licenses", () =>
-  gulp.src([...tsSources, pegjsSources])
+  gulp.src(sources)
     .pipe(checkLicense({
       path: licenseHeaderPath,
       blocking: true,
