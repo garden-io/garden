@@ -28,11 +28,11 @@ import {
   V1Service,
 } from "@kubernetes/client-node"
 import dedent = require("dedent")
-import { getPods } from "../util"
+import { getPods, hashManifest } from "../util"
 import { checkWorkloadStatus } from "./workload"
 import { checkWorkloadPodStatus } from "./pod"
 import { gardenAnnotationKey } from "../../../util/string"
-import stringify from "json-stable-stringify"
+import stableStringify from "json-stable-stringify"
 
 export interface ResourceStatus {
   state: ServiceState
@@ -313,19 +313,23 @@ export async function compareDeployedResources(
     }
 
     // Discard any last applied config from the input manifest
-    if (manifest.metadata.annotations[gardenAnnotationKey("last-applied-configuration")]) {
-      delete manifest.metadata.annotations[gardenAnnotationKey("last-applied-configuration")]
+    if (manifest.metadata.annotations[gardenAnnotationKey("manifest-hash")]) {
+      delete manifest.metadata.annotations[gardenAnnotationKey("manifest-hash")]
     }
 
     // Start by checking for "last applied configuration" annotations and comparing against those.
     // This can be more accurate than comparing against resolved resources.
     if (deployedResource.metadata && deployedResource.metadata.annotations) {
-      const lastApplied =
-        deployedResource.metadata.annotations[gardenAnnotationKey("last-applied-configuration")] ||
-        deployedResource.metadata.annotations["kubectl.kubernetes.io/last-applied-configuration"]
+      const lastAppliedHashed = deployedResource.metadata.annotations[gardenAnnotationKey("manifest-hash")]
 
       // The new manifest matches the last applied manifest
-      if (lastApplied && stringify(manifest) === lastApplied) {
+      if (lastAppliedHashed && (await hashManifest(manifest)) === lastAppliedHashed) {
+        continue
+      }
+
+      // Fallback to comparing against kubectl's last-applied-configuration annotation
+      const lastApplied = deployedResource.metadata.annotations["kubectl.kubernetes.io/last-applied-configuration"]
+      if (lastApplied && stableStringify(manifest) === lastApplied) {
         continue
       }
     }
