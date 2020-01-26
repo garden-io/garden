@@ -12,6 +12,7 @@ import { V1Pod, V1EnvVar } from "@kubernetes/client-node"
 import { apply as jsonMerge } from "json-merge-patch"
 import chalk from "chalk"
 import hasha from "hasha"
+import stableStringify = require("json-stable-stringify")
 
 import { KubernetesResource, KubernetesWorkload, KubernetesPod, KubernetesServerResource } from "./types"
 import { splitLast, serializeValues, findByName } from "../../util/util"
@@ -33,6 +34,14 @@ export const workloadTypes = ["Deployment", "DaemonSet", "ReplicaSet", "Stateful
 
 export function getAnnotation(obj: KubernetesResource, key: string): string | null {
   return get(obj, ["metadata", "annotations", key])
+}
+
+/**
+ * Returns a hash of the manifest. We use this instead of the raw manifest when setting the
+ * "manifest-hash" annotation. This prevents "Too long annotation" errors for long manifests.
+ */
+export async function hashManifest(manifest: KubernetesResource) {
+  return hasha(stableStringify(manifest), { algorithm: "sha256" })
 }
 
 /**

@@ -13,7 +13,7 @@ import { LogEntry } from "../../logger/log-entry"
 import { KubernetesProvider } from "./config"
 import { KubernetesResource } from "./types"
 import { gardenAnnotationKey } from "../../util/string"
-import stringify from "json-stable-stringify"
+import { hashManifest } from "./util"
 
 export interface ApplyParams {
   log: LogEntry
@@ -36,16 +36,17 @@ export async function apply({
   pruneSelector,
   validate = true,
 }: ApplyParams) {
-  // Add the raw input as an annotation on each manifest (this is helpful beyond kubectl's own annotation, because
-  // kubectl applies some normalization/transformation that is sometimes difficult to reason about).
+  // Hash the raw input and add as an annotation on each manifest (this is helpful beyond kubectl's own annotation,
+  // because kubectl applies some normalization/transformation that is sometimes difficult to reason about).
+  // Hashing the input prevents "Too long annotation..." errors.
   for (const manifest of manifests) {
     if (!manifest.metadata.annotations) {
       manifest.metadata.annotations = {}
     }
-    if (manifest.metadata.annotations[gardenAnnotationKey("last-applied-configuration")]) {
-      delete manifest.metadata.annotations[gardenAnnotationKey("last-applied-configuration")]
+    if (manifest.metadata.annotations[gardenAnnotationKey("manifest-hash")]) {
+      delete manifest.metadata.annotations[gardenAnnotationKey("manifest-hash")]
     }
-    manifest.metadata.annotations[gardenAnnotationKey("last-applied-configuration")] = stringify(manifest)
+    manifest.metadata.annotations[gardenAnnotationKey("manifest-hash")] = await hashManifest(manifest)
   }
 
   const input = Buffer.from(encodeYamlMulti(manifests))
