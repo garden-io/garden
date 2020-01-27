@@ -7,7 +7,13 @@
  */
 
 import { KubeApi, KubernetesError } from "./api"
-import { getAppNamespace, prepareNamespaces, deleteNamespaces, getMetadataNamespace } from "./namespace"
+import {
+  getAppNamespace,
+  prepareNamespaces,
+  deleteNamespaces,
+  getMetadataNamespace,
+  getSystemNamespace,
+} from "./namespace"
 import { KubernetesPluginContext, KubernetesConfig, KubernetesProvider } from "./config"
 import { checkTillerStatus, migrateToHelm3 } from "./helm/tiller"
 import { prepareSystemServices, getSystemServiceStatus, getSystemGarden, systemNamespaceUpToDate } from "./system"
@@ -33,6 +39,7 @@ import { V1Secret } from "@kubernetes/client-node"
 import { KubernetesResource } from "./types"
 import { compareDeployedResources } from "./status/status"
 import { PrimitiveMap } from "../../config/common"
+import { LogEntry } from "../../logger/log-entry"
 
 // Note: We need to increment a version number here if we ever make breaking changes to the NFS provisioner StatefulSet
 const nfsStorageClassVersion = 2
@@ -95,7 +102,7 @@ export async function getEnvironmentStatus({
   }
 
   const systemServiceNames = k8sCtx.provider.config._systemServices
-  const systemNamespace = ctx.provider.config.gardenSystemNamespace
+  const systemNamespace = await getSystemNamespace(k8sCtx.provider, log)
 
   const detail: KubernetesEnvironmentDetail = {
     projectHelmMigrated,
@@ -182,7 +189,7 @@ export async function getEnvironmentStatus({
   let secretsUpToDate = true
 
   if (provider.config.buildMode !== "local-docker") {
-    const authSecret = await prepareDockerAuth(api, provider)
+    const authSecret = await prepareDockerAuth(api, provider, log)
     const comparison = await compareDeployedResources(k8sCtx, api, systemNamespace, [authSecret], log)
     secretsUpToDate = comparison.state === "ready"
   }
@@ -212,10 +219,7 @@ export async function getEnvironmentStatus({
 }
 
 /**
- * Performs the following actions to prepare the environment
- *  1. Installs Tiller in project namespace
- *  2. Installs Tiller in system namespace (if provider has system services)
- *  3. Deploys system services (if provider has system services)
+ * Deploys system services (if any)
  */
 export async function prepareEnvironment(
   params: PrepareEnvironmentParams<KubernetesEnvironmentStatus>
@@ -224,7 +228,7 @@ export async function prepareEnvironment(
   const k8sCtx = <KubernetesPluginContext>ctx
 
   // Migrate from Helm 2.x and remove Tiller from project namespace, if necessary
-  const systemNamespace = k8sCtx.provider.config.gardenSystemNamespace
+  const systemNamespace = await getSystemNamespace(k8sCtx.provider, log)
 
   if (
     k8sCtx.provider.config.namespace !== systemNamespace &&
@@ -319,7 +323,7 @@ export async function prepareSystem({
   const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
   const sysProvider = <KubernetesProvider>await sysGarden.resolveProvider(provider.name)
   const sysCtx = <KubernetesPluginContext>sysGarden.getPluginContext(sysProvider)
-  const systemNamespace = ctx.provider.config.gardenSystemNamespace
+  const systemNamespace = await getSystemNamespace(sysProvider, log)
   const sysApi = await KubeApi.factory(log, sysProvider)
 
   await sysGarden.clearBuilds()
@@ -331,7 +335,7 @@ export async function prepareSystem({
 
   // Set auth secret for in-cluster builder
   if (provider.config.buildMode !== "local-docker") {
-    const authSecret = await prepareDockerAuth(sysApi, sysProvider)
+    const authSecret = await prepareDockerAuth(sysApi, sysProvider, log)
     await sysApi.upsert({ kind: "Secret", namespace: systemNamespace, obj: authSecret, log })
   }
 
@@ -461,7 +465,11 @@ export function getRegistryHostname(config: KubernetesConfig) {
   const systemNamespace = config.gardenSystemNamespace
   return `garden-docker-registry.${systemNamespace}.svc.cluster.local`
 }
-async function prepareDockerAuth(api: KubeApi, provider: KubernetesProvider): Promise<KubernetesResource<V1Secret>> {
+async function prepareDockerAuth(
+  api: KubeApi,
+  provider: KubernetesProvider,
+  log: LogEntry
+): Promise<KubernetesResource<V1Secret>> {
   // Read all configured imagePullSecrets and combine into a docker config file to use in the in-cluster builders.
   const auths: { [name: string]: any } = {}
 
@@ -525,7 +533,7 @@ async function prepareDockerAuth(api: KubeApi, provider: KubernetesProvider): Pr
   const config = { auths }
 
   // Store the config as a Secret (overwriting if necessary)
-  const systemNamespace = provider.config.gardenSystemNamespace
+  const systemNamespace = await getSystemNamespace(provider, log)
 
   return {
     apiVersion: "v1",

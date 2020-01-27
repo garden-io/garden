@@ -27,6 +27,7 @@ import { execInWorkload } from "../container/exec"
 import { dedent, deline } from "../../../util/string"
 import { execInBuilder, getBuilderPodName, BuilderExecParams, buildSyncDeploymentName } from "../container/build"
 import { getPods } from "../util"
+import { getSystemNamespace } from "../namespace"
 
 const workspaceSyncDirTtl = 0.5 * 86400 // 2 days
 
@@ -204,8 +205,7 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
   })
 
   const provider = ctx.provider
-  const systemNamespace = provider.config.gardenSystemNamespace
-
+  const systemNamespace = await getSystemNamespace(provider, log)
   // Restart the registry in read-only mode
   // -> Get the original deployment
   log.info("Fetching original Deployment")
@@ -410,7 +410,7 @@ async function cleanupBuildSyncVolume(provider: KubernetesProvider, log: LogEntr
 // (doesn't matter which one, they all use the same volume)
 async function getBuildSyncPodName(provider: KubernetesProvider, log: LogEntry) {
   const api = await KubeApi.factory(log, provider)
-  const systemNamespace = provider.config.gardenSystemNamespace
+  const systemNamespace = await getSystemNamespace(provider, log)
 
   const builderStatusRes = await api.apps.readNamespacedDeployment(buildSyncDeploymentName, systemNamespace)
   const builderPods = await getPods(api, systemNamespace, builderStatusRes.spec.selector.matchLabels)
@@ -428,7 +428,7 @@ async function getBuildSyncPodName(provider: KubernetesProvider, log: LogEntry) 
 
 async function execInBuildSync({ provider, log, args, timeout, podName }: BuilderExecParams) {
   const execCmd = ["exec", "-i", podName, "--", ...args]
-  const systemNamespace = provider.config.gardenSystemNamespace
+  const systemNamespace = await getSystemNamespace(provider, log)
 
   log.verbose(`Running: kubectl ${execCmd.join(" ")}`)
 

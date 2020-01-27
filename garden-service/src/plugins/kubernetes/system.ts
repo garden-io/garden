@@ -16,7 +16,7 @@ import { Garden } from "../../garden"
 import { KubernetesPluginContext, KubernetesConfig } from "./config"
 import { LogEntry } from "../../logger/log-entry"
 import { KubeApi } from "./api"
-import { createNamespace } from "./namespace"
+import { createNamespace, getSystemNamespace } from "./namespace"
 import { getPackageVersion } from "../../util/util"
 import { deline, gardenAnnotationKey } from "../../util/string"
 import { deleteNamespaces } from "./namespace"
@@ -50,7 +50,7 @@ export async function getSystemGarden(
   variables: PrimitiveMap,
   log: LogEntry
 ): Promise<Garden> {
-  const systemNamespace = ctx.provider.config.gardenSystemNamespace
+  const systemNamespace = await getSystemNamespace(ctx.provider, log)
 
   const sysProvider: KubernetesConfig = {
     ...ctx.provider.config,

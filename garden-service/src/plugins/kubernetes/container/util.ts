@@ -12,10 +12,10 @@ import { getPortForward } from "../port-forward"
 import { CLUSTER_REGISTRY_DEPLOYMENT_NAME, CLUSTER_REGISTRY_PORT } from "../constants"
 import { containerHelpers } from "../../container/helpers"
 import { PluginError } from "../../../exceptions"
-import { PluginContext } from "../../../plugin-context"
 import { LogEntry } from "../../../logger/log-entry"
 import { KubernetesPluginContext } from "../config"
 import axios, { AxiosRequestConfig } from "axios"
+import { getSystemNamespace } from "../namespace"
 
 export async function queryRegistry(
   ctx: KubernetesPluginContext,
@@ -30,8 +30,8 @@ export async function queryRegistry(
   return axios({ url, ...opts })
 }
 
-export async function getRegistryPortForward(ctx: PluginContext, log: LogEntry) {
-  const systemNamespace = ctx.provider.config.gardenSystemNamespace
+export async function getRegistryPortForward(ctx: KubernetesPluginContext, log: LogEntry) {
+  const systemNamespace = await getSystemNamespace(ctx.provider, log)
 
   return getPortForward({
     ctx,

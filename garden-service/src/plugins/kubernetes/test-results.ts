@@ -21,6 +21,7 @@ import hasha from "hasha"
 import { gardenAnnotationKey } from "../../util/string"
 import { upsertConfigMap } from "./util"
 import { trimRunOutput } from "./helm/common"
+import { getSystemNamespace } from "./namespace"
 
 export async function getTestResult({
   ctx,
@@ -31,7 +32,7 @@ export async function getTestResult({
 }: GetTestResultParams<ContainerModule | HelmModule | KubernetesModule>): Promise<TestResult | null> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, k8sCtx.provider)
-  const testResultNamespace = k8sCtx.provider.config.gardenSystemNamespace
+  const testResultNamespace = await getSystemNamespace(k8sCtx.provider, log)
 
   const resultKey = getTestResultKey(k8sCtx, module, testName, testVersion)
 
@@ -92,7 +93,7 @@ export async function storeTestResult({
 }: StoreTestResultParams): Promise<TestResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, k8sCtx.provider)
-  const testResultNamespace = k8sCtx.provider.config.gardenSystemNamespace
+  const testResultNamespace = await getSystemNamespace(k8sCtx.provider, log)
 
   const data: TestResult = trimRunOutput(result)
 

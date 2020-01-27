@@ -10,7 +10,7 @@ import Bluebird from "bluebird"
 
 import { createGardenPlugin } from "../../types/plugin/plugin"
 import { helmHandlers } from "./helm/handlers"
-import { getAppNamespace, getMetadataNamespace } from "./namespace"
+import { getAppNamespace, getMetadataNamespace, getSystemNamespace } from "./namespace"
 import { getSecret, setSecret, deleteSecret } from "./secrets"
 import { getEnvironmentStatus, prepareEnvironment, cleanupEnvironment } from "./init"
 import { containerHandlers } from "./container/handlers"
@@ -126,7 +126,7 @@ export async function debugInfo({ ctx, log, includeProject }: GetDebugInfoParams
   const provider = k8sCtx.provider
   const entry = log.info({ section: ctx.provider.name, msg: "collecting provider configuration", status: "active" })
 
-  const systemNamespace = ctx.provider.config.gardenSystemNamespace
+  const systemNamespace = await getSystemNamespace(provider, log)
   const systemMetadataNamespace = getSystemMetadataNamespaceName(provider.config)
 
   const namespacesList = [systemNamespace, systemMetadataNamespace]
