@@ -9,6 +9,7 @@
 import { GetTaskResultParams } from "../../types/plugin/task/getTaskResult"
 import { ContainerModule } from "../container/config"
 import { HelmModule } from "./helm/config"
+import { KubernetesModule } from "./kubernetes-module/config"
 import { ModuleVersion } from "../../vcs/vcs"
 import { KubernetesPluginContext, KubernetesProvider } from "./config"
 import { KubeApi } from "./api"
@@ -29,7 +30,7 @@ export async function getTaskResult({
   module,
   task,
   taskVersion,
-}: GetTaskResultParams<ContainerModule | HelmModule>): Promise<RunTaskResult | null> {
+}: GetTaskResultParams<ContainerModule | HelmModule | KubernetesModule>): Promise<RunTaskResult | null> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, k8sCtx.provider)
   const ns = await getMetadataNamespace(k8sCtx, log, k8sCtx.provider)

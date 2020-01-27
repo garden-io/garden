@@ -28,6 +28,8 @@ import { getForwardablePorts, getPortForwardHandler, killPortForwards } from "..
 import { getManifests, readManifests } from "./common"
 import { testKubernetesModule } from "./test"
 import { runKubernetesTask } from "./run"
+import { getTestResult } from "../test-results"
+import { getTaskResult } from "../task-results"
 
 export const kubernetesHandlers: Partial<ModuleAndRuntimeActionHandlers<KubernetesModule>> = {
   build,
@@ -37,6 +39,8 @@ export const kubernetesHandlers: Partial<ModuleAndRuntimeActionHandlers<Kubernet
   getPortForward: getPortForwardHandler,
   getServiceLogs,
   getServiceStatus,
+  getTaskResult,
+  getTestResult,
   runTask: runKubernetesTask,
   testModule: testKubernetesModule,
 }
