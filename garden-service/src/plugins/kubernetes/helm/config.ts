@@ -17,140 +17,30 @@ import {
   joi,
   joiModuleIncludeDirective,
 } from "../../../config/common"
-import { ArtifactSpec } from "../../../config/validation"
 import { Module, FileCopySpec } from "../../../types/module"
 import { containsSource, getReleaseName } from "./common"
 import { ConfigurationError } from "../../../exceptions"
 import { deline, dedent } from "../../../util/string"
-import { HotReloadableKind, hotReloadableKinds } from "../hot-reload"
-import { BaseTestSpec, baseTestSpecSchema } from "../../../config/test"
-import { BaseTaskSpec, baseTaskSpecSchema } from "../../../config/task"
 import { Service } from "../../../types/service"
-import {
-  ContainerModule,
-  ContainerEnvVars,
-  containerEnvVarsSchema,
-  commandExample,
-  containerArtifactSchema,
-} from "../../container/config"
+import { ContainerModule } from "../../container/config"
 import { baseBuildSpecSchema } from "../../../config/module"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../../types/plugin/module/configure"
+import {
+  serviceResourceSchema,
+  kubernetesTaskSchema,
+  kubernetesTestSchema,
+  ServiceResourceSpec,
+  KubernetesTestSpec,
+  KubernetesTaskSpec,
+} from "../config"
 
 export const defaultHelmTimeout = 300
 
 // A Helm Module always maps to a single Service
 export type HelmModuleSpec = HelmServiceSpec
 
-export interface HelmResourceSpec {
-  kind: HotReloadableKind
-  name?: string
-  containerName?: string
-  containerModule?: string
-  hotReloadCommand?: string[]
-  hotReloadArgs?: string[]
-}
-
-export interface HelmTaskSpec extends BaseTaskSpec {
-  args: string[]
-  artifacts: ArtifactSpec[]
-  command?: string[]
-  env: ContainerEnvVars
-  resource: HelmResourceSpec
-}
-
-export interface HelmTestSpec extends BaseTestSpec {
-  args: string[]
-  artifacts: ArtifactSpec[]
-  command?: string[]
-  env: ContainerEnvVars
-  resource: HelmResourceSpec
-}
-
-export interface HelmModule extends Module<HelmModuleSpec, HelmServiceSpec, HelmTestSpec, HelmTaskSpec> {}
+export interface HelmModule extends Module<HelmModuleSpec, HelmServiceSpec, KubernetesTestSpec, KubernetesTaskSpec> {}
 export type HelmModuleConfig = HelmModule["_ConfigType"]
-
-const resourceSchema = joi.object().keys({
-  // TODO: consider allowing a `resource` field, that includes the kind and name (e.g. Deployment/my-deployment).
-  // TODO: allow using a Pod directly
-  kind: joi
-    .string()
-    .valid(...hotReloadableKinds)
-    .default("Deployment")
-    .description("The type of Kubernetes resource to sync files to."),
-  name: joi.string().description(
-    deline`The name of the resource to sync to. If the chart contains a single resource of the specified Kind,
-        this can be omitted.
-
-        This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'.
-        This allows you to easily match the dynamic names given by Helm. In most cases you should copy this
-        directly from the template in question in order to match it. Note that you may need to add single quotes around
-        the string for the YAML to be parsed correctly.`
-  ),
-  containerName: joi.string().description(
-    deline`The name of a container in the target. Specify this if the target contains more than one container
-        and the main container is not the first container in the spec.`
-  ),
-  containerModule: joiIdentifier()
-    .description(
-      deline`The Garden module that contains the sources for the container. This needs to be specified under
-        \`serviceResource\` in order to enable hot-reloading for the chart, but is not necessary for tasks and tests.
-
-        Must be a \`container\` module, and for hot-reloading to work you must specify the \`hotReload\` field
-        on the container module.
-
-        Note: If you specify a module here, you don't need to specify it additionally under \`build.dependencies\``
-    )
-    .example("my-container-module"),
-  hotReloadArgs: joi
-    .array()
-    .items(joi.string())
-    .description("If specified, overrides the arguments for the main container when running in hot-reload mode.")
-    .example(["nodemon", "my-server.js"]),
-})
-
-export const taskSchema = baseTaskSpecSchema.keys({
-  resource: resourceSchema.description(
-    deline`The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task.
-        If not specified, the \`serviceResource\` configured on the module will be used. If neither is specified,
-        an error will be thrown.`
-  ),
-  command: joi
-    .array()
-    .items(joi.string())
-    .description("The command/entrypoint used to run the task inside the container.")
-    .example(commandExample),
-  args: joi
-    .array()
-    .items(joi.string())
-    .description("The arguments to pass to the pod used for execution.")
-    .example(["rake", "db:migrate"]),
-  env: containerEnvVarsSchema,
-  artifacts: joiArray(containerArtifactSchema).description(
-    "Specify artifacts to copy out of the container after the task is complete."
-  ),
-})
-
-export const testSchema = baseTestSpecSchema.keys({
-  resource: resourceSchema.description(
-    deline`The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite.
-        If not specified, the \`serviceResource\` configured on the module will be used. If neither is specified,
-        an error will be thrown.`
-  ),
-  command: joi
-    .array()
-    .items(joi.string())
-    .description("The command/entrypoint used to run the test inside the container.")
-    .example(commandExample),
-  args: joi
-    .array()
-    .items(joi.string())
-    .description("The arguments to pass to the pod used for testing.")
-    .example(["npm", "test"]),
-  env: containerEnvVarsSchema,
-  artifacts: joiArray(containerArtifactSchema).description(
-    "Specify artifacts to copy out of the container after the test is complete."
-  ),
-})
 
 export interface HelmServiceSpec {
   base?: string
@@ -159,10 +49,10 @@ export interface HelmServiceSpec {
   dependencies: string[]
   releaseName?: string
   repo?: string
-  serviceResource?: HelmResourceSpec
+  serviceResource?: ServiceResourceSpec
   skipDeploy: boolean
-  tasks: HelmTaskSpec[]
-  tests: HelmTestSpec[]
+  tasks: KubernetesTaskSpec[]
+  tests: KubernetesTestSpec[]
   timeout: number
   version?: string
   values: DeepPrimitiveMap
@@ -184,6 +74,50 @@ export const helmModuleOutputsSchema = joi.object().keys({
     .string()
     .required()
     .description("The Helm release name of the service."),
+})
+
+const helmServiceResourceSchema = serviceResourceSchema.keys({
+  name: joi.string().description(
+    deline`The name of the resource to sync to. If the chart contains a single resource of the specified Kind,
+        this can be omitted.
+
+        This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'.
+        This allows you to easily match the dynamic names given by Helm. In most cases you should copy this
+        directly from the template in question in order to match it. Note that you may need to add single quotes around
+        the string for the YAML to be parsed correctly.`
+  ),
+  containerModule: joiIdentifier()
+    .description(
+      deline`The Garden module that contains the sources for the container. This needs to be specified under
+        \`serviceResource\` in order to enable hot-reloading for the chart, but is not necessary for tasks and tests.
+
+        Must be a \`container\` module, and for hot-reloading to work you must specify the \`hotReload\` field
+        on the container module.
+
+        Note: If you specify a module here, you don't need to specify it additionally under \`build.dependencies\``
+    )
+    .example("my-container-module"),
+  hotReloadArgs: joi
+    .array()
+    .items(joi.string())
+    .description("If specified, overrides the arguments for the main container when running in hot-reload mode.")
+    .example(["nodemon", "my-server.js"]),
+})
+
+const helmTaskSchema = kubernetesTaskSchema.keys({
+  resource: helmServiceResourceSchema.description(
+    deline`The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task.
+        If not specified, the \`serviceResource\` configured on the module will be used. If neither is specified,
+        an error will be thrown.`
+  ),
+})
+
+const helmTestSchema = kubernetesTestSchema.keys({
+  resource: helmServiceResourceSchema.description(
+    deline`The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite.
+        If not specified, the \`serviceResource\` configured on the module will be used. If neither is specified,
+        an error will be thrown.`
+  ),
 })
 
 export const helmModuleSpecSchema = joi.object().keys({
@@ -221,7 +155,7 @@ export const helmModuleSpecSchema = joi.object().keys({
     "Optionally override the release name used when installing (defaults to the module name)."
   ),
   repo: joi.string().description("The repository URL to fetch the chart from."),
-  serviceResource: resourceSchema.description(
+  serviceResource: helmServiceResourceSchema.description(
     deline`The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module
       (not to be confused with Kubernetes Service resources).
       Because a Helm chart can contain any number of Kubernetes resources, this needs to be specified for certain
@@ -244,8 +178,8 @@ export const helmModuleSpecSchema = joi.object().keys({
     If neither \`include\` nor \`exclude\` is set and the module specifies a remote chart, Garden
     automatically sets \`ìnclude\` to \`[]\`.
   `),
-  tasks: joiArray(taskSchema).description("The task definitions for this module."),
-  tests: joiArray(testSchema).description("The test suite definitions for this module."),
+  tasks: joiArray(helmTaskSchema).description("The task definitions for this module."),
+  tests: joiArray(helmTestSchema).description("The test suite definitions for this module."),
   timeout: joi
     .number()
     .integer()

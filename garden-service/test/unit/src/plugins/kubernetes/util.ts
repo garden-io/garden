@@ -15,6 +15,7 @@ import {
   deduplicatePodsByLabel,
   getStaticLabelsFromPod,
   getSelectorString,
+  makePodName,
 } from "../../../../../src/plugins/kubernetes/util"
 import { KubernetesServerResource } from "../../../../../src/plugins/kubernetes/types"
 import { V1Pod } from "@kubernetes/client-node"
@@ -305,5 +306,18 @@ describe("getSelectorString", () => {
     const selectorString = getSelectorString(labels)
 
     expect(selectorString).to.eql("-lmodule=a,service=a")
+  })
+})
+
+describe("makePodName", () => {
+  it("should create a unique pod name with a hash suffix", () => {
+    const name = makePodName("test", "some-module", "unit")
+    expect(name.slice(0, -7)).to.equal("test-some-module-unit")
+  })
+
+  it("should truncate the pod name if necessary", () => {
+    const name = makePodName("test", "some-module-with-a-really-unnecessarily-long-name", "really-long-test-name-too")
+    expect(name.length).to.equal(63)
+    expect(name.slice(0, -7)).to.equal("test-some-module-with-a-really-unnecessarily-long-name-r")
   })
 })

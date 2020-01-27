@@ -10,10 +10,21 @@ import dedent = require("dedent")
 
 import { joiArray, joiIdentifier, joiProviderName, joi } from "../../config/common"
 import { Provider, providerConfigBaseSchema, ProviderConfig } from "../../config/provider"
-import { containerRegistryConfigSchema, ContainerRegistryConfig } from "../container/config"
+import {
+  containerRegistryConfigSchema,
+  ContainerRegistryConfig,
+  commandExample,
+  containerEnvVarsSchema,
+  containerArtifactSchema,
+  ContainerEnvVars,
+} from "../container/config"
 import { PluginContext } from "../../plugin-context"
 import { deline } from "../../util/string"
 import { defaultSystemNamespace } from "./system"
+import { hotReloadableKinds, HotReloadableKind } from "./hot-reload"
+import { baseTaskSpecSchema, BaseTaskSpec } from "../../config/task"
+import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
+import { ArtifactSpec } from "../../config/validation"
 
 export interface ProviderSecretRef {
   name: string
@@ -548,3 +559,93 @@ export const configSchema = kubernetesConfigBase
       .description("Set this to `nginx` to install/enable the NGINX ingress controller."),
   })
   .unknown(false)
+
+export interface ServiceResourceSpec {
+  kind: HotReloadableKind
+  name?: string
+  containerName?: string
+  containerModule?: string
+  hotReloadCommand?: string[]
+  hotReloadArgs?: string[]
+}
+
+export interface KubernetesTaskSpec extends BaseTaskSpec {
+  args: string[]
+  artifacts: ArtifactSpec[]
+  command?: string[]
+  env: ContainerEnvVars
+  resource: ServiceResourceSpec
+}
+
+export interface KubernetesTestSpec extends BaseTestSpec {
+  args: string[]
+  artifacts: ArtifactSpec[]
+  command?: string[]
+  env: ContainerEnvVars
+  resource: ServiceResourceSpec
+}
+
+export const serviceResourceSchema = joi.object().keys({
+  // TODO: consider allowing a `resource` field, that includes the kind and name (e.g. Deployment/my-deployment).
+  kind: joi
+    .string()
+    .valid(...hotReloadableKinds)
+    .default("Deployment")
+    .description("The type of Kubernetes resource to sync files to."),
+  name: joi.string().description(
+    deline`The name of the resource to sync to. If the module contains a single resource of the specified Kind,
+        this can be omitted.`
+  ),
+  containerName: joi.string().description(
+    deline`The name of a container in the target. Specify this if the target contains more than one container
+        and the main container is not the first container in the spec.`
+  ),
+})
+
+export const kubernetesTaskSchema = baseTaskSpecSchema
+  .keys({
+    resource: serviceResourceSchema.description(
+      deline`The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task.
+        If not specified, the \`serviceResource\` configured on the module will be used. If neither is specified,
+        an error will be thrown.`
+    ),
+    command: joi
+      .array()
+      .items(joi.string())
+      .description("The command/entrypoint used to run the task inside the container.")
+      .example(commandExample),
+    args: joi
+      .array()
+      .items(joi.string())
+      .description("The arguments to pass to the container used for execution.")
+      .example(["rake", "db:migrate"]),
+    env: containerEnvVarsSchema,
+    artifacts: joiArray(containerArtifactSchema).description(
+      "Specify artifacts to copy out of the container after the task is complete."
+    ),
+  })
+  .description("The task definitions for this module.")
+
+export const kubernetesTestSchema = baseTestSpecSchema
+  .keys({
+    resource: serviceResourceSchema.description(
+      deline`The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite.
+        If not specified, the \`serviceResource\` configured on the module will be used. If neither is specified,
+        an error will be thrown.`
+    ),
+    command: joi
+      .array()
+      .items(joi.string())
+      .description("The command/entrypoint used to run the test inside the container.")
+      .example(commandExample),
+    args: joi
+      .array()
+      .items(joi.string())
+      .description("The arguments to pass to the container used for testing.")
+      .example(["npm", "test"]),
+    env: containerEnvVarsSchema,
+    artifacts: joiArray(containerArtifactSchema).description(
+      "Specify artifacts to copy out of the container after the test is complete."
+    ),
+  })
+  .description("The test suite definitions for this module.")

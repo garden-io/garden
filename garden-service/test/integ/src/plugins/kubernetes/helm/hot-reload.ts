@@ -13,14 +13,11 @@ import { getHotReloadSpec, getHotReloadContainerName } from "../../../../../../s
 import { deline } from "../../../../../../src/util/string"
 import { ConfigGraph } from "../../../../../../src/config-graph"
 import { getHelmTestGarden } from "./common"
-import {
-  findServiceResource,
-  getChartResources,
-  getServiceResourceSpec,
-} from "../../../../../../src/plugins/kubernetes/helm/common"
+import { getChartResources } from "../../../../../../src/plugins/kubernetes/helm/common"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { configureHotReload } from "../../../../../../src/plugins/kubernetes/hot-reload"
+import { findServiceResource, getServiceResourceSpec } from "../../../../../../src/plugins/kubernetes/util"
 
 describe("getHotReloadSpec", () => {
   let garden: TestGarden
@@ -108,10 +105,17 @@ describe("configureHotReload", () => {
     const log = garden.log
     const service = await graph.getService("two-containers")
     const module = service.module
-    const chartResources = await getChartResources(ctx, module, true, log)
-    const resourceSpec = getServiceResourceSpec(module)
+    const manifests = await getChartResources(ctx, module, true, log)
+    const resourceSpec = getServiceResourceSpec(module, undefined)
     const hotReloadSpec = getHotReloadSpec(service)
-    const hotReloadTarget = await findServiceResource({ ctx, log, module, chartResources, resourceSpec })
+    const hotReloadTarget = await findServiceResource({
+      ctx,
+      log,
+      module,
+      manifests,
+      resourceSpec,
+      baseModule: undefined,
+    })
     const containerName = getHotReloadContainerName(module)
     configureHotReload({
       containerName,

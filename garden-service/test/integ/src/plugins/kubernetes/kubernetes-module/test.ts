@@ -10,18 +10,18 @@ import { expect } from "chai"
 
 import { TestGarden, expectError } from "../../../../../helpers"
 import { ConfigGraph } from "../../../../../../src/config-graph"
-import { getHelmTestGarden } from "./common"
+import { getKubernetesTestGarden } from "./common"
 import { TestTask } from "../../../../../../src/tasks/test"
 import { findByName } from "../../../../../../src/util/util"
 import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
 
-describe("testHelmModule", () => {
+describe("testKubernetesModule", () => {
   let garden: TestGarden
   let graph: ConfigGraph
 
   before(async () => {
-    garden = await getHelmTestGarden()
+    garden = await getKubernetesTestGarden()
   })
 
   beforeEach(async () => {
@@ -29,7 +29,7 @@ describe("testHelmModule", () => {
   })
 
   it("should run a basic test", async () => {
-    const module = await graph.getModule("artifacts")
+    const module = await graph.getModule("module-simple")
 
     const testTask = await TestTask.factory({
       garden,

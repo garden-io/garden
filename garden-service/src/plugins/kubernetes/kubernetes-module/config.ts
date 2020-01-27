@@ -15,6 +15,14 @@ import { ContainerModule } from "../../container/config"
 import { baseBuildSpecSchema } from "../../../config/module"
 import { KubernetesResource } from "../types"
 import { deline, dedent } from "../../../util/string"
+import {
+  serviceResourceSchema,
+  kubernetesTaskSchema,
+  kubernetesTestSchema,
+  ServiceResourceSpec,
+  KubernetesTestSpec,
+  KubernetesTaskSpec,
+} from "../config"
 
 // A Kubernetes Module always maps to a single Service
 export type KubernetesModuleSpec = KubernetesServiceSpec
@@ -26,6 +34,9 @@ export interface KubernetesServiceSpec {
   dependencies: string[]
   files: string[]
   manifests: KubernetesResource[]
+  serviceResource?: ServiceResourceSpec
+  tasks: KubernetesTaskSpec[]
+  tests: KubernetesTestSpec[]
 }
 
 export type KubernetesService = Service<KubernetesModule, ContainerModule>
@@ -69,6 +80,14 @@ export const kubernetesModuleSpecSchema = joi.object().keys({
     If neither \`include\` nor \`exclude\` is set, Garden automatically sets \`include\` to equal the
     \`files\` directive so that only the Kubernetes manifests get included.
   `),
+  serviceResource: serviceResourceSchema.description(
+    deline`The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module
+      (not to be confused with Kubernetes Service resources).
+      Because a \`kubernetes\` can contain any number of Kubernetes resources, this needs to be specified for certain
+      Garden features and commands to work.`
+  ),
+  tasks: joiArray(kubernetesTaskSchema),
+  tests: joiArray(kubernetesTestSchema),
 })
 
 export async function configureKubernetesModule({
@@ -88,6 +107,22 @@ export async function configureKubernetesModule({
   if (!(moduleConfig.include || moduleConfig.exclude)) {
     moduleConfig.include = moduleConfig.spec.files
   }
+
+  moduleConfig.taskConfigs = moduleConfig.spec.tasks.map((t) => ({
+    name: t.name,
+    dependencies: t.dependencies,
+    disabled: t.disabled,
+    spec: t,
+    timeout: t.timeout,
+  }))
+
+  moduleConfig.testConfigs = moduleConfig.spec.tests.map((t) => ({
+    name: t.name,
+    dependencies: t.dependencies,
+    disabled: t.disabled,
+    spec: t,
+    timeout: t.timeout,
+  }))
 
   return { moduleConfig }
 }

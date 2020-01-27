@@ -24,3 +24,12 @@ manifests:
               image: busybox:1.31.1
               ports:
                 - containerPort: 80
+serviceResource:
+  kind: Deployment
+  name: busybox-deployment
+tests:
+  - name: echo-test
+    command: [sh, -c, "echo ok"]
+tasks:
+  - name: echo-task
+    command: [sh, -c, "echo ok"]

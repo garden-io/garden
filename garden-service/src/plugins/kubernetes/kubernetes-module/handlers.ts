@@ -6,16 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { resolve } from "path"
-import { readFile } from "fs-extra"
-import Bluebird from "bluebird"
-import { flatten, set, uniq } from "lodash"
-import { safeLoadAll } from "js-yaml"
+import { uniq } from "lodash"
 
 import { KubernetesModule, configureKubernetesModule, KubernetesService } from "./config"
 import { getNamespace, getAppNamespace } from "../namespace"
 import { KubernetesPluginContext } from "../config"
-import { KubernetesResource, KubernetesServerResource } from "../types"
+import { KubernetesServerResource } from "../types"
 import { ServiceStatus } from "../../../types/service"
 import { compareDeployedResources, waitForResources } from "../status/status"
 import { KubeApi } from "../api"
@@ -29,7 +25,11 @@ import { DeleteServiceParams } from "../../../types/plugin/service/deleteService
 import { GetServiceLogsParams } from "../../../types/plugin/service/getServiceLogs"
 import { gardenAnnotationKey } from "../../../util/string"
 import { getForwardablePorts, getPortForwardHandler, killPortForwards } from "../port-forward"
-import { LogEntry } from "../../../logger/log-entry"
+import { getManifests, readManifests } from "./common"
+import { testKubernetesModule } from "./test"
+import { runKubernetesTask } from "./run"
+import { getTestResult } from "../test-results"
+import { getTaskResult } from "../task-results"
 
 export const kubernetesHandlers: Partial<ModuleAndRuntimeActionHandlers<KubernetesModule>> = {
   build,
@@ -39,6 +39,10 @@ export const kubernetesHandlers: Partial<ModuleAndRuntimeActionHandlers<Kubernet
   getPortForward: getPortForwardHandler,
   getServiceLogs,
   getServiceStatus,
+  getTaskResult,
+  getTestResult,
+  runTask: runKubernetesTask,
+  testModule: testKubernetesModule,
 }
 
 interface KubernetesStatusDetail {
@@ -147,48 +151,4 @@ async function getServiceLogs(params: GetServiceLogsParams<KubernetesModule>) {
 
 function getSelector(service: KubernetesService) {
   return `${gardenAnnotationKey("service")}=${service.name}`
-}
-
-/**
- * Read the manifests from the module config, as well as any referenced files in the config.
- */
-async function readManifests(module: KubernetesModule) {
-  const fileManifests = flatten(
-    await Bluebird.map(module.spec.files, async (path) => {
-      const absPath = resolve(module.buildPath, path)
-      return safeLoadAll((await readFile(absPath)).toString())
-    })
-  )
-
-  return [...module.spec.manifests, ...fileManifests]
-}
-
-/**
- * Reads the manifests and makes sure each has a namespace set (when applicable) and adds annotations.
- * Use this when applying to the cluster, or comparing against deployed resources.
- */
-async function getManifests(
-  api: KubeApi,
-  log: LogEntry,
-  module: KubernetesModule,
-  defaultNamespace: string
-): Promise<KubernetesResource[]> {
-  const manifests = await readManifests(module)
-
-  return Bluebird.map(manifests, async (manifest) => {
-    // Ensure a namespace is set, if not already set, and if required by the resource type
-    if (!manifest.metadata.namespace) {
-      const info = await api.getApiResourceInfo(log, manifest)
-
-      if (info.namespaced) {
-        manifest.metadata.namespace = defaultNamespace
-      }
-    }
-
-    // Set Garden annotations
-    set(manifest, ["metadata", "annotations", gardenAnnotationKey("service")], module.name)
-    set(manifest, ["metadata", "labels", gardenAnnotationKey("service")], module.name)
-
-    return manifest
-  })
 }

@@ -27,7 +27,7 @@ import { ServiceState } from "../../types/service"
 import { RunModuleParams } from "../../types/plugin/module/runModule"
 import { ContainerEnvVars } from "../container/config"
 import { getAppNamespace } from "./namespace"
-import { prepareEnvVars } from "./util"
+import { prepareEnvVars, makePodName } from "./util"
 import { deline } from "../../util/string"
 import { ArtifactSpec } from "../../config/validation"
 import cpy from "cpy"
@@ -123,7 +123,7 @@ export async function runAndCopy({
   const api = await KubeApi.factory(log, provider)
 
   if (!podName) {
-    podName = `run-${module.name}-${Math.round(new Date().getTime())}`
+    podName = makePodName("run", module.name, Math.round(new Date().getTime()).toString())
   }
 
   const runner = new PodRunner({
@@ -531,7 +531,7 @@ export class PodRunner extends PodRunnerParams {
 
     return [
       "run",
-      this.podName || `run-${this.module.name}-${Math.round(new Date().getTime())}`,
+      this.podName || makePodName("run", this.module.name, Math.round(new Date().getTime()).toString()),
       `--image=${this.image}`,
       "--restart=Never",
       // Need to attach to get the log output and exit code.

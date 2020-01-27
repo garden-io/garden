@@ -128,6 +128,110 @@ manifests:
 
 # POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests.
 files: []
+
+# The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module (not to be
+# confused with Kubernetes Service resources). Because a `kubernetes` can contain any number of Kubernetes resources,
+# this needs to be specified for certain Garden features and commands to work.
+serviceResource:
+  # The type of Kubernetes resource to sync files to.
+  kind: Deployment
+
+  # The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can be
+  # omitted.
+  name:
+
+  # The name of a container in the target. Specify this if the target contains more than one container and the main
+  # container is not the first container in the spec.
+  containerName:
+
+tasks:
+  # The name of the task.
+  - name:
+    # A description of the task.
+    description:
+    # The names of any tasks that must be executed, and the names of any services that must be running, before this
+    # task is executed.
+    dependencies: []
+    # Set this to `true` to disable the task. You can use this with conditional template strings to
+    # enable/disable tasks based on, for example, the current environment or other variables (e.g.
+    # `enabled: \${environment.name != "prod"}`). This can be handy when you only want certain tasks to run in
+    # specific environments, e.g. only for development.
+    #
+    # Disabling a task means that it will not be run, and will also be ignored if it is declared as a
+    # runtime dependency for another service, test or task.
+    #
+    # Note however that template strings referencing the task's outputs (i.e. runtime outputs) will fail to
+    # resolve when the task is disabled, so you need to make sure to provide alternate values for those if
+    # you're using them, using conditional expressions.
+    disabled: false
+    # Maximum duration (in seconds) of the task's execution.
+    timeout: null
+    # The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task. If not specified, the
+    # `serviceResource` configured on the module will be used. If neither is specified, an error will be thrown.
+    resource:
+      # The type of Kubernetes resource to sync files to.
+      kind: Deployment
+
+      # The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can
+      # be omitted.
+      name:
+
+      # The name of a container in the target. Specify this if the target contains more than one container and the
+      # main container is not the first container in the spec.
+      containerName:
+    # The command/entrypoint used to run the task inside the container.
+    command:
+    # The arguments to pass to the container used for execution.
+    args:
+    # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
+    # `GARDEN`) and values must be primitives or references to secrets.
+    env: {}
+    # Specify artifacts to copy out of the container after the task is complete.
+    artifacts:
+      # A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
+      - source:
+        # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
+        target: .
+
+tests:
+  # The name of the test.
+  - name:
+    # The names of any services that must be running, and the names of any tasks that must be executed, before the
+    # test is run.
+    dependencies: []
+    # Set this to `true` to disable the test. You can use this with conditional template strings to
+    # enable/disable tests based on, for example, the current environment or other variables (e.g.
+    # `enabled: \${environment.name != "prod"}`). This is handy when you only want certain tests to run in
+    # specific environments, e.g. only during CI.
+    disabled: false
+    # Maximum duration (in seconds) of the test run.
+    timeout: null
+    # The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite. If not specified,
+    # the `serviceResource` configured on the module will be used. If neither is specified, an error will be thrown.
+    resource:
+      # The type of Kubernetes resource to sync files to.
+      kind: Deployment
+
+      # The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can
+      # be omitted.
+      name:
+
+      # The name of a container in the target. Specify this if the target contains more than one container and the
+      # main container is not the first container in the spec.
+      containerName:
+    # The command/entrypoint used to run the test inside the container.
+    command:
+    # The arguments to pass to the container used for testing.
+    args:
+    # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
+    # `GARDEN`) and values must be primitives or references to secrets.
+    env: {}
+    # Specify artifacts to copy out of the container after the test is complete.
+    artifacts:
+      # A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
+      - source:
+        # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
+        target: .
 ```
 
 ### Configuration Keys
@@ -408,6 +512,453 @@ POSIX-style paths to YAML files to load manifests from. Each can contain multipl
 | Type               | Default | Required |
 | ------------------ | ------- | -------- |
 | `array[posixPath]` | `[]`    | No       |
+
+#### `serviceResource`
+
+The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module (not to be confused with Kubernetes Service resources). Because a `kubernetes` can contain any number of Kubernetes resources, this needs to be specified for certain Garden features and commands to work.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+#### `serviceResource.kind`
+
+[serviceResource](#serviceresource) > kind
+
+The type of Kubernetes resource to sync files to.
+
+| Type     | Allowed Values                           | Default        | Required |
+| -------- | ---------------------------------------- | -------------- | -------- |
+| `string` | "Deployment", "DaemonSet", "StatefulSet" | `"Deployment"` | Yes      |
+
+#### `serviceResource.name`
+
+[serviceResource](#serviceresource) > name
+
+The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can be omitted.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+#### `serviceResource.containerName`
+
+[serviceResource](#serviceresource) > containerName
+
+The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+#### `tasks`
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+#### `tasks[].name`
+
+[tasks](#tasks) > name
+
+The name of the task.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+#### `tasks[].description`
+
+[tasks](#tasks) > description
+
+A description of the task.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+#### `tasks[].dependencies[]`
+
+[tasks](#tasks) > dependencies
+
+The names of any tasks that must be executed, and the names of any services that must be running, before this task is executed.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[string]` | `[]`    | No       |
+
+#### `tasks[].disabled`
+
+[tasks](#tasks) > disabled
+
+Set this to `true` to disable the task. You can use this with conditional template strings to
+enable/disable tasks based on, for example, the current environment or other variables (e.g.
+`enabled: \${environment.name != "prod"}`). This can be handy when you only want certain tasks to run in
+specific environments, e.g. only for development.
+
+Disabling a task means that it will not be run, and will also be ignored if it is declared as a
+runtime dependency for another service, test or task.
+
+Note however that template strings referencing the task's outputs (i.e. runtime outputs) will fail to
+resolve when the task is disabled, so you need to make sure to provide alternate values for those if
+you're using them, using conditional expressions.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
+
+#### `tasks[].timeout`
+
+[tasks](#tasks) > timeout
+
+Maximum duration (in seconds) of the task's execution.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `null`  | No       |
+
+#### `tasks[].resource`
+
+[tasks](#tasks) > resource
+
+The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task. If not specified, the `serviceResource` configured on the module will be used. If neither is specified, an error will be thrown.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+#### `tasks[].resource.kind`
+
+[tasks](#tasks) > [resource](#tasksresource) > kind
+
+The type of Kubernetes resource to sync files to.
+
+| Type     | Allowed Values                           | Default        | Required |
+| -------- | ---------------------------------------- | -------------- | -------- |
+| `string` | "Deployment", "DaemonSet", "StatefulSet" | `"Deployment"` | Yes      |
+
+#### `tasks[].resource.name`
+
+[tasks](#tasks) > [resource](#tasksresource) > name
+
+The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can be omitted.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+#### `tasks[].resource.containerName`
+
+[tasks](#tasks) > [resource](#tasksresource) > containerName
+
+The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+#### `tasks[].command[]`
+
+[tasks](#tasks) > command
+
+The command/entrypoint used to run the task inside the container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+Example:
+
+```yaml
+tasks:
+  - command:
+    - /bin/sh
+    - '-c'
+```
+
+#### `tasks[].args[]`
+
+[tasks](#tasks) > args
+
+The arguments to pass to the container used for execution.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+Example:
+
+```yaml
+tasks:
+  - args:
+    - rake
+    - 'db:migrate'
+```
+
+#### `tasks[].env`
+
+[tasks](#tasks) > env
+
+Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives or references to secrets.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
+
+Example:
+
+```yaml
+tasks:
+  - env:
+      - MY_VAR: some-value
+        MY_SECRET_VAR:
+          secretRef:
+            name: my-secret
+            key: some-key
+      - {}
+```
+
+#### `tasks[].artifacts[]`
+
+[tasks](#tasks) > artifacts
+
+Specify artifacts to copy out of the container after the task is complete.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+#### `tasks[].artifacts[].source`
+
+[tasks](#tasks) > [artifacts](#tasksartifacts) > source
+
+A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
+
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
+
+Example:
+
+```yaml
+tasks:
+  - artifacts:
+      - source: "/output/**/*"
+```
+
+#### `tasks[].artifacts[].target`
+
+[tasks](#tasks) > [artifacts](#tasksartifacts) > target
+
+A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
+
+| Type        | Default | Required |
+| ----------- | ------- | -------- |
+| `posixPath` | `"."`   | No       |
+
+Example:
+
+```yaml
+tasks:
+  - artifacts:
+      - target: "outputs/foo/"
+```
+
+#### `tests`
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+#### `tests[].name`
+
+[tests](#tests) > name
+
+The name of the test.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+#### `tests[].dependencies[]`
+
+[tests](#tests) > dependencies
+
+The names of any services that must be running, and the names of any tasks that must be executed, before the test is run.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[string]` | `[]`    | No       |
+
+#### `tests[].disabled`
+
+[tests](#tests) > disabled
+
+Set this to `true` to disable the test. You can use this with conditional template strings to
+enable/disable tests based on, for example, the current environment or other variables (e.g.
+`enabled: \${environment.name != "prod"}`). This is handy when you only want certain tests to run in
+specific environments, e.g. only during CI.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
+
+#### `tests[].timeout`
+
+[tests](#tests) > timeout
+
+Maximum duration (in seconds) of the test run.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `null`  | No       |
+
+#### `tests[].resource`
+
+[tests](#tests) > resource
+
+The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite. If not specified, the `serviceResource` configured on the module will be used. If neither is specified, an error will be thrown.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+#### `tests[].resource.kind`
+
+[tests](#tests) > [resource](#testsresource) > kind
+
+The type of Kubernetes resource to sync files to.
+
+| Type     | Allowed Values                           | Default        | Required |
+| -------- | ---------------------------------------- | -------------- | -------- |
+| `string` | "Deployment", "DaemonSet", "StatefulSet" | `"Deployment"` | Yes      |
+
+#### `tests[].resource.name`
+
+[tests](#tests) > [resource](#testsresource) > name
+
+The name of the resource to sync to. If the module contains a single resource of the specified Kind, this can be omitted.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+#### `tests[].resource.containerName`
+
+[tests](#tests) > [resource](#testsresource) > containerName
+
+The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+#### `tests[].command[]`
+
+[tests](#tests) > command
+
+The command/entrypoint used to run the test inside the container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+Example:
+
+```yaml
+tests:
+  - command:
+    - /bin/sh
+    - '-c'
+```
+
+#### `tests[].args[]`
+
+[tests](#tests) > args
+
+The arguments to pass to the container used for testing.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+Example:
+
+```yaml
+tests:
+  - args:
+    - npm
+    - test
+```
+
+#### `tests[].env`
+
+[tests](#tests) > env
+
+Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives or references to secrets.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
+
+Example:
+
+```yaml
+tests:
+  - env:
+      - MY_VAR: some-value
+        MY_SECRET_VAR:
+          secretRef:
+            name: my-secret
+            key: some-key
+      - {}
+```
+
+#### `tests[].artifacts[]`
+
+[tests](#tests) > artifacts
+
+Specify artifacts to copy out of the container after the test is complete.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+#### `tests[].artifacts[].source`
+
+[tests](#tests) > [artifacts](#testsartifacts) > source
+
+A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
+
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
+
+Example:
+
+```yaml
+tests:
+  - artifacts:
+      - source: "/output/**/*"
+```
+
+#### `tests[].artifacts[].target`
+
+[tests](#tests) > [artifacts](#testsartifacts) > target
+
+A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
+
+| Type        | Default | Required |
+| ----------- | ------- | -------- |
+| `posixPath` | `"."`   | No       |
+
+Example:
+
+```yaml
+tests:
+  - artifacts:
+      - target: "outputs/foo/"
+```
 
 
 ### Outputs

@@ -6,12 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerModule } from "../container/config"
 import { deserializeValues } from "../../util/util"
 import { KubeApi } from "./api"
 import { Module } from "../../types/module"
 import { ModuleVersion } from "../../vcs/vcs"
+import { ContainerModule } from "../container/config"
 import { HelmModule } from "./helm/config"
+import { KubernetesModule } from "./kubernetes-module/config"
 import { PluginContext } from "../../plugin-context"
 import { KubernetesPluginContext } from "./config"
 import { LogEntry } from "../../logger/log-entry"
@@ -27,7 +28,7 @@ export async function getTestResult({
   module,
   testName,
   testVersion,
-}: GetTestResultParams<ContainerModule | HelmModule>): Promise<TestResult | null> {
+}: GetTestResultParams<ContainerModule | HelmModule | KubernetesModule>): Promise<TestResult | null> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, k8sCtx.provider)
   const testResultNamespace = k8sCtx.provider.config.gardenSystemNamespace
