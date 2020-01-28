@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 import chalk from "chalk"
-import { find } from "lodash"
+import { find, includes } from "lodash"
 import minimatch = require("minimatch")
 
 import { Module } from "../types/module"
@@ -40,6 +40,7 @@ export interface TestTaskParams {
   testConfig: TestConfig
   force: boolean
   forceBuild: boolean
+  hotReloadServiceNames?: string[]
 }
 
 export class TestTask extends BaseTask {
@@ -49,6 +50,7 @@ export class TestTask extends BaseTask {
   private graph: ConfigGraph
   private testConfig: TestConfig
   private forceBuild: boolean
+  private hotReloadServiceNames: string[]
 
   constructor({
     garden,
@@ -59,6 +61,7 @@ export class TestTask extends BaseTask {
     force,
     forceBuild,
     version,
+    hotReloadServiceNames = [],
   }: TestTaskParams & TaskParams & { _guard: true }) {
     // Note: The _guard attribute is to prevent accidentally bypassing the factory method
     super({ garden, log, force, version })
@@ -67,6 +70,7 @@ export class TestTask extends BaseTask {
     this.testConfig = testConfig
     this.force = force
     this.forceBuild = forceBuild
+    this.hotReloadServiceNames = hotReloadServiceNames
   }
 
   static async factory(initArgs: TestTaskParams): Promise<TestTask> {
@@ -83,7 +87,12 @@ export class TestTask extends BaseTask {
     }
 
     const dg = this.graph
-    const deps = await dg.getDependencies({ nodeType: "test", name: this.getName(), recursive: false })
+    const deps = await dg.getDependencies({
+      nodeType: "test",
+      name: this.getName(),
+      recursive: false,
+      filterFn: (depNode) => !(depNode.type === "deploy" && includes(this.hotReloadServiceNames, depNode.name)),
+    })
 
     const buildTasks = await BuildTask.factory({
       garden: this.garden,
@@ -103,7 +112,7 @@ export class TestTask extends BaseTask {
       })
     })
 
-    const serviceTasks = deps.deploy.map(
+    const deployTasks = deps.deploy.map(
       (service) =>
         new DeployTask({
           garden: this.garden,
@@ -115,7 +124,7 @@ export class TestTask extends BaseTask {
         })
     )
 
-    return [...buildTasks, ...serviceTasks, ...taskTasks]
+    return [...buildTasks, ...deployTasks, ...taskTasks]
   }
 
   getName() {
@@ -220,6 +229,7 @@ export async function getTestTasks({
   graph,
   module,
   filterNames,
+  hotReloadServiceNames,
   force = false,
   forceBuild = false,
 }: {
@@ -228,6 +238,7 @@ export async function getTestTasks({
   graph: ConfigGraph
   module: Module
   filterNames?: string[]
+  hotReloadServiceNames?: string[]
   force?: boolean
   forceBuild?: boolean
 }) {
@@ -248,6 +259,7 @@ export async function getTestTasks({
       forceBuild,
       testConfig: test,
       module,
+      hotReloadServiceNames,
     })
   )
 }

@@ -11,6 +11,7 @@ import { prepareSystem, getEnvironmentStatus } from "../init"
 import chalk from "chalk"
 import { helm } from "../helm/helm-cli"
 import { KubernetesPluginContext, KubernetesProvider } from "../config"
+import { getSystemNamespace } from "../namespace"
 
 export const clusterInit: PluginCommand = {
   name: "cluster-init",
@@ -41,11 +42,12 @@ export const clusterInit: PluginCommand = {
 
     log.info("Cleaning up old resources...")
 
+    const systemNamespace = await getSystemNamespace(provider, log)
     try {
       await helm({
         ctx: k8sCtx,
         log,
-        namespace: provider.config.gardenSystemNamespace,
+        namespace: systemNamespace,
         args: ["delete", "--purge", "garden-nfs-provisioner"],
       })
     } catch (_) {}

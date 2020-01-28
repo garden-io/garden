@@ -204,6 +204,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
                   module: m,
                   graph: updatedGraph,
                   filterNames,
+                  hotReloadServiceNames,
                 })
               )
             )

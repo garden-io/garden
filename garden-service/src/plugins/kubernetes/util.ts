@@ -28,6 +28,7 @@ import { HelmModule } from "./helm/config"
 import { KubernetesModule } from "./kubernetes-module/config"
 import { getChartPath, renderHelmTemplateString } from "./helm/common"
 import { HotReloadableResource } from "./hot-reload"
+import { getSystemNamespace } from "./namespace"
 
 const STATIC_LABEL_REGEX = /[0-9]/g
 export const workloadTypes = ["Deployment", "DaemonSet", "ReplicaSet", "StatefulSet"]
@@ -392,7 +393,7 @@ export function convertDeprecatedManifestVersion(manifest: KubernetesResource): 
 
 export async function getRunningPodInDeployment(deploymentName: string, provider: KubernetesProvider, log: LogEntry) {
   const api = await KubeApi.factory(log, provider)
-  const systemNamespace = provider.config.gardenSystemNamespace
+  const systemNamespace = await getSystemNamespace(provider, log)
 
   const status = await api.apps.readNamespacedDeployment(deploymentName, systemNamespace)
   const pods = await getPods(api, systemNamespace, status.spec.selector.matchLabels)

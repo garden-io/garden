@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 import { resolve } from "path"
-import { TestTask } from "../../../../src/tasks/test"
+import { TestTask, getTestTasks } from "../../../../src/tasks/test"
 import td from "testdouble"
 import { Garden } from "../../../../src/garden"
 import { dataDir, makeTestGarden } from "../../../helpers"
@@ -94,6 +94,26 @@ describe("TestTask", () => {
       const deps = await task.getDependencies()
 
       expect(deps.map((d) => d.getKey())).to.eql(["build.module-a", "deploy.service-b", "task.task-a"])
+    })
+  })
+
+  describe("getTestTasks", () => {
+    it("should not return test tasks with deploy dependencies on services deployed with hot reloading", async () => {
+      const moduleA = await graph.getModule("module-a")
+
+      const tasks = await getTestTasks({
+        garden,
+        log,
+        graph,
+        module: moduleA,
+        hotReloadServiceNames: ["service-b"],
+      })
+
+      const testTask = tasks[0]
+      const deps = await testTask.getDependencies()
+
+      expect(tasks.length).to.eql(1)
+      expect(deps.map((d) => d.getKey())).to.eql(["build.module-a", "task.task-a"])
     })
   })
 })
