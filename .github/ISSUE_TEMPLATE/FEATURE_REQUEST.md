@@ -13,7 +13,7 @@ labels: feature request
 
 ### What should the user be able to do?
 
-<!-- A clear and concise description of your use-case -->
+<!-- A clear and concise description of your use-case. -->
 
 ### Why do they want to do this? What problem does it solve?
 
@@ -25,7 +25,10 @@ labels: feature request
 
 ### How important is this feature for you/your team?
 
-- [ ] Crucial (Garden is unusable for us without it)
-- [ ] High (Not having this feature makes using Garden painful)
-- [ ] Medium (Using Garden without it is mildly inconvenient)
-- [ ] Low (Nice to have someday)
+<!-- Please pick one from the list below. -->
+
+🥀 Crucial, Garden is unusable for us without it
+
+🌵 Not having this feature makes using Garden painful
+
+🌹 It’s a nice to have, but nice things are nice 🙂
