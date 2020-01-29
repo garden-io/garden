@@ -571,8 +571,8 @@ const maxPodNamePrefixLength = maxPodNameLength - podNameHashLength - 1
  * @param moduleName the name of the module associated with the Pod
  * @param key the specific key of the task, test etc.
  */
-export function makePodName(type: string, moduleName: string, key: string) {
-  const id = `${type}-${moduleName}-${key}`
-  const hash = hasha(key, { algorithm: "sha1" })
+export function makePodName(type: string, moduleName: string, key?: string) {
+  const id = `${type}-${moduleName}${key ? "-" + key : ""}`
+  const hash = hasha(`${id}-${Math.round(new Date().getTime())}`, { algorithm: "sha1" })
   return id.slice(0, maxPodNamePrefixLength) + "-" + hash.slice(0, podNameHashLength)
 }

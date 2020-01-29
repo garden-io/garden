@@ -19,6 +19,7 @@ import {
 } from "../../../../../src/plugins/kubernetes/util"
 import { KubernetesServerResource } from "../../../../../src/plugins/kubernetes/types"
 import { V1Pod } from "@kubernetes/client-node"
+import { sleep } from "../../../../../src/util/util"
 
 describe("deduplicatePodsByLabel", () => {
   it("should return a list of pods, unique by label so that the latest pod is kept", () => {
@@ -311,8 +312,20 @@ describe("getSelectorString", () => {
 
 describe("makePodName", () => {
   it("should create a unique pod name with a hash suffix", () => {
+    const name = makePodName("test", "some-module")
+    expect(name.slice(0, -7)).to.equal("test-some-module")
+  })
+
+  it("should optionally include a secondary key", () => {
     const name = makePodName("test", "some-module", "unit")
     expect(name.slice(0, -7)).to.equal("test-some-module-unit")
+  })
+
+  it("should create different pod names at different times for the same inputs", async () => {
+    const nameA = makePodName("test", "some-module", "unit")
+    await sleep(1)
+    const nameB = makePodName("test", "some-module", "unit")
+    expect(nameA).to.not.equal(nameB)
   })
 
   it("should truncate the pod name if necessary", () => {
