@@ -1,3 +1,21 @@
+
+<a name="v0.11.2"></a>
+## [v0.11.2](https://github.com/garden-io/garden/compare/v0.11.1...v0.11.2) (2020-01-29)
+
+### Bug Fixes
+
+* **core:** make test task deps hot-reload aware ([4af27b10](https://github.com/garden-io/garden/commit/4af27b10))
+* **k8s:** hash configuration annotation ([9b6e2ad7](https://github.com/garden-io/garden/commit/9b6e2ad7))
+* **k8s:** ensure system namespace exists before using it ([e1d1c8de](https://github.com/garden-io/garden/commit/e1d1c8de))
+* **k8s:** ensure generated pod names are always unique ([493a7874](https://github.com/garden-io/garden/commit/493a7874))
+
+### Features
+
+* **core:** add project outputs and `garden get outputs` command ([475e8188](https://github.com/garden-io/garden/commit/475e8188))
+* **k8s:** add namespace parameter to helm and kubernetes modules ([b23eeaaf](https://github.com/garden-io/garden/commit/b23eeaaf))
+* **k8s:** add test and task support for kubernetes module type ([#1530](https://github.com/garden-io/garden/issues/1530)) ([469453e7](https://github.com/garden-io/garden/commit/469453e7))
+
+
 <a name="v0.11.1"></a>
 ## [v0.11.1](https://github.com/garden-io/garden/compare/v0.11.0...v0.11.1) (2020-01-24)
 
@@ -34,8 +52,10 @@
 
 * allow to specify release to install ([699fd379](https://github.com/garden-io/garden/commit/699fd379))
 * switch to Node.js 12 ([4c51aaef](https://github.com/garden-io/garden/commit/4c51aaef))
+* **cli:** use terminal-kit for better terminal compatibility ([4030881a](https://github.com/garden-io/garden/commit/4030881a))
 * **core:** detect rsync and ensure the version is recent enough ([f3df17dd](https://github.com/garden-io/garden/commit/f3df17dd))
 * **dashboard:** default to port 9777 when available ([add9bc63](https://github.com/garden-io/garden/commit/add9bc63))
+
 
 <a name="v0.11.0"></a>
 ## [v0.11.0](https://github.com/garden-io/garden/compare/v0.10.16...v0.11.0) (2020-01-13)
