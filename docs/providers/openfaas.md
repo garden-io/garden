@@ -11,7 +11,7 @@ the project namespace. Each `openfaas` module maps to a single OpenFaaS function
 See the [reference](#reference) below for configuration options for `faas-netes`, and the
 [module type docs](../module-types/openfaas.md) for how to configure the individual functions.
 
-Also see the [openfaas example project](https://github.com/garden-io/garden/tree/master/examples/openfaas) for a
+Also see the [openfaas example project](https://github.com/garden-io/garden/tree/v0.11.2/examples/openfaas) for a
 simple usage example.
 
 ## Reference
