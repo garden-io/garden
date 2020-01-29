@@ -327,7 +327,7 @@ async function runKaniko({ provider, log, module, args, outputStream }: RunKanik
   const api = await KubeApi.factory(log, provider)
   const systemNamespace = await getSystemNamespace(provider, log)
 
-  const podName = makePodName("kaniko", module.name, Math.round(new Date().getTime()).toString())
+  const podName = makePodName("kaniko", module.name)
   const registryHostname = getRegistryHostname(provider.config)
   const k8sSystemVars = getKubernetesSystemVariables(provider.config)
   const syncDataVolumeName = k8sSystemVars["sync-volume-name"]

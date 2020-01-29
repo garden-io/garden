@@ -123,7 +123,7 @@ export async function runAndCopy({
   const api = await KubeApi.factory(log, provider)
 
   if (!podName) {
-    podName = makePodName("run", module.name, Math.round(new Date().getTime()).toString())
+    podName = makePodName("run", module.name)
   }
 
   const runner = new PodRunner({
@@ -531,7 +531,7 @@ export class PodRunner extends PodRunnerParams {
 
     return [
       "run",
-      this.podName || makePodName("run", this.module.name, Math.round(new Date().getTime()).toString()),
+      this.podName || makePodName("run", this.module.name),
       `--image=${this.image}`,
       "--restart=Never",
       // Need to attach to get the log output and exit code.
