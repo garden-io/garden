@@ -7,17 +7,22 @@
  */
 
 import { GetServiceLogsParams } from "../../../types/plugin/service/getServiceLogs"
-import { getAppNamespace } from "../namespace"
 import { getAllLogs } from "../logs"
 import { HelmModule } from "./config"
 import { KubernetesPluginContext } from "../config"
 import { getChartResources } from "./common"
+import { getModuleNamespace } from "../namespace"
 
 export async function getServiceLogs(params: GetServiceLogsParams<HelmModule>) {
   const { ctx, module, log } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
-  const namespace = await getAppNamespace(k8sCtx, log, provider)
+  const namespace = await getModuleNamespace({
+    ctx: k8sCtx,
+    log,
+    module,
+    provider: k8sCtx.provider,
+  })
 
   const resources = await getChartResources(k8sCtx, module, false, log)
 

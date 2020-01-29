@@ -49,6 +49,27 @@ describe("testKubernetesModule", () => {
     expect(result!.output.log.trim()).to.equal("ok")
   })
 
+  it("should run a test in different namespace, if configured", async () => {
+    const module = await graph.getModule("with-namespace")
+
+    const testTask = await TestTask.factory({
+      garden,
+      graph,
+      module,
+      testConfig: findByName(module.testConfigs, "with-namespace-test")!,
+      log: garden.log,
+      force: true,
+      forceBuild: false,
+    })
+
+    const key = testTask.getKey()
+    const { [key]: result } = await garden.processTasks([testTask], { throwOnError: true })
+
+    expect(result).to.exist
+    expect(result).to.have.property("output")
+    expect(result!.output.log.trim()).to.equal(module.spec.namespace)
+  })
+
   it("should fail if an error occurs, but store the result", async () => {
     const module = await graph.getModule("artifacts")
 

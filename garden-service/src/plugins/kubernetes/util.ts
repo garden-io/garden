@@ -494,7 +494,7 @@ export async function findServiceResource({
     if (module.type === "helm" && targetName.includes("{{")) {
       // need to resolve the template string
       const chartPath = await getChartPath(<HelmModule>module)
-      targetName = await renderHelmTemplateString(ctx, log, module, chartPath, targetName)
+      targetName = await renderHelmTemplateString(ctx, log, module as HelmModule, chartPath, targetName)
     }
 
     target = find(<HotReloadableResource[]>manifests, (o) => o.kind === targetKind && o.metadata.name === targetName)!

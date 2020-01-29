@@ -9,7 +9,6 @@
 import { uniq } from "lodash"
 
 import { KubernetesModule, configureKubernetesModule, KubernetesService } from "./config"
-import { getNamespace, getAppNamespace } from "../namespace"
 import { KubernetesPluginContext } from "../config"
 import { KubernetesServerResource } from "../types"
 import { ServiceStatus } from "../../../types/service"
@@ -30,6 +29,7 @@ import { testKubernetesModule } from "./test"
 import { runKubernetesTask } from "./run"
 import { getTestResult } from "../test-results"
 import { getTaskResult } from "../task-results"
+import { getModuleNamespace } from "../namespace"
 
 export const kubernetesHandlers: Partial<ModuleAndRuntimeActionHandlers<KubernetesModule>> = {
   build,
@@ -63,9 +63,10 @@ async function getServiceStatus({
   log,
 }: GetServiceStatusParams<KubernetesModule>): Promise<KubernetesServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespace = await getNamespace({
+  const namespace = await getModuleNamespace({
+    ctx: k8sCtx,
     log,
-    projectName: k8sCtx.projectName,
+    module,
     provider: k8sCtx.provider,
     skipCreate: true,
   })
@@ -90,11 +91,11 @@ async function deployService(params: DeployServiceParams<KubernetesModule>): Pro
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, k8sCtx.provider)
 
-  const namespace = await getNamespace({
+  const namespace = await getModuleNamespace({
+    ctx: k8sCtx,
     log,
-    projectName: k8sCtx.projectName,
+    module,
     provider: k8sCtx.provider,
-    skipCreate: true,
   })
 
   const manifests = await getManifests(api, log, module, namespace)
@@ -103,7 +104,7 @@ async function deployService(params: DeployServiceParams<KubernetesModule>): Pro
   await apply({ log, provider: k8sCtx.provider, manifests, pruneSelector })
 
   await waitForResources({
-    ctx: k8sCtx,
+    namespace,
     provider: k8sCtx.provider,
     serviceName: service.name,
     resources: manifests,
@@ -121,7 +122,12 @@ async function deployService(params: DeployServiceParams<KubernetesModule>): Pro
 async function deleteService(params: DeleteServiceParams): Promise<KubernetesServiceStatus> {
   const { ctx, log, service, module } = params
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
+  const namespace = await getModuleNamespace({
+    ctx: k8sCtx,
+    log,
+    module,
+    provider: k8sCtx.provider,
+  })
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, provider)
   const manifests = await getManifests(api, log, module, namespace)
@@ -142,7 +148,12 @@ async function getServiceLogs(params: GetServiceLogsParams<KubernetesModule>) {
   const { ctx, log, module } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
-  const namespace = await getAppNamespace(k8sCtx, log, provider)
+  const namespace = await getModuleNamespace({
+    ctx: k8sCtx,
+    log,
+    module,
+    provider: k8sCtx.provider,
+  })
   const api = await KubeApi.factory(log, provider)
   const manifests = await getManifests(api, log, module, namespace)
 

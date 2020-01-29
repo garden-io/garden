@@ -240,6 +240,7 @@ async function getTillerManifests(
   const tillerManifests = await helm({
     ctx,
     log,
+    namespace,
     args: ["init", "--service-account", serviceAccountName, "--dry-run", "--debug"],
     version: 2,
   })

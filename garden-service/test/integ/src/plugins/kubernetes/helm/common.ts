@@ -41,6 +41,18 @@ export async function getHelmTestGarden() {
   return garden
 }
 
+export async function buildHelmModules(garden: TestGarden, graph: ConfigGraph) {
+  const modules = await graph.getModules()
+  const tasks = modules.map((module) => new BuildTask({ garden, log: garden.log, module, force: false, _guard: true }))
+  const results = await garden.processTasks(tasks)
+
+  const err = first(Object.values(results).map((r) => r && r.error))
+
+  if (err) {
+    throw err
+  }
+}
+
 describe("Helm common functions", () => {
   let garden: TestGarden
   let graph: ConfigGraph
@@ -53,24 +65,12 @@ describe("Helm common functions", () => {
     ctx = garden.getPluginContext(provider)
     log = garden.log
     graph = await garden.getConfigGraph(garden.log)
-    await buildModules()
+    await buildHelmModules(garden, graph)
   })
 
   beforeEach(async () => {
     graph = await garden.getConfigGraph(garden.log)
   })
-
-  async function buildModules() {
-    const modules = await graph.getModules()
-    const tasks = modules.map((module) => new BuildTask({ garden, log, module, force: false, _guard: true }))
-    const results = await garden.processTasks(tasks)
-
-    const err = first(Object.values(results).map((r) => r && r.error))
-
-    if (err) {
-      throw err
-    }
-  }
 
   describe("containsSource", () => {
     it("should return true if the specified module contains chart sources", async () => {

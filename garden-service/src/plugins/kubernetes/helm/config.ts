@@ -32,6 +32,7 @@ import {
   ServiceResourceSpec,
   KubernetesTestSpec,
   KubernetesTaskSpec,
+  namespaceSchema,
 } from "../config"
 
 export const defaultHelmTimeout = 300
@@ -47,6 +48,7 @@ export interface HelmServiceSpec {
   chart?: string
   chartPath: string
   dependencies: string[]
+  namespace?: string
   releaseName?: string
   repo?: string
   serviceResource?: ServiceResourceSpec
@@ -151,6 +153,7 @@ export const helmModuleSpecSchema = joi.object().keys({
   dependencies: joiArray(joiIdentifier()).description(
     "List of names of services that should be deployed before this chart."
   ),
+  namespace: namespaceSchema,
   releaseName: joiIdentifier().description(
     "Optionally override the release name used when installing (defaults to the module name)."
   ),

@@ -15,7 +15,7 @@ import { findServiceResource, getServiceResourceSpec } from "../util"
 import { syncToService } from "../hot-reload"
 import { KubernetesPluginContext } from "../config"
 import { HotReloadServiceParams, HotReloadServiceResult } from "../../../types/plugin/service/hotReloadService"
-import { getAppNamespace } from "../namespace"
+import { getModuleNamespace } from "../namespace"
 
 /**
  * The hot reload action handler for Helm charts.
@@ -42,7 +42,12 @@ export async function hotReloadHelmChart({
   })
 
   const k8sCtx = ctx as KubernetesPluginContext
-  const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
+  const namespace = await getModuleNamespace({
+    ctx: k8sCtx,
+    log,
+    module,
+    provider: k8sCtx.provider,
+  })
 
   await syncToService({
     ctx: k8sCtx,

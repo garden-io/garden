@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { getAppNamespace } from "../namespace"
 import { waitForResources } from "../status/status"
 import { helm } from "./helm-cli"
 import { HelmModule } from "./config"
@@ -21,6 +20,7 @@ import { DeployServiceParams } from "../../../types/plugin/service/deployService
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
 import { getForwardablePorts, killPortForwards } from "../port-forward"
 import { findServiceResource, getServiceResourceSpec } from "../util"
+import { getModuleNamespace } from "../namespace"
 
 export async function deployHelmService({
   ctx,
@@ -46,7 +46,14 @@ export async function deployHelmService({
   const provider = k8sCtx.provider
 
   const chartPath = await getChartPath(module)
-  const namespace = await getAppNamespace(k8sCtx, log, provider)
+
+  const namespace = await getModuleNamespace({
+    ctx: k8sCtx,
+    log,
+    module,
+    provider: k8sCtx.provider,
+  })
+
   const releaseName = getReleaseName(module)
   const releaseStatus = await getReleaseStatus(k8sCtx, module, releaseName, log, hotReload)
 
@@ -96,7 +103,7 @@ export async function deployHelmService({
   // FIXME: we should get these objects from the cluster, and not from the local `helm template` command, because
   // they may be legitimately inconsistent.
   const remoteResources = await waitForResources({
-    ctx,
+    namespace,
     provider,
     serviceName: service.name,
     resources: manifests,
@@ -123,12 +130,18 @@ export async function deleteService(params: DeleteServiceParams): Promise<HelmSe
   const provider = k8sCtx.provider
   const releaseName = getReleaseName(module)
 
-  const resources = await getDeployedResources(k8sCtx, releaseName, log)
+  const namespace = await getModuleNamespace({
+    ctx: k8sCtx,
+    log,
+    module,
+    provider: k8sCtx.provider,
+  })
 
-  await helm({ ctx: k8sCtx, log, args: ["uninstall", releaseName] })
+  const resources = await getDeployedResources({ ctx: k8sCtx, module, releaseName, log })
+
+  await helm({ ctx: k8sCtx, log, namespace, args: ["uninstall", releaseName] })
 
   // Wait for resources to terminate
-  const namespace = await getAppNamespace(k8sCtx, log, provider)
   await deleteResources({ log, provider, resources, namespace })
 
   log.setSuccess("Service deleted")

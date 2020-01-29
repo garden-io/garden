@@ -13,7 +13,7 @@ import { runAndCopy } from "../run"
 import { KubernetesPluginContext } from "../config"
 import { TestModuleParams } from "../../../types/plugin/module/testModule"
 import { TestResult } from "../../../types/plugin/module/getTestResult"
-import { getNamespace } from "../namespace"
+import { getModuleNamespace } from "../namespace"
 import { KubeApi } from "../api"
 import { getManifests } from "./common"
 import { getServiceResourceSpec, findServiceResource, getResourceContainer, makePodName } from "../util"
@@ -21,11 +21,11 @@ import { getServiceResourceSpec, findServiceResource, getResourceContainer, make
 export async function testKubernetesModule(params: TestModuleParams<KubernetesModule>): Promise<TestResult> {
   const { ctx, log, module, testConfig, testVersion } = params
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespace = await getNamespace({
+  const namespace = await getModuleNamespace({
+    ctx: k8sCtx,
     log,
-    projectName: k8sCtx.projectName,
+    module,
     provider: k8sCtx.provider,
-    skipCreate: true,
   })
   const api = await KubeApi.factory(log, k8sCtx.provider)
 
@@ -48,6 +48,7 @@ export async function testKubernetesModule(params: TestModuleParams<KubernetesMo
     artifacts: testConfig.spec.artifacts,
     envVars: testConfig.spec.env,
     image,
+    namespace,
     podName: makePodName("test", module.name, testName),
     description: `Test '${testName}' in container module '${module.name}'`,
     timeout,

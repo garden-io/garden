@@ -9,10 +9,10 @@
 import { BinaryCmd } from "../../../util/ext-tools"
 import { LogEntry } from "../../../logger/log-entry"
 import { KubernetesPluginContext } from "../config"
-import { getAppNamespace } from "../namespace"
 import { join } from "path"
 import { GARDEN_GLOBAL_PATH } from "../../../constants"
 import { mkdirp } from "fs-extra"
+import { StringMap } from "../../../config/common"
 
 const helm2 = new BinaryCmd({
   name: "helm2",
@@ -119,17 +119,7 @@ export async function helm({
   version?: 2 | 3
   env?: { [key: string]: string }
 }) {
-  if (!namespace) {
-    namespace = await getAppNamespace(ctx, log, ctx.provider)
-  }
-
   const opts = ["--kube-context", ctx.provider.config.context]
-
-  if (version === 2) {
-    opts.push("--tiller-namespace", namespace)
-  } else {
-    opts.push("--namespace", namespace)
-  }
 
   if (ctx.provider.config.kubeconfig) {
     opts.push("--kubeconfig", ctx.provider.config.kubeconfig)
@@ -140,15 +130,25 @@ export async function helm({
 
   const cmd = version === 2 ? helm2 : helm3
 
+  const envVars: StringMap = {
+    ...process.env,
+    ...env,
+    HELM_HOME: helmHome,
+  }
+
+  if (namespace) {
+    if (version === 2) {
+      opts.push("--tiller-namespace", namespace)
+      envVars.TILLER_NAMESPACE = namespace
+    } else {
+      opts.push("--namespace", namespace)
+    }
+  }
+
   return cmd.stdout({
     log,
     args: [...opts, ...args],
-    env: {
-      ...process.env,
-      ...env,
-      HELM_HOME: helmHome,
-      TILLER_NAMESPACE: namespace,
-    },
+    env: envVars,
     // Helm itself will time out pretty reliably, so we shouldn't time out early on our side.
     timeout: 3600,
   })

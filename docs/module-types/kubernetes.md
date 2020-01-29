@@ -129,6 +129,9 @@ manifests:
 # POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests.
 files: []
 
+# Deploy to a different namespace than the default one configured in the provider.
+namespace:
+
 # The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module (not to be
 # confused with Kubernetes Service resources). Because a `kubernetes` can contain any number of Kubernetes resources,
 # this needs to be specified for certain Garden features and commands to work.
@@ -512,6 +515,14 @@ POSIX-style paths to YAML files to load manifests from. Each can contain multipl
 | Type               | Default | Required |
 | ------------------ | ------- | -------- |
 | `array[posixPath]` | `[]`    | No       |
+
+#### `namespace`
+
+Deploy to a different namespace than the default one configured in the provider.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 #### `serviceResource`
 

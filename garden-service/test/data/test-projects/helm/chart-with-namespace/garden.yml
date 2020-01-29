@@ -1,0 +1,19 @@
+kind: Module
+description: The API backend for the voting UI
+type: helm
+name: chart-with-namespace
+namespace: ${providers.local-kubernetes.outputs.app-namespace}-extra
+serviceResource:
+  kind: Deployment
+  containerModule: api-image
+values:
+  image:
+    tag: ${modules.api-image.version}
+  ingress:
+    enabled: false
+tasks:
+  - name: chart-with-namespace-task
+    command: [sh, -c, "echo $POD_NAMESPACE"]
+tests:
+  - name: echo-test
+    command: [sh, -c, "echo $POD_NAMESPACE"]

@@ -238,7 +238,7 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
 
   // -> Wait for registry to be up again
   await waitForResources({
-    ctx,
+    namespace: systemNamespace,
     provider,
     log,
     serviceName: "docker-registry",
@@ -276,7 +276,7 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
 
   // -> Wait for registry to be up again
   await waitForResources({
-    ctx,
+    namespace: systemNamespace,
     provider,
     log,
     serviceName: "docker-registry",

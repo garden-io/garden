@@ -26,7 +26,6 @@ import { KubernetesServerResource } from "./types"
 import { ServiceState } from "../../types/service"
 import { RunModuleParams } from "../../types/plugin/module/runModule"
 import { ContainerEnvVars } from "../container/config"
-import { getAppNamespace } from "./namespace"
 import { prepareEnvVars, makePodName } from "./util"
 import { deline } from "../../util/string"
 import { ArtifactSpec } from "../../config/validation"
@@ -51,6 +50,7 @@ export async function runAndCopy({
   description,
   stdout,
   stderr,
+  namespace,
 }: RunModuleParams<Module> & {
   image: string
   container?: V1Container
@@ -61,9 +61,9 @@ export async function runAndCopy({
   description?: string
   stdout?: Writable
   stderr?: Writable
+  namespace: string
 }): Promise<RunResult> {
   const provider = <KubernetesProvider>ctx.provider
-  const namespace = await getAppNamespace(ctx, log, provider)
 
   // Prepare environment variables
   envVars = { ...runtimeContext.envVars, ...envVars }

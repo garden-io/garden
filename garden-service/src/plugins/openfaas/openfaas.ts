@@ -301,7 +301,7 @@ async function deployService(params: DeployServiceParams<OpenFaasModule>): Promi
   const resources = await getResources(api, service, namespace)
 
   await waitForResources({
-    ctx,
+    namespace,
     provider: k8sProvider,
     serviceName: service.name,
     log,

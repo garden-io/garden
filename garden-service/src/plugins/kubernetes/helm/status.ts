@@ -16,6 +16,7 @@ import { KubernetesPluginContext } from "../config"
 import { getForwardablePorts } from "../port-forward"
 import { KubernetesServerResource } from "../types"
 import { safeLoadAll } from "js-yaml"
+import { getModuleNamespace } from "../namespace"
 
 const helmStatusMap: { [status: string]: ServiceState } = {
   unknown: "unknown",
@@ -54,7 +55,7 @@ export async function getServiceStatus({
   let forwardablePorts: ForwardablePort[] = []
 
   if (state !== "missing") {
-    const deployedResources = await getDeployedResources(k8sCtx, releaseName, log)
+    const deployedResources = await getDeployedResources({ ctx: k8sCtx, module, releaseName, log })
     forwardablePorts = getForwardablePorts(deployedResources)
   }
 
@@ -66,11 +67,29 @@ export async function getServiceStatus({
   }
 }
 
-export async function getDeployedResources(ctx: KubernetesPluginContext, releaseName: string, log: LogEntry) {
+export async function getDeployedResources({
+  ctx,
+  releaseName,
+  log,
+  module,
+}: {
+  ctx: KubernetesPluginContext
+  releaseName: string
+  log: LogEntry
+  module: HelmModule
+}) {
+  const namespace = await getModuleNamespace({
+    ctx,
+    log,
+    module,
+    provider: ctx.provider,
+  })
+
   return safeLoadAll(
     await helm({
       ctx,
       log,
+      namespace,
       args: ["get", "manifest", releaseName],
     })
   )
@@ -85,7 +104,14 @@ export async function getReleaseStatus(
 ): Promise<ServiceStatus> {
   try {
     log.silly(`Getting the release status for ${releaseName}`)
-    const res = JSON.parse(await helm({ ctx, log, args: ["status", releaseName, "--output", "json"] }))
+    const namespace = await getModuleNamespace({
+      ctx,
+      log,
+      module,
+      provider: ctx.provider,
+    })
+
+    const res = JSON.parse(await helm({ ctx, log, namespace, args: ["status", releaseName, "--output", "json"] }))
 
     let state = helmStatusMap[res.info.status] || "unknown"
     let values = {}
@@ -96,6 +122,7 @@ export async function getReleaseStatus(
         await helm({
           ctx,
           log,
+          namespace,
           args: ["get", "values", releaseName, "--output", "json"],
         })
       )

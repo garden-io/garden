@@ -68,7 +68,7 @@ export async function deployContainerServiceRolling(
   await apply({ log, provider, manifests, namespace, pruneSelector })
 
   await waitForResources({
-    ctx: k8sCtx,
+    namespace,
     provider: k8sCtx.provider,
     serviceName: service.name,
     resources: manifests,
@@ -109,7 +109,7 @@ export async function deployContainerServiceBlueGreen(
     // Just apply all the resources for the Garden service
     await apply({ log, provider, manifests, namespace })
     await waitForResources({
-      ctx: k8sCtx,
+      namespace,
       provider: k8sCtx.provider,
       serviceName: service.name,
       resources: manifests,
@@ -127,7 +127,7 @@ export async function deployContainerServiceBlueGreen(
     // Apply new Deployment manifest (deploy the Green version)
     await apply({ log, provider, manifests: filteredManifests, namespace })
     await waitForResources({
-      ctx: k8sCtx,
+      namespace,
       provider: k8sCtx.provider,
       serviceName: `Deploy ${service.name}`,
       resources: filteredManifests,
@@ -165,7 +165,7 @@ export async function deployContainerServiceBlueGreen(
     }
 
     await waitForResources({
-      ctx: k8sCtx,
+      namespace,
       provider: k8sCtx.provider,
       serviceName: `Update service`,
       resources: [serviceManifest],

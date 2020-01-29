@@ -124,6 +124,9 @@ chartPath: .
 # List of names of services that should be deployed before this chart.
 dependencies: []
 
+# Deploy to a different namespace than the default one configured in the provider.
+namespace:
+
 # Optionally override the release name used when installing (defaults to the module name).
 releaseName:
 
@@ -571,6 +574,14 @@ List of names of services that should be deployed before this chart.
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
 | `array[string]` | `[]`    | No       |
+
+#### `namespace`
+
+Deploy to a different namespace than the default one configured in the provider.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 #### `releaseName`
 

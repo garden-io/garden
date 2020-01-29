@@ -18,7 +18,7 @@ import { apply } from "json-merge-patch"
 import { getHelmTestGarden } from "./common"
 import { defaultHelmTimeout } from "../../../../../../src/plugins/kubernetes/helm/config"
 
-describe("validateHelmModule", () => {
+describe("configureHelmModule", () => {
   let garden: TestGarden
   let ctx: PluginContext
   let moduleConfigs: { [key: string]: ModuleConfig }

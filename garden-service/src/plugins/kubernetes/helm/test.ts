@@ -15,6 +15,7 @@ import { KubernetesPluginContext } from "../config"
 import { TestModuleParams } from "../../../types/plugin/module/testModule"
 import { TestResult } from "../../../types/plugin/module/getTestResult"
 import { getServiceResourceSpec, findServiceResource, getResourceContainer, makePodName } from "../util"
+import { getModuleNamespace } from "../namespace"
 
 export async function testHelmModule(params: TestModuleParams<HelmModule>): Promise<TestResult> {
   const { ctx, log, module, testConfig, testVersion } = params
@@ -26,6 +27,12 @@ export async function testHelmModule(params: TestModuleParams<HelmModule>): Prom
   const resourceSpec = testConfig.spec.resource || getServiceResourceSpec(module, baseModule)
   const target = await findServiceResource({ ctx: k8sCtx, log, manifests, module, baseModule, resourceSpec })
   const container = getResourceContainer(target, resourceSpec.containerName)
+  const namespace = await getModuleNamespace({
+    ctx: k8sCtx,
+    log,
+    module,
+    provider: k8sCtx.provider,
+  })
 
   const testName = testConfig.name
   const { command, args } = testConfig.spec
@@ -40,6 +47,7 @@ export async function testHelmModule(params: TestModuleParams<HelmModule>): Prom
     artifacts: testConfig.spec.artifacts,
     envVars: testConfig.spec.env,
     image,
+    namespace,
     podName: makePodName("test", module.name, testName),
     description: `Test '${testName}' in container module '${module.name}'`,
     timeout,
