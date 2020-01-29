@@ -286,7 +286,7 @@ export const projectSchema = joi
       .unique("name")
       .description(
         dedent`
-        A list of output values that the project should export. These are exported by the \`garden outputs\` command,
+        A list of output values that the project should export. These are exported by the \`garden get outputs\` command,
         as well as when referencing a project as a sub-project within another project.
 
         You may use any template strings to specify the values, including references to provider outputs, module
