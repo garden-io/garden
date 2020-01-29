@@ -649,3 +649,7 @@ export const kubernetesTestSchema = baseTestSpecSchema
     ),
   })
   .description("The test suite definitions for this module.")
+
+export const namespaceSchema = joiIdentifier()
+  .max(63) // Max length of a DNS label, and by extension max k8s namespace length
+  .description("Deploy to a different namespace than the default one configured in the provider.")

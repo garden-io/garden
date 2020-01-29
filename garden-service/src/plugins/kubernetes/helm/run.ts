@@ -7,7 +7,6 @@
  */
 
 import { HelmModule } from "./config"
-import { getAppNamespace } from "../namespace"
 import { PodRunner, runAndCopy } from "../run"
 import { getChartResources, getBaseModule } from "./common"
 import { findServiceResource, getResourceContainer, getServiceResourceSpec, makePodName } from "../util"
@@ -21,6 +20,7 @@ import { uniqByName } from "../../../util/util"
 import { prepareEnvVars } from "../util"
 import { V1PodSpec } from "@kubernetes/client-node"
 import { KubeApi } from "../api"
+import { getModuleNamespace } from "../namespace"
 
 export async function runHelmModule({
   ctx,
@@ -35,7 +35,12 @@ export async function runHelmModule({
 }: RunModuleParams<HelmModule>): Promise<RunResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
-  const namespace = await getAppNamespace(k8sCtx, log, provider)
+  const namespace = await getModuleNamespace({
+    ctx: k8sCtx,
+    log,
+    module,
+    provider: k8sCtx.provider,
+  })
   const baseModule = getBaseModule(module)
   const resourceSpec = getServiceResourceSpec(module, baseModule)
 
@@ -111,6 +116,12 @@ export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<Ru
     resourceSpec,
   })
   const container = getResourceContainer(target, resourceSpec.containerName)
+  const namespace = await getModuleNamespace({
+    ctx: k8sCtx,
+    log,
+    module,
+    provider: k8sCtx.provider,
+  })
 
   const res = await runAndCopy({
     ...params,
@@ -120,6 +131,7 @@ export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<Ru
     artifacts: task.spec.artifacts,
     envVars: task.spec.env,
     image: container.image,
+    namespace,
     podName: makePodName("task", module.name, task.name),
     description: `Task '${task.name}' in container module '${module.name}'`,
     timeout,

@@ -1,0 +1,41 @@
+kind: Module
+type: kubernetes
+name: with-namespace
+description: Simple Kubernetes module with namespace set
+namespace: ${providers.local-kubernetes.outputs.app-namespace}-extra
+manifests:
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: busybox-deployment
+      labels:
+        app: busybox
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: busybox
+      template:
+        metadata:
+          labels:
+            app: busybox
+        spec:
+          containers:
+            - name: busybox
+              image: busybox:1.31.1
+              ports:
+                - containerPort: 80
+              env:
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+serviceResource:
+  kind: Deployment
+  name: busybox-deployment
+tests:
+  - name: with-namespace-test
+    command: [sh, -c, "echo $POD_NAMESPACE"]
+tasks:
+  - name: with-namespace-task
+    command: [sh, -c, "echo $POD_NAMESPACE"]

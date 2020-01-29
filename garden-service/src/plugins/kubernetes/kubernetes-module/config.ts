@@ -22,6 +22,7 @@ import {
   ServiceResourceSpec,
   KubernetesTestSpec,
   KubernetesTaskSpec,
+  namespaceSchema,
 } from "../config"
 
 // A Kubernetes Module always maps to a single Service
@@ -33,6 +34,7 @@ export type KubernetesModuleConfig = KubernetesModule["_ConfigType"]
 export interface KubernetesServiceSpec {
   dependencies: string[]
   files: string[]
+  namespace?: string
   manifests: KubernetesResource[]
   serviceResource?: ServiceResourceSpec
   tasks: KubernetesTaskSpec[]
@@ -80,6 +82,7 @@ export const kubernetesModuleSpecSchema = joi.object().keys({
     If neither \`include\` nor \`exclude\` is set, Garden automatically sets \`include\` to equal the
     \`files\` directive so that only the Kubernetes manifests get included.
   `),
+  namespace: namespaceSchema,
   serviceResource: serviceResourceSchema.description(
     deline`The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module
       (not to be confused with Kubernetes Service resources).

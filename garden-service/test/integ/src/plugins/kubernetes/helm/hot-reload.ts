@@ -12,7 +12,7 @@ import { TestGarden, expectError } from "../../../../../helpers"
 import { getHotReloadSpec, getHotReloadContainerName } from "../../../../../../src/plugins/kubernetes/helm/hot-reload"
 import { deline } from "../../../../../../src/util/string"
 import { ConfigGraph } from "../../../../../../src/config-graph"
-import { getHelmTestGarden } from "./common"
+import { getHelmTestGarden, buildHelmModules } from "./common"
 import { getChartResources } from "../../../../../../src/plugins/kubernetes/helm/common"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
@@ -25,6 +25,8 @@ describe("getHotReloadSpec", () => {
 
   before(async () => {
     garden = await getHelmTestGarden()
+    graph = await garden.getConfigGraph(garden.log)
+    await buildHelmModules(garden, graph)
   })
 
   beforeEach(async () => {

@@ -15,19 +15,12 @@ import { ConfigurationError } from "../../../exceptions"
 import { deline } from "../../../util/string"
 import { dumpYaml } from "../../../util/util"
 import { LogEntry } from "../../../logger/log-entry"
-import { getNamespace } from "../namespace"
 import { apply as jsonMerge } from "json-merge-patch"
 import { KubernetesPluginContext } from "../config"
 import { BuildModuleParams, BuildResult } from "../../../types/plugin/module/build"
 
 export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<HelmModule>): Promise<BuildResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespace = await getNamespace({
-    log,
-    projectName: k8sCtx.projectName,
-    provider: k8sCtx.provider,
-    skipCreate: true,
-  })
   const baseModule = getBaseModule(module)
 
   if (!baseModule && !(await containsBuildSource(module))) {
@@ -40,20 +33,19 @@ export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<He
     }
     log.debug("Fetching chart...")
     try {
-      await fetchChart(k8sCtx, namespace, log, module)
+      await fetchChart(k8sCtx, log, module)
     } catch {
       // Update the local helm repos and retry
       log.debug("Updating Helm repos...")
       // The stable repo is no longer added by default
       await helm({
         ctx: k8sCtx,
-        namespace,
         log,
         args: ["repo", "add", "stable", "https://kubernetes-charts.storage.googleapis.com/"],
       })
-      await helm({ ctx: k8sCtx, namespace, log, args: ["repo", "update"] })
+      await helm({ ctx: k8sCtx, log, args: ["repo", "update"] })
       log.debug("Fetching chart (after updating)...")
-      await fetchChart(k8sCtx, namespace, log, module)
+      await fetchChart(k8sCtx, log, module)
     }
   }
 
@@ -83,7 +75,7 @@ export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<He
   return { fresh: true }
 }
 
-async function fetchChart(ctx: KubernetesPluginContext, namespace: string, log: LogEntry, module: HelmModule) {
+async function fetchChart(ctx: KubernetesPluginContext, log: LogEntry, module: HelmModule) {
   const buildPath = module.buildPath
 
   const fetchArgs = ["fetch", module.spec.chart!, "--destination", buildPath, "--untar"]
@@ -93,5 +85,5 @@ async function fetchChart(ctx: KubernetesPluginContext, namespace: string, log: 
   if (module.spec.repo) {
     fetchArgs.push("--repo", module.spec.repo)
   }
-  await helm({ ctx, namespace, log, args: [...fetchArgs] })
+  await helm({ ctx, log, args: [...fetchArgs] })
 }

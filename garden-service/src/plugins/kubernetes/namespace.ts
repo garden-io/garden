@@ -19,6 +19,8 @@ import { kubectl, KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { LogEntry } from "../../logger/log-entry"
 import { gardenAnnotationKey } from "../../util/string"
 import dedent from "dedent"
+import { HelmModule } from "./helm/config"
+import { KubernetesModule } from "./kubernetes-module/config"
 
 const GARDEN_VERSION = getPackageVersion()
 type CreateNamespaceStatus = "pending" | "created"
@@ -61,20 +63,27 @@ export async function createNamespace(api: KubeApi, namespace: string) {
 
 interface GetNamespaceParams {
   log: LogEntry
+  override?: string
   projectName: string
   provider: KubernetesProvider
   suffix?: string
   skipCreate?: boolean
 }
 
+/**
+ * Resolves a namespace name given project context, provider config, and a (usually undefined) override, and then
+ * ensures it exists in the target cluster (unless skipCreate=true).
+ */
+// TODO: this feels convoluted (=a lot of parameters per line of function code), so let's consider refactoring
 export async function getNamespace({
-  projectName,
   log,
+  override,
+  projectName,
   provider,
   suffix,
   skipCreate,
 }: GetNamespaceParams): Promise<string> {
-  let namespace = provider.config.namespace || projectName
+  let namespace = override || provider.config.namespace || projectName
 
   if (suffix) {
     namespace = `${namespace}--${suffix}`
@@ -181,4 +190,26 @@ export async function deleteNamespaces(namespaces: string[], api: KubeApi, log?:
       })
     }
   }
+}
+
+export async function getModuleNamespace({
+  ctx,
+  log,
+  module,
+  provider,
+  skipCreate,
+}: {
+  ctx: KubernetesPluginContext
+  log: LogEntry
+  module: HelmModule | KubernetesModule
+  provider: KubernetesProvider
+  skipCreate?: boolean
+}) {
+  return getNamespace({
+    log,
+    override: module.spec.namespace,
+    projectName: ctx.projectName,
+    provider,
+    skipCreate,
+  })
 }

@@ -48,6 +48,27 @@ describe("runKubernetesTask", () => {
     expect(result!.output.log.trim()).to.equal("ok")
   })
 
+  it("should run a task in a different namespace, if configured", async () => {
+    const task = await graph.getTask("with-namespace-task")
+
+    const testTask = new TaskTask({
+      garden,
+      graph,
+      task,
+      log: garden.log,
+      force: true,
+      forceBuild: false,
+      version: task.module.version,
+    })
+
+    const key = testTask.getKey()
+    const { [key]: result } = await garden.processTasks([testTask], { throwOnError: true })
+
+    expect(result).to.exist
+    expect(result).to.have.property("output")
+    expect(result!.output.log.trim()).to.equal(task.module.spec.namespace)
+  })
+
   it("should fail if an error occurs, but store the result", async () => {
     const task = await graph.getTask("echo-task")
     task.config.spec.command = ["bork"] // this will fail

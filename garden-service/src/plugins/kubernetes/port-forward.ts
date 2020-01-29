@@ -169,11 +169,14 @@ export async function getPortForward({
 export async function getPortForwardHandler({
   ctx,
   log,
+  namespace,
   service,
   targetPort,
-}: GetPortForwardParams): Promise<GetPortForwardResult> {
-  const provider = ctx.provider as KubernetesProvider
-  const namespace = await getAppNamespace(ctx, log, provider)
+}: GetPortForwardParams & { namespace?: string }): Promise<GetPortForwardResult> {
+  if (!namespace) {
+    const provider = ctx.provider as KubernetesProvider
+    namespace = await getAppNamespace(ctx, log, provider)
+  }
   const targetResource = getTargetResource(service)
 
   const fwd = await getPortForward({ ctx, log, namespace, targetResource, port: targetPort })

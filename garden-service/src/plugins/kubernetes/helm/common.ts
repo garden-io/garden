@@ -13,7 +13,7 @@ import cryptoRandomString = require("crypto-random-string")
 
 import { PluginContext } from "../../../plugin-context"
 import { LogEntry } from "../../../logger/log-entry"
-import { getNamespace } from "../namespace"
+import { getModuleNamespace } from "../namespace"
 import { KubernetesResource } from "../types"
 import { loadAll } from "js-yaml"
 import { helm } from "./helm-cli"
@@ -77,9 +77,10 @@ export async function getChartResources(ctx: PluginContext, module: Module, hotR
 export async function renderTemplates(ctx: KubernetesPluginContext, module: Module, hotReload: boolean, log: LogEntry) {
   const chartPath = await getChartPath(module)
   const releaseName = getReleaseName(module)
-  const namespace = await getNamespace({
+  const namespace = await getModuleNamespace({
+    ctx,
     log,
-    projectName: ctx.projectName,
+    module,
     provider: ctx.provider,
     skipCreate: true,
   })
@@ -181,16 +182,17 @@ export function getReleaseName(config: HelmModuleConfig) {
 export async function renderHelmTemplateString(
   ctx: PluginContext,
   log: LogEntry,
-  module: Module,
+  module: HelmModule,
   chartPath: string,
   value: string
 ): Promise<string> {
   const relPath = join("templates", cryptoRandomString({ length: 16 }) + ".yaml")
   const tempFilePath = join(chartPath, relPath)
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespace = await getNamespace({
+  const namespace = await getModuleNamespace({
+    ctx: k8sCtx,
     log,
-    projectName: k8sCtx.projectName,
+    module,
     provider: k8sCtx.provider,
     skipCreate: true,
   })

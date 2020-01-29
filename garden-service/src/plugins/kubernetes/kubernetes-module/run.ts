@@ -13,17 +13,17 @@ import { KubernetesPluginContext } from "../config"
 import { storeTaskResult } from "../task-results"
 import { RunTaskParams, RunTaskResult } from "../../../types/plugin/task/runTask"
 import { getManifests } from "./common"
-import { getNamespace } from "../namespace"
 import { KubeApi } from "../api"
+import { getModuleNamespace } from "../namespace"
 
 export async function runKubernetesTask(params: RunTaskParams<KubernetesModule>): Promise<RunTaskResult> {
   const { ctx, log, module, task, taskVersion, timeout } = params
   const k8sCtx = <KubernetesPluginContext>ctx
-  const namespace = await getNamespace({
+  const namespace = await getModuleNamespace({
+    ctx: k8sCtx,
     log,
-    projectName: k8sCtx.projectName,
+    module,
     provider: k8sCtx.provider,
-    skipCreate: true,
   })
   const api = await KubeApi.factory(log, k8sCtx.provider)
 
@@ -49,6 +49,7 @@ export async function runKubernetesTask(params: RunTaskParams<KubernetesModule>)
     artifacts: task.spec.artifacts,
     envVars: task.spec.env,
     image: container.image,
+    namespace,
     podName: makePodName("task", module.name, task.name),
     description: `Task '${task.name}' in container module '${module.name}'`,
     timeout,
