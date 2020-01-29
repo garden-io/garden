@@ -252,7 +252,7 @@ To make a new release, set your current working directory to the garden root dir
 8. Make a pull request for the branch that was pushed by the script.
 9. Check the `update-homebrew` GitHub Action run succesfully and the [homebrew repo](https://github.com/garden-io/homebrew-garden) contains the latest version.
 10. Install the Homebrew package and make sure it works okay:
-    * `brew tap garden-io/garden && brew install garden-cli && brew update && brew upgrade garden-cli`
+    * `brew tap garden-io/garden && brew install garden-cli || true && brew update && brew upgrade garden-cli`
     * Run `$(brew --prefix garden-cli)/bin/garden dev` (to make sure you're using the packaged release) in an example project and see if all looks well.
 11. Prepare the release announcement and publish it in our channels (Slack and Twitter). If not possible, delegate the task to an available contributor.
 
