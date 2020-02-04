@@ -6,15 +6,40 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandResult, CommandParams } from "../base"
+import { Command, CommandResult, CommandParams, BooleanParameter } from "../base"
 import { ConfigDump } from "../../garden"
 
-export class GetConfigCommand extends Command {
+const options = {
+  "exclude-disabled": new BooleanParameter({
+    help: "Exclude disabled module, service, test, and task configs from output.",
+  }),
+}
+
+type Opts = typeof options
+
+export class GetConfigCommand extends Command<{}, Opts> {
   name = "config"
   help = "Outputs the fully resolved configuration for this project and environment."
+  options = options
 
-  async action({ garden, log }: CommandParams): Promise<CommandResult<ConfigDump>> {
+  async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<ConfigDump>> {
     const config = await garden.dumpConfig(log)
+
+    if (opts["exclude-disabled"]) {
+      const filteredModuleConfigs = config.moduleConfigs
+        .filter((moduleConfig) => !moduleConfig.disabled)
+        .map((moduleConfig) => {
+          const filteredConfig = {
+            ...moduleConfig,
+            serviceConfigs: moduleConfig.serviceConfigs.filter((c) => !c.disabled),
+            taskConfigs: moduleConfig.taskConfigs.filter((c) => !c.disabled),
+            testConfigs: moduleConfig.testConfigs.filter((c) => !c.disabled),
+          }
+          return filteredConfig
+        })
+
+      config.moduleConfigs = filteredModuleConfigs
+    }
 
     // TODO: do a nicer print of this by default
     log.info({ data: config })

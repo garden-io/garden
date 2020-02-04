@@ -259,7 +259,13 @@ Outputs the fully resolved configuration for this project and environment.
 
 ##### Usage
 
-    garden get config 
+    garden get config [options]
+
+##### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--exclude-disabled` |  | boolean | Exclude disabled module, service, test, and task configs from output.
 
 ### garden get eysi
 

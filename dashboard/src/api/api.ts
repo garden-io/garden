@@ -24,7 +24,7 @@ export interface ApiRequest {
 const MAX_LOG_LINES = 5000
 
 export async function fetchConfig() {
-  return apiPost<ConfigDump>("get.config")
+  return apiPost<ConfigDump>("get.config", { "exclude-disabled": true })
 }
 
 export async function fetchGraph() {
