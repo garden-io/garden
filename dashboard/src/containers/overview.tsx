@@ -104,9 +104,9 @@ export default () => {
   }
 
   const moduleProps: ModuleProps[] = Object.values(modules).map((module: Module) => {
-    const serviceEntities = module.services.map((serviceKey) => services[serviceKey]) || []
-    const testEntities = module.tests.map((testKey) => tests[testKey]) || []
-    const taskEntities = module.tasks.map((taskKey) => tasks[taskKey]) || []
+    const serviceEntities = module.services.map((serviceKey) => services[serviceKey]).filter(Boolean)
+    const testEntities = module.tests.map((testKey) => tests[testKey]).filter(Boolean)
+    const taskEntities = module.tasks.map((taskKey) => tasks[taskKey]).filter(Boolean)
 
     return {
       name: module.name,
