@@ -8,6 +8,7 @@ args=( $@ )
 version=${args[0]:-$(git rev-parse --short HEAD)}
 
 base_tag=gardendev/garden:${version}
+aws_tag=gardendev/garden-aws:${version}
 gcloud_tag=gardendev/garden-gcloud:${version}
 buster_tag=gardendev/garden:${version}-buster
 
@@ -17,6 +18,12 @@ echo "-> Build ${base_tag}"
 docker build -t ${base_tag} -f Dockerfile .
 echo "-> Check ${base_tag}"
 docker run --rm -it ${base_tag} version
+
+echo "-> Build ${aws_tag}"
+docker build -t ${aws_tag} --build-arg TAG=${version} -f aws.Dockerfile .
+echo "-> Check ${aws_tag}"
+docker run --rm -it ${aws_tag} version
+docker run --rm -it --entrypoint=aws ${aws_tag} --version
 
 echo "-> Build ${gcloud_tag}"
 docker build -t ${gcloud_tag} --build-arg TAG=${version} -f gcloud.Dockerfile .
