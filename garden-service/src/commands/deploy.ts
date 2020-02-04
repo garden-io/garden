@@ -27,6 +27,7 @@ import { getHotReloadServiceNames, validateHotReloadServiceNames } from "./helpe
 import { startServer, GardenServer } from "../server/server"
 import { DeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
+import chalk = require("chalk")
 
 const deployArgs = {
   services: new StringsParameter({
@@ -109,7 +110,9 @@ export class DeployCommand extends Command<Args, Opts> {
     const disabled = services.filter((s) => s.disabled).map((s) => s.name)
 
     if (disabled.length > 0) {
-      log.info({ symbol: "info", msg: `Services ${naturalList(disabled)} are disabled` })
+      const bold = disabled.map((d) => chalk.bold(d))
+      const msg = disabled.length === 1 ? `Service ${bold} is disabled` : `Services ${naturalList(bold)} are disabled`
+      log.info({ symbol: "info", msg: chalk.white(msg) })
     }
 
     services = services.filter((s) => !s.disabled)
