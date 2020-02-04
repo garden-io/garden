@@ -23,7 +23,8 @@ RUN npm install \
     /usr/lib/node_modules/npm/html/* \
     /usr/lib/node_modules/npm/scripts/*
 
-ADD bin /tmp/bin
+ADD bin/garden /tmp/bin/garden
+ADD bin/garden-debug /tmp/bin/garden-debug
 ADD build /tmp/build
 
 RUN node_modules/.bin/pkg --target node12-alpine-x64 . \
