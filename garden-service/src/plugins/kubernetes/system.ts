@@ -7,7 +7,6 @@
  */
 
 import { join } from "path"
-import { values } from "lodash"
 import { V1Namespace } from "@kubernetes/client-node"
 import semver from "semver"
 
@@ -159,7 +158,7 @@ export async function getSystemServiceStatus({ sysGarden, log, serviceNames }: G
     log: log.placeholder(LogLevel.verbose, true),
     serviceNames,
   })
-  const state = combineStates(values(serviceStatuses).map((s) => (s && s.state) || "unknown"))
+  const state = combineStates(Object.values(serviceStatuses).map((s) => (s && s.state) || "unknown"))
 
   return {
     state,
@@ -202,7 +201,7 @@ export async function prepareSystemServices({
       forceBuild: force,
     })
 
-    const failed = values(results.taskResults)
+    const failed = Object.values(results)
       .filter((r) => r && r.error)
       .map((r) => r!)
     const errors = failed.map((r) => r.error)
