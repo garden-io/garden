@@ -1,4 +1,13 @@
 
+<a name="v0.11.3"></a>
+## [v0.11.3](https://github.com/garden-io/garden/compare/v0.11.2...v0.11.3) (2020-02-04)
+
+### Bug Fixes
+
+* **cli:** add exclude-disabled option to get config command ([353a05e6](https://github.com/garden-io/garden/commit/353a05e6))
+* **k8s:** provider init errors weren't handled properly ([423f8e06](https://github.com/garden-io/garden/commit/423f8e06))
+
+
 <a name="v0.11.2"></a>
 ## [v0.11.2](https://github.com/garden-io/garden/compare/v0.11.1...v0.11.2) (2020-01-29)
 
