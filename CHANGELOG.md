@@ -1,13 +1,30 @@
 
+<a name="v0.11.3"></a>
+## [v0.11.3](https://github.com/garden-io/garden/compare/v0.11.2...v0.11.3) (2020-02-04)
+
+### Bug Fixes
+
+* **cli:** add exclude-disabled option to get config command ([353a05e6](https://github.com/garden-io/garden/commit/353a05e6))
+* **k8s:** provider init errors weren't handled properly ([423f8e06](https://github.com/garden-io/garden/commit/423f8e06))
+
+
 <a name="v0.11.2"></a>
 ## [v0.11.2](https://github.com/garden-io/garden/compare/v0.11.1...v0.11.2) (2020-01-29)
 
 ### Bug Fixes
 
+* **build:** error in alpine container image builds ([39ca6491](https://github.com/garden-io/garden/commit/39ca6491))
+* **container:** more verbose logging during builds ([4d38b4ea](https://github.com/garden-io/garden/commit/4d38b4ea))
 * **core:** make test task deps hot-reload aware ([4af27b10](https://github.com/garden-io/garden/commit/4af27b10))
+* **core:** include hidden files when using include filters ([ae9808bb](https://github.com/garden-io/garden/commit/ae9808bb))
 * **k8s:** hash configuration annotation ([9b6e2ad7](https://github.com/garden-io/garden/commit/9b6e2ad7))
 * **k8s:** ensure system namespace exists before using it ([e1d1c8de](https://github.com/garden-io/garden/commit/e1d1c8de))
 * **k8s:** ensure generated pod names are always unique ([493a7874](https://github.com/garden-io/garden/commit/493a7874))
+* **k8s:** fix failing tasks not throwing errors ([96aa7cc3](https://github.com/garden-io/garden/commit/96aa7cc3))
+
+### Code Refactoring
+
+* **container:** revert build logs log level to debug ([9cef0b47](https://github.com/garden-io/garden/commit/9cef0b47))
 
 ### Features
 
@@ -21,17 +38,24 @@
 
 ### Bug Fixes
 
+* force anlytics events queue flush ([4531c189](https://github.com/garden-io/garden/commit/4531c189))
 * analytics make sure first event is flushed ([c4d69351](https://github.com/garden-io/garden/commit/c4d69351))
 * **build:** error in alpine container image builds ([d87ea71c](https://github.com/garden-io/garden/commit/d87ea71c))
+* **cli:** enable running 'config analytics-enabled' with no project ([a611df7e](https://github.com/garden-io/garden/commit/a611df7e))
+* **cli:** ensure 'noProject' commands run in invalid projects ([5354777d](https://github.com/garden-io/garden/commit/5354777d))
 * **container:** more verbose logging during builds ([131b10f4](https://github.com/garden-io/garden/commit/131b10f4))
 * **core:** allow git URLs not ending in .git ([542e205f](https://github.com/garden-io/garden/commit/542e205f))
 * **core:** include hidden files when using include filters ([320eb63f](https://github.com/garden-io/garden/commit/320eb63f))
 * **core:** allow unknown in task & test results ([c6a0fed9](https://github.com/garden-io/garden/commit/c6a0fed9))
 * **docs:** fix incorrect link in guide ([79f35290](https://github.com/garden-io/garden/commit/79f35290))
 * **helm:** only hot reload serviceResource ([1235fc71](https://github.com/garden-io/garden/commit/1235fc71))
+* **k8s:** don't throw init error if garden-system services are modified ([7c42b084](https://github.com/garden-io/garden/commit/7c42b084))
 * **k8s:** reconnect port-forwards automatically ([553a34a4](https://github.com/garden-io/garden/commit/553a34a4))
+* **k8s:** play nice with Helm 2 (Tiller) when users still need it ([b6ebbbab](https://github.com/garden-io/garden/commit/b6ebbbab))
+* **k8s:** ensure helm migration works on Windows ([6b3bacb1](https://github.com/garden-io/garden/commit/6b3bacb1))
 * **k8s:** handle 404 exception when tagging image for deletion ([#1485](https://github.com/garden-io/garden/issues/1485)) ([f7c5ed47](https://github.com/garden-io/garden/commit/f7c5ed47))
 * **k8s:** fix failing tasks not throwing errors ([0d204c23](https://github.com/garden-io/garden/commit/0d204c23))
+* **k8s:** use configured ingress ports when installing nginx ([710f8348](https://github.com/garden-io/garden/commit/710f8348))
 * **log:** updated to stern from kubectl ([#1437](https://github.com/garden-io/garden/issues/1437)) ([138e3dfc](https://github.com/garden-io/garden/commit/138e3dfc))
 * **logger:** wrap words when splitting fancy log lines ([3c3c7d2b](https://github.com/garden-io/garden/commit/3c3c7d2b))
 * **test:** improve error logging in e2e tests ([c308f466](https://github.com/garden-io/garden/commit/c308f466))
