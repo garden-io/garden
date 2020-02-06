@@ -30,6 +30,7 @@ import { prepareEnvVars, makePodName } from "./util"
 import { deline } from "../../util/string"
 import { ArtifactSpec } from "../../config/validation"
 import cpy from "cpy"
+import { prepareImagePullSecrets } from "./secrets"
 
 export async function runAndCopy({
   ctx,
@@ -64,6 +65,7 @@ export async function runAndCopy({
   namespace: string
 }): Promise<RunResult> {
   const provider = <KubernetesProvider>ctx.provider
+  const api = await KubeApi.factory(log, provider)
 
   // Prepare environment variables
   envVars = { ...runtimeContext.envVars, ...envVars }
@@ -88,6 +90,7 @@ export async function runAndCopy({
         volumeMounts: [],
       },
     ],
+    imagePullSecrets: await prepareImagePullSecrets({ api, provider, namespace, log }),
   }
 
   if (!description) {
@@ -119,8 +122,6 @@ export async function runAndCopy({
       spec.containers[0].command = command
     }
   }
-
-  const api = await KubeApi.factory(log, provider)
 
   if (!podName) {
     podName = makePodName("run", module.name)
