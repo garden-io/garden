@@ -32,7 +32,7 @@ import { gardenAnnotationKey } from "../../../util/string"
 import { RuntimeContext } from "../../../runtime-context"
 import { resolve } from "path"
 import { killPortForwards } from "../port-forward"
-import { ensureSecret, prepareImagePullSecrets } from "../secrets"
+import { prepareImagePullSecrets } from "../secrets"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "64Mi"
