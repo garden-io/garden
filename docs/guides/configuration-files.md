@@ -393,7 +393,7 @@ public
 
 This would cause Garden to ignore `node_modules` and `public` directories across your project/repo, and all `.log` files. You can place the ignore files anywhere in your repository, much like `.gitignore` files, and they will follow the same semantics.
 
-Note that _these take precedence over both `module.include` fields in your project config, and `include` fields in your module configs_. If a path is matched by one of the ignore files, the path will not be included in your project or modules.
+Note that _these take precedence over both `modules.include` fields in your project config, and `include` fields in your module configs_. If a path is matched by one of the ignore files, the path will not be included in your project or modules.
 
 You can override which filenames to use as ".ignore" files using the `dotIgnoreFiles` field in your project configuration. For example, you might choose to only use `.gardenignore` files and not exclude paths based on your `.gitignore` files:
 
