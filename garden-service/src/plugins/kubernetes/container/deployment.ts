@@ -32,6 +32,7 @@ import { gardenAnnotationKey } from "../../../util/string"
 import { RuntimeContext } from "../../../runtime-context"
 import { resolve } from "path"
 import { killPortForwards } from "../port-forward"
+import { ensureSecret, prepareImagePullSecrets } from "../secrets"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "64Mi"
@@ -207,7 +208,8 @@ export async function createContainerManifests(
   const namespace = await getAppNamespace(k8sCtx, log, provider)
   const api = await KubeApi.factory(log, provider)
   const ingresses = await createIngressResources(api, provider, namespace, service, log)
-  const workload = await createWorkloadResource({
+  const workload = await createWorkloadManifest({
+    api,
     provider,
     service,
     runtimeContext,
@@ -231,6 +233,7 @@ export async function createContainerManifests(
 }
 
 interface CreateDeploymentParams {
+  api: KubeApi
   provider: KubernetesProvider
   service: ContainerService
   runtimeContext: RuntimeContext
@@ -240,7 +243,8 @@ interface CreateDeploymentParams {
   production: boolean
 }
 
-export async function createWorkloadResource({
+export async function createWorkloadManifest({
+  api,
   provider,
   service,
   runtimeContext,
@@ -372,7 +376,7 @@ export async function createWorkloadResource({
 
   if (provider.config.imagePullSecrets.length > 0) {
     // add any configured imagePullSecrets
-    deployment.spec.template.spec.imagePullSecrets = provider.config.imagePullSecrets.map((s) => ({ name: s.name }))
+    deployment.spec.template.spec.imagePullSecrets = await prepareImagePullSecrets({ api, provider, namespace, log })
   }
 
   // this is important for status checks to work correctly, because how K8s normalizes resources
