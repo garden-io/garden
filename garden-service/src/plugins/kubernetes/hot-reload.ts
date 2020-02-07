@@ -11,7 +11,7 @@ import normalizePath = require("normalize-path")
 import { V1Deployment, V1DaemonSet, V1StatefulSet } from "@kubernetes/client-node"
 import { ContainerModule, ContainerHotReloadSpec } from "../container/config"
 import { RuntimeError, ConfigurationError } from "../../exceptions"
-import { resolve as resolvePath, dirname, posix } from "path"
+import { resolve as resolvePath, dirname, posix, relative, resolve } from "path"
 import { deline, gardenAnnotationKey } from "../../util/string"
 import { set, sortBy, flatten } from "lodash"
 import { Service } from "../../types/service"
@@ -28,8 +28,9 @@ import { normalizeLocalRsyncPath } from "../../util/fs"
 import { createWorkloadManifest } from "./container/deployment"
 import { kubectl } from "./kubectl"
 import { labelSelectorToString } from "./util"
-import { exec } from "../../util/util"
 import { KubeApi } from "./api"
+import { syncWithOptions } from "../../util/sync"
+import { Module } from "../../types/module"
 
 export const RSYNC_PORT_NAME = "garden-rsync"
 
@@ -297,15 +298,39 @@ export async function syncToService({ ctx, service, hotReloadSpec, namespace, wo
 
   const doSync = async () => {
     const portForward = await getPortForward({ ctx, log, namespace, targetResource, port: RSYNC_PORT })
+    const module = service.module
 
     const syncResult = await Bluebird.map(hotReloadSpec.sync, ({ source, target }) => {
-      const src = rsyncSourcePath(service.sourceModule.path, source)
-      const destination = `rsync://localhost:${portForward.localPort}/volume/root/${rsyncTargetPath(target)}`
+      const sourcePath = rsyncSourcePath(service.sourceModule.path, source)
+      const destinationPath = `rsync://localhost:${portForward.localPort}/volume/root/${rsyncTargetPath(target)}`
+
+      log.debug(`Hot-reloading from ${sourcePath} to ${destinationPath}`)
+
       const tmpDir = `/tmp/${rsyncTargetPath(target)}`.slice(0, -1) // Trim the trailing slash
+      const syncOpts = [
+        "--verbose",
+        "--recursive",
+        "--compress",
+        // Preserve modification times
+        "--times",
+        // Preserve owner + group
+        "--owner",
+        "--group",
+        // Copy permissions
+        "--perms",
+        // Set a temp directory outside of the target directory to avoid potential conflicts
+        "--temp-dir",
+        tmpDir,
+      ]
 
-      log.debug(`Hot-reloading from ${src} to ${destination}`)
-
-      return exec("rsync", ["-vrpztgo", "--temp-dir", tmpDir, src, destination])
+      return syncWithOptions({
+        syncOpts,
+        sourcePath,
+        destinationPath,
+        withDelete: false,
+        log,
+        files: filesForSync(module, source),
+      })
     })
 
     const postSyncCommand = hotReloadSpec.postSyncCommand
@@ -344,4 +369,18 @@ export async function syncToService({ ctx, service, hotReloadSpec, namespace, wo
       targetResource,
     })
   }
+}
+
+/**
+ * Returns the relative paths (from `source`) to each of `module.version.files` that is nested within `source`.
+ *
+ * So e.g. `source` = `mydir` would transform a tracked path `/path/to/module/mydir/subdir/myfile` to
+ * `subdir/myfile` in the output, and if `source` = `.` or `*`, it would be transformed to `mydir/subdir/myfile`.
+ */
+export function filesForSync(module: Module, source: string): string[] {
+  const normalizedSource = resolve(module.path, source.replace("**/", "").replace("*", ""))
+  const moduleFiles = module.version.files
+  const files = normalizedSource === "" ? moduleFiles : moduleFiles.filter((path) => path.startsWith(normalizedSource))
+  const normalizedFiles = files.map((f) => relative(normalizedSource, f))
+  return normalizedFiles
 }
