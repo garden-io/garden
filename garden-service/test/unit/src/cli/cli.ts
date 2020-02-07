@@ -9,11 +9,13 @@
 import { expect } from "chai"
 import { makeDummyGarden } from "../../../../src/cli/cli"
 import { getDataDir } from "../../../helpers"
+import { GARDEN_SERVICE_ROOT } from "../../../../src/constants"
+import { join } from "path"
 
 describe("cli", () => {
   describe("makeDummyGarden", () => {
     it("should initialise and resolve config graph in a directory with no project", async () => {
-      const garden = await makeDummyGarden("./foobarbas", {})
+      const garden = await makeDummyGarden(join(GARDEN_SERVICE_ROOT, "tmp", "foobarbas"), {})
       const dg = await garden.getConfigGraph(garden.log)
       expect(garden).to.be.ok
       expect(await dg.getModules()).to.not.throw
