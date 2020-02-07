@@ -231,7 +231,9 @@ export async function runAndCopy({
             "-c", // create an archive
             "-f",
             "-", // pipe to stdout
-            sourcePath, // files to match
+            // Files to match. The .DS_Store file is a trick to avoid errors when no files are matched. The file is
+            // ignored later when copying from the temp directory. See https://github.com/sindresorhus/cpy#ignorejunk
+            `$(ls ${sourcePath} 2>/dev/null) .DS_Store`,
           ]
 
           await new Promise((_resolve, reject) => {
@@ -257,7 +259,7 @@ export async function runAndCopy({
             // Tarball the requested files and stream to the above extractor.
             runner
               .exec({
-                command: ["sh", "-c", "cd / && " + tarCmd.join(" ")],
+                command: ["sh", "-c", "cd / && touch .DS_Store && " + tarCmd.join(" ")],
                 container: mainContainerName,
                 ignoreError: false,
                 log,
@@ -272,7 +274,14 @@ export async function runAndCopy({
           })
 
           // Copy the resulting files to the artifacts directory
-          await cpy(sourcePath, targetPath, { cwd: tmpDir.path })
+          try {
+            await cpy("**/*", targetPath, { cwd: tmpDir.path, ignoreJunk: true })
+          } catch (err) {
+            // Ignore error thrown when the directory is empty
+            if (err.name !== "CpyError" || !err.message.includes("the file doesn't exist")) {
+              throw err
+            }
+          }
         })
       )
     } finally {

@@ -176,6 +176,26 @@ describe("kubernetes container module handlers", () => {
         expect(await pathExists(join(tmpDir.path, "output.txt"))).to.be.true
       })
 
+      it("should not throw when an artifact is missing", async () => {
+        const task = await graph.getTask("artifacts-task")
+        const module = task.module
+        const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
+
+        await runAndCopy({
+          ctx: garden.getPluginContext(provider),
+          log: garden.log,
+          command: ["sh", "-c", "echo ok"],
+          args: [],
+          interactive: false,
+          module,
+          namespace,
+          runtimeContext: { envVars: {}, dependencies: [] },
+          artifacts: task.spec.artifacts,
+          artifactsPath: tmpDir.path,
+          image,
+        })
+      })
+
       it("should correctly copy a whole directory", async () => {
         const task = await graph.getTask("dir-task")
         const module = task.module
