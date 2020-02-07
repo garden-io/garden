@@ -9,14 +9,15 @@
 import { platform } from "os"
 import { expect } from "chai"
 import td from "testdouble"
-import { HotReloadableResource, rsyncSourcePath } from "../../../../../src/plugins/kubernetes/hot-reload"
+import { HotReloadableResource, rsyncSourcePath, filesForSync } from "../../../../../src/plugins/kubernetes/hot-reload"
 
 import {
   removeTrailingSlashes,
   makeCopyCommand,
   configureHotReload,
 } from "../../../../../src/plugins/kubernetes/hot-reload"
-import { setPlatform } from "../../../../helpers"
+import { setPlatform, makeTestGarden, TestGarden, getDataDir } from "../../../../helpers"
+import { ConfigGraph } from "../../../../../src/config-graph"
 
 describe("configureHotReload", () => {
   it("should correctly augment a resource manifest with containers and volume for hot reloading", async () => {
@@ -286,5 +287,34 @@ describe("makeCopyCommand", () => {
       expect(makeCopyCommand(["/app/src/foo"])).to.eql(resB)
       expect(makeCopyCommand(["/app/src1", "/app/src2/"])).to.eql(resC)
     })
+  })
+})
+
+describe("filesForSync", () => {
+  let garden: TestGarden
+  let graph: ConfigGraph
+  const projectRoot = getDataDir("test-projects", "include-exclude")
+
+  before(async () => {
+    garden = await makeTestGarden(projectRoot)
+    graph = await garden.getConfigGraph(garden.log)
+  })
+
+  it("should respect module include and exclude", async () => {
+    const moduleA = await graph.getModule("module-a")
+    const files = filesForSync(moduleA, "*")
+    expect(files).to.eql(["somedir/yes.txt", "yes.txt"])
+  })
+
+  it("should treat '.' sources the same as '*'", async () => {
+    const moduleA = await graph.getModule("module-a")
+    const files = filesForSync(moduleA, ".")
+    expect(files).to.eql(["somedir/yes.txt", "yes.txt"])
+  })
+
+  it("should filter files on source prefix, and return the relative path from the source path", async () => {
+    const moduleA = await graph.getModule("module-a")
+    const files = filesForSync(moduleA, "somedir")
+    expect(files).to.eql(["yes.txt"])
   })
 })
