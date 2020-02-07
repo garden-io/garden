@@ -4,11 +4,11 @@ description: Test module for attempting to copy artifacts without tar binary in 
 type: container
 tasks:
   - name: missing-tar-task
-    command: [sh, -c, "touch /task-a.txt"]
+    command: [sh, -c, "touch /task-a.txt && echo ok"]
     artifacts:
       - source: /task-a.txt
 tests:
   - name: missing-tar-test
-    command: [sh, -c, "touch /test-a.txt"]
+    command: [sh, -c, "touch /test-a.txt && echo ok"]
     artifacts:
       - source: /test-a.txt

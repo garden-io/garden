@@ -21,7 +21,7 @@ import {
 } from "@kubernetes/client-node"
 import dedent = require("dedent")
 import { getCurrentWorkloadPods } from "../util"
-import { getPodLogs, podLogLines } from "./pod"
+import { getFormattedPodLogs, podLogLines } from "./pod"
 import { ResourceStatus, StatusHandlerParams } from "./status"
 import { getResourceEvents } from "./events"
 
@@ -83,7 +83,7 @@ export async function checkWorkloadStatus({ api, namespace, resource }: StatusHa
 
     // Attach pod logs for debug output
     const podNames = (await getPods()).map((pod) => pod.metadata.name)
-    const podLogs = (await getPodLogs(api, namespace, podNames)) || undefined
+    const podLogs = (await getFormattedPodLogs(api, namespace, podNames)) || undefined
 
     if (podLogs) {
       logs += chalk.white("\n\n━━━ Pod logs ━━━\n")

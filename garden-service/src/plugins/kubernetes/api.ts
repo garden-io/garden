@@ -441,10 +441,12 @@ export class KubeApi {
           if (typeof output.then === "function") {
             return (
               output
-                // return the result body direcly
+                // return the result body directly if applicable
                 .then((res: any) => {
-                  if (isPlainObject(res) && res["body"] !== undefined) {
+                  if (isPlainObject(res) && res.hasOwnProperty("body")) {
                     return res["body"]
+                  } else {
+                    return res
                   }
                 })
                 // the API errors are not properly formed Error objects
