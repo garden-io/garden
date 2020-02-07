@@ -125,7 +125,10 @@ describe("VcsHandler", () => {
 
       const version = await handler.getTreeVersion(gardenA.log, moduleConfig)
 
-      expect(version.files).to.eql([resolve(moduleConfig.path, "yes.txt")])
+      expect(version.files).to.eql([
+        resolve(moduleConfig.path, "somedir/yes.txt"),
+        resolve(moduleConfig.path, "yes.txt"),
+      ])
     })
 
     it("should respect the exclude field, if specified", async () => {
