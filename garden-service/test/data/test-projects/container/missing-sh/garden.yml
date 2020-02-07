@@ -4,11 +4,11 @@ description: Test module for attempting to copy artifacts without sh present in 
 type: container
 tasks:
   - name: missing-sh-task
-    command: [sh, -c, "touch /task-a.txt"]
+    command: [sh, -c, "touch /task-a.txt && echo ok"]
     artifacts:
       - source: /task-a.txt
 tests:
   - name: missing-sh-test
-    command: [sh, -c, "touch /test-a.txt"]
+    command: [sh, -c, "touch /test-a.txt && echo ok"]
     artifacts:
       - source: /test-a.txt

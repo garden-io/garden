@@ -12,13 +12,13 @@ tasks:
   - name: echo-task
     command: [sh, -c, "echo ok"]
   - name: artifacts-task
-    command: [sh, -c, "touch /task.txt"]
+    command: [sh, -c, "touch /task.txt && echo ok"]
     artifacts:
       - source: /task.txt
       - source: /task.txt
         target: subdir
   - name: globs-task
-    command: [sh, -c, "touch /task.txt && mkdir -p /tasks && touch /tasks/output.txt"]
+    command: [sh, -c, "touch /task.txt && mkdir -p /tasks && touch /tasks/output.txt && echo ok"]
     artifacts:
       - source: /task.*
         target: subdir
@@ -27,13 +27,13 @@ tests:
   - name: echo-test
     command: [sh, -c, "echo ok"]
   - name: artifacts-test
-    command: [sh, -c, "touch /test.txt"]
+    command: [sh, -c, "touch /test.txt && echo ok"]
     artifacts:
       - source: /test.txt
       - source: /test.txt
         target: subdir
   - name: globs-test
-    command: [sh, -c, "touch /test.txt && mkdir -p /tests && touch /tests/output.txt"]
+    command: [sh, -c, "touch /test.txt && mkdir -p /tests && touch /tests/output.txt && echo ok"]
     artifacts:
       - source: /test.*
         target: subdir

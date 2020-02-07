@@ -21,7 +21,7 @@ import { Writable } from "stream"
 import { ChildProcess } from "child_process"
 import { sleep, uniqByName } from "../../util/util"
 import { KubeApi } from "./api"
-import { checkPodStatus } from "./status/pod"
+import { checkPodStatus, getPodLogs } from "./status/pod"
 import { KubernetesServerResource } from "./types"
 import { ServiceState } from "../../types/service"
 import { RunModuleParams } from "../../types/plugin/module/runModule"
@@ -112,8 +112,9 @@ export async function runAndCopy({
       )
     }
 
-    // We start the container and let it run while we execute the target command, and then copy the artifacts
-    spec.containers[0].command = ["sh", "-c", "sleep 86400"]
+    // We start the container with a named pipe and tail that, to get the logs from the actual command
+    // we plan on running. Then we sleep, so that we can copy files out of the container.
+    spec.containers[0].command = ["sh", "-c", "mkfifo /tmp/output && tail /tmp/output && sleep 86400"]
   } else {
     if (args) {
       spec.containers[0].args = args
@@ -155,14 +156,7 @@ export async function runAndCopy({
         // Specifically look for error indicating `sh` is missing, and report with helpful message.
         const containerStatus = pod!.status.containerStatuses![0]
 
-        // FIXME: use optional chaining when TS 3.7 is out
-        if (
-          containerStatus &&
-          containerStatus.state &&
-          containerStatus.state.terminated &&
-          containerStatus.state.terminated.message &&
-          containerStatus.state.terminated.message.includes("not found")
-        ) {
+        if (containerStatus?.state?.terminated?.message?.includes("not found")) {
           throw new ConfigurationError(
             deline`
               ${description} specifies artifacts to export, but the image doesn't
@@ -180,15 +174,25 @@ export async function runAndCopy({
       try {
         await runner.exec({
           command: ["sh", "-c", "tar --help"],
-          container: spec.containers[0].name,
+          container: mainContainerName,
           ignoreError: false,
           log,
           stdout,
           stderr,
         })
       } catch (err) {
-        // TODO: fall back to copying `arc` into the container and using that
-        // (tar is not static so we can't copy that directly)
+        // TODO: fall back to copying `arc` (https://github.com/mholt/archiver) or similar into the container and
+        // using that (tar is not statically compiled so we can't copy that directly). Keeping this snippet around
+        // for that:
+        // await runner.exec({
+        //   command: ["sh", "-c", `sed -n 'w ${arcPath}'; chmod +x ${arcPath}`],
+        //   container: containerName,
+        //   ignoreError: false,
+        //   input: <binary>,
+        //   log,
+        //   stdout,
+        //   stderr,
+        // })
         throw new ConfigurationError(
           deline`
           ${description} specifies artifacts to export, but the image doesn't
@@ -198,14 +202,23 @@ export async function runAndCopy({
         )
       }
 
+      // Escape the command, so that we can safely pass it as a single string
+      const cmd = [...command!, ...(args || [])].map((s) => JSON.stringify(s)).join(" ")
+
       result = await runner.exec({
-        command: [...command!, ...(args || [])],
-        container: spec.containers[0].name,
+        // Pipe the output from the command to the /tmp/output pipe, including stderr. Some shell voodoo happening here,
+        // but this was the only working approach I could find after a lot of trial and error.
+        command: ["sh", "-c", `echo $(${cmd}) >>/tmp/output 2>&1`],
+        container: mainContainerName,
         ignoreError: true,
         log,
         stdout,
         stderr,
       })
+
+      // Need to retrieve the logs explicitly, because kubectl exec sometimes fails to capture them
+      const containerLogs = await getPodLogs({ api, namespace, podName, containerNames: [mainContainerName] })
+      result.log = containerLogs[0].log
 
       // Copy the artifacts
       await Promise.all(
@@ -219,7 +232,9 @@ export async function runAndCopy({
             "-c", // create an archive
             "-f",
             "-", // pipe to stdout
-            sourcePath, // files to match
+            // Files to match. The .DS_Store file is a trick to avoid errors when no files are matched. The file is
+            // ignored later when copying from the temp directory. See https://github.com/sindresorhus/cpy#ignorejunk
+            `$(ls ${sourcePath} 2>/dev/null) .DS_Store`,
           ]
 
           await new Promise((_resolve, reject) => {
@@ -245,7 +260,7 @@ export async function runAndCopy({
             // Tarball the requested files and stream to the above extractor.
             runner
               .exec({
-                command: ["sh", "-c", "cd / && " + tarCmd.join(" ")],
+                command: ["sh", "-c", "cd / && touch .DS_Store && " + tarCmd.join(" ")],
                 container: mainContainerName,
                 ignoreError: false,
                 log,
@@ -260,20 +275,42 @@ export async function runAndCopy({
           })
 
           // Copy the resulting files to the artifacts directory
-          await cpy(sourcePath, targetPath, { cwd: tmpDir.path })
+          try {
+            await cpy("**/*", targetPath, { cwd: tmpDir.path, ignoreJunk: true })
+          } catch (err) {
+            // Ignore error thrown when the directory is empty
+            if (err.name !== "CpyError" || !err.message.includes("the file doesn't exist")) {
+              throw err
+            }
+          }
         })
       )
     } finally {
       await tmpDir.cleanup()
-      await runner.stop({ log })
+      await runner.stop()
     }
   } else {
     result = await runner.startAndWait({
       interactive,
       ignoreError: !!ignoreError,
       log,
+      remove: false,
       timeout,
     })
+
+    try {
+      // Need to retrieve the logs explicitly, because kubectl run sometimes fails to capture them
+      const containerLogs = await getPodLogs({ api, namespace, podName, containerNames: [mainContainerName] })
+
+      // Keep the existing logs if no logs come back from the API. This may happen if the Pod failed to start
+      // altogether.
+      if (containerLogs[0].log) {
+        result.log = containerLogs[0].log
+      }
+    } finally {
+      // Make sure Pod is cleaned up
+      await runner.stop()
+    }
   }
 
   return result
@@ -290,12 +327,9 @@ class PodRunnerParams {
   spec: V1PodSpec
 }
 
-interface StopParams {
-  log: LogEntry
-}
-
 interface StartParams {
   ignoreError?: boolean
+  input?: Buffer | string
   log: LogEntry
   stdout?: Writable
   stderr?: Writable
@@ -310,6 +344,7 @@ type ExecParams = StartParams & {
 
 type StartAndWaitParams = StartParams & {
   interactive: boolean
+  remove?: boolean
 }
 
 class PodRunnerError extends GardenBaseError {
@@ -342,6 +377,7 @@ export class PodRunner extends PodRunnerParams {
     ignoreError,
     interactive,
     stdout: outputStream,
+    remove = true,
     timeout,
   }: StartAndWaitParams): Promise<RunResult> {
     const { module, spec } = this
@@ -352,7 +388,11 @@ export class PodRunner extends PodRunnerParams {
       spec.containers[0].tty = true
     }
 
-    const kubecmd = [...this.getBaseRunArgs(), "--rm", interactive ? "--tty" : "--quiet"]
+    const kubecmd = [...this.getBaseRunArgs(), interactive ? "--tty" : "--quiet"]
+
+    if (remove) {
+      kubecmd.push("--rm")
+    }
 
     const command = [...(spec.containers[0].command || []), ...(spec.containers[0].args || [])]
     log.verbose(`Running '${command.join(" ")}' in Pod ${this.podName}`)
@@ -461,7 +501,7 @@ export class PodRunner extends PodRunnerParams {
    * Executes a command in the running Pod. Must be called after `start()`.
    */
   async exec(params: ExecParams) {
-    const { log, command, container, ignoreError, stdout, stderr, timeout } = params
+    const { log, command, container, ignoreError, input, stdout, stderr, timeout } = params
 
     if (!this.proc) {
       throw new PodRunnerError(`Attempting to exec a command in Pod before starting it`, { command })
@@ -476,6 +516,7 @@ export class PodRunner extends PodRunnerParams {
       args,
       namespace: this.namespace,
       ignoreError,
+      input,
       log,
       provider: this.provider,
       stdout,
@@ -498,21 +539,18 @@ export class PodRunner extends PodRunnerParams {
    * Disconnects from a connected Pod (if any) and removes it from the cluster. You can safely call this even
    * if the process is no longer active.
    */
-  async stop({ log }: StopParams) {
+  async stop() {
     if (this.proc) {
       delete this.proc
     }
 
-    // TODO: use API
-    const args = ["delete", "pod", this.podName, "--ignore-not-found=true", "--wait=false"]
-
-    await kubectl.exec({
-      args,
-      ignoreError: true,
-      log,
-      namespace: this.namespace,
-      provider: this.provider,
-    })
+    try {
+      await this.api.core.deleteNamespacedPod(this.podName, this.namespace, undefined, undefined, 0)
+    } catch (err) {
+      if (err.code !== 404) {
+        throw err
+      }
+    }
   }
 
   private getBaseRunArgs() {
