@@ -24,3 +24,10 @@ export function renderMarkdownTable(data: { [heading: string]: string }) {
 
   return [head, divider, values].join("\n")
 }
+
+/**
+ * Converts all markdown-formatted links in the given text to just normal links in parentheses after the link text.
+ */
+export function convertMarkdownLinks(text: string) {
+  return text.replace(/\[([\w\s]+)\]\((.*)\)/g, "$1 ($2)")
+}

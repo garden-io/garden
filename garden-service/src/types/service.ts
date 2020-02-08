@@ -104,18 +104,15 @@ export interface ServiceIngress extends ServiceIngressSpec {
 }
 
 export const ingressHostnameSchema = joi.string().hostname().description(dedent`
-    The hostname that should route to this service. Defaults to the default hostname
-    configured in the provider configuration.
+    The hostname that should route to this service. Defaults to the default hostname configured in the provider configuration.
 
     Note that if you're developing locally you may need to add this hostname to your hosts file.
   `)
 
 export const linkUrlSchema = joi.string().uri().description(dedent`
-    The link URL for the ingress to show in the console and on the dashboard.
-    Also used when calling the service with the \`call\` command.
+    The link URL for the ingress to show in the console and on the dashboard. Also used when calling the service with the \`call\` command.
 
-    Use this if the actual URL is different from what's specified in the ingress,
-    e.g. because there's a load balancer in front of the service that rewrites the paths.
+    Use this if the actual URL is different from what's specified in the ingress, e.g. because there's a load balancer in front of the service that rewrites the paths.
 
     Otherwise Garden will construct the link URL from the ingress spec.
   `)

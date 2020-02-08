@@ -67,7 +67,7 @@ describe("GetDebugInfoCommand", () => {
         headerLog: log,
         footerLog: log,
         args: {},
-        opts: withDefaultGlobalOpts({ format: "json" }),
+        opts: withDefaultGlobalOpts({ "format": "json", "include-project": false }),
       })
 
       expect(res.result).to.eql(0)

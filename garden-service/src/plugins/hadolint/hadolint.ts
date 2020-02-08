@@ -16,7 +16,7 @@ import { dedent, splitLines, naturalList } from "../../util/string"
 import { TestModuleParams } from "../../types/plugin/module/testModule"
 import { Module } from "../../types/module"
 import { BinaryCmd } from "../../util/ext-tools"
-import { STATIC_DIR } from "../../constants"
+import { STATIC_DIR, DOCS_BASE_URL } from "../../constants"
 import { padStart, padEnd } from "lodash"
 import chalk from "chalk"
 import { ConfigurationError } from "../../exceptions"
@@ -67,7 +67,7 @@ export const gardenPlugin = createGardenPlugin({
   name: "hadolint",
   dependencies: ["container"],
   docs: dedent`
-    This provider creates a [\`hadolint\`](../module-types/hadolint.md) module type, and (by default) generates one
+    This provider creates a [\`hadolint\`](${DOCS_BASE_URL}/module-types/hadolint) module type, and (by default) generates one
     such module for each \`container\` module that contains a Dockerfile in your project. Each module creates a single
     test that runs [hadolint](https://github.com/hadolint/hadolint) against the Dockerfile in question, in order to
     ensure that the Dockerfile is valid and follows best practices.
@@ -136,7 +136,7 @@ export const gardenPlugin = createGardenPlugin({
       docs: dedent`
         Runs \`hadolint\` on the specified Dockerfile.
 
-        > Note: In most cases, you'll let the [provider](../providers/hadolint.md) create this module type automatically, but you may in some cases want or need to manually specify a Dockerfile to lint.
+        > Note: In most cases, you'll let the [provider](${DOCS_BASE_URL}/providers/hadolint) create this module type automatically, but you may in some cases want or need to manually specify a Dockerfile to lint.
 
         To configure \`hadolint\`, you can use \`.hadolint.yaml\` config files. For each test, we first look for one in
         the module root. If none is found there, we check the project root, and if none is there we fall back to default

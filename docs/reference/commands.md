@@ -86,6 +86,60 @@ Note: Currently only supports simple GET requests for HTTP/HTTPS ingresses.
 | -------- | -------- | ----------- |
   | `serviceAndPath` | Yes | The name of the service to call followed by the ingress path (e.g. my-container/somepath).
 
+### garden create project
+
+Create a new Garden project.
+
+Creates a new Garden project configuration. The generated config includes some default values, as well as the
+schema of the config in the form of commentented-out fields. Also creates a default (blank) .gardenignore file
+in the same path.
+
+Examples:
+
+    garden create project                     # create a Garden project config in the current directory
+    garden create project --dir some-dir      # create a Garden project config in the ./some-dir directory
+    garden create project --name my-project   # set the project name to my-project
+    garden create project --interactive=false # don't prompt for user inputs when creating the config
+
+##### Usage
+
+    garden create project [options]
+
+##### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--dir` |  | path | Directory to place the project in (defaults to current directory).
+  | `--interactive` | `-i` | boolean | Set to false to disable interactive prompts.
+  | `--name` |  | string | Name of the project (defaults to current directory name).
+
+### garden create module
+
+Create a new Garden module.
+
+Creates a new Garden module configuration. The generated config includes some default values, as well as the
+schema of the config in the form of commentented-out fields.
+
+Examples:
+
+    garden create module                      # create a Garden module config in the current directory
+    garden create module --dir some-dir       # create a Garden module config in the ./some-dir directory
+    garden create module --name my-module     # set the module name to my-module
+    garden create module --interactive=false  # don't prompt for user inputs when creating the module
+
+##### Usage
+
+    garden create module [options]
+
+##### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--dir` |  | path | Directory to place the module in (defaults to current directory).
+  | `--interactive` | `-i` | boolean | Set to false to disable interactive prompts.
+  | `--name` |  | string | Name of the module (defaults to current directory name).
+  | `--type` |  | string | The module type to create. Required if --interactive&#x3D;false.
+
 ### garden delete secret
 
 Delete a secret from the environment.

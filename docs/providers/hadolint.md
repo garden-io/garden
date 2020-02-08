@@ -4,7 +4,7 @@ title: hadolint
 
 # `hadolint` Provider
 
-This provider creates a [`hadolint`](../module-types/hadolint.md) module type, and (by default) generates one
+This provider creates a [`hadolint`](https://docs.garden.io/module-types/hadolint) module type, and (by default) generates one
 such module for each `container` module that contains a Dockerfile in your project. Each module creates a single
 test that runs [hadolint](https://github.com/hadolint/hadolint) against the Dockerfile in question, in order to
 ensure that the Dockerfile is valid and follows best practices.
@@ -28,21 +28,24 @@ The values in the schema below are the default values.
 
 ```yaml
 providers:
-  # The name of the provider plugin to use.
-  - name:
+  - # The name of the provider plugin to use.
+    name:
+
     # If specified, this provider will only be used in the listed environments. Note that an empty array effectively
     # disables the provider. To use a provider in all environments, omit this field.
     environments:
+
     # By default, the provider automatically creates a `hadolint` module for every `container` module in your
     # project. Set this to `false` to disable this behavior.
     autoInject: true
+
     # Set this to `"warning"` if you'd like tests to be marked as failed if one or more warnings are returned.
     # Set to `"none"` to always mark the tests as successful.
     testFailureThreshold: error
 ```
 ### Configuration Keys
 
-#### `providers`
+#### `providers[]`
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -80,8 +83,8 @@ Example:
 ```yaml
 providers:
   - environments:
-    - dev
-    - stage
+      - dev
+      - stage
 ```
 
 #### `providers[].autoInject`

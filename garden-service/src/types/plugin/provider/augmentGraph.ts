@@ -9,7 +9,7 @@
 import { PluginActionParamsBase, actionParamsSchema } from "../base"
 import { dedent } from "../../../util/string"
 import { joi, joiArray, joiIdentifier } from "../../../config/common"
-import { baseModuleSpecSchema, AddModuleSpec, modulePathSchema } from "../../../config/module"
+import { baseModuleSpecSchema, AddModuleSpec } from "../../../config/module"
 import { Provider, providerSchema } from "../../../config/provider"
 import { Module, moduleSchema } from "../../module"
 
@@ -29,9 +29,7 @@ export interface AugmentGraphResult {
   addModules?: AddModuleSpec[]
 }
 
-const addModuleSchema = baseModuleSpecSchema.keys({
-  path: modulePathSchema,
-})
+export const addModuleSchema = baseModuleSpecSchema
 
 export const augmentGraph = {
   description: dedent`
@@ -111,7 +109,7 @@ export const augmentGraph = {
         dedent`
           Add modules (of any defined kind) to the stack graph. Each should be a module spec in the same format as
           a normal module specified in a \`garden.yml\` config file (which will later be passed to the appropriate
-          \`configure\` handler(s) for the module type), with the addition of \`path\` being required.
+          \`configure\` handler(s) for the module type).
 
           The added modules can be referenced in \`addBuildDependencies\`, and their services/tasks can be referenced
           in \`addRuntimeDependencies\`.

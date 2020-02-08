@@ -28,7 +28,7 @@ import { ConfigurationError, ParameterError } from "../exceptions"
 import { PrimitiveMap } from "./common"
 import { cloneDeep, omit } from "lodash"
 import { providerConfigBaseSchema, ProviderConfig } from "./provider"
-import { DEFAULT_API_VERSION } from "../constants"
+import { DEFAULT_API_VERSION, DOCS_BASE_URL } from "../constants"
 import { defaultDotIgnoreFiles } from "../util/fs"
 import { pathExists, readFile } from "fs-extra"
 import { resolve } from "path"
@@ -37,33 +37,40 @@ export const defaultVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
 
 // These plugins are always loaded
-const fixedPlugins = ["exec", "container"]
+export const fixedPlugins = ["exec", "container"]
 
 export interface CommonEnvironmentConfig {
   providers?: ProviderConfig[] // further validated by each plugin
   variables: { [key: string]: Primitive }
 }
 
-export const environmentConfigSchema = joi.object().keys({
+const environmentConfigKeys = {
   providers: joiArray(providerConfigBaseSchema)
     .unique("name")
     .meta({ deprecated: true }).description(deline`
         DEPRECATED - Please use the top-level \`providers\` field instead, and if needed use the \`environments\` key
         on the provider configurations to limit them to specific environments.
       `),
-  varfile: joi.posixPath().description(dedent`
+  varfile: joi
+    .posixPath()
+    .description(
+      dedent`
         Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
         _environment-specific_ \`variables\` field. The file should be in a standard "dotenv" format, specified
         [here](https://github.com/motdotla/dotenv#rules).
 
         If you don't set the field and the \`${defaultEnvVarfilePath("<env-name>")}\` file does not exist,
         we simply ignore it. If you do override the default value and the file doesn't exist, an error will be thrown.
-      `),
+      `
+    )
+    .example("custom.env"),
   variables: joiVariables().description(deline`
         A key/value map of variables that modules can reference when using this environment. These take precedence
         over variables defined in the top-level \`variables\` field.
       `),
-})
+}
+
+export const environmentConfigSchema = joi.object().keys(environmentConfigKeys)
 
 export interface EnvironmentConfig extends CommonEnvironmentConfig {
   name: string
@@ -74,10 +81,15 @@ export interface EnvironmentConfig extends CommonEnvironmentConfig {
 export const environmentNameSchema = joiUserIdentifier()
   .required()
   .description("The name of the environment.")
+  .example("dev")
 
-export const environmentSchema = environmentConfigSchema.keys({
+export const environmentSchema = joi.object().keys({
   name: environmentNameSchema,
-  production: joi.boolean().default(false).description(dedent`
+  production: joi
+    .boolean()
+    .default(false)
+    .description(
+      dedent`
       Flag the environment as a production environment.
 
       Setting this flag to \`true\` will activate the protection on the \`deploy\`, \`test\`, \`task\`, \`build\`,
@@ -87,17 +99,22 @@ export const environmentSchema = environmentConfigSchema.keys({
 
       This flag is also passed on to every provider, and may affect how certain providers behave.
       For more details please check the documentation for the providers in use.
-      `),
+      `
+    )
+    .example(true),
+  ...environmentConfigKeys,
 })
 
-const environmentsSchema = joi.alternatives(
-  joi
-    .array()
-    .items(environmentSchema)
-    .unique("name"),
-  // Allow a string as a shorthand for { name: foo }
-  joi.array().items(joiUserIdentifier())
-)
+export const environmentsSchema = joi
+  .alternatives(
+    joi
+      .array()
+      .items(environmentSchema)
+      .unique("name"),
+    // Allow a string as a shorthand for { name: foo }
+    joi.array().items(joiUserIdentifier())
+  )
+  .description("A list of environments to configure for the project.")
 
 export interface SourceConfig {
   name: string
@@ -107,7 +124,8 @@ export interface SourceConfig {
 export const projectSourceSchema = joi.object().keys({
   name: joiUserIdentifier()
     .required()
-    .description("The name of the source to import"),
+    .description("The name of the source to import")
+    .example("my-external-repo"),
   repositoryUrl: joiRepositoryUrl().required(),
 })
 
@@ -178,13 +196,9 @@ const projectModulesSchema = joi.object().keys({
       dedent`
         Specify a list of POSIX-style paths or globs that should be scanned for Garden modules.
 
-        Note that you can also _exclude_ path using the \`exclude\` field or by placing \`.gardenignore\` files in your
-        source tree, which use the same format as \`.gitignore\` files. See the
-        [Configuration Files guide](${includeGuideLink}) for details.
+        Note that you can also _exclude_ path using the \`exclude\` field or by placing \`.gardenignore\` files in your source tree, which use the same format as \`.gitignore\` files. See the [Configuration Files guide](${includeGuideLink}) for details.
 
-        Unlike the \`exclude\` field, the paths/globs specified here have _no effect_ on which files and directories
-        Garden watches for changes. Use the \`exclude\` field to affect those, if you have large directories that
-        should not be watched for changes.
+        Unlike the \`exclude\` field, the paths/globs specified here have _no effect_ on which files and directories Garden watches for changes. Use the \`exclude\` field to affect those, if you have large directories that should not be watched for changes.
 
         Also note that specifying an empty list here means _no paths_ should be included.`
     )
@@ -201,21 +215,11 @@ const projectModulesSchema = joi.object().keys({
       dedent`
         Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for modules.
 
-        The filters here also affect which files and directories are watched for changes. So if you have a large number
-        of directories in your project that should not be watched, you should specify them here.
+        The filters here also affect which files and directories are watched for changes. So if you have a large number of directories in your project that should not be watched, you should specify them here.
 
-        For example, you might want to exclude large vendor directories in your project from being scanned and
-        watched:
+        For example, you might want to exclude large vendor directories in your project from being scanned and watched, by setting \`exclude: [node_modules/**/*, vendor/**/*]\`.
 
-        \`\`\`yaml
-        modules:
-          exclude:
-            - node_modules/**/*
-            - vendor/**/*
-        \`\`\`
-
-        Note that you can also explicitly _include_ files using the \`include\` field. If you also specify the
-        \`include\` field, the paths/patterns specified here are filtered from the files matched by \`include\`.
+        Note that you can also explicitly _include_ files using the \`include\` field. If you also specify the \`include\` field, the paths/patterns specified here are filtered from the files matched by \`include\`.
 
         The \`include\` field does _not_ affect which files are watched.
 
@@ -230,7 +234,8 @@ const projectOutputSchema = joi.object().keys({
     .string()
     .max(255)
     .required()
-    .description("The name of the output value."),
+    .description("The name of the output value.")
+    .example("my-output-key"),
   value: joiPrimitive()
     .required()
     .description(
@@ -238,10 +243,11 @@ const projectOutputSchema = joi.object().keys({
         The value for the output. Must be a primitive (string, number, boolean or null). May also be any valid template
         string.
       `
-    ),
+    )
+    .example("${modules.my-module.outputs.some-output}"),
 })
 
-export const projectSchema = joi
+export const projectDocsSchema = joi
   .object()
   .keys({
     apiVersion: joi
@@ -252,21 +258,39 @@ export const projectSchema = joi
     kind: joi
       .string()
       .default("Project")
-      .valid("Project"),
+      .valid("Project")
+      .description("Indicate what kind of config this is."),
     path: projectRootSchema.meta({ internal: true }),
     configPath: joi
       .string()
       .meta({ internal: true })
       .description("The path to the project config file."),
     name: projectNameSchema,
+    // Note: We provide a different schema below for actual validation, but need to define it this way for docs
+    // because joi.alternatives() isn't handled well in the doc generation.
+    environments: joi
+      .array()
+      .items(environmentSchema)
+      .description((<any>environmentsSchema.describe().flags).description),
+    providers: joiArray(providerConfigBaseSchema).description(
+      "A list of providers that should be used for this project, and their configuration. " +
+        "Please refer to individual plugins/providers for details on how to configure them."
+    ),
     defaultEnvironment: joi
       .string()
       .allow("")
-      .default("").description(deline`
+      .default("")
+      .description(
+        deline`
         The default environment to use when calling commands without the \`--env\` parameter.
         Defaults to the first configured environment.
-      `),
-    dotIgnoreFiles: joiArray(joi.posixPath().filenameOnly()).default(defaultDotIgnoreFiles).description(deline`
+      `
+      )
+      .example("dev"),
+    dotIgnoreFiles: joiArray(joi.posixPath().filenameOnly())
+      .default(defaultDotIgnoreFiles)
+      .description(
+        deline`
         Specify a list of filenames that should be used as ".ignore" files across the project, using the same syntax and
         semantics as \`.gitignore\` files. By default, patterns matched in \`.gitignore\` and \`.gardenignore\`
         files, found anywhere in the project, are ignored when scanning for modules and module sources.
@@ -274,36 +298,30 @@ export const projectSchema = joi
         Note that these take precedence over the project \`module.include\` field, and module \`include\` fields,
         so any paths matched by the .ignore files will be ignored even if they are explicitly specified in those fields.
 
-        See the [Configuration Files guide]
-        (https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)
+        See the [Configuration Files guide](${DOCS_BASE_URL}/guides/configuration-files#including-excluding-files-and-directories)
         for details.
-      `),
-    environments: environmentsSchema
-      .description("A list of environments to configure for the project.")
-      .example(defaultEnvironments),
-    modules: projectModulesSchema,
+      `
+      )
+      .example([".gardenignore", ".customignore"]),
+    modules: projectModulesSchema.description("Control where to scan for modules in the project."),
     outputs: joiArray(projectOutputSchema)
       .unique("name")
       .description(
         dedent`
-        A list of output values that the project should export. These are exported by the \`garden get outputs\` command,
-        as well as when referencing a project as a sub-project within another project.
+        A list of output values that the project should export. These are exported by the \`garden get outputs\` command, as well as when referencing a project as a sub-project within another project.
 
         You may use any template strings to specify the values, including references to provider outputs, module
-        outputs and runtime outputs. For a full reference, see the
-        [Output configuration context](../reference/template-strings.md#output-configuration-context) section in the
-        Template String Reference.
+        outputs and runtime outputs. For a full reference, see the [Output configuration context](${DOCS_BASE_URL}/reference/template-strings#output-configuration-context) section in the Template String Reference.
 
-        Note that if any runtime outputs are referenced, the referenced services and tasks will be deployed and run
-        if necessary when resolving the outputs.
+        Note that if any runtime outputs are referenced, the referenced services and tasks will be deployed and run if necessary when resolving the outputs.
         `
       ),
-    providers: joiArray(providerConfigBaseSchema).description(
-      "A list of providers that should be used for this project, and their configuration. " +
-        "Please refer to individual plugins/providers for details on how to configure them."
-    ),
     sources: projectSourcesSchema,
-    varfile: joi.posixPath().default(defaultVarfilePath).description(dedent`
+    varfile: joi
+      .posixPath()
+      .default(defaultVarfilePath)
+      .description(
+        dedent`
         Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
         project-wide \`variables\` field. The file should be in a standard "dotenv" format, specified
         [here](https://github.com/motdotla/dotenv#rules).
@@ -313,13 +331,19 @@ export const projectSchema = joi
 
         _Note that in many cases it is advisable to only use environment-specific var files, instead of combining
         multiple ones. See the \`environments[].varfile\` field for this option._
-      `),
+      `
+      )
+      .example("custom.env"),
     variables: joiVariables().description("Variables to configure for all environments."),
   })
   .required()
   .description(
     "Configuration for a Garden project. This should be specified in the garden.yml file in your project root."
   )
+
+export const projectSchema = projectDocsSchema.keys({
+  environments: environmentsSchema,
+})
 
 /**
  * Resolves and validates the given raw project configuration, and returns it in a canonical form.

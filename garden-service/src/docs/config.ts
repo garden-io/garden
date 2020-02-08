@@ -6,56 +6,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi = require("@hapi/joi")
-import { readFileSync, writeFileSync } from "fs"
+import Joi from "@hapi/joi"
+import { readFileSync } from "fs"
 import { safeDump } from "js-yaml"
 import linewrap from "linewrap"
 import { resolve } from "path"
-import { projectSchema, environmentSchema } from "../config/project"
-import { get, flatten, startCase, uniq, keyBy, find, isFunction, extend } from "lodash"
+import { projectDocsSchema } from "../config/project"
+import { get, flatten, uniq, find, isFunction, extend } from "lodash"
 import { baseModuleSpecSchema } from "../config/module"
 import handlebars = require("handlebars")
-import { joiArray, joi } from "../config/common"
-import { Garden } from "../garden"
+import { joi } from "../config/common"
 import { GARDEN_SERVICE_ROOT } from "../constants"
-import { indent, renderMarkdownTable } from "./util"
-import { ModuleContext, ServiceRuntimeContext, TaskRuntimeContext } from "../config/config-context"
-import { defaultDotIgnoreFiles } from "../util/fs"
-import { providerConfigBaseSchema } from "../config/provider"
-import { GardenPlugin, ModuleTypeDefinition, PluginMap } from "../types/plugin/plugin"
-import { getPluginBases } from "../plugins"
+import { indent, renderMarkdownTable, convertMarkdownLinks } from "./util"
 
 export const TEMPLATES_DIR = resolve(GARDEN_SERVICE_ROOT, "src", "docs", "templates")
 const partialTemplatePath = resolve(TEMPLATES_DIR, "config-partial.hbs")
 
-const populateModuleSchema = (schema: Joi.ObjectSchema) => baseModuleSpecSchema.concat(schema)
-
-const populateProviderSchema = (schema: Joi.ObjectSchema) =>
-  joi.object().keys({
-    providers: joiArray(schema),
-  })
-
 const maxWidth = 120
-const moduleTypes = [
-  { name: "exec" },
-  { name: "container" },
-  { name: "conftest", pluginName: "conftest" },
-  { name: "hadolint" },
-  { name: "helm", pluginName: "local-kubernetes" },
-  { name: "kubernetes", pluginName: "local-kubernetes" },
-  { name: "maven-container" },
-  { name: "openfaas", pluginName: "local-kubernetes" },
-  { name: "terraform" },
-]
-
-interface RenderOpts {
-  level?: number
-  renderRequired?: boolean
-  renderBasicDescription?: boolean
-  renderFullDescription?: boolean
-  renderEllipsisBetweenKeys?: boolean
-  useExampleForValue?: boolean
-}
 
 // Need this to fix the Joi typing
 export interface Description extends Joi.Description {
@@ -73,6 +40,8 @@ export interface Description extends Joi.Description {
 export interface NormalizedSchemaDescription extends Description {
   required: boolean
   defaultValue?: string
+  deprecated: boolean
+  fullKey: string
   hasChildren: boolean
   allowedValues?: string
   description?: string
@@ -173,11 +142,16 @@ function normalizeKeyDescription(schemaDescription: Description): NormalizedSche
     }
   }
 
+  const metas: any = extend({}, ...(schemaDescription.metas || []))
   const formattedName = type === "array" ? `${schemaDescription.name}[]` : schemaDescription.name
+
+  const fullKey = schemaDescription.parent ? `${schemaDescription.parent.fullKey}.${formattedName}` : formattedName
 
   return {
     ...schemaDescription,
+    deprecated: schemaDescription.parent?.deprecated || !!metas.deprecated,
     description: schemaDescription.flags?.description,
+    fullKey,
     formattedName,
     formattedType,
     defaultValue,
@@ -227,35 +201,22 @@ function getParentDescriptions(
   return schemaDescriptions
 }
 
-function renderMarkdownTitle(description: NormalizedSchemaDescription, prefix = "") {
-  const parentDescriptions = getParentDescriptions(description)
-  const title =
-    parentDescriptions.length > 0
-      ? `${parentDescriptions.map((d) => d.formattedName).join(".")}.${description.formattedName}`
-      : description.name
-  return prefix + title
-}
-
 export function renderMarkdownLink(description: NormalizedSchemaDescription) {
-  const path = renderMarkdownTitle(description)
+  const path = description.fullKey
     .replace(/\s+/g, "-") // Replace " " with "-""
     .replace(/[\.\[\]\<\>]/g, "") // Replace ".", "[]" and "<>" with ""
     .toLowerCase()
   return `[${description.name}](#${path})`
 }
 
-function makeMarkdownDescription(
-  description: NormalizedSchemaDescription,
-  { titlePrefix = "", showRequiredColumn = true } = {}
-) {
-  const { formattedType, required, allowedValues, defaultValue } = description
+function makeMarkdownDescription(description: NormalizedSchemaDescription, { showRequiredColumn = true } = {}) {
+  const { formattedType, required, allowedValues, defaultValue, fullKey } = description
   let experimentalFeature = false
   if (description.meta) {
     experimentalFeature = find(description.meta, (attr) => attr.experimental) || false
   }
 
   const parentDescriptions = getParentDescriptions(description)
-  const title = renderMarkdownTitle(description, titlePrefix)
   const breadCrumbs =
     parentDescriptions.length > 0
       ? parentDescriptions
@@ -268,7 +229,7 @@ function makeMarkdownDescription(
   if (description.formattedExample) {
     formattedExample = renderSchemaDescriptionYaml([...parentDescriptions, description], {
       renderFullDescription: false,
-      useExampleForValue: true,
+      renderValue: "example",
       renderEllipsisBetweenKeys: true,
     }).replace(/\n$/, "") // strip trailing new line
   }
@@ -290,25 +251,49 @@ function makeMarkdownDescription(
     breadCrumbs,
     experimentalFeature,
     formattedExample,
-    title,
+    title: fullKey,
     table,
   }
+}
+
+interface RenderYamlOpts {
+  // Comment out any keys that don't have a value set in `values`
+  commentOutEmpty?: boolean
+  // Convert markdown links encountered in descriptions to just normal links
+  filterMarkdown?: boolean
+  level?: number
+  // Values to pre-populate keys with
+  presetValues?: { [key: string]: any }
+  renderRequired?: boolean
+  renderBasicDescription?: boolean
+  renderFullDescription?: boolean
+  renderEllipsisBetweenKeys?: boolean
+  renderValue?: "none" | "default" | "example" | "preferDefault" | "preferExample"
 }
 
 export function renderSchemaDescriptionYaml(
   schemaDescriptions: NormalizedSchemaDescription[],
   {
+    commentOutEmpty = false,
+    filterMarkdown = false,
+    presetValues = {},
     renderBasicDescription = false,
     renderFullDescription = true,
     renderRequired = true,
     renderEllipsisBetweenKeys = false,
-    useExampleForValue = false,
-  }: RenderOpts
+    renderValue = "default",
+  }: RenderYamlOpts
 ) {
   let prevDesc: NormalizedSchemaDescription
 
+  // Skip all deprecated fields
+  schemaDescriptions = schemaDescriptions.filter((desc) => !desc.deprecated)
+
+  // This is a little hacky, but works for our purposes
+  const getPresetValue = (desc: NormalizedSchemaDescription) => get(presetValues, desc.fullKey.replace(/\[\]/g, "[0]"))
+
   const output = schemaDescriptions.map((desc) => {
-    const {
+    let {
       description,
       formattedExample: example,
       formattedType,
@@ -330,16 +315,42 @@ export function renderSchemaDescriptionYaml(
     const isFirstArrayItem = isArrayItem && isFirstChild
     const isPrimitive = type !== "array" && type !== "object"
 
-    const stringifiedDefaultVal = useExampleForValue
-      ? example
-      : JSON.stringify(isFunction(defaultValue) ? defaultValue() : defaultValue)
-    const exceptionallyTreatAsPrimitive =
-      !hasChildren && (stringifiedDefaultVal === "[]" || stringifiedDefaultVal === "{}")
+    const presetValue = getPresetValue(desc)
+
+    let value: string | string[] | undefined
+    let usingExampleForValue = false
+    const renderedDefault = isFunction(defaultValue) ? defaultValue() : defaultValue
+
+    if (presetValue) {
+      // Prefer preset value if given
+      value = presetValue
+    } else if (renderValue === "none") {
+      value = undefined
+    } else if (renderValue === "default") {
+      value = renderedDefault
+    } else if (renderValue === "example") {
+      usingExampleForValue = true
+      value = example || ""
+    } else if (renderValue === "preferDefault") {
+      if (defaultValue) {
+        value = renderedDefault
+      } else if (example) {
+        usingExampleForValue = true
+        value = example
+      }
+    } else if (renderValue === "preferExample") {
+      if (example) {
+        usingExampleForValue = true
+        value = example
+      } else if (defaultValue) {
+        value = renderedDefault
+      }
+    }
 
     // Prepend new line if applicable (easier then appending). We skip the new line if comments not shown.
     if (prevDesc && (renderBasicDescription || renderFullDescription)) {
-      // Print new line between keys unless the next key is the first child of the parent key or an array item
-      if (!isFirstChild && (!isArrayItem || isFirstArrayItem)) {
+      // Print new line between keys unless the next key is the first child of the parent key
+      if (!isFirstChild && !isFirstArrayItem) {
         out.push("")
       }
     }
@@ -349,6 +360,11 @@ export function renderSchemaDescriptionYaml(
       out.push("...")
     }
 
+    if (description && filterMarkdown) {
+      // Parse and extract links from the markdown
+      description = convertMarkdownLinks(description)
+    }
+
     // Only print the description
     if (renderBasicDescription) {
       description && comment.push(description)
@@ -356,7 +372,7 @@ export function renderSchemaDescriptionYaml(
     } else if (renderFullDescription) {
       description && comment.push(description, "")
       comment.push(`Type: ${formattedType}`, "")
-      if (example && !useExampleForValue) {
+      if (example && !usingExampleForValue) {
         if (isPrimitive) {
           // Render example inline
           comment.push(`Example: ${example}`, "")
@@ -370,29 +386,33 @@ export function renderSchemaDescriptionYaml(
     }
 
     if (comment.length > 0) {
-      const wrap = linewrap(width - 2, { whitespace: "line" })
+      const prefix = "# "
+      const wrap = linewrap(width - prefix.length, { whitespace: "line" })
       const formattedComment = wrap(comment.join("\n"))
         .split("\n")
-        .map((line) => "# " + line)
+        .map((line: string) => prefix + line)
       out.push(...formattedComment)
     }
 
     // Render key name and value
-    const formattedName = isFirstArrayItem ? "- " + name : name
-    let value: string | string[] | undefined
+    const formattedName = name
+    const stringifiedValue = JSON.stringify(value)
+    const exceptionallyTreatAsPrimitive = !hasChildren && (stringifiedValue === "[]" || stringifiedValue === "{}")
 
-    if (example && useExampleForValue) {
+    let formattedValue: string | string[]
+
+    if (example && usingExampleForValue) {
       const levels = type === "object" ? 2 : 1
-      value = isPrimitive || exceptionallyTreatAsPrimitive ? example : indent(example.split("\n"), levels)
+      formattedValue = isPrimitive || exceptionallyTreatAsPrimitive ? example : indent(example.split("\n"), levels)
     } else {
       // Non-primitive values get rendered in the line below, indented by one
-      if (defaultValue === undefined) {
-        value = ""
+      if (value === undefined) {
+        formattedValue = ""
       } else if (isPrimitive || exceptionallyTreatAsPrimitive) {
-        value = safeDump(defaultValue)
+        formattedValue = safeDump(value)
       } else {
-        value = indent(
-          safeDump(defaultValue)
+        formattedValue = indent(
+          safeDump(value)
             .trim()
             .split("\n"),
           1
@@ -400,24 +420,48 @@ export function renderSchemaDescriptionYaml(
       }
     }
 
+    let keyAndValue: string[] = []
+
     if (isPrimitive || exceptionallyTreatAsPrimitive) {
       // For primitives we render the value or example inline
-      out.push(`${formattedName}: ${value}`)
-    } else if (!hasChildren || (example && useExampleForValue)) {
+      keyAndValue.push(`${formattedName}: ${formattedValue}`)
+    } else if (!hasChildren || (example && usingExampleForValue)) {
       // For arrays or objects without children, or non-primitive examples, we render the value in the line below
-      out.push(`${formattedName}:`, ...value)
+      keyAndValue.push(`${formattedName}:`, ...formattedValue)
     } else {
       // For arrays or objects with children we only print the key, the value is the next key in the descriptions array.
-      out.push(`${formattedName}:`)
+      keyAndValue.push(`${formattedName}:`)
     }
+
+    if (commentOutEmpty && !presetValue) {
+      if (renderBasicDescription || renderFullDescription) {
+        out.push("#")
+      }
+      keyAndValue = keyAndValue.map((line) => "# " + line)
+    }
+
+    out.push(...keyAndValue)
 
     prevDesc = desc
 
-    // Dedent first array item to account for the "-" sign
-    const lvl = isFirstArrayItem ? level - 1 : level
-    return indent(out, lvl)
-      .map((line) => line.trimRight())
-      .join("\n")
+    let indented: string[]
+
+    if (isFirstArrayItem) {
+      // Add "- " prefix for the first array item
+      let prefix = "- "
+
+      // Comment out the prefix if everything in the array will be commented out. Otherwise the output file
+      // will include unwanted null values.
+      if (commentOutEmpty && parent && !getPresetValue(parent)) {
+        prefix = "#-"
+      }
+
+      indented = indent([prefix + out[0], ...indent(out.slice(1), 1)], level - 1).map((line) => line.trimRight())
+    } else {
+      indented = indent(out, level).map((line) => line.trimRight())
+    }
+
+    return indented.join("\n")
   })
 
   const schemaDescriptionYaml = output.join("\n")
@@ -438,16 +482,21 @@ export function renderSchemaDescriptionYaml(
   return sanitizeYamlStringForGitBook(schemaDescriptionYaml)
 }
 
+interface RenderConfigOpts {
+  titlePrefix?: string
+  yamlOpts?: RenderYamlOpts
+}
+
 /**
  * Generates the config reference from the config-partial.hbs template.
  * The config reference contains a list of keys and their description in Markdown
  * and a YAML schema.
  */
-export function renderConfigReference(configSchema: Joi.ObjectSchema, titlePrefix = "") {
+export function renderConfigReference(configSchema: Joi.ObjectSchema, { yamlOpts = {} }: RenderConfigOpts = {}) {
   const normalizedDescriptions = normalizeSchemaDescriptions(configSchema.describe() as Description)
 
-  const yaml = renderSchemaDescriptionYaml(normalizedDescriptions, { renderBasicDescription: true })
-  const keys = normalizedDescriptions.map((d) => makeMarkdownDescription(d, { titlePrefix }))
+  const yaml = renderSchemaDescriptionYaml(normalizedDescriptions, { renderBasicDescription: true, ...yamlOpts })
+  const keys = normalizedDescriptions.map((d) => makeMarkdownDescription(d))
 
   const template = handlebars.compile(readFileSync(partialTemplatePath).toString())
   return { markdownReference: template({ keys }), yaml }
@@ -487,6 +536,7 @@ export function renderTemplateStringReference({
 
       if (d.type === "object") {
         d.title += ".*"
+        d.formattedExample = ""
       } else if (d.formattedExample) {
         let exampleTitle = orgTitle
 
@@ -512,121 +562,14 @@ export function renderTemplateStringReference({
   return template({ keys })
 }
 
-/**
- * Generates the provider reference from the provider.hbs template.
- * The reference includes the rendered output from the config-partial.hbs template.
- */
-function renderProviderReference(name: string, plugin: GardenPlugin, allPlugins: PluginMap) {
-  let configSchema = plugin.configSchema
-
-  // If the plugin doesn't specify its own config schema, we need to walk through its bases to get a schema to document
-  if (!configSchema) {
-    for (const base of getPluginBases(plugin, allPlugins)) {
-      if (base.configSchema) {
-        configSchema = base.configSchema
-        break
-      }
-    }
-  }
-
-  const schema = populateProviderSchema(configSchema || providerConfigBaseSchema)
-  const docs = plugin.docs || ""
-
-  const moduleOutputsSchema = plugin.outputsSchema
-
-  const providerTemplatePath = resolve(TEMPLATES_DIR, "provider.hbs")
-  const { markdownReference, yaml } = renderConfigReference(schema)
-
-  const moduleOutputsReference =
-    moduleOutputsSchema &&
-    renderTemplateStringReference({
-      schema: joi.object().keys({
-        outputs: moduleOutputsSchema.required(),
-      }),
-      prefix: "providers",
-      placeholder: "<provider-name>",
-      exampleName: "my-provider",
-    })
-
-  const template = handlebars.compile(readFileSync(providerTemplatePath).toString())
-  const frontmatterTitle = name
-  return template({ name, docs, frontmatterTitle, markdownReference, yaml, moduleOutputsReference })
-}
-
-/**
- * Generates the module types reference from the module-type.hbs template.
- * The reference includes the rendered output from the config-partial.hbs template.
- */
-function renderModuleTypeReference(name: string, definitions: { [name: string]: ModuleTypeDefinition }) {
-  const desc = definitions[name]
-  let { schema, docs } = desc
-
-  if (!schema) {
-    schema = joi
-      .object()
-      .keys({})
-      .unknown(false)
-  }
-
-  const moduleTemplatePath = resolve(TEMPLATES_DIR, "module-type.hbs")
-  const { markdownReference, yaml } = renderConfigReference(populateModuleSchema(schema))
-
-  // Get each schema from the module definitions, or the nearest base schema
-  const getOutputsSchema = (
-    spec: ModuleTypeDefinition,
-    type: "moduleOutputsSchema" | "serviceOutputsSchema" | "taskOutputsSchema"
-  ): Joi.ObjectSchema => {
-    const outputsSchema = desc[type]
-
-    if (outputsSchema) {
-      return outputsSchema
-    } else if (spec.base) {
-      return getOutputsSchema(definitions[spec.base], type)
-    } else {
-      return joi.object()
-    }
-  }
-
-  const moduleOutputsReference = renderTemplateStringReference({
-    schema: ModuleContext.getSchema().keys({
-      outputs: getOutputsSchema(desc, "moduleOutputsSchema").required(),
+export function renderProjectConfigReference(opts: RenderConfigOpts = {}) {
+  return renderConfigReference(
+    projectDocsSchema.keys({
+      // Hide this from docs until we actually use it
+      apiVersion: joi.string().meta({ internal: true }),
     }),
-    prefix: "modules",
-    placeholder: "<module-name>",
-    exampleName: "my-module",
-  })
-
-  const serviceOutputsReference = renderTemplateStringReference({
-    schema: ServiceRuntimeContext.getSchema().keys({
-      outputs: getOutputsSchema(desc, "serviceOutputsSchema").required(),
-    }),
-    prefix: "runtime.services",
-    placeholder: "<service-name>",
-    exampleName: "my-service",
-  })
-
-  const taskOutputsReference = renderTemplateStringReference({
-    schema: TaskRuntimeContext.getSchema().keys({
-      outputs: getOutputsSchema(desc, "taskOutputsSchema").required(),
-    }),
-    prefix: "runtime.tasks",
-    placeholder: "<task-name>",
-    exampleName: "my-tasks",
-  })
-
-  const frontmatterTitle = name
-  const template = handlebars.compile(readFileSync(moduleTemplatePath).toString())
-  return template({
-    frontmatterTitle,
-    name,
-    docs,
-    markdownReference,
-    yaml,
-    hasOutputs: moduleOutputsReference || serviceOutputsReference || taskOutputsReference,
-    moduleOutputsReference,
-    serviceOutputsReference,
-    taskOutputsReference,
-  })
+    opts
+  )
 }
 
 /**
@@ -634,96 +577,11 @@ function renderModuleTypeReference(name: string, definitions: { [name: string]: 
  * The reference includes the rendered output from the config-partial.hbs template for
  * the base project and base module schemas.
  */
-function renderBaseConfigReference() {
+export function renderBaseConfigReference() {
   const baseTemplatePath = resolve(TEMPLATES_DIR, "base-config.hbs")
-  const { markdownReference: projectMarkdownReference, yaml: projectYaml } = renderConfigReference(
-    projectSchema.keys({
-      // Need to override this because we currently don't handle joi.alternatives() right
-      environments: joi
-        .array()
-        .items(environmentSchema)
-        .unique("name"),
-    })
-  )
+  const { markdownReference: projectMarkdownReference, yaml: projectYaml } = renderProjectConfigReference()
   const { markdownReference: moduleMarkdownReference, yaml: moduleYaml } = renderConfigReference(baseModuleSpecSchema)
 
   const template = handlebars.compile(readFileSync(baseTemplatePath).toString())
   return template({ projectMarkdownReference, projectYaml, moduleMarkdownReference, moduleYaml })
-}
-
-export async function writeConfigReferenceDocs(docsRoot: string) {
-  // tslint:disable: no-console
-  const referenceDir = resolve(docsRoot, "reference")
-  const configPath = resolve(referenceDir, "config.md")
-
-  const garden = await Garden.factory(__dirname, {
-    config: {
-      path: __dirname,
-      apiVersion: "garden.io/v0",
-      kind: "Project",
-      name: "generate-docs",
-      defaultEnvironment: "default",
-      dotIgnoreFiles: defaultDotIgnoreFiles,
-      variables: {},
-      environments: [
-        {
-          name: "default",
-          variables: {},
-        },
-      ],
-      providers: [
-        { name: "conftest" },
-        { name: "conftest-container" },
-        { name: "conftest-kubernetes" },
-        { name: "hadolint" },
-        { name: "kubernetes" },
-        { name: "local-kubernetes" },
-        { name: "maven-container" },
-        { name: "openfaas" },
-        { name: "terraform" },
-      ],
-    },
-  })
-
-  const providerDir = resolve(docsRoot, "providers")
-  const plugins = await garden.getPlugins()
-  const pluginsByName = keyBy(plugins, "name")
-  const providersReadme = ["---", "order: 6", "title: Providers", "---", "", "# Providers", ""]
-
-  for (const plugin of plugins) {
-    const name = plugin.name
-
-    // Currently nothing to document for these
-    if (name === "container" || name === "exec") {
-      continue
-    }
-
-    const path = resolve(providerDir, `${name}.md`)
-    console.log("->", path)
-    writeFileSync(path, renderProviderReference(name, plugin, pluginsByName))
-
-    providersReadme.push(`* [${name}](./${name}.md)`)
-  }
-  writeFileSync(resolve(providerDir, `README.md`), providersReadme.join("\n"))
-
-  // Render module types
-  const moduleTypeDir = resolve(docsRoot, "module-types")
-  const readme = ["---", "order: 7", "title: Module Types", "---", "", "# Module Types", ""]
-  const moduleTypeDefinitions = await garden.getModuleTypes()
-
-  for (const { name } of moduleTypes) {
-    const path = resolve(moduleTypeDir, `${name}.md`)
-    const desc = moduleTypeDefinitions[name]
-
-    console.log("->", path)
-    writeFileSync(path, renderModuleTypeReference(name, moduleTypeDefinitions))
-
-    readme.push(`* [${desc.title || startCase(name.replace("-", " "))}](./${name}.md)`)
-  }
-
-  writeFileSync(resolve(moduleTypeDir, `README.md`), readme.join("\n"))
-
-  // Render base config docs
-  console.log("->", configPath)
-  writeFileSync(configPath, renderBaseConfigReference())
 }

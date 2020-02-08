@@ -51,6 +51,7 @@ describe("commands", () => {
           args: { configPaths: [] },
           opts: withDefaultGlobalOpts({
             root: projectPath,
+            write: false,
           }),
         })
         result = res.result!
@@ -297,6 +298,7 @@ describe("commands", () => {
             args: { configPaths: ["./project-varfile/garden.yml"] },
             opts: withDefaultGlobalOpts({
               root: projectPathErrors,
+              write: false,
             }),
           }),
         (err) => {
@@ -341,6 +343,7 @@ describe("commands", () => {
           args: { configPaths: ["./garden.yml"] },
           opts: withDefaultGlobalOpts({
             root: projectPath,
+            write: false,
           }),
         })
         const specs = res.result!.updatedConfigs[0].specs

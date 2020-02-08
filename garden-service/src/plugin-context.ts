@@ -66,7 +66,8 @@ export const pluginContextSchema = joi
     production: joi
       .boolean()
       .default(false)
-      .description("Indicate if the current environment is a production environment"),
+      .description("Indicate if the current environment is a production environment.")
+      .example(true),
     projectName: projectNameSchema,
     projectRoot: joi.string().description("The absolute path of the project root."),
     projectSources: projectSourcesSchema,

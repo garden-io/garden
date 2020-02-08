@@ -47,6 +47,10 @@ export class CommandError extends GardenBaseError {
   type = "command"
 }
 
+export class FilesystemError extends GardenBaseError {
+  type = "filesystem"
+}
+
 export class LocalConfigError extends GardenBaseError {
   type = "local-config"
 }

@@ -19,6 +19,7 @@ import {
 import { expect } from "chai"
 import dedent = require("dedent")
 import { joiArray, joi, joiEnvVars } from "../../../../src/config/common"
+import { buildDependencySchema } from "../../../../src/config/module"
 
 describe("config", () => {
   const servicePortSchema = joi
@@ -229,12 +230,121 @@ describe("config", () => {
       const yaml = renderSchemaDescriptionYaml(schemaDescriptions, {
         renderFullDescription: false,
         renderEllipsisBetweenKeys: true,
-        useExampleForValue: true,
+        renderValue: "example",
       })
       expect(yaml).to.equal(dedent`
         env:
             foo: bar
             boo: far
+      `)
+    })
+
+    it("should correctly render object with list default", () => {
+      const schema = joi
+        .object()
+        .keys({
+          dependencies: joiArray(buildDependencySchema)
+            .description("A list of modules that must be built before this module is built.")
+            .example([{ name: "some-other-module-name" }]),
+        })
+        .default(() => ({ dependencies: [] }))
+        .description("Specify how to build the module. Note that plugins may define additional keys on this object.")
+
+      const schemaDescriptions = normalizeSchemaDescriptions(schema.describe() as Description)
+      const yaml = renderSchemaDescriptionYaml(schemaDescriptions, {
+        renderFullDescription: false,
+        renderValue: "default",
+      })
+
+      expect(yaml).to.eql(dedent`
+        dependencies:
+          - name:
+            copy:
+              - source:
+                target: ''
+      `)
+    })
+
+    it("should optionally convert markdown links in descriptions to plaintext", () => {
+      const schema = joi.object().keys({
+        dependencies: joi.string().description("Check out [some link](http://example.com)."),
+      })
+
+      const schemaDescriptions = normalizeSchemaDescriptions(schema.describe() as Description)
+      const yaml = renderSchemaDescriptionYaml(schemaDescriptions, {
+        filterMarkdown: true,
+        renderBasicDescription: true,
+        renderValue: "none",
+      })
+
+      expect(yaml).to.eql(dedent`
+        # Check out some link (http://example.com).
+        dependencies:
+      `)
+    })
+
+    it("should optionally convert markdown links to plaintext", () => {
+      const schema = joi.object().keys({
+        dependencies: joi.string().description("Check out [some link](http://example.com)."),
+      })
+
+      const schemaDescriptions = normalizeSchemaDescriptions(schema.describe() as Description)
+      const yaml = renderSchemaDescriptionYaml(schemaDescriptions, {
+        filterMarkdown: true,
+        renderBasicDescription: true,
+        renderValue: "none",
+      })
+
+      expect(yaml).to.eql(dedent`
+        # Check out some link (http://example.com).
+        dependencies:
+      `)
+    })
+
+    it("should set preset values on keys if provided", () => {
+      const schema = joi.object().keys({
+        keyA: joi.string(),
+        keyB: joi.string().default("default-value"),
+        keyC: joi.string(),
+      })
+
+      const schemaDescriptions = normalizeSchemaDescriptions(schema.describe() as Description)
+      const yaml = renderSchemaDescriptionYaml(schemaDescriptions, {
+        filterMarkdown: true,
+        presetValues: { keyC: "foo" },
+        renderBasicDescription: false,
+        renderFullDescription: false,
+        renderValue: "default",
+      })
+
+      expect(yaml).to.eql(dedent`
+        keyA:
+        keyB: default-value
+        keyC: foo
+      `)
+    })
+
+    it("should optionally comment out keys without preset values", () => {
+      const schema = joi.object().keys({
+        keyA: joi.string(),
+        keyB: joi.string().default("default-value"),
+        keyC: joi.string(),
+      })
+
+      const schemaDescriptions = normalizeSchemaDescriptions(schema.describe() as Description)
+      const yaml = renderSchemaDescriptionYaml(schemaDescriptions, {
+        commentOutEmpty: true,
+        filterMarkdown: true,
+        presetValues: { keyC: "foo" },
+        renderBasicDescription: false,
+        renderFullDescription: false,
+        renderValue: "default",
+      })
+
+      expect(yaml).to.eql(dedent`
+        # keyA:
+        # keyB: default-value
+        keyC: foo
       `)
     })
   })
@@ -300,7 +410,7 @@ describe("config", () => {
         | -------- | -------------- | -------- |
         | \`string\` | "b"            | Yes      |
 
-        #### \`testArray\`
+        #### \`testArray[]\`
 
         test array
 
@@ -339,44 +449,54 @@ describe("config", () => {
         level: 0,
         required: false,
         hasChildren: true,
+        fullKey: "happy",
         formattedName: "happy",
         formattedType: "string",
+        deprecated: false,
       }
       const families: NormalizedSchemaDescription = {
         name: "families",
         level: 0,
         required: false,
         hasChildren: true,
+        fullKey: "happy.families[]",
         formattedName: "families[]",
         formattedType: "array",
         parent: happy,
+        deprecated: false,
       }
       const are: NormalizedSchemaDescription = {
         name: "happy",
         level: 0,
         required: false,
         hasChildren: true,
+        fullKey: "happy.families[].are",
         formattedName: "are",
         formattedType: "string",
         parent: families,
+        deprecated: false,
       }
       const all: NormalizedSchemaDescription = {
         name: "all",
         level: 0,
         required: false,
         hasChildren: true,
+        fullKey: "happy.families[].are.all[]",
         formattedName: "all[]",
         formattedType: "array",
         parent: are,
+        deprecated: false,
       }
       const alike: NormalizedSchemaDescription = {
         name: "alike",
         level: 0,
         required: false,
         hasChildren: false,
+        fullKey: "happy.families[].are.all[].alike",
         formattedName: "alike",
         formattedType: "string",
         parent: all,
+        deprecated: false,
       }
 
       expect(renderMarkdownLink(alike)).to.equal(`[alike](#happyfamiliesareallalike)`)

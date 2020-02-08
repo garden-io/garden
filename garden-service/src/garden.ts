@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 import { parse, relative, resolve, dirname } from "path"
-import { flatten, isString, sortBy, fromPairs, keyBy, some } from "lodash"
+import { flatten, isString, sortBy, fromPairs, keyBy } from "lodash"
 const AsyncLock = require("async-lock")
 
 import { TreeCache } from "./cache"
@@ -56,7 +56,7 @@ import { detectCycles, cyclesToString, Dependency } from "./util/validate-depend
 import chalk from "chalk"
 import { RuntimeContext } from "./runtime-context"
 import { ensureDir } from "fs-extra"
-import { loadPlugins, getDependencyOrder } from "./plugins"
+import { loadPlugins, getDependencyOrder, getModuleTypes } from "./plugins"
 import { deline, naturalList } from "./util/string"
 import dedent from "dedent"
 import { ensureConnected } from "./db/connection"
@@ -412,17 +412,7 @@ export class Garden {
     const configNames = keyBy(this.getRawProviderConfigs(), "name")
     const configuredPlugins = plugins.filter((p) => configNames[p.name])
 
-    const definitions = flatten(configuredPlugins.map((p) => p.createModuleTypes))
-    const extensions = flatten(configuredPlugins.map((p) => p.extendModuleTypes))
-
-    return keyBy(
-      definitions.map((definition) => {
-        const typeExtensions = extensions.filter((e) => e.name === definition.name)
-        const needsBuild = !!definition.handlers.build || some(typeExtensions, (e) => !!e.handlers.build)
-        return { ...definition, needsBuild }
-      }),
-      "name"
-    )
+    return getModuleTypes(configuredPlugins)
   }
 
   getRawProviderConfigs() {
@@ -644,7 +634,8 @@ export class Garden {
 
       // Resolve module configs from specs and add to the list
       await Bluebird.map(addModules || [], async (spec) => {
-        const moduleConfig = prepareModuleResource(spec, spec.path, spec.path, this.projectRoot)
+        const path = spec.path || this.projectRoot
+        const moduleConfig = prepareModuleResource(spec, path, path, this.projectRoot)
         moduleConfigs.push(await resolveModuleConfig(this, moduleConfig, opts))
         graph = undefined
       })

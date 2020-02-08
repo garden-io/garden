@@ -25,7 +25,7 @@ describe("RunTaskCommand", () => {
       headerLog: log,
       footerLog: log,
       args: { task: "task-a" },
-      opts: withDefaultGlobalOpts({ "force-build": false }),
+      opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": false }),
     })
 
     const expected = {

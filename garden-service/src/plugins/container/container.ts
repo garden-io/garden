@@ -7,6 +7,7 @@
  */
 
 import dedent = require("dedent")
+import chalk from "chalk"
 import { keyBy } from "lodash"
 
 import { ConfigurationError } from "../../exceptions"
@@ -19,6 +20,9 @@ import { ConfigureModuleParams } from "../../types/plugin/module/configure"
 import { HotReloadServiceParams } from "../../types/plugin/service/hotReloadService"
 import { joi } from "../../config/common"
 import { publishContainerModule } from "./publish"
+import { DOCS_BASE_URL } from "../../constants"
+import { SuggestModulesParams, SuggestModulesResult } from "../../types/plugin/module/suggestModules"
+import { listDirectory } from "../../util/fs"
 
 export const containerModuleOutputsSchema = joi.object().keys({
   "local-image-name": joi
@@ -161,6 +165,26 @@ export async function configureContainerModule({ ctx, log, moduleConfig }: Confi
   return { moduleConfig }
 }
 
+async function suggestModules({ name, path }: SuggestModulesParams): Promise<SuggestModulesResult> {
+  const dockerfiles = (await listDirectory(path, { recursive: false })).filter(
+    (filename) => filename.startsWith("Dockerfile") || filename.endsWith("Dockerfile")
+  )
+
+  return {
+    suggestions: dockerfiles.map((dockerfileName) => {
+      return {
+        description: `based on found ${chalk.white(dockerfileName)}`,
+        module: {
+          kind: "Module",
+          type: "container",
+          name,
+          dockerfile: dockerfileName,
+        },
+      }
+    }),
+  }
+}
+
 export const gardenPlugin = createGardenPlugin({
   name: "container",
   createModuleTypes: [
@@ -172,14 +196,15 @@ export const gardenPlugin = createGardenPlugin({
 
         Note that the runtime services have somewhat limited features in this module type. For example, you cannot
         specify replicas for redundancy, and various platform-specific options are not included. For those, look at
-        other module types like [helm](https://docs.garden.io/module-types/helm) or
-        [kubernetes](https://github.com/garden-io/garden/blob/master/docs/module-types/kubernetes.md).
+        other module types like [helm](${DOCS_BASE_URL}/module-types/helm) or
+        [kubernetes](${DOCS_BASE_URL}/module-types/kubernetes).
       `,
       moduleOutputsSchema: containerModuleOutputsSchema,
       schema: containerModuleSpecSchema,
       taskOutputsSchema,
       handlers: {
         configure: configureContainerModule,
+        suggestModules,
         getBuildStatus: getContainerBuildStatus,
         build: buildContainerModule,
         publish: publishContainerModule,

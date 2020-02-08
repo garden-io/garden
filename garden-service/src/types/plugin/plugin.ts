@@ -41,6 +41,7 @@ import { pluginCommandSchema, PluginCommand } from "./command"
 import { getPortForward, GetPortForwardParams, GetPortForwardResult } from "./service/getPortForward"
 import { StopPortForwardParams, stopPortForward } from "./service/stopPortForward"
 import { AugmentGraphResult, AugmentGraphParams, augmentGraph } from "./provider/augmentGraph"
+import { suggestModules, SuggestModulesParams, SuggestModulesResult } from "./module/suggestModules"
 
 export interface ActionHandlerParamsBase {
   base?: ActionHandler<any, any>
@@ -231,6 +232,7 @@ export const taskActionDescriptions: { [P in TaskActionName]: PluginActionDescri
 
 interface _ModuleActionParams<T extends Module = Module> {
   configure: ConfigureModuleParams<T>
+  suggestModules: SuggestModulesParams
   getBuildStatus: GetBuildStatusParams<T>
   build: BuildModuleParams<T>
   publish: PublishModuleParams<T>
@@ -248,6 +250,7 @@ export type ModuleActionParams<T extends Module = Module> = {
 
 export interface ModuleActionOutputs extends ServiceActionOutputs {
   configure: ConfigureModuleResult
+  suggestModules: SuggestModulesResult
   getBuildStatus: BuildStatus
   build: BuildResult
   publish: PublishResult
@@ -260,6 +263,7 @@ const _moduleActionDescriptions: {
   [P in ModuleActionName | ServiceActionName | TaskActionName]: PluginActionDescription
 } = {
   configure,
+  suggestModules,
   getBuildStatus,
   build,
   publish: publishModule,
@@ -298,6 +302,7 @@ export interface ModuleTypeDefinition extends ModuleTypeExtension {
 }
 
 export interface ModuleType extends ModuleTypeDefinition {
+  plugin: GardenPlugin
   needsBuild: boolean
 }
 

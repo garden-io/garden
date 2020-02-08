@@ -4,11 +4,11 @@ title: maven-container
 
 # `maven-container` Provider
 
-Adds the [maven-container module type](../module-types/maven-container.md), which is a specialized version of the
+Adds the [maven-container module type](https://docs.garden.io/module-types/maven-container), which is a specialized version of the
 `container` module type that has special semantics for building JAR files using Maven.
 
 To use it, simply add the provider to your provider configuration, and refer to the
-[maven-container module docs](../module-types/maven-container.md) for details on how to configure the modules.
+[maven-container module docs](https://docs.garden.io/module-types/maven-container) for details on how to configure the modules.
 
 ## Reference
 
@@ -22,15 +22,16 @@ The values in the schema below are the default values.
 
 ```yaml
 providers:
-  # The name of the provider plugin to use.
-  - name:
+  - # The name of the provider plugin to use.
+    name:
+
     # If specified, this provider will only be used in the listed environments. Note that an empty array effectively
     # disables the provider. To use a provider in all environments, omit this field.
     environments:
 ```
 ### Configuration Keys
 
-#### `providers`
+#### `providers[]`
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -68,7 +69,7 @@ Example:
 ```yaml
 providers:
   - environments:
-    - dev
-    - stage
+      - dev
+      - stage
 ```
 

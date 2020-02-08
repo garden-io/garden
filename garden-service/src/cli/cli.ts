@@ -79,7 +79,7 @@ class DummyGarden extends Garden {
   async scanModules() {}
 }
 
-export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
+export async function makeDummyGarden(root: string, gardenOpts: GardenOpts = {}) {
   const config: ProjectConfig = {
     path: root,
     apiVersion: DEFAULT_API_VERSION,

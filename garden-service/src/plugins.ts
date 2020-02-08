@@ -7,10 +7,17 @@
  */
 
 import { DepGraph } from "dependency-graph"
-import { PluginMap, GardenPlugin, ModuleTypeDefinition, ModuleTypeExtension, pluginSchema } from "./types/plugin/plugin"
+import {
+  PluginMap,
+  GardenPlugin,
+  ModuleTypeDefinition,
+  ModuleTypeExtension,
+  pluginSchema,
+  ModuleTypeMap,
+} from "./types/plugin/plugin"
 import { ProviderConfig } from "./config/provider"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
-import { uniq, mapValues, fromPairs, flatten } from "lodash"
+import { uniq, mapValues, fromPairs, flatten, keyBy, some } from "lodash"
 import { findByName, pushToKey, getNames } from "./util/util"
 import { deline, naturalList } from "./util/string"
 import { validateSchema } from "./config/validation"
@@ -283,6 +290,23 @@ export function getPluginDependencies(plugin: GardenPlugin, loadedPlugins: Plugi
         return [depPlugin, ...getPluginDependencies(depPlugin, loadedPlugins)]
       })
     )
+  )
+}
+
+/**
+ * Returns all the module types defined in the given list of plugins.
+ */
+export function getModuleTypes(plugins: GardenPlugin[]): ModuleTypeMap {
+  const definitions = flatten(plugins.map((p) => p.createModuleTypes.map((spec) => ({ ...spec, plugin: p }))))
+  const extensions = flatten(plugins.map((p) => p.extendModuleTypes))
+
+  return keyBy(
+    definitions.map((definition) => {
+      const typeExtensions = extensions.filter((e) => e.name === definition.name)
+      const needsBuild = !!definition.handlers.build || some(typeExtensions, (e) => !!e.handlers.build)
+      return { ...definition, needsBuild }
+    }),
+    "name"
   )
 }
 
