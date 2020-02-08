@@ -10,6 +10,8 @@ import _dedent = require("dedent")
 import _deline = require("deline")
 import _urlJoin = require("proper-url-join")
 import CliTable from "cli-table3"
+import { getTerminalWidth } from "../logger/util"
+import wrapAnsi from "wrap-ansi"
 
 // Exporting these here for convenience and ease of imports (otherwise we need to require modules instead of using
 // the import syntax, and it for some reason doesn't play nice with IDEs).
@@ -123,4 +125,17 @@ export function renderTable(rows: TableRow[], opts?: CliTable.TableConstructorOp
   // The typings here are a complete mess
   table.push(...(<any>rows))
   return table.toString()
+}
+
+/**
+ * Line wraps the given text.
+ *
+ * @param text the text to wrap
+ * @param maxWidth the maximum width in characters (the terminal width is used if smaller)
+ * @param opts options passed to the `linewrap` library
+ */
+export function wordWrap(text: string, maxWidth: number, opts: any = {}) {
+  const termWidth = getTerminalWidth()
+  const width = maxWidth > termWidth ? termWidth : maxWidth
+  return wrapAnsi(text, width, opts)
 }

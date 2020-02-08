@@ -7,21 +7,26 @@
  */
 
 // These plugins are always registered
-export const builtinPlugins = [
+export const supportedPlugins = [
   require("./conftest/conftest"),
   require("./conftest/conftest-container"),
   require("./conftest/conftest-kubernetes"),
   require("./container/container"),
   require("./exec"),
-  require("./google/google-app-engine"),
-  require("./google/google-cloud-functions"),
   require("./hadolint/hadolint"),
-  require("./local/local-google-cloud-functions"),
   require("./kubernetes/kubernetes"),
   require("./kubernetes/local/local"),
   require("./maven-container/maven-container"),
-  require("./npm-package"),
-  require("./google/google-app-engine"),
   require("./openfaas/openfaas"),
   require("./terraform/terraform"),
 ].map((m) => m.gardenPlugin)
+
+// These plugins are always registered
+export const builtinPlugins = supportedPlugins.concat(
+  [
+    require("./google/google-app-engine"),
+    require("./google/google-cloud-functions"),
+    require("./local/local-google-cloud-functions"),
+    require("./npm-package"),
+  ].map((m) => m.gardenPlugin)
+)

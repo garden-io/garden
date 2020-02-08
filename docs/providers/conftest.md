@@ -10,14 +10,14 @@ The provider creates a module type of the same name, which allows you to specify
 Each module then creates a Garden test that becomes part of your Stack Graph.
 
 Note that, in many cases, you'll actually want to use more specific providers that can automatically configure your
-`conftest` modules, e.g. the [`conftest-container`](./conftest-container.md) and/or
-[`conftest-kubernetes`](./conftest-kubernetes.md) providers. See the
+`conftest` modules, e.g. the [`conftest-container`](https://docs.garden.io/providers/conftest-container) and/or
+[`conftest-kubernetes`](https://docs.garden.io/providers/conftest-kubernetes) providers. See the
 [conftest example project](https://github.com/garden-io/garden/tree/master/examples/conftest) for a simple usage
 example of the latter.
 
 If those don't match your needs, you can use this provider directly and manually configure your `conftest`
 modules. Simply add this provider to your project configuration, and see the
-[conftest module documentation](../module-types/conftest.md) for a detailed reference. Also, check out the below
+[conftest module documentation](https://docs.garden.io/module-types/conftest) for a detailed reference. Also, check out the below
 [reference](#reference) for how to configure default policies, default namespaces, and test failure thresholds for
 all `conftest` modules.
 
@@ -33,22 +33,26 @@ The values in the schema below are the default values.
 
 ```yaml
 providers:
-  # The name of the provider plugin to use.
-  - name:
+  - # The name of the provider plugin to use.
+    name:
+
     # If specified, this provider will only be used in the listed environments. Note that an empty array effectively
     # disables the provider. To use a provider in all environments, omit this field.
     environments:
+
     # Path to the default policy directory or rego file to use for `conftest` modules.
     policyPath: ./policy
+
     # Default policy namespace to use for `conftest` modules.
     namespace:
+
     # Set this to `"warn"` if you'd like tests to be marked as failed if one or more _warn_ rules are matched.
     # Set to `"none"` to always mark the tests as successful.
     testFailureThreshold: error
 ```
 ### Configuration Keys
 
-#### `providers`
+#### `providers[]`
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -86,8 +90,8 @@ Example:
 ```yaml
 providers:
   - environments:
-    - dev
-    - stage
+      - dev
+      - stage
 ```
 
 #### `providers[].policyPath`

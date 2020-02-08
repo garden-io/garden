@@ -25,7 +25,7 @@ describe("RunTestCommand", () => {
       headerLog: log,
       footerLog: log,
       args: { test: "unit", module: "module-a" },
-      opts: withDefaultGlobalOpts({ "force-build": false }),
+      opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": false }),
     })
 
     const expected = {
@@ -54,7 +54,7 @@ describe("RunTestCommand", () => {
           headerLog: log,
           footerLog: log,
           args: { module: "module-a", test: "unit" },
-          opts: withDefaultGlobalOpts({ "force": false, "force-build": false }),
+          opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": false }),
         }),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(
@@ -77,7 +77,7 @@ describe("RunTestCommand", () => {
       headerLog: log,
       footerLog: log,
       args: { module: "module-a", test: "unit" },
-      opts: withDefaultGlobalOpts({ "force": true, "force-build": false }),
+      opts: withDefaultGlobalOpts({ "force": true, "force-build": false, "interactive": false }),
     })
 
     expect(errors).to.not.exist

@@ -19,6 +19,7 @@ import { ConfigureModuleParams } from "../../types/plugin/module/configure"
 import { HotReloadServiceParams } from "../../types/plugin/service/hotReloadService"
 import { joi } from "../../config/common"
 import { publishContainerModule } from "./publish"
+import { DOCS_BASE_URL } from "../../constants"
 
 export const containerModuleOutputsSchema = joi.object().keys({
   "local-image-name": joi
@@ -172,8 +173,8 @@ export const gardenPlugin = createGardenPlugin({
 
         Note that the runtime services have somewhat limited features in this module type. For example, you cannot
         specify replicas for redundancy, and various platform-specific options are not included. For those, look at
-        other module types like [helm](https://docs.garden.io/module-types/helm) or
-        [kubernetes](https://github.com/garden-io/garden/blob/master/docs/module-types/kubernetes.md).
+        other module types like [helm](${DOCS_BASE_URL}/module-types/helm) or
+        [kubernetes](${DOCS_BASE_URL}/module-types/kubernetes).
       `,
       moduleOutputsSchema: containerModuleOutputsSchema,
       schema: containerModuleSpecSchema,

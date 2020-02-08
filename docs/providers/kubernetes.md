@@ -4,16 +4,16 @@ title: kubernetes
 
 # `kubernetes` Provider
 
-The `kubernetes` provider allows you to deploy [`container` modules](../module-types/container.md) to
-Kubernetes clusters, and adds the [`helm`](../module-types/helm.md) and
-[`kubernetes`](../module-types/kubernetes.md) module types.
+The `kubernetes` provider allows you to deploy [`container` modules](https://docs.garden.io/module-types/container) to
+Kubernetes clusters, and adds the [`helm`](https://docs.garden.io/module-types/helm) and
+[`kubernetes`](https://docs.garden.io/module-types/kubernetes) module types.
 
-For usage information, please refer to the [guides section](../guides/README.md). A good place to start is
-the [Remote Kubernetes guide](../guides/remote-kubernetes.md) guide if you're connecting to remote clusters.
-The [demo-project](../examples/demo-project.md) example project and guide are also helpful as an introduction.
+For usage information, please refer to the [guides section]https://docs.garden.io/guides). A good place to start is
+the [Remote Kubernetes guide](https://docs.garden.io/guides/remote-kubernetes) guide if you're connecting to remote clusters.
+The [demo-project](https://docs.garden.io/examples/demo-project) example project and guide are also helpful as an introduction.
 
 Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the
-[local-kubernetes provider](./local-kubernetes.md) simplifies (and automates) the configuration and setup quite a
+[local-kubernetes provider](https://docs.garden.io/providers/local-kubernetes) simplifies (and automates) the configuration and setup quite a
 bit.
 
 ## Reference
@@ -28,9 +28,10 @@ The values in the schema below are the default values.
 
 ```yaml
 providers:
-  # If specified, this provider will only be used in the listed environments. Note that an empty array effectively
-  # disables the provider. To use a provider in all environments, omit this field.
-  - environments:
+  - # If specified, this provider will only be used in the listed environments. Note that an empty array effectively
+    # disables the provider. To use a provider in all environments, omit this field.
+    environments:
+
     # Choose the mechanism for building container images before deploying. By default it uses the local Docker
     # daemon, but you can set it to `cluster-docker` or `kaniko` to sync files to a remote Docker daemon,
     # installed in the cluster, and build container images there. This removes the need to run Docker or
@@ -47,31 +48,39 @@ providers:
     # this is less secure than Kaniko, but in turn it is generally faster. See the
     # [Kaniko docs](https://github.com/GoogleContainerTools/kaniko) for more information on Kaniko.
     buildMode: local-docker
+
     # Configuration options for the `cluster-docker` build mode.
     clusterDocker:
       # Enable [BuildKit](https://github.com/moby/buildkit) support. This should in most cases work well and be more
       # performant, but we're opting to keep it optional until it's enabled by default in Docker.
       enableBuildKit: false
+
     # A default hostname to use when no hostname is explicitly configured for a service.
     defaultHostname:
+
     # Set a default username (used for namespacing within a cluster).
     defaultUsername:
+
     # Defines the strategy for deploying the project services.
     # Default is "rolling update" and there is experimental support for "blue/green" deployment.
     # The feature only supports modules of type `container`: other types will just deploy using the default strategy.
     deploymentStrategy: rolling
+
     # Require SSL on all `container` module services. If set to true, an error is raised when no certificate is
     # available for a configured hostname on a `container` module.
     forceSsl: false
+
     # References to `docker-registry` secrets to use for authenticating with remote registries when pulling
     # images. This is necessary if you reference private images in your module configuration, and is required
     # when configuring a remote Kubernetes environment with buildMode=local.
     imagePullSecrets:
-      # The name of the Kubernetes secret.
-      - name:
+      - # The name of the Kubernetes secret.
+        name:
+
         # The namespace where the secret is stored. If necessary, the secret may be copied to the appropriate
         # namespace before use.
         namespace: default
+
     # Resource requests and limits for the in-cluster builder, container registry and code sync service. (which are
     # automatically installed and used when `buildMode` is `cluster-docker` or `kaniko`).
     resources:
@@ -135,6 +144,7 @@ providers:
 
           # Memory request in megabytes.
           memory: 64
+
     # Storage parameters to set for the in-cluster builder, container registry and code sync persistent volumes
     # (which are automatically installed and used when `buildMode` is `cluster-docker` or `kaniko`).
     #
@@ -184,13 +194,16 @@ providers:
 
         # Storage class to use for the volume.
         storageClass: null
+
     # One or more certificates to use for ingress.
     tlsCertificates:
-      # A unique identifier for this certificate.
-      - name:
+      - # A unique identifier for this certificate.
+        name:
+
         # A list of hostnames that this certificate should be used for. If you don't specify these, they will be
         # automatically read from the certificate.
         hostnames:
+
         # A reference to the Kubernetes secret that contains the TLS certificate and key for the domain.
         secretRef:
           # The name of the Kubernetes secret.
@@ -199,10 +212,12 @@ providers:
           # The namespace where the secret is stored. If necessary, the secret may be copied to the appropriate
           # namespace before use.
           namespace: default
+
         # Set to `cert-manager` to configure [cert-manager](https://github.com/jetstack/cert-manager) to manage this
         # certificate. See our
         # [cert-manager integration guide](https://docs.garden.io/guides/cert-manager-integration) for details.
         managedBy:
+
     # cert-manager configuration, for creating and managing TLS certificates. See the
     # [cert-manager guide](https://docs.garden.io/guides/cert-manager-integration) for details.
     certManager:
@@ -223,36 +238,44 @@ providers:
       # The type of ACME challenge used to validate hostnames and generate the certificates (only HTTP-01 is supported
       # for now).
       acmeChallengeType: HTTP-01
+
     # For setting tolerations on the registry-proxy when using in-cluster building.
     # The registry-proxy is a DaemonSet that proxies connections to the docker registry service on each node.
     #
     # Use this only if you're doing in-cluster building and the nodes in your cluster
     # have [taints](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/).
     registryProxyTolerations:
-      # "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
-      # allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
-      - effect:
+      - # "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
+        # allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
+        effect:
+
         # "Key" is the taint key that the toleration applies to. Empty means match all taint keys.
         # If the key is empty, operator must be "Exists"; this combination means to match all values and all keys.
         key:
+
         # "Operator" represents a key's relationship to the value. Valid operators are "Exists" and "Equal". Defaults
         # to
         # "Equal". "Exists" is equivalent to wildcard for value, so that a pod can tolerate all taints of a
         # particular category.
         operator: Equal
+
         # "TolerationSeconds" represents the period of time the toleration (which must be of effect "NoExecute",
         # otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate
         # the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately)
         # by the system.
         tolerationSeconds:
+
         # "Value" is the taint value the toleration matches to. If the operator is "Exists", the value should be
         # empty,
         # otherwise just a regular string.
         value:
+
     # The name of the provider plugin to use.
     name: kubernetes
+
     # The kubectl context to use to connect to the Kubernetes cluster.
     context:
+
     # The registry where built containers should be pushed to, and then pulled to the cluster when deploying services.
     deploymentRegistry:
       # The hostname (and optionally port, if not the default port) of the registry.
@@ -263,24 +286,30 @@ providers:
 
       # The namespace in the registry where images should be pushed.
       namespace: _
+
     # The ingress class to use on configured Ingresses (via the `kubernetes.io/ingress.class` annotation)
     # when deploying `container` services. Use this if you have multiple ingress controllers in your cluster.
     ingressClass:
+
     # The external HTTP port of the cluster's ingress controller.
     ingressHttpPort: 80
+
     # The external HTTPS port of the cluster's ingress controller.
     ingressHttpsPort: 443
+
     # Path to kubeconfig file to use instead of the system default. Must be a POSIX-style path.
     kubeconfig:
+
     # Specify which namespace to deploy services to (defaults to <project name>). Note that the framework generates
     # other namespaces as well with this name as a prefix.
     namespace:
+
     # Set this to `nginx` to install/enable the NGINX ingress controller.
     setupIngressController: false
 ```
 ### Configuration Keys
 
-#### `providers`
+#### `providers[]`
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -301,8 +330,8 @@ Example:
 ```yaml
 providers:
   - environments:
-    - dev
-    - stage
+      - dev
+      - stage
 ```
 
 #### `providers[].buildMode`
@@ -998,7 +1027,7 @@ Example:
 providers:
   - tlsCertificates:
       - hostnames:
-        - www.mydomain.com
+          - www.mydomain.com
 ```
 
 #### `providers[].tlsCertificates[].secretRef`
@@ -1017,8 +1046,8 @@ Example:
 providers:
   - tlsCertificates:
       - secretRef:
-          name: my-tls-secret
-          namespace: default
+            name: my-tls-secret
+            namespace: default
 ```
 
 #### `providers[].tlsCertificates[].secretRef.name`
@@ -1037,8 +1066,8 @@ Example:
 providers:
   - tlsCertificates:
       - secretRef:
-          name: my-tls-secret
-          namespace: default
+            name: my-tls-secret
+            namespace: default
           ...
           name: "my-secret"
 ```

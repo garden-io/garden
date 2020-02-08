@@ -70,6 +70,9 @@ describe("DevCommand", () => {
     const args = {}
     const opts = withDefaultGlobalOpts({
       "force-build": false,
+      "hot-reload": undefined,
+      "skip-tests": false,
+      "test-names": undefined,
     })
 
     const { promise, completedTasks } = await completeFirstTasks(garden, args, opts)
@@ -112,6 +115,9 @@ describe("DevCommand", () => {
     const args = {}
     const opts = withDefaultGlobalOpts({
       "force-build": false,
+      "hot-reload": undefined,
+      "skip-tests": false,
+      "test-names": undefined,
     })
 
     const { promise, completedTasks } = await completeFirstTasks(garden, args, opts)
@@ -130,6 +136,9 @@ describe("DevCommand", () => {
     const args = {}
     const opts = withDefaultGlobalOpts({
       "force-build": false,
+      "hot-reload": undefined,
+      "skip-tests": false,
+      "test-names": undefined,
     })
 
     const { promise, completedTasks } = await completeFirstTasks(garden, args, opts)
@@ -148,6 +157,9 @@ describe("DevCommand", () => {
     const args = {}
     const opts = withDefaultGlobalOpts({
       "force-build": false,
+      "hot-reload": undefined,
+      "skip-tests": false,
+      "test-names": undefined,
     })
 
     const { promise, completedTasks } = await completeFirstTasks(garden, args, opts)
@@ -166,6 +178,9 @@ describe("DevCommand", () => {
     const args = {}
     const opts = withDefaultGlobalOpts({
       "force-build": false,
+      "hot-reload": undefined,
+      "skip-tests": false,
+      "test-names": undefined,
     })
 
     const { promise, completedTasks } = await completeFirstTasks(garden, args, opts)
@@ -184,6 +199,9 @@ describe("DevCommand", () => {
     const args = {}
     const opts = withDefaultGlobalOpts({
       "force-build": false,
+      "hot-reload": undefined,
+      "skip-tests": false,
+      "test-names": undefined,
     })
 
     const { promise, completedTasks } = await completeFirstTasks(garden, args, opts)
@@ -202,6 +220,9 @@ describe("DevCommand", () => {
     const args = {}
     const opts = withDefaultGlobalOpts({
       "force-build": false,
+      "hot-reload": undefined,
+      "skip-tests": false,
+      "test-names": undefined,
     })
 
     const { promise, completedTasks } = await completeFirstTasks(garden, args, opts)

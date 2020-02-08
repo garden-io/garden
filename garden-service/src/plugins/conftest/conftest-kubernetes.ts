@@ -11,6 +11,7 @@ import { createGardenPlugin } from "../../types/plugin/plugin"
 import { ConftestProvider } from "./conftest"
 import { relative, resolve } from "path"
 import { dedent } from "../../util/string"
+import { DOCS_BASE_URL } from "../../constants"
 
 /**
  * Auto-generates a conftest module for each helm and kubernetes module in your project
@@ -20,7 +21,7 @@ export const gardenPlugin = createGardenPlugin({
   base: "conftest",
   dependencies: ["kubernetes"],
   docs: dedent`
-    This provider automatically generates [conftest modules](../module-types/conftest.md) for \`kubernetes\` and
+    This provider automatically generates [conftest modules](${DOCS_BASE_URL}/module-types/conftest) for \`kubernetes\` and
     \`helm\` modules in your project. A \`conftest\` module is created for each of those module types.
 
     Simply add this provider to your project configuration, and configure your policies. Check out the below

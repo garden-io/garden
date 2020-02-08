@@ -158,6 +158,7 @@ describe("TestCommand", () => {
       footerLog: log,
       args: { modules: ["module-c"] },
       opts: withDefaultGlobalOpts({
+        "name": undefined,
         "force": true,
         "force-build": false,
         "watch": false,
@@ -193,6 +194,7 @@ describe("TestCommand", () => {
       footerLog: log,
       args: { modules: undefined },
       opts: withDefaultGlobalOpts({
+        "name": undefined,
         "force": true,
         "force-build": false,
         "watch": false,

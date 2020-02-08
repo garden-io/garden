@@ -7,10 +7,11 @@
  */
 
 import td from "testdouble"
+import tmp from "tmp-promise"
 import Bluebird = require("bluebird")
 import { resolve, join } from "path"
 import { extend, keyBy } from "lodash"
-import { remove, readdirSync, existsSync, copy, mkdirp, pathExists, truncate } from "fs-extra"
+import { remove, readdirSync, existsSync, copy, mkdirp, pathExists, truncate, realpath } from "fs-extra"
 import execa = require("execa")
 
 import { containerModuleSpecSchema, containerTestSchema, containerTaskSchema } from "../src/plugins/container/config"
@@ -32,7 +33,7 @@ import { EventBus, Events } from "../src/events"
 import { ValueOf } from "../src/util/util"
 import { LogEntry } from "../src/logger/log-entry"
 import timekeeper = require("timekeeper")
-import { GLOBAL_OPTIONS } from "../src/cli/cli"
+import { GLOBAL_OPTIONS, GlobalOptions } from "../src/cli/cli"
 import { RunModuleParams } from "../src/types/plugin/module/runModule"
 import { ConfigureModuleParams } from "../src/types/plugin/module/configure"
 import { SetSecretParams } from "../src/types/plugin/provider/setSecret"
@@ -44,6 +45,7 @@ import { RunResult } from "../src/types/plugin/base"
 import { ExternalSourceType, getRemoteSourceRelPath, hashRepoUrl } from "../src/util/ext-source-util"
 import { ConfigureProviderParams } from "../src/types/plugin/provider/configureProvider"
 import { ActionRouter } from "../src/actions"
+import { ParameterValues } from "../src/commands/base"
 
 export const dataDir = resolve(GARDEN_SERVICE_ROOT, "test", "data")
 export const examplesDir = resolve(GARDEN_SERVICE_ROOT, "..", "examples")
@@ -418,8 +420,8 @@ export function getExampleProjects() {
   return fromPairs(names.map((n) => [n, join(examplesDir, n)]))
 }
 
-export function withDefaultGlobalOpts(opts: any) {
-  return extend(
+export function withDefaultGlobalOpts<T extends object>(opts: T) {
+  return <ParameterValues<GlobalOptions> & T>extend(
     mapValues(GLOBAL_OPTIONS, (opt) => opt.defaultValue),
     opts
   )
@@ -496,4 +498,16 @@ async function prepareRemoteGarden({
   })
 
   return garden
+}
+
+export type TempDirectory = tmp.DirectoryResult
+
+/**
+ * Create a temp directory. Make sure to clean it up after use using the `cleanup()` method on the returned object.
+ */
+export async function makeTempDir(): Promise<TempDirectory> {
+  const tmpDir = await tmp.dir({ unsafeCleanup: true })
+  // Fully resolve path so that we don't get path mismatches in tests
+  tmpDir.path = await realpath(tmpDir.path)
+  return tmpDir
 }

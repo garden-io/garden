@@ -555,7 +555,7 @@ export const containerModuleSpecSchema = joi
       .description("POSIX-style name of Dockerfile, relative to module root."),
     services: joiArray(serviceSchema)
       .unique("name")
-      .description("The list of services to deploy from this container module."),
+      .description("A list of services to deploy from this container module."),
     tests: joiArray(containerTestSchema).description("A list of tests to run in the module."),
     // We use the user-facing term "tasks" as the key here, instead of "tasks".
     tasks: joiArray(containerTaskSchema).description(deline`

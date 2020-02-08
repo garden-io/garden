@@ -23,7 +23,7 @@ import { GetServiceStatusParams } from "../../types/plugin/service/getServiceSta
 import { GetServiceLogsParams } from "../../types/plugin/service/getServiceLogs"
 import { DeleteServiceParams } from "../../types/plugin/service/deleteService"
 import { HelmModuleConfig } from "../kubernetes/helm/config"
-import { DEFAULT_API_VERSION, STATIC_DIR } from "../../constants"
+import { DEFAULT_API_VERSION, STATIC_DIR, DOCS_BASE_URL } from "../../constants"
 import { ExecModuleConfig } from "../exec"
 import { ConfigureProviderParams, ConfigureProviderResult } from "../../types/plugin/provider/configureProvider"
 import { KubernetesDeployment } from "../kubernetes/types"
@@ -56,11 +56,11 @@ export const gardenPlugin = createGardenPlugin({
   dependencies: ["kubernetes"],
   docs: dedent`
     This provider adds support for [OpenFaaS](https://www.openfaas.com/). It adds the
-    [\`openfaas\` module type](../module-types/openfaas.md) and (by default) installs the \`faas-netes\` runtime to
+    [\`openfaas\` module type](${DOCS_BASE_URL}/module-types/openfaas) and (by default) installs the \`faas-netes\` runtime to
     the project namespace. Each \`openfaas\` module maps to a single OpenFaaS function.
 
     See the [reference](#reference) below for configuration options for \`faas-netes\`, and the
-    [module type docs](../module-types/openfaas.md) for how to configure the individual functions.
+    [module type docs](${DOCS_BASE_URL}/module-types/openfaas) for how to configure the individual functions.
 
     Also see the [openfaas example project](https://github.com/garden-io/garden/tree/master/examples/openfaas) for a
     simple usage example.

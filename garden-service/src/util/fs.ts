@@ -10,12 +10,12 @@ import klaw = require("klaw")
 import glob from "glob"
 import _spawn from "cross-spawn"
 import Bluebird from "bluebird"
-import { pathExists, readFile, writeFile } from "fs-extra"
+import { pathExists, readFile, writeFile, lstat } from "fs-extra"
 import minimatch = require("minimatch")
 import { some } from "lodash"
 import uuid from "uuid"
 import { join, basename, win32, posix } from "path"
-import { ValidationError } from "../exceptions"
+import { ValidationError, FilesystemError } from "../exceptions"
 import { platform } from "os"
 import { VcsHandler } from "../vcs/vcs"
 import { LogEntry } from "../logger/log-entry"
@@ -236,4 +236,17 @@ export async function getWorkingCopyId(gardenDirPath: string) {
   }
 
   return metadata.workingCopyId
+}
+
+/**
+ * Returns true if the given path is a directory, otherwise false. Throws if the path does not exist.
+ */
+export async function isDirectory(path: string) {
+  if (!(await pathExists(path))) {
+    throw new FilesystemError(`Path ${path} does not exist`, { path })
+  }
+
+  const stat = await lstat(path)
+
+  return stat.isDirectory()
 }

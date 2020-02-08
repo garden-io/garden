@@ -5,11 +5,11 @@ title: openfaas
 # `openfaas` Provider
 
 This provider adds support for [OpenFaaS](https://www.openfaas.com/). It adds the
-[`openfaas` module type](../module-types/openfaas.md) and (by default) installs the `faas-netes` runtime to
+[`openfaas` module type](https://docs.garden.io/module-types/openfaas) and (by default) installs the `faas-netes` runtime to
 the project namespace. Each `openfaas` module maps to a single OpenFaaS function.
 
 See the [reference](#reference) below for configuration options for `faas-netes`, and the
-[module type docs](../module-types/openfaas.md) for how to configure the individual functions.
+[module type docs](https://docs.garden.io/module-types/openfaas) for how to configure the individual functions.
 
 Also see the [openfaas example project](https://github.com/garden-io/garden/tree/master/examples/openfaas) for a
 simple usage example.
@@ -26,20 +26,24 @@ The values in the schema below are the default values.
 
 ```yaml
 providers:
-  # If specified, this provider will only be used in the listed environments. Note that an empty array effectively
-  # disables the provider. To use a provider in all environments, omit this field.
-  - environments:
+  - # If specified, this provider will only be used in the listed environments. Note that an empty array effectively
+    # disables the provider. To use a provider in all environments, omit this field.
+    environments:
+
     # The name of the provider plugin to use.
     name: openfaas
+
     # The external URL to the function gateway, after installation. This is required if you set `faasNetes.values`
     # or `faastNetes.install: false`, so that Garden can know how to reach the gateway.
     gatewayUrl:
+
     # The ingress hostname to configure for the function gateway, when `faasNetes.install: true` and not
     # overriding `faasNetes.values`. Defaults to the default hostname of the configured Kubernetes provider.
     #
     # Important: If you have other types of services, this should be different from their ingress hostnames,
     # or the other services should not expose paths under /function and /system to avoid routing conflicts.
     hostname:
+
     faasNetes:
       # Set to false if you'd like to install and configure faas-netes yourself.
       # See the [official instructions](https://docs.openfaas.com/deployment/kubernetes/) for details.
@@ -55,7 +59,7 @@ providers:
 ```
 ### Configuration Keys
 
-#### `providers`
+#### `providers[]`
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -76,8 +80,8 @@ Example:
 ```yaml
 providers:
   - environments:
-    - dev
-    - stage
+      - dev
+      - stage
 ```
 
 #### `providers[].name`

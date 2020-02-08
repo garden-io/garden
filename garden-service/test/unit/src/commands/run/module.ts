@@ -33,6 +33,7 @@ describe("RunModuleCommand", () => {
       footerLog: log,
       args: { module: "module-a", arguments: [] },
       opts: withDefaultGlobalOpts({
+        "command": undefined,
         "interactive": false,
         "force-build": false,
       }),
@@ -60,6 +61,7 @@ describe("RunModuleCommand", () => {
       footerLog: log,
       args: { module: "module-a", arguments: ["my", "command"] },
       opts: withDefaultGlobalOpts({
+        "command": undefined,
         "interactive": false,
         "force-build": false,
       }),
