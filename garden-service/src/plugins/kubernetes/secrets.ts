@@ -7,7 +7,7 @@
  */
 
 import { KubeApi } from "./api"
-import { ProviderSecretRef, KubernetesPluginContext } from "./config"
+import { ProviderSecretRef, KubernetesPluginContext, KubernetesProvider } from "./config"
 import { ConfigurationError } from "../../exceptions"
 import { getMetadataNamespace } from "./namespace"
 import { GetSecretParams } from "../../types/plugin/provider/getSecret"
@@ -121,4 +121,23 @@ export async function ensureSecret(api: KubeApi, secretRef: ProviderSecretRef, t
   }
 
   await api.upsert({ kind: "Secret", namespace: targetNamespace, obj: secret, log })
+}
+
+/**
+ * Prepare references to imagePullSecrets for use in Pod specs, and ensure they have been copied to the target
+ * namespace.
+ */
+export async function prepareImagePullSecrets({
+  api,
+  provider,
+  namespace,
+  log,
+}: {
+  api: KubeApi
+  provider: KubernetesProvider
+  namespace: string
+  log: LogEntry
+}) {
+  await Promise.all(provider.config.imagePullSecrets.map((s) => ensureSecret(api, s, namespace, log)))
+  return provider.config.imagePullSecrets.map((s) => ({ name: s.name }))
 }

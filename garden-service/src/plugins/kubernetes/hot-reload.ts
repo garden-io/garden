@@ -25,10 +25,11 @@ import { KubernetesPluginContext } from "./config"
 import { HotReloadServiceParams, HotReloadServiceResult } from "../../types/plugin/service/hotReloadService"
 import { KubernetesResource, KubernetesWorkload, KubernetesList } from "./types"
 import { normalizeLocalRsyncPath } from "../../util/fs"
-import { createWorkloadResource } from "./container/deployment"
+import { createWorkloadManifest } from "./container/deployment"
 import { kubectl } from "./kubectl"
 import { labelSelectorToString } from "./util"
 import { exec } from "../../util/util"
+import { KubeApi } from "./api"
 
 export const RSYNC_PORT_NAME = "garden-rsync"
 
@@ -184,9 +185,11 @@ export async function hotReloadContainer({
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
   const namespace = await getAppNamespace(k8sCtx, log, provider)
+  const api = await KubeApi.factory(log, provider)
 
   // Find the currently deployed workload by labels
-  const manifest = await createWorkloadResource({
+  const manifest = await createWorkloadManifest({
+    api,
     provider,
     service,
     runtimeContext: { envVars: {}, dependencies: [] },

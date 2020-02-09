@@ -21,7 +21,7 @@ import {
   findServiceResource,
   getResourceContainer,
 } from "../../../../../src/plugins/kubernetes/util"
-import { createWorkloadResource } from "../../../../../src/plugins/kubernetes/container/deployment"
+import { createWorkloadManifest } from "../../../../../src/plugins/kubernetes/container/deployment"
 import { emptyRuntimeContext } from "../../../../../src/runtime-context"
 import { PluginContext } from "../../../../../src/plugin-context"
 import { getHelmTestGarden } from "./helm/common"
@@ -91,7 +91,8 @@ describe("util", () => {
           service,
         })
 
-        const resource = await createWorkloadResource({
+        const resource = await createWorkloadManifest({
+          api,
           provider,
           service,
           runtimeContext: emptyRuntimeContext,
