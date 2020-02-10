@@ -11,9 +11,9 @@ import { join } from "path"
 import { expect } from "chai"
 import { BaseTask, TaskType } from "../../../src/tasks/base"
 import { TaskGraph, TaskResult, TaskResults } from "../../../src/task-graph"
-import { makeTestGarden, freezeTime, dataDir, defer } from "../../helpers"
+import { makeTestGarden, freezeTime, dataDir, expectError } from "../../helpers"
 import { Garden } from "../../../src/garden"
-import { deepFilter } from "../../../src/util/util"
+import { deepFilter, defer } from "../../../src/util/util"
 import uuid from "uuid"
 
 const projectRoot = join(dataDir, "test-project-empty")
@@ -90,11 +90,11 @@ class TestTask extends BaseTask {
 }
 
 describe("task-graph", () => {
-  describe("TaskGraph", () => {
-    async function getGarden() {
-      return makeTestGarden(projectRoot)
-    }
+  async function getGarden() {
+    return makeTestGarden(projectRoot)
+  }
 
+  describe("TaskGraph", () => {
     it("should successfully process a single task without dependencies", async () => {
       const now = freezeTime()
       const garden = await getGarden()
@@ -134,6 +134,7 @@ describe("task-graph", () => {
       const generatedBatchId = result?.a?.batchId || uuid.v4()
 
       expect(garden.events.eventLog).to.eql([
+        { name: "taskGraphProcessing", payload: { startedAt: now } },
         {
           name: "taskPending",
           payload: {
@@ -144,7 +145,6 @@ describe("task-graph", () => {
             type: task.type,
           },
         },
-        { name: "taskGraphProcessing", payload: { startedAt: now } },
         {
           name: "taskProcessing",
           payload: {
@@ -181,6 +181,7 @@ describe("task-graph", () => {
       const generatedBatchId = results?.a?.batchId || uuid.v4()
 
       expect(garden.events.eventLog).to.eql([
+        { name: "taskGraphProcessing", payload: { startedAt: now } },
         {
           name: "taskComplete",
           payload: {
@@ -194,7 +195,6 @@ describe("task-graph", () => {
             output: { dependencyResults: {}, result: "result-a" },
           },
         },
-        { name: "taskGraphProcessing", payload: { startedAt: now } },
         { name: "taskGraphComplete", payload: { completedAt: now } },
       ])
     })
@@ -210,6 +210,7 @@ describe("task-graph", () => {
       const generatedBatchId = result?.a?.batchId || uuid.v4()
 
       expect(garden.events.eventLog).to.eql([
+        { name: "taskGraphProcessing", payload: { startedAt: now } },
         {
           name: "taskPending",
           payload: {
@@ -220,7 +221,6 @@ describe("task-graph", () => {
             type: task.type,
           },
         },
-        { name: "taskGraphProcessing", payload: { startedAt: now } },
         {
           name: "taskProcessing",
           payload: {
@@ -248,6 +248,31 @@ describe("task-graph", () => {
       const taskError = garden.events.eventLog.find((obj) => obj.name === "taskError")
 
       expect(taskError && taskError.payload["error"]).to.exist
+    })
+
+    it("should throw on task error if throwOnError is set", async () => {
+      const garden = await getGarden()
+      const graph = new TaskGraph(garden, garden.log)
+      const task = new TestTask(garden, "a", false, { throwError: true })
+
+      await expectError(
+        () => graph.process([task], { throwOnError: true }),
+        (err) => expect(err.message).to.include("task(s) failed")
+      )
+    })
+
+    it("should include any task errors in task results", async () => {
+      const garden = await getGarden()
+      const graph = new TaskGraph(garden, garden.log)
+      const taskA = new TestTask(garden, "a", false, { throwError: true })
+      const taskB = new TestTask(garden, "b", false, { throwError: true })
+      const taskC = new TestTask(garden, "c", false)
+
+      const results = await graph.process([taskA, taskB, taskC])
+
+      expect(results.a!.error).to.exist
+      expect(results.b!.error).to.exist
+      expect(results.c!.error).to.not.exist
     })
 
     it("should process multiple tasks in dependency order", async () => {
@@ -428,6 +453,78 @@ describe("task-graph", () => {
       expect(processedVersions).to.eql(["1", "3"])
     })
 
+    it("should process requests with unrelated tasks concurrently", async () => {
+      const garden = await getGarden()
+      const graph = new TaskGraph(garden, garden.log)
+
+      const resultOrder: string[] = []
+
+      const callback = async (key: string) => {
+        resultOrder.push(key)
+      }
+
+      const { resolver: aStartedResolver } = defer()
+      const { promise: aDonePromise, resolver: aDoneResolver } = defer()
+
+      const opts = { callback }
+      const taskADep1 = new TestTask(garden, "a-dep1", false, { ...opts })
+      const taskADep2 = new TestTask(garden, "a-dep2", false, { ...opts })
+
+      const taskA = new TestTask(garden, "a", false, {
+        dependencies: [taskADep1, taskADep2],
+        callback: async () => {
+          aStartedResolver()
+          resultOrder.push("a")
+          await aDonePromise
+        },
+      })
+
+      const taskBDep = new TestTask(garden, "b-dep", false, { ...opts })
+      const taskB = new TestTask(garden, "b", false, { ...opts, dependencies: [taskBDep] })
+      const taskC = new TestTask(garden, "c", false, { ...opts })
+
+      const firstProcess = graph.process([taskA, taskADep1, taskADep2])
+      const secondProcess = graph.process([taskB, taskBDep])
+      const thirdProcess = graph.process([taskC])
+      aDoneResolver()
+      await Bluebird.all([firstProcess, secondProcess, thirdProcess])
+      expect(resultOrder).to.eql(["c", "a-dep1", "a-dep2", "b-dep", "a", "b"])
+    })
+
+    it("should process two requests with related tasks sequentially", async () => {
+      const garden = await getGarden()
+      const graph = new TaskGraph(garden, garden.log)
+
+      const resultOrder: string[] = []
+
+      const callback = async (key: string) => {
+        resultOrder.push(key)
+      }
+
+      const { resolver: aStartedResolver } = defer()
+      const { promise: aDonePromise, resolver: aDoneResolver } = defer()
+
+      const opts = { callback }
+      const taskADep = new TestTask(garden, "a-dep1", true, { ...opts })
+
+      const taskA = new TestTask(garden, "a", true, {
+        dependencies: [taskADep],
+        callback: async () => {
+          aStartedResolver()
+          resultOrder.push("a")
+          await aDonePromise
+        },
+      })
+
+      const repeatTaskBDep = new TestTask(garden, "b-dep", true, { ...opts })
+
+      const firstProcess = graph.process([taskA, taskADep])
+      const secondProcess = graph.process([repeatTaskBDep])
+      aDoneResolver()
+      await Bluebird.all([firstProcess, secondProcess])
+      expect(resultOrder).to.eql(["b-dep", "a-dep1", "a"])
+    })
+
     it("should recursively cancel a task's dependants when it throws an error", async () => {
       const now = freezeTime()
       const garden = await getGarden()
@@ -481,11 +578,11 @@ describe("task-graph", () => {
       expect(results.b).to.have.property("error")
       expect(resultOrder).to.eql(["a", "b"])
       expect(filteredEventLog).to.eql([
+        { name: "taskGraphProcessing", payload: {} },
         { name: "taskPending", payload: { key: "a", name: "a", type: "test", batchId: generatedBatchId } },
         { name: "taskPending", payload: { key: "b", name: "b", type: "test", batchId: generatedBatchId } },
         { name: "taskPending", payload: { key: "c", name: "c", type: "test", batchId: generatedBatchId } },
         { name: "taskPending", payload: { key: "d", name: "d", type: "test", batchId: generatedBatchId } },
-        { name: "taskGraphProcessing", payload: {} },
         { name: "taskProcessing", payload: { key: "a", name: "a", type: "test", batchId: generatedBatchId } },
         {
           name: "taskComplete",
@@ -509,6 +606,80 @@ describe("task-graph", () => {
         { name: "taskCancelled", payload: { key: "d", name: "d", type: "test", batchId: generatedBatchId } },
         { name: "taskGraphComplete", payload: {} },
       ])
+    })
+
+    describe("partition", () => {
+      it("should partition a task list into unrelated batches", async () => {
+        const garden = await getGarden()
+        const graph = new TaskGraph(garden, garden.log)
+
+        const taskADep1 = new TestTask(garden, "a-dep1", false)
+        const taskADep2 = new TestTask(garden, "a-dep2", false)
+        const taskA = new TestTask(garden, "a", false, { dependencies: [taskADep1, taskADep2] })
+        const taskBDep = new TestTask(garden, "b-dep", false)
+        const taskB = new TestTask(garden, "b", false, { dependencies: [taskBDep] })
+        const taskC = new TestTask(garden, "c", false)
+
+        const tasks = [taskA, taskB, taskC, taskADep1, taskBDep, taskADep2]
+
+        await graph.populateTaskDependencyCache(tasks)
+        const batches = graph.partition(tasks, { unlimitedConcurrency: false })
+        const batchKeys = batches.map((b) => b.tasks.map((t) => t.getKey()))
+
+        expect(batchKeys).to.eql([["a", "a-dep1", "a-dep2"], ["b", "b-dep"], ["c"]])
+      })
+
+      it("should correctly deduplicate and partition tasks by key and version", async () => {
+        const garden = await getGarden()
+        const graph = new TaskGraph(garden, garden.log)
+
+        // Version 1 of task A, and its dependencies
+        const taskAv1Dep1 = new TestTask(garden, "a-v1-dep1", false)
+        const taskAv1Dep2 = new TestTask(garden, "a-v1-dep2", false)
+        const taskAv1 = new TestTask(garden, "a-v1", false, { dependencies: [taskAv1Dep1, taskAv1Dep2] })
+
+        // Version 2 of task A, and its dependencies
+        const taskAv2Dep1 = new TestTask(garden, "a-v2-dep1", false)
+        const taskAv2Dep2 = new TestTask(garden, "a-v2-dep2", false)
+        const taskAv2 = new TestTask(garden, "a-v2", false, { dependencies: [taskAv2Dep1, taskAv2Dep2] })
+
+        // A duplicate of task A at version 1, and its dependencies
+        const dupTaskAv1Dep1 = new TestTask(garden, "a-v1-dep1", false)
+        const dupTaskAv1Dep2 = new TestTask(garden, "a-v1-dep2", false)
+        const dupTaskAv1 = new TestTask(garden, "a-v1", false, { dependencies: [dupTaskAv1Dep1, dupTaskAv1Dep2] })
+
+        const taskBDep = new TestTask(garden, "b-dep", false)
+        const taskB = new TestTask(garden, "b", false, { dependencies: [taskBDep] })
+        const taskC = new TestTask(garden, "c", false)
+
+        const tasks = [
+          taskAv1,
+          taskAv1Dep1,
+          taskAv1Dep2,
+          taskAv2,
+          taskAv2Dep1,
+          taskAv2Dep2,
+          dupTaskAv1,
+          dupTaskAv1Dep1,
+          dupTaskAv1Dep2,
+          taskB,
+          taskBDep,
+          taskC,
+        ]
+
+        await graph.populateTaskDependencyCache(tasks)
+        const batches = graph.partition(tasks, {
+          unlimitedConcurrency: false,
+        })
+        const batchKeys = batches.map((b) => b.tasks.map((t) => t.getKey()))
+
+        expect(batchKeys).to.eql([
+          ["a-v1", "a-v1-dep1", "a-v1-dep2"],
+          ["a-v2", "a-v2-dep1", "a-v2-dep2"],
+          ["b", "b-dep"],
+          ["c"],
+        ])
+      })
     })
   })
 })

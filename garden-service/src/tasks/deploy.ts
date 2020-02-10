@@ -186,7 +186,7 @@ export class DeployTask extends BaseTask {
     if (!this.force && versionString === status.version && status.state === "ready") {
       // already deployed and ready
       log.setSuccess({
-        msg: `Version ${versionString} already deployed`,
+        msg: chalk.green("Already deployed"),
         append: true,
       })
     } else {
