@@ -27,7 +27,6 @@ export async function runHelmModule({
   module,
   args,
   command,
-  ignoreError = true,
   interactive,
   runtimeContext,
   timeout,
@@ -91,7 +90,6 @@ export async function runHelmModule({
   })
 
   return runner.startAndWait({
-    ignoreError,
     interactive,
     log,
     timeout,
@@ -135,7 +133,6 @@ export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<Ru
     podName: makePodName("task", module.name, task.name),
     description: `Task '${task.name}' in container module '${module.name}'`,
     timeout,
-    ignoreError: true, // to ensure results get stored when an error occurs
   })
 
   const result = {

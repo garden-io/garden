@@ -53,7 +53,6 @@ export async function runKubernetesTask(params: RunTaskParams<KubernetesModule>)
     podName: makePodName("task", module.name, task.name),
     description: `Task '${task.name}' in container module '${module.name}'`,
     timeout,
-    ignoreError: true, // to ensure results get stored when an error occurs
   })
 
   const result = {

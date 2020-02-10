@@ -218,7 +218,6 @@ export const testPlugin = createGardenPlugin(() => {
               runtimeContext,
               module: task.module,
               args: task.spec.command,
-              ignoreError: false,
               timeout: task.spec.timeout || 9999,
             })
 
