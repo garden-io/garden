@@ -17,7 +17,6 @@ export interface RunModuleParams<T extends Module = Module> extends PluginModule
   args: string[]
   interactive: boolean
   runtimeContext: RuntimeContext
-  ignoreError?: boolean
   timeout?: number
 }
 

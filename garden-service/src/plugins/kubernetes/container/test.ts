@@ -38,7 +38,6 @@ export async function testContainerModule(params: TestModuleParams<ContainerModu
     podName: makePodName("test", module.name, testName),
     description: `Test '${testName}' in container module '${module.name}'`,
     timeout,
-    ignoreError: true, // to ensure results get stored when an error occurs
   })
 
   return storeTestResult({

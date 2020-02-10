@@ -99,6 +99,28 @@ describe("kubernetes container module handlers", () => {
       )
     })
 
+    it("should return with logs and success=false when command exceeds timeout", async () => {
+      const task = await graph.getTask("artifacts-task")
+      const module = task.module
+      const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
+
+      const result = await runAndCopy({
+        ctx: garden.getPluginContext(provider),
+        log: garden.log,
+        command: ["sh", "-c", "echo banana && sleep 10"],
+        args: [],
+        interactive: false,
+        module,
+        namespace,
+        runtimeContext: { envVars: {}, dependencies: [] },
+        image,
+        timeout: 4,
+      })
+
+      expect(result.log.trim()).to.equal("Command timed out. Here are the logs until the timeout occurred:\n\nbanana")
+      expect(result.success).to.be.false
+    })
+
     context("artifacts are specified", () => {
       it("should copy artifacts out of the container", async () => {
         const task = await graph.getTask("artifacts-task")
@@ -217,6 +239,55 @@ describe("kubernetes container module handlers", () => {
 
         expect(await pathExists(join(tmpDir.path, "my-task-report"))).to.be.true
         expect(await pathExists(join(tmpDir.path, "my-task-report", "output.txt"))).to.be.true
+      })
+
+      it("should return with logs and success=false when command exceeds timeout", async () => {
+        const task = await graph.getTask("artifacts-task")
+        const module = task.module
+        const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
+
+        const result = await runAndCopy({
+          ctx: garden.getPluginContext(provider),
+          log: garden.log,
+          command: ["sh", "-c", "echo banana && sleep 10"],
+          args: [],
+          interactive: false,
+          module,
+          namespace,
+          runtimeContext: { envVars: {}, dependencies: [] },
+          artifacts: task.spec.artifacts,
+          artifactsPath: tmpDir.path,
+          image,
+          timeout: 3,
+        })
+
+        expect(result.log.trim()).to.equal("Command timed out.")
+        expect(result.success).to.be.false
+      })
+
+      it("should copy artifacts out of the container even when task times out", async () => {
+        const task = await graph.getTask("artifacts-task")
+        const module = task.module
+        const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
+
+        const result = await runAndCopy({
+          ctx: garden.getPluginContext(provider),
+          log: garden.log,
+          command: ["sh", "-c", "touch /task.txt && sleep 10"],
+          args: [],
+          interactive: false,
+          module,
+          namespace,
+          runtimeContext: { envVars: {}, dependencies: [] },
+          artifacts: task.spec.artifacts,
+          artifactsPath: tmpDir.path,
+          image,
+          timeout: 3,
+        })
+
+        expect(result.log.trim()).to.equal("Command timed out.")
+        expect(await pathExists(join(tmpDir.path, "task.txt"))).to.be.true
+        expect(result.success).to.be.false
       })
 
       it("should throw when container doesn't contain sh", async () => {
