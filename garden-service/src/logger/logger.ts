@@ -7,7 +7,7 @@
  */
 
 import { LogNode, CreateNodeParams } from "./log-node"
-import { LogEntry } from "./log-entry"
+import { LogEntry, EVENT_LOG_LEVEL } from "./log-entry"
 import { getChildEntries, findLogNode } from "./util"
 import { Writer } from "./writers/base"
 import { InternalError, ParameterError } from "../exceptions"
@@ -17,6 +17,8 @@ import { FancyTerminalWriter } from "./writers/fancy-terminal-writer"
 import { JsonTerminalWriter } from "./writers/json-terminal-writer"
 import { parseLogLevel } from "../cli/helpers"
 import { FullscreenTerminalWriter } from "./writers/fullscreen-terminal-writer"
+import { EventBus } from "../events"
+import { formatForEventStream } from "../cloud/buffered-event-stream"
 
 export type LoggerType = "quiet" | "basic" | "fancy" | "fullscreen" | "json"
 export const LOGGER_TYPES = new Set<LoggerType>(["quiet", "basic", "fancy", "fullscreen", "json"])
@@ -44,6 +46,7 @@ export interface LoggerConfig {
 
 export class Logger extends LogNode {
   public writers: Writer[]
+  public events: EventBus
   public useEmoji: boolean
 
   private static instance: Logger
@@ -102,6 +105,7 @@ export class Logger extends LogNode {
     super(config.level)
     this.writers = config.writers || []
     this.useEmoji = config.useEmoji === false ? false : true
+    this.events = new EventBus()
   }
 
   protected createNode(params: CreateNodeParams): LogEntry {
@@ -114,6 +118,9 @@ export class Logger extends LogNode {
   }
 
   onGraphChange(entry: LogEntry) {
+    if (entry.level <= EVENT_LOG_LEVEL) {
+      this.events.emit("logEntry", formatForEventStream(entry))
+    }
     for (const writer of this.writers) {
       if (entry.level <= writer.level) {
         writer.onGraphChange(entry, this)

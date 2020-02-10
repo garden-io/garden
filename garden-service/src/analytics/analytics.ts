@@ -20,6 +20,7 @@ import { Events, EventName } from "../events"
 import { AnalyticsType } from "./analytics-types"
 import dedent from "dedent"
 import { getGitHubUrl } from "../docs/common"
+import { InternalError } from "../exceptions"
 
 const API_KEY = process.env.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
 
@@ -134,14 +135,18 @@ export class AnalyticsHandler {
   private ciName = ci.name
   private systemConfig: SystemInfo
   private isCI = ci.isCI
-  private sessionId = uuidv4()
+  private sessionId: string
   protected garden: Garden
   private projectMetadata: ProjectMetadata
 
   private constructor(garden: Garden, log: LogEntry) {
+    if (!garden.sessionId) {
+      throw new InternalError(`Garden instance with null sessionId passed to AnalyticsHandler constructor.`, {})
+    }
     this.segment = new segmentClient(API_KEY, { flushAt: 20, flushInterval: 300 })
     this.log = log
     this.garden = garden
+    this.sessionId = garden.sessionId
     this.globalConfigStore = new GlobalConfigStore()
     this.analyticsConfig = {
       userId: "",

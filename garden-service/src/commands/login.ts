@@ -9,7 +9,7 @@
 import { Command, CommandParams, CommandResult } from "./base"
 import { printHeader } from "../logger/util"
 import dedent = require("dedent")
-import { login } from "../platform/auth"
+import { login } from "../cloud/auth"
 
 export class LoginCommand extends Command {
   name = "login"

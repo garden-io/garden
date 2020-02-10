@@ -19,6 +19,8 @@ import { LogEntry } from "../logger/log-entry"
 import { got } from "../util/http"
 import { RuntimeError } from "../exceptions"
 
+export const makeAuthHeader = (clientAuthToken: string) => ({ "x-access-auth-token": clientAuthToken })
+
 // TODO: Add error handling and tests for all of this
 
 /**
@@ -65,7 +67,7 @@ async function checkClientAuthToken(token: string, platformUrl: string, log: Log
     await got({
       method: "get",
       url: `${platformUrl}/token/verify`,
-      headers: { "x-access-auth-token": token },
+      headers: makeAuthHeader(token),
     })
     valid = true
   } catch (err) {

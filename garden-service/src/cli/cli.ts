@@ -55,6 +55,7 @@ import { AnalyticsHandler } from "../analytics/analytics"
 import { defaultDotIgnoreFiles } from "../util/fs"
 import { renderError } from "../logger/renderers"
 import { getDefaultProfiler } from "../util/profiling"
+import { BufferedEventStream } from "../cloud/buffered-event-stream"
 
 const OUTPUT_RENDERERS = {
   json: (data: DeepPrimitiveMap) => {
@@ -309,7 +310,9 @@ export class GardenCli {
       logger.info("")
       const footerLog = logger.placeholder()
 
+      // Init event & log streaming.
       const sessionId = uuidv4()
+      const bufferedEventStream = new BufferedEventStream(log, sessionId)
 
       const contextOpts: GardenOpts = {
         commandInfo: {
@@ -342,6 +345,11 @@ export class GardenCli {
           } else {
             garden = await Garden.factory(root, contextOpts)
           }
+
+          if (garden.clientAuthToken && garden.platformUrl) {
+            bufferedEventStream.connect(garden.events, garden.clientAuthToken, garden.platformUrl, garden.projectName)
+          }
+
           // Register log file writers. We need to do this after the Garden class is initialised because
           // the file writers depend on the project root.
           await this.initFileWriters(logger, garden.projectRoot, garden.gardenDirPath)
