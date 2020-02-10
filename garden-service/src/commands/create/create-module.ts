@@ -32,9 +32,12 @@ import { renderConfigReference } from "../../docs/config"
 import { DOCS_BASE_URL } from "../../constants"
 import { flatten } from "lodash"
 import { fixedPlugins } from "../../config/project"
-import { deline, wordWrap } from "../../util/string"
+import { deline, wordWrap, truncate } from "../../util/string"
 import { joi } from "../../config/common"
 import { LoggerType } from "../../logger/logger"
+import Bluebird from "bluebird"
+import { ModuleTypeMap } from "../../types/plugin/plugin"
+import { LogEntry } from "../../logger/log-entry"
 
 const createModuleArgs = {}
 const createModuleOpts = {
@@ -111,23 +114,29 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
 
     let name = opts.name || basename(configDir)
     let type = opts.type
+    let presetValues = {
+      kind: "Module",
+      name,
+      type,
+    }
 
     const allModuleTypes = getModuleTypes(supportedPlugins)
-
-    // TODO: query providers to get suggestions/detected module types/configs
 
     if (opts.interactive && (!opts.name || !opts.type)) {
       log.root.stop()
 
       if (!opts.type) {
+        const choices = await getModuleTypeSuggestions(log, allModuleTypes, configDir, name)
+
         const answer = await inquirer.prompt({
-          name: "type",
+          name: "suggestion",
           message: "Select a module type:",
           type: "list",
-          choices: Object.keys(allModuleTypes),
+          choices,
           pageSize: 20,
         })
-        type = answer.type
+        presetValues = answer.suggestion
+        type = presetValues.type
       }
 
       if (!opts.name) {
@@ -137,7 +146,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
           type: "input",
           default: name,
         })
-        name = answer.name
+        name = presetValues.name = answer.name
       }
 
       log.info("")
@@ -146,6 +155,9 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
     if (!type) {
       throw new ParameterError(`Must specify --type if --interactive=false`, {})
     }
+
+    presetValues.kind = "Module"
+    presetValues.name = name
 
     // Throw if module with same name already exists
     if (await pathExists(configPath)) {
@@ -184,12 +196,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
         renderBasicDescription: true,
         renderFullDescription: false,
         renderValue: "preferExample",
-        // TODO: get more values from provider suggestion, if applicable
-        presetValues: {
-          kind: "Module",
-          name,
-          type,
-        },
+        presetValues,
       },
     })
 
@@ -201,7 +208,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
     // Warn if module type is defined by provider that isn't configured OR if not in a project, ask to make sure
     // it is configured in the project that will use the module.
     const projectConfig = await findProjectConfig(configDir)
-    const pluginName = definition.pluginName
+    const pluginName = definition.plugin.name
 
     if (!fixedPlugins.includes(pluginName)) {
       if (projectConfig) {
@@ -210,19 +217,31 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
           ...projectConfig.environments.map((e) => e.providers || []),
         ])
 
-        if (!allProviders.map((p) => p.name).includes(definition.pluginName)) {
+        if (!allProviders.map((p) => p.name).includes(pluginName)) {
           log.warn(
-            chalk.yellow(deline`
-              Module type ${chalk.white.bold(type)} is defined by the ${chalk.white.bold(pluginName)} provider,
-              which is not configured in your project. Please make sure it is configured before using the new module.
-            `)
+            chalk.yellow(
+              wordWrap(
+                deline`
+                Module type ${chalk.white.bold(type)} is defined by the ${chalk.white.bold(pluginName)} provider,
+                which is not configured in your project. Please make sure it is configured before using the new module.
+              `,
+                120
+              )
+            )
           )
+          log.info("")
         }
       } else {
-        log.info(deline`
-          Module type ${chalk.white.bold(type)} is defined by the ${chalk.white.bold(pluginName)} provider.
-          Please make sure it is configured in your project before using the new module.
-        `)
+        log.info(
+          wordWrap(
+            deline`
+            Module type ${chalk.white.bold(type)} is defined by the ${chalk.white.bold(pluginName)} provider.
+            Please make sure it is configured in your project before using the new module.
+          `,
+            120
+          )
+        )
+        log.info("")
       }
     }
 
@@ -239,7 +258,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
         dedent`
         We recommend reviewing the generated config, uncommenting fields that you'd like to configure, and cleaning up any commented fields that you don't need to use.
 
-        For more information about ${formattedType} modules, please check out ${moduleTypeUrl}, and the ${formattedPluginName} docs at ${providerUrl}. For general information about Garden configuration files, take a look at ${configFilesUrl}.
+        For more information about ${formattedType} modules, please check out ${moduleTypeUrl}, and the ${formattedPluginName} provider docs at ${providerUrl}. For general information about Garden configuration files, take a look at ${configFilesUrl}.
         `,
         120
       ),
@@ -248,5 +267,50 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
     log.info("")
 
     return { result: { configPath, name, type } }
+  }
+}
+
+export async function getModuleTypeSuggestions(
+  log: LogEntry,
+  moduleTypes: ModuleTypeMap,
+  path: string,
+  defaultName: string
+) {
+  const allSuggestions = flatten(
+    await Bluebird.map(Object.values(moduleTypes), async (spec) => {
+      if (!spec.handlers.suggestModules) {
+        return []
+      }
+
+      const { suggestions } = await spec.handlers.suggestModules({ log, name: defaultName, path })
+      return suggestions.map((suggestion) => ({ suggestion, pluginName: spec.plugin.name }))
+    })
+  )
+
+  let choices: inquirer.ChoiceCollection = Object.keys(moduleTypes).map((moduleType) => ({
+    name: moduleType,
+    value: { kind: "Module", type: moduleType, name: defaultName },
+  }))
+
+  if (allSuggestions.length > 0) {
+    return [
+      ...allSuggestions.map((s) => {
+        const suggestion = s.suggestion
+
+        let description =
+          (suggestion.description ? truncate(suggestion.description, 48) + ", " : "") +
+          `suggested by ${chalk.white(s.pluginName)}`
+
+        return {
+          name: `${suggestion.module.type} ` + chalk.gray(`(${description})`),
+          short: suggestion.module.type,
+          value: suggestion.module,
+        }
+      }),
+      new inquirer.Separator(),
+      ...choices,
+    ]
+  } else {
+    return choices
   }
 }

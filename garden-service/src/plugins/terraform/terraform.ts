@@ -19,6 +19,8 @@ import { ConfigurationError } from "../../exceptions"
 import { variablesSchema, TerraformBaseSpec } from "./common"
 import { schema, configureTerraformModule, getTerraformStatus, deployTerraform } from "./module"
 import { DOCS_BASE_URL } from "../../constants"
+import { SuggestModulesParams, SuggestModulesResult } from "../../types/plugin/module/suggestModules"
+import { listDirectory } from "../../util/fs"
 
 type TerraformProviderConfig = ProviderConfig &
   TerraformBaseSpec & {
@@ -95,6 +97,26 @@ export const gardenPlugin = createGardenPlugin({
         .description("A map of all the outputs defined in the Terraform stack."),
       schema,
       handlers: {
+        suggestModules: async ({ name, path }: SuggestModulesParams): Promise<SuggestModulesResult> => {
+          const files = await listDirectory(path, { recursive: false })
+
+          if (files.filter((f) => f.endsWith(".tf")).length > 0) {
+            return {
+              suggestions: [
+                {
+                  description: `based on found .tf files`,
+                  module: {
+                    type: "terraform",
+                    name,
+                    autoApply: false,
+                  },
+                },
+              ],
+            }
+          } else {
+            return { suggestions: [] }
+          }
+        },
         configure: configureTerraformModule,
         getServiceStatus: getTerraformStatus,
         deployService: deployTerraform,

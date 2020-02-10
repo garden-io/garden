@@ -180,9 +180,11 @@ export function normalizeLocalRsyncPath(path: string) {
 /**
  * Return a list of all files in directory at `path`
  */
-export async function listDirectory(path: string): Promise<string[]> {
+export async function listDirectory(path: string, { recursive = true } = {}): Promise<string[]> {
+  const pattern = recursive ? "**/*" : "*"
+
   return new Promise((resolve, reject) => {
-    glob("**/*", { cwd: path, dot: true }, (err, files) => {
+    glob(pattern, { cwd: path, dot: true }, (err, files) => {
       if (err) {
         reject(err)
       } else {

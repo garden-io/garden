@@ -634,7 +634,8 @@ export class Garden {
 
       // Resolve module configs from specs and add to the list
       await Bluebird.map(addModules || [], async (spec) => {
-        const moduleConfig = prepareModuleResource(spec, spec.path, spec.path, this.projectRoot)
+        const path = spec.path || this.projectRoot
+        const moduleConfig = prepareModuleResource(spec, path, path, this.projectRoot)
         moduleConfigs.push(await resolveModuleConfig(this, moduleConfig, opts))
         graph = undefined
       })

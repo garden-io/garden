@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 import { withDefaultGlobalOpts, TempDirectory, makeTempDir, expectError } from "../../../../helpers"
-import { CreateModuleCommand } from "../../../../../src/commands/create/create-module"
+import { CreateModuleCommand, getModuleTypeSuggestions } from "../../../../../src/commands/create/create-module"
 import { makeDummyGarden } from "../../../../../src/cli/cli"
 import { Garden } from "../../../../../src/garden"
 import { basename, join } from "path"
@@ -16,6 +16,9 @@ import { pathExists, readFile, writeFile, mkdirp } from "fs-extra"
 import { safeLoadAll, safeDump } from "js-yaml"
 import { exec } from "../../../../../src/util/util"
 import stripAnsi = require("strip-ansi")
+import { getModuleTypes } from "../../../../../src/plugins"
+import { supportedPlugins } from "../../../../../src/plugins/plugins"
+import inquirer = require("inquirer")
 
 describe("CreateModuleCommand", () => {
   const command = new CreateModuleCommand()
@@ -164,5 +167,53 @@ describe("CreateModuleCommand", () => {
         }),
       (err) => expect(stripAnsi(err.message)).to.equal("Could not find module type foo")
     )
+  })
+
+  describe("getModuleTypeSuggestions", () => {
+    it("should return a list of all supported module types", async () => {
+      const moduleTypes = getModuleTypes(supportedPlugins)
+      const result = await getModuleTypeSuggestions(garden.log, moduleTypes, tmp.path, "test")
+
+      expect(result).to.eql([
+        ...Object.keys(moduleTypes).map((type) => ({ name: type, value: { kind: "Module", type, name: "test" } })),
+      ])
+    })
+
+    it("should include suggestions from providers if applicable", async () => {
+      await writeFile(join(tmp.path, "Dockerfile"), "")
+      await writeFile(join(tmp.path, "Chart.yaml"), "")
+      await writeFile(join(tmp.path, "foo.tf"), "")
+
+      const moduleTypes = getModuleTypes(supportedPlugins)
+      const result = await getModuleTypeSuggestions(garden.log, moduleTypes, tmp.path, "test")
+
+      expect(result).to.eql([
+        {
+          name:
+            "container \u001b[90m(based on found \u001b[37mDockerfile\u001b[39m\u001b[90m, suggested by \u001b[37mcontainer\u001b[39m\u001b[90m)\u001b[39m",
+          short: "container",
+          value: {
+            kind: "Module",
+            type: "container",
+            name: "test",
+            dockerfile: "Dockerfile",
+          },
+        },
+        {
+          name:
+            "helm \u001b[90m(based on found \u001b[37mChart.yaml\u001b[39m\u001b[90m, suggested by \u001b[37mkubernetes\u001b[39m\u001b[90m)\u001b[39m",
+          short: "helm",
+          value: { type: "helm", name: "test", chartPath: "." },
+        },
+        {
+          name:
+            "terraform \u001b[90m(based on found .tf files, suggested by \u001b[37mterraform\u001b[39m\u001b[90m)\u001b[39m",
+          short: "terraform",
+          value: { type: "terraform", name: "test", autoApply: false },
+        },
+        new inquirer.Separator(),
+        ...Object.keys(moduleTypes).map((type) => ({ name: type, value: { kind: "Module", type, name: "test" } })),
+      ])
+    })
   })
 })

@@ -21,6 +21,10 @@ import { getTaskResult } from "../task-results"
 import { GetPortForwardParams } from "../../../types/plugin/service/getPortForward"
 import { KubernetesPluginContext } from "../config"
 import { getModuleNamespace } from "../namespace"
+import { join } from "path"
+import { pathExists } from "fs-extra"
+import chalk = require("chalk")
+import { SuggestModulesParams, SuggestModulesResult } from "../../../types/plugin/module/suggestModules"
 
 export const helmHandlers: Partial<ModuleAndRuntimeActionHandlers<HelmModule>> = {
   build: buildHelmModule,
@@ -49,5 +53,24 @@ export const helmHandlers: Partial<ModuleAndRuntimeActionHandlers<HelmModule>> =
   // TODO: add publishModule handler
   runModule: runHelmModule,
   runTask: runHelmTask,
+  suggestModules: async ({ name, path }: SuggestModulesParams): Promise<SuggestModulesResult> => {
+    const chartPath = join(path, "Chart.yaml")
+    if (await pathExists(chartPath)) {
+      return {
+        suggestions: [
+          {
+            description: `based on found ${chalk.white("Chart.yaml")}`,
+            module: {
+              type: "helm",
+              name,
+              chartPath: ".",
+            },
+          },
+        ],
+      }
+    } else {
+      return { suggestions: [] }
+    }
+  },
   testModule: testHelmModule,
 }

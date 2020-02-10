@@ -83,9 +83,10 @@ export interface AddModuleSpec {
   exclude?: string[]
   include?: string[]
   name: string
-  path: string
+  path?: string
   repositoryUrl?: string
   type: string
+  [key: string]: any
 }
 
 export interface BaseModuleSpec extends AddModuleSpec {

@@ -1775,6 +1775,10 @@ const testPlugin = createGardenPlugin({
           }
         },
 
+        suggestModules: async () => {
+          return { suggestions: [] }
+        },
+
         getBuildStatus: async (params) => {
           validateSchema(params, moduleActionDescriptions.getBuildStatus.paramsSchema)
           return { ready: true }
