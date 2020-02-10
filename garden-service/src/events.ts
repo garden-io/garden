@@ -7,9 +7,9 @@
  */
 
 import { EventEmitter2 } from "eventemitter2"
-import { LogEntry } from "./logger/log-entry"
 import { ModuleVersion } from "./vcs/vcs"
 import { TaskResult } from "./task-graph"
+import { LogEntryEvent } from "./cloud/buffered-event-stream"
 
 /**
  * This simple class serves as the central event bus for a Garden instance. Its function
@@ -18,7 +18,7 @@ import { TaskResult } from "./task-graph"
  * See below for the event interfaces.
  */
 export class EventBus extends EventEmitter2 {
-  constructor(private log: LogEntry) {
+  constructor() {
     super({
       wildcard: false,
       newListener: false,
@@ -27,7 +27,6 @@ export class EventBus extends EventEmitter2 {
   }
 
   emit<T extends EventName>(name: T, payload: Events[T]) {
-    this.log.silly(`Emit event '${name}'`)
     return super.emit(name, payload)
   }
 
@@ -47,9 +46,19 @@ export class EventBus extends EventEmitter2 {
 }
 
 /**
- * The supported events and their interfaces.
+ * Supported logger events and their interfaces.
  */
-export type Events = {
+export interface LoggerEvents {
+  _test: any
+  logEntry: LogEntryEvent
+}
+
+export type LoggerEventName = keyof LoggerEvents
+
+/**
+ * Supported Garden events and their interfaces.
+ */
+export interface Events extends LoggerEvents {
   // Internal test/control events
   _exit: {}
   _restart: {}
@@ -108,8 +117,29 @@ export type Events = {
   taskGraphComplete: {
     completedAt: Date
   }
-
   watchingForChanges: {}
 }
 
 export type EventName = keyof Events
+
+// Note: Does not include logger events.
+export const eventNames: EventName[] = [
+  "_exit",
+  "_restart",
+  "_test",
+  "configAdded",
+  "configRemoved",
+  "internalError",
+  "projectConfigChanged",
+  "moduleConfigChanged",
+  "moduleSourcesChanged",
+  "moduleRemoved",
+  "taskPending",
+  "taskProcessing",
+  "taskComplete",
+  "taskError",
+  "taskCancelled",
+  "taskGraphProcessing",
+  "taskGraphComplete",
+  "watchingForChanges",
+]

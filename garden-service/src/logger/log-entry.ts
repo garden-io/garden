@@ -33,6 +33,8 @@ export interface TaskMetadata {
   durationMs?: number
 }
 
+export const EVENT_LOG_LEVEL = LogLevel.debug
+
 interface MessageBase {
   msg?: string
   emoji?: EmojiName
@@ -90,6 +92,7 @@ export class LogEntry extends LogNode {
   public readonly childEntriesInheritLevel?: boolean
   public readonly id?: string
   public isPlaceholder?: boolean
+  public revision: number
 
   constructor(params: LogEntryConstructor) {
     super(params.level, params.parent, params.id)
@@ -102,6 +105,7 @@ export class LogEntry extends LogNode {
     this.metadata = params.metadata
     this.id = params.id
     this.isPlaceholder = params.isPlaceholder
+    this.revision = -1
 
     if (!params.isPlaceholder) {
       this.update({
@@ -124,6 +128,7 @@ export class LogEntry extends LogNode {
    * 3. next metadata is merged with the previous metadata
    */
   protected update(updateParams: UpdateLogEntryParams): void {
+    this.revision = this.revision + 1
     const messageState = this.getMessageState()
 
     // Explicitly set all the fields so the shape stays consistent
@@ -232,13 +237,13 @@ export class LogEntry extends LogNode {
   setState(params?: string | UpdateLogEntryParams): LogEntry {
     this.isPlaceholder = false
     this.deepUpdate({ ...resolveParams(params) })
-    this.root.onGraphChange(this)
+    this.onGraphChange(this)
     return this
   }
 
   setDone(params?: string | Omit<UpdateLogEntryParams, "status">): LogEntry {
     this.deepUpdate({ ...resolveParams(params), status: "done" })
-    this.root.onGraphChange(this)
+    this.onGraphChange(this)
     return this
   }
 
@@ -248,7 +253,7 @@ export class LogEntry extends LogNode {
       symbol: "success",
       status: "success",
     })
-    this.root.onGraphChange(this)
+    this.onGraphChange(this)
     return this
   }
 
@@ -258,7 +263,7 @@ export class LogEntry extends LogNode {
       symbol: "error",
       status: "error",
     })
-    this.root.onGraphChange(this)
+    this.onGraphChange(this)
     return this
   }
 
@@ -268,7 +273,7 @@ export class LogEntry extends LogNode {
       symbol: "warning",
       status: "warn",
     })
-    this.root.onGraphChange(this)
+    this.onGraphChange(this)
     return this
   }
 
@@ -280,7 +285,7 @@ export class LogEntry extends LogNode {
     // Stop gracefully if still in active state
     if (this.getMessageState().status === "active") {
       this.update({ symbol: "empty", status: "done" })
-      this.root.onGraphChange(this)
+      this.onGraphChange(this)
     }
     return this
   }

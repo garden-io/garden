@@ -7,9 +7,11 @@
  */
 
 import { expect } from "chai"
+import { omit } from "lodash"
 
 import { LogLevel } from "../../../../src/logger/log-node"
 import { getLogger } from "../../../../src/logger/logger"
+import { LogEntryEvent, formatForEventStream } from "../../../../src/cloud/buffered-event-stream"
 
 const logger: any = getLogger()
 
@@ -18,6 +20,37 @@ beforeEach(() => {
 })
 
 describe("Logger", () => {
+  describe("events", () => {
+    let loggerEvents: LogEntryEvent[] = []
+    let listener = (event: LogEntryEvent) => loggerEvents.push(event)
+
+    before(() => logger.events.on("logEntry", listener))
+    after(() => logger.events.off("logEntry", listener))
+
+    beforeEach(() => {
+      loggerEvents = []
+    })
+
+    it("should emit a loggerEvent event when an entry is created", () => {
+      const log = logger.info({ msg: "0" })
+      const e = loggerEvents[0]
+      expect(loggerEvents.length).to.eql(1)
+      expect(e.revision).to.eql(0)
+      expect(omit(formatForEventStream(log), "timestamp")).to.eql(omit(e, "timestamp"))
+    })
+
+    it("should emit a loggerEvent with a bumped revision when an entry is updated", () => {
+      const log = logger.info({ msg: "0" })
+      log.setState("1")
+      logger.info({ msg: "0" })
+      const [e1, e2, e3] = loggerEvents
+      expect(loggerEvents.length).to.eql(3)
+      expect(e1.revision).to.eql(0)
+      expect(e2.revision).to.eql(1)
+      expect(e3.revision).to.eql(0)
+    })
+  })
+
   describe("findById", () => {
     it("should return the first log entry with a matching id and undefined otherwise", () => {
       logger.info({ msg: "0" })

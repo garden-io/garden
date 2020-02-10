@@ -45,7 +45,6 @@ export class GardenEntity extends BaseEntity {
   /**
    * Helper method to avoid circular import issues.
    */
-
   static getConnection() {
     return getConnection()
   }
