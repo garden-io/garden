@@ -142,7 +142,7 @@ describe("DeployTask", () => {
         log: garden.log,
       })
 
-      const result = await garden.processTasks([deployTask])
+      const result = await garden.processTasks([deployTask], { throwOnError: true })
 
       expect(result[deployTask.getKey()]!.output.outputs).to.eql({ log: "test output" })
     })

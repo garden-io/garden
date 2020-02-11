@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi = require("@hapi/joi")
-import username = require("username")
+import Joi from "@hapi/joi"
+import username from "username"
 import { isString } from "lodash"
-import { PrimitiveMap, isPrimitive, Primitive, joiIdentifierMap, joiStringMap, joiPrimitive } from "./common"
+import { PrimitiveMap, joiIdentifierMap, joiStringMap, joiPrimitive } from "./common"
 import { Provider, ProviderConfig } from "./provider"
 import { ModuleConfig } from "./module"
 import { ConfigurationError } from "../exceptions"
@@ -25,6 +25,9 @@ import chalk = require("chalk")
 export type ContextKey = string[]
 
 export interface ContextResolveOpts {
+  // Allow templates to be partially resolved (used to defer runtime template resolution, for example)
+  allowPartial?: boolean
+  // Allow undefined values to be returned without throwing an error
   allowUndefined?: boolean
   // a list of previously resolved paths, used to detect circular references
   stack?: string[]
@@ -36,8 +39,14 @@ export interface ContextResolveParams {
   opts: ContextResolveOpts
 }
 
+export interface ContextResolveOutput {
+  message?: string
+  partial?: boolean
+  resolved: any
+}
+
 export function schema(joiSchema: Joi.Schema) {
-  return (target, propName: string) => {
+  return (target: any, propName: string) => {
     target.constructor._schemas = { ...(target.constructor._schemas || {}), [propName]: joiSchema }
   }
 }
@@ -60,7 +69,7 @@ export abstract class ConfigContext {
       .required()
   }
 
-  async resolve({ key, nodePath, opts }: ContextResolveParams): Promise<Primitive | undefined> {
+  async resolve({ key, nodePath, opts }: ContextResolveParams): Promise<ContextResolveOutput> {
     const path = key.join(".")
     const fullPath = nodePath.concat(key).join(".")
 
@@ -68,7 +77,7 @@ export abstract class ConfigContext {
     const resolved = this._resolvedValues[path]
 
     if (resolved) {
-      return resolved
+      return { resolved }
     }
 
     opts.stack = [...(opts.stack || [])]
@@ -86,6 +95,7 @@ export abstract class ConfigContext {
 
     // keep track of which resolvers have been called, in order to detect circular references
     let value: any = this
+    let partial = false
     let nextKey = key[0]
     let lookupPath: string[] = []
     let nestedNodePath = nodePath
@@ -122,8 +132,12 @@ export abstract class ConfigContext {
 
       // handle nested contexts
       if (value instanceof ConfigContext) {
-        opts.stack.push(stackEntry)
-        value = await value.resolve({ key: remainder, nodePath: nestedNodePath, opts })
+        if (remainder.length > 0) {
+          opts.stack.push(stackEntry)
+          const res = await value.resolve({ key: remainder, nodePath: nestedNodePath, opts })
+          value = res.resolved
+          partial = !!res.partial
+        }
         break
       }
 
@@ -139,36 +153,29 @@ export abstract class ConfigContext {
     }
 
     if (value === undefined) {
+      let message = chalk.red(`Could not find key ${chalk.white(nextKey)}`)
+      if (nestedNodePath.length > 1) {
+        message += chalk.red(" under ") + chalk.white(nestedNodePath.slice(0, -1).join("."))
+      }
+      message += chalk.red(".")
+
       if (opts.allowUndefined) {
-        return
+        return { resolved: undefined, message }
       } else {
-        throw new ConfigurationError(
-          chalk.red(
-            `Could not find key ${chalk.white(nextKey)} under ${chalk.white(nestedNodePath.slice(0, -1).join("."))}`
-          ),
-          {
-            nodePath,
-            fullPath,
-            opts,
-          }
-        )
+        throw new ConfigurationError(message, {
+          nodePath,
+          fullPath,
+          opts,
+        })
       }
     }
 
-    if (!isPrimitive(value)) {
-      throw new ConfigurationError(
-        `Config value at '${path}' exists but is not a primitive (string, number, boolean or null)`,
-        {
-          value,
-          path,
-          fullPath,
-        }
-      )
+    // Cache result, unless it is a partial resolution
+    if (!partial) {
+      this._resolvedValues[path] = value
     }
 
-    this._resolvedValues[path] = value
-
-    return value
+    return { resolved: value }
   }
 }
 
@@ -183,7 +190,7 @@ export class ScanContext extends ConfigContext {
   async resolve({ key, nodePath }: ContextResolveParams) {
     const fullKey = nodePath.concat(key)
     this.foundKeys.add(fullKey)
-    return "${" + fullKey.join(".") + "}"
+    return { resolved: "${" + fullKey.join(".") + "}" }
   }
 }
 
@@ -506,17 +513,26 @@ class RuntimeConfigContext extends ConfigContext {
     }
   }
 
-  async resolve(params: ContextResolveParams) {
-    // We're customizing the resolver so that we can ignore missing services/tasks and return the template string back
-    // for later resolution, but fail when an output on a resolved service/task doesn't exist.
-    const opts = { ...(params.opts || {}), allowUndefined: true }
+  async resolve(params: ContextResolveParams): Promise<ContextResolveOutput> {
+    // We're customizing the resolver so that we can defer and return the template string back
+    // for later resolution, but fail correctly when attempting to resolve the runtime templates.
+    const opts = { ...(params.opts || {}), allowUndefined: params.opts.allowPartial || params.opts.allowUndefined }
     const res = await super.resolve({ ...params, opts })
 
-    if (res === undefined) {
-      const { key, nodePath } = params
-      const fullKey = nodePath.concat(key)
-      return "${" + fullKey.join(".") + "}"
+    if (res.resolved === undefined) {
+      if (params.opts.allowPartial) {
+        // If value can't be resolved and allowPartial is set, we defer the resolution by returning another template
+        // string, that can be resolved later.
+        const { key, nodePath } = params
+        const fullKey = nodePath.concat(key)
+        return { resolved: "${" + fullKey.join(".") + "}", partial: true }
+      } else {
+        // If undefined values are allowed, we simply return undefined (We know allowUndefined is set here, because
+        // otherwise an error would have been thrown by `super.resolve()` above).
+        return res
+      }
     } else {
+      // Value successfully resolved
       return res
     }
   }

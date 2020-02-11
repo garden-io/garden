@@ -31,7 +31,8 @@ export async function resolveModuleConfig(
     opts.configContext = await garden.getModuleConfigContext()
   }
 
-  config = await resolveTemplateStrings(cloneDeep(config), opts.configContext, opts)
+  // Allowing partial resolution here, to defer runtime remplate resolution
+  config = await resolveTemplateStrings(cloneDeep(config), opts.configContext, { allowPartial: true, ...opts })
 
   const moduleTypeDefinitions = await garden.getModuleTypes()
   const description = moduleTypeDefinitions[config.type]

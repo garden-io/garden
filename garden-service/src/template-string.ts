@@ -10,10 +10,9 @@ import lodash = require("lodash")
 import Bluebird = require("bluebird")
 import { asyncDeepMap } from "./util/util"
 import { GardenBaseError, ConfigurationError } from "./exceptions"
-import { ConfigContext, ContextResolveOpts, ScanContext } from "./config/config-context"
-import { uniq } from "lodash"
-import { Primitive } from "./config/common"
-import { isNumber } from "util"
+import { ConfigContext, ContextResolveOpts, ScanContext, ContextResolveOutput } from "./config/config-context"
+import { uniq, isPlainObject, isNumber } from "lodash"
+import { Primitive, isPrimitive } from "./config/common"
 
 export type StringOrStringPromise = Promise<string> | string
 
@@ -31,6 +30,12 @@ async function getParser() {
   return _parser
 }
 
+type ResolvedClause = ContextResolveOutput | { resolved: undefined; _error: Error }
+
+function getValue(v: Primitive | undefined | ResolvedClause) {
+  return isPlainObject(v) ? (<ResolvedClause>v).resolved : v
+}
+
 /**
  * Parse and resolve a templated string, with the given context. The template format is similar to native JS templated
  * strings but only supports simple lookups from the given context, e.g. "prefix-${nested.key}-suffix", and not
@@ -44,12 +49,17 @@ export async function resolveTemplateString(
   context: ConfigContext,
   opts: ContextResolveOpts = {}
 ): Promise<Primitive | undefined> {
+  if (!string) {
+    return string
+  }
+
   const parser = await getParser()
   try {
     const parsed = parser.parse(string, {
       getKey: async (key: string[], resolveOpts?: ContextResolveOpts) => {
         return context.resolve({ key, nodePath: [], opts: { ...opts, ...(resolveOpts || {}) } })
       },
+      getValue,
       // Some utilities to pass to the parser
       buildBinaryExpression,
       buildLogicalExpression,
@@ -59,23 +69,46 @@ export async function resolveTemplateString(
       allowUndefined: opts.allowUndefined,
     })
 
-    const resolved: (Primitive | undefined | { _error: Error })[] = await Bluebird.all(parsed)
+    const outputs: ResolvedClause[] = await Bluebird.map(parsed, async (p: any) => {
+      const res = await p
+      return isPlainObject(res) ? res : { resolved: getValue(res) }
+    })
 
     // We need to manually propagate errors in the parser, so we catch them here
-    for (const r of resolved) {
+    for (const r of outputs) {
       if (r && r["_error"]) {
         throw r["_error"]
       }
     }
 
-    const result =
-      resolved.length === 1
-        ? // Return value directly if there is only one value in the output
-          resolved[0]
-        : // Else join together all the parts as a string. Output null as a literal string and not an empty string.
-          resolved.map((v) => (v === null ? "null" : v)).join("")
+    // Use value directly if there is only one (or no) value in the output.
+    let resolved: Primitive | undefined = outputs[0]?.resolved
 
-    return <Primitive | undefined>result
+    if (outputs.length > 1) {
+      resolved = outputs
+        .map((output) => {
+          const v = getValue(output)
+          return v === null ? "null" : v
+        })
+        .join("")
+    }
+
+    if (resolved === undefined && !opts.allowUndefined) {
+      throw new ConfigurationError(`Template string resolves to undefined value.`, {
+        string,
+        resolved,
+      })
+    } else if (resolved !== undefined && !isPrimitive(resolved)) {
+      throw new ConfigurationError(
+        `Template string doesn't resolve to a primitive (string, number, boolean or null).`,
+        {
+          string,
+          resolved,
+        }
+      )
+    }
+
+    return <Primitive | undefined>resolved
   } catch (err) {
     const prefix = `Invalid template string ${string}: `
     const message = err.message.startsWith(prefix) ? err.message : prefix + err.message
@@ -123,18 +156,29 @@ async function buildBinaryExpression(head: any, tail: any) {
       const operator = element[1]
 
       return Promise.all([result, element[3]])
-        .then(([left, right]) => {
+        .then(([leftRes, rightRes]) => {
           // We need to manually handle and propagate errors because the parser doesn't support promises
-          if (left && left._error) {
-            return left
+          if (leftRes && leftRes._error) {
+            return leftRes
           }
-          if (right && right._error) {
-            return right
+          if (rightRes && rightRes._error) {
+            return rightRes
           }
+
+          const left = getValue(leftRes)
+          const right = getValue(rightRes)
 
           // Disallow undefined values for comparisons
           if (left === undefined || right === undefined) {
-            const err = new TemplateStringError(`Could not resolve one or more keys.`, { left, right, operator })
+            const message = [leftRes, rightRes]
+              .map((res) => res.message)
+              .filter(Boolean)
+              .join(" ")
+            const err = new TemplateStringError(message || "Could not resolve one or more keys.", {
+              left,
+              right,
+              operator,
+            })
             return { _error: err }
           }
 
@@ -193,20 +237,22 @@ async function buildLogicalExpression(head: any, tail: any) {
       const operator = element[1]
 
       return Promise.all([result, element[3]])
-        .then(([left, right]) => {
+        .then(([leftRes, rightRes]) => {
           // We need to manually handle and propagate errors because the parser doesn't support promises
-          if (left && left._error) {
-            return left
+          if (leftRes && leftRes._error) {
+            return leftRes
           }
-          if (right && right._error) {
-            return right
+          if (rightRes && rightRes._error) {
+            return rightRes
           }
+
+          const left = getValue(leftRes)
 
           switch (operator) {
             case "&&":
-              return left && right
+              return !left ? leftRes : rightRes
             case "||":
-              return left || right
+              return left ? leftRes : rightRes
             default:
               const err = new TemplateStringError("Unrecognized operator: " + operator, { operator })
               return { _error: err }

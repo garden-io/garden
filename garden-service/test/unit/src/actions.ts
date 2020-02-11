@@ -1461,8 +1461,8 @@ describe("ActionRouter", () => {
           }),
         (err) =>
           expect(err.message).to.equal(
-            "Unable to resolve one or more runtime template values for service 'service-a': " +
-              "${runtime.services.service-b.outputs.foo}"
+            "Invalid template string ${runtime.services.service-b.outputs.foo}: " +
+              "Template string resolves to undefined value."
           )
       )
     })
@@ -1637,8 +1637,8 @@ describe("ActionRouter", () => {
           }),
         (err) =>
           expect(err.message).to.equal(
-            "Unable to resolve one or more runtime template values for task 'task-a': " +
-              "${runtime.services.service-b.outputs.foo}"
+            "Invalid template string ${runtime.services.service-b.outputs.foo}: " +
+              "Template string resolves to undefined value."
           )
       )
     })

@@ -22,6 +22,7 @@ import { joi } from "../../../../src/config/common"
 import { prepareRuntimeContext } from "../../../../src/runtime-context"
 import { Service } from "../../../../src/types/service"
 import stripAnsi = require("strip-ansi")
+import { resolveTemplateString } from "../../../../src/template-string"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>
@@ -49,7 +50,7 @@ describe("ConfigContext", () => {
 
     it("should resolve simple keys", async () => {
       const c = new TestContext({ basic: "value" })
-      expect(await resolveKey(c, ["basic"])).to.equal("value")
+      expect(await resolveKey(c, ["basic"])).to.eql({ resolved: "value" })
     })
 
     it("should throw on missing key", async () => {
@@ -64,14 +65,14 @@ describe("ConfigContext", () => {
 
     it("should resolve nested keys", async () => {
       const c = new TestContext({ nested: { key: "value" } })
-      expect(await resolveKey(c, ["nested", "key"])).to.equal("value")
+      expect(await resolveKey(c, ["nested", "key"])).eql({ resolved: "value" })
     })
 
     it("should resolve keys on nested contexts", async () => {
       const c = new TestContext({
         nested: new TestContext({ key: "value" }),
       })
-      expect(await resolveKey(c, ["nested", "key"])).to.equal("value")
+      expect(await resolveKey(c, ["nested", "key"])).eql({ resolved: "value" })
     })
 
     it("should throw on missing key on nested context", async () => {
@@ -83,19 +84,19 @@ describe("ConfigContext", () => {
 
     it("should resolve keys with value behind callable", async () => {
       const c = new TestContext({ basic: () => "value" })
-      expect(await resolveKey(c, ["basic"])).to.equal("value")
+      expect(await resolveKey(c, ["basic"])).to.eql({ resolved: "value" })
     })
 
     it("should resolve keys with value behind callable that returns promise", async () => {
       const c = new TestContext({ basic: async () => "value" })
-      expect(await resolveKey(c, ["basic"])).to.equal("value")
+      expect(await resolveKey(c, ["basic"])).to.eql({ resolved: "value" })
     })
 
     it("should resolve keys on nested contexts where context is behind callable", async () => {
       const c = new TestContext({
         nested: () => new TestContext({ key: "value" }),
       })
-      expect(await resolveKey(c, ["nested", "key"])).to.equal("value")
+      expect(await resolveKey(c, ["nested", "key"])).to.eql({ resolved: "value" })
     })
 
     it("should cache resolved values", async () => {
@@ -107,7 +108,7 @@ describe("ConfigContext", () => {
 
       nested.key = "foo"
 
-      expect(await resolveKey(c, ["nested", "key"])).to.equal("value")
+      expect(await resolveKey(c, ["nested", "key"])).to.eql({ resolved: "value" })
     })
 
     it("should throw if resolving a key that's already in the lookup stack", async () => {
@@ -146,26 +147,26 @@ describe("ConfigContext", () => {
       const c = new Context()
       await expectError(
         () => resolveKey(c, ["nested", "bla"]),
-        (err) => expect(stripAnsi(err.message)).to.equal("Could not find key bla under nested")
+        (err) => expect(stripAnsi(err.message)).to.equal("Could not find key bla under nested.")
       )
     })
 
     it("should resolve template strings", async () => {
       const c = new TestContext({
-        foo: "bar",
+        foo: "value",
       })
       const nested: any = new TestContext({ key: "${foo}" }, c)
       c.addValues({ nested })
-      expect(await resolveKey(c, ["nested", "key"])).to.equal("bar")
+      expect(await resolveKey(c, ["nested", "key"])).to.eql({ resolved: "value" })
     })
 
     it("should resolve template strings with nested context", async () => {
       const c = new TestContext({
         foo: "bar",
       })
-      const nested: any = new TestContext({ key: "${nested.foo}", foo: "boo" }, c)
+      const nested: any = new TestContext({ key: "${nested.foo}", foo: "value" }, c)
       c.addValues({ nested })
-      expect(await resolveKey(c, ["nested", "key"])).to.equal("boo")
+      expect(await resolveKey(c, ["nested", "key"])).to.eql({ resolved: "value" })
     })
 
     it("should detect a self-reference when resolving a template string", async () => {
@@ -231,15 +232,19 @@ describe("ConfigContext", () => {
 
 describe("ProjectConfigContext", () => {
   it("should should resolve local env variables", async () => {
-    process.env.TEST_VARIABLE = "foo"
+    process.env.TEST_VARIABLE = "value"
     const c = new ProjectConfigContext("/tmp")
-    expect(await c.resolve({ key: ["local", "env", "TEST_VARIABLE"], nodePath: [], opts: {} })).to.equal("foo")
+    expect(await c.resolve({ key: ["local", "env", "TEST_VARIABLE"], nodePath: [], opts: {} })).to.eql({
+      resolved: "value",
+    })
     delete process.env.TEST_VARIABLE
   })
 
   it("should should resolve the local platform", async () => {
     const c = new ProjectConfigContext("/tmp")
-    expect(await c.resolve({ key: ["local", "platform"], nodePath: [], opts: {} })).to.equal(process.platform)
+    expect(await c.resolve({ key: ["local", "platform"], nodePath: [], opts: {} })).to.eql({
+      resolved: process.platform,
+    })
   })
 })
 
@@ -260,46 +265,73 @@ describe("ModuleConfigContext", () => {
 
   it("should should resolve local env variables", async () => {
     process.env.TEST_VARIABLE = "foo"
-    expect(await c.resolve({ key: ["local", "env", "TEST_VARIABLE"], nodePath: [], opts: {} })).to.equal("foo")
+    expect(await c.resolve({ key: ["local", "env", "TEST_VARIABLE"], nodePath: [], opts: {} })).to.eql({
+      resolved: "foo",
+    })
     delete process.env.TEST_VARIABLE
   })
 
   it("should should resolve the local platform", async () => {
-    expect(await c.resolve({ key: ["local", "platform"], nodePath: [], opts: {} })).to.equal(process.platform)
+    expect(await c.resolve({ key: ["local", "platform"], nodePath: [], opts: {} })).to.eql({
+      resolved: process.platform,
+    })
   })
 
   it("should should resolve the environment config", async () => {
-    expect(await c.resolve({ key: ["environment", "name"], nodePath: [], opts: {} })).to.equal(garden.environmentName)
+    expect(await c.resolve({ key: ["environment", "name"], nodePath: [], opts: {} })).to.eql({
+      resolved: garden.environmentName,
+    })
   })
 
   it("should should resolve the path of a module", async () => {
     const path = join(garden.projectRoot, "module-a")
-    expect(await c.resolve({ key: ["modules", "module-a", "path"], nodePath: [], opts: {} })).to.equal(path)
+    expect(await c.resolve({ key: ["modules", "module-a", "path"], nodePath: [], opts: {} })).to.eql({ resolved: path })
   })
 
   it("should should resolve the version of a module", async () => {
     const config = await garden.resolveModuleConfig(garden.log, "module-a")
     const { versionString } = await garden.resolveVersion(config, [])
-    expect(await c.resolve({ key: ["modules", "module-a", "version"], nodePath: [], opts: {} })).to.equal(versionString)
+    expect(await c.resolve({ key: ["modules", "module-a", "version"], nodePath: [], opts: {} })).to.eql({
+      resolved: versionString,
+    })
   })
 
   it("should should resolve the outputs of a module", async () => {
-    expect(await c.resolve({ key: ["modules", "module-a", "outputs", "foo"], nodePath: [], opts: {} })).to.equal("bar")
+    expect(await c.resolve({ key: ["modules", "module-a", "outputs", "foo"], nodePath: [], opts: {} })).to.eql({
+      resolved: "bar",
+    })
   })
 
   it("should should resolve a project variable", async () => {
-    expect(await c.resolve({ key: ["variables", "some"], nodePath: [], opts: {} })).to.equal("variable")
+    expect(await c.resolve({ key: ["variables", "some"], nodePath: [], opts: {} })).to.eql({ resolved: "variable" })
   })
 
   it("should should resolve a project variable under the var alias", async () => {
-    expect(await c.resolve({ key: ["var", "some"], nodePath: [], opts: {} })).to.equal("variable")
+    expect(await c.resolve({ key: ["var", "some"], nodePath: [], opts: {} })).to.eql({ resolved: "variable" })
   })
 
   context("runtimeContext is not set", () => {
-    it("should return runtime template strings unchanged", async () => {
-      expect(await c.resolve({ key: ["runtime", "some", "key"], nodePath: [], opts: {} })).to.equal(
-        "${runtime.some.key}"
+    it("should return runtime template strings unchanged if allowPartial=true", async () => {
+      expect(await c.resolve({ key: ["runtime", "some", "key"], nodePath: [], opts: { allowPartial: true } })).to.eql({
+        resolved: "${runtime.some.key}",
+      })
+    })
+
+    it("should throw if resolving missing runtime key with allowPartial=false", async () => {
+      await expectError(
+        () => c.resolve({ key: ["runtime", "some", "key"], nodePath: [], opts: {} }),
+        (err) => expect(stripAnsi(err.message)).to.equal("Could not find key some under runtime.")
       )
+    })
+
+    it("should allow using a missing runtime key as a test in a conditional", async () => {
+      const result = await resolveTemplateString("${runtime.foo || 'default'}", c)
+      expect(result).to.equal("default")
+    })
+
+    it("should allow using a missing runtime key as a test in a ternary (negative)", async () => {
+      const result = await resolveTemplateString("${runtime.foo ? runtime.foo.bar : 'default'}", c)
+      expect(result).to.equal("default")
     })
   })
 
@@ -360,7 +392,7 @@ describe("ModuleConfigContext", () => {
         nodePath: [],
         opts: {},
       })
-      expect(result).to.equal("bar")
+      expect(result).to.eql({ resolved: "bar" })
     })
 
     it("should resolve task outputs", async () => {
@@ -369,16 +401,24 @@ describe("ModuleConfigContext", () => {
         nodePath: [],
         opts: {},
       })
-      expect(result).to.equal("boo")
+      expect(result).to.eql({ resolved: "boo" })
     })
 
-    it("should return the template string back if a service's outputs haven't been resolved", async () => {
+    it("should return the template string back if allowPartial=true and outputs haven't been resolved ", async () => {
       const result = await withRuntime.resolve({
         key: ["runtime", "services", "not-ready", "outputs", "foo"],
         nodePath: [],
-        opts: {},
+        opts: { allowPartial: true },
       })
-      expect(result).to.equal("${runtime.services.not-ready.outputs.foo}")
+      expect(result).to.eql({ resolved: "${runtime.services.not-ready.outputs.foo}" })
+    })
+
+    it("should allow using a runtime key as a test in a ternary (positive)", async () => {
+      const result = await resolveTemplateString(
+        "${runtime.tasks.task-b ? runtime.tasks.task-b.outputs.moo : 'default'}",
+        withRuntime
+      )
+      expect(result).to.equal("boo")
     })
 
     it("should throw when a service's outputs have been resolved but an output key is not found", async () => {
@@ -390,7 +430,7 @@ describe("ModuleConfigContext", () => {
             opts: {},
           }),
         (err) =>
-          expect(stripAnsi(err.message)).to.equal("Could not find key boo under runtime.services.service-b.outputs")
+          expect(stripAnsi(err.message)).to.equal("Could not find key boo under runtime.services.service-b.outputs.")
       )
     })
   })

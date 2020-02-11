@@ -10,6 +10,7 @@ import { expect } from "chai"
 import { resolveTemplateString, resolveTemplateStrings, collectTemplateReferences } from "../../../src/template-string"
 import { ConfigContext } from "../../../src/config/config-context"
 import { expectError } from "../../helpers"
+import stripAnsi = require("strip-ansi")
 
 /* tslint:disable:no-invalid-template-strings */
 
@@ -85,7 +86,7 @@ describe("resolveTemplateString", async () => {
     try {
       await resolveTemplateString("${some}", new TestContext({}))
     } catch (err) {
-      expect(err.message).to.equal("Invalid template string ${some}: Unable to resolve one or more keys.")
+      expect(err.message).to.equal("Invalid template string ${some}: Template string resolves to undefined value.")
       return
     }
 
@@ -96,7 +97,9 @@ describe("resolveTemplateString", async () => {
     try {
       await resolveTemplateString("${some.other}", new TestContext({ some: {} }))
     } catch (err) {
-      expect(err.message).to.equal("Invalid template string ${some.other}: Unable to resolve one or more keys.")
+      expect(err.message).to.equal(
+        "Invalid template string ${some.other}: Template string resolves to undefined value."
+      )
       return
     }
 
@@ -109,7 +112,7 @@ describe("resolveTemplateString", async () => {
       (err) =>
         expect(err.message).to.equal(
           "Invalid template string ${some}: " +
-            "Config value at 'some' exists but is not a primitive (string, number, boolean or null)"
+            "Template string doesn't resolve to a primitive (string, number, boolean or null)."
         )
     )
   })
@@ -256,7 +259,8 @@ describe("resolveTemplateString", async () => {
   it("should throw if neither key in logical OR is valid", async () => {
     return expectError(
       () => resolveTemplateString("${a || b}", new TestContext({})),
-      (err) => expect(err.message).to.equal("Invalid template string ${a || b}: Unable to resolve one or more keys.")
+      (err) =>
+        expect(err.message).to.equal("Invalid template string ${a || b}: Template string resolves to undefined value.")
     )
   })
 
@@ -421,7 +425,7 @@ describe("resolveTemplateString", async () => {
   it("should throw when using comparison operators on missing keys", async () => {
     return expectError(
       () => resolveTemplateString("${a >= b}", new TestContext({ a: 123 })),
-      (err) => expect(err.message).to.equal("Invalid template string ${a >= b}: Could not resolve one or more keys.")
+      (err) => expect(stripAnsi(err.message)).to.equal("Invalid template string ${a >= b}: Could not find key b.")
     )
   })
 
@@ -455,6 +459,11 @@ describe("resolveTemplateString", async () => {
       "${foo == 'bar' ? a : b}",
       new TestContext({ foo: "bar", a: true, b: false })
     )
+    expect(res).to.equal(true)
+  })
+
+  it("should handle a ternary expression with an object as a test", async () => {
+    const res = await resolveTemplateString("${a ? a.value : b}", new TestContext({ a: { value: true }, b: false }))
     expect(res).to.equal(true)
   })
 
