@@ -21,6 +21,7 @@ import { join } from "path"
 import { joi } from "../../../../src/config/common"
 import { prepareRuntimeContext } from "../../../../src/runtime-context"
 import { Service } from "../../../../src/types/service"
+import stripAnsi = require("strip-ansi")
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>
@@ -145,7 +146,7 @@ describe("ConfigContext", () => {
       const c = new Context()
       await expectError(
         () => resolveKey(c, ["nested", "bla"]),
-        (err) => expect(err.message).to.equal("Could not find key: nested.bla")
+        (err) => expect(stripAnsi(err.message)).to.equal("Could not find key bla under nested")
       )
     })
 
@@ -388,7 +389,8 @@ describe("ModuleConfigContext", () => {
             nodePath: [],
             opts: {},
           }),
-        (err) => expect(err.message).to.equal("Could not find key: runtime.services.service-b.outputs.boo")
+        (err) =>
+          expect(stripAnsi(err.message)).to.equal("Could not find key boo under runtime.services.service-b.outputs")
       )
     })
   })
