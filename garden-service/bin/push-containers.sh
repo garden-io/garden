@@ -12,5 +12,6 @@ version=${args[0]:-$(git rev-parse --short HEAD)}
 echo "Pushing images"
 
 docker push gardendev/garden:${version}
+docker push gardendev/garden-aws:${version}
 docker push gardendev/garden-gcloud:${version}
 docker push gardendev/garden:${version}-buster
