@@ -38,7 +38,6 @@ export async function runAndCopy({
   module,
   args,
   command,
-  ignoreError,
   interactive,
   runtimeContext,
   timeout,
@@ -139,6 +138,32 @@ export async function runAndCopy({
   })
 
   let result: RunResult
+  const startedAt = new Date()
+
+  // Need to retrieve the logs explicitly, because kubectl exec/run sometimes fail to capture them
+  const getLogs = async () => {
+    const containerLogs = await getPodLogs({
+      api,
+      namespace,
+      podName: runner.podName,
+      containerNames: [mainContainerName],
+    })
+    return containerLogs[0].log
+  }
+
+  const timedOutResult = async () => {
+    const logs = (await getLogs()).trim()
+
+    return {
+      command: runner.getFullCommand(),
+      completedAt: new Date(),
+      log: "Command timed out." + (logs ? ` Here are the logs until the timeout occurred:\n\n${logs.trim()}` : ""),
+      moduleName: module.name,
+      startedAt,
+      success: false,
+      version: module.version.versionString,
+    }
+  }
 
   if (getArtifacts) {
     const tmpDir = await tmp.dir({ unsafeCleanup: true })
@@ -205,20 +230,26 @@ export async function runAndCopy({
       // Escape the command, so that we can safely pass it as a single string
       const cmd = [...command!, ...(args || [])].map((s) => JSON.stringify(s)).join(" ")
 
-      result = await runner.exec({
-        // Pipe the output from the command to the /tmp/output pipe, including stderr. Some shell voodoo happening here,
-        // but this was the only working approach I could find after a lot of trial and error.
-        command: ["sh", "-c", `echo $(${cmd}) >>/tmp/output 2>&1`],
-        container: mainContainerName,
-        ignoreError: true,
-        log,
-        stdout,
-        stderr,
-      })
-
-      // Need to retrieve the logs explicitly, because kubectl exec sometimes fails to capture them
-      const containerLogs = await getPodLogs({ api, namespace, podName, containerNames: [mainContainerName] })
-      result.log = containerLogs[0].log
+      try {
+        result = await runner.exec({
+          // Pipe the output from the command to the /tmp/output pipe, including stderr. Some shell voodoo happening
+          // here, but this was the only working approach I could find after a lot of trial and error.
+          command: ["sh", "-c", `echo $(${cmd}) >>/tmp/output 2>&1`],
+          container: mainContainerName,
+          ignoreError: true,
+          log,
+          stdout,
+          stderr,
+          timeout,
+        })
+        result.log = (await getLogs()).trim() || result.log
+      } catch (err) {
+        if (err.type === "timeout") {
+          result = await timedOutResult()
+        } else {
+          throw err
+        }
+      }
 
       // Copy the artifacts
       await Promise.all(
@@ -290,22 +321,20 @@ export async function runAndCopy({
       await runner.stop()
     }
   } else {
-    result = await runner.startAndWait({
-      interactive,
-      ignoreError: !!ignoreError,
-      log,
-      remove: false,
-      timeout,
-    })
-
     try {
-      // Need to retrieve the logs explicitly, because kubectl run sometimes fails to capture them
-      const containerLogs = await getPodLogs({ api, namespace, podName, containerNames: [mainContainerName] })
-
-      // Keep the existing logs if no logs come back from the API. This may happen if the Pod failed to start
-      // altogether.
-      if (containerLogs[0].log) {
-        result.log = containerLogs[0].log
+      result = await runner.startAndWait({
+        interactive,
+        ignoreError: true,
+        log,
+        remove: false,
+        timeout,
+      })
+      result.log = (await getLogs()).trim() || result.log
+    } catch (err) {
+      if (err.type === "timeout") {
+        result = await timedOutResult()
+      } else {
+        throw err
       }
     } finally {
       // Make sure Pod is cleaned up
@@ -368,6 +397,10 @@ export class PodRunner extends PodRunnerParams {
     Object.assign(this, params)
   }
 
+  getFullCommand() {
+    return [...(this.spec.containers[0].command || []), ...(this.spec.containers[0].args || [])]
+  }
+
   /**
    * Starts the Pod, attaches to it, and waits for a result. Use this if you just need to start a Pod
    * and get its output, and for interactive sessions.
@@ -376,7 +409,7 @@ export class PodRunner extends PodRunnerParams {
     log,
     ignoreError,
     interactive,
-    stdout: outputStream,
+    stdout,
     remove = true,
     timeout,
   }: StartAndWaitParams): Promise<RunResult> {
@@ -394,7 +427,7 @@ export class PodRunner extends PodRunnerParams {
       kubecmd.push("--rm")
     }
 
-    const command = [...(spec.containers[0].command || []), ...(spec.containers[0].args || [])]
+    const command = this.getFullCommand()
     log.verbose(`Running '${command.join(" ")}' in Pod ${this.podName}`)
 
     const startedAt = new Date()
@@ -406,7 +439,7 @@ export class PodRunner extends PodRunnerParams {
       namespace: this.namespace,
       ignoreError,
       args: kubecmd,
-      stdout: outputStream,
+      stdout,
       timeout,
       tty: interactive,
     })
@@ -523,6 +556,10 @@ export class PodRunner extends PodRunnerParams {
       stderr,
       timeout,
     })
+
+    if (res.timedOut) {
+      throw new TimeoutError("Command timed out.", { error: res })
+    }
 
     return {
       moduleName: this.module.name,
