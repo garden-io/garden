@@ -1,0 +1,13 @@
+kind: Project
+name: maven-container
+environments:
+  - name: local
+providers:
+  - name: maven-container
+
+---
+
+kind: Module
+type: maven-container
+name: module-a
+jarPath: ./sample.jar

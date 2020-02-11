@@ -45,6 +45,7 @@ export interface MavenContainerModuleSpec extends ContainerModuleSpec {
   jarPath: string
   jdkVersion: number
   mvnOpts: string[]
+  useDefaultDockerfile: boolean
 }
 
 export type MavenContainerModuleConfig = ModuleConfig<MavenContainerModuleSpec>
@@ -80,6 +81,14 @@ const mavenKeys = {
     .default(8)
     .description("The JDK version to use."),
   mvnOpts: joiArray(joi.string()).description("Options to add to the `mvn package` command when building."),
+  useDefaultDockerfile: joi
+    .boolean()
+    .default(true)
+    .description(
+      dedent`
+      Use the default Dockerfile provided with this module. If set to \`false\` and no Dockerfile is found, Garden will fallback to using the \`image\` field.
+      `
+    ),
 }
 
 const mavenContainerModuleSpecSchema = containerModuleSpecSchema.keys(mavenKeys)
@@ -140,6 +149,9 @@ export async function configureMavenContainerModule(params: ConfigureModuleParam
   }
 
   const configured = await base!({ ...params, moduleConfig: containerConfig })
+  const dockerfile = moduleConfig.spec.useDefaultDockerfile
+    ? moduleConfig.spec.dockerfile || defaultDockerfileName
+    : moduleConfig.spec.dockerfile
 
   return {
     moduleConfig: {
@@ -147,10 +159,11 @@ export async function configureMavenContainerModule(params: ConfigureModuleParam
       type: "maven-container",
       spec: {
         ...configured.moduleConfig.spec,
-        jarPath: moduleConfig.spec.jarPath,
         jdkVersion,
+        dockerfile,
+        useDefaultDockerfile: moduleConfig.spec.useDefaultDockerfile,
+        jarPath: moduleConfig.spec.jarPath,
         mvnOpts: moduleConfig.spec.mvnOpts,
-        dockerfile: moduleConfig.spec.dockerfile || defaultDockerfileName,
       },
     },
   }
@@ -167,7 +180,20 @@ async function getBuildStatus(params: GetBuildStatusParams<MavenContainerModule>
 async function build(params: BuildModuleParams<MavenContainerModule>) {
   // Run the maven build
   const { base, module, log } = params
-  let { jarPath, jdkVersion, mvnOpts } = module.spec
+  let { jarPath, jdkVersion, mvnOpts, useDefaultDockerfile, image } = module.spec
+
+  // Fall back to using the image field
+  if (!useDefaultDockerfile && !(await containerHelpers.hasDockerfile(module))) {
+    if (!image) {
+      throw new ConfigurationError(
+        dedent`
+        The useDefaultDockerfile field is set to false, no Dockerfile was found, and the image field is empty for maven-container module ${module.name}. Please use either the default Dockerfile, your own Dockerfile, or specify an image in the image field.
+      `,
+        { spec: module.spec }
+      )
+    }
+    return base!(params)
+  }
 
   const pom = await loadPom(module.path)
   const artifactId = get(pom, ["project", "artifactId", "_text"])
@@ -214,9 +240,14 @@ async function build(params: BuildModuleParams<MavenContainerModule>) {
   return base!(params)
 }
 
-async function prepareBuild(module: MavenContainerModule, log: LogEntry) {
-  // Copy the default Dockerfile to the build directory, if the module doesn't provide one
-  // Note: Doing this here so that the build status check works as expected.
+/**
+ * Copy the default Dockerfile to the build directory, if the module doesn't provide one.
+ * Note: Doing this here so that the build status check works as expected.
+ */
+export async function prepareBuild(module: MavenContainerModule, log: LogEntry) {
+  if (!module.spec.useDefaultDockerfile) {
+    return
+  }
   if (module.spec.dockerfile === defaultDockerfileName || !(await containerHelpers.hasDockerfile(module))) {
     log.debug(`Using default Dockerfile`)
     await copy(defaultDockerfilePath, resolve(module.buildPath, defaultDockerfileName))
