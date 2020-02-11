@@ -20,6 +20,7 @@ import { joi } from "../config/common"
 import { KeyedSet } from "../util/keyed-set"
 import { RuntimeContext } from "../runtime-context"
 import { deline } from "../util/string"
+import chalk = require("chalk")
 
 export type ContextKey = string[]
 
@@ -36,7 +37,7 @@ export interface ContextResolveParams {
 }
 
 export function schema(joiSchema: Joi.Schema) {
-  return (target, propName) => {
+  return (target, propName: string) => {
     target.constructor._schemas = { ...(target.constructor._schemas || {}), [propName]: joiSchema }
   }
 }
@@ -85,12 +86,15 @@ export abstract class ConfigContext {
 
     // keep track of which resolvers have been called, in order to detect circular references
     let value: any = this
+    let nextKey = key[0]
+    let lookupPath: string[] = []
+    let nestedNodePath = nodePath
 
     for (let p = 0; p < key.length; p++) {
-      const nextKey = key[p]
-      const lookupPath = key.slice(0, p + 1)
+      nextKey = key[p]
+      lookupPath = key.slice(0, p + 1)
       const remainder = key.slice(p + 1)
-      const nestedNodePath = nodePath.concat(lookupPath)
+      nestedNodePath = nodePath.concat(lookupPath)
       const stackEntry = nestedNodePath.join(".")
 
       if (nextKey.startsWith("_")) {
@@ -138,11 +142,16 @@ export abstract class ConfigContext {
       if (opts.allowUndefined) {
         return
       } else {
-        throw new ConfigurationError(`Could not find key: ${fullPath}`, {
-          nodePath,
-          fullPath,
-          opts,
-        })
+        throw new ConfigurationError(
+          chalk.red(
+            `Could not find key ${chalk.white(nextKey)} under ${chalk.white(nestedNodePath.slice(0, -1).join("."))}`
+          ),
+          {
+            nodePath,
+            fullPath,
+            opts,
+          }
+        )
       }
     }
 
