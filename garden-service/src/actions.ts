@@ -18,7 +18,7 @@ import { PublishModuleParams, PublishResult } from "./types/plugin/module/publis
 import { SetSecretParams, SetSecretResult } from "./types/plugin/provider/setSecret"
 import { validateSchema } from "./config/validation"
 import { defaultProvider } from "./config/provider"
-import { ParameterError, PluginError, ConfigurationError, InternalError, RuntimeError } from "./exceptions"
+import { ParameterError, PluginError, InternalError, RuntimeError } from "./exceptions"
 import { Garden } from "./garden"
 import { LogEntry } from "./logger/log-entry"
 import { Module } from "./types/module"
@@ -85,7 +85,7 @@ import { StopPortForwardParams } from "./types/plugin/service/stopPortForward"
 import { emptyRuntimeContext, RuntimeContext } from "./runtime-context"
 import { GetServiceStatusTask } from "./tasks/get-service-status"
 import { getServiceStatuses } from "./tasks/base"
-import { getRuntimeTemplateReferences } from "./template-string"
+import { getRuntimeTemplateReferences, resolveTemplateStrings } from "./template-string"
 import { getPluginBases, getPluginDependencies, getModuleTypeBases } from "./plugins"
 import { ConfigureProviderParams, ConfigureProviderResult } from "./types/plugin/provider/configureProvider"
 import { Task } from "./types/task"
@@ -780,19 +780,12 @@ export class ActionRouter implements TypeGuard {
     if (!runtimeContextIsEmpty && (await getRuntimeTemplateReferences(module)).length > 0) {
       log.silly(`Resolving runtime template strings for service '${service.name}'`)
       const configContext = await this.garden.getModuleConfigContext(runtimeContext)
-      const graph = await this.garden.getConfigGraph(log, { configContext })
+      // We first allow partial resolution on the full config graph, and then resolve the service config itself
+      // below with allowPartial=false to ensure all required strings are resolved.
+      const graph = await this.garden.getConfigGraph(log, { configContext, allowPartial: true })
       service = await graph.getService(service.name)
       module = service.module
-
-      // Make sure everything has been resolved in the task config
-      const remainingRefs = await getRuntimeTemplateReferences(service.config)
-      if (remainingRefs.length > 0) {
-        const unresolvedStrings = remainingRefs.map((ref) => `\${${ref.join(".")}}`).join(", ")
-        throw new ConfigurationError(
-          `Unable to resolve one or more runtime template values for service '${service.name}': ${unresolvedStrings}`,
-          { service, unresolvedStrings }
-        )
-      }
+      service.config = await resolveTemplateStrings(service.config, configContext, { allowPartial: false })
     }
 
     const handlerParams = {
@@ -837,19 +830,12 @@ export class ActionRouter implements TypeGuard {
     if (runtimeContext && (await getRuntimeTemplateReferences(module)).length > 0) {
       log.silly(`Resolving runtime template strings for task '${task.name}'`)
       const configContext = await this.garden.getModuleConfigContext(runtimeContext)
-      const graph = await this.garden.getConfigGraph(log, { configContext })
+      // We first allow partial resolution on the full config graph, and then resolve the task config itself
+      // below with allowPartial=false to ensure all required strings are resolved.
+      const graph = await this.garden.getConfigGraph(log, { configContext, allowPartial: true })
       task = await graph.getTask(task.name)
       module = task.module
-
-      // Make sure everything has been resolved in the task config
-      const remainingRefs = await getRuntimeTemplateReferences(task.config)
-      if (remainingRefs.length > 0) {
-        const unresolvedStrings = remainingRefs.map((ref) => `\${${ref.join(".")}}`).join(", ")
-        throw new ConfigurationError(
-          `Unable to resolve one or more runtime template values for task '${task.name}': ${unresolvedStrings}`,
-          { task, unresolvedStrings }
-        )
-      }
+      task.config = await resolveTemplateStrings(task.config, configContext, { allowPartial: false })
     }
 
     const handlerParams: any = {

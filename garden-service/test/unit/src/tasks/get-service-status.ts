@@ -134,7 +134,7 @@ describe("GetServiceStatusTask", () => {
         log: garden.log,
       })
 
-      const result = await garden.processTasks([statusTask])
+      const result = await garden.processTasks([statusTask], { throwOnError: true })
 
       expect(result[statusTask.getKey()]!.output.outputs).to.eql({ log: "test output" })
     })

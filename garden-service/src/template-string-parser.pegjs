@@ -10,7 +10,7 @@ TemplateString
   = a:(FormatString)+ b:TemplateString? { return [...a, ...(b || [])] }
   / a:Prefix b:(FormatString)+ c:TemplateString? { return [a, ...b, ...(c || [])] }
   / InvalidFormatString
-  / $(.*) { return text() === "" ? [] : [text()] }
+  / $(.*) { return text() === "" ? [] : [{ resolved: text() }] }
 
 FormatString
   = FormatStart e:Expression FormatEnd {
@@ -21,7 +21,7 @@ FormatString
         }
 
         if (v === undefined && !options.allowUndefined) {
-          const _error = new options.TemplateStringError("Unable to resolve one or more keys.", {
+          const _error = new options.TemplateStringError(v.message || "Unable to resolve one or more keys.", {
             text: text(),
           })
           return { _error }
@@ -88,9 +88,9 @@ UnaryExpression
           }
 
           if (operator === "typeof") {
-            return typeof v
+            return typeof options.getValue(v)
           } else if (operator === "!") {
-            return !v
+            return !options.getValue(v)
           }
         })
         .catch(_error => {
@@ -175,7 +175,7 @@ ConditionalExpression
             return a
           }
 
-          return t ? c : a
+          return options.getValue(t) ? c : a
         })
         .catch(_error => {
           return { _error }
