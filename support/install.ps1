@@ -107,7 +107,7 @@ CheckChocolatey
 
 # Install choco dependencies
 Write-Host "- Installing Chocolatey dependencies..."
-choco upgrade -y git rsync docker-for-windows
+choco upgrade -y git rsync
 
 [Console]::ResetColor()
 
