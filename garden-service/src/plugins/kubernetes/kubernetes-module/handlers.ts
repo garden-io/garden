@@ -51,9 +51,9 @@ interface KubernetesStatusDetail {
 
 export type KubernetesServiceStatus = ServiceStatus<KubernetesStatusDetail>
 
-async function build({ module }: BuildModuleParams<KubernetesModule>): Promise<BuildResult> {
+async function build({ module, log }: BuildModuleParams<KubernetesModule>): Promise<BuildResult> {
   // Get the manifests here, just to validate that the files are there and are valid YAML
-  await readManifests(module)
+  await readManifests(module, log)
   return { fresh: true }
 }
 
@@ -71,7 +71,10 @@ async function getServiceStatus({
     skipCreate: true,
   })
   const api = await KubeApi.factory(log, k8sCtx.provider)
-  const manifests = await getManifests(api, log, module, namespace)
+  // FIXME: We're currently reading the manifests from the module source dir (instead of build dir)
+  // because the build may not have been staged.
+  // This means that manifests added via the `build.dependencies[].copy` field will not be included.
+  const manifests = await getManifests({ api, log, module, defaultNamespace: namespace, readFromSrcDir: true })
 
   const { state, remoteResources } = await compareDeployedResources(k8sCtx, api, namespace, manifests, log)
 
@@ -98,7 +101,7 @@ async function deployService(params: DeployServiceParams<KubernetesModule>): Pro
     provider: k8sCtx.provider,
   })
 
-  const manifests = await getManifests(api, log, module, namespace)
+  const manifests = await getManifests({ api, log, module, defaultNamespace: namespace })
 
   const pruneSelector = getSelector(service)
   await apply({ log, provider: k8sCtx.provider, manifests, pruneSelector })
@@ -130,7 +133,7 @@ async function deleteService(params: DeleteServiceParams): Promise<KubernetesSer
   })
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, provider)
-  const manifests = await getManifests(api, log, module, namespace)
+  const manifests = await getManifests({ api, log, module, defaultNamespace: namespace })
 
   await deleteObjectsBySelector({
     log,
@@ -155,7 +158,7 @@ async function getServiceLogs(params: GetServiceLogsParams<KubernetesModule>) {
     provider: k8sCtx.provider,
   })
   const api = await KubeApi.factory(log, provider)
-  const manifests = await getManifests(api, log, module, namespace)
+  const manifests = await getManifests({ api, log, module, defaultNamespace: namespace })
 
   return getAllLogs({ ...params, provider, defaultNamespace: namespace, resources: manifests })
 }

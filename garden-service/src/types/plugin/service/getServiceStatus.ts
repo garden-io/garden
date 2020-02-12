@@ -27,6 +27,9 @@ export const getServiceStatus = {
 
     Called ahead of any actions that expect a service to be running, as well as the
     \`garden get status\` command.
+
+    NOTE: This handler should not use the build directory since it's not guaranteed
+    that the build will be staged or completed before this handler is called.
   `,
   paramsSchema: serviceActionParamsSchema.keys({
     runtimeContext: runtimeContextSchema,
