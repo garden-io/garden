@@ -8,24 +8,25 @@
 
 import React from "react"
 import { Facebook as ContentLoader } from "react-content-loader"
-import { FieldWrap, Field, Key, Value } from "./common"
+import { FieldWrap, Field, Key, Value, NameField } from "./common"
 import Ingresses from "../ingresses"
-import { EntityCardWrap, Header, Content, Name, StateLabel, Label } from "./common"
-import { Service } from "../../contexts/api"
+import { EntityCardWrap, Header, Content, StateLabel, Label } from "./common"
+import { ServiceEntity } from "../../contexts/api"
 
-export type Props = Pick<Service["config"], "name" | "dependencies"> &
-  Pick<Service["status"], "ingresses" | "state"> & {
+export type Props = Pick<ServiceEntity["config"], "name" | "dependencies"> &
+  Pick<ServiceEntity["status"], "ingresses" | "state"> & {
+    disabled: boolean
     isLoading: boolean
     showInfo: boolean
   }
 
-export const ServiceCard = ({ name, dependencies, state, ingresses, isLoading, showInfo }: Props) => {
+export const ServiceCard = ({ name, dependencies, state, ingresses, isLoading, showInfo, disabled }: Props) => {
   return (
     <EntityCardWrap>
       <Header>
         <div>
           <Label>SERVICE</Label>
-          <Name>{name}</Name>
+          <NameField name={name} disabled={disabled} />
         </div>
         {state && <StateLabel state={state}>{state}</StateLabel>}
       </Header>

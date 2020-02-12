@@ -12,11 +12,11 @@ import styled from "@emotion/styled"
 import { Omit } from "garden-service/build/src/util/util"
 
 import { useUiState } from "../../contexts/ui"
-import { TestCard, Props as TestCardProps } from "./test-card"
+import { TestCard, Props as TestCardProps } from "./test"
 import { TaskCard, Props as TaskCardProps } from "./task"
 import { ServiceCard, Props as ServiceCardProps } from "./service"
-import { Module } from "../../contexts/api"
-import { Field, Value, FieldWrap } from "./common"
+import { ModuleEntity } from "../../contexts/api"
+import { Field, Value, FieldWrap, NameField } from "./common"
 
 const Wrap = styled.div`
   padding: 1.2rem;
@@ -59,13 +59,6 @@ const Header = styled.div`
   justify-content: space-between;
 `
 
-const Name = styled.div`
-  font-weight: 500;
-  font-size: 0.9375rem;
-  letter-spacing: 0.01em;
-  color: #323c47;
-`
-
 const Tag = styled.div`
   padding-left: 0.5rem;
   font-weight: 500;
@@ -92,7 +85,7 @@ const Short = styled(Value)`
   overflow: hidden;
 `
 
-export type Props = Pick<Module, "name" | "type" | "path" | "repositoryUrl" | "description"> & {
+export type Props = Pick<ModuleEntity, "name" | "type" | "path" | "repositoryUrl" | "description" | "disabled"> & {
   serviceCardProps: Omit<ServiceCardProps, "isLoading" | "showInfo">[]
   testCardProps: Omit<TestCardProps, "isLoading" | "showInfo" | "onEntitySelected">[]
   taskCardProps: Omit<TaskCardProps, "isLoading" | "showInfo" | "onEntitySelected">[]
@@ -103,6 +96,7 @@ export const ModuleCard = ({
   serviceCardProps = [],
   testCardProps = [],
   taskCardProps = [],
+  disabled,
   name,
   type,
   description,
@@ -117,11 +111,10 @@ export const ModuleCard = ({
 
   const [isValueExpended, setValueExpendedState] = useState(false)
   const toggleValueExpendedState = () => setValueExpendedState(!isValueExpended)
-
   return (
     <Wrap>
       <Header>
-        <Name>{name}</Name>
+        <NameField name={name} disabled={disabled} />
         <Tag>{type && type.toUpperCase()} MODULE</Tag>
       </Header>
       <FieldWrap visible={filters.modulesInfo}>

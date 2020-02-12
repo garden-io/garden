@@ -13,28 +13,31 @@ import Logs from "../components/logs"
 import { useApi } from "../contexts/api"
 import Spinner from "../components/spinner"
 import { loadLogs } from "../api/actions"
-import { useConfig } from "../util/hooks"
+import { ServiceLogEntry } from "garden-service/build/src/types/plugin/service/getServiceLogs"
+
+interface LogsLoaded {
+  [serviceName: string]: ServiceLogEntry[]
+}
 
 export default () => {
   const {
     dispatch,
-    store: {
-      entities: { logs, services },
-      requestStates,
-    },
+    store: { entities, requestStates },
   } = useApi()
 
-  const serviceNames: string[] = Object.keys(services)
-
-  useConfig(dispatch, requestStates.config)
-
   useEffect(() => {
+    // We need this inside the hook for referential equality
+    const serviceNames: string[] = Object.keys(entities.services).filter((serviceName) => {
+      const service = entities.services[serviceName]
+      return !(service.config.disabled || service.config.moduleDisabled)
+    })
+
     const fetchData = async () => loadLogs(dispatch, serviceNames)
 
-    if (!(requestStates.logs.initLoadComplete || requestStates.logs.pending) && serviceNames.length) {
+    if (!requestStates.logs.initLoadComplete && serviceNames.length) {
       fetchData()
     }
-  }, [dispatch, requestStates.logs, serviceNames])
+  }, [dispatch, requestStates.logs.initLoadComplete, entities.services])
 
   const handleRefresh = useCallback(
     (names: string[]) => {
@@ -43,13 +46,15 @@ export default () => {
     [dispatch]
   )
 
-  if (!(requestStates.config.initLoadComplete && requestStates.logs.initLoadComplete)) {
+  if (requestStates.logs.error) {
+    return <PageError error={requestStates.logs.error} />
+  }
+
+  if (!requestStates.logs.initLoadComplete) {
     return <Spinner />
   }
 
-  if (requestStates.config.error || requestStates.logs.error) {
-    return <PageError error={requestStates.config.error || requestStates.logs.error} />
-  }
+  const logs = entities.logs as LogsLoaded
 
   return <Logs onRefresh={handleRefresh} logs={logs} />
 }

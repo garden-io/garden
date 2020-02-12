@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import React from "react"
 import styled from "@emotion/styled"
 import { colors } from "../../styles/variables"
 
@@ -75,11 +76,15 @@ export const Label = styled.div`
   color: #90a0b7;
 `
 
-export const Name = styled.div`
+const Name = styled.div`
   font-size: 0.9375rem;
   font-weight: 500;
   color: rgba(0, 0, 0, 0.87);
   padding-top: 0.125rem;
+`
+
+const NameDisabled = styled(Name)`
+  color: #90a0b7;
 `
 
 type FieldWrapProps = {
@@ -134,3 +139,19 @@ export const Value = styled.div`
   line-height: 1.1875rem;
   letter-spacing: 0.01em;
 `
+
+interface NameFieldProps {
+  name: string
+  disabled: boolean
+}
+
+export const NameField = ({ name, disabled }: NameFieldProps) => {
+  if (disabled) {
+    return (
+      <NameDisabled>
+        {name} <i title="Disabled in this environment" className={`fas fa-ban`} />
+      </NameDisabled>
+    )
+  }
+  return <Name>{name}</Name>
+}

@@ -46,32 +46,54 @@ export type TaskState = PickFromUnion<
 >
 
 export const taskStates = ["taskComplete", "taskError", "taskPending", "taskProcessing", "taskCancelled"]
+export const defaultTaskState: TaskState = "taskComplete"
+export const defaultServiceStatus: ServiceStatus = {
+  state: "unknown",
+  detail: {},
+}
+export const defaultRunStatus: RunStatus = {
+  state: "outdated",
+}
 
-export interface Test {
-  config: TestConfig
+export interface TestEntity {
+  config: TestConfig & {
+    moduleDisabled: boolean
+  }
   status: RunStatus
   result: GetTestResultCommandResult
   taskState: TaskState // State of the test task for the module
 }
 
-export interface Task {
-  config: TaskConfig
+export interface TaskEntity {
+  config: TaskConfig & {
+    moduleDisabled: boolean
+  }
   status: RunStatus
   result: GetTaskResultCommandResult
   taskState: TaskState // State of the task task for the module
 }
 
-export type Module = Pick<ModuleConfig, "name" | "type" | "path" | "repositoryUrl" | "description"> & {
+export type ModuleEntity = Pick<
+  ModuleConfig,
+  "name" | "type" | "path" | "repositoryUrl" | "description" | "disabled"
+> & {
   services: string[]
   tasks: string[]
   tests: string[]
   taskState: TaskState // State of the build task for the module
 }
 
-export interface Service {
-  config: ServiceConfig
+export interface ServiceEntity {
+  config: ServiceConfig & {
+    moduleDisabled: boolean
+  }
   status: ServiceStatus
   taskState: TaskState // State of the deploy task for the service
+}
+
+export interface ProjectEntity {
+  root: string
+  taskGraphProcessing: boolean
 }
 
 export interface RequestState {
@@ -80,22 +102,28 @@ export interface RequestState {
   error?: AxiosError
 }
 
+/**
+ * The modules, services, tasks, tests, and tests entities are loaded when the app
+ * is initialised and guaranteed to exist when the consumers receive the store.
+ *
+ * Other store data is loaded opportunistically.
+ */
 export interface Entities {
   project: {
     root: string
     taskGraphProcessing: boolean
   }
-  modules: { [moduleName: string]: Module }
-  services: { [serviceName: string]: Service }
-  tasks: { [taskName: string]: Task }
-  tests: { [testKey: string]: Test }
-  logs: { [serviceName: string]: ServiceLogEntry[] }
+  modules: { [moduleName: string]: ModuleEntity }
+  services: { [serviceName: string]: ServiceEntity }
+  tasks: { [taskName: string]: TaskEntity }
+  tests: { [testKey: string]: TestEntity }
+  logs: { [serviceName: string]: ServiceLogEntry[] | undefined }
   graph: GraphOutput
   providers: EnvironmentStatusMap
 }
 
 /**
- * The "global" data store
+ * The global API data store
  */
 export interface Store {
   entities: Entities
@@ -109,7 +137,7 @@ export interface Store {
   }
 }
 
-type RequestKey = keyof Store["requestStates"]
+export type RequestKey = keyof Store["requestStates"]
 const requestKeys: RequestKey[] = ["config", "status", "logs", "testResult", "taskResult", "graph"]
 
 type ProcessResults = (entities: Entities) => Entities
