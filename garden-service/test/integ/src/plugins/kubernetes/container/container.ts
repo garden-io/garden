@@ -99,7 +99,7 @@ describe("kubernetes container module handlers", () => {
       )
     })
 
-    it("should return with logs and success=false when command exceeds timeout", async () => {
+    it("should return with success=false when command exceeds timeout", async () => {
       const task = await graph.getTask("artifacts-task")
       const module = task.module
       const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
@@ -117,7 +117,8 @@ describe("kubernetes container module handlers", () => {
         timeout: 4,
       })
 
-      expect(result.log.trim()).to.equal("Command timed out. Here are the logs until the timeout occurred:\n\nbanana")
+      // Note: Kubernetes doesn't always return the logs when commands time out.
+      expect(result.log.trim()).to.include("Command timed out.")
       expect(result.success).to.be.false
     })
 
