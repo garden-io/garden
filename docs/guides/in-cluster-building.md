@@ -68,6 +68,13 @@ In this mode, builds are executed as follows:
 
 After enabling this mode (we currently still default to the `local-docker` mode), you will need to run `garden plugins kubernetes cluster-init --env=<env-name>` for each applicable environment, in order to install the required cluster-wide services. Those services include the Docker daemon itself, as well as an image registry, a sync service for receiving build contexts, two persistent volumes, an NFS volume provisioner for one of those volumes, and a couple of small utility services.
 
+Optionally, you can also enable [BuildKit]((https://github.com/moby/buildkit)). In most cases, this should work well and be more performant, but remains optional for now. If you have `cluster-docker` set as your `buildMode` you can enable BuildKit for an environment as follows:
+
+```yaml
+clusterDocker:
+  enableBuildKit: false
+```
+
 Make sure your cluster has enough resources and storage to support the required services, and keep in mind that these
 services are shared across all users of the cluster. Please look at the
 [resources](../providers/kubernetes.md#providersresources) and
