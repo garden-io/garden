@@ -323,7 +323,7 @@ describe("makePodName", () => {
 
   it("should create different pod names at different times for the same inputs", async () => {
     const nameA = makePodName("test", "some-module", "unit")
-    await sleep(1)
+    await sleep(100)
     const nameB = makePodName("test", "some-module", "unit")
     expect(nameA).to.not.equal(nameB)
   })
