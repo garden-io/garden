@@ -9,17 +9,18 @@
 import React from "react"
 import moment from "moment"
 import { Facebook as ContentLoader } from "react-content-loader"
-import { FieldWrap, Field, Key, Value, FieldGroup } from "./common"
+import { FieldWrap, Field, Key, Value, FieldGroup, NameField } from "./common"
 import { getDuration } from "../../util/helpers"
 import { TertiaryButton } from "../button"
 import { css } from "emotion"
 import { SelectEntity } from "../../contexts/ui"
-import { Test } from "../../contexts/api"
-import { EntityCardWrap, Header, Label, Name, StateLabel, Content } from "./common"
+import { TestEntity } from "../../contexts/api"
+import { EntityCardWrap, Header, Label, StateLabel, Content } from "./common"
 
-export type Props = Pick<Test["config"], "name" | "dependencies"> &
-  Pick<Test["status"], "state" | "startedAt" | "completedAt"> & {
+export type Props = Pick<TestEntity["config"], "name" | "dependencies"> &
+  Pick<TestEntity["status"], "state" | "startedAt" | "completedAt"> & {
     moduleName: string
+    disabled: boolean
     isLoading: boolean
     showInfo: boolean
     onEntitySelected: SelectEntity
@@ -28,6 +29,7 @@ export type Props = Pick<Test["config"], "name" | "dependencies"> &
 // FIXME: Use a single card for Test and Task, they're basically the same.
 export const TestCard = ({
   name,
+  disabled,
   dependencies,
   state,
   startedAt,
@@ -49,12 +51,30 @@ export const TestCard = ({
     }
   }
 
+  let loadResultButton: React.ReactNode = null
+  if (!disabled) {
+    loadResultButton = (
+      <div className="row">
+        <div className="col-xs">
+          <TertiaryButton
+            onClick={handleEntitySelected}
+            className={css`
+              margin-top: 0.5rem;
+            `}
+          >
+            Show result
+          </TertiaryButton>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <EntityCardWrap>
       <Header>
         <div>
           <Label>TEST</Label>
-          <Name>{name}</Name>
+          <NameField name={name} disabled={disabled} />
         </div>
         {state && <StateLabel state={state}>{state}</StateLabel>}
       </Header>
@@ -76,18 +96,7 @@ export const TestCard = ({
                 <Value>{duration}</Value>
               </Field>
             </FieldGroup>
-            <div className="row">
-              <div className="col-xs">
-                <TertiaryButton
-                  onClick={handleEntitySelected}
-                  className={css`
-                    margin-top: 0.5rem;
-                  `}
-                >
-                  Show result
-                </TertiaryButton>
-              </div>
-            </div>
+            {loadResultButton}
           </FieldWrap>
         )}
       </Content>

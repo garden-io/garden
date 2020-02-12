@@ -7,12 +7,11 @@
  */
 
 import { kebabCase, flatten, entries } from "lodash"
-import React, { useEffect } from "react"
+import React from "react"
 
 import Sidebar from "../components/sidebar"
 import { useApi } from "../contexts/api"
 import { DashboardPage } from "garden-service/build/src/config/status"
-import { loadStatus } from "../api/actions"
 
 export interface Page extends DashboardPage {
   path: string
@@ -44,23 +43,12 @@ const builtinPages: Page[] = [
 
 const SidebarContainer = () => {
   const {
-    dispatch,
     store: {
       entities: { providers },
-      requestStates,
     },
   } = useApi()
-  useEffect(() => {
-    const fetchData = async () => loadStatus(dispatch)
 
-    if (!(requestStates.status.initLoadComplete || requestStates.status.pending)) {
-      fetchData()
-    }
-  }, [dispatch, requestStates.status])
-
-  let pages: Page[] = []
-
-  pages = flatten(
+  const pages = flatten(
     entries(providers).map(([providerName, providerStatus]) => {
       return (providerStatus.dashboardPages || []).map((p) => ({
         ...p,

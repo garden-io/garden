@@ -35,15 +35,26 @@
     stroke: red;
   }
 
+  g.disabled > rect {
+    stroke: #C2CFE0;
+  }
+
   .node rect {
     fill: #fff;
     stroke: #02f2b4;
     stroke-width: 2.5px;
-
   }
 
-  .node:hover rect, .node.selected rect {
+  .node {
+    cursor: pointer;
+  }
+
+  .node:hover:not(.disabled) rect, .node.selected rect {
     stroke-width: 4.5px;
+  }
+
+  .node.disabled {
+    cursor: default;
   }
 
   .edgePath path {
@@ -64,7 +75,6 @@
     background-size: 4rem;
     border-radius: 4px;
     border:none;
-    cursor: pointer;
 
     .type {
       color: gray;
