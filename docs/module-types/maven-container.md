@@ -361,6 +361,10 @@ jdkVersion: 8
 
 # Options to add to the `mvn package` command when building.
 mvnOpts: []
+
+# Use the default Dockerfile provided with this module. If set to `false` and no Dockerfile is found, Garden will
+# fallback to using the `image` field.
+useDefaultDockerfile: true
 ```
 
 ### Configuration Keys
@@ -1621,6 +1625,14 @@ Options to add to the `mvn package` command when building.
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
 | `array[string]` | `[]`    | No       |
+
+#### `useDefaultDockerfile`
+
+Use the default Dockerfile provided with this module. If set to `false` and no Dockerfile is found, Garden will fallback to using the `image` field.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `true`  | No       |
 
 
 ### Outputs
