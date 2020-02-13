@@ -1377,7 +1377,7 @@ describe("Garden", () => {
       )
     })
 
-    it("should give a readable error if providers reference non-existent providers in template strings", async () => {
+    it("should throw if providers reference non-existent providers in template strings", async () => {
       const test = createGardenPlugin({
         name: "test",
       })
@@ -1395,14 +1395,7 @@ describe("Garden", () => {
       }
 
       const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins: [test] })
-      await expectError(
-        () => garden.resolveProviders(),
-        (err) =>
-          expect(err.message).to.equal(deline`
-          Provider 'test' depends on provider 'foo', which is not configured.
-          You need to add 'foo' to your project configuration for the 'test' to work.
-        `)
-      )
+      await expectError(() => garden.resolveProviders())
     })
 
     it("should add plugin modules if returned by the provider", async () => {
@@ -1722,6 +1715,49 @@ describe("Garden", () => {
       const providerB = await garden.resolveProvider("test-b")
 
       expect(providerB.config.foo).to.equal("bar")
+    })
+
+    it("should allow providers to reference outputs from a disabled provider", async () => {
+      const testA = createGardenPlugin({
+        name: "test-a",
+        handlers: {
+          getEnvironmentStatus: async () => {
+            return {
+              ready: true,
+              outputs: { foo: "bar" },
+            }
+          },
+        },
+      })
+
+      const testB = createGardenPlugin({
+        name: "test-b",
+      })
+
+      const projectConfig: ProjectConfig = {
+        apiVersion: "garden.io/v0",
+        kind: "Project",
+        name: "test",
+        path: projectRootA,
+        defaultEnvironment: "dev",
+        dotIgnoreFiles: defaultDotIgnoreFiles,
+        environments: [
+          { name: "dev", variables: {} },
+          { name: "prod", variables: {} },
+        ],
+        providers: [
+          { name: "test-a", environments: ["prod"] },
+          { name: "test-b", foo: "${providers.test-a.outputs.foo || 'default'}" },
+        ],
+        variables: {},
+      }
+
+      const plugins = [testA, testB]
+      const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins })
+
+      const providerB = await garden.resolveProvider("test-b")
+
+      expect(providerB.config.foo).to.equal("default")
     })
 
     it("should allow providers to reference variables", async () => {
