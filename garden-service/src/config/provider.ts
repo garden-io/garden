@@ -100,11 +100,15 @@ export function providerFromConfig(
  * as well as implicit dependencies based on template strings.
  */
 export async function getAllProviderDependencyNames(plugin: GardenPlugin, config: ProviderConfig) {
-  // Declared dependencies from config
-  const deps: string[] = [...(plugin.dependencies || [])]
+  return uniq([...(plugin.dependencies || []), ...(await getProviderTemplateReferences(config))]).sort()
+}
 
-  // Implicit dependencies from template strings
+/**
+ * Given a provider config, return implicit dependencies based on template strings.
+ */
+export async function getProviderTemplateReferences(config: ProviderConfig) {
   const references = await collectTemplateReferences(config)
+  const deps: string[] = []
 
   for (const key of references) {
     if (key[0] === "providers") {

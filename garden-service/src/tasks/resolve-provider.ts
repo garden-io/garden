@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { BaseTask, TaskParams, TaskType } from "./base"
-import { ProviderConfig, Provider, getAllProviderDependencyNames, providerFromConfig } from "../config/provider"
+import { ProviderConfig, Provider, providerFromConfig, getProviderTemplateReferences } from "../config/provider"
 import { resolveTemplateStrings } from "../template-string"
 import { ConfigurationError, PluginError } from "../exceptions"
 import { keyBy, omit, flatten } from "lodash"
@@ -54,27 +54,38 @@ export class ResolveProviderTask extends BaseTask {
   }
 
   async getDependencies() {
-    const depNames = await getAllProviderDependencyNames(this.plugin, this.config)
+    const explicitDeps = this.plugin.dependencies
+    const implicitDeps = (await getProviderTemplateReferences(this.config)).filter(
+      (depName) => !explicitDeps.includes(depName)
+    )
+    const allDeps = [...explicitDeps, ...implicitDeps]
 
     const rawProviderConfigs = this.garden.getRawProviderConfigs()
     const plugins = keyBy(await this.garden.getPlugins(), "name")
 
-    return flatten(
-      await Bluebird.map(depNames, async (depName) => {
-        // Match against a provider if its name matches directly, or it inherits from a base named `depName`
-        const matched = rawProviderConfigs.filter(
-          (c) => c.name === depName || getPluginBaseNames(c.name, plugins).includes(depName)
+    const matchDependencies = (depName) => {
+      // Match against a provider if its name matches directly, or it inherits from a base named `depName`
+      return rawProviderConfigs.filter(
+        (c) => c.name === depName || getPluginBaseNames(c.name, plugins).includes(depName)
+      )
+    }
+
+    // Make sure explicit dependencies are configured
+    await Bluebird.map(explicitDeps, async (depName) => {
+      const matched = matchDependencies(depName)
+
+      if (matched.length === 0) {
+        throw new ConfigurationError(
+          `Provider '${this.config.name}' depends on provider '${depName}', which is not configured. ` +
+            `You need to add '${depName}' to your project configuration for the '${this.config.name}' to work.`,
+          { config: this.config, missingProviderName: depName }
         )
+      }
+    })
 
-        if (matched.length === 0) {
-          throw new ConfigurationError(
-            `Provider '${this.config.name}' depends on provider '${depName}', which is not configured. ` +
-              `You need to add '${depName}' to your project configuration for the '${this.config.name}' to work.`,
-            { config: this.config, missingProviderName: depName }
-          )
-        }
-
-        return matched.map((config) => {
+    return flatten(
+      await Bluebird.map(allDeps, async (depName) => {
+        return matchDependencies(depName).map((config) => {
           const plugin = plugins[depName]
 
           return new ResolveProviderTask({
