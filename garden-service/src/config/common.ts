@@ -262,7 +262,7 @@ export const joiIdentifierDescription =
 
 const moduleIncludeDescription = (extraDescription?: string) => {
   const desc = dedent`
-  Specify a list of POSIX-style paths or globs that should be regarded as the source files for this   module. Files that do *not* match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
+  Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that do *not* match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
   Note that you can also _exclude_ files using the \`exclude\` field or by placing \`.gardenignore\` files in your source tree, which use the same format as \`.gitignore\` files. See the [Configuration Files guide](${includeGuideLink}) for details.
 

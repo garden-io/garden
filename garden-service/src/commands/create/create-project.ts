@@ -174,7 +174,7 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
       symbol: "info",
       msg: wordWrap(
         dedent`
-        We recommend reviewing the generated config, uncommenting fields that you'd like to configure, and cleaning up any commented fields that you don't need to use. Also make sure to update the ${formattedIgnoreName} file with any files you'd like to exclude from the Garden projects.
+        We recommend reviewing the generated config, uncommenting fields that you'd like to configure, and cleaning up any commented fields that you don't need to use. Also make sure to update the ${formattedIgnoreName} file with any files you'd like to exclude from the Garden project.
 
         For more information about Garden configuration files, please check out ${configFilesUrl}, and for a detailed reference, take a look at ${referenceUrl}.
         `,

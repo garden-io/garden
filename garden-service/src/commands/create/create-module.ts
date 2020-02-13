@@ -56,7 +56,6 @@ const createModuleOpts = {
   type: new StringOption({
     help: "The module type to create. Required if --interactive=false.",
   }),
-  // TODO: add type option
 }
 
 type CreateModuleArgs = typeof createModuleArgs

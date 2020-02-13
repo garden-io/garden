@@ -57,8 +57,8 @@ description:
 # sure to provide alternate values for those if you're using them, using conditional expressions.
 disabled: false
 
-# Specify a list of POSIX-style paths or globs that should be regarded as the source files for this   module. Files
-# that do *not* match these paths or globs are excluded when computing the version of the module, when responding to
+# Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that
+# do *not* match these paths or globs are excluded when computing the version of the module, when responding to
 # filesystem watch events, and when staging builds.
 #
 # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source
@@ -324,7 +324,7 @@ If you disable the module, and its services, tasks or tests are referenced as _r
 
 #### `include[]`
 
-Specify a list of POSIX-style paths or globs that should be regarded as the source files for this   module. Files that do *not* match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
+Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that do *not* match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
 Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
 
