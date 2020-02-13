@@ -96,6 +96,23 @@ services:
   ...
 ```
 
+### Optional values
+
+In some cases, you may want to provide configuration values only for certain cases, e.g. only for specific environments. By default, an error is thrown when a template string resolves to an undefined value, but you can explicitly allow that by adding a `?` after the template.
+
+Example:
+
+```yaml
+kind: Project
+...
+providers:
+  - name: kubernetes
+    kubeconfig: ${var.kubeconfig}?
+  ...
+```
+
+This is useful when you don't want to provide _any_ value unless one is explicitly set, effectively falling back to whichever the default is for the field in question.
+
 ## Project variables
 
 A common use case for templating is to define variables in the project/environment configuration, and to use template strings to propagate values to modules in the project.

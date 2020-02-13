@@ -1460,9 +1460,8 @@ describe("ActionRouter", () => {
             },
           }),
         (err) =>
-          expect(err.message).to.equal(
-            "Invalid template string ${runtime.services.service-b.outputs.foo}: " +
-              "Template string resolves to undefined value."
+          expect(stripAnsi(err.message)).to.equal(
+            "Invalid template string ${runtime.services.service-b.outputs.foo}: Could not find key runtime."
           )
       )
     })
@@ -1636,9 +1635,8 @@ describe("ActionRouter", () => {
             },
           }),
         (err) =>
-          expect(err.message).to.equal(
-            "Invalid template string ${runtime.services.service-b.outputs.foo}: " +
-              "Template string resolves to undefined value."
+          expect(stripAnsi(err.message)).to.equal(
+            "Invalid template string ${runtime.services.service-b.outputs.foo}: Could not find key runtime."
           )
       )
     })
