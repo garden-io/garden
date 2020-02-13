@@ -51,7 +51,7 @@ export async function tfValidate(log: LogEntry, provider: TerraformProvider, roo
     if (reasons.includes("Could not satisfy plugin requirements") || reasons.includes("Module not installed")) {
       // We need to run `terraform init` and retry validation
       log.info("Initializing Terraform")
-      await terraform(tfVersion).exec({ log, args: ["init"], cwd: root })
+      await terraform(tfVersion).exec({ log, args: ["init"], cwd: root, timeout: 120 })
 
       const retryRes = await terraform(tfVersion).json({
         log,
