@@ -13,14 +13,17 @@ TemplateString
   / $(.*) { return text() === "" ? [] : [{ resolved: text() }] }
 
 FormatString
-  = FormatStart e:Expression FormatEnd {
+  = FormatStart e:Expression end:FormatEnd {
     return Promise.resolve(e)
       .then(v => {
         if (v && v._error) {
           return v
         }
 
-        if (v === undefined && !options.allowUndefined) {
+        // Need to provide the optional suffix as a variable because of a parsing bug in pegjs
+        const allowUndefined = options.allowUndefined || end[1] === options.optionalSuffix
+
+        if (options.getValue(v) === undefined && !allowUndefined) {
           const _error = new options.TemplateStringError(v.message || "Unable to resolve one or more keys.", {
             text: text(),
           })
@@ -42,7 +45,8 @@ FormatStart
   = "${" __
 
 FormatEnd
-  = __ "}"
+  = __ "}?"
+  / __ "}"
 
 KeySeparator
   = "."
