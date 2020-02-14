@@ -14,6 +14,7 @@ orbs:
       - image: circleci/node:12
         environment:
           GARDEN_DISABLE_VERSION_CHECK: "true"
+          GARDEN_DISABLE_ANALYTICS: "true"
           GARDEN_TASK_CONCURRENCY_LIMIT: "10"
     resource_class: large
 
@@ -335,6 +336,7 @@ jobs:
       - image: gardendev/garden-gcloud:${CIRCLE_SHA1}
         environment:
           GARDEN_DISABLE_VERSION_CHECK: "true"
+          GARDEN_DISABLE_ANALYTICS: "true"
           GARDEN_TASK_CONCURRENCY_LIMIT: "10"
     steps:
       # Need to checkout to run example project
