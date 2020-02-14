@@ -36,7 +36,7 @@ spec:
               name: garden-build-sync
       containers:
         - name: sync
-          image: "gardendev/rsync:0.1"
+          image: "gardendev/rsync:0.2.0"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: rsync
