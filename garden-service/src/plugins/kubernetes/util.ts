@@ -130,7 +130,7 @@ export async function getWorkloadPods(api: KubeApi, namespace: string, resource:
   if (resource.kind === "Deployment") {
     // Make sure we only return the pods from the current ReplicaSet
     const selectorString = labelSelectorToString(selector)
-    const replicaSets = await api.apps.listNamespacedReplicaSet(
+    const replicaSetRes = await api.apps.listNamespacedReplicaSet(
       resource.metadata.namespace || namespace,
       undefined, // pretty
       undefined, // allowWatchBookmarks
@@ -139,12 +139,14 @@ export async function getWorkloadPods(api: KubeApi, namespace: string, resource:
       selectorString // labelSelector
     )
 
-    if (replicaSets.items.length === 0) {
+    const replicaSets = replicaSetRes.items.filter((r) => r.spec.replicas > 0)
+
+    if (replicaSets.length === 0) {
       return []
     }
 
-    const sorted = sortBy(replicaSets.items, (r) => r.metadata.creationTimestamp!)
-    const currentReplicaSet = sorted[replicaSets.items.length - 1]
+    const sorted = sortBy(replicaSets, (r) => r.metadata.creationTimestamp!)
+    const currentReplicaSet = sorted[replicaSets.length - 1]
 
     return pods.filter((pod) => pod.metadata.name.startsWith(currentReplicaSet.metadata.name))
   } else {
