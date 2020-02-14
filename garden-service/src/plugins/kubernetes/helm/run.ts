@@ -143,14 +143,16 @@ export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<Ru
     },
   }
 
-  await storeTaskResult({
-    ctx,
-    log,
-    module,
-    result,
-    taskVersion,
-    taskName: task.name,
-  })
+  if (task.config.cacheResult) {
+    await storeTaskResult({
+      ctx,
+      log,
+      module,
+      result,
+      taskVersion,
+      taskName: task.name,
+    })
+  }
 
   return result
 }

@@ -140,6 +140,7 @@ export async function configureContainerModule({ ctx, log, moduleConfig }: Confi
 
   moduleConfig.taskConfigs = moduleConfig.spec.tasks.map((t) => ({
     name: t.name,
+    cacheResult: t.cacheResult,
     dependencies: t.dependencies,
     disabled: t.disabled,
     spec: t,

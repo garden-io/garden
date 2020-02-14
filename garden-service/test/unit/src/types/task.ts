@@ -15,6 +15,7 @@ describe("taskFromConfig", () => {
   it("should propagate the disabled flag from the config", async () => {
     const config: TaskConfig = {
       name: "test",
+      cacheResult: true,
       dependencies: [],
       disabled: true,
       spec: {},
@@ -32,6 +33,7 @@ describe("taskFromConfig", () => {
   it("should set disabled=true if the module is disabled", async () => {
     const config: TaskConfig = {
       name: "test",
+      cacheResult: true,
       dependencies: [],
       disabled: false,
       spec: {},

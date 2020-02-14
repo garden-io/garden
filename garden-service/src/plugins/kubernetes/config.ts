@@ -22,7 +22,7 @@ import { PluginContext } from "../../plugin-context"
 import { deline } from "../../util/string"
 import { defaultSystemNamespace } from "./system"
 import { hotReloadableKinds, HotReloadableKind } from "./hot-reload"
-import { baseTaskSpecSchema, BaseTaskSpec } from "../../config/task"
+import { baseTaskSpecSchema, BaseTaskSpec, cacheResultSchema } from "../../config/task"
 import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
 import { ArtifactSpec } from "../../config/validation"
 
@@ -572,6 +572,7 @@ export interface ServiceResourceSpec {
 export interface KubernetesTaskSpec extends BaseTaskSpec {
   args: string[]
   artifacts: ArtifactSpec[]
+  cacheResult: boolean
   command?: string[]
   env: ContainerEnvVars
   resource: ServiceResourceSpec
@@ -609,6 +610,7 @@ export const kubernetesTaskSchema = baseTaskSpecSchema
         If not specified, the \`serviceResource\` configured on the module will be used. If neither is specified,
         an error will be thrown.`
     ),
+    cacheResult: cacheResultSchema,
     command: joi
       .array()
       .items(joi.string())

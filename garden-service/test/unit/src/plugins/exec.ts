@@ -53,6 +53,7 @@ describe("exec plugin", () => {
     expect(moduleA.taskConfigs).to.eql([
       {
         name: "banana",
+        cacheResult: false,
         dependencies: ["orange"],
         disabled: false,
         timeout: null,
@@ -67,6 +68,7 @@ describe("exec plugin", () => {
       },
       {
         name: "orange",
+        cacheResult: false,
         dependencies: [],
         disabled: false,
         timeout: 999,
@@ -163,6 +165,7 @@ describe("exec plugin", () => {
     expect(moduleLocal.taskConfigs).to.eql([
       {
         name: "pwd",
+        cacheResult: false,
         dependencies: [],
         disabled: false,
         timeout: null,

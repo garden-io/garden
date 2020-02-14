@@ -358,17 +358,17 @@ tasks:
     # task is executed.
     dependencies: []
 
-    # Set this to `true` to disable the task. You can use this with conditional template strings to
-    # enable/disable tasks based on, for example, the current environment or other variables (e.g.
-    # `enabled: \${environment.name != "prod"}`). This can be handy when you only want certain tasks to run in
-    # specific environments, e.g. only for development.
+    # Set this to `true` to disable the task. You can use this with conditional template strings to enable/disable
+    # tasks based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name !=
+    # "prod"}`). This can be handy when you only want certain tasks to run in specific environments, e.g. only for
+    # development.
     #
-    # Disabling a task means that it will not be run, and will also be ignored if it is declared as a
-    # runtime dependency for another service, test or task.
+    # Disabling a task means that it will not be run, and will also be ignored if it is declared as a runtime
+    # dependency for another service, test or task.
     #
-    # Note however that template strings referencing the task's outputs (i.e. runtime outputs) will fail to
-    # resolve when the task is disabled, so you need to make sure to provide alternate values for those if
-    # you're using them, using conditional expressions.
+    # Note however that template strings referencing the task's outputs (i.e. runtime outputs) will fail to resolve
+    # when the task is disabled, so you need to make sure to provide alternate values for those if you're using them,
+    # using conditional expressions.
     disabled: false
 
     # Maximum duration (in seconds) of the task's execution.
@@ -386,6 +386,11 @@ tasks:
 
         # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
         target: .
+
+    # Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time
+    # your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its
+    # version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run task`.
+    cacheResult: true
 
     # The command/entrypoint used to run the task inside the container.
     command:
@@ -1445,17 +1450,11 @@ The names of any tasks that must be executed, and the names of any services that
 
 [tasks](#tasks) > disabled
 
-Set this to `true` to disable the task. You can use this with conditional template strings to
-enable/disable tasks based on, for example, the current environment or other variables (e.g.
-`enabled: \${environment.name != "prod"}`). This can be handy when you only want certain tasks to run in
-specific environments, e.g. only for development.
+Set this to `true` to disable the task. You can use this with conditional template strings to enable/disable tasks based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name != "prod"}`). This can be handy when you only want certain tasks to run in specific environments, e.g. only for development.
 
-Disabling a task means that it will not be run, and will also be ignored if it is declared as a
-runtime dependency for another service, test or task.
+Disabling a task means that it will not be run, and will also be ignored if it is declared as a runtime dependency for another service, test or task.
 
-Note however that template strings referencing the task's outputs (i.e. runtime outputs) will fail to
-resolve when the task is disabled, so you need to make sure to provide alternate values for those if
-you're using them, using conditional expressions.
+Note however that template strings referencing the task's outputs (i.e. runtime outputs) will fail to resolve when the task is disabled, so you need to make sure to provide alternate values for those if you're using them, using conditional expressions.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -1546,6 +1545,16 @@ tasks:
       - source: /report/**/*
       - target: "outputs/foo/"
 ```
+
+### `tasks[].cacheResult`
+
+[tasks](#tasks) > cacheResult
+
+Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run task`.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `true`  | No       |
 
 ### `tasks[].command[]`
 

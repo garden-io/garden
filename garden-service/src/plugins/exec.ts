@@ -188,6 +188,7 @@ export async function configureExecModule({
 
   moduleConfig.taskConfigs = moduleConfig.spec.tasks.map((t) => ({
     name: t.name,
+    cacheResult: false,
     dependencies: t.dependencies,
     disabled: t.disabled,
     timeout: t.timeout,

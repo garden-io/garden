@@ -273,6 +273,7 @@ export async function configureHelmModule({
 
     return {
       name: spec.name,
+      cacheResult: spec.cacheResult,
       dependencies: spec.dependencies,
       disabled: moduleConfig.disabled,
       timeout: spec.timeout,
