@@ -1,0 +1,6 @@
+kind: Module
+type: container
+name: rsync-server
+description: The rsync server image, used for hot reloading and in-cluster build syncs
+image: gardendev/rsync:0.2.0
+dockerfile: Dockerfile
