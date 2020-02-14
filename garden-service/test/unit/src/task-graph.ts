@@ -13,7 +13,7 @@ import { BaseTask, TaskType } from "../../../src/tasks/base"
 import { TaskGraph, TaskResult, TaskResults } from "../../../src/task-graph"
 import { makeTestGarden, freezeTime, dataDir, expectError } from "../../helpers"
 import { Garden } from "../../../src/garden"
-import { deepFilter, defer } from "../../../src/util/util"
+import { deepFilter, defer, sleep } from "../../../src/util/util"
 import uuid from "uuid"
 
 const projectRoot = join(dataDir, "test-project-empty")
@@ -448,6 +448,7 @@ describe("task-graph", () => {
       await t1StartedPromise
       const secondProcess = graph.process([t2])
       const thirdProcess = graph.process([t3])
+      await sleep(200) // TODO: Get rid of this?
       t1DoneResolver()
       await Bluebird.all([firstProcess, secondProcess, thirdProcess])
       expect(processedVersions).to.eql(["1", "3"])
@@ -621,10 +622,9 @@ describe("task-graph", () => {
         const taskC = new TestTask(garden, "c", false)
 
         const tasks = [taskA, taskB, taskC, taskADep1, taskBDep, taskADep2]
-
-        await graph.populateTaskDependencyCache(tasks)
-        const batches = graph.partition(tasks, { unlimitedConcurrency: false })
-        const batchKeys = batches.map((b) => b.tasks.map((t) => t.getKey()))
+        const taskNodes = await graph.nodesWithDependencies(tasks, false)
+        const batches = graph.partition(taskNodes, { unlimitedConcurrency: false })
+        const batchKeys = batches.map((b) => b.nodes.map((n) => n.getKey()))
 
         expect(batchKeys).to.eql([["a", "a-dep1", "a-dep2"], ["b", "b-dep"], ["c"]])
       })
@@ -667,11 +667,9 @@ describe("task-graph", () => {
           taskC,
         ]
 
-        await graph.populateTaskDependencyCache(tasks)
-        const batches = graph.partition(tasks, {
-          unlimitedConcurrency: false,
-        })
-        const batchKeys = batches.map((b) => b.tasks.map((t) => t.getKey()))
+        const taskNodes = await graph.nodesWithDependencies(tasks, false)
+        const batches = graph.partition(taskNodes, { unlimitedConcurrency: false })
+        const batchKeys = batches.map((b) => b.nodes.map((n) => n.getKey()))
 
         expect(batchKeys).to.eql([
           ["a-v1", "a-v1-dep1", "a-v1-dep2"],
