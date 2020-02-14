@@ -247,7 +247,10 @@ export class AnalyticsHandler {
   /**
    * Used internally to check if a users has opted-in or not.
    */
-  private hasOptedIn(): boolean {
+  private analyticsEnabled(): boolean {
+    if (process.env.GARDEN_DISABLE_ANALYTICS === "true") {
+      return false
+    }
     return this.globalConfig.optedIn || false
   }
 
@@ -310,7 +313,7 @@ export class AnalyticsHandler {
    * @memberof AnalyticsHandler
    */
   private async track(event: AnalyticsEvent) {
-    if (this.segment && this.hasOptedIn()) {
+    if (this.segment && this.analyticsEnabled()) {
       const segmentEvent: SegmentEvent = {
         userId: this.globalConfig.userId || "unknown",
         event: event.type,
