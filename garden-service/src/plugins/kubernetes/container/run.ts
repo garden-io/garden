@@ -85,12 +85,16 @@ export async function runContainerTask(params: RunTaskParams<ContainerModule>): 
     },
   }
 
-  return storeTaskResult({
-    ctx,
-    log,
-    module,
-    result,
-    taskVersion,
-    taskName: task.name,
-  })
+  if (task.config.cacheResult) {
+    await storeTaskResult({
+      ctx,
+      log,
+      module,
+      result,
+      taskVersion,
+      taskName: task.name,
+    })
+  }
+
+  return result
 }

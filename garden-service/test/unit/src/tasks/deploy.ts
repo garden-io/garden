@@ -117,6 +117,7 @@ describe("DeployTask", () => {
           taskConfigs: [
             {
               name: "test-task",
+              cacheResult: true,
               dependencies: [],
               disabled: false,
               spec: {

@@ -112,3 +112,28 @@ export async function storeTaskResult({
 
   return data
 }
+
+/**
+ * Clear the stored result for the given task. No-op if no result had been stored for it.
+ */
+export async function clearTaskResult({
+  ctx,
+  log,
+  module,
+  task,
+  taskVersion,
+}: GetTaskResultParams<ContainerModule | HelmModule | KubernetesModule>) {
+  const provider = <KubernetesProvider>ctx.provider
+  const api = await KubeApi.factory(log, provider)
+  const namespace = await getMetadataNamespace(ctx, log, provider)
+
+  const key = getTaskResultKey(ctx, module, task.name, taskVersion)
+
+  try {
+    await api.core.deleteNamespacedConfigMap(key, namespace)
+  } catch (err) {
+    if (err.code !== 404) {
+      throw err
+    }
+  }
+}

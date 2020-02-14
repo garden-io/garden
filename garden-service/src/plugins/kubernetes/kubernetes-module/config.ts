@@ -113,6 +113,7 @@ export async function configureKubernetesModule({
 
   moduleConfig.taskConfigs = moduleConfig.spec.tasks.map((t) => ({
     name: t.name,
+    cacheResult: t.cacheResult,
     dependencies: t.dependencies,
     disabled: t.disabled,
     spec: t,

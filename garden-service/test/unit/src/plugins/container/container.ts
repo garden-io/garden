@@ -161,6 +161,7 @@ describe("plugins.container", () => {
               name: "task-a",
               args: ["echo", "OK"],
               artifacts: [],
+              cacheResult: true,
               dependencies: [],
               disabled: false,
               env: {
@@ -245,6 +246,7 @@ describe("plugins.container", () => {
                 name: "task-a",
                 args: ["echo", "OK"],
                 artifacts: [],
+                cacheResult: true,
                 dependencies: [],
                 disabled: false,
                 env: {
@@ -303,12 +305,14 @@ describe("plugins.container", () => {
           ],
           taskConfigs: [
             {
+              cacheResult: true,
               dependencies: [],
               disabled: false,
               name: "task-a",
               spec: {
                 args: ["echo", "OK"],
                 artifacts: [],
+                cacheResult: true,
                 dependencies: [],
                 disabled: false,
                 env: {
@@ -390,6 +394,7 @@ describe("plugins.container", () => {
               name: "task-a",
               args: ["echo"],
               artifacts: [],
+              cacheResult: true,
               dependencies: [],
               disabled: false,
               env: {},
@@ -464,6 +469,7 @@ describe("plugins.container", () => {
               name: "task-a",
               args: ["echo"],
               artifacts: [],
+              cacheResult: true,
               dependencies: [],
               disabled: false,
               env: {},
@@ -525,6 +531,7 @@ describe("plugins.container", () => {
               name: "task-a",
               args: ["echo"],
               artifacts: [],
+              cacheResult: true,
               dependencies: [],
               disabled: false,
               env: {},

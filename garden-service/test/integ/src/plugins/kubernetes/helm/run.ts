@@ -14,6 +14,7 @@ import { getHelmTestGarden } from "./common"
 import { TaskTask } from "../../../../../../src/tasks/task"
 import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
+import { clearTaskResult } from "../../../../../../src/plugins/kubernetes/task-results"
 
 describe("runHelmTask", () => {
   let garden: TestGarden
@@ -27,8 +28,9 @@ describe("runHelmTask", () => {
     graph = await garden.getConfigGraph(garden.log)
   })
 
-  it("should run a basic task", async () => {
+  it("should run a basic task and store its result", async () => {
     const task = await graph.getTask("echo-task")
+    const version = task.module.version
 
     const testTask = new TaskTask({
       garden,
@@ -37,10 +39,16 @@ describe("runHelmTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      version: task.module.version,
+      version,
     })
 
     const key = testTask.getKey()
+
+    // Clear any existing task result
+    const provider = await garden.resolveProvider("local-kubernetes")
+    const ctx = garden.getPluginContext(provider)
+    await clearTaskResult({ ctx, log: garden.log, module: task.module, task, taskVersion: version })
+
     const { [key]: result } = await garden.processTasks([testTask], { throwOnError: true })
 
     expect(result).to.exist
@@ -48,6 +56,49 @@ describe("runHelmTask", () => {
     expect(result!.output.log.trim()).to.equal("ok")
     expect(result!.output).to.have.property("outputs")
     expect(result!.output.outputs.log.trim()).to.equal("ok")
+
+    // We also verify that, despite the task failing, its result was still saved.
+    const actions = await garden.getActionRouter()
+    const storedResult = await actions.getTaskResult({
+      log: garden.log,
+      task,
+      taskVersion: task.module.version,
+    })
+
+    expect(storedResult).to.exist
+  })
+
+  it("should not store task results if cacheResult=false", async () => {
+    const task = await graph.getTask("echo-task")
+    const version = task.module.version
+    task.config.cacheResult = false
+
+    const testTask = new TaskTask({
+      garden,
+      graph,
+      task,
+      log: garden.log,
+      force: true,
+      forceBuild: false,
+      version,
+    })
+
+    // Clear any existing task result
+    const provider = await garden.resolveProvider("local-kubernetes")
+    const ctx = garden.getPluginContext(provider)
+    await clearTaskResult({ ctx, log: garden.log, module: task.module, task, taskVersion: version })
+
+    await garden.processTasks([testTask], { throwOnError: true })
+
+    // We also verify that, despite the task failing, its result was still saved.
+    const actions = await garden.getActionRouter()
+    const storedResult = await actions.getTaskResult({
+      log: garden.log,
+      task,
+      taskVersion: task.module.version,
+    })
+
+    expect(storedResult).to.not.exist
   })
 
   it("should run a task in a different namespace, if configured", async () => {

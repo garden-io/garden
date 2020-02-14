@@ -16,7 +16,6 @@ import { Garden } from "../../../../../../src/garden"
 import { ConfigGraph } from "../../../../../../src/config-graph"
 import { findByName } from "../../../../../../src/util/util"
 import { deline } from "../../../../../../src/util/string"
-import { TaskTask } from "../../../../../../src/tasks/task"
 import { runAndCopy } from "../../../../../../src/plugins/kubernetes/run"
 import { containerHelpers } from "../../../../../../src/plugins/container/helpers"
 import { runContainerService } from "../../../../../../src/plugins/kubernetes/container/run"
@@ -31,10 +30,11 @@ import { V1Secret } from "@kubernetes/client-node"
 import { clusterInit } from "../../../../../../src/plugins/kubernetes/commands/cluster-init"
 
 const root = getDataDir("test-projects", "container")
+const defaultEnvironment = process.env.GARDEN_INTEG_TEST_MODE === "remote" ? "cluster-docker" : "local"
 let initialized = false
 let localInstance: Garden
 
-export async function getContainerTestGarden(environmentName: string) {
+export async function getContainerTestGarden(environmentName: string = defaultEnvironment) {
   const garden = await makeTestGarden(root, { environmentName })
 
   if (!localInstance) {
@@ -92,9 +92,12 @@ describe("kubernetes container module handlers", () => {
 
   before(async () => {
     garden = await makeTestGarden(root)
-    graph = await garden.getConfigGraph(garden.log)
     provider = <KubernetesProvider>await garden.resolveProvider("local-kubernetes")
     namespace = garden.projectName
+  })
+
+  beforeEach(async () => {
+    graph = await garden.getConfigGraph(garden.log)
   })
 
   after(async () => {
@@ -519,158 +522,6 @@ describe("kubernetes container module handlers", () => {
       })
 
       expect(result.log.trim()).to.eql("foo")
-    })
-  })
-
-  describe("runContainerTask", () => {
-    it("should run a basic task", async () => {
-      const task = await graph.getTask("echo-task")
-
-      const testTask = new TaskTask({
-        garden,
-        graph,
-        task,
-        log: garden.log,
-        force: true,
-        forceBuild: false,
-        version: task.module.version,
-      })
-
-      const key = "task.echo-task"
-      const result = await garden.processTasks([testTask], { throwOnError: true })
-
-      expect(result).to.have.property(key)
-      expect(result[key]).to.have.property("output")
-      expect(result[key]!.output.log.trim()).to.equal("ok")
-      expect(result[key]!.output).to.have.property("outputs")
-      expect(result[key]!.output.outputs.log.trim()).to.equal("ok")
-    })
-
-    it("should fail if an error occurs, but store the result", async () => {
-      const task = await graph.getTask("echo-task")
-      task.config.spec.command = ["bork"] // this will fail
-
-      const testTask = new TaskTask({
-        garden,
-        graph,
-        task,
-        log: garden.log,
-        force: true,
-        forceBuild: false,
-        version: task.module.version,
-      })
-
-      await expectError(
-        async () => await garden.processTasks([testTask], { throwOnError: true }),
-        (err) => expect(err.message).to.match(/bork/)
-      )
-
-      const actions = await garden.getActionRouter()
-
-      // We also verify that, despite the task failing, its result was still saved.
-      const result = await actions.getTaskResult({
-        log: garden.log,
-        task,
-        taskVersion: task.module.version,
-      })
-
-      expect(result).to.exist
-    })
-
-    context("artifacts are specified", () => {
-      it("should copy artifacts out of the container", async () => {
-        const task = await graph.getTask("artifacts-task")
-
-        const testTask = new TaskTask({
-          garden,
-          graph,
-          task,
-          log: garden.log,
-          force: true,
-          forceBuild: false,
-          version: task.module.version,
-        })
-
-        await emptyDir(garden.artifactsPath)
-
-        await garden.processTasks([testTask], { throwOnError: true })
-
-        expect(await pathExists(join(garden.artifactsPath, "task.txt"))).to.be.true
-        expect(await pathExists(join(garden.artifactsPath, "subdir", "task.txt"))).to.be.true
-      })
-
-      it("should handle globs when copying artifacts out of the container", async () => {
-        const task = await graph.getTask("globs-task")
-
-        const testTask = new TaskTask({
-          garden,
-          graph,
-          task,
-          log: garden.log,
-          force: true,
-          forceBuild: false,
-          version: task.module.version,
-        })
-
-        await emptyDir(garden.artifactsPath)
-
-        await garden.processTasks([testTask], { throwOnError: true })
-
-        expect(await pathExists(join(garden.artifactsPath, "subdir", "task.txt"))).to.be.true
-        expect(await pathExists(join(garden.artifactsPath, "output.txt"))).to.be.true
-      })
-
-      it("should throw when container doesn't contain sh", async () => {
-        const task = await graph.getTask("missing-sh-task")
-
-        const testTask = new TaskTask({
-          garden,
-          graph,
-          task,
-          log: garden.log,
-          force: true,
-          forceBuild: false,
-          version: task.module.version,
-        })
-
-        const result = await garden.processTasks([testTask])
-
-        const key = "task.missing-sh-task"
-
-        expect(result).to.have.property(key)
-        expect(result[key]!.error).to.exist
-        expect(result[key]!.error!.message).to.equal(deline`
-          Task 'missing-sh-task' in container module 'missing-sh' specifies artifacts to export, but the image doesn't
-          contain the sh binary. In order to copy artifacts out of Kubernetes containers, both sh and tar need
-          to be installed in the image.
-        `)
-      })
-
-      it("should throw when container doesn't contain tar", async () => {
-        const task = await graph.getTask("missing-tar-task")
-
-        const testTask = new TaskTask({
-          garden,
-          graph,
-          task,
-          log: garden.log,
-          force: true,
-          forceBuild: false,
-          version: task.module.version,
-        })
-
-        const result = await garden.processTasks([testTask])
-
-        const key = "task.missing-tar-task"
-
-        expect(result).to.have.property(key)
-        expect(result[key]!.error).to.exist
-        expect(result[key]!.error!.message).to.equal(deline`
-          Task 'missing-tar-task' in container module 'missing-tar' specifies artifacts to export, but the image doesn't
-          contain the tar binary. In order to copy artifacts out of Kubernetes containers, both sh and tar need
-          to be installed in the image.
-        `)
-      })
     })
   })
 

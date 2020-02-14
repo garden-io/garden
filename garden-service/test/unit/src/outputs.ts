@@ -233,6 +233,7 @@ describe("resolveProjectOutputs", () => {
         taskConfigs: [
           {
             name: "test",
+            cacheResult: true,
             dependencies: [],
             disabled: false,
             spec: {},

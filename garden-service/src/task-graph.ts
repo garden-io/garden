@@ -154,6 +154,10 @@ export class TaskGraph {
     })
   }
 
+  clearCache() {
+    this.resultCache = new ResultCache()
+  }
+
   /**
    * Rebuilds the dependency relationships between the TaskNodes in this.index, and updates this.roots accordingly.
    */

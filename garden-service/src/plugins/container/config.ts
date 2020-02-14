@@ -24,7 +24,7 @@ import { Service, ingressHostnameSchema, linkUrlSchema } from "../../types/servi
 import { DEFAULT_PORT_PROTOCOL } from "../../constants"
 import { ModuleSpec, ModuleConfig, baseBuildSpecSchema, BaseBuildSpec } from "../../config/module"
 import { CommonServiceSpec, ServiceConfig, baseServiceSpecSchema } from "../../config/service"
-import { baseTaskSpecSchema, BaseTaskSpec } from "../../config/task"
+import { baseTaskSpecSchema, BaseTaskSpec, cacheResultSchema } from "../../config/task"
 import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
 import { joiStringMap } from "../../config/common"
 import { dedent } from "../../util/string"
@@ -470,6 +470,7 @@ export const containerTestSchema = baseTestSpecSchema.keys({
 export interface ContainerTaskSpec extends BaseTaskSpec {
   args: string[]
   artifacts: ArtifactSpec[]
+  cacheResult: boolean
   command?: string[]
   env: ContainerEnvVars
 }
@@ -482,6 +483,7 @@ export const containerTaskSchema = baseTaskSpecSchema
       .description("The arguments used to run the task inside the container.")
       .example(["rake", "db:migrate"]),
     artifacts: artifactsSchema,
+    cacheResult: cacheResultSchema,
     command: joi
       .array()
       .items(joi.string())
