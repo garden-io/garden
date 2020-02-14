@@ -15,16 +15,14 @@ Note that if you include the manifests in the `garden.yml` file, you can use
 If you need more advanced templating features you can use the
 [helm](https://docs.garden.io/module-types/helm) module type.
 
-## Reference
-
-Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
+Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../guides/configuration-files.md).
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
 `kubernetes` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 
-### Complete YAML Schema
+## Complete YAML Schema
 
 The values in the schema below are the default values.
 
@@ -258,9 +256,9 @@ tests:
         target: .
 ```
 
-### Configuration Keys
+## Configuration Keys
 
-#### `apiVersion`
+### `apiVersion`
 
 The schema version of this module's config (currently not used).
 
@@ -268,13 +266,13 @@ The schema version of this module's config (currently not used).
 | -------- | -------------- | ---------------- | -------- |
 | `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
 
-#### `kind`
+### `kind`
 
 | Type     | Allowed Values | Default    | Required |
 | -------- | -------------- | ---------- | -------- |
 | `string` | "Module"       | `"Module"` | Yes      |
 
-#### `type`
+### `type`
 
 The type of this module.
 
@@ -288,7 +286,7 @@ Example:
 type: "container"
 ```
 
-#### `name`
+### `name`
 
 The name of this module.
 
@@ -302,7 +300,7 @@ Example:
 name: "my-sweet-module"
 ```
 
-#### `description`
+### `description`
 
 A description of the module.
 
@@ -310,7 +308,7 @@ A description of the module.
 | -------- | -------- |
 | `string` | No       |
 
-#### `disabled`
+### `disabled`
 
 Set this to `true` to disable the module. You can use this with conditional template strings to disable modules based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name == "prod"}`). This can be handy when you only need certain modules for specific environments, e.g. only for development.
 
@@ -322,7 +320,7 @@ If you disable the module, and its services, tasks or tests are referenced as _r
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
 
-#### `include[]`
+### `include[]`
 
 Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that do *not* match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
@@ -345,7 +343,7 @@ include:
   - my-app.js
 ```
 
-#### `exclude[]`
+### `exclude[]`
 
 Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
@@ -365,7 +363,7 @@ exclude:
   - '*.log'
 ```
 
-#### `repositoryUrl`
+### `repositoryUrl`
 
 A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
 
@@ -381,7 +379,7 @@ Example:
 repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
 ```
 
-#### `allowPublish`
+### `allowPublish`
 
 When false, disables pushing this module to remote registries.
 
@@ -389,7 +387,7 @@ When false, disables pushing this module to remote registries.
 | --------- | ------- | -------- |
 | `boolean` | `true`  | No       |
 
-#### `build`
+### `build`
 
 Specify how to build the module. Note that plugins may define additional keys on this object.
 
@@ -397,7 +395,7 @@ Specify how to build the module. Note that plugins may define additional keys on
 | -------- | --------------------- | -------- |
 | `object` | `{"dependencies":[]}` | No       |
 
-#### `build.dependencies[]`
+### `build.dependencies[]`
 
 [build](#build) > dependencies
 
@@ -416,7 +414,7 @@ build:
     - name: some-other-module-name
 ```
 
-#### `build.dependencies[].name`
+### `build.dependencies[].name`
 
 [build](#build) > [dependencies](#builddependencies) > name
 
@@ -426,7 +424,7 @@ Module name to build ahead of this module.
 | -------- | -------- |
 | `string` | Yes      |
 
-#### `build.dependencies[].copy[]`
+### `build.dependencies[].copy[]`
 
 [build](#build) > [dependencies](#builddependencies) > copy
 
@@ -436,7 +434,7 @@ Specify one or more files or directories to copy from the built dependency to th
 | --------------- | ------- | -------- |
 | `array[object]` | `[]`    | No       |
 
-#### `build.dependencies[].copy[].source`
+### `build.dependencies[].copy[].source`
 
 [build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > source
 
@@ -446,7 +444,7 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 | ----------- | -------- |
 | `posixPath` | Yes      |
 
-#### `build.dependencies[].copy[].target`
+### `build.dependencies[].copy[].target`
 
 [build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > target
 
@@ -457,7 +455,7 @@ Defaults to to same as source path.
 | ----------- | ------- | -------- |
 | `posixPath` | `""`    | No       |
 
-#### `dependencies[]`
+### `dependencies[]`
 
 The names of any services that this service depends on at runtime, and the names of any tasks that should be executed before this service is deployed.
 
@@ -465,7 +463,7 @@ The names of any services that this service depends on at runtime, and the names
 | --------------- | ------- | -------- |
 | `array[string]` | `[]`    | No       |
 
-#### `manifests[]`
+### `manifests[]`
 
 List of Kubernetes resource manifests to deploy. Use this instead of the `files` field if you need to resolve template strings in any of the manifests.
 
@@ -473,7 +471,7 @@ List of Kubernetes resource manifests to deploy. Use this instead of the `files`
 | --------------- | ------- | -------- |
 | `array[object]` | `[]`    | No       |
 
-#### `manifests[].apiVersion`
+### `manifests[].apiVersion`
 
 [manifests](#manifests) > apiVersion
 
@@ -483,7 +481,7 @@ The API version of the resource.
 | -------- | -------- |
 | `string` | Yes      |
 
-#### `manifests[].kind`
+### `manifests[].kind`
 
 [manifests](#manifests) > kind
 
@@ -493,7 +491,7 @@ The kind of the resource.
 | -------- | -------- |
 | `string` | Yes      |
 
-#### `manifests[].metadata`
+### `manifests[].metadata`
 
 [manifests](#manifests) > metadata
 
@@ -501,7 +499,7 @@ The kind of the resource.
 | -------- | -------- |
 | `object` | Yes      |
 
-#### `manifests[].metadata.name`
+### `manifests[].metadata.name`
 
 [manifests](#manifests) > [metadata](#manifestsmetadata) > name
 
@@ -511,7 +509,7 @@ The name of the resource.
 | -------- | -------- |
 | `string` | Yes      |
 
-#### `files[]`
+### `files[]`
 
 POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests.
 
@@ -519,7 +517,7 @@ POSIX-style paths to YAML files to load manifests from. Each can contain multipl
 | ------------------ | ------- | -------- |
 | `array[posixPath]` | `[]`    | No       |
 
-#### `namespace`
+### `namespace`
 
 Deploy to a different namespace than the default one configured in the provider.
 
@@ -527,7 +525,7 @@ Deploy to a different namespace than the default one configured in the provider.
 | -------- | -------- |
 | `string` | No       |
 
-#### `serviceResource`
+### `serviceResource`
 
 The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module (not to be confused with Kubernetes Service resources). Because a `kubernetes` can contain any number of Kubernetes resources, this needs to be specified for certain Garden features and commands to work.
 
@@ -535,7 +533,7 @@ The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garde
 | -------- | -------- |
 | `object` | No       |
 
-#### `serviceResource.kind`
+### `serviceResource.kind`
 
 [serviceResource](#serviceresource) > kind
 
@@ -545,7 +543,7 @@ The type of Kubernetes resource to sync files to.
 | -------- | ---------------------------------------- | -------------- | -------- |
 | `string` | "Deployment", "DaemonSet", "StatefulSet" | `"Deployment"` | Yes      |
 
-#### `serviceResource.name`
+### `serviceResource.name`
 
 [serviceResource](#serviceresource) > name
 
@@ -555,7 +553,7 @@ The name of the resource to sync to. If the module contains a single resource of
 | -------- | -------- |
 | `string` | No       |
 
-#### `serviceResource.containerName`
+### `serviceResource.containerName`
 
 [serviceResource](#serviceresource) > containerName
 
@@ -565,13 +563,13 @@ The name of a container in the target. Specify this if the target contains more 
 | -------- | -------- |
 | `string` | No       |
 
-#### `tasks[]`
+### `tasks[]`
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
 | `array[object]` | `[]`    | No       |
 
-#### `tasks[].name`
+### `tasks[].name`
 
 [tasks](#tasks) > name
 
@@ -581,7 +579,7 @@ The name of the task.
 | -------- | -------- |
 | `string` | Yes      |
 
-#### `tasks[].description`
+### `tasks[].description`
 
 [tasks](#tasks) > description
 
@@ -591,7 +589,7 @@ A description of the task.
 | -------- | -------- |
 | `string` | No       |
 
-#### `tasks[].dependencies[]`
+### `tasks[].dependencies[]`
 
 [tasks](#tasks) > dependencies
 
@@ -601,7 +599,7 @@ The names of any tasks that must be executed, and the names of any services that
 | --------------- | ------- | -------- |
 | `array[string]` | `[]`    | No       |
 
-#### `tasks[].disabled`
+### `tasks[].disabled`
 
 [tasks](#tasks) > disabled
 
@@ -621,7 +619,7 @@ you're using them, using conditional expressions.
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
 
-#### `tasks[].timeout`
+### `tasks[].timeout`
 
 [tasks](#tasks) > timeout
 
@@ -631,7 +629,7 @@ Maximum duration (in seconds) of the task's execution.
 | -------- | ------- | -------- |
 | `number` | `null`  | No       |
 
-#### `tasks[].resource`
+### `tasks[].resource`
 
 [tasks](#tasks) > resource
 
@@ -641,7 +639,7 @@ The Deployment, DaemonSet or StatefulSet that Garden should use to execute this 
 | -------- | -------- |
 | `object` | No       |
 
-#### `tasks[].resource.kind`
+### `tasks[].resource.kind`
 
 [tasks](#tasks) > [resource](#tasksresource) > kind
 
@@ -651,7 +649,7 @@ The type of Kubernetes resource to sync files to.
 | -------- | ---------------------------------------- | -------------- | -------- |
 | `string` | "Deployment", "DaemonSet", "StatefulSet" | `"Deployment"` | Yes      |
 
-#### `tasks[].resource.name`
+### `tasks[].resource.name`
 
 [tasks](#tasks) > [resource](#tasksresource) > name
 
@@ -661,7 +659,7 @@ The name of the resource to sync to. If the module contains a single resource of
 | -------- | -------- |
 | `string` | No       |
 
-#### `tasks[].resource.containerName`
+### `tasks[].resource.containerName`
 
 [tasks](#tasks) > [resource](#tasksresource) > containerName
 
@@ -671,7 +669,7 @@ The name of a container in the target. Specify this if the target contains more 
 | -------- | -------- |
 | `string` | No       |
 
-#### `tasks[].command[]`
+### `tasks[].command[]`
 
 [tasks](#tasks) > command
 
@@ -690,7 +688,7 @@ tasks:
       - '-c'
 ```
 
-#### `tasks[].args[]`
+### `tasks[].args[]`
 
 [tasks](#tasks) > args
 
@@ -709,7 +707,7 @@ tasks:
       - 'db:migrate'
 ```
 
-#### `tasks[].env`
+### `tasks[].env`
 
 [tasks](#tasks) > env
 
@@ -732,7 +730,7 @@ tasks:
         - {}
 ```
 
-#### `tasks[].artifacts[]`
+### `tasks[].artifacts[]`
 
 [tasks](#tasks) > artifacts
 
@@ -742,7 +740,7 @@ Specify artifacts to copy out of the container after the task is complete.
 | --------------- | ------- | -------- |
 | `array[object]` | `[]`    | No       |
 
-#### `tasks[].artifacts[].source`
+### `tasks[].artifacts[].source`
 
 [tasks](#tasks) > [artifacts](#tasksartifacts) > source
 
@@ -760,7 +758,7 @@ tasks:
       - source: "/output/**/*"
 ```
 
-#### `tasks[].artifacts[].target`
+### `tasks[].artifacts[].target`
 
 [tasks](#tasks) > [artifacts](#tasksartifacts) > target
 
@@ -778,13 +776,13 @@ tasks:
       - target: "outputs/foo/"
 ```
 
-#### `tests[]`
+### `tests[]`
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
 | `array[object]` | `[]`    | No       |
 
-#### `tests[].name`
+### `tests[].name`
 
 [tests](#tests) > name
 
@@ -794,7 +792,7 @@ The name of the test.
 | -------- | -------- |
 | `string` | Yes      |
 
-#### `tests[].dependencies[]`
+### `tests[].dependencies[]`
 
 [tests](#tests) > dependencies
 
@@ -804,7 +802,7 @@ The names of any services that must be running, and the names of any tasks that 
 | --------------- | ------- | -------- |
 | `array[string]` | `[]`    | No       |
 
-#### `tests[].disabled`
+### `tests[].disabled`
 
 [tests](#tests) > disabled
 
@@ -817,7 +815,7 @@ specific environments, e.g. only during CI.
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
 
-#### `tests[].timeout`
+### `tests[].timeout`
 
 [tests](#tests) > timeout
 
@@ -827,7 +825,7 @@ Maximum duration (in seconds) of the test run.
 | -------- | ------- | -------- |
 | `number` | `null`  | No       |
 
-#### `tests[].resource`
+### `tests[].resource`
 
 [tests](#tests) > resource
 
@@ -837,7 +835,7 @@ The Deployment, DaemonSet or StatefulSet that Garden should use to execute this 
 | -------- | -------- |
 | `object` | No       |
 
-#### `tests[].resource.kind`
+### `tests[].resource.kind`
 
 [tests](#tests) > [resource](#testsresource) > kind
 
@@ -847,7 +845,7 @@ The type of Kubernetes resource to sync files to.
 | -------- | ---------------------------------------- | -------------- | -------- |
 | `string` | "Deployment", "DaemonSet", "StatefulSet" | `"Deployment"` | Yes      |
 
-#### `tests[].resource.name`
+### `tests[].resource.name`
 
 [tests](#tests) > [resource](#testsresource) > name
 
@@ -857,7 +855,7 @@ The name of the resource to sync to. If the module contains a single resource of
 | -------- | -------- |
 | `string` | No       |
 
-#### `tests[].resource.containerName`
+### `tests[].resource.containerName`
 
 [tests](#tests) > [resource](#testsresource) > containerName
 
@@ -867,7 +865,7 @@ The name of a container in the target. Specify this if the target contains more 
 | -------- | -------- |
 | `string` | No       |
 
-#### `tests[].command[]`
+### `tests[].command[]`
 
 [tests](#tests) > command
 
@@ -886,7 +884,7 @@ tests:
       - '-c'
 ```
 
-#### `tests[].args[]`
+### `tests[].args[]`
 
 [tests](#tests) > args
 
@@ -905,7 +903,7 @@ tests:
       - test
 ```
 
-#### `tests[].env`
+### `tests[].env`
 
 [tests](#tests) > env
 
@@ -928,7 +926,7 @@ tests:
         - {}
 ```
 
-#### `tests[].artifacts[]`
+### `tests[].artifacts[]`
 
 [tests](#tests) > artifacts
 
@@ -938,7 +936,7 @@ Specify artifacts to copy out of the container after the test is complete.
 | --------------- | ------- | -------- |
 | `array[object]` | `[]`    | No       |
 
-#### `tests[].artifacts[].source`
+### `tests[].artifacts[].source`
 
 [tests](#tests) > [artifacts](#testsartifacts) > source
 
@@ -956,7 +954,7 @@ tests:
       - source: "/output/**/*"
 ```
 
-#### `tests[].artifacts[].target`
+### `tests[].artifacts[].target`
 
 [tests](#tests) > [artifacts](#testsartifacts) > target
 
@@ -975,14 +973,14 @@ tests:
 ```
 
 
-### Outputs
+## Outputs
 
-#### Module Outputs
+### Module Outputs
 
 The following keys are available via the `${modules.<module-name>}` template string key for `kubernetes`
 modules.
 
-#### `${modules.<module-name>.buildPath}`
+### `${modules.<module-name>.buildPath}`
 
 The build path of the module.
 
@@ -996,7 +994,7 @@ Example:
 my-variable: ${modules.my-module.buildPath}
 ```
 
-#### `${modules.<module-name>.path}`
+### `${modules.<module-name>.path}`
 
 The local path of the module.
 
@@ -1010,7 +1008,7 @@ Example:
 my-variable: ${modules.my-module.path}
 ```
 
-#### `${modules.<module-name>.version}`
+### `${modules.<module-name>.version}`
 
 The current version of the module.
 
