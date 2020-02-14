@@ -42,6 +42,11 @@ describe("resolveTemplateString", async () => {
     expect(res).to.equal(undefined)
   })
 
+  it("should allow undefined values if ? suffix is present", async () => {
+    const res = await resolveTemplateString("${foo}?", new TestContext({}))
+    expect(res).to.equal(undefined)
+  })
+
   it("should interpolate a format string with a prefix", async () => {
     const res = await resolveTemplateString("prefix-${some}", new TestContext({ some: "value" }))
     expect(res).to.equal("prefix-value")
@@ -50,6 +55,16 @@ describe("resolveTemplateString", async () => {
   it("should interpolate a format string with a suffix", async () => {
     const res = await resolveTemplateString("${some}-suffix", new TestContext({ some: "value" }))
     expect(res).to.equal("value-suffix")
+  })
+
+  it("should interpolate a format string with a prefix and a suffix", async () => {
+    const res = await resolveTemplateString("prefix-${some}-suffix", new TestContext({ some: "value" }))
+    expect(res).to.equal("prefix-value-suffix")
+  })
+
+  it("should interpolate an optional format string with a prefix and a suffix", async () => {
+    const res = await resolveTemplateString("prefix-${some}?-suffix", new TestContext({}))
+    expect(res).to.equal("prefix--suffix")
   })
 
   it("should interpolate a format string with a prefix with whitespace", async () => {
@@ -86,7 +101,7 @@ describe("resolveTemplateString", async () => {
     try {
       await resolveTemplateString("${some}", new TestContext({}))
     } catch (err) {
-      expect(err.message).to.equal("Invalid template string ${some}: Template string resolves to undefined value.")
+      expect(stripAnsi(err.message)).to.equal("Invalid template string ${some}: Could not find key some.")
       return
     }
 
@@ -97,8 +112,8 @@ describe("resolveTemplateString", async () => {
     try {
       await resolveTemplateString("${some.other}", new TestContext({ some: {} }))
     } catch (err) {
-      expect(err.message).to.equal(
-        "Invalid template string ${some.other}: Template string resolves to undefined value."
+      expect(stripAnsi(err.message)).to.equal(
+        "Invalid template string ${some.other}: Could not find key other under some."
       )
       return
     }
@@ -259,8 +274,7 @@ describe("resolveTemplateString", async () => {
   it("should throw if neither key in logical OR is valid", async () => {
     return expectError(
       () => resolveTemplateString("${a || b}", new TestContext({})),
-      (err) =>
-        expect(err.message).to.equal("Invalid template string ${a || b}: Template string resolves to undefined value.")
+      (err) => expect(stripAnsi(err.message)).to.equal("Invalid template string ${a || b}: Could not find key b.")
     )
   })
 

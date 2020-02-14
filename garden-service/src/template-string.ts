@@ -67,6 +67,7 @@ export async function resolveTemplateString(
       ConfigurationError,
       TemplateStringError,
       allowUndefined: opts.allowUndefined,
+      optionalSuffix: "}?",
     })
 
     const outputs: ResolvedClause[] = await Bluebird.map(parsed, async (p: any) => {
@@ -93,12 +94,7 @@ export async function resolveTemplateString(
         .join("")
     }
 
-    if (resolved === undefined && !opts.allowUndefined) {
-      throw new ConfigurationError(`Template string resolves to undefined value.`, {
-        string,
-        resolved,
-      })
-    } else if (resolved !== undefined && !isPrimitive(resolved)) {
+    if (resolved !== undefined && !isPrimitive(resolved)) {
       throw new ConfigurationError(
         `Template string doesn't resolve to a primitive (string, number, boolean or null).`,
         {
