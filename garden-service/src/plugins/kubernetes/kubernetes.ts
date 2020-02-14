@@ -35,6 +35,7 @@ import pluralize from "pluralize"
 import { getSystemMetadataNamespaceName } from "./system"
 import { removeTillerCmd } from "./commands/remove-tiller"
 import { DOCS_BASE_URL } from "../../constants"
+import { inClusterRegistryHostname } from "./constants"
 
 export async function configureProvider({
   projectName,
@@ -56,16 +57,18 @@ export async function configureProvider({
   }
 
   if (config.buildMode === "cluster-docker" || config.buildMode === "kaniko") {
-    // TODO: support external registry
-    // This is a special configuration, used in combination with the registry-proxy service,
-    // to make sure every node in the cluster can resolve the image from the registry we deploy in-cluster.
-    config.deploymentRegistry = {
-      hostname: `127.0.0.1:5000`,
-      namespace: config.namespace,
-    }
+    config._systemServices.push("build-sync")
 
-    // Deploy build services on init
-    config._systemServices.push("build-sync", "docker-registry", "registry-proxy")
+    if (!config.deploymentRegistry || config.deploymentRegistry.hostname === inClusterRegistryHostname) {
+      // Deploy an in-cluster registry, unless otherwise specified.
+      // This is a special configuration, used in combination with the registry-proxy service,
+      // to make sure every node in the cluster can resolve the image from the registry we deploy in-cluster.
+      config.deploymentRegistry = {
+        hostname: inClusterRegistryHostname,
+        namespace: config.namespace,
+      }
+      config._systemServices.push("docker-registry", "registry-proxy")
+    }
 
     if (config.buildMode === "cluster-docker") {
       config._systemServices.push("docker-daemon")

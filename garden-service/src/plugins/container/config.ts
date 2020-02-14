@@ -407,9 +407,10 @@ export const containerRegistryConfigSchema = joi.object().keys({
     .default("_")
     .description("The namespace in the registry where images should be pushed.")
     .example("my-project"),
-}).description(deline`
-    The registry where built containers should be pushed to, and then pulled to the cluster when deploying
-    services.
+}).description(dedent`
+    The registry where built containers should be pushed to, and then pulled to the cluster when deploying services.
+
+    Important: If you specify this in combination with \`buildMode: cluster-docker\` or \`buildMode: kaniko\`, you must make sure \`imagePullSecrets\` includes authentication with the specified deployment registry, that has the appropriate write privileges (usually full write access to the configured \`deploymentRegistry.namespace\`).
   `)
 
 export interface ContainerService extends Service<ContainerModule> {}

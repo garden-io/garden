@@ -68,6 +68,8 @@ describe("kubernetes", () => {
         tail: -1,
       })
 
+      console.log(entries)
+
       expect(entries[0].msg).to.include("Server running...")
     })
   })

@@ -6,35 +6,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { getDataDir, makeTestGarden, expectError } from "../../../../../helpers"
+import { expectError } from "../../../../../helpers"
 import { Garden } from "../../../../../../src/garden"
 import { ConfigGraph } from "../../../../../../src/config-graph"
 import { k8sBuildContainer } from "../../../../../../src/plugins/kubernetes/container/build"
 import { PluginContext } from "../../../../../../src/plugin-context"
-import { clusterInit } from "../../../../../../src/plugins/kubernetes/commands/cluster-init"
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
-import { decryptSecretFile } from "../../../../helpers"
-import { GARDEN_SERVICE_ROOT } from "../../../../../../src/constants"
-import { resolve } from "path"
-import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { expect } from "chai"
-import { V1Secret } from "@kubernetes/client-node"
-import { KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
+import { getContainerTestGarden } from "./container"
 
 describe("k8sBuildContainer", () => {
   let garden: Garden
   let graph: ConfigGraph
   let provider: KubernetesProvider
   let ctx: PluginContext
-
-  let initialized = false
-
-  const root = getDataDir("test-projects", "container")
-
-  before(async () => {
-    garden = await makeTestGarden(root, { environmentName: "local" })
-    provider = <KubernetesProvider>await garden.resolveProvider("local-kubernetes")
-  })
 
   after(async () => {
     if (garden) {
@@ -43,46 +28,10 @@ describe("k8sBuildContainer", () => {
   })
 
   const init = async (environmentName: string) => {
-    garden = await makeTestGarden(root, { environmentName })
-
-    if (!initialized && environmentName !== "local") {
-      // Load the test authentication for private registries
-      const api = await KubeApi.factory(garden.log, provider)
-      try {
-        const authSecret = JSON.parse(
-          (await decryptSecretFile(resolve(GARDEN_SERVICE_ROOT, "..", "secrets", "test-docker-auth.json"))).toString()
-        )
-        await api.upsert({ kind: "Secret", namespace: "default", obj: authSecret, log: garden.log })
-      } catch (err) {
-        // This is expected when running without access to gcloud (e.g. in minikube tests)
-        // tslint:disable-next-line: no-console
-        console.log("Warning: Unable to decrypt docker auth secret")
-        const authSecret: KubernetesResource<V1Secret> = {
-          apiVersion: "v1",
-          kind: "Secret",
-          type: "kubernetes.io/dockerconfigjson",
-          metadata: {
-            name: "test-docker-auth",
-            namespace: "default",
-          },
-          stringData: {
-            ".dockerconfigjson": JSON.stringify({ auths: {} }),
-          },
-        }
-        await api.upsert({ kind: "Secret", namespace: "default", obj: authSecret, log: garden.log })
-      }
-    }
-
+    garden = await getContainerTestGarden(environmentName)
     graph = await garden.getConfigGraph(garden.log)
     provider = <KubernetesProvider>await garden.resolveProvider("local-kubernetes")
     ctx = garden.getPluginContext(provider)
-
-    // We only need to run the cluster-init flow once, because the configurations are compatible
-    if (!initialized && environmentName !== "local") {
-      // Run cluster-init
-      await clusterInit.handler({ ctx, log: garden.log })
-      initialized = true
-    }
   }
 
   context("local mode", () => {
@@ -144,6 +93,34 @@ describe("k8sBuildContainer", () => {
           expect(err.message).to.include("pull access denied")
         }
       )
+    })
+
+    it("should push to configured deploymentRegistry if specified (remote only)", async () => {
+      const module = await graph.getModule("private-base")
+      await garden.buildDir.syncFromSrc(module, garden.log)
+
+      await k8sBuildContainer({
+        ctx,
+        log: garden.log,
+        module,
+      })
+    })
+  })
+
+  context("cluster-docker-remote-registry mode", () => {
+    before(async () => {
+      await init("cluster-docker-remote-registry")
+    })
+
+    it("should push to configured deploymentRegistry if specified (remote only)", async () => {
+      const module = await graph.getModule("remote-registry-test")
+      await garden.buildDir.syncFromSrc(module, garden.log)
+
+      await k8sBuildContainer({
+        ctx,
+        log: garden.log,
+        module,
+      })
     })
   })
 
@@ -237,6 +214,23 @@ describe("k8sBuildContainer", () => {
           expect(err.message).to.include("UNAUTHORIZED")
         }
       )
+    })
+  })
+
+  context("kaniko-remote-registry mode", () => {
+    before(async () => {
+      await init("kaniko-remote-registry")
+    })
+
+    it("should push to configured deploymentRegistry if specified (remote only)", async () => {
+      const module = await graph.getModule("remote-registry-test")
+      await garden.buildDir.syncFromSrc(module, garden.log)
+
+      await k8sBuildContainer({
+        ctx,
+        log: garden.log,
+        module,
+      })
     })
   })
 })

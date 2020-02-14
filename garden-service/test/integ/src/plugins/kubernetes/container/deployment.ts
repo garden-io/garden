@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { getDataDir, makeTestGarden } from "../../../../../helpers"
 import { expect } from "chai"
 import { Garden } from "../../../../../../src/garden"
 import { ConfigGraph } from "../../../../../../src/config-graph"
@@ -16,7 +15,10 @@ import { createWorkloadManifest } from "../../../../../../src/plugins/kubernetes
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { V1Secret } from "@kubernetes/client-node"
 import { KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
-import { cloneDeep } from "lodash"
+import { cloneDeep, keyBy } from "lodash"
+import { getContainerTestGarden } from "./container"
+import { DeployTask } from "../../../../../../src/tasks/deploy"
+import { getServiceStatuses } from "../../../../../../src/tasks/base"
 
 describe("kubernetes container deployment handlers", () => {
   let garden: Garden
@@ -24,19 +26,25 @@ describe("kubernetes container deployment handlers", () => {
   let provider: KubernetesProvider
   let api: KubeApi
 
-  before(async () => {
-    const root = getDataDir("test-projects", "container")
-    garden = await makeTestGarden(root)
+  after(async () => {
+    if (garden) {
+      await garden.close()
+    }
+  })
+
+  const init = async (environmentName: string) => {
+    garden = await getContainerTestGarden(environmentName)
+
     graph = await garden.getConfigGraph(garden.log)
     provider = <KubernetesProvider>await garden.resolveProvider("local-kubernetes")
     api = await KubeApi.factory(garden.log, provider)
-  })
-
-  after(async () => {
-    await garden.close()
-  })
+  }
 
   describe("createWorkloadManifest", () => {
+    before(async () => {
+      await init("local")
+    })
+
     it("should create a basic Deployment resource", async () => {
       const service = await graph.getService("simple-service")
 
@@ -133,6 +141,143 @@ describe("kubernetes container deployment handlers", () => {
       const copiedSecret = await api.core.readNamespacedSecret(secretName, namespace)
       expect(copiedSecret).to.exist
       expect(resource.spec.template.spec.imagePullSecrets).to.eql([{ name: secretName }])
+    })
+  })
+
+  describe("deployContainerService", () => {
+    context("local mode", () => {
+      before(async () => {
+        await init("local")
+      })
+
+      it("should deploy a simple service", async () => {
+        const service = await graph.getService("simple-service")
+
+        const deployTask = new DeployTask({
+          garden,
+          graph,
+          log: garden.log,
+          service,
+          force: true,
+          forceBuild: false,
+        })
+
+        const results = await garden.processTasks([deployTask], { throwOnError: true })
+        const statuses = getServiceStatuses(results)
+        const status = statuses[service.name]
+        const resources = keyBy(status.detail["remoteResources"], "kind")
+        expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
+          `${service.name}:${service.module.version.versionString}`
+        )
+      })
+    })
+
+    context("cluster-docker mode", () => {
+      before(async () => {
+        await init("cluster-docker")
+      })
+
+      it("should deploy a simple service", async () => {
+        const service = await graph.getService("simple-service")
+
+        const deployTask = new DeployTask({
+          garden,
+          graph,
+          log: garden.log,
+          service,
+          force: true,
+          forceBuild: false,
+        })
+
+        const results = await garden.processTasks([deployTask], { throwOnError: true })
+        const statuses = getServiceStatuses(results)
+        const status = statuses[service.name]
+        const resources = keyBy(status.detail["remoteResources"], "kind")
+        expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
+          `127.0.0.1:5000/container/${service.name}:${service.module.version.versionString}`
+        )
+      })
+    })
+
+    context("kaniko mode", () => {
+      before(async () => {
+        await init("kaniko")
+      })
+
+      it("should deploy a simple service", async () => {
+        const service = await graph.getService("simple-service")
+
+        const deployTask = new DeployTask({
+          garden,
+          graph,
+          log: garden.log,
+          service,
+          force: true,
+          forceBuild: false,
+        })
+
+        const results = await garden.processTasks([deployTask], { throwOnError: true })
+        const statuses = getServiceStatuses(results)
+        const status = statuses[service.name]
+        const resources = keyBy(status.detail["remoteResources"], "kind")
+        expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
+          `127.0.0.1:5000/container/${service.name}:${service.module.version.versionString}`
+        )
+      })
+    })
+
+    context("cluster-docker-remote-registry mode", () => {
+      before(async () => {
+        await init("cluster-docker-remote-registry")
+      })
+
+      it("should deploy a simple service (remote only)", async () => {
+        const service = await graph.getService("remote-registry-test")
+
+        const deployTask = new DeployTask({
+          garden,
+          graph,
+          log: garden.log,
+          service,
+          force: true,
+          forceBuild: false,
+        })
+
+        const results = await garden.processTasks([deployTask], { throwOnError: true })
+        const statuses = getServiceStatuses(results)
+        const status = statuses[service.name]
+        const resources = keyBy(status.detail["remoteResources"], "kind")
+        expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
+          `index.docker.io/gardendev/${service.name}:${service.module.version.versionString}`
+        )
+      })
+    })
+
+    context("kaniko-remote-registry mode", () => {
+      before(async () => {
+        await init("kaniko-remote-registry")
+      })
+
+      it("should deploy a simple service (remote only)", async () => {
+        const service = await graph.getService("remote-registry-test")
+
+        const deployTask = new DeployTask({
+          garden,
+          graph,
+          log: garden.log,
+          service,
+          force: true,
+          forceBuild: false,
+        })
+
+        const results = await garden.processTasks([deployTask], { throwOnError: true })
+        const statuses = getServiceStatuses(results)
+        const status = statuses[service.name]
+        const resources = keyBy(status.detail["remoteResources"], "kind")
+        expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
+          `index.docker.io/gardendev/${service.name}:${service.module.version.versionString}`
+        )
+      })
     })
   })
 })
