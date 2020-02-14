@@ -131,9 +131,11 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
     await configureMicrok8sAddons(log, addons)
 
     // Need to push to the built-in registry
-    config.deploymentRegistry = {
-      hostname: "localhost:32000",
-      namespace,
+    if (config.buildMode === "local-docker") {
+      config.deploymentRegistry = {
+        hostname: "localhost:32000",
+        namespace,
+      }
     }
   }
 

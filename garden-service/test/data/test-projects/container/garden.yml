@@ -5,7 +5,9 @@ environments:
   - name: cluster-docker
   - name: cluster-docker-buildkit
   - name: cluster-docker-auth
+  - name: cluster-docker-remote-registry
   - name: kaniko
+  - name: kaniko-remote-registry
 providers:
   - name: local-kubernetes
     environments: [local]
@@ -23,5 +25,16 @@ providers:
   - <<: *clusterDocker
     environments: [cluster-docker-auth]
   - <<: *clusterDocker
+    environments: [cluster-docker-remote-registry]
+    deploymentRegistry:
+      hostname: index.docker.io
+      namespace: gardendev
+  - <<: *clusterDocker
     environments: [kaniko]
     buildMode: kaniko
+  - <<: *clusterDocker
+    environments: [kaniko-remote-registry]
+    buildMode: kaniko
+    deploymentRegistry:
+      hostname: index.docker.io
+      namespace: gardendev

@@ -14,3 +14,4 @@ export const MAX_RUN_RESULT_OUTPUT_LENGTH = 900 * 1024 // max ConfigMap data siz
 
 export const dockerAuthSecretName = "builder-docker-config"
 export const dockerAuthSecretKey = ".dockerconfigjson"
+export const inClusterRegistryHostname = "127.0.0.1:5000"

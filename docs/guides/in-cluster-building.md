@@ -25,10 +25,8 @@ DigitalOcean (track [issue #877](https://github.com/garden-io/garden/issues/877)
 
 Specifically, the clusters need the following:
 
-- Support for `hostPort`, and for reaching `hostPort`s from the node/Kubelet. This should work out-of-the-box in most
-  standard setups, but clusters using Cilium for networking may need to configure this specifically, for example.
-- At least 2GB of RAM _on top of your own service requirements_. More RAM is strongly recommended if you have many
-  concurrent developers or CI builds.
+- Support for `hostPort`, and for reaching `hostPort`s from the node/Kubelet. This should work out-of-the-box in most standard setups, but clusters using Cilium for networking may need to configure this specifically, for example.
+- At least 2GB of RAM _on top of your own service requirements_. More RAM is strongly recommended if you have many concurrent developers or CI builds.
 - Support for `PersistentVolumeClaim`s and enough disk space for layer caches and the in-cluster image registry.
 
 You can—_and should_—adjust the allocated resources and storage in the provider configuration, under
@@ -69,9 +67,7 @@ In this mode, builds are executed as follows:
 After enabling this mode (we currently still default to the `local-docker` mode), you will need to run `garden plugins kubernetes cluster-init --env=<env-name>` for each applicable environment, in order to install the required cluster-wide services. Those services include the Docker daemon itself, as well as an image registry, a sync service for receiving build contexts, two persistent volumes, an NFS volume provisioner for one of those volumes, and a couple of small utility services.
 
 Make sure your cluster has enough resources and storage to support the required services, and keep in mind that these
-services are shared across all users of the cluster. Please look at the
-[resources](../providers/kubernetes.md#providersresources) and
-[storage](../providers/kubernetes.md#providersstorage) sections in the provider reference for
+services are shared across all users of the cluster. Please look at the [resources](../providers/kubernetes.md#providersresources) and [storage](../providers/kubernetes.md#providersstorage) sections in the provider reference for
 details.
 
 ### Kaniko
@@ -164,3 +160,24 @@ providers:
 This registry auth secret will then be copied and passed to the in-cluster builder. You can specify as many as you like, and they will be merged together.
 
 > Note: Any time you add or modify imagePullSecrets after first initializing your cluster, you need to run `garden plugins kubernetes cluster-init` again for them to work when pulling base images!
+
+## Using private registries for deployments
+
+You can also use your private registry to store images after building and for deployment. If you've completed the steps above for configuring your `imagePullSecrets`, you can also configure a `deploymentRegistry` in your provider configuration:
+
+```yaml
+kind: Project
+name: my-project
+...
+providers:
+  - name: kubernetes
+    ...
+    imagePullSecrets:
+    - name: my-registry-secret
+      namespace: default
+    deploymentRegistry:
+      hostname: my-private-registry.com
+      namespace: my-project   # <--- make sure your configured imagePullSecrets can write to repos in this namespace
+```
+
+This is often more scalable than using the default in-cluster registry, and may fit better with existing deployment pipelines. Just make sure the configured `imagePullSecrets` have the privileges to push to repos in the configured namespace.
