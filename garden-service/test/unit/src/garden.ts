@@ -1370,8 +1370,8 @@ describe("Garden", () => {
         () => garden.resolveProviders(),
         (err) => {
           expect(err.message).to.equal("Failed resolving one or more providers:\n" + "- test")
-          expect(err.detail.messages[0]).to.equal(
-            "- test: Invalid template string ${bla.ble}: Template string resolves to undefined value."
+          expect(stripAnsi(err.detail.messages[0])).to.equal(
+            "- test: Invalid template string ${bla.ble}: Could not find key bla."
           )
         }
       )
