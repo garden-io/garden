@@ -54,6 +54,7 @@ import stringify = require("json-stringify-safe")
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 import { AnalyticsHandler } from "../analytics/analytics"
 import { defaultDotIgnoreFiles } from "../util/fs"
+import { renderError } from "../logger/renderers"
 
 const OUTPUT_RENDERERS = {
   json: (data: DeepPrimitiveMap) => {
@@ -449,12 +450,16 @@ export class GardenCli {
     }
 
     if (gardenErrors.length > 0) {
-      gardenErrors.forEach((error) =>
-        logger.error({
+      for (const error of gardenErrors) {
+        const entry = logger.error({
           msg: error.message,
           error,
         })
-      )
+        // Output error details to console when log level is silly
+        logger.silly({
+          msg: renderError(entry),
+        })
+      }
 
       if (logger.writers.find((w) => w instanceof FileWriter)) {
         logger.info(`\nSee ${ERROR_LOG_FILENAME} for detailed error message`)

@@ -19,6 +19,7 @@ import { Garden } from "./garden"
 import { dedent } from "./util/string"
 import uuid from "uuid"
 import { defer, relationshipClasses } from "./util/util"
+import { renderError } from "./logger/renderers"
 
 class TaskGraphError extends GardenBaseError {
   type = "task-graph"
@@ -532,7 +533,8 @@ export class TaskGraph {
       (hasAnsi(errorMessage) ? errorMessage : chalk.red(errorMessage)) +
       chalk.red.bold(`\n${divider}\n`)
 
-    this.log.error({ msg, error })
+    const entry = this.log.error({ msg, error })
+    this.log.silly({ msg: renderError(entry) })
   }
 }
 
