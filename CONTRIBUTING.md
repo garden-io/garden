@@ -178,6 +178,16 @@ Before pushing, we automatically run the `check-all` script from above, as well 
 git push origin <my-branch> --no-verify
 ```
 
+### Environment Variables
+
+You should set the following environment variables when developing on Garden:
+
+```sh
+GARDEN_DISABLE_ANALYTICS=true
+GARDEN_DISABLE_VERSION_CHECK=true
+ANALYTICS_DEV=true
+```
+
 ## CI
 
 We use [Circle CI](https://circleci.com) for integration and end to end testing. Sometimes

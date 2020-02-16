@@ -4,7 +4,7 @@ title: Template Strings Reference
 
 # Template string reference
 
-Below you'll find the schema of the keys available when interpolating template strings (see our [Configuration Files](../guides/configuration-files.md) guide for more information and usage examples).
+Below you'll find the schema of the keys available when interpolating template strings (see our [Variables and Templating](../guides/variables-and-templating.md) guide for more information and usage examples).
 
 Note that there are four sections below, since different configuration sections have different keys available to them. Please make sure to refer to the correct section.
 
@@ -213,20 +213,9 @@ The resolved configuration for the provider.
 | -------- |
 | `object` |
 
-Example:
-
-```yaml
-providers:
-  {}
-  <provider-name>:
-    ...
-    config:
-        clusterHostname: my-cluster.example.com
-```
-
 #### `${providers.<provider-name>.config.<config-key>}`
 
-The provider config key value. Refer to individual [provider references](../providers/README.md) for details.
+The provider config key value. Refer to individual [provider references](https://docs.garden.io/providers) for details.
 
 | Type                        |
 | --------------------------- |
@@ -240,20 +229,9 @@ The outputs defined by the provider (see individual plugin docs for details).
 | -------- | ------- |
 | `object` | `{}`    |
 
-Example:
-
-```yaml
-providers:
-  {}
-  <provider-name>:
-    ...
-    outputs:
-        cluster-ip: 1.2.3.4
-```
-
 #### `${providers.<provider-name>.outputs.<output-key>}`
 
-The provider output value. Refer to individual [provider references](../providers/README.md) for details.
+The provider output value. Refer to individual [provider references](https://docs.garden.io/providers) for details.
 
 | Type                        |
 | --------------------------- |
@@ -428,20 +406,9 @@ The resolved configuration for the provider.
 | -------- |
 | `object` |
 
-Example:
-
-```yaml
-providers:
-  {}
-  <provider-name>:
-    ...
-    config:
-        clusterHostname: my-cluster.example.com
-```
-
 #### `${providers.<provider-name>.config.<config-key>}`
 
-The provider config key value. Refer to individual [provider references](../providers/README.md) for details.
+The provider config key value. Refer to individual [provider references](https://docs.garden.io/providers) for details.
 
 | Type                        |
 | --------------------------- |
@@ -455,20 +422,9 @@ The outputs defined by the provider (see individual plugin docs for details).
 | -------- | ------- |
 | `object` | `{}`    |
 
-Example:
-
-```yaml
-providers:
-  {}
-  <provider-name>:
-    ...
-    outputs:
-        cluster-ip: 1.2.3.4
-```
-
 #### `${providers.<provider-name>.outputs.<output-key>}`
 
-The provider output value. Refer to individual [provider references](../providers/README.md) for details.
+The provider output value. Refer to individual [provider references](https://docs.garden.io/providers) for details.
 
 | Type                        |
 | --------------------------- |
@@ -538,7 +494,7 @@ The outputs defined by the module (see individual module type [references](https
 
 #### `${modules.<module-name>.outputs.<output-name>}`
 
-The module output value. Refer to individual [module type references](../module-types/README.md) for details.
+The module output value. Refer to individual [module type references](https://docs.garden.io/module-types) for details.
 
 | Type                        |
 | --------------------------- |
@@ -598,7 +554,7 @@ The runtime outputs defined by the service (see individual module type [referenc
 
 #### `${runtime.services.<service-name>.outputs.<output-name>}`
 
-The service output value. Refer to individual [module type references](../module-types/README.md) for details.
+The service output value. Refer to individual [module type references](https://docs.garden.io/module-types) for details.
 
 | Type                        |
 | --------------------------- |
@@ -622,7 +578,7 @@ The runtime outputs defined by the task (see individual module type [references]
 
 #### `${runtime.tasks.<task-name>.outputs.<output-name>}`
 
-The task output value. Refer to individual [module type references](../module-types/README.md) for details.
+The task output value. Refer to individual [module type references](https://docs.garden.io/module-types) for details.
 
 | Type                        |
 | --------------------------- |
@@ -765,20 +721,9 @@ The resolved configuration for the provider.
 | -------- |
 | `object` |
 
-Example:
-
-```yaml
-providers:
-  {}
-  <provider-name>:
-    ...
-    config:
-        clusterHostname: my-cluster.example.com
-```
-
 #### `${providers.<provider-name>.config.<config-key>}`
 
-The provider config key value. Refer to individual [provider references](../providers/README.md) for details.
+The provider config key value. Refer to individual [provider references](https://docs.garden.io/providers) for details.
 
 | Type                        |
 | --------------------------- |
@@ -792,20 +737,9 @@ The outputs defined by the provider (see individual plugin docs for details).
 | -------- | ------- |
 | `object` | `{}`    |
 
-Example:
-
-```yaml
-providers:
-  {}
-  <provider-name>:
-    ...
-    outputs:
-        cluster-ip: 1.2.3.4
-```
-
 #### `${providers.<provider-name>.outputs.<output-key>}`
 
-The provider output value. Refer to individual [provider references](../providers/README.md) for details.
+The provider output value. Refer to individual [provider references](https://docs.garden.io/providers) for details.
 
 | Type                        |
 | --------------------------- |
@@ -875,7 +809,7 @@ The outputs defined by the module (see individual module type [references](https
 
 #### `${modules.<module-name>.outputs.<output-name>}`
 
-The module output value. Refer to individual [module type references](../module-types/README.md) for details.
+The module output value. Refer to individual [module type references](https://docs.garden.io/module-types) for details.
 
 | Type                        |
 | --------------------------- |
@@ -935,7 +869,7 @@ The runtime outputs defined by the service (see individual module type [referenc
 
 #### `${runtime.services.<service-name>.outputs.<output-name>}`
 
-The service output value. Refer to individual [module type references](../module-types/README.md) for details.
+The service output value. Refer to individual [module type references](https://docs.garden.io/module-types) for details.
 
 | Type                        |
 | --------------------------- |
@@ -959,7 +893,7 @@ The runtime outputs defined by the task (see individual module type [references]
 
 #### `${runtime.tasks.<task-name>.outputs.<output-name>}`
 
-The task output value. Refer to individual [module type references](../module-types/README.md) for details.
+The task output value. Refer to individual [module type references](https://docs.garden.io/module-types) for details.
 
 | Type                        |
 | --------------------------- |

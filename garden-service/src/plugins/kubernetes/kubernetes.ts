@@ -34,6 +34,8 @@ import chalk from "chalk"
 import pluralize from "pluralize"
 import { getSystemMetadataNamespaceName } from "./system"
 import { removeTillerCmd } from "./commands/remove-tiller"
+import { DOCS_BASE_URL } from "../../constants"
+import { inClusterRegistryHostname } from "./constants"
 
 export async function configureProvider({
   projectName,
@@ -55,16 +57,18 @@ export async function configureProvider({
   }
 
   if (config.buildMode === "cluster-docker" || config.buildMode === "kaniko") {
-    // TODO: support external registry
-    // This is a special configuration, used in combination with the registry-proxy service,
-    // to make sure every node in the cluster can resolve the image from the registry we deploy in-cluster.
-    config.deploymentRegistry = {
-      hostname: `127.0.0.1:5000`,
-      namespace: config.namespace,
-    }
+    config._systemServices.push("build-sync")
 
-    // Deploy build services on init
-    config._systemServices.push("build-sync", "docker-registry", "registry-proxy")
+    if (!config.deploymentRegistry || config.deploymentRegistry.hostname === inClusterRegistryHostname) {
+      // Deploy an in-cluster registry, unless otherwise specified.
+      // This is a special configuration, used in combination with the registry-proxy service,
+      // to make sure every node in the cluster can resolve the image from the registry we deploy in-cluster.
+      config.deploymentRegistry = {
+        hostname: inClusterRegistryHostname,
+        namespace: config.namespace,
+      }
+      config._systemServices.push("docker-registry", "registry-proxy")
+    }
 
     if (config.buildMode === "cluster-docker") {
       config._systemServices.push("docker-daemon")
@@ -167,16 +171,16 @@ export const gardenPlugin = createGardenPlugin({
   name: "kubernetes",
   dependencies: ["container"],
   docs: dedent`
-    The \`kubernetes\` provider allows you to deploy [\`container\` modules](../module-types/container.md) to
-    Kubernetes clusters, and adds the [\`helm\`](../module-types/helm.md) and
-    [\`kubernetes\`](../module-types/kubernetes.md) module types.
+    The \`kubernetes\` provider allows you to deploy [\`container\` modules](${DOCS_BASE_URL}/module-types/container) to
+    Kubernetes clusters, and adds the [\`helm\`](${DOCS_BASE_URL}/module-types/helm) and
+    [\`kubernetes\`](${DOCS_BASE_URL}/module-types/kubernetes) module types.
 
-    For usage information, please refer to the [guides section](../guides/README.md). A good place to start is
-    the [Remote Kubernetes guide](../guides/remote-kubernetes.md) guide if you're connecting to remote clusters.
-    The [demo-project](../examples/demo-project.md) example project and guide are also helpful as an introduction.
+    For usage information, please refer to the [guides section]${DOCS_BASE_URL}/guides). A good place to start is
+    the [Remote Kubernetes guide](${DOCS_BASE_URL}/guides/remote-kubernetes) guide if you're connecting to remote clusters.
+    The [demo-project](${DOCS_BASE_URL}/examples/demo-project) example project and guide are also helpful as an introduction.
 
     Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the
-    [local-kubernetes provider](./local-kubernetes.md) simplifies (and automates) the configuration and setup quite a
+    [local-kubernetes provider](${DOCS_BASE_URL}/providers/local-kubernetes) simplifies (and automates) the configuration and setup quite a
     bit.
   `,
   configSchema,
@@ -197,7 +201,7 @@ export const gardenPlugin = createGardenPlugin({
       name: "helm",
       docs: dedent`
         Specify a Helm chart (either in your repository or remote from a registry) to deploy.
-        Refer to the [Helm guide](../guides/using-helm-charts.md) for usage instructions.
+        Refer to the [Helm guide](${DOCS_BASE_URL}/guides/using-helm-charts) for usage instructions.
       `,
       moduleOutputsSchema: helmModuleOutputsSchema,
       schema: helmModuleSpecSchema,
@@ -212,10 +216,10 @@ export const gardenPlugin = createGardenPlugin({
         one or more files with existing manifests.
 
         Note that if you include the manifests in the \`garden.yml\` file, you can use
-        [template strings](../guides/variables-and-templating.md) to interpolate values into the manifests.
+        [template strings](${DOCS_BASE_URL}/guides/variables-and-templating) to interpolate values into the manifests.
 
         If you need more advanced templating features you can use the
-        [helm](./helm.md) module type.
+        [helm](${DOCS_BASE_URL}/module-types/helm) module type.
       `,
       moduleOutputsSchema: joi.object().keys({}),
       schema: kubernetesModuleSpecSchema,

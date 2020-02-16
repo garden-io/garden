@@ -27,7 +27,7 @@ describe("GetConfigCommand", () => {
       headerLog: log,
       footerLog: log,
       args: { provider },
-      opts: withDefaultGlobalOpts({}),
+      opts: withDefaultGlobalOpts({ "exclude-disabled": false }),
     })
 
     const providers = await garden.resolveProviders()

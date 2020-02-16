@@ -36,17 +36,11 @@ export const baseServiceSpecSchema = joi
       .default(false)
       .description(
         dedent`
-          Set this to \`true\` to disable the service. You can use this with conditional template strings to
-          enable/disable services based on, for example, the current environment or other variables (e.g.
-          \`enabled: \${environment.name != "prod"}\`). This can be handy when you only need certain services for
-          specific environments, e.g. only for development.
+          Set this to \`true\` to disable the service. You can use this with conditional template strings to enable/disable services based on, for example, the current environment or other variables (e.g. \`enabled: \${environment.name != "prod"}\`). This can be handy when you only need certain services for specific environments, e.g. only for development.
 
-          Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a
-          runtime dependency for another service, test or task.
+          Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a runtime dependency for another service, test or task.
 
-          Note however that template strings referencing the service's outputs (i.e. runtime outputs) will fail to
-          resolve when the service is disabled, so you need to make sure to provide alternate values for those if
-          you're using them, using conditional expressions.
+          Note however that template strings referencing the service's outputs (i.e. runtime outputs) will fail to resolve when the service is disabled, so you need to make sure to provide alternate values for those if you're using them, using conditional expressions.
         `
       ),
   })
@@ -69,9 +63,7 @@ export const serviceConfigSchema = baseServiceSpecSchema
       .default(false)
       .description("Set this to true if the module and service configuration supports hot reloading."),
     sourceModuleName: joiIdentifier().optional().description(deline`
-        The \`validate\` module action should populate this, if the service's code sources are contained in a
-        separate module from the parent module. For example, when the service belongs to a module that contains
-        manifests (e.g. a Helm chart), but the actual code lives in a different module (e.g. a container module).
+        The \`validate\` module action should populate this, if the service's code sources are contained in a separate module from the parent module. For example, when the service belongs to a module that contains manifests (e.g. a Helm chart), but the actual code lives in a different module (e.g. a container module).
       `),
     spec: joi
       .object()

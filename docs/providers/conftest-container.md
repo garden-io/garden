@@ -4,7 +4,7 @@ title: conftest-container
 
 # `conftest-container` Provider
 
-This provider automatically generates [conftest modules](../module-types/conftest.md) for `container` modules
+This provider automatically generates [conftest modules](https://docs.garden.io/module-types/conftest) for `container` modules
 in your project. A `conftest` module is created for each `container` module that includes a Dockerfile that
 can be validated.
 
@@ -24,22 +24,26 @@ The values in the schema below are the default values.
 
 ```yaml
 providers:
-  # The name of the provider plugin to use.
-  - name:
+  - # The name of the provider plugin to use.
+    name:
+
     # If specified, this provider will only be used in the listed environments. Note that an empty array effectively
     # disables the provider. To use a provider in all environments, omit this field.
     environments:
+
     # Path to the default policy directory or rego file to use for `conftest` modules.
     policyPath: ./policy
+
     # Default policy namespace to use for `conftest` modules.
     namespace:
+
     # Set this to `"warn"` if you'd like tests to be marked as failed if one or more _warn_ rules are matched.
     # Set to `"none"` to always mark the tests as successful.
     testFailureThreshold: error
 ```
 ### Configuration Keys
 
-#### `providers`
+#### `providers[]`
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -77,8 +81,8 @@ Example:
 ```yaml
 providers:
   - environments:
-    - dev
-    - stage
+      - dev
+      - stage
 ```
 
 #### `providers[].policyPath`

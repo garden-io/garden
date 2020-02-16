@@ -1,0 +1,10 @@
+kind: Module
+name: remote-registry-test
+description: Test module for pushing to private registry
+type: container
+services:
+  - name: remote-registry-test
+    command: [sh, -c, "nc -l -p 8080"]
+    ports:
+      - name: http
+        containerPort: 8080

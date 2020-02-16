@@ -18,6 +18,7 @@ import chalk from "chalk"
 import { baseBuildSpecSchema } from "../../config/module"
 import { matchGlobs, listDirectory } from "../../util/fs"
 import { PluginError } from "../../exceptions"
+import { DOCS_BASE_URL } from "../../constants"
 
 interface ConftestProviderConfig extends ProviderConfig {
   policyPath: string
@@ -67,14 +68,14 @@ export const gardenPlugin = createGardenPlugin({
     Each module then creates a Garden test that becomes part of your Stack Graph.
 
     Note that, in many cases, you'll actually want to use more specific providers that can automatically configure your
-    \`conftest\` modules, e.g. the [\`conftest-container\`](./conftest-container.md) and/or
-    [\`conftest-kubernetes\`](./conftest-kubernetes.md) providers. See the
+    \`conftest\` modules, e.g. the [\`conftest-container\`](${DOCS_BASE_URL}/providers/conftest-container) and/or
+    [\`conftest-kubernetes\`](${DOCS_BASE_URL}/providers/conftest-kubernetes) providers. See the
     [conftest example project](https://github.com/garden-io/garden/tree/master/examples/conftest) for a simple usage
     example of the latter.
 
     If those don't match your needs, you can use this provider directly and manually configure your \`conftest\`
     modules. Simply add this provider to your project configuration, and see the
-    [conftest module documentation](../module-types/conftest.md) for a detailed reference. Also, check out the below
+    [conftest module documentation](${DOCS_BASE_URL}/module-types/conftest) for a detailed reference. Also, check out the below
     [reference](#reference) for how to configure default policies, default namespaces, and test failure thresholds for
     all \`conftest\` modules.
   `,
@@ -87,7 +88,7 @@ export const gardenPlugin = createGardenPlugin({
         Creates a test that runs \`conftest\` on the specified files, with the specified (or default) policy and
         namespace.
 
-        > Note: In many cases, you'll let specific conftest providers (e.g. [\`conftest-container\`](../providers/conftest-container.md) and [\`conftest-kubernetes\`](../providers/conftest-kubernetes.md) create this module type automatically, but you may in some cases want or need to manually specify files to test.
+        > Note: In many cases, you'll let specific conftest providers (e.g. [\`conftest-container\`](${DOCS_BASE_URL}/providers/conftest-container) and [\`conftest-kubernetes\`](${DOCS_BASE_URL}/providers/conftest-kubernetes) create this module type automatically, but you may in some cases want or need to manually specify files to test.
 
         See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
       `,

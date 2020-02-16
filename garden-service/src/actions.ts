@@ -719,7 +719,7 @@ export class ActionRouter implements TypeGuard {
     return result
   }
 
-  private async callModuleHandler<T extends keyof Omit<ModuleActionHandlers, "configure">>({
+  private async callModuleHandler<T extends keyof Omit<ModuleActionHandlers, "configure" | "suggestModules">>({
     params,
     actionType,
     defaultHandler,

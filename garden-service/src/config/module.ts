@@ -83,9 +83,10 @@ export interface AddModuleSpec {
   exclude?: string[]
   include?: string[]
   name: string
-  path: string
+  path?: string
   repositoryUrl?: string
   type: string
+  [key: string]: any
 }
 
 export interface BaseModuleSpec extends AddModuleSpec {
@@ -134,26 +135,17 @@ export const coreModuleSpecSchema = joi
 
 // These fields may be resolved later in the process, and allow for usage of template strings
 export const baseModuleSpecSchema = coreModuleSpecSchema.keys({
-  description: joi.string(),
+  description: joi.string().description("A description of the module."),
   disabled: joi
     .boolean()
     .default(false)
     .description(
       dedent`
-        Set this to \`true\` to disable the module. You can use this with conditional template strings to
-        disable modules based on, for example, the current environment or other variables (e.g.
-        \`disabled: \${environment.name == "prod"}\`). This can be handy when you only need certain modules for
-        specific environments, e.g. only for development.
+        Set this to \`true\` to disable the module. You can use this with conditional template strings to disable modules based on, for example, the current environment or other variables (e.g. \`disabled: \${environment.name == "prod"}\`). This can be handy when you only need certain modules for specific environments, e.g. only for development.
 
-        Disabling a module means that any services, tasks and tests contained in it will not be deployed or run.
-        It also means that the module is not built _unless_ it is declared as a build dependency by another enabled
-        module (in which case building this module is necessary for the dependant to be built).
+        Disabling a module means that any services, tasks and tests contained in it will not be deployed or run. It also means that the module is not built _unless_ it is declared as a build dependency by another enabled module (in which case building this module is necessary for the dependant to be built).
 
-        If you disable the module, and its services, tasks or tests are referenced as _runtime_ dependencies, Garden
-        will automatically ignore those dependency declarations. Note however that template strings referencing the
-        module's service or task outputs (i.e. runtime outputs) will fail to resolve when the module is disabled,
-        so you need to make sure to provide alternate values for those if you're using them, using conditional
-        expressions.
+        If you disable the module, and its services, tasks or tests are referenced as _runtime_ dependencies, Garden will automatically ignore those dependency declarations. Note however that template strings referencing the module's service or task outputs (i.e. runtime outputs) will fail to resolve when the module is disabled, so you need to make sure to provide alternate values for those if you're using them, using conditional expressions.
       `
     ),
   include: joi
@@ -165,13 +157,10 @@ export const baseModuleSpecSchema = coreModuleSpecSchema.keys({
         .subPathOnly()
     )
     .description(
-      dedent`Specify a list of POSIX-style paths or globs that should be regarded as the source files for this
-        module. Files that do *not* match these paths or globs are excluded when computing the version of the module,
-        when responding to filesystem watch events, and when staging builds.
+      dedent`
+        Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that do *not* match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
-        Note that you can also _exclude_ files using the \`exclude\` field or by placing \`.gardenignore\` files in your
-        source tree, which use the same format as \`.gitignore\` files. See the
-        [Configuration Files guide](${includeGuideLink}) for details.
+        Note that you can also _exclude_ files using the \`exclude\` field or by placing \`.gardenignore\` files in your source tree, which use the same format as \`.gitignore\` files. See the [Configuration Files guide](${includeGuideLink}) for details.
 
         Also note that specifying an empty list here means _no sources_ should be included.`
     )
@@ -185,25 +174,20 @@ export const baseModuleSpecSchema = coreModuleSpecSchema.keys({
         .subPathOnly()
     )
     .description(
-      dedent`Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that
-        match these paths or globs are excluded when computing the version of the module, when responding to filesystem
-        watch events, and when staging builds.
+      dedent`
+        Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
-        Note that you can also explicitly _include_ files using the \`include\` field. If you also specify the
-        \`include\` field, the files/patterns specified here are filtered from the files matched by \`include\`. See the
-        [Configuration Files guide](${includeGuideLink})for details.
+        Note that you can also explicitly _include_ files using the \`include\` field. If you also specify the \`include\` field, the files/patterns specified here are filtered from the files matched by \`include\`. See the [Configuration Files guide](${includeGuideLink})for details.
 
-        Unlike the \`modules.exclude\` field in the project config, the filters here have _no effect_ on which files
-        and directories are watched for changes. Use the project \`modules.exclude\` field to affect those, if you have
-        large directories that should not be watched for changes.
+        Unlike the \`modules.exclude\` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project \`modules.exclude\` field to affect those, if you have large directories that should not be watched for changes.
         `
     )
     .example(["tmp/**/*", "*.log"]),
   repositoryUrl: joiRepositoryUrl().description(
-    dedent`${(<any>joiRepositoryUrl().describe().flags).description}
+    dedent`
+      ${(<any>joiRepositoryUrl().describe().flags).description}
 
-        Garden will import the repository source code into this module, but read the module's
-        config from the local garden.yml file.`
+      Garden will import the repository source code into this module, but read the module's config from the local garden.yml file.`
   ),
   allowPublish: joi
     .boolean()

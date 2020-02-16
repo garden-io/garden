@@ -9,7 +9,7 @@
 import { expect } from "chai"
 import { flatten, find, first } from "lodash"
 import stripAnsi from "strip-ansi"
-import { getDataDir, makeTestGarden, TestGarden, expectError } from "../../../../helpers"
+import { TestGarden, expectError } from "../../../../helpers"
 import { ConfigGraph } from "../../../../../src/config-graph"
 import { Provider } from "../../../../../src/config/provider"
 import { DeployTask } from "../../../../../src/tasks/deploy"
@@ -31,6 +31,7 @@ import { buildHelmModule } from "../../../../../src/plugins/kubernetes/helm/buil
 import { HotReloadableResource } from "../../../../../src/plugins/kubernetes/hot-reload"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { BuildTask } from "../../../../../src/tasks/build"
+import { getContainerTestGarden } from "./container/container"
 
 describe("util", () => {
   let helmGarden: TestGarden
@@ -72,8 +73,7 @@ describe("util", () => {
   // TODO: Add more test cases
   describe("getWorkloadPods", () => {
     it("should return workload pods", async () => {
-      const root = getDataDir("test-projects", "container")
-      const garden = await makeTestGarden(root)
+      const garden = await getContainerTestGarden("local")
 
       try {
         const graph = await garden.getConfigGraph(garden.log)

@@ -11,7 +11,7 @@ import { getDataDir, makeTestGarden, expectError } from "../../../../../helpers"
 import { TestTask } from "../../../../../../src/tasks/test"
 import { emptyDir, pathExists } from "fs-extra"
 import { expect } from "chai"
-import { join } from "path"
+import { join, resolve } from "path"
 import { Garden } from "../../../../../../src/garden"
 import { ConfigGraph } from "../../../../../../src/config-graph"
 import { findByName } from "../../../../../../src/util/util"
@@ -24,6 +24,65 @@ import { prepareRuntimeContext } from "../../../../../../src/runtime-context"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { makePodName } from "../../../../../../src/plugins/kubernetes/util"
+import { decryptSecretFile } from "../../../../helpers"
+import { GARDEN_SERVICE_ROOT } from "../../../../../../src/constants"
+import { KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
+import { V1Secret } from "@kubernetes/client-node"
+import { clusterInit } from "../../../../../../src/plugins/kubernetes/commands/cluster-init"
+
+const root = getDataDir("test-projects", "container")
+let initialized = false
+let localInstance: Garden
+
+export async function getContainerTestGarden(environmentName: string) {
+  const garden = await makeTestGarden(root, { environmentName })
+
+  if (!localInstance) {
+    localInstance = await makeTestGarden(root, { environmentName: "local" })
+  }
+
+  if (!initialized && environmentName !== "local") {
+    // Load the test authentication for private registries
+    const localProvider = <KubernetesProvider>await localInstance.resolveProvider("local-kubernetes")
+    const api = await KubeApi.factory(garden.log, localProvider)
+
+    try {
+      const authSecret = JSON.parse(
+        (await decryptSecretFile(resolve(GARDEN_SERVICE_ROOT, "..", "secrets", "test-docker-auth.json"))).toString()
+      )
+      await api.upsert({ kind: "Secret", namespace: "default", obj: authSecret, log: garden.log })
+    } catch (err) {
+      // This is expected when running without access to gcloud (e.g. in minikube tests)
+      // tslint:disable-next-line: no-console
+      console.log("Warning: Unable to decrypt docker auth secret")
+      const authSecret: KubernetesResource<V1Secret> = {
+        apiVersion: "v1",
+        kind: "Secret",
+        type: "kubernetes.io/dockerconfigjson",
+        metadata: {
+          name: "test-docker-auth",
+          namespace: "default",
+        },
+        stringData: {
+          ".dockerconfigjson": JSON.stringify({ auths: {} }),
+        },
+      }
+      await api.upsert({ kind: "Secret", namespace: "default", obj: authSecret, log: garden.log })
+    }
+  }
+
+  const provider = <KubernetesProvider>await garden.resolveProvider("local-kubernetes")
+  const ctx = garden.getPluginContext(provider)
+
+  // We only need to run the cluster-init flow once, because the configurations are compatible
+  if (!initialized && environmentName !== "local") {
+    // Run cluster-init
+    await clusterInit.handler({ ctx, log: garden.log })
+    initialized = true
+  }
+
+  return garden
+}
 
 describe("kubernetes container module handlers", () => {
   let garden: Garden
@@ -32,7 +91,6 @@ describe("kubernetes container module handlers", () => {
   let namespace: string
 
   before(async () => {
-    const root = getDataDir("test-projects", "container")
     garden = await makeTestGarden(root)
     graph = await garden.getConfigGraph(garden.log)
     provider = <KubernetesProvider>await garden.resolveProvider("local-kubernetes")
@@ -429,10 +487,6 @@ describe("kubernetes container module handlers", () => {
         interactive: false,
         runtimeContext,
       })
-
-      // Logging to try to figure out why this test flakes sometimes
-      // tslint:disable-next-line: no-console
-      console.log(result)
 
       expect(result.success).to.be.true
       expect(result.log.trim()).to.eql("ok")

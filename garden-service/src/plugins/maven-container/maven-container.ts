@@ -21,7 +21,7 @@ import { Module } from "../../types/module"
 import { resolve } from "path"
 import { RuntimeError, ConfigurationError } from "../../exceptions"
 import { containerHelpers } from "../container/helpers"
-import { STATIC_DIR } from "../../constants"
+import { STATIC_DIR, DOCS_BASE_URL } from "../../constants"
 import { xml2json } from "xml-js"
 import { containerModuleSpecSchema } from "../container/config"
 import { providerConfigBaseSchema } from "../../config/provider"
@@ -101,11 +101,11 @@ export const gardenPlugin = createGardenPlugin({
   dependencies: ["container"],
 
   docs: dedent`
-    Adds the [maven-container module type](../module-types/maven-container.md), which is a specialized version of the
+    Adds the [maven-container module type](${DOCS_BASE_URL}/module-types/maven-container), which is a specialized version of the
     \`container\` module type that has special semantics for building JAR files using Maven.
 
     To use it, simply add the provider to your provider configuration, and refer to the
-    [maven-container module docs](../module-types/maven-container.md) for details on how to configure the modules.
+    [maven-container module docs](${DOCS_BASE_URL}/module-types/maven-container) for details on how to configure the modules.
   `,
 
   createModuleTypes: [

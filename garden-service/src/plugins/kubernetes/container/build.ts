@@ -14,7 +14,7 @@ import { buildContainerModule, getContainerBuildStatus, getDockerBuildFlags } fr
 import { GetBuildStatusParams, BuildStatus } from "../../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams, BuildResult } from "../../../types/plugin/module/build"
 import { millicpuToString, megabytesToString, getRunningPodInDeployment, makePodName } from "../util"
-import { RSYNC_PORT, dockerAuthSecretName, dockerAuthSecretKey } from "../constants"
+import { RSYNC_PORT, dockerAuthSecretName, dockerAuthSecretKey, inClusterRegistryHostname } from "../constants"
 import { posix, resolve } from "path"
 import { KubeApi } from "../api"
 import { kubectl } from "../kubectl"
@@ -246,10 +246,14 @@ const remoteBuild: BuildHandler = async (params) => {
       "--destination",
       deploymentImageId,
       "--cache=true",
-      "--insecure", // The in-cluster registry is not exposed, so we don't configure TLS on it.
-      // "--verbosity", "debug",
-      ...getDockerBuildFlags(module),
     ]
+
+    if (provider.config.deploymentRegistry?.hostname === inClusterRegistryHostname) {
+      // The in-cluster registry is not exposed, so we don't configure TLS on it.
+      args.push("--insecure")
+    }
+
+    args.push(...getDockerBuildFlags(module))
 
     // Execute the build
     const buildRes = await runKaniko({ provider, log, module, args, outputStream: stdout })

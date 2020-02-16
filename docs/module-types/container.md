@@ -10,7 +10,7 @@ You may also optionally specify services to deploy, tasks or tests to run inside
 Note that the runtime services have somewhat limited features in this module type. For example, you cannot
 specify replicas for redundancy, and various platform-specific options are not included. For those, look at
 other module types like [helm](https://docs.garden.io/module-types/helm) or
-[kubernetes](https://github.com/garden-io/garden/blob/master/docs/module-types/kubernetes.md).
+[kubernetes](https://docs.garden.io/module-types/kubernetes).
 
 ## Reference
 
@@ -37,31 +37,29 @@ type:
 # The name of this module.
 name:
 
+# A description of the module.
 description:
 
-# Set this to `true` to disable the module. You can use this with conditional template strings to
-# disable modules based on, for example, the current environment or other variables (e.g.
-# `disabled: \${environment.name == "prod"}`). This can be handy when you only need certain modules for
-# specific environments, e.g. only for development.
+# Set this to `true` to disable the module. You can use this with conditional template strings to disable modules
+# based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name == "prod"}`).
+# This can be handy when you only need certain modules for specific environments, e.g. only for development.
 #
-# Disabling a module means that any services, tasks and tests contained in it will not be deployed or run.
-# It also means that the module is not built _unless_ it is declared as a build dependency by another enabled
-# module (in which case building this module is necessary for the dependant to be built).
+# Disabling a module means that any services, tasks and tests contained in it will not be deployed or run. It also
+# means that the module is not built _unless_ it is declared as a build dependency by another enabled module (in which
+# case building this module is necessary for the dependant to be built).
 #
-# If you disable the module, and its services, tasks or tests are referenced as _runtime_ dependencies, Garden
-# will automatically ignore those dependency declarations. Note however that template strings referencing the
-# module's service or task outputs (i.e. runtime outputs) will fail to resolve when the module is disabled,
-# so you need to make sure to provide alternate values for those if you're using them, using conditional
-# expressions.
+# If you disable the module, and its services, tasks or tests are referenced as _runtime_ dependencies, Garden will
+# automatically ignore those dependency declarations. Note however that template strings referencing the module's
+# service or task outputs (i.e. runtime outputs) will fail to resolve when the module is disabled, so you need to make
+# sure to provide alternate values for those if you're using them, using conditional expressions.
 disabled: false
 
-# Specify a list of POSIX-style paths or globs that should be regarded as the source files for this
-# module. Files that do *not* match these paths or globs are excluded when computing the version of the module,
-# when responding to filesystem watch events, and when staging builds.
+# Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that
+# do *not* match these paths or globs are excluded when computing the version of the module, when responding to
+# filesystem watch events, and when staging builds.
 #
-# Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
-# source tree, which use the same format as `.gitignore` files. See the
-# [Configuration Files
+# Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source
+# tree, which use the same format as `.gitignore` files. See the [Configuration Files
 # guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
 #
 # Also note that specifying an empty list here means _no sources_ should be included.
@@ -74,25 +72,25 @@ disabled: false
 # specifies a remote image, Garden automatically sets `include` to `[]`.
 include:
 
-# Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that
-# match these paths or globs are excluded when computing the version of the module, when responding to filesystem
-# watch events, and when staging builds.
+# Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that match these
+# paths or globs are excluded when computing the version of the module, when responding to filesystem watch events,
+# and when staging builds.
 #
-# Note that you can also explicitly _include_ files using the `include` field. If you also specify the
-# `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the
-# [Configuration Files
-# guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)for details.
+# Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include`
+# field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration
+# Files guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)for
+# details.
 #
-# Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files
-# and directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have
-# large directories that should not be watched for changes.
+# Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and
+# directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large
+# directories that should not be watched for changes.
 exclude:
 
 # A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific
 # branch or tag, with the format: <git remote url>#<branch|tag>
 #
-# Garden will import the repository source code into this module, but read the module's
-# config from the local garden.yml file.
+# Garden will import the repository source code into this module, but read the module's config from the local
+# garden.yml file.
 repositoryUrl:
 
 # When false, disables pushing this module to remote registries.
@@ -102,12 +100,14 @@ allowPublish: true
 build:
   # A list of modules that must be built before this module is built.
   dependencies:
-    # Module name to build ahead of this module.
-    - name:
+    - # Module name to build ahead of this module.
+      name:
+
       # Specify one or more files or directories to copy from the built dependency to this module.
       copy:
-        # POSIX-style path or filename of the directory or file(s) to copy to the target.
-        - source:
+        - # POSIX-style path or filename of the directory or file(s) to copy to the target.
+          source:
+
           # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
           # Defaults to to same as source path.
           target: ''
@@ -137,9 +137,10 @@ image:
 hotReload:
   # Specify one or more source files or directories to automatically sync into the running container.
   sync:
-    # POSIX-style path of the directory to sync to the target, relative to the module's top-level directory. Must be
-    # a relative path if provided. Defaults to the module's top-level directory if no value is provided.
-    - source: .
+    - # POSIX-style path of the directory to sync to the target, relative to the module's top-level directory. Must be
+      # a relative path if provided. Defaults to the module's top-level directory if no value is provided.
+      source: .
+
       # POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is not
       # allowed.
       target:
@@ -150,60 +151,73 @@ hotReload:
 # POSIX-style name of Dockerfile, relative to module root.
 dockerfile:
 
-# The list of services to deploy from this container module.
+# A list of services to deploy from this container module.
 services:
-  # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
-  # and cannot end with a dash), cannot contain consecutive dashes or start with `garden`, or be longer than 63
-  # characters.
-  - name:
+  - # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
+    # and cannot end with a dash), cannot contain consecutive dashes or start with `garden`, or be longer than 63
+    # characters.
+    name:
+
     # The names of any services that this service depends on at runtime, and the names of any tasks that should be
     # executed before this service is deployed.
     dependencies: []
-    # Set this to `true` to disable the service. You can use this with conditional template strings to
-    # enable/disable services based on, for example, the current environment or other variables (e.g.
-    # `enabled: \${environment.name != "prod"}`). This can be handy when you only need certain services for
-    # specific environments, e.g. only for development.
+
+    # Set this to `true` to disable the service. You can use this with conditional template strings to enable/disable
+    # services based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name
+    # != "prod"}`). This can be handy when you only need certain services for specific environments, e.g. only for
+    # development.
     #
-    # Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a
-    # runtime dependency for another service, test or task.
+    # Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a runtime
+    # dependency for another service, test or task.
     #
-    # Note however that template strings referencing the service's outputs (i.e. runtime outputs) will fail to
-    # resolve when the service is disabled, so you need to make sure to provide alternate values for those if
-    # you're using them, using conditional expressions.
+    # Note however that template strings referencing the service's outputs (i.e. runtime outputs) will fail to resolve
+    # when the service is disabled, so you need to make sure to provide alternate values for those if you're using
+    # them, using conditional expressions.
     disabled: false
+
     # Annotations to attach to the service (Note: May not be applicable to all providers).
     annotations: {}
+
     # The command/entrypoint to run the container with when starting the service.
     command:
+
     # The arguments to run the container with when starting the service.
     args:
+
     # Whether to run the service as a daemon (to ensure exactly one instance runs per node). May not be supported by
     # all providers.
     daemon: false
+
     # List of ingress endpoints that the service exposes.
     ingresses:
-      # Annotations to attach to the ingress (Note: May not be applicable to all providers)
-      - annotations: {}
-        # The hostname that should route to this service. Defaults to the default hostname
-        # configured in the provider configuration.
+      - # Annotations to attach to the ingress (Note: May not be applicable to all providers)
+        annotations: {}
+
+        # The hostname that should route to this service. Defaults to the default hostname configured in the provider
+        # configuration.
         #
         # Note that if you're developing locally you may need to add this hostname to your hosts file.
         hostname:
-        # The link URL for the ingress to show in the console and on the dashboard.
-        # Also used when calling the service with the `call` command.
+
+        # The link URL for the ingress to show in the console and on the dashboard. Also used when calling the service
+        # with the `call` command.
         #
-        # Use this if the actual URL is different from what's specified in the ingress,
-        # e.g. because there's a load balancer in front of the service that rewrites the paths.
+        # Use this if the actual URL is different from what's specified in the ingress, e.g. because there's a load
+        # balancer in front of the service that rewrites the paths.
         #
         # Otherwise Garden will construct the link URL from the ingress spec.
         linkUrl:
+
         # The path which should be routed to the service.
         path: /
+
         # The name of the container port where the specified paths should be routed.
         port:
+
     # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
     # `GARDEN`) and values must be primitives or references to secrets.
     env: {}
+
     # Specify how the service's health should be checked after deploying.
     healthCheck:
       # Set this to check the service's health by making an HTTP request.
@@ -221,12 +235,15 @@ services:
 
       # Set this to check the service's health by checking if this TCP port is accepting connections.
       tcpPort:
+
     # If this module uses the `hotReload` field, the container will be run with this command/entrypoint when the
     # service is deployed with hot reloading enabled.
     hotReloadCommand:
+
     # If this module uses the `hotReload` field, the container will be run with these arguments when the service is
     # deployed with hot reloading enabled.
     hotReloadArgs:
+
     # Specify resource limits for the service.
     limits:
       # The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)
@@ -234,12 +251,15 @@ services:
 
       # The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)
       memory: 1024
+
     # List of ports that the service container exposes.
     ports:
-      # The name of the port (used when referencing the port elsewhere in the service configuration).
-      - name:
+      - # The name of the port (used when referencing the port elsewhere in the service configuration).
+        name:
+
         # The protocol of the port.
         protocol: TCP
+
         # The port exposed on the container by the running process. This will also be the default value for
         # `servicePort`.
         # This is the port you would expose in your Dockerfile and that your process listens on. This is commonly a
@@ -247,6 +267,7 @@ services:
         # The service port maps to the container port:
         # `servicePort:80 -> containerPort:8080 -> process:8080`
         containerPort:
+
         # The port exposed on the service. Defaults to `containerPort` if not specified.
         # This is the port you use when calling a service from another service within the cluster. For example, if
         # your service name is my-service and the service port is 8090, you would call it with:
@@ -256,24 +277,28 @@ services:
         # The service port maps to the container port:
         # `servicePort:80 -> containerPort:8080 -> process:8080`
         servicePort:
-        hostPort:
+
         # Set this to expose the service on the specified port on the host node (may not be supported by all
         # providers). Set to `true` to have the cluster pick a port automatically, which is most often advisable if
         # the cluster is shared by multiple users.
         # This allows you to call the service from the outside by the node's IP address and the port number set in
         # this field.
         nodePort:
+
     # The number of instances of the service to deploy. Defaults to 3 for environments configured with `production:
     # true`, otherwise 1.
     # Note: This setting may be overridden or ignored in some cases. For example, when running with `daemon: true`,
     # with hot-reloading enabled, or if the provider doesn't support multiple replicas.
     replicas:
+
     # List of volumes that should be mounted when deploying the container.
     volumes:
-      # The name of the allocated volume.
-      - name:
+      - # The name of the allocated volume.
+        name:
+
         # The path where the volume should be mounted in the container.
         containerPath:
+
         # _NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms
         # and providers. Some providers may not support it at all._
         #
@@ -283,30 +308,38 @@ services:
 
 # A list of tests to run in the module.
 tests:
-  # The name of the test.
-  - name:
+  - # The name of the test.
+    name:
+
     # The names of any services that must be running, and the names of any tasks that must be executed, before the
     # test is run.
     dependencies: []
+
     # Set this to `true` to disable the test. You can use this with conditional template strings to
     # enable/disable tests based on, for example, the current environment or other variables (e.g.
     # `enabled: \${environment.name != "prod"}`). This is handy when you only want certain tests to run in
     # specific environments, e.g. only during CI.
     disabled: false
+
     # Maximum duration (in seconds) of the test run.
     timeout: null
+
     # The arguments used to run the test inside the container.
     args:
+
     # Specify artifacts to copy out of the container after the run.
     # Note: Depending on the provider, this may require the container image to include `sh` `tar`, in order to enable
     # the file transfer.
     artifacts:
-      # A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
-      - source:
+      - # A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
+        source:
+
         # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
         target: .
+
     # The command/entrypoint used to run the test inside the container.
     command:
+
     # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
     # `GARDEN`) and values must be primitives or references to secrets.
     env: {}
@@ -314,13 +347,16 @@ tests:
 # A list of tasks that can be run from this container module. These can be used as dependencies for services (executed
 # before the service is deployed) or for other tasks.
 tasks:
-  # The name of the task.
-  - name:
+  - # The name of the task.
+    name:
+
     # A description of the task.
     description:
+
     # The names of any tasks that must be executed, and the names of any services that must be running, before this
     # task is executed.
     dependencies: []
+
     # Set this to `true` to disable the task. You can use this with conditional template strings to
     # enable/disable tasks based on, for example, the current environment or other variables (e.g.
     # `enabled: \${environment.name != "prod"}`). This can be handy when you only want certain tasks to run in
@@ -333,20 +369,26 @@ tasks:
     # resolve when the task is disabled, so you need to make sure to provide alternate values for those if
     # you're using them, using conditional expressions.
     disabled: false
+
     # Maximum duration (in seconds) of the task's execution.
     timeout: null
+
     # The arguments used to run the task inside the container.
     args:
+
     # Specify artifacts to copy out of the container after the run.
     # Note: Depending on the provider, this may require the container image to include `sh` `tar`, in order to enable
     # the file transfer.
     artifacts:
-      # A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
-      - source:
+      - # A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
+        source:
+
         # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
         target: .
+
     # The command/entrypoint used to run the task inside the container.
     command:
+
     # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
     # `GARDEN`) and values must be primitives or references to secrets.
     env: {}
@@ -398,40 +440,29 @@ name: "my-sweet-module"
 
 #### `description`
 
+A description of the module.
+
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
 
 #### `disabled`
 
-Set this to `true` to disable the module. You can use this with conditional template strings to
-disable modules based on, for example, the current environment or other variables (e.g.
-`disabled: \${environment.name == "prod"}`). This can be handy when you only need certain modules for
-specific environments, e.g. only for development.
+Set this to `true` to disable the module. You can use this with conditional template strings to disable modules based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name == "prod"}`). This can be handy when you only need certain modules for specific environments, e.g. only for development.
 
-Disabling a module means that any services, tasks and tests contained in it will not be deployed or run.
-It also means that the module is not built _unless_ it is declared as a build dependency by another enabled
-module (in which case building this module is necessary for the dependant to be built).
+Disabling a module means that any services, tasks and tests contained in it will not be deployed or run. It also means that the module is not built _unless_ it is declared as a build dependency by another enabled module (in which case building this module is necessary for the dependant to be built).
 
-If you disable the module, and its services, tasks or tests are referenced as _runtime_ dependencies, Garden
-will automatically ignore those dependency declarations. Note however that template strings referencing the
-module's service or task outputs (i.e. runtime outputs) will fail to resolve when the module is disabled,
-so you need to make sure to provide alternate values for those if you're using them, using conditional
-expressions.
+If you disable the module, and its services, tasks or tests are referenced as _runtime_ dependencies, Garden will automatically ignore those dependency declarations. Note however that template strings referencing the module's service or task outputs (i.e. runtime outputs) will fail to resolve when the module is disabled, so you need to make sure to provide alternate values for those if you're using them, using conditional expressions.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
 
-#### `include`
+#### `include[]`
 
-Specify a list of POSIX-style paths or globs that should be regarded as the source files for this
-module. Files that do *not* match these paths or globs are excluded when computing the version of the module,
-when responding to filesystem watch events, and when staging builds.
+Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that do *not* match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
-Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
-source tree, which use the same format as `.gitignore` files. See the
-[Configuration Files guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
+Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
 
 Also note that specifying an empty list here means _no sources_ should be included.
 
@@ -454,19 +485,13 @@ include:
   - my-app.js
 ```
 
-#### `exclude`
+#### `exclude[]`
 
-Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that
-match these paths or globs are excluded when computing the version of the module, when responding to filesystem
-watch events, and when staging builds.
+Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
-Note that you can also explicitly _include_ files using the `include` field. If you also specify the
-`include` field, the files/patterns specified here are filtered from the files matched by `include`. See the
-[Configuration Files guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)for details.
+Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)for details.
 
-Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files
-and directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have
-large directories that should not be watched for changes.
+Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large directories that should not be watched for changes.
 
 | Type               | Required |
 | ------------------ | -------- |
@@ -484,8 +509,7 @@ exclude:
 
 A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
 
-Garden will import the repository source code into this module, but read the module's
-config from the local garden.yml file.
+Garden will import the repository source code into this module, but read the module's config from the local garden.yml file.
 
 | Type              | Required |
 | ----------------- | -------- |
@@ -601,7 +625,7 @@ Specify build arguments to use when building the container image.
 | -------- | ------- | -------- |
 | `object` | `{}`    | No       |
 
-#### `extraFlags`
+#### `extraFlags[]`
 
 Specify extra flags to use when building the container image. Note that arguments may not be portable across implementations.
 
@@ -700,9 +724,9 @@ POSIX-style name of Dockerfile, relative to module root.
 | ----------- | -------- |
 | `posixPath` | No       |
 
-#### `services`
+#### `services[]`
 
-The list of services to deploy from this container module.
+A list of services to deploy from this container module.
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -732,17 +756,11 @@ The names of any services that this service depends on at runtime, and the names
 
 [services](#services) > disabled
 
-Set this to `true` to disable the service. You can use this with conditional template strings to
-enable/disable services based on, for example, the current environment or other variables (e.g.
-`enabled: \${environment.name != "prod"}`). This can be handy when you only need certain services for
-specific environments, e.g. only for development.
+Set this to `true` to disable the service. You can use this with conditional template strings to enable/disable services based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name != "prod"}`). This can be handy when you only need certain services for specific environments, e.g. only for development.
 
-Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a
-runtime dependency for another service, test or task.
+Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a runtime dependency for another service, test or task.
 
-Note however that template strings referencing the service's outputs (i.e. runtime outputs) will fail to
-resolve when the service is disabled, so you need to make sure to provide alternate values for those if
-you're using them, using conditional expressions.
+Note however that template strings referencing the service's outputs (i.e. runtime outputs) will fail to resolve when the service is disabled, so you need to make sure to provide alternate values for those if you're using them, using conditional expressions.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -763,7 +781,7 @@ Example:
 ```yaml
 services:
   - annotations:
-      nginx.ingress.kubernetes.io/proxy-body-size: '0'
+        nginx.ingress.kubernetes.io/proxy-body-size: '0'
 ```
 
 #### `services[].command[]`
@@ -781,8 +799,8 @@ Example:
 ```yaml
 services:
   - command:
-    - /bin/sh
-    - '-c'
+      - /bin/sh
+      - '-c'
 ```
 
 #### `services[].args[]`
@@ -800,8 +818,8 @@ Example:
 ```yaml
 services:
   - args:
-    - npm
-    - start
+      - npm
+      - start
 ```
 
 #### `services[].daemon`
@@ -829,8 +847,8 @@ Example:
 ```yaml
 services:
   - ingresses:
-    - path: /api
-      port: http
+      - path: /api
+        port: http
 ```
 
 #### `services[].ingresses[].annotations`
@@ -848,18 +866,17 @@ Example:
 ```yaml
 services:
   - ingresses:
-    - path: /api
-      port: http
+      - path: /api
+        port: http
       - annotations:
-          nginx.ingress.kubernetes.io/proxy-body-size: '0'
+            nginx.ingress.kubernetes.io/proxy-body-size: '0'
 ```
 
 #### `services[].ingresses[].hostname`
 
 [services](#services) > [ingresses](#servicesingresses) > hostname
 
-The hostname that should route to this service. Defaults to the default hostname
-configured in the provider configuration.
+The hostname that should route to this service. Defaults to the default hostname configured in the provider configuration.
 
 Note that if you're developing locally you may need to add this hostname to your hosts file.
 
@@ -871,11 +888,9 @@ Note that if you're developing locally you may need to add this hostname to your
 
 [services](#services) > [ingresses](#servicesingresses) > linkUrl
 
-The link URL for the ingress to show in the console and on the dashboard.
-Also used when calling the service with the `call` command.
+The link URL for the ingress to show in the console and on the dashboard. Also used when calling the service with the `call` command.
 
-Use this if the actual URL is different from what's specified in the ingress,
-e.g. because there's a load balancer in front of the service that rewrites the paths.
+Use this if the actual URL is different from what's specified in the ingress, e.g. because there's a load balancer in front of the service that rewrites the paths.
 
 Otherwise Garden will construct the link URL from the ingress spec.
 
@@ -918,12 +933,12 @@ Example:
 ```yaml
 services:
   - env:
-      - MY_VAR: some-value
-        MY_SECRET_VAR:
-          secretRef:
-            name: my-secret
-            key: some-key
-      - {}
+        - MY_VAR: some-value
+          MY_SECRET_VAR:
+            secretRef:
+              name: my-secret
+              key: some-key
+        - {}
 ```
 
 #### `services[].healthCheck`
@@ -1009,8 +1024,8 @@ Example:
 ```yaml
 services:
   - hotReloadCommand:
-    - /bin/sh
-    - '-c'
+      - /bin/sh
+      - '-c'
 ```
 
 #### `services[].hotReloadArgs[]`
@@ -1028,9 +1043,9 @@ Example:
 ```yaml
 services:
   - hotReloadArgs:
-    - npm
-    - run
-    - dev
+      - npm
+      - run
+      - dev
 ```
 
 #### `services[].limits`
@@ -1218,7 +1233,7 @@ services:
       - hostPath: "/some/dir"
 ```
 
-#### `tests`
+#### `tests[]`
 
 A list of tests to run in the module.
 
@@ -1284,8 +1299,8 @@ Example:
 ```yaml
 tests:
   - args:
-    - npm
-    - test
+      - npm
+      - test
 ```
 
 #### `tests[].artifacts[]`
@@ -1304,7 +1319,7 @@ Example:
 ```yaml
 tests:
   - artifacts:
-    - source: /report/**/*
+      - source: /report/**/*
 ```
 
 #### `tests[].artifacts[].source`
@@ -1322,7 +1337,7 @@ Example:
 ```yaml
 tests:
   - artifacts:
-    - source: /report/**/*
+      - source: /report/**/*
       - source: "/output/**/*"
 ```
 
@@ -1341,7 +1356,7 @@ Example:
 ```yaml
 tests:
   - artifacts:
-    - source: /report/**/*
+      - source: /report/**/*
       - target: "outputs/foo/"
 ```
 
@@ -1360,8 +1375,8 @@ Example:
 ```yaml
 tests:
   - command:
-    - /bin/sh
-    - '-c'
+      - /bin/sh
+      - '-c'
 ```
 
 #### `tests[].env`
@@ -1379,15 +1394,15 @@ Example:
 ```yaml
 tests:
   - env:
-      - MY_VAR: some-value
-        MY_SECRET_VAR:
-          secretRef:
-            name: my-secret
-            key: some-key
-      - {}
+        - MY_VAR: some-value
+          MY_SECRET_VAR:
+            secretRef:
+              name: my-secret
+              key: some-key
+        - {}
 ```
 
-#### `tasks`
+#### `tasks[]`
 
 A list of tasks that can be run from this container module. These can be used as dependencies for services (executed before the service is deployed) or for other tasks.
 
@@ -1470,8 +1485,8 @@ Example:
 ```yaml
 tasks:
   - args:
-    - rake
-    - 'db:migrate'
+      - rake
+      - 'db:migrate'
 ```
 
 #### `tasks[].artifacts[]`
@@ -1490,7 +1505,7 @@ Example:
 ```yaml
 tasks:
   - artifacts:
-    - source: /report/**/*
+      - source: /report/**/*
 ```
 
 #### `tasks[].artifacts[].source`
@@ -1508,7 +1523,7 @@ Example:
 ```yaml
 tasks:
   - artifacts:
-    - source: /report/**/*
+      - source: /report/**/*
       - source: "/output/**/*"
 ```
 
@@ -1527,7 +1542,7 @@ Example:
 ```yaml
 tasks:
   - artifacts:
-    - source: /report/**/*
+      - source: /report/**/*
       - target: "outputs/foo/"
 ```
 
@@ -1546,8 +1561,8 @@ Example:
 ```yaml
 tasks:
   - command:
-    - /bin/sh
-    - '-c'
+      - /bin/sh
+      - '-c'
 ```
 
 #### `tasks[].env`
@@ -1565,12 +1580,12 @@ Example:
 ```yaml
 tasks:
   - env:
-      - MY_VAR: some-value
-        MY_SECRET_VAR:
-          secretRef:
-            name: my-secret
-            key: some-key
-      - {}
+        - MY_VAR: some-value
+          MY_SECRET_VAR:
+            secretRef:
+              name: my-secret
+              key: some-key
+        - {}
 ```
 
 

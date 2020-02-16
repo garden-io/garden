@@ -12,6 +12,7 @@ import { createGardenPlugin } from "../../types/plugin/plugin"
 import { containerHelpers } from "../container/helpers"
 import { ConftestProvider } from "./conftest"
 import { dedent } from "../../util/string"
+import { DOCS_BASE_URL } from "../../constants"
 
 /**
  * Auto-generates a conftest module for each container module in your project
@@ -21,7 +22,7 @@ export const gardenPlugin = createGardenPlugin({
   base: "conftest",
   dependencies: ["container"],
   docs: dedent`
-    This provider automatically generates [conftest modules](../module-types/conftest.md) for \`container\` modules
+    This provider automatically generates [conftest modules](${DOCS_BASE_URL}/module-types/conftest) for \`container\` modules
     in your project. A \`conftest\` module is created for each \`container\` module that includes a Dockerfile that
     can be validated.
 

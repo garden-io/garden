@@ -5,7 +5,7 @@ title: Creating a Project
 
 # Creating a Project
 
-The first step to using Garden is to create a project. You do this by adding a `garden.yml` file in the root directory of your project.
+The first step to using Garden is to create a project. You can use the `garden create project` helper command, or manually create a `garden.yml` file in the root directory of your project:
 
 ```yaml
 # garden.yml - located in the top-level directory of your project
@@ -17,6 +17,8 @@ providers:
   - name: local-kubernetes
     environments: ["local"]
 ```
+
+The helper command has the benefit of including all the possible fields you can configure, and their documentation, so you can quickly scan through the available options and uncomment as needed.
 
 ## How it Works
 
