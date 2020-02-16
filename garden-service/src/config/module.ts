@@ -232,7 +232,17 @@ export const moduleConfigSchema = baseModuleSpecSchema
   .description("The configuration for a module.")
   .unknown(false)
 
-export const baseModuleSchemaKeys = Object.keys(moduleConfigSchema.describe().keys).concat(["kind"])
+export const baseModuleSchemaKeys = Object.keys(baseModuleSpecSchema.describe().keys).concat([
+  "kind",
+  "name",
+  "type",
+  "path",
+  "configPath",
+  "serviceConfigs",
+  "taskConfigs",
+  "testConfigs",
+  "_ConfigType",
+])
 
 export function serializeConfig(moduleConfig: Partial<ModuleConfig>) {
   return stableStringify(moduleConfig)

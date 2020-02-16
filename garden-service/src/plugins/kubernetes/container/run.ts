@@ -75,6 +75,7 @@ export async function runContainerTask(params: RunTaskParams<ContainerModule>): 
     podName: makePodName("task", module.name, task.name),
     description: `Task '${task.name}' in container module '${module.name}'`,
     timeout: task.spec.timeout || undefined,
+    volumes: task.spec.volumes,
   })
 
   const result: RunTaskResult = {

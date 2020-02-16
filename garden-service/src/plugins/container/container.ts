@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import dedent = require("dedent")
 import chalk from "chalk"
 import { keyBy } from "lodash"
 
@@ -23,6 +22,7 @@ import { publishContainerModule } from "./publish"
 import { DOCS_BASE_URL } from "../../constants"
 import { SuggestModulesParams, SuggestModulesResult } from "../../types/plugin/module/suggestModules"
 import { listDirectory } from "../../util/fs"
+import { dedent } from "../../util/string"
 
 export const containerModuleOutputsSchema = joi.object().keys({
   "local-image-name": joi
@@ -121,6 +121,13 @@ export async function configureContainerModule({ ctx, log, moduleConfig }: Confi
       }
     }
 
+    for (const volume of spec.volumes) {
+      if (volume.module) {
+        moduleConfig.build.dependencies.push({ name: volume.module, copy: [] })
+        spec.dependencies.push(volume.module)
+      }
+    }
+
     return {
       name,
       dependencies: spec.dependencies,
@@ -130,22 +137,40 @@ export async function configureContainerModule({ ctx, log, moduleConfig }: Confi
     }
   })
 
-  moduleConfig.testConfigs = moduleConfig.spec.tests.map((t) => ({
-    name: t.name,
-    dependencies: t.dependencies,
-    disabled: t.disabled,
-    spec: t,
-    timeout: t.timeout,
-  }))
+  moduleConfig.testConfigs = moduleConfig.spec.tests.map((t) => {
+    for (const volume of t.volumes) {
+      if (volume.module) {
+        moduleConfig.build.dependencies.push({ name: volume.module, copy: [] })
+        t.dependencies.push(volume.module)
+      }
+    }
 
-  moduleConfig.taskConfigs = moduleConfig.spec.tasks.map((t) => ({
-    name: t.name,
-    cacheResult: t.cacheResult,
-    dependencies: t.dependencies,
-    disabled: t.disabled,
-    spec: t,
-    timeout: t.timeout,
-  }))
+    return {
+      name: t.name,
+      dependencies: t.dependencies,
+      disabled: t.disabled,
+      spec: t,
+      timeout: t.timeout,
+    }
+  })
+
+  moduleConfig.taskConfigs = moduleConfig.spec.tasks.map((t) => {
+    for (const volume of t.volumes) {
+      if (volume.module) {
+        moduleConfig.build.dependencies.push({ name: volume.module, copy: [] })
+        t.dependencies.push(volume.module)
+      }
+    }
+
+    return {
+      name: t.name,
+      cacheResult: t.cacheResult,
+      dependencies: t.dependencies,
+      disabled: t.disabled,
+      spec: t,
+      timeout: t.timeout,
+    }
+  })
 
   const provider = <KubernetesProvider>ctx.provider
   const deploymentImageName = await containerHelpers.getDeploymentImageName(

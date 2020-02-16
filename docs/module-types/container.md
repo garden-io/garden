@@ -292,7 +292,10 @@ services:
     # with hot-reloading enabled, or if the provider doesn't support multiple replicas.
     replicas:
 
-    # List of volumes that should be mounted when deploying the container.
+    # List of volumes that should be mounted when deploying the service.
+    #
+    # Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when
+    # deploying the container.
     volumes:
       - # The name of the allocated volume.
         name:
@@ -306,6 +309,18 @@ services:
         # A local path or path on the node that's running the container, to mount in the container, relative to the
         # module source path (or absolute).
         hostPath:
+
+        # The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will
+        # depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim
+        # module](https://docs.garden.io/module-types/persistentvolumeclaim), for example.
+        #
+        # When a `module` is specified, the referenced module/volume will be automatically configured as a runtime
+        # dependency of this service, as well as a build dependency of this module.
+        #
+        # Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports
+        # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
+        # services at the same time. Refer to the documentation of the module type in question to learn more.
+        module:
 
 # A list of tests to run in the module.
 tests:
@@ -344,6 +359,36 @@ tests:
     # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
     # `GARDEN`) and values must be primitives or references to secrets.
     env: {}
+
+    # List of volumes that should be mounted when deploying the test.
+    #
+    # Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when
+    # deploying the container.
+    volumes:
+      - # The name of the allocated volume.
+        name:
+
+        # The path where the volume should be mounted in the container.
+        containerPath:
+
+        # _NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms
+        # and providers. Some providers may not support it at all._
+        #
+        # A local path or path on the node that's running the container, to mount in the container, relative to the
+        # module source path (or absolute).
+        hostPath:
+
+        # The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will
+        # depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim
+        # module](https://docs.garden.io/module-types/persistentvolumeclaim), for example.
+        #
+        # When a `module` is specified, the referenced module/volume will be automatically configured as a runtime
+        # dependency of this service, as well as a build dependency of this module.
+        #
+        # Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports
+        # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
+        # services at the same time. Refer to the documentation of the module type in question to learn more.
+        module:
 
 # A list of tasks that can be run from this container module. These can be used as dependencies for services (executed
 # before the service is deployed) or for other tasks.
@@ -398,6 +443,36 @@ tasks:
     # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
     # `GARDEN`) and values must be primitives or references to secrets.
     env: {}
+
+    # List of volumes that should be mounted when deploying the task.
+    #
+    # Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when
+    # deploying the container.
+    volumes:
+      - # The name of the allocated volume.
+        name:
+
+        # The path where the volume should be mounted in the container.
+        containerPath:
+
+        # _NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms
+        # and providers. Some providers may not support it at all._
+        #
+        # A local path or path on the node that's running the container, to mount in the container, relative to the
+        # module source path (or absolute).
+        hostPath:
+
+        # The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will
+        # depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim
+        # module](https://docs.garden.io/module-types/persistentvolumeclaim), for example.
+        #
+        # When a `module` is specified, the referenced module/volume will be automatically configured as a runtime
+        # dependency of this service, as well as a build dependency of this module.
+        #
+        # Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports
+        # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
+        # services at the same time. Refer to the documentation of the module type in question to learn more.
+        module:
 ```
 
 ## Configuration Keys
@@ -1191,7 +1266,9 @@ Note: This setting may be overridden or ignored in some cases. For example, when
 
 [services](#services) > volumes
 
-List of volumes that should be mounted when deploying the container.
+List of volumes that should be mounted when deploying the service.
+
+Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when deploying the container.
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -1238,6 +1315,20 @@ services:
   - volumes:
       - hostPath: "/some/dir"
 ```
+
+### `services[].volumes[].module`
+
+[services](#services) > [volumes](#servicesvolumes) > module
+
+The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](https://docs.garden.io/module-types/persistentvolumeclaim), for example.
+
+When a `module` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
+
+Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `tests[]`
 
@@ -1407,6 +1498,74 @@ tests:
               key: some-key
         - {}
 ```
+
+### `tests[].volumes[]`
+
+[tests](#tests) > volumes
+
+List of volumes that should be mounted when deploying the test.
+
+Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when deploying the container.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+### `tests[].volumes[].name`
+
+[tests](#tests) > [volumes](#testsvolumes) > name
+
+The name of the allocated volume.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `tests[].volumes[].containerPath`
+
+[tests](#tests) > [volumes](#testsvolumes) > containerPath
+
+The path where the volume should be mounted in the container.
+
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
+
+### `tests[].volumes[].hostPath`
+
+[tests](#tests) > [volumes](#testsvolumes) > hostPath
+
+_NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms
+and providers. Some providers may not support it at all._
+
+A local path or path on the node that's running the container, to mount in the container, relative to the
+module source path (or absolute).
+
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | No       |
+
+Example:
+
+```yaml
+tests:
+  - volumes:
+      - hostPath: "/some/dir"
+```
+
+### `tests[].volumes[].module`
+
+[tests](#tests) > [volumes](#testsvolumes) > module
+
+The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](https://docs.garden.io/module-types/persistentvolumeclaim), for example.
+
+When a `module` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
+
+Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `tasks[]`
 
@@ -1597,6 +1756,74 @@ tasks:
               key: some-key
         - {}
 ```
+
+### `tasks[].volumes[]`
+
+[tasks](#tasks) > volumes
+
+List of volumes that should be mounted when deploying the task.
+
+Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when deploying the container.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+### `tasks[].volumes[].name`
+
+[tasks](#tasks) > [volumes](#tasksvolumes) > name
+
+The name of the allocated volume.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `tasks[].volumes[].containerPath`
+
+[tasks](#tasks) > [volumes](#tasksvolumes) > containerPath
+
+The path where the volume should be mounted in the container.
+
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
+
+### `tasks[].volumes[].hostPath`
+
+[tasks](#tasks) > [volumes](#tasksvolumes) > hostPath
+
+_NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms
+and providers. Some providers may not support it at all._
+
+A local path or path on the node that's running the container, to mount in the container, relative to the
+module source path (or absolute).
+
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | No       |
+
+Example:
+
+```yaml
+tasks:
+  - volumes:
+      - hostPath: "/some/dir"
+```
+
+### `tasks[].volumes[].module`
+
+[tasks](#tasks) > [volumes](#tasksvolumes) > module
+
+The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](https://docs.garden.io/module-types/persistentvolumeclaim), for example.
+
+When a `module` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
+
+Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 
 ## Outputs

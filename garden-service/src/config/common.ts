@@ -7,8 +7,13 @@
  */
 
 import Joi from "@hapi/joi"
+import Ajv from "ajv"
 import { splitLast } from "../util/util"
 import { deline, dedent } from "../util/string"
+import { cloneDeep } from "lodash"
+import { joiPathPlaceholder } from "./validation"
+
+const ajv = new Ajv({ allErrors: true, useDefaults: true })
 
 export type Primitive = string | number | boolean | null
 
@@ -87,6 +92,10 @@ declare module "@hapi/joi" {
   }
 }
 
+export interface CustomObjectSchema extends Joi.ObjectSchema {
+  jsonSchema(schema: object): this
+}
+
 export interface GitUrlSchema extends Joi.StringSchema {
   requireHash(): this
 }
@@ -100,6 +109,7 @@ export interface PosixPathSchema extends Joi.StringSchema {
 }
 
 interface CustomJoi extends Joi.Root {
+  customObject: () => CustomObjectSchema
   gitUrl: () => GitUrlSchema
   posixPath: () => PosixPathSchema
 }
@@ -200,7 +210,7 @@ export let joi: CustomJoi = Joi.extend({
   },
 })
 
-// We're supposed to be able to chain extend calls
+// We're supposed to be able to chain extend calls, but the TS definitions are off
 joi = joi.extend({
   base: Joi.string(),
   type: "gitUrl",
@@ -231,6 +241,72 @@ joi = joi.extend({
         }
 
         return value
+      },
+    },
+  },
+})
+
+/**
+ * Add a joi.customObject() type, which includes additional methods, including one for validating with a
+ * JSON Schema.
+ *
+ * Note that the jsonSchema() option should generally not be used in conjunction with other options (like keys()
+ * and unknown()) since the behavior can be confusing. It is meant to facilitate a gradual transition away from Joi.
+ */
+joi = joi.extend({
+  base: Joi.object(),
+  type: "customObject",
+  messages: {
+    validation: "<not used>",
+  },
+  // TODO: check if jsonSchema() is being used in conjunction with other methods that may be incompatible.
+  // validate(value: string, { error }) {
+  //   return { value }
+  // },
+  rules: {
+    jsonSchema: {
+      method(jsonSchema: object) {
+        // tslint:disable-next-line: no-invalid-this
+        this.$_setFlag("jsonSchema", jsonSchema)
+        // tslint:disable-next-line: no-invalid-this
+        return this.$_addRule(<any>{ name: "jsonSchema", args: { jsonSchema } })
+      },
+      args: [
+        {
+          name: "jsonSchema",
+          assert: (value) => {
+            return !!value
+          },
+          message: "must be a valid JSON Schema with type=object",
+          normalize: (value) => {
+            if (value.type !== "object") {
+              return false
+            }
+
+            try {
+              return ajv.compile(value)
+            } catch (err) {
+              return false
+            }
+          },
+        },
+      ],
+      validate(originalValue, helpers, args) {
+        const validate = args.jsonSchema
+
+        // Need to do this to be able to assign defaults without mutating original value
+        const value = cloneDeep(originalValue)
+        const valid = validate(value)
+
+        if (valid) {
+          return value
+        } else {
+          // TODO: customize the rendering here to make it a bit nicer
+          const errors = [...validate.errors]
+          const error = helpers.error("validation")
+          error.message = ajv.errorsText(errors, { dataVar: `value at ${joiPathPlaceholder}` })
+          return error
+        }
       },
     },
   },

@@ -11,7 +11,6 @@ import { joiArray, joi, joiModuleIncludeDirective } from "../../../config/common
 import { Module } from "../../../types/module"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../../types/plugin/module/configure"
 import { Service } from "../../../types/service"
-import { ContainerModule } from "../../container/config"
 import { baseBuildSpecSchema } from "../../../config/module"
 import { KubernetesResource } from "../types"
 import { deline, dedent } from "../../../util/string"
@@ -41,7 +40,7 @@ export interface KubernetesServiceSpec {
   tests: KubernetesTestSpec[]
 }
 
-export type KubernetesService = Service<KubernetesModule, ContainerModule>
+export type KubernetesService = Service<KubernetesModule, KubernetesModule>
 
 const kubernetesResourceSchema = joi
   .object()

@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 import toposort from "toposort"
-import { flatten, pick, uniq, find, sortBy, pickBy } from "lodash"
+import { flatten, pick, uniq, sortBy, pickBy } from "lodash"
 import { Garden } from "./garden"
 import { BuildDependencyConfig, ModuleConfig } from "./config/module"
 import { Module, getModuleKey, moduleFromConfig, moduleNeedsBuild } from "./types/module"
@@ -127,7 +127,7 @@ export class ConfigGraph {
 
         // Make sure service source modules are added as build dependencies for the module
         const { sourceModuleName } = serviceConfig
-        if (sourceModuleName && !find(moduleConfig.build.dependencies, ["name", sourceModuleName])) {
+        if (sourceModuleName) {
           moduleConfig.build.dependencies.push({
             name: sourceModuleName,
             copy: [],

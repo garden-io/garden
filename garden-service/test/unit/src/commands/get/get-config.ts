@@ -292,6 +292,7 @@ describe("GetConfigCommand", () => {
           disabled: false,
           timeout: null,
           env: {},
+          volumes: [],
         },
         timeout: null,
       },
@@ -305,7 +306,7 @@ describe("GetConfigCommand", () => {
       projectRoot: garden.projectRoot,
     }
 
-    expect(config).to.deep.equal(res.result)
+    expect(res.result).to.deep.equal(config)
   })
 
   it("should exclude disabled test configs", async () => {
@@ -383,6 +384,7 @@ describe("GetConfigCommand", () => {
           disabled: false,
           timeout: null,
           env: {},
+          volumes: [],
         },
         timeout: null,
       },
@@ -396,6 +398,6 @@ describe("GetConfigCommand", () => {
       projectRoot: garden.projectRoot,
     }
 
-    expect(config).to.deep.equal(res.result)
+    expect(res.result).to.deep.equal(config)
   })
 })

@@ -95,7 +95,7 @@ describe("plugins.container", () => {
     return moduleFromConfig(garden, graph, parsed.moduleConfig)
   }
 
-  describe("validate", () => {
+  describe("configureContainerModule", () => {
     it("should validate and parse a container module", async () => {
       const moduleConfig: ContainerModuleConfig = {
         allowPublish: false,
@@ -168,6 +168,7 @@ describe("plugins.container", () => {
                 TASK_ENV_VAR: "value",
               },
               timeout: null,
+              volumes: [],
             },
           ],
           tests: [
@@ -181,6 +182,7 @@ describe("plugins.container", () => {
                 TEST_ENV_VAR: "value",
               },
               timeout: null,
+              volumes: [],
             },
           ],
         },
@@ -253,6 +255,7 @@ describe("plugins.container", () => {
                   TASK_ENV_VAR: "value",
                 },
                 timeout: null,
+                volumes: [],
               },
             ],
             tests: [
@@ -266,6 +269,7 @@ describe("plugins.container", () => {
                   TEST_ENV_VAR: "value",
                 },
                 timeout: null,
+                volumes: [],
               },
             ],
           },
@@ -320,6 +324,7 @@ describe("plugins.container", () => {
                 },
                 name: "task-a",
                 timeout: null,
+                volumes: [],
               },
               timeout: null,
             },
@@ -339,12 +344,181 @@ describe("plugins.container", () => {
                   TEST_ENV_VAR: "value",
                 },
                 timeout: null,
+                volumes: [],
               },
               timeout: null,
             },
           ],
         },
       })
+    })
+
+    it("should add service volume modules as build and runtime dependencies", async () => {
+      const moduleConfig: ContainerModuleConfig = {
+        allowPublish: false,
+        build: {
+          dependencies: [],
+        },
+        disabled: false,
+        apiVersion: "garden.io/v0",
+        name: "module-a",
+        outputs: {},
+        path: modulePath,
+        type: "container",
+
+        spec: {
+          build: {
+            dependencies: [],
+            timeout: DEFAULT_BUILD_TIMEOUT,
+          },
+          buildArgs: {},
+          extraFlags: [],
+          services: [
+            {
+              name: "service-a",
+              annotations: {},
+              args: ["echo"],
+              dependencies: [],
+              daemon: false,
+              disabled: false,
+              ingresses: [],
+              env: {},
+              healthCheck: {},
+              limits: {
+                cpu: 123,
+                memory: 456,
+              },
+              ports: [],
+              replicas: 1,
+              volumes: [
+                {
+                  name: "test",
+                  containerPath: "/",
+                  module: "volume-module",
+                },
+              ],
+            },
+          ],
+          tasks: [],
+          tests: [],
+        },
+
+        serviceConfigs: [],
+        taskConfigs: [],
+        testConfigs: [],
+      }
+
+      const result = await configure({ ctx, moduleConfig, log })
+
+      expect(result.moduleConfig.build.dependencies).to.eql([{ name: "volume-module", copy: [] }])
+      expect(result.moduleConfig.serviceConfigs[0].dependencies).to.eql(["volume-module"])
+    })
+
+    it("should add task volume modules as build and runtime dependencies", async () => {
+      const moduleConfig: ContainerModuleConfig = {
+        allowPublish: false,
+        build: {
+          dependencies: [],
+        },
+        disabled: false,
+        apiVersion: "garden.io/v0",
+        name: "module-a",
+        outputs: {},
+        path: modulePath,
+        type: "container",
+
+        spec: {
+          build: {
+            dependencies: [],
+            timeout: DEFAULT_BUILD_TIMEOUT,
+          },
+          buildArgs: {},
+          extraFlags: [],
+          services: [],
+          tasks: [
+            {
+              name: "task-a",
+              args: [],
+              artifacts: [],
+              cacheResult: true,
+              dependencies: [],
+              disabled: false,
+              env: {},
+              timeout: null,
+              volumes: [
+                {
+                  name: "test",
+                  containerPath: "/",
+                  module: "volume-module",
+                },
+              ],
+            },
+          ],
+          tests: [],
+        },
+
+        serviceConfigs: [],
+        taskConfigs: [],
+        testConfigs: [],
+      }
+
+      const result = await configure({ ctx, moduleConfig, log })
+
+      expect(result.moduleConfig.build.dependencies).to.eql([{ name: "volume-module", copy: [] }])
+      expect(result.moduleConfig.taskConfigs[0].dependencies).to.eql(["volume-module"])
+    })
+
+    it("should add test volume modules as build and runtime dependencies", async () => {
+      const moduleConfig: ContainerModuleConfig = {
+        allowPublish: false,
+        build: {
+          dependencies: [],
+        },
+        disabled: false,
+        apiVersion: "garden.io/v0",
+        name: "module-a",
+        outputs: {},
+        path: modulePath,
+        type: "container",
+
+        spec: {
+          build: {
+            dependencies: [],
+            timeout: DEFAULT_BUILD_TIMEOUT,
+          },
+          buildArgs: {},
+          extraFlags: [],
+          services: [],
+          tasks: [],
+          tests: [
+            {
+              name: "test-a",
+              args: [],
+              artifacts: [],
+              dependencies: [],
+              disabled: false,
+              env: {},
+              timeout: null,
+              volumes: [
+                {
+                  name: "test",
+                  containerPath: "/",
+                  module: "volume-module",
+                },
+              ],
+            },
+          ],
+        },
+
+        serviceConfigs: [],
+        taskConfigs: [],
+        testConfigs: [],
+      }
+
+      const result = await configure({ ctx, moduleConfig, log })
+
+      expect(result.moduleConfig.build.dependencies).to.eql([{ name: "volume-module", copy: [] }])
+      expect(result.moduleConfig.testConfigs[0].dependencies).to.eql(["volume-module"])
     })
 
     it("should fail with invalid port in ingress spec", async () => {
@@ -399,6 +573,7 @@ describe("plugins.container", () => {
               disabled: false,
               env: {},
               timeout: null,
+              volumes: [],
             },
           ],
           tests: [
@@ -410,6 +585,7 @@ describe("plugins.container", () => {
               disabled: false,
               env: {},
               timeout: null,
+              volumes: [],
             },
           ],
         },
@@ -474,6 +650,7 @@ describe("plugins.container", () => {
               disabled: false,
               env: {},
               timeout: null,
+              volumes: [],
             },
           ],
           tests: [],
@@ -536,6 +713,7 @@ describe("plugins.container", () => {
               disabled: false,
               env: {},
               timeout: null,
+              volumes: [],
             },
           ],
           tests: [],

@@ -348,6 +348,56 @@ describe("joiRepositoryUrl", () => {
   })
 })
 
+describe("joi.customObject", () => {
+  const jsonSchema = {
+    type: "object",
+    properties: {
+      stringProperty: { type: "string" },
+      numberProperty: { type: "integer", default: 999 },
+    },
+    additionalProperties: false,
+    required: ["stringProperty"],
+  }
+
+  it("should validate an object with a JSON Schema", () => {
+    const joiSchema = joi.customObject().jsonSchema(jsonSchema)
+    const value = { stringProperty: "foo", numberProperty: 123 }
+    const result = validateSchema(value, joiSchema)
+    expect(result).to.eql({ stringProperty: "foo", numberProperty: 123 })
+  })
+
+  it("should apply default values based on the JSON Schema", () => {
+    const joiSchema = joi.customObject().jsonSchema(jsonSchema)
+    const result = validateSchema({ stringProperty: "foo" }, joiSchema)
+    expect(result).to.eql({ stringProperty: "foo", numberProperty: 999 })
+  })
+
+  it("should give validation error if object doesn't match specified JSON Schema", async () => {
+    const joiSchema = joi.customObject().jsonSchema(jsonSchema)
+    await expectError(
+      () => validateSchema({ numberProperty: "oops", blarg: "blorg" }, joiSchema),
+      (err) =>
+        expect(stripAnsi(err.message)).to.equal(
+          "Validation error: value at . should not have additional properties, value at . should have required property 'stringProperty', value at ..numberProperty should be integer"
+        )
+    )
+  })
+
+  it("should throw if schema with wrong type is passed to .jsonSchema()", async () => {
+    await expectError(
+      () => joi.customObject().jsonSchema({ type: "number" }),
+      (err) => expect(err.message).to.equal("jsonSchema must be a valid JSON Schema with type=object or reference")
+    )
+  })
+
+  it("should throw if invalid schema is passed to .jsonSchema()", async () => {
+    await expectError(
+      () => joi.customObject().jsonSchema({ type: "banana", blorg: "blarg" }),
+      (err) => expect(err.message).to.equal("jsonSchema must be a valid JSON Schema with type=object or reference")
+    )
+  })
+})
+
 describe("validateSchema", () => {
   it("should format a basic object validation error", async () => {
     const schema = joi.object().keys({ foo: joi.string() })

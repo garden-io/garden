@@ -9,7 +9,7 @@
 import Bluebird = require("bluebird")
 
 import chalk from "chalk"
-import { fromPairs, mapValues, omit, pickBy, keyBy } from "lodash"
+import { fromPairs, mapValues, omit, pickBy, keyBy, uniqBy } from "lodash"
 import tmp from "tmp-promise"
 import cpy from "cpy"
 import normalizePath = require("normalize-path")
@@ -97,6 +97,7 @@ import { relative, join } from "path"
 import { getArtifactKey } from "./util/artifacts"
 import { AugmentGraphResult, AugmentGraphParams } from "./types/plugin/provider/augmentGraph"
 import { DeployTask } from "./tasks/deploy"
+import { BuildDependencyConfig } from "./config/module"
 
 const maxArtifactLogLines = 5 // max number of artifacts to list in console after task+test runs
 
@@ -276,7 +277,19 @@ export class ActionRouter implements TypeGuard {
       ...params,
     }
 
-    const result = handler(<any>handlerParams)
+    const result = await handler(<any>handlerParams)
+
+    // Consolidate the configured build dependencies, in case there are duplicates
+    const buildDeps: { [key: string]: BuildDependencyConfig } = {}
+
+    for (const dep of result.moduleConfig.build.dependencies) {
+      if (buildDeps[dep.name]) {
+        buildDeps[dep.name].copy = uniqBy([...buildDeps[dep.name].copy, ...dep.copy], (c) => `${c.source}:${c.target}`)
+      } else {
+        buildDeps[dep.name] = dep
+      }
+    }
+    result.moduleConfig.build.dependencies = Object.values(buildDeps)
 
     this.garden.log.silly(`Called 'configure' handler for '${moduleType}'`)
 

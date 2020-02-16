@@ -12,7 +12,7 @@ import chalk from "chalk"
 import { relative } from "path"
 import uuid from "uuid"
 
-const joiPathPlaceholder = uuid.v4()
+export const joiPathPlaceholder = uuid.v4()
 const joiPathPlaceholderRegex = new RegExp(joiPathPlaceholder, "g")
 const errorPrefs: any = {
   wrap: {
@@ -116,6 +116,8 @@ export function validateSchema<T>(
       // a little hack to always use full key paths instead of just the label
       e.message = e.message.replace(joiLabelPlaceholderRegex, "key " + chalk.underline(renderedPath || "."))
       e.message = e.message.replace(joiPathPlaceholderRegex, chalk.underline(renderedPath || "."))
+      // FIXME: remove once we've customized the error output from AJV in customObject.jsonSchema()
+      e.message = e.message.replace(/should NOT have/g, "should not have")
 
       return e
     })

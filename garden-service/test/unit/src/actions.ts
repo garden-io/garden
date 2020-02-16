@@ -205,6 +205,39 @@ describe("ActionRouter", () => {
   })
 
   describe("module actions", () => {
+    describe("configureModule", () => {
+      it("should consolidate the declared build dependencies", async () => {
+        const moduleConfigA = (await garden.getRawModuleConfigs(["module-a"]))[0]
+
+        const moduleConfig = {
+          ...moduleConfigA,
+          build: {
+            dependencies: [
+              { name: "module-b", copy: [{ source: "1", target: "1" }] },
+              { name: "module-b", copy: [{ source: "2", target: "2" }] },
+              { name: "module-b", copy: [{ source: "2", target: "2" }] },
+              { name: "module-c", copy: [{ source: "3", target: "3" }] },
+            ],
+          },
+        }
+
+        const result = await actions.configureModule({ log, moduleConfig })
+        expect(result.moduleConfig.build.dependencies).to.eql([
+          {
+            name: "module-b",
+            copy: [
+              { source: "1", target: "1" },
+              { source: "2", target: "2" },
+            ],
+          },
+          {
+            name: "module-c",
+            copy: [{ source: "3", target: "3" }],
+          },
+        ])
+      })
+    })
+
     describe("getBuildStatus", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const result = await actions.getBuildStatus({ log, module })

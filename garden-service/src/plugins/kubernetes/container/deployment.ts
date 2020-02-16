@@ -7,10 +7,10 @@
  */
 
 import chalk from "chalk"
-import { V1Container, V1Affinity } from "@kubernetes/client-node"
+import { V1Container, V1Affinity, V1VolumeMount, V1PodSpec } from "@kubernetes/client-node"
 import { Service } from "../../../types/service"
 import { extend, find, keyBy, merge, set } from "lodash"
-import { ContainerModule, ContainerService } from "../../container/config"
+import { ContainerModule, ContainerService, ContainerVolumeSpec } from "../../container/config"
 import { createIngressResources } from "./ingress"
 import { createServiceResources } from "./service"
 import { waitForResources, compareDeployedResources } from "../status/status"
@@ -28,7 +28,7 @@ import { LogEntry } from "../../../logger/log-entry"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
 import { millicpuToString, kilobytesToString, prepareEnvVars, workloadTypes } from "../util"
-import { gardenAnnotationKey } from "../../../util/string"
+import { gardenAnnotationKey, deline } from "../../../util/string"
 import { RuntimeContext } from "../../../runtime-context"
 import { resolve } from "path"
 import { killPortForwards } from "../port-forward"
@@ -317,6 +317,8 @@ export async function createWorkloadManifest({
     },
   }
 
+  deployment.spec.template.spec.containers = [container]
+
   if (service.spec.command && service.spec.command.length > 0) {
     container.command = service.spec.command
   }
@@ -330,7 +332,7 @@ export async function createWorkloadManifest({
   }
 
   if (spec.volumes && spec.volumes.length) {
-    configureVolumes(service.module, deployment, container, spec)
+    configureVolumes(service.module, deployment.spec.template.spec, spec.volumes)
   }
 
   const ports = spec.ports
@@ -383,8 +385,6 @@ export async function createWorkloadManifest({
   if (!container.ports!.length) {
     delete container.ports
   }
-
-  deployment.spec.template.spec.containers = [container]
 
   if (production) {
     const affinity: V1Affinity = {
@@ -544,45 +544,63 @@ function configureHealthCheck(container, spec): void {
   }
 }
 
-function configureVolumes(module: ContainerModule, deployment, container, spec): void {
+export function configureVolumes(
+  module: ContainerModule,
+  podSpec: V1PodSpec,
+  volumeSpecs: ContainerVolumeSpec[]
+): void {
   const volumes: any[] = []
-  const volumeMounts: any[] = []
+  const volumeMounts: V1VolumeMount[] = []
 
-  for (const volume of spec.volumes) {
+  for (const volume of volumeSpecs) {
     const volumeName = volume.name
-    const volumeType = !!volume.hostPath ? "hostPath" : "emptyDir"
 
     if (!volumeName) {
       throw new Error("Must specify volume name")
     }
 
-    if (volumeType === "emptyDir") {
-      volumes.push({
-        name: volumeName,
-        emptyDir: {},
-      })
-      volumeMounts.push({
-        name: volumeName,
-        mountPath: volume.containerPath,
-      })
-    } else if (volumeType === "hostPath") {
+    volumeMounts.push({
+      name: volumeName,
+      mountPath: volume.containerPath,
+    })
+
+    if (volume.hostPath) {
       volumes.push({
         name: volumeName,
         hostPath: {
           path: resolve(module.path, volume.hostPath),
         },
       })
-      volumeMounts.push({
+    } else if (volume.module) {
+      // Make sure the module is a supported type
+      const volumeModule = module.buildDependencies[volume.module]
+
+      if (!volumeModule.compatibleTypes.includes("persistentvolumeclaim")) {
+        throw new ConfigurationError(
+          chalk.red(deline`Container module ${chalk.white(module.name)} specifies a unsupported module
+          ${chalk.white(volumeModule.name)} for volume mount ${chalk.white(volumeName)}. Only persistentvolumeclaim
+          modules are supported at this time.
+          `),
+          { volumeSpec: volume }
+        )
+      }
+
+      volumes.push({
         name: volumeName,
-        mountPath: volume.containerPath,
+        persistentVolumeClaim: {
+          claimName: volume.module,
+        },
       })
     } else {
-      throw new Error("Unsupported volume type: " + volumeType)
+      volumes.push({
+        name: volumeName,
+        emptyDir: {},
+      })
     }
   }
 
-  deployment.spec.template.spec.volumes = volumes
-  container.volumeMounts = volumeMounts
+  podSpec.volumes = volumes
+  podSpec.containers[0].volumeMounts = volumeMounts
 }
 
 /**

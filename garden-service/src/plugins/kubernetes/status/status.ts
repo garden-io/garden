@@ -54,6 +54,13 @@ interface ObjHandler {
   (params: StatusHandlerParams): Promise<ResourceStatus>
 }
 
+const pvcPhaseMap: { [key: string]: ServiceState } = {
+  Available: "deploying",
+  Bound: "ready",
+  Released: "stopped",
+  Failed: "unhealthy",
+}
+
 // Handlers to check the rollout status for K8s objects where that applies.
 // Using https://github.com/kubernetes/helm/blob/master/pkg/kube/wait.go as a reference here.
 const objHandlers: { [kind: string]: ObjHandler } = {
@@ -63,7 +70,7 @@ const objHandlers: { [kind: string]: ObjHandler } = {
 
   PersistentVolumeClaim: async ({ resource }) => {
     const pvc = <KubernetesServerResource<V1PersistentVolumeClaim>>resource
-    const state: ServiceState = pvc.status.phase === "Bound" ? "ready" : "deploying"
+    const state: ServiceState = pvcPhaseMap[pvc.status.phase!] || "unknown"
     return { state, resource }
   },
 
