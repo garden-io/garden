@@ -90,6 +90,8 @@ describe("Terraform module type", () => {
 
   it("should expose runtime outputs to template contexts", async () => {
     const result = await runTestTask()
+
+    expect(result["task.test-task"]!.output.log).to.equal("input: foo")
     expect(result["task.test-task"]!.output.outputs.log).to.equal("input: foo")
   })
 })

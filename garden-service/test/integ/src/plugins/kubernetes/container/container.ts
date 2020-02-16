@@ -536,11 +536,14 @@ describe("kubernetes container module handlers", () => {
         version: task.module.version,
       })
 
+      const key = "task.echo-task"
       const result = await garden.processTasks([testTask], { throwOnError: true })
 
-      const key = "task.echo-task"
       expect(result).to.have.property(key)
+      expect(result[key]).to.have.property("output")
       expect(result[key]!.output.log.trim()).to.equal("ok")
+      expect(result[key]!.output).to.have.property("outputs")
+      expect(result[key]!.output.outputs.log.trim()).to.equal("ok")
     })
 
     it("should fail if an error occurs, but store the result", async () => {

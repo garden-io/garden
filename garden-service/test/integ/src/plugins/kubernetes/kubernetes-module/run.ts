@@ -46,6 +46,8 @@ describe("runKubernetesTask", () => {
     expect(result).to.exist
     expect(result).to.have.property("output")
     expect(result!.output.log.trim()).to.equal("ok")
+    expect(result!.output).to.have.property("outputs")
+    expect(result!.output.outputs.log.trim()).to.equal("ok")
   })
 
   it("should run a task in a different namespace, if configured", async () => {
@@ -67,6 +69,8 @@ describe("runKubernetesTask", () => {
     expect(result).to.exist
     expect(result).to.have.property("output")
     expect(result!.output.log.trim()).to.equal(task.module.spec.namespace)
+    expect(result!.output).to.have.property("outputs")
+    expect(result!.output.outputs.log.trim()).to.equal(task.module.spec.namespace)
   })
 
   it("should fail if an error occurs, but store the result", async () => {

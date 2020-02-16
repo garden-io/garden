@@ -59,7 +59,7 @@ export async function runKubernetesTask(params: RunTaskParams<KubernetesModule>)
     ...res,
     taskName: task.name,
     outputs: {
-      log: res.output || "",
+      log: res.log || "",
     },
   }
 
