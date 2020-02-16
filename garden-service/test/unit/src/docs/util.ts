@@ -8,7 +8,7 @@
 
 import { dedent } from "../../../../src/util/string"
 import { expect } from "chai"
-import { convertMarkdownLinks } from "../../../../src/docs/util"
+import { convertMarkdownLinks } from "../../../../src/docs/common"
 
 describe("convertMarkdownLinks", () => {
   it("should convert all markdown links in the given text to plain links", () => {

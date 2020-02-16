@@ -25,12 +25,13 @@ import { checkPodStatus, getPodLogs } from "./status/pod"
 import { KubernetesServerResource } from "./types"
 import { ServiceState } from "../../types/service"
 import { RunModuleParams } from "../../types/plugin/module/runModule"
-import { ContainerEnvVars } from "../container/config"
+import { ContainerEnvVars, ContainerVolumeSpec } from "../container/config"
 import { prepareEnvVars, makePodName } from "./util"
 import { deline } from "../../util/string"
 import { ArtifactSpec } from "../../config/validation"
 import cpy from "cpy"
 import { prepareImagePullSecrets } from "./secrets"
+import { configureVolumes } from "./container/deployment"
 
 export async function runAndCopy({
   ctx,
@@ -51,6 +52,7 @@ export async function runAndCopy({
   stdout,
   stderr,
   namespace,
+  volumes,
 }: RunModuleParams<Module> & {
   image: string
   container?: V1Container
@@ -62,6 +64,7 @@ export async function runAndCopy({
   stdout?: Writable
   stderr?: Writable
   namespace: string
+  volumes?: ContainerVolumeSpec[]
 }): Promise<RunResult> {
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, provider)
@@ -90,6 +93,10 @@ export async function runAndCopy({
       },
     ],
     imagePullSecrets: await prepareImagePullSecrets({ api, provider, namespace, log }),
+  }
+
+  if (volumes) {
+    configureVolumes(module, spec, volumes)
   }
 
   if (!description) {

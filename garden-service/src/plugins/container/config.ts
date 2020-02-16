@@ -18,10 +18,11 @@ import {
   envVarRegex,
   Primitive,
   joiModuleIncludeDirective,
+  joiIdentifier,
 } from "../../config/common"
 import { ArtifactSpec } from "./../../config/validation"
 import { Service, ingressHostnameSchema, linkUrlSchema } from "../../types/service"
-import { DEFAULT_PORT_PROTOCOL } from "../../constants"
+import { DEFAULT_PORT_PROTOCOL, DOCS_BASE_URL } from "../../constants"
 import { ModuleSpec, ModuleConfig, baseBuildSpecSchema, BaseBuildSpec } from "../../config/module"
 import { CommonServiceSpec, ServiceConfig, baseServiceSpecSchema } from "../../config/service"
 import { baseTaskSpecSchema, BaseTaskSpec, cacheResultSchema } from "../../config/task"
@@ -54,10 +55,11 @@ export interface ServicePortSpec {
   nodePort?: number | true
 }
 
-export interface ServiceVolumeSpec {
+export interface ContainerVolumeSpec {
   name: string
   containerPath: string
   hostPath?: string
+  module?: string
 }
 
 export interface ServiceHealthCheckSpec {
@@ -92,7 +94,7 @@ export interface ContainerServiceSpec extends CommonServiceSpec {
   limits: ServiceLimitSpec
   ports: ServicePortSpec[]
   replicas?: number
-  volumes: ServiceVolumeSpec[]
+  volumes: ContainerVolumeSpec[]
 }
 
 export const commandExample = ["/bin/sh", "-c"]
@@ -307,29 +309,49 @@ export const portSchema = joi.object().keys({
       `),
 })
 
-const volumeSchema = joi.object().keys({
-  name: joiUserIdentifier()
-    .required()
-    .description("The name of the allocated volume."),
-  containerPath: joi
-    .posixPath()
-    .required()
-    .description("The path where the volume should be mounted in the container."),
-  hostPath: joi
-    .posixPath()
-    .description(
-      dedent`
+const volumeSchema = joi
+  .object()
+  .keys({
+    name: joiUserIdentifier()
+      .required()
+      .description("The name of the allocated volume."),
+    containerPath: joi
+      .posixPath()
+      .required()
+      .description("The path where the volume should be mounted in the container."),
+    hostPath: joi
+      .posixPath()
+      .description(
+        dedent`
         _NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms
         and providers. Some providers may not support it at all._
 
         A local path or path on the node that's running the container, to mount in the container, relative to the
         module source path (or absolute).
       `
-    )
-    .example("/some/dir"),
-})
+      )
+      .example("/some/dir"),
+    module: joiIdentifier().description(
+      dedent`
+      The name of a _volume module_ that should be mounted at \`containerPath\`. The supported module types will depend on which provider you are using. The \`kubernetes\` provider supports the [persistentvolumeclaim module](${DOCS_BASE_URL}/module-types/persistentvolumeclaim), for example.
 
-const serviceSchema = baseServiceSpecSchema.keys({
+      When a \`module\` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
+
+      Note: Make sure to pay attention to the supported \`accessModes\` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
+      `
+    ),
+  })
+  .oxor("hostPath", "module")
+
+export function getContainerVolumesSchema(targetType: string) {
+  return joiArray(volumeSchema).unique("name").description(dedent`
+    List of volumes that should be mounted when deploying the ${targetType}.
+
+    Note: If neither \`hostPath\` nor \`module\` is specified, an empty ephemeral volume is created and mounted when deploying the container.
+  `)
+}
+
+const containerServiceSchema = baseServiceSpecSchema.keys({
   annotations: annotationsSchema.description(
     "Annotations to attach to the service (Note: May not be applicable to all providers)."
   ),
@@ -381,9 +403,7 @@ const serviceSchema = baseServiceSpecSchema.keys({
       Note: This setting may be overridden or ignored in some cases. For example, when running with \`daemon: true\`,
       with hot-reloading enabled, or if the provider doesn't support multiple replicas.
     `),
-  volumes: joiArray(volumeSchema)
-    .unique("name")
-    .description("List of volumes that should be mounted when deploying the container."),
+  volumes: getContainerVolumesSchema("service"),
 })
 
 export interface ContainerRegistryConfig {
@@ -450,6 +470,7 @@ export interface ContainerTestSpec extends BaseTestSpec {
   artifacts: ArtifactSpec[]
   command?: string[]
   env: ContainerEnvVars
+  volumes: ContainerVolumeSpec[]
 }
 
 export const containerTestSchema = baseTestSpecSchema.keys({
@@ -465,6 +486,7 @@ export const containerTestSchema = baseTestSpecSchema.keys({
     .description("The command/entrypoint used to run the test inside the container.")
     .example(commandExample),
   env: containerEnvVarsSchema,
+  volumes: getContainerVolumesSchema("test"),
 })
 
 export interface ContainerTaskSpec extends BaseTaskSpec {
@@ -473,6 +495,7 @@ export interface ContainerTaskSpec extends BaseTaskSpec {
   cacheResult: boolean
   command?: string[]
   env: ContainerEnvVars
+  volumes: ContainerVolumeSpec[]
 }
 
 export const containerTaskSchema = baseTaskSpecSchema
@@ -490,6 +513,7 @@ export const containerTaskSchema = baseTaskSpecSchema
       .description("The command/entrypoint used to run the task inside the container.")
       .example(commandExample),
     env: containerEnvVarsSchema,
+    volumes: getContainerVolumesSchema("task"),
   })
   .description("A task that can be run in the container.")
 
@@ -556,7 +580,7 @@ export const containerModuleSpecSchema = joi
       .posixPath()
       .subPathOnly()
       .description("POSIX-style name of Dockerfile, relative to module root."),
-    services: joiArray(serviceSchema)
+    services: joiArray(containerServiceSchema)
       .unique("name")
       .description("A list of services to deploy from this container module."),
     tests: joiArray(containerTestSchema).description("A list of tests to run in the module."),

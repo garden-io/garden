@@ -8,29 +8,22 @@
 
 import {
   renderSchemaDescriptionYaml,
-  getDefaultValue,
-  normalizeSchemaDescriptions,
   renderConfigReference,
-  NormalizedSchemaDescription,
   renderMarkdownLink,
   sanitizeYamlStringForGitBook,
-  Description,
 } from "../../../../src/docs/config"
 import { expect } from "chai"
-import dedent = require("dedent")
 import { joiArray, joi, joiEnvVars } from "../../../../src/config/common"
 import { buildDependencySchema } from "../../../../src/config/module"
+import { normalizeJoiSchemaDescription, JoiDescription } from "../../../../src/docs/joi-schema"
+import { NormalizedSchemaDescription } from "../../../../src/docs/common"
+import { dedent } from "../../../../src/util/string"
 
-describe("config", () => {
+describe("docs config module", () => {
   const servicePortSchema = joi
     .number()
     .default((parent) => (parent ? parent.containerPort : undefined))
     .example("8080")
-    .description("description")
-
-  const testDefaultSchema = joi
-    .number()
-    .default(() => "result")
     .description("description")
 
   const testObject = joi
@@ -118,7 +111,7 @@ describe("config", () => {
 
   describe("renderSchemaDescriptionYaml", () => {
     it("should render the yaml with the full description", () => {
-      const schemaDescriptions = normalizeSchemaDescriptions(portSchema.describe() as Description)
+      const schemaDescriptions = normalizeJoiSchemaDescription(portSchema.describe() as JoiDescription)
       const yaml = renderSchemaDescriptionYaml(schemaDescriptions, { renderRequired: true })
       expect(yaml).to.equal(dedent`
         # description
@@ -168,7 +161,7 @@ describe("config", () => {
       `)
     })
     it("should optionally render the yaml with a basic description", () => {
-      const schemaDescriptions = normalizeSchemaDescriptions(portSchema.describe() as Description)
+      const schemaDescriptions = normalizeJoiSchemaDescription(portSchema.describe() as JoiDescription)
       const yaml = renderSchemaDescriptionYaml(schemaDescriptions, { renderBasicDescription: true })
       expect(yaml).to.equal(dedent`
         # description
@@ -190,7 +183,7 @@ describe("config", () => {
       `)
     })
     it("should optionally skip the commented description above the key", () => {
-      const schemaDescriptions = normalizeSchemaDescriptions(portSchema.describe() as Description)
+      const schemaDescriptions = normalizeJoiSchemaDescription(portSchema.describe() as JoiDescription)
       const yaml = renderSchemaDescriptionYaml(schemaDescriptions, { renderFullDescription: false })
       expect(yaml).to.equal(dedent`
         containerPort:
@@ -202,7 +195,7 @@ describe("config", () => {
       `)
     })
     it("should conditionally print ellipsis between object keys", () => {
-      const schemaDescriptions = normalizeSchemaDescriptions(portSchema.describe() as Description)
+      const schemaDescriptions = normalizeJoiSchemaDescription(portSchema.describe() as JoiDescription)
       const yaml = renderSchemaDescriptionYaml(schemaDescriptions, {
         renderFullDescription: false,
         renderEllipsisBetweenKeys: true,
@@ -226,7 +219,7 @@ describe("config", () => {
           boo: "far",
         }),
       })
-      const schemaDescriptions = normalizeSchemaDescriptions(schema.describe() as Description)
+      const schemaDescriptions = normalizeJoiSchemaDescription(schema.describe() as JoiDescription)
       const yaml = renderSchemaDescriptionYaml(schemaDescriptions, {
         renderFullDescription: false,
         renderEllipsisBetweenKeys: true,
@@ -250,7 +243,7 @@ describe("config", () => {
         .default(() => ({ dependencies: [] }))
         .description("Specify how to build the module. Note that plugins may define additional keys on this object.")
 
-      const schemaDescriptions = normalizeSchemaDescriptions(schema.describe() as Description)
+      const schemaDescriptions = normalizeJoiSchemaDescription(schema.describe() as JoiDescription)
       const yaml = renderSchemaDescriptionYaml(schemaDescriptions, {
         renderFullDescription: false,
         renderValue: "default",
@@ -270,7 +263,7 @@ describe("config", () => {
         dependencies: joi.string().description("Check out [some link](http://example.com)."),
       })
 
-      const schemaDescriptions = normalizeSchemaDescriptions(schema.describe() as Description)
+      const schemaDescriptions = normalizeJoiSchemaDescription(schema.describe() as JoiDescription)
       const yaml = renderSchemaDescriptionYaml(schemaDescriptions, {
         filterMarkdown: true,
         renderBasicDescription: true,
@@ -288,7 +281,7 @@ describe("config", () => {
         dependencies: joi.string().description("Check out [some link](http://example.com)."),
       })
 
-      const schemaDescriptions = normalizeSchemaDescriptions(schema.describe() as Description)
+      const schemaDescriptions = normalizeJoiSchemaDescription(schema.describe() as JoiDescription)
       const yaml = renderSchemaDescriptionYaml(schemaDescriptions, {
         filterMarkdown: true,
         renderBasicDescription: true,
@@ -308,7 +301,7 @@ describe("config", () => {
         keyC: joi.string(),
       })
 
-      const schemaDescriptions = normalizeSchemaDescriptions(schema.describe() as Description)
+      const schemaDescriptions = normalizeJoiSchemaDescription(schema.describe() as JoiDescription)
       const yaml = renderSchemaDescriptionYaml(schemaDescriptions, {
         filterMarkdown: true,
         presetValues: { keyC: "foo" },
@@ -331,7 +324,7 @@ describe("config", () => {
         keyC: joi.string(),
       })
 
-      const schemaDescriptions = normalizeSchemaDescriptions(schema.describe() as Description)
+      const schemaDescriptions = normalizeJoiSchemaDescription(schema.describe() as JoiDescription)
       const yaml = renderSchemaDescriptionYaml(schemaDescriptions, {
         commentOutEmpty: true,
         filterMarkdown: true,
@@ -346,13 +339,6 @@ describe("config", () => {
         # keyB: default-value
         keyC: foo
       `)
-    })
-  })
-
-  describe("getDefaultValue", () => {
-    it("should get the default return of the function over the param", () => {
-      const value = getDefaultValue(testDefaultSchema.describe() as Description)
-      expect(value).to.eq("result")
     })
   })
 
@@ -444,59 +430,63 @@ describe("config", () => {
 
   describe("renderMarkdownLink", () => {
     it("should return a markdown link with a name and relative path", () => {
-      const happy: NormalizedSchemaDescription = {
-        name: "happy",
+      const common = {
+        allowedValuesOnly: false,
+        deprecated: false,
+        experimental: false,
+        internal: false,
         level: 0,
         required: false,
+      }
+
+      const happy: NormalizedSchemaDescription = {
+        ...common,
+        type: "string",
+        name: "happy",
         hasChildren: true,
         fullKey: "happy",
         formattedName: "happy",
         formattedType: "string",
-        deprecated: false,
       }
       const families: NormalizedSchemaDescription = {
+        ...common,
+        type: "array",
         name: "families",
-        level: 0,
-        required: false,
-        hasChildren: true,
         fullKey: "happy.families[]",
         formattedName: "families[]",
         formattedType: "array",
+        hasChildren: true,
         parent: happy,
-        deprecated: false,
       }
       const are: NormalizedSchemaDescription = {
+        ...common,
+        type: "string",
         name: "happy",
-        level: 0,
-        required: false,
-        hasChildren: true,
         fullKey: "happy.families[].are",
         formattedName: "are",
         formattedType: "string",
+        hasChildren: true,
         parent: families,
-        deprecated: false,
       }
       const all: NormalizedSchemaDescription = {
+        ...common,
+        type: "array",
         name: "all",
-        level: 0,
-        required: false,
-        hasChildren: true,
         fullKey: "happy.families[].are.all[]",
         formattedName: "all[]",
         formattedType: "array",
+        hasChildren: true,
         parent: are,
-        deprecated: false,
       }
       const alike: NormalizedSchemaDescription = {
+        ...common,
+        type: "string",
         name: "alike",
-        level: 0,
-        required: false,
-        hasChildren: false,
-        fullKey: "happy.families[].are.all[].alike",
         formattedName: "alike",
         formattedType: "string",
+        fullKey: "happy.families[].are.all[].alike",
+        hasChildren: false,
         parent: all,
-        deprecated: false,
       }
 
       expect(renderMarkdownLink(alike)).to.equal(`[alike](#happyfamiliesareallalike)`)

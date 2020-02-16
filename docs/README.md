@@ -46,6 +46,7 @@
   * [`kubernetes`](./module-types/kubernetes.md)
   * [`maven-container`](./module-types/maven-container.md)
   * [`openfaas`](./module-types/openfaas.md)
+  * [`persistentvolumeclaim`](./module-types/persistentvolumeclaim.md)
   * [`terraform`](./module-types/terraform.md)
 * [Reference](./reference/README.md)
   * [Glossary](./reference/glossary.md)

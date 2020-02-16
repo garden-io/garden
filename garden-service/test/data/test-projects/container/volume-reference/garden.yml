@@ -1,0 +1,29 @@
+kind: Module
+name: volume-reference
+description: Test module for volume module references
+type: container
+image: busybox:1.31.1
+include: []
+build:
+  dependencies: [simple-service]
+services:
+  - name: volume-reference
+    command: [sh, -c, "nc -l -p 8080"]
+    ports:
+      - name: http
+        containerPort: 8080
+    volumes:
+      - name: test
+        module: volume-module
+        containerPath: /volume
+---
+kind: Module
+name: volume-module
+type: persistentvolumeclaim
+include: []
+# Note: This is never actually deployed
+spec:
+  accessModes: [ReadOnlyMany]
+  resources:
+    requests:
+      storage: 10Mi

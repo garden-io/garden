@@ -35,10 +35,10 @@ export const kubernetesHandlers: Partial<ModuleAndRuntimeActionHandlers<Kubernet
   build,
   configure: configureKubernetesModule,
   deleteService,
-  deployService,
+  deployService: deployKubernetesService,
   getPortForward: getPortForwardHandler,
   getServiceLogs,
-  getServiceStatus,
+  getServiceStatus: getKubernetesServiceStatus,
   getTaskResult,
   getTestResult,
   runTask: runKubernetesTask,
@@ -57,7 +57,7 @@ async function build({ module, log }: BuildModuleParams<KubernetesModule>): Prom
   return { fresh: true }
 }
 
-async function getServiceStatus({
+export async function getKubernetesServiceStatus({
   ctx,
   module,
   log,
@@ -88,7 +88,9 @@ async function getServiceStatus({
   }
 }
 
-async function deployService(params: DeployServiceParams<KubernetesModule>): Promise<KubernetesServiceStatus> {
+export async function deployKubernetesService(
+  params: DeployServiceParams<KubernetesModule>
+): Promise<KubernetesServiceStatus> {
   const { ctx, module, service, log } = params
 
   const k8sCtx = <KubernetesPluginContext>ctx
@@ -114,7 +116,7 @@ async function deployService(params: DeployServiceParams<KubernetesModule>): Pro
     log,
   })
 
-  const status = await getServiceStatus(params)
+  const status = await getKubernetesServiceStatus(params)
 
   // Make sure port forwards work after redeployment
   killPortForwards(service, status.forwardablePorts || [], log)

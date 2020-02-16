@@ -36,6 +36,7 @@ import { getSystemMetadataNamespaceName } from "./system"
 import { removeTillerCmd } from "./commands/remove-tiller"
 import { DOCS_BASE_URL } from "../../constants"
 import { inClusterRegistryHostname } from "./constants"
+import { pvcModuleDefinition } from "./volumes/persistentvolumeclaim"
 
 export async function configureProvider({
   projectName,
@@ -225,6 +226,7 @@ export const gardenPlugin = createGardenPlugin({
       schema: kubernetesModuleSpecSchema,
       handlers: kubernetesHandlers,
     },
+    pvcModuleDefinition,
   ],
   extendModuleTypes: [
     {

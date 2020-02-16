@@ -19,12 +19,18 @@ import { cloneDeep, keyBy } from "lodash"
 import { getContainerTestGarden } from "./container"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
 import { getServiceStatuses } from "../../../../../../src/tasks/base"
+import { expectError } from "../../../../../helpers"
+import stripAnsi = require("strip-ansi")
 
 describe("kubernetes container deployment handlers", () => {
   let garden: Garden
   let graph: ConfigGraph
   let provider: KubernetesProvider
   let api: KubeApi
+
+  beforeEach(async () => {
+    graph = await garden.getConfigGraph(garden.log)
+  })
 
   after(async () => {
     if (garden) {
@@ -34,8 +40,6 @@ describe("kubernetes container deployment handlers", () => {
 
   const init = async (environmentName: string) => {
     garden = await getContainerTestGarden(environmentName)
-
-    graph = await garden.getConfigGraph(garden.log)
     provider = <KubernetesProvider>await garden.resolveProvider("local-kubernetes")
     api = await KubeApi.factory(garden.log, provider)
   }
@@ -81,6 +85,7 @@ describe("kubernetes container deployment handlers", () => {
                 {
                   name: "simple-service",
                   image: "simple-service:" + version,
+                  command: ["sh", "-c", "echo Server running... && nc -l -p 8080"],
                   env: [
                     { name: "POD_NAME", valueFrom: { fieldRef: { fieldPath: "metadata.name" } } },
                     { name: "POD_NAMESPACE", valueFrom: { fieldRef: { fieldPath: "metadata.namespace" } } },
@@ -142,6 +147,52 @@ describe("kubernetes container deployment handlers", () => {
       expect(copiedSecret).to.exist
       expect(resource.spec.template.spec.imagePullSecrets).to.eql([{ name: secretName }])
     })
+
+    it("should correctly mount a referenced PVC module", async () => {
+      const service = await graph.getService("volume-reference")
+      const namespace = garden.projectName
+
+      const resource = await createWorkloadManifest({
+        api,
+        provider,
+        service,
+        runtimeContext: emptyRuntimeContext,
+        namespace,
+        enableHotReload: false,
+        log: garden.log,
+        production: false,
+      })
+
+      expect(resource.spec.template.spec.volumes).to.eql([
+        { name: "test", persistentVolumeClaim: { claimName: "volume-module" } },
+      ])
+      expect(resource.spec.template.spec.containers[0].volumeMounts).to.eql([{ name: "test", mountPath: "/volume" }])
+    })
+
+    it("should throw if incompatible module is specified as a volume module", async () => {
+      const service = await graph.getService("volume-reference")
+      const namespace = garden.projectName
+
+      service.spec.volumes = [{ name: "test", module: "simple-service" }]
+
+      await expectError(
+        () =>
+          createWorkloadManifest({
+            api,
+            provider,
+            service,
+            runtimeContext: emptyRuntimeContext,
+            namespace,
+            enableHotReload: false,
+            log: garden.log,
+            production: false,
+          }),
+        (err) =>
+          expect(stripAnsi(err.message)).to.equal(
+            "Container module volume-reference specifies a unsupported module simple-service for volume mount test. Only persistentvolumeclaim modules are supported at this time."
+          )
+      )
+    })
   })
 
   describe("deployContainerService", () => {
@@ -170,6 +221,32 @@ describe("kubernetes container deployment handlers", () => {
           `${service.name}:${service.module.version.versionString}`
         )
       })
+
+      it("should deploy a service referencing a volume module", async () => {
+        const service = await graph.getService("volume-reference")
+
+        const deployTask = new DeployTask({
+          garden,
+          graph,
+          log: garden.log,
+          service,
+          force: true,
+          forceBuild: false,
+        })
+
+        const results = await garden.processTasks([deployTask], { throwOnError: true })
+        const statuses = getServiceStatuses(results)
+        const status = statuses[service.name]
+        const resources = keyBy(status.detail["remoteResources"], "kind")
+
+        expect(status.state === "ready")
+        expect(resources.Deployment.spec.template.spec.volumes).to.eql([
+          { name: "test", persistentVolumeClaim: { claimName: "volume-module" } },
+        ])
+        expect(resources.Deployment.spec.template.spec.containers[0].volumeMounts).to.eql([
+          { name: "test", mountPath: "/volume" },
+        ])
+      })
     })
 
     context("cluster-docker mode", () => {
@@ -196,6 +273,32 @@ describe("kubernetes container deployment handlers", () => {
         expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
           `127.0.0.1:5000/container/${service.name}:${service.module.version.versionString}`
         )
+      })
+
+      it("should deploy a service referencing a volume module", async () => {
+        const service = await graph.getService("volume-reference")
+
+        const deployTask = new DeployTask({
+          garden,
+          graph,
+          log: garden.log,
+          service,
+          force: true,
+          forceBuild: false,
+        })
+
+        const results = await garden.processTasks([deployTask], { throwOnError: true })
+        const statuses = getServiceStatuses(results)
+        const status = statuses[service.name]
+        const resources = keyBy(status.detail["remoteResources"], "kind")
+
+        expect(status.state === "ready")
+        expect(resources.Deployment.spec.template.spec.volumes).to.eql([
+          { name: "test", persistentVolumeClaim: { claimName: "volume-module" } },
+        ])
+        expect(resources.Deployment.spec.template.spec.containers[0].volumeMounts).to.eql([
+          { name: "test", mountPath: "/volume" },
+        ])
       })
     })
 

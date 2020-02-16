@@ -38,6 +38,7 @@ export async function testContainerModule(params: TestModuleParams<ContainerModu
     podName: makePodName("test", module.name, testName),
     description: `Test '${testName}' in container module '${module.name}'`,
     timeout,
+    volumes: testConfig.spec.volumes,
   })
 
   return storeTestResult({

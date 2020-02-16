@@ -6,8 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { find } from "lodash"
-
 import {
   joiPrimitive,
   joiArray,
@@ -17,7 +15,7 @@ import {
   joi,
   joiModuleIncludeDirective,
 } from "../../../config/common"
-import { Module, FileCopySpec } from "../../../types/module"
+import { Module } from "../../../types/module"
 import { containsSource, getReleaseName } from "./common"
 import { ConfigurationError } from "../../../exceptions"
 import { deline, dedent } from "../../../util/string"
@@ -236,20 +234,6 @@ export async function configureHelmModule({
 
   const containsSources = await containsSource(moduleConfig)
 
-  // Make sure referenced modules are included as build dependencies
-  // (This happens automatically for the service source module).
-  function addBuildDependency(name: string, copy?: FileCopySpec[]) {
-    const existing = find(moduleConfig.build.dependencies, ["name", name])
-    if (!copy) {
-      copy = []
-    }
-    if (existing) {
-      existing.copy.push(...copy)
-    } else {
-      moduleConfig.build.dependencies.push({ name, copy })
-    }
-  }
-
   if (base) {
     if (containsSources) {
       throw new ConfigurationError(
@@ -263,12 +247,12 @@ export async function configureHelmModule({
     }
 
     // We copy the chart on build
-    addBuildDependency(base, [{ source: "*", target: "." }])
+    moduleConfig.build.dependencies.push({ name: base, copy: [{ source: "*", target: "." }] })
   }
 
   moduleConfig.taskConfigs = tasks.map((spec) => {
     if (spec.resource && spec.resource.containerModule) {
-      addBuildDependency(spec.resource.containerModule)
+      moduleConfig.build.dependencies.push({ name: spec.resource.containerModule, copy: [] })
     }
 
     return {
@@ -283,7 +267,7 @@ export async function configureHelmModule({
 
   moduleConfig.testConfigs = tests.map((spec) => {
     if (spec.resource && spec.resource.containerModule) {
-      addBuildDependency(spec.resource.containerModule)
+      moduleConfig.build.dependencies.push({ name: spec.resource.containerModule, copy: [] })
     }
 
     return {

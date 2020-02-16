@@ -9,8 +9,8 @@
 import { sep, resolve, relative, basename, dirname } from "path"
 import yaml from "js-yaml"
 import { readFile } from "fs-extra"
-import { omit, isPlainObject, find } from "lodash"
-import { ModuleResource, coreModuleSpecSchema, baseModuleSchemaKeys } from "./module"
+import { omit, isPlainObject, find, isArray } from "lodash"
+import { ModuleResource, coreModuleSpecSchema, baseModuleSchemaKeys, BuildDependencyConfig } from "./module"
 import { ConfigurationError } from "../exceptions"
 import { DEFAULT_API_VERSION } from "../constants"
 import { ProjectResource } from "../config/project"
@@ -125,10 +125,11 @@ export function prepareModuleResource(
    *   - foo-module
    *   - name: foo-module // same as the above
    */
-  const dependencies =
-    spec.build && spec.build.dependencies
-      ? spec.build.dependencies.map((dep) => (typeof dep === "string" ? { name: dep, copy: [] } : dep))
-      : []
+  let dependencies: BuildDependencyConfig[] = spec.build?.dependencies || []
+
+  if (spec.build && spec.build.dependencies && isArray(spec.build.dependencies)) {
+    dependencies = spec.build.dependencies.map((dep: any) => (typeof dep === "string" ? { name: dep, copy: [] } : dep))
+  }
 
   // Built-in keys are validated here and the rest are put into the `spec` field
   const config: ModuleResource = {
