@@ -11,16 +11,14 @@ namespace.
 
 See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
 
-## Reference
-
-Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
+Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../guides/configuration-files.md).
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
 `conftest` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 
-### Complete YAML Schema
+## Complete YAML Schema
 
 The values in the schema below are the default values.
 
@@ -120,9 +118,9 @@ namespace: main
 files:
 ```
 
-### Configuration Keys
+## Configuration Keys
 
-#### `apiVersion`
+### `apiVersion`
 
 The schema version of this module's config (currently not used).
 
@@ -130,13 +128,13 @@ The schema version of this module's config (currently not used).
 | -------- | -------------- | ---------------- | -------- |
 | `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
 
-#### `kind`
+### `kind`
 
 | Type     | Allowed Values | Default    | Required |
 | -------- | -------------- | ---------- | -------- |
 | `string` | "Module"       | `"Module"` | Yes      |
 
-#### `type`
+### `type`
 
 The type of this module.
 
@@ -150,7 +148,7 @@ Example:
 type: "container"
 ```
 
-#### `name`
+### `name`
 
 The name of this module.
 
@@ -164,7 +162,7 @@ Example:
 name: "my-sweet-module"
 ```
 
-#### `description`
+### `description`
 
 A description of the module.
 
@@ -172,7 +170,7 @@ A description of the module.
 | -------- | -------- |
 | `string` | No       |
 
-#### `disabled`
+### `disabled`
 
 Set this to `true` to disable the module. You can use this with conditional template strings to disable modules based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name == "prod"}`). This can be handy when you only need certain modules for specific environments, e.g. only for development.
 
@@ -184,7 +182,7 @@ If you disable the module, and its services, tasks or tests are referenced as _r
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
 
-#### `include[]`
+### `include[]`
 
 Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that do *not* match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
@@ -204,7 +202,7 @@ include:
   - my-app.js
 ```
 
-#### `exclude[]`
+### `exclude[]`
 
 Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
@@ -224,7 +222,7 @@ exclude:
   - '*.log'
 ```
 
-#### `repositoryUrl`
+### `repositoryUrl`
 
 A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
 
@@ -240,7 +238,7 @@ Example:
 repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
 ```
 
-#### `allowPublish`
+### `allowPublish`
 
 When false, disables pushing this module to remote registries.
 
@@ -248,7 +246,7 @@ When false, disables pushing this module to remote registries.
 | --------- | ------- | -------- |
 | `boolean` | `true`  | No       |
 
-#### `build`
+### `build`
 
 Specify how to build the module. Note that plugins may define additional keys on this object.
 
@@ -256,7 +254,7 @@ Specify how to build the module. Note that plugins may define additional keys on
 | -------- | --------------------- | -------- |
 | `object` | `{"dependencies":[]}` | No       |
 
-#### `build.dependencies[]`
+### `build.dependencies[]`
 
 [build](#build) > dependencies
 
@@ -275,7 +273,7 @@ build:
     - name: some-other-module-name
 ```
 
-#### `build.dependencies[].name`
+### `build.dependencies[].name`
 
 [build](#build) > [dependencies](#builddependencies) > name
 
@@ -285,7 +283,7 @@ Module name to build ahead of this module.
 | -------- | -------- |
 | `string` | Yes      |
 
-#### `build.dependencies[].copy[]`
+### `build.dependencies[].copy[]`
 
 [build](#build) > [dependencies](#builddependencies) > copy
 
@@ -295,7 +293,7 @@ Specify one or more files or directories to copy from the built dependency to th
 | --------------- | ------- | -------- |
 | `array[object]` | `[]`    | No       |
 
-#### `build.dependencies[].copy[].source`
+### `build.dependencies[].copy[].source`
 
 [build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > source
 
@@ -305,7 +303,7 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 | ----------- | -------- |
 | `posixPath` | Yes      |
 
-#### `build.dependencies[].copy[].target`
+### `build.dependencies[].copy[].target`
 
 [build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > target
 
@@ -316,7 +314,7 @@ Defaults to to same as source path.
 | ----------- | ------- | -------- |
 | `posixPath` | `""`    | No       |
 
-#### `sourceModule`
+### `sourceModule`
 
 Specify a module whose sources we want to test.
 
@@ -324,7 +322,7 @@ Specify a module whose sources we want to test.
 | -------- | -------- |
 | `string` | No       |
 
-#### `policyPath`
+### `policyPath`
 
 POSIX-style path to a directory containing the policies to match the config against, or a
 specific .rego file, relative to the module root.
@@ -335,7 +333,7 @@ Defaults to the `policyPath` set in the provider config.
 | ----------- | -------- |
 | `posixPath` | No       |
 
-#### `namespace`
+### `namespace`
 
 The policy namespace in which to find _deny_ and _warn_ rules.
 
@@ -343,7 +341,7 @@ The policy namespace in which to find _deny_ and _warn_ rules.
 | -------- | -------- | -------- |
 | `string` | `"main"` | No       |
 
-#### `files[]`
+### `files[]`
 
 A list of files to test with the given policy. Must be POSIX-style paths, and may include wildcards.
 
@@ -352,14 +350,14 @@ A list of files to test with the given policy. Must be POSIX-style paths, and ma
 | `array[posixPath]` | Yes      |
 
 
-### Outputs
+## Outputs
 
-#### Module Outputs
+### Module Outputs
 
 The following keys are available via the `${modules.<module-name>}` template string key for `conftest`
 modules.
 
-#### `${modules.<module-name>.buildPath}`
+### `${modules.<module-name>.buildPath}`
 
 The build path of the module.
 
@@ -373,7 +371,7 @@ Example:
 my-variable: ${modules.my-module.buildPath}
 ```
 
-#### `${modules.<module-name>.path}`
+### `${modules.<module-name>.path}`
 
 The local path of the module.
 
@@ -387,7 +385,7 @@ Example:
 my-variable: ${modules.my-module.path}
 ```
 
-#### `${modules.<module-name>.version}`
+### `${modules.<module-name>.version}`
 
 The current version of the module.
 

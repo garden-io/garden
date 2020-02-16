@@ -360,7 +360,7 @@ describe("config", () => {
     it("should return the correct markdown", () => {
       const { markdownReference } = renderConfigReference(portSchema)
       expect(markdownReference).to.equal(dedent`
-        \n#### \`containerPort\`
+        \n### \`containerPort\`
 
         description
 
@@ -368,7 +368,7 @@ describe("config", () => {
         | -------- | -------- |
         | \`number\` | Yes      |
 
-        #### \`servicePort\`
+        ### \`servicePort\`
 
         description
 
@@ -382,7 +382,7 @@ describe("config", () => {
         servicePort: "8080"
         \`\`\`
 
-        #### \`testObject\`
+        ### \`testObject\`
 
         test object
 
@@ -390,7 +390,7 @@ describe("config", () => {
         | -------- | -------- |
         | \`object\` | No       |
 
-        #### \`testObject.testKeyA\`
+        ### \`testObject.testKeyA\`
 
         [testObject](#testobject) > testKeyA
 
@@ -400,7 +400,7 @@ describe("config", () => {
         | -------- | -------- |
         | \`number\` | Yes      |
 
-        #### \`testObject.testKeyB\`
+        ### \`testObject.testKeyB\`
 
         [testObject](#testobject) > testKeyB
 
@@ -410,7 +410,7 @@ describe("config", () => {
         | -------- | -------------- | -------- |
         | \`string\` | "b"            | Yes      |
 
-        #### \`testArray[]\`
+        ### \`testArray[]\`
 
         test array
 

@@ -159,7 +159,7 @@ variables: {}
 ## Project configuration keys
 
 
-#### `kind`
+### `kind`
 
 Indicate what kind of config this is.
 
@@ -167,7 +167,7 @@ Indicate what kind of config this is.
 | -------- | -------------- | ----------- | -------- |
 | `string` | "Project"      | `"Project"` | Yes      |
 
-#### `name`
+### `name`
 
 The name of the project.
 
@@ -181,7 +181,7 @@ Example:
 name: "my-sweet-project"
 ```
 
-#### `environments[]`
+### `environments[]`
 
 A list of environments to configure for the project.
 
@@ -189,7 +189,7 @@ A list of environments to configure for the project.
 | --------------- | -------- |
 | `array[object]` | No       |
 
-#### `environments[].name`
+### `environments[].name`
 
 [environments](#environments) > name
 
@@ -206,7 +206,7 @@ environments:
   - name: "dev"
 ```
 
-#### `environments[].production`
+### `environments[].production`
 
 [environments](#environments) > production
 
@@ -231,7 +231,7 @@ environments:
   - production: true
 ```
 
-#### `environments[].providers[]`
+### `environments[].providers[]`
 
 [environments](#environments) > providers
 
@@ -241,7 +241,7 @@ DEPRECATED - Please use the top-level `providers` field instead, and if needed u
 | --------------- | ------- | -------- |
 | `array[object]` | `[]`    | No       |
 
-#### `environments[].providers[].name`
+### `environments[].providers[].name`
 
 [environments](#environments) > [providers](#environmentsproviders) > name
 
@@ -257,7 +257,7 @@ Example:
 environments:
 ```
 
-#### `environments[].providers[].environments[]`
+### `environments[].providers[].environments[]`
 
 [environments](#environments) > [providers](#environmentsproviders) > environments
 
@@ -273,7 +273,7 @@ Example:
 environments:
 ```
 
-#### `environments[].varfile`
+### `environments[].varfile`
 
 [environments](#environments) > varfile
 
@@ -295,7 +295,7 @@ environments:
   - varfile: "custom.env"
 ```
 
-#### `environments[].variables`
+### `environments[].variables`
 
 [environments](#environments) > variables
 
@@ -305,7 +305,7 @@ A key/value map of variables that modules can reference when using this environm
 | -------- | ------- | -------- |
 | `object` | `{}`    | No       |
 
-#### `providers[]`
+### `providers[]`
 
 A list of providers that should be used for this project, and their configuration. Please refer to individual plugins/providers for details on how to configure them.
 
@@ -313,7 +313,7 @@ A list of providers that should be used for this project, and their configuratio
 | --------------- | ------- | -------- |
 | `array[object]` | `[]`    | No       |
 
-#### `providers[].name`
+### `providers[].name`
 
 [providers](#providers) > name
 
@@ -330,7 +330,7 @@ providers:
   - name: "local-kubernetes"
 ```
 
-#### `providers[].environments[]`
+### `providers[].environments[]`
 
 [providers](#providers) > environments
 
@@ -349,7 +349,7 @@ providers:
       - stage
 ```
 
-#### `defaultEnvironment`
+### `defaultEnvironment`
 
 The default environment to use when calling commands without the `--env` parameter. Defaults to the first configured environment.
 
@@ -363,7 +363,7 @@ Example:
 defaultEnvironment: "dev"
 ```
 
-#### `dotIgnoreFiles[]`
+### `dotIgnoreFiles[]`
 
 Specify a list of filenames that should be used as ".ignore" files across the project, using the same syntax and semantics as `.gitignore` files. By default, patterns matched in `.gitignore` and `.gardenignore` files, found anywhere in the project, are ignored when scanning for modules and module sources.
 Note that these take precedence over the project `module.include` field, and module `include` fields, so any paths matched by the .ignore files will be ignored even if they are explicitly specified in those fields.
@@ -381,7 +381,7 @@ dotIgnoreFiles:
   - .customignore
 ```
 
-#### `modules`
+### `modules`
 
 Control where to scan for modules in the project.
 
@@ -389,7 +389,7 @@ Control where to scan for modules in the project.
 | -------- | -------- |
 | `object` | No       |
 
-#### `modules.include[]`
+### `modules.include[]`
 
 [modules](#modules) > include
 
@@ -414,7 +414,7 @@ modules:
     - modules/**/*
 ```
 
-#### `modules.exclude[]`
+### `modules.exclude[]`
 
 [modules](#modules) > exclude
 
@@ -444,7 +444,7 @@ modules:
     - tmp/**/*
 ```
 
-#### `outputs[]`
+### `outputs[]`
 
 A list of output values that the project should export. These are exported by the `garden get outputs` command, as well as when referencing a project as a sub-project within another project.
 
@@ -457,7 +457,7 @@ Note that if any runtime outputs are referenced, the referenced services and tas
 | --------------- | ------- | -------- |
 | `array[object]` | `[]`    | No       |
 
-#### `outputs[].name`
+### `outputs[].name`
 
 [outputs](#outputs) > name
 
@@ -474,7 +474,7 @@ outputs:
   - name: "my-output-key"
 ```
 
-#### `outputs[].value`
+### `outputs[].value`
 
 [outputs](#outputs) > value
 
@@ -492,7 +492,7 @@ outputs:
   - value: "${modules.my-module.outputs.some-output}"
 ```
 
-#### `sources[]`
+### `sources[]`
 
 A list of remote sources to import into project.
 
@@ -500,7 +500,7 @@ A list of remote sources to import into project.
 | --------------- | ------- | -------- |
 | `array[object]` | `[]`    | No       |
 
-#### `sources[].name`
+### `sources[].name`
 
 [sources](#sources) > name
 
@@ -517,7 +517,7 @@ sources:
   - name: "my-external-repo"
 ```
 
-#### `sources[].repositoryUrl`
+### `sources[].repositoryUrl`
 
 [sources](#sources) > repositoryUrl
 
@@ -534,7 +534,7 @@ sources:
   - repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
 ```
 
-#### `varfile`
+### `varfile`
 
 Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
 project-wide `variables` field. The file should be in a standard "dotenv" format, specified
@@ -556,7 +556,7 @@ Example:
 varfile: "custom.env"
 ```
 
-#### `variables`
+### `variables`
 
 Variables to configure for all environments.
 
@@ -650,7 +650,7 @@ build:
 ## Module configuration keys
 
 
-#### `apiVersion`
+### `apiVersion`
 
 The schema version of this module's config (currently not used).
 
@@ -658,13 +658,13 @@ The schema version of this module's config (currently not used).
 | -------- | -------------- | ---------------- | -------- |
 | `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
 
-#### `kind`
+### `kind`
 
 | Type     | Allowed Values | Default    | Required |
 | -------- | -------------- | ---------- | -------- |
 | `string` | "Module"       | `"Module"` | Yes      |
 
-#### `type`
+### `type`
 
 The type of this module.
 
@@ -678,7 +678,7 @@ Example:
 type: "container"
 ```
 
-#### `name`
+### `name`
 
 The name of this module.
 
@@ -692,7 +692,7 @@ Example:
 name: "my-sweet-module"
 ```
 
-#### `description`
+### `description`
 
 A description of the module.
 
@@ -700,7 +700,7 @@ A description of the module.
 | -------- | -------- |
 | `string` | No       |
 
-#### `disabled`
+### `disabled`
 
 Set this to `true` to disable the module. You can use this with conditional template strings to disable modules based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name == "prod"}`). This can be handy when you only need certain modules for specific environments, e.g. only for development.
 
@@ -712,7 +712,7 @@ If you disable the module, and its services, tasks or tests are referenced as _r
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
 
-#### `include[]`
+### `include[]`
 
 Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that do *not* match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
@@ -732,7 +732,7 @@ include:
   - my-app.js
 ```
 
-#### `exclude[]`
+### `exclude[]`
 
 Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
@@ -752,7 +752,7 @@ exclude:
   - '*.log'
 ```
 
-#### `repositoryUrl`
+### `repositoryUrl`
 
 A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
 
@@ -768,7 +768,7 @@ Example:
 repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
 ```
 
-#### `allowPublish`
+### `allowPublish`
 
 When false, disables pushing this module to remote registries.
 
@@ -776,7 +776,7 @@ When false, disables pushing this module to remote registries.
 | --------- | ------- | -------- |
 | `boolean` | `true`  | No       |
 
-#### `build`
+### `build`
 
 Specify how to build the module. Note that plugins may define additional keys on this object.
 
@@ -784,7 +784,7 @@ Specify how to build the module. Note that plugins may define additional keys on
 | -------- | --------------------- | -------- |
 | `object` | `{"dependencies":[]}` | No       |
 
-#### `build.dependencies[]`
+### `build.dependencies[]`
 
 [build](#build) > dependencies
 
@@ -803,7 +803,7 @@ build:
     - name: some-other-module-name
 ```
 
-#### `build.dependencies[].name`
+### `build.dependencies[].name`
 
 [build](#build) > [dependencies](#builddependencies) > name
 
@@ -813,7 +813,7 @@ Module name to build ahead of this module.
 | -------- | -------- |
 | `string` | Yes      |
 
-#### `build.dependencies[].copy[]`
+### `build.dependencies[].copy[]`
 
 [build](#build) > [dependencies](#builddependencies) > copy
 
@@ -823,7 +823,7 @@ Specify one or more files or directories to copy from the built dependency to th
 | --------------- | ------- | -------- |
 | `array[object]` | `[]`    | No       |
 
-#### `build.dependencies[].copy[].source`
+### `build.dependencies[].copy[].source`
 
 [build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > source
 
@@ -833,7 +833,7 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 | ----------- | -------- |
 | `posixPath` | Yes      |
 
-#### `build.dependencies[].copy[].target`
+### `build.dependencies[].copy[].target`
 
 [build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > target
 
