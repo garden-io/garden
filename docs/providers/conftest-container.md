@@ -1,8 +1,11 @@
 ---
-title: conftest-container
+title: "`conftest-container` Provider"
+tocTitle: "`conftest-container`"
 ---
 
 # `conftest-container` Provider
+
+## Description
 
 This provider automatically generates [conftest modules](https://docs.garden.io/module-types/conftest) for `container` modules
 in your project. A `conftest` module is created for each `container` module that includes a Dockerfile that

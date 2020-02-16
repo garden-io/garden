@@ -1,8 +1,11 @@
 ---
-title: maven-container
+title: "`maven-container` Module Type"
+tocTitle: "`maven-container`"
 ---
 
 # `maven-container` Module Type
+
+## Description
 
 A specialized version of the [container](https://docs.garden.io/module-types/container) module type
 that has special semantics for JAR files built with Maven.

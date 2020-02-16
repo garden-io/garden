@@ -91,7 +91,7 @@ export function renderModuleTypeReference(name: string, definitions: { [name: st
     exampleName: "my-tasks",
   })
 
-  const frontmatterTitle = name
+  const frontmatterTitle = `\`${name}\` Module Type`
   const template = handlebars.compile(readFileSync(moduleTemplatePath).toString())
   return template({
     frontmatterTitle,

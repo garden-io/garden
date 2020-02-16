@@ -5,12 +5,12 @@ title: Module Types
 
 # Module Types
 
-* [Exec](./exec.md)
-* [Container](./container.md)
-* [Conftest](./conftest.md)
-* [Hadolint](./hadolint.md)
-* [Helm](./helm.md)
-* [Kubernetes](./kubernetes.md)
-* [Maven Container](./maven-container.md)
-* [Openfaas](./openfaas.md)
-* [Terraform](./terraform.md)
+* [`exec`](./exec.md)
+* [`container`](./container.md)
+* [`conftest`](./conftest.md)
+* [`hadolint`](./hadolint.md)
+* [`helm`](./helm.md)
+* [`kubernetes`](./kubernetes.md)
+* [`maven-container`](./maven-container.md)
+* [`openfaas`](./openfaas.md)
+* [`terraform`](./terraform.md)

@@ -1,8 +1,11 @@
 ---
-title: terraform
+title: "`terraform` Module Type"
+tocTitle: "`terraform`"
 ---
 
 # `terraform` Module Type
+
+## Description
 
 Resolves a Terraform stack and either applies it automatically (if `autoApply: true`) or errors when the stack
 resources are not up-to-date.

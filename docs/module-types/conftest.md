@@ -1,8 +1,11 @@
 ---
-title: conftest
+title: "`conftest` Module Type"
+tocTitle: "`conftest`"
 ---
 
 # `conftest` Module Type
+
+## Description
 
 Creates a test that runs `conftest` on the specified files, with the specified (or default) policy and
 namespace.
