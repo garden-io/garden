@@ -1,8 +1,11 @@
 ---
-title: openfaas
+title: "`openfaas` Provider"
+tocTitle: "`openfaas`"
 ---
 
 # `openfaas` Provider
+
+## Description
 
 This provider adds support for [OpenFaaS](https://www.openfaas.com/). It adds the [`openfaas` module type](https://docs.garden.io/module-types/openfaas) and (by default) installs the `faas-netes` runtime to the project namespace. Each `openfaas` module maps to a single OpenFaaS function.
 

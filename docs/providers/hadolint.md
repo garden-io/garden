@@ -1,8 +1,11 @@
 ---
-title: hadolint
+title: "`hadolint` Provider"
+tocTitle: "`hadolint`"
 ---
 
 # `hadolint` Provider
+
+## Description
 
 This provider creates a [`hadolint`](https://docs.garden.io/module-types/hadolint) module type, and (by default) generates one
 such module for each `container` module that contains a Dockerfile in your project. Each module creates a single

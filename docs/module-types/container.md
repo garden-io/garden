@@ -1,8 +1,11 @@
 ---
-title: container
+title: "`container` Module Type"
+tocTitle: "`container`"
 ---
 
 # `container` Module Type
+
+## Description
 
 Specify a container image to build or pull from a remote registry.
 You may also optionally specify services to deploy, tasks or tests to run inside the container.

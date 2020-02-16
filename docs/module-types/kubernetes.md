@@ -1,8 +1,11 @@
 ---
-title: kubernetes
+title: "`kubernetes` Module Type"
+tocTitle: "`kubernetes`"
 ---
 
 # `kubernetes` Module Type
+
+## Description
 
 Specify one or more Kubernetes manifests to deploy.
 

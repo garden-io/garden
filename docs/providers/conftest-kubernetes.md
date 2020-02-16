@@ -1,8 +1,11 @@
 ---
-title: conftest-kubernetes
+title: "`conftest-kubernetes` Provider"
+tocTitle: "`conftest-kubernetes`"
 ---
 
 # `conftest-kubernetes` Provider
+
+## Description
 
 This provider automatically generates [conftest modules](https://docs.garden.io/module-types/conftest) for `kubernetes` and
 `helm` modules in your project. A `conftest` module is created for each of those module types.

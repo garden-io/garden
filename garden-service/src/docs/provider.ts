@@ -58,6 +58,6 @@ export function renderProviderReference(name: string, plugin: GardenPlugin, allP
     })
 
   const template = handlebars.compile(readFileSync(providerTemplatePath).toString())
-  const frontmatterTitle = name
+  const frontmatterTitle = `\`${name}\` Provider`
   return template({ name, docs, frontmatterTitle, markdownReference, yaml, moduleOutputsReference })
 }

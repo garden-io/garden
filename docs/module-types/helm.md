@@ -1,8 +1,11 @@
 ---
-title: helm
+title: "`helm` Module Type"
+tocTitle: "`helm`"
 ---
 
 # `helm` Module Type
+
+## Description
 
 Specify a Helm chart (either in your repository or remote from a registry) to deploy.
 Refer to the [Helm guide](https://docs.garden.io/guides/using-helm-charts) for usage instructions.

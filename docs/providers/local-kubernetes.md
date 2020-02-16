@@ -1,8 +1,11 @@
 ---
-title: local-kubernetes
+title: "`local-kubernetes` Provider"
+tocTitle: "`local-kubernetes`"
 ---
 
 # `local-kubernetes` Provider
+
+## Description
 
 The `local-kubernetes` provider is a specialized version of the [`kubernetes` provider](https://docs.garden.io/providers/kubernetes) that
 automates and simplifies working with local Kubernetes clusters.
