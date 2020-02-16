@@ -135,11 +135,11 @@ export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<Ru
     timeout,
   })
 
-  const result = {
+  const result: RunTaskResult = {
     ...res,
     taskName: task.name,
     outputs: {
-      log: res.output || "",
+      log: res.log || "",
     },
   }
 

@@ -81,8 +81,6 @@ export interface RunResult {
   startedAt: Date
   completedAt: Date
   log: string
-  // DEPRECATED
-  output?: string
 }
 
 export const runResultSchema = joi
@@ -113,10 +111,6 @@ export const runResultSchema = joi
       .allow("")
       .default("")
       .description("The output log from the run."),
-    output: joi
-      .string()
-      .allow("")
-      .description("[DEPRECATED - use `log` instead] The output log from the run."),
   })
 
 export const artifactsPathSchema = joi

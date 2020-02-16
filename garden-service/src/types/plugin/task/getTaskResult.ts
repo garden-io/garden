@@ -49,10 +49,6 @@ export const taskResultSchema = joi
       .required()
       .allow("")
       .description("The output log from the run."),
-    output: joi
-      .string()
-      .allow("")
-      .description("[DEPRECATED - use `log` instead] The output log from the run."),
     outputs: joi
       .object()
       .pattern(/.+/, joiPrimitive())

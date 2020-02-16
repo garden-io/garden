@@ -197,6 +197,9 @@ describe("exec plugin", () => {
 
     // Task A echoes "task-a-output" and Task B echoes the output from Task A
     expect(results["task.task-b"]).to.exist
+    expect(results["task.task-b"]).to.have.property("output")
+    expect(results["task.task-b"]!.output.log).to.equal("task-a-output")
+    expect(results["task.task-b"]!.output).to.have.property("outputs")
     expect(results["task.task-b"]!.output.outputs.log).to.equal("task-a-output")
   })
 
