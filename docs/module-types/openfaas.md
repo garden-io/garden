@@ -1,8 +1,11 @@
 ---
-title: openfaas
+title: "`openfaas` Module Type"
+tocTitle: "`openfaas`"
 ---
 
 # `openfaas` Module Type
+
+## Description
 
 Deploy a [OpenFaaS](https://www.openfaas.com/) function using Garden. Requires the `openfaas` provider
 to be configured.

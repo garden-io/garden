@@ -123,9 +123,7 @@ export class GardenServer {
 
       await this.analytics.trackApi("POST", ctx.originalUrl, { ...ctx.request.body })
 
-      // TODO: set response code when errors are in result object?
       const result = await resolveRequest(ctx, this.garden, this.log, commands, ctx.request.body)
-
       ctx.status = 200
       ctx.response.body = result
     })
@@ -133,6 +131,9 @@ export class GardenServer {
     app.use(bodyParser())
     app.use(http.routes())
     app.use(http.allowedMethods())
+    app.on("error", (err) => {
+      this.log.info(`API server request failed with status ${err.status}: ${err.message}`)
+    })
 
     // This enables navigating straight to a nested route, e.g. "localhost:<PORT>/graph".
     // FIXME: We need to be able to do this for any route, instead of hard coding the routes like this.

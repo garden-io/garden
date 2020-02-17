@@ -79,6 +79,7 @@ export async function resolveRequest(
   const optParams = extend({ ...GLOBAL_OPTIONS, ...command.options })
   const cmdOpts = mapParams(ctx, request.parameters, optParams)
 
+  // TODO: validate result schema
   return command.action({
     garden,
     log: cmdLog,
@@ -87,7 +88,6 @@ export async function resolveRequest(
     args: cmdArgs,
     opts: cmdOpts,
   })
-  // TODO: validate result schema
 }
 
 export async function prepareCommands(): Promise<CommandMap> {

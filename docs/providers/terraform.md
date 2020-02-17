@@ -1,8 +1,11 @@
 ---
-title: terraform
+title: "`terraform` Provider"
+tocTitle: "`terraform`"
 ---
 
 # `terraform` Provider
+
+## Description
 
 This provider allows you to integrate Terraform stacks into your Garden project.
 See the [Terraform guide](https://docs.garden.io/guides/terraform) for details and usage information.

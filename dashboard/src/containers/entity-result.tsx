@@ -7,7 +7,7 @@
  */
 
 import React, { useEffect } from "react"
-import { useApi } from "../contexts/api"
+import { useApi, Entities } from "../contexts/api"
 import { getDuration, getTestKey } from "../util/helpers"
 import EntityResult from "../components/entity-result"
 import { ErrorNotification } from "../components/notifications"
@@ -22,7 +22,7 @@ const ErrorMsg = ({ error, type }) => (
   </ErrorNotification>
 )
 
-function prepareData(data: GetTaskResultCommandResult | GetTestResultCommandResult) {
+function prepareData(data?: GetTaskResultCommandResult | GetTestResultCommandResult) {
   if (!data) {
     return {}
   }
@@ -47,6 +47,33 @@ interface Props {
   onClose: () => void
 }
 
+function isEntityDisabled({
+  name,
+  type,
+  moduleName,
+  entities,
+}: {
+  name: string
+  type: EntityResultSupportedTypes
+  moduleName: string
+  entities: Entities
+}) {
+  if (type === "test") {
+    const testKey = getTestKey({ moduleName, testName: name })
+    const test = entities.tests[testKey]
+    return test.config.disabled || test.config.moduleDisabled
+  } else if (type === "task" || type === "run") {
+    const task = entities.tasks[name]
+    return task.config.disabled || task.config.moduleDisabled
+  } else if (type === "deploy") {
+    const service = entities.services[name]
+    return service.config.disabled || service.config.moduleDisabled
+  } else {
+    const module = entities.modules[name]
+    return module.disabled
+  }
+}
+
 /**
  * Returns the InfoPane for a given node type.
  *
@@ -57,10 +84,13 @@ export default ({ name, moduleName, type, onClose }: Props) => {
     dispatch,
     store: { entities, requestStates },
   } = useApi()
-
   const { tasks, tests } = entities
+  const disabled = isEntityDisabled({ name, moduleName, type, entities })
 
   const loadResults = () => {
+    if (disabled) {
+      return
+    }
     if (type === "test") {
       loadTestResult({ dispatch, name, moduleName })
     } else if (type === "run" || type === "task") {
@@ -68,19 +98,21 @@ export default ({ name, moduleName, type, onClose }: Props) => {
     }
   }
 
-  useEffect(loadResults, [name, moduleName])
+  useEffect(loadResults, [name, moduleName, disabled])
+
+  if (disabled) {
+    return null
+  }
 
   if (type === "test") {
     const testKey = getTestKey({ moduleName, testName: name })
-
     const test = tests[testKey]
-    const testResult = test.result
 
     if (requestStates.testResult.error) {
       return <ErrorMsg error={requestStates.testResult.error} type={type} />
     }
 
-    const results = prepareData(testResult)
+    const results = prepareData(test.result)
 
     return (
       <EntityResult

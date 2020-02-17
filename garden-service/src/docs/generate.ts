@@ -13,7 +13,7 @@ import { writeTemplateStringReferenceDocs } from "./template-strings"
 import { writeTableOfContents } from "./table-of-contents"
 import { Garden } from "../garden"
 import { defaultDotIgnoreFiles } from "../util/fs"
-import { keyBy, startCase } from "lodash"
+import { keyBy } from "lodash"
 import { writeFileSync } from "fs-extra"
 import { renderModuleTypeReference, moduleTypes } from "./module-type"
 import { renderProviderReference } from "./provider"
@@ -83,7 +83,7 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
     console.log("->", path)
     writeFileSync(path, renderProviderReference(name, plugin, pluginsByName))
 
-    providersReadme.push(`* [${name}](./${name}.md)`)
+    providersReadme.push(`* [\`${name}\`](./${name}.md)`)
   }
   writeFileSync(resolve(providerDir, `README.md`), providersReadme.join("\n"))
 
@@ -94,12 +94,11 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
 
   for (const { name } of moduleTypes) {
     const path = resolve(moduleTypeDir, `${name}.md`)
-    const desc = moduleTypeDefinitions[name]
 
     console.log("->", path)
     writeFileSync(path, renderModuleTypeReference(name, moduleTypeDefinitions))
 
-    readme.push(`* [${desc.title || startCase(name.replace("-", " "))}](./${name}.md)`)
+    readme.push(`* [\`${name}\`](./${name}.md)`)
   }
 
   writeFileSync(resolve(moduleTypeDir, `README.md`), readme.join("\n"))

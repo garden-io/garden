@@ -1,8 +1,11 @@
 ---
-title: maven-container
+title: "`maven-container` Provider"
+tocTitle: "`maven-container`"
 ---
 
 # `maven-container` Provider
+
+## Description
 
 Adds the [maven-container module type](https://docs.garden.io/module-types/maven-container), which is a specialized version of the
 `container` module type that has special semantics for building JAR files using Maven.

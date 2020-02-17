@@ -1,8 +1,11 @@
 ---
-title: hadolint
+title: "`hadolint` Module Type"
+tocTitle: "`hadolint`"
 ---
 
 # `hadolint` Module Type
+
+## Description
 
 Runs `hadolint` on the specified Dockerfile.
 

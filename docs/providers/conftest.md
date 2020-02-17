@@ -1,8 +1,11 @@
 ---
-title: conftest
+title: "`conftest` Provider"
+tocTitle: "`conftest`"
 ---
 
 # `conftest` Provider
+
+## Description
 
 This provider allows you to validate your configuration files against policies that you specify, using the [conftest tool](https://github.com/instrumenta/conftest) and Open Policy Agent rego query files. The provider creates a module type of the same name, which allows you to specify files to validate. Each module then creates a Garden test that becomes part of your Stack Graph.
 

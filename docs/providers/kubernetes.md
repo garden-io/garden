@@ -1,8 +1,11 @@
 ---
-title: kubernetes
+title: "`kubernetes` Provider"
+tocTitle: "`kubernetes`"
 ---
 
 # `kubernetes` Provider
+
+## Description
 
 The `kubernetes` provider allows you to deploy [`container` modules](https://docs.garden.io/module-types/container) to
 Kubernetes clusters, and adds the [`helm`](https://docs.garden.io/module-types/helm) and
