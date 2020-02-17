@@ -32,7 +32,7 @@ export async function resolveProjectOutputs(garden: Garden, log: LogEntry): Prom
   let needServices: string[] = []
   let needTasks: string[] = []
 
-  const templateRefs = await collectTemplateReferences(garden.rawOutputs)
+  const templateRefs = collectTemplateReferences(garden.rawOutputs)
 
   if (templateRefs.length === 0) {
     // Nothing to resolve
@@ -62,7 +62,14 @@ export async function resolveProjectOutputs(garden: Garden, log: LogEntry): Prom
     // No need to resolve any entities
     return resolveTemplateStrings(
       garden.rawOutputs,
-      new OutputConfigContext(garden, [], garden.variables, [], emptyRuntimeContext)
+      new OutputConfigContext({
+        garden,
+        resolvedProviders: [],
+        variables: garden.variables,
+        secrets: garden.secrets,
+        modules: [],
+        runtimeContext: emptyRuntimeContext,
+      })
     )
   }
 

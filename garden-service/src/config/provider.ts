@@ -110,7 +110,7 @@ export async function getAllProviderDependencyNames(plugin: GardenPlugin, config
  * Given a provider config, return implicit dependencies based on template strings.
  */
 export async function getProviderTemplateReferences(config: ProviderConfig) {
-  const references = await collectTemplateReferences(config)
+  const references = collectTemplateReferences(config)
   const deps: string[] = []
 
   for (const key of references) {

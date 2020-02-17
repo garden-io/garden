@@ -1261,6 +1261,33 @@ describe("Garden", () => {
     })
   })
 
+  describe("getConfigGraph", () => {
+    it("should throw an error if references to missing secrets are present in a module config", async () => {
+      const garden = await makeTestGardenA()
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          name: "module-a",
+          type: "test",
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          outputs: {},
+          path: pathFoo,
+          serviceConfigs: [],
+          taskConfigs: [],
+          testConfigs: [],
+          spec: { bla: "${secrets.missing}" }, // <-------
+        },
+      ])
+
+      await expectError(
+        () => garden.getConfigGraph(garden.log),
+        (err) => expect(err.message).to.match(/Module module-a: missing/)
+      )
+    })
+  })
+
   describe("resolveProviders", () => {
     it("should throw when plugins are missing", async () => {
       const garden = await TestGarden.factory(projectRootA)
@@ -1400,6 +1427,30 @@ describe("Garden", () => {
 
       const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins: [test] })
       await expectError(() => garden.resolveProviders())
+    })
+
+    it("should throw if providers reference missing secrets in template strings", async () => {
+      const test = createGardenPlugin({
+        name: "test",
+      })
+
+      const projectConfig: ProjectConfig = {
+        apiVersion: "garden.io/v0",
+        kind: "Project",
+        name: "test",
+        path: projectRootA,
+        defaultEnvironment: "default",
+        dotIgnoreFiles: defaultDotIgnoreFiles,
+        environments: [{ name: "default", variables: {} }],
+        providers: [{ name: "test", foo: "${secrets.missing}" }], // < ------
+        variables: {},
+      }
+
+      const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins: [test] })
+      await expectError(
+        () => garden.resolveProviders(),
+        (err) => expect(err.message).to.match(/Provider test: missing/)
+      )
     })
 
     it("should add plugin modules if returned by the provider", async () => {
@@ -2158,7 +2209,7 @@ describe("Garden", () => {
       expect(module.allowPublish).to.equal(false)
     })
 
-    it("should correctly resolve template strings referencing nested variable", async () => {
+    it("should correctly resolve template strings referencing nested variables", async () => {
       const test = createGardenPlugin({
         name: "test",
         createModuleTypes: [
