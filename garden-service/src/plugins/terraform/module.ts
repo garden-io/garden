@@ -66,7 +66,7 @@ export async function configureTerraformModule({ ctx, moduleConfig }: ConfigureM
   // Make sure the configured root path exists
   const root = moduleConfig.spec.root
   if (root) {
-    const absRoot = join(ctx.projectRoot, root)
+    const absRoot = join(moduleConfig.path, root)
     const exists = await pathExists(absRoot)
 
     if (!exists) {
