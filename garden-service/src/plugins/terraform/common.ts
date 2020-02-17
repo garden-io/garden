@@ -50,7 +50,7 @@ export async function tfValidate(log: LogEntry, provider: TerraformProvider, roo
 
     if (reasons.includes("Could not satisfy plugin requirements") || reasons.includes("Module not installed")) {
       // We need to run `terraform init` and retry validation
-      log.info("Initializing Terraform")
+      log.debug("Initializing Terraform")
       await terraform(tfVersion).exec({ log, args: ["init"], cwd: root, timeout: 300 })
 
       const retryRes = await terraform(tfVersion).json({
@@ -107,6 +107,8 @@ export async function getStackStatus({ log, provider, autoApply, root, variables
   await tfValidate(log, provider, root, variables)
   const tfVersion = provider.config.version
 
+  const logEntry = log.info({ section: "terraform", msg: "Running plan...", status: "active" })
+
   const plan = await terraform(tfVersion).exec({
     log,
     ignoreError: true,
@@ -117,23 +119,27 @@ export async function getStackStatus({ log, provider, autoApply, root, variables
   if (plan.exitCode === 0) {
     // Stack is up-to-date
     const outputs = await getTfOutputs(log, tfVersion, root)
+    logEntry.setSuccess({ msg: chalk.green("Stack up-to-date"), append: true })
     return { ready: true, outputs }
   } else if (plan.exitCode === 1) {
     // Error from terraform. This can, for example, happen if variables are missing or there are errors in the tf files.
+    logEntry.setError()
     throw new ConfigurationError(`terraform plan returned an error:\n${plan.stderr}`, {
       output: plan.stderr,
     })
   } else if (plan.exitCode === 2) {
     // No error but stack is not up-to-date
+    logEntry.setWarn({ msg: "Not up-to-date" })
     if (autoApply) {
       // Trigger the prepareEnvironment handler
       return { ready: false, outputs: {} }
     } else {
-      log.warn(noAutoApplyMsg)
+      logEntry.warn(noAutoApplyMsg)
       const outputs = await getTfOutputs(log, tfVersion, root)
       return { ready: true, outputs }
     }
   } else {
+    logEntry.setError()
     throw new PluginError(`Unexpected exit code from \`terraform plan\`: ${plan.exitCode}`, {
       exitCode: plan.exitCode,
       stderr: plan.stderr,
@@ -170,7 +176,7 @@ export async function applyStack(log: LogEntry, provider: TerraformProvider, roo
   }
 
   logStream.on("data", (line: Buffer) => {
-    statusLine.setState(chalk.gray("→ ") + line.toString())
+    statusLine.setState(chalk.gray("→ " + line.toString()))
   })
 
   await new Promise((_resolve, reject) => {
