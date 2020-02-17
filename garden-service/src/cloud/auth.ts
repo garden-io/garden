@@ -28,7 +28,6 @@ export const makeAuthHeader = (clientAuthToken: string) => ({ "x-access-auth-tok
  */
 export async function login(cloudDomain: string, log: LogEntry): Promise<string> {
   const savedToken = await readAuthToken(log)
-
   // Ping platform with saved token (if it exists)
   if (savedToken) {
     log.debug("Local client auth token found, verifying it with platform...")

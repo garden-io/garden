@@ -7,7 +7,12 @@
  */
 
 import { expect } from "chai"
-import { resolveTemplateString, resolveTemplateStrings, collectTemplateReferences } from "../../../src/template-string"
+import {
+  resolveTemplateString,
+  resolveTemplateStrings,
+  collectTemplateReferences,
+  throwOnMissingSecretKeys,
+} from "../../../src/template-string"
 import { ConfigContext } from "../../../src/config/config-context"
 import { expectError } from "../../helpers"
 import stripAnsi = require("strip-ansi")
@@ -616,6 +621,52 @@ describe("collectTemplateReferences", () => {
       },
     }
 
-    expect(await collectTemplateReferences(obj)).to.eql([["banana", "rama", "llama"], ["moo"], ["my", "reference"]])
+    expect(collectTemplateReferences(obj)).to.eql([["banana", "rama", "llama"], ["moo"], ["my", "reference"]])
+  })
+})
+
+describe("throwOnMissingSecretKeys", () => {
+  it("should not throw an error if no secrets are referenced", () => {
+    const configs = {
+      foo: {
+        foo: "${banana.llama}",
+        nested: { boo: "${moo}" },
+      },
+    }
+
+    throwOnMissingSecretKeys(configs, {}, "Module")
+    throwOnMissingSecretKeys(configs, { someSecret: "123" }, "Module")
+  })
+
+  it("should throw an error if one or more secrets is missing", async () => {
+    const configs = {
+      moduleA: {
+        foo: "${secrets.a}",
+        nested: { boo: "${secrets.b}" },
+      },
+      moduleB: {
+        bar: "${secrets.a}",
+        nested: { boo: "${secrets.b}" },
+        baz: "${secrets.c}",
+      },
+    }
+
+    await expectError(
+      () => throwOnMissingSecretKeys(configs, { b: "123" }, "Module"),
+      (err) => {
+        expect(err.message).to.match(/Module moduleA: a/)
+        expect(err.message).to.match(/Module moduleB: a, c/)
+        expect(err.message).to.match(/Secret keys with loaded values: b/)
+      }
+    )
+
+    await expectError(
+      () => throwOnMissingSecretKeys(configs, {}, "Module"),
+      (err) => {
+        expect(err.message).to.match(/Module moduleA: a, b/)
+        expect(err.message).to.match(/Module moduleB: a, b, c/)
+        expect(err.message).to.match(/Note: No secrets have been loaded./)
+      }
+    )
   })
 })

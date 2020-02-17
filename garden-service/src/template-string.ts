@@ -10,9 +10,10 @@ import lodash from "lodash"
 import { deepMap } from "./util/util"
 import { GardenBaseError, ConfigurationError } from "./exceptions"
 import { ConfigContext, ContextResolveOpts, ScanContext, ContextResolveOutput } from "./config/config-context"
-import { uniq, isPlainObject, isNumber } from "lodash"
-import { Primitive } from "./config/common"
+import { difference, flatten, uniq, isPlainObject, isNumber } from "lodash"
+import { Primitive, StringMap } from "./config/common"
 import { profile } from "./util/profiling"
+import { dedent, deline } from "./util/string"
 
 export type StringOrStringPromise = Promise<string> | string
 
@@ -129,6 +130,78 @@ export function getRuntimeTemplateReferences<T extends object>(obj: T) {
 export function getModuleTemplateReferences<T extends object>(obj: T) {
   const refs = collectTemplateReferences(obj)
   return refs.filter((ref) => ref[0] === "modules" && ref.length > 1)
+}
+
+/**
+ * Gathers secret references in configs and throws an error if one or more referenced secrets isn't present (or has
+ * blank values) in the provided secrets map.
+ *
+ * Prefix should be e.g. "Module" or "Provider" (used when generating error messages).
+ */
+export function throwOnMissingSecretKeys<T extends Object>(
+  configs: { [key: string]: T },
+  secrets: StringMap,
+  prefix: string
+) {
+  const allMissing: [string, string[]][] = [] // [[key, missing keys]]
+  for (const [key, config] of Object.entries(configs)) {
+    const missing = detectMissingSecretKeys(config, secrets)
+    if (missing.length > 0) {
+      allMissing.push([key, missing])
+    }
+  }
+
+  if (allMissing.length === 0) {
+    return
+  }
+
+  const descriptions = allMissing.map(([key, missing]) => `${prefix} ${key}: ${missing.join(", ")}`)
+  /**
+   * Secret keys with empty values should have resulted in an error by this point, but we filter on keys with
+   * values for good measure.
+   */
+  const loadedKeys = Object.entries(secrets)
+    .filter(([_key, value]) => value)
+    .map(([key, _value]) => key)
+  let footer
+  if (loadedKeys.length === 0) {
+    footer = deline`
+      Note: No secrets have been loaded. If you have defined secrets for the current project and environment in Garden
+      Cloud, this may indicate a problem with your configuration.
+    `
+  } else {
+    footer = `Secret keys with loaded values: ${loadedKeys.join(", ")}`
+  }
+  const errMsg = dedent`
+    The following secret names were referenced in configuration, but are missing from the secrets loaded remotely:
+
+    ${descriptions.join("\n\n")}
+
+    ${footer}
+  `
+  throw new ConfigurationError(errMsg, {
+    loadedSecretKeys: loadedKeys,
+    missingSecretKeys: uniq(flatten(allMissing.map(([_key, missing]) => missing))),
+  })
+}
+
+/**
+ * Collects template references to secrets in obj, and returns an array of any secret keys referenced in it that
+ * aren't present (or have blank values) in the provided secrets map.
+ */
+export function detectMissingSecretKeys<T extends object>(obj: T, secrets: StringMap): string[] {
+  const referencedKeys = collectTemplateReferences(obj)
+    .filter((ref) => ref[0] === "secrets")
+    .map((ref) => ref[1])
+  /**
+   * Secret keys with empty values should have resulted in an error by this point, but we filter on keys with
+   * values for good measure.
+   */
+  const keysWithValues = Object.entries(secrets)
+    .filter(([_key, value]) => value)
+    .map(([key, _value]) => key)
+  const missingKeys = difference(referencedKeys, keysWithValues)
+  return missingKeys.sort()
 }
 
 function buildBinaryExpression(head: any, tail: any) {
