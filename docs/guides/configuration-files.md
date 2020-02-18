@@ -252,7 +252,7 @@ kind: Module
 description: postgres container
 type: container
 name: postgres
-image: postgres:9.4
+image: postgres:11.7
 services:
   - name: postgres
     ...

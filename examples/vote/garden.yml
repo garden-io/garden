@@ -22,3 +22,8 @@ providers:
     buildMode: cluster-docker
     clusterDocker:
       enableBuildKit: true
+variables:
+  postgres-database: postgres
+  # Only use for testing!
+  postgres-username: postgres
+  postgres-password: test-password

@@ -254,7 +254,7 @@ describe("PreReleaseTests", () => {
 
         const testSteps = [
           waitingForChangesStep(),
-          changeFileStep(resolve(projectPath, "services/api/app.py"), "change services/api/app.py"),
+          changeFileStep(resolve(projectPath, "api/app.py"), "change api/app.py"),
           taskCompletedStep("build.api", 2),
           taskCompletedStep("deploy.api", 2),
           taskCompletedStep("deploy.vote", 2),
