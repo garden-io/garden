@@ -331,6 +331,15 @@ Just try it.
 
     garden get eysi 
 
+### garden get linked-repos
+
+Outputs a list of all linked remote sources and modules for this project.
+
+
+##### Usage
+
+    garden get linked-repos 
+
 ### garden get outputs
 
 Resolves and returns the outputs of the project.
