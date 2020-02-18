@@ -7,3 +7,7 @@ services:
     dependencies:
       - redis
       - db-init
+    env:
+      PGDATABASE: ${var.postgres-database}
+      PGUSER: ${var.postgres-username}
+      PGPASSWORD: ${var.postgres-password}

@@ -102,7 +102,7 @@ kind: Module
 name: backend
 description: Postgres DB container
 type: container
-image: postgres:11.4-alpine
+image: postgres:11.7-alpine
 ```
 
 ## Advanced
@@ -117,7 +117,7 @@ name: backend
 description: Postgres DB container
 type: container
 disabled: ${environment.name == "prod"}
-image: postgres:11.4-alpine
+image: postgres:11.7-alpine
 ```
 
 Disabling a module disables all services, tasks and tests defined in the module.
