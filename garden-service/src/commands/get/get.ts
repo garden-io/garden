@@ -16,6 +16,7 @@ import { GetTasksCommand } from "./get-tasks"
 import { GetTaskResultCommand } from "./get-task-result"
 import { GetTestResultCommand } from "./get-test-result"
 import { GetDebugInfoCommand } from "./get-debug-info"
+import { GetRemoteSourcesCommand } from "./get-remote-sources"
 import { GetOutputsCommand } from "./get-outputs"
 
 export class GetCommand extends Command {
@@ -26,6 +27,7 @@ export class GetCommand extends Command {
     GetGraphCommand,
     GetConfigCommand,
     GetEysiCommand,
+    GetRemoteSourcesCommand,
     GetOutputsCommand,
     GetSecretCommand,
     GetStatusCommand,
