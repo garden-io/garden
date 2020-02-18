@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useContext } from "react"
+import produce from "immer"
 import { ServiceIngress } from "garden-service/build/src/types/service"
 import { DependencyGraphNodeType } from "garden-service/build/src/config-graph"
 import { PickFromUnion } from "garden-service/build/src/util/util"
@@ -106,90 +107,81 @@ const useUiStateProvider = () => {
   const [uiState, setState] = useState<UiState>(INITIAL_UI_STATE)
 
   const toggleSidebar = () => {
-    setState({
-      ...uiState,
-      isSidebarOpen: !uiState.isSidebarOpen,
-    })
+    setState(
+      produce(uiState, (draft) => {
+        draft.isSidebarOpen = !uiState.isSidebarOpen
+      })
+    )
   }
 
   const overviewToggleItemsView = (filterKey: OverviewSupportedFilterKeys) => {
-    setState({
-      ...uiState,
-      overview: {
-        ...uiState.overview,
-        filters: {
-          ...uiState.overview.filters,
-          [filterKey]: !uiState.overview.filters[filterKey],
-        },
-      },
-    })
+    setState(
+      produce(uiState, (draft) => {
+        draft.overview.filters[filterKey] = !uiState.overview.filters[filterKey]
+      })
+    )
   }
 
   const stackGraphToggleItemsView = (filterKey: StackGraphSupportedFilterKeys) => {
-    setState({
-      ...uiState,
-      stackGraph: {
-        ...uiState.stackGraph,
-        filters: {
-          ...uiState.stackGraph.filters,
-          [filterKey]: !uiState.stackGraph.filters[filterKey],
-        },
-      },
-    })
+    setState(
+      produce(uiState, (draft) => {
+        draft.stackGraph.filters[filterKey] = !uiState.stackGraph.filters[filterKey]
+      })
+    )
   }
 
   const selectGraphNode = (node: string) => {
-    setState({
-      ...uiState,
-      selectedGraphNode: node,
-    })
+    setState(
+      produce(uiState, (draft) => {
+        draft.selectedGraphNode = node
+      })
+    )
   }
   const selectIngress = (ingress: ServiceIngress | null) => {
-    setState({
-      ...uiState,
-      overview: {
-        ...uiState.overview,
-        selectedIngress: ingress,
-      },
-    })
+    setState(
+      produce(uiState, (draft) => {
+        draft.overview.selectedIngress = ingress
+      })
+    )
   }
 
   const selectEntity = (selectedEntity: SelectedEntity | null) => {
-    setState({
-      ...uiState,
-      overview: {
-        ...uiState.overview,
-        selectedIngress: null,
-        selectedEntity,
-      },
-    })
+    setState(
+      produce(uiState, (draft) => {
+        draft.overview.selectedIngress = null
+        draft.overview.selectedEntity = selectedEntity
+      })
+    )
   }
 
   const clearGraphNodeSelection = () => {
-    setState({
-      ...uiState,
-      selectedGraphNode: null,
-    })
+    setState(
+      produce(uiState, (draft) => {
+        draft.selectedGraphNode = null
+      })
+    )
   }
 
   const showModal = (content: React.ReactNode) => {
-    setState({
-      ...uiState,
-      modal: {
-        content,
-        visible: true,
-      },
-    })
+    setState(
+      produce(uiState, (draft) => {
+        draft.modal = {
+          content,
+          visible: true,
+        }
+      })
+    )
   }
 
   const hideModal = () => {
-    setState({
-      ...uiState,
-      modal: {
-        content: null,
-        visible: false,
-      },
-    })
+    setState(
+      produce(uiState, (draft) => {
+        draft.modal = {
+          content: null,
+          visible: false,
+        }
+      })
+    )
   }
 
   return {

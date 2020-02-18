@@ -59,18 +59,20 @@ export async function runKubernetesTask(params: RunTaskParams<KubernetesModule>)
     ...res,
     taskName: task.name,
     outputs: {
-      log: res.output || "",
+      log: res.log || "",
     },
   }
 
-  await storeTaskResult({
-    ctx,
-    log,
-    module,
-    result,
-    taskVersion,
-    taskName: task.name,
-  })
+  if (task.config.cacheResult) {
+    await storeTaskResult({
+      ctx,
+      log,
+      module,
+      result,
+      taskVersion,
+      taskName: task.name,
+    })
+  }
 
   return result
 }

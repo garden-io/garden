@@ -13,7 +13,7 @@ Note that there are four sections below, since different configuration sections 
 The following keys are available in any template strings within project definitions in `garden.yml` config files (see the [Provider](#provider-configuration-context) section below for additional keys available when configuring `providers`):
 
 
-#### `${local.*}`
+### `${local.*}`
 
 Context variables that are specific to the currently running environment/machine.
 
@@ -21,7 +21,7 @@ Context variables that are specific to the currently running environment/machine
 | -------- |
 | `object` |
 
-#### `${local.artifactsPath}`
+### `${local.artifactsPath}`
 
 The absolute path to the directory where exported artifacts from test and task runs are stored.
 
@@ -35,7 +35,7 @@ Example:
 my-variable: ${local.artifactsPath}
 ```
 
-#### `${local.env.*}`
+### `${local.env.*}`
 
 A map of all local environment variables (see https://nodejs.org/api/process.html#process_process_env).
 
@@ -43,7 +43,7 @@ A map of all local environment variables (see https://nodejs.org/api/process.htm
 | -------- |
 | `object` |
 
-#### `${local.env.<env-var-name>}`
+### `${local.env.<env-var-name>}`
 
 The environment variable value.
 
@@ -51,7 +51,7 @@ The environment variable value.
 | -------- |
 | `string` |
 
-#### `${local.platform}`
+### `${local.platform}`
 
 A string indicating the platform that the framework is running on (see https://nodejs.org/api/process.html#process_process_platform)
 
@@ -65,7 +65,7 @@ Example:
 my-variable: ${local.platform}
 ```
 
-#### `${local.username}`
+### `${local.username}`
 
 The current username (as resolved by https://github.com/sindresorhus/username)
 
@@ -87,7 +87,7 @@ The following keys are available in template strings under the `providers` key 
 Providers can also reference outputs defined by other providers, via the `${providers.<provider-name>.outputs}` key. For details on which outputs are available for a given provider, please refer to the [reference](https://docs.garden.io/providers) docs for the provider in question, and look for the _Outputs_ section.
 
 
-#### `${local.*}`
+### `${local.*}`
 
 Context variables that are specific to the currently running environment/machine.
 
@@ -95,7 +95,7 @@ Context variables that are specific to the currently running environment/machine
 | -------- |
 | `object` |
 
-#### `${local.artifactsPath}`
+### `${local.artifactsPath}`
 
 The absolute path to the directory where exported artifacts from test and task runs are stored.
 
@@ -109,7 +109,7 @@ Example:
 my-variable: ${local.artifactsPath}
 ```
 
-#### `${local.env.*}`
+### `${local.env.*}`
 
 A map of all local environment variables (see https://nodejs.org/api/process.html#process_process_env).
 
@@ -117,7 +117,7 @@ A map of all local environment variables (see https://nodejs.org/api/process.htm
 | -------- |
 | `object` |
 
-#### `${local.env.<env-var-name>}`
+### `${local.env.<env-var-name>}`
 
 The environment variable value.
 
@@ -125,7 +125,7 @@ The environment variable value.
 | -------- |
 | `string` |
 
-#### `${local.platform}`
+### `${local.platform}`
 
 A string indicating the platform that the framework is running on (see https://nodejs.org/api/process.html#process_process_platform)
 
@@ -139,7 +139,7 @@ Example:
 my-variable: ${local.platform}
 ```
 
-#### `${local.username}`
+### `${local.username}`
 
 The current username (as resolved by https://github.com/sindresorhus/username)
 
@@ -153,7 +153,7 @@ Example:
 my-variable: ${local.username}
 ```
 
-#### `${environment.*}`
+### `${environment.*}`
 
 Information about the environment that Garden is running against.
 
@@ -161,7 +161,7 @@ Information about the environment that Garden is running against.
 | -------- |
 | `object` |
 
-#### `${environment.name}`
+### `${environment.name}`
 
 The name of the environment Garden is running against.
 
@@ -175,7 +175,7 @@ Example:
 my-variable: ${environment.name}
 ```
 
-#### `${project.*}`
+### `${project.*}`
 
 Information about the Garden project.
 
@@ -183,7 +183,7 @@ Information about the Garden project.
 | -------- |
 | `object` |
 
-#### `${project.name}`
+### `${project.name}`
 
 The name of the Garden project.
 
@@ -197,7 +197,7 @@ Example:
 my-variable: ${project.name}
 ```
 
-#### `${providers.*}`
+### `${providers.*}`
 
 Retrieve information about providers that are defined in the project.
 
@@ -205,7 +205,7 @@ Retrieve information about providers that are defined in the project.
 | -------- | ------- |
 | `object` | `{}`    |
 
-#### `${providers.<provider-name>.config.*}`
+### `${providers.<provider-name>.config.*}`
 
 The resolved configuration for the provider.
 
@@ -213,7 +213,7 @@ The resolved configuration for the provider.
 | -------- |
 | `object` |
 
-#### `${providers.<provider-name>.config.<config-key>}`
+### `${providers.<provider-name>.config.<config-key>}`
 
 The provider config key value. Refer to individual [provider references](https://docs.garden.io/providers) for details.
 
@@ -221,7 +221,7 @@ The provider config key value. Refer to individual [provider references](https:/
 | --------------------------- |
 | `number | string | boolean` |
 
-#### `${providers.<provider-name>.outputs.*}`
+### `${providers.<provider-name>.outputs.*}`
 
 The outputs defined by the provider (see individual plugin docs for details).
 
@@ -229,7 +229,7 @@ The outputs defined by the provider (see individual plugin docs for details).
 | -------- | ------- |
 | `object` | `{}`    |
 
-#### `${providers.<provider-name>.outputs.<output-key>}`
+### `${providers.<provider-name>.outputs.<output-key>}`
 
 The provider output value. Refer to individual [provider references](https://docs.garden.io/providers) for details.
 
@@ -237,7 +237,7 @@ The provider output value. Refer to individual [provider references](https://doc
 | --------------------------- |
 | `number | string | boolean` |
 
-#### `${variables.*}`
+### `${variables.*}`
 
 A map of all variables defined in the project configuration.
 
@@ -245,7 +245,7 @@ A map of all variables defined in the project configuration.
 | -------- | ------- |
 | `object` | `{}`    |
 
-#### `${variables.<variable-name>}`
+### `${variables.<variable-name>}`
 
 The value of the variable.
 
@@ -253,7 +253,7 @@ The value of the variable.
 | --------------------------- |
 | `number | string | boolean` |
 
-#### `${var.*}`
+### `${var.*}`
 
 Alias for the variables field.
 
@@ -261,7 +261,7 @@ Alias for the variables field.
 | -------- | ------- |
 | `object` | `{}`    |
 
-#### `${var.<name>}`
+### `${var.<name>}`
 
 Number, string or boolean
 
@@ -280,7 +280,7 @@ Modules can also reference outputs defined by other modules, via the `${modules.
 For details on which outputs are available for a given module type, please refer to the [reference](https://docs.garden.io/module-types) docs for the module type in question, and look for the _Outputs_ section.
 
 
-#### `${local.*}`
+### `${local.*}`
 
 Context variables that are specific to the currently running environment/machine.
 
@@ -288,7 +288,7 @@ Context variables that are specific to the currently running environment/machine
 | -------- |
 | `object` |
 
-#### `${local.artifactsPath}`
+### `${local.artifactsPath}`
 
 The absolute path to the directory where exported artifacts from test and task runs are stored.
 
@@ -302,7 +302,7 @@ Example:
 my-variable: ${local.artifactsPath}
 ```
 
-#### `${local.env.*}`
+### `${local.env.*}`
 
 A map of all local environment variables (see https://nodejs.org/api/process.html#process_process_env).
 
@@ -310,7 +310,7 @@ A map of all local environment variables (see https://nodejs.org/api/process.htm
 | -------- |
 | `object` |
 
-#### `${local.env.<env-var-name>}`
+### `${local.env.<env-var-name>}`
 
 The environment variable value.
 
@@ -318,7 +318,7 @@ The environment variable value.
 | -------- |
 | `string` |
 
-#### `${local.platform}`
+### `${local.platform}`
 
 A string indicating the platform that the framework is running on (see https://nodejs.org/api/process.html#process_process_platform)
 
@@ -332,7 +332,7 @@ Example:
 my-variable: ${local.platform}
 ```
 
-#### `${local.username}`
+### `${local.username}`
 
 The current username (as resolved by https://github.com/sindresorhus/username)
 
@@ -346,7 +346,7 @@ Example:
 my-variable: ${local.username}
 ```
 
-#### `${environment.*}`
+### `${environment.*}`
 
 Information about the environment that Garden is running against.
 
@@ -354,7 +354,7 @@ Information about the environment that Garden is running against.
 | -------- |
 | `object` |
 
-#### `${environment.name}`
+### `${environment.name}`
 
 The name of the environment Garden is running against.
 
@@ -368,7 +368,7 @@ Example:
 my-variable: ${environment.name}
 ```
 
-#### `${project.*}`
+### `${project.*}`
 
 Information about the Garden project.
 
@@ -376,7 +376,7 @@ Information about the Garden project.
 | -------- |
 | `object` |
 
-#### `${project.name}`
+### `${project.name}`
 
 The name of the Garden project.
 
@@ -390,7 +390,7 @@ Example:
 my-variable: ${project.name}
 ```
 
-#### `${providers.*}`
+### `${providers.*}`
 
 Retrieve information about providers that are defined in the project.
 
@@ -398,7 +398,7 @@ Retrieve information about providers that are defined in the project.
 | -------- | ------- |
 | `object` | `{}`    |
 
-#### `${providers.<provider-name>.config.*}`
+### `${providers.<provider-name>.config.*}`
 
 The resolved configuration for the provider.
 
@@ -406,7 +406,7 @@ The resolved configuration for the provider.
 | -------- |
 | `object` |
 
-#### `${providers.<provider-name>.config.<config-key>}`
+### `${providers.<provider-name>.config.<config-key>}`
 
 The provider config key value. Refer to individual [provider references](https://docs.garden.io/providers) for details.
 
@@ -414,7 +414,7 @@ The provider config key value. Refer to individual [provider references](https:/
 | --------------------------- |
 | `number | string | boolean` |
 
-#### `${providers.<provider-name>.outputs.*}`
+### `${providers.<provider-name>.outputs.*}`
 
 The outputs defined by the provider (see individual plugin docs for details).
 
@@ -422,7 +422,7 @@ The outputs defined by the provider (see individual plugin docs for details).
 | -------- | ------- |
 | `object` | `{}`    |
 
-#### `${providers.<provider-name>.outputs.<output-key>}`
+### `${providers.<provider-name>.outputs.<output-key>}`
 
 The provider output value. Refer to individual [provider references](https://docs.garden.io/providers) for details.
 
@@ -430,7 +430,7 @@ The provider output value. Refer to individual [provider references](https://doc
 | --------------------------- |
 | `number | string | boolean` |
 
-#### `${variables.*}`
+### `${variables.*}`
 
 A map of all variables defined in the project configuration.
 
@@ -438,7 +438,7 @@ A map of all variables defined in the project configuration.
 | -------- | ------- |
 | `object` | `{}`    |
 
-#### `${variables.<variable-name>}`
+### `${variables.<variable-name>}`
 
 The value of the variable.
 
@@ -446,7 +446,7 @@ The value of the variable.
 | --------------------------- |
 | `number | string | boolean` |
 
-#### `${var.*}`
+### `${var.*}`
 
 Alias for the variables field.
 
@@ -454,7 +454,7 @@ Alias for the variables field.
 | -------- | ------- |
 | `object` | `{}`    |
 
-#### `${var.<name>}`
+### `${var.<name>}`
 
 Number, string or boolean
 
@@ -462,7 +462,7 @@ Number, string or boolean
 | --------------------------- |
 | `number | string | boolean` |
 
-#### `${modules.*}`
+### `${modules.*}`
 
 Retrieve information about modules that are defined in the project.
 
@@ -470,7 +470,7 @@ Retrieve information about modules that are defined in the project.
 | -------- | ------- |
 | `object` | `{}`    |
 
-#### `${modules.<module-name>.buildPath}`
+### `${modules.<module-name>.buildPath}`
 
 The build path of the module.
 
@@ -484,7 +484,7 @@ Example:
 my-variable: ${modules.<module-name>.buildPath}
 ```
 
-#### `${modules.<module-name>.outputs.*}`
+### `${modules.<module-name>.outputs.*}`
 
 The outputs defined by the module (see individual module type [references](https://docs.garden.io/module-types) for details).
 
@@ -492,7 +492,7 @@ The outputs defined by the module (see individual module type [references](https
 | -------- | ------- |
 | `object` | `{}`    |
 
-#### `${modules.<module-name>.outputs.<output-name>}`
+### `${modules.<module-name>.outputs.<output-name>}`
 
 The module output value. Refer to individual [module type references](https://docs.garden.io/module-types) for details.
 
@@ -500,7 +500,7 @@ The module output value. Refer to individual [module type references](https://do
 | --------------------------- |
 | `number | string | boolean` |
 
-#### `${modules.<module-name>.path}`
+### `${modules.<module-name>.path}`
 
 The local path of the module.
 
@@ -514,7 +514,7 @@ Example:
 my-variable: ${modules.<module-name>.path}
 ```
 
-#### `${modules.<module-name>.version}`
+### `${modules.<module-name>.version}`
 
 The current version of the module.
 
@@ -528,7 +528,7 @@ Example:
 my-variable: ${modules.<module-name>.version}
 ```
 
-#### `${runtime.*}`
+### `${runtime.*}`
 
 Runtime outputs and information from services and tasks (only resolved at runtime when deploying services and running tasks).
 
@@ -536,7 +536,7 @@ Runtime outputs and information from services and tasks (only resolved at runtim
 | -------- |
 | `object` |
 
-#### `${runtime.services.*}`
+### `${runtime.services.*}`
 
 Runtime information from the services that the service/task being run depends on.
 
@@ -544,7 +544,7 @@ Runtime information from the services that the service/task being run depends on
 | -------- | ------- |
 | `object` | `{}`    |
 
-#### `${runtime.services.<service-name>.outputs.*}`
+### `${runtime.services.<service-name>.outputs.*}`
 
 The runtime outputs defined by the service (see individual module type [references](https://docs.garden.io/module-types) for details).
 
@@ -552,7 +552,7 @@ The runtime outputs defined by the service (see individual module type [referenc
 | -------- | ------- |
 | `object` | `{}`    |
 
-#### `${runtime.services.<service-name>.outputs.<output-name>}`
+### `${runtime.services.<service-name>.outputs.<output-name>}`
 
 The service output value. Refer to individual [module type references](https://docs.garden.io/module-types) for details.
 
@@ -560,7 +560,7 @@ The service output value. Refer to individual [module type references](https://d
 | --------------------------- |
 | `number | string | boolean` |
 
-#### `${runtime.tasks.*}`
+### `${runtime.tasks.*}`
 
 Runtime information from the tasks that the service/task being run depends on.
 
@@ -568,7 +568,7 @@ Runtime information from the tasks that the service/task being run depends on.
 | -------- | ------- |
 | `object` | `{}`    |
 
-#### `${runtime.tasks.<task-name>.outputs.*}`
+### `${runtime.tasks.<task-name>.outputs.*}`
 
 The runtime outputs defined by the task (see individual module type [references](https://docs.garden.io/module-types) for details).
 
@@ -576,7 +576,7 @@ The runtime outputs defined by the task (see individual module type [references]
 | -------- | ------- |
 | `object` | `{}`    |
 
-#### `${runtime.tasks.<task-name>.outputs.<output-name>}`
+### `${runtime.tasks.<task-name>.outputs.<output-name>}`
 
 The task output value. Refer to individual [module type references](https://docs.garden.io/module-types) for details.
 
@@ -595,7 +595,7 @@ Output values may also reference outputs defined by modules, via the `${modules.
 For details on which outputs are available for a given module type, please refer to the [reference](https://docs.garden.io/module-types) docs for the module type in question, and look for the _Outputs_ section.
 
 
-#### `${local.*}`
+### `${local.*}`
 
 Context variables that are specific to the currently running environment/machine.
 
@@ -603,7 +603,7 @@ Context variables that are specific to the currently running environment/machine
 | -------- |
 | `object` |
 
-#### `${local.artifactsPath}`
+### `${local.artifactsPath}`
 
 The absolute path to the directory where exported artifacts from test and task runs are stored.
 
@@ -617,7 +617,7 @@ Example:
 my-variable: ${local.artifactsPath}
 ```
 
-#### `${local.env.*}`
+### `${local.env.*}`
 
 A map of all local environment variables (see https://nodejs.org/api/process.html#process_process_env).
 
@@ -625,7 +625,7 @@ A map of all local environment variables (see https://nodejs.org/api/process.htm
 | -------- |
 | `object` |
 
-#### `${local.env.<env-var-name>}`
+### `${local.env.<env-var-name>}`
 
 The environment variable value.
 
@@ -633,7 +633,7 @@ The environment variable value.
 | -------- |
 | `string` |
 
-#### `${local.platform}`
+### `${local.platform}`
 
 A string indicating the platform that the framework is running on (see https://nodejs.org/api/process.html#process_process_platform)
 
@@ -647,7 +647,7 @@ Example:
 my-variable: ${local.platform}
 ```
 
-#### `${local.username}`
+### `${local.username}`
 
 The current username (as resolved by https://github.com/sindresorhus/username)
 
@@ -661,7 +661,7 @@ Example:
 my-variable: ${local.username}
 ```
 
-#### `${environment.*}`
+### `${environment.*}`
 
 Information about the environment that Garden is running against.
 
@@ -669,7 +669,7 @@ Information about the environment that Garden is running against.
 | -------- |
 | `object` |
 
-#### `${environment.name}`
+### `${environment.name}`
 
 The name of the environment Garden is running against.
 
@@ -683,7 +683,7 @@ Example:
 my-variable: ${environment.name}
 ```
 
-#### `${project.*}`
+### `${project.*}`
 
 Information about the Garden project.
 
@@ -691,7 +691,7 @@ Information about the Garden project.
 | -------- |
 | `object` |
 
-#### `${project.name}`
+### `${project.name}`
 
 The name of the Garden project.
 
@@ -705,7 +705,7 @@ Example:
 my-variable: ${project.name}
 ```
 
-#### `${providers.*}`
+### `${providers.*}`
 
 Retrieve information about providers that are defined in the project.
 
@@ -713,7 +713,7 @@ Retrieve information about providers that are defined in the project.
 | -------- | ------- |
 | `object` | `{}`    |
 
-#### `${providers.<provider-name>.config.*}`
+### `${providers.<provider-name>.config.*}`
 
 The resolved configuration for the provider.
 
@@ -721,7 +721,7 @@ The resolved configuration for the provider.
 | -------- |
 | `object` |
 
-#### `${providers.<provider-name>.config.<config-key>}`
+### `${providers.<provider-name>.config.<config-key>}`
 
 The provider config key value. Refer to individual [provider references](https://docs.garden.io/providers) for details.
 
@@ -729,7 +729,7 @@ The provider config key value. Refer to individual [provider references](https:/
 | --------------------------- |
 | `number | string | boolean` |
 
-#### `${providers.<provider-name>.outputs.*}`
+### `${providers.<provider-name>.outputs.*}`
 
 The outputs defined by the provider (see individual plugin docs for details).
 
@@ -737,7 +737,7 @@ The outputs defined by the provider (see individual plugin docs for details).
 | -------- | ------- |
 | `object` | `{}`    |
 
-#### `${providers.<provider-name>.outputs.<output-key>}`
+### `${providers.<provider-name>.outputs.<output-key>}`
 
 The provider output value. Refer to individual [provider references](https://docs.garden.io/providers) for details.
 
@@ -745,7 +745,7 @@ The provider output value. Refer to individual [provider references](https://doc
 | --------------------------- |
 | `number | string | boolean` |
 
-#### `${variables.*}`
+### `${variables.*}`
 
 A map of all variables defined in the project configuration.
 
@@ -753,7 +753,7 @@ A map of all variables defined in the project configuration.
 | -------- | ------- |
 | `object` | `{}`    |
 
-#### `${variables.<variable-name>}`
+### `${variables.<variable-name>}`
 
 The value of the variable.
 
@@ -761,7 +761,7 @@ The value of the variable.
 | --------------------------- |
 | `number | string | boolean` |
 
-#### `${var.*}`
+### `${var.*}`
 
 Alias for the variables field.
 
@@ -769,7 +769,7 @@ Alias for the variables field.
 | -------- | ------- |
 | `object` | `{}`    |
 
-#### `${var.<name>}`
+### `${var.<name>}`
 
 Number, string or boolean
 
@@ -777,7 +777,7 @@ Number, string or boolean
 | --------------------------- |
 | `number | string | boolean` |
 
-#### `${modules.*}`
+### `${modules.*}`
 
 Retrieve information about modules that are defined in the project.
 
@@ -785,7 +785,7 @@ Retrieve information about modules that are defined in the project.
 | -------- | ------- |
 | `object` | `{}`    |
 
-#### `${modules.<module-name>.buildPath}`
+### `${modules.<module-name>.buildPath}`
 
 The build path of the module.
 
@@ -799,7 +799,7 @@ Example:
 my-variable: ${modules.<module-name>.buildPath}
 ```
 
-#### `${modules.<module-name>.outputs.*}`
+### `${modules.<module-name>.outputs.*}`
 
 The outputs defined by the module (see individual module type [references](https://docs.garden.io/module-types) for details).
 
@@ -807,7 +807,7 @@ The outputs defined by the module (see individual module type [references](https
 | -------- | ------- |
 | `object` | `{}`    |
 
-#### `${modules.<module-name>.outputs.<output-name>}`
+### `${modules.<module-name>.outputs.<output-name>}`
 
 The module output value. Refer to individual [module type references](https://docs.garden.io/module-types) for details.
 
@@ -815,7 +815,7 @@ The module output value. Refer to individual [module type references](https://do
 | --------------------------- |
 | `number | string | boolean` |
 
-#### `${modules.<module-name>.path}`
+### `${modules.<module-name>.path}`
 
 The local path of the module.
 
@@ -829,7 +829,7 @@ Example:
 my-variable: ${modules.<module-name>.path}
 ```
 
-#### `${modules.<module-name>.version}`
+### `${modules.<module-name>.version}`
 
 The current version of the module.
 
@@ -843,7 +843,7 @@ Example:
 my-variable: ${modules.<module-name>.version}
 ```
 
-#### `${runtime.*}`
+### `${runtime.*}`
 
 Runtime outputs and information from services and tasks (only resolved at runtime when deploying services and running tasks).
 
@@ -851,7 +851,7 @@ Runtime outputs and information from services and tasks (only resolved at runtim
 | -------- |
 | `object` |
 
-#### `${runtime.services.*}`
+### `${runtime.services.*}`
 
 Runtime information from the services that the service/task being run depends on.
 
@@ -859,7 +859,7 @@ Runtime information from the services that the service/task being run depends on
 | -------- | ------- |
 | `object` | `{}`    |
 
-#### `${runtime.services.<service-name>.outputs.*}`
+### `${runtime.services.<service-name>.outputs.*}`
 
 The runtime outputs defined by the service (see individual module type [references](https://docs.garden.io/module-types) for details).
 
@@ -867,7 +867,7 @@ The runtime outputs defined by the service (see individual module type [referenc
 | -------- | ------- |
 | `object` | `{}`    |
 
-#### `${runtime.services.<service-name>.outputs.<output-name>}`
+### `${runtime.services.<service-name>.outputs.<output-name>}`
 
 The service output value. Refer to individual [module type references](https://docs.garden.io/module-types) for details.
 
@@ -875,7 +875,7 @@ The service output value. Refer to individual [module type references](https://d
 | --------------------------- |
 | `number | string | boolean` |
 
-#### `${runtime.tasks.*}`
+### `${runtime.tasks.*}`
 
 Runtime information from the tasks that the service/task being run depends on.
 
@@ -883,7 +883,7 @@ Runtime information from the tasks that the service/task being run depends on.
 | -------- | ------- |
 | `object` | `{}`    |
 
-#### `${runtime.tasks.<task-name>.outputs.*}`
+### `${runtime.tasks.<task-name>.outputs.*}`
 
 The runtime outputs defined by the task (see individual module type [references](https://docs.garden.io/module-types) for details).
 
@@ -891,7 +891,7 @@ The runtime outputs defined by the task (see individual module type [references]
 | -------- | ------- |
 | `object` | `{}`    |
 
-#### `${runtime.tasks.<task-name>.outputs.<output-name>}`
+### `${runtime.tasks.<task-name>.outputs.<output-name>}`
 
 The task output value. Refer to individual [module type references](https://docs.garden.io/module-types) for details.
 

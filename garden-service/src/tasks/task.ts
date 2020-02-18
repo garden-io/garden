@@ -113,9 +113,7 @@ export class TaskTask extends BaseTask {
   async process(dependencyResults: TaskResults) {
     const task = this.task
 
-    // TODO: Re-enable this logic when we've started providing task graph results to process methods.
-
-    if (!this.force) {
+    if (!this.force && task.config.cacheResult) {
       const cachedResult = getRunTaskResults(dependencyResults)[this.task.name]
 
       if (cachedResult && cachedResult.success) {

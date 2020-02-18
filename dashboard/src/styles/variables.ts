@@ -20,6 +20,8 @@ function gardenPinkLighten(pct: number) {
   return `rgba(237, 131, 204, ${pct})`
 }
 
+const grayUnselected = "#C2CFE0"
+
 // Colours prefixed with `garden` are from the official Garden colour palette.
 // The rest are for those cases where none of the official colours worked.
 export const colors = {
@@ -27,7 +29,7 @@ export const colors = {
   gray: "#f0f0f0",
   black: "#192A3E",
   grayLight: "#fafafa",
-  grayUnselected: "#C2CFE0",
+  grayUnselected,
   gardenGray: "#555656",
   gardenGrayLight: "#cdcfd1",
   gardenGrayLighter: "#FBFCFD",
@@ -67,7 +69,7 @@ export const colors = {
     failed: "#F7685B",
     deploying: "#FFB946",
     stopped: "#FFB946",
-    unknown: "#FFB946",
+    unknown: "#cdcfd1",
     missing: "#F7685B",
     unhealthy: "#F7685B",
   },
@@ -100,5 +102,6 @@ export const colors = {
     processing: "#ed83cc",
     ready: "#66ffcc",
     error: "red",
+    disabled: grayUnselected,
   },
 }

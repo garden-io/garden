@@ -1,8 +1,11 @@
 ---
-title: maven-container
+title: "`maven-container` Provider"
+tocTitle: "`maven-container`"
 ---
 
 # `maven-container` Provider
+
+## Description
 
 Adds the [maven-container module type](https://docs.garden.io/module-types/maven-container), which is a specialized version of the
 `container` module type that has special semantics for building JAR files using Maven.
@@ -10,13 +13,11 @@ Adds the [maven-container module type](https://docs.garden.io/module-types/maven
 To use it, simply add the provider to your provider configuration, and refer to the
 [maven-container module docs](https://docs.garden.io/module-types/maven-container) for details on how to configure the modules.
 
-## Reference
-
-Below is the schema reference for the `maven-container` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../guides/configuration-files.md).
+Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../guides/configuration-files.md).
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
-### Complete YAML Schema
+## Complete YAML Schema
 
 The values in the schema below are the default values.
 
@@ -29,15 +30,15 @@ providers:
     # disables the provider. To use a provider in all environments, omit this field.
     environments:
 ```
-### Configuration Keys
+## Configuration Keys
 
-#### `providers[]`
+### `providers[]`
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
 | `array[object]` | `[]`    | No       |
 
-#### `providers[].name`
+### `providers[].name`
 
 [providers](#providers) > name
 
@@ -54,7 +55,7 @@ providers:
   - name: "local-kubernetes"
 ```
 
-#### `providers[].environments[]`
+### `providers[].environments[]`
 
 [providers](#providers) > environments
 

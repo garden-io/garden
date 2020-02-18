@@ -29,6 +29,7 @@ interface Node {
   label: string
   id: string
   status?: string
+  disabled: boolean
 }
 
 interface Edge {
@@ -66,10 +67,13 @@ function clearGraphNodeSelection() {
 const MIN_CHART_WIDTH = 200
 const MIN_CHART_HEIGHT = 200
 
-function getNodeClass(node) {
+function getNodeClass(node: Node) {
   let className = ""
   if (selectedNodeId === node.id) {
     className += selectedClassName
+  }
+  if (node.disabled) {
+    className += " disabled"
   }
 
   className += (node.status && ` ${node.status}`) || ""
@@ -149,9 +153,12 @@ function drawChart(graph: Graph, width: number, height: number, onGraphNodeSelec
   svg.call(zoomHandler.transform, zoomTranslate)
 
   const selections = svg.select("g").selectAll("g.node")
-  selections.on("click", function(evt) {
+  selections.on("click", function(nodeName) {
     // tslint:disable-next-line: no-invalid-this
     const element = this as HTMLElement
+    if (element.classList.contains("disabled")) {
+      return
+    }
     if (element) {
       clearGraphNodeSelection()
 
@@ -159,24 +166,29 @@ function drawChart(graph: Graph, width: number, height: number, onGraphNodeSelec
       element.classList.add(selectedClassName)
       selectedNodeId = element.id
     }
-    onGraphNodeSelected(evt)
+    onGraphNodeSelected(nodeName)
   })
 }
 
 // Renders as HTML
-const makeLabel = (name: string, type: string, moduleName: string) => {
+const makeLabel = (name: string, type: string, moduleName: string, disabled: boolean) => {
+  let typeEl: string
+  if (disabled) {
+    typeEl = `<div class="type">${capitalize(type)} <i class="fas fa-ban"></i></div>`
+  } else {
+    typeEl = `<div class='type'>${capitalize(type)}</div>`
+  }
+  let nameEl: string = ""
+  if (moduleName !== name) {
+    nameEl = `<span> / ${name}</span>`
+  }
   return `
     <div class='node-container node-container--${type}'>
-        <div class='type'>${capitalize(type)}</div>
-    <span>
+      ${typeEl}
       <span class='module-name'>${moduleName}</span>
-        ${
-          moduleName !== name
-            ? `<span> / </span>
-           <span>${name}</span>`
-            : ``
-        }
-    </div>`
+      ${nameEl}
+    </div>
+  `
 }
 
 const Span = styled.span`
@@ -258,8 +270,9 @@ class Chart extends Component<Props, ChartState> {
         return {
           id: n.key,
           name: n.name,
-          label: makeLabel(n.name, n.type, n.moduleName),
+          label: makeLabel(n.name, n.type, n.moduleName, n.disabled),
           status: n.status,
+          disabled: n.disabled,
         }
       })
     const edges: Edge[] = this.props.graph.relationships
@@ -399,7 +412,7 @@ class Chart extends Component<Props, ChartState> {
               >
                 —{" "}
               </span>
-              Cancelled
+              Canceled
             </Span>
             <Span>
               <span
@@ -410,6 +423,16 @@ class Chart extends Component<Props, ChartState> {
                 —{" "}
               </span>
               Error
+            </Span>
+            <Span>
+              <span
+                className={css`
+                  color: ${colors.taskState.disabled};
+                `}
+              >
+                —{" "}
+              </span>
+              Disabled
             </Span>
           </div>
         </div>

@@ -1,19 +1,20 @@
 ---
-title: terraform
+title: "`terraform` Provider"
+tocTitle: "`terraform`"
 ---
 
 # `terraform` Provider
 
+## Description
+
 This provider allows you to integrate Terraform stacks into your Garden project.
 See the [Terraform guide](https://docs.garden.io/guides/terraform) for details and usage information.
 
-## Reference
-
-Below is the schema reference for the `terraform` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../guides/configuration-files.md).
+Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../guides/configuration-files.md).
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
-### Complete YAML Schema
+## Complete YAML Schema
 
 The values in the schema below are the default values.
 
@@ -43,15 +44,15 @@ providers:
     # The version of Terraform to use.
     version: 0.12.7
 ```
-### Configuration Keys
+## Configuration Keys
 
-#### `providers[]`
+### `providers[]`
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
 | `array[object]` | `[]`    | No       |
 
-#### `providers[].name`
+### `providers[].name`
 
 [providers](#providers) > name
 
@@ -68,7 +69,7 @@ providers:
   - name: "local-kubernetes"
 ```
 
-#### `providers[].environments[]`
+### `providers[].environments[]`
 
 [providers](#providers) > environments
 
@@ -87,7 +88,7 @@ providers:
       - stage
 ```
 
-#### `providers[].autoApply`
+### `providers[].autoApply`
 
 [providers](#providers) > autoApply
 
@@ -97,7 +98,7 @@ If set to true, Garden will automatically run `terraform apply -auto-approve` wh
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
 
-#### `providers[].initRoot`
+### `providers[].initRoot`
 
 [providers](#providers) > initRoot
 
@@ -110,7 +111,7 @@ See the [Terraform guide](https://docs.garden.io/guides/terraform) for more info
 | ----------- | -------- |
 | `posixPath` | No       |
 
-#### `providers[].variables`
+### `providers[].variables`
 
 [providers](#providers) > variables
 
@@ -120,7 +121,7 @@ A map of variables to use when applying Terraform stacks. You can define these h
 | -------- | -------- |
 | `object` | No       |
 
-#### `providers[].version`
+### `providers[].version`
 
 [providers](#providers) > version
 

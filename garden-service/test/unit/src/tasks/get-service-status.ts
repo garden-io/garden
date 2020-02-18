@@ -110,6 +110,7 @@ describe("GetServiceStatusTask", () => {
           taskConfigs: [
             {
               name: "test-task",
+              cacheResult: true,
               dependencies: [],
               disabled: false,
               spec: {

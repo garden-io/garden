@@ -1,8 +1,11 @@
 ---
-title: exec
+title: "`exec` Module Type"
+tocTitle: "`exec`"
 ---
 
 # `exec` Module Type
+
+## Description
 
 A simple module for executing commands in your shell. This can be a useful escape hatch if no other module
 type fits your needs, and you just need to execute something (as opposed to deploy it, track its status etc.).
@@ -15,16 +18,14 @@ Note that Garden does not sync the source code for local exec modules into the G
 This means that include/exclude filters and ignore files are not applied to local exec modules, as the
 filtering is done during the sync.
 
-## Reference
-
-Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
+Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../guides/configuration-files.md).
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
 `exec` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 
-### Complete YAML Schema
+## Complete YAML Schema
 
 The values in the schema below are the default values.
 
@@ -137,17 +138,17 @@ tasks:
     # task is executed.
     dependencies: []
 
-    # Set this to `true` to disable the task. You can use this with conditional template strings to
-    # enable/disable tasks based on, for example, the current environment or other variables (e.g.
-    # `enabled: \${environment.name != "prod"}`). This can be handy when you only want certain tasks to run in
-    # specific environments, e.g. only for development.
+    # Set this to `true` to disable the task. You can use this with conditional template strings to enable/disable
+    # tasks based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name !=
+    # "prod"}`). This can be handy when you only want certain tasks to run in specific environments, e.g. only for
+    # development.
     #
-    # Disabling a task means that it will not be run, and will also be ignored if it is declared as a
-    # runtime dependency for another service, test or task.
+    # Disabling a task means that it will not be run, and will also be ignored if it is declared as a runtime
+    # dependency for another service, test or task.
     #
-    # Note however that template strings referencing the task's outputs (i.e. runtime outputs) will fail to
-    # resolve when the task is disabled, so you need to make sure to provide alternate values for those if
-    # you're using them, using conditional expressions.
+    # Note however that template strings referencing the task's outputs (i.e. runtime outputs) will fail to resolve
+    # when the task is disabled, so you need to make sure to provide alternate values for those if you're using them,
+    # using conditional expressions.
     disabled: false
 
     # Maximum duration (in seconds) of the task's execution.
@@ -208,9 +209,9 @@ tests:
         target: .
 ```
 
-### Configuration Keys
+## Configuration Keys
 
-#### `apiVersion`
+### `apiVersion`
 
 The schema version of this module's config (currently not used).
 
@@ -218,13 +219,13 @@ The schema version of this module's config (currently not used).
 | -------- | -------------- | ---------------- | -------- |
 | `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
 
-#### `kind`
+### `kind`
 
 | Type     | Allowed Values | Default    | Required |
 | -------- | -------------- | ---------- | -------- |
 | `string` | "Module"       | `"Module"` | Yes      |
 
-#### `type`
+### `type`
 
 The type of this module.
 
@@ -238,7 +239,7 @@ Example:
 type: "container"
 ```
 
-#### `name`
+### `name`
 
 The name of this module.
 
@@ -252,7 +253,7 @@ Example:
 name: "my-sweet-module"
 ```
 
-#### `description`
+### `description`
 
 A description of the module.
 
@@ -260,7 +261,7 @@ A description of the module.
 | -------- | -------- |
 | `string` | No       |
 
-#### `disabled`
+### `disabled`
 
 Set this to `true` to disable the module. You can use this with conditional template strings to disable modules based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name == "prod"}`). This can be handy when you only need certain modules for specific environments, e.g. only for development.
 
@@ -272,7 +273,7 @@ If you disable the module, and its services, tasks or tests are referenced as _r
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
 
-#### `include[]`
+### `include[]`
 
 Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that do *not* match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
@@ -292,7 +293,7 @@ include:
   - my-app.js
 ```
 
-#### `exclude[]`
+### `exclude[]`
 
 Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
@@ -312,7 +313,7 @@ exclude:
   - '*.log'
 ```
 
-#### `repositoryUrl`
+### `repositoryUrl`
 
 A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
 
@@ -328,7 +329,7 @@ Example:
 repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
 ```
 
-#### `allowPublish`
+### `allowPublish`
 
 When false, disables pushing this module to remote registries.
 
@@ -336,7 +337,7 @@ When false, disables pushing this module to remote registries.
 | --------- | ------- | -------- |
 | `boolean` | `true`  | No       |
 
-#### `build`
+### `build`
 
 Specify how to build the module. Note that plugins may define additional keys on this object.
 
@@ -344,7 +345,7 @@ Specify how to build the module. Note that plugins may define additional keys on
 | -------- | --------------------- | -------- |
 | `object` | `{"dependencies":[]}` | No       |
 
-#### `build.dependencies[]`
+### `build.dependencies[]`
 
 [build](#build) > dependencies
 
@@ -363,7 +364,7 @@ build:
     - name: some-other-module-name
 ```
 
-#### `build.dependencies[].name`
+### `build.dependencies[].name`
 
 [build](#build) > [dependencies](#builddependencies) > name
 
@@ -373,7 +374,7 @@ Module name to build ahead of this module.
 | -------- | -------- |
 | `string` | Yes      |
 
-#### `build.dependencies[].copy[]`
+### `build.dependencies[].copy[]`
 
 [build](#build) > [dependencies](#builddependencies) > copy
 
@@ -383,7 +384,7 @@ Specify one or more files or directories to copy from the built dependency to th
 | --------------- | ------- | -------- |
 | `array[object]` | `[]`    | No       |
 
-#### `build.dependencies[].copy[].source`
+### `build.dependencies[].copy[].source`
 
 [build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > source
 
@@ -393,7 +394,7 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 | ----------- | -------- |
 | `posixPath` | Yes      |
 
-#### `build.dependencies[].copy[].target`
+### `build.dependencies[].copy[].target`
 
 [build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > target
 
@@ -404,7 +405,7 @@ Defaults to to same as source path.
 | ----------- | ------- | -------- |
 | `posixPath` | `""`    | No       |
 
-#### `build.command[]`
+### `build.command[]`
 
 [build](#build) > command
 
@@ -428,7 +429,7 @@ build:
     - build
 ```
 
-#### `local`
+### `local`
 
 If set to true, Garden will run the build command, tests, and tasks in the module source directory,
 instead of in the Garden build directory (under .garden/build/<module-name>).
@@ -440,7 +441,7 @@ and ignore files are not applied to local exec modules.
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
 
-#### `env`
+### `env`
 
 Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
 
@@ -448,7 +449,7 @@ Key/value map of environment variables. Keys must be valid POSIX environment var
 | -------- | ------- | -------- |
 | `object` | `{}`    | No       |
 
-#### `tasks[]`
+### `tasks[]`
 
 A list of tasks that can be run in this module.
 
@@ -456,7 +457,7 @@ A list of tasks that can be run in this module.
 | --------------- | ------- | -------- |
 | `array[object]` | `[]`    | No       |
 
-#### `tasks[].name`
+### `tasks[].name`
 
 [tasks](#tasks) > name
 
@@ -466,7 +467,7 @@ The name of the task.
 | -------- | -------- |
 | `string` | Yes      |
 
-#### `tasks[].description`
+### `tasks[].description`
 
 [tasks](#tasks) > description
 
@@ -476,7 +477,7 @@ A description of the task.
 | -------- | -------- |
 | `string` | No       |
 
-#### `tasks[].dependencies[]`
+### `tasks[].dependencies[]`
 
 [tasks](#tasks) > dependencies
 
@@ -486,27 +487,21 @@ The names of any tasks that must be executed, and the names of any services that
 | --------------- | ------- | -------- |
 | `array[string]` | `[]`    | No       |
 
-#### `tasks[].disabled`
+### `tasks[].disabled`
 
 [tasks](#tasks) > disabled
 
-Set this to `true` to disable the task. You can use this with conditional template strings to
-enable/disable tasks based on, for example, the current environment or other variables (e.g.
-`enabled: \${environment.name != "prod"}`). This can be handy when you only want certain tasks to run in
-specific environments, e.g. only for development.
+Set this to `true` to disable the task. You can use this with conditional template strings to enable/disable tasks based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name != "prod"}`). This can be handy when you only want certain tasks to run in specific environments, e.g. only for development.
 
-Disabling a task means that it will not be run, and will also be ignored if it is declared as a
-runtime dependency for another service, test or task.
+Disabling a task means that it will not be run, and will also be ignored if it is declared as a runtime dependency for another service, test or task.
 
-Note however that template strings referencing the task's outputs (i.e. runtime outputs) will fail to
-resolve when the task is disabled, so you need to make sure to provide alternate values for those if
-you're using them, using conditional expressions.
+Note however that template strings referencing the task's outputs (i.e. runtime outputs) will fail to resolve when the task is disabled, so you need to make sure to provide alternate values for those if you're using them, using conditional expressions.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
 
-#### `tasks[].timeout`
+### `tasks[].timeout`
 
 [tasks](#tasks) > timeout
 
@@ -516,7 +511,7 @@ Maximum duration (in seconds) of the task's execution.
 | -------- | ------- | -------- |
 | `number` | `null`  | No       |
 
-#### `tasks[].artifacts[]`
+### `tasks[].artifacts[]`
 
 [tasks](#tasks) > artifacts
 
@@ -526,7 +521,7 @@ A list of artifacts to copy after the task run.
 | --------------- | -------- |
 | `array[object]` | No       |
 
-#### `tasks[].artifacts[].source`
+### `tasks[].artifacts[].source`
 
 [tasks](#tasks) > [artifacts](#tasksartifacts) > source
 
@@ -536,7 +531,7 @@ A POSIX-style path or glob to copy, relative to the build root.
 | ----------- | -------- |
 | `posixPath` | Yes      |
 
-#### `tasks[].artifacts[].target`
+### `tasks[].artifacts[].target`
 
 [tasks](#tasks) > [artifacts](#tasksartifacts) > target
 
@@ -546,7 +541,7 @@ A POSIX-style path to copy the artifact to, relative to the project artifacts di
 | ----------- | ------- | -------- |
 | `posixPath` | `"."`   | No       |
 
-#### `tasks[].command[]`
+### `tasks[].command[]`
 
 [tasks](#tasks) > command
 
@@ -559,7 +554,7 @@ If the top level `local` directive is set to `true`, the command runs in the mod
 | --------------- | -------- |
 | `array[string]` | Yes      |
 
-#### `tasks[].env`
+### `tasks[].env`
 
 [tasks](#tasks) > env
 
@@ -569,7 +564,7 @@ Key/value map of environment variables. Keys must be valid POSIX environment var
 | -------- | ------- | -------- |
 | `object` | `{}`    | No       |
 
-#### `tests[]`
+### `tests[]`
 
 A list of tests to run in the module.
 
@@ -577,7 +572,7 @@ A list of tests to run in the module.
 | --------------- | ------- | -------- |
 | `array[object]` | `[]`    | No       |
 
-#### `tests[].name`
+### `tests[].name`
 
 [tests](#tests) > name
 
@@ -587,7 +582,7 @@ The name of the test.
 | -------- | -------- |
 | `string` | Yes      |
 
-#### `tests[].dependencies[]`
+### `tests[].dependencies[]`
 
 [tests](#tests) > dependencies
 
@@ -597,7 +592,7 @@ The names of any services that must be running, and the names of any tasks that 
 | --------------- | ------- | -------- |
 | `array[string]` | `[]`    | No       |
 
-#### `tests[].disabled`
+### `tests[].disabled`
 
 [tests](#tests) > disabled
 
@@ -610,7 +605,7 @@ specific environments, e.g. only during CI.
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
 
-#### `tests[].timeout`
+### `tests[].timeout`
 
 [tests](#tests) > timeout
 
@@ -620,7 +615,7 @@ Maximum duration (in seconds) of the test run.
 | -------- | ------- | -------- |
 | `number` | `null`  | No       |
 
-#### `tests[].command[]`
+### `tests[].command[]`
 
 [tests](#tests) > command
 
@@ -633,7 +628,7 @@ If the top level `local` directive is set to `true`, the command runs in the mod
 | --------------- | -------- |
 | `array[string]` | Yes      |
 
-#### `tests[].env`
+### `tests[].env`
 
 [tests](#tests) > env
 
@@ -643,7 +638,7 @@ Key/value map of environment variables. Keys must be valid POSIX environment var
 | -------- | ------- | -------- |
 | `object` | `{}`    | No       |
 
-#### `tests[].artifacts[]`
+### `tests[].artifacts[]`
 
 [tests](#tests) > artifacts
 
@@ -653,7 +648,7 @@ A list of artifacts to copy after the test run.
 | --------------- | -------- |
 | `array[object]` | No       |
 
-#### `tests[].artifacts[].source`
+### `tests[].artifacts[].source`
 
 [tests](#tests) > [artifacts](#testsartifacts) > source
 
@@ -663,7 +658,7 @@ A POSIX-style path or glob to copy, relative to the build root.
 | ----------- | -------- |
 | `posixPath` | Yes      |
 
-#### `tests[].artifacts[].target`
+### `tests[].artifacts[].target`
 
 [tests](#tests) > [artifacts](#testsartifacts) > target
 
@@ -674,14 +669,14 @@ A POSIX-style path to copy the artifact to, relative to the project artifacts di
 | `posixPath` | `"."`   | No       |
 
 
-### Outputs
+## Outputs
 
-#### Module Outputs
+### Module Outputs
 
 The following keys are available via the `${modules.<module-name>}` template string key for `exec`
 modules.
 
-#### `${modules.<module-name>.buildPath}`
+### `${modules.<module-name>.buildPath}`
 
 The build path of the module.
 
@@ -695,7 +690,7 @@ Example:
 my-variable: ${modules.my-module.buildPath}
 ```
 
-#### `${modules.<module-name>.path}`
+### `${modules.<module-name>.path}`
 
 The local path of the module.
 
@@ -709,7 +704,7 @@ Example:
 my-variable: ${modules.my-module.path}
 ```
 
-#### `${modules.<module-name>.version}`
+### `${modules.<module-name>.version}`
 
 The current version of the module.
 
@@ -724,12 +719,12 @@ my-variable: ${modules.my-module.version}
 ```
 
 
-#### Task Outputs
+### Task Outputs
 
 The following keys are available via the `${runtime.tasks.<task-name>}` template string key for `exec` module tasks.
 Note that these are only resolved when deploying/running dependants of the task, so they are not usable for every field.
 
-#### `${runtime.tasks.<task-name>.outputs.log}`
+### `${runtime.tasks.<task-name>.outputs.log}`
 
 The full log from the executed task. (Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)
 

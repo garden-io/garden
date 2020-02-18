@@ -1,22 +1,23 @@
 ---
-title: openfaas
+title: "`openfaas` Module Type"
+tocTitle: "`openfaas`"
 ---
 
 # `openfaas` Module Type
 
+## Description
+
 Deploy a [OpenFaaS](https://www.openfaas.com/) function using Garden. Requires the `openfaas` provider
 to be configured.
 
-## Reference
-
-Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
+Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../guides/configuration-files.md).
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
 `openfaas` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 
-### Complete YAML Schema
+## Complete YAML Schema
 
 The values in the schema below are the default values.
 
@@ -142,9 +143,9 @@ tests:
     env: {}
 ```
 
-### Configuration Keys
+## Configuration Keys
 
-#### `apiVersion`
+### `apiVersion`
 
 The schema version of this module's config (currently not used).
 
@@ -152,13 +153,13 @@ The schema version of this module's config (currently not used).
 | -------- | -------------- | ---------------- | -------- |
 | `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
 
-#### `kind`
+### `kind`
 
 | Type     | Allowed Values | Default    | Required |
 | -------- | -------------- | ---------- | -------- |
 | `string` | "Module"       | `"Module"` | Yes      |
 
-#### `type`
+### `type`
 
 The type of this module.
 
@@ -172,7 +173,7 @@ Example:
 type: "container"
 ```
 
-#### `name`
+### `name`
 
 The name of this module.
 
@@ -186,7 +187,7 @@ Example:
 name: "my-sweet-module"
 ```
 
-#### `description`
+### `description`
 
 A description of the module.
 
@@ -194,7 +195,7 @@ A description of the module.
 | -------- | -------- |
 | `string` | No       |
 
-#### `disabled`
+### `disabled`
 
 Set this to `true` to disable the module. You can use this with conditional template strings to disable modules based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name == "prod"}`). This can be handy when you only need certain modules for specific environments, e.g. only for development.
 
@@ -206,7 +207,7 @@ If you disable the module, and its services, tasks or tests are referenced as _r
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
 
-#### `include[]`
+### `include[]`
 
 Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that do *not* match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
@@ -226,7 +227,7 @@ include:
   - my-app.js
 ```
 
-#### `exclude[]`
+### `exclude[]`
 
 Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
@@ -246,7 +247,7 @@ exclude:
   - '*.log'
 ```
 
-#### `repositoryUrl`
+### `repositoryUrl`
 
 A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
 
@@ -262,7 +263,7 @@ Example:
 repositoryUrl: "git+https://github.com/org/repo.git#v2.0"
 ```
 
-#### `allowPublish`
+### `allowPublish`
 
 When false, disables pushing this module to remote registries.
 
@@ -270,7 +271,7 @@ When false, disables pushing this module to remote registries.
 | --------- | ------- | -------- |
 | `boolean` | `true`  | No       |
 
-#### `build`
+### `build`
 
 Specify how to build the module. Note that plugins may define additional keys on this object.
 
@@ -278,7 +279,7 @@ Specify how to build the module. Note that plugins may define additional keys on
 | -------- | --------------------- | -------- |
 | `object` | `{"dependencies":[]}` | No       |
 
-#### `build.dependencies[]`
+### `build.dependencies[]`
 
 [build](#build) > dependencies
 
@@ -297,7 +298,7 @@ build:
     - name: some-other-module-name
 ```
 
-#### `build.dependencies[].name`
+### `build.dependencies[].name`
 
 [build](#build) > [dependencies](#builddependencies) > name
 
@@ -307,7 +308,7 @@ Module name to build ahead of this module.
 | -------- | -------- |
 | `string` | Yes      |
 
-#### `build.dependencies[].copy[]`
+### `build.dependencies[].copy[]`
 
 [build](#build) > [dependencies](#builddependencies) > copy
 
@@ -317,7 +318,7 @@ Specify one or more files or directories to copy from the built dependency to th
 | --------------- | ------- | -------- |
 | `array[object]` | `[]`    | No       |
 
-#### `build.dependencies[].copy[].source`
+### `build.dependencies[].copy[].source`
 
 [build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > source
 
@@ -327,7 +328,7 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 | ----------- | -------- |
 | `posixPath` | Yes      |
 
-#### `build.dependencies[].copy[].target`
+### `build.dependencies[].copy[].target`
 
 [build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > target
 
@@ -338,7 +339,7 @@ Defaults to to same as source path.
 | ----------- | ------- | -------- |
 | `posixPath` | `""`    | No       |
 
-#### `dependencies[]`
+### `dependencies[]`
 
 The names of services/functions that this function depends on at runtime.
 
@@ -346,7 +347,7 @@ The names of services/functions that this function depends on at runtime.
 | --------------- | ------- | -------- |
 | `array[string]` | `[]`    | No       |
 
-#### `env`
+### `env`
 
 Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives.
 
@@ -354,7 +355,7 @@ Key/value map of environment variables. Keys must be valid POSIX environment var
 | -------- | ------- | -------- |
 | `object` | `{}`    | No       |
 
-#### `handler`
+### `handler`
 
 Specify which directory under the module contains the handler file/function.
 
@@ -362,7 +363,7 @@ Specify which directory under the module contains the handler file/function.
 | ----------- | ------- | -------- |
 | `posixPath` | `"."`   | No       |
 
-#### `image`
+### `image`
 
 The image name to use for the built OpenFaaS container (defaults to the module name)
 
@@ -370,7 +371,7 @@ The image name to use for the built OpenFaaS container (defaults to the module n
 | -------- | -------- |
 | `string` | No       |
 
-#### `lang`
+### `lang`
 
 The OpenFaaS language template to use to build this function.
 
@@ -378,7 +379,7 @@ The OpenFaaS language template to use to build this function.
 | -------- | -------- |
 | `string` | Yes      |
 
-#### `tests[]`
+### `tests[]`
 
 A list of tests to run in the module.
 
@@ -386,7 +387,7 @@ A list of tests to run in the module.
 | --------------- | ------- | -------- |
 | `array[object]` | `[]`    | No       |
 
-#### `tests[].name`
+### `tests[].name`
 
 [tests](#tests) > name
 
@@ -396,7 +397,7 @@ The name of the test.
 | -------- | -------- |
 | `string` | Yes      |
 
-#### `tests[].dependencies[]`
+### `tests[].dependencies[]`
 
 [tests](#tests) > dependencies
 
@@ -406,7 +407,7 @@ The names of any services that must be running, and the names of any tasks that 
 | --------------- | ------- | -------- |
 | `array[string]` | `[]`    | No       |
 
-#### `tests[].disabled`
+### `tests[].disabled`
 
 [tests](#tests) > disabled
 
@@ -419,7 +420,7 @@ specific environments, e.g. only during CI.
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
 
-#### `tests[].timeout`
+### `tests[].timeout`
 
 [tests](#tests) > timeout
 
@@ -429,7 +430,7 @@ Maximum duration (in seconds) of the test run.
 | -------- | ------- | -------- |
 | `number` | `null`  | No       |
 
-#### `tests[].command[]`
+### `tests[].command[]`
 
 [tests](#tests) > command
 
@@ -439,7 +440,7 @@ The command to run in the module build context in order to test it.
 | --------------- | -------- |
 | `array[string]` | Yes      |
 
-#### `tests[].env`
+### `tests[].env`
 
 [tests](#tests) > env
 
@@ -450,14 +451,14 @@ Key/value map of environment variables. Keys must be valid POSIX environment var
 | `object` | `{}`    | No       |
 
 
-### Outputs
+## Outputs
 
-#### Module Outputs
+### Module Outputs
 
 The following keys are available via the `${modules.<module-name>}` template string key for `openfaas`
 modules.
 
-#### `${modules.<module-name>.buildPath}`
+### `${modules.<module-name>.buildPath}`
 
 The build path of the module.
 
@@ -471,7 +472,7 @@ Example:
 my-variable: ${modules.my-module.buildPath}
 ```
 
-#### `${modules.<module-name>.path}`
+### `${modules.<module-name>.path}`
 
 The local path of the module.
 
@@ -485,7 +486,7 @@ Example:
 my-variable: ${modules.my-module.path}
 ```
 
-#### `${modules.<module-name>.version}`
+### `${modules.<module-name>.version}`
 
 The current version of the module.
 
@@ -499,7 +500,7 @@ Example:
 my-variable: ${modules.my-module.version}
 ```
 
-#### `${modules.<module-name>.outputs.endpoint}`
+### `${modules.<module-name>.outputs.endpoint}`
 
 The full URL to query this service _from within_ the cluster.
 

@@ -282,10 +282,12 @@ describe("GetConfigCommand", () => {
     expectedModuleConfigs[0].taskConfigs = [
       {
         name: "task-enabled",
+        cacheResult: true,
         dependencies: [],
         disabled: false,
         spec: {
           name: "task-enabled",
+          cacheResult: true,
           dependencies: [],
           disabled: false,
           timeout: null,

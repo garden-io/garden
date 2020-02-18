@@ -49,6 +49,7 @@ describe("validateKubernetesModule", () => {
       {
         name: "echo-task",
         command: ["sh", "-c", "echo ok"],
+        cacheResult: true,
         dependencies: [],
         disabled: false,
         timeout: null,
@@ -196,6 +197,7 @@ describe("validateKubernetesModule", () => {
       taskConfigs: [
         {
           name: "echo-task",
+          cacheResult: true,
           dependencies: [],
           disabled: false,
           spec: taskSpecs[0],

@@ -19,18 +19,18 @@ import { capitalize } from "lodash"
 import { RenderedNode } from "garden-service/build/src/config-graph"
 import { GraphOutput } from "garden-service/build/src/commands/get/get-graph"
 import { loadGraph } from "../api/actions"
-import { useConfig } from "../util/hooks"
 import { getTestKey } from "../util/helpers"
 
 const Wrapper = styled.div`
   padding-left: 0.75rem;
 `
 
-export interface RenderedNodeWithStatus extends RenderedNode {
+export interface StackGraphNode extends RenderedNode {
   status?: TaskState
+  disabled: boolean
 }
 export interface GraphOutputWithNodeStatus extends GraphOutput {
-  nodes: RenderedNodeWithStatus[]
+  nodes: StackGraphNode[]
 }
 
 export default () => {
@@ -50,15 +50,13 @@ export default () => {
     },
   } = useUiState()
 
-  useConfig(dispatch, requestStates.config)
-
   useEffect(() => {
     const fetchData = async () => loadGraph(dispatch)
 
-    if (!(requestStates.graph.initLoadComplete || requestStates.graph.pending)) {
+    if (!requestStates.graph.initLoadComplete) {
       fetchData()
     }
-  }, [dispatch, requestStates.graph])
+  }, [dispatch, requestStates.graph.initLoadComplete])
 
   if (requestStates.graph.error) {
     return <PageError error={requestStates.graph.error} />
@@ -68,24 +66,30 @@ export default () => {
     return <Spinner />
   }
 
-  const nodesWithStatus: RenderedNodeWithStatus[] = graph.nodes.map((node) => {
+  const nodesWithStatus: StackGraphNode[] = graph.nodes.map((node) => {
     let taskState: TaskState = "taskComplete"
+    let disabled = modules[node.name]?.disabled
     switch (node.type) {
       case "deploy":
-        taskState = (services[node.name] && services[node.name].taskState) || taskState
+        const service = services[node.name]
+        disabled = service.config.disabled || service.config.moduleDisabled
+        taskState = service.taskState
         break
       case "build":
-        taskState = (modules[node.name] && modules[node.name].taskState) || taskState
+        taskState = modules[node.name].taskState
         break
       case "run":
-        taskState = (tasks[node.name] && tasks[node.name].taskState) || taskState
+        const task = tasks[node.name]
+        disabled = task.config.disabled || task.config.moduleDisabled
+        taskState = task.taskState
         break
       case "test":
-        const testKey = getTestKey({ testName: node.name, moduleName: node.moduleName })
-        taskState = (tests[testKey] && tests[testKey].taskState) || taskState
+        const test = tests[getTestKey({ testName: node.name, moduleName: node.moduleName })]
+        disabled = test.config.disabled || test.config.moduleDisabled
+        taskState = test.taskState
         break
     }
-    return { ...node, status: taskState }
+    return { ...node, disabled, status: taskState }
   })
 
   let graphWithStatus: GraphOutputWithNodeStatus = { nodes: nodesWithStatus, relationships: graph.relationships }

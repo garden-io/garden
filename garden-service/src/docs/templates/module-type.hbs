@@ -1,14 +1,15 @@
 ---
-title: {{{frontmatterTitle}}}
+title: "{{{frontmatterTitle}}}"
+tocTitle: "`{{{name}}}`"
 ---
 
-# `{{{name}}}` Module Type
+# {{{frontmatterTitle}}}
+
+## Description
 
 {{{docs}}}
 
-## Reference
-
-Below is the schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
+Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../guides/configuration-files.md).
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
@@ -17,7 +18,7 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 `{{{name}}}` modules also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 
 {{/if}}
-### Complete YAML Schema
+## Complete YAML Schema
 
 The values in the schema below are the default values.
 
@@ -25,27 +26,27 @@ The values in the schema below are the default values.
 {{{yaml}}}
 ```
 
-### Configuration Keys
+## Configuration Keys
 {{{markdownReference}}}
 {{#if hasOutputs}}
 
-### Outputs
+## Outputs
 {{/if}}
 {{#if moduleOutputsReference}}
 
-#### Module Outputs
+### Module Outputs
 
 The following keys are available via the `${modules.<module-name>}` template string key for `{{{name}}}`
 modules.
 {{{moduleOutputsReference}}}{{/if}}{{#if serviceOutputsReference}}
 
-#### Service Outputs
+### Service Outputs
 
 The following keys are available via the `${runtime.services.<service-name>}` template string key for `{{{name}}}` module services.
 Note that these are only resolved when deploying/running dependants of the service, so they are not usable for every field.
 {{{serviceOutputsReference}}}{{/if}}{{#if taskOutputsReference}}
 
-#### Task Outputs
+### Task Outputs
 
 The following keys are available via the `${runtime.tasks.<task-name>}` template string key for `{{{name}}}` module tasks.
 Note that these are only resolved when deploying/running dependants of the task, so they are not usable for every field.

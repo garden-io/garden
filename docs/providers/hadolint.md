@@ -1,8 +1,11 @@
 ---
-title: hadolint
+title: "`hadolint` Provider"
+tocTitle: "`hadolint`"
 ---
 
 # `hadolint` Provider
+
+## Description
 
 This provider creates a [`hadolint`](https://docs.garden.io/module-types/hadolint) module type, and (by default) generates one
 such module for each `container` module that contains a Dockerfile in your project. Each module creates a single
@@ -16,13 +19,11 @@ default configuration. Note that for reasons of portability, we do not fall back
 See the [hadolint docs](https://github.com/hadolint/hadolint#configure) for details on how to configure it, and the
 [hadolint example project](https://github.com/garden-io/garden/tree/master/examples/hadolint) for a usage example.
 
-## Reference
-
-Below is the schema reference for the `hadolint` provider. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../guides/configuration-files.md).
+Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../guides/configuration-files.md).
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
-### Complete YAML Schema
+## Complete YAML Schema
 
 The values in the schema below are the default values.
 
@@ -43,15 +44,15 @@ providers:
     # Set to `"none"` to always mark the tests as successful.
     testFailureThreshold: error
 ```
-### Configuration Keys
+## Configuration Keys
 
-#### `providers[]`
+### `providers[]`
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
 | `array[object]` | `[]`    | No       |
 
-#### `providers[].name`
+### `providers[].name`
 
 [providers](#providers) > name
 
@@ -68,7 +69,7 @@ providers:
   - name: "local-kubernetes"
 ```
 
-#### `providers[].environments[]`
+### `providers[].environments[]`
 
 [providers](#providers) > environments
 
@@ -87,7 +88,7 @@ providers:
       - stage
 ```
 
-#### `providers[].autoInject`
+### `providers[].autoInject`
 
 [providers](#providers) > autoInject
 
@@ -98,7 +99,7 @@ project. Set this to `false` to disable this behavior.
 | --------- | ------- | -------- |
 | `boolean` | `true`  | No       |
 
-#### `providers[].testFailureThreshold`
+### `providers[].testFailureThreshold`
 
 [providers](#providers) > testFailureThreshold
 

@@ -34,6 +34,7 @@ import humanizeString = require("humanize-string")
 interface Metadata {
   order: number
   title: string
+  tocTitle?: string
 }
 
 interface FileTree extends dtree.DirectoryTree, Metadata {
@@ -82,9 +83,10 @@ function attachMetadata(tree: FileTree) {
     } else {
       tree.order = Number.MAX_VALUE
     }
-    if (metadata.title) {
-      tree.title = metadata.title
-    } else {
+
+    tree.title = metadata.tocTitle || metadata.title
+
+    if (!tree.title) {
       // This matches the first "# Title Header" in a Markdown file.
       const name = file.match(/^#[^#][\s]*(.+?)#*?$/m)
       if (name) {

@@ -28,6 +28,9 @@ defaultEnvironment: remote
 
 in the project `garden.yml`.
 
+_Note: If you want to use a remote Kubernetes cluster, make sure to update the `context` value in the project `garden.yml` with the name of your cluster context.
+In order to avoid mistakes, Garden will always point to the context specified in the providers configuration, regardless of what you selected with `kubectl`._
+
 Also, if your remote cluster hasn't previously been set up for Garden, start by running the following from the project root:
 
 ``` sh

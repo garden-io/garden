@@ -1,8 +1,6 @@
-[align center]
 <p align="center">
-  <img src="docs/logo.png">
+  <img src="docs/logo.png" align="center">
 </p>
-[continue]
 
 **Garden is a developer tool that automates your workflows and makes developing and testing Kubernetes applications faster and easier than ever.**
 
