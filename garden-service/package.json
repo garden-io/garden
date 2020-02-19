@@ -66,7 +66,6 @@
     "gray-matter": "^4.0.2",
     "has-ansi": "^4.0.0",
     "hasha": "^5.1.0",
-    "https-proxy-agent": "^5.0.0",
     "humanize-string": "^2.1.0",
     "indent-string": "^4.0.0",
     "inquirer": "^7.0.1",

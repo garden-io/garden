@@ -137,14 +137,10 @@ export class Library {
   }
 
   protected async fetch(tmpPath: string, log: LogEntry) {
-    const HttpsProxyAgent = require("https-proxy-agent")
-    const httpsAgent = new HttpsProxyAgent({ host: "proxy-wsa.esl.cisco.com", port: 80 })
-
     const response = await Axios({
       method: "GET",
       url: this.spec.url,
       responseType: "stream",
-      httpsAgent,
     })
 
     // compute the sha256 checksum
