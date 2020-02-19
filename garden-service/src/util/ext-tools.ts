@@ -21,6 +21,7 @@ import crossSpawn from "cross-spawn"
 import { spawn } from "./util"
 import { Writable } from "stream"
 import { axios } from "./http"
+import got from "got/dist/source"
 const AsyncLock = require("async-lock")
 
 const toolsPath = join(GARDEN_GLOBAL_PATH, "tools")
@@ -137,20 +138,19 @@ export class Library {
   }
 
   protected async fetch(tmpPath: string, log: LogEntry) {
-    const response = await axios({
+    const response = got.stream({
       method: "GET",
       url: this.spec.url,
-      responseType: "stream",
     })
 
     // compute the sha256 checksum
     const hash = createHash("sha256")
     hash.setEncoding("hex")
-    response.data.pipe(hash)
+    response.pipe(hash)
 
     return new Promise((resolve, reject) => {
-      response.data.on("error", (err) => {
-        log.setError(`Failed fetching ${response.request.url}`)
+      response.on("error", (err) => {
+        log.setError(`Failed fetching ${this.spec.url}`)
         reject(err)
       })
 
@@ -176,8 +176,8 @@ export class Library {
 
       if (!this.spec.extract) {
         const targetExecutable = join(tmpPath, ...this.targetSubpath)
-        response.data.pipe(createWriteStream(targetExecutable))
-        response.data.on("end", () => resolve())
+        response.pipe(createWriteStream(targetExecutable))
+        response.on("end", () => resolve())
       } else {
         const format = this.spec.extract.format
         let extractor: Writable
@@ -201,7 +201,7 @@ export class Library {
           return
         }
 
-        response.data.pipe(extractor)
+        response.pipe(extractor)
 
         extractor.on("error", (err) => {
           log.setError(`Failed extracting ${format} archive ${this.spec.url}`)

@@ -7,6 +7,7 @@
  */
 
 import Axios from "axios"
+import _got from "got"
 import { bootstrap } from "global-agent"
 
 // Handle proxy environment settings
@@ -18,3 +19,4 @@ bootstrap({
 
 // Exporting from here to make sure the global-agent bootstrap is executed
 export const axios = Axios
+export const got = _got
