@@ -11,20 +11,15 @@ import { getPortForward } from "../port-forward"
 import { CLUSTER_REGISTRY_DEPLOYMENT_NAME, CLUSTER_REGISTRY_PORT } from "../constants"
 import { LogEntry } from "../../../logger/log-entry"
 import { KubernetesPluginContext } from "../config"
-import axios, { AxiosRequestConfig } from "axios"
 import { getSystemNamespace } from "../namespace"
+import { got, GotOptions, GotResponse } from "../../../util/http"
 
-export async function queryRegistry(
-  ctx: KubernetesPluginContext,
-  log: LogEntry,
-  path: string,
-  opts: AxiosRequestConfig = {}
-) {
+export async function queryRegistry(ctx: KubernetesPluginContext, log: LogEntry, path: string, opts?: GotOptions) {
   const registryFwd = await getRegistryPortForward(ctx, log)
   const baseUrl = `http://localhost:${registryFwd.localPort}/v2/`
   const url = resolve(baseUrl, path)
 
-  return axios({ url, ...opts })
+  return got(url, opts).json<GotResponse<any>>()
 }
 
 export async function getRegistryPortForward(ctx: KubernetesPluginContext, log: LogEntry) {
