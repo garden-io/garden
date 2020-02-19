@@ -124,7 +124,7 @@ export class DeployTask extends BaseTask {
           garden: this.garden,
           log: this.log,
           graph: this.graph,
-          force: this.force,
+          force: false,
           forceBuild: this.forceBuild,
         })
       })
