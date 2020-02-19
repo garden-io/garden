@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import axios from "axios"
 import chalk from "chalk"
 import ci = require("ci-info")
 import { pathExists } from "fs-extra"
@@ -23,6 +22,7 @@ import { LogEntry } from "../logger/log-entry"
 import { STATIC_DIR, VERSION_CHECK_URL } from "../constants"
 import { printWarningMessage } from "../logger/util"
 import { GlobalConfigStore, globalConfigKeys } from "../config-store"
+import { got, GotResponse } from "../util/http"
 
 // Parameter types T which map between the Parameter<T> class and the Sywac cli library.
 // In case we add types that aren't supported natively by Sywac, see: http://sywac.io/docs/sync-config.html#custom
@@ -236,7 +236,7 @@ export async function checkForUpdates(config: GlobalConfigStore, logger: LogEntr
       headers["X-ci-name"] = ci.name
     }
 
-    const res = await axios.get(`${VERSION_CHECK_URL}?${qs.stringify(query)}`, { headers })
+    const res = await got(`${VERSION_CHECK_URL}?${qs.stringify(query)}`, { headers }).json<GotResponse<any>>()
     const configObj = await config.get()
     const showMessage =
       configObj.lastVersionCheck &&
@@ -246,8 +246,8 @@ export async function checkForUpdates(config: GlobalConfigStore, logger: LogEntr
 
     // we check again for lastVersionCheck because in the first run it doesn't exist
     if (showMessage || !configObj.lastVersionCheck) {
-      if (res.data.status === "OUTDATED") {
-        printWarningMessage(logger, res.data.message)
+      if (res.body.status === "OUTDATED") {
+        printWarningMessage(logger, res.body.message)
         await config.set([globalConfigKeys.lastVersionCheck], { lastRun: new Date() })
       }
     }
