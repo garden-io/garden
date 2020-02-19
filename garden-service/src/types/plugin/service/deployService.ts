@@ -20,20 +20,20 @@ export interface DeployServiceParams<M extends Module = Module, S extends Module
   runtimeContext: RuntimeContext
 }
 
-export const deployService = {
+export const deployService = () => ({
   description: dedent`
     Deploy the specified service. This should wait until the service is ready and accessible,
     and fail if the service doesn't reach a ready state.
 
     Called by the \`garden deploy\` and \`garden dev\` commands.
   `,
-  paramsSchema: serviceActionParamsSchema.keys({
+  paramsSchema: serviceActionParamsSchema().keys({
     force: joi.boolean().description("Whether to force a re-deploy, even if the service is already deployed."),
-    runtimeContext: runtimeContextSchema,
+    runtimeContext: runtimeContextSchema(),
     hotReload: joi
       .boolean()
       .default(false)
       .description("Whether to configure the service for hot-reloading."),
   }),
-  resultSchema: serviceStatusSchema,
-}
+  resultSchema: serviceStatusSchema(),
+})

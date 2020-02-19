@@ -376,7 +376,7 @@ describe("Garden", () => {
               name: "foo-a",
               title: "Foo A",
               docs: "foo-a",
-              schema: baseModuleSpecSchema.keys({ foo: joi.string() }),
+              schema: baseModuleSpecSchema().keys({ foo: joi.string() }),
               moduleOutputsSchema: joi.object().keys({ moduleOutput: joi.string() }),
               handlers: {
                 configure: async ({ moduleConfig }) => ({ moduleConfig }),
@@ -393,7 +393,7 @@ describe("Garden", () => {
               name: "foo-b",
               base: "foo-a",
               docs: "Foo B",
-              schema: baseModuleSpecSchema,
+              schema: baseModuleSpecSchema(),
               serviceOutputsSchema: joi.object().keys({ serviceOutput: joi.string() }),
               handlers: {
                 build: async () => ({}),
@@ -409,7 +409,7 @@ describe("Garden", () => {
               name: "foo-c",
               base: "foo-b",
               docs: "Foo C",
-              taskOutputsSchema: baseModuleSpecSchema.keys({ taskOutput: joi.string() }),
+              taskOutputsSchema: baseModuleSpecSchema().keys({ taskOutput: joi.string() }),
               handlers: {
                 configure: async ({ moduleConfig }) => ({ moduleConfig }),
                 build: async () => ({}),
@@ -1585,7 +1585,7 @@ describe("Garden", () => {
     it("should apply default values from a plugin's configuration schema if specified", async () => {
       const test = createGardenPlugin({
         name: "test",
-        configSchema: providerConfigBaseSchema.keys({
+        configSchema: providerConfigBaseSchema().keys({
           foo: joi.string().default("bar"),
         }),
       })
@@ -1612,7 +1612,7 @@ describe("Garden", () => {
     it("should throw if a config doesn't match a plugin's configuration schema", async () => {
       const test = createGardenPlugin({
         name: "test",
-        configSchema: providerConfigBaseSchema.keys({
+        configSchema: providerConfigBaseSchema().keys({
           foo: joi.string(),
         }),
       })
@@ -1645,7 +1645,7 @@ describe("Garden", () => {
     it("should throw if configureProvider returns a config that doesn't match a plugin's config schema", async () => {
       const test = createGardenPlugin({
         name: "test",
-        configSchema: providerConfigBaseSchema.keys({
+        configSchema: providerConfigBaseSchema().keys({
           foo: joi.string(),
         }),
         handlers: {
@@ -1884,7 +1884,7 @@ describe("Garden", () => {
       it("should throw if the config for the plugin doesn't match the base's config schema", async () => {
         const base = createGardenPlugin({
           name: "base",
-          configSchema: providerConfigBaseSchema.keys({
+          configSchema: providerConfigBaseSchema().keys({
             foo: joi.string(),
           }),
         })
@@ -1922,7 +1922,7 @@ describe("Garden", () => {
       it("should throw if the configureProvider handler doesn't return a config matching the base", async () => {
         const base = createGardenPlugin({
           name: "base",
-          configSchema: providerConfigBaseSchema.keys({
+          configSchema: providerConfigBaseSchema().keys({
             foo: joi.string(),
           }),
         })
@@ -2583,7 +2583,7 @@ describe("Garden", () => {
             {
               name: "foo",
               docs: "foo",
-              schema: joi.object().keys({ foo: joi.string(), build: baseBuildSpecSchema }),
+              schema: joi.object().keys({ foo: joi.string(), build: baseBuildSpecSchema() }),
               handlers: {
                 configure: async ({ moduleConfig }) => {
                   return { moduleConfig }
@@ -2640,7 +2640,7 @@ describe("Garden", () => {
             {
               name: "foo",
               docs: "foo",
-              schema: joi.object().keys({ foo: joi.string(), build: baseBuildSpecSchema }),
+              schema: joi.object().keys({ foo: joi.string(), build: baseBuildSpecSchema() }),
               handlers: {
                 configure: async ({ moduleConfig }) => {
                   return { moduleConfig }
@@ -2723,7 +2723,7 @@ describe("Garden", () => {
             {
               name: "foo",
               docs: "foo",
-              schema: joi.object().keys({ foo: joi.string(), build: baseBuildSpecSchema }),
+              schema: joi.object().keys({ foo: joi.string(), build: baseBuildSpecSchema() }),
               handlers: {
                 configure: async ({ moduleConfig }) => {
                   moduleConfig.include = []
@@ -2810,7 +2810,7 @@ describe("Garden", () => {
             {
               name: "foo",
               docs: "foo",
-              schema: joi.object().keys({ foo: joi.string(), build: baseBuildSpecSchema }),
+              schema: joi.object().keys({ foo: joi.string(), build: baseBuildSpecSchema() }),
               handlers: {
                 configure: async ({ moduleConfig }) => {
                   return { moduleConfig }
@@ -2848,7 +2848,7 @@ describe("Garden", () => {
             {
               name: "foo",
               docs: "foo",
-              schema: joi.object().keys({ foo: joi.string(), build: baseBuildSpecSchema }),
+              schema: joi.object().keys({ foo: joi.string(), build: baseBuildSpecSchema() }),
               handlers: {
                 configure: async ({ moduleConfig }) => {
                   moduleConfig.include = []
@@ -2942,7 +2942,7 @@ describe("Garden", () => {
             {
               name: "foo",
               docs: "foo",
-              schema: joi.object().keys({ foo: joi.string(), build: baseBuildSpecSchema }),
+              schema: joi.object().keys({ foo: joi.string(), build: baseBuildSpecSchema() }),
               handlers: {
                 configure: async ({ moduleConfig }) => {
                   moduleConfig.serviceConfigs = [
@@ -3005,7 +3005,7 @@ describe("Garden", () => {
             {
               name: "foo",
               docs: "foo",
-              schema: joi.object().keys({ foo: joi.string(), build: baseBuildSpecSchema }),
+              schema: joi.object().keys({ foo: joi.string(), build: baseBuildSpecSchema() }),
               handlers: {
                 configure: async ({ moduleConfig }) => {
                   return { moduleConfig }

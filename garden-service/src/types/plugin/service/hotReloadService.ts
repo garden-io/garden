@@ -16,10 +16,10 @@ export interface HotReloadServiceParams<M extends Module = Module, S extends Mod
 
 export interface HotReloadServiceResult {}
 
-export const hotReloadService = {
+export const hotReloadService = () => ({
   description: dedent`
     Synchronize changes directly into a running service, instead of doing a full redeploy.
   `,
-  paramsSchema: serviceActionParamsSchema,
+  paramsSchema: serviceActionParamsSchema(),
   resultSchema: joi.object().keys({}),
-}
+})

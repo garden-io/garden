@@ -22,28 +22,30 @@ export interface ProviderConfig {
   [key: string]: any
 }
 
-const providerFixedFieldsSchema = joi.object().keys({
-  name: joiIdentifier()
-    .required()
-    .description("The name of the provider plugin to use.")
-    .example("local-kubernetes"),
-  environments: joi
-    .array()
-    .items(joiUserIdentifier())
-    .optional()
-    .description(
-      deline`
+const providerFixedFieldsSchema = () =>
+  joi.object().keys({
+    name: joiIdentifier()
+      .required()
+      .description("The name of the provider plugin to use.")
+      .example("local-kubernetes"),
+    environments: joi
+      .array()
+      .items(joiUserIdentifier())
+      .optional()
+      .description(
+        deline`
         If specified, this provider will only be used in the listed environments. Note that an empty array effectively
         disables the provider. To use a provider in all environments, omit this field.
       `
-    )
-    .example(["dev", "stage"]),
-})
+      )
+      .example(["dev", "stage"]),
+  })
 
-export const providerConfigBaseSchema = providerFixedFieldsSchema
-  .unknown(true)
-  .meta({ extendable: true })
-  .id("providerConfig")
+export const providerConfigBaseSchema = () =>
+  providerFixedFieldsSchema()
+    .unknown(true)
+    .meta({ extendable: true })
+    .id("providerConfig")
 
 export interface Provider<T extends ProviderConfig = ProviderConfig> {
   name: string
@@ -54,16 +56,17 @@ export interface Provider<T extends ProviderConfig = ProviderConfig> {
   status: EnvironmentStatus
 }
 
-export const providerSchema = providerFixedFieldsSchema
-  .keys({
-    dependencies: joiArray(joi.link("..."))
-      .description("List of all the providers that this provider depends on.")
-      .required(),
-    config: providerConfigBaseSchema.required(),
-    moduleConfigs: joiArray(moduleConfigSchema.optional()),
-    status: environmentStatusSchema,
-  })
-  .id("provider")
+export const providerSchema = () =>
+  providerFixedFieldsSchema()
+    .keys({
+      dependencies: joiArray(joi.link("..."))
+        .description("List of all the providers that this provider depends on.")
+        .required(),
+      config: providerConfigBaseSchema().required(),
+      moduleConfigs: joiArray(moduleConfigSchema().optional()),
+      status: environmentStatusSchema(),
+    })
+    .id("provider")
 
 export interface ProviderMap {
   [name: string]: Provider

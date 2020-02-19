@@ -48,45 +48,46 @@ export interface Module<M extends {} = any, S extends {} = any, T extends {} = a
   _ConfigType: ModuleConfig<M, S, T, W>
 }
 
-export const moduleSchema = moduleConfigSchema.keys({
-  buildPath: joi
-    .string()
-    .required()
-    .description("The path to the build staging directory for the module."),
-  buildMetadataPath: joi
-    .string()
-    .required()
-    .description("The path to the build metadata directory for the module."),
-  compatibleTypes: joiArray(joiIdentifier())
-    .required()
-    .description("A list of types that this module is compatible with (i.e. the module type itself + all bases)."),
-  configPath: joi
-    .string()
-    .required()
-    .description("The path to the module config file."),
-  version: moduleVersionSchema.required(),
-  buildDependencies: joiIdentifierMap(joi.link("..."))
-    .required()
-    .description("A map of all modules referenced under `build.dependencies`."),
-  needsBuild: joi
-    .boolean()
-    .required()
-    .description(
-      "Indicate whether the module needs to be built (i.e. has a build handler or needs to copy dependencies)."
-    ),
-  serviceNames: joiArray(joiIdentifier())
-    .required()
-    .description("The names of the services that the module provides."),
-  serviceDependencyNames: joiArray(joiIdentifier())
-    .required()
-    .description("The names of all the services and tasks that the services in this module depend on."),
-  taskNames: joiArray(joiIdentifier())
-    .required()
-    .description("The names of the tasks that the module provides."),
-  taskDependencyNames: joiArray(joiIdentifier())
-    .required()
-    .description("The names of all the tasks and services that the tasks in this module depend on."),
-})
+export const moduleSchema = () =>
+  moduleConfigSchema().keys({
+    buildPath: joi
+      .string()
+      .required()
+      .description("The path to the build staging directory for the module."),
+    buildMetadataPath: joi
+      .string()
+      .required()
+      .description("The path to the build metadata directory for the module."),
+    compatibleTypes: joiArray(joiIdentifier())
+      .required()
+      .description("A list of types that this module is compatible with (i.e. the module type itself + all bases)."),
+    configPath: joi
+      .string()
+      .required()
+      .description("The path to the module config file."),
+    version: moduleVersionSchema().required(),
+    buildDependencies: joiIdentifierMap(joi.link("..."))
+      .required()
+      .description("A map of all modules referenced under `build.dependencies`."),
+    needsBuild: joi
+      .boolean()
+      .required()
+      .description(
+        "Indicate whether the module needs to be built (i.e. has a build handler or needs to copy dependencies)."
+      ),
+    serviceNames: joiArray(joiIdentifier())
+      .required()
+      .description("The names of the services that the module provides."),
+    serviceDependencyNames: joiArray(joiIdentifier())
+      .required()
+      .description("The names of all the services and tasks that the services in this module depend on."),
+    taskNames: joiArray(joiIdentifier())
+      .required()
+      .description("The names of the tasks that the module provides."),
+    taskDependencyNames: joiArray(joiIdentifier())
+      .required()
+      .description("The names of all the tasks and services that the tasks in this module depend on."),
+  })
 
 export interface ModuleMap<T extends Module = Module> {
   [key: string]: T

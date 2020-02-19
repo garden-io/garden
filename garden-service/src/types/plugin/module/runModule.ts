@@ -20,16 +20,17 @@ export interface RunModuleParams<T extends Module = Module> extends PluginModule
   timeout?: number
 }
 
-export const runModuleBaseSchema = moduleActionParamsSchema.keys(runBaseParams)
+export const runModuleBaseSchema = () => moduleActionParamsSchema().keys(runBaseParams)
 
-export const runModuleParamsSchema = runModuleBaseSchema.keys({
-  command: joiArray(joi.string())
-    .optional()
-    .description("The command/entrypoint to run in the module."),
-  args: joiArray(joi.string()).description("The arguments passed to the command/entrypoint to run in the module."),
-})
+export const runModuleParamsSchema = () =>
+  runModuleBaseSchema().keys({
+    command: joiArray(joi.string())
+      .optional()
+      .description("The command/entrypoint to run in the module."),
+    args: joiArray(joi.string()).description("The arguments passed to the command/entrypoint to run in the module."),
+  })
 
-export const runModule = {
+export const runModule = () => ({
   description: dedent`
     Run an ad-hoc instance of the specified module. This should wait until the execution completes,
     and should ideally attach it to the terminal (i.e. pipe the output from the service
@@ -37,6 +38,6 @@ export const runModule = {
 
     Called by the \`garden run module\` command.
   `,
-  paramsSchema: runModuleParamsSchema,
-  resultSchema: runResultSchema,
-}
+  paramsSchema: runModuleParamsSchema(),
+  resultSchema: runResultSchema(),
+})

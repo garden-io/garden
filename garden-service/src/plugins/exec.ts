@@ -35,23 +35,24 @@ const execPathDoc = dedent`
   If the top level \`local\` directive is set to \`true\`, the command runs in the module source directory instead.
 `
 
-const artifactSchema = joi.object().keys({
-  source: joi
-    .posixPath()
-    .allowGlobs()
-    .relativeOnly()
-    .subPathOnly()
-    .required()
-    .description("A POSIX-style path or glob to copy, relative to the build root."),
-  target: joi
-    .posixPath()
-    .relativeOnly()
-    .subPathOnly()
-    .default(".")
-    .description("A POSIX-style path to copy the artifact to, relative to the project artifacts directory."),
-})
+const artifactSchema = () =>
+  joi.object().keys({
+    source: joi
+      .posixPath()
+      .allowGlobs()
+      .relativeOnly()
+      .subPathOnly()
+      .required()
+      .description("A POSIX-style path or glob to copy, relative to the build root."),
+    target: joi
+      .posixPath()
+      .relativeOnly()
+      .subPathOnly()
+      .default(".")
+      .description("A POSIX-style path to copy the artifact to, relative to the project artifacts directory."),
+  })
 
-const artifactsSchema = joi.array().items(artifactSchema)
+const artifactsSchema = () => joi.array().items(artifactSchema())
 
 export interface ExecTestSpec extends BaseTestSpec {
   command: string[]
@@ -59,23 +60,24 @@ export interface ExecTestSpec extends BaseTestSpec {
   artifacts?: ArtifactSpec[]
 }
 
-export const execTestSchema = baseTestSpecSchema
-  .keys({
-    command: joi
-      .array()
-      .items(joi.string())
-      .description(
-        dedent`
+export const execTestSchema = () =>
+  baseTestSpecSchema()
+    .keys({
+      command: joi
+        .array()
+        .items(joi.string())
+        .description(
+          dedent`
         The command to run to test the module.
 
         ${execPathDoc}
       `
-      )
-      .required(),
-    env: joiEnvVars(),
-    artifacts: artifactsSchema.description("A list of artifacts to copy after the test run."),
-  })
-  .description("The test specification of an exec module.")
+        )
+        .required(),
+      env: joiEnvVars(),
+      artifacts: artifactsSchema().description("A list of artifacts to copy after the test run."),
+    })
+    .description("The test specification of an exec module.")
 
 export interface ExecTaskSpec extends BaseTaskSpec {
   artifacts?: ArtifactSpec[]
@@ -83,23 +85,24 @@ export interface ExecTaskSpec extends BaseTaskSpec {
   env: { [key: string]: string }
 }
 
-export const execTaskSpecSchema = baseTaskSpecSchema
-  .keys({
-    artifacts: artifactsSchema.description("A list of artifacts to copy after the task run."),
-    command: joi
-      .array()
-      .items(joi.string())
-      .description(
-        dedent`
+export const execTaskSpecSchema = () =>
+  baseTaskSpecSchema()
+    .keys({
+      artifacts: artifactsSchema().description("A list of artifacts to copy after the task run."),
+      command: joi
+        .array()
+        .items(joi.string())
+        .description(
+          dedent`
         The command to run.
 
         ${execPathDoc}
       `
-      )
-      .required(),
-    env: joiEnvVars(),
-  })
-  .description("A task that can be run in this module.")
+        )
+        .required(),
+      env: joiEnvVars(),
+    })
+    .description("A task that can be run in this module.")
 
 interface ExecBuildSpec extends BaseBuildSpec {
   command: string[]
@@ -118,40 +121,42 @@ export interface ExecModuleSpec extends ExecModuleSpecBase {
 
 export type ExecModuleConfig = ModuleConfig<ExecModuleSpec, any, ExecTestSpec, ExecTaskSpec>
 
-export const execBuildSpecSchema = baseBuildSpecSchema.keys({
-  command: joiArray(joi.string())
-    .description(
-      dedent`
+export const execBuildSpecSchema = () =>
+  baseBuildSpecSchema().keys({
+    command: joiArray(joi.string())
+      .description(
+        dedent`
         The command to run to perform the build.
 
         ${execPathDoc}
       `
-    )
-    .example(["npm", "run", "build"]),
-})
+      )
+      .example(["npm", "run", "build"]),
+  })
 
-export const execModuleSpecSchema = joi
-  .object()
-  .keys({
-    local: joi
-      .boolean()
-      .description(
-        dedent`
+export const execModuleSpecSchema = () =>
+  joi
+    .object()
+    .keys({
+      local: joi
+        .boolean()
+        .description(
+          dedent`
         If set to true, Garden will run the build command, tests, and tasks in the module source directory,
         instead of in the Garden build directory (under .garden/build/<module-name>).
 
         Garden will therefore not stage the build for local exec modules. This means that include/exclude filters
         and ignore files are not applied to local exec modules.
       `
-      )
-      .default(false),
-    build: execBuildSpecSchema,
-    env: joiEnvVars(),
-    tasks: joiArray(execTaskSpecSchema).description("A list of tasks that can be run in this module."),
-    tests: joiArray(execTestSchema).description("A list of tests to run in the module."),
-  })
-  .unknown(false)
-  .description("The module specification for an exec module.")
+        )
+        .default(false),
+      build: execBuildSpecSchema(),
+      env: joiEnvVars(),
+      tasks: joiArray(execTaskSpecSchema()).description("A list of tasks that can be run in this module."),
+      tests: joiArray(execTestSchema()).description("A list of tests to run in the module."),
+    })
+    .unknown(false)
+    .description("The module specification for an exec module.")
 
 export interface ExecModule extends Module<ExecModuleSpec, CommonServiceSpec, ExecTestSpec, ExecTaskSpec> {}
 
@@ -180,7 +185,7 @@ export async function configureExecModule({
 
   moduleConfig.spec = validateWithPath({
     config: moduleConfig.spec,
-    schema: execModuleSpecSchema,
+    schema: execModuleSpecSchema(),
     name: moduleConfig.name,
     path: moduleConfig.path,
     projectRoot: ctx.projectRoot,
@@ -329,7 +334,7 @@ export const execPlugin = createGardenPlugin({
       filtering is done during the sync.
     `,
       moduleOutputsSchema: joi.object().keys({}),
-      schema: execModuleSpecSchema,
+      schema: execModuleSpecSchema(),
       taskOutputsSchema: joi.object().keys({
         log: joi
           .string()

@@ -87,7 +87,7 @@ const testProvider = () =>
         {
           name: "test",
           docs: "Test plugin",
-          schema: testModuleSpecSchema,
+          schema: testModuleSpecSchema(),
           handlers: {
             configure: configureTestModule,
             build: buildExecModule,

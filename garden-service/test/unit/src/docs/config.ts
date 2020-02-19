@@ -42,18 +42,19 @@ describe("docs config module", () => {
 
   const testArray = joiArray(servicePortSchema).description("test array")
 
-  const portSchema = joi
-    .object()
-    .keys({
-      containerPort: joi
-        .number()
-        .required()
-        .description("description"),
-      servicePort: servicePortSchema,
-      testObject,
-      testArray,
-    })
-    .required()
+  const portSchema = () =>
+    joi
+      .object()
+      .keys({
+        containerPort: joi
+          .number()
+          .required()
+          .description("description"),
+        servicePort: servicePortSchema,
+        testObject,
+        testArray,
+      })
+      .required()
 
   describe("sanitizeYamlStringForGitBook", () => {
     it("should remove lines that start with ```", () => {
@@ -111,7 +112,7 @@ describe("docs config module", () => {
 
   describe("renderSchemaDescriptionYaml", () => {
     it("should render the yaml with the full description", () => {
-      const schemaDescriptions = normalizeJoiSchemaDescription(portSchema.describe() as JoiDescription)
+      const schemaDescriptions = normalizeJoiSchemaDescription(portSchema().describe() as JoiDescription)
       const yaml = renderSchemaDescriptionYaml(schemaDescriptions, { renderRequired: true })
       expect(yaml).to.equal(dedent`
         # description
@@ -161,7 +162,7 @@ describe("docs config module", () => {
       `)
     })
     it("should optionally render the yaml with a basic description", () => {
-      const schemaDescriptions = normalizeJoiSchemaDescription(portSchema.describe() as JoiDescription)
+      const schemaDescriptions = normalizeJoiSchemaDescription(portSchema().describe() as JoiDescription)
       const yaml = renderSchemaDescriptionYaml(schemaDescriptions, { renderBasicDescription: true })
       expect(yaml).to.equal(dedent`
         # description
@@ -183,7 +184,7 @@ describe("docs config module", () => {
       `)
     })
     it("should optionally skip the commented description above the key", () => {
-      const schemaDescriptions = normalizeJoiSchemaDescription(portSchema.describe() as JoiDescription)
+      const schemaDescriptions = normalizeJoiSchemaDescription(portSchema().describe() as JoiDescription)
       const yaml = renderSchemaDescriptionYaml(schemaDescriptions, { renderFullDescription: false })
       expect(yaml).to.equal(dedent`
         containerPort:
@@ -195,7 +196,7 @@ describe("docs config module", () => {
       `)
     })
     it("should conditionally print ellipsis between object keys", () => {
-      const schemaDescriptions = normalizeJoiSchemaDescription(portSchema.describe() as JoiDescription)
+      const schemaDescriptions = normalizeJoiSchemaDescription(portSchema().describe() as JoiDescription)
       const yaml = renderSchemaDescriptionYaml(schemaDescriptions, {
         renderFullDescription: false,
         renderEllipsisBetweenKeys: true,
@@ -236,7 +237,7 @@ describe("docs config module", () => {
       const schema = joi
         .object()
         .keys({
-          dependencies: joiArray(buildDependencySchema)
+          dependencies: joiArray(buildDependencySchema())
             .description("A list of modules that must be built before this module is built.")
             .example([{ name: "some-other-module-name" }]),
         })
@@ -344,7 +345,7 @@ describe("docs config module", () => {
 
   describe("renderConfigReference", () => {
     it("should return the correct markdown", () => {
-      const { markdownReference } = renderConfigReference(portSchema)
+      const { markdownReference } = renderConfigReference(portSchema())
       expect(markdownReference).to.equal(dedent`
         \n### \`containerPort\`
 
@@ -406,7 +407,7 @@ describe("docs config module", () => {
       `)
     })
     it("should return the correct yaml", () => {
-      const { yaml } = renderConfigReference(portSchema)
+      const { yaml } = renderConfigReference(portSchema())
       expect(yaml).to.equal(dedent`
         # description
         containerPort:

@@ -91,10 +91,11 @@ const mavenKeys = {
     ),
 }
 
-const mavenContainerModuleSpecSchema = containerModuleSpecSchema.keys(mavenKeys)
-export const mavenContainerConfigSchema = providerConfigBaseSchema.keys({
-  name: joiProviderName("maven-container"),
-})
+const mavenContainerModuleSpecSchema = () => containerModuleSpecSchema().keys(mavenKeys)
+export const mavenContainerConfigSchema = () =>
+  providerConfigBaseSchema().keys({
+    name: joiProviderName("maven-container"),
+  })
 
 export const gardenPlugin = createGardenPlugin({
   name: "maven-container",
@@ -126,7 +127,7 @@ export const gardenPlugin = createGardenPlugin({
       To use it, make sure to add the \`maven-container\` provider to your project configuration.
       The provider will automatically fetch and cache Maven and the appropriate OpenJDK version ahead of building.
     `,
-      schema: mavenContainerModuleSpecSchema,
+      schema: mavenContainerModuleSpecSchema(),
       handlers: {
         configure: configureMavenContainerModule,
         getBuildStatus,

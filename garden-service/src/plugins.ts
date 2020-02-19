@@ -38,7 +38,7 @@ export function loadPlugins(log: LogEntry, registeredPlugins: PluginMap, configs
       return null
     }
 
-    plugin = validateSchema(plugin, pluginSchema, {
+    plugin = validateSchema(plugin, pluginSchema(), {
       context: `plugin "${name}"`,
     })
 

@@ -91,15 +91,16 @@ async function runModule(params: RunModuleParams): Promise<RunResult> {
 
 export const projectRootA = getDataDir("test-project-a")
 
-const testModuleTestSchema = containerTestSchema.keys({ command: joi.array().items(joi.string()) })
+const testModuleTestSchema = () => containerTestSchema().keys({ command: joi.array().items(joi.string()) })
 
-const testModuleTaskSchema = containerTaskSchema.keys({ command: joi.array().items(joi.string()) })
+const testModuleTaskSchema = () => containerTaskSchema().keys({ command: joi.array().items(joi.string()) })
 
-export const testModuleSpecSchema = containerModuleSpecSchema.keys({
-  build: execBuildSpecSchema,
-  tests: joiArray(testModuleTestSchema),
-  tasks: joiArray(testModuleTaskSchema),
-})
+export const testModuleSpecSchema = () =>
+  containerModuleSpecSchema().keys({
+    build: execBuildSpecSchema(),
+    tests: joiArray(testModuleTestSchema()),
+    tasks: joiArray(testModuleTaskSchema()),
+  })
 
 export async function configureTestModule({ moduleConfig }: ConfigureModuleParams) {
   moduleConfig.outputs = { foo: "bar" }
@@ -179,7 +180,7 @@ export const testPlugin = createGardenPlugin(() => {
       {
         name: "test",
         docs: "Test module type",
-        schema: testModuleSpecSchema,
+        schema: testModuleSpecSchema(),
         handlers: {
           testModule: testExecModule,
           configure: configureTestModule,
@@ -258,7 +259,7 @@ export const testPluginC = createGardenPlugin({
     {
       name: "test-c",
       docs: "Test module type C",
-      schema: testModuleSpecSchema,
+      schema: testModuleSpecSchema(),
       handlers: testPlugin.createModuleTypes![0].handlers,
     },
   ],

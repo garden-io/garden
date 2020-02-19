@@ -38,7 +38,7 @@ export function renderProviderReference(name: string, plugin: GardenPlugin, allP
     }
   }
 
-  const schema = populateProviderSchema(configSchema || providerConfigBaseSchema)
+  const schema = populateProviderSchema(configSchema || providerConfigBaseSchema())
   const docs = plugin.docs || ""
 
   const moduleOutputsSchema = plugin.outputsSchema

@@ -19,7 +19,7 @@ import { ConfigureModuleParams } from "../../types/plugin/module/configure"
 import { DeployServiceParams } from "../../types/plugin/service/deployService"
 import { joi } from "../../config/common"
 
-const configSchema = providerConfigBaseSchema.keys({
+const configSchema = providerConfigBaseSchema().keys({
   project: joi
     .string()
     .required()

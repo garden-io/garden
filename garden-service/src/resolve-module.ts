@@ -76,7 +76,7 @@ export async function resolveModuleConfig(
   // Validate the base config schema
   config = validateWithPath({
     config,
-    schema: moduleConfigSchema,
+    schema: moduleConfigSchema(),
     configType: "module",
     name: config.name,
     path: config.path,

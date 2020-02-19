@@ -24,20 +24,21 @@ export interface Service<M extends Module = Module, S extends Module = Module> {
   spec: M["serviceConfigs"][0]["spec"]
 }
 
-export const serviceSchema = joi
-  .object()
-  .options({ presence: "required" })
-  .keys({
-    name: joiUserIdentifier().description("The name of the service."),
-    module: joi.object().unknown(true), // This causes a stack overflow: joi.lazy(() => moduleSchema),
-    sourceModule: joi.object().unknown(true), // This causes a stack overflow: joi.lazy(() => moduleSchema),
-    disabled: joi
-      .boolean()
-      .default(false)
-      .description("Set to true if the service or its module is disabled."),
-    config: serviceConfigSchema,
-    spec: joi.object().description("The raw configuration of the service (specific to each plugin)."),
-  })
+export const serviceSchema = () =>
+  joi
+    .object()
+    .options({ presence: "required" })
+    .keys({
+      name: joiUserIdentifier().description("The name of the service."),
+      module: joi.object().unknown(true), // This causes a stack overflow: joi.lazy(() => moduleSchema()),
+      sourceModule: joi.object().unknown(true), // This causes a stack overflow: joi.lazy(() => moduleSchema()),
+      disabled: joi
+        .boolean()
+        .default(false)
+        .description("Set to true if the service or its module is disabled."),
+      config: serviceConfigSchema(),
+      spec: joi.object().description("The raw configuration of the service (specific to each plugin)."),
+    })
 
 export async function serviceFromConfig<M extends Module = Module>(
   graph: ConfigGraph,
@@ -103,13 +104,15 @@ export interface ServiceIngress extends ServiceIngressSpec {
   hostname: string
 }
 
-export const ingressHostnameSchema = joi.string().hostname().description(dedent`
+export const ingressHostnameSchema = () =>
+  joi.string().hostname().description(dedent`
     The hostname that should route to this service. Defaults to the default hostname configured in the provider configuration.
 
     Note that if you're developing locally you may need to add this hostname to your hosts file.
   `)
 
-export const linkUrlSchema = joi.string().uri().description(dedent`
+export const linkUrlSchema = () =>
+  joi.string().uri().description(dedent`
     The link URL for the ingress to show in the console and on the dashboard. Also used when calling the service with the \`call\` command.
 
     Use this if the actual URL is different from what's specified in the ingress, e.g. because there's a load balancer in front of the service that rewrites the paths.
@@ -117,35 +120,38 @@ export const linkUrlSchema = joi.string().uri().description(dedent`
     Otherwise Garden will construct the link URL from the ingress spec.
   `)
 
-const portSchema = joi.number().description(dedent`
+const portSchema = () =>
+  joi.number().description(dedent`
     The port number that the service is exposed on internally.
     This defaults to the first specified port for the service.
   `)
 
-export const serviceIngressSpecSchema = joi.object().keys({
-  hostname: ingressHostnameSchema,
-  port: portSchema,
-  path: joi
-    .string()
-    .default("/")
-    .description("The ingress path that should be matched to route to this service."),
-  protocol: joi
-    .string()
-    .valid("http", "https")
-    .required()
-    .description("The protocol to use for the ingress."),
-})
-
-export const serviceIngressSchema = serviceIngressSpecSchema
-  .keys({
-    hostname: joi
+export const serviceIngressSpecSchema = () =>
+  joi.object().keys({
+    hostname: ingressHostnameSchema(),
+    port: portSchema(),
+    path: joi
       .string()
+      .default("/")
+      .description("The ingress path that should be matched to route to this service."),
+    protocol: joi
+      .string()
+      .valid("http", "https")
       .required()
-      .description("The hostname where the service can be accessed."),
-    port: portSchema.required(),
+      .description("The protocol to use for the ingress."),
   })
-  .unknown(true)
-  .description("A description of a deployed service ingress.")
+
+export const serviceIngressSchema = () =>
+  serviceIngressSpecSchema()
+    .keys({
+      hostname: joi
+        .string()
+        .required()
+        .description("The hostname where the service can be accessed."),
+      port: portSchema().required(),
+    })
+    .unknown(true)
+    .description("A description of a deployed service ingress.")
 
 export interface ForwardablePort {
   name?: string
@@ -178,7 +184,7 @@ export const forwardablePortKeys = {
     .description("The protocol to use for URLs pointing at the port. This can be any valid URI protocol."),
 }
 
-const forwardablePortSchema = joi.object().keys(forwardablePortKeys)
+const forwardablePortSchema = () => joi.object().keys(forwardablePortKeys)
 
 export interface ServiceStatus<T = {}> {
   createdAt?: string
@@ -200,43 +206,44 @@ export interface ServiceStatusMap {
   [key: string]: ServiceStatus
 }
 
-export const serviceStatusSchema = joi.object().keys({
-  createdAt: joi.string().description("When the service was first deployed by the provider."),
-  detail: joi
-    .object()
-    .meta({ extendable: true })
-    .description("Additional detail, specific to the provider."),
-  externalId: joi
-    .string()
-    .description("The ID used for the service by the provider (if not the same as the service name)."),
-  externalVersion: joi
-    .string()
-    .description("The provider version of the deployed service (if different from the Garden module version."),
-  forwardablePorts: joiArray(forwardablePortSchema).description(
-    "A list of ports that can be forwarded to from the Garden agent by the provider."
-  ),
-  ingresses: joi
-    .array()
-    .items(serviceIngressSchema)
-    .description("List of currently deployed ingress endpoints for the service."),
-  lastMessage: joi
-    .string()
-    .allow("")
-    .description("Latest status message of the service (if any)."),
-  lastError: joi.string().description("Latest error status message of the service (if any)."),
-  outputs: joi
-    .object()
-    .pattern(/.+/, joiPrimitive())
-    .description("A map of primitive values, output from the service."),
-  runningReplicas: joi.number().description("How many replicas of the service are currently running."),
-  state: joi
-    .string()
-    .valid("ready", "deploying", "stopped", "unhealthy", "unknown", "outdated", "missing")
-    .default("unknown")
-    .description("The current deployment status of the service."),
-  updatedAt: joi.string().description("When the service was last updated by the provider."),
-  version: joi.string().description("The Garden module version of the deployed service."),
-})
+export const serviceStatusSchema = () =>
+  joi.object().keys({
+    createdAt: joi.string().description("When the service was first deployed by the provider."),
+    detail: joi
+      .object()
+      .meta({ extendable: true })
+      .description("Additional detail, specific to the provider."),
+    externalId: joi
+      .string()
+      .description("The ID used for the service by the provider (if not the same as the service name)."),
+    externalVersion: joi
+      .string()
+      .description("The provider version of the deployed service (if different from the Garden module version."),
+    forwardablePorts: joiArray(forwardablePortSchema()).description(
+      "A list of ports that can be forwarded to from the Garden agent by the provider."
+    ),
+    ingresses: joi
+      .array()
+      .items(serviceIngressSchema())
+      .description("List of currently deployed ingress endpoints for the service."),
+    lastMessage: joi
+      .string()
+      .allow("")
+      .description("Latest status message of the service (if any)."),
+    lastError: joi.string().description("Latest error status message of the service (if any)."),
+    outputs: joi
+      .object()
+      .pattern(/.+/, joiPrimitive())
+      .description("A map of primitive values, output from the service."),
+    runningReplicas: joi.number().description("How many replicas of the service are currently running."),
+    state: joi
+      .string()
+      .valid("ready", "deploying", "stopped", "unhealthy", "unknown", "outdated", "missing")
+      .default("unknown")
+      .description("The current deployment status of the service."),
+    updatedAt: joi.string().description("When the service was last updated by the provider."),
+    version: joi.string().description("The Garden module version of the deployed service."),
+  })
 
 /**
  * Returns the link URL or falls back to constructing the URL from the ingress spec

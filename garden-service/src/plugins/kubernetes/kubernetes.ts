@@ -204,8 +204,8 @@ export const gardenPlugin = createGardenPlugin({
         Specify a Helm chart (either in your repository or remote from a registry) to deploy.
         Refer to the [Helm guide](${DOCS_BASE_URL}/guides/using-helm-charts) for usage instructions.
       `,
-      moduleOutputsSchema: helmModuleOutputsSchema,
-      schema: helmModuleSpecSchema,
+      moduleOutputsSchema: helmModuleOutputsSchema(),
+      schema: helmModuleSpecSchema(),
       handlers: helmHandlers,
     },
     {
@@ -223,7 +223,7 @@ export const gardenPlugin = createGardenPlugin({
         [helm](${DOCS_BASE_URL}/module-types/helm) module type.
       `,
       moduleOutputsSchema: joi.object().keys({}),
-      schema: kubernetesModuleSpecSchema,
+      schema: kubernetesModuleSpecSchema(),
       handlers: kubernetesHandlers,
     },
     pvcModuleDefinition,

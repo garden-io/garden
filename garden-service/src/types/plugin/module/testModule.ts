@@ -24,7 +24,7 @@ export interface TestModuleParams<T extends Module = Module> extends PluginModul
   testVersion: ModuleVersion
 }
 
-export const testModule = {
+export const testModule = () => ({
   description: dedent`
     Run the specified test for a module.
 
@@ -38,10 +38,10 @@ export const testModule = {
     well as any runtime dependencies configured for the test, so it may not match the current version
     of the module itself.
   `,
-  paramsSchema: runModuleBaseSchema.keys({
-    artifactsPath: artifactsPathSchema,
-    testConfig: testConfigSchema,
-    testVersion: testVersionSchema,
+  paramsSchema: runModuleBaseSchema().keys({
+    artifactsPath: artifactsPathSchema(),
+    testConfig: testConfigSchema(),
+    testVersion: testVersionSchema(),
   }),
-  resultSchema: testResultSchema,
-}
+  resultSchema: testResultSchema(),
+})

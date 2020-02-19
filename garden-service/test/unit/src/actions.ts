@@ -9,8 +9,8 @@
 import {
   ModuleAndRuntimeActionHandlers,
   PluginActionHandlers,
-  moduleActionDescriptions,
-  pluginActionDescriptions,
+  getModuleActionDescriptions,
+  getPluginActionDescriptions,
   createGardenPlugin,
   ActionHandler,
   ModuleActionHandler,
@@ -1676,8 +1676,8 @@ describe("ActionRouter", () => {
   })
 })
 
-const baseOutputsSchema = joi.object().keys({ base: joi.string() })
-const testOutputSchema = baseOutputsSchema.keys({ foo: joi.string() })
+const baseOutputsSchema = () => joi.object().keys({ base: joi.string() })
+const testOutputSchema = () => baseOutputsSchema().keys({ foo: joi.string() })
 
 const basePlugin = createGardenPlugin({
   name: "base",
@@ -1685,299 +1685,304 @@ const basePlugin = createGardenPlugin({
     {
       name: "base",
       docs: "bla bla bla",
-      moduleOutputsSchema: baseOutputsSchema,
-      serviceOutputsSchema: baseOutputsSchema,
-      taskOutputsSchema: baseOutputsSchema,
+      moduleOutputsSchema: baseOutputsSchema(),
+      serviceOutputsSchema: baseOutputsSchema(),
+      taskOutputsSchema: baseOutputsSchema(),
       handlers: {},
     },
   ],
 })
 
-const testPlugin = createGardenPlugin({
-  name: "test-plugin",
-  dependencies: ["base"],
+const testPlugin = createGardenPlugin(() => {
+  const pluginActionDescriptions = getPluginActionDescriptions()
+  const moduleActionDescriptions = getModuleActionDescriptions()
 
-  handlers: <PluginActionHandlers>{
-    configureProvider: async (params) => {
-      validateSchema(params, pluginActionDescriptions.configureProvider.paramsSchema)
-      return { config: params.config }
-    },
+  return {
+    name: "test-plugin",
+    dependencies: ["base"],
 
-    getEnvironmentStatus: async (params) => {
-      validateSchema(params, pluginActionDescriptions.getEnvironmentStatus.paramsSchema)
-      return {
-        ready: false,
-        outputs: {},
-      }
-    },
+    handlers: <PluginActionHandlers>{
+      configureProvider: async (params) => {
+        validateSchema(params, pluginActionDescriptions.configureProvider.paramsSchema)
+        return { config: params.config }
+      },
 
-    augmentGraph: async (params) => {
-      validateSchema(params, pluginActionDescriptions.augmentGraph.paramsSchema)
+      getEnvironmentStatus: async (params) => {
+        validateSchema(params, pluginActionDescriptions.getEnvironmentStatus.paramsSchema)
+        return {
+          ready: false,
+          outputs: {},
+        }
+      },
 
-      const moduleName = "added-by-" + params.ctx.provider.name
+      augmentGraph: async (params) => {
+        validateSchema(params, pluginActionDescriptions.augmentGraph.paramsSchema)
 
-      return {
-        addBuildDependencies: [{ by: moduleName, on: "module-b" }],
-        addRuntimeDependencies: [{ by: moduleName, on: "service-b" }],
-        addModules: [
-          {
-            kind: "Module",
-            name: moduleName,
-            type: "test",
-            path: projectRootA,
-            services: [
-              {
-                name: moduleName,
-              },
-            ],
-          },
-        ],
-      }
-    },
+        const moduleName = "added-by-" + params.ctx.provider.name
 
-    getDebugInfo: async (params) => {
-      validateSchema(params, pluginActionDescriptions.getDebugInfo.paramsSchema)
-      return { info: {} }
-    },
-
-    prepareEnvironment: async (params) => {
-      validateSchema(params, pluginActionDescriptions.prepareEnvironment.paramsSchema)
-      return { status: { ready: true, outputs: {} } }
-    },
-
-    cleanupEnvironment: async (params) => {
-      validateSchema(params, pluginActionDescriptions.cleanupEnvironment.paramsSchema)
-      return {}
-    },
-
-    getSecret: async (params) => {
-      validateSchema(params, pluginActionDescriptions.getSecret.paramsSchema)
-      return { value: params.key }
-    },
-
-    setSecret: async (params) => {
-      validateSchema(params, pluginActionDescriptions.setSecret.paramsSchema)
-      return {}
-    },
-
-    deleteSecret: async (params) => {
-      validateSchema(params, pluginActionDescriptions.deleteSecret.paramsSchema)
-      return { found: true }
-    },
-  },
-
-  createModuleTypes: [
-    {
-      name: "test",
-      base: "base",
-
-      docs: "bla bla bla",
-      moduleOutputsSchema: testOutputSchema,
-      serviceOutputsSchema: testOutputSchema,
-      taskOutputsSchema: testOutputSchema,
-      schema: joi.object(),
-      title: "Bla",
-
-      handlers: <ModuleAndRuntimeActionHandlers>{
-        configure: async (params) => {
-          validateSchema(params, moduleActionDescriptions.configure.paramsSchema)
-
-          const serviceConfigs = params.moduleConfig.spec.services.map((spec) => ({
-            name: spec.name,
-            dependencies: spec.dependencies || [],
-            disabled: false,
-            hotReloadable: false,
-            spec,
-          }))
-
-          const taskConfigs = (params.moduleConfig.spec.tasks || []).map((spec) => ({
-            name: spec.name,
-            dependencies: spec.dependencies || [],
-            disabled: false,
-            spec,
-          }))
-
-          return {
-            moduleConfig: {
-              ...params.moduleConfig,
-              serviceConfigs,
-              taskConfigs,
+        return {
+          addBuildDependencies: [{ by: moduleName, on: "module-b" }],
+          addRuntimeDependencies: [{ by: moduleName, on: "service-b" }],
+          addModules: [
+            {
+              kind: "Module",
+              name: moduleName,
+              type: "test",
+              path: projectRootA,
+              services: [
+                {
+                  name: moduleName,
+                },
+              ],
             },
-          }
-        },
+          ],
+        }
+      },
 
-        suggestModules: async () => {
-          return { suggestions: [] }
-        },
+      getDebugInfo: async (params) => {
+        validateSchema(params, pluginActionDescriptions.getDebugInfo.paramsSchema)
+        return { info: {} }
+      },
 
-        getBuildStatus: async (params) => {
-          validateSchema(params, moduleActionDescriptions.getBuildStatus.paramsSchema)
-          return { ready: true }
-        },
+      prepareEnvironment: async (params) => {
+        validateSchema(params, pluginActionDescriptions.prepareEnvironment.paramsSchema)
+        return { status: { ready: true, outputs: {} } }
+      },
 
-        build: async (params) => {
-          validateSchema(params, moduleActionDescriptions.build.paramsSchema)
-          return {}
-        },
+      cleanupEnvironment: async (params) => {
+        validateSchema(params, pluginActionDescriptions.cleanupEnvironment.paramsSchema)
+        return {}
+      },
 
-        publish: async (params) => {
-          validateSchema(params, moduleActionDescriptions.publish.paramsSchema)
-          return { published: true }
-        },
+      getSecret: async (params) => {
+        validateSchema(params, pluginActionDescriptions.getSecret.paramsSchema)
+        return { value: params.key }
+      },
 
-        hotReloadService: async (params) => {
-          validateSchema(params, moduleActionDescriptions.hotReloadService.paramsSchema)
-          return {}
-        },
+      setSecret: async (params) => {
+        validateSchema(params, pluginActionDescriptions.setSecret.paramsSchema)
+        return {}
+      },
 
-        runModule: async (params) => {
-          validateSchema(params, moduleActionDescriptions.runModule.paramsSchema)
-          return {
-            moduleName: params.module.name,
-            command: params.args,
-            completedAt: now,
-            log: "bla bla",
-            success: true,
-            startedAt: now,
-            version: params.module.version.versionString,
-          }
-        },
-
-        testModule: async (params) => {
-          validateSchema(params, moduleActionDescriptions.testModule.paramsSchema)
-
-          // Create artifacts, to test artifact copying
-          for (const artifact of params.testConfig.spec.artifacts || []) {
-            await ensureFile(join(params.artifactsPath, artifact.source))
-          }
-
-          return {
-            moduleName: params.module.name,
-            command: [],
-            completedAt: now,
-            log: "bla bla",
-            outputs: {
-              log: "bla bla",
-            },
-            success: true,
-            startedAt: now,
-            testName: params.testConfig.name,
-            version: params.module.version.versionString,
-          }
-        },
-
-        getTestResult: async (params) => {
-          validateSchema(params, moduleActionDescriptions.getTestResult.paramsSchema)
-          return {
-            moduleName: params.module.name,
-            command: [],
-            completedAt: now,
-            log: "bla bla",
-            outputs: {
-              log: "bla bla",
-            },
-            success: true,
-            startedAt: now,
-            testName: params.testName,
-            version: params.module.version.versionString,
-          }
-        },
-
-        getServiceStatus: async (params) => {
-          validateSchema(params, moduleActionDescriptions.getServiceStatus.paramsSchema)
-          return { state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } }
-        },
-
-        deployService: async (params) => {
-          validateSchema(params, moduleActionDescriptions.deployService.paramsSchema)
-          return { state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } }
-        },
-
-        deleteService: async (params) => {
-          validateSchema(params, moduleActionDescriptions.deleteService.paramsSchema)
-          return { state: "ready", detail: {} }
-        },
-
-        execInService: async (params) => {
-          validateSchema(params, moduleActionDescriptions.execInService.paramsSchema)
-          return {
-            code: 0,
-            output: "bla bla",
-          }
-        },
-
-        getServiceLogs: async (params) => {
-          validateSchema(params, moduleActionDescriptions.getServiceLogs.paramsSchema)
-          return {}
-        },
-
-        runService: async (params) => {
-          validateSchema(params, moduleActionDescriptions.runService.paramsSchema)
-          return {
-            moduleName: params.module.name,
-            command: ["foo"],
-            completedAt: now,
-            log: "bla bla",
-            success: true,
-            startedAt: now,
-            version: params.module.version.versionString,
-          }
-        },
-
-        getPortForward: async (params) => {
-          validateSchema(params, moduleActionDescriptions.getPortForward.paramsSchema)
-          return {
-            hostname: "bla",
-            port: 123,
-          }
-        },
-
-        stopPortForward: async (params) => {
-          validateSchema(params, moduleActionDescriptions.stopPortForward.paramsSchema)
-          return {}
-        },
-
-        getTaskResult: async (params) => {
-          validateSchema(params, moduleActionDescriptions.getTaskResult.paramsSchema)
-          const module = params.task.module
-          return {
-            moduleName: module.name,
-            taskName: params.task.name,
-            command: ["foo"],
-            completedAt: now,
-            log: "bla bla",
-            outputs: { base: "ok", foo: "ok" },
-            success: true,
-            startedAt: now,
-            version: params.module.version.versionString,
-          }
-        },
-
-        runTask: async (params) => {
-          validateSchema(params, moduleActionDescriptions.runTask.paramsSchema)
-
-          const module = params.task.module
-
-          // Create artifacts, to test artifact copying
-          for (const artifact of params.task.spec.artifacts || []) {
-            await ensureFile(join(params.artifactsPath, artifact.source))
-          }
-
-          return {
-            moduleName: module.name,
-            taskName: params.task.name,
-            command: ["foo"],
-            completedAt: now,
-            log: "bla bla",
-            outputs: { base: "ok", foo: "ok" },
-            success: true,
-            startedAt: now,
-            version: params.module.version.versionString,
-          }
-        },
+      deleteSecret: async (params) => {
+        validateSchema(params, pluginActionDescriptions.deleteSecret.paramsSchema)
+        return { found: true }
       },
     },
-  ],
+
+    createModuleTypes: [
+      {
+        name: "test",
+        base: "base",
+
+        docs: "bla bla bla",
+        moduleOutputsSchema: testOutputSchema(),
+        serviceOutputsSchema: testOutputSchema(),
+        taskOutputsSchema: testOutputSchema(),
+        schema: joi.object(),
+        title: "Bla",
+
+        handlers: <ModuleAndRuntimeActionHandlers>{
+          configure: async (params) => {
+            validateSchema(params, moduleActionDescriptions.configure.paramsSchema)
+
+            const serviceConfigs = params.moduleConfig.spec.services.map((spec) => ({
+              name: spec.name,
+              dependencies: spec.dependencies || [],
+              disabled: false,
+              hotReloadable: false,
+              spec,
+            }))
+
+            const taskConfigs = (params.moduleConfig.spec.tasks || []).map((spec) => ({
+              name: spec.name,
+              dependencies: spec.dependencies || [],
+              disabled: false,
+              spec,
+            }))
+
+            return {
+              moduleConfig: {
+                ...params.moduleConfig,
+                serviceConfigs,
+                taskConfigs,
+              },
+            }
+          },
+
+          suggestModules: async () => {
+            return { suggestions: [] }
+          },
+
+          getBuildStatus: async (params) => {
+            validateSchema(params, moduleActionDescriptions.getBuildStatus.paramsSchema)
+            return { ready: true }
+          },
+
+          build: async (params) => {
+            validateSchema(params, moduleActionDescriptions.build.paramsSchema)
+            return {}
+          },
+
+          publish: async (params) => {
+            validateSchema(params, moduleActionDescriptions.publish.paramsSchema)
+            return { published: true }
+          },
+
+          hotReloadService: async (params) => {
+            validateSchema(params, moduleActionDescriptions.hotReloadService.paramsSchema)
+            return {}
+          },
+
+          runModule: async (params) => {
+            validateSchema(params, moduleActionDescriptions.runModule.paramsSchema)
+            return {
+              moduleName: params.module.name,
+              command: params.args,
+              completedAt: now,
+              log: "bla bla",
+              success: true,
+              startedAt: now,
+              version: params.module.version.versionString,
+            }
+          },
+
+          testModule: async (params) => {
+            validateSchema(params, moduleActionDescriptions.testModule.paramsSchema)
+
+            // Create artifacts, to test artifact copying
+            for (const artifact of params.testConfig.spec.artifacts || []) {
+              await ensureFile(join(params.artifactsPath, artifact.source))
+            }
+
+            return {
+              moduleName: params.module.name,
+              command: [],
+              completedAt: now,
+              log: "bla bla",
+              outputs: {
+                log: "bla bla",
+              },
+              success: true,
+              startedAt: now,
+              testName: params.testConfig.name,
+              version: params.module.version.versionString,
+            }
+          },
+
+          getTestResult: async (params) => {
+            validateSchema(params, moduleActionDescriptions.getTestResult.paramsSchema)
+            return {
+              moduleName: params.module.name,
+              command: [],
+              completedAt: now,
+              log: "bla bla",
+              outputs: {
+                log: "bla bla",
+              },
+              success: true,
+              startedAt: now,
+              testName: params.testName,
+              version: params.module.version.versionString,
+            }
+          },
+
+          getServiceStatus: async (params) => {
+            validateSchema(params, moduleActionDescriptions.getServiceStatus.paramsSchema)
+            return { state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } }
+          },
+
+          deployService: async (params) => {
+            validateSchema(params, moduleActionDescriptions.deployService.paramsSchema)
+            return { state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } }
+          },
+
+          deleteService: async (params) => {
+            validateSchema(params, moduleActionDescriptions.deleteService.paramsSchema)
+            return { state: "ready", detail: {} }
+          },
+
+          execInService: async (params) => {
+            validateSchema(params, moduleActionDescriptions.execInService.paramsSchema)
+            return {
+              code: 0,
+              output: "bla bla",
+            }
+          },
+
+          getServiceLogs: async (params) => {
+            validateSchema(params, moduleActionDescriptions.getServiceLogs.paramsSchema)
+            return {}
+          },
+
+          runService: async (params) => {
+            validateSchema(params, moduleActionDescriptions.runService.paramsSchema)
+            return {
+              moduleName: params.module.name,
+              command: ["foo"],
+              completedAt: now,
+              log: "bla bla",
+              success: true,
+              startedAt: now,
+              version: params.module.version.versionString,
+            }
+          },
+
+          getPortForward: async (params) => {
+            validateSchema(params, moduleActionDescriptions.getPortForward.paramsSchema)
+            return {
+              hostname: "bla",
+              port: 123,
+            }
+          },
+
+          stopPortForward: async (params) => {
+            validateSchema(params, moduleActionDescriptions.stopPortForward.paramsSchema)
+            return {}
+          },
+
+          getTaskResult: async (params) => {
+            validateSchema(params, moduleActionDescriptions.getTaskResult.paramsSchema)
+            const module = params.task.module
+            return {
+              moduleName: module.name,
+              taskName: params.task.name,
+              command: ["foo"],
+              completedAt: now,
+              log: "bla bla",
+              outputs: { base: "ok", foo: "ok" },
+              success: true,
+              startedAt: now,
+              version: params.module.version.versionString,
+            }
+          },
+
+          runTask: async (params) => {
+            validateSchema(params, moduleActionDescriptions.runTask.paramsSchema)
+
+            const module = params.task.module
+
+            // Create artifacts, to test artifact copying
+            for (const artifact of params.task.spec.artifacts || []) {
+              await ensureFile(join(params.artifactsPath, artifact.source))
+            }
+
+            return {
+              moduleName: module.name,
+              taskName: params.task.name,
+              command: ["foo"],
+              completedAt: now,
+              log: "bla bla",
+              outputs: { base: "ok", foo: "ok" },
+              success: true,
+              startedAt: now,
+              version: params.module.version.versionString,
+            }
+          },
+        },
+      },
+    ],
+  }
 })
 
 const testPluginB = createGardenPlugin({

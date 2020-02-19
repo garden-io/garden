@@ -33,7 +33,7 @@ export interface ConfigureProviderResult<T extends ProviderConfig = ProviderConf
   moduleConfigs?: ModuleConfig[]
 }
 
-export const configureProvider = {
+export const configureProvider = () => ({
   description: dedent`
     Validate and transform the given provider configuration.
 
@@ -46,16 +46,16 @@ export const configureProvider = {
     and avoid performing expensive processing or network calls.
   `,
   paramsSchema: joi.object().keys({
-    config: providerConfigBaseSchema.required(),
-    log: logEntrySchema,
-    projectName: projectNameSchema,
-    projectRoot: projectRootSchema,
-    dependencies: joiArray(providerSchema).description("All providers that this provider depends on."),
-    configStore: configStoreSchema,
+    config: providerConfigBaseSchema().required(),
+    log: logEntrySchema(),
+    projectName: projectNameSchema(),
+    projectRoot: projectRootSchema(),
+    dependencies: joiArray(providerSchema()).description("All providers that this provider depends on."),
+    configStore: configStoreSchema(),
   }),
   resultSchema: joi.object().keys({
-    config: providerConfigBaseSchema,
-    moduleConfigs: joiArray(moduleConfigSchema).description(deline`
+    config: providerConfigBaseSchema(),
+    moduleConfigs: joiArray(moduleConfigSchema()).description(deline`
           Providers may return one or more module configs, that are included with the provider. This can be used for
           modules that should always be built, or deployed as part of bootstrapping the provider.
 
@@ -63,4 +63,4 @@ export const configureProvider = {
           as a prefix and a double dash, e.g. \`provider-name--module-name\`.
         `),
   }),
-}
+})

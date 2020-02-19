@@ -22,7 +22,7 @@ export interface PrepareEnvironmentResult {
   status: EnvironmentStatus
 }
 
-export const prepareEnvironment = {
+export const prepareEnvironment = () => ({
   description: dedent`
     Make sure the environment is set up for this plugin. Use this action to do any bootstrapping required
     before deploying services.
@@ -30,11 +30,11 @@ export const prepareEnvironment = {
     Called ahead of any service runtime actions (such as \`deployService\`,
     \`runModule\` and \`testModule\`), unless \`getEnvironmentStatus\` returns \`ready: true\`.
   `,
-  paramsSchema: actionParamsSchema.keys({
+  paramsSchema: actionParamsSchema().keys({
     force: joi.boolean().description("Force re-configuration of the environment."),
-    status: environmentStatusSchema,
+    status: environmentStatusSchema(),
   }),
   resultSchema: joi.object().keys({
-    status: environmentStatusSchema,
+    status: environmentStatusSchema(),
   }),
-}
+})

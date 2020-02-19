@@ -25,19 +25,20 @@ export interface CommandMap {
   }
 }
 
-const baseRequestSchema = joi.object().keys({
-  command: joi
-    .string()
-    .required()
-    .description("The command name to run.")
-    .example("get.status"),
-  parameters: joi
-    .object()
-    .keys({})
-    .unknown(true)
-    .default(() => ({}))
-    .description("The parameters for the command."),
-})
+const baseRequestSchema = () =>
+  joi.object().keys({
+    command: joi
+      .string()
+      .required()
+      .description("The command name to run.")
+      .example("get.status"),
+    parameters: joi
+      .object()
+      .keys({})
+      .unknown(true)
+      .default(() => ({}))
+      .description("The parameters for the command."),
+  })
 
 /**
  * Validate and map a request body to a Command, execute its action, and return its result.
@@ -51,7 +52,7 @@ export async function resolveRequest(
 ) {
   // Perform basic validation and find command.
   try {
-    request = validateSchema(request, baseRequestSchema, { context: "API request" })
+    request = validateSchema(request, baseRequestSchema(), { context: "API request" })
   } catch {
     ctx.throw(400, "Invalid request format")
   }
@@ -94,7 +95,7 @@ export async function prepareCommands(): Promise<CommandMap> {
   const commands: CommandMap = {}
 
   function addCommand(command: Command) {
-    const requestSchema = baseRequestSchema.keys({
+    const requestSchema = baseRequestSchema().keys({
       parameters: joi
         .object()
         .keys({

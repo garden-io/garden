@@ -21,14 +21,14 @@ export interface BuildResult {
   details?: any
 }
 
-export const build = {
+export const build = () => ({
   description: dedent`
     Build the current version of a module. This must wait until the build is complete before returning.
 
     Called ahead of a number of actions, including \`deployService\` and \`publishModule\`.
   `,
 
-  paramsSchema: moduleActionParamsSchema,
+  paramsSchema: moduleActionParamsSchema(),
 
   resultSchema: joi.object().keys({
     buildLog: joi
@@ -42,4 +42,4 @@ export const build = {
     version: joi.string().description("The version that was built."),
     details: joi.object().description("Additional information, specific to the provider."),
   }),
-}
+})

@@ -33,7 +33,7 @@ interface HadolintProviderConfig extends ProviderConfig {
 
 interface HadolintProvider extends Provider<HadolintProviderConfig> {}
 
-const configSchema = providerConfigBaseSchema
+const configSchema = providerConfigBaseSchema()
   .keys({
     autoInject: joi
       .boolean()
@@ -145,7 +145,7 @@ export const gardenPlugin = createGardenPlugin({
         See the [hadolint docs](https://github.com/hadolint/hadolint#configure) for details on how to configure it.
       `,
       schema: joi.object().keys({
-        build: baseBuildSpecSchema,
+        build: baseBuildSpecSchema(),
         dockerfilePath: joi
           .posixPath()
           .relativeOnly()

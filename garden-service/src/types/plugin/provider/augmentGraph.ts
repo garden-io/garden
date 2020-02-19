@@ -29,9 +29,9 @@ export interface AugmentGraphResult {
   addModules?: AddModuleSpec[]
 }
 
-export const addModuleSchema = baseModuleSpecSchema
+export const addModuleSchema = () => baseModuleSpecSchema()
 
-export const augmentGraph = {
+export const augmentGraph = () => ({
   description: dedent`
     Add modules and/or dependency relationships to the project stack graph. See the individual output fields for
     details.
@@ -44,14 +44,14 @@ export const augmentGraph = {
     Note that this handler is called frequently when resolving module configuration, so it should return quickly
     and avoid any external I/O.
   `,
-  paramsSchema: actionParamsSchema.keys({
-    modules: joiArray(moduleSchema).description(
+  paramsSchema: actionParamsSchema().keys({
+    modules: joiArray(moduleSchema()).description(
       dedent`
           A list of all previously defined modules in the project, including all modules added by any \`augmentGraph\`
           handlers defined by other providers that this provider depends on.
         `
     ),
-    providers: joiArray(providerSchema).description("All configured providers in the project."),
+    providers: joiArray(providerSchema()).description("All configured providers in the project."),
   }),
   resultSchema: joi.object().keys({
     addBuildDependencies: joi
@@ -104,7 +104,7 @@ export const augmentGraph = {
       ),
     addModules: joi
       .array()
-      .items(addModuleSchema.optional())
+      .items(addModuleSchema().optional())
       .description(
         dedent`
           Add modules (of any defined kind) to the stack graph. Each should be a module spec in the same format as
@@ -116,4 +116,4 @@ export const augmentGraph = {
         `
       ),
   }),
-}
+})

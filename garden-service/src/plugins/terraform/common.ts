@@ -25,7 +25,7 @@ export const noAutoApplyMsg = deline`
   the stack is in the intended state.
 `
 
-export const variablesSchema = joiStringMap(joi.any())
+export const variablesSchema = () => joiStringMap(joi.any())
 
 export interface TerraformBaseSpec {
   autoApply: boolean

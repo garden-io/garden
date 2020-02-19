@@ -233,11 +233,12 @@ const storageSchema = (defaults: KubernetesStorageSpec) =>
     })
     .default(defaults)
 
-export const k8sContextSchema = joi
-  .string()
-  .required()
-  .description("The kubectl context to use to connect to the Kubernetes cluster.")
-  .example("my-dev-context")
+export const k8sContextSchema = () =>
+  joi
+    .string()
+    .required()
+    .description("The kubectl context to use to connect to the Kubernetes cluster.")
+    .example("my-dev-context")
 
 const secretRef = joi
   .object()
@@ -255,43 +256,45 @@ const secretRef = joi
   })
   .description("Reference to a Kubernetes secret.")
 
-const imagePullSecretsSchema = joiArray(secretRef).description(dedent`
+const imagePullSecretsSchema = () =>
+  joiArray(secretRef).description(dedent`
     References to \`docker-registry\` secrets to use for authenticating with remote registries when pulling
     images. This is necessary if you reference private images in your module configuration, and is required
     when configuring a remote Kubernetes environment with buildMode=local.
   `)
 
-const tlsCertificateSchema = joi.object().keys({
-  name: joiIdentifier()
-    .required()
-    .description("A unique identifier for this certificate.")
-    .example("www")
-    .example("wildcard"),
-  hostnames: joi
-    .array()
-    .items(joi.string().hostname())
-    .description(
-      "A list of hostnames that this certificate should be used for. " +
-        "If you don't specify these, they will be automatically read from the certificate."
-    )
-    .example(["www.mydomain.com"]),
-  secretRef: secretRef
-    .description("A reference to the Kubernetes secret that contains the TLS certificate and key for the domain.")
-    .example({ name: "my-tls-secret", namespace: "default" }),
-  managedBy: joi
-    .string()
-    .description(
-      dedent`
+const tlsCertificateSchema = () =>
+  joi.object().keys({
+    name: joiIdentifier()
+      .required()
+      .description("A unique identifier for this certificate.")
+      .example("www")
+      .example("wildcard"),
+    hostnames: joi
+      .array()
+      .items(joi.string().hostname())
+      .description(
+        "A list of hostnames that this certificate should be used for. " +
+          "If you don't specify these, they will be automatically read from the certificate."
+      )
+      .example(["www.mydomain.com"]),
+    secretRef: secretRef
+      .description("A reference to the Kubernetes secret that contains the TLS certificate and key for the domain.")
+      .example({ name: "my-tls-secret", namespace: "default" }),
+    managedBy: joi
+      .string()
+      .description(
+        dedent`
       Set to \`cert-manager\` to configure [cert-manager](https://github.com/jetstack/cert-manager) to manage this
       certificate. See our
       [cert-manager integration guide](https://docs.garden.io/guides/cert-manager-integration) for details.
     `
-    )
-    .allow("cert-manager")
-    .example("cert-manager"),
-})
+      )
+      .allow("cert-manager")
+      .example("cert-manager"),
+  })
 
-export const kubernetesConfigBase = providerConfigBaseSchema.keys({
+export const kubernetesConfigBase = providerConfigBaseSchema().keys({
   buildMode: joi
     .string()
     .allow("local-docker", "cluster-docker", "kaniko")
@@ -366,7 +369,7 @@ export const kubernetesConfigBase = providerConfigBaseSchema.keys({
       `
     )
     .meta({ internal: true }),
-  imagePullSecrets: imagePullSecretsSchema,
+  imagePullSecrets: imagePullSecretsSchema(),
   // TODO: invert the resources and storage config schemas
   resources: joi
     .object()
@@ -445,7 +448,7 @@ export const kubernetesConfigBase = providerConfigBaseSchema.keys({
         These are all shared cluster-wide across all users and builds, so they should be resourced accordingly,
         factoring in how many concurrent builds you expect and how large your images and build contexts tend to be.
       `),
-  tlsCertificates: joiArray(tlsCertificateSchema)
+  tlsCertificates: joiArray(tlsCertificateSchema())
     .unique("name")
     .description("One or more certificates to use for ingress."),
   certManager: joi
@@ -529,8 +532,8 @@ export const kubernetesConfigBase = providerConfigBaseSchema.keys({
 export const configSchema = kubernetesConfigBase
   .keys({
     name: joiProviderName("kubernetes"),
-    context: k8sContextSchema.required(),
-    deploymentRegistry: containerRegistryConfigSchema,
+    context: k8sContextSchema().required(),
+    deploymentRegistry: containerRegistryConfigSchema(),
     ingressClass: joi.string().description(dedent`
         The ingress class to use on configured Ingresses (via the \`kubernetes.io/ingress.class\` annotation)
         when deploying \`container\` services. Use this if you have multiple ingress controllers in your cluster.
@@ -586,72 +589,76 @@ export interface KubernetesTestSpec extends BaseTestSpec {
   resource: ServiceResourceSpec
 }
 
-export const serviceResourceSchema = joi.object().keys({
-  // TODO: consider allowing a `resource` field, that includes the kind and name (e.g. Deployment/my-deployment).
-  kind: joi
-    .string()
-    .valid(...hotReloadableKinds)
-    .default("Deployment")
-    .description("The type of Kubernetes resource to sync files to."),
-  name: joi.string().description(
-    deline`The name of the resource to sync to. If the module contains a single resource of the specified Kind,
+export const serviceResourceSchema = () =>
+  joi.object().keys({
+    // TODO: consider allowing a `resource` field, that includes the kind and name (e.g. Deployment/my-deployment).
+    kind: joi
+      .string()
+      .valid(...hotReloadableKinds)
+      .default("Deployment")
+      .description("The type of Kubernetes resource to sync files to."),
+    name: joi.string().description(
+      deline`The name of the resource to sync to. If the module contains a single resource of the specified Kind,
         this can be omitted.`
-  ),
-  containerName: joi.string().description(
-    deline`The name of a container in the target. Specify this if the target contains more than one container
+    ),
+    containerName: joi.string().description(
+      deline`The name of a container in the target. Specify this if the target contains more than one container
         and the main container is not the first container in the spec.`
-  ),
-})
-
-export const kubernetesTaskSchema = baseTaskSpecSchema
-  .keys({
-    resource: serviceResourceSchema.description(
-      deline`The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task.
-        If not specified, the \`serviceResource\` configured on the module will be used. If neither is specified,
-        an error will be thrown.`
-    ),
-    cacheResult: cacheResultSchema,
-    command: joi
-      .array()
-      .items(joi.string())
-      .description("The command/entrypoint used to run the task inside the container.")
-      .example(commandExample),
-    args: joi
-      .array()
-      .items(joi.string())
-      .description("The arguments to pass to the container used for execution.")
-      .example(["rake", "db:migrate"]),
-    env: containerEnvVarsSchema,
-    artifacts: joiArray(containerArtifactSchema).description(
-      "Specify artifacts to copy out of the container after the task is complete."
     ),
   })
-  .description("The task definitions for this module.")
 
-export const kubernetesTestSchema = baseTestSpecSchema
-  .keys({
-    resource: serviceResourceSchema.description(
-      deline`The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite.
+export const kubernetesTaskSchema = () =>
+  baseTaskSpecSchema()
+    .keys({
+      resource: serviceResourceSchema().description(
+        deline`The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task.
         If not specified, the \`serviceResource\` configured on the module will be used. If neither is specified,
         an error will be thrown.`
-    ),
-    command: joi
-      .array()
-      .items(joi.string())
-      .description("The command/entrypoint used to run the test inside the container.")
-      .example(commandExample),
-    args: joi
-      .array()
-      .items(joi.string())
-      .description("The arguments to pass to the container used for testing.")
-      .example(["npm", "test"]),
-    env: containerEnvVarsSchema,
-    artifacts: joiArray(containerArtifactSchema).description(
-      "Specify artifacts to copy out of the container after the test is complete."
-    ),
-  })
-  .description("The test suite definitions for this module.")
+      ),
+      cacheResult: cacheResultSchema(),
+      command: joi
+        .array()
+        .items(joi.string())
+        .description("The command/entrypoint used to run the task inside the container.")
+        .example(commandExample),
+      args: joi
+        .array()
+        .items(joi.string())
+        .description("The arguments to pass to the container used for execution.")
+        .example(["rake", "db:migrate"]),
+      env: containerEnvVarsSchema(),
+      artifacts: joiArray(containerArtifactSchema()).description(
+        "Specify artifacts to copy out of the container after the task is complete."
+      ),
+    })
+    .description("The task definitions for this module.")
 
-export const namespaceSchema = joiIdentifier()
-  .max(63) // Max length of a DNS label, and by extension max k8s namespace length
-  .description("Deploy to a different namespace than the default one configured in the provider.")
+export const kubernetesTestSchema = () =>
+  baseTestSpecSchema()
+    .keys({
+      resource: serviceResourceSchema().description(
+        deline`The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite.
+        If not specified, the \`serviceResource\` configured on the module will be used. If neither is specified,
+        an error will be thrown.`
+      ),
+      command: joi
+        .array()
+        .items(joi.string())
+        .description("The command/entrypoint used to run the test inside the container.")
+        .example(commandExample),
+      args: joi
+        .array()
+        .items(joi.string())
+        .description("The arguments to pass to the container used for testing.")
+        .example(["npm", "test"]),
+      env: containerEnvVarsSchema(),
+      artifacts: joiArray(containerArtifactSchema()).description(
+        "Specify artifacts to copy out of the container after the test is complete."
+      ),
+    })
+    .description("The test suite definitions for this module.")
+
+export const namespaceSchema = () =>
+  joiIdentifier()
+    .max(63) // Max length of a DNS label, and by extension max k8s namespace length
+    .description("Deploy to a different namespace than the default one configured in the provider.")

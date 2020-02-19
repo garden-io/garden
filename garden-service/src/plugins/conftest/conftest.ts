@@ -28,7 +28,7 @@ interface ConftestProviderConfig extends ProviderConfig {
 
 export interface ConftestProvider extends Provider<ConftestProviderConfig> {}
 
-export const configSchema = providerConfigBaseSchema
+export const configSchema = providerConfigBaseSchema()
   .keys({
     policyPath: joi
       .posixPath()
@@ -82,7 +82,7 @@ export const gardenPlugin = createGardenPlugin({
         See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
       `,
       schema: joi.object().keys({
-        build: baseBuildSpecSchema,
+        build: baseBuildSpecSchema(),
         sourceModule: joiIdentifier().description("Specify a module whose sources we want to test."),
         policyPath: joi
           .posixPath()

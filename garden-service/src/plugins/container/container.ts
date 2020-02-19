@@ -24,18 +24,19 @@ import { SuggestModulesParams, SuggestModulesResult } from "../../types/plugin/m
 import { listDirectory } from "../../util/fs"
 import { dedent } from "../../util/string"
 
-export const containerModuleOutputsSchema = joi.object().keys({
-  "local-image-name": joi
-    .string()
-    .required()
-    .description("The name of the image (without tag/version) that the module uses for local builds and deployments.")
-    .example("my-module"),
-  "deployment-image-name": joi
-    .string()
-    .required()
-    .description("The name of the image (without tag/version) that the module will use during deployment.")
-    .example("my-deployment-registry.io/my-org/my-module"),
-})
+export const containerModuleOutputsSchema = () =>
+  joi.object().keys({
+    "local-image-name": joi
+      .string()
+      .required()
+      .description("The name of the image (without tag/version) that the module uses for local builds and deployments.")
+      .example("my-module"),
+    "deployment-image-name": joi
+      .string()
+      .required()
+      .description("The name of the image (without tag/version) that the module will use during deployment.")
+      .example("my-deployment-registry.io/my-org/my-module"),
+  })
 
 const taskOutputsSchema = joi.object().keys({
   log: joi
@@ -225,8 +226,8 @@ export const gardenPlugin = createGardenPlugin({
         other module types like [helm](${DOCS_BASE_URL}/module-types/helm) or
         [kubernetes](${DOCS_BASE_URL}/module-types/kubernetes).
       `,
-      moduleOutputsSchema: containerModuleOutputsSchema,
-      schema: containerModuleSpecSchema,
+      moduleOutputsSchema: containerModuleOutputsSchema(),
+      schema: containerModuleSpecSchema(),
       taskOutputsSchema,
       handlers: {
         configure: configureContainerModule,
