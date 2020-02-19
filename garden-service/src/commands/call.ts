@@ -7,7 +7,6 @@
  */
 
 import { parse, resolve } from "url"
-import Axios from "axios"
 import chalk from "chalk"
 import { isObject } from "util"
 import { Command, CommandResult, CommandParams, StringParameter } from "./base"
@@ -18,6 +17,7 @@ import { ServiceIngress, getIngressUrl } from "../types/service"
 import dedent = require("dedent")
 import { printHeader } from "../logger/util"
 import { emptyRuntimeContext } from "../runtime-context"
+import { axios } from "../util/http"
 
 const callArgs = {
   serviceAndPath: new StringParameter({
@@ -147,7 +147,7 @@ export class CallCommand extends Command<Args> {
     // this is to accept self-signed certs
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
 
-    const req = Axios({
+    const req = axios({
       method,
       url,
       headers: { host },

@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import axios from "axios"
 import chalk from "chalk"
 import ci = require("ci-info")
 import { pathExists } from "fs-extra"
@@ -23,6 +22,7 @@ import { LogEntry } from "../logger/log-entry"
 import { STATIC_DIR, VERSION_CHECK_URL } from "../constants"
 import { printWarningMessage } from "../logger/util"
 import { GlobalConfigStore, globalConfigKeys } from "../config-store"
+import { axios } from "../util/http"
 
 // Parameter types T which map between the Parameter<T> class and the Sywac cli library.
 // In case we add types that aren't supported natively by Sywac, see: http://sywac.io/docs/sync-config.html#custom

@@ -11,7 +11,6 @@ import { pathExists, createWriteStream, ensureDir, chmod, remove, move } from "f
 import { ConfigurationError, ParameterError, GardenBaseError } from "../exceptions"
 import { join, dirname, basename, sep } from "path"
 import { hashString, exec } from "./util"
-import Axios from "axios"
 import tar from "tar"
 import { SupportedPlatform, GARDEN_GLOBAL_PATH } from "../constants"
 import { LogEntry } from "../logger/log-entry"
@@ -21,6 +20,7 @@ import uuid from "uuid"
 import crossSpawn from "cross-spawn"
 import { spawn } from "./util"
 import { Writable } from "stream"
+import { axios } from "./http"
 const AsyncLock = require("async-lock")
 
 const toolsPath = join(GARDEN_GLOBAL_PATH, "tools")
@@ -137,7 +137,7 @@ export class Library {
   }
 
   protected async fetch(tmpPath: string, log: LogEntry) {
-    const response = await Axios({
+    const response = await axios({
       method: "GET",
       url: this.spec.url,
       responseType: "stream",

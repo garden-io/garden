@@ -14,8 +14,9 @@ import { containerHelpers } from "../../container/helpers"
 import { PluginError } from "../../../exceptions"
 import { LogEntry } from "../../../logger/log-entry"
 import { KubernetesPluginContext } from "../config"
-import axios, { AxiosRequestConfig } from "axios"
+import { AxiosRequestConfig } from "axios"
 import { getSystemNamespace } from "../namespace"
+import { axios } from "../../../util/http"
 
 export async function queryRegistry(
   ctx: KubernetesPluginContext,
