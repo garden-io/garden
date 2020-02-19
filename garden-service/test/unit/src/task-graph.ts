@@ -275,6 +275,96 @@ describe("task-graph", () => {
       expect(results.c!.error).to.not.exist
     })
 
+    context("if a successful result has been cached", () => {
+      it("should not process a matching task with force = false", async () => {
+        const garden = await getGarden()
+        const graph = new TaskGraph(garden, garden.log)
+        const resultCache = graph["resultCache"]
+
+        const resultOrder: string[] = []
+        const callback = async (key: string, _result: any) => {
+          resultOrder.push(key)
+        }
+        const opts = { callback }
+
+        const task = new TestTask(garden, "a", false, { ...opts, uid: "a1", versionString: "1" })
+        await graph.process([task])
+        expect(resultCache.get("a", "1")).to.exist
+
+        const repeatedTask = new TestTask(garden, "a", false, { ...opts, uid: "a2", versionString: "1" })
+        await graph.process([repeatedTask])
+
+        expect(resultOrder).to.eql(["a.a1"])
+      })
+
+      it("should process a matching task with force = true", async () => {
+        const garden = await getGarden()
+        const graph = new TaskGraph(garden, garden.log)
+
+        const resultOrder: string[] = []
+        const callback = async (key: string, _result: any) => {
+          resultOrder.push(key)
+        }
+        const opts = { callback }
+
+        const task = new TestTask(garden, "a", true, { ...opts, uid: "a1", versionString: "1" })
+        await graph.process([task])
+
+        const repeatedTask = new TestTask(garden, "a", true, { ...opts, uid: "a2", versionString: "1" })
+        await graph.process([repeatedTask])
+
+        expect(resultOrder).to.eql(["a.a1", "a.a2"])
+      })
+    })
+
+    context("if a failing result has been cached", () => {
+      it("should not process a matching task with force = false", async () => {
+        const garden = await getGarden()
+        const graph = new TaskGraph(garden, garden.log)
+        const resultCache = graph["resultCache"]
+
+        const resultOrder: string[] = []
+        const callback = async (key: string, _result: any) => {
+          resultOrder.push(key)
+        }
+        const opts = { callback }
+
+        const task = new TestTask(garden, "a", false, { ...opts, uid: "a1", versionString: "1", throwError: true })
+        try {
+          await graph.process([task])
+        } catch (error) {}
+
+        const cacheEntry = resultCache.get("a", "1")
+        expect(cacheEntry, "expected cache entry to exist").to.exist
+
+        const repeatedTask = new TestTask(garden, "a", false, { ...opts, uid: "a2", versionString: "1" })
+        await graph.process([repeatedTask])
+
+        expect(resultOrder).to.eql(["a.a1"])
+      })
+
+      it("should process a matching task with force = true", async () => {
+        const garden = await getGarden()
+        const graph = new TaskGraph(garden, garden.log)
+
+        const resultOrder: string[] = []
+        const callback = async (key: string, _result: any) => {
+          resultOrder.push(key)
+        }
+        const opts = { callback }
+
+        const task = new TestTask(garden, "a", false, { ...opts, uid: "a1", versionString: "1", throwError: true })
+        try {
+          await graph.process([task])
+        } catch (error) {}
+
+        const repeatedTask = new TestTask(garden, "a", true, { ...opts, uid: "a2", versionString: "1" })
+        await graph.process([repeatedTask])
+
+        expect(resultOrder).to.eql(["a.a1", "a.a2"])
+      })
+    })
+
     it("should process multiple tasks in dependency order", async () => {
       const now = freezeTime()
       const garden = await getGarden()

@@ -195,7 +195,7 @@ export class TaskGraph {
     } else {
       const result = this.resultCache.get(node.getKey(), node.getVersion())
       if (result) {
-        this.garden.events.emit("taskComplete", result)
+        this.garden.events.emit(result.error ? "taskError" : "taskComplete", result)
       }
     }
   }
@@ -733,12 +733,12 @@ class ResultCache {
 
   get(key: string, versionString: string): TaskResult | null {
     const r = this.cache[key]
-    return r && r.versionString === versionString && !r.result.error ? r.result : null
+    return r && r.versionString === versionString ? r.result : null
   }
 
   getNewest(key: string): TaskResult | null {
     const r = this.cache[key]
-    return r && !r.result.error ? r.result : null
+    return r ? r.result : null
   }
 
   // Returns newest cached results, if any, for keys
