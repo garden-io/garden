@@ -24,14 +24,14 @@ export interface ExecInServiceResult {
   stderr?: string
 }
 
-export const execInService = {
+export const execInService = () => ({
   description: dedent`
     Execute the specified command next to a running service, e.g. in a service container.
 
     Called by the \`garden exec\` command.
   `,
 
-  paramsSchema: serviceActionParamsSchema.keys({
+  paramsSchema: serviceActionParamsSchema().keys({
     command: joiArray(joi.string()).description("The command to run alongside the service."),
     interactive: joi.boolean(),
   }),
@@ -55,4 +55,4 @@ export const execInService = {
       .allow("")
       .description("The stderr output of the executed command (if available)."),
   }),
-}
+})

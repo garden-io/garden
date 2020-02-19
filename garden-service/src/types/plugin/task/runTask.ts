@@ -33,14 +33,16 @@ export interface RunTaskResult extends RunResult {
   outputs: PrimitiveMap
 }
 
-export const runTask = {
+export const runTask = () => ({
   description: dedent`
     Runs a task within the context of its module. This should wait until execution completes, and
     return its output.
   `,
-  paramsSchema: taskActionParamsSchema.keys(runBaseParams).keys({
-    artifactsPath: artifactsPathSchema,
-    taskVersion: taskVersionSchema,
-  }),
-  resultSchema: taskResultSchema,
-}
+  paramsSchema: taskActionParamsSchema()
+    .keys(runBaseParams)
+    .keys({
+      artifactsPath: artifactsPathSchema(),
+      taskVersion: taskVersionSchema(),
+    }),
+  resultSchema: taskResultSchema(),
+})

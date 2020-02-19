@@ -44,7 +44,7 @@ export const pvcModuleDefinition: ModuleTypeDefinition = {
     See the [Mounting volumes](${DOCS_BASE_URL}/guides/container-modules#mounting-volumes) guide for more info and usage examples.
     `,
   schema: joi.object().keys({
-    build: baseBuildSpecSchema,
+    build: baseBuildSpecSchema(),
     dependencies: joiIdentifier().description("List of services and tasks to deploy/run before deploying this PVC."),
     namespace: joiIdentifier().description(
       "The namespace to deploy the PVC in. Note that any module referencing the PVC must be in the same namespace, so in most cases you should leave this unset."

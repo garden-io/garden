@@ -87,7 +87,7 @@ function makeTestProvider(serviceStatuses: { [key: string]: ServiceStatus }): Ga
       {
         name: "test",
         docs: "Test plugin",
-        schema: testModuleSpecSchema,
+        schema: testModuleSpecSchema(),
         handlers: {
           configure: configureTestModule,
           getServiceStatus,

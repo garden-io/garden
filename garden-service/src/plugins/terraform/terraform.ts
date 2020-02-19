@@ -29,7 +29,7 @@ type TerraformProviderConfig = ProviderConfig &
 
 export interface TerraformProvider extends Provider<TerraformProviderConfig> {}
 
-const configSchema = providerConfigBaseSchema
+const configSchema = providerConfigBaseSchema()
   .keys({
     autoApply: joi.boolean().default(false).description(deline`
         If set to true, Garden will automatically run \`terraform apply -auto-approve\` when a stack is not
@@ -44,7 +44,7 @@ const configSchema = providerConfigBaseSchema
       `),
     // When you provide variables directly in \`terraform\` modules, those variables will
     // extend the ones specified here, and take precedence if the keys overlap.
-    variables: variablesSchema.description(deline`
+    variables: variablesSchema().description(deline`
         A map of variables to use when applying Terraform stacks. You can define these here, in individual
         \`terraform\` module configs, or you can place a \`terraform.tfvars\` file in each working directory.
       `),

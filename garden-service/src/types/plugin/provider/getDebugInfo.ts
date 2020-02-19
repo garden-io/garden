@@ -22,11 +22,11 @@ export interface GetDebugInfoParams extends PluginActionParamsBase {
   includeProject: boolean
 }
 
-export const getDebugInfo = {
+export const getDebugInfo = () => ({
   description: dedent`
     Collects debug info from the provider.
   `,
-  paramsSchema: actionParamsSchema.keys({
+  paramsSchema: actionParamsSchema().keys({
     includeProject: joi
       .boolean()
       .description("If set, include project-specific information from configured providers."),
@@ -37,4 +37,4 @@ export const getDebugInfo = {
       .required()
       .description("An object representing the debug info for the project."),
   }),
-}
+})

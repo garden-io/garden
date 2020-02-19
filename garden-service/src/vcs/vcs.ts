@@ -42,31 +42,34 @@ interface NamedTreeVersion extends TreeVersion {
   name: string
 }
 
-const versionStringSchema = joi
-  .string()
-  .regex(/^v/)
-  .required()
-  .description("String representation of the module version.")
-
-const fileNamesSchema = joiArray(joi.string()).description("List of file paths included in the version.")
-
-export const treeVersionSchema = joi.object().keys({
-  contentHash: joi
+const versionStringSchema = () =>
+  joi
     .string()
+    .regex(/^v/)
     .required()
-    .description("The hash of all files in the directory, after filtering."),
-  files: fileNamesSchema,
-})
+    .description("String representation of the module version.")
 
-export const moduleVersionSchema = joi.object().keys({
-  versionString: versionStringSchema,
-  dependencyVersions: joi
-    .object()
-    .pattern(/.+/, treeVersionSchema)
-    .default(() => ({}))
-    .description("The version of each of the dependencies of the module."),
-  files: fileNamesSchema,
-})
+const fileNamesSchema = () => joiArray(joi.string()).description("List of file paths included in the version.")
+
+export const treeVersionSchema = () =>
+  joi.object().keys({
+    contentHash: joi
+      .string()
+      .required()
+      .description("The hash of all files in the directory, after filtering."),
+    files: fileNamesSchema(),
+  })
+
+export const moduleVersionSchema = () =>
+  joi.object().keys({
+    versionString: versionStringSchema(),
+    dependencyVersions: joi
+      .object()
+      .pattern(/.+/, treeVersionSchema())
+      .default(() => ({}))
+      .description("The version of each of the dependencies of the module."),
+    files: fileNamesSchema(),
+  })
 
 export interface GetFilesParams {
   log: LogEntry
@@ -132,7 +135,7 @@ export abstract class VcsHandler {
   ): Promise<ModuleVersion> {
     const treeVersion = await this.resolveTreeVersion(log, moduleConfig)
 
-    validateSchema(treeVersion, treeVersionSchema, {
+    validateSchema(treeVersion, treeVersionSchema(), {
       context: `${this.name} tree version for module at ${moduleConfig.path}`,
     })
 
@@ -199,11 +202,11 @@ async function readVersionFile(path: string, schema: Joi.Schema): Promise<any> {
 }
 
 export async function readTreeVersionFile(path: string): Promise<TreeVersion | null> {
-  return readVersionFile(path, treeVersionSchema)
+  return readVersionFile(path, treeVersionSchema())
 }
 
 export async function readModuleVersionFile(path: string): Promise<ModuleVersion | null> {
-  return readVersionFile(path, moduleVersionSchema)
+  return readVersionFile(path, moduleVersionSchema())
 }
 
 /**

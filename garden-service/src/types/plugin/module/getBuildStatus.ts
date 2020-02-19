@@ -17,17 +17,17 @@ export interface BuildStatus {
   ready: boolean
 }
 
-export const getBuildStatus = {
+export const getBuildStatus = () => ({
   description: dedent`
     Check and return the build status of a module, i.e. whether the current version been built.
 
     Called before running the \`build\` action, which is not run if this returns \`{ ready: true }\`.
   `,
-  paramsSchema: moduleActionParamsSchema,
+  paramsSchema: moduleActionParamsSchema(),
   resultSchema: joi.object().keys({
     ready: joi
       .boolean()
       .required()
       .description("Whether an up-to-date build is ready for the module."),
   }),
-}
+})

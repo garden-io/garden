@@ -52,7 +52,7 @@ const systemDir = join(STATIC_DIR, "openfaas", "system")
 
 export const gardenPlugin = createGardenPlugin({
   name: "openfaas",
-  configSchema,
+  configSchema: configSchema(),
   dependencies: ["kubernetes"],
   docs: dedent`
     This provider adds support for [OpenFaaS](https://www.openfaas.com/). It adds the [\`openfaas\` module type](${DOCS_BASE_URL}/module-types/openfaas) and (by default) installs the \`faas-netes\` runtime to the project namespace. Each \`openfaas\` module maps to a single OpenFaaS function.
@@ -71,8 +71,8 @@ export const gardenPlugin = createGardenPlugin({
       Deploy a [OpenFaaS](https://www.openfaas.com/) function using Garden. Requires the \`openfaas\` provider
       to be configured.
     `,
-      moduleOutputsSchema: openfaasModuleOutputsSchema,
-      schema: openfaasModuleSpecSchema,
+      moduleOutputsSchema: openfaasModuleOutputsSchema(),
+      schema: openfaasModuleSpecSchema(),
       handlers: {
         configure: configureModule,
         getBuildStatus: getOpenfaasModuleBuildStatus,

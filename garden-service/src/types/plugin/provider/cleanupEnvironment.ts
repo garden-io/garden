@@ -14,7 +14,7 @@ export interface CleanupEnvironmentParams extends PluginActionParamsBase {}
 
 export interface CleanupEnvironmentResult {}
 
-export const cleanupEnvironment = {
+export const cleanupEnvironment = () => ({
   description: dedent`
     Clean up any runtime components, services etc. that this plugin has deployed in the environment.
 
@@ -23,6 +23,6 @@ export const cleanupEnvironment = {
 
     Called by the \`garden delete environment\` command.
   `,
-  paramsSchema: actionParamsSchema,
+  paramsSchema: actionParamsSchema(),
   resultSchema: joi.object().keys({}),
-}
+})

@@ -18,14 +18,14 @@ export interface SetSecretParams extends PluginActionParamsBase {
 
 export interface SetSecretResult {}
 
-export const setSecret = {
+export const setSecret = () => ({
   description: dedent`
     Set a secret for this plugin in the current environment. These variables are
     not used by the Garden framework, but the plugin may expose them to services etc. at runtime
     (e.g. as environment variables or mounted in containers).
   `,
-  paramsSchema: getSecretParamsSchema.keys({
+  paramsSchema: getSecretParamsSchema().keys({
     value: joiPrimitive().description("The value of the secret."),
   }),
   resultSchema: joi.object().keys({}),
-}
+})

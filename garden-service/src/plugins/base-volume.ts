@@ -17,13 +17,14 @@ export interface BaseVolumeSpec extends ModuleSpec {
   accessModes: VolumeAccessMode[]
 }
 
-export const baseVolumeSpecSchema = baseModuleSpecSchema.keys({
-  accessModes: joi
-    .array()
-    .items(joi.string().allow("ReadOnlyMany", "ReadWriteOnce", "ReadWriteMany"))
-    .required()
-    .unique()
-    .min(1).description(dedent`
+export const baseVolumeSpecSchema = () =>
+  baseModuleSpecSchema().keys({
+    accessModes: joi
+      .array()
+      .items(joi.string().allow("ReadOnlyMany", "ReadWriteOnce", "ReadWriteMany"))
+      .required()
+      .unique()
+      .min(1).description(dedent`
       A list of access modes supported by the volume when mounting. At least one must be specified. The available modes are as follows:
 
        ReadOnlyMany  - May be mounted as a read-only volume, concurrently by multiple targets.
@@ -32,7 +33,7 @@ export const baseVolumeSpecSchema = baseModuleSpecSchema.keys({
 
       At least one mode must be specified.
       `),
-})
+  })
 
 export const gardenPlugin = createGardenPlugin({
   name: "base-volume",
@@ -42,7 +43,7 @@ export const gardenPlugin = createGardenPlugin({
       docs: dedent`
         Internal abstraction used for specifying and referencing (usually persistent) volumes by other module types.
       `,
-      schema: baseVolumeSpecSchema,
+      schema: baseVolumeSpecSchema(),
       handlers: {},
     },
   ],

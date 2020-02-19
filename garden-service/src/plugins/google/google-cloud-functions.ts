@@ -21,18 +21,19 @@ import { GetServiceStatusParams } from "../../types/plugin/service/getServiceSta
 import { ServiceLimitSpec } from "../container/config"
 import { gardenAnnotationKey } from "../../util/string"
 
-const gcfModuleSpecSchema = baseServiceSpecSchema
-  .keys({
-    entrypoint: joi.string().description("The entrypoint for the function (exported name in the function's module)"),
-    hostname: ingressHostnameSchema,
-    path: joi
-      .string()
-      .default(".")
-      .description("The path of the module that contains the function."),
-    project: joi.string().description("The Google Cloud project name of the function."),
-    tests: joiArray(execTestSchema),
-  })
-  .description("Configuration for a Google Cloud Function.")
+const gcfModuleSpecSchema = () =>
+  baseServiceSpecSchema()
+    .keys({
+      entrypoint: joi.string().description("The entrypoint for the function (exported name in the function's module)"),
+      hostname: ingressHostnameSchema(),
+      path: joi
+        .string()
+        .default(".")
+        .description("The path of the module that contains the function."),
+      project: joi.string().description("The Google Cloud project name of the function."),
+      tests: joiArray(execTestSchema()),
+    })
+    .description("Configuration for a Google Cloud Function.")
 
 export interface GcfModuleSpec extends CommonServiceSpec {
   entrypoint?: string
@@ -85,7 +86,7 @@ export async function configureGcfModule({
   return { moduleConfig }
 }
 
-const configSchema = providerConfigBaseSchema.keys({
+const configSchema = providerConfigBaseSchema().keys({
   project: joi
     .string()
     .description("The default GCP project to deploy functions to (can be overridden on individual functions)."),
@@ -103,7 +104,7 @@ export const gardenPlugin = createGardenPlugin({
     {
       name: "google-cloud-function",
       docs: "(TODO)",
-      schema: gcfModuleSpecSchema,
+      schema: gcfModuleSpecSchema(),
       handlers: {
         configure: configureGcfModule,
 

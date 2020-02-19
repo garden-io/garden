@@ -45,7 +45,7 @@ export interface CommonEnvironmentConfig {
 }
 
 const environmentConfigKeys = {
-  providers: joiArray(providerConfigBaseSchema)
+  providers: joiArray(providerConfigBaseSchema())
     .unique("name")
     .meta({ deprecated: true }).description(deline`
         DEPRECATED - Please use the top-level \`providers\` field instead, and if needed use the \`environments\` key
@@ -70,7 +70,7 @@ const environmentConfigKeys = {
       `),
 }
 
-export const environmentConfigSchema = joi.object().keys(environmentConfigKeys)
+export const environmentConfigSchema = () => joi.object().keys(environmentConfigKeys)
 
 export interface EnvironmentConfig extends CommonEnvironmentConfig {
   name: string
@@ -78,18 +78,20 @@ export interface EnvironmentConfig extends CommonEnvironmentConfig {
   production?: boolean
 }
 
-export const environmentNameSchema = joiUserIdentifier()
-  .required()
-  .description("The name of the environment.")
-  .example("dev")
+export const environmentNameSchema = () =>
+  joiUserIdentifier()
+    .required()
+    .description("The name of the environment.")
+    .example("dev")
 
-export const environmentSchema = joi.object().keys({
-  name: environmentNameSchema,
-  production: joi
-    .boolean()
-    .default(false)
-    .description(
-      dedent`
+export const environmentSchema = () =>
+  joi.object().keys({
+    name: environmentNameSchema(),
+    production: joi
+      .boolean()
+      .default(false)
+      .description(
+        dedent`
       Flag the environment as a production environment.
 
       Setting this flag to \`true\` will activate the protection on the \`deploy\`, \`test\`, \`task\`, \`build\`,
@@ -100,38 +102,41 @@ export const environmentSchema = joi.object().keys({
       This flag is also passed on to every provider, and may affect how certain providers behave.
       For more details please check the documentation for the providers in use.
       `
-    )
-    .example(true),
-  ...environmentConfigKeys,
-})
+      )
+      .example(true),
+    ...environmentConfigKeys,
+  })
 
-export const environmentsSchema = joi
-  .alternatives(
-    joi
-      .array()
-      .items(environmentSchema)
-      .unique("name"),
-    // Allow a string as a shorthand for { name: foo }
-    joi.array().items(joiUserIdentifier())
-  )
-  .description("A list of environments to configure for the project.")
+export const environmentsSchema = () =>
+  joi
+    .alternatives(
+      joi
+        .array()
+        .items(environmentSchema())
+        .unique("name"),
+      // Allow a string as a shorthand for { name: foo }
+      joi.array().items(joiUserIdentifier())
+    )
+    .description("A list of environments to configure for the project.")
 
 export interface SourceConfig {
   name: string
   repositoryUrl: string
 }
 
-export const projectSourceSchema = joi.object().keys({
-  name: joiUserIdentifier()
-    .required()
-    .description("The name of the source to import")
-    .example("my-external-repo"),
-  repositoryUrl: joiRepositoryUrl().required(),
-})
+export const projectSourceSchema = () =>
+  joi.object().keys({
+    name: joiUserIdentifier()
+      .required()
+      .description("The name of the source to import")
+      .example("my-external-repo"),
+    repositoryUrl: joiRepositoryUrl().required(),
+  })
 
-export const projectSourcesSchema = joiArray(projectSourceSchema)
-  .unique("name")
-  .description("A list of remote sources to import into project.")
+export const projectSourcesSchema = () =>
+  joiArray(projectSourceSchema())
+    .unique("name")
+    .description("A list of remote sources to import into project.")
 
 export interface OutputSpec {
   name: string
@@ -176,24 +181,26 @@ export const defaultEnvironments: EnvironmentConfig[] = [
   },
 ]
 
-export const projectNameSchema = joiIdentifier()
-  .required()
-  .description("The name of the project.")
-  .example("my-sweet-project")
+export const projectNameSchema = () =>
+  joiIdentifier()
+    .required()
+    .description("The name of the project.")
+    .example("my-sweet-project")
 
-export const projectRootSchema = joi.string().description("The path to the project root.")
+export const projectRootSchema = () => joi.string().description("The path to the project root.")
 
-const projectModulesSchema = joi.object().keys({
-  include: joi
-    .array()
-    .items(
-      joi
-        .posixPath()
-        .allowGlobs()
-        .subPathOnly()
-    )
-    .description(
-      dedent`
+const projectModulesSchema = () =>
+  joi.object().keys({
+    include: joi
+      .array()
+      .items(
+        joi
+          .posixPath()
+          .allowGlobs()
+          .subPathOnly()
+      )
+      .description(
+        dedent`
         Specify a list of POSIX-style paths or globs that should be scanned for Garden modules.
 
         Note that you can also _exclude_ path using the \`exclude\` field or by placing \`.gardenignore\` files in your source tree, which use the same format as \`.gitignore\` files. See the [Configuration Files guide](${includeGuideLink}) for details.
@@ -201,18 +208,18 @@ const projectModulesSchema = joi.object().keys({
         Unlike the \`exclude\` field, the paths/globs specified here have _no effect_ on which files and directories Garden watches for changes. Use the \`exclude\` field to affect those, if you have large directories that should not be watched for changes.
 
         Also note that specifying an empty list here means _no paths_ should be included.`
-    )
-    .example(["modules/**/*"]),
-  exclude: joi
-    .array()
-    .items(
-      joi
-        .posixPath()
-        .allowGlobs()
-        .subPathOnly()
-    )
-    .description(
-      dedent`
+      )
+      .example(["modules/**/*"]),
+    exclude: joi
+      .array()
+      .items(
+        joi
+          .posixPath()
+          .allowGlobs()
+          .subPathOnly()
+      )
+      .description(
+        dedent`
         Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for modules.
 
         The filters here also affect which files and directories are watched for changes. So if you have a large number of directories in your project that should not be watched, you should specify them here.
@@ -225,72 +232,74 @@ const projectModulesSchema = joi.object().keys({
 
         See the [Configuration Files guide](${includeGuideLink}) for details.
       `
-    )
-    .example(["public/**/*", "tmp/**/*"]),
-})
+      )
+      .example(["public/**/*", "tmp/**/*"]),
+  })
 
-const projectOutputSchema = joi.object().keys({
-  name: joi
-    .string()
-    .max(255)
-    .required()
-    .description("The name of the output value.")
-    .example("my-output-key"),
-  value: joiPrimitive()
-    .required()
-    .description(
-      dedent`
+const projectOutputSchema = () =>
+  joi.object().keys({
+    name: joi
+      .string()
+      .max(255)
+      .required()
+      .description("The name of the output value.")
+      .example("my-output-key"),
+    value: joiPrimitive()
+      .required()
+      .description(
+        dedent`
         The value for the output. Must be a primitive (string, number, boolean or null). May also be any valid template
         string.
       `
-    )
-    .example("${modules.my-module.outputs.some-output}"),
-})
+      )
+      .example("${modules.my-module.outputs.some-output}"),
+  })
 
-export const projectDocsSchema = joi
-  .object()
-  .keys({
-    apiVersion: joi
-      .string()
-      .default(DEFAULT_API_VERSION)
-      .valid(DEFAULT_API_VERSION)
-      .description("The schema version of this project's config (currently not used)."),
-    kind: joi
-      .string()
-      .default("Project")
-      .valid("Project")
-      .description("Indicate what kind of config this is."),
-    path: projectRootSchema.meta({ internal: true }),
-    configPath: joi
-      .string()
-      .meta({ internal: true })
-      .description("The path to the project config file."),
-    name: projectNameSchema,
-    // Note: We provide a different schema below for actual validation, but need to define it this way for docs
-    // because joi.alternatives() isn't handled well in the doc generation.
-    environments: joi
-      .array()
-      .items(environmentSchema)
-      .description((<any>environmentsSchema.describe().flags).description),
-    providers: joiArray(providerConfigBaseSchema).description(
-      "A list of providers that should be used for this project, and their configuration. " +
-        "Please refer to individual plugins/providers for details on how to configure them."
-    ),
-    defaultEnvironment: joi
-      .string()
-      .allow("")
-      .default("")
-      .description(
-        deline`
+export const projectDocsSchema = () =>
+  joi
+    .object()
+    .keys({
+      apiVersion: joi
+        .string()
+        .default(DEFAULT_API_VERSION)
+        .valid(DEFAULT_API_VERSION)
+        .description("The schema version of this project's config (currently not used)."),
+      kind: joi
+        .string()
+        .default("Project")
+        .valid("Project")
+        .description("Indicate what kind of config this is."),
+      path: projectRootSchema().meta({ internal: true }),
+      configPath: joi
+        .string()
+        .meta({ internal: true })
+        .description("The path to the project config file."),
+      name: projectNameSchema(),
+      // Note: We provide a different schema below for actual validation, but need to define it this way for docs
+      // because joi.alternatives() isn't handled well in the doc generation.
+      environments: joi
+        .array()
+        .items(environmentSchema())
+        .description((<any>environmentsSchema().describe().flags).description),
+      providers: joiArray(providerConfigBaseSchema()).description(
+        "A list of providers that should be used for this project, and their configuration. " +
+          "Please refer to individual plugins/providers for details on how to configure them."
+      ),
+      defaultEnvironment: joi
+        .string()
+        .allow("")
+        .default("")
+        .description(
+          deline`
         The default environment to use when calling commands without the \`--env\` parameter.
         Defaults to the first configured environment.
       `
-      )
-      .example("dev"),
-    dotIgnoreFiles: joiArray(joi.posixPath().filenameOnly())
-      .default(defaultDotIgnoreFiles)
-      .description(
-        deline`
+        )
+        .example("dev"),
+      dotIgnoreFiles: joiArray(joi.posixPath().filenameOnly())
+        .default(defaultDotIgnoreFiles)
+        .description(
+          deline`
         Specify a list of filenames that should be used as ".ignore" files across the project, using the same syntax and
         semantics as \`.gitignore\` files. By default, patterns matched in \`.gitignore\` and \`.gardenignore\`
         files, found anywhere in the project, are ignored when scanning for modules and module sources.
@@ -301,13 +310,13 @@ export const projectDocsSchema = joi
         See the [Configuration Files guide](${DOCS_BASE_URL}/guides/configuration-files#including-excluding-files-and-directories)
         for details.
       `
-      )
-      .example([".gardenignore", ".customignore"]),
-    modules: projectModulesSchema.description("Control where to scan for modules in the project."),
-    outputs: joiArray(projectOutputSchema)
-      .unique("name")
-      .description(
-        dedent`
+        )
+        .example([".gardenignore", ".customignore"]),
+      modules: projectModulesSchema().description("Control where to scan for modules in the project."),
+      outputs: joiArray(projectOutputSchema())
+        .unique("name")
+        .description(
+          dedent`
         A list of output values that the project should export. These are exported by the \`garden get outputs\` command, as well as when referencing a project as a sub-project within another project.
 
         You may use any template strings to specify the values, including references to provider outputs, module
@@ -315,13 +324,13 @@ export const projectDocsSchema = joi
 
         Note that if any runtime outputs are referenced, the referenced services and tasks will be deployed and run if necessary when resolving the outputs.
         `
-      ),
-    sources: projectSourcesSchema,
-    varfile: joi
-      .posixPath()
-      .default(defaultVarfilePath)
-      .description(
-        dedent`
+        ),
+      sources: projectSourcesSchema(),
+      varfile: joi
+        .posixPath()
+        .default(defaultVarfilePath)
+        .description(
+          dedent`
         Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
         project-wide \`variables\` field. The file should be in a standard "dotenv" format, specified
         [here](https://github.com/motdotla/dotenv#rules).
@@ -332,18 +341,19 @@ export const projectDocsSchema = joi
         _Note that in many cases it is advisable to only use environment-specific var files, instead of combining
         multiple ones. See the \`environments[].varfile\` field for this option._
       `
-      )
-      .example("custom.env"),
-    variables: joiVariables().description("Variables to configure for all environments."),
-  })
-  .required()
-  .description(
-    "Configuration for a Garden project. This should be specified in the garden.yml file in your project root."
-  )
+        )
+        .example("custom.env"),
+      variables: joiVariables().description("Variables to configure for all environments."),
+    })
+    .required()
+    .description(
+      "Configuration for a Garden project. This should be specified in the garden.yml file in your project root."
+    )
 
-export const projectSchema = projectDocsSchema.keys({
-  environments: environmentsSchema,
-})
+export const projectSchema = () =>
+  projectDocsSchema().keys({
+    environments: environmentsSchema(),
+  })
 
 /**
  * Resolves and validates the given raw project configuration, and returns it in a canonical form.
@@ -372,7 +382,7 @@ export async function resolveProjectConfig(config: ProjectConfig, artifactsPath:
   // Validate after resolving global fields
   config = validateWithPath({
     config: { ...config, ...globalConfig },
-    schema: projectSchema,
+    schema: projectSchema(),
     configType: "project",
     path: config.path,
     projectRoot: config.path,

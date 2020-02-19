@@ -42,7 +42,7 @@ const testProvider = createGardenPlugin({
     {
       name: "test",
       docs: "Test plugin",
-      schema: testModuleSpecSchema,
+      schema: testModuleSpecSchema(),
       handlers: {
         configure: configureTestModule,
         getBuildStatus,

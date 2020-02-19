@@ -29,7 +29,7 @@ export interface TerraformModuleSpec extends TerraformBaseSpec {
 export interface TerraformModule extends Module<TerraformModuleSpec> {}
 
 export const schema = joi.object().keys({
-  build: baseBuildSpecSchema,
+  build: baseBuildSpecSchema(),
   autoApply: joi
     .boolean()
     .allow(null)
@@ -40,14 +40,14 @@ export const schema = joi.object().keys({
 
         Defaults to the value set in the provider config.
       `),
-  dependencies: dependenciesSchema,
+  dependencies: dependenciesSchema(),
   root: joi
     .posixPath()
     .subPathOnly()
     .default(".").description(deline`
         Specify the path to the working directory root—i.e. where your Terraform files are—relative to the module root.
       `),
-  variables: variablesSchema.description(deline`
+  variables: variablesSchema().description(deline`
         A map of variables to use when applying the stack. You can define these here or you can place a
         \`terraform.tfvars\` file in the working directory root.
 

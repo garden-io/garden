@@ -183,10 +183,12 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
       })
     }
 
-    const schema = (definition.schema ? baseModuleSpecSchema.concat(definition.schema) : baseModuleSpecSchema).keys({
-      // Hide this from docs until we actually use it
-      apiVersion: joi.string().meta({ internal: true }),
-    })
+    const schema = (definition.schema ? baseModuleSpecSchema().concat(definition.schema) : baseModuleSpecSchema()).keys(
+      {
+        // Hide this from docs until we actually use it
+        apiVersion: joi.string().meta({ internal: true }),
+      }
+    )
 
     const { yaml } = renderConfigReference(schema, {
       yamlOpts: {

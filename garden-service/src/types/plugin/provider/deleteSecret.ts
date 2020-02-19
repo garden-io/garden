@@ -19,15 +19,15 @@ export interface DeleteSecretResult {
   found: boolean
 }
 
-export const deleteSecret = {
+export const deleteSecret = () => ({
   description: dedent`
     Remove a secret for this plugin in the current environment (as set via \`setSecret\`).
   `,
-  paramsSchema: getSecretParamsSchema,
+  paramsSchema: getSecretParamsSchema(),
   resultSchema: joi.object().keys({
     found: joi
       .boolean()
       .required()
       .description("Set to true if the key was deleted, false if it was not found."),
   }),
-}
+})

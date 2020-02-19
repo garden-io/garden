@@ -23,7 +23,7 @@ export interface GetPortForwardResult {
   port: number
 }
 
-export const getPortForward = {
+export const getPortForward = () => ({
   description: dedent`
     Create a port forward tunnel to the specified service and port. When \`getServiceStatus\` returns one or more
     \`forwardablePort\` specs, the Garden service creates an open port. When connections are made to that port,
@@ -34,7 +34,7 @@ export const getPortForward = {
 
     If there is a corresponding \`stopPortForward\` handler, it is called when cleaning up.
   `,
-  paramsSchema: serviceActionParamsSchema.keys(forwardablePortKeys),
+  paramsSchema: serviceActionParamsSchema().keys(forwardablePortKeys),
   resultSchema: joi.object().keys({
     hostname: joi
       .string()
@@ -47,4 +47,4 @@ export const getPortForward = {
       .description("The port of the tunnel.")
       .example(12345),
   }),
-}
+})

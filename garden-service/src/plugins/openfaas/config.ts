@@ -34,47 +34,50 @@ export interface OpenFaasModuleSpec extends ExecModuleSpecBase {
 }
 
 // Use the exec test schema but override the command description
-const openfaasTestSchema = baseTestSpecSchema.keys({
-  command: joi
-    .array()
-    .items(joi.string())
-    .description("The command to run in the module build context in order to test it.")
-    .required(),
-  env: joiEnvVars(),
-})
-
-export const openfaasModuleSpecSchema = joi
-  .object()
-  .keys({
-    build: baseBuildSpecSchema,
-    dependencies: joiArray(joi.string()).description(
-      "The names of services/functions that this function depends on at runtime."
-    ),
+const openfaasTestSchema = () =>
+  baseTestSpecSchema().keys({
+    command: joi
+      .array()
+      .items(joi.string())
+      .description("The command to run in the module build context in order to test it.")
+      .required(),
     env: joiEnvVars(),
-    handler: joi
-      .posixPath()
-      .subPathOnly()
-      .default(".")
-      .description("Specify which directory under the module contains the handler file/function."),
-    image: joi
-      .string()
-      .description("The image name to use for the built OpenFaaS container (defaults to the module name)"),
-    lang: joi
-      .string()
-      .required()
-      .description("The OpenFaaS language template to use to build this function."),
-    tests: joiArray(openfaasTestSchema).description("A list of tests to run in the module."),
   })
-  .unknown(false)
-  .description("The module specification for an OpenFaaS module.")
 
-export const openfaasModuleOutputsSchema = joi.object().keys({
-  endpoint: joi
-    .string()
-    .uri()
-    .required()
-    .description(`The full URL to query this service _from within_ the cluster.`),
-})
+export const openfaasModuleSpecSchema = () =>
+  joi
+    .object()
+    .keys({
+      build: baseBuildSpecSchema(),
+      dependencies: joiArray(joi.string()).description(
+        "The names of services/functions that this function depends on at runtime."
+      ),
+      env: joiEnvVars(),
+      handler: joi
+        .posixPath()
+        .subPathOnly()
+        .default(".")
+        .description("Specify which directory under the module contains the handler file/function."),
+      image: joi
+        .string()
+        .description("The image name to use for the built OpenFaaS container (defaults to the module name)"),
+      lang: joi
+        .string()
+        .required()
+        .description("The OpenFaaS language template to use to build this function."),
+      tests: joiArray(openfaasTestSchema()).description("A list of tests to run in the module."),
+    })
+    .unknown(false)
+    .description("The module specification for an OpenFaaS module.")
+
+export const openfaasModuleOutputsSchema = () =>
+  joi.object().keys({
+    endpoint: joi
+      .string()
+      .uri()
+      .required()
+      .description(`The full URL to query this service _from within_ the cluster.`),
+  })
 
 export interface OpenFaasModule extends Module<OpenFaasModuleSpec, CommonServiceSpec, ExecTestSpec> {}
 export type OpenFaasModuleConfig = OpenFaasModule["_ConfigType"]
@@ -89,39 +92,40 @@ export interface OpenFaasConfig extends ProviderConfig {
   }
 }
 
-export const configSchema = providerConfigBaseSchema.keys({
-  name: joiProviderName("openfaas"),
-  gatewayUrl: joi
-    .string()
-    .uri({ scheme: ["http", "https"] })
-    .description(
-      dedent`
+export const configSchema = () =>
+  providerConfigBaseSchema().keys({
+    name: joiProviderName("openfaas"),
+    gatewayUrl: joi
+      .string()
+      .uri({ scheme: ["http", "https"] })
+      .description(
+        dedent`
         The external URL to the function gateway, after installation. This is required if you set \`faasNetes.values\`
         or \`faastNetes.install: false\`, so that Garden can know how to reach the gateway.
       `
-    )
-    .example("https://functions.mydomain.com"),
-  hostname: joi
-    .string()
-    .hostname()
-    .description(
-      dedent`
+      )
+      .example("https://functions.mydomain.com"),
+    hostname: joi
+      .string()
+      .hostname()
+      .description(
+        dedent`
         The ingress hostname to configure for the function gateway, when \`faasNetes.install: true\` and not
         overriding \`faasNetes.values\`. Defaults to the default hostname of the configured Kubernetes provider.
 
         Important: If you have other types of services, this should be different from their ingress hostnames,
         or the other services should not expose paths under /function and /system to avoid routing conflicts.
       `
-    )
-    .example("functions.mydomain.com"),
-  faasNetes: joi
-    .object()
-    .keys({
-      install: joi.boolean().default(true).description(dedent`
+      )
+      .example("functions.mydomain.com"),
+    faasNetes: joi
+      .object()
+      .keys({
+        install: joi.boolean().default(true).description(dedent`
         Set to false if you'd like to install and configure faas-netes yourself.
         See the [official instructions](https://docs.openfaas.com/deployment/kubernetes/) for details.
       `),
-      values: joi.object().description(dedent`
+        values: joi.object().description(dedent`
         Override the values passed to the faas-netes Helm chart. Ignored if \`install: false\`.
         See the [chart docs](https://github.com/openfaas/faas-netes/tree/master/chart/openfaas) for the available
         options.
@@ -129,9 +133,9 @@ export const configSchema = providerConfigBaseSchema.keys({
         Note that this completely replaces the values Garden assigns by default, including \`functionNamespace\`,
         ingress configuration etc. so you need to make sure those are correctly configured for your use case.
       `),
-    })
-    .default({ install: true }),
-})
+      })
+      .default({ install: true }),
+  })
 
 export type OpenFaasProvider = Provider<OpenFaasConfig>
 export type OpenFaasPluginContext = PluginContext<OpenFaasConfig>

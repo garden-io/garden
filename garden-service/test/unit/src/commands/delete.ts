@@ -106,7 +106,7 @@ describe("DeleteEnvironmentCommand", () => {
         {
           name: "test",
           docs: "Test plugin",
-          schema: testModuleSpecSchema,
+          schema: testModuleSpecSchema(),
           handlers: {
             configure: configureTestModule,
             getServiceStatus,
@@ -178,7 +178,7 @@ describe("DeleteServiceCommand", () => {
         {
           name: "test",
           docs: "Test plugin",
-          schema: testModuleSpecSchema,
+          schema: testModuleSpecSchema(),
           handlers: {
             configure: configureTestModule,
             getServiceStatus,

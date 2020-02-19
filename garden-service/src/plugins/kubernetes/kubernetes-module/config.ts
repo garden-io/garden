@@ -42,55 +42,57 @@ export interface KubernetesServiceSpec {
 
 export type KubernetesService = Service<KubernetesModule, KubernetesModule>
 
-const kubernetesResourceSchema = joi
-  .object()
-  .keys({
-    apiVersion: joi
-      .string()
-      .required()
-      .description("The API version of the resource."),
-    kind: joi
-      .string()
-      .required()
-      .description("The kind of the resource."),
-    metadata: joi
-      .object()
-      .required()
-      .keys({
-        name: joi
-          .string()
-          .required()
-          .description("The name of the resource."),
-      })
-      .unknown(true),
-  })
-  .unknown(true)
+const kubernetesResourceSchema = () =>
+  joi
+    .object()
+    .keys({
+      apiVersion: joi
+        .string()
+        .required()
+        .description("The API version of the resource."),
+      kind: joi
+        .string()
+        .required()
+        .description("The kind of the resource."),
+      metadata: joi
+        .object()
+        .required()
+        .keys({
+          name: joi
+            .string()
+            .required()
+            .description("The name of the resource."),
+        })
+        .unknown(true),
+    })
+    .unknown(true)
 
-export const kubernetesModuleSpecSchema = joi.object().keys({
-  build: baseBuildSpecSchema,
-  dependencies: dependenciesSchema,
-  manifests: joiArray(kubernetesResourceSchema).description(
-    deline`
+export const kubernetesModuleSpecSchema = () =>
+  joi.object().keys({
+    build: baseBuildSpecSchema(),
+    dependencies: dependenciesSchema(),
+    manifests: joiArray(kubernetesResourceSchema()).description(
+      deline`
           List of Kubernetes resource manifests to deploy. Use this instead of the \`files\` field if you need to
           resolve template strings in any of the manifests.`
-  ),
-  files: joiArray(joi.posixPath().subPathOnly()).description(
-    "POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests."
-  ),
-  include: joiModuleIncludeDirective(dedent`
+    ),
+    files: joiArray(joi.posixPath().subPathOnly()).description(
+      "POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests."
+    ),
+    include: joiModuleIncludeDirective(dedent`
     If neither \`include\` nor \`exclude\` is set, Garden automatically sets \`include\` to equal the
     \`files\` directive so that only the Kubernetes manifests get included.
   `),
-  namespace: namespaceSchema,
-  serviceResource: serviceResourceSchema.description(
-    deline`The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module
+    namespace: namespaceSchema(),
+    serviceResource: serviceResourceSchema().description(
+      deline`The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module
       (not to be confused with Kubernetes Service resources).
       Because a \`kubernetes\` can contain any number of Kubernetes resources, this needs to be specified for certain
       Garden features and commands to work.`
-  ),
-  tasks: joiArray(kubernetesTaskSchema),
-  tests: joiArray(kubernetesTestSchema),
-})
+    ),
+    tasks: joiArray(kubernetesTaskSchema()),
+    tests: joiArray(kubernetesTestSchema()),
+  })
 
 export async function configureKubernetesModule({
   moduleConfig,

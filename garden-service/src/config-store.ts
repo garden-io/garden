@@ -175,25 +175,27 @@ export interface LocalConfig {
   analytics: AnalyticsLocalConfig
 }
 
-const linkedSourceSchema = joi
-  .object()
-  .keys({
-    name: joiUserIdentifier(),
-    path: joi.string(),
-  })
-  .meta({ internal: true })
+const linkedSourceSchema = () =>
+  joi
+    .object()
+    .keys({
+      name: joiUserIdentifier(),
+      path: joi.string(),
+    })
+    .meta({ internal: true })
 
-const AnalyticsLocalConfigSchema = joi
-  .object()
-  .keys({
-    projectId: joi.string(),
-  })
-  .meta({ internal: true })
+const analyticsLocalConfigSchema = () =>
+  joi
+    .object()
+    .keys({
+      projectId: joi.string(),
+    })
+    .meta({ internal: true })
 
 const localConfigSchemaKeys = {
-  linkedModuleSources: joiArray(linkedSourceSchema),
-  linkedProjectSources: joiArray(linkedSourceSchema),
-  analytics: AnalyticsLocalConfigSchema,
+  linkedModuleSources: joiArray(linkedSourceSchema()),
+  linkedProjectSources: joiArray(linkedSourceSchema()),
+  analytics: analyticsLocalConfigSchema(),
 }
 
 export const localConfigKeys = Object.keys(localConfigSchemaKeys).reduce((acc, key) => {
@@ -201,13 +203,15 @@ export const localConfigKeys = Object.keys(localConfigSchemaKeys).reduce((acc, k
   return acc
 }, {}) as { [K in keyof typeof localConfigSchemaKeys]: K }
 
-const localConfigSchema = joi
-  .object()
-  .keys(localConfigSchemaKeys)
-  .meta({ internal: true })
+const localConfigSchema = () =>
+  joi
+    .object()
+    .keys(localConfigSchemaKeys)
+    .meta({ internal: true })
 
 // TODO: we should not be passing this to provider actions
-export const configStoreSchema = joi.object().description("Helper class for managing local configuration for plugins.")
+export const configStoreSchema = () =>
+  joi.object().description("Helper class for managing local configuration for plugins.")
 
 export class LocalConfigStore extends ConfigStore<LocalConfig> {
   getConfigPath(gardenDirPath: string): string {
@@ -215,7 +219,7 @@ export class LocalConfigStore extends ConfigStore<LocalConfig> {
   }
 
   validate(config): LocalConfig {
-    return validateSchema(config, localConfigSchema, {
+    return validateSchema(config, localConfigSchema(), {
       context: this.configPath,
       ErrorClass: LocalConfigError,
     })
@@ -246,29 +250,31 @@ export interface GlobalConfig {
   lastVersionCheck?: VersionCheckGlobalConfig
 }
 
-const analyticsGlobalConfigSchema = joi
-  .object()
-  .keys({
-    userId: joiPrimitive()
-      .allow("")
-      .optional(),
-    optedIn: joi.boolean().optional(),
-    firstRun: joi.boolean().optional(),
-    showOptInMessage: joi.boolean().optional(),
-  })
-  .unknown(true)
-  .meta({ internal: true })
+const analyticsGlobalConfigSchema = () =>
+  joi
+    .object()
+    .keys({
+      userId: joiPrimitive()
+        .allow("")
+        .optional(),
+      optedIn: joi.boolean().optional(),
+      firstRun: joi.boolean().optional(),
+      showOptInMessage: joi.boolean().optional(),
+    })
+    .unknown(true)
+    .meta({ internal: true })
 
-const versionCheckGlobalConfigSchema = joi
-  .object()
-  .keys({
-    lastRun: joi.date().optional(),
-  })
-  .meta({ internal: true })
+const versionCheckGlobalConfigSchema = () =>
+  joi
+    .object()
+    .keys({
+      lastRun: joi.date().optional(),
+    })
+    .meta({ internal: true })
 
 const globalConfigSchemaKeys = {
-  analytics: analyticsGlobalConfigSchema,
-  lastVersionCheck: versionCheckGlobalConfigSchema,
+  analytics: analyticsGlobalConfigSchema(),
+  lastVersionCheck: versionCheckGlobalConfigSchema(),
 }
 
 /* This contains a config key, key string pair to be used when setting/getting values in the store
@@ -285,10 +291,11 @@ export const globalConfigKeys = Object.keys(globalConfigSchemaKeys).reduce((acc,
   return acc
 }, {}) as { [K in keyof typeof globalConfigSchemaKeys]: K }
 
-const globalConfigSchema = joi
-  .object()
-  .keys(globalConfigSchemaKeys)
-  .meta({ internal: true })
+const globalConfigSchema = () =>
+  joi
+    .object()
+    .keys(globalConfigSchemaKeys)
+    .meta({ internal: true })
 
 export class GlobalConfigStore extends ConfigStore<GlobalConfig> {
   constructor() {
@@ -300,7 +307,7 @@ export class GlobalConfigStore extends ConfigStore<GlobalConfig> {
   }
 
   validate(config): GlobalConfig {
-    return validateSchema(config, globalConfigSchema, {
+    return validateSchema(config, globalConfigSchema(), {
       context: this.configPath,
       ErrorClass: LocalConfigError,
     })

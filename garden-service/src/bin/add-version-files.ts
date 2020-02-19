@@ -15,6 +15,8 @@ import Bluebird from "bluebird"
 import { STATIC_DIR, GARDEN_VERSIONFILE_NAME } from "../constants"
 import { writeTreeVersionFile } from "../vcs/vcs"
 
+require("source-map-support").install()
+
 // make sure logger is initialized
 try {
   Logger.initialize({ level: LogLevel.info })

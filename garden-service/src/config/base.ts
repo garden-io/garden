@@ -160,7 +160,7 @@ export function prepareModuleResource(
 
   validateWithPath({
     config,
-    schema: coreModuleSpecSchema,
+    schema: coreModuleSpecSchema(),
     path: dirname(configPath),
     projectRoot,
     configType: "module",

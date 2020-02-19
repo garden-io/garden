@@ -33,33 +33,35 @@ export const emptyRuntimeContext = {
   dependencies: [],
 }
 
-const runtimeDependencySchema = joi.object().keys({
-  name: joiIdentifier().description("The name of the service or task."),
-  outputs: joiEnvVars().description("The outputs provided by the service (e.g. ingress URLs etc.)."),
-  type: joi
-    .string()
-    .valid("service", "task")
-    .description("The type of the dependency."),
-  version: moduleVersionSchema,
-})
-
-export const runtimeContextSchema = joi
-  .object()
-  .options({ presence: "required" })
-  .keys({
-    envVars: joi
-      .object()
-      .pattern(/.+/, joiPrimitive())
-      .default(() => ({}))
-      .unknown(false)
-      .description(
-        "Key/value map of environment variables. Keys must be valid POSIX environment variable names " +
-          "(must be uppercase) and values must be primitives."
-      ),
-    dependencies: joiArray(runtimeDependencySchema).description(
-      "List of all the services and tasks that this service/task/test depends on, and their metadata."
-    ),
+const runtimeDependencySchema = () =>
+  joi.object().keys({
+    name: joiIdentifier().description("The name of the service or task."),
+    outputs: joiEnvVars().description("The outputs provided by the service (e.g. ingress URLs etc.)."),
+    type: joi
+      .string()
+      .valid("service", "task")
+      .description("The type of the dependency."),
+    version: moduleVersionSchema(),
   })
+
+export const runtimeContextSchema = () =>
+  joi
+    .object()
+    .options({ presence: "required" })
+    .keys({
+      envVars: joi
+        .object()
+        .pattern(/.+/, joiPrimitive())
+        .default(() => ({}))
+        .unknown(false)
+        .description(
+          "Key/value map of environment variables. Keys must be valid POSIX environment variable names " +
+            "(must be uppercase) and values must be primitives."
+        ),
+      dependencies: joiArray(runtimeDependencySchema()).description(
+        "List of all the services and tasks that this service/task/test depends on, and their metadata."
+      ),
+    })
 
 interface PrepareRuntimeContextParams {
   garden: Garden

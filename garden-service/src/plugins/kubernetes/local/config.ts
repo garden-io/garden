@@ -31,7 +31,7 @@ export interface LocalKubernetesConfig extends KubernetesConfig {
 export const configSchema = kubernetesConfigBase
   .keys({
     name: joiProviderName("local-kubernetes"),
-    context: k8sContextSchema.optional(),
+    context: k8sContextSchema().optional(),
     namespace: joi
       .string()
       .description(

@@ -21,25 +21,27 @@ export interface TestResult extends RunResult {
   testName: string
 }
 
-export const testResultSchema = runResultSchema.keys({
-  outputs: joi
-    .object()
-    .pattern(/.+/, joiPrimitive())
-    .description("A map of primitive values, output from the test."),
-  testName: joi
-    .string()
-    .required()
-    .description("The name of the test that was run."),
-  version: joi.string().description(deline`
+export const testResultSchema = () =>
+  runResultSchema().keys({
+    outputs: joi
+      .object()
+      .pattern(/.+/, joiPrimitive())
+      .description("A map of primitive values, output from the test."),
+    testName: joi
+      .string()
+      .required()
+      .description("The name of the test that was run."),
+    version: joi.string().description(deline`
         The test run's version, as a string. In addition to the parent module's version, this also
         factors in the module versions of the test's runtime dependencies (if any).`),
-})
+  })
 
-export const testVersionSchema = moduleVersionSchema.description(deline`
+export const testVersionSchema = () =>
+  moduleVersionSchema().description(deline`
     The test run's version. In addition to the parent module's version, this also
     factors in the module versions of the test's runtime dependencies (if any).`)
 
-export const getTestResult = {
+export const getTestResult = () => ({
   description: dedent`
     Retrieve the test result for the specified version. Use this along with the \`testModule\` handler
     to avoid testing the same code repeatedly.
@@ -49,10 +51,10 @@ export const getTestResult = {
     of the module itself.
   `,
 
-  paramsSchema: moduleActionParamsSchema.keys({
+  paramsSchema: moduleActionParamsSchema().keys({
     testName: joi.string().description("A unique name to identify the test run."),
-    testVersion: testVersionSchema,
+    testVersion: testVersionSchema(),
   }),
 
-  resultSchema: testResultSchema.allow(null),
-}
+  resultSchema: testResultSchema().allow(null),
+})

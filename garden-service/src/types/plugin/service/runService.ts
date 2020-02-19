@@ -18,7 +18,7 @@ export interface RunServiceParams<M extends Module = Module, S extends Module = 
   timeout?: number
 }
 
-export const runService = {
+export const runService = () => ({
   description: dedent`
     Run an ad-hoc instance of the specified service. This should wait until the service completes
     execution, and should ideally attach it to the terminal (i.e. pipe the output from the service
@@ -26,6 +26,6 @@ export const runService = {
 
     Called by the \`garden run service\` command.
   `,
-  paramsSchema: serviceActionParamsSchema.keys(runBaseParams),
-  resultSchema: runResultSchema,
-}
+  paramsSchema: serviceActionParamsSchema().keys(runBaseParams),
+  resultSchema: runResultSchema(),
+})

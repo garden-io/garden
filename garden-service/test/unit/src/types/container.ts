@@ -15,7 +15,7 @@ describe("portSchema", () => {
     const containerPort = 8080
     const obj = { name: "a", containerPort }
 
-    const value = validateSchema(obj, portSchema)
+    const value = validateSchema(obj, portSchema())
     expect(value["servicePort"]).to.equal(containerPort)
   })
 
@@ -24,7 +24,7 @@ describe("portSchema", () => {
     const servicePort = 9090
     const obj = { name: "a", containerPort, servicePort }
 
-    const value = validateSchema(obj, portSchema)
+    const value = validateSchema(obj, portSchema())
     expect(value["servicePort"]).to.equal(servicePort)
   })
 })

@@ -401,7 +401,7 @@ export function renderTemplateStringReference({
 
 export function renderProjectConfigReference(opts: RenderConfigOpts = {}) {
   return renderConfigReference(
-    projectDocsSchema.keys({
+    projectDocsSchema().keys({
       // Hide this from docs until we actually use it
       apiVersion: joi.string().meta({ internal: true }),
     }),
@@ -417,7 +417,7 @@ export function renderProjectConfigReference(opts: RenderConfigOpts = {}) {
 export function renderBaseConfigReference() {
   const baseTemplatePath = resolve(TEMPLATES_DIR, "base-config.hbs")
   const { markdownReference: projectMarkdownReference, yaml: projectYaml } = renderProjectConfigReference()
-  const { markdownReference: moduleMarkdownReference, yaml: moduleYaml } = renderConfigReference(baseModuleSpecSchema)
+  const { markdownReference: moduleMarkdownReference, yaml: moduleYaml } = renderConfigReference(baseModuleSpecSchema())
 
   const template = handlebars.compile(readFileSync(baseTemplatePath).toString())
   return template({ projectMarkdownReference, projectYaml, moduleMarkdownReference, moduleYaml })

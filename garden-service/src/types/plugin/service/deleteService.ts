@@ -14,12 +14,12 @@ import { serviceStatusSchema } from "../../service"
 export interface DeleteServiceParams<M extends Module = Module, S extends Module = Module>
   extends PluginServiceActionParamsBase<M, S> {}
 
-export const deleteService = {
+export const deleteService = () => ({
   description: dedent`
     Terminate a deployed service. This should wait until the service is no longer running.
 
     Called by the \`garden delete service\` command.
   `,
-  paramsSchema: serviceActionParamsSchema,
-  resultSchema: serviceStatusSchema,
-}
+  paramsSchema: serviceActionParamsSchema(),
+  resultSchema: serviceStatusSchema(),
+})

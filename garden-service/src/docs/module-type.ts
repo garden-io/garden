@@ -16,7 +16,7 @@ import { ModuleContext, ServiceRuntimeContext, TaskRuntimeContext } from "../con
 import { ModuleTypeDefinition } from "../types/plugin/plugin"
 import { renderConfigReference, renderTemplateStringReference, TEMPLATES_DIR } from "./config"
 
-const populateModuleSchema = (schema: Joi.ObjectSchema) => baseModuleSpecSchema.concat(schema)
+const populateModuleSchema = (schema: Joi.ObjectSchema) => baseModuleSpecSchema().concat(schema)
 
 export const moduleTypes = [
   { name: "exec" },

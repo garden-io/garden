@@ -11,7 +11,7 @@ import { dedent } from "../../../util/string"
 import { joi } from "../../../config/common"
 
 export interface DescribeModuleTypeParams {}
-export const describeModuleTypeParamsSchema = joi.object().keys({})
+export const describeModuleTypeParamsSchema = () => joi.object().keys({})
 
 export interface ModuleTypeDescription {
   docs: string
@@ -23,7 +23,7 @@ export interface ModuleTypeDescription {
   title?: string
 }
 
-export const describeType = {
+export const describeType = () => ({
   description: dedent`
     Return documentation and a schema description of the module type.
 
@@ -79,4 +79,4 @@ export const describeType = {
         "Readable title for the module type. Defaults to the title-cased type name, with dashes replaced by spaces."
       ),
   }),
-}
+})

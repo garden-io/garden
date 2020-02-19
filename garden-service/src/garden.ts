@@ -343,7 +343,7 @@ export class Garden {
       }
 
       try {
-        pluginModule = validateSchema(pluginModule, pluginModuleSchema, {
+        pluginModule = validateSchema(pluginModule, pluginModuleSchema(), {
           context: `plugin module "${moduleNameOrLocation}"`,
         })
       } catch (err) {

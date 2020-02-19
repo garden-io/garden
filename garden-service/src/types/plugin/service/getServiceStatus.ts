@@ -21,7 +21,7 @@ export interface GetServiceStatusParams<M extends Module = Module, S extends Mod
   runtimeContext: RuntimeContext
 }
 
-export const getServiceStatus = {
+export const getServiceStatus = () => ({
   description: dedent`
     Check and return the current runtime status of a service.
 
@@ -31,12 +31,12 @@ export const getServiceStatus = {
     NOTE: This handler should not use the build directory since it's not guaranteed
     that the build will be staged or completed before this handler is called.
   `,
-  paramsSchema: serviceActionParamsSchema.keys({
-    runtimeContext: runtimeContextSchema,
+  paramsSchema: serviceActionParamsSchema().keys({
+    runtimeContext: runtimeContextSchema(),
     hotReload: joi
       .boolean()
       .default(false)
       .description("Whether the service should be configured for hot-reloading."),
   }),
-  resultSchema: serviceStatusSchema,
-}
+  resultSchema: serviceStatusSchema(),
+})

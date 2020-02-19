@@ -28,7 +28,7 @@ export interface EnvironmentStatusMap {
   [providerName: string]: EnvironmentStatus
 }
 
-export const getEnvironmentStatus = {
+export const getEnvironmentStatus = () => ({
   description: dedent`
     Check if the current environment is ready for use by this plugin. Use this action in combination
     with \`prepareEnvironment\`.
@@ -36,6 +36,6 @@ export const getEnvironmentStatus = {
     Called before \`prepareEnvironment\`. If this returns \`ready: true\`, the
     \`prepareEnvironment\` action is not called.
   `,
-  paramsSchema: actionParamsSchema,
-  resultSchema: environmentStatusSchema,
-}
+  paramsSchema: actionParamsSchema(),
+  resultSchema: environmentStatusSchema(),
+})

@@ -49,15 +49,16 @@ import {
   TaskActionOutputs,
   TaskActionParams,
   TaskActionHandlers,
-  moduleActionDescriptions,
-  moduleActionNames,
-  pluginActionDescriptions,
-  pluginActionNames,
   GardenPlugin,
   PluginMap,
   WrappedModuleActionHandler,
   WrappedActionHandler,
   ModuleTypeDefinition,
+  getPluginActionNames,
+  getModuleActionNames,
+  getPluginActionDescriptions,
+  getModuleActionDescriptions,
+  PluginActionDescriptions,
 } from "./types/plugin/plugin"
 import { CleanupEnvironmentParams } from "./types/plugin/provider/cleanupEnvironment"
 import { DeleteSecretParams, DeleteSecretResult } from "./types/plugin/provider/deleteSecret"
@@ -128,6 +129,8 @@ export class ActionRouter implements TypeGuard {
   private readonly actionHandlers: WrappedPluginActionMap
   private readonly moduleActionHandlers: WrappedModuleActionMap
   private readonly loadedPlugins: PluginMap
+  private readonly pluginActionDescriptions: PluginActionDescriptions
+  private readonly moduleActionDescriptions: PluginActionDescriptions
 
   constructor(
     private readonly garden: Garden,
@@ -135,6 +138,12 @@ export class ActionRouter implements TypeGuard {
     loadedPlugins: GardenPlugin[],
     private readonly moduleTypes: { [name: string]: ModuleTypeDefinition }
   ) {
+    const pluginActionNames = getPluginActionNames()
+    const moduleActionNames = getModuleActionNames()
+
+    this.pluginActionDescriptions = getPluginActionDescriptions()
+    this.moduleActionDescriptions = getModuleActionDescriptions()
+
     this.actionHandlers = <WrappedPluginActionMap>fromPairs(pluginActionNames.map((n) => [n, {}]))
     this.moduleActionHandlers = <WrappedModuleActionMap>fromPairs(moduleActionNames.map((n) => [n, {}]))
     this.loadedPlugins = keyBy(loadedPlugins, "name")
@@ -872,7 +881,7 @@ export class ActionRouter implements TypeGuard {
     handler: PluginActionHandlers[T]
   ) {
     const pluginName = plugin.name
-    const schema = pluginActionDescriptions[actionType].resultSchema
+    const schema = this.pluginActionDescriptions[actionType].resultSchema
 
     // Wrap the handler with identifying attributes
     const wrapped: WrappedPluginActionHandlers[T] = Object.assign(
@@ -904,7 +913,7 @@ export class ActionRouter implements TypeGuard {
     handler: ModuleActionHandlers[T]
   ) {
     const pluginName = plugin.name
-    const schema = moduleActionDescriptions[actionType].resultSchema
+    const schema = this.moduleActionDescriptions[actionType].resultSchema
 
     // Wrap the handler with identifying attributes
     const wrapped = Object.assign(

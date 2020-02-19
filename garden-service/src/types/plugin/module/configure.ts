@@ -29,7 +29,7 @@ export interface ConfigureModuleResult<T extends Module = Module> {
   >
 }
 
-export const configure = {
+export const configure = () => ({
   description: dedent`
     Validate and transform the given module configuration.
 
@@ -46,12 +46,12 @@ export const configure = {
   `,
 
   paramsSchema: joi.object().keys({
-    ctx: pluginContextSchema.required(),
-    log: logEntrySchema,
-    moduleConfig: baseModuleSpecSchema.required(),
+    ctx: pluginContextSchema().required(),
+    log: logEntrySchema(),
+    moduleConfig: baseModuleSpecSchema().required(),
   }),
 
   resultSchema: joi.object().keys({
-    moduleConfig: moduleConfigSchema,
+    moduleConfig: moduleConfigSchema(),
   }),
-}
+})

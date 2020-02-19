@@ -49,7 +49,7 @@ const testPlugin = createGardenPlugin({
     {
       name: "test",
       docs: "test",
-      schema: testModuleSpecSchema,
+      schema: testModuleSpecSchema(),
       handlers: {
         configure: configureTestModule,
         getTaskResult: async (params: GetTaskResultParams) => taskResults[params.task.name],
