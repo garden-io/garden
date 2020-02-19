@@ -34,6 +34,8 @@ import { getHotReloadServiceNames, validateHotReloadServiceNames } from "./helpe
 import { GardenServer, startServer } from "../server/server"
 import { BuildTask } from "../tasks/build"
 import { DeployTask } from "../tasks/deploy"
+import { Garden } from "../garden"
+import { LogEntry } from "../logger/log-entry"
 
 const ansiBannerPath = join(STATIC_DIR, "garden-banner-2.txt")
 
@@ -184,39 +186,66 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       watch: true,
       initialTasks,
       changeHandler: async (updatedGraph: ConfigGraph, module: Module) => {
-        const tasks = await getModuleWatchTasks({
+        return getDevCommandWatchTasks({
           garden,
           log,
-          graph: updatedGraph,
+          updatedGraph,
           module,
           hotReloadServiceNames,
+          testNames: opts["test-names"],
+          skipTests,
         })
-
-        if (!skipTests) {
-          const filterNames = opts["test-names"]
-          const testModules: Module[] = await updatedGraph.withDependantModules([module])
-          tasks.push(
-            ...flatten(
-              await Bluebird.map(testModules, (m) =>
-                getTestTasks({
-                  garden,
-                  log,
-                  module: m,
-                  graph: updatedGraph,
-                  filterNames,
-                  hotReloadServiceNames,
-                })
-              )
-            )
-          )
-        }
-
-        return tasks
       },
     })
 
     return handleTaskResults(footerLog, "dev", results)
   }
+}
+
+export async function getDevCommandWatchTasks({
+  garden,
+  log,
+  updatedGraph,
+  module,
+  hotReloadServiceNames,
+  testNames,
+  skipTests,
+}: {
+  garden: Garden
+  log: LogEntry
+  updatedGraph: ConfigGraph
+  module: Module
+  hotReloadServiceNames: string[]
+  testNames: string[] | undefined
+  skipTests: boolean
+}) {
+  const tasks = await getModuleWatchTasks({
+    garden,
+    log,
+    graph: updatedGraph,
+    module,
+    hotReloadServiceNames,
+  })
+
+  if (!skipTests) {
+    const testModules: Module[] = await updatedGraph.withDependantModules([module])
+    tasks.push(
+      ...flatten(
+        await Bluebird.map(testModules, (m) =>
+          getTestTasks({
+            garden,
+            log,
+            module: m,
+            graph: updatedGraph,
+            filterNames: testNames,
+            hotReloadServiceNames,
+          })
+        )
+      )
+    )
+  }
+
+  return tasks
 }
 
 function getGreetingTime() {
