@@ -2,9 +2,9 @@ kind: Project
 name: remote-sources
 sources:
   - name: web-services
-    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-web-services.git#v0.1.1
+    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-web-services.git#v0.2.0
   - name: db-services
-    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#v0.1.1
+    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#v0.2.0
 environments:
   - name: local
   - name: testing
@@ -17,4 +17,8 @@ providers:
     namespace: remote-sources-testing-${local.env.CIRCLE_BUILD_NUM || local.username}
     defaultHostname: remote-sources-testing.dev-1.sys.garden
     buildMode: cluster-docker
-
+variables:
+  postgres-database: postgres
+  # Only use for testing!
+  postgres-username: postgres
+  postgres-password: test-password

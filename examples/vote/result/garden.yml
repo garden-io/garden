@@ -15,8 +15,11 @@ services:
       - name: ui
         protocol: TCP
         containerPort: 80
+    env:
+      PGDATABASE: ${var.postgres-database}
+      PGUSER: ${var.postgres-username}
+      PGPASSWORD: ${var.postgres-password}
 tests:
   - name: integ
     args: [echo, ok]
-    dependencies:
-      - db-init
+    dependencies: [db-init]

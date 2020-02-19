@@ -103,7 +103,7 @@ export async function runAndCopy({
     description = `Container module '${module.name}'`
   }
 
-  const errorMetadata = { moduleName: module.name, description, args, artifacts }
+  const errorMetadata: any = { moduleName: module.name, description, args, artifacts }
 
   if (getArtifacts) {
     if (!command) {
@@ -184,7 +184,10 @@ export async function runAndCopy({
         stderr,
       })
 
-      if (state === "unhealthy") {
+      errorMetadata.pod = pod
+      errorMetadata.state = state
+
+      if (state !== "ready") {
         // Specifically look for error indicating `sh` is missing, and report with helpful message.
         const containerStatus = pod!.status.containerStatuses![0]
 
@@ -196,11 +199,9 @@ export async function runAndCopy({
               be installed in the image.`,
             errorMetadata
           )
+        } else {
+          throw new RuntimeError(`Failed to start Pod ${runner.podName}`, errorMetadata)
         }
-      }
-
-      if (state !== "ready") {
-        throw new RuntimeError(`Failed to start Pod ${runner.podName}`, errorMetadata)
       }
 
       try {

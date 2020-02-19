@@ -61,7 +61,7 @@ if (parsedArgs["only"] === "e2e-helpers") {
 
         const steps = [
           waitingForChangesStep(),
-          touchFileStep(resolve(voteExamplePath, "services/vote/src/main.js"), "touch services/vote/src/main.js"),
+          touchFileStep(resolve(voteExamplePath, "vote/src/main.js"), "touch vote/src/main.js"),
           taskCompletedStep("hot-reload.vote", 1),
         ]
 

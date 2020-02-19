@@ -307,7 +307,7 @@ You can define a remote environment as a `production` environment by setting the
 ## Next steps
 
 Check out the full [helm module reference](../module-types/helm.md) for more details, and the
-[vote-helm](https://github.com/garden-io/garden-example-vote-helm) example project for a full project that showcases
+[vote-helm](https://github.com/garden-io/garden/tree/master/examples/vote-helm) example project for a full project that showcases
 Garden's Helm support.
 
 Also check out the [kubernetes-module](https://github.com/garden-io/garden/tree/v0.11.3/examples/kubernetes-module)
