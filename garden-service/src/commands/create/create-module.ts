@@ -24,13 +24,13 @@ import { getConfigFilePath, isDirectory } from "../../util/fs"
 import { loadConfig, findProjectConfig } from "../../config/base"
 import { resolve, basename, relative } from "path"
 import { GardenBaseError, ParameterError } from "../../exceptions"
-import { getModuleTypes } from "../../plugins"
+import { getModuleTypes, getPluginBaseNames } from "../../plugins"
 import { addConfig } from "./helpers"
 import { supportedPlugins } from "../../plugins/plugins"
 import { baseModuleSpecSchema } from "../../config/module"
 import { renderConfigReference } from "../../docs/config"
 import { DOCS_BASE_URL } from "../../constants"
-import { flatten } from "lodash"
+import { flatten, keyBy } from "lodash"
 import { fixedPlugins } from "../../config/project"
 import { deline, wordWrap, truncate } from "../../util/string"
 import { joi } from "../../config/common"
@@ -215,10 +215,14 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
       if (projectConfig) {
         const allProviders = flatten([
           projectConfig.providers,
-          ...projectConfig.environments.map((e) => e.providers || []),
+          ...(projectConfig.environments || []).map((e) => e.providers || []),
         ])
 
-        if (!allProviders.map((p) => p.name).includes(pluginName)) {
+        const allProvidersWithBases = flatten(
+          allProviders.map((p) => getPluginBaseNames(p.name, keyBy(supportedPlugins, "name")))
+        )
+
+        if (!allProvidersWithBases.includes(pluginName)) {
           log.warn(
             chalk.yellow(
               wordWrap(
