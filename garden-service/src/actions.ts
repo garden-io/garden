@@ -106,11 +106,6 @@ type TypeGuard = {
   readonly [P in keyof (PluginActionParams | ModuleActionParams<any>)]: (...args: any[]) => Promise<any>
 }
 
-export interface AllEnvironmentStatus {
-  providers: EnvironmentStatusMap
-  services: { [name: string]: ServiceStatus }
-}
-
 export interface DeployServicesParams {
   log: LogEntry
   serviceNames?: string[]
@@ -533,18 +528,6 @@ export class ActionRouter implements TypeGuard {
   //===========================================================================
   //region Helper Methods
   //===========================================================================
-
-  async getStatus({ log, serviceNames }: { log: LogEntry; serviceNames?: string[] }): Promise<AllEnvironmentStatus> {
-    log.debug(`Getting environment status (${this.garden.projectName})`)
-
-    const envStatus = await this.garden.getEnvironmentStatus()
-    const serviceStatuses = await this.getServiceStatuses({ log, serviceNames })
-
-    return {
-      providers: envStatus,
-      services: serviceStatuses,
-    }
-  }
 
   async getServiceStatuses({
     log,

@@ -190,13 +190,13 @@ function processStatusInitResult(entities: Entities, status: StatusCommandResult
       draft.services[serviceName] = entities.services[serviceName] || {}
       draft.services[serviceName].status = status.services[serviceName]
     }
-    for (const taskName of Object.keys(status.tasks)) {
+    for (const [taskName, taskStatus] of Object.entries(status.tasks || {})) {
       draft.tasks[taskName] = entities.tasks[taskName] || {}
-      draft.tasks[taskName].status = status.tasks[taskName]
+      draft.tasks[taskName].status = taskStatus
     }
-    for (const testName of Object.keys(status.tests)) {
+    for (const [testName, testStatus] of Object.entries(status.tests || {})) {
       draft.tests[testName] = entities.tests[testName] || {}
-      draft.tests[testName].status = status.tests[testName]
+      draft.tests[testName].status = testStatus
     }
     draft.providers = status.providers
   })
