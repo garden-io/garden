@@ -89,7 +89,15 @@ export async function renderTemplates(ctx: KubernetesPluginContext, module: Modu
     ctx,
     log,
     namespace,
-    args: ["template", releaseName, "--namespace", namespace, "--dependency-update", ...(await getValueArgs(module, hotReload)), chartPath],
+    args: [
+      "template",
+      releaseName,
+      "--namespace",
+      namespace,
+      "--dependency-update",
+      ...(await getValueArgs(module, hotReload)),
+      chartPath,
+    ],
   })
 }
 
