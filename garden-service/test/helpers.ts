@@ -46,6 +46,7 @@ import { ExternalSourceType, getRemoteSourceRelPath, hashRepoUrl } from "../src/
 import { ConfigureProviderParams } from "../src/types/plugin/provider/configureProvider"
 import { ActionRouter } from "../src/actions"
 import { ParameterValues } from "../src/commands/base"
+import stripAnsi from "strip-ansi"
 
 export const dataDir = resolve(GARDEN_SERVICE_ROOT, "test", "data")
 export const examplesDir = resolve(GARDEN_SERVICE_ROOT, "..", "examples")
@@ -511,4 +512,14 @@ export async function makeTempDir(): Promise<TempDirectory> {
   // Fully resolve path so that we don't get path mismatches in tests
   tmpDir.path = await realpath(tmpDir.path)
   return tmpDir
+}
+
+/**
+ * Retrieves all the child log entries from the given LogEntry and returns a list of all the messages,
+ * stripped of ANSI characters. Useful to check if a particular message was logged.
+ */
+export function getLogMessages(log: LogEntry) {
+  return log.root
+    .getLogEntries()
+    .flatMap((entry) => entry.getMessageStates()?.map((state) => stripAnsi(state.msg || "")))
 }

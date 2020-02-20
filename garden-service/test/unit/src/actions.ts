@@ -415,11 +415,6 @@ describe("ActionRouter", () => {
         expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } })
       })
 
-      it("should resolve runtime template strings", async () => {
-        const result = await actions.getServiceStatus({ log, service, runtimeContext, hotReload: false })
-        expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } })
-      })
-
       it("should throw if the outputs don't match the service outputs schema of the plugin", async () => {
         stubModuleAction(actions, service.module.type, "test-plugin", "getServiceStatus", async () => {
           return { state: <ServiceState>"ready", detail: {}, outputs: { base: "ok", foo: 123 } }

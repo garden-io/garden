@@ -11,14 +11,14 @@ import execa from "execa"
 
 import { ProjectConfig } from "../../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
-import { Garden } from "../../../../src/garden"
 import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
 import { joi } from "../../../../src/config/common"
 import { ServiceState } from "../../../../src/types/service"
-import { RunTaskParams } from "../../../../src/types/plugin/task/runTask"
 import { expect } from "chai"
 import { GetServiceStatusTask } from "../../../../src/tasks/get-service-status"
 import { GetServiceStatusParams } from "../../../../src/types/plugin/service/getServiceStatus"
+import { GetTaskResultParams } from "../../../../src/types/plugin/task/getTaskResult"
+import { TestGarden } from "../../../helpers"
 
 describe("GetServiceStatusTask", () => {
   let tmpDir: tmp.DirectoryResult
@@ -64,7 +64,7 @@ describe("GetServiceStatusTask", () => {
                   outputs: { log: service.spec.log },
                 }
               },
-              runTask: async ({ task }: RunTaskParams) => {
+              getTaskResult: async ({ task }: GetTaskResultParams) => {
                 const log = task.spec.log
 
                 return {
@@ -84,10 +84,10 @@ describe("GetServiceStatusTask", () => {
         ],
       })
 
-      const garden = await Garden.factory(tmpDir.path, { config, plugins: [testPlugin] })
+      const garden = await TestGarden.factory(tmpDir.path, { config, plugins: [testPlugin] })
 
-      garden["moduleConfigs"] = {
-        test: {
+      garden.setModuleConfigs([
+        {
           apiVersion: DEFAULT_API_VERSION,
           name: "test",
           type: "test",
@@ -122,7 +122,7 @@ describe("GetServiceStatusTask", () => {
           testConfigs: [],
           spec: { bla: "fla" },
         },
-      }
+      ])
 
       const graph = await garden.getConfigGraph(garden.log)
       const testService = await graph.getService("test-service")
@@ -135,9 +135,89 @@ describe("GetServiceStatusTask", () => {
         log: garden.log,
       })
 
-      const result = await garden.processTasks([statusTask], { throwOnError: true })
+      const key = statusTask.getKey()
+      const { [key]: result } = await garden.processTasks([statusTask], { throwOnError: true })
 
-      expect(result[statusTask.getKey()]!.output.outputs).to.eql({ log: "test output" })
+      expect(result!.output.outputs).to.eql({ log: "test output" })
+    })
+
+    it("should set status to unknown if runtime variables can't be resolved", async () => {
+      const testPlugin = createGardenPlugin({
+        name: "test",
+        createModuleTypes: [
+          {
+            name: "test",
+            docs: "test",
+            serviceOutputsSchema: joi.object().keys({ log: joi.string() }),
+            handlers: {
+              build: async () => ({}),
+              getServiceStatus: async ({ service }: GetServiceStatusParams) => {
+                return {
+                  state: <ServiceState>"ready",
+                  detail: {},
+                  outputs: { log: service.spec.log },
+                }
+              },
+            },
+          },
+        ],
+      })
+
+      const garden = await TestGarden.factory(tmpDir.path, { config, plugins: [testPlugin] })
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          name: "test",
+          type: "test",
+          allowPublish: false,
+          disabled: false,
+          build: { dependencies: [] },
+          outputs: {},
+          path: tmpDir.path,
+          serviceConfigs: [
+            {
+              name: "test-service",
+              dependencies: ["test-task"],
+              disabled: false,
+              hotReloadable: false,
+              spec: {
+                log: "${runtime.tasks.test-task.outputs.log}",
+              },
+            },
+          ],
+          taskConfigs: [
+            {
+              name: "test-task",
+              cacheResult: true,
+              dependencies: [],
+              disabled: false,
+              spec: {
+                log: "test output",
+              },
+              timeout: 10,
+            },
+          ],
+          testConfigs: [],
+          spec: { bla: "fla" },
+        },
+      ])
+
+      const graph = await garden.getConfigGraph(garden.log)
+      const testService = await graph.getService("test-service")
+
+      const statusTask = new GetServiceStatusTask({
+        garden,
+        graph,
+        service: testService,
+        force: true,
+        log: garden.log,
+      })
+
+      const key = statusTask.getKey()
+      const { [key]: result } = await garden.processTasks([statusTask], { throwOnError: true })
+
+      expect(result!.output.state).to.equal("unknown")
     })
   })
 })

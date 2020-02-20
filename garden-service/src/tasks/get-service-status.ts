@@ -14,8 +14,10 @@ import { Garden } from "../garden"
 import { ConfigGraph } from "../config-graph"
 import { TaskResults } from "../task-graph"
 import { prepareRuntimeContext } from "../runtime-context"
-import { getTaskVersion, TaskTask } from "./task"
+import { getTaskVersion } from "./task"
 import Bluebird from "bluebird"
+import { GetTaskResultTask } from "./get-task-result"
+import chalk from "chalk"
 
 export interface GetServiceStatusTaskParams {
   garden: Garden
@@ -54,19 +56,17 @@ export class GetServiceStatusTask extends BaseTask {
       })
     })
 
-    const taskTasks = await Bluebird.map(deps.run, async (task) => {
-      return new TaskTask({
+    const taskResultTasks = await Bluebird.map(deps.run, async (task) => {
+      return new GetTaskResultTask({
         garden: this.garden,
-        graph: this.graph,
         log: this.log,
         task,
         force: false,
-        forceBuild: false,
         version: await getTaskVersion(this.garden, this.graph, task),
       })
     })
 
-    return [...statusTasks, ...taskTasks]
+    return [...statusTasks, ...taskResultTasks]
   }
 
   getName() {
@@ -102,12 +102,23 @@ export class GetServiceStatusTask extends BaseTask {
 
     const actions = await this.garden.getActionRouter()
 
-    let status = await actions.getServiceStatus({
-      service: this.service,
-      log,
-      hotReload,
-      runtimeContext,
-    })
+    let status: ServiceStatus = { state: "unknown", detail: {} }
+
+    try {
+      status = await actions.getServiceStatus({
+        service: this.service,
+        log,
+        hotReload,
+        runtimeContext,
+      })
+    } catch (err) {
+      // This can come up if runtime outputs are not resolvable
+      if (err.type === "template-string") {
+        log.debug(`Unable to resolve status for service ${chalk.white(this.service.name)}: ${err.message}`)
+      } else {
+        throw err
+      }
+    }
 
     return status
   }
