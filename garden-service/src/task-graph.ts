@@ -214,27 +214,51 @@ export class TaskGraph {
     const id = node.getId()
     const key = node.getKey()
     const task = node.task
+
+    // If found, a node with the same key is already pending/in the index, so no node needs to be added.
     const existing = this.index
       .getNodes()
       .filter((n) => n.getKey() === key && n.getId() !== id)
       .reverse()[0]
 
     if (existing) {
-      // A node with the same key is already pending/in the index, so no node needs to be added.
+      return null
+    }
+
+    const cachedResult = this.resultCache.get(node.getKey(), node.getVersion())
+    if (cachedResult && !task.force) {
+      if (cachedResult.error || this.hasFailedDependencyInCache(node)) {
+        this.cancelDependants(node)
+        for (const keyToCancel of this.keysWithDependencies(node)) {
+          this.cancelKeyForInProgressBatches(keyToCancel)
+        }
+        return null
+      }
+      // No need to add task or its dependencies.
+      const dependencyResults = <TaskResult[]>this.keysWithDependencies(node)
+        .map((k) => this.resultCache.getNewest(k))
+        .filter(Boolean)
+      this.provideCachedResultToInProgressBatches(cachedResult, dependencyResults)
       return null
     } else {
-      const cachedResult = this.resultCache.get(node.getKey(), node.getVersion())
-      if (cachedResult && !task.force) {
-        // No need to add task or its dependencies.
-        const dependencyResults = <TaskResult[]>this.keysWithDependencies(node)
-          .map((k) => this.resultCache.getNewest(k))
-          .filter(Boolean)
-        this.provideCachedResultToInProgressBatches(cachedResult, dependencyResults)
-        return null
-      } else {
-        return node
+      return node
+    }
+  }
+
+  /**
+   * Returns true if one or more of node's dependencies has a cached result (and that dependency's task has
+   * force = false).
+   *
+   * Returns false otherwise.
+   */
+  private hasFailedDependencyInCache(node: TaskNode): boolean {
+    for (const dep of node.getDependencies()) {
+      const cachedResult = this.resultCache.get(dep.getKey(), dep.getVersion())
+      if (!dep.task.force && cachedResult && cachedResult.error) {
+        return true
       }
     }
+    return false
   }
 
   /**
@@ -284,7 +308,7 @@ export class TaskGraph {
       this.processNode(node).catch((error) => {
         this.garden.events.emit("internalError", { error, timestamp: new Date() })
         this.logInternalError(node, error)
-        this.cancelDependants(node.batchId, node)
+        this.cancelDependants(node)
       })
     }
 
@@ -329,7 +353,7 @@ export class TaskGraph {
         result = { type, description, key, name, error, completedAt: new Date(), batchId }
         this.garden.events.emit("taskError", result)
         this.logTaskError(node, error)
-        this.cancelDependants(batchId, node)
+        this.cancelDependants(node)
       } finally {
         this.resultCache.put(key, node.getVersion(), result)
         this.provideResultToInProgressBatches(result)
@@ -357,7 +381,7 @@ export class TaskGraph {
   /**
    * Recursively remove node's dependants, without removing node.
    */
-  private cancelDependants(batchId: string, node: TaskNode) {
+  private cancelDependants(node: TaskNode) {
     const cancelledAt = new Date()
     for (const dependant of this.getDependants(node)) {
       this.logTaskComplete(dependant, false)
@@ -366,7 +390,7 @@ export class TaskGraph {
         key: dependant.getKey(),
         name: dependant.task.getName(),
         type: dependant.getType(),
-        batchId,
+        batchId: node.batchId,
       })
       this.remove(dependant)
       this.cancelKeyForInProgressBatches(dependant.getKey())
@@ -377,7 +401,7 @@ export class TaskGraph {
   private getDependants(node: TaskNode): TaskNode[] {
     const dependants = this.index
       .getNodes()
-      .filter((n) => n.getRemainingDependencies().find((d) => d.getKey() === node.getKey()))
+      .filter((n) => n.getDependencies().find((d) => d.getKey() === node.getKey()))
     return dependants.concat(flatten(dependants.map((d) => this.getDependants(d))))
   }
 
