@@ -8,7 +8,7 @@
 
 import pEvent from "p-event"
 import { expect } from "chai"
-import { DevCommand, DevCommandArgs, DevCommandOpts } from "../../../../src/commands/dev"
+import { DevCommand, DevCommandArgs, DevCommandOpts, getDevCommandWatchTasks } from "../../../../src/commands/dev"
 import { makeTestGardenA, withDefaultGlobalOpts, TestGarden } from "../../../helpers"
 import { ParameterValues } from "../../../../src/commands/base"
 import { GlobalOptions } from "../../../../src/cli/cli"
@@ -231,5 +231,44 @@ describe("DevCommand", () => {
     expect(completedTasks).to.not.include("test.module-c.integ")
 
     return promise
+  })
+})
+
+describe("getDevCommandWatchTasks", () => {
+  it("should deploy, run and test appropriately on watch change", async () => {
+    const garden = await makeTestGardenA()
+    const log = garden.log
+    const graph = await garden.getConfigGraph(log)
+
+    const watchTasks = await getDevCommandWatchTasks({
+      garden,
+      log,
+      updatedGraph: graph,
+      module: await graph.getModule("module-b"),
+      hotReloadServiceNames: [],
+      testNames: undefined,
+      skipTests: false,
+    })
+
+    const results = await garden.processTasks(watchTasks)
+    expect(Object.keys(results).sort()).to.eql([
+      "build.module-a",
+      "build.module-b",
+      "build.module-c",
+      "deploy.service-a",
+      "deploy.service-b",
+      "deploy.service-c",
+      "get-service-status.service-a",
+      "get-service-status.service-b",
+      "get-service-status.service-c",
+      "get-task-result.task-c",
+      "stage-build.module-a",
+      "stage-build.module-b",
+      "stage-build.module-c",
+      "task.task-c",
+      "test.module-b.unit",
+      "test.module-c.integ",
+      "test.module-c.unit",
+    ])
   })
 })

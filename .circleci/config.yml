@@ -331,6 +331,7 @@ jobs:
             TAG=gardendev/garden:${CIRCLE_SHA1}-buster
             cd garden-service
             docker build -t ${TAG} -f buster.Dockerfile dist/linux-amd64
+            docker push ${TAG}
   test-docker-gcloud:
     docker:
       - image: gardendev/garden-gcloud:${CIRCLE_SHA1}

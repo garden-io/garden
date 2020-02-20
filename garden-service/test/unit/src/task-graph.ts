@@ -11,7 +11,7 @@ import { join } from "path"
 import { expect } from "chai"
 import { BaseTask, TaskType } from "../../../src/tasks/base"
 import { TaskGraph, TaskResult, TaskResults } from "../../../src/task-graph"
-import { makeTestGarden, freezeTime, dataDir, expectError } from "../../helpers"
+import { makeTestGarden, freezeTime, dataDir, expectError, TestGarden } from "../../helpers"
 import { Garden } from "../../../src/garden"
 import { deepFilter, defer, sleep } from "../../../src/util/util"
 import uuid from "uuid"
@@ -273,6 +273,96 @@ describe("task-graph", () => {
       expect(results.a!.error).to.exist
       expect(results.b!.error).to.exist
       expect(results.c!.error).to.not.exist
+    })
+
+    context("if a successful result has been cached", () => {
+      it("should not process a matching task with force = false", async () => {
+        const garden = await getGarden()
+        const graph = new TaskGraph(garden, garden.log)
+        const resultCache = graph["resultCache"]
+
+        const resultOrder: string[] = []
+        const callback = async (key: string, _result: any) => {
+          resultOrder.push(key)
+        }
+        const opts = { callback }
+
+        const task = new TestTask(garden, "a", false, { ...opts, uid: "a1", versionString: "1" })
+        await graph.process([task])
+        expect(resultCache.get("a", "1")).to.exist
+
+        const repeatedTask = new TestTask(garden, "a", false, { ...opts, uid: "a2", versionString: "1" })
+        await graph.process([repeatedTask])
+
+        expect(resultOrder).to.eql(["a.a1"])
+      })
+
+      it("should process a matching task with force = true", async () => {
+        const garden = await getGarden()
+        const graph = new TaskGraph(garden, garden.log)
+
+        const resultOrder: string[] = []
+        const callback = async (key: string, _result: any) => {
+          resultOrder.push(key)
+        }
+        const opts = { callback }
+
+        const task = new TestTask(garden, "a", true, { ...opts, uid: "a1", versionString: "1" })
+        await graph.process([task])
+
+        const repeatedTask = new TestTask(garden, "a", true, { ...opts, uid: "a2", versionString: "1" })
+        await graph.process([repeatedTask])
+
+        expect(resultOrder).to.eql(["a.a1", "a.a2"])
+      })
+    })
+
+    context("if a failing result has been cached", () => {
+      it("should not process a matching task with force = false", async () => {
+        const garden = await getGarden()
+        const graph = new TaskGraph(garden, garden.log)
+        const resultCache = graph["resultCache"]
+
+        const resultOrder: string[] = []
+        const callback = async (key: string, _result: any) => {
+          resultOrder.push(key)
+        }
+        const opts = { callback }
+
+        const task = new TestTask(garden, "a", false, { ...opts, uid: "a1", versionString: "1", throwError: true })
+        try {
+          await graph.process([task])
+        } catch (error) {}
+
+        const cacheEntry = resultCache.get("a", "1")
+        expect(cacheEntry, "expected cache entry to exist").to.exist
+
+        const repeatedTask = new TestTask(garden, "a", false, { ...opts, uid: "a2", versionString: "1" })
+        await graph.process([repeatedTask])
+
+        expect(resultOrder).to.eql(["a.a1"])
+      })
+
+      it("should process a matching task with force = true", async () => {
+        const garden = await getGarden()
+        const graph = new TaskGraph(garden, garden.log)
+
+        const resultOrder: string[] = []
+        const callback = async (key: string, _result: any) => {
+          resultOrder.push(key)
+        }
+        const opts = { callback }
+
+        const task = new TestTask(garden, "a", false, { ...opts, uid: "a1", versionString: "1", throwError: true })
+        try {
+          await graph.process([task])
+        } catch (error) {}
+
+        const repeatedTask = new TestTask(garden, "a", true, { ...opts, uid: "a2", versionString: "1" })
+        await graph.process([repeatedTask])
+
+        expect(resultOrder).to.eql(["a.a1", "a.a2"])
+      })
     })
 
     it("should process multiple tasks in dependency order", async () => {
@@ -607,6 +697,126 @@ describe("task-graph", () => {
         { name: "taskCancelled", payload: { key: "d", name: "d", type: "test", batchId: generatedBatchId } },
         { name: "taskGraphComplete", payload: {} },
       ])
+    })
+
+    context("if a cached, failing result exists for a task", () => {
+      let garden: TestGarden
+      let graph: TaskGraph
+
+      beforeEach(async () => {
+        garden = await getGarden()
+        graph = new TaskGraph(garden, garden.log)
+
+        const opts = { versionString: "1" }
+
+        const taskA = new TestTask(garden, "a", false, { ...opts, uid: "a1" })
+        const taskB = new TestTask(garden, "b", false, { ...opts, uid: "b1", throwError: true, dependencies: [taskA] })
+        const taskC = new TestTask(garden, "c", false, { ...opts, uid: "c1", dependencies: [taskB] })
+        const taskD = new TestTask(garden, "d", false, { ...opts, uid: "d1", dependencies: [taskB, taskC] })
+
+        await graph.process([taskA, taskB, taskC, taskD])
+
+        garden.events.eventLog = []
+      })
+
+      it("should recursively cancel dependants if it has a cached, failing result at the same version", async () => {
+        const repOpts = { versionString: "1" }
+
+        const repTaskA = new TestTask(garden, "a", false, { ...repOpts, uid: "a2" })
+        const repTaskB = new TestTask(garden, "b", false, {
+          ...repOpts,
+          uid: "b2",
+          throwError: true,
+          dependencies: [repTaskA],
+        })
+        const repTaskC = new TestTask(garden, "c", false, { ...repOpts, uid: "c2", dependencies: [repTaskB] })
+        const repTaskD = new TestTask(garden, "d", false, { ...repOpts, uid: "d2", dependencies: [repTaskB, repTaskC] })
+
+        await graph.process([repTaskA, repTaskB, repTaskC, repTaskD])
+
+        const filteredEventLog = garden.events.eventLog.map((e) => {
+          return { name: e.name, payload: deepFilter(e.payload, (_, key) => key === "key") }
+        })
+
+        expect(filteredEventLog).to.eql([
+          { name: "taskGraphProcessing", payload: {} },
+          { name: "taskComplete", payload: { key: "a" } },
+          { name: "taskError", payload: { key: "b" } },
+          { name: "taskCancelled", payload: { key: "c" } },
+          { name: "taskCancelled", payload: { key: "d" } },
+          { name: "taskCancelled", payload: { key: "c" } },
+          { name: "taskGraphComplete", payload: {} },
+        ])
+      })
+
+      it("should run a task with force = true if it has a cached, failing result at the same version", async () => {
+        const repOpts = { versionString: "1" }
+
+        const repTaskA = new TestTask(garden, "a", true, { ...repOpts, uid: "a2" })
+        const repTaskB = new TestTask(garden, "b", true, {
+          ...repOpts,
+          uid: "b2",
+          throwError: true,
+          dependencies: [repTaskA],
+        })
+        const repTaskC = new TestTask(garden, "c", true, { ...repOpts, uid: "c2", dependencies: [repTaskB] })
+        const repTaskD = new TestTask(garden, "d", true, { ...repOpts, uid: "d2", dependencies: [repTaskB, repTaskC] })
+
+        await graph.process([repTaskA, repTaskB, repTaskC, repTaskD])
+
+        const filteredEventLog = garden.events.eventLog.map((e) => {
+          return { name: e.name, payload: deepFilter(e.payload, (_, key) => key === "key") }
+        })
+
+        expect(filteredEventLog).to.eql([
+          { name: "taskGraphProcessing", payload: {} },
+          { name: "taskPending", payload: { key: "a" } },
+          { name: "taskPending", payload: { key: "b" } },
+          { name: "taskPending", payload: { key: "c" } },
+          { name: "taskPending", payload: { key: "d" } },
+          { name: "taskProcessing", payload: { key: "a" } },
+          { name: "taskComplete", payload: { key: "a" } },
+          { name: "taskProcessing", payload: { key: "b" } },
+          { name: "taskError", payload: { key: "b" } },
+          { name: "taskCancelled", payload: { key: "c" } },
+          { name: "taskCancelled", payload: { key: "d" } },
+          { name: "taskCancelled", payload: { key: "d" } },
+          { name: "taskGraphComplete", payload: {} },
+        ])
+      })
+
+      it("should run a task if it has a cached, failing result at a different version", async () => {
+        const repOpts = { versionString: "2" }
+
+        const repTaskA = new TestTask(garden, "a", false, { ...repOpts, uid: "a2" })
+        // No error this time
+        const repTaskB = new TestTask(garden, "b", false, { ...repOpts, uid: "b2", dependencies: [repTaskA] })
+        const repTaskC = new TestTask(garden, "c", false, { ...repOpts, uid: "c2", dependencies: [repTaskB] })
+        const repTaskD = new TestTask(garden, "d", false, { ...repOpts, uid: "d2", dependencies: [repTaskB, repTaskC] })
+
+        await graph.process([repTaskA, repTaskB, repTaskC, repTaskD])
+
+        const filteredEventLog = garden.events.eventLog.map((e) => {
+          return { name: e.name, payload: deepFilter(e.payload, (_, key) => key === "key") }
+        })
+
+        expect(filteredEventLog).to.eql([
+          { name: "taskGraphProcessing", payload: {} },
+          { name: "taskPending", payload: { key: "a" } },
+          { name: "taskPending", payload: { key: "b" } },
+          { name: "taskPending", payload: { key: "c" } },
+          { name: "taskPending", payload: { key: "d" } },
+          { name: "taskProcessing", payload: { key: "a" } },
+          { name: "taskComplete", payload: { key: "a" } },
+          { name: "taskProcessing", payload: { key: "b" } },
+          { name: "taskComplete", payload: { key: "b" } },
+          { name: "taskProcessing", payload: { key: "c" } },
+          { name: "taskComplete", payload: { key: "c" } },
+          { name: "taskProcessing", payload: { key: "d" } },
+          { name: "taskComplete", payload: { key: "d" } },
+          { name: "taskGraphComplete", payload: {} },
+        ])
+      })
     })
 
     describe("partition", () => {
