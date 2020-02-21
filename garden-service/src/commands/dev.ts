@@ -133,49 +133,14 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       }
     }
 
-    const initialTasks = flatten(
-      await Bluebird.map(modules, async (module) => {
-        // Build the module (in case there are no tests, tasks or services here that need to be run)
-        const buildTasks = await BuildTask.factory({
-          garden,
-          log,
-          module,
-          force: false,
-        })
-
-        // Run all tests in module
-        const testTasks = skipTests
-          ? []
-          : await getTestTasks({
-              garden,
-              graph,
-              log,
-              module,
-              force: false,
-              forceBuild: false,
-            })
-
-        // Deploy all enabled services in module
-        const services = await graph.getServices({ names: module.serviceNames, includeDisabled: true })
-        const deployTasks = services
-          .filter((s) => !s.disabled)
-          .map(
-            (service) =>
-              new DeployTask({
-                garden,
-                log,
-                graph,
-                service,
-                force: false,
-                forceBuild: false,
-                fromWatch: false,
-                hotReloadServiceNames,
-              })
-          )
-
-        return [...buildTasks, ...testTasks, ...deployTasks]
-      })
-    )
+    const initialTasks = await getDevCommandInitialTasks({
+      garden,
+      log,
+      graph,
+      modules,
+      hotReloadServiceNames,
+      skipTests,
+    })
 
     const results = await processModules({
       garden,
@@ -200,6 +165,67 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
 
     return handleTaskResults(footerLog, "dev", results)
   }
+}
+
+export async function getDevCommandInitialTasks({
+  garden,
+  log,
+  graph,
+  modules,
+  hotReloadServiceNames,
+  skipTests,
+}: {
+  garden: Garden
+  log: LogEntry
+  graph: ConfigGraph
+  modules: Module[]
+  hotReloadServiceNames: string[]
+  skipTests: boolean
+}) {
+  return flatten(
+    await Bluebird.map(modules, async (module) => {
+      // Build the module (in case there are no tests, tasks or services here that need to be run)
+      const buildTasks = await BuildTask.factory({
+        garden,
+        log,
+        module,
+        force: false,
+      })
+
+      // Run all tests in module
+      const testTasks = skipTests
+        ? []
+        : await getTestTasks({
+            garden,
+            graph,
+            log,
+            module,
+            hotReloadServiceNames,
+            force: false,
+            forceBuild: false,
+          })
+
+      // Deploy all enabled services in module
+      const services = await graph.getServices({ names: module.serviceNames, includeDisabled: true })
+      const deployTasks = services
+        .filter((s) => !s.disabled)
+        .map(
+          (service) =>
+            new DeployTask({
+              garden,
+              log,
+              graph,
+              service,
+              force: false,
+              forceBuild: false,
+              fromWatch: false,
+              hotReloadServiceNames,
+            })
+        )
+
+      return [...buildTasks, ...testTasks, ...deployTasks]
+    })
+  )
 }
 
 export async function getDevCommandWatchTasks({
