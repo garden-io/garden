@@ -1,6 +1,6 @@
 ---
-order: 3
-title: Config Files Reference
+order: 4
+title: Config Files
 ---
 
 # garden.yml reference
@@ -12,9 +12,9 @@ The reference is divided into four sections. The [first section](#project-yaml-s
 
 The [third section](#module-yaml-schema) contains the module level YAML schema, and the [fourth section](#module-configuration-keys) describes each individual schema key for the module level configuration.
 
-Note that individual providers, e.g. `kubernetes`, add their own project level configuration keys. The provider types are listed on the [Providers page](../providers/README.md).
+Note that individual providers, e.g. `kubernetes`, add their own project level configuration keys. The provider types are listed on the [Providers page](../reference/providers/README.md).
 
-Likewise, individual module types, e.g. `container`, add additional configuration keys at the module level. Module types are listed on the [Module Types page](../module-types/README.md).
+Likewise, individual module types, e.g. `container`, add additional configuration keys at the module level. Module types are listed on the [Module Types page](../reference/module-types/README.md).
 
 Please refer to those for more details on provider and module configuration.
 

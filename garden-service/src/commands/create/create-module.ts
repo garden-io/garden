@@ -38,6 +38,7 @@ import { LoggerType } from "../../logger/logger"
 import Bluebird from "bluebird"
 import { ModuleTypeMap } from "../../types/plugin/plugin"
 import { LogEntry } from "../../logger/log-entry"
+import { getProviderUrl, getModuleTypeUrl } from "../../docs/common"
 
 const createModuleArgs = {}
 const createModuleOpts = {
@@ -251,8 +252,8 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
     }
 
     // This is to avoid `prettier` messing with the string formatting...
-    const moduleTypeUrl = chalk.cyan.underline(`${DOCS_BASE_URL}/module-types/${type}`)
-    const providerUrl = chalk.cyan.underline(`${DOCS_BASE_URL}/providers/${pluginName}`)
+    const moduleTypeUrl = chalk.cyan.underline(getModuleTypeUrl(type))
+    const providerUrl = chalk.cyan.underline(getProviderUrl(pluginName))
     const configFilesUrl = chalk.cyan.underline(`${DOCS_BASE_URL}/guides/configuration-files`)
     const formattedType = chalk.bold(type)
     const formattedPluginName = chalk.bold(pluginName)

@@ -23,7 +23,7 @@ import { GetServiceStatusParams } from "../../types/plugin/service/getServiceSta
 import { GetServiceLogsParams } from "../../types/plugin/service/getServiceLogs"
 import { DeleteServiceParams } from "../../types/plugin/service/deleteService"
 import { HelmModuleConfig } from "../kubernetes/helm/config"
-import { DEFAULT_API_VERSION, STATIC_DIR, DOCS_BASE_URL } from "../../constants"
+import { DEFAULT_API_VERSION, STATIC_DIR } from "../../constants"
 import { ExecModuleConfig } from "../exec"
 import { ConfigureProviderParams, ConfigureProviderResult } from "../../types/plugin/provider/configureProvider"
 import { KubernetesDeployment } from "../kubernetes/types"
@@ -47,17 +47,19 @@ import { LogEntry } from "../../logger/log-entry"
 import { Provider } from "../../config/provider"
 import { parse } from "url"
 import { trim } from "lodash"
+import { getModuleTypeUrl } from "../../docs/common"
 
 const systemDir = join(STATIC_DIR, "openfaas", "system")
+const moduleTypeUrl = getModuleTypeUrl("openfaas")
 
 export const gardenPlugin = createGardenPlugin({
   name: "openfaas",
   configSchema: configSchema(),
   dependencies: ["kubernetes"],
   docs: dedent`
-    This provider adds support for [OpenFaaS](https://www.openfaas.com/). It adds the [\`openfaas\` module type](${DOCS_BASE_URL}/module-types/openfaas) and (by default) installs the \`faas-netes\` runtime to the project namespace. Each \`openfaas\` module maps to a single OpenFaaS function.
+    This provider adds support for [OpenFaaS](https://www.openfaas.com/). It adds the [\`openfaas\` module type](${moduleTypeUrl}) and (by default) installs the \`faas-netes\` runtime to the project namespace. Each \`openfaas\` module maps to a single OpenFaaS function.
 
-    See the reference below for configuration options for \`faas-netes\`, and the [module type docs](${DOCS_BASE_URL}/module-types/openfaas) for how to configure the individual functions.
+    See the reference below for configuration options for \`faas-netes\`, and the [module type docs](${moduleTypeUrl}) for how to configure the individual functions.
 
     Also see the [openfaas example project](https://github.com/garden-io/garden/tree/master/examples/openfaas) for a simple usage example.
   `,

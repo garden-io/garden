@@ -19,10 +19,10 @@ import { ConfigureModuleParams } from "../../types/plugin/module/configure"
 import { HotReloadServiceParams } from "../../types/plugin/service/hotReloadService"
 import { joi } from "../../config/common"
 import { publishContainerModule } from "./publish"
-import { DOCS_BASE_URL } from "../../constants"
 import { SuggestModulesParams, SuggestModulesResult } from "../../types/plugin/module/suggestModules"
 import { listDirectory } from "../../util/fs"
 import { dedent } from "../../util/string"
+import { getModuleTypeUrl } from "../../docs/common"
 
 export const containerModuleOutputsSchema = () =>
   joi.object().keys({
@@ -223,8 +223,8 @@ export const gardenPlugin = createGardenPlugin({
 
         Note that the runtime services have somewhat limited features in this module type. For example, you cannot
         specify replicas for redundancy, and various platform-specific options are not included. For those, look at
-        other module types like [helm](${DOCS_BASE_URL}/module-types/helm) or
-        [kubernetes](${DOCS_BASE_URL}/module-types/kubernetes).
+        other module types like [helm](${getModuleTypeUrl("helm")}) or
+        [kubernetes](${getModuleTypeUrl("kubernetes")}).
       `,
       moduleOutputsSchema: containerModuleOutputsSchema(),
       schema: containerModuleSpecSchema(),

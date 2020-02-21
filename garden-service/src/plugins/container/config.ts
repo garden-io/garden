@@ -22,13 +22,14 @@ import {
 } from "../../config/common"
 import { ArtifactSpec } from "./../../config/validation"
 import { Service, ingressHostnameSchema, linkUrlSchema } from "../../types/service"
-import { DEFAULT_PORT_PROTOCOL, DOCS_BASE_URL } from "../../constants"
+import { DEFAULT_PORT_PROTOCOL } from "../../constants"
 import { ModuleSpec, ModuleConfig, baseBuildSpecSchema, BaseBuildSpec } from "../../config/module"
 import { CommonServiceSpec, ServiceConfig, baseServiceSpecSchema } from "../../config/service"
 import { baseTaskSpecSchema, BaseTaskSpec, cacheResultSchema } from "../../config/task"
 import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
 import { joiStringMap } from "../../config/common"
 import { dedent } from "../../util/string"
+import { getModuleTypeUrl } from "../../docs/common"
 
 export const defaultContainerLimits: ServiceLimitSpec = {
   cpu: 1000, // = 1000 millicpu = 1 CPU
@@ -318,6 +319,8 @@ export const portSchema = () =>
       `),
   })
 
+const moduleTypeUrl = getModuleTypeUrl("persistentvolumeclaim")
+
 const volumeSchema = () =>
   joi
     .object()
@@ -343,7 +346,7 @@ const volumeSchema = () =>
         .example("/some/dir"),
       module: joiIdentifier().description(
         dedent`
-      The name of a _volume module_ that should be mounted at \`containerPath\`. The supported module types will depend on which provider you are using. The \`kubernetes\` provider supports the [persistentvolumeclaim module](${DOCS_BASE_URL}/module-types/persistentvolumeclaim), for example.
+      The name of a _volume module_ that should be mounted at \`containerPath\`. The supported module types will depend on which provider you are using. The \`kubernetes\` provider supports the [persistentvolumeclaim module](${moduleTypeUrl}), for example.
 
       When a \`module\` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
 

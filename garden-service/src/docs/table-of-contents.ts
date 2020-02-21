@@ -81,7 +81,7 @@ function attachMetadata(tree: FileTree) {
     if (metadata.order) {
       tree.order = metadata.order
     } else {
-      tree.order = Number.MAX_VALUE
+      tree.order = 1000
     }
 
     tree.title = metadata.tocTitle || metadata.title
@@ -100,6 +100,7 @@ function attachMetadata(tree: FileTree) {
     tree.title = titleize(humanizeString(tree.name))
     tree.order = Number.MAX_VALUE
   }
+
   if (tree.children) {
     for (let item in tree.children) {
       attachMetadata(tree.children[item])
@@ -122,9 +123,20 @@ function sortTree(tree: FileTree) {
   }
 }
 
-function generateMarkdown(tree: FileTree, docsRoot: string, depth = 0) {
+const emojiList = ["🌸", "🌳", "🌻", "💐", "🌿", "🌺", "☘️", "🌹", "🌼", "🌷"]
+
+function generateMarkdown(tree: FileTree, docsRoot: string, depth: number, emojis: Set<string>) {
   const path = tree.path.replace(docsRoot, ".")
-  let output = repeat(indent, depth) + "* [" + tree.title + "](" + path + ")\n"
+  let output: string
+
+  if (depth === 0) {
+    const emoji = emojis.values().next().value
+    output = `\n## ${emoji} ${tree.title}\n\n`
+    emojis.delete(emoji)
+  } else {
+    output = repeat(indent, depth - 1) + `* [${tree.title}](${path})\n`
+  }
+
   // We don't want the root directory of the docs to be a TOC item.
   if (tree.topLevel) {
     output = ""
@@ -135,7 +147,7 @@ function generateMarkdown(tree: FileTree, docsRoot: string, depth = 0) {
     output = ""
   }
   for (let item in tree.children) {
-    output += generateMarkdown(tree.children[item], docsRoot, depth + 1)
+    output += generateMarkdown(tree.children[item], docsRoot, depth + 1, emojis)
   }
   return output
 }
@@ -150,7 +162,7 @@ export function generateTableOfContents(docsRoot: string): string {
   rawTree.topLevel = true
   const treeWithMetadata = createNewTree(rawTree, attachMetadata)
   const preparedTree = createNewTree(treeWithMetadata, sortTree)
-  return "# Table of Contents\n\n" + generateMarkdown(preparedTree, docsRoot)
+  return "# Table of Contents\n" + generateMarkdown(preparedTree, docsRoot, 0, new Set(emojiList))
 }
 
 export async function writeTableOfContents(docsRoot: string, outputFileName: string) {

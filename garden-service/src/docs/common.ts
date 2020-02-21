@@ -7,6 +7,7 @@
  */
 
 import { padEnd, max } from "lodash"
+import { DOCS_BASE_URL } from "../constants"
 
 export interface NormalizedSchemaDescription {
   type: string
@@ -57,4 +58,14 @@ export function renderMarkdownTable(data: { [heading: string]: string }) {
  */
 export function convertMarkdownLinks(text: string) {
   return text.replace(/\[([\w\s]+)\]\((.*)\)/g, "$1 ($2)")
+}
+
+export function getModuleTypeUrl(type?: string) {
+  const base = DOCS_BASE_URL + "/reference/module-types"
+  return type ? base + "/" + type : base
+}
+
+export function getProviderUrl(type?: string) {
+  const base = DOCS_BASE_URL + "/reference/providers"
+  return type ? base + "/" + type : base
 }

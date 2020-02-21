@@ -1,7 +1,7 @@
 # Development Workflows
 
-Now that you've had a glimpse of the basic Garden commands in the [Quick Start](../quick-start.md) guide, and
-learned about the [Stack Graph](../stack-graph.md), let's go through some typical Garden workflows.
+Now that you've had a glimpse of the basic Garden commands in the [Quick Start](../basics/quick-start.md) guide, and
+learned about the [Stack Graph](../basics/stack-graph.md), let's go through some typical Garden workflows.
 
 We'll keep using the [Demo Project](../examples/demo-project.md) example, but the same principles will apply for most
 Garden projects.
