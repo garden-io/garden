@@ -1,5 +1,6 @@
 ---
-title: Template Strings Reference
+order: 5
+title: Template Strings
 ---
 
 # Template string reference

@@ -1,7 +1,7 @@
 # Configuration Files
 
 Garden is configured via `garden.yml` configuration files, which Garden collects and compiles into a
-[Stack Graph](../stack-graph.md) of your project.
+[Stack Graph](../basics/stack-graph.md) of your project.
 
 The [project-wide](#project-configuration) `garden.yml` file should be located in the top-level directory of the
 project's Git repository.

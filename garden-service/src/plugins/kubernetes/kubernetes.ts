@@ -37,6 +37,7 @@ import { removeTillerCmd } from "./commands/remove-tiller"
 import { DOCS_BASE_URL } from "../../constants"
 import { inClusterRegistryHostname } from "./constants"
 import { pvcModuleDefinition } from "./volumes/persistentvolumeclaim"
+import { getModuleTypeUrl, getProviderUrl } from "../../docs/common"
 
 export async function configureProvider({
   projectName,
@@ -168,21 +169,21 @@ const outputsSchema = joi.object().keys({
     .description("The namespace used for Garden metadata."),
 })
 
+const localKubernetesUrl = getProviderUrl("local-kubernetes")
+
 export const gardenPlugin = createGardenPlugin({
   name: "kubernetes",
   dependencies: ["container"],
   docs: dedent`
-    The \`kubernetes\` provider allows you to deploy [\`container\` modules](${DOCS_BASE_URL}/module-types/container) to
-    Kubernetes clusters, and adds the [\`helm\`](${DOCS_BASE_URL}/module-types/helm) and
-    [\`kubernetes\`](${DOCS_BASE_URL}/module-types/kubernetes) module types.
+    The \`kubernetes\` provider allows you to deploy [\`container\` modules](${getModuleTypeUrl("container")}) to
+    Kubernetes clusters, and adds the [\`helm\`](${getModuleTypeUrl("helm")}) and
+    [\`kubernetes\`](${getModuleTypeUrl("kubernetes")}) module types.
 
     For usage information, please refer to the [guides section]${DOCS_BASE_URL}/guides). A good place to start is
     the [Remote Kubernetes guide](${DOCS_BASE_URL}/guides/remote-kubernetes) guide if you're connecting to remote clusters.
     The [demo-project](${DOCS_BASE_URL}/examples/demo-project) example project and guide are also helpful as an introduction.
 
-    Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the
-    [local-kubernetes provider](${DOCS_BASE_URL}/providers/local-kubernetes) simplifies (and automates) the configuration and setup quite a
-    bit.
+    Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the [local-kubernetes provider](${localKubernetesUrl}) simplifies (and automates) the configuration and setup quite a bit.
   `,
   configSchema,
   outputsSchema,
@@ -219,8 +220,7 @@ export const gardenPlugin = createGardenPlugin({
         Note that if you include the manifests in the \`garden.yml\` file, you can use
         [template strings](${DOCS_BASE_URL}/guides/variables-and-templating) to interpolate values into the manifests.
 
-        If you need more advanced templating features you can use the
-        [helm](${DOCS_BASE_URL}/module-types/helm) module type.
+        If you need more advanced templating features you can use the [helm](${getModuleTypeUrl("helm")}) module type.
       `,
       moduleOutputsSchema: joi.object().keys({}),
       schema: kubernetesModuleSpecSchema(),
