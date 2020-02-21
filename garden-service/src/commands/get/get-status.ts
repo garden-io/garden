@@ -10,13 +10,16 @@ import Bluebird from "bluebird"
 import { flatten, fromPairs } from "lodash"
 import { deepFilter } from "../../util/util"
 import { Command, CommandResult, CommandParams } from "../base"
-import { AllEnvironmentStatus } from "../../actions"
 import { Garden } from "../../garden"
 import { ConfigGraph } from "../../config-graph"
 import { getTaskVersion } from "../../tasks/task"
 import { LogEntry } from "../../logger/log-entry"
 import { getTestVersion } from "../../tasks/test"
 import { RunResult } from "../../types/plugin/base"
+import chalk from "chalk"
+import { deline } from "../../util/string"
+import { EnvironmentStatusMap } from "../../types/plugin/provider/getEnvironmentStatus"
+import { ServiceStatus } from "../../types/service"
 
 export type RunState = "outdated" | "succeeded" | "failed"
 
@@ -34,34 +37,55 @@ export interface TaskStatuses {
 }
 
 // Value is "completed" if the test/task has been run for the current version.
-export interface StatusCommandResult extends AllEnvironmentStatus {
-  tests: TestStatuses
-  tasks: TaskStatuses
+export interface StatusCommandResult {
+  providers: EnvironmentStatusMap
+  services: { [name: string]: ServiceStatus }
+  tests?: TestStatuses
+  tasks?: TaskStatuses
 }
 
 export class GetStatusCommand extends Command {
   name = "status"
   help = "Outputs the status of your environment."
 
-  async action({ garden, log, opts }: CommandParams): Promise<CommandResult<AllEnvironmentStatus>> {
+  async action({ garden, log, opts }: CommandParams): Promise<CommandResult<StatusCommandResult>> {
     const actions = await garden.getActionRouter()
-    const status = await actions.getStatus({ log })
 
-    let result: AllEnvironmentStatus
+    const envStatus = await garden.getEnvironmentStatus()
+    const serviceStatuses = await actions.getServiceStatuses({ log })
+
+    let result: StatusCommandResult = {
+      providers: envStatus,
+      services: serviceStatuses,
+    }
 
     if (opts.output) {
       const graph = await garden.getConfigGraph(log)
-      result = await Bluebird.props({
-        ...status,
-        tests: getTestStatuses(garden, graph, log),
-        tasks: getTaskStatuses(garden, graph, log),
-      })
-    } else {
-      result = status
+      result = {
+        ...result,
+        ...(await Bluebird.props({
+          tests: getTestStatuses(garden, graph, log),
+          tasks: getTaskStatuses(garden, graph, log),
+        })),
+      }
+    }
+
+    for (const [name, serviceStatus] of Object.entries(serviceStatuses)) {
+      if (serviceStatus.state === "unknown") {
+        log.warn(
+          chalk.yellow(
+            deline`
+            Unable to resolve status for service ${chalk.white(name)}. It is likely missing or outdated.
+            This can come up if the service has runtime dependencies that are not resolvable, i.e. not deployed or
+            invalid.
+            `
+          )
+        )
+      }
     }
 
     // TODO: we should change the status format because this will remove services called "detail"
-    const withoutDetail = deepFilter(status, (_, key) => key !== "detail")
+    const withoutDetail = deepFilter(result, (_, key) => key !== "detail")
 
     // TODO: do a nicer print of this by default
     log.info({ data: withoutDetail })

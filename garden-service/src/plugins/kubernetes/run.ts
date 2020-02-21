@@ -177,7 +177,7 @@ export async function runAndCopy({
 
     try {
       // Start the Pod
-      const { pod, state } = await runner.start({
+      const { pod, state, debugLog } = await runner.start({
         ignoreError: true,
         log,
         stdout,
@@ -186,6 +186,7 @@ export async function runAndCopy({
 
       errorMetadata.pod = pod
       errorMetadata.state = state
+      errorMetadata.debugLog = debugLog
 
       if (state !== "ready") {
         // Specifically look for error indicating `sh` is missing, and report with helpful message.
@@ -200,7 +201,7 @@ export async function runAndCopy({
             errorMetadata
           )
         } else {
-          throw new RuntimeError(`Failed to start Pod ${runner.podName}`, errorMetadata)
+          throw new RuntimeError(`Failed to start Pod ${runner.podName}: ${debugLog}`, errorMetadata)
         }
       }
 
@@ -524,7 +525,7 @@ export class PodRunner extends PodRunnerParams {
         if (ignoreError) {
           break
         }
-        throw new RuntimeError(`Failed to start Pod ${this.podName}`, { pod })
+        throw new RuntimeError(`Failed to start Pod ${this.podName}: ${debugLog}`, { pod })
       }
 
       if (timeout && new Date().getTime() - start > timeout) {
@@ -535,7 +536,7 @@ export class PodRunner extends PodRunnerParams {
       }
     }
 
-    return { proc: this.proc, pod, state }
+    return { proc: this.proc, pod, state, debugLog }
   }
 
   /**

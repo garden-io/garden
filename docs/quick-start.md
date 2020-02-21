@@ -34,7 +34,7 @@ In order to avoid mistakes, Garden will always point to the context specified in
 Also, if your remote cluster hasn't previously been set up for Garden, start by running the following from the project root:
 
 ``` sh
-garden plugins kubernetes cluster-init --env=remote
+garden plugins kubernetes cluster-init
 ```
 
 Now, let's check the environment status by running the following:
