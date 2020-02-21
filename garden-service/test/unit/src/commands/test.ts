@@ -208,6 +208,8 @@ describe("TestCommand", () => {
     expect(Object.keys(taskResultOutputs(result!)).sort()).to.eql([
       "build.module-a",
       "build.module-b",
+      "deploy.service-a",
+      "get-service-status.service-a",
       "stage-build.module-a",
       "stage-build.module-b",
       "test.module-a.integration",
