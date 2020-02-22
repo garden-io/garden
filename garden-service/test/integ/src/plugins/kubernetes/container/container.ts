@@ -64,7 +64,7 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
           namespace: "default",
         },
         stringData: {
-          ".dockerconfigjson": JSON.stringify({ auths: {} }),
+          ".dockerconfigjson": JSON.stringify({ auths: {}, experimental: "enabled" }),
         },
       }
       await api.upsert({ kind: "Secret", namespace: "default", obj: authSecret, log: garden.log })

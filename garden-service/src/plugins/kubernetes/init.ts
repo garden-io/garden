@@ -530,7 +530,8 @@ async function prepareDockerAuth(
     extend(auths, decoded.auths)
   })
 
-  const config = { auths }
+  // Enabling experimental features, in order to support advanced registry querying
+  const config = { auths, experimental: "enabled" }
 
   // Store the config as a Secret (overwriting if necessary)
   const systemNamespace = await getSystemNamespace(provider, log)

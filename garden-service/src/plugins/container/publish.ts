@@ -22,11 +22,11 @@ export async function publishContainerModule({ module, log }: PublishModuleParam
   log.setState({ msg: `Publishing image ${remoteId}...` })
 
   if (localId !== remoteId) {
-    await containerHelpers.dockerCli(module, ["tag", localId, remoteId])
+    await containerHelpers.dockerCli(module.buildPath, ["tag", localId, remoteId], log)
   }
 
   // TODO: stream output to log if at debug log level
-  await containerHelpers.dockerCli(module, ["push", remoteId])
+  await containerHelpers.dockerCli(module.buildPath, ["push", remoteId], log)
 
   return { published: true, message: `Published ${remoteId}` }
 }

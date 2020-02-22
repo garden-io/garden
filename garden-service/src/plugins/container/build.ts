@@ -15,7 +15,7 @@ import { LogLevel } from "../../logger/log-node"
 import { createOutputStream } from "../../util/util"
 
 export async function getContainerBuildStatus({ module, log }: GetBuildStatusParams<ContainerModule>) {
-  const identifier = await containerHelpers.imageExistsLocally(module)
+  const identifier = await containerHelpers.imageExistsLocally(module, log)
 
   if (identifier) {
     log.debug({
@@ -29,16 +29,18 @@ export async function getContainerBuildStatus({ module, log }: GetBuildStatusPar
 }
 
 export async function buildContainerModule({ module, log }: BuildModuleParams<ContainerModule>) {
+  containerHelpers.checkDockerServerVersion(await containerHelpers.getDockerVersion())
+
   const buildPath = module.buildPath
   const image = module.spec.image
   const hasDockerfile = await containerHelpers.hasDockerfile(module)
 
   if (!!image && !hasDockerfile) {
-    if (await containerHelpers.imageExistsLocally(module)) {
+    if (await containerHelpers.imageExistsLocally(module, log)) {
       return { fresh: false }
     }
     log.setState(`Pulling image ${image}...`)
-    await containerHelpers.pullImage(module)
+    await containerHelpers.pullImage(module, log)
     return { fetched: true }
   }
 
@@ -66,9 +68,12 @@ export async function buildContainerModule({ module, log }: BuildModuleParams<Co
   // Stream log to a status line
   const outputStream = createOutputStream(log.placeholder(LogLevel.debug))
   const timeout = module.spec.build.timeout
-  const buildLog = await containerHelpers.dockerCli(module, [...cmdOpts, buildPath], { outputStream, timeout })
+  const res = await containerHelpers.dockerCli(module.buildPath, [...cmdOpts, buildPath], log, {
+    outputStream,
+    timeout,
+  })
 
-  return { fresh: true, buildLog, details: { identifier } }
+  return { fresh: true, buildLog: res.output || "", details: { identifier } }
 }
 
 export function getDockerBuildFlags(module: ContainerModule) {

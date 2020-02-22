@@ -7,11 +7,8 @@
  */
 
 import { resolve } from "url"
-import { ContainerModule } from "../../container/config"
 import { getPortForward } from "../port-forward"
 import { CLUSTER_REGISTRY_DEPLOYMENT_NAME, CLUSTER_REGISTRY_PORT } from "../constants"
-import { containerHelpers } from "../../container/helpers"
-import { PluginError } from "../../../exceptions"
 import { LogEntry } from "../../../logger/log-entry"
 import { KubernetesPluginContext } from "../config"
 import axios, { AxiosRequestConfig } from "axios"
@@ -40,29 +37,4 @@ export async function getRegistryPortForward(ctx: KubernetesPluginContext, log: 
     targetResource: `Deployment/${CLUSTER_REGISTRY_DEPLOYMENT_NAME}`,
     port: CLUSTER_REGISTRY_PORT,
   })
-}
-
-export async function getManifestFromRegistry(ctx: KubernetesPluginContext, module: ContainerModule, log: LogEntry) {
-  const imageId = await containerHelpers.getDeploymentImageId(module, ctx.provider.config.deploymentRegistry)
-  const imageName = containerHelpers.unparseImageId({
-    ...containerHelpers.parseImageId(imageId),
-    host: undefined,
-    tag: undefined,
-  })
-  const path = `${imageName}/manifests/${module.version.versionString}`
-
-  try {
-    const res = await queryRegistry(ctx, log, path)
-    log.silly(res.data)
-    return res.data
-  } catch (err) {
-    if (err.response && err.response.status === 404) {
-      return null
-    } else {
-      throw new PluginError(`Could not query in-cluster registry: ${err}`, {
-        message: err.message,
-        response: err.response,
-      })
-    }
-  }
 }
