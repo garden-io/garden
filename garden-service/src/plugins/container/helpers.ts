@@ -21,9 +21,19 @@ import { flatten, uniq } from "lodash"
 import { LogEntry } from "../../logger/log-entry"
 import chalk from "chalk"
 import isUrl from "is-url"
+import { BinaryCmd } from "../../util/ext-tools"
+
+interface DockerVersion {
+  client: string
+  server: string
+}
 
 export const DEFAULT_BUILD_TIMEOUT = 600
-export const minDockerVersion = "17.07.0"
+
+export const minDockerVersion: DockerVersion = {
+  client: "19.03.0",
+  server: "17.07.0",
+}
 
 interface ParsedImageId {
   host?: string
@@ -196,24 +206,25 @@ const helpers = {
     }
   },
 
-  async pullImage(module: ContainerModule) {
+  async pullImage(module: ContainerModule, log: LogEntry) {
     const identifier = await helpers.getPublicImageId(module)
-    await helpers.dockerCli(module, ["pull", identifier])
+    await helpers.dockerCli(module.buildPath, ["pull", identifier], log)
   },
 
-  async imageExistsLocally(module: ContainerModule) {
+  async imageExistsLocally(module: ContainerModule, log: LogEntry) {
     const identifier = await helpers.getLocalImageId(module)
-    const exists = (await helpers.dockerCli(module, ["images", identifier, "-q"])).length > 0
+    const exists = (await helpers.dockerCli(module.buildPath, ["images", identifier, "-q"], log)).output?.length > 0
     return exists ? identifier : null
   },
 
-  dockerVersionChecked: false,
-
-  async getDockerVersion() {
-    let versionRes
+  /**
+   * Retrieves the docker client and server version.
+   */
+  async getDockerVersion(cliPath = "docker"): Promise<DockerVersion> {
+    let versionRes: any
 
     try {
-      versionRes = await spawn("docker", ["version", "-f", "{{ .Client.Version }} {{ .Server.Version }}"])
+      versionRes = await spawn(cliPath, ["version", "-f", "{{ .Client.Version }} {{ .Server.Version }}"])
     } catch (err) {
       throw new RuntimeError(`Unable to get docker version: ${err.message}`, {
         err,
@@ -232,46 +243,71 @@ const helpers = {
       })
     }
 
-    return { clientVersion, serverVersion }
+    return { client: clientVersion, server: serverVersion }
   },
 
-  async checkDockerVersion() {
-    if (helpers.dockerVersionChecked) {
-      return
+  /**
+   * Asserts that the specified docker client version meets the minimum requirements.
+   */
+  checkDockerClientVersion(version: DockerVersion) {
+    if (!checkMinDockerVersion(version.client, minDockerVersion.client)) {
+      throw new RuntimeError(
+        `Docker client needs to be version ${minDockerVersion.client} or newer (got ${version.client})`,
+        {
+          ...version,
+        }
+      )
     }
+  },
 
-    const fixedMinVersion = fixDockerVersionString(minDockerVersion)
-    const { clientVersion, serverVersion } = await helpers.getDockerVersion()
-
-    if (!semver.gte(fixDockerVersionString(clientVersion), fixedMinVersion)) {
-      throw new RuntimeError(`Docker client needs to be version ${minDockerVersion} or newer (got ${clientVersion})`, {
-        clientVersion,
-        serverVersion,
-      })
+  /**
+   * Asserts that the specified docker client version meets the minimum requirements.
+   */
+  checkDockerServerVersion(version: DockerVersion) {
+    if (!checkMinDockerVersion(version.server, minDockerVersion.server)) {
+      throw new RuntimeError(
+        `Docker server needs to be version ${minDockerVersion.server} or newer (got ${version.server})`,
+        {
+          ...version,
+        }
+      )
     }
+  },
 
-    if (!semver.gte(fixDockerVersionString(serverVersion), fixedMinVersion)) {
-      throw new RuntimeError(`Docker server needs to be version ${minDockerVersion} or newer (got ${serverVersion})`, {
-        clientVersion,
-        serverVersion,
-      })
+  async getDockerCliPath(log: LogEntry) {
+    // Check if docker is already installed
+    try {
+      const version = await helpers.getDockerVersion("docker")
+      helpers.checkDockerClientVersion(version)
+      return "docker"
+    } catch (_) {
+      // Need to fetch a docker client
+      return dockerBin.getPath(log)
     }
-
-    helpers.dockerVersionChecked = true
   },
 
   async dockerCli(
-    module: ContainerModule,
+    cwd: string,
     args: string[],
-    { outputStream, timeout = DEFAULT_BUILD_TIMEOUT }: { outputStream?: Writable; timeout?: number } = {}
+    log: LogEntry,
+    {
+      ignoreError = false,
+      outputStream,
+      timeout = DEFAULT_BUILD_TIMEOUT,
+    }: { ignoreError?: boolean; outputStream?: Writable; timeout?: number } = {}
   ) {
-    await helpers.checkDockerVersion()
-
-    const cwd = module.buildPath
+    // Check if docker is already installed
+    const cliPath = await helpers.getDockerCliPath(log)
 
     try {
-      const res = await spawn("docker", args, { cwd, stdout: outputStream, timeout })
-      return res.output || ""
+      const res = await spawn(cliPath, args, {
+        cwd,
+        ignoreError,
+        stdout: outputStream,
+        timeout,
+        env: { ...process.env, DOCKER_CLI_EXPERIMENTAL: "enabled" },
+      })
+      return res
     } catch (err) {
       throw new RuntimeError(`Unable to run docker command: ${err.message}`, {
         err,
@@ -382,6 +418,10 @@ const helpers = {
 
 export const containerHelpers = helpers
 
+function checkMinDockerVersion(version: string, minVersion: string) {
+  return semver.gte(fixDockerVersionString(version), fixDockerVersionString(minVersion))
+}
+
 // Ugh, Docker doesn't use valid semver. Here's a hacky fix.
 function fixDockerVersionString(v: string) {
   return semver.coerce(v.replace(/\.0([\d]+)/g, ".$1"))!
@@ -390,3 +430,33 @@ function fixDockerVersionString(v: string) {
 function getDockerfilePath(basePath: string, dockerfile = "Dockerfile") {
   return join(basePath, dockerfile)
 }
+
+export const dockerBin = new BinaryCmd({
+  name: "docker",
+  specs: {
+    darwin: {
+      url: "https://download.docker.com/mac/static/stable/x86_64/docker-19.03.6.tgz",
+      sha256: "82d279c6a2df05c2bb628607f4c3eacb5a7447be6d5f2a2f65643fbb6ed2f9af",
+      extract: {
+        format: "tar",
+        targetPath: ["docker", "docker"],
+      },
+    },
+    linux: {
+      url: "https://download.docker.com/linux/static/stable/x86_64/docker-19.03.6.tgz",
+      sha256: "34ff89ce917796594cd81149b1777d07786d297ffd0fef37a796b5897052f7cc",
+      extract: {
+        format: "tar",
+        targetPath: ["docker", "docker"],
+      },
+    },
+    win32: {
+      url: "https://github.com/rgl/docker-ce-windows-binaries-vagrant/releases/download/v19.03.6/docker-19.03.6.zip",
+      sha256: "b4591baa2b7016af9ff3328a26146e4db3e6ce3fbe0503a7fd87363f29d63f5c",
+      extract: {
+        format: "zip",
+        targetPath: ["docker", "docker.exe"],
+      },
+    },
+  },
+})

@@ -2,6 +2,7 @@ kind: Project
 name: container
 environments:
   - name: local
+  - name: local-remote-registry
   - name: cluster-docker
   - name: cluster-docker-buildkit
   - name: cluster-docker-auth
@@ -11,6 +12,11 @@ environments:
 providers:
   - name: local-kubernetes
     environments: [local]
+  - name: local-kubernetes
+    deploymentRegistry: &deploymentRegistry
+      hostname: index.docker.io
+      namespace: gardendev
+    environments: [local-remote-registry]
   - &clusterDocker
     name: local-kubernetes
     environments: [cluster-docker]
@@ -26,15 +32,11 @@ providers:
     environments: [cluster-docker-auth]
   - <<: *clusterDocker
     environments: [cluster-docker-remote-registry]
-    deploymentRegistry:
-      hostname: index.docker.io
-      namespace: gardendev
+    deploymentRegistry: *deploymentRegistry
   - <<: *clusterDocker
     environments: [kaniko]
     buildMode: kaniko
   - <<: *clusterDocker
     environments: [kaniko-remote-registry]
     buildMode: kaniko
-    deploymentRegistry:
-      hostname: index.docker.io
-      namespace: gardendev
+    deploymentRegistry: *deploymentRegistry

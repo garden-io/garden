@@ -40,11 +40,11 @@ export async function k8sPublishContainerModule(params: PublishModuleParams<Cont
       host: `local.app.garden:${fwd.localPort}`,
     })
 
-    await containerHelpers.dockerCli(module, ["pull", pullImageName])
+    await containerHelpers.dockerCli(module.buildPath, ["pull", pullImageName], log)
 
     // We need to tag the remote image with the local ID before we publish it
     const localId = await containerHelpers.getLocalImageId(module)
-    await containerHelpers.dockerCli(module, ["tag", pullImageName, localId])
+    await containerHelpers.dockerCli(module.buildPath, ["tag", pullImageName, localId], log)
   }
 
   return publishContainerModule(params)

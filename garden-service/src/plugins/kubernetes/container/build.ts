@@ -8,7 +8,7 @@
 
 import pRetry from "p-retry"
 import split2 = require("split2")
-import { ContainerModule } from "../../container/config"
+import { ContainerModule, ContainerRegistryConfig } from "../../container/config"
 import { containerHelpers } from "../../container/helpers"
 import { buildContainerModule, getContainerBuildStatus, getDockerBuildFlags } from "../../container/build"
 import { GetBuildStatusParams, BuildStatus } from "../../../types/plugin/module/getBuildStatus"
@@ -20,10 +20,9 @@ import { KubeApi } from "../api"
 import { kubectl } from "../kubectl"
 import { LogEntry } from "../../../logger/log-entry"
 import { KubernetesProvider, ContainerBuildMode, KubernetesPluginContext, KubernetesConfig } from "../config"
-import { PluginError } from "../../../exceptions"
+import { PluginError, InternalError } from "../../../exceptions"
 import { PodRunner } from "../run"
 import { getRegistryHostname, getKubernetesSystemVariables } from "../init"
-import { getManifestFromRegistry } from "./util"
 import { normalizeLocalRsyncPath } from "../../../util/fs"
 import { getPortForward } from "../port-forward"
 import { Writable } from "stream"
@@ -65,24 +64,37 @@ export async function k8sBuildContainer(params: BuildModuleParams<ContainerModul
 type BuildStatusHandler = (params: GetBuildStatusParams<ContainerModule>) => Promise<BuildStatus>
 
 const getLocalBuildStatus: BuildStatusHandler = async (params) => {
-  const { ctx } = params
-  const status = await getContainerBuildStatus(params)
+  const { ctx, module, log } = params
+  const k8sCtx = ctx as KubernetesPluginContext
+  const deploymentRegistry = k8sCtx.provider.config.deploymentRegistry
 
-  if (ctx.provider.config.deploymentRegistry) {
-    // TODO: Check if the image exists in the remote registry
-    // Note: Waiting for the `docker registry ls` command to be available in Docker 19.03. Otherwise we'll need to
-    // attempt to handle all kinds of authentication cases.
+  if (deploymentRegistry) {
+    const args = await getManifestInspectArgs(module, deploymentRegistry)
+    const res = await containerHelpers.dockerCli(module.buildPath, args, log, { ignoreError: true })
+    return { ready: res.code === 0 }
+  } else {
+    return getContainerBuildStatus(params)
   }
-
-  return status
 }
 
 const getRemoteBuildStatus: BuildStatusHandler = async (params) => {
   const { ctx, module, log } = params
   const k8sCtx = ctx as KubernetesPluginContext
-  const manifest = await getManifestFromRegistry(k8sCtx, module, log)
+  const provider = k8sCtx.provider
+  const deploymentRegistry = provider.config.deploymentRegistry
 
-  return { ready: !!manifest }
+  if (!deploymentRegistry) {
+    // This is validated in the provider configure handler, so this is an internal error if it happens
+    throw new InternalError(`Expected configured deploymentRegistry for remote build`, { config: provider.config })
+  }
+
+  const args = await getManifestInspectArgs(module, deploymentRegistry)
+  const pushArgs = ["/bin/sh", "-c", "DOCKER_CLI_EXPERIMENTAL=enabled docker " + args.join(" ")]
+
+  const podName = await getBuilderPodName(provider, log)
+  const res = await execInBuilder({ provider, log, args: pushArgs, timeout: 300, podName, ignoreError: true })
+
+  return { ready: res.exitCode === 0 }
 }
 
 const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } = {
@@ -113,8 +125,8 @@ const localBuild: BuildHandler = async (params) => {
 
   log.setState({ msg: `Pushing image ${remoteId} to cluster...` })
 
-  await containerHelpers.dockerCli(module, ["tag", localId, remoteId])
-  await containerHelpers.dockerCli(module, ["push", remoteId])
+  await containerHelpers.dockerCli(module.buildPath, ["tag", localId, remoteId], log)
+  await containerHelpers.dockerCli(module.buildPath, ["push", remoteId], log)
 
   return buildResult
 }
@@ -275,6 +287,7 @@ export interface BuilderExecParams {
   log: LogEntry
   args: string[]
   env?: { [key: string]: string }
+  ignoreError?: boolean
   timeout: number
   podName: string
   stdout?: Writable
@@ -288,7 +301,16 @@ const buildHandlers: { [mode in ContainerBuildMode]: BuildHandler } = {
 }
 
 // TODO: we should make a simple service around this instead of execing into containers
-export async function execInBuilder({ provider, log, args, timeout, podName, stdout, stderr }: BuilderExecParams) {
+export async function execInBuilder({
+  provider,
+  log,
+  args,
+  ignoreError,
+  timeout,
+  podName,
+  stdout,
+  stderr,
+}: BuilderExecParams) {
   const execCmd = ["exec", "-i", podName, "-c", dockerDaemonContainerName, "--", ...args]
   const systemNamespace = await getSystemNamespace(provider, log)
 
@@ -296,6 +318,7 @@ export async function execInBuilder({ provider, log, args, timeout, podName, std
 
   return kubectl.exec({
     args: execCmd,
+    ignoreError,
     provider,
     log,
     namespace: systemNamespace,
@@ -423,4 +446,19 @@ async function runKaniko({ provider, log, module, args, outputStream }: RunKanik
     timeout: module.spec.build.timeout,
     stdout: outputStream,
   })
+}
+
+async function getManifestInspectArgs(module: ContainerModule, deploymentRegistry: ContainerRegistryConfig) {
+  const remoteId = await containerHelpers.getDeploymentImageId(module, deploymentRegistry)
+
+  const dockerArgs = ["manifest", "inspect", remoteId]
+  if (isLocalHostname(deploymentRegistry.hostname)) {
+    dockerArgs.push("--insecure")
+  }
+
+  return dockerArgs
+}
+
+function isLocalHostname(hostname: string) {
+  return hostname === "localhost" || hostname.startsWith("127.")
 }

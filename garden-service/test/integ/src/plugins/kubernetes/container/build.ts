@@ -9,13 +9,19 @@
 import { expectError } from "../../../../../helpers"
 import { Garden } from "../../../../../../src/garden"
 import { ConfigGraph } from "../../../../../../src/config-graph"
-import { k8sBuildContainer } from "../../../../../../src/plugins/kubernetes/container/build"
+import {
+  k8sBuildContainer,
+  k8sGetContainerBuildStatus,
+  getBuilderPodName,
+  execInBuilder,
+} from "../../../../../../src/plugins/kubernetes/container/build"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { expect } from "chai"
 import { getContainerTestGarden } from "./container"
+import { containerHelpers } from "../../../../../../src/plugins/container/helpers"
 
-describe("k8sBuildContainer", () => {
+describe("kubernetes build flow", () => {
   let garden: Garden
   let graph: ConfigGraph
   let provider: KubernetesProvider
@@ -48,6 +54,49 @@ describe("k8sBuildContainer", () => {
         log: garden.log,
         module,
       })
+    })
+  })
+
+  context("local-remote-registry mode", () => {
+    before(async () => {
+      await init("local-remote-registry")
+    })
+
+    it("should push to configured deploymentRegistry if specified (remote only)", async () => {
+      const module = await graph.getModule("remote-registry-test")
+      await garden.buildDir.syncFromSrc(module, garden.log)
+
+      await k8sBuildContainer({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      const remoteId = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
+      // This throws if the image doesn't exist
+      await containerHelpers.dockerCli(module.buildPath, ["manifest", "inspect", remoteId], garden.log)
+    })
+
+    it("should get the build status from the deploymentRegistry (remote only)", async () => {
+      const module = await graph.getModule("remote-registry-test")
+      await garden.buildDir.syncFromSrc(module, garden.log)
+
+      await k8sBuildContainer({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      const remoteId = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
+      await containerHelpers.dockerCli(module.buildPath, ["rmi", remoteId], garden.log)
+
+      const status = await k8sGetContainerBuildStatus({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      expect(status.ready).to.be.true
     })
   })
 
@@ -95,8 +144,8 @@ describe("k8sBuildContainer", () => {
       )
     })
 
-    it("should push to configured deploymentRegistry if specified (remote only)", async () => {
-      const module = await graph.getModule("private-base")
+    it("should get the build status from the deploymentRegistry", async () => {
+      const module = await graph.getModule("remote-registry-test")
       await garden.buildDir.syncFromSrc(module, garden.log)
 
       await k8sBuildContainer({
@@ -104,6 +153,21 @@ describe("k8sBuildContainer", () => {
         log: garden.log,
         module,
       })
+
+      // Clear the image tag from the in-cluster builder
+      const remoteId = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
+      const podName = await getBuilderPodName(provider, garden.log)
+      const args = ["docker", "rmi", remoteId]
+      await execInBuilder({ provider, log: garden.log, args, timeout: 300, podName })
+
+      // This should still report the build as ready, because it's in the registry
+      const status = await k8sGetContainerBuildStatus({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      expect(status.ready).to.be.true
     })
   })
 
@@ -121,6 +185,32 @@ describe("k8sBuildContainer", () => {
         log: garden.log,
         module,
       })
+    })
+
+    it("should get the build status from the registry (remote only)", async () => {
+      const module = await graph.getModule("remote-registry-test")
+      await garden.buildDir.syncFromSrc(module, garden.log)
+
+      await k8sBuildContainer({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      // Clear the image tag from the in-cluster builder
+      const remoteId = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
+      const podName = await getBuilderPodName(provider, garden.log)
+      const args = ["docker", "rmi", remoteId]
+      await execInBuilder({ provider, log: garden.log, args, timeout: 300, podName })
+
+      // This should still report the build as ready, because it's in the registry
+      const status = await k8sGetContainerBuildStatus({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      expect(status.ready).to.be.true
     })
   })
 

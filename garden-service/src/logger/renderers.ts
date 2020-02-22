@@ -18,7 +18,7 @@ import hasAnsi = require("has-ansi")
 import { LogEntry, MessageState } from "./log-entry"
 import { JsonLogEntry } from "./writers/json-terminal-writer"
 import { highlightYaml, deepFilter, PickFromUnion } from "../util/util"
-import { isNumber, isBuffer } from "util"
+import { isNumber } from "util"
 import { printEmoji, sanitizeObject } from "./util"
 import { LoggerType, Logger } from "./logger"
 
