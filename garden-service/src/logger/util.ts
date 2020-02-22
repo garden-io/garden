@@ -11,6 +11,8 @@ import chalk from "chalk"
 import CircularJSON from "circular-json"
 import { LogNode } from "./log-node"
 import { LogEntry, LogEntryParams, EmojiName } from "./log-entry"
+import { isBuffer } from "util"
+import { deepMap } from "../util/util"
 
 export interface Node {
   children: any[]
@@ -140,5 +142,8 @@ export function printWarningMessage(log: LogEntry, text: string) {
  * Strips undefined values and circular references from an object.
  */
 export function sanitizeObject(obj: any) {
+  obj = deepMap(obj, (value: any) => {
+    return isBuffer(value) ? "<Buffer>" : value
+  })
   return JSON.parse(CircularJSON.stringify(obj))
 }

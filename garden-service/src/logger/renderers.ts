@@ -18,7 +18,7 @@ import hasAnsi = require("has-ansi")
 import { LogEntry, MessageState } from "./log-entry"
 import { JsonLogEntry } from "./writers/json-terminal-writer"
 import { highlightYaml, deepFilter, PickFromUnion } from "../util/util"
-import { isNumber } from "util"
+import { isNumber, isBuffer } from "util"
 import { printEmoji, sanitizeObject } from "./util"
 import { LoggerType, Logger } from "./logger"
 
@@ -91,8 +91,8 @@ export function renderError(entry: LogEntry) {
     let out = stack || message
 
     // We recursively filter out internal fields (i.e. having names starting with _).
-    const filteredDetail = deepFilter(detail, (_, key: string | number) => {
-      return isNumber(key) || !key.startsWith("_")
+    const filteredDetail = deepFilter(detail, (_: any, key: string | number) => {
+      return !isNumber(key) && !key.startsWith("_")
     })
 
     if (!isEmpty(filteredDetail)) {
