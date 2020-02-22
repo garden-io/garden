@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 
-import { getChildNodes } from "../../../../src/logger/util"
+import { getChildNodes, sanitizeObject } from "../../../../src/logger/util"
 
 describe("util", () => {
   describe("getChildNodes", () => {
@@ -39,6 +39,17 @@ describe("util", () => {
       }
       const nodeList = getChildNodes<TestNode, TestNode>(graph)
       expect(nodeList.map((n) => n.id)).to.eql([1, 2, 3, 4, 5, 6])
+    })
+  })
+
+  describe("sanitizeObject", () => {
+    it("should replace any buffer values", () => {
+      const obj = {
+        something: "test",
+        buffer: Buffer.from("bla"),
+      }
+
+      expect(sanitizeObject(obj)).to.eql({ something: "test", buffer: "<Buffer>" })
     })
   })
 })
