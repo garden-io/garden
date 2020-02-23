@@ -11,21 +11,22 @@ import { readFile, pathExists, lstat } from "fs-extra"
 import semver from "semver"
 import { parse, CommandEntry } from "docker-file-parser"
 import isGlob from "is-glob"
-import { ConfigurationError, RuntimeError } from "../../exceptions"
-import { splitFirst, spawn, splitLast } from "../../util/util"
+import { ConfigurationError, RuntimeError, InternalError } from "../../exceptions"
+import { splitFirst, spawn, splitLast, SpawnOutput } from "../../util/util"
 import { ModuleConfig } from "../../config/module"
 import { ContainerModule, ContainerRegistryConfig, defaultTag, defaultNamespace, ContainerModuleConfig } from "./config"
 import { Writable } from "stream"
 import Bluebird from "bluebird"
-import { flatten, uniq } from "lodash"
+import { flatten, uniq, fromPairs } from "lodash"
 import { LogEntry } from "../../logger/log-entry"
 import chalk from "chalk"
 import isUrl from "is-url"
 import { BinaryCmd } from "../../util/ext-tools"
+import titleize from "titleize"
 
 interface DockerVersion {
-  client: string
-  server: string
+  client?: string
+  server?: string
 }
 
 export const DEFAULT_BUILD_TIMEOUT = 600
@@ -221,41 +222,40 @@ const helpers = {
    * Retrieves the docker client and server version.
    */
   async getDockerVersion(cliPath = "docker"): Promise<DockerVersion> {
-    let versionRes: any
+    const results = await Bluebird.map(["client", "server"], async (key) => {
+      let res: SpawnOutput
 
-    try {
-      versionRes = await spawn(cliPath, ["version", "-f", "{{ .Client.Version }} {{ .Server.Version }}"])
-    } catch (err) {
-      throw new RuntimeError(`Unable to get docker version: ${err.message}`, {
-        err,
-      })
-    }
+      try {
+        res = await spawn(cliPath, ["version", "-f", `{{ .${titleize(key)}.Version }}`])
+      } catch (err) {
+        return [key, undefined]
+      }
 
-    const output = versionRes.output.trim()
-    const split = output.split(" ")
+      const output = res.output.trim()
 
-    const clientVersion = split[0]
-    const serverVersion = split[1]
+      if (!output) {
+        throw new RuntimeError(`Unexpected docker version output: ${output}`, {
+          output,
+        })
+      }
 
-    if (!clientVersion || !serverVersion) {
-      throw new RuntimeError(`Unexpected docker version output: ${output}`, {
-        output,
-      })
-    }
+      return [key, output]
+    })
 
-    return { client: clientVersion, server: serverVersion }
+    return fromPairs(results)
   },
 
   /**
    * Asserts that the specified docker client version meets the minimum requirements.
    */
   checkDockerClientVersion(version: DockerVersion) {
-    if (!checkMinDockerVersion(version.client, minDockerVersion.client)) {
+    if (!version.client) {
+      // This should not occur in normal usage, so it is classed as an internal error
+      throw new InternalError(`Docker client is not installed.`, version)
+    } else if (!checkMinDockerVersion(version.client, minDockerVersion.client!)) {
       throw new RuntimeError(
         `Docker client needs to be version ${minDockerVersion.client} or newer (got ${version.client})`,
-        {
-          ...version,
-        }
+        version
       )
     }
   },
@@ -264,7 +264,9 @@ const helpers = {
    * Asserts that the specified docker client version meets the minimum requirements.
    */
   checkDockerServerVersion(version: DockerVersion) {
-    if (!checkMinDockerVersion(version.server, minDockerVersion.server)) {
+    if (!version.server) {
+      throw new RuntimeError(`Docker server is not running or cannot be reached.`, version)
+    } else if (!checkMinDockerVersion(version.server, minDockerVersion.server!)) {
       throw new RuntimeError(
         `Docker server needs to be version ${minDockerVersion.server} or newer (got ${version.server})`,
         {
