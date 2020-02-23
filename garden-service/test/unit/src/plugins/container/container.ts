@@ -918,6 +918,20 @@ describe("plugins.container", () => {
       helpers.checkDockerClientVersion(version)
     })
 
+    it("should throw if client is not installed (version is undefined)", async () => {
+      const version = {
+        client: undefined,
+        server: minDockerVersion.server,
+      }
+
+      await expectError(
+        () => helpers.checkDockerClientVersion(version),
+        (err) => {
+          expect(err.message).to.equal("Docker client is not installed.")
+        }
+      )
+    })
+
     it("should throw if client version is too old", async () => {
       const version = {
         client: "17.06",
@@ -945,6 +959,20 @@ describe("plugins.container", () => {
       }
 
       helpers.checkDockerServerVersion(version)
+    })
+
+    it("should throw if server is not reachable (version is undefined)", async () => {
+      const version = {
+        client: minDockerVersion.client,
+        server: undefined,
+      }
+
+      await expectError(
+        () => helpers.checkDockerServerVersion(version),
+        (err) => {
+          expect(err.message).to.equal("Docker server is not running or cannot be reached.")
+        }
+      )
     })
 
     it("should throw if server version is too old", async () => {
