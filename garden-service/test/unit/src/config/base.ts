@@ -152,6 +152,7 @@ describe("loadConfig", () => {
             {
               name: "integration",
               command: ["echo", "OK"],
+              dependencies: ["service-a"],
             },
           ],
         },

@@ -6,12 +6,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import Bluebird from "bluebird"
+import { flattenDeep } from "lodash"
 import pEvent from "p-event"
 import { expect } from "chai"
-import { DevCommand, DevCommandArgs, DevCommandOpts, getDevCommandWatchTasks } from "../../../../src/commands/dev"
+import {
+  DevCommand,
+  DevCommandArgs,
+  DevCommandOpts,
+  getDevCommandWatchTasks,
+  getDevCommandInitialTasks,
+} from "../../../../src/commands/dev"
 import { makeTestGardenA, withDefaultGlobalOpts, TestGarden } from "../../../helpers"
 import { ParameterValues } from "../../../../src/commands/base"
 import { GlobalOptions } from "../../../../src/cli/cli"
+import { BaseTask } from "../../../../src/tasks/base"
 
 describe("DevCommand", () => {
   const command = new DevCommand()
@@ -104,6 +113,38 @@ describe("DevCommand", () => {
     ])
 
     return promise
+  })
+
+  it("should initially deploy services with hot reloading when requested", async () => {
+    const garden = await makeTestGardenA()
+    const log = garden.log
+    const graph = await garden.getConfigGraph(log)
+    const modules = await graph.getModules()
+
+    const initialTasks = await getDevCommandInitialTasks({
+      garden,
+      log,
+      graph,
+      modules,
+      // Note: service-a is a runtime dependency of module-a's integration test spec, so in this test case
+      // we're implicitly verifying that tests with runtime dependencies on services being deployed with
+      // hot reloading don't request non-hot-reload-enabled deploys for those same services.
+      hotReloadServiceNames: ["service-a"],
+      skipTests: false,
+    })
+
+    const withDeps = async (task: BaseTask) => {
+      const deps = await task.getDependencies()
+      return [task, await Bluebird.map(deps, async (dep) => await withDeps(dep))]
+    }
+
+    const initialTasksWithDeps: BaseTask[] = flattenDeep(await Bluebird.map(initialTasks, withDeps))
+    const deployTasksForServiceA = initialTasksWithDeps.filter((t) => t.getKey() === "deploy.service-a")
+
+    expect(deployTasksForServiceA.length).to.be.greaterThan(0)
+    for (const deployTask of deployTasksForServiceA) {
+      expect(deployTask!["hotReloadServiceNames"]).to.eql(["service-a"])
+    }
   })
 
   it("should skip disabled services", async () => {

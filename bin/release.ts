@@ -7,6 +7,7 @@ import chalk from "chalk"
 import parseArgs = require("minimist")
 import deline = require("deline")
 import { resolve } from "path"
+import { readFile, createWriteStream } from "fs-extra"
 const replace = require("replace-in-file")
 
 type ReleaseType = "minor" | "patch" | "preminor" | "prepatch" | "prerelease"
@@ -56,7 +57,7 @@ async function release() {
   // Check if branch already exists locally
   let localBranch
   try {
-    localBranch = await execa("git", ["rev-parse", "--verify", branchName], { cwd: gardenRoot })
+    localBranch = (await execa("git", ["rev-parse", "--verify", branchName], { cwd: gardenRoot })).stdout
   } catch (_) {
     // no op
   } finally {
@@ -69,11 +70,11 @@ async function release() {
   // Check if branch already exists remotely
   let remoteBranch
   try {
-    remoteBranch = await execa(
+    remoteBranch = (await execa(
       "git",
       ["ls-remote", "--exit-code", "--heads", "origin", branchName],
       { cwd: gardenRoot },
-    )
+    )).stdout
   } catch (_) {
     // no op
   } finally {
@@ -122,11 +123,7 @@ async function release() {
 
   // Update changelog
   console.log("Updating changelog...")
-  await execa("git-chglog", [
-    "--next-tag", version,
-    "--output", "CHANGELOG.md",
-    `..${version}`,
-  ], { cwd: gardenRoot })
+  await updateChangelog(version)
 
   // Add and commit changes
   console.log("Committing changes...")
@@ -261,6 +258,27 @@ async function prompt(version: string): Promise<boolean> {
     message,
   })
   return ans.continue.startsWith("y")
+}
+
+/**
+ * Update CHANGELOG.md. We need to get the latest entry and prepend it to the current CHANGELOG.md
+ */
+async function updateChangelog(version: string) {
+  const changelogPath = "./CHANGELOG.md";
+  // TODO: Use readStream and pipe
+  const changelog = await readFile(changelogPath)
+  const nextChangelogEntry = (await execa("git-chglog", [version], { cwd: gardenRoot })).stdout
+  return new Promise((resolve, reject) => {
+    const writeStream = createWriteStream(changelogPath);
+    writeStream.write(nextChangelogEntry)
+    writeStream.write(changelog)
+    writeStream.on("end", () => {
+      resolve();
+    });
+    writeStream.on("error", error => {
+      reject(error);
+    });
+  });
 }
 
 /**
