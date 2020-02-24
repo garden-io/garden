@@ -253,6 +253,8 @@ export async function runAndCopy({
         })
         result.log = (await getLogs()).trim() || result.log
       } catch (err) {
+        console.log(err)
+
         if (err.type === "timeout") {
           result = await timedOutResult()
         } else {
@@ -340,6 +342,7 @@ export async function runAndCopy({
       })
       result.log = (await getLogs()).trim() || result.log
     } catch (err) {
+      console.log(err)
       if (err.type === "timeout") {
         result = await timedOutResult()
       } else {
