@@ -289,9 +289,13 @@ export async function configureHelmModule({
     "release-name": getReleaseName(moduleConfig),
   }
 
+  const valueFiles = moduleConfig.spec.valueFiles
+
   // Automatically set the include if not explicitly set
   if (!(moduleConfig.include || moduleConfig.exclude)) {
-    moduleConfig.include = containsSources ? ["*", "charts/**/*", "templates/**/*"] : []
+    moduleConfig.include = containsSources
+      ? ["*", "charts/**/*", "templates/**/*", ...valueFiles]
+      : ["*.yaml", "*.yml", ...valueFiles]
   }
 
   return { moduleConfig }
