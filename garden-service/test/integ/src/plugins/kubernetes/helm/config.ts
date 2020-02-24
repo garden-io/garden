@@ -144,11 +144,11 @@ describe("configureHelmModule", () => {
     expect(configExclude.include).to.be.undefined
   })
 
-  it("should set include to empty if module does not have local chart sources", async () => {
+  it("should set include to default if module does not have local chart sources", async () => {
     // So that Chart.yaml isn't found
     patchModuleConfig("api", { spec: { chartPath: "invalid-path" } })
     const config = await garden.resolveModuleConfig(garden.log, "api")
-    expect(config.include).to.eql([])
+    expect(config.include).to.eql(["*.yaml", "*.yml"])
   })
 
   it("should not return a serviceConfig if skipDeploy=true", async () => {
