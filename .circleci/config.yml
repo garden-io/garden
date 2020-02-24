@@ -429,6 +429,12 @@ jobs:
           name: Test that the binary works with the fancy logger enabled
           command: garden-service/dist/linux-amd64/garden options
       - run:
+          name: Test the create commands
+          command: |
+            mkdir -p tmp/create-test
+            garden-service/dist/linux-amd64/garden create project --root tmp/create-test --name test-project
+            garden-service/dist/linux-amd64/garden create module --root tmp/create-test --name test-module --type exec
+      - run:
           name: Deploy demo-project with binary
           # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist garden-service/dist/linux-amd64/garden deploy --root examples/demo-project --env remote --logger-type basic

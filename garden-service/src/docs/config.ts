@@ -16,11 +16,11 @@ import { get, isFunction } from "lodash"
 import { baseModuleSpecSchema } from "../config/module"
 import handlebars = require("handlebars")
 import { joi } from "../config/common"
-import { GARDEN_SERVICE_ROOT } from "../constants"
+import { STATIC_DIR } from "../constants"
 import { indent, renderMarkdownTable, convertMarkdownLinks, NormalizedSchemaDescription } from "./common"
 import { normalizeJoiSchemaDescription, JoiDescription } from "./joi-schema"
 
-export const TEMPLATES_DIR = resolve(GARDEN_SERVICE_ROOT, "src", "docs", "templates")
+export const TEMPLATES_DIR = resolve(STATIC_DIR, "docs", "templates")
 const partialTemplatePath = resolve(TEMPLATES_DIR, "config-partial.hbs")
 
 const maxWidth = 120
