@@ -10,7 +10,7 @@ Under the hood, Garden simply wraps Terraform, so there's no magic involved. Gar
 
 The `terraform` provider can both provision a Terraform stack when initializing Garden, or through `terraform` modules that are deployed like other services in your stack.
 
-The former, having a single Terraform stack for your whole project, is most helpful if other provider configurations need to reference the outputs from your Terraform stack, or if most/all of your services depend on the infrastructure provisioned in your Terraform stack. A good example of this is the [terraform-gke example](https://github.com/garden-io/garden/tree/v0.11.4/examples/terraform-gke) project, which provisions a GKE cluster that the `kubernetes` provider then runs on, along with the services in the project. The drawback is that Garden doesn't currently watch for changes in those Terraform files, and you need to restart to apply new changes, or apply them manually.
+The former, having a single Terraform stack for your whole project, is most helpful if other provider configurations need to reference the outputs from your Terraform stack, or if most/all of your services depend on the infrastructure provisioned in your Terraform stack. A good example of this is the [terraform-gke example](https://github.com/garden-io/garden/tree/v0.11.5/examples/terraform-gke) project, which provisions a GKE cluster that the `kubernetes` provider then runs on, along with the services in the project. The drawback is that Garden doesn't currently watch for changes in those Terraform files, and you need to restart to apply new changes, or apply them manually.
 
 The latter method, using one or more `terraform` _modules_, can be better if your other providers don't need to reference the stack outputs but your _services, tasks and tests_ do. In this style, you can basically create small Terraform stacks that are part of your Stack Graph much like other services. A good example would be deploying a database instance, that other services in your project can then connect to.
 
@@ -29,7 +29,7 @@ providers:
   ...
 ```
 
-If you'd like to apply the stack when starting Garden, and then reference the stack outputs in other providers (or modules), you need to add a couple of more flags. Here's the project config from the aforementioned [terraform-gke example](https://github.com/garden-io/garden/tree/v0.11.4/examples/terraform-gke):
+If you'd like to apply the stack when starting Garden, and then reference the stack outputs in other providers (or modules), you need to add a couple of more flags. Here's the project config from the aforementioned [terraform-gke example](https://github.com/garden-io/garden/tree/v0.11.5/examples/terraform-gke):
 
 ```yaml
 kind: Project
@@ -84,6 +84,6 @@ Much like other modules, you can also reference Terraform definitions in other r
 
 ## Next steps
 
-Check out the [terraform-gke example](https://github.com/garden-io/garden/tree/v0.11.4/examples/terraform-gke) project. Also take a look at the [Terraform provider reference](../providers/terraform.md) and the [Terraform module type reference](../module-types/terraform.md) for details on all the configuration parameters.
+Check out the [terraform-gke example](https://github.com/garden-io/garden/tree/v0.11.5/examples/terraform-gke) project. Also take a look at the [Terraform provider reference](../providers/terraform.md) and the [Terraform module type reference](../module-types/terraform.md) for details on all the configuration parameters.
 
 If you're having issues with Terraform itself, please refer to the [official docs](https://www.terraform.io/docs/index.html).

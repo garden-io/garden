@@ -2,13 +2,13 @@
 
 The [Helm](https://helm.sh/) package manager is one of the most commonly used tools for managing Kubernetes manifests. Garden supports using your own Helm charts, alongside your container modules, via the `kubernetes` and `local-kubernetes` providers. This guide shows you how to configure and use 3rd-party (or otherwise external) Helm charts, as well as your own charts in your Garden project. We also go through how to set up tests, tasks and hot-reloading for your charts.
 
-In this guide we'll be using the [vote-helm](https://github.com/garden-io/garden/tree/v0.11.4/examples/vote-helm) project. If you prefer to just check out a complete example, the project itself is also a good resource.
+In this guide we'll be using the [vote-helm](https://github.com/garden-io/garden/tree/v0.11.5/examples/vote-helm) project. If you prefer to just check out a complete example, the project itself is also a good resource.
 
 You may also want to check out the full [helm module reference](../module-types/helm.md).
 
 _Note: If you only need a way to deploy some Kubernetes manifests and don't need all the features of Helm, you can_
 _use the simpler `kubernetes` module type instead. Check out the_
-_[kubernetes-module](https://github.com/garden-io/garden/tree/v0.11.4/examples/kubernetes-module) example for more info._
+_[kubernetes-module](https://github.com/garden-io/garden/tree/v0.11.5/examples/kubernetes-module) example for more info._
 
 ## Basics
 
@@ -307,8 +307,8 @@ You can define a remote environment as a `production` environment by setting the
 ## Next steps
 
 Check out the full [helm module reference](../module-types/helm.md) for more details, and the
-[vote-helm](https://github.com/garden-io/garden/tree/v0.11.4/examples/vote-helm) example project for a full project that showcases
+[vote-helm](https://github.com/garden-io/garden/tree/v0.11.5/examples/vote-helm) example project for a full project that showcases
 Garden's Helm support.
 
-Also check out the [kubernetes-module](https://github.com/garden-io/garden/tree/v0.11.4/examples/kubernetes-module)
+Also check out the [kubernetes-module](https://github.com/garden-io/garden/tree/v0.11.5/examples/kubernetes-module)
 example for a simpler alternative, if you don't need all the features of Helm.
