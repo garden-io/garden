@@ -57,7 +57,7 @@ If you specify a tag as well, for example `image: my-org/my-container:v1.2.3`, t
 
 In the case of Kubernetes, Garden will take the simplified `container` service specification and convert it to the corresponding Kubernetes manifests, i.e. Deployment, Service and (if applicable) Ingress resources.
 
-Here, for example, is the spec for the `frontend` service in our example [demo project](https://github.com/garden-io/garden/tree/v0.11.4/examples/demo-project):
+Here, for example, is the spec for the `frontend` service in our example [demo project](https://github.com/garden-io/garden/tree/v0.11.5/examples/demo-project):
 
 ```yaml
 kind: Module
@@ -141,7 +141,7 @@ kubectl --namespace <my-app-namespace> create secret generic --from-literal=some
 
 Where `<my-app-namespace>` is your project namespace (which is either set with `namespace` in your provider config, or defaults to your project name). There are notably other, more secure ways to create secrets via `kubectl`. Please refer to the offical [Kubernetes Secrets docs](https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret-using-kubectl-create-secret) for details.
 
-Also check out the [Kubernetes Secrets example project](https://github.com/garden-io/garden/tree/v0.11.4/examples/kubernetes-secrets) for a working example.
+Also check out the [Kubernetes Secrets example project](https://github.com/garden-io/garden/tree/v0.11.5/examples/kubernetes-secrets) for a working example.
 
 ## Running tests
 
