@@ -267,16 +267,17 @@ async function updateChangelog(version: string) {
   const changelogPath = "./CHANGELOG.md";
   // TODO: Use readStream and pipe
   const changelog = await readFile(changelogPath)
-  const nextChangelogEntry = (await execa("git-chglog", [version], { cwd: gardenRoot })).stdout
+  const nextChangelogEntry = (await execa("git-chglog", ["--next-tag", version, version], { cwd: gardenRoot })).stdout
   return new Promise((resolve, reject) => {
-    const writeStream = createWriteStream(changelogPath);
+    const writeStream = createWriteStream(changelogPath)
     writeStream.write(nextChangelogEntry)
     writeStream.write(changelog)
-    writeStream.on("end", () => {
-      resolve();
+    writeStream.close()
+    writeStream.on("close", () => {
+      resolve()
     });
     writeStream.on("error", error => {
-      reject(error);
+      reject(error)
     });
   });
 }
