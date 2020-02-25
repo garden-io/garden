@@ -19,7 +19,7 @@
 - **Shared development clusters with fast in-cluster building and image caching for Kubernetes.** This allows teams to easily share build and test results, and for CI to become much faster because it can use the same build and test caches as the team.
 - Get helpful information when your deployments fail. Garden collects events and logs and displays them prominently when issues come up, and strives to "fail fast", so that you don't need to wait for timeouts or dive into kubectl whenever something is wrong.
 - Easily write [integration test suites](https://docs.garden.io/guides/development-workflows#tests-and-dependencies) that have runtime dependencies. Run tests *before* pushing your code to CI, and avoid having to mock or stub your own services.
-- Define [tasks](https://github.com/garden-io/garden/tree/v0.11.4/examples/tasks) that run as part of your deployment process—e.g. database migrations or scaffolding.
+- Define [tasks](https://github.com/garden-io/garden/tree/v0.11.5/examples/tasks) that run as part of your deployment process—e.g. database migrations or scaffolding.
 - [Hot reload](https://docs.garden.io/guides/hot-reload) lets you near-instantaneously update code and static files in containers as they run, for services that support in-place reloading.
 - [Remote sources](https://docs.garden.io/guides/using-remote-sources) support allows your project to automatically pull code from different repositories.
 - The built-in web **dashboard** gives you a full overview of your stack (and many more UI features are planned to further aid with development).
@@ -51,7 +51,7 @@
 
 ## Quick start
 
-With the CLI installed, you can try out a few commands using the [Demo Project](https://docs.garden.io/examples/demo-project) from our [example projects](https://github.com/garden-io/garden/tree/v0.11.4/examples). The example project consists of a couple of simple modules, each defining one service.
+With the CLI installed, you can try out a few commands using the [Demo Project](https://docs.garden.io/examples/demo-project) from our [example projects](https://github.com/garden-io/garden/tree/v0.11.5/examples). The example project consists of a couple of simple modules, each defining one service.
 
 *Note: This example assumes you have a local Kubernetes instance running.*
 
@@ -96,11 +96,11 @@ Overview:
 
 - [Using Garden](https://docs.garden.io/using-garden)—short Guides on incrementally adding the main Garden constructs to your project.
 - [Guides](https://docs.garden.io/guides)—development workflows, Garden configuration files, usage with remote Kubernetes clusters, and setting up hot reload.
-- [Example Projects](https://docs.garden.io/examples)—guides based on some of the [examples](https://github.com/garden-io/garden/tree/v0.11.4/examples).
+- [Example Projects](https://docs.garden.io/examples)—guides based on some of the [examples](https://github.com/garden-io/garden/tree/v0.11.5/examples).
 - [Reference](https://docs.garden.io/reference)—glossary, commands reference, configuration files reference, and template strings reference.
 - [FAQs](https://docs.garden.io/#faqs).
 
-The [examples](https://github.com/garden-io/garden/tree/v0.11.4/examples) folder of our repository also shows a myriad of different ways to use Garden. Check out the README in each example for more information
+The [examples](https://github.com/garden-io/garden/tree/v0.11.5/examples) folder of our repository also shows a myriad of different ways to use Garden. Check out the README in each example for more information
 
 ## How does it work?
 

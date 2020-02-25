@@ -17,7 +17,7 @@ This tutorial assumes that you already have a running [installation of Garden](.
 
 ## Clone the example repo
 
-The code for this tutorial can be found in our Github repository under the [examples directory](https://github.com/garden-io/garden/tree/v0.11.4/examples). We'll use the [demo-project-start](https://github.com/garden-io/garden/tree/v0.11.4/examples/demo-project-start/) example and work our way from there. The final version is under [demo-project](https://github.com/garden-io/garden/tree/v0.11.4/examples/demo-project).
+The code for this tutorial can be found in our Github repository under the [examples directory](https://github.com/garden-io/garden/tree/v0.11.5/examples). We'll use the [demo-project-start](https://github.com/garden-io/garden/tree/v0.11.5/examples/demo-project-start/) example and work our way from there. The final version is under [demo-project](https://github.com/garden-io/garden/tree/v0.11.5/examples/demo-project).
 
 First, let's clone the examples repo, change into the directory, and take a look inside:
 
