@@ -129,11 +129,11 @@ describe("commands.call", () => {
       opts: withDefaultGlobalOpts({}),
     })
 
-    expect(result.url).to.equal("http://service-a.test-project-b.local.app.garden:32000/path-a")
-    expect(result.serviceName).to.equal("service-a")
-    expect(result.path).to.equal("/path-a")
-    expect(result.response.status).to.equal(200)
-    expect(result.response.data).to.equal("bla")
+    expect(result!.url).to.equal("http://service-a.test-project-b.local.app.garden:32000/path-a")
+    expect(result!.serviceName).to.equal("service-a")
+    expect(result!.path).to.equal("/path-a")
+    expect(result!.response.status).to.equal(200)
+    expect(result!.response.data).to.equal("bla")
   })
 
   it("should default to the path '/' if that is exposed if no path is requested", async () => {
@@ -154,11 +154,11 @@ describe("commands.call", () => {
       opts: withDefaultGlobalOpts({}),
     })
 
-    expect(result.url).to.equal("http://service-a.test-project-b.local.app.garden:32000/path-a")
-    expect(result.serviceName).to.equal("service-a")
-    expect(result.path).to.equal("/path-a")
-    expect(result.response.status).to.equal(200)
-    expect(result.response.data).to.equal("bla")
+    expect(result!.url).to.equal("http://service-a.test-project-b.local.app.garden:32000/path-a")
+    expect(result!.serviceName).to.equal("service-a")
+    expect(result!.path).to.equal("/path-a")
+    expect(result!.response.status).to.equal(200)
+    expect(result!.response.data).to.equal("bla")
   })
 
   it("should otherwise use the first defined ingress if no path is requested", async () => {
@@ -179,11 +179,11 @@ describe("commands.call", () => {
       opts: withDefaultGlobalOpts({}),
     })
 
-    expect(result.url).to.equal("http://service-b.test-project-b.local.app.garden:32000/")
-    expect(result.serviceName).to.equal("service-b")
-    expect(result.path).to.equal("/")
-    expect(result.response.status).to.equal(200)
-    expect(result.response.data).to.equal("bla")
+    expect(result!.url).to.equal("http://service-b.test-project-b.local.app.garden:32000/")
+    expect(result!.serviceName).to.equal("service-b")
+    expect(result!.path).to.equal("/")
+    expect(result!.response.status).to.equal(200)
+    expect(result!.response.data).to.equal("bla")
   })
 
   it("should use the linkUrl if provided", async () => {
@@ -204,11 +204,11 @@ describe("commands.call", () => {
       opts: withDefaultGlobalOpts({}),
     })
 
-    expect(result.url).to.equal("https://www.example.com")
-    expect(result.serviceName).to.equal("service-a")
-    expect(result.path).to.equal("/")
-    expect(result.response.status).to.equal(200)
-    expect(result.response.data).to.equal("bla")
+    expect(result!.url).to.equal("https://www.example.com")
+    expect(result!.serviceName).to.equal("service-a")
+    expect(result!.path).to.equal("/")
+    expect(result!.response.status).to.equal(200)
+    expect(result!.response.data).to.equal("bla")
   })
 
   it("should return the path for linkUrl", async () => {
@@ -229,11 +229,11 @@ describe("commands.call", () => {
       opts: withDefaultGlobalOpts({}),
     })
 
-    expect(result.url).to.equal("https://www.example.com/hello")
-    expect(result.serviceName).to.equal("service-b")
-    expect(result.path).to.equal("/hello")
-    expect(result.response.status).to.equal(200)
-    expect(result.response.data).to.equal("bla")
+    expect(result!.url).to.equal("https://www.example.com/hello")
+    expect(result!.serviceName).to.equal("service-b")
+    expect(result!.path).to.equal("/hello")
+    expect(result!.response.status).to.equal(200)
+    expect(result!.response.data).to.equal("bla")
   })
 
   it("should error if service isn't running", async () => {

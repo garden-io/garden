@@ -126,12 +126,12 @@ async function getImagesInRegistry(ctx: KubernetesPluginContext, log: LogEntry) 
 
   while (nextUrl) {
     const res = await queryRegistry(ctx, log, nextUrl)
-    repositories.push(...res.data.repositories)
+    repositories.push(...res.body.repositories)
 
     // Paginate
-    const linkHeader = res.headers["Link"]
+    const linkHeader = <string | undefined>res.headers["Link"]
     if (linkHeader) {
-      nextUrl = linkHeader.match(/<(.*)>/)[1]
+      nextUrl = linkHeader.match(/<(.*)>/)![1]
     } else {
       nextUrl = ""
     }
@@ -144,13 +144,13 @@ async function getImagesInRegistry(ctx: KubernetesPluginContext, log: LogEntry) 
 
     while (nextUrl) {
       const res = await queryRegistry(ctx, log, nextUrl)
-      if (res.data.tags) {
-        images.push(...res.data.tags.map((tag: string) => `${repo}:${tag}`))
+      if (res.body.tags) {
+        images.push(...res.body.tags.map((tag: string) => `${repo}:${tag}`))
       }
       // Paginate
-      const linkHeader = res.headers["link"]
+      const linkHeader = <string | undefined>res.headers["link"]
       if (linkHeader) {
-        nextUrl = linkHeader.match(/<(.*)>/)[1]
+        nextUrl = linkHeader.match(/<(.*)>/)![1]
       } else {
         nextUrl = ""
       }

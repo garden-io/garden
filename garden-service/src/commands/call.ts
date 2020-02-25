@@ -7,17 +7,17 @@
  */
 
 import { parse, resolve } from "url"
-import Axios from "axios"
 import chalk from "chalk"
-import { isObject } from "util"
+import { getStatusText } from "http-status-codes"
 import { Command, CommandResult, CommandParams, StringParameter } from "./base"
 import { splitFirst } from "../util/util"
 import { ParameterError, RuntimeError } from "../exceptions"
-import { find, includes, pick } from "lodash"
+import { find, includes } from "lodash"
 import { ServiceIngress, getIngressUrl } from "../types/service"
-import dedent = require("dedent")
+import { dedent } from "../util/string"
 import { printHeader } from "../logger/util"
 import { emptyRuntimeContext } from "../runtime-context"
+import { got, GotResponse } from "../util/http"
 
 const callArgs = {
   serviceAndPath: new StringParameter({
@@ -27,6 +27,18 @@ const callArgs = {
 }
 
 type Args = typeof callArgs
+
+interface CallResult {
+  serviceName: string
+  path: string
+  url: string
+  response: {
+    status: number
+    statusText: string
+    headers: GotResponse["headers"]
+    data: string | object
+  }
+}
 
 export class CallCommand extends Command<Args> {
   name = "call"
@@ -46,7 +58,7 @@ export class CallCommand extends Command<Args> {
 
   arguments = callArgs
 
-  async action({ garden, log, headerLog, args }: CommandParams<Args>): Promise<CommandResult> {
+  async action({ garden, log, headerLog, args }: CommandParams<Args>): Promise<CommandResult<CallResult>> {
     printHeader(headerLog, "Call", "telephone_receiver")
 
     let [serviceName, path] = splitFirst(args.serviceAndPath, "/")
@@ -147,37 +159,55 @@ export class CallCommand extends Command<Args> {
     // this is to accept self-signed certs
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
 
-    const req = Axios({
+    const req = got({
       method,
       url,
       headers: { host },
     })
 
     // TODO: add verbose and debug logging (request/response headers etc.)
-    let res
+    let res: GotResponse<string>
+    let statusText = ""
 
     try {
       res = await req
       entry.setSuccess()
-      log.info(chalk.green(`${res.status} ${res.statusText}\n`))
+      statusText = getStatusText(res.statusCode)
+      log.info(chalk.green(`${res.statusCode} ${statusText}\n`))
     } catch (err) {
       res = err.response
       entry.setError()
-      const error = res ? `${res.status} ${res.statusText}` : err.message
+      statusText = getStatusText(res.statusCode)
+      const error = res ? `${res.statusCode} ${statusText}` : err.message
       log.info(chalk.red(error + "\n"))
       return {}
     }
 
-    const resStr = isObject(res.data) ? JSON.stringify(res.data, null, 2) : res.data
+    let output: string | object = res.body
 
-    res.data && log.info(chalk.white(resStr))
+    if (res.headers["content-type"] === "application/json") {
+      try {
+        output = JSON.parse(res.body)
+      } catch (err) {
+        throw new RuntimeError(`Got content-type=application/json but could not parse output as JSON`, {
+          response: res,
+        })
+      }
+    }
+
+    res.body && log.info(chalk.white(res.body))
 
     return {
       result: {
         serviceName,
         path,
         url,
-        response: pick(res, ["status", "statusText", "headers", "data"]),
+        response: {
+          data: output,
+          headers: res.headers,
+          status: res.statusCode,
+          statusText,
+        },
       },
     }
   }
