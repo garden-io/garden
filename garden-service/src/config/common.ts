@@ -135,7 +135,7 @@ export let joi: CustomJoi = Joi.extend({
     const result = baseSchema.validate(value)
 
     if (result.error) {
-      return { value, errors: error("posixPath") }
+      return { value, errors: error("base") }
     }
 
     if (!schema.$_getFlag("allowGlobs") && (value.includes("*") || value.includes("?"))) {

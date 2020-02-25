@@ -23,6 +23,7 @@ import chalk from "chalk"
 import isUrl from "is-url"
 import { BinaryCmd } from "../../util/ext-tools"
 import titleize from "titleize"
+import { stripQuotes } from "../../util/string"
 
 interface DockerVersion {
   client?: string
@@ -373,8 +374,11 @@ const helpers = {
             return args.slice(0, -1)
           }
         })
+      )
+        // Strip quotes from quoted paths
+        .map(stripQuotes)
         // Ignore URLs
-      ).filter((path) => !isUrl(path))
+        .filter((path) => !isUrl(path))
     )
 
     for (const path of paths) {
