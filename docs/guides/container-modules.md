@@ -4,7 +4,7 @@ Garden includes a `container` module type, which provides a high-level abstracti
 
 `container` modules can be used to just _build_ container images, or they can specify deployable services through the optional `services` key, as well as `tasks` and `tests`. So you might in one scenario use a `container` module to both build and deploy services, and in another you might only build the image using a `container` module, and then refer to that image in a `helm` or `kubernetes` module.
 
-Below we'll walk through some usage examples. For a full reference of the `container` module type, please take a look at the [reference](../module-types/container.md).
+Below we'll walk through some usage examples. For a full reference of the `container` module type, please take a look at the [reference](../reference/module-types/container.md).
 
 _Note: Even though we've spent the most time on supporting Kubernetes, we've tried to design this module type in a way that makes it generically applicable to other container orchestrators as well, such as Docker Swarm, Docker Compose, AWS ECS etc. This will come in handy as we add more providers, that can then use the same module type._
 
@@ -83,7 +83,7 @@ services:
 ...
 ```
 
-This, first of all, tells Garden that it should deploy the built `frontend` container as a service with the same name. We also configure a health check, a couple of ingress endpoints, and specify that this service depends on the `backend` service. There is a number of other options, which you can find in the `container` module [reference](../module-types/container.md#services).
+This, first of all, tells Garden that it should deploy the built `frontend` container as a service with the same name. We also configure a health check, a couple of ingress endpoints, and specify that this service depends on the `backend` service. There is a number of other options, which you can find in the `container` module [reference](../reference/module-types/container.md#services).
 
 If you need to use advanced (or otherwise very specific) features of the underlying platform, you may need to use more platform-specific module types (e.g. `kubernetes` or `helm`). The `container` module type is not intended to capture all those features.
 
@@ -168,7 +168,7 @@ When you run `garden test` or `garden dev` we will run those tests. In both case
 
 The names and commands to run are of course completely up to you, but we suggest naming the test suites consistently across your different modules.
 
-See the [reference](../module-types/container.md#tests) for all the configurable parameters for container tests.
+See the [reference](../reference/module-types/container.md#tests) for all the configurable parameters for container tests.
 
 ## Running tasks
 
@@ -193,7 +193,7 @@ Unlike tests, tasks can also be dependencies for services and other tasks. For e
 
 One thing to note, is that tasks should in most cases be _idempotent_, meaning that running the same task multiple times should be safe.
 
-See the [reference](../module-types/container.md#tasks) for all the configurable parameters for container tasks.
+See the [reference](../reference/module-types/container.md#tasks) for all the configurable parameters for container tasks.
 
 ## Referencing from other modules
 
@@ -215,11 +215,11 @@ values:
 
 Here, we declare `my-image` as a dependency for the `my-service` Helm chart. In order for the Helm chart to be able to reference the built container image, we must provide the correct image name and version.
 
-For a full list of keys that are available for the `container` module type, take a look at the [outputs reference](../module-types/container.md#outputs).
+For a full list of keys that are available for the `container` module type, take a look at the [outputs reference](../reference/module-types/container.md#outputs).
 
 ## Mounting volumes
 
-`container` services, tasks and tests can all mount volumes, using _volume modules_. One such is the [`persistentvolumeclaim` module type](../module-types/persistentvolumeclaim.md), supported by the `kubernetes` provider. To mount a volume, you need to define a volume module, and reference it using the `volumes` key on your services, tasks and/or tests.
+`container` services, tasks and tests can all mount volumes, using _volume modules_. One such is the [`persistentvolumeclaim` module type](../reference/module-types/persistentvolumeclaim.md), supported by the `kubernetes` provider. To mount a volume, you need to define a volume module, and reference it using the `volumes` key on your services, tasks and/or tests.
 
 Example:
 
@@ -252,10 +252,10 @@ This will mount the `my-volume` PVC at `/volume` in the `my-service` service whe
 Notice the `accessModes` field in the volume module above. The default storage classes in Kubernetes generally don't support being mounted by multiple Pods at the same time. If your volume module doesn't support the `ReadWriteMany` access mode, you must take care not to use the same volume in multiple services, tasks or tests, or multiple replicas. See [Shared volumes](#shared-volumes) below for how to share a single volume with multiple Pods.
 {% endhint %}
 
-You can do the same for tests and tasks using the [`tests.volumes`](../module-types/container.md#testsvolumes) and [`tasks.volumes`](../module-types/container.md#tasksvolumes) fields. `persistentvolumeclaim` volumes can of course also be referenced in `kubernetes` and
+You can do the same for tests and tasks using the [`tests.volumes`](../reference/module-types/container.md#testsvolumes) and [`tasks.volumes`](../reference/module-types/container.md#tasksvolumes) fields. `persistentvolumeclaim` volumes can of course also be referenced in `kubernetes` and
 `helm` modules, since they are deployed as standard PersistentVolumeClaim resources.
 
-Take a look at the [`persistentvolumeclaim` module type](../module-types/persistentvolumeclaim.md) and [`container` module](../module-types/container.md#servicesvolumes) docs for more details.
+Take a look at the [`persistentvolumeclaim` module type](../reference/module-types/persistentvolumeclaim.md) and [`container` module](../reference/module-types/container.md#servicesvolumes) docs for more details.
 
 ### Shared volumes
 

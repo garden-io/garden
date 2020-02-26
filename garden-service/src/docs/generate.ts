@@ -66,10 +66,10 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
     },
   })
 
-  const providerDir = resolve(docsRoot, "providers")
+  const providerDir = resolve(docsRoot, "reference", "providers")
   const plugins = await garden.getPlugins()
   const pluginsByName = keyBy(plugins, "name")
-  const providersReadme = ["---", "order: 6", "title: Providers", "---", "", "# Providers", ""]
+  const providersReadme = ["---", "order: 1", "title: Providers", "---", "", "# Providers", ""]
 
   for (const plugin of plugins) {
     const name = plugin.name
@@ -88,8 +88,8 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
   writeFileSync(resolve(providerDir, `README.md`), providersReadme.join("\n"))
 
   // Render module types
-  const moduleTypeDir = resolve(docsRoot, "module-types")
-  const readme = ["---", "order: 7", "title: Module Types", "---", "", "# Module Types", ""]
+  const moduleTypeDir = resolve(docsRoot, "reference", "module-types")
+  const readme = ["---", "order: 2", "title: Module Types", "---", "", "# Module Types", ""]
   const moduleTypeDefinitions = await garden.getModuleTypes()
 
   for (const { name } of moduleTypes) {

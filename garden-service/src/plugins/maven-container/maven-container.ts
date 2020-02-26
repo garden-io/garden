@@ -21,7 +21,7 @@ import { Module } from "../../types/module"
 import { resolve } from "path"
 import { RuntimeError, ConfigurationError } from "../../exceptions"
 import { containerHelpers } from "../container/helpers"
-import { STATIC_DIR, DOCS_BASE_URL } from "../../constants"
+import { STATIC_DIR } from "../../constants"
 import { xml2json } from "xml-js"
 import { containerModuleSpecSchema } from "../container/config"
 import { providerConfigBaseSchema } from "../../config/provider"
@@ -34,6 +34,7 @@ import AsyncLock = require("async-lock")
 import { ConfigureModuleParams } from "../../types/plugin/module/configure"
 import { GetBuildStatusParams } from "../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams } from "../../types/plugin/module/build"
+import { getModuleTypeUrl } from "../../docs/common"
 
 const defaultDockerfileName = "maven-container.Dockerfile"
 const defaultDockerfilePath = resolve(STATIC_DIR, "maven-container", defaultDockerfileName)
@@ -97,16 +98,16 @@ export const mavenContainerConfigSchema = () =>
     name: joiProviderName("maven-container"),
   })
 
+const moduleTypeUrl = getModuleTypeUrl("maven-container")
+
 export const gardenPlugin = createGardenPlugin({
   name: "maven-container",
   dependencies: ["container"],
 
   docs: dedent`
-    Adds the [maven-container module type](${DOCS_BASE_URL}/module-types/maven-container), which is a specialized version of the
-    \`container\` module type that has special semantics for building JAR files using Maven.
+    Adds the [maven-container module type](${moduleTypeUrl}), which is a specialized version of the \`container\` module type that has special semantics for building JAR files using Maven.
 
-    To use it, simply add the provider to your provider configuration, and refer to the
-    [maven-container module docs](${DOCS_BASE_URL}/module-types/maven-container) for details on how to configure the modules.
+    To use it, simply add the provider to your provider configuration, and refer to the [maven-container module docs](${moduleTypeUrl}) for details on how to configure the modules.
   `,
 
   createModuleTypes: [
