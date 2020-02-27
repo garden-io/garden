@@ -67,7 +67,9 @@ export async function configureProvider({
       // to make sure every node in the cluster can resolve the image from the registry we deploy in-cluster.
       config.deploymentRegistry = {
         hostname: inClusterRegistryHostname,
-        namespace: config.namespace,
+        // Default to use the project name as the namespace in the in-cluster registry, if none is explicitly
+        // configured. This allows users to share builds for a project.
+        namespace: config.deploymentRegistry?.namespace || projectName,
       }
       config._systemServices.push("docker-registry", "registry-proxy")
     }
