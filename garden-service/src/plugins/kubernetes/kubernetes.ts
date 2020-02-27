@@ -67,7 +67,7 @@ export async function configureProvider({
       // to make sure every node in the cluster can resolve the image from the registry we deploy in-cluster.
       config.deploymentRegistry = {
         hostname: inClusterRegistryHostname,
-        namespace: config.namespace,
+        namespace: (config.deploymentRegistry && config.deploymentRegistry.namespace) || config.namespace,
       }
       config._systemServices.push("docker-registry", "registry-proxy")
     }
