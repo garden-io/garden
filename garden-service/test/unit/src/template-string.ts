@@ -481,14 +481,13 @@ describe("resolveTemplateString", async () => {
     expect(res).to.equal(true)
   })
 
-  // FIXME: We should support this
-  // it("should handle a ternary expression with nested expressions", async () => {
-  //   const res = await resolveTemplateString(
-  //     "${foo == 'bar' ? '=${foo}' : b}",
-  //     new TestContext({ foo: "bar", a: true, b: false }),
-  //   )
-  //   expect(res).to.equal("=bar")
-  // })
+  it("should handle a ternary expression with template key values", async () => {
+    const res = await resolveTemplateString(
+      "${foo == 'bar' ? '=${foo}' : b}",
+      new TestContext({ foo: "bar", a: true, b: false })
+    )
+    expect(res).to.equal("=bar")
+  })
 
   it("should handle an expression in parentheses", async () => {
     const res = await resolveTemplateString("${foo || (a > 5)}", new TestContext({ foo: false, a: 10 }))

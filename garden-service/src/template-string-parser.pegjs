@@ -65,8 +65,15 @@ Suffix
 // ---- expressions -----
 // Reduced and adapted from: https://github.com/pegjs/pegjs/blob/master/examples/javascript.pegjs
 PrimaryExpression
-  = v:Literal {
+  = v:NonStringLiteral {
     return v
+  }
+  / v:StringLiteral {
+    // Allow nested template strings in literals
+    return options.resolveNested(v)
+      .catch(_error => {
+        return { _error }
+      })
   }
   / key:Key {
     return options.getKey(key, { allowUndefined: true })
@@ -278,10 +285,13 @@ Keyword
   = TypeofToken
 
 Literal
+  = NonStringLiteral
+  / StringLiteral
+
+NonStringLiteral
   = NullLiteral
   / BooleanLiteral
   / NumericLiteral
-  / StringLiteral
 
 NullLiteral
   = NullToken { return null }

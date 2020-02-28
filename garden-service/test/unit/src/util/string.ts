@@ -24,4 +24,9 @@ describe("tailString", () => {
     const str = "1234567\n890"
     expect(tailString(str, 5, true)).to.equal("890")
   })
+
+  it("should trim the last line if it is longer than maxLength and nextLine=true", () => {
+    const str = "123\n4567890"
+    expect(tailString(str, 5, true)).to.equal("67890")
+  })
 })

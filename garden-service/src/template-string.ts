@@ -60,6 +60,7 @@ export async function resolveTemplateString(
         return context.resolve({ key, nodePath: [], opts: { ...opts, ...(resolveOpts || {}) } })
       },
       getValue,
+      resolveNested: (nested: string) => resolveTemplateString(nested, context, opts),
       // Some utilities to pass to the parser
       buildBinaryExpression,
       buildLogicalExpression,
