@@ -8,13 +8,16 @@ orbs:
 # These can be used to inject shared variables
 # see https://blog.daemonl.com/2016/02/yaml.html
 .references:
+  shared-env-config: &shared-env-config
+    GARDEN_DISABLE_VERSION_CHECK: "true"
+    GARDEN_DISABLE_ANALYTICS: "true"
+
   # Configuration for our node jobs
   node-config: &node-config
     docker:
       - image: circleci/node:12
         environment:
-          GARDEN_DISABLE_VERSION_CHECK: "true"
-          GARDEN_DISABLE_ANALYTICS: "true"
+          <<: *shared-env-config
           GARDEN_TASK_CONCURRENCY_LIMIT: "10"
     resource_class: large
 
@@ -336,8 +339,7 @@ jobs:
     docker:
       - image: gardendev/garden-gcloud:${CIRCLE_SHA1}
         environment:
-          GARDEN_DISABLE_VERSION_CHECK: "true"
-          GARDEN_DISABLE_ANALYTICS: "true"
+          <<: *shared-env-config
           GARDEN_TASK_CONCURRENCY_LIMIT: "10"
     steps:
       # Need to checkout to run example project
@@ -451,6 +453,7 @@ jobs:
         description: The Kubernetes version to run
         type: string
     environment:
+      <<: *shared-env-config
       K8S_VERSION: <<parameters.kubernetesVersion>>
       MINIKUBE_VERSION: v1.5.2
       GARDEN_LOG_LEVEL: debug
