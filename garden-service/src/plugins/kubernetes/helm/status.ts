@@ -11,11 +11,10 @@ import { GetServiceStatusParams } from "../../../types/plugin/service/getService
 import { LogEntry } from "../../../logger/log-entry"
 import { helm } from "./helm-cli"
 import { HelmModule } from "./config"
-import { getReleaseName } from "./common"
+import { getReleaseName, loadTemplate } from "./common"
 import { KubernetesPluginContext } from "../config"
 import { getForwardablePorts } from "../port-forward"
 import { KubernetesServerResource } from "../types"
-import { safeLoadAll } from "js-yaml"
 import { getModuleNamespace } from "../namespace"
 
 const helmStatusMap: { [status: string]: ServiceState } = {
@@ -85,7 +84,7 @@ export async function getDeployedResources({
     provider: ctx.provider,
   })
 
-  return safeLoadAll(
+  return loadTemplate(
     await helm({
       ctx,
       log,

@@ -1,6 +1,6 @@
 ---
-order: 2
-title: Commands Reference
+order: 3
+title: Commands
 ---
 
 ## Garden CLI commands

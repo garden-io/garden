@@ -41,14 +41,6 @@ Instructions for creating and configuring Kubernetes clusters with GKE (Google),
 
 The [Helm](https://helm.sh/) package manager is one of the most commonly used tools for managing Kubernetes manifests. Garden supports using your own Helm charts, alongside your container modules. This guide shows you how to use 3rd-party (or otherwise external) Helm charts, as well as your own charts, in your Garden project. We also go through how to configure tests, tasks and hot-reloading for your charts.
 
-## [Using Remote Sources](./using-remote-sources.md)
-
-Instructions for how to import code from remote repositories into a Garden project.
-
 ## [Hot Reload](./hot-reload.md)
 
 This article discusses how to use hot reloading, so that you can update running services on the fly as you make changes to their code, without losing state and without having to destroy and re-create containers.
-
-## [Terraform](./terraform.md)
-
-This article discusses how to use the Terraform provider, for provisioning infrastructure as part of your Garden project.

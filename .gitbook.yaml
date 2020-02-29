@@ -1,3 +1,26 @@
 structure:
   readme: README.md
   summary: docs/README.md
+
+redirects:
+  guides/using-remote-sources: advanced/using-remote-sources.md
+  guides/cert-manager-integration: advanced/cert-manager-integration.md
+  providers/conftest-container: reference/providers/conftest-container.md
+  providers/conftest-kubernetes: reference/providers/conftest-kubernetes.md
+  providers/conftest: reference/providers/conftest.md
+  providers/hadolint: reference/providers/hadolint.md
+  providers/kubernetes: reference/providers/kubernetes.md
+  providers/local-kubernetes: reference/providers/local-kubernetes.md
+  providers/maven-container: reference/providers/maven-container.md
+  providers/openfaas: reference/providers/openfaas.md
+  providers/terraform: reference/providers/terraform.md
+  module-types/conftest: reference/module-types/conftest.md
+  module-types/container: reference/module-types/container.md
+  module-types/exec: reference/module-types/exec.md
+  module-types/hadolint: reference/module-types/hadolint.md
+  module-types/helm: reference/module-types/helm.md
+  module-types/kubernetes: reference/module-types/kubernetes.md
+  module-types/maven-container: reference/module-types/maven-container.md
+  module-types/openfaas: reference/module-types/openfaas.md
+  module-types/persistentvolumeclaim: reference/module-types/persistentvolumeclaim.md
+  module-types/terraform: reference/module-types/terraform.md

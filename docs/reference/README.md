@@ -1,10 +1,12 @@
 ---
-order: 7
+order: 10
 title: Reference
 ---
 # Reference
 
+* [Providers](./providers/README.md)
+* [Module Types](./module-types/README.md)
+* [Commands](./commands.md)
+* [Config Files](./config.md)
+* [Template Strings](./template-strings.md)
 * [Glossary](./glossary.md)
-* [Commands Reference](./commands.md)
-* [Config Files Reference](./config.md)
-* [Template Strings Reference](./template-strings.md)

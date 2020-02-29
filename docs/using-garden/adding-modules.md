@@ -9,7 +9,7 @@ Modules are the basic **unit of building** in Garden. They are usually the first
 
 A module can correspond to a Dockerfile and its associated code, a remote Docker image, a Helm chart, an OpenFaaS function, and more, all depending on the module type.
 
-Below is a simple example of a module's `garden.yml` (from the [`demo-project`](https://github.com/garden-io/garden/tree/v0.11.4/examples/demo-project) example project):
+Below is a simple example of a module's `garden.yml` (from the [`demo-project`](https://github.com/garden-io/garden/tree/v0.11.5/examples/demo-project) example project):
 
 ```yaml
 kind: Module
@@ -60,7 +60,7 @@ Modules correspond to a **build** action in the Stack Graph.
 
 ## Examples
 
-You can learn more about different module types in the [module type reference docs](../module-types/README.md).
+You can learn more about different module types in the [module type reference docs](../reference/module-types/README.md).
 
 ### Container Module
 
@@ -125,7 +125,7 @@ Note however, that if a disabled module is referenced as a build dependency of a
 
 ## Further Reading
 
-* [Module type reference docs](../module-types/README.md).
+* [Module type reference docs](../reference/module-types/README.md).
 * [Multiple modules in the same configuration file](../guides/configuration-files.md#multiple-modules-in-the-same-file).
 * [A guide on the container module type](../guides/container-modules.md).
 

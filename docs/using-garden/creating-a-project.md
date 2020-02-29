@@ -63,7 +63,7 @@ Our choice of providers and their configuration dictates how the module in the e
 
 Some of the most commonly used providers are the [local Kubernetes provider](../guides/local-kubernetes.md) and the [remote Kubernetes provider](../guides/remote-kubernetes.md).
 
-Here's the [full list of supported providers](../providers/README.md).
+Here's the [full list of supported providers](../reference/providers/README.md).
 
 ## Examples
 

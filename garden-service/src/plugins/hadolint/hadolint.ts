@@ -16,12 +16,13 @@ import { dedent, splitLines, naturalList } from "../../util/string"
 import { TestModuleParams } from "../../types/plugin/module/testModule"
 import { Module } from "../../types/module"
 import { BinaryCmd } from "../../util/ext-tools"
-import { STATIC_DIR, DOCS_BASE_URL } from "../../constants"
+import { STATIC_DIR } from "../../constants"
 import { padStart, padEnd } from "lodash"
 import chalk from "chalk"
 import { ConfigurationError } from "../../exceptions"
 import { containerHelpers } from "../container/helpers"
 import { baseBuildSpecSchema } from "../../config/module"
+import { getProviderUrl, getModuleTypeUrl } from "../../docs/common"
 
 const defaultConfigPath = join(STATIC_DIR, "hadolint", "default.hadolint.yaml")
 const configFilename = ".hadolint.yaml"
@@ -63,21 +64,18 @@ interface HadolintModuleSpec {
 
 type HadolintModule = Module<HadolintModuleSpec>
 
+const moduleTypeUrl = getModuleTypeUrl("hadolint")
+const providerUrl = getProviderUrl("hadolint")
+
 export const gardenPlugin = createGardenPlugin({
   name: "hadolint",
   dependencies: ["container"],
   docs: dedent`
-    This provider creates a [\`hadolint\`](${DOCS_BASE_URL}/module-types/hadolint) module type, and (by default) generates one
-    such module for each \`container\` module that contains a Dockerfile in your project. Each module creates a single
-    test that runs [hadolint](https://github.com/hadolint/hadolint) against the Dockerfile in question, in order to
-    ensure that the Dockerfile is valid and follows best practices.
+    This provider creates a [\`hadolint\`](${moduleTypeUrl}) module type, and (by default) generates one such module for each \`container\` module that contains a Dockerfile in your project. Each module creates a single test that runs [hadolint](https://github.com/hadolint/hadolint) against the Dockerfile in question, in order to ensure that the Dockerfile is valid and follows best practices.
 
-    To configure \`hadolint\`, you can use \`.hadolint.yaml\` config files. For each test, we first look for one in
-    the relevant module root. If none is found there, we check the project root, and if none is there we fall back to
-    default configuration. Note that for reasons of portability, we do not fall back to global/user configuration files.
+    To configure \`hadolint\`, you can use \`.hadolint.yaml\` config files. For each test, we first look for one in the relevant module root. If none is found there, we check the project root, and if none is there we fall back to default configuration. Note that for reasons of portability, we do not fall back to global/user configuration files.
 
-    See the [hadolint docs](https://github.com/hadolint/hadolint#configure) for details on how to configure it, and the
-    [hadolint example project](https://github.com/garden-io/garden/tree/master/examples/hadolint) for a usage example.
+    See the [hadolint docs](https://github.com/hadolint/hadolint#configure) for details on how to configure it, and the [hadolint example project](https://github.com/garden-io/garden/tree/master/examples/hadolint) for a usage example.
   `,
   configSchema,
   handlers: {
@@ -136,7 +134,7 @@ export const gardenPlugin = createGardenPlugin({
       docs: dedent`
         Runs \`hadolint\` on the specified Dockerfile.
 
-        > Note: In most cases, you'll let the [provider](${DOCS_BASE_URL}/providers/hadolint) create this module type automatically, but you may in some cases want or need to manually specify a Dockerfile to lint.
+        > Note: In most cases, you'll let the [provider](${providerUrl}) create this module type automatically, but you may in some cases want or need to manually specify a Dockerfile to lint.
 
         To configure \`hadolint\`, you can use \`.hadolint.yaml\` config files. For each test, we first look for one in
         the module root. If none is found there, we check the project root, and if none is there we fall back to default
