@@ -23,7 +23,7 @@ The guide is based on the [Remote Kubernetes](https://docs.garden.io/guides/remo
 
 ## Project overview
 
-The project is based on our basic [demo-project](https://github.com/garden-io/garden/tree/v0.11.4/examples/demo-project) example, but configured for multiple environments. Additionally it contains a CircleCI config file. You'll find the entire source code [here](https://github.com/garden-io/ci-demo-project).
+The project is based on our basic [demo-project](https://github.com/garden-io/garden/tree/v0.11.5/examples/demo-project) example, but configured for multiple environments. Additionally it contains a CircleCI config file. You'll find the entire source code [here](https://github.com/garden-io/ci-demo-project).
 
 The CI pipeline in configured so that Garden tests the project and deploys it to a **preview** environment on every pull request. Additionally, it tests the project and deploys it to a separate **staging** environment on every merge to the `master` branch.
 
