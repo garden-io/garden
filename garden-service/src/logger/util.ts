@@ -9,7 +9,7 @@
 import nodeEmoji from "node-emoji"
 import chalk from "chalk"
 import CircularJSON from "circular-json"
-import { LogNode } from "./log-node"
+import { LogNode, LogLevel } from "./log-node"
 import { LogEntry, LogEntryParams, EmojiName } from "./log-entry"
 import { isBuffer } from "util"
 import { deepMap } from "../util/util"
@@ -22,14 +22,15 @@ export type LogOptsResolvers = { [K in keyof LogEntryParams]?: Function }
 
 export type ProcessNode<T extends Node = Node> = (node: T) => boolean
 
-function traverseChildren<T extends Node, U extends Node>(node: T | U, cb: ProcessNode<U>) {
+function traverseChildren<T extends Node, U extends Node>(node: T | U, cb: ProcessNode<U>, reverse = false) {
   const children = node.children
-  for (let idx = 0; idx < children.length; idx++) {
-    const proceed = cb(children[idx])
+  for (let i = 0; i < children.length; i++) {
+    const index = reverse ? children.length - 1 - i : i
+    const proceed = cb(children[index])
     if (!proceed) {
       return
     }
-    traverseChildren(children[idx], cb)
+    traverseChildren(children[index], cb)
   }
 }
 
@@ -61,6 +62,64 @@ export function findLogNode(node: LogNode, predicate: ProcessNode<LogNode>): Log
     return true
   })
   return found
+}
+
+/**
+ * Given a LogNode, get a list of LogEntries that represent the last `lines` number of log lines nested under the node.
+ * Note that the returned number of lines may be slightly higher, so you should slice after rendering them (which
+ * you anyway need to do if you're wrapping the lines to a certain width).
+ *
+ * @param node   the log node whose child entries we want to tail
+ * @param level  maximum log level to include
+ * @param lines  how many lines to aim for
+ */
+export function tailChildEntries(node: LogNode | LogEntry, level: LogLevel, lines: number): LogEntry[] {
+  let output: LogEntry[] = []
+  let outputLines = 0
+
+  traverseChildren<LogNode, LogEntry>(node, (entry) => {
+    if (entry.level <= level) {
+      output.push(entry)
+      const msg = entry.getMessageState().msg || ""
+      outputLines += msg.length > 0 ? msg.split("\n").length : 0
+
+      if (outputLines >= lines) {
+        return false
+      }
+    }
+    return true
+  })
+
+  return output
+}
+
+/**
+ * Get the log entry preceding the given `entry` in its tree, given the minimum log `level`.
+ */
+export function getPrecedingEntry(entry: LogEntry) {
+  if (!entry.parent) {
+    // This is the first entry in its tree
+    return
+  }
+
+  const siblings = entry.parent.children
+  const index = siblings.findIndex((e) => e.key === entry.key)
+
+  if (index === 0) {
+    // The nearest entry is the parent
+    return entry.parent
+  } else {
+    // The nearest entry is the last entry nested under the next sibling above,
+    // or the sibling itself if it has no child nodes
+    const sibling = siblings[index - 1]
+    const siblingChildren = getChildEntries(sibling)
+
+    if (siblingChildren.length > 0) {
+      return siblingChildren[siblingChildren.length - 1]
+    } else {
+      return sibling
+    }
+  }
 }
 
 interface StreamWriteExtraParam {

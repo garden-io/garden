@@ -97,7 +97,8 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
     const data = await readFile(ansiBannerPath)
     log.info(data.toString())
 
-    log.info(chalk.gray.italic(`Good ${getGreetingTime()}! Let's get your environment wired up...\n`))
+    log.info(chalk.gray.italic(`Good ${getGreetingTime()}! Let's get your environment wired up...`))
+    log.info("")
 
     this.server = await startServer(footerLog)
 

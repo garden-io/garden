@@ -300,6 +300,7 @@ export class GardenCli {
       // the screen the logs are printed.
       const headerLog = logger.placeholder()
       const log = logger.placeholder()
+      logger.info("")
       const footerLog = logger.placeholder()
 
       const contextOpts: GardenOpts = {
@@ -483,6 +484,8 @@ export class GardenCli {
     }
 
     logger.stop()
+    logger.cleanup()
+
     return { argv, code, errors, result: commandResult?.result }
   }
 }
