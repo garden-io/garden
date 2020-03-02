@@ -153,3 +153,17 @@ export function wordWrap(text: string, maxWidth: number, opts: any = {}) {
 export function truncate(text: string, length: number, opts: cliTruncate.Options = {}) {
   return cliTruncate(text, length, opts)
 }
+
+/**
+ * Strips matching single or double quotes from a string. If a string both starts and ends with a single quote, or
+ * if it both starts and ends with a double quote, we strip them. Otherwise the string is returned unchanged.
+ *
+ * @param string the string to strip
+ */
+export function stripQuotes(string: string) {
+  if (string.length >= 2 && string[0] === string[string.length - 1] && (string[0] === '"' || string[0] === "'")) {
+    return string.slice(1, -1)
+  } else {
+    return string
+  }
+}
