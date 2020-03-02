@@ -15,7 +15,7 @@ export abstract class Writer {
 
   constructor(public level: LogLevel = LogLevel.info) {}
 
-  abstract render(...args): string | string[] | null
   abstract onGraphChange(entry: LogEntry, logger: Logger): void
   abstract stop(): void
+  cleanup(): void {}
 }
