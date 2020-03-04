@@ -31,7 +31,7 @@ If you haven't already, please [install Homebrew](https://docs.brew.sh/Installat
 
 Other platforms need to roll their own for now (contributions welcome!). Please have a look at the script for OSX to see what's installed.
 
-**Note:** We recommend using Node 10 when developing Garden.
+**Note:** We recommend using Node 12 when developing Garden.
 
 ### Step 4: Bootstrap project
 
@@ -43,6 +43,13 @@ npm run bootstrap # To bootstrap packages
 ```
 
 from the root directory
+
+You will also need to install Node modules in the `garden-service` package. 
+
+```sh
+cd garden-service
+npm install
+```
 
 ## Developing Garden
 
