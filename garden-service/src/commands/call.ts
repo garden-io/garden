@@ -35,7 +35,7 @@ interface CallResult {
   response: {
     status: number
     statusText: string
-    headers: GotResponse["headers"]
+    headers: GotResponse["headers"] | null
     data: string | object | null
     error: string | null
   }
@@ -201,7 +201,7 @@ export class CallCommand extends Command<Args> {
       log.info(chalk.red(error + "\n"))
     }
 
-    res.body && log.info(chalk.white(res.body))
+    res && res.body && log.info(chalk.white(res.body))
 
     return {
       result: {
@@ -211,8 +211,8 @@ export class CallCommand extends Command<Args> {
         response: {
           data: output,
           error,
-          headers: res.headers,
-          status: res.statusCode,
+          headers: res ? res.headers : null,
+          status: res ? res.statusCode : 204,
           statusText,
         },
       },
