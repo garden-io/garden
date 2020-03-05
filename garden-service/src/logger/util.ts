@@ -99,7 +99,14 @@ export function interceptStream(stream: NodeJS.WriteStream, callback: Function) 
   return restore
 }
 
+export let overrideTerminalWidth: number | undefined
+
 export function getTerminalWidth(stream: NodeJS.WriteStream = process.stdout) {
+  // Used for unit tests
+  if (overrideTerminalWidth) {
+    return overrideTerminalWidth
+  }
+
   const columns = (stream || {}).columns
 
   if (!columns) {

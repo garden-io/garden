@@ -2,8 +2,7 @@ kind: Project
 name: terraform-gke
 providers:
   - name: terraform
-    # These two keys must be set if we want to apply a stack as part of the provider initialization.
-    autoApply: true
+    # This must be set to indicate that there is a stack in the project root.
     initRoot: "."
     # You can either uncomment and replace these with your own values, or provide the values in a
     # terraform.tfvars file in the project root.

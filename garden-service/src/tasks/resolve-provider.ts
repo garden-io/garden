@@ -104,6 +104,12 @@ export class ResolveProviderTask extends BaseTask {
   async process(dependencyResults: TaskResults) {
     const resolvedProviders: Provider[] = Object.values(dependencyResults).map((result) => result && result.output)
 
+    // Return immediately if the provider has been previously resolved
+    const alreadyResolvedProviders = this.garden["resolvedProviders"][this.config.name]
+    if (alreadyResolvedProviders) {
+      return alreadyResolvedProviders
+    }
+
     const context = new ProviderConfigContext(this.garden, resolvedProviders, this.garden.variables)
 
     this.log.silly(`Resolving template strings for provider ${this.config.name}`)

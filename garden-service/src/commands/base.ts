@@ -237,7 +237,7 @@ export interface CommandResult<T = any> {
 }
 
 export interface CommandParamsBase<T extends Parameters = {}, U extends Parameters = {}> {
-  args: ParameterValues<T>
+  args: ParameterValues<T> & { _?: string[] }
   opts: ParameterValues<GlobalOptions & U>
   log: LogEntry
 }

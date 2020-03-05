@@ -9,6 +9,7 @@
 import Joi = require("@hapi/joi")
 import { dedent } from "../../../util/string"
 import { joi } from "../../../config/common"
+import { templateStringLiteral } from "../../../docs/common"
 
 export interface DescribeModuleTypeParams {}
 export const describeModuleTypeParamsSchema = () => joi.object().keys({})
@@ -49,7 +50,7 @@ export const describeType = () => ({
     // TODO: specify the schemas using primitives and not Joi objects
     moduleOutputsSchema: joi.object().default(() => joi.object().keys({})).description(dedent`
           A valid Joi schema describing the keys that each module outputs at config time, for use in template strings
-          (e.g. \`\${modules.my-module.outputs.some-key}\`).
+          (e.g. ${templateStringLiteral("modules.my-module.outputs.some-key")}).
 
           If no schema is provided, an error may be thrown if a module attempts to return an output.
         `),
@@ -61,14 +62,14 @@ export const describeType = () => ({
       ),
     serviceOutputsSchema: joi.object().default(() => joi.object().keys({})).description(dedent`
           A valid Joi schema describing the keys that each service outputs at runtime, for use in template strings
-          and environment variables (e.g. \`\${runtime.services.my-service.outputs.some-key}\` and
+          and environment variables (e.g. ${templateStringLiteral("runtime.services.my-service.outputs.some-key")} and
           \`GARDEN_SERVICES_MY_SERVICE__OUTPUT_SOME_KEY\`).
 
           If no schema is provided, an error may be thrown if a service attempts to return an output.
         `),
     taskOutputsSchema: joi.object().default(() => joi.object().keys({})).description(dedent`
           A valid Joi schema describing the keys that each task outputs at runtime, for use in template strings
-          and environment variables (e.g. \`\${runtime.tasks.my-task.outputs.some-key}\` and
+          and environment variables (e.g. ${templateStringLiteral("runtime.tasks.my-task.outputs.some-key")} and
           \`GARDEN_TASKS_MY_TASK__OUTPUT_SOME_KEY\`).
 
           If no schema is provided, an error may be thrown if a task attempts to return an output.

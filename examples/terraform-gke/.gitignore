@@ -5,3 +5,4 @@ gcloud-auth.json
 *.tfstate
 *.tfstate.backup
 kubeconfig.yaml
+terraform.tfstate.d

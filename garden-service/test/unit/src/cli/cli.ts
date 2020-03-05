@@ -7,12 +7,34 @@
  */
 
 import { expect } from "chai"
-import { makeDummyGarden } from "../../../../src/cli/cli"
+import { makeDummyGarden, GardenCli } from "../../../../src/cli/cli"
 import { getDataDir } from "../../../helpers"
 import { GARDEN_SERVICE_ROOT } from "../../../../src/constants"
 import { join } from "path"
+import { Command } from "../../../../src/commands/base"
 
 describe("cli", () => {
+  describe("run", () => {
+    it("should pass unparsed args to commands", async () => {
+      class TestCommand extends Command {
+        name = "test-command"
+        help = "halp!"
+        noProject = true
+
+        async action({ args }) {
+          return { result: { args } }
+        }
+      }
+
+      const command = new TestCommand()
+      const cli = new GardenCli()
+      cli.addCommand(command, cli["program"])
+
+      const { result } = await cli.parse(["test-command", "some", "args"])
+      expect(result).to.eql({ args: { _: ["some", "args"] } })
+    })
+  })
+
   describe("makeDummyGarden", () => {
     it("should initialise and resolve config graph in a directory with no project", async () => {
       const garden = await makeDummyGarden(join(GARDEN_SERVICE_ROOT, "tmp", "foobarbas"), {})

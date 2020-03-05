@@ -42,6 +42,7 @@ import { getPortForward, GetPortForwardParams, GetPortForwardResult } from "./se
 import { StopPortForwardParams, stopPortForward } from "./service/stopPortForward"
 import { AugmentGraphResult, AugmentGraphParams, augmentGraph } from "./provider/augmentGraph"
 import { suggestModules, SuggestModulesParams, SuggestModulesResult } from "./module/suggestModules"
+import { templateStringLiteral } from "../../docs/common"
 
 export interface ActionHandlerParamsBase {
   base?: ActionHandler<any, any>
@@ -424,7 +425,7 @@ const createModuleTypeSchema = () =>
     // TODO: validate outputs against the output schemas
     moduleOutputsSchema: joiSchema().description(dedent`
         A valid Joi schema describing the keys that each module outputs at config resolution time,
-        for use in template strings (e.g. \`\${modules.my-module.outputs.some-key}\`).
+        for use in template strings (e.g. ${templateStringLiteral("modules.my-module.outputs.some-key")}).
 
         ${outputSchemaDocs}
       `),
@@ -438,14 +439,14 @@ const createModuleTypeSchema = () =>
       `),
     serviceOutputsSchema: joiSchema().description(dedent`
         A valid Joi schema describing the keys that each service outputs at runtime, for use in template strings
-        and environment variables (e.g. \`\${runtime.services.my-service.outputs.some-key}\` and
+        and environment variables (e.g. ${templateStringLiteral("runtime.services.my-service.outputs.some-key")} and
         \`GARDEN_SERVICES_MY_SERVICE__OUTPUT_SOME_KEY\`).
 
         ${outputSchemaDocs}
       `),
     taskOutputsSchema: joiSchema().description(dedent`
         A valid Joi schema describing the keys that each task outputs at runtime, for use in template strings
-        and environment variables (e.g. \`\${runtime.tasks.my-task.outputs.some-key}\` and
+        and environment variables (e.g. ${templateStringLiteral("runtime.tasks.my-task.outputs.some-key")} and
         \`GARDEN_TASKS_MY_TASK__OUTPUT_SOME_KEY\`).
 
         ${outputSchemaDocs}

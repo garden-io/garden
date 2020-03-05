@@ -2,7 +2,7 @@
 
 When starting a new Kubernetes project or when maintaining your existing ones, dealing with the creation and renewal of TLS certificates can easily become a headache. A popular tool to help automate certficate generation and renewal is [cert-manager](https://github.com/jetstack/cert-manager).
 
-The [kubernetes](../remote-kubernetes.md) and [local-kubernetes](../local-kubernetes.md) providers include an integration with cert-manager. The goal of the integration is to give you a head start when setting up TLS certificates for your project, providing an easy way to install it, and some sensible defaults.
+The [kubernetes](../guides/remote-kubernetes.md) and [local-kubernetes](../guides/local-kubernetes.md) providers include an integration with cert-manager. The goal of the integration is to give you a head start when setting up TLS certificates for your project, providing an easy way to install it, and some sensible defaults.
 We don't aim to support all the features of cert-manager, but rather accommodate the most common use case, while still allowing full control of the underlying setup when needed.
 
 ## Requirements
@@ -57,7 +57,7 @@ A valid email address is also required for Let's Encrypt certificate requests.
 ### Issuing your first certificate
 
 cert-manager is a powerful tool with a lot of different possible configurations. While integrating it with Garden we decided to start with an opinionated setup which should get you up to speed quickly, without thinking too much about configuration.
-If/when you need specific settings or advanced use-cases, you can choose which certificates need to be managed by the integration and which you want to manage yourself using the [`tlsCertificates[].managedBy` config field](../../reference/providers/kubernetes.md#providerstlscertificatesmanagedby).
+If/when you need specific settings or advanced use-cases, you can choose which certificates need to be managed by the integration and which you want to manage yourself using the [`tlsCertificates[].managedBy` config field](../reference/providers/kubernetes.md#providerstlscertificatesmanagedby).
 
 #### Example
 

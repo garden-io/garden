@@ -1,10 +1,14 @@
 kind: Project
 name: terraform-provider
+environments:
+  - name: local
+  - name: prod
 providers:
   - name: terraform
-    autoApply: true
+    autoApply: ${environment.name != 'prod'}
     initRoot: tf
     variables:
       my-variable: foo
+      env: ${environment.name}
   - name: test-plugin
     something: ${providers.terraform.outputs.my-output}

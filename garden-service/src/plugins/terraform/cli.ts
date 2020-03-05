@@ -68,6 +68,26 @@ export const terraformClis: { [version: string]: BinaryCmd } = {
       },
     },
   }),
+  "0.12.21": new BinaryCmd({
+    name: "terraform-0.12.21",
+    specs: {
+      darwin: {
+        url: "https://releases.hashicorp.com/terraform/0.12.21/terraform_0.12.21_darwin_amd64.zip",
+        sha256: "f89b620e59439fccc80950bbcbd37a069101cbef7029029a12227eee831e463f",
+        extract,
+      },
+      linux: {
+        url: "https://releases.hashicorp.com/terraform/0.12.21/terraform_0.12.21_linux_amd64.zip",
+        sha256: "ca0d0796c79d14ee73a3d45649dab5e531f0768ee98da71b31e423e3278e9aa9",
+        extract,
+      },
+      win32: {
+        url: "https://releases.hashicorp.com/terraform/0.12.21/terraform_0.12.21_windows_amd64.zip",
+        sha256: "254e5f870efe9d86a3f211a1b9c3c01325fc380e428f54542b7750d8bfd62bb1",
+        extract,
+      },
+    },
+  }),
 }
 
 export const supportedVersions = Object.keys(terraformClis)

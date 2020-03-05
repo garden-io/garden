@@ -16,7 +16,7 @@ import { builtinPlugins } from "./plugins/plugins"
 import { Module, getModuleCacheContext, getModuleKey, ModuleConfigMap } from "./types/module"
 import { pluginModuleSchema, ModuleTypeMap } from "./types/plugin/plugin"
 import { SourceConfig, ProjectConfig, resolveProjectConfig, pickEnvironment, OutputSpec } from "./config/project"
-import { findByName, pickKeys, getPackageVersion, getNames } from "./util/util"
+import { findByName, pickKeys, getPackageVersion, getNames, findByNames } from "./util/util"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
 import { VcsHandler, ModuleVersion } from "./vcs/vcs"
 import { GitHandler } from "./vcs/git"
@@ -120,7 +120,7 @@ export class Garden {
   private loadedPlugins: GardenPlugin[]
   protected moduleConfigs: ModuleConfigMap
   private pluginModuleConfigs: ModuleConfig[]
-  private resolvedProviders: Provider[]
+  private resolvedProviders: { [key: string]: Provider }
   protected modulesScanned: boolean
   private readonly registeredPlugins: { [key: string]: GardenPlugin }
   private readonly taskGraph: TaskGraph
@@ -197,6 +197,7 @@ export class Garden {
     this.moduleConfigs = {}
     this.pluginModuleConfigs = []
     this.registeredPlugins = {}
+    this.resolvedProviders = {}
 
     this.taskGraph = new TaskGraph(this, this.log)
     this.events = new EventBus(this.log)
@@ -415,8 +416,8 @@ export class Garden {
     return getModuleTypes(configuredPlugins)
   }
 
-  getRawProviderConfigs() {
-    return this.providerConfigs
+  getRawProviderConfigs(names?: string[]) {
+    return names ? findByNames(names, this.providerConfigs, "provider") : this.providerConfigs
   }
 
   async resolveProvider(name: string) {
@@ -425,7 +426,11 @@ export class Garden {
       return defaultProvider
     }
 
-    const providers = await this.resolveProviders()
+    if (this.resolvedProviders[name]) {
+      return this.resolvedProviders[name]
+    }
+
+    const providers = await this.resolveProviders(false, [name])
     const provider = findByName(providers, name)
 
     if (!provider) {
@@ -443,9 +448,20 @@ export class Garden {
     return provider
   }
 
-  async resolveProviders(forceInit = false): Promise<Provider[]> {
+  async resolveProviders(forceInit = false, names?: string[]): Promise<Provider[]> {
+    let providers: Provider[] = []
+
     await this.asyncLock.acquire("resolve-providers", async () => {
-      if (this.resolvedProviders) {
+      const rawConfigs = this.getRawProviderConfigs(names)
+
+      if (!names) {
+        names = getNames(rawConfigs)
+      }
+
+      // As an optimization, we return immediately if all requested providers are already resolved
+      const alreadyResolvedProviders = names.map((name) => this.resolvedProviders[name]).filter(Boolean)
+      if (alreadyResolvedProviders.length === names.length) {
+        providers = alreadyResolvedProviders
         return
       }
 
@@ -457,7 +473,6 @@ export class Garden {
         status: "active",
       })
 
-      const rawConfigs = this.getRawProviderConfigs()
       const plugins = keyBy(await this.getPlugins(), "name")
 
       // Detect circular deps here
@@ -502,15 +517,15 @@ export class Garden {
 
       if (failed.length) {
         const messages = failed.map((r) => `- ${r!.name}: ${r!.error!.message}`)
-        const names = failed.map((r) => r!.name)
-        throw new PluginError(`Failed resolving one or more providers:\n- ${names.join("\n- ")}`, {
+        const failedNames = failed.map((r) => r!.name)
+        throw new PluginError(`Failed resolving one or more providers:\n- ${failedNames.join("\n- ")}`, {
           rawConfigs,
           taskResults,
           messages,
         })
       }
 
-      const providers: Provider[] = Object.values(taskResults).map((result) => result!.output)
+      providers = Object.values(taskResults).map((result) => result!.output)
 
       await Bluebird.map(providers, async (provider) =>
         Bluebird.map(provider.moduleConfigs, async (moduleConfig) => {
@@ -520,13 +535,15 @@ export class Garden {
         })
       )
 
-      this.resolvedProviders = providers
+      for (const provider of providers) {
+        this.resolvedProviders[provider.name] = provider
+      }
 
       log.setSuccess({ msg: chalk.green("Done"), append: true })
       this.log.silly(`Resolved providers: ${providers.map((p) => p.name).join(", ")}`)
     })
 
-    return this.resolvedProviders
+    return providers
   }
 
   /**
