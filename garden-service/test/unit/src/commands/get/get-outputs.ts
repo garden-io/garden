@@ -16,8 +16,6 @@ import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
 import { exec } from "../../../../../src/util/util"
 
 describe("GetOutputsCommand", () => {
-  const pluginName = "test-plugin"
-  const provider = pluginName
   let tmpDir: tmp.DirectoryResult
   let projectConfig: ProjectConfig
 
@@ -64,7 +62,7 @@ describe("GetOutputsCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { provider },
+      args: {},
       opts: withDefaultGlobalOpts({}),
     })
 

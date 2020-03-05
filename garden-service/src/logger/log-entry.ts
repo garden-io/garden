@@ -281,4 +281,8 @@ export class LogEntry extends LogNode {
     }
     return this
   }
+
+  getChildEntries() {
+    return getChildEntries(this)
+  }
 }

@@ -174,6 +174,7 @@ export interface ParseResults {
   argv: any
   code: number
   errors: (GardenError | Error)[]
+  result: any
 }
 
 interface SywacParseResults extends ParseResults {
@@ -267,7 +268,8 @@ export class GardenCli {
 
     const action = async (argv, cliContext) => {
       // Sywac returns positional args and options in a single object which we separate into args and opts
-      const parsedArgs = filterByKeys(argv, argKeys)
+      // We include the "rest" parameter (`_`) in the arguments passed to the command handler
+      const parsedArgs = { _: argv._, ...filterByKeys(argv, argKeys) }
       const parsedOpts = filterByKeys(argv, optKeys.concat(globalKeys))
       const root = resolve(process.cwd(), parsedOpts.root)
       const { "logger-type": loggerTypeOpt, "log-level": logLevel, emoji, env, silent, output } = parsedOpts
@@ -392,8 +394,8 @@ export class GardenCli {
     program.command(command.name, commandConfig)
   }
 
-  async parse(): Promise<ParseResults> {
-    const parseResult: SywacParseResults = await this.program.parse()
+  async parse(args?: string[]): Promise<ParseResults> {
+    const parseResult: SywacParseResults = await this.program.parse(args)
     const { argv, details, errors, output: cliOutput } = parseResult
     const { result: commandResult } = details
     const { output } = argv
@@ -470,7 +472,7 @@ export class GardenCli {
     }
 
     logger.stop()
-    return { argv, code, errors }
+    return { argv, code, errors, result: commandResult?.result }
   }
 }
 

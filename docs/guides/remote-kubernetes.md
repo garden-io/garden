@@ -137,7 +137,7 @@ you will expose for ingress.
 _How you configure DNS and prepare the certificates will depend on how you manage DNS and certificates in general,
 so we won't cover that in detail here._
 
-If you are using [cert-manager](https://github.com/jetstack/cert-manager) (or would like to use it) to manage your TLS certificates, you may want to check out the [cert-manager integration](./advanced/cert-manager-integration.md), which helps to automate some of the otherwise manual work involved in managing certificates.
+If you are using [cert-manager](https://github.com/jetstack/cert-manager) (or would like to use it) to manage your TLS certificates, you may want to check out the [cert-manager integration](../advanced/cert-manager-integration.md), which helps to automate some of the otherwise manual work involved in managing certificates.
 
 If you are manually creating or obtaining the certificates (and you have the `.crt` and `.key` files), create a
 [Secret](https://kubernetes.io/docs/concepts/configuration/secret/) for each cert in the cluster so

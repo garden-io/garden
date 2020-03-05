@@ -81,3 +81,10 @@ export function getGitHubUrl(path: string) {
   }
   return `https://github.com/garden-io/garden/tree/${version}/${path}`
 }
+
+/**
+ * Renders the given template key as a literal, suitable for rendering in documentation strings.
+ */
+export function templateStringLiteral(key: string) {
+  return "`${" + key + "}`"
+}

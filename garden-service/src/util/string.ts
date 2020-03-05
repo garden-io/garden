@@ -99,32 +99,39 @@ export function splitLines(s: string) {
   return s.split(/\r?\n/)
 }
 
-const defaultTableConfig: CliTable.TableConstructorOptions = {
-  // chars: {
-  //   "top": "",
-  //   "top-mid": "",
-  //   "top-left": "",
-  //   "top-right": "",
-  //   "bottom": "",
-  //   "bottom-mid": "",
-  //   "bottom-left": "",
-  //   "bottom-right": "",
-  //   "left": "",
-  //   "left-mid": "",
-  //   "mid": " ",
-  //   "mid-mid": "",
-  //   "right": "",
-  //   "right-mid": "",
-  //   "middle": "",
-  // },
-  wordWrap: true,
-  // truncate: " ",
-}
-
 type TableRow = CliTable.CrossTableRow | CliTable.HorizontalTableRow | CliTable.VerticalTableRow
 
-export function renderTable(rows: TableRow[], opts?: CliTable.TableConstructorOptions) {
-  const table = new CliTable({ ...defaultTableConfig, ...(opts || {}) })
+export const tablePresets: { [key: string]: CliTable.TableConstructorOptions } = {
+  "default": {
+    wordWrap: true,
+  },
+  "no-borders": {
+    chars: {
+      "top": "",
+      "top-mid": "",
+      "top-left": "",
+      "top-right": "",
+      "bottom": "",
+      "bottom-mid": "",
+      "bottom-left": "",
+      "bottom-right": "",
+      "left": "",
+      "left-mid": "",
+      "mid": " ",
+      "mid-mid": "",
+      "right": "",
+      "right-mid": "",
+      "middle": "",
+    },
+    style: {
+      compact: true,
+    },
+    wordWrap: true,
+  },
+}
+
+export function renderTable(rows: TableRow[], opts: CliTable.TableConstructorOptions = tablePresets.default) {
+  const table = new CliTable({ wordWrap: true, ...(opts || {}) })
   // The typings here are a complete mess
   table.push(...(<any>rows))
   return table.toString()

@@ -658,6 +658,7 @@ describe("Garden", () => {
             {
               name: "foo",
               description: "foo",
+              resolveModules: false,
               handler: () => ({ result: {} }),
             },
           ],
@@ -670,11 +671,13 @@ describe("Garden", () => {
               name: "foo",
               description: "foo",
               handler: () => ({ result: {} }),
+              resolveModules: false,
             },
             {
               name: "bar",
               description: "bar",
               handler: () => ({ result: {} }),
+              resolveModules: false,
             },
           ],
         })

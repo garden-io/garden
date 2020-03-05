@@ -524,13 +524,15 @@ export function pickKeys<T extends object, U extends keyof T>(obj: T, keys: U[],
   return picked
 }
 
-export function throwOnMissingNames<T extends ObjectWithName>(names: string[], entries: T[], description: string) {
+export function findByNames<T extends ObjectWithName>(names: string[], entries: T[], description: string) {
   const available = getNames(entries)
   const missing = difference(names, available)
 
   if (missing.length) {
     throw new ParameterError(`Could not find ${description}(s): ${missing.join(", ")}`, { available, missing })
   }
+
+  return entries.filter(({ name }) => names.includes(name))
 }
 
 export function hashString(s: string, length: number) {

@@ -7,22 +7,15 @@ tocTitle: "`terraform`"
 
 ## Description
 
-Resolves a Terraform stack and either applies it automatically (if `autoApply: true`) or errors when the stack
-resources are not up-to-date.
+Resolves a Terraform stack and either applies it automatically (if `autoApply: true`) or warns when the stack resources are not up-to-date.
 
-Stack outputs are made available as service outputs, that can be referenced by other modules under
-`\${runtime.services.<module-name>.outputs.<key>}`. You can template in those values as e.g. command arguments
-or environment variables for other services.
+**Note: It is not recommended to set `autoApply` to `true` for any production or shared environments, since this may result in accidental or conflicting changes to the stack.** Instead, it is recommended to manually plan and apply using the provided plugin commands. Run `garden plugins terraform` for details.
 
-Note that you can also declare a Terraform root in the `terraform` provider configuration by setting the
-`initRoot` parameter.
-This may be preferable if you need the outputs of the Terraform stack to be available to other provider
-configurations, e.g. if you spin up an environment with the Terraform provider, and then use outputs from
-that to configure another provider or other modules via `\${providers.terraform.outputs.<key>}` template
-strings.
+Stack outputs are made available as service outputs, that can be referenced by other modules under `${runtime.services.<module-name>.outputs.<key>}`. You can template in those values as e.g. command arguments or environment variables for other services.
 
-See the [Terraform guide](https://docs.garden.io/advanced/terraform) for a high-level introduction to the `terraform`
-provider.
+Note that you can also declare a Terraform root in the `terraform` provider configuration by setting the `initRoot` parameter. This may be preferable if you need the outputs of the Terraform stack to be available to other provider configurations, e.g. if you spin up an environment with the Terraform provider, and then use outputs from that to configure another provider or other modules via `${providers.terraform.outputs.<key>}` template strings.
+
+See the [Terraform guide](https://docs.garden.io/advanced/terraform) for a high-level introduction to the `terraform` provider.
 
 Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../guides/configuration-files.md).
@@ -115,8 +108,12 @@ build:
           # Defaults to to same as source path.
           target: ''
 
-# If set to true, Garden will automatically run `terraform apply -auto-approve` when the stack is not up-to-date.
-# Otherwise, a warning is logged if the stack is out-of-date, and an error thrown if it is missing entirely.
+# If set to true, Garden will automatically run `terraform apply -auto-approve` when the stack is not
+# up-to-date. Otherwise, a warning is logged if the stack is out-of-date, and an error thrown if it is missing
+# entirely.
+#
+# **NOTE: This is not recommended for production, or shared environments in general!**
+#
 # Defaults to the value set in the provider config.
 autoApply: null
 
@@ -127,14 +124,15 @@ dependencies: []
 # Specify the path to the working directory root—i.e. where your Terraform files are—relative to the module root.
 root: .
 
-# A map of variables to use when applying the stack. You can define these here or you can place a `terraform.tfvars`
-# file in the working directory root.
-# If you specified `variables` in the `terraform` provider config, those will be included but the variables specified
-# here take precedence.
+# A map of variables to use when applying the stack. You can define these here or you can place a
+# `terraform.tfvars` file in the working directory root.
+#
+# If you specified `variables` in the `terraform` provider config, those will be included but the variables
+# specified here take precedence.
 variables:
 
 # The version of Terraform to use. Defaults to the version set in the provider config.
-version: 0.12.7
+version:
 ```
 
 ## Configuration Keys
@@ -335,7 +333,12 @@ Defaults to to same as source path.
 
 ### `autoApply`
 
-If set to true, Garden will automatically run `terraform apply -auto-approve` when the stack is not up-to-date. Otherwise, a warning is logged if the stack is out-of-date, and an error thrown if it is missing entirely.
+If set to true, Garden will automatically run `terraform apply -auto-approve` when the stack is not
+up-to-date. Otherwise, a warning is logged if the stack is out-of-date, and an error thrown if it is missing
+entirely.
+
+**NOTE: This is not recommended for production, or shared environments in general!**
+
 Defaults to the value set in the provider config.
 
 | Type      | Default | Required |
@@ -360,8 +363,11 @@ Specify the path to the working directory root—i.e. where your Terraform files
 
 ### `variables`
 
-A map of variables to use when applying the stack. You can define these here or you can place a `terraform.tfvars` file in the working directory root.
-If you specified `variables` in the `terraform` provider config, those will be included but the variables specified here take precedence.
+A map of variables to use when applying the stack. You can define these here or you can place a
+`terraform.tfvars` file in the working directory root.
+
+If you specified `variables` in the `terraform` provider config, those will be included but the variables
+specified here take precedence.
 
 | Type     | Required |
 | -------- | -------- |
@@ -371,9 +377,9 @@ If you specified `variables` in the `terraform` provider config, those will be 
 
 The version of Terraform to use. Defaults to the version set in the provider config.
 
-| Type     | Default    | Required |
-| -------- | ---------- | -------- |
-| `string` | `"0.12.7"` | No       |
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 
 ## Outputs

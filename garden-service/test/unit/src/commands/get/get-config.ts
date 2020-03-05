@@ -13,9 +13,6 @@ import { sortBy } from "lodash"
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 
 describe("GetConfigCommand", () => {
-  const pluginName = "test-plugin"
-  const provider = pluginName
-
   it("should get the project configuration", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
@@ -26,7 +23,7 @@ describe("GetConfigCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { provider },
+      args: {},
       opts: withDefaultGlobalOpts({ "exclude-disabled": false }),
     })
 
@@ -104,7 +101,7 @@ describe("GetConfigCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { provider },
+      args: {},
       opts: withDefaultGlobalOpts({ "exclude-disabled": true }),
     })
 
@@ -176,7 +173,7 @@ describe("GetConfigCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { provider },
+      args: {},
       opts: withDefaultGlobalOpts({ "exclude-disabled": true }),
     })
 
@@ -271,7 +268,7 @@ describe("GetConfigCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { provider },
+      args: {},
       opts: withDefaultGlobalOpts({ "exclude-disabled": true }),
     })
 
@@ -365,7 +362,7 @@ describe("GetConfigCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { provider },
+      args: {},
       opts: withDefaultGlobalOpts({ "exclude-disabled": true }),
     })
 
