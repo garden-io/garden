@@ -850,11 +850,15 @@ export class TaskNodeBatch {
    */
   taskCached(result: TaskResult, depResults: TaskResult[]): boolean {
     const key = result.key
-    this.results[key] = result
+    if (this.remainingResultKeys.has(key)) {
+      this.results[key] = result
+    }
     this.remainingResultKeys.delete(key)
     for (const depResult of depResults) {
-      this.results[depResult.key] = depResult
-      this.remainingResultKeys.delete(depResult.key)
+      if (this.remainingResultKeys.has(depResult.key)) {
+        this.results[depResult.key] = depResult
+        this.remainingResultKeys.delete(depResult.key)
+      }
     }
     if (this.remainingResultKeys.size === 0) {
       this.resolver(this.results)
