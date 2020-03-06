@@ -15,6 +15,9 @@ node_modules
 .vscode
 .vs
 .history
+*~
+*.swp
+*.swo
 
 # Runtime files
 .garden
