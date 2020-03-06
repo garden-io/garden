@@ -1,0 +1,9 @@
+kind: Module
+name: module
+type: test
+tests:
+  - name: unit
+    command: [exit, "10"]
+tasks:
+  - name: task
+    command: [exit, "10"]

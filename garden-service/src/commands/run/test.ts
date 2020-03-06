@@ -137,6 +137,16 @@ export class RunTestCommand extends Command<Args, Opts> {
       testVersion: testTask.version,
     })
 
+    if (!result.success) {
+      return {
+        errors: [
+          new CommandError(`Test ${testConfig.name} in module ${module.name} failed!`, {
+            result,
+          }),
+        ],
+      }
+    }
+
     return { result }
   }
 }

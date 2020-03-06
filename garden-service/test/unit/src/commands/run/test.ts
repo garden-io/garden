@@ -9,7 +9,7 @@
 import stripAnsi from "strip-ansi"
 import { expect } from "chai"
 import { omit } from "lodash"
-import { makeTestGardenA, withDefaultGlobalOpts, expectError } from "../../../../helpers"
+import { makeTestGardenA, makeTestGardenTasksFails, withDefaultGlobalOpts, expectError } from "../../../../helpers"
 import { RunTestCommand } from "../../../../../src/commands/run/test"
 
 describe("RunTestCommand", () => {
@@ -37,6 +37,22 @@ describe("RunTestCommand", () => {
     }
 
     expect(omit(result, ["completedAt", "startedAt", "version"])).to.eql(expected)
+  })
+
+  it("should return an error if the test fails", async () => {
+    const garden = await makeTestGardenTasksFails()
+    const log = garden.log
+
+    const result = await cmd.action({
+      garden,
+      log,
+      headerLog: log,
+      footerLog: log,
+      args: { test: "unit", module: "module" },
+      opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": true }),
+    })
+
+    expect(result.errors).to.have.lengthOf(1)
   })
 
   it("should throw if the test is disabled", async () => {
