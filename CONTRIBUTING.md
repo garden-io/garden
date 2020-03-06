@@ -44,7 +44,7 @@ npm run bootstrap # To bootstrap packages
 
 from the root directory
 
-You will also need to install Node modules in the `garden-service` package. 
+You may need to install the Node modules in the garden-service package manually due to [lerna/lerna#1457](https://github.com/lerna/lerna/issues/1457).
 
 ```sh
 cd garden-service
