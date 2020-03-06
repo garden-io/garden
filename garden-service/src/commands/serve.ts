@@ -11,14 +11,13 @@ import { LoggerType } from "../logger/logger"
 import { IntegerParameter, PrepareParams } from "./base"
 import { Command, CommandResult, CommandParams } from "./base"
 import { sleep } from "../util/util"
-import { DEFAULT_PORT, GardenServer, startServer } from "../server/server"
+import { GardenServer, startServer } from "../server/server"
 
 const serveArgs = {}
 
 const serveOpts = {
   port: new IntegerParameter({
     help: `The port number for the Garden service to listen on.`,
-    defaultValue: DEFAULT_PORT,
   }),
 }
 

@@ -566,15 +566,16 @@ const podNameHashLength = 6
 const maxPodNamePrefixLength = maxPodNameLength - podNameHashLength - 1
 
 /**
- * Generates a valid Pod name, given a type, module and a key (e.g. a task name, test name). Creates a hash suffix
- * to uniquely identify the Pod, and composes the type, module name and key into a prefix (up to a maximum length).
+ * Generates a valid Pod name, given a type, and other identifiers (e.g. module name, task name, test name etc.).
+ * Creates a hash suffix to uniquely identify the Pod, and composes the type and identifiers into a prefix (up to a
+ * maximum length).
  *
  * @param type the type of Pod, e.g. `task` or `test`
- * @param moduleName the name of the module associated with the Pod
+ * @param ...parts the name of the module associated with the Pod
  * @param key the specific key of the task, test etc.
  */
-export function makePodName(type: string, moduleName: string, key?: string) {
-  const id = `${type}-${moduleName}${key ? "-" + key : ""}`
+export function makePodName(type: string, ...parts: string[]) {
+  const id = `${type}-${parts.join("-")}`
   const hash = hasha(`${id}-${Math.round(new Date().getTime())}`, { algorithm: "sha1" })
   return id.slice(0, maxPodNamePrefixLength) + "-" + hash.slice(0, podNameHashLength)
 }
