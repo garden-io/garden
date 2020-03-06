@@ -21,6 +21,7 @@ import { Garden } from "../garden"
 import { Events, EventName } from "../events"
 import { AnalyticsType } from "./analytics-types"
 import dedent from "dedent"
+import { getGitHubUrl } from "../docs/common"
 
 const API_KEY = process.env.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
 
@@ -183,10 +184,11 @@ export class AnalyticsHandler {
     this.projectName = hasha(this.garden.projectName, { algorithm: "sha256" })
     this.projectId = originName ? hasha(originName, { algorithm: "sha256" }) : this.projectName
 
+    const gitHubUrl = getGitHubUrl("README.md#Analytics")
     if (this.globalConfig.firstRun || this.globalConfig.showOptInMessage) {
       if (!this.isCI) {
         const msg = dedent`
-          Thanks for installing Garden! We work hard to provide you with the best experience we can. We collect some anonymized usage data while you use Garden. If you'd like to know more about what we collect or if you'd like to opt out of telemetry, please read more at https://github.com/garden-io/garden/blob/master/README.md#Analytics
+          Thanks for installing Garden! We work hard to provide you with the best experience we can. We collect some anonymized usage data while you use Garden. If you'd like to know more about what we collect or if you'd like to opt out of telemetry, please read more at ${gitHubUrl}
         `
         this.log.info({ symbol: "info", msg })
       }
