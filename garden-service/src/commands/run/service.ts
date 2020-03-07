@@ -7,16 +7,17 @@
  */
 
 import chalk from "chalk"
-import { RunResult } from "../../types/plugin/base"
-import { BooleanParameter, Command, CommandParams, CommandResult, StringParameter } from "../base"
-import { printRuntimeContext } from "./run"
 import dedent = require("dedent")
-import { printHeader } from "../../logger/util"
-import { DeployTask } from "../../tasks/deploy"
-import { getServiceStatuses, getRunTaskResults } from "../../tasks/base"
-import { prepareRuntimeContext } from "../../runtime-context"
-import { deline } from "../../util/string"
+
 import { CommandError } from "../../exceptions"
+import { printHeader } from "../../logger/util"
+import { prepareRuntimeContext } from "../../runtime-context"
+import { getRunTaskResults, getServiceStatuses } from "../../tasks/base"
+import { DeployTask } from "../../tasks/deploy"
+import { RunResult } from "../../types/plugin/base"
+import { deline } from "../../util/string"
+import { BooleanParameter, Command, CommandParams, CommandResult, handleActionResult, StringParameter } from "../base"
+import { printRuntimeContext } from "./run"
 
 const runArgs = {
   service: new StringParameter({
@@ -110,6 +111,6 @@ export class RunServiceCommand extends Command<Args, Opts> {
       timeout: 999999,
     })
 
-    return { result }
+    return handleActionResult(`Service ${service.name} in module ${module.name}`, result)
   }
 }

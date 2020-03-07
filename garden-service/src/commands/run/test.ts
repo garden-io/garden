@@ -7,17 +7,18 @@
  */
 
 import chalk from "chalk"
-import { ParameterError, CommandError } from "../../exceptions"
-import { RunResult } from "../../types/plugin/base"
-import { findByName, getNames } from "../../util/util"
-import { BooleanParameter, Command, CommandParams, CommandResult, StringParameter } from "../base"
-import { printRuntimeContext } from "./run"
-import { prepareRuntimeContext } from "../../runtime-context"
+
+import { CommandError, ParameterError } from "../../exceptions"
 import { printHeader } from "../../logger/util"
-import { TestTask } from "../../tasks/test"
+import { prepareRuntimeContext } from "../../runtime-context"
 import { getRunTaskResults, getServiceStatuses } from "../../tasks/base"
-import { dedent, deline } from "../../util/string"
+import { TestTask } from "../../tasks/test"
+import { RunResult } from "../../types/plugin/base"
 import { testFromConfig } from "../../types/test"
+import { dedent, deline } from "../../util/string"
+import { findByName, getNames } from "../../util/util"
+import { BooleanParameter, Command, CommandParams, CommandResult, handleActionResult, StringParameter } from "../base"
+import { printRuntimeContext } from "./run"
 
 const runArgs = {
   module: new StringParameter({
@@ -137,16 +138,6 @@ export class RunTestCommand extends Command<Args, Opts> {
       testVersion: testTask.version,
     })
 
-    if (!result.success) {
-      return {
-        errors: [
-          new CommandError(`Test ${testConfig.name} in module ${module.name} failed!`, {
-            result,
-          }),
-        ],
-      }
-    }
-
-    return { result }
+    return handleActionResult(`Test ${test.name} in module ${module.name}`, result)
   }
 }
