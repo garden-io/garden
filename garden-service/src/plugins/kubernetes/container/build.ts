@@ -92,7 +92,7 @@ const getRemoteBuildStatus: BuildStatusHandler = async (params) => {
   const pushArgs = ["/bin/sh", "-c", "DOCKER_CLI_EXPERIMENTAL=enabled docker " + args.join(" ")]
 
   const podName = await getBuilderPodName(provider, log)
-  const res = await execInBuilder({ provider, log, args: pushArgs, timeout: 300, podName, ignoreError: true })
+  const res = await execInBuilder({ provider, log, args: pushArgs, timeout: 300, podName, ignoreError: false })
 
   return { ready: res.exitCode === 0 }
 }
