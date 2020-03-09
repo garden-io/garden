@@ -26,7 +26,7 @@ import { getGitHubUrl } from "../docs/common"
 const API_KEY = process.env.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
 
 const CI_USER = "ci-user"
-const UNKOWN_USER = "unkown"
+const UNKNOWN = "unkown"
 
 /**
  * Returns userId from global config if set and if not in CI.
@@ -35,7 +35,7 @@ export function getUserId(globalConfig: GlobalConfig) {
   if (ci.isCI) {
     return CI_USER
   } else {
-    return globalConfig.analytics?.userId || UNKOWN_USER
+    return globalConfig.analytics?.userId || UNKNOWN
   }
 }
 
@@ -58,6 +58,7 @@ interface ProjectMetadata {
 export interface AnalyticsEventProperties {
   projectId: string
   projectName: string
+  ciName: string
   system: SystemInfo
   isCI: boolean
   sessionId: string
@@ -132,6 +133,7 @@ export class AnalyticsHandler {
   private globalConfigStore: GlobalConfigStore
   private projectId = ""
   private projectName = ""
+  private ciName = ""
   private systemConfig: SystemInfo
   private isCI = ci.isCI
   private sessionId = uuid.v4()
@@ -197,6 +199,7 @@ export class AnalyticsHandler {
     const originName = await this.garden.vcs.getOriginName(this.log)
     this.projectName = hasha(this.garden.projectName, { algorithm: "sha256" })
     this.projectId = originName ? hasha(originName, { algorithm: "sha256" }) : this.projectName
+    this.ciName = ci.name ? hasha(ci.name, { algorithm: "sha256" }) : UNKNOWN
 
     const gitHubUrl = getGitHubUrl("README.md#Analytics")
     if (this.analyticsConfig.firstRun || this.analyticsConfig.showOptInMessage) {
@@ -301,6 +304,7 @@ export class AnalyticsHandler {
     return {
       projectId: this.projectId,
       projectName: this.projectName,
+      ciName: this.ciName,
       system: this.systemConfig,
       isCI: this.isCI,
       sessionId: this.sessionId,
