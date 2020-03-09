@@ -24,7 +24,7 @@ import { deline, tailString } from "../../../util/string"
 import { getAnnotation, flattenResources } from "../util"
 import { KubernetesPluginContext } from "../config"
 import { RunResult } from "../../../types/plugin/base"
-import { MAX_RUN_RESULT_OUTPUT_LENGTH } from "../constants"
+import { MAX_RUN_RESULT_LOG_LENGTH } from "../constants"
 
 const gardenValuesFilename = "garden-values.yml"
 
@@ -261,7 +261,7 @@ export function loadTemplate(template: string) {
 }
 
 export function trimRunOutput<T extends RunResult>(result: T): T {
-  const log = tailString(result.log, MAX_RUN_RESULT_OUTPUT_LENGTH, true)
+  const log = tailString(result.log, MAX_RUN_RESULT_LOG_LENGTH, true)
 
   return {
     ...result,

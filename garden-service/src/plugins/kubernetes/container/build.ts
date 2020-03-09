@@ -29,12 +29,12 @@ import { Writable } from "stream"
 import { LogLevel } from "../../../logger/log-node"
 import { exec, renderOutputStream } from "../../../util/util"
 import { loadLocalImage } from "../local/kind"
-import { getSystemNamespace } from "../namespace"
+import { getSystemNamespace, getAppNamespace } from "../namespace"
+import { dedent } from "../../../util/string"
 
 const dockerDaemonDeploymentName = "garden-docker-daemon"
 const dockerDaemonContainerName = "docker-daemon"
-// Note: v0.9.0 appears to be completely broken: https://github.com/GoogleContainerTools/kaniko/issues/268
-const kanikoImage = "gcr.io/kaniko-project/executor:v0.8.0"
+const kanikoImage = "gcr.io/kaniko-project/executor:debug-v0.17.1"
 const registryPort = 5000
 
 export const buildSyncDeploymentName = "garden-build-sync"
@@ -134,6 +134,7 @@ const localBuild: BuildHandler = async (params) => {
 const remoteBuild: BuildHandler = async (params) => {
   const { ctx, module, log } = params
   const provider = <KubernetesProvider>ctx.provider
+  const namespace = await getAppNamespace(ctx, log, provider)
   const systemNamespace = await getSystemNamespace(provider, log)
 
   if (!(await containerHelpers.hasDockerfile(module))) {
@@ -250,7 +251,6 @@ const remoteBuild: BuildHandler = async (params) => {
   } else {
     // build with Kaniko
     const args = [
-      "executor",
       "--context",
       "dir://" + contextPath,
       "--dockerfile",
@@ -268,7 +268,7 @@ const remoteBuild: BuildHandler = async (params) => {
     args.push(...getDockerBuildFlags(module))
 
     // Execute the build
-    const buildRes = await runKaniko({ provider, log, module, args, outputStream: stdout })
+    const buildRes = await runKaniko({ provider, namespace, log, module, args, outputStream: stdout })
     buildLog = buildRes.log
   }
 
@@ -344,20 +344,42 @@ export async function getBuilderPodName(provider: KubernetesProvider, log: LogEn
 
 interface RunKanikoParams {
   provider: KubernetesProvider
+  namespace: string
   log: LogEntry
   module: ContainerModule
   args: string[]
   outputStream: Writable
 }
 
-async function runKaniko({ provider, log, module, args, outputStream }: RunKanikoParams) {
+async function runKaniko({ provider, namespace, log, module, args, outputStream }: RunKanikoParams) {
   const api = await KubeApi.factory(log, provider)
   const systemNamespace = await getSystemNamespace(provider, log)
 
-  const podName = makePodName("kaniko", module.name)
+  const podName = makePodName("kaniko", namespace, module.name)
   const registryHostname = getRegistryHostname(provider.config)
   const k8sSystemVars = getKubernetesSystemVariables(provider.config)
   const syncDataVolumeName = k8sSystemVars["sync-volume-name"]
+  const commsVolumeName = "comms"
+  const commsMountPath = "/.garden/comms"
+
+  // Escape the args so that we can safely interpolate them into the kaniko command
+  const argsStr = args.map((arg) => JSON.stringify(arg)).join(" ")
+
+  // This may seem kind of insane but we have to wait until the socat proxy is up (because Kaniko immediately tries to
+  // reach the registry we plan on pushing to). See the support container in the Pod spec below for more on this
+  // hackery.
+  const commandStr = dedent`
+    while true; do
+      if ls ${commsMountPath}/socatStarted > /dev/null; then
+        /kaniko/executor ${argsStr};
+        export exitcode=$?;
+        touch ${commsMountPath}/done;
+        exit $exitcode;
+      else
+        sleep 0.3;
+      fi
+    done
+  `
 
   const runner = new PodRunner({
     api,
@@ -382,11 +404,17 @@ async function runKaniko({ provider, log, module, args, outputStream }: RunKanik
             items: [{ key: dockerAuthSecretKey, path: "config.json" }],
           },
         },
+        // Mount a volume to communicate between the containers in the Pod.
+        {
+          name: commsVolumeName,
+          emptyDir: {},
+        },
       ],
       containers: [
         {
           name: "kaniko",
           image: kanikoImage,
+          command: ["sh", "-c", commandStr],
           args,
           volumeMounts: [
             {
@@ -397,6 +425,10 @@ async function runKaniko({ provider, log, module, args, outputStream }: RunKanik
               name: dockerAuthSecretName,
               mountPath: "/kaniko/.docker",
               readOnly: true,
+            },
+            {
+              name: commsVolumeName,
+              mountPath: commsMountPath,
             },
           ],
           resources: {
@@ -425,14 +457,38 @@ async function runKaniko({ provider, log, module, args, outputStream }: RunKanik
             tcpSocket: { port: <any>registryPort },
           },
         },
-        // This is a little workaround so that the socat proxy doesn't just keep running after the build finishes.
+        // This is a workaround so that the kaniko executor can wait until socat starts, and so that the socat proxy
+        // doesn't just keep running after the build finishes. Doing this in the kaniko Pod is currently not possible
+        // because of https://github.com/GoogleContainerTools/distroless/issues/225
         {
-          name: "killer",
-          image: "busybox",
+          name: "support",
+          image: "busybox:1.31.1",
           command: [
             "sh",
             "-c",
-            "while true; do if pidof executor > /dev/null; then sleep 0.5; else killall socat; exit 0; fi done",
+            dedent`
+              while true; do
+                if pidof socat > /dev/null; then
+                  touch ${commsMountPath}/socatStarted;
+                  break;
+                else
+                  sleep 0.3;
+                fi
+              done
+              while true; do
+                if ls ${commsMountPath}/done > /dev/null; then
+                  killall socat; exit 0;
+                else
+                  sleep 0.3;
+                fi
+              done
+            `,
+          ],
+          volumeMounts: [
+            {
+              name: commsVolumeName,
+              mountPath: commsMountPath,
+            },
           ],
         },
       ],
