@@ -28,7 +28,7 @@
 
 ## Installation
 
-*(Check out our documentation for more [detailed instructions](https://docs.garden.io/installation))*
+*(Check out our documentation for more [detailed instructions](https://docs.garden.io/basics/installation))*
 
 ### macOS
 
