@@ -230,6 +230,12 @@ export class KubeApi {
   async getApiResourceInfo(log: LogEntry, manifest: KubernetesResource): Promise<V1APIResource> {
     const apiVersion = manifest.apiVersion
 
+    if (!apiVersion) {
+      throw new KubernetesError(`Missing apiVersion on resource`, {
+        manifest,
+      })
+    }
+
     if (!cachedApiResourceInfo[this.context]) {
       cachedApiResourceInfo[this.context] = {}
     }
