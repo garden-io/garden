@@ -9,7 +9,6 @@
 import execa = require("execa")
 import { expect } from "chai"
 import tmp from "tmp-promise"
-import uuid from "uuid"
 import { createFile, writeFile, realpath, mkdir, remove, symlink, ensureSymlink, lstat } from "fs-extra"
 import { join, resolve, basename, relative } from "path"
 
@@ -18,6 +17,7 @@ import { getCommitIdFromRefList, parseGitUrl, GitHandler } from "../../../../src
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { hashRepoUrl } from "../../../../src/util/ext-source-util"
 import { deline } from "../../../../src/util/string"
+import { uuidv4 } from "../../../../src/util/util"
 
 // Overriding this to make sure any ignorefile name is respected
 const defaultIgnoreFilename = ".testignore"
@@ -29,7 +29,7 @@ async function getCommitMsg(repoPath: string) {
 
 async function commit(msg: string, repoPath: string) {
   // Ensure master contains changes when commiting
-  const uniqueFilename = `${uuid.v4()}.txt`
+  const uniqueFilename = `${uuidv4()}.txt`
   const filePath = join(repoPath, uniqueFilename)
   await createFile(filePath)
   await execa("git", ["add", filePath], { cwd: repoPath })

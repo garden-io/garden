@@ -6,17 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import uuidv4 from "uuid/v4"
 import segmentClient = require("analytics-node")
 import { platform, release } from "os"
 import ci = require("ci-info")
 import { flatten } from "lodash"
 import { globalConfigKeys, AnalyticsGlobalConfig, GlobalConfigStore, GlobalConfig } from "../config-store"
-import { getPackageVersion } from "../util/util"
+import { getPackageVersion, uuidv4 } from "../util/util"
 import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY } from "../constants"
 import { LogEntry } from "../logger/log-entry"
 import hasha = require("hasha")
-import uuid from "uuid"
 import { Garden } from "../garden"
 import { Events, EventName } from "../events"
 import { AnalyticsType } from "./analytics-types"
@@ -136,7 +134,7 @@ export class AnalyticsHandler {
   private ciName = ""
   private systemConfig: SystemInfo
   private isCI = ci.isCI
-  private sessionId = uuid.v4()
+  private sessionId = uuidv4()
   protected garden: Garden
   private projectMetadata: ProjectMetadata
 

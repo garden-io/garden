@@ -13,7 +13,6 @@ import Bluebird from "bluebird"
 import { pathExists, readFile, writeFile, lstat } from "fs-extra"
 import minimatch = require("minimatch")
 import { some } from "lodash"
-import uuid from "uuid"
 import { join, basename, win32, posix } from "path"
 import { ValidationError, FilesystemError } from "../exceptions"
 import { platform } from "os"
@@ -21,6 +20,7 @@ import { VcsHandler } from "../vcs/vcs"
 import { LogEntry } from "../logger/log-entry"
 import { ModuleConfig } from "../config/module"
 import pathIsInside from "path-is-inside"
+import { uuidv4 } from "./util"
 
 const VALID_CONFIG_FILENAMES = ["garden.yml", "garden.yaml"]
 const metadataFilename = "metadata.json"
@@ -226,7 +226,7 @@ export async function getWorkingCopyId(gardenDirPath: string) {
   const metadataPath = join(gardenDirPath, metadataFilename)
 
   let metadata = {
-    workingCopyId: uuid.v4(),
+    workingCopyId: uuidv4(),
   }
 
   // TODO: do this in a fully concurrency-safe way

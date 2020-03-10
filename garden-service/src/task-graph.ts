@@ -17,8 +17,7 @@ import { LogEntry, LogEntryMetadata, TaskLogStatus } from "./logger/log-entry"
 import { toGardenError, GardenBaseError } from "./exceptions"
 import { Garden } from "./garden"
 import { dedent } from "./util/string"
-import uuid from "uuid"
-import { defer, relationshipClasses } from "./util/util"
+import { defer, relationshipClasses, uuidv4 } from "./util/util"
 import { renderError } from "./logger/renderers"
 
 class TaskGraphError extends GardenBaseError {
@@ -800,7 +799,7 @@ export class TaskNodeBatch {
    * resultKeys should be the set union of the keys of nodes and those of their dependencies, recursively.
    */
   constructor(nodes: TaskNode[], resultKeys: string[], unlimitedConcurrency = false) {
-    this.id = uuid.v4()
+    this.id = uuidv4()
     this.setBatchId(nodes)
     this.nodes = nodes
     this.unlimitedConcurrency = unlimitedConcurrency
