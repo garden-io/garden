@@ -18,7 +18,11 @@ import { TestConfig } from "./config/test"
 import { uniqByName, pickKeys } from "./util/util"
 import { ConfigurationError } from "./exceptions"
 import { deline } from "./util/string"
-import { validateDependencies } from "./util/validate-dependencies"
+import {
+  detectMissingDependencies,
+  handleDependencyErrors,
+  DependencyValidationGraph,
+} from "./util/validate-dependencies"
 import { ServiceConfig } from "./config/service"
 import { TaskConfig } from "./config/task"
 import { makeTestTaskName } from "./tasks/helpers"
@@ -69,6 +73,8 @@ interface EntityConfigEntry<T extends string, C extends EntityConfig> {
   config: C
 }
 
+export type DependencyGraph = { [key: string]: DependencyGraphNode }
+
 /**
  * A graph data structure that facilitates querying (recursive or non-recursive) of the project's dependency and
  * dependant relationships.
@@ -76,7 +82,7 @@ interface EntityConfigEntry<T extends string, C extends EntityConfig> {
  * This should be initialized with fully resolved and validated ModuleConfigs.
  */
 export class ConfigGraph {
-  private dependencyGraph: { [key: string]: DependencyGraphNode }
+  private dependencyGraph: DependencyGraph
   private moduleConfigs: { [key: string]: ModuleConfig }
 
   private serviceConfigs: {
@@ -164,7 +170,11 @@ export class ConfigGraph {
       }
     }
 
-    this.validateDependencies()
+    const missingDepsError = detectMissingDependencies(
+      Object.values(this.moduleConfigs),
+      Object.keys(this.serviceConfigs),
+      Object.keys(this.taskConfigs)
+    )
 
     // Add relations between nodes
     for (const moduleConfig of moduleConfigs) {
@@ -260,19 +270,26 @@ export class ConfigGraph {
         }
       }
     }
+
+    const validationGraph = DependencyValidationGraph.fromDependencyGraph(this.dependencyGraph)
+    const cycles = validationGraph.detectCircularDependencies()
+
+    let circularDepsError
+    if (cycles.length > 0) {
+      const description = validationGraph.cyclesToString(cycles)
+      const errMsg = `\nCircular dependencies detected: \n\n${description}\n`
+      circularDepsError = new ConfigurationError(errMsg, { "circular-dependencies": description })
+    } else {
+      circularDepsError = null
+    }
+
+    // Throw an error if one or both of these errors is non-null.
+    handleDependencyErrors(missingDepsError, circularDepsError)
   }
 
   // Convenience method used in the constructor above.
   keyForModule(config: ModuleConfig | BuildDependencyConfig) {
     return getModuleKey(config.name, config.plugin)
-  }
-
-  private validateDependencies() {
-    validateDependencies(
-      Object.values(this.moduleConfigs),
-      Object.keys(this.serviceConfigs),
-      Object.keys(this.taskConfigs)
-    )
   }
 
   private addRuntimeRelation(node: DependencyGraphNode, depName: string) {
@@ -729,7 +746,7 @@ export class DependencyGraphNode {
  * Note: If type === "build", name should be a prefix-qualified module name, as
  * returned by keyForModule or getModuleKey.
  */
-function nodeKey(type: DependencyGraphNodeType, name: string) {
+export function nodeKey(type: DependencyGraphNodeType, name: string) {
   return `${type}.${name}`
 }
 
