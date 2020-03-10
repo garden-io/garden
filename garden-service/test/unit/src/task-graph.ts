@@ -13,8 +13,7 @@ import { BaseTask, TaskType } from "../../../src/tasks/base"
 import { TaskGraph, TaskResult, TaskResults } from "../../../src/task-graph"
 import { makeTestGarden, freezeTime, dataDir, expectError, TestGarden } from "../../helpers"
 import { Garden } from "../../../src/garden"
-import { deepFilter, defer, sleep } from "../../../src/util/util"
-import uuid from "uuid"
+import { deepFilter, defer, sleep, uuidv4 } from "../../../src/util/util"
 
 const projectRoot = join(dataDir, "test-project-empty")
 
@@ -102,7 +101,7 @@ describe("task-graph", () => {
       const task = new TestTask(garden, "a", false)
 
       const results = await graph.process([task])
-      const generatedBatchId = results?.a?.batchId || uuid.v4()
+      const generatedBatchId = results?.a?.batchId || uuidv4()
 
       const expected: TaskResults = {
         a: {
@@ -131,7 +130,7 @@ describe("task-graph", () => {
       const task = new TestTask(garden, "a", false)
 
       const result = await graph.process([task])
-      const generatedBatchId = result?.a?.batchId || uuid.v4()
+      const generatedBatchId = result?.a?.batchId || uuidv4()
 
       expect(garden.events.eventLog).to.eql([
         { name: "taskGraphProcessing", payload: { startedAt: now } },
@@ -178,7 +177,7 @@ describe("task-graph", () => {
       // repeatedTask has the same key and version as task, so its result is already cached
       const repeatedTask = new TestTask(garden, "a", false)
       const results = await graph.process([repeatedTask])
-      const generatedBatchId = results?.a?.batchId || uuid.v4()
+      const generatedBatchId = results?.a?.batchId || uuidv4()
 
       expect(garden.events.eventLog).to.eql([
         { name: "taskGraphProcessing", payload: { startedAt: now } },
@@ -207,7 +206,7 @@ describe("task-graph", () => {
       const task = new TestTask(garden, "a", false, { throwError: true })
 
       const result = await graph.process([task])
-      const generatedBatchId = result?.a?.batchId || uuid.v4()
+      const generatedBatchId = result?.a?.batchId || uuidv4()
 
       expect(garden.events.eventLog).to.eql([
         { name: "taskGraphProcessing", payload: { startedAt: now } },
@@ -387,7 +386,7 @@ describe("task-graph", () => {
 
       // we should be able to add tasks multiple times and in any order
       const results = await graph.process([taskA, taskB, taskC, taskC, taskD, taskA, taskD, taskB, taskD, taskA])
-      const generatedBatchId = results?.a?.batchId || uuid.v4()
+      const generatedBatchId = results?.a?.batchId || uuidv4()
 
       // repeat
 
@@ -636,7 +635,7 @@ describe("task-graph", () => {
 
       const results = await graph.process([taskA, taskB, taskC, taskD])
 
-      const generatedBatchId = results?.a?.batchId || uuid.v4()
+      const generatedBatchId = results?.a?.batchId || uuidv4()
 
       const resultA: TaskResult = {
         type: "test",
