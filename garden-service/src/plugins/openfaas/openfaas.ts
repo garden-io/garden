@@ -47,10 +47,11 @@ import { LogEntry } from "../../logger/log-entry"
 import { Provider } from "../../config/provider"
 import { parse } from "url"
 import { trim } from "lodash"
-import { getModuleTypeUrl } from "../../docs/common"
+import { getModuleTypeUrl, getGitHubUrl } from "../../docs/common"
 
 const systemDir = join(STATIC_DIR, "openfaas", "system")
 const moduleTypeUrl = getModuleTypeUrl("openfaas")
+const gitHubUrl = getGitHubUrl("examples/openfaas")
 
 export const gardenPlugin = createGardenPlugin({
   name: "openfaas",
@@ -61,7 +62,7 @@ export const gardenPlugin = createGardenPlugin({
 
     See the reference below for configuration options for \`faas-netes\`, and the [module type docs](${moduleTypeUrl}) for how to configure the individual functions.
 
-    Also see the [openfaas example project](https://github.com/garden-io/garden/tree/master/examples/openfaas) for a simple usage example.
+    Also see the [openfaas example project](${gitHubUrl}) for a simple usage example.
   `,
   handlers: {
     configureProvider,

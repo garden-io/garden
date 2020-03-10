@@ -110,7 +110,7 @@ describe("kubernetes container deployment handlers", () => {
       })
     })
 
-    it("should copy and reference imagePullSecrets", async () => {
+    it("should copy and reference imagePullSecrets with docker basic auth", async () => {
       const service = await graph.getService("simple-service")
       const secretName = "test-docker-auth"
 
@@ -124,6 +124,44 @@ describe("kubernetes container deployment handlers", () => {
         },
         stringData: {
           ".dockerconfigjson": JSON.stringify({ auths: {} }),
+        },
+      }
+      await api.upsert({ kind: "Secret", namespace: "default", obj: authSecret, log: garden.log })
+
+      const namespace = garden.projectName
+      const _provider = cloneDeep(provider)
+      _provider.config.imagePullSecrets = [{ name: secretName, namespace: "default" }]
+
+      const resource = await createWorkloadManifest({
+        api,
+        provider: _provider,
+        service,
+        runtimeContext: emptyRuntimeContext,
+        namespace,
+        enableHotReload: false,
+        log: garden.log,
+        production: false,
+      })
+
+      const copiedSecret = await api.core.readNamespacedSecret(secretName, namespace)
+      expect(copiedSecret).to.exist
+      expect(resource.spec.template.spec.imagePullSecrets).to.eql([{ name: secretName }])
+    })
+
+    it("should copy and reference imagePullSecrets with docker credential helper", async () => {
+      const service = await graph.getService("simple-service")
+      const secretName = "test-cred-helper-auth"
+
+      const authSecret: KubernetesResource<V1Secret> = {
+        apiVersion: "v1",
+        kind: "Secret",
+        type: "kubernetes.io/dockerconfigjson",
+        metadata: {
+          name: secretName,
+          namespace: "default",
+        },
+        stringData: {
+          ".dockerconfigjson": JSON.stringify({ credHelpers: {} }),
         },
       }
       await api.upsert({ kind: "Secret", namespace: "default", obj: authSecret, log: garden.log })

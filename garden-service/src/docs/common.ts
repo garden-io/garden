@@ -8,6 +8,7 @@
 
 import { padEnd, max } from "lodash"
 import { DOCS_BASE_URL } from "../constants"
+import { getPackageVersion } from "../util/util"
 
 export interface NormalizedSchemaDescription {
   type: string
@@ -68,4 +69,15 @@ export function getModuleTypeUrl(type?: string) {
 export function getProviderUrl(type?: string) {
   const base = DOCS_BASE_URL + "/reference/providers"
   return type ? base + "/" + type : base
+}
+
+/**
+ * Returns a versioned link to the source code on GitHub using the path provided.
+ */
+export function getGitHubUrl(path: string) {
+  const version = "v" + getPackageVersion()
+  if (path.startsWith("/")) {
+    path = path.substring(1)
+  }
+  return `https://github.com/garden-io/garden/tree/${version}/${path}`
 }

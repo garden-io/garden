@@ -22,7 +22,7 @@ import chalk from "chalk"
 import { ConfigurationError } from "../../exceptions"
 import { containerHelpers } from "../container/helpers"
 import { baseBuildSpecSchema } from "../../config/module"
-import { getProviderUrl, getModuleTypeUrl } from "../../docs/common"
+import { getProviderUrl, getModuleTypeUrl, getGitHubUrl } from "../../docs/common"
 
 const defaultConfigPath = join(STATIC_DIR, "hadolint", "default.hadolint.yaml")
 const configFilename = ".hadolint.yaml"
@@ -66,6 +66,7 @@ type HadolintModule = Module<HadolintModuleSpec>
 
 const moduleTypeUrl = getModuleTypeUrl("hadolint")
 const providerUrl = getProviderUrl("hadolint")
+const gitHubUrl = getGitHubUrl("examples/hadolint")
 
 export const gardenPlugin = createGardenPlugin({
   name: "hadolint",
@@ -75,7 +76,7 @@ export const gardenPlugin = createGardenPlugin({
 
     To configure \`hadolint\`, you can use \`.hadolint.yaml\` config files. For each test, we first look for one in the relevant module root. If none is found there, we check the project root, and if none is there we fall back to default configuration. Note that for reasons of portability, we do not fall back to global/user configuration files.
 
-    See the [hadolint docs](https://github.com/hadolint/hadolint#configure) for details on how to configure it, and the [hadolint example project](https://github.com/garden-io/garden/tree/master/examples/hadolint) for a usage example.
+    See the [hadolint docs](https://github.com/hadolint/hadolint#configure) for details on how to configure it, and the [hadolint example project](${gitHubUrl}) for a usage example.
   `,
   configSchema,
   handlers: {

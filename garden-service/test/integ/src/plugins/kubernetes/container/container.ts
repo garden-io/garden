@@ -31,7 +31,7 @@ import { clusterInit } from "../../../../../../src/plugins/kubernetes/commands/c
 
 const root = getDataDir("test-projects", "container")
 const defaultEnvironment = process.env.GARDEN_INTEG_TEST_MODE === "remote" ? "cluster-docker" : "local"
-let initialized = false
+let initializedEnv: string
 let localInstance: Garden
 
 export async function getContainerTestGarden(environmentName: string = defaultEnvironment) {
@@ -41,7 +41,9 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
     localInstance = await makeTestGarden(root, { environmentName: "local" })
   }
 
-  if (!initialized && environmentName !== "local") {
+  const needsInit = !environmentName.startsWith("local") && initializedEnv !== environmentName
+
+  if (needsInit) {
     // Load the test authentication for private registries
     const localProvider = <KubernetesProvider>await localInstance.resolveProvider("local-kubernetes")
     const api = await KubeApi.factory(garden.log, localProvider)
@@ -69,16 +71,29 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
       }
       await api.upsert({ kind: "Secret", namespace: "default", obj: authSecret, log: garden.log })
     }
+
+    const credentialHelperAuth: KubernetesResource<V1Secret> = {
+      apiVersion: "v1",
+      kind: "Secret",
+      type: "kubernetes.io/dockerconfigjson",
+      metadata: {
+        name: "test-cred-helper-auth",
+        namespace: "default",
+      },
+      stringData: {
+        ".dockerconfigjson": JSON.stringify({ credHelpers: {}, experimental: "enabled" }),
+      },
+    }
+    await api.upsert({ kind: "Secret", namespace: "default", obj: credentialHelperAuth, log: garden.log })
   }
 
   const provider = <KubernetesProvider>await garden.resolveProvider("local-kubernetes")
   const ctx = garden.getPluginContext(provider)
 
-  // We only need to run the cluster-init flow once, because the configurations are compatible
-  if (!initialized && environmentName !== "local") {
+  if (needsInit) {
     // Run cluster-init
     await clusterInit.handler({ ctx, log: garden.log })
-    initialized = true
+    initializedEnv = environmentName
   }
 
   return garden

@@ -30,7 +30,7 @@ import { mapValues, fromPairs } from "lodash"
 import { ModuleVersion } from "../src/vcs/vcs"
 import { GARDEN_SERVICE_ROOT, LOCAL_CONFIG_FILENAME } from "../src/constants"
 import { EventBus, Events } from "../src/events"
-import { ValueOf } from "../src/util/util"
+import { ValueOf, exec } from "../src/util/util"
 import { LogEntry } from "../src/logger/log-entry"
 import timekeeper = require("timekeeper")
 import { GLOBAL_OPTIONS, GlobalOptions } from "../src/cli/cli"
@@ -512,10 +512,15 @@ export type TempDirectory = tmp.DirectoryResult
 /**
  * Create a temp directory. Make sure to clean it up after use using the `cleanup()` method on the returned object.
  */
-export async function makeTempDir(): Promise<TempDirectory> {
+export async function makeTempDir({ git = false } = {}): Promise<TempDirectory> {
   const tmpDir = await tmp.dir({ unsafeCleanup: true })
   // Fully resolve path so that we don't get path mismatches in tests
   tmpDir.path = await realpath(tmpDir.path)
+
+  if (git) {
+    await exec("git", ["init"], { cwd: tmpDir.path })
+  }
+
   return tmpDir
 }
 

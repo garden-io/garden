@@ -191,6 +191,30 @@ describe("ConfigContext", () => {
       c.addValues({ nested })
       await expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
     })
+
+    it("should detect a circular reference when resolving a nested template string", async () => {
+      const c = new TestContext({
+        foo: "bar",
+      })
+      const nested: any = new TestContext({ key: "${nested.foo}", foo: "${'${nested.key}'}" }, c)
+      c.addValues({ nested })
+      await expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
+    })
+
+    it("should detect a circular reference when nested template string resolves to self", async () => {
+      const c = new TestContext({
+        foo: "bar",
+      })
+      const nested: any = new TestContext({ key: "${'${nested.key}'}" }, c)
+      c.addValues({ nested })
+      await expectError(
+        () => resolveKey(c, ["nested", "key"]),
+        (err) =>
+          expect(err.message).to.equal(
+            "Invalid template string ${'${nested.key}'}: Invalid template string ${nested.key}: Circular reference detected when resolving key nested.key (nested -> nested.key)"
+          )
+      )
+    })
   })
 
   describe("getSchema", () => {

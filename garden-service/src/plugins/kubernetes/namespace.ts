@@ -97,10 +97,11 @@ export async function getNamespace({
   return namespace
 }
 
-export async function getSystemNamespace(provider: KubernetesProvider, log: LogEntry): Promise<string> {
+export async function getSystemNamespace(provider: KubernetesProvider, log: LogEntry, api?: KubeApi): Promise<string> {
   const namespace = provider.config.gardenSystemNamespace
-
-  const api = await KubeApi.factory(log, provider)
+  if (!api) {
+    api = await KubeApi.factory(log, provider)
+  }
   await ensureNamespace(api, namespace)
 
   return namespace

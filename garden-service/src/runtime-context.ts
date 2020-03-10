@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { getEnvVarName, uniqByName } from "./util/util"
+import { getEnvVarName } from "./util/util"
 import { PrimitiveMap, joiEnvVars, joiPrimitive, joi, joiIdentifier } from "./config/common"
 import { moduleVersionSchema, ModuleVersion } from "./vcs/vcs"
 import { Garden } from "./garden"
@@ -102,20 +102,6 @@ export async function prepareRuntimeContext({
     dependencies: [],
   }
 
-  const depModules = uniqByName([
-    ...dependencies.build,
-    ...dependencies.deploy.map((d) => d.module),
-    ...dependencies.run.map((d) => d.module),
-  ])
-
-  for (const m of depModules) {
-    const moduleEnvName = getEnvVarName(m.name)
-
-    for (const [key, value] of Object.entries(m.outputs)) {
-      envVars[`GARDEN_MODULE_${moduleEnvName}__OUTPUT_${getEnvVarName(key)}`] = value
-    }
-  }
-
   for (const m of dependencies.build) {
     result.dependencies.push({
       moduleName: m.name,
@@ -127,8 +113,6 @@ export async function prepareRuntimeContext({
   }
 
   for (const service of dependencies.deploy) {
-    const envName = getEnvVarName(service.name)
-
     // If a service status is not available, we tolerate that here. That may impact dependant service status reports,
     // but that is expected behavior. If a service becomes available or changes its outputs, the context changes.
     // We leave it to providers to indicate what the impact of that difference is.
@@ -142,15 +126,9 @@ export async function prepareRuntimeContext({
       type: "service",
       version: service.module.version.versionString,
     })
-
-    for (const [key, value] of Object.entries(outputs)) {
-      envVars[`GARDEN_SERVICE_${envName}__OUTPUT_${getEnvVarName(key)}`] = value
-    }
   }
 
   for (const task of dependencies.run) {
-    const envName = getEnvVarName(task.name)
-
     // If a task result is not available, we tolerate that here. That may impact dependant service status reports,
     // but that is expected behavior. If a task is later run for the first time or its output changes, the context
     // changes. We leave it to providers to indicate what the impact of that difference is.
@@ -164,14 +142,9 @@ export async function prepareRuntimeContext({
       type: "task",
       version: task.module.version.versionString,
     })
-
-    for (const [key, value] of Object.entries(outputs)) {
-      envVars[`GARDEN_TASK_${envName}__OUTPUT_${getEnvVarName(key)}`] = value
-    }
   }
 
-  // Make the full list of dependencies and outputs available as JSON as well
-  result.envVars.GARDEN_DEPENDENCIES = JSON.stringify(result.dependencies)
-
+  // Make the full list of dependencies without outputs available as JSON as well
+  result.envVars.GARDEN_DEPENDENCIES = JSON.stringify(result.dependencies.map((d) => ({ ...d, outputs: undefined })))
   return result
 }
