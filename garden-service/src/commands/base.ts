@@ -7,19 +7,21 @@
  */
 
 import Joi = require("@hapi/joi")
+import chalk from "chalk"
+import dedent = require("dedent")
+import inquirer = require("inquirer")
 import stripAnsi from "strip-ansi"
-import { GardenError, RuntimeError, InternalError, ParameterError } from "../exceptions"
-import { TaskResults } from "../task-graph"
-import { LoggerType } from "../logger/logger"
-import { ProcessResults } from "../process"
-import { Garden } from "../garden"
-import { LogEntry } from "../logger/log-entry"
-import { printFooter } from "../logger/util"
+
 import { GlobalOptions } from "../cli/cli"
 import { joi } from "../config/common"
-import inquirer = require("inquirer")
-import dedent = require("dedent")
-import chalk from "chalk"
+import { GardenError, InternalError, ParameterError, RuntimeError } from "../exceptions"
+import { Garden } from "../garden"
+import { LogEntry } from "../logger/log-entry"
+import { LoggerType } from "../logger/logger"
+import { printFooter } from "../logger/util"
+import { ProcessResults } from "../process"
+import { TaskResults } from "../task-graph"
+import { RunResult } from "../types/plugin/base"
 
 export interface ParameterConstructor<T> {
   help: string
@@ -368,6 +370,20 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
 
     return true
   }
+}
+
+export async function handleActionResult(action: string, result: RunResult): Promise<CommandResult<RunResult>> {
+  if (!result.success) {
+    return {
+      errors: [
+        new RuntimeError(`${action} failed!`, {
+          result,
+        }),
+      ],
+    }
+  }
+
+  return { result }
 }
 
 export async function handleTaskResults(

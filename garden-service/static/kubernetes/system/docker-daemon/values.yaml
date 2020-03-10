@@ -3,8 +3,8 @@
 # Declare variables to be passed into your templates.
 
 image:
-  repository: docker
-  tag: 19.03.4-dind
+  repository: gardendev/docker-dind
+  tag: "19.03.7"
   pullPolicy: IfNotPresent
 
 nameOverride: "garden-docker-daemon"

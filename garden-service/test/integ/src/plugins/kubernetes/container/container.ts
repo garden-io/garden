@@ -71,6 +71,20 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
       }
       await api.upsert({ kind: "Secret", namespace: "default", obj: authSecret, log: garden.log })
     }
+
+    const credentialHelperAuth: KubernetesResource<V1Secret> = {
+      apiVersion: "v1",
+      kind: "Secret",
+      type: "kubernetes.io/dockerconfigjson",
+      metadata: {
+        name: "test-cred-helper-auth",
+        namespace: "default",
+      },
+      stringData: {
+        ".dockerconfigjson": JSON.stringify({ credHelpers: {}, experimental: "enabled" }),
+      },
+    }
+    await api.upsert({ kind: "Secret", namespace: "default", obj: credentialHelperAuth, log: garden.log })
   }
 
   const provider = <KubernetesProvider>await garden.resolveProvider("local-kubernetes")

@@ -28,7 +28,9 @@ kind: Module
 description: Redis service for queueing votes before they are aggregated
 type: helm
 name: redis
-chart: stable/redis
+repo: https://charts.bitnami.com/bitnami
+chart: redis
+version: "10.5.7"
 values:
   usePassword: false
 ```
