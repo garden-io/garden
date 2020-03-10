@@ -26,7 +26,7 @@ describe("DevCommand", () => {
   const command = new DevCommand()
 
   async function waitForEvent(garden: TestGarden, name: string) {
-    return pEvent(<any>garden.events, name, { timeout: 5000 })
+    return pEvent(<any>garden.events, name, { timeout: 10000 })
   }
 
   async function completeFirstTasks(
