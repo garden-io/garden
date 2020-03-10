@@ -23,6 +23,7 @@ import { STATIC_DIR, VERSION_CHECK_URL } from "../constants"
 import { printWarningMessage } from "../logger/util"
 import { GlobalConfigStore, globalConfigKeys } from "../config-store"
 import { got, GotResponse } from "../util/http"
+import { getUserId } from "../analytics/analytics"
 
 // Parameter types T which map between the Parameter<T> class and the Sywac cli library.
 // In case we add types that aren't supported natively by Sywac, see: http://sywac.io/docs/sync-config.html#custom
@@ -230,7 +231,7 @@ export async function checkForUpdates(config: GlobalConfigStore, logger: LogEntr
   try {
     const globalConfig = await config.get()
     const headers = {}
-    headers["X-user-id"] = globalConfig.analytics ? globalConfig.analytics.userId : "unknown"
+    headers["X-user-id"] = getUserId(globalConfig)
     headers["X-ci-check"] = ci.isCI
     if (ci.isCI) {
       headers["X-ci-name"] = ci.name
