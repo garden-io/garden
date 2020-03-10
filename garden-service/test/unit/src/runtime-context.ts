@@ -11,6 +11,7 @@ import { makeTestGardenA } from "../../helpers"
 import { ConfigGraph } from "../../../src/config-graph"
 import { prepareRuntimeContext } from "../../../src/runtime-context"
 import { expect } from "chai"
+import { omit } from "lodash"
 
 describe("prepareRuntimeContext", () => {
   let garden: Garden
@@ -92,8 +93,6 @@ describe("prepareRuntimeContext", () => {
         version: moduleB.version.versionString,
       },
     ])
-
-    expect(runtimeContext.envVars.GARDEN_MODULE_MODULE_B__OUTPUT_MY_OUTPUT).to.equal("meep")
   })
 
   it("should add outputs for every service dependency runtime output", async () => {
@@ -133,8 +132,6 @@ describe("prepareRuntimeContext", () => {
         version: serviceB.module.version.versionString,
       },
     ])
-
-    expect(runtimeContext.envVars.GARDEN_SERVICE_SERVICE_B__OUTPUT_MY_OUTPUT).to.equal("moop")
   })
 
   it("should add outputs for every task dependency runtime output", async () => {
@@ -180,34 +177,6 @@ describe("prepareRuntimeContext", () => {
         version: taskB.module.version.versionString,
       },
     ])
-
-    expect(runtimeContext.envVars.GARDEN_TASK_TASK_B__OUTPUT_MY_OUTPUT).to.equal("mewp")
-  })
-
-  it("should add output envVars for every module dependency, incl. task and service dependency modules", async () => {
-    const module = await graph.getModule("module-a")
-    const serviceB = await graph.getService("service-b")
-    const taskB = await graph.getTask("task-c")
-
-    serviceB.module.outputs = { "module-output-b": "meep" }
-    taskB.module.outputs = { "module-output-c": "moop" }
-
-    const runtimeContext = await prepareRuntimeContext({
-      garden,
-      graph,
-      version: module.version,
-      dependencies: {
-        build: [],
-        deploy: [serviceB],
-        run: [taskB],
-        test: [],
-      },
-      serviceStatuses: {},
-      taskResults: {},
-    })
-
-    expect(runtimeContext.envVars.GARDEN_MODULE_MODULE_B__OUTPUT_MODULE_OUTPUT_B).to.equal("meep")
-    expect(runtimeContext.envVars.GARDEN_MODULE_MODULE_C__OUTPUT_MODULE_OUTPUT_C).to.equal("moop")
   })
 
   it("should output the list of dependencies as an env variable", async () => {
@@ -230,7 +199,6 @@ describe("prepareRuntimeContext", () => {
     })
 
     const parsed = JSON.parse(runtimeContext.envVars.GARDEN_DEPENDENCIES as string)
-
-    expect(parsed).to.eql(runtimeContext.dependencies)
+    expect(parsed).to.eql(runtimeContext.dependencies.map((d) => omit(d, "outputs")))
   })
 })

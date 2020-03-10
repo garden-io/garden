@@ -22,6 +22,7 @@ import { gardenAnnotationKey } from "../../util/string"
 import { upsertConfigMap } from "./util"
 import { trimRunOutput } from "./helm/common"
 import { getSystemNamespace } from "./namespace"
+import chalk from "chalk"
 
 export async function getTestResult({
   ctx,
@@ -97,18 +98,22 @@ export async function storeTestResult({
 
   const data: TestResult = trimRunOutput(result)
 
-  await upsertConfigMap({
-    api,
-    namespace: testResultNamespace,
-    key: getTestResultKey(k8sCtx, module, testName, testVersion),
-    labels: {
-      [gardenAnnotationKey("module")]: module.name,
-      [gardenAnnotationKey("test")]: testName,
-      [gardenAnnotationKey("moduleVersion")]: module.version.versionString,
-      [gardenAnnotationKey("version")]: testVersion.versionString,
-    },
-    data,
-  })
+  try {
+    await upsertConfigMap({
+      api,
+      namespace: testResultNamespace,
+      key: getTestResultKey(k8sCtx, module, testName, testVersion),
+      labels: {
+        [gardenAnnotationKey("module")]: module.name,
+        [gardenAnnotationKey("test")]: testName,
+        [gardenAnnotationKey("moduleVersion")]: module.version.versionString,
+        [gardenAnnotationKey("version")]: testVersion.versionString,
+      },
+      data,
+    })
+  } catch (err) {
+    log.warn(chalk.yellow(`Unable to store test result: ${err.message}`))
+  }
 
   return data
 }

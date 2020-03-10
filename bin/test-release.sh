@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash
 
 # Script that downloads a release based on the version argument, and runs some simple tests to sanity check it.
 
@@ -76,10 +76,15 @@ test_release() {
   echo ""
   ${garden_release} deploy
   echo ""
+  echo ""
+  echo "→ Running 'garden create module' in demo project"
+  echo "→ Respond to the prompts to see if the create command works"
+  echo ""
+  ${garden_release} create module
+  echo ""
   echo "→ Running 'garden dev in' demo project - exits after 1 minute"
   echo ""
-  # Can't call the gr alias with
-  gtimeout 1m ${garden_release} dev
+  timeout 1m ${garden_release} dev
 
   echo ""
   echo "→ Running 'garden dev' in vote project - exits after 2 minutes, use the chance to change services and test the dashboard"
@@ -88,7 +93,7 @@ test_release() {
   echo ""
   cd ..
   cd vote
-  gtimeout 2m ${garden_release} dev
+  timeout 2m ${garden_release} dev
 
   echo ""
   echo "→ Running 'garden deploy --hot=node-service' in hot-reload project - exits after 1 minute, use the chance to test if hot-reload works"
@@ -96,7 +101,7 @@ test_release() {
   echo ""
   cd ..
   cd hot-reload
-  gtimeout 1m ${garden_release} deploy --hot node-service
+  timeout 1m ${garden_release} deploy --hot node-service
 
   # Remove the alias we set above
   if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -104,7 +109,7 @@ test_release() {
   fi
 
   cd $garden_root
-  echo "Done!"
+  echo "Done! Make sure to revert any changes that were made during the test run."
 }
 
 download_release

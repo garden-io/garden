@@ -43,8 +43,9 @@ kind: Module
 type: helm
 name: redis
 description: Redis service for message queueing
-chart: stable/redis
-version: 6.4.3
+repo: https://charts.bitnami.com/bitnami
+chart: redis
+version: "10.5.7"
 ```
 
 ```yaml

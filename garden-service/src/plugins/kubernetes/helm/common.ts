@@ -24,7 +24,7 @@ import { deline, tailString } from "../../../util/string"
 import { getAnnotation, flattenResources } from "../util"
 import { KubernetesPluginContext } from "../config"
 import { RunResult } from "../../../types/plugin/base"
-import { MAX_RUN_RESULT_OUTPUT_LENGTH } from "../constants"
+import { MAX_RUN_RESULT_LOG_LENGTH } from "../constants"
 
 const gardenValuesFilename = "garden-values.yml"
 
@@ -244,7 +244,7 @@ export async function renderHelmTemplateString(
  * We therefore need to use the `loadAll` function. See the following link for a conversation on using
  * `loadAll` in this context: https://github.com/kubeapps/kubeapps/issues/636.
  */
-function loadTemplate(template: string) {
+export function loadTemplate(template: string) {
   return loadAll(template, undefined, { json: true })
     .filter((obj) => obj !== null)
     .map((obj) => {
@@ -261,7 +261,7 @@ function loadTemplate(template: string) {
 }
 
 export function trimRunOutput<T extends RunResult>(result: T): T {
-  const log = tailString(result.log, MAX_RUN_RESULT_OUTPUT_LENGTH, true)
+  const log = tailString(result.log, MAX_RUN_RESULT_LOG_LENGTH, true)
 
   return {
     ...result,

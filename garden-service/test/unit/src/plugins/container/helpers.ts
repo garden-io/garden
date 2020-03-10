@@ -523,6 +523,18 @@ describe("containerHelpers", () => {
       expect(await helpers.autoResolveIncludes(config, log)).to.eql(["file-*", "Dockerfile"])
     })
 
+    it("should handle quoted paths", async () => {
+      await writeFile(
+        dockerfilePath,
+        dedent`
+        FROM foo
+        ADD "file-a" /
+        ADD 'file-b' /
+        `
+      )
+      expect(await helpers.autoResolveIncludes(config, log)).to.eql(["file-a", "file-b", "Dockerfile"])
+    })
+
     it("should ignore --chown arguments", async () => {
       await writeFile(
         dockerfilePath,

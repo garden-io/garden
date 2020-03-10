@@ -18,7 +18,7 @@ import chalk from "chalk"
 import { baseBuildSpecSchema } from "../../config/module"
 import { matchGlobs, listDirectory } from "../../util/fs"
 import { PluginError } from "../../exceptions"
-import { getModuleTypeUrl } from "../../docs/common"
+import { getModuleTypeUrl, getGitHubUrl } from "../../docs/common"
 
 interface ConftestProviderConfig extends ProviderConfig {
   policyPath: string
@@ -62,13 +62,14 @@ type ConftestModule = Module<ConftestModuleSpec>
 const moduleTypeUrl = getModuleTypeUrl("conftest")
 const containerModuleTypeUrl = getModuleTypeUrl("conftest-container")
 const kubernetesModuleTypeUrl = getModuleTypeUrl("conftest-kubernetes")
+const gitHubUrl = getGitHubUrl("examples/conftest")
 
 export const gardenPlugin = createGardenPlugin({
   name: "conftest",
   docs: dedent`
     This provider allows you to validate your configuration files against policies that you specify, using the [conftest tool](https://github.com/instrumenta/conftest) and Open Policy Agent rego query files. The provider creates a module type of the same name, which allows you to specify files to validate. Each module then creates a Garden test that becomes part of your Stack Graph.
 
-    Note that, in many cases, you'll actually want to use more specific providers that can automatically configure your \`conftest\` modules, e.g. the [\`conftest-container\`](${containerModuleTypeUrl}) and/or [\`conftest-kubernetes\`](${kubernetesModuleTypeUrl}) providers. See the [conftest example project](https://github.com/garden-io/garden/tree/master/examples/conftest) for a simple usage example of the latter.
+    Note that, in many cases, you'll actually want to use more specific providers that can automatically configure your \`conftest\` modules, e.g. the [\`conftest-container\`](${containerModuleTypeUrl}) and/or [\`conftest-kubernetes\`](${kubernetesModuleTypeUrl}) providers. See the [conftest example project](${gitHubUrl}) for a simple usage example of the latter.
 
     If those don't match your needs, you can use this provider directly and manually configure your \`conftest\` modules. Simply add this provider to your project configuration, and see the [conftest module documentation](${moduleTypeUrl}) for a detailed reference. Also, check out the below reference for how to configure default policies, default namespaces, and test failure thresholds for all \`conftest\` modules.
   `,

@@ -1,4 +1,37 @@
 
+<a name="v0.11.6"></a>
+## [v0.11.6](https://github.com/garden-io/garden/compare/v0.11.5...v0.11.6) (2020-03-06)
+
+### Bug Fixes
+
+* issues with running HTTPS requests through HTTP proxy ([5cd1864a](https://github.com/garden-io/garden/commit/5cd1864a))
+* **commands:** don't use default port in serve cmd ([4babaefb](https://github.com/garden-io/garden/commit/4babaefb))
+* **container:** strip quotes from Dockerfile paths when setting includes ([49bb9b86](https://github.com/garden-io/garden/commit/49bb9b86))
+* **k8s:** error when task logs were longer than 500kB ([10327a12](https://github.com/garden-io/garden/commit/10327a12))
+* **k8s:** error when helm returned empty YAML documents ([669d70a2](https://github.com/garden-io/garden/commit/669d70a2))
+
+### Improvements
+
+* **k8s:** update kaniko to v0.17.1 ([70340e80](https://github.com/garden-io/garden/commit/70340e80))
+* **k8s:** default in-cluster registry namespace to project name ([7ed4648e](https://github.com/garden-io/garden/commit/7ed4648e))
+* **template:** allow template expression in nested strings ([a383459d](https://github.com/garden-io/garden/commit/a383459d))
+
+<a name="v0.11.5"></a>
+## [v0.11.5](https://github.com/garden-io/garden/compare/v0.11.4...v0.11.5) (2020-02-25)
+
+### Bug Fixes
+
+* **cli:** create command didn't work from release build ([51806043](https://github.com/garden-io/garden/commit/51806043))
+* **cli:** edge-case error when writing error logs ([29fe3aa3](https://github.com/garden-io/garden/commit/29fe3aa3))
+* **container:** don't error on init if docker server can't be reached ([4bf8aab9](https://github.com/garden-io/garden/commit/4bf8aab9))
+* **core:** fix to dependency logic in dev command ([ef20e929](https://github.com/garden-io/garden/commit/ef20e929))
+* **k8s:** include value files in default Helm include clause ([24278058](https://github.com/garden-io/garden/commit/24278058))
+* **k8s:** issues with querying registries for image tags ([71f41d45](https://github.com/garden-io/garden/commit/71f41d45))
+
+### Features
+
+* **core:** add get linked-repos command ([5145d3fc](https://github.com/garden-io/garden/commit/5145d3fc))
+
 <a name="v0.11.4"></a>
 ## [v0.11.4](https://github.com/garden-io/garden/compare/v0.11.3...v0.11.4) (2020-02-21)
 

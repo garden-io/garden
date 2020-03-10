@@ -18,11 +18,13 @@ import { RunTaskResult } from "../../types/plugin/task/runTask"
 import { deserializeValues } from "../../util/util"
 import { PluginContext } from "../../plugin-context"
 import { LogEntry } from "../../logger/log-entry"
-import { gardenAnnotationKey } from "../../util/string"
+import { gardenAnnotationKey, tailString } from "../../util/string"
 import { Module } from "../../types/module"
 import hasha from "hasha"
 import { upsertConfigMap } from "./util"
 import { trimRunOutput } from "./helm/common"
+import { MAX_RUN_RESULT_LOG_LENGTH } from "./constants"
+import chalk from "chalk"
 
 export async function getTaskResult({
   ctx,
@@ -95,20 +97,29 @@ export async function storeTaskResult({
   const api = await KubeApi.factory(log, provider)
   const namespace = await getMetadataNamespace(ctx, log, provider)
 
+  // FIXME: We should store the logs separately, because of the 1MB size limit on ConfigMaps.
   const data: RunTaskResult = trimRunOutput(result)
 
-  await upsertConfigMap({
-    api,
-    namespace,
-    key: getTaskResultKey(ctx, module, taskName, taskVersion),
-    labels: {
-      [gardenAnnotationKey("module")]: module.name,
-      [gardenAnnotationKey("task")]: taskName,
-      [gardenAnnotationKey("moduleVersion")]: module.version.versionString,
-      [gardenAnnotationKey("version")]: taskVersion.versionString,
-    },
-    data,
-  })
+  if (data.outputs.log && typeof data.outputs.log === "string") {
+    data.outputs.log = tailString(data.outputs.log, MAX_RUN_RESULT_LOG_LENGTH, true)
+  }
+
+  try {
+    await upsertConfigMap({
+      api,
+      namespace,
+      key: getTaskResultKey(ctx, module, taskName, taskVersion),
+      labels: {
+        [gardenAnnotationKey("module")]: module.name,
+        [gardenAnnotationKey("task")]: taskName,
+        [gardenAnnotationKey("moduleVersion")]: module.version.versionString,
+        [gardenAnnotationKey("version")]: taskVersion.versionString,
+      },
+      data,
+    })
+  } catch (err) {
+    log.warn(chalk.yellow(`Unable to store task result: ${err.message}`))
+  }
 
   return data
 }

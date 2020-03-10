@@ -11,9 +11,10 @@ import { createGardenPlugin } from "../../types/plugin/plugin"
 import { ConftestProvider } from "./conftest"
 import { relative, resolve } from "path"
 import { dedent } from "../../util/string"
-import { getModuleTypeUrl } from "../../docs/common"
+import { getModuleTypeUrl, getGitHubUrl } from "../../docs/common"
 
 const moduleTypeUrl = getModuleTypeUrl("conftest")
+const gitHubUrl = getGitHubUrl("examples/conftest")
 
 /**
  * Auto-generates a conftest module for each helm and kubernetes module in your project
@@ -30,7 +31,7 @@ export const gardenPlugin = createGardenPlugin({
     reference for how to configure default policies, default namespaces, and test failure thresholds for the generated
     modules.
 
-    See the [conftest example project](https://github.com/garden-io/garden/tree/master/examples/conftest) for a simple
+    See the [conftest example project](${gitHubUrl}) for a simple
     usage example.
   `,
   handlers: {
