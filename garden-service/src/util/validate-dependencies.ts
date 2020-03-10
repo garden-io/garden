@@ -6,22 +6,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import dedent from "dedent"
+import { DepGraph } from "dependency-graph"
 import { merge, flatten, uniq } from "lodash"
 import indentString from "indent-string"
 import { get, isEqual, join, set, uniqWith } from "lodash"
 import { getModuleKey } from "../types/module"
-import { ConfigurationError } from "../exceptions"
-import { ServiceConfig } from "../config/service"
-import { TaskConfig } from "../config/task"
+import { ConfigurationError, ParameterError } from "../exceptions"
 import { ModuleConfig } from "../config/module"
 import { deline } from "./string"
+import { DependencyGraph, DependencyGraphNode, nodeKey as configGraphNodeKey } from "../config-graph"
 
-export function validateDependencies(moduleConfigs: ModuleConfig[], serviceNames: string[], taskNames: string[]): void {
-  // TODO: indicate in errors when modules are added by providers
-  const missingDepsError = detectMissingDependencies(moduleConfigs, serviceNames, taskNames)
-  const circularDepsError = detectCircularModuleDependencies(moduleConfigs)
-
+export function handleDependencyErrors(
+  missingDepsError: ConfigurationError | null,
+  circularDepsError: ConfigurationError | null
+) {
   let errMsg = ""
   let detail = {}
 
@@ -92,97 +90,123 @@ export function detectMissingDependencies(
   }
 }
 
-export type Cycle = string[]
+// Shared type used by ConfigGraph and TaskGraph to facilitate circular dependency detection
+export type DependencyValidationGraphNode = {
+  key: string // same as a corresponding task's key
+  dependencies: string[] // array of keys
+  description?: string // used instead of key when rendering node in circular dependency error messages
+}
 
-/**
- * Computes build and runtime dependency graphs for the given modules, and returns an error if cycles were found.
- */
-export function detectCircularModuleDependencies(moduleConfigs: ModuleConfig[]): ConfigurationError | null {
-  // Sparse matrices
-  const buildDeps: Dependency[] = []
-  const runtimeDeps: Dependency[] = []
-  const services: ServiceConfig[] = []
-  const tasks: TaskConfig[] = []
+export class DependencyValidationGraph {
+  graph: { [nodeKey: string]: DependencyValidationGraphNode }
+
+  constructor(nodes?: DependencyValidationGraphNode[]) {
+    this.graph = Object.fromEntries((nodes || []).map((n) => [n.key, n]))
+  }
+
+  static fromDependencyGraph(dependencyGraph: DependencyGraph) {
+    const withDeps = (node: DependencyGraphNode): DependencyValidationGraphNode => {
+      return {
+        key: configGraphNodeKey(node.type, node.name),
+        dependencies: node.dependencies.map((d) => configGraphNodeKey(d.type, d.name)),
+      }
+    }
+    const nodes = Object.values(dependencyGraph).map((n) => withDeps(n))
+    return new DependencyValidationGraph(nodes)
+  }
+
+  overallOrder(): string[] {
+    const cycles = this.detectCircularDependencies()
+    if (cycles.length > 0) {
+      const description = cyclesToString(cycles)
+      const errMsg = `\nCircular dependencies detected: \n\n${description}\n`
+      throw new ConfigurationError(errMsg, { "circular-dependencies": description })
+    }
+
+    const depGraph = new DepGraph()
+    for (const node of Object.values(this.graph)) {
+      depGraph.addNode(node.key)
+      for (const dep of node.dependencies) {
+        depGraph.addNode(dep)
+        depGraph.addDependency(node.key, dep)
+      }
+    }
+    return depGraph.overallOrder()
+  }
 
   /**
-   * Since dependencies listed in test configs cannot introduce circularities (because
-   * builds/deployments/tasks/tests cannot currently depend on tesxts), we don't need to
-   * account for test dependencies here.
+   * Idempotent.
+   *
+   * If provided, description will be used instead of key when rendering the node in
+   * circular dependency error messages.
    */
-  for (const module of moduleConfigs) {
-    // Build dependencies
-    for (const buildDep of module.build.dependencies) {
-      buildDeps.push({
-        from: module.name,
-        to: getModuleKey(buildDep.name, buildDep.plugin),
+  addNode(key: string, description?: string) {
+    if (!this.graph[key]) {
+      this.graph[key] = { key, dependencies: [], description }
+    }
+  }
+
+  /**
+   * Idempotent.
+   *
+   * Throws an error if a node doesn't exist for either dependantKey or dependencyKey.
+   */
+  addDependency(dependantKey: string, dependencyKey: string) {
+    if (!this.graph[dependantKey]) {
+      throw new ParameterError(`addDependency: no node exists for dependantKey ${dependantKey}`, {
+        dependantKey,
+        dependencyKey,
+        graph: this.graph,
       })
     }
 
-    // Runtime (service & task) dependencies
-    for (const service of module.serviceConfigs || []) {
-      services.push(service)
-      for (const depName of service.dependencies) {
-        runtimeDeps.push({
-          from: service.name,
-          to: depName,
-        })
-      }
+    if (!this.graph[dependencyKey]) {
+      throw new ParameterError(`addDependency: no node exists for dependencyKey ${dependencyKey}`, {
+        dependantKey,
+        dependencyKey,
+        graph: this.graph,
+      })
     }
 
-    for (const task of module.taskConfigs || []) {
-      tasks.push(task)
-      for (const depName of task.dependencies) {
-        runtimeDeps.push({
-          from: task.name,
-          to: depName,
-        })
-      }
+    const dependant = this.graph[dependantKey]
+    if (!dependant.dependencies.find((d) => d === dependencyKey)) {
+      const dependency = this.graph[dependencyKey]
+      dependant.dependencies.push(dependency.key)
     }
   }
 
-  const buildCycles = detectCycles(buildDeps)
-  const runtimeCycles = detectCycles(runtimeDeps)
+  /**
+   * Returns an error if cycles were found.
+   */
+  detectCircularDependencies(): Cycle[] {
+    const edges: DependencyEdge[] = []
 
-  if (buildCycles.length > 0 || runtimeCycles.length > 0) {
-    const detail = {}
-
-    let errMsg = "Circular dependencies detected."
-
-    if (buildCycles.length > 0) {
-      const buildCyclesDescription = cyclesToString(buildCycles)
-      errMsg = errMsg.concat(
-        "\n\n" +
-          dedent`
-        Circular build dependencies: ${buildCyclesDescription}
-      `
-      )
-      detail["circular-build-dependencies"] = buildCyclesDescription
+    for (const node of Object.values(this.graph)) {
+      for (const dep of node.dependencies) {
+        edges.push({ from: node.key, to: dep })
+      }
     }
 
-    if (runtimeCycles.length > 0) {
-      const runtimeCyclesDescription = cyclesToString(runtimeCycles)
-      errMsg = errMsg.concat(
-        "\n\n" +
-          dedent`
-        Circular service/task dependencies: ${runtimeCyclesDescription}
-      `
-      )
-      detail["circular-service-or-task-dependencies"] = runtimeCyclesDescription
-    }
-
-    return new ConfigurationError(errMsg, detail)
+    return detectCycles(edges)
   }
 
-  return null
+  cyclesToString(cycles: Cycle[]) {
+    const cycleDescriptions = cycles.map((c) => {
+      const nodeDescriptions = c.map((key) => this.graph[key].description || key)
+      return join(nodeDescriptions.concat([nodeDescriptions[0]]), " <- ")
+    })
+    return cycleDescriptions.length === 1 ? cycleDescriptions[0] : cycleDescriptions.join("\n\n")
+  }
 }
 
-// These types are used for our own dependency graph code, which we should likely deprecate
-export interface Dependency {
+type Cycle = string[]
+
+interface DependencyEdge {
   from: string
   to: string
 }
 
-interface _DependencyGraph {
+interface CycleGraph {
   [key: string]: {
     [target: string]: {
       distance: number
@@ -194,17 +218,17 @@ interface _DependencyGraph {
 /**
  * Implements a variation on the Floyd-Warshall algorithm to compute minimal cycles.
  *
- * This is approximately O(m^3) + O(s^3), where m is the number of modules and s is the number of services.
+ * This is approximately O(n^3), where n is the number of nodes in the graph.
  *
  * Returns a list of cycles found.
  */
-export function detectCycles(dependencies: Dependency[]): Cycle[] {
+export function detectCycles(edges: DependencyEdge[]): Cycle[] {
   // Collect all the vertices and build a graph object
-  const vertices = uniq(flatten(dependencies.map((d) => [d.from, d.to])))
+  const vertices = uniq(flatten(edges.map((d) => [d.from, d.to])))
 
-  const graph: _DependencyGraph = {}
+  const graph: CycleGraph = {}
 
-  for (const { from, to } of dependencies) {
+  for (const { from, to } of edges) {
     set(graph, [from, to], { distance: 1, next: to })
   }
 
@@ -239,15 +263,15 @@ export function detectCycles(dependencies: Dependency[]): Cycle[] {
   )
 }
 
-function distance(graph: _DependencyGraph, source: string, destination: string): number {
+function distance(graph: CycleGraph, source: string, destination: string): number {
   return get(graph, [source, destination, "distance"], Infinity) as number
 }
 
-function next(graph: _DependencyGraph, source: string, destination: string): string | undefined {
+function next(graph: CycleGraph, source: string, destination: string): string | undefined {
   return get(graph, [source, destination, "next"])
 }
 
 export function cyclesToString(cycles: Cycle[]) {
   const cycleDescriptions = cycles.map((c) => join(c.concat([c[0]]), " <- "))
-  return cycleDescriptions.length === 1 ? cycleDescriptions[0] : cycleDescriptions
+  return cycleDescriptions.length === 1 ? cycleDescriptions[0] : cycleDescriptions.join("\n\n")
 }

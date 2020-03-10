@@ -14,11 +14,12 @@ import { every, flatten, intersection, merge, padEnd, union, uniqWith, without }
 import { BaseTask, TaskDefinitionError, TaskType } from "./tasks/base"
 
 import { LogEntry, LogEntryMetadata, TaskLogStatus } from "./logger/log-entry"
-import { toGardenError, GardenBaseError } from "./exceptions"
+import { toGardenError, GardenBaseError, InternalError } from "./exceptions"
 import { Garden } from "./garden"
 import { dedent } from "./util/string"
 import { defer, relationshipClasses, uuidv4 } from "./util/util"
 import { renderError } from "./logger/renderers"
+import { DependencyValidationGraph } from "./util/validate-dependencies"
 
 class TaskGraphError extends GardenBaseError {
   type = "task-graph"
@@ -84,7 +85,15 @@ export class TaskGraph {
 
   async process(tasks: BaseTask[], opts?: ProcessTasksOpts): Promise<TaskResults> {
     const unlimitedConcurrency = opts ? !!opts.unlimitedConcurrency : false
-    const nodes = await this.nodesWithDependencies(tasks, unlimitedConcurrency)
+
+    const validationGraph = new DependencyValidationGraph()
+
+    let nodes: TaskNode[]
+    try {
+      nodes = await this.nodesWithDependencies(tasks, validationGraph, unlimitedConcurrency)
+    } catch (circularDepsErr) {
+      throw circularDepsErr
+    }
 
     const batches = this.partition(nodes, { unlimitedConcurrency })
     for (const batch of batches) {
@@ -121,9 +130,28 @@ export class TaskGraph {
     return results
   }
 
-  async nodesWithDependencies(tasks: BaseTask[], unlimitedConcurrency = false): Promise<TaskNode[]> {
+  async nodesWithDependencies(
+    tasks: BaseTask[],
+    validationGraph: DependencyValidationGraph,
+    unlimitedConcurrency = false
+  ): Promise<TaskNode[]> {
     return Bluebird.map(tasks, async (task) => {
-      const depNodes = await this.nodesWithDependencies(await task.getDependencies(), unlimitedConcurrency)
+      const depTasks = await task.getDependencies()
+
+      // Detect circular dependencies
+      validationGraph.addNode(task.getKey())
+      for (const depTask of depTasks) {
+        validationGraph.addNode(depTask.getKey())
+        validationGraph.addDependency(task.getKey(), depTask.getKey())
+      }
+      const cycles = validationGraph.detectCircularDependencies()
+      if (cycles.length > 0) {
+        const description = validationGraph.cyclesToString(cycles)
+        const msg = `\nCircular task dependencies detected:\n\n${description}\n`
+        throw new InternalError(msg, { "circular-dependencies": description })
+      }
+
+      const depNodes = await this.nodesWithDependencies(depTasks, validationGraph, unlimitedConcurrency)
       return new TaskNode(task, depNodes, unlimitedConcurrency)
     })
   }

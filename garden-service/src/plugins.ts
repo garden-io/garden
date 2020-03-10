@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DepGraph } from "dependency-graph"
 import {
   PluginMap,
   GardenPlugin,
@@ -19,9 +18,10 @@ import { ProviderConfig } from "./config/provider"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
 import { uniq, mapValues, fromPairs, flatten, keyBy, some } from "lodash"
 import { findByName, pushToKey, getNames } from "./util/util"
-import { deline, naturalList } from "./util/string"
+import { deline } from "./util/string"
 import { validateSchema } from "./config/validation"
 import { LogEntry } from "./logger/log-entry"
+import { DependencyValidationGraph } from "./util/validate-dependencies"
 
 export function loadPlugins(log: LogEntry, registeredPlugins: PluginMap, configs: ProviderConfig[]) {
   const loadedPlugins: PluginMap = {}
@@ -108,7 +108,7 @@ export function loadPlugins(log: LogEntry, registeredPlugins: PluginMap, configs
  * Returns the given provider configs in dependency order.
  */
 export function getDependencyOrder<T extends ProviderConfig>(configs: T[], registeredPlugins: PluginMap): T[] {
-  let graph = new DepGraph()
+  const graph = new DependencyValidationGraph()
 
   for (const plugin of Object.values(registeredPlugins)) {
     graph.addNode(plugin.name)
@@ -124,19 +124,15 @@ export function getDependencyOrder<T extends ProviderConfig>(configs: T[], regis
     }
   }
 
-  let ordered: string[]
+  const cycles = graph.detectCircularDependencies()
 
-  try {
-    ordered = graph.overallOrder()
-  } catch (err) {
-    if (err.cyclePath) {
-      throw new PluginError(`Found a circular dependency between registered plugins: ${err.cyclePath.join(" -> ")}`, {
-        cyclePath: err.cyclePath,
-      })
-    } else {
-      throw err
-    }
+  if (cycles.length > 0) {
+    const description = graph.cyclesToString(cycles)
+    const detail = { "circular-dependencies": description }
+    throw new PluginError(`Found a circular dependency between registered plugins:\n\n${description}`, detail)
   }
+
+  const ordered = graph.overallOrder()
 
   // Note: concat() makes sure we're not mutating the original array, because JS...
   return configs.concat().sort((a, b) => {
@@ -316,7 +312,7 @@ interface ModuleDefinitionMap {
 
 function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: ProviderConfig[]): PluginMap {
   // Collect module type declarations
-  const graph = new DepGraph()
+  const graph = new DependencyValidationGraph()
   const moduleDefinitionMap: { [moduleType: string]: { plugin: GardenPlugin; spec: ModuleTypeDefinition }[] } = {}
   const moduleExtensionMap: { [moduleType: string]: { plugin: GardenPlugin; spec: ModuleTypeExtension }[] } = {}
 
@@ -324,10 +320,10 @@ function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: ProviderC
     for (const spec of plugin.createModuleTypes) {
       pushToKey(moduleDefinitionMap, spec.name, { plugin, spec })
 
-      graph.addNode(spec.name)
+      graph.addNode(spec.name, `${spec.name} (from plugin ${plugin.name})`)
 
       if (spec.base) {
-        graph.addNode(spec.base)
+        graph.addNode(spec.base, `${spec.base} (from plugin ${plugin.name})`)
         graph.addDependency(spec.name, spec.base)
       }
     }
@@ -352,27 +348,16 @@ function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: ProviderC
   }
 
   // Make sure we don't have circular dependencies in module type bases
-  let ordered: string[]
+  const cycles = graph.detectCircularDependencies()
 
-  try {
-    ordered = graph.overallOrder()
-  } catch (err) {
-    if (err.cyclePath) {
-      const plugins: string[] = err.cyclePath.map(
-        (name: string) => "'" + moduleDefinitionMap[name][0].plugin.name + "'"
-      )
-
-      throw new PluginError(
-        `Found circular dependency between module type bases (defined in plugin(s) ${naturalList(uniq(plugins))}): ` +
-          err.cyclePath.join(" -> "),
-        { cyclePath: err.cyclePath }
-      )
-    } else {
-      throw err
-    }
+  if (cycles.length > 0) {
+    const description = graph.cyclesToString(cycles)
+    const detail = { "circular-dependencies": description }
+    const msg = `Found circular dependency between module type bases:\n\n${description}`
+    throw new PluginError(msg, detail)
   }
 
-  ordered = ordered.filter((name) => name in moduleDefinitionMap)
+  const ordered = graph.overallOrder().filter((name) => name in moduleDefinitionMap)
 
   const resolvedDefinitions: ModuleDefinitionMap = {}
 
