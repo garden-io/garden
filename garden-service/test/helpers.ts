@@ -91,6 +91,7 @@ async function runModule(params: RunModuleParams): Promise<RunResult> {
 }
 
 export const projectRootA = getDataDir("test-project-a")
+export const projectTestFailsRoot = getDataDir("test-project-fails")
 
 const testModuleTestSchema = () => containerTestSchema().keys({ command: joi.array().items(joi.string()) })
 
@@ -349,6 +350,10 @@ export const makeTestGarden = async (projectRoot: string, opts: GardenOpts = {})
 
 export const makeTestGardenA = async (extraPlugins: RegisterPluginParam[] = []) => {
   return makeTestGarden(projectRootA, { plugins: extraPlugins })
+}
+
+export const makeTestGardenTasksFails = async (extraPlugins: RegisterPluginParam[] = []) => {
+  return makeTestGarden(projectTestFailsRoot, { plugins: extraPlugins })
 }
 
 export function stubAction<T extends keyof PluginActionHandlers>(

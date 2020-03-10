@@ -6,12 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { expect } from "chai"
+import td from "testdouble"
+
 import { RunModuleCommand } from "../../../../../src/commands/run/module"
+import { Garden } from "../../../../../src/garden"
 import { RunResult } from "../../../../../src/types/plugin/base"
 import { makeTestGardenA, testModuleVersion, testNow, withDefaultGlobalOpts } from "../../../../helpers"
-import { expect } from "chai"
-import { Garden } from "../../../../../src/garden"
-import td from "testdouble"
 
 describe("RunModuleCommand", () => {
   // TODO: test optional flags
