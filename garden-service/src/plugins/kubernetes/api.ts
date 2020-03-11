@@ -482,7 +482,7 @@ export async function getKubeConfig(log: LogEntry, provider: KubernetesProvider)
       kubeConfigStr = (await readFile(provider.config.kubeconfig)).toString()
     } else {
       // We use kubectl for this, to support merging multiple paths in the KUBECONFIG env var
-      kubeConfigStr = await kubectl.stdout({ log, provider, args: ["config", "view", "--raw"] })
+      kubeConfigStr = await kubectl(provider).stdout({ log, args: ["config", "view", "--raw"] })
     }
     return safeLoad(kubeConfigStr)
   } catch (error) {

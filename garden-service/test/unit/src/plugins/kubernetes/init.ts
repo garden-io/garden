@@ -62,9 +62,10 @@ const basicConfig: KubernetesConfig = {
 const basicProvider: KubernetesProvider = {
   name: "kubernetes",
   config: basicConfig,
-  dependencies: [],
+  dependencies: {},
   moduleConfigs: [],
   status: { ready: true, outputs: {} },
+  tools: {},
 }
 
 const dockerSimpleAuthSecret: KubernetesResource<V1Secret> = {

@@ -26,6 +26,9 @@ ADD . /garden
 WORKDIR /project
 
 RUN ln -s /garden/garden /bin/garden \
-  && chmod +x /bin/garden
+  && chmod +x /bin/garden \
+  && cd /garden/static \
+  && git init \
+  && garden util fetch-tools --all --logger-type=basic
 
 ENTRYPOINT ["/garden/garden"]

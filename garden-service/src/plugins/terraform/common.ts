@@ -31,9 +31,8 @@ export interface TerraformBaseSpec {
 
 export async function tfValidate(log: LogEntry, provider: TerraformProvider, root: string, variables: object) {
   const args = ["validate", "-json", ...(await prepareVariables(root, variables))]
-  const tfVersion = provider.config.version
 
-  const res = await terraform(tfVersion).json({
+  const res = await terraform(provider).json({
     log,
     args,
     ignoreError: true,
@@ -46,9 +45,9 @@ export async function tfValidate(log: LogEntry, provider: TerraformProvider, roo
     if (reasons.includes("Could not satisfy plugin requirements") || reasons.includes("Module not installed")) {
       // We need to run `terraform init` and retry validation
       log.debug("Initializing Terraform")
-      await terraform(tfVersion).exec({ log, args: ["init"], cwd: root, timeout: 300 })
+      await terraform(provider).exec({ log, args: ["init"], cwd: root, timeout: 300 })
 
-      const retryRes = await terraform(tfVersion).json({
+      const retryRes = await terraform(provider).json({
         log,
         args,
         ignoreError: true,
@@ -63,12 +62,13 @@ export async function tfValidate(log: LogEntry, provider: TerraformProvider, roo
   }
 }
 
-export async function getTfOutputs(log: LogEntry, terraformVersion: string, workingDir: string) {
-  const res = await terraform(terraformVersion).json({
+export async function getTfOutputs(log: LogEntry, provider: TerraformProvider, workingDir: string) {
+  const res = await terraform(provider).json({
     log,
     args: ["output", "-json"],
     cwd: workingDir,
   })
+
   return mapValues(res, (v: any) => v.value)
 }
 
@@ -106,11 +106,10 @@ export async function getStackStatus({
   variables,
 }: GetTerraformStackStatusParams): Promise<StackStatus> {
   await tfValidate(log, provider, root, variables)
-  const tfVersion = provider.config.version
 
   const logEntry = log.verbose({ section: "terraform", msg: "Running plan...", status: "active" })
 
-  const plan = await terraform(tfVersion).exec({
+  const plan = await terraform(provider).exec({
     log,
     ignoreError: true,
     args: [
@@ -151,18 +150,18 @@ export async function getStackStatus({
 
 export async function applyStack({
   log,
+  provider,
   root,
   variables,
-  version,
 }: {
   log: LogEntry
+  provider: TerraformProvider
   root: string
   variables: object
-  version: string
 }) {
   const args = ["apply", "-auto-approve", "-input=false", ...(await prepareVariables(root, variables))]
 
-  const proc = await terraform(version).spawn({ log, args, cwd: root })
+  const proc = await terraform(provider).spawn({ log, args, cwd: root })
 
   const statusLine = log.info("→ Applying Terraform stack...")
   const logStream = split2()

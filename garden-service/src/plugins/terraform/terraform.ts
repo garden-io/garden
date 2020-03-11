@@ -13,7 +13,7 @@ import { getEnvironmentStatus, prepareEnvironment } from "./init"
 import { providerConfigBaseSchema, ProviderConfig, Provider } from "../../config/provider"
 import { joi } from "../../config/common"
 import { dedent } from "../../util/string"
-import { supportedVersions, defaultTerraformVersion } from "./cli"
+import { supportedVersions, defaultTerraformVersion, terraformCliSpecs } from "./cli"
 import { ConfigureProviderParams, ConfigureProviderResult } from "../../types/plugin/provider/configureProvider"
 import { ConfigurationError } from "../../exceptions"
 import { variablesSchema, TerraformBaseSpec } from "./common"
@@ -120,6 +120,7 @@ export const gardenPlugin = createGardenPlugin({
       },
     },
   ],
+  tools: Object.values(terraformCliSpecs),
 })
 
 async function configureProvider({

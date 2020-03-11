@@ -87,6 +87,34 @@ Note: Currently only supports simple GET requests for HTTP/HTTPS ingresses.
 | -------- | -------- | ----------- |
   | `serviceAndPath` | Yes | The name of the service to call followed by the ingress path (e.g. my-container/somepath).
 
+### garden config analytics-enabled
+
+Update your preferences regarding analytics.
+
+To help us make Garden better, you can opt in to the collection of usage data.
+We make sure all the data collected is anonymized and stripped of sensitive
+information. We collect data about which commands are run, what tasks they trigger,
+which API calls are made to your local Garden server, as well as some info
+about the environment in which Garden runs.
+
+You will be asked if you want to opt-in when running Garden for the
+first time and you can use this command to update your preferences later.
+
+Examples:
+
+    garden config analytics-enabled true   # enable analytics
+    garden config analytics-enabled false  # disable analytics
+
+##### Usage
+
+    garden config analytics-enabled [enable] 
+
+##### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `enable` | No | Enable analytics. Defaults to &quot;true&quot;
+
 ### garden create project
 
 Create a new Garden project.
@@ -794,6 +822,56 @@ Examples:
   | `--force-build` |  | boolean | Force rebuild of module(s).
   | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-test.
 
+### garden tools
+
+Access tools included by providers.
+
+Run a tool defined by a provider in your project, downloading and extracting it if
+necessary. Run without arguments to get a list of all tools available.
+
+Run with the --get-path flag to just print the path to the binary or library
+directory (depending on the tool type). If the tool is a non-executable library, this
+flag is implicit.
+
+When multiple plugins provide a tool with the same name, you can choose a specific
+plugin/version by specifying <plugin name>.<tool name>, instead of just <tool name>.
+This is generally advisable when using this command in scripts, to avoid accidental
+conflicts.
+
+When there are name conflicts and a plugin name is not specified, the preference is
+for defined by configured providers in the current project (if applicable), and then
+alphabetical by plugin name.
+
+Examples:
+
+    # Run kubectl with <args>.
+    garden tools kubectl -- <args>
+
+    # Run the kubectl version defined specifically by the `kubernetes` plugin.
+    garden tools kubernetes.kubectl -- <args>
+
+    # Print the path to the kubernetes.kubectl tool to stdout, instead of running it.
+    garden tools kubernetes.kubectl --get-path
+
+    # List all available tools.
+    garden tools
+
+##### Usage
+
+    garden tools [tool] [options]
+
+##### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `tool` | No | The name of the tool to run.
+
+##### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--get-path` |  | boolean | If specified, we print the path to the binary or library instead of running it.
+
 ### garden unlink source
 
 Unlink a previously linked remote source from its local directory.
@@ -905,6 +983,29 @@ Examples:
 
     garden update-remote all 
 
+### garden util fetch-tools
+
+Pre-fetch plugin tools.
+
+Pre-fetch all the available tools for the configured providers in the current
+project/environment, or all registered providers if the --all parameter is
+specified.
+
+Examples:
+
+    garden util fetch-tools        # fetch for just the current project/env
+    garden util fetch-tools --all  # fetch for all registered providers
+
+##### Usage
+
+    garden util fetch-tools [options]
+
+##### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--all` |  | boolean | Fetch all tools for registered plugins, instead of just ones in the current env/project.
+
 ### garden validate
 
 Check your garden configuration for errors.
@@ -914,32 +1015,4 @@ Throws an error and exits with code 1 if something's not right in your garden.ym
 ##### Usage
 
     garden validate 
-
-### garden config analytics-enabled
-
-Update your preferences regarding analytics.
-
-To help us make Garden better, you can opt in to the collection of usage data.
-We make sure all the data collected is anonymized and stripped of sensitive
-information. We collect data about which commands are run, what tasks they trigger,
-which API calls are made to your local Garden server, as well as some info
-about the environment in which Garden runs.
-
-You will be asked if you want to opt-in when running Garden for the
-first time and you can use this command to update your preferences later.
-
-Examples:
-
-    garden config analytics-enabled true   # enable analytics
-    garden config analytics-enabled false  # disable analytics
-
-##### Usage
-
-    garden config analytics-enabled [enable] 
-
-##### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `enable` | No | Enable analytics. Defaults to &quot;true&quot;
 

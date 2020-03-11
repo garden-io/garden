@@ -117,7 +117,7 @@ export async function getTerraformStatus({
   return {
     state: status === "up-to-date" ? "ready" : "outdated",
     version: module.version.versionString,
-    outputs: await getTfOutputs(log, provider.config.version, root),
+    outputs: await getTfOutputs(log, provider, root),
     detail: {},
   }
 }
@@ -131,7 +131,7 @@ export async function deployTerraform({
   const root = getModuleStackRoot(module)
 
   if (module.spec.autoApply) {
-    await applyStack({ log, root, variables: module.spec.variables, version: module.spec.version })
+    await applyStack({ log, provider, root, variables: module.spec.variables })
   } else {
     const templateKey = `\${runtime.services.${module.name}.outputs.*}`
     log.warn(
@@ -148,7 +148,7 @@ export async function deployTerraform({
   return {
     state: "ready",
     version: module.version.versionString,
-    outputs: await getTfOutputs(log, provider.config.version, root),
+    outputs: await getTfOutputs(log, provider, root),
     detail: {},
   }
 }

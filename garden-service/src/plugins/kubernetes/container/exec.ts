@@ -80,9 +80,8 @@ export async function execInWorkload({
   }
 
   const kubecmd = ["exec", ...opts, pod.metadata.name, "--", ...command]
-  const res = await kubectl.spawnAndWait({
+  const res = await kubectl(provider).spawnAndWait({
     log,
-    provider,
     namespace,
     args: kubecmd,
     ignoreError: true,
