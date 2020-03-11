@@ -20,7 +20,7 @@ import { KubeApi } from "../api"
 import { kubectl } from "../kubectl"
 import { LogEntry } from "../../../logger/log-entry"
 import { KubernetesProvider, ContainerBuildMode, KubernetesPluginContext, KubernetesConfig } from "../config"
-import { PluginError, InternalError } from "../../../exceptions"
+import { PluginError, InternalError, RuntimeError } from "../../../exceptions"
 import { PodRunner } from "../run"
 import { getRegistryHostname, getKubernetesSystemVariables } from "../init"
 import { normalizeLocalRsyncPath } from "../../../util/fs"
@@ -35,6 +35,7 @@ import { dedent } from "../../../util/string"
 const dockerDaemonDeploymentName = "garden-docker-daemon"
 const dockerDaemonContainerName = "docker-daemon"
 const kanikoImage = "gcr.io/kaniko-project/executor:debug-v0.17.1"
+const skopeoImage = "gardendev/skopeo:1.41.0"
 const registryPort = 5000
 
 export const buildSyncDeploymentName = "garden-build-sync"
@@ -63,44 +64,143 @@ export async function k8sBuildContainer(params: BuildModuleParams<ContainerModul
 
 type BuildStatusHandler = (params: GetBuildStatusParams<ContainerModule>) => Promise<BuildStatus>
 
-const getLocalBuildStatus: BuildStatusHandler = async (params) => {
-  const { ctx, module, log } = params
-  const k8sCtx = ctx as KubernetesPluginContext
-  const deploymentRegistry = k8sCtx.provider.config.deploymentRegistry
-
-  if (deploymentRegistry) {
-    const args = await getManifestInspectArgs(module, deploymentRegistry)
-    const res = await containerHelpers.dockerCli(module.buildPath, args, log, { ignoreError: true })
-    return { ready: res.code === 0 }
-  } else {
-    return getContainerBuildStatus(params)
-  }
-}
-
-const getRemoteBuildStatus: BuildStatusHandler = async (params) => {
-  const { ctx, module, log } = params
-  const k8sCtx = ctx as KubernetesPluginContext
-  const provider = k8sCtx.provider
-  const deploymentRegistry = provider.config.deploymentRegistry
-
-  if (!deploymentRegistry) {
-    // This is validated in the provider configure handler, so this is an internal error if it happens
-    throw new InternalError(`Expected configured deploymentRegistry for remote build`, { config: provider.config })
-  }
-
-  const args = await getManifestInspectArgs(module, deploymentRegistry)
-  const pushArgs = ["/bin/sh", "-c", "DOCKER_CLI_EXPERIMENTAL=enabled docker " + args.join(" ")]
-
-  const podName = await getBuilderPodName(provider, log)
-  const res = await execInBuilder({ provider, log, args: pushArgs, timeout: 300, podName, ignoreError: true })
-
-  return { ready: res.exitCode === 0 }
-}
-
 const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } = {
-  "local-docker": getLocalBuildStatus,
-  "cluster-docker": getRemoteBuildStatus,
-  "kaniko": getRemoteBuildStatus,
+  "local-docker": async (params) => {
+    const { ctx, module, log } = params
+    const k8sCtx = ctx as KubernetesPluginContext
+    const deploymentRegistry = k8sCtx.provider.config.deploymentRegistry
+
+    if (deploymentRegistry) {
+      const args = await getManifestInspectArgs(module, deploymentRegistry)
+      const res = await containerHelpers.dockerCli(module.buildPath, args, log, { ignoreError: true })
+
+      // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
+      if (res.code !== 0 && !res.output.includes("no such manifest")) {
+        throw new RuntimeError(`Unable to query registry for image status: ${res.output}`, {
+          command: "docker " + args.join(" "),
+          output: res.output,
+        })
+      }
+
+      return { ready: res.code === 0 }
+    } else {
+      return getContainerBuildStatus(params)
+    }
+  },
+
+  // TODO: make these handlers faster by running a simple in-cluster service
+  // that wraps https://github.com/containers/image
+  "cluster-docker": async (params) => {
+    const { ctx, module, log } = params
+    const k8sCtx = ctx as KubernetesPluginContext
+    const provider = k8sCtx.provider
+    const deploymentRegistry = provider.config.deploymentRegistry
+
+    if (!deploymentRegistry) {
+      // This is validated in the provider configure handler, so this is an internal error if it happens
+      throw new InternalError(`Expected configured deploymentRegistry for remote build`, { config: provider.config })
+    }
+
+    const args = await getManifestInspectArgs(module, deploymentRegistry)
+    const pushArgs = ["/bin/sh", "-c", "DOCKER_CLI_EXPERIMENTAL=enabled docker " + args.join(" ")]
+
+    const podName = await getBuilderPodName(provider, log)
+    const res = await execInBuilder({ provider, log, args: pushArgs, timeout: 300, podName, ignoreError: true })
+
+    // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
+    if (res.exitCode !== 0 && !res.stderr.includes("no such manifest")) {
+      throw new RuntimeError(`Unable to query registry for image status: ${res.all || res.stderr}`, {
+        command: res.command,
+        stdout: res.stdout,
+        stderr: res.stderr,
+      })
+    }
+
+    return { ready: res.exitCode === 0 }
+  },
+
+  "kaniko": async (params) => {
+    const { ctx, module, log } = params
+    const k8sCtx = ctx as KubernetesPluginContext
+    const provider = k8sCtx.provider
+    const deploymentRegistry = provider.config.deploymentRegistry
+
+    if (!deploymentRegistry) {
+      // This is validated in the provider configure handler, so this is an internal error if it happens
+      throw new InternalError(`Expected configured deploymentRegistry for remote build`, { config: provider.config })
+    }
+
+    const api = await KubeApi.factory(log, provider)
+    const namespace = await getAppNamespace(ctx, log, provider)
+    const systemNamespace = await getSystemNamespace(provider, log)
+    const podName = makePodName("skopeo", namespace, module.name)
+    const registryHostname = getRegistryHostname(provider.config)
+
+    const remoteId = await containerHelpers.getDeploymentImageId(module, deploymentRegistry)
+    const skopeoCommand = `skopeo --command-timeout 30 inspect --raw docker://${remoteId}`
+
+    // Have to ensure the registry proxy is up before querying, in case the in-cluster registry is being used
+    const commandStr = dedent`
+      while true; do
+        if pidof socat > /dev/null; then
+          ${skopeoCommand};
+          killall socat;
+          exit $?;
+        else
+          sleep 0.3;
+        fi
+      done
+    `
+
+    const runner = new PodRunner({
+      api,
+      podName,
+      provider,
+      image: kanikoImage,
+      module,
+      namespace: systemNamespace,
+      spec: {
+        shareProcessNamespace: true,
+        volumes: [
+          // Mount the docker auth secret, so skopeo can inspect private registries.
+          getDockerAuthVolume(),
+        ],
+        containers: [
+          {
+            name: "skopeo",
+            image: skopeoImage,
+            command: ["sh", "-c", commandStr],
+            volumeMounts: [
+              {
+                name: dockerAuthSecretName,
+                mountPath: "/root/.docker",
+                readOnly: true,
+              },
+            ],
+          },
+          getSocatContainer(registryHostname),
+        ],
+      },
+    })
+
+    const res = await runner.startAndWait({
+      ignoreError: true,
+      interactive: false,
+      log,
+      // The timeout set on the skopeo command should kick in first
+      timeout: 60,
+    })
+
+    // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
+    if (!res.success && !res.log.includes("manifest unknown")) {
+      throw new RuntimeError(`Unable to query registry for image status: ${res.log}`, {
+        command: skopeoCommand,
+        output: res.log,
+      })
+    }
+
+    return { ready: res.success }
+  },
 }
 
 type BuildHandler = (params: BuildModuleParams<ContainerModule>) => Promise<BuildResult>
@@ -397,13 +497,7 @@ async function runKaniko({ provider, namespace, log, module, args, outputStream 
           persistentVolumeClaim: { claimName: syncDataVolumeName },
         },
         // Mount the docker auth secret, so Kaniko can pull from private registries.
-        {
-          name: dockerAuthSecretName,
-          secret: {
-            secretName: dockerAuthSecretName,
-            items: [{ key: dockerAuthSecretKey, path: "config.json" }],
-          },
-        },
+        getDockerAuthVolume(),
         // Mount a volume to communicate between the containers in the Pod.
         {
           name: commsVolumeName,
@@ -415,7 +509,6 @@ async function runKaniko({ provider, namespace, log, module, args, outputStream 
           name: "kaniko",
           image: kanikoImage,
           command: ["sh", "-c", commandStr],
-          args,
           volumeMounts: [
             {
               name: syncDataVolumeName,
@@ -442,21 +535,7 @@ async function runKaniko({ provider, namespace, log, module, args, outputStream 
             },
           },
         },
-        {
-          name: "proxy",
-          image: "basi/socat:v0.1.0",
-          command: ["/bin/sh", "-c", `socat TCP-LISTEN:5000,fork TCP:${registryHostname}:5000 || exit 0`],
-          ports: [
-            {
-              name: "proxy",
-              containerPort: registryPort,
-              protocol: "TCP",
-            },
-          ],
-          readinessProbe: {
-            tcpSocket: { port: <any>registryPort },
-          },
-        },
+        getSocatContainer(registryHostname),
         // This is a workaround so that the kaniko executor can wait until socat starts, and so that the socat proxy
         // doesn't just keep running after the build finishes. Doing this in the kaniko Pod is currently not possible
         // because of https://github.com/GoogleContainerTools/distroless/issues/225
@@ -517,4 +596,32 @@ async function getManifestInspectArgs(module: ContainerModule, deploymentRegistr
 
 function isLocalHostname(hostname: string) {
   return hostname === "localhost" || hostname.startsWith("127.")
+}
+
+function getDockerAuthVolume() {
+  return {
+    name: dockerAuthSecretName,
+    secret: {
+      secretName: dockerAuthSecretName,
+      items: [{ key: dockerAuthSecretKey, path: "config.json" }],
+    },
+  }
+}
+
+function getSocatContainer(registryHostname: string) {
+  return {
+    name: "proxy",
+    image: "basi/socat:v0.1.0",
+    command: ["/bin/sh", "-c", `socat TCP-LISTEN:5000,fork TCP:${registryHostname}:5000 || exit 0`],
+    ports: [
+      {
+        name: "proxy",
+        containerPort: registryPort,
+        protocol: "TCP",
+      },
+    ],
+    readinessProbe: {
+      tcpSocket: { port: <any>registryPort },
+    },
+  }
 }

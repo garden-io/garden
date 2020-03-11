@@ -56,7 +56,7 @@ interface ProjectMetadata {
 export interface AnalyticsEventProperties {
   projectId: string
   projectName: string
-  ciName: string
+  ciName: string | null
   system: SystemInfo
   isCI: boolean
   sessionId: string
@@ -131,7 +131,7 @@ export class AnalyticsHandler {
   private globalConfigStore: GlobalConfigStore
   private projectId = ""
   private projectName = ""
-  private ciName = ""
+  private ciName = ci.name
   private systemConfig: SystemInfo
   private isCI = ci.isCI
   private sessionId = uuidv4()
@@ -197,7 +197,6 @@ export class AnalyticsHandler {
     const originName = await this.garden.vcs.getOriginName(this.log)
     this.projectName = hasha(this.garden.projectName, { algorithm: "sha256" })
     this.projectId = originName ? hasha(originName, { algorithm: "sha256" }) : this.projectName
-    this.ciName = ci.name ? hasha(ci.name, { algorithm: "sha256" }) : UNKNOWN
 
     const gitHubUrl = getGitHubUrl("README.md#Analytics")
     if (this.analyticsConfig.firstRun || this.analyticsConfig.showOptInMessage) {

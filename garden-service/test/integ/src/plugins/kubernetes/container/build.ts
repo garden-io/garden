@@ -278,6 +278,25 @@ describe("kubernetes build flow", () => {
       })
     })
 
+    it("should get the build status from the registry", async () => {
+      const module = await graph.getModule("simple-service")
+      await garden.buildDir.syncFromSrc(module, garden.log)
+
+      await k8sBuildContainer({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      const status = await k8sGetContainerBuildStatus({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      expect(status.ready).to.be.true
+    })
+
     it("should support pulling from private registries (remote only)", async () => {
       const module = await graph.getModule("private-base")
       await garden.buildDir.syncFromSrc(module, garden.log)
@@ -321,6 +340,25 @@ describe("kubernetes build flow", () => {
         log: garden.log,
         module,
       })
+    })
+
+    it("should get the build status from the registry (remote only)", async () => {
+      const module = await graph.getModule("remote-registry-test")
+      await garden.buildDir.syncFromSrc(module, garden.log)
+
+      await k8sBuildContainer({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      const status = await k8sGetContainerBuildStatus({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      expect(status.ready).to.be.true
     })
   })
 })
