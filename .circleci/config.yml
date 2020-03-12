@@ -19,7 +19,7 @@ orbs:
         environment:
           <<: *shared-env-config
           GARDEN_TASK_CONCURRENCY_LIMIT: "10"
-    resource_class: large
+    resource_class: medium
 
   # Configuration for release jobs
   release-config: &release-config
