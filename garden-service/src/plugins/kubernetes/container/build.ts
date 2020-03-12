@@ -20,7 +20,7 @@ import { KubeApi } from "../api"
 import { kubectl } from "../kubectl"
 import { LogEntry } from "../../../logger/log-entry"
 import { KubernetesProvider, ContainerBuildMode, KubernetesPluginContext, KubernetesConfig } from "../config"
-import { PluginError, InternalError, RuntimeError } from "../../../exceptions"
+import { PluginError, InternalError, RuntimeError, BuildError } from "../../../exceptions"
 import { PodRunner } from "../run"
 import { getRegistryHostname, getKubernetesSystemVariables } from "../init"
 import { normalizeLocalRsyncPath } from "../../../util/fs"
@@ -31,11 +31,12 @@ import { exec, renderOutputStream } from "../../../util/util"
 import { loadLocalImage } from "../local/kind"
 import { getSystemNamespace, getAppNamespace } from "../namespace"
 import { dedent } from "../../../util/string"
+import chalk = require("chalk")
 
 const dockerDaemonDeploymentName = "garden-docker-daemon"
 const dockerDaemonContainerName = "docker-daemon"
 const kanikoImage = "gcr.io/kaniko-project/executor:debug-v0.17.1"
-const skopeoImage = "gardendev/skopeo:1.41.0"
+const skopeoImage = "gardendev/skopeo:1.41.0-1"
 const registryPort = 5000
 
 export const buildSyncDeploymentName = "garden-build-sync"
@@ -137,15 +138,23 @@ const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } 
     const registryHostname = getRegistryHostname(provider.config)
 
     const remoteId = await containerHelpers.getDeploymentImageId(module, deploymentRegistry)
-    const skopeoCommand = `skopeo --command-timeout 30 inspect --raw docker://${remoteId}`
+    const skopeoCommand = ["skopeo", "--command-timeout=30s", "inspect", "--raw"]
+
+    if (deploymentRegistry?.hostname === inClusterRegistryHostname) {
+      // The in-cluster registry is not exposed, so we don't configure TLS on it.
+      skopeoCommand.push("--tls-verify=false")
+    }
+
+    skopeoCommand.push(`docker://${remoteId}`)
 
     // Have to ensure the registry proxy is up before querying, in case the in-cluster registry is being used
     const commandStr = dedent`
       while true; do
         if pidof socat > /dev/null; then
-          ${skopeoCommand};
+          ${skopeoCommand.join(" ")};
+          export exitcode=$?
           killall socat;
-          exit $?;
+          exit $exitcode;
         else
           sleep 0.3;
         fi
@@ -370,6 +379,10 @@ const remoteBuild: BuildHandler = async (params) => {
     // Execute the build
     const buildRes = await runKaniko({ provider, namespace, log, module, args, outputStream: stdout })
     buildLog = buildRes.log
+
+    if (!buildRes.success) {
+      throw new BuildError(`Failed building module ${chalk.bold(module.name)}:\n\n${buildLog}`, { buildLog })
+    }
   }
 
   log.silly(buildLog)
@@ -575,7 +588,7 @@ async function runKaniko({ provider, namespace, log, module, args, outputStream 
   })
 
   return runner.startAndWait({
-    ignoreError: false,
+    ignoreError: true,
     interactive: false,
     log,
     timeout: module.spec.build.timeout,
