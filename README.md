@@ -106,7 +106,7 @@ The [examples](https://github.com/garden-io/garden/tree/v0.11.7/examples) folder
 
 Garden runs as a developer tool on your machine or in CI, that looks at your source code and configuration files, runs tests, and resolves your changes to update your development environment. Garden can watch your files and run continuously, or you can trigger it manually via the CLI.
 
-For configuration, Garden is centered around the **[Stack Graph](https://docs.garden.io/stack-graph)**, which allows you to fully codify how each part of your stack is built, deployed and tested—making your workflow reproducible and portable.
+For configuration, Garden is centered around the **[Stack Graph](https://docs.garden.io/basics/stack-graph)**, which allows you to fully codify how each part of your stack is built, deployed and tested—making your workflow reproducible and portable.
 
 <p align="center">
   <img src="docs/stack-graph.png" width="50%">
