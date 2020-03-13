@@ -9,18 +9,19 @@
 import { join } from "path"
 import { pathExists } from "fs-extra"
 import { joi } from "../../config/common"
-import { deline } from "../../util/string"
-import { supportedVersions, defaultTerraformVersion } from "./cli"
+import { dedent, deline } from "../../util/string"
+import { supportedVersions } from "./cli"
 import { Module } from "../../types/module"
 import { ConfigureModuleParams } from "../../types/plugin/module/configure"
-import { ConfigurationError, PluginError } from "../../exceptions"
+import { ConfigurationError } from "../../exceptions"
 import { dependenciesSchema } from "../../config/service"
 import { DeployServiceParams } from "../../../src/types/plugin/service/deployService"
 import { GetServiceStatusParams } from "../../../src/types/plugin/service/getServiceStatus"
-import { getStackStatus, applyStack, noAutoApplyMsg, variablesSchema, TerraformBaseSpec, getTfOutputs } from "./common"
+import { getStackStatus, applyStack, variablesSchema, TerraformBaseSpec, getTfOutputs } from "./common"
 import { TerraformProvider } from "./terraform"
 import { ServiceStatus } from "../../types/service"
 import { baseBuildSpecSchema } from "../../config/module"
+import chalk = require("chalk")
 
 export interface TerraformModuleSpec extends TerraformBaseSpec {
   root: string
@@ -33,10 +34,12 @@ export const schema = joi.object().keys({
   autoApply: joi
     .boolean()
     .allow(null)
-    .default(null).description(deline`
+    .default(null).description(dedent`
         If set to true, Garden will automatically run \`terraform apply -auto-approve\` when the stack is not
         up-to-date. Otherwise, a warning is logged if the stack is out-of-date, and an error thrown if it is missing
         entirely.
+
+        **NOTE: This is not recommended for production, or shared environments in general!**
 
         Defaults to the value set in the provider config.
       `),
@@ -44,22 +47,19 @@ export const schema = joi.object().keys({
   root: joi
     .posixPath()
     .subPathOnly()
-    .default(".").description(deline`
+    .default(".").description(dedent`
         Specify the path to the working directory root—i.e. where your Terraform files are—relative to the module root.
       `),
-  variables: variablesSchema().description(deline`
+  variables: variablesSchema().description(dedent`
         A map of variables to use when applying the stack. You can define these here or you can place a
         \`terraform.tfvars\` file in the working directory root.
 
         If you specified \`variables\` in the \`terraform\` provider config, those will be included but the variables
         specified here take precedence.
       `),
-  version: joi
-    .string()
-    .allow(...supportedVersions)
-    .default(defaultTerraformVersion).description(deline`
-        The version of Terraform to use. Defaults to the version set in the provider config.
-      `),
+  version: joi.string().allow(...supportedVersions).description(dedent`
+      The version of Terraform to use. Defaults to the version set in the provider config.
+    `),
 })
 
 export async function configureTerraformModule({ ctx, moduleConfig }: ConfigureModuleParams<TerraformModule>) {
@@ -82,6 +82,9 @@ export async function configureTerraformModule({ ctx, moduleConfig }: ConfigureM
   if (moduleConfig.spec.autoApply === null) {
     moduleConfig.spec.autoApply = provider.config.autoApply
   }
+  if (!moduleConfig.spec.version) {
+    moduleConfig.spec.version = provider.config.version
+  }
 
   moduleConfig.serviceConfigs = [
     {
@@ -102,13 +105,17 @@ export async function getTerraformStatus({
   module,
 }: GetServiceStatusParams<TerraformModule>): Promise<ServiceStatus> {
   const provider = ctx.provider as TerraformProvider
-  const autoApply = module.spec.autoApply
   const root = getModuleStackRoot(module)
   const variables = module.spec.variables
-  const status = await getStackStatus({ log, provider, autoApply, root, variables })
+  const status = await getStackStatus({
+    log,
+    provider,
+    root,
+    variables,
+  })
 
   return {
-    state: status.ready ? "ready" : "outdated",
+    state: status === "up-to-date" ? "ready" : "outdated",
     version: module.version.versionString,
     outputs: await getTfOutputs(log, provider.config.version, root),
     detail: {},
@@ -124,21 +131,25 @@ export async function deployTerraform({
   const root = getModuleStackRoot(module)
 
   if (module.spec.autoApply) {
-    await applyStack(log, provider, root, module.spec.variables)
-
-    return {
-      state: "ready",
-      version: module.version.versionString,
-      outputs: await getTfOutputs(log, provider.config.version, root),
-      detail: {},
-    }
+    await applyStack({ log, root, variables: module.spec.variables, version: module.spec.version })
   } else {
-    // This clause is here as a fail-safe, but shouldn't come up in normal usage because the status handler won't
-    // trigger the deployment.
-    throw new PluginError(`${module.name}: ${noAutoApplyMsg}`, {
-      spec: module.spec,
-      root,
-    })
+    const templateKey = `\${runtime.services.${module.name}.outputs.*}`
+    log.warn(
+      chalk.yellow(
+        deline`
+        Stack is out-of-date but autoApply is set to false, so it will not be applied automatically. If any newly added
+        stack outputs are referenced via ${templateKey} template strings and are missing,
+        you may see errors when resolving them.
+        `
+      )
+    )
+  }
+
+  return {
+    state: "ready",
+    version: module.version.versionString,
+    outputs: await getTfOutputs(log, provider.config.version, root),
+    detail: {},
   }
 }
 

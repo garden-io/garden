@@ -303,7 +303,7 @@ export class BinaryCmd extends Library {
     return JSON.parse(out)
   }
 
-  async spawn({ args, cwd, env, log }: ExecParams) {
+  async spawn({ args, cwd, env, log }: SpawnParams) {
     const path = await this.getPath(log)
 
     if (!args) {

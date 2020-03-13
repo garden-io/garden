@@ -169,6 +169,21 @@ describe("kubernetes build flow", () => {
 
       expect(status.ready).to.be.true
     })
+
+    it("should return ready=false status when image doesn't exist in registry", async () => {
+      const module = await graph.getModule("simple-service")
+      await garden.buildDir.syncFromSrc(module, garden.log)
+
+      module.spec.image = "127.0.0.1:5000/boop/skee-bop-ba-doo"
+
+      const status = await k8sGetContainerBuildStatus({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      expect(status.ready).to.be.false
+    })
   })
 
   context("cluster-docker-remote-registry mode", () => {
@@ -211,6 +226,22 @@ describe("kubernetes build flow", () => {
       })
 
       expect(status.ready).to.be.true
+    })
+
+    it("should return ready=false status when image doesn't exist in registry (remote only)", async () => {
+      const module = await graph.getModule("remote-registry-test")
+      await garden.buildDir.syncFromSrc(module, garden.log)
+
+      module.version.versionString = "v-0000000000"
+
+      // This should still report the build as ready, because it's in the registry
+      const status = await k8sGetContainerBuildStatus({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      expect(status.ready).to.be.false
     })
   })
 
@@ -278,6 +309,25 @@ describe("kubernetes build flow", () => {
       })
     })
 
+    it("should get the build status from the registry", async () => {
+      const module = await graph.getModule("simple-service")
+      await garden.buildDir.syncFromSrc(module, garden.log)
+
+      await k8sBuildContainer({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      const status = await k8sGetContainerBuildStatus({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      expect(status.ready).to.be.true
+    })
+
     it("should support pulling from private registries (remote only)", async () => {
       const module = await graph.getModule("private-base")
       await garden.buildDir.syncFromSrc(module, garden.log)
@@ -287,6 +337,21 @@ describe("kubernetes build flow", () => {
         log: garden.log,
         module,
       })
+    })
+
+    it("should return ready=false status when image doesn't exist in registry", async () => {
+      const module = await graph.getModule("simple-service")
+      await garden.buildDir.syncFromSrc(module, garden.log)
+
+      module.spec.image = "skee-ba-dee-skoop"
+
+      const status = await k8sGetContainerBuildStatus({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      expect(status.ready).to.be.false
     })
 
     it("should throw if attempting to pull from private registry without access", async () => {
@@ -321,6 +386,40 @@ describe("kubernetes build flow", () => {
         log: garden.log,
         module,
       })
+    })
+
+    it("should get the build status from the registry (remote only)", async () => {
+      const module = await graph.getModule("remote-registry-test")
+      await garden.buildDir.syncFromSrc(module, garden.log)
+
+      await k8sBuildContainer({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      const status = await k8sGetContainerBuildStatus({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      expect(status.ready).to.be.true
+    })
+
+    it("should return ready=false status when image doesn't exist in registry (remote only)", async () => {
+      const module = await graph.getModule("remote-registry-test")
+      await garden.buildDir.syncFromSrc(module, garden.log)
+
+      module.version.versionString = "v-0000000000"
+
+      const status = await k8sGetContainerBuildStatus({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      expect(status.ready).to.be.false
     })
   })
 })

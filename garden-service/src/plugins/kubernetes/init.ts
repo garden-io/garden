@@ -14,7 +14,7 @@ import {
   getMetadataNamespace,
   getSystemNamespace,
 } from "./namespace"
-import { KubernetesPluginContext, KubernetesConfig, KubernetesProvider } from "./config"
+import { KubernetesPluginContext, KubernetesConfig, KubernetesProvider, ProviderSecretRef } from "./config"
 import { checkTillerStatus, migrateToHelm3 } from "./helm/tiller"
 import { prepareSystemServices, getSystemServiceStatus, getSystemGarden, systemNamespaceUpToDate } from "./system"
 import { GetEnvironmentStatusParams, EnvironmentStatus } from "../../types/plugin/provider/getEnvironmentStatus"
@@ -33,7 +33,6 @@ import {
 import { ConfigurationError } from "../../exceptions"
 import Bluebird from "bluebird"
 import { readSecret } from "./secrets"
-import { extend } from "lodash"
 import { dockerAuthSecretName, dockerAuthSecretKey } from "./constants"
 import { V1Secret } from "@kubernetes/client-node"
 import { KubernetesResource } from "./types"
@@ -465,76 +464,90 @@ export function getRegistryHostname(config: KubernetesConfig) {
   const systemNamespace = config.gardenSystemNamespace
   return `garden-docker-registry.${systemNamespace}.svc.cluster.local`
 }
-async function prepareDockerAuth(
+
+interface DockerConfigJson {
+  experimental: string
+  auths: { [registry: string]: { [key: string]: string } }
+  credHelpers: { [registry: string]: any }
+}
+export async function buildDockerAuthConfig(
+  imagePullSecrets: ProviderSecretRef[],
+  api: KubeApi
+): Promise<DockerConfigJson> {
+  return Bluebird.reduce(
+    imagePullSecrets,
+    async (accumulator, secretRef) => {
+      const secret = await readSecret(api, secretRef)
+      if (secret.type !== dockerAuthSecretType) {
+        throw new ConfigurationError(
+          dedent`
+        Configured imagePullSecret '${secret.metadata.name}' does not appear to be a valid registry secret, because
+        it does not have \`type: ${dockerAuthSecretType}\`.
+        ${dockerAuthDocsLink}
+        `,
+          { secretRef }
+        )
+      }
+
+      // Decode the secret
+      const encoded = secret.data && secret.data![dockerAuthSecretKey]
+
+      if (!encoded) {
+        throw new ConfigurationError(
+          dedent`
+        Configured imagePullSecret '${secret.metadata.name}' does not appear to be a valid registry secret, because
+        it does not contain a ${dockerAuthSecretKey} key.
+        ${dockerAuthDocsLink}
+        `,
+          { secretRef }
+        )
+      }
+
+      let decoded: any
+
+      try {
+        decoded = JSON.parse(Buffer.from(encoded, "base64").toString())
+      } catch (err) {
+        throw new ConfigurationError(
+          dedent`
+        Could not parse configured imagePullSecret '${secret.metadata.name}' as a JSON docker authentication file:
+        ${err.message}.
+        ${dockerAuthDocsLink}
+        `,
+          { secretRef }
+        )
+      }
+      if (!decoded.auths && !decoded.credHelpers) {
+        throw new ConfigurationError(
+          dedent`
+        Could not parse configured imagePullSecret '${secret.metadata.name}' as a valid docker authentication file,
+        because it is missing an "auths", "credHelpers" key.
+        ${dockerAuthDocsLink}
+        `,
+          { secretRef }
+        )
+      }
+      return {
+        ...accumulator,
+        auths: { ...accumulator.auths, ...decoded.auths },
+        credHelpers: { ...accumulator.credHelpers, ...decoded.credHelpers },
+      }
+    },
+    { experimental: "enabled", auths: {}, credHelpers: {} }
+  )
+}
+
+export async function prepareDockerAuth(
   api: KubeApi,
   provider: KubernetesProvider,
   log: LogEntry
 ): Promise<KubernetesResource<V1Secret>> {
   // Read all configured imagePullSecrets and combine into a docker config file to use in the in-cluster builders.
-  const auths: { [name: string]: any } = {}
-
-  await Bluebird.map(provider.config.imagePullSecrets, async (secretRef) => {
-    const secret = await readSecret(api, secretRef)
-
-    if (secret.type !== dockerAuthSecretType) {
-      throw new ConfigurationError(
-        dedent`
-        Configured imagePullSecret '${secret.metadata.name}' does not appear to be a valid registry secret, because
-        it does not have \`type: ${dockerAuthSecretType}\`.
-        ${dockerAuthDocsLink}
-        `,
-        { secretRef }
-      )
-    }
-
-    // Decode the secret
-    const encoded = secret.data && secret.data![dockerAuthSecretKey]
-
-    if (!encoded) {
-      throw new ConfigurationError(
-        dedent`
-        Configured imagePullSecret '${secret.metadata.name}' does not appear to be a valid registry secret, because
-        it does not contain a ${dockerAuthSecretKey} key.
-        ${dockerAuthDocsLink}
-        `,
-        { secretRef }
-      )
-    }
-
-    let decoded: any
-
-    try {
-      decoded = JSON.parse(Buffer.from(encoded, "base64").toString())
-    } catch (err) {
-      throw new ConfigurationError(
-        dedent`
-        Could not parse configured imagePullSecret '${secret.metadata.name}' as a JSON docker authentication file:
-        ${err.message}.
-        ${dockerAuthDocsLink}
-        `,
-        { secretRef }
-      )
-    }
-
-    if (!decoded.auths) {
-      throw new ConfigurationError(
-        dedent`
-        Could not parse configured imagePullSecret '${secret.metadata.name}' as a valid docker authentication file,
-        because it is missing an "auths" key.
-        ${dockerAuthDocsLink}
-        `,
-        { secretRef }
-      )
-    }
-
-    extend(auths, decoded.auths)
-  })
+  const config = await buildDockerAuthConfig(provider.config.imagePullSecrets, api)
 
   // Enabling experimental features, in order to support advanced registry querying
-  const config = { auths, experimental: "enabled" }
-
   // Store the config as a Secret (overwriting if necessary)
-  const systemNamespace = await getSystemNamespace(provider, log)
+  const systemNamespace = await getSystemNamespace(provider, log, api)
 
   return {
     apiVersion: "v1",

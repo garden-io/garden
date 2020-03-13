@@ -1,9 +1,9 @@
 variable "my-variable" {
-  type = "string"
+  type = string
 }
 
 resource "local_file" "test-file" {
-  content  = "${var.my-variable}"
+  content  = var.my-variable
   filename = "${path.module}/test.log" # using .log extension so that it's ignored by git
 }
 

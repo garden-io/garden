@@ -20,8 +20,7 @@ i.e. multi-tenant setups (where tenants are external, or otherwise not fully tru
 ## Requirements
 
 In-cluster building works with _most_ Kubernetes clusters, provided they have enough resources allocated. We have
-tested on GKE, AKS, EKS and some custom installations. One provider that is currently known _not to work_ is
-DigitalOcean (track [issue #877](https://github.com/garden-io/garden/issues/877) for details and progress).
+tested on GKE, AKS, EKS, DigitalOcean, and some custom installations.
 
 Specifically, the clusters need the following:
 

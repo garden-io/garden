@@ -54,7 +54,7 @@ export class Logger extends LogNode {
 
   static initialize(config: LoggerConfig): Logger {
     if (Logger.instance) {
-      throw new InternalError("Logger already initialized", {})
+      return Logger.instance
     }
 
     let instance: Logger

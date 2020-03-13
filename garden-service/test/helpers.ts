@@ -91,6 +91,7 @@ async function runModule(params: RunModuleParams): Promise<RunResult> {
 }
 
 export const projectRootA = getDataDir("test-project-a")
+export const projectTestFailsRoot = getDataDir("test-project-fails")
 
 const testModuleTestSchema = () => containerTestSchema().keys({ command: joi.array().items(joi.string()) })
 
@@ -351,6 +352,10 @@ export const makeTestGardenA = async (extraPlugins: RegisterPluginParam[] = []) 
   return makeTestGarden(projectRootA, { plugins: extraPlugins })
 }
 
+export const makeTestGardenTasksFails = async (extraPlugins: RegisterPluginParam[] = []) => {
+  return makeTestGarden(projectTestFailsRoot, { plugins: extraPlugins })
+}
+
 export function stubAction<T extends keyof PluginActionHandlers>(
   garden: Garden,
   pluginName: string,
@@ -507,7 +512,7 @@ export type TempDirectory = tmp.DirectoryResult
 /**
  * Create a temp directory. Make sure to clean it up after use using the `cleanup()` method on the returned object.
  */
-export async function makeTempDir({ git = false } = {}): Promise<TempDirectory> {
+export async function makeTempDir({ git = false }: { git?: boolean } = {}): Promise<TempDirectory> {
   const tmpDir = await tmp.dir({ unsafeCleanup: true })
   // Fully resolve path so that we don't get path mismatches in tests
   tmpDir.path = await realpath(tmpDir.path)
@@ -523,8 +528,9 @@ export async function makeTempDir({ git = false } = {}): Promise<TempDirectory> 
  * Retrieves all the child log entries from the given LogEntry and returns a list of all the messages,
  * stripped of ANSI characters. Useful to check if a particular message was logged.
  */
-export function getLogMessages(log: LogEntry) {
-  return log.root
-    .getLogEntries()
-    .flatMap((entry) => entry.getMessageStates()?.map((state) => stripAnsi(state.msg || "")))
+export function getLogMessages(log: LogEntry, filter?: (log: LogEntry) => boolean) {
+  return log
+    .getChildEntries()
+    .filter((entry) => (filter ? filter(entry) : true))
+    .flatMap((entry) => entry.getMessageStates()?.map((state) => stripAnsi(state.msg || "")) || [])
 }

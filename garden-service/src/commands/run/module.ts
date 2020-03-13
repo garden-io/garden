@@ -7,13 +7,22 @@
  */
 
 import chalk from "chalk"
-import { RunResult } from "../../types/plugin/base"
-import { BooleanParameter, Command, CommandParams, StringParameter, CommandResult, StringsParameter } from "../base"
-import { printRuntimeContext } from "./run"
+
 import { printHeader } from "../../logger/util"
-import { BuildTask } from "../../tasks/build"
-import { dedent, deline } from "../../util/string"
 import { prepareRuntimeContext } from "../../runtime-context"
+import { BuildTask } from "../../tasks/build"
+import { RunResult } from "../../types/plugin/base"
+import { dedent, deline } from "../../util/string"
+import {
+  BooleanParameter,
+  Command,
+  CommandParams,
+  CommandResult,
+  handleActionResult,
+  StringParameter,
+  StringsParameter,
+} from "../base"
+import { printRuntimeContext } from "./run"
 
 const runArgs = {
   module: new StringParameter({
@@ -118,6 +127,6 @@ export class RunModuleCommand extends Command<Args, Opts> {
       timeout: opts.interactive ? 999999 : undefined,
     })
 
-    return { result }
+    return handleActionResult(`Module ${module.name}`, result)
   }
 }

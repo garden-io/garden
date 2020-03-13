@@ -7,16 +7,29 @@
  */
 
 import { LogEntry } from "../../logger/log-entry"
-import { PluginContext } from "../../plugin-context"
+import { PluginContext, pluginContextSchema } from "../../plugin-context"
 import { joi, joiArray, joiIdentifier, joiIdentifierDescription } from "../../config/common"
+import { Module, moduleSchema } from "../module"
+import { logEntrySchema } from "./base"
 
-// TODO: allow args and opts
+// TODO: parse args and opts with a schema
 export interface PluginCommandParams {
   ctx: PluginContext
-  // args: ParameterValues<T>
-  // opts: ParameterValues<U>
+  args: string[]
   log: LogEntry
+  modules: Module[]
 }
+
+export const pluginParamsSchema = joi.object().keys({
+  ctx: pluginContextSchema(),
+  args: joiArray(joi.string()).description(
+    "A list of arguments from the command line. This excludes any parsed global options, as well as the command name itself."
+  ),
+  log: logEntrySchema(),
+  modules: joiArray(moduleSchema()).description(
+    "If the command defnitions has `resolveModules` set to `true`, this is set to a list of all modules in the project/environment. Otherwise this is an empty list."
+  ),
+})
 
 export interface PluginCommandResult<T extends object = object> {
   result: T
@@ -37,12 +50,12 @@ export interface PluginCommandHandler<T extends object = object> {
 }
 
 export interface PluginCommand {
+  base?: PluginCommand
   name: string
   description: string
-  title?: string | ((params: { environmentName: string }) => string | Promise<string>)
-  // TODO: allow arguments
   handler: PluginCommandHandler
-  base?: PluginCommand
+  resolveModules?: boolean
+  title?: string | ((params: { args: string[]; environmentName: string }) => string | Promise<string>)
 }
 
 export const pluginCommandSchema = () =>
@@ -53,8 +66,13 @@ export const pluginCommandSchema = () =>
     description: joi
       .string()
       .required()
-      .max(80)
-      .description("A one-line description of the command (max 80 chars)."),
+      .description("A short description of the command."),
+    resolveModules: joi
+      .boolean()
+      .default(false)
+      .description(
+        "Set this to true if the command needs modules to be resolved before calling the handler. If this is set to `true`, the `modules` array passed to the command handler will contain a full list of resolved modules in the project/environment (and is otherwise left empty)."
+      ),
     title: joi
       .alternatives(joi.string(), joi.func())
       .description("A heading to print ahead of calling the command handler, or a function that returns it."),
@@ -62,5 +80,4 @@ export const pluginCommandSchema = () =>
       .func()
       // TODO: see if we can define/output the function schema somehow
       .description("The command handler."),
-    // TODO: allow arguments and options
   })

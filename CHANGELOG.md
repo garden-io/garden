@@ -1,4 +1,23 @@
 
+<a name="v0.11.7"></a>
+## [v0.11.7](https://github.com/garden-io/garden/compare/v0.11.6...v0.11.7) (2020-03-11)
+
+### Bug Fixes
+
+* **cli:** return error in garden run task if task fails ([#1669](https://github.com/garden-io/garden/issues/1669)) ([f5cf81ca](https://github.com/garden-io/garden/commit/f5cf81ca))
+* **k8s:** issues with private registry auth and kaniko build status ([011629ca](https://github.com/garden-io/garden/commit/011629ca))
+* **k8s:** better error when manifest has no apiVersion ([ef18a6c6](https://github.com/garden-io/garden/commit/ef18a6c6))
+* **task-graph:** don't include results from other batches in output ([3aed9908](https://github.com/garden-io/garden/commit/3aed9908))
+
+### Features
+
+* **k8s:** add ECR credential helper to in-cluster docker builder ([6c0d3d39](https://github.com/garden-io/garden/commit/6c0d3d39))
+* **terraform:** add plugin commands for terraform apply and plan ([b4283dd3](https://github.com/garden-io/garden/commit/b4283dd3))
+
+### Improvements
+
+* allow setting cred helpers in ImagePullSecrets ([b293fe2c](https://github.com/garden-io/garden/commit/b293fe2c))
+
 <a name="v0.11.6"></a>
 ## [v0.11.6](https://github.com/garden-io/garden/compare/v0.11.5...v0.11.6) (2020-03-06)
 

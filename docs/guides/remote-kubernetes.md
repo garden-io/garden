@@ -130,14 +130,14 @@ to your registry's documentation on how to do that (for Docker Hub you simply ru
 
 ### Ingress, TLS and DNS
 
-By default, Garden will not install an ingress controller for remote environments. This can be toggled by setting the [`setupIngressController` flag](../reference/providers/kubernetes.md#providerssetupingresscontroller) to `nginx`. Alternatively, you can set up your own ingress controller, e.g. using [Traefik](https://traefik.io/), [Ambassador](https://www.getambassador.io/) or [Istio](https://istio.io/).  You can find examples for [using Garden with Ambassador](https://github.com/garden-io/garden/tree/v0.11.6/examples/ambassador) and [with Istio](https://github.com/garden-io/garden/tree/v0.11.6/examples/istio) in our [examples directory](https://github.com/garden-io/garden/tree/v0.11.6/examples).
+By default, Garden will not install an ingress controller for remote environments. This can be toggled by setting the [`setupIngressController` flag](../reference/providers/kubernetes.md#providerssetupingresscontroller) to `nginx`. Alternatively, you can set up your own ingress controller, e.g. using [Traefik](https://traefik.io/), [Ambassador](https://www.getambassador.io/) or [Istio](https://istio.io/).  You can find examples for [using Garden with Ambassador](https://github.com/garden-io/garden/tree/v0.11.7/examples/ambassador) and [with Istio](https://github.com/garden-io/garden/tree/v0.11.7/examples/istio) in our [examples directory](https://github.com/garden-io/garden/tree/v0.11.7/examples).
 
 You'll also need to point one or more DNS entries to your cluster, and configure a TLS certificate for the hostnames
 you will expose for ingress.
 _How you configure DNS and prepare the certificates will depend on how you manage DNS and certificates in general,
 so we won't cover that in detail here._
 
-If you are using [cert-manager](https://github.com/jetstack/cert-manager) (or would like to use it) to manage your TLS certificates, you may want to check out the [cert-manager integration](./advanced/cert-manager-integration.md), which helps to automate some of the otherwise manual work involved in managing certificates.
+If you are using [cert-manager](https://github.com/jetstack/cert-manager) (or would like to use it) to manage your TLS certificates, you may want to check out the [cert-manager integration](../advanced/cert-manager-integration.md), which helps to automate some of the otherwise manual work involved in managing certificates.
 
 If you are manually creating or obtaining the certificates (and you have the `.crt` and `.key` files), create a
 [Secret](https://kubernetes.io/docs/concepts/configuration/secret/) for each cert in the cluster so

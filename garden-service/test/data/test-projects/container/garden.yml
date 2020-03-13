@@ -24,6 +24,7 @@ providers:
     imagePullSecrets:
       # Note: We populate this secret in the test code
       - name: test-docker-auth
+      - name: test-cred-helper-auth
   - <<: *clusterDocker
     environments: [cluster-docker-buildkit]
     clusterDocker:
