@@ -13,7 +13,7 @@ Kubernetes clusters, and adds the [`helm`](https://docs.garden.io/reference/modu
 
 For usage information, please refer to the [guides section]https://docs.garden.io/guides). A good place to start is
 the [Remote Kubernetes guide](https://docs.garden.io/guides/remote-kubernetes) guide if you're connecting to remote clusters.
-The [demo-project](https://docs.garden.io/examples/demo-project) example project and guide are also helpful as an introduction.
+The [demo-project](https://docs.garden.io/example-projects/demo-project) example project and guide are also helpful as an introduction.
 
 Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the [local-kubernetes provider](https://docs.garden.io/reference/providers/local-kubernetes) simplifies (and automates) the configuration and setup quite a bit.
 
