@@ -56,7 +56,6 @@ Modules correspond to a **build** action in the Stack Graph.
 
 - **Modules** can depend on other **modules** (via build dependencies).
 - **Tasks**, **tests**, and **services** can depend on **modules** (via build dependencies).
-- **Services** implicitly depend on the build step of their **parent module**
 
 ## Examples
 
