@@ -1,4 +1,12 @@
 
+<a name="v0.11.8-alpha.0"></a>
+## [v0.11.8-alpha.0](https://github.com/garden-io/garden/compare/v0.11.7...v0.11.8-alpha.0) (2020-03-03)
+
+### Bug Fixes
+
+* **cli:** fix empty response handling in call cmd ([7d8b7f65](https://github.com/garden-io/garden/commit/7d8b7f65))
+* **k8s:** error in build status check when using kaniko ([7d3ebb93](https://github.com/garden-io/garden/commit/7d3ebb93))
+
 <a name="v0.11.7"></a>
 ## [v0.11.7](https://github.com/garden-io/garden/compare/v0.11.6...v0.11.7) (2020-03-11)
 
