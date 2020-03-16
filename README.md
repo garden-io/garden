@@ -119,7 +119,7 @@ With the Stack Graph, each part of your stack can *describe itself* using simple
 <details>
 <summary><b>Is Garden a CI platform/tool?</b></summary>
 
-Not exactly, but you can certainly use Garden to make your CI faster and easier to work with. We highly recommend [running Garden from your CI setup](https://docs.garden.io/examples/using-garden-in-ci), so that you can re-use the same structure and config, as well as your build and test result caches (if you're using shared dev clusters).
+Not exactly, but you can certainly use Garden to make your CI faster and easier to work with. We highly recommend [running Garden from your CI setup](https://docs.garden.io/example-projects/using-garden-in-ci), so that you can re-use the same structure and config, as well as your build and test result caches (if you're using shared dev clusters).
 </details>
 <br>
 <details>
