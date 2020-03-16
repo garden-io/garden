@@ -3,7 +3,7 @@
 Now that you've had a glimpse of the basic Garden commands in the [Quick Start](../basics/quick-start.md) guide, and
 learned about the [Stack Graph](../basics/stack-graph.md), let's go through some typical Garden workflows.
 
-We'll keep using the [Demo Project](../examples/demo-project.md) example, but the same principles will apply for most
+We'll keep using the [Demo Project](../example-projects/demo-project.md) example, but the same principles will apply for most
 Garden projects.
 
 ## garden dev
@@ -15,7 +15,7 @@ When you start it, `garden dev` will start your development environment and run 
 changes. When you then make changes, Garden re-builds, re-deploys, and re-tests the modules/services that are affected,
 based on the dependency graph.
 
-For example, if we run `garden dev` inside the [Demo Project](../examples/demo-project.md), the output should be
+For example, if we run `garden dev` inside the [Demo Project](../example-projects/demo-project.md), the output should be
 something like this:
 
 ```plain

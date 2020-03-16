@@ -397,7 +397,7 @@ export class ModuleContext extends ConfigContext {
       .required()
       .description(
         "The outputs defined by the module (see individual module type " +
-          "[references](https://docs.garden.io/module-types) for details)."
+          "[references](https://docs.garden.io/reference/module-types) for details)."
       )
       .meta({ keyPlaceholder: "<output-name>" })
   )
@@ -442,7 +442,7 @@ export class ServiceRuntimeContext extends ConfigContext {
       .required()
       .description(
         "The runtime outputs defined by the service (see individual module type " +
-          "[references](https://docs.garden.io/module-types) for details)."
+          "[references](https://docs.garden.io/reference/module-types) for details)."
       )
       .meta({ keyPlaceholder: "<output-name>" })
   )
@@ -473,7 +473,7 @@ export class TaskRuntimeContext extends ServiceRuntimeContext {
       .required()
       .description(
         "The runtime outputs defined by the task (see individual module type " +
-          "[references](https://docs.garden.io/module-types) for details)."
+          "[references](https://docs.garden.io/reference/module-types) for details)."
       )
       .meta({ keyPlaceholder: "<output-name>" })
   )

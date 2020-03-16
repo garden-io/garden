@@ -259,7 +259,7 @@ Here the output from `prep-task` is copied to an environment variable for `my-se
 
 For a practical use case, you might for example make a task that provisions some infrastructure or prepares some data, and then passes information about it to services.
 
-Different module types expose different output keys for their services and tasks. Please refer to the [module type reference docs](https://docs.garden.io/module-types) for details.
+Different module types expose different output keys for their services and tasks. Please refer to the [module type reference docs](https://docs.garden.io/reference/module-types) for details.
 
 ## Next steps
 
