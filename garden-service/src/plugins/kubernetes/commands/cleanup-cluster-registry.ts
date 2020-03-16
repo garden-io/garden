@@ -19,7 +19,7 @@ import { queryRegistry } from "../container/util"
 import { splitFirst, splitLast } from "../../../util/util"
 import { LogEntry } from "../../../logger/log-entry"
 import Bluebird from "bluebird"
-import { CLUSTER_REGISTRY_DEPLOYMENT_NAME } from "../constants"
+import { CLUSTER_REGISTRY_DEPLOYMENT_NAME, inClusterRegistryHostname } from "../constants"
 import { PluginError } from "../../../exceptions"
 import { apply, kubectl } from "../kubectl"
 import { waitForResources } from "../status/status"
@@ -57,14 +57,18 @@ export const cleanupClusterRegistry: PluginCommand = {
     const imagesInUse = await getImagesInUse(api, provider, log)
 
     // Get images in registry
-    const images = await getImagesInRegistry(k8sCtx, log)
+    if (provider.config.deploymentRegistry?.hostname === inClusterRegistryHostname) {
+      const images = await getImagesInRegistry(k8sCtx, log)
 
-    // Delete images no longer in use
-    const diff = difference(images, imagesInUse)
-    await deleteImagesFromRegistry(k8sCtx, log, diff)
+      // Delete images no longer in use
+      const diff = difference(images, imagesInUse)
+      await deleteImagesFromRegistry(k8sCtx, log, diff)
 
-    // Run garbage collection
-    await runRegistryGarbageCollection(k8sCtx, api, log)
+      // Run garbage collection
+      await runRegistryGarbageCollection(k8sCtx, api, log)
+    } else {
+      log.info("Not using in-cluster registry, skipping registry cleanup.")
+    }
 
     if (provider.config.buildMode === "cluster-docker") {
       await deleteImagesFromDaemon(provider, log, imagesInUse)
