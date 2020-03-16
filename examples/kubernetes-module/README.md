@@ -19,4 +19,4 @@ and check that the password matches the one in the project `garden.yml` file.
 ## Further reading
 
 There's not much more to it, but you can check out the module type
-[reference](https://docs.garden.io/module-types/kubernetes) for more details.
+[reference](https://docs.garden.io/reference/module-types/kubernetes) for more details.

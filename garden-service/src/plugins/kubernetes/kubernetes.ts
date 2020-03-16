@@ -183,7 +183,7 @@ export const gardenPlugin = createGardenPlugin({
 
     For usage information, please refer to the [guides section]${DOCS_BASE_URL}/guides). A good place to start is
     the [Remote Kubernetes guide](${DOCS_BASE_URL}/guides/remote-kubernetes) guide if you're connecting to remote clusters.
-    The [demo-project](${DOCS_BASE_URL}/examples/demo-project) example project and guide are also helpful as an introduction.
+    The [demo-project](${DOCS_BASE_URL}/example-projects/demo-project) example project and guide are also helpful as an introduction.
 
     Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the [local-kubernetes provider](${localKubernetesUrl}) simplifies (and automates) the configuration and setup quite a bit.
   `,

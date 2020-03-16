@@ -287,7 +287,7 @@ const tlsCertificateSchema = () =>
         dedent`
       Set to \`cert-manager\` to configure [cert-manager](https://github.com/jetstack/cert-manager) to manage this
       certificate. See our
-      [cert-manager integration guide](https://docs.garden.io/guides/cert-manager-integration) for details.
+      [cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
     `
       )
       .allow("cert-manager")
@@ -457,7 +457,7 @@ export const kubernetesConfigBase = providerConfigBaseSchema().keys({
     .keys({
       install: joi.bool().default(false).description(dedent`
           Automatically install \`cert-manager\` on initialization. See the
-          [cert-manager integration guide](https://docs.garden.io/guides/cert-manager-integration) for details.
+          [cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
         `),
       email: joi
         .string()
@@ -489,7 +489,7 @@ export const kubernetesConfigBase = providerConfigBaseSchema().keys({
         )
         .example("HTTP-01"),
     }).description(dedent`cert-manager configuration, for creating and managing TLS certificates. See the
-        [cert-manager guide](https://docs.garden.io/guides/cert-manager-integration) for details.`),
+        [cert-manager guide](https://docs.garden.io/advanced/cert-manager-integration) for details.`),
   _systemServices: joiArray(joiIdentifier()).meta({ internal: true }),
   registryProxyTolerations: joiArray(
     joi.object().keys({
