@@ -21,7 +21,7 @@
 - Easily write [integration test suites](https://docs.garden.io/guides/development-workflows#tests-and-dependencies) that have runtime dependencies. Run tests *before* pushing your code to CI, and avoid having to mock or stub your own services.
 - Define [tasks](https://github.com/garden-io/garden/tree/v0.11.7/examples/tasks) that run as part of your deployment process—e.g. database migrations or scaffolding.
 - [Hot reload](https://docs.garden.io/guides/hot-reload) lets you near-instantaneously update code and static files in containers as they run, for services that support in-place reloading.
-- [Remote sources](https://docs.garden.io/guides/using-remote-sources) support allows your project to automatically pull code from different repositories.
+- [Remote sources](https://docs.garden.io/advanced/using-remote-sources) support allows your project to automatically pull code from different repositories.
 - The built-in web **dashboard** gives you a full overview of your stack (and many more UI features are planned to further aid with development).
 - Build, test and deploy Docker containers, [Helm charts](https://docs.garden.io/guides/using-helm-charts), OpenFaaS functions and more.
 - An extensible plug-in system ensures you’ll later be able add anything that’s not on the above list, or create custom module types tailored to your needs (*due summer 2019*).
