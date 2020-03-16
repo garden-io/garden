@@ -51,7 +51,7 @@
 
 ## Quick start
 
-With the CLI installed, you can try out a few commands using the [Demo Project](https://docs.garden.io/examples/demo-project) from our [example projects](https://github.com/garden-io/garden/tree/v0.11.7/examples). The example project consists of a couple of simple modules, each defining one service.
+With the CLI installed, you can try out a few commands using the [Demo Project](https://docs.garden.io/example-projects/demo-project) from our [example projects](https://github.com/garden-io/garden/tree/v0.11.7/examples). The example project consists of a couple of simple modules, each defining one service.
 
 *Note: This example assumes you have a local Kubernetes instance running.*
 
