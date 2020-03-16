@@ -33,6 +33,26 @@ describe("cli", () => {
       const { result } = await cli.parse(["test-command", "some", "args"])
       expect(result).to.eql({ args: { _: ["some", "args"] } })
     })
+
+    it(`ignore the env flag when a command has noProject=true`, async () => {
+      class TestCommand extends Command {
+        name = "test-command"
+        help = "halp!"
+        noProject = true
+
+        async action({ args }) {
+          return { result: { args } }
+        }
+      }
+
+      const command = new TestCommand()
+      const cli = new GardenCli()
+      cli.addCommand(command, cli["program"])
+
+      const { result, errors } = await cli.parse(["test-command", "--env", "invalid-env"])
+      expect(errors).to.eql([])
+      expect(result).to.eql({ args: { _: [] } })
+    })
   })
 
   describe("makeDummyGarden", () => {

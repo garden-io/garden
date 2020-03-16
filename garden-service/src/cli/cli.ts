@@ -317,7 +317,7 @@ export class GardenCli {
       do {
         try {
           if (command.noProject) {
-            garden = await makeDummyGarden(root, contextOpts)
+            garden = await makeDummyGarden(root, { ...contextOpts, environmentName: undefined })
           } else {
             garden = await Garden.factory(root, contextOpts)
           }
