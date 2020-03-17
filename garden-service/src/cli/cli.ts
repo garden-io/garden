@@ -81,6 +81,10 @@ class DummyGarden extends Garden {
 }
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts = {}) {
+  const environments = gardenOpts.environmentName
+    ? [{ name: gardenOpts.environmentName, variables: {} }]
+    : defaultEnvironments
+
   const config: ProjectConfig = {
     path: root,
     apiVersion: DEFAULT_API_VERSION,
@@ -88,7 +92,7 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts = {})
     name: "no-project",
     defaultEnvironment: "",
     dotIgnoreFiles: defaultDotIgnoreFiles,
-    environments: defaultEnvironments,
+    environments,
     providers: [],
     variables: {},
   }
@@ -272,7 +276,14 @@ export class GardenCli {
       const parsedArgs = { _: argv._, ...filterByKeys(argv, argKeys) }
       const parsedOpts = filterByKeys(argv, optKeys.concat(globalKeys))
       const root = resolve(process.cwd(), parsedOpts.root)
-      const { "logger-type": loggerTypeOpt, "log-level": logLevel, emoji, env, silent, output } = parsedOpts
+      const {
+        "logger-type": loggerTypeOpt,
+        "log-level": logLevel,
+        emoji,
+        "env": environmentName,
+        silent,
+        output,
+      } = parsedOpts
 
       let loggerType = loggerTypeOpt || command.loggerType || DEFAULT_CLI_LOGGER_TYPE
 
@@ -297,7 +308,7 @@ export class GardenCli {
           args: parsedArgs,
           opts: parsedOpts,
         },
-        environmentName: env,
+        environmentName,
         log,
       }
 
@@ -317,7 +328,7 @@ export class GardenCli {
       do {
         try {
           if (command.noProject) {
-            garden = await makeDummyGarden(root, { ...contextOpts, environmentName: undefined })
+            garden = await makeDummyGarden(root, contextOpts)
           } else {
             garden = await Garden.factory(root, contextOpts)
           }
