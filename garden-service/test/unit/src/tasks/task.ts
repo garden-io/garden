@@ -125,7 +125,7 @@ describe("TaskTask", () => {
       let taskTask = await TaskTask.factory({
         garden,
         graph,
-        task: await graph.getTask("test"),
+        task: graph.getTask("test"),
         force: false,
         forceBuild: false,
         log: garden.log,
@@ -176,7 +176,7 @@ describe("TaskTask", () => {
       let taskTask = await TaskTask.factory({
         garden,
         graph,
-        task: await graph.getTask("test"),
+        task: graph.getTask("test"),
         force: false,
         forceBuild: false,
         log: garden.log,

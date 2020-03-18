@@ -25,7 +25,7 @@ describe("validateKubernetesModule", () => {
     garden = await getKubernetesTestGarden()
     const provider = await garden.resolveProvider("local-kubernetes")
     ctx = garden.getPluginContext(provider)
-    await garden["resolveModuleConfigs"](garden.log)
+    await garden.resolveModules({ log: garden.log })
     moduleConfigs = cloneDeep((<any>garden).moduleConfigs)
   })
 
@@ -38,7 +38,7 @@ describe("validateKubernetesModule", () => {
   }
 
   it("should validate a Kubernetes module", async () => {
-    const config = await garden.resolveModuleConfig(garden.log, "module-simple")
+    const module = await garden.resolveModule("module-simple")
 
     const serviceResource = {
       kind: "Deployment",
@@ -70,7 +70,7 @@ describe("validateKubernetesModule", () => {
       },
     ]
 
-    expect(config).to.eql({
+    expect(module._config).to.eql({
       allowPublish: true,
       apiVersion: "garden.io/v0",
       build: {
@@ -219,19 +219,19 @@ describe("validateKubernetesModule", () => {
 
   it("should set include to equal files if neither include nor exclude has been set", async () => {
     patchModuleConfig("module-simple", { spec: { files: ["manifest.yaml"] } })
-    const configInclude = await garden.resolveModuleConfig(garden.log, "module-simple")
+    const configInclude = await garden.resolveModule("module-simple")
     expect(configInclude.include).to.eql(["manifest.yaml"])
   })
 
   it("should not set default includes if include has already been explicitly set", async () => {
     patchModuleConfig("module-simple", { include: ["foo"] })
-    const configInclude = await garden.resolveModuleConfig(garden.log, "module-simple")
+    const configInclude = await garden.resolveModule("module-simple")
     expect(configInclude.include).to.eql(["foo"])
   })
 
   it("should not set default includes if exclude has already been explicitly set", async () => {
     patchModuleConfig("module-simple", { exclude: ["bar"] })
-    const configExclude = await garden.resolveModuleConfig(garden.log, "module-simple")
+    const configExclude = await garden.resolveModule("module-simple")
     expect(configExclude.include).to.be.undefined
   })
 })

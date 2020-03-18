@@ -37,7 +37,7 @@ describe("deployHelmService", () => {
 
   it("should deploy a chart", async () => {
     const graph = await garden.getConfigGraph(garden.log)
-    const service = await graph.getService("api")
+    const service = graph.getService("api")
 
     await deployHelmService({
       ctx,
@@ -62,7 +62,7 @@ describe("deployHelmService", () => {
 
   it("should deploy a chart with hotReload enabled", async () => {
     const graph = await garden.getConfigGraph(garden.log)
-    const service = await graph.getService("api")
+    const service = graph.getService("api")
 
     await deployHelmService({
       ctx,
@@ -88,7 +88,7 @@ describe("deployHelmService", () => {
 
   it("should deploy a chart with an alternate namespace set", async () => {
     const graph = await garden.getConfigGraph(garden.log)
-    const service = await graph.getService("chart-with-namespace")
+    const service = graph.getService("chart-with-namespace")
 
     const namespace = service.module.spec.namespace
     expect(namespace).to.equal(provider.config.namespace + "-extra")

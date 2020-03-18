@@ -8,20 +8,20 @@
 
 import Joi from "@hapi/joi"
 import chalk from "chalk"
-import username from "username"
-import { isString } from "lodash"
+import { isString, fromPairs } from "lodash"
 import { PrimitiveMap, joiIdentifierMap, joiStringMap, joiPrimitive, DeepPrimitiveMap, joiVariables } from "./common"
 import { Provider, ProviderConfig } from "./provider"
-import { ModuleConfig } from "./module"
 import { ConfigurationError } from "../exceptions"
 import { resolveTemplateString } from "../template-string"
 import { Garden } from "../garden"
-import { ModuleVersion } from "../vcs/vcs"
 import { joi } from "../config/common"
 import { KeyedSet } from "../util/keyed-set"
 import { RuntimeContext } from "../runtime-context"
 import { deline } from "../util/string"
 import { getProviderUrl, getModuleTypeUrl } from "../docs/common"
+import { Module } from "../types/module"
+import { ModuleConfig } from "./module"
+import { ModuleVersion } from "../vcs/vcs"
 
 export type ContextKey = string[]
 
@@ -70,7 +70,7 @@ export abstract class ConfigContext {
       .required()
   }
 
-  async resolve({ key, nodePath, opts }: ContextResolveParams): Promise<ContextResolveOutput> {
+  resolve({ key, nodePath, opts }: ContextResolveParams): ContextResolveOutput {
     const path = key.join(".")
     const fullPath = nodePath.concat(key).join(".")
 
@@ -128,14 +128,14 @@ export abstract class ConfigContext {
         }
 
         opts.stack.push(stackEntry)
-        value = await value({ key: remainder, nodePath: nestedNodePath, opts })
+        value = value({ key: remainder, nodePath: nestedNodePath, opts })
       }
 
       // handle nested contexts
       if (value instanceof ConfigContext) {
         if (remainder.length > 0) {
           opts.stack.push(stackEntry)
-          const res = await value.resolve({ key: remainder, nodePath: nestedNodePath, opts })
+          const res = value.resolve({ key: remainder, nodePath: nestedNodePath, opts })
           value = res.resolved
           partial = !!res.partial
         }
@@ -145,7 +145,7 @@ export abstract class ConfigContext {
       // handle templated strings in context variables
       if (isString(value)) {
         opts.stack.push(stackEntry)
-        value = await resolveTemplateString(value, this._rootContext, opts)
+        value = resolveTemplateString(value, this._rootContext, opts)
       }
 
       if (value === undefined) {
@@ -188,7 +188,7 @@ export class ScanContext extends ConfigContext {
     this.foundKeys = new KeyedSet<string[]>((v) => v.join("."))
   }
 
-  async resolve({ key, nodePath }: ContextResolveParams) {
+  resolve({ key, nodePath }: ContextResolveParams) {
     const fullKey = nodePath.concat(key)
     this.foundKeys.add(fullKey)
     return { resolved: "${" + fullKey.join(".") + "}" }
@@ -230,20 +230,14 @@ class LocalContext extends ConfigContext {
       .description("The current username (as resolved by https://github.com/sindresorhus/username)")
       .example("tenzing_norgay")
   )
-  public username: () => Promise<string>
+  public username?: string
 
-  constructor(root: ConfigContext, artifactsPath: string) {
+  constructor(root: ConfigContext, artifactsPath: string, username?: string) {
     super(root)
     this.artifactsPath = artifactsPath
     this.env = process.env
     this.platform = process.platform
-    this.username = async () => {
-      const name = await username()
-      if (name === undefined) {
-        throw new ConfigurationError(`Could not resolve current username`, {})
-      }
-      return name
-    }
+    this.username = username
   }
 }
 
@@ -258,9 +252,9 @@ export class ProjectConfigContext extends ConfigContext {
   )
   public local: LocalContext
 
-  constructor(artifactsPath: string) {
+  constructor(artifactsPath: string, username?: string) {
     super()
-    this.local = new LocalContext(this, artifactsPath)
+    this.local = new LocalContext(this, artifactsPath, username)
   }
 }
 
@@ -360,7 +354,7 @@ export class ProviderConfigContext extends ProjectConfigContext {
   public var: DeepPrimitiveMap
 
   constructor(garden: Garden, resolvedProviders: Provider[], variables: DeepPrimitiveMap) {
-    super(garden.artifactsPath)
+    super(garden.artifactsPath, garden.username)
     const _this = this
 
     this.environment = new EnvironmentContext(this, garden.environmentName)
@@ -419,14 +413,16 @@ export class ModuleContext extends ConfigContext {
       .description("The current version of the module.")
       .example(exampleVersion)
   )
-  public version: string
+  public version: string | undefined
 
-  constructor(root: ConfigContext, moduleConfig: ModuleConfig, buildPath: string, version: ModuleVersion) {
+  constructor(root: ConfigContext, config: ModuleConfig, version?: ModuleVersion) {
     super(root)
-    this.buildPath = buildPath
-    this.outputs = moduleConfig.outputs
-    this.path = moduleConfig.path
-    this.version = version.versionString
+    this.buildPath = config.buildPath
+    this.outputs = config.outputs
+    this.path = config.path
+    // This may be undefined, if determined (by ResolveModuleConfigTask) not to be required for the resolution of
+    // the templates.
+    this.version = version?.versionString
   }
 }
 
@@ -451,13 +447,6 @@ export class ServiceRuntimeContext extends ConfigContext {
   constructor(root: ConfigContext, outputs: PrimitiveMap) {
     super(root)
     this.outputs = outputs
-  }
-
-  async resolve(params: ContextResolveParams) {
-    // We're customizing the resolver so that we can ignore missing service/task outputs, but fail when an output
-    // on a resolved service/task doesn't exist.
-    const opts = { ...(params.opts || {}), allowUndefined: false }
-    return super.resolve({ ...params, opts })
   }
 }
 
@@ -514,11 +503,11 @@ class RuntimeConfigContext extends ConfigContext {
     }
   }
 
-  async resolve(params: ContextResolveParams): Promise<ContextResolveOutput> {
+  resolve(params: ContextResolveParams): ContextResolveOutput {
     // We're customizing the resolver so that we can defer and return the template string back
     // for later resolution, but fail correctly when attempting to resolve the runtime templates.
     const opts = { ...(params.opts || {}), allowUndefined: params.opts.allowPartial || params.opts.allowUndefined }
-    const res = await super.resolve({ ...params, opts })
+    const res = super.resolve({ ...params, opts })
 
     if (res.resolved === undefined) {
       if (params.opts.allowPartial) {
@@ -540,6 +529,21 @@ class RuntimeConfigContext extends ConfigContext {
 }
 
 /**
+ * Used to throw a specific error when a module attempts to reference itself.
+ */
+class CircularContext extends ConfigContext {
+  constructor(private moduleName: string) {
+    super()
+  }
+
+  resolve({}): ContextResolveOutput {
+    throw new ConfigurationError(`Module ${chalk.white.bold(this.moduleName)} cannot reference itself.`, {
+      moduleName: this.moduleName,
+    })
+  }
+}
+
+/**
  * This context is available for template strings under the `module` key in configuration files.
  * It is a superset of the context available under the `project` key.
  */
@@ -549,7 +553,7 @@ export class ModuleConfigContext extends ProviderConfigContext {
       .description("Retrieve information about modules that are defined in the project.")
       .meta({ keyPlaceholder: "<module-name>" })
   )
-  public modules: Map<string, () => Promise<ModuleContext>>
+  public modules: Map<string, ConfigContext>
 
   @schema(
     RuntimeConfigContext.getSchema().description(
@@ -559,40 +563,37 @@ export class ModuleConfigContext extends ProviderConfigContext {
   )
   public runtime: RuntimeConfigContext
 
-  constructor(
-    garden: Garden,
-    resolvedProviders: Provider[],
-    variables: DeepPrimitiveMap,
-    moduleConfigs: ModuleConfig[],
+  constructor({
+    garden,
+    resolvedProviders,
+    variables,
+    moduleName,
+    dependencyConfigs,
+    dependencyVersions,
+    runtimeContext,
+  }: {
+    garden: Garden
+    resolvedProviders: Provider[]
+    variables: DeepPrimitiveMap
+    moduleName?: string
+    dependencyConfigs: ModuleConfig[]
+    dependencyVersions: { [name: string]: ModuleVersion }
     // We only supply this when resolving configuration in dependency order.
     // Otherwise we pass `${runtime.*} template strings through for later resolution.
     runtimeContext?: RuntimeContext
-  ) {
+  }) {
     super(garden, resolvedProviders, variables)
 
-    const _this = this
-
     this.modules = new Map(
-      moduleConfigs.map(
+      dependencyConfigs.map(
         (config) =>
-          <[string, () => Promise<ModuleContext>]>[
-            config.name,
-            async (opts: ContextResolveOpts) => {
-              // NOTE: This is a temporary hacky solution until we implement module resolution as a TaskGraph task
-              const stackKey = "modules." + config.name
-              const resolvedConfig = await garden.resolveModuleConfig(garden.log, config.name, {
-                configContext: _this,
-                ...opts,
-                stack: [...(opts.stack || []), stackKey],
-              })
-              const version = await garden.resolveVersion(resolvedConfig, resolvedConfig.build.dependencies)
-              const buildPath = await garden.buildDir.buildPath(config)
-
-              return new ModuleContext(_this, resolvedConfig, buildPath, version)
-            },
-          ]
+          <[string, ModuleContext]>[config.name, new ModuleContext(this, config, dependencyVersions[config.name])]
       )
     )
+
+    if (moduleName) {
+      this.modules.set(moduleName, new CircularContext(moduleName))
+    }
 
     this.runtime = new RuntimeConfigContext(this, runtimeContext)
   }
@@ -606,9 +607,17 @@ export class OutputConfigContext extends ModuleConfigContext {
     garden: Garden,
     resolvedProviders: Provider[],
     variables: DeepPrimitiveMap,
-    moduleConfigs: ModuleConfig[],
+    modules: Module[],
     runtimeContext: RuntimeContext
   ) {
-    super(garden, resolvedProviders, variables, moduleConfigs, runtimeContext)
+    const versions = fromPairs(modules.map((m) => [m.name, m.version]))
+    super({
+      garden,
+      resolvedProviders,
+      variables,
+      dependencyConfigs: modules,
+      dependencyVersions: versions,
+      runtimeContext,
+    })
   }
 }

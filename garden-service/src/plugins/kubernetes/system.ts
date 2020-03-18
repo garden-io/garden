@@ -202,7 +202,9 @@ export async function prepareSystemServices({
   // Deploy enabled system services
   if (serviceNames.length > 0) {
     const actions = await sysGarden.getActionRouter()
+    const graph = await sysGarden.getConfigGraph(log)
     const results = await actions.deployServices({
+      graph,
       log,
       serviceNames,
       force,

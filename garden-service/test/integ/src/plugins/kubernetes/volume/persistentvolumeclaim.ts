@@ -77,7 +77,7 @@ describe("persistentvolumeclaim", () => {
     ])
 
     const graph = await garden.getConfigGraph(garden.log)
-    const service = await graph.getService("test")
+    const service = graph.getService("test")
 
     const deployTask = new DeployTask({
       garden,

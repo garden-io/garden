@@ -23,7 +23,7 @@ describe("prepareRuntimeContext", () => {
   })
 
   it("should add the module version to the output envVars", async () => {
-    const module = await graph.getModule("module-a")
+    const module = graph.getModule("module-a")
 
     const runtimeContext = await prepareRuntimeContext({
       garden,
@@ -43,7 +43,7 @@ describe("prepareRuntimeContext", () => {
   })
 
   it("should add project variables to the output envVars", async () => {
-    const module = await graph.getModule("module-a")
+    const module = graph.getModule("module-a")
 
     garden["variables"]["my-var"] = "foo"
 
@@ -65,8 +65,8 @@ describe("prepareRuntimeContext", () => {
   })
 
   it("should add outputs for every build dependency output", async () => {
-    const module = await graph.getModule("module-a")
-    const moduleB = await graph.getModule("module-b")
+    const module = graph.getModule("module-a")
+    const moduleB = graph.getModule("module-b")
 
     moduleB.outputs = { "my-output": "meep" }
 
@@ -96,8 +96,8 @@ describe("prepareRuntimeContext", () => {
   })
 
   it("should add outputs for every service dependency runtime output", async () => {
-    const module = await graph.getModule("module-a")
-    const serviceB = await graph.getService("service-b")
+    const module = graph.getModule("module-a")
+    const serviceB = graph.getService("service-b")
 
     const outputs = {
       "my-output": "moop",
@@ -135,8 +135,8 @@ describe("prepareRuntimeContext", () => {
   })
 
   it("should add outputs for every task dependency runtime output", async () => {
-    const module = await graph.getModule("module-a")
-    const taskB = await graph.getTask("task-b")
+    const module = graph.getModule("module-a")
+    const taskB = graph.getTask("task-b")
 
     const outputs = {
       "my-output": "mewp",
@@ -180,9 +180,9 @@ describe("prepareRuntimeContext", () => {
   })
 
   it("should output the list of dependencies as an env variable", async () => {
-    const module = await graph.getModule("module-a")
-    const serviceB = await graph.getService("service-b")
-    const taskB = await graph.getTask("task-c")
+    const module = graph.getModule("module-a")
+    const serviceB = graph.getService("service-b")
+    const taskB = graph.getTask("task-c")
 
     const runtimeContext = await prepareRuntimeContext({
       garden,

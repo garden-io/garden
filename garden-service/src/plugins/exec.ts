@@ -13,7 +13,7 @@ import cpy = require("cpy")
 import { joiArray, joiEnvVars, joi } from "../config/common"
 import { validateWithPath, ArtifactSpec } from "../config/validation"
 import { createGardenPlugin } from "../types/plugin/plugin"
-import { Module } from "../types/module"
+import { Module, getModuleKey } from "../types/module"
 import { CommonServiceSpec } from "../config/service"
 import { BaseTestSpec, baseTestSpecSchema } from "../config/test"
 import { writeModuleVersionFile } from "../vcs/vcs"
@@ -168,7 +168,7 @@ export async function configureExecModule({
   if (moduleConfig.spec.local && buildDeps.some((d) => d.copy.length > 0)) {
     const buildDependenciesWithCopySpec = buildDeps
       .filter((d) => !!d.copy)
-      .map((d) => d.name)
+      .map((d) => getModuleKey(d.name, d.plugin))
       .join(", ")
     throw new ConfigurationError(
       dedent`

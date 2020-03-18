@@ -44,8 +44,8 @@ export class GetServiceStatusTask extends BaseTask {
     this.hotReloadServiceNames = hotReloadServiceNames
   }
 
-  async getDependencies() {
-    const deps = await this.graph.getDependencies({ nodeType: "deploy", name: this.getName(), recursive: false })
+  async resolveDependencies() {
+    const deps = this.graph.getDependencies({ nodeType: "deploy", name: this.getName(), recursive: false })
 
     const statusTasks = deps.deploy.map((service) => {
       return new GetServiceStatusTask({
@@ -84,7 +84,7 @@ export class GetServiceStatusTask extends BaseTask {
 
     const hotReload = includes(this.hotReloadServiceNames, this.service.name)
 
-    const dependencies = await this.graph.getDependencies({
+    const dependencies = this.graph.getDependencies({
       nodeType: "deploy",
       name: this.getName(),
       recursive: false,

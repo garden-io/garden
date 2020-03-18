@@ -55,7 +55,7 @@ export class ResolveProviderTask extends BaseTask {
     return `resolving provider ${this.getName()}`
   }
 
-  async getDependencies() {
+  async resolveDependencies() {
     const explicitDeps = this.plugin.dependencies
     const implicitDeps = (await getProviderTemplateReferences(this.config)).filter(
       (depName) => !explicitDeps.includes(depName)
@@ -115,7 +115,7 @@ export class ResolveProviderTask extends BaseTask {
     const context = new ProviderConfigContext(this.garden, resolvedProviders, this.garden.variables)
 
     this.log.silly(`Resolving template strings for provider ${this.config.name}`)
-    let resolvedConfig = await resolveTemplateStrings(this.config, context)
+    let resolvedConfig = resolveTemplateStrings(this.config, context)
 
     const providerName = resolvedConfig.name
 

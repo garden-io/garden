@@ -125,7 +125,7 @@ describe("GetServiceStatusTask", () => {
       ])
 
       const graph = await garden.getConfigGraph(garden.log)
-      const testService = await graph.getService("test-service")
+      const testService = graph.getService("test-service")
 
       const statusTask = new GetServiceStatusTask({
         garden,
@@ -204,7 +204,7 @@ describe("GetServiceStatusTask", () => {
       ])
 
       const graph = await garden.getConfigGraph(garden.log)
-      const testService = await graph.getService("test-service")
+      const testService = graph.getService("test-service")
 
       const statusTask = new GetServiceStatusTask({
         garden,

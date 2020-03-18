@@ -28,7 +28,7 @@ export const uninstallGardenServices: PluginCommand = {
     const actions = await sysGarden.getActionRouter()
 
     const graph = await sysGarden.getConfigGraph(log)
-    const services = await graph.getServices()
+    const services = graph.getServices()
 
     log.info("")
 
@@ -37,7 +37,7 @@ export const uninstallGardenServices: PluginCommand = {
     const serviceStatuses = await actions.deleteServices(log, serviceNames)
 
     if (k8sCtx.provider.config._systemServices.includes("nfs-provisioner")) {
-      const service = await graph.getService("nfs-provisioner")
+      const service = graph.getService("nfs-provisioner")
       await actions.deleteService({ service, log })
     }
 

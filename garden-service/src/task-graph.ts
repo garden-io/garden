@@ -13,17 +13,21 @@ import { every, flatten, intersection, merge, union, uniqWith, without } from "l
 import { BaseTask, TaskDefinitionError, TaskType } from "./tasks/base"
 
 import { LogEntry, LogEntryMetadata, TaskLogStatus } from "./logger/log-entry"
-import { toGardenError, GardenBaseError, InternalError } from "./exceptions"
+import { toGardenError, GardenBaseError } from "./exceptions"
 import { Garden } from "./garden"
 import { dedent } from "./util/string"
 import { defer, relationshipClasses, uuidv4 } from "./util/util"
 import { renderError } from "./logger/renderers"
-import { DependencyValidationGraph } from "./util/validate-dependencies"
+import { cyclesToString } from "./util/validate-dependencies"
 import { Profile } from "./util/profiling"
 import { renderMessageWithDivider } from "./logger/util"
 
 class TaskGraphError extends GardenBaseError {
   type = "task-graph"
+}
+
+class CircularDependenciesError extends GardenBaseError {
+  type = "circular-dependencies"
 }
 
 export interface TaskResult {
@@ -88,11 +92,9 @@ export class TaskGraph {
   async process(tasks: BaseTask[], opts?: ProcessTasksOpts): Promise<TaskResults> {
     const unlimitedConcurrency = opts ? !!opts.unlimitedConcurrency : false
 
-    const validationGraph = new DependencyValidationGraph()
-
     let nodes: TaskNode[]
     try {
-      nodes = await this.nodesWithDependencies(tasks, validationGraph, unlimitedConcurrency)
+      nodes = await this.nodesWithDependencies({ tasks, unlimitedConcurrency, dependencyCache: {}, stack: [] })
     } catch (circularDepsErr) {
       throw circularDepsErr
     }
@@ -100,7 +102,7 @@ export class TaskGraph {
     const batches = this.partition(nodes, { unlimitedConcurrency })
     for (const batch of batches) {
       for (const node of batch.nodes) {
-        this.latestNodes[node.getKey()] = node
+        this.latestNodes[node.key] = node
       }
     }
 
@@ -132,28 +134,41 @@ export class TaskGraph {
     return results
   }
 
-  async nodesWithDependencies(
-    tasks: BaseTask[],
-    validationGraph: DependencyValidationGraph,
-    unlimitedConcurrency = false
-  ): Promise<TaskNode[]> {
+  private async nodesWithDependencies({
+    tasks,
+    unlimitedConcurrency,
+    dependencyCache,
+    stack,
+  }: {
+    tasks: BaseTask[]
+    unlimitedConcurrency: boolean
+    dependencyCache: { [key: string]: BaseTask[] }
+    stack: string[]
+  }): Promise<TaskNode[]> {
     return Bluebird.map(tasks, async (task) => {
-      const depTasks = await task.getDependencies()
+      const key = task.getKey()
 
       // Detect circular dependencies
-      validationGraph.addNode(task.getKey())
-      for (const depTask of depTasks) {
-        validationGraph.addNode(depTask.getKey())
-        validationGraph.addDependency(task.getKey(), depTask.getKey())
-      }
-      const cycles = validationGraph.detectCircularDependencies()
-      if (cycles.length > 0) {
-        const description = validationGraph.cyclesToString(cycles)
-        const msg = `\nCircular task dependencies detected:\n\n${description}\n`
-        throw new InternalError(msg, { "circular-dependencies": description })
+      const previousOccurrence = stack.indexOf(key)
+      if (previousOccurrence !== -1) {
+        const cycle = stack.slice(previousOccurrence)
+        const description = cyclesToString([cycle])
+        const msg = `Circular task dependencies detected:\n\n${description}\n`
+        throw new CircularDependenciesError(msg, { description, cycle })
       }
 
-      const depNodes = await this.nodesWithDependencies(depTasks, validationGraph, unlimitedConcurrency)
+      let depTasks = dependencyCache[key]
+
+      if (!depTasks) {
+        dependencyCache[key] = depTasks = await task.resolveDependencies()
+      }
+
+      const depNodes = await this.nodesWithDependencies({
+        tasks: depTasks,
+        unlimitedConcurrency,
+        dependencyCache,
+        stack: [...stack, key],
+      })
       return new TaskNode(task, depNodes, unlimitedConcurrency)
     })
   }
@@ -166,7 +181,7 @@ export class TaskGraph {
    */
   partition(nodes: TaskNode[], { unlimitedConcurrency = false }): TaskNodeBatch[] {
     const deduplicatedNodes = uniqWith(nodes, (n1, n2) => {
-      return n1.getKey() === n2.getKey() && n1.getVersion() === n2.getVersion()
+      return n1.key === n2.key && n1.getVersion() === n2.getVersion()
     })
 
     const nodesWithKeys = deduplicatedNodes.map((node) => {
@@ -201,7 +216,7 @@ export class TaskGraph {
        */
       node.clearRemainingDependencies()
       const deps = node.getDependencies()
-      node.setRemainingDependencies(taskNodes.filter((n) => deps.find((d) => d.getKey() === n.getKey())))
+      node.setRemainingDependencies(taskNodes.filter((n) => deps.find((d) => d.key === n.key)))
     }
 
     const newRootNodes = taskNodes.filter((n) => n.getRemainingDependencies().length === 0)
@@ -217,12 +232,12 @@ export class TaskGraph {
       this.garden.events.emit("taskPending", {
         addedAt: new Date(),
         batchId: node.batchId,
-        key: node.getKey(),
+        key: node.key,
         name: task.getName(),
         type: task.type,
       })
     } else {
-      const result = this.resultCache.get(node.getKey(), node.getVersion())
+      const result = this.resultCache.get(node.key, node.getVersion())
       if (result) {
         this.garden.events.emit(result.error ? "taskError" : "taskComplete", result)
       }
@@ -240,21 +255,21 @@ export class TaskGraph {
   }
 
   private getNodeToAdd(node: TaskNode): TaskNode | null {
-    const id = node.getId()
-    const key = node.getKey()
+    const id = node.id
+    const key = node.key
     const task = node.task
 
     // If found, a node with the same key is already pending/in the index, so no node needs to be added.
     const existing = this.index
       .getNodes()
-      .filter((n) => n.getKey() === key && n.getId() !== id)
+      .filter((n) => n.key === key && n.id !== id)
       .reverse()[0]
 
     if (existing) {
       return null
     }
 
-    const cachedResult = this.resultCache.get(node.getKey(), node.getVersion())
+    const cachedResult = this.resultCache.get(node.key, node.getVersion())
     if (cachedResult && !task.force) {
       if (cachedResult.error || this.hasFailedDependencyInCache(node)) {
         this.cancelDependants(node)
@@ -282,7 +297,7 @@ export class TaskGraph {
    */
   private hasFailedDependencyInCache(node: TaskNode): boolean {
     for (const dep of node.getDependencies()) {
-      const cachedResult = this.resultCache.get(dep.getKey(), dep.getVersion())
+      const cachedResult = this.resultCache.get(dep.key, dep.getVersion())
       if (!dep.task.force && cachedResult && cachedResult.error) {
         return true
       }
@@ -354,7 +369,7 @@ export class TaskGraph {
       const task = node.task
       const name = task.getName()
       const type = node.getType()
-      const key = node.getKey()
+      const key = node.key
       const batchId = node.batchId
       const description = node.getDescription()
 
@@ -363,7 +378,7 @@ export class TaskGraph {
       this.logTask(node)
       this.logEntryMap.inProgress.setState(inProgressToStr(this.inProgress.getNodes()))
 
-      const dependencyBaseKeys = node.getDependencies().map((dep) => dep.getKey())
+      const dependencyBaseKeys = node.getDependencies().map((dep) => dep.key)
       const dependencyResults = this.resultCache.pick(dependencyBaseKeys)
 
       try {
@@ -395,7 +410,7 @@ export class TaskGraph {
 
   private completeTask(node: TaskNode, success: boolean) {
     if (node.getRemainingDependencies().length > 0) {
-      throw new TaskGraphError(`Task ${node.getId()} still has unprocessed dependencies`, { node })
+      throw new TaskGraphError(`Task ${node.id} still has unprocessed dependencies`, { node })
     }
     this.remove(node)
     this.logTaskComplete(node, success)
@@ -416,21 +431,19 @@ export class TaskGraph {
       this.logTaskComplete(dependant, false)
       this.garden.events.emit("taskCancelled", {
         cancelledAt,
-        key: dependant.getKey(),
+        key: dependant.key,
         name: dependant.task.getName(),
         type: dependant.getType(),
         batchId: node.batchId,
       })
       this.remove(dependant)
-      this.cancelKeyForInProgressBatches(dependant.getKey())
+      this.cancelKeyForInProgressBatches(dependant.key)
     }
     this.rebuild()
   }
 
   private getDependants(node: TaskNode): TaskNode[] {
-    const dependants = this.index
-      .getNodes()
-      .filter((n) => n.getDependencies().find((d) => d.getKey() === node.getKey()))
+    const dependants = this.index.getNodes().filter((n) => n.getDependencies().find((d) => d.key === node.key))
     return dependants.concat(flatten(dependants.map((d) => this.getDependants(d))))
   }
 
@@ -444,7 +457,7 @@ export class TaskGraph {
        * so we deduplicate here.
        */
       for (const node of batch.nodes) {
-        this.addNode(this.latestNodes[node.getKey()])
+        this.addNode(this.latestNodes[node.key])
       }
     }
 
@@ -511,7 +524,7 @@ export class TaskGraph {
     const keySet = new Set<string>()
 
     const getKeys = (n: TaskNode, keys: Set<string>) => {
-      keys.add(n.getKey())
+      keys.add(n.key)
       for (const dep of n.getDependencies()) {
         getKeys(dep, keys)
       }
@@ -525,17 +538,17 @@ export class TaskGraph {
   private logTask(node: TaskNode) {
     const entry = this.log.silly({
       section: "tasks",
-      msg: `Processing task ${taskStyle(node.getId())}`,
+      msg: `Processing task ${taskStyle(node.id)}`,
       status: "active",
       metadata: metadataForLog(node.task, "active"),
     })
-    this.logEntryMap[node.getId()] = entry
+    this.logEntryMap[node.id] = entry
   }
 
   private logTaskComplete(node: TaskNode, success: boolean) {
-    const entry = this.logEntryMap[node.getId()]
+    const entry = this.logEntryMap[node.id]
     if (entry) {
-      const idStr = taskStyle(node.getId())
+      const idStr = taskStyle(node.id)
       if (success) {
         const durationSecs = entry.getDuration(3)
         const metadata = metadataForLog(node.task, "success")
@@ -626,7 +639,7 @@ class TaskNodeMap {
   }
 
   addNode(node: TaskNode): void {
-    const taskId = node.getId()
+    const taskId = node.id
 
     if (!this.index.get(taskId)) {
       this.index.set(taskId, node)
@@ -635,7 +648,7 @@ class TaskNodeMap {
   }
 
   removeNode(node: TaskNode): void {
-    if (this.index.delete(node.getId())) {
+    if (this.index.delete(node.id)) {
       this.length--
     }
   }
@@ -651,7 +664,7 @@ class TaskNodeMap {
   }
 
   contains(node: TaskNode): boolean {
-    return this.index.has(node.getId())
+    return this.index.has(node.id)
   }
 
   clear() {
@@ -671,6 +684,8 @@ class TaskNodeMap {
 
 class TaskNode {
   task: BaseTask
+  readonly key: string
+  readonly id: string
   batchId: string // Set in TaskNodeBatch's constructor
   unlimitedConcurrency: boolean
 
@@ -688,6 +703,8 @@ class TaskNode {
 
   constructor(task: BaseTask, dependencies: TaskNode[], unlimitedConcurrency: boolean) {
     this.task = task
+    this.key = task.getKey()
+    this.id = getIndexId(task)
     this.dependencies = new TaskNodeMap()
     this.unlimitedConcurrency = unlimitedConcurrency
     this.dependencies.setNodes(dependencies)
@@ -713,14 +730,6 @@ class TaskNode {
     this.remainingDependencies.clear()
   }
 
-  getKey() {
-    return this.task.getKey()
-  }
-
-  getId() {
-    return getIndexId(this.task)
-  }
-
   getDescription() {
     return this.task.getDescription()
   }
@@ -736,7 +745,7 @@ class TaskNode {
   // For testing/debugging purposes
   inspect(): object {
     return {
-      id: this.getId(),
+      id: this.id,
       dependencies: this.getDependencies().map((d) => d.inspect()),
       remainingDependencies: this.getRemainingDependencies().map((d) => d.inspect()),
     }
@@ -747,7 +756,7 @@ class TaskNode {
 
     return {
       type: this.getType(),
-      key: this.getKey(),
+      key: this.key,
       name: this.task.getName(),
       description: this.getDescription(),
       completedAt: new Date(),
@@ -877,8 +886,8 @@ export class TaskNodeBatch {
     const key = result.key
     if (this.remainingResultKeys.has(key)) {
       this.results[key] = result
+      this.remainingResultKeys.delete(key)
     }
-    this.remainingResultKeys.delete(key)
     for (const depResult of depResults) {
       if (this.remainingResultKeys.has(depResult.key)) {
         this.results[depResult.key] = depResult
@@ -919,8 +928,8 @@ interface LogEntryMap {
 
 const taskStyle = chalk.cyan.bold
 
-function inProgressToStr(nodes) {
-  return `Currently in progress [${nodes.map((n) => taskStyle(n.getId())).join(", ")}]`
+function inProgressToStr(nodes: TaskNode[]) {
+  return `Currently in progress [${nodes.map((n) => taskStyle(n.id)).join(", ")}]`
 }
 
 function remainingTasksToStr(num) {

@@ -29,7 +29,7 @@ describe("testKubernetesModule", () => {
   })
 
   it("should run a basic test", async () => {
-    const module = await graph.getModule("module-simple")
+    const module = graph.getModule("module-simple")
 
     const testTask = await TestTask.factory({
       garden,
@@ -50,7 +50,7 @@ describe("testKubernetesModule", () => {
   })
 
   it("should run a test in different namespace, if configured", async () => {
-    const module = await graph.getModule("with-namespace")
+    const module = graph.getModule("with-namespace")
 
     const testTask = await TestTask.factory({
       garden,
@@ -71,7 +71,7 @@ describe("testKubernetesModule", () => {
   })
 
   it("should fail if an error occurs, but store the result", async () => {
-    const module = await graph.getModule("artifacts")
+    const module = graph.getModule("artifacts")
 
     const testConfig = findByName(module.testConfigs, "echo-test")!
     testConfig.spec.command = ["bork"] // this will fail
@@ -108,7 +108,7 @@ describe("testKubernetesModule", () => {
 
   context("artifacts are specified", () => {
     it("should copy artifacts out of the container", async () => {
-      const module = await graph.getModule("artifacts")
+      const module = graph.getModule("artifacts")
 
       const testTask = await TestTask.factory({
         garden,
@@ -154,7 +154,7 @@ describe("testKubernetesModule", () => {
     })
 
     it("should handle globs when copying artifacts out of the container", async () => {
-      const module = await graph.getModule("artifacts")
+      const module = graph.getModule("artifacts")
 
       const testTask = await TestTask.factory({
         garden,

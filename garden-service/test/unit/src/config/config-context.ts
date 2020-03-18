@@ -15,14 +15,14 @@ import {
   ProjectConfigContext,
   ModuleConfigContext,
 } from "../../../../src/config/config-context"
-import { expectError, makeTestGardenA } from "../../../helpers"
-import { Garden } from "../../../../src/garden"
+import { expectError, makeTestGardenA, TestGarden } from "../../../helpers"
 import { join } from "path"
 import { joi } from "../../../../src/config/common"
 import { prepareRuntimeContext } from "../../../../src/runtime-context"
 import { Service } from "../../../../src/types/service"
 import stripAnsi = require("strip-ansi")
 import { resolveTemplateString } from "../../../../src/template-string"
+import { fromPairs } from "lodash"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>
@@ -50,7 +50,7 @@ describe("ConfigContext", () => {
 
     it("should resolve simple keys", async () => {
       const c = new TestContext({ basic: "value" })
-      expect(await resolveKey(c, ["basic"])).to.eql({ resolved: "value" })
+      expect(resolveKey(c, ["basic"])).to.eql({ resolved: "value" })
     })
 
     it("should throw on missing key", async () => {
@@ -65,14 +65,14 @@ describe("ConfigContext", () => {
 
     it("should resolve nested keys", async () => {
       const c = new TestContext({ nested: { key: "value" } })
-      expect(await resolveKey(c, ["nested", "key"])).eql({ resolved: "value" })
+      expect(resolveKey(c, ["nested", "key"])).eql({ resolved: "value" })
     })
 
     it("should resolve keys on nested contexts", async () => {
       const c = new TestContext({
         nested: new TestContext({ key: "value" }),
       })
-      expect(await resolveKey(c, ["nested", "key"])).eql({ resolved: "value" })
+      expect(resolveKey(c, ["nested", "key"])).eql({ resolved: "value" })
     })
 
     it("should throw on missing key on nested context", async () => {
@@ -84,19 +84,14 @@ describe("ConfigContext", () => {
 
     it("should resolve keys with value behind callable", async () => {
       const c = new TestContext({ basic: () => "value" })
-      expect(await resolveKey(c, ["basic"])).to.eql({ resolved: "value" })
-    })
-
-    it("should resolve keys with value behind callable that returns promise", async () => {
-      const c = new TestContext({ basic: async () => "value" })
-      expect(await resolveKey(c, ["basic"])).to.eql({ resolved: "value" })
+      expect(resolveKey(c, ["basic"])).to.eql({ resolved: "value" })
     })
 
     it("should resolve keys on nested contexts where context is behind callable", async () => {
       const c = new TestContext({
         nested: () => new TestContext({ key: "value" }),
       })
-      expect(await resolveKey(c, ["nested", "key"])).to.eql({ resolved: "value" })
+      expect(resolveKey(c, ["nested", "key"])).to.eql({ resolved: "value" })
     })
 
     it("should cache resolved values", async () => {
@@ -104,11 +99,11 @@ describe("ConfigContext", () => {
       const c = new TestContext({
         nested,
       })
-      await resolveKey(c, ["nested", "key"])
+      resolveKey(c, ["nested", "key"])
 
       nested.key = "foo"
 
-      expect(await resolveKey(c, ["nested", "key"])).to.eql({ resolved: "value" })
+      expect(resolveKey(c, ["nested", "key"])).to.eql({ resolved: "value" })
     })
 
     it("should throw if resolving a key that's already in the lookup stack", async () => {
@@ -157,7 +152,7 @@ describe("ConfigContext", () => {
       })
       const nested: any = new TestContext({ key: "${foo}" }, c)
       c.addValues({ nested })
-      expect(await resolveKey(c, ["nested", "key"])).to.eql({ resolved: "value" })
+      expect(resolveKey(c, ["nested", "key"])).to.eql({ resolved: "value" })
     })
 
     it("should resolve template strings with nested context", async () => {
@@ -166,7 +161,7 @@ describe("ConfigContext", () => {
       })
       const nested: any = new TestContext({ key: "${nested.foo}", foo: "value" }, c)
       c.addValues({ nested })
-      expect(await resolveKey(c, ["nested", "key"])).to.eql({ resolved: "value" })
+      expect(resolveKey(c, ["nested", "key"])).to.eql({ resolved: "value" })
     })
 
     it("should detect a self-reference when resolving a template string", async () => {
@@ -257,7 +252,7 @@ describe("ConfigContext", () => {
 describe("ProjectConfigContext", () => {
   it("should should resolve local env variables", async () => {
     process.env.TEST_VARIABLE = "value"
-    const c = new ProjectConfigContext("/tmp")
+    const c = new ProjectConfigContext("/tmp", "some-user")
     expect(await c.resolve({ key: ["local", "env", "TEST_VARIABLE"], nodePath: [], opts: {} })).to.eql({
       resolved: "value",
     })
@@ -265,7 +260,7 @@ describe("ProjectConfigContext", () => {
   })
 
   it("should should resolve the local platform", async () => {
-    const c = new ProjectConfigContext("/tmp")
+    const c = new ProjectConfigContext("/tmp", "some-user")
     expect(await c.resolve({ key: ["local", "platform"], nodePath: [], opts: {} })).to.eql({
       resolved: process.platform,
     })
@@ -273,18 +268,21 @@ describe("ProjectConfigContext", () => {
 })
 
 describe("ModuleConfigContext", () => {
-  let garden: Garden
+  let garden: TestGarden
   let c: ModuleConfigContext
 
   before(async () => {
     garden = await makeTestGardenA()
-    await garden.scanModules()
-    c = new ModuleConfigContext(
+    const graph = await garden.getConfigGraph(garden.log)
+    const modules = graph.getModules()
+
+    c = new ModuleConfigContext({
       garden,
-      await garden.resolveProviders(),
-      garden.variables,
-      Object.values((<any>garden).moduleConfigs)
-    )
+      resolvedProviders: await garden.resolveProviders(),
+      variables: garden.variables,
+      dependencyConfigs: modules,
+      dependencyVersions: fromPairs(modules.map((m) => [m.name, m.version])),
+    })
   })
 
   it("should should resolve local env variables", async () => {
@@ -313,7 +311,7 @@ describe("ModuleConfigContext", () => {
   })
 
   it("should should resolve the version of a module", async () => {
-    const config = await garden.resolveModuleConfig(garden.log, "module-a")
+    const config = await garden.resolveModule("module-a")
     const { versionString } = await garden.resolveVersion(config, [])
     expect(await c.resolve({ key: ["modules", "module-a", "version"], nodePath: [], opts: {} })).to.eql({
       resolved: versionString,
@@ -349,12 +347,12 @@ describe("ModuleConfigContext", () => {
     })
 
     it("should allow using a missing runtime key as a test in a conditional", async () => {
-      const result = await resolveTemplateString("${runtime.foo || 'default'}", c)
+      const result = resolveTemplateString("${runtime.foo || 'default'}", c)
       expect(result).to.equal("default")
     })
 
     it("should allow using a missing runtime key as a test in a ternary (negative)", async () => {
-      const result = await resolveTemplateString("${runtime.foo ? runtime.foo.bar : 'default'}", c)
+      const result = resolveTemplateString("${runtime.foo ? runtime.foo.bar : 'default'}", c)
       expect(result).to.equal("default")
     })
   })
@@ -365,9 +363,10 @@ describe("ModuleConfigContext", () => {
 
     before(async () => {
       const graph = await garden.getConfigGraph(garden.log)
-      serviceA = await graph.getService("service-a")
-      const serviceB = await graph.getService("service-b")
-      const taskB = await graph.getTask("task-b")
+      const modules = graph.getModules()
+      serviceA = graph.getService("service-a")
+      const serviceB = graph.getService("service-b")
+      const taskB = graph.getTask("task-b")
 
       const runtimeContext = await prepareRuntimeContext({
         garden,
@@ -401,13 +400,14 @@ describe("ModuleConfigContext", () => {
         },
       })
 
-      withRuntime = new ModuleConfigContext(
+      withRuntime = new ModuleConfigContext({
         garden,
-        await garden.resolveProviders(),
-        garden.variables,
-        Object.values((<any>garden).moduleConfigs),
-        runtimeContext
-      )
+        resolvedProviders: await garden.resolveProviders(),
+        variables: garden.variables,
+        dependencyConfigs: modules,
+        dependencyVersions: fromPairs(modules.map((m) => [m.name, m.version])),
+        runtimeContext,
+      })
     })
 
     it("should resolve service outputs", async () => {
@@ -438,7 +438,7 @@ describe("ModuleConfigContext", () => {
     })
 
     it("should allow using a runtime key as a test in a ternary (positive)", async () => {
-      const result = await resolveTemplateString(
+      const result = resolveTemplateString(
         "${runtime.tasks.task-b ? runtime.tasks.task-b.outputs.moo : 'default'}",
         withRuntime
       )

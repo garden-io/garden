@@ -39,7 +39,7 @@ describe("resolveProjectConfig", () => {
       variables: {},
     }
 
-    expect(await resolveProjectConfig(config, "/tmp")).to.eql({
+    expect(resolveProjectConfig(config, "/tmp", "some-user")).to.eql({
       ...config,
       environments: [
         {
@@ -68,7 +68,7 @@ describe("resolveProjectConfig", () => {
       variables: {},
     }
 
-    expect(await resolveProjectConfig(config, "/tmp")).to.eql({
+    expect(resolveProjectConfig(config, "/tmp", "some-user")).to.eql({
       ...config,
       sources: [],
       environments: defaultEnvironments,
@@ -108,7 +108,7 @@ describe("resolveProjectConfig", () => {
 
     process.env.TEST_ENV_VAR = "foo"
 
-    expect(await resolveProjectConfig(config, "/tmp")).to.eql({
+    expect(resolveProjectConfig(config, "/tmp", "some-user")).to.eql({
       ...config,
       environments: [
         {
@@ -169,7 +169,7 @@ describe("resolveProjectConfig", () => {
     process.env.TEST_ENV_VAR_A = "foo"
     process.env.TEST_ENV_VAR_B = "boo"
 
-    expect(await resolveProjectConfig(config, "/tmp")).to.eql({
+    expect(resolveProjectConfig(config, "/tmp", "some-user")).to.eql({
       ...config,
       environments: [
         {
@@ -215,7 +215,7 @@ describe("resolveProjectConfig", () => {
       variables: {},
     }
 
-    expect(await resolveProjectConfig(config, "/tmp")).to.eql({
+    expect(resolveProjectConfig(config, "/tmp", "some-user")).to.eql({
       ...config,
       defaultEnvironment: "local",
       environments: defaultEnvironments,
@@ -238,7 +238,7 @@ describe("resolveProjectConfig", () => {
       variables: {},
     }
 
-    expect(await resolveProjectConfig(config, "/tmp")).to.eql({
+    expect(resolveProjectConfig(config, "/tmp", "some-user")).to.eql({
       ...config,
       defaultEnvironment: "local",
       environments: defaultEnvironments,
@@ -279,7 +279,7 @@ describe("resolveProjectConfig", () => {
       variables: {},
     }
 
-    expect(await resolveProjectConfig(config, "/tmp")).to.eql({
+    expect(resolveProjectConfig(config, "/tmp", "some-user")).to.eql({
       ...config,
       environments: [
         {
@@ -341,7 +341,7 @@ describe("resolveProjectConfig", () => {
       },
     }
 
-    expect(await resolveProjectConfig(config, "/tmp")).to.eql({
+    expect(resolveProjectConfig(config, "/tmp", "some-user")).to.eql({
       ...config,
       environments: [
         {

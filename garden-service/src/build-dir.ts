@@ -122,7 +122,7 @@ export class BuildDir {
         return
       }
 
-      const sourceModule = await graph.getModule(getModuleKey(buildDepConfig.name, buildDepConfig.plugin), true)
+      const sourceModule = graph.getModule(getModuleKey(buildDepConfig.name, buildDepConfig.plugin), true)
       const sourceBuildPath = await this.buildPath(sourceModule)
 
       // Sync to the module's top-level dir by default.

@@ -37,7 +37,7 @@ describe("conftest provider", () => {
       })
 
       const graph = await garden.getConfigGraph(garden.log)
-      const module = await graph.getModule("warn-and-fail")
+      const module = graph.getModule("warn-and-fail")
 
       const testTask = new TestTask({
         garden,
@@ -74,7 +74,7 @@ describe("conftest provider", () => {
       })
 
       const graph = await garden.getConfigGraph(garden.log)
-      const module = await graph.getModule("warn")
+      const module = graph.getModule("warn")
 
       const testTask = new TestTask({
         garden,
@@ -102,7 +102,7 @@ describe("conftest provider", () => {
       })
 
       const graph = await garden.getConfigGraph(garden.log)
-      const module = await graph.getModule("warn")
+      const module = graph.getModule("warn")
 
       const testTask = new TestTask({
         garden,
@@ -133,7 +133,7 @@ describe("conftest provider", () => {
       })
 
       const graph = await garden.getConfigGraph(garden.log)
-      const module = await graph.getModule("warn-and-fail")
+      const module = graph.getModule("warn-and-fail")
 
       const testTask = new TestTask({
         garden,

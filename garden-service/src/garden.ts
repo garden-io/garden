@@ -17,7 +17,7 @@ const AsyncLock = require("async-lock")
 
 import { TreeCache } from "./cache"
 import { builtinPlugins } from "./plugins/plugins"
-import { Module, getModuleCacheContext, getModuleKey, ModuleConfigMap } from "./types/module"
+import { Module, getModuleCacheContext, getModuleKey, ModuleConfigMap, moduleFromConfig } from "./types/module"
 import { pluginModuleSchema, ModuleTypeMap } from "./types/plugin/plugin"
 import { SourceConfig, ProjectConfig, resolveProjectConfig, pickEnvironment, OutputSpec } from "./config/project"
 import { findByName, pickKeys, getPackageVersion, getNames, findByNames } from "./util/util"
@@ -36,7 +36,7 @@ import { BaseTask } from "./tasks/base"
 import { LocalConfigStore, ConfigStore, GlobalConfigStore } from "./config-store"
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
 import { BuildDependencyConfig, ModuleConfig, ModuleResource } from "./config/module"
-import { resolveModuleConfig, ModuleConfigResolveOpts } from "./resolve-module"
+import { resolveModuleConfig } from "./resolve-module"
 import { ModuleConfigContext, OutputConfigContext } from "./config/config-context"
 import { createPluginContext, CommandInfo } from "./plugin-context"
 import { ModuleAndRuntimeActionHandlers, RegisterPluginParam } from "./types/plugin/plugin"
@@ -62,6 +62,8 @@ import { ensureConnected } from "./db/connection"
 import { DependencyValidationGraph } from "./util/validate-dependencies"
 import { Profile } from "./util/profiling"
 import { readAuthToken, login } from "./platform/auth"
+import { ResolveModuleTask, getResolvedModules } from "./tasks/resolve-module"
+import username from "username"
 
 export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
   [actionName: string]: PluginActionHandlers[T]
@@ -117,6 +119,7 @@ export interface GardenParams {
   providerConfigs: ProviderConfig[]
   variables: DeepPrimitiveMap
   sessionId: string | null
+  username: string | undefined
   vcs: VcsHandler
   workingCopyId: string
 }
@@ -164,6 +167,7 @@ export class Garden {
   public readonly persistent: boolean
   public readonly rawOutputs: OutputSpec[]
   public readonly systemNamespace: string
+  public readonly username?: string
   public readonly version: ModuleVersion
 
   constructor(params: GardenParams) {
@@ -189,6 +193,7 @@ export class Garden {
     this.moduleExcludePatterns = params.moduleExcludePatterns || []
     this.asyncLock = new AsyncLock()
     this.persistent = !!params.opts.persistent
+    this.username = params.username
     this.vcs = params.vcs
 
     // make sure we're on a supported platform
@@ -253,7 +258,8 @@ export class Garden {
     const artifactsPath = resolve(gardenDirPath, "artifacts")
     await ensureDir(artifactsPath)
 
-    config = await resolveProjectConfig(config, artifactsPath)
+    const _username = (await username()) || ""
+    config = resolveProjectConfig(config, artifactsPath, _username)
 
     const { defaultEnvironment, name: projectName, sources: projectSources, path: projectRoot } = config
 
@@ -319,6 +325,7 @@ export class Garden {
       dotIgnoreFiles: config.dotIgnoreFiles,
       moduleIncludePatterns: (config.modules || {}).include,
       log,
+      username: _username,
       vcs,
     }) as InstanceType<T>
 
@@ -349,7 +356,7 @@ export class Garden {
    * Make sure to stop it using `.close()` when cleaning up or when watching is no longer needed.
    */
   async startWatcher(graph: ConfigGraph, bufferInterval?: number) {
-    const modules = await graph.getModules()
+    const modules = graph.getModules()
     const linkedPaths = (await getLinkedSources(this)).map((s) => s.path)
     const paths = [this.projectRoot, ...linkedPaths]
     this.watcher = new Watcher(this, this.log, paths, modules, bufferInterval)
@@ -616,47 +623,70 @@ export class Garden {
       await this.scanModules()
     }
 
-    return Object.values(keys ? pickKeys(this.moduleConfigs, keys, "module") : this.moduleConfigs)
+    return Object.values(keys ? pickKeys(this.moduleConfigs, keys, "module config") : this.moduleConfigs)
   }
 
-  async getModuleConfigContext(runtimeContext?: RuntimeContext) {
+  async getOutputConfigContext(modules: Module[], runtimeContext: RuntimeContext) {
     const providers = await this.resolveProviders()
-    return new ModuleConfigContext(this, providers, this.variables, Object.values(this.moduleConfigs), runtimeContext)
-  }
-
-  async getOutputConfigContext(runtimeContext: RuntimeContext) {
-    const providers = await this.resolveProviders()
-    return new OutputConfigContext(this, providers, this.variables, Object.values(this.moduleConfigs), runtimeContext)
+    return new OutputConfigContext(this, providers, this.variables, modules, runtimeContext)
   }
 
   /**
-   * Returns module configs that are registered in this context, fully resolved and configured (via their respective
-   * plugin handlers).
-   * Scans for modules in the project root and remote/linked sources if it hasn't already been done.
+   * Resolve the raw module configs and return a new instance of ConfigGraph.
+   * The graph instance is immutable and represents the configuration at the point of calling this method.
+   * For long-running processes, you need to call this again when any module or configuration has been updated.
    */
-  private async resolveModuleConfigs(
-    log: LogEntry,
-    keys?: string[],
-    opts: ModuleConfigResolveOpts = {}
-  ): Promise<ModuleConfig[]> {
+  async getConfigGraph(log: LogEntry, runtimeContext?: RuntimeContext) {
     const providers = await this.resolveProviders()
-    const configs = await this.getRawModuleConfigs(keys)
+    const configs = await this.getRawModuleConfigs()
 
-    keys ? log.silly(`Resolving module configs ${keys.join(", ")}`) : this.log.silly(`Resolving module configs`)
-
-    if (!opts.configContext) {
-      opts.configContext = await this.getModuleConfigContext()
-    }
+    this.log.silly(`Resolving module configs`)
 
     // Resolve the project module configs
-    const moduleConfigs = await Bluebird.map(configs, (config) => resolveModuleConfig(this, config, opts))
+    const tasks = configs.map(
+      (moduleConfig) =>
+        new ResolveModuleTask({ garden: this, log, moduleConfig, resolvedProviders: providers, runtimeContext })
+    )
+
+    let results: TaskResults
+
+    try {
+      results = await this.processTasks(tasks, { unlimitedConcurrency: true })
+    } catch (err) {
+      // Wrap the circular dependency error to print a more specific message
+      if (err.type === "circular-dependencies") {
+        const cycles = err.cycles.map((c: string[][]) => {
+          // Get the module name of the the cycle (anything else is internal detail as far as users are concerned)
+          return c.map((cycle) => cycle.map((key) => key.split(".")[1]))
+        })
+        throw new ConfigurationError(
+          `Detected one or more circular dependencies between module configurations:\n\n${cycles.join("\n")}`,
+          { cycles }
+        )
+      } else {
+        throw err
+      }
+    }
+
+    const failed = Object.values(results).filter((r) => r?.error)
+
+    if (failed.length > 0) {
+      const errors = failed.map((r) => `${chalk.white.bold(r!.name)}: ${r?.error?.message}`)
+
+      throw new ConfigurationError(chalk.red(`Failed resolving one or more modules:\n\n${errors.join("\n")}`), {
+        results,
+        errors,
+      })
+    }
+    const resolvedModules = getResolvedModules(results)
+
     const actions = await this.getActionRouter()
     const moduleTypes = await this.getModuleTypes()
 
     let graph: ConfigGraph | undefined = undefined
 
     // Require include/exclude on modules if their paths overlap
-    const overlaps = detectModuleOverlap(moduleConfigs)
+    const overlaps = detectModuleOverlap(resolvedModules)
     if (overlaps.length > 0) {
       const { message, detail } = this.makeOverlapError(overlaps)
       throw new ConfigurationError(message, detail)
@@ -675,30 +705,41 @@ export class Garden {
         continue
       }
 
-      // We clear the graph below whenever an augmentGraph handler adds/modifies modules, and re-init here
+      // We clear the graph below whenever an augmentGraph handler adds/modifies modules, and re-init here, in order
+      // to ensure the dependency structure is alright.
       if (!graph) {
-        graph = new ConfigGraph(this, moduleConfigs, moduleTypes)
+        graph = new ConfigGraph(resolvedModules, moduleTypes)
       }
 
       const { addBuildDependencies, addRuntimeDependencies, addModules } = await actions.augmentGraph({
         pluginName: provider.name,
         log,
         providers,
-        modules: await graph.getModules(),
+        modules: resolvedModules,
       })
 
-      // Resolve module configs from specs and add to the list
+      const configContext = new ModuleConfigContext({
+        garden: this,
+        resolvedProviders: providers,
+        variables: this.variables,
+        dependencyConfigs: resolvedModules,
+        dependencyVersions: fromPairs(resolvedModules.map((m) => [m.name, m.version])),
+        runtimeContext,
+      })
+
+      // Resolve modules from specs and add to the list
       await Bluebird.map(addModules || [], async (spec) => {
         const path = spec.path || this.projectRoot
         const moduleConfig = prepareModuleResource(spec, path, path, this.projectRoot)
-        moduleConfigs.push(await resolveModuleConfig(this, moduleConfig, opts))
+        const resolvedConfig = await resolveModuleConfig(this, moduleConfig, { configContext })
+        resolvedModules.push(await moduleFromConfig(this, resolvedConfig, resolvedModules))
         graph = undefined
       })
 
       // Note: For both kinds of dependencies we only validate that `by` resolves correctly, since the rest
       // (i.e. whether all `on` references exist + circular deps) will be validated when initiating the ConfigGraph.
       for (const dependency of addBuildDependencies || []) {
-        const by = findByName(moduleConfigs, dependency.by)
+        const by = findByName(resolvedModules, dependency.by)
 
         if (!by) {
           throw new PluginError(
@@ -718,7 +759,7 @@ export class Garden {
       for (const dependency of addRuntimeDependencies || []) {
         let found = false
 
-        for (const moduleConfig of moduleConfigs) {
+        for (const moduleConfig of resolvedModules) {
           for (const serviceConfig of moduleConfig.serviceConfigs) {
             if (serviceConfig.name === dependency.by) {
               serviceConfig.dependencies.push(dependency.on)
@@ -747,25 +788,39 @@ export class Garden {
       }
     }
 
-    return moduleConfigs
-  }
+    // Ensure dependency structure is alright
+    graph = new ConfigGraph(resolvedModules, moduleTypes)
 
-  /**
-   * Returns the module with the specified name. Throws error if it doesn't exist.
-   */
-  async resolveModuleConfig(log: LogEntry, name: string, opts: ModuleConfigResolveOpts = {}): Promise<ModuleConfig> {
-    return (await this.resolveModuleConfigs(log, [name], opts))[0]
-  }
+    // Need to update versions and add the build dependency modules to the Module objects here, because plugins can
+    // add build dependencies in the configure handler.
+    // FIXME: This should be addressed higher up in the process, but is quite tricky to manage with the current
+    // TaskGraph structure which (understandably nb.) needs the dependency structure to be pre-determined before
+    // processing.
+    const modulesByName = keyBy(resolvedModules, "name")
 
-  /**
-   * Resolve the raw module configs and return a new instance of ConfigGraph.
-   * The graph instance is immutable and represents the configuration at the point of calling this method.
-   * For long-running processes, you need to call this again when any module or configuration has been updated.
-   */
-  async getConfigGraph(log: LogEntry, opts: ModuleConfigResolveOpts = {}) {
-    const modules = await this.resolveModuleConfigs(log, undefined, opts)
-    const moduleTypes = await this.getModuleTypes()
-    return new ConfigGraph(this, modules, moduleTypes)
+    await Bluebird.map(resolvedModules, async (module) => {
+      const buildDeps = module.build.dependencies.map((d) => {
+        const key = getModuleKey(d.name, d.plugin)
+        const depModule = modulesByName[key]
+
+        if (!depModule) {
+          throw new ConfigurationError(
+            chalk.red(deline`
+            Module ${chalk.white.bold(module.name)} specifies build dependency ${chalk.white.bold(key)} which
+            cannot be found.
+            `),
+            { dependencyName: key }
+          )
+        }
+
+        return depModule
+      })
+
+      module.buildDependencies = fromPairs(buildDeps.map((d) => [getModuleKey(d.name, d.plugin), d]))
+      module.version = await this.resolveVersion(module, buildDeps)
+    })
+
+    return graph
   }
 
   /**
@@ -779,8 +834,6 @@ export class Garden {
     force = false
   ) {
     const moduleName = moduleConfig.name
-    this.log.silly(`Resolving version for module ${moduleName}`)
-
     const depModuleNames = moduleDependencies.map((m) => m.name)
     depModuleNames.sort()
     const cacheKey = ["moduleVersions", moduleName, ...depModuleNames]
@@ -792,6 +845,8 @@ export class Garden {
         return cached
       }
     }
+
+    this.log.silly(`Resolving version for module ${moduleName}`)
 
     const dependencyKeys = moduleDependencies.map((dep) => getModuleKey(dep.name, dep.plugin))
     const dependencies = await this.getRawModuleConfigs(dependencyKeys)
@@ -970,11 +1025,17 @@ export class Garden {
    * This dumps the full project configuration including all modules.
    */
   public async dumpConfig(log: LogEntry): Promise<ConfigDump> {
+    const graph = await this.getConfigGraph(log)
+    const modules = graph.getModules()
+
     return {
       environmentName: this.environmentName,
       providers: await this.resolveProviders(),
       variables: this.variables,
-      moduleConfigs: sortBy(await this.resolveModuleConfigs(log), "name"),
+      moduleConfigs: sortBy(
+        modules.map((m) => m._config),
+        "name"
+      ),
       projectRoot: this.projectRoot,
     }
   }

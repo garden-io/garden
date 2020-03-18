@@ -59,7 +59,7 @@ describe("util", () => {
   async function buildModules() {
     const modules = await helmGraph.getModules()
     const tasks = modules.map(
-      (module) => new BuildTask({ garden: helmGarden, log, module, force: false, _guard: true })
+      (module) => new BuildTask({ garden: helmGarden, graph: helmGraph, log, module, force: false, _guard: true })
     )
     const results = await helmGarden.processTasks(tasks)
 
@@ -80,7 +80,7 @@ describe("util", () => {
         const provider = (await garden.resolveProvider("local-kubernetes")) as Provider<KubernetesConfig>
         const api = await KubeApi.factory(garden.log, provider)
 
-        const service = await graph.getService("simple-service")
+        const service = graph.getService("simple-service")
 
         const deployTask = new DeployTask({
           force: false,

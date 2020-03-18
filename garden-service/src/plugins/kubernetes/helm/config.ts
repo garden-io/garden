@@ -39,7 +39,7 @@ export const defaultHelmTimeout = 300
 export type HelmModuleSpec = HelmServiceSpec
 
 export interface HelmModule extends Module<HelmModuleSpec, HelmServiceSpec, KubernetesTestSpec, KubernetesTaskSpec> {}
-export type HelmModuleConfig = HelmModule["_ConfigType"]
+export type HelmModuleConfig = HelmModule["_config"]
 
 export interface HelmServiceSpec {
   base?: string

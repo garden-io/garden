@@ -64,6 +64,7 @@ describe("DevCommand", () => {
     const completedTasks = garden.events.eventLog
       .filter((e) => e.name === "taskComplete")
       .map((e) => e.payload["key"])
+      .filter((key) => !key.startsWith("resolve-module."))
       .sort()
 
     return { promise, completedTasks }
@@ -97,6 +98,9 @@ describe("DevCommand", () => {
       "get-service-status.service-b",
       "get-service-status.service-c",
       "get-task-result.task-c",
+      "resolve-module-config.module-a",
+      "resolve-module-config.module-b",
+      "resolve-module-config.module-c",
       "resolve-provider.container",
       "resolve-provider.exec",
       "resolve-provider.test-plugin",
@@ -119,7 +123,7 @@ describe("DevCommand", () => {
     const garden = await makeTestGardenA()
     const log = garden.log
     const graph = await garden.getConfigGraph(log)
-    const modules = await graph.getModules()
+    const modules = graph.getModules()
 
     const initialTasks = await getDevCommandInitialTasks({
       garden,
@@ -134,7 +138,7 @@ describe("DevCommand", () => {
     })
 
     const withDeps = async (task: BaseTask) => {
-      const deps = await task.getDependencies()
+      const deps = await task.resolveDependencies()
       return [task, await Bluebird.map(deps, async (dep) => await withDeps(dep))]
     }
 
@@ -285,7 +289,7 @@ describe("getDevCommandWatchTasks", () => {
       garden,
       log,
       updatedGraph: graph,
-      module: await graph.getModule("module-b"),
+      module: graph.getModule("module-b"),
       hotReloadServiceNames: [],
       testNames: undefined,
       skipTests: false,

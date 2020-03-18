@@ -29,7 +29,7 @@ describe("testHelmModule", () => {
   })
 
   it("should run a basic test", async () => {
-    const module = await graph.getModule("artifacts")
+    const module = graph.getModule("artifacts")
 
     const testTask = await TestTask.factory({
       garden,
@@ -50,7 +50,7 @@ describe("testHelmModule", () => {
   })
 
   it("should run a test in a different namespace, if configured", async () => {
-    const module = await graph.getModule("chart-with-namespace")
+    const module = graph.getModule("chart-with-namespace")
 
     const testTask = await TestTask.factory({
       garden,
@@ -71,7 +71,7 @@ describe("testHelmModule", () => {
   })
 
   it("should fail if an error occurs, but store the result", async () => {
-    const module = await graph.getModule("artifacts")
+    const module = graph.getModule("artifacts")
 
     const testConfig = findByName(module.testConfigs, "echo-test")!
     testConfig.spec.command = ["bork"] // this will fail
@@ -108,7 +108,7 @@ describe("testHelmModule", () => {
 
   context("artifacts are specified", () => {
     it("should copy artifacts out of the container", async () => {
-      const module = await graph.getModule("artifacts")
+      const module = graph.getModule("artifacts")
 
       const testTask = await TestTask.factory({
         garden,
@@ -154,7 +154,7 @@ describe("testHelmModule", () => {
     })
 
     it("should handle globs when copying artifacts out of the container", async () => {
-      const module = await graph.getModule("artifacts")
+      const module = graph.getModule("artifacts")
 
       const testTask = await TestTask.factory({
         garden,

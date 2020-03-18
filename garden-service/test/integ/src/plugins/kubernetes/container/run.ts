@@ -38,7 +38,7 @@ describe("runContainerTask", () => {
   })
 
   it("should run a basic task", async () => {
-    const task = await graph.getTask("echo-task")
+    const task = graph.getTask("echo-task")
     const version = task.module.version
 
     const testTask = new TaskTask({
@@ -74,7 +74,7 @@ describe("runContainerTask", () => {
   })
 
   it("should not store task results if cacheResult=false", async () => {
-    const task = await graph.getTask("echo-task")
+    const task = graph.getTask("echo-task")
     const version = task.module.version
     task.config.cacheResult = false
 
@@ -105,7 +105,7 @@ describe("runContainerTask", () => {
   })
 
   it("should fail if an error occurs, but store the result", async () => {
-    const task = await graph.getTask("echo-task")
+    const task = graph.getTask("echo-task")
     task.config.spec.command = ["bork"] // this will fail
     const version = task.module.version
 
@@ -140,7 +140,7 @@ describe("runContainerTask", () => {
 
   context("artifacts are specified", () => {
     it("should copy artifacts out of the container", async () => {
-      const task = await graph.getTask("artifacts-task")
+      const task = graph.getTask("artifacts-task")
 
       const testTask = new TaskTask({
         garden,
@@ -183,7 +183,7 @@ describe("runContainerTask", () => {
     })
 
     it("should handle globs when copying artifacts out of the container", async () => {
-      const task = await graph.getTask("globs-task")
+      const task = graph.getTask("globs-task")
 
       const testTask = new TaskTask({
         garden,
@@ -204,7 +204,7 @@ describe("runContainerTask", () => {
     })
 
     it("should throw when container doesn't contain sh", async () => {
-      const task = await graph.getTask("missing-sh-task")
+      const task = graph.getTask("missing-sh-task")
 
       const testTask = new TaskTask({
         garden,
@@ -230,7 +230,7 @@ describe("runContainerTask", () => {
     })
 
     it("should throw when container doesn't contain tar", async () => {
-      const task = await graph.getTask("missing-tar-task")
+      const task = graph.getTask("missing-tar-task")
 
       const testTask = new TaskTask({
         garden,

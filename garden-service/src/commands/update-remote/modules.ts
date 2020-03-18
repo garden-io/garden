@@ -59,7 +59,7 @@ export async function updateRemoteModules({
 }): Promise<CommandResult<SourceConfig[]>> {
   const { modules: moduleNames } = args
   const graph = await garden.getConfigGraph(log)
-  const modules = await graph.getModules({ names: moduleNames })
+  const modules = graph.getModules({ names: moduleNames })
 
   const moduleSources = <SourceConfig[]>(
     modules.filter(hasRemoteSource).filter((src) => (moduleNames ? moduleNames.includes(src.name) : true))
@@ -69,7 +69,10 @@ export async function updateRemoteModules({
 
   const diff = difference(moduleNames, names)
   if (diff.length > 0) {
-    const modulesWithRemoteSource = (await graph.getModules()).filter(hasRemoteSource).sort()
+    const modulesWithRemoteSource = graph
+      .getModules()
+      .filter(hasRemoteSource)
+      .sort()
 
     throw new ParameterError(`Expected module(s) ${chalk.underline(diff.join(","))} to have a remote source.`, {
       modulesWithRemoteSource,
