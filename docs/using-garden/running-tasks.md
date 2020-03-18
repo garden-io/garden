@@ -37,9 +37,9 @@ Task names must currently be unique across your project.
 
 Tasks correspond to a **run** action in the Stack Graph.
 
-- Tasks can depend on other tasks and services.
-- Tasks implicitly depend on their parent module's build task.
-- Services and tests can depend on tasks.
+- **Tasks** implicitly depend on the build step of their **parent module**.
+- **Tasks** can depend on other **tasks** and **services**.
+- **Services** and tests can depend on **tasks**.
 
 ## Examples
 
@@ -146,7 +146,7 @@ source directory instead.
 
 ## Further Reading
 
-* For full task configuration by module type, please take a look at our [reference docs](../reference/module-types/README.md).
+For full task configuration by module type, please take a look at our [reference docs](../reference/module-types/README.md).
 
 ## Next Steps
 
