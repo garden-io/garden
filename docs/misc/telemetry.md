@@ -1,3 +1,8 @@
+---
+order: 3
+title: Telemetry
+---
+
 # Telemetry
 
 Whenever you run a Garden command we collect anonymized telemetry and send it to [Segment.io](https://segment.io).

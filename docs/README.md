@@ -69,5 +69,6 @@
 
 ## 🌹 Misc
 
+* [FAQ](./misc/faq.md)
 * [Troubleshooting](./misc/troubleshooting.md)
 * [Telemetry](./misc/telemetry.md)
