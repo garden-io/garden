@@ -143,6 +143,10 @@ async function followLogs(
     "-t",
   ]
 
+  if (provider.config.kubeconfig) {
+    sternArgs.push(`--kubeconfig=${provider.config.kubeconfig}`)
+  }
+
   /* Getting labels on the pod with no numbers,
   The Idea is these labels are less likely to change between different deployments of these pods
   */
@@ -174,10 +178,20 @@ function handleLogMessageStreamFromProcess(
     if (!s) {
       return
     }
-    const [timestampStr, msg] = json ? parseSternLogMessage(s) : splitFirst(s, " ")
+    let timestampStr: string
+    let msg: string
     try {
+      const parsed = json ? parseSternLogMessage(s) : splitFirst(s, " ")
+      timestampStr = parsed[0]
+      msg = parsed[1]
       timestamp = moment(timestampStr).toDate()
-    } catch {}
+    } catch (err) {
+      /**
+       * If the message was supposed to be JSON but parsing failed, we stream the message unparsed. It may contain
+       * error information useful for debugging.
+       */
+      msg = s
+    }
     void stream.write({
       serviceName: service.name,
       timestamp,
