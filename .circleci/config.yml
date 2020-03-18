@@ -148,6 +148,9 @@ commands:
           root: ./
           paths:
             - garden-service/dist/
+      - store_artifacts:
+          path: garden-service/dist
+          destination: dist
 #
 # Jobs section
 #
