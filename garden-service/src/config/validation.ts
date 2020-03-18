@@ -10,9 +10,9 @@ import Joi from "@hapi/joi"
 import { ConfigurationError, LocalConfigError } from "../exceptions"
 import chalk from "chalk"
 import { relative } from "path"
-import uuid from "uuid"
+import { uuidv4 } from "../util/util"
 
-export const joiPathPlaceholder = uuid.v4()
+export const joiPathPlaceholder = uuidv4()
 const joiPathPlaceholderRegex = new RegExp(joiPathPlaceholder, "g")
 const errorPrefs: any = {
   wrap: {

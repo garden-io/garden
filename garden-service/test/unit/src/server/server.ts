@@ -11,8 +11,7 @@ import { Server } from "http"
 import { startServer, GardenServer } from "../../../../src/server/server"
 import { Garden } from "../../../../src/garden"
 import { expect } from "chai"
-import { deepOmitUndefined } from "../../../../src/util/util"
-import uuid from "uuid"
+import { deepOmitUndefined, uuidv4 } from "../../../../src/util/util"
 import request = require("supertest")
 import getPort = require("get-port")
 import WebSocket = require("ws")
@@ -142,7 +141,7 @@ describe("startServer", () => {
     })
 
     it("should send error when Garden instance is not set", (done) => {
-      const id = uuid.v4()
+      const id = uuidv4()
 
       onMessage((req) => {
         expect(req).to.eql({
@@ -187,7 +186,7 @@ describe("startServer", () => {
     })
 
     it("should error when a request has an invalid type", (done) => {
-      const id = uuid.v4()
+      const id = uuidv4()
       onMessage((req) => {
         expect(req).to.eql({
           type: "error",
@@ -200,7 +199,7 @@ describe("startServer", () => {
     })
 
     it("should execute a command and return its results", (done) => {
-      const id = uuid.v4()
+      const id = uuidv4()
 
       garden
         .dumpConfig(garden.log)
@@ -225,7 +224,7 @@ describe("startServer", () => {
     })
 
     it("should correctly map arguments and options to commands", (done) => {
-      const id = uuid.v4()
+      const id = uuidv4()
       onMessage((req) => {
         // Ignore other events such as taskPending and taskProcessing and wait for the command result
         if ((<any>req).type !== "commandResult") {

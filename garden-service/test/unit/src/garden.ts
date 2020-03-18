@@ -561,7 +561,8 @@ describe("Garden", () => {
           () => garden.getPlugins(),
           (err) =>
             expect(err.message).to.equal(deline`
-          Found circular dependency between module type bases (defined in plugin(s) 'foo'): foo -> bar -> foo
+          Found circular dependency between module type
+          bases:\n\nfoo (from plugin foo) <- bar (from plugin foo) <- foo (from plugin foo)
           `)
         )
       })
@@ -884,7 +885,7 @@ describe("Garden", () => {
         await expectError(
           () => garden.getPlugins(),
           (err) =>
-            expect(err.message).to.equal("Found a circular dependency between registered plugins: foo -> bar -> foo")
+            expect(err.message).to.equal("Found a circular dependency between registered plugins:\n\nfoo <- bar <- foo")
         )
       })
 
@@ -1252,7 +1253,7 @@ describe("Garden", () => {
             () => garden.getPlugins(),
             (err) =>
               expect(err.message).to.equal(
-                "Found a circular dependency between registered plugins: base-a -> foo -> base-b -> base-a"
+                "Found a circular dependency between registered plugins:\n\nbase-a <- foo <- base-b <- base-a"
               )
           )
         })
@@ -1482,7 +1483,7 @@ describe("Garden", () => {
         () => garden.resolveProviders(),
         (err) =>
           expect(err.message).to.equal(
-            "Found a circular dependency between registered plugins: test-a -> test-b -> test-a"
+            "Found a circular dependency between registered plugins:\n\ntest-a <- test-b <- test-a"
           )
       )
     })
@@ -1510,7 +1511,7 @@ describe("Garden", () => {
       await expectError(
         () => garden.resolveProviders(),
         (err) =>
-          expect(err.message).to.equal("Found a circular dependency between registered plugins: test-a -> test-a")
+          expect(err.message).to.equal("Found a circular dependency between registered plugins:\n\ntest-a <- test-a")
       )
     })
 
@@ -1543,10 +1544,9 @@ describe("Garden", () => {
       await expectError(
         () => garden.resolveProviders(),
         (err) =>
-          expect(err.message).to.equal(
-            "One or more circular dependencies found between providers " +
-              "or their configurations: test-a <- test-b <- test-a"
-          )
+          expect(err.message).to.equal(deline`
+            One or more circular dependencies found between providers or their configurations:\n\ntest-a <- test-b <- test-a
+          `)
       )
     })
 
@@ -1578,10 +1578,10 @@ describe("Garden", () => {
       await expectError(
         () => garden.resolveProviders(),
         (err) =>
-          expect(err.message).to.equal(
-            "One or more circular dependencies found between providers " +
-              "or their configurations: test-b <- test-a <- test-b"
-          )
+          expect(err.message).to.equal(deline`
+            One or more circular dependencies found between providers or their
+            configurations:\n\ntest-a <- test-b <- test-a
+          `)
       )
     })
 

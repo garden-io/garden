@@ -7,6 +7,10 @@
  */
 
 import Bluebird from "bluebird"
+import chalk from "chalk"
+import { ensureDir } from "fs-extra"
+import dedent from "dedent"
+import { platform, arch } from "os"
 import { parse, relative, resolve, dirname } from "path"
 import { flatten, isString, sortBy, fromPairs, keyBy } from "lodash"
 const AsyncLock = require("async-lock")
@@ -37,7 +41,6 @@ import { ModuleConfigContext, OutputConfigContext } from "./config/config-contex
 import { createPluginContext, CommandInfo } from "./plugin-context"
 import { ModuleAndRuntimeActionHandlers, RegisterPluginParam } from "./types/plugin/plugin"
 import { SUPPORTED_PLATFORMS, SupportedPlatform, DEFAULT_GARDEN_DIR_NAME } from "./constants"
-import { platform, arch } from "os"
 import { LogEntry } from "./logger/log-entry"
 import { EventBus } from "./events"
 import { Watcher } from "./watch"
@@ -52,14 +55,11 @@ import {
 import { Provider, ProviderConfig, getAllProviderDependencyNames, defaultProvider } from "./config/provider"
 import { ResolveProviderTask } from "./tasks/resolve-provider"
 import { ActionRouter } from "./actions"
-import { detectCycles, cyclesToString, Dependency } from "./util/validate-dependencies"
-import chalk from "chalk"
 import { RuntimeContext } from "./runtime-context"
-import { ensureDir } from "fs-extra"
 import { loadPlugins, getDependencyOrder, getModuleTypes } from "./plugins"
 import { deline, naturalList } from "./util/string"
-import dedent from "dedent"
 import { ensureConnected } from "./db/connection"
+import { DependencyValidationGraph } from "./util/validate-dependencies"
 
 export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
   [actionName: string]: PluginActionHandlers[T]
@@ -475,25 +475,26 @@ export class Garden {
 
       const plugins = keyBy(await this.getPlugins(), "name")
 
-      // Detect circular deps here
-      const pluginDeps: Dependency[] = []
+      // Detect circular dependencies here
+      const validationGraph = new DependencyValidationGraph()
 
       await Bluebird.map(rawConfigs, async (config) => {
         const plugin = plugins[config.name]
+        validationGraph.addNode(plugin.name)
 
         for (const dep of await getAllProviderDependencyNames(plugin!, config!)) {
-          pluginDeps.push({ from: config!.name, to: dep })
+          validationGraph.addNode(dep)
+          validationGraph.addDependency(plugin.name, dep)
         }
       })
 
-      const cycles = detectCycles(pluginDeps)
+      const cycles = validationGraph.detectCircularDependencies()
 
       if (cycles.length > 0) {
-        const cyclesStr = cyclesToString(cycles)
-
+        const description = validationGraph.cyclesToString(cycles)
         throw new PluginError(
-          "One or more circular dependencies found between providers or their configurations: " + cyclesStr,
-          { cycles }
+          `One or more circular dependencies found between providers or their configurations:\n\n${description}`,
+          { "circular-dependencies": description }
         )
       }
 
