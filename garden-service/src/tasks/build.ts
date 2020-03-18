@@ -16,9 +16,11 @@ import { LogEntry } from "../logger/log-entry"
 import { StageBuildTask } from "./stage-build"
 import { flatten } from "lodash"
 import { Profile } from "../util/profiling"
+import { ConfigGraph } from "../config-graph"
 
 export interface BuildTaskParams {
   garden: Garden
+  graph: ConfigGraph
   log: LogEntry
   module: Module
   force: boolean
@@ -28,11 +30,13 @@ export interface BuildTaskParams {
 export class BuildTask extends BaseTask {
   type: TaskType = "build"
 
+  private graph: ConfigGraph
   private module: Module
 
-  constructor({ garden, log, module, force }: BuildTaskParams & { _guard: true }) {
+  constructor({ garden, graph, log, module, force }: BuildTaskParams & { _guard: true }) {
     // Note: The _guard attribute is to prevent accidentally bypassing the factory method
     super({ garden, log, force, version: module.version })
+    this.graph = graph
     this.module = module
   }
 
@@ -40,7 +44,7 @@ export class BuildTask extends BaseTask {
     // We need to see if a build step is necessary for the module. If it is, return a build task for the module.
     // Otherwise, return a build task for each of the module's dependencies.
     // We do this to avoid displaying no-op build steps in the stack graph.
-    const { garden, log, force } = params
+    const { garden, graph, log, force } = params
 
     const buildTask = new BuildTask({ ...params, _guard: true })
 
@@ -52,6 +56,7 @@ export class BuildTask extends BaseTask {
         (module) =>
           new BuildTask({
             garden,
+            graph,
             log,
             module,
             force,
@@ -60,6 +65,7 @@ export class BuildTask extends BaseTask {
       )
       const stageBuildTask = new StageBuildTask({
         garden,
+        graph,
         log,
         module: params.module,
         force,
@@ -69,14 +75,14 @@ export class BuildTask extends BaseTask {
     }
   }
 
-  async getDependencies() {
-    const dg = await this.garden.getConfigGraph(this.log)
-    const deps = await dg.getDependencies({ nodeType: "build", name: this.getName(), recursive: false })
+  async resolveDependencies() {
+    const deps = this.graph.getDependencies({ nodeType: "build", name: this.getName(), recursive: false })
 
     const buildTasks = flatten(
       await Bluebird.map(deps.build, async (m: Module) => {
         return BuildTask.factory({
           garden: this.garden,
+          graph: this.graph,
           log: this.log,
           module: m,
           force: this.force,
@@ -86,6 +92,7 @@ export class BuildTask extends BaseTask {
 
     const stageBuildTask = new StageBuildTask({
       garden: this.garden,
+      graph: this.graph,
       log: this.log,
       module: this.module,
       force: this.force,
@@ -141,8 +148,7 @@ export class BuildTask extends BaseTask {
       log.setState(`Building version ${module.version.versionString}...`)
     }
 
-    const graph = await this.garden.getConfigGraph(log)
-    await this.garden.buildDir.syncDependencyProducts(this.module, graph, log)
+    await this.garden.buildDir.syncDependencyProducts(this.module, this.graph, log)
 
     let result: BuildResult
     try {

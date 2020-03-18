@@ -34,7 +34,7 @@ describe("getHotReloadSpec", () => {
   })
 
   it("should retrieve the hot reload spec on the service's source module", async () => {
-    const service = await graph.getService("api")
+    const service = graph.getService("api")
     expect(getHotReloadSpec(service)).to.eql({
       sync: [
         {
@@ -46,7 +46,7 @@ describe("getHotReloadSpec", () => {
   })
 
   it("should throw if the module doesn't specify serviceResource.containerModule", async () => {
-    const service = await graph.getService("api")
+    const service = graph.getService("api")
     delete service.module.spec.serviceResource.containerModule
     await expectError(
       () => getHotReloadSpec(service),
@@ -58,8 +58,8 @@ describe("getHotReloadSpec", () => {
   })
 
   it("should throw if the referenced module is not a container module", async () => {
-    const service = await graph.getService("api")
-    const otherModule = await graph.getModule("postgres")
+    const service = graph.getService("api")
+    const otherModule = graph.getModule("postgres")
     service.sourceModule = otherModule
     await expectError(
       () => getHotReloadSpec(service),
@@ -73,7 +73,7 @@ describe("getHotReloadSpec", () => {
   })
 
   it("should throw if the referenced module is not configured for hot reloading", async () => {
-    const service = await graph.getService("api")
+    const service = graph.getService("api")
     delete service.sourceModule.spec.hotReload
     await expectError(
       () => getHotReloadSpec(service),
@@ -105,7 +105,7 @@ describe("configureHotReload", () => {
 
   it("should only mount the sync volume on the main/resource container", async () => {
     const log = garden.log
-    const service = await graph.getService("two-containers")
+    const service = graph.getService("two-containers")
     const module = service.module
     const manifests = await getChartResources(ctx, module, true, log)
     const resourceSpec = getServiceResourceSpec(module, undefined)

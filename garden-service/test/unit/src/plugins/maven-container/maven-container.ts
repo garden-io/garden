@@ -106,8 +106,7 @@ describe("maven-container", () => {
 
   async function getTestModule(moduleConfig: MavenContainerModuleConfig) {
     const parsed = await configure({ ctx, moduleConfig, log, base: configureBase })
-    const graph = await garden.getConfigGraph(garden.log)
-    return moduleFromConfig(garden, graph, parsed.moduleConfig)
+    return moduleFromConfig(garden, parsed.moduleConfig, [])
   }
 
   describe("configure", () => {

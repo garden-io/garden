@@ -233,7 +233,7 @@ export const moduleConfigSchema = () =>
         .object()
         .meta({ extendable: true })
         .description("The module spec, as defined by the provider plugin."),
-      _ConfigType: joi.object().meta({ internal: true }),
+      _config: joi.object().meta({ internal: true }),
     })
     .description("The configuration for a module.")
     .unknown(false)
@@ -247,7 +247,7 @@ export const baseModuleSchemaKeys = Object.keys(baseModuleSpecSchema().describe(
   "serviceConfigs",
   "taskConfigs",
   "testConfigs",
-  "_ConfigType",
+  "_config",
 ])
 
 export function serializeConfig(moduleConfig: Partial<ModuleConfig>) {

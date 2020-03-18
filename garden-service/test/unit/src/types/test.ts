@@ -23,7 +23,7 @@ describe("testFromConfig", () => {
 
     const garden = await makeTestGardenA()
     const graph = await garden.getConfigGraph(garden.log)
-    const module = await graph.getModule("module-a")
+    const module = graph.getModule("module-a")
     const test = testFromConfig(module, config)
 
     expect(test.disabled).to.be.true
@@ -40,7 +40,7 @@ describe("testFromConfig", () => {
 
     const garden = await makeTestGardenA()
     const graph = await garden.getConfigGraph(garden.log)
-    const module = await graph.getModule("module-a")
+    const module = graph.getModule("module-a")
     module.disabled = true
     const test = testFromConfig(module, config)
 

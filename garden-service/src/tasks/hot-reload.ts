@@ -38,6 +38,10 @@ export class HotReloadTask extends BaseTask {
     this.service = service
   }
 
+  async resolveDependencies() {
+    return []
+  }
+
   getName() {
     return this.service.name
   }

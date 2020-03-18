@@ -36,9 +36,10 @@ export class DeleteServiceTask extends BaseTask {
     this.includeDependants = includeDependants
   }
 
-  async getDependencies() {
+  async resolveDependencies() {
     const stageBuildTask = new StageBuildTask({
       garden: this.garden,
+      graph: this.graph,
       log: this.log,
       module: this.service.module,
       force: this.force,
@@ -49,7 +50,7 @@ export class DeleteServiceTask extends BaseTask {
     }
 
     // Note: We delete in _reverse_ dependency order, so we query for dependants
-    const deps = await this.graph.getDependants({ nodeType: "deploy", name: this.getName(), recursive: false })
+    const deps = this.graph.getDependants({ nodeType: "deploy", name: this.getName(), recursive: false })
 
     const dependants = deps.deploy.map((service) => {
       return new DeleteServiceTask({

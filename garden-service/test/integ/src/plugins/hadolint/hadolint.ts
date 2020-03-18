@@ -97,7 +97,7 @@ describe("hadolint provider", () => {
     }
 
     const graph = await garden.getConfigGraph(garden.log)
-    const module = await graph.getModule("hadolint-foo")
+    const module = graph.getModule("hadolint-foo")
 
     expect(module.path).to.equal(tmpPath)
     expect(module.spec).to.eql({
@@ -146,7 +146,7 @@ describe("hadolint provider", () => {
     }
 
     const graph = await garden.getConfigGraph(garden.log)
-    const module = await graph.getModule("hadolint-foo")
+    const module = graph.getModule("hadolint-foo")
 
     expect(module.path).to.equal(tmpPath)
     expect(module.spec).to.eql({
@@ -182,7 +182,7 @@ describe("hadolint provider", () => {
       }
 
       const graph = await garden.getConfigGraph(garden.log)
-      const module = await graph.getModule("foo")
+      const module = graph.getModule("foo")
 
       const testTask = new TestTask({
         garden,
@@ -248,7 +248,7 @@ describe("hadolint provider", () => {
       }
 
       const graph = await garden.getConfigGraph(garden.log)
-      const module = await graph.getModule("foo")
+      const module = graph.getModule("foo")
 
       const testTask = new TestTask({
         garden,
@@ -309,7 +309,7 @@ describe("hadolint provider", () => {
       }
 
       const graph = await garden.getConfigGraph(garden.log)
-      const module = await graph.getModule("foo")
+      const module = graph.getModule("foo")
 
       const testTask = new TestTask({
         garden,
@@ -364,7 +364,7 @@ describe("hadolint provider", () => {
       }
 
       const graph = await garden.getConfigGraph(garden.log)
-      const module = await graph.getModule("foo")
+      const module = graph.getModule("foo")
 
       const testTask = new TestTask({
         garden,
@@ -409,7 +409,7 @@ describe("hadolint provider", () => {
       }
 
       const graph = await garden.getConfigGraph(garden.log)
-      const module = await graph.getModule("foo")
+      const module = graph.getModule("foo")
 
       const testTask = new TestTask({
         garden,
@@ -457,7 +457,7 @@ describe("hadolint provider", () => {
       }
 
       const graph = await garden.getConfigGraph(garden.log)
-      const module = await graph.getModule("foo")
+      const module = graph.getModule("foo")
 
       const testTask = new TestTask({
         garden,

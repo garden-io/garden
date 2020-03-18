@@ -165,7 +165,7 @@ describe("Terraform module type", () => {
     garden["moduleConfigs"]["tf"].spec.autoApply = autoApply
 
     graph = await garden.getConfigGraph(garden.log)
-    const service = await graph.getService("tf")
+    const service = graph.getService("tf")
 
     const deployTask = new DeployTask({
       garden,
@@ -184,7 +184,7 @@ describe("Terraform module type", () => {
     garden["moduleConfigs"]["tf"].spec.autoApply = autoApply
 
     graph = await garden.getConfigGraph(garden.log)
-    const task = await graph.getTask("test-task")
+    const task = graph.getTask("test-task")
 
     const taskTask = new TaskTask({
       garden,
@@ -210,7 +210,7 @@ describe("Terraform module type", () => {
         ctx,
         args: ["tf", "-auto-approve", "-input=false"],
         log: garden.log,
-        modules: await graph.getModules(),
+        modules: graph.getModules(),
       })
     })
   })
@@ -226,7 +226,7 @@ describe("Terraform module type", () => {
         ctx,
         args: ["tf", "-input=false"],
         log: garden.log,
-        modules: await graph.getModules(),
+        modules: graph.getModules(),
       })
     })
   })
@@ -248,7 +248,7 @@ describe("Terraform module type", () => {
         ctx,
         args: ["tf", "-auto-approve", "-input=false"],
         log: garden.log,
-        modules: await graph.getModules(),
+        modules: graph.getModules(),
       })
 
       const result = await runTestTask(false)

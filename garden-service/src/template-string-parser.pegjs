@@ -14,26 +14,20 @@ TemplateString
 
 FormatString
   = FormatStart e:Expression end:FormatEnd {
-    return Promise.resolve(e)
-      .then(v => {
-        if (v && v._error) {
-          return v
-        }
+      if (e && e._error) {
+        return e
+      }
 
-        // Need to provide the optional suffix as a variable because of a parsing bug in pegjs
-        const allowUndefined = options.allowUndefined || end[1] === options.optionalSuffix
+      // Need to provide the optional suffix as a variable because of a parsing bug in pegjs
+      const allowUndefined = options.allowUndefined || end[1] === options.optionalSuffix
 
-        if (options.getValue(v) === undefined && !allowUndefined) {
-          const _error = new options.TemplateStringError(v.message || "Unable to resolve one or more keys.", {
-            text: text(),
-          })
-          return { _error }
-        }
-        return v
-      })
-      .catch(_error => {
+      if (options.getValue(e) === undefined && !allowUndefined) {
+        const _error = new options.TemplateStringError(e.message || "Unable to resolve one or more keys.", {
+          text: text(),
+        })
         return { _error }
-      })
+      }
+      return e
   }
 
 InvalidFormatString
@@ -71,15 +65,9 @@ PrimaryExpression
   / v:StringLiteral {
     // Allow nested template strings in literals
     return options.resolveNested(v)
-      .catch(_error => {
-        return { _error }
-      })
   }
   / key:Key {
     return options.getKey(key, { allowUndefined: true })
-      .catch(_error => {
-        return { _error }
-      })
   }
   / "(" __ e:Expression __ ")" {
     return e
@@ -88,25 +76,17 @@ PrimaryExpression
 UnaryExpression
   = PrimaryExpression
   / operator:UnaryOperator __ argument:UnaryExpression {
-      if (argument && argument._error) {
-        return argument
+      const v = argument
+
+      if (v && v._error) {
+        return v
       }
 
-      return Promise.resolve(argument)
-        .then(v => {
-          if (v && v._error) {
-            return v
-          }
-
-          if (operator === "typeof") {
-            return typeof options.getValue(v)
-          } else if (operator === "!") {
-            return !options.getValue(v)
-          }
-        })
-        .catch(_error => {
-          return { _error }
-        })
+      if (operator === "typeof") {
+        return typeof options.getValue(v)
+      } else if (operator === "!") {
+        return !options.getValue(v)
+      }
     }
 
 UnaryOperator
@@ -174,23 +154,17 @@ ConditionalExpression
     "?" __ consequent:Expression __
     ":" __ alternate:Expression
     {
-      return Promise.all([test, consequent, alternate])
-        .then(([t, c, a]) => {
-          if (t && t._error) {
-            return t
-          }
-          if (c && c._error) {
-            return c
-          }
-          if (a && a._error) {
-            return a
-          }
+      if (test && test._error) {
+        return test
+      }
+      if (consequent && consequent._error) {
+        return consequent
+      }
+      if (alternate && alternate._error) {
+        return alternate
+      }
 
-          return options.getValue(t) ? c : a
-        })
-        .catch(_error => {
-          return { _error }
-        })
+      return options.getValue(test) ? consequent : alternate
     }
   / LogicalORExpression
 

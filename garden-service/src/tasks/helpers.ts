@@ -36,11 +36,12 @@ export async function getModuleWatchTasks({
 }): Promise<BaseTask[]> {
   let buildTasks: BaseTask[] = []
 
-  const dependants = await graph.getDependantsForModule(module, true)
+  const dependants = graph.getDependantsForModule(module, true)
 
   if (intersection(module.serviceNames, hotReloadServiceNames).length === 0) {
     buildTasks = await BuildTask.factory({
       garden,
+      graph,
       log,
       module,
       force: true,
@@ -53,6 +54,7 @@ export async function getModuleWatchTasks({
       (m) =>
         BuildTask.factory({
           garden,
+          graph,
           log,
           module: m,
           force: false,
@@ -76,7 +78,7 @@ export async function getModuleWatchTasks({
         })
     )
 
-  const hotReloadServices = await graph.getServices({ names: hotReloadServiceNames, includeDisabled: true })
+  const hotReloadServices = graph.getServices({ names: hotReloadServiceNames, includeDisabled: true })
   const hotReloadTasks = hotReloadServices
     .filter(
       (service) =>

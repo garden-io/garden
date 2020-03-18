@@ -34,6 +34,10 @@ export class GetTaskResultTask extends BaseTask {
     this.task = task
   }
 
+  async resolveDependencies() {
+    return []
+  }
+
   getName() {
     return this.task.name
   }

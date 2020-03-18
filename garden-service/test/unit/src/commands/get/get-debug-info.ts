@@ -101,7 +101,7 @@ describe("GetDebugInfoCommand", () => {
 
       // Check that each module config files have been copied over and
       // the folder structure is maintained
-      for (const module of await graph.getModules()) {
+      for (const module of graph.getModules()) {
         const moduleRelativePath = relative(garden.projectRoot, module.path)
 
         // Checks folder structure is maintained

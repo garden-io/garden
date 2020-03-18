@@ -6,15 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { flatten, uniq, cloneDeep, keyBy, some } from "lodash"
-import { getNames } from "../util/util"
+import { flatten, uniq, cloneDeep, some } from "lodash"
+import { getNames, findByName } from "../util/util"
 import { ModuleConfig, moduleConfigSchema } from "../config/module"
 import { ModuleVersion, moduleVersionSchema } from "../vcs/vcs"
 import { pathToCacheContext } from "../cache"
 import { Garden } from "../garden"
 import { joiArray, joiIdentifier, joiIdentifierMap, joi } from "../config/common"
-import { ConfigGraph } from "../config-graph"
-import Bluebird from "bluebird"
 import { getConfigFilePath } from "../util/fs"
 import { getModuleTypeBases } from "../plugins"
 import { ModuleType } from "./plugin/plugin"
@@ -45,7 +43,7 @@ export interface Module<M extends {} = any, S extends {} = any, T extends {} = a
   taskDependencyNames: string[]
 
   compatibleTypes: string[]
-  _ConfigType: ModuleConfig<M, S, T, W>
+  _config: ModuleConfig<M, S, T, W>
 }
 
 export const moduleSchema = () =>
@@ -97,7 +95,11 @@ export interface ModuleConfigMap<T extends ModuleConfig = ModuleConfig> {
   [key: string]: T
 }
 
-export async function moduleFromConfig(garden: Garden, graph: ConfigGraph, config: ModuleConfig): Promise<Module> {
+export async function moduleFromConfig(
+  garden: Garden,
+  config: ModuleConfig,
+  buildDependencies: Module[]
+): Promise<Module> {
   const configPath = await getConfigFilePath(config.path)
   const version = await garden.resolveVersion(config, config.build.dependencies)
   const moduleTypes = await garden.getModuleTypes()
@@ -126,13 +128,13 @@ export async function moduleFromConfig(garden: Garden, graph: ConfigGraph, confi
     ),
 
     compatibleTypes,
-    _ConfigType: config,
+    _config: config,
   }
 
-  const buildDependencyModules = await Bluebird.map(module.build.dependencies, (d) =>
-    graph.getModule(getModuleKey(d.name, d.plugin), true)
-  )
-  module.buildDependencies = keyBy(buildDependencyModules, "name")
+  for (const d of module.build.dependencies) {
+    const key = getModuleKey(d.name, d.plugin)
+    module.buildDependencies[key] = findByName(buildDependencies, key)!
+  }
 
   return module
 }

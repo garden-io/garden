@@ -91,8 +91,7 @@ describe("plugins.container", () => {
 
   async function getTestModule(moduleConfig: ContainerModuleConfig) {
     const parsed = await configure({ ctx, moduleConfig, log })
-    const graph = await garden.getConfigGraph(garden.log)
-    return moduleFromConfig(garden, graph, parsed.moduleConfig)
+    return moduleFromConfig(garden, parsed.moduleConfig, [])
   }
 
   describe("configureContainerModule", () => {

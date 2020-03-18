@@ -125,7 +125,7 @@ export abstract class VcsHandler {
     // the version file is used internally to specify versions outside of source control
     const versionFilePath = join(moduleConfig.path, GARDEN_TREEVERSION_FILENAME)
     const fileVersion = await readTreeVersionFile(versionFilePath)
-    return fileVersion || this.getTreeVersion(log, moduleConfig)
+    return fileVersion || (await this.getTreeVersion(log, moduleConfig))
   }
 
   async resolveVersion(

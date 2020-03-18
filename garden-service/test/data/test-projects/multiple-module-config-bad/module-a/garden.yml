@@ -6,8 +6,6 @@ services:
   - name: service-a1
 build:
   command: [echo, A1]
-  dependencies:
-    - module-from-project-config
 tests:
   - name: unit
     command: [echo, OK]
