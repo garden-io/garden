@@ -23,7 +23,7 @@ build:
 
 This ensures that the `base-image` is built ahead of the `backend`.
 
-We also use [build arguments](https://docs.docker.com/engine/reference/builder/#arg) in the Dockerfile and the [`garden.yml`](https://docs.garden.io/module-types/container#buildargs) config so that the correct base image version is used:
+We also use [build arguments](https://docs.docker.com/engine/reference/builder/#arg) in the Dockerfile and the [`garden.yml`](https://docs.garden.io/reference/module-types/container#buildargs) config so that the correct base image version is used:
 
 ```yaml
 # In backend/garden.yml

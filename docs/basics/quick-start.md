@@ -9,7 +9,7 @@ This guide will walk you through setting up the Garden framework. It assumes you
 
 ## Using the CLI
 
-With the CLI installed, we can now try out a few commands using the [Demo Project](../examples/demo-project.md) from our [example projects](../examples/README.md). The example project consists of a couple of basic modules, each defining one service.
+With the CLI installed, we can now try out a few commands using the [Demo Project](../example-projects/demo-project.md) from our [example projects](../example-projects/README.md). The example project consists of a couple of basic modules, each defining one service.
 
 _Note: Check whether Kubernetes is running with `kubectl version`. You should see both a `Client Version` and a `Server Version` in the response. If not, please start it up before proceeding._
 
@@ -79,4 +79,4 @@ That's it for now. Check out our [Using Garden](../guides/README.md) section for
 
 ## Next steps
 
-To see how a Garden project is configured from scratch check, out the [Demo Project](../examples/demo-project.md) guide for a more in-depth presentation.
+To see how a Garden project is configured from scratch check, out the [Demo Project](../example-projects/demo-project.md) guide for a more in-depth presentation.

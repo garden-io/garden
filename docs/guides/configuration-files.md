@@ -415,7 +415,7 @@ If you're using Git submodules in your project, please note the following:
 
 We highly recommend reading the [Variables and Templating guide](./variables-and-templating.md) to understand how you can reference across different providers and modules, as well as to understand how to supply secret values to your configuration.
 
-We suggest browsing through the [Example projects](../examples/README.md) as well, to see different examples of how projects and modules can be configured.
+We suggest browsing through the [Example projects](../example-projects/README.md) as well, to see different examples of how projects and modules can be configured.
 
 Also, be sure to look at the [Config Files Reference](../reference/config.md) for more details on each of the available configuration fields, and the [Template Strings Reference](../reference/template-strings.md) for the keys available in template strings.
 
