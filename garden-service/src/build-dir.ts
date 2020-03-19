@@ -20,6 +20,7 @@ import { ConfigGraph } from "./config-graph"
 import { exec } from "./util/util"
 import { LogLevel } from "./logger/log-node"
 import { deline } from "./util/string"
+import { Profile } from "./util/profiling"
 
 const minRsyncVersion = "3.1.0"
 const versionRegex = /rsync  version ([\d\.]+)  /
@@ -39,7 +40,7 @@ const versionDetectFailure = new RuntimeError(
 )
 
 // Lazily construct a directory of modules inside which all build steps are performed.
-
+@Profile()
 export class BuildDir {
   constructor(private projectRoot: string, public buildDirPath: string, public buildMetadataDirPath: string) {}
 
