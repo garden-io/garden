@@ -51,7 +51,7 @@
 
 ## Quick start
 
-With the CLI installed, you can try out a few commands using the [Demo Project](https://docs.garden.io/examples/demo-project) from our [example projects](https://github.com/garden-io/garden/tree/v0.11.8/examples). The example project consists of a couple of simple modules, each defining one service.
+With the CLI installed, you can try out a few commands using the [Demo Project](https://docs.garden.io/example-projects/demo-project) from our [example projects](https://github.com/garden-io/garden/tree/v0.11.8/examples). The example project consists of a couple of simple modules, each defining one service.
 
 *Note: This example assumes you have a local Kubernetes instance running.*
 
@@ -96,7 +96,7 @@ Overview:
 
 - [Using Garden](https://docs.garden.io/using-garden)—short Guides on incrementally adding the main Garden constructs to your project.
 - [Guides](https://docs.garden.io/guides)—development workflows, Garden configuration files, usage with remote Kubernetes clusters, and setting up hot reload.
-- [Example Projects](https://docs.garden.io/examples)—guides based on some of the [examples](https://github.com/garden-io/garden/tree/v0.11.8/examples).
+- [Example Projects](https://docs.garden.io/example-projects)—guides based on some of the [examples](https://github.com/garden-io/garden/tree/v0.11.8/examples).
 - [Reference](https://docs.garden.io/reference)—glossary, commands reference, configuration files reference, and template strings reference.
 - [FAQs](https://docs.garden.io/#faqs).
 

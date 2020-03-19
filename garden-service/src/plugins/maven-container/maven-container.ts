@@ -115,7 +115,7 @@ export const gardenPlugin = createGardenPlugin({
       name: "maven-container",
       base: "container",
       docs: dedent`
-      A specialized version of the [container](https://docs.garden.io/module-types/container) module type
+      A specialized version of the [container](https://docs.garden.io/reference/module-types/container) module type
       that has special semantics for JAR files built with Maven.
 
       Rather than build the JAR inside the container (or in a multi-stage build) this plugin runs \`mvn package\`

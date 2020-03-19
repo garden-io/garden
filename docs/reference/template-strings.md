@@ -77,7 +77,7 @@ my-variable: ${local.username}
 
 The following keys are available in template strings under the `providers` key (or `environments[].providers) in project configs.
 
-Providers can also reference outputs defined by other providers, via the `${providers.<provider-name>.outputs}` key. For details on which outputs are available for a given provider, please refer to the [reference](https://docs.garden.io/providers) docs for the provider in question, and look for the _Outputs_ section.
+Providers can also reference outputs defined by other providers, via the `${providers.<provider-name>.outputs}` key. For details on which outputs are available for a given provider, please refer to the [reference](https://docs.garden.io/reference/providers) docs for the provider in question, and look for the _Outputs_ section.
 
 
 ### `${local.*}`
@@ -211,10 +211,10 @@ Alias for the variables field.
 
 The below keys are available in template strings in module configs. These include all the keys from the sections above.
 
-Modules can reference outputs defined by providers, via the `${providers.<provider-name>.outputs}` key. For details on which outputs are available for a given provider, please refer to the [reference](https://docs.garden.io/providers) docs for the provider in question, and look for the _Outputs_ section.
+Modules can reference outputs defined by providers, via the `${providers.<provider-name>.outputs}` key. For details on which outputs are available for a given provider, please refer to the [reference](https://docs.garden.io/reference/providers) docs for the provider in question, and look for the _Outputs_ section.
 
 Modules can also reference outputs defined by other modules, via the `${modules.<module-name>.outputs}` key, as well as service and task outputs via the `${runtime.services.<service-name>.outputs}` and `${runtime.tasks.<task-name>.outputs}` keys.
-For details on which outputs are available for a given module type, please refer to the [reference](https://docs.garden.io/module-types) docs for the module type in question, and look for the _Outputs_ section.
+For details on which outputs are available for a given module type, please refer to the [reference](https://docs.garden.io/reference/module-types) docs for the module type in question, and look for the _Outputs_ section.
 
 
 ### `${local.*}`
@@ -380,10 +380,10 @@ Runtime information from the tasks that the service/task being run depends on.
 
 The below keys are available in template strings for _project outputs_, specified in `outputs[].value` keys in project config files. These include all the keys from the sections above.
 
-Output values can reference outputs defined by providers, via the `${providers.<provider-name>.outputs}` key. For details on which outputs are available for a given provider, please refer to the [reference](https://docs.garden.io/providers) docs for the provider in question, and look for the _Outputs_ section.
+Output values can reference outputs defined by providers, via the `${providers.<provider-name>.outputs}` key. For details on which outputs are available for a given provider, please refer to the [reference](https://docs.garden.io/reference/providers) docs for the provider in question, and look for the _Outputs_ section.
 
 Output values may also reference outputs defined by modules, via the `${modules.<module-name>.outputs}` key, as well as service and task outputs via the `${runtime.services.<service-name>.outputs}` and `${runtime.tasks.<task-name>.outputs}` keys.
-For details on which outputs are available for a given module type, please refer to the [reference](https://docs.garden.io/module-types) docs for the module type in question, and look for the _Outputs_ section.
+For details on which outputs are available for a given module type, please refer to the [reference](https://docs.garden.io/reference/module-types) docs for the module type in question, and look for the _Outputs_ section.
 
 
 ### `${local.*}`

@@ -39,8 +39,9 @@ The default ingress for local development is `http://demo-project.local.app.gard
 
 Services correspond to a **deploy** action in the Stack Graph.
 
-- Services can depend on tasks and other services
-- Tasks and tests can depend on services
+- **Services** implicitly depend on the build step of their **parent module**.
+- **Services** can depend on **tasks** and other **services**.
+- **Tasks** and **tests** can depend on **services**.
 
 ## Examples
 
@@ -116,13 +117,13 @@ Services are also implicitly disabled when the parent module is disabled.
 
 ### How Services Map to Kubernetes Resources
 
-A container service maps to a Kubernetes [Deployment object](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/). If you specify a `port`, Garden will create a [Service object](https://kubernetes.io/docs/concepts/services-networking/service/) for the Deployment. And if you specify an `ingress`, Garden will create a corresponding Kubernetes [Ingress object](https://kubernetes.io/docs/concepts/services-networking/ingress/).
+A container service maps to a Kubernetes [Deployment resource](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/). If you specify a `port`, Garden will create a [Service resource](https://kubernetes.io/docs/concepts/services-networking/service/) for the Deployment. And if you specify an `ingress`, Garden will create a corresponding Kubernetes [Ingress resource](https://kubernetes.io/docs/concepts/services-networking/ingress/).
 
 By default the Kubernetes provider does a rolling update for deployments.
 
 ## Further Reading
 
-* For full service configuration by module type, please take a look at our [reference docs](../reference/module-types/README.md).
+For full service configuration by module type, please take a look at our [reference docs](../reference/module-types/README.md).
 
 ## Next Steps
 

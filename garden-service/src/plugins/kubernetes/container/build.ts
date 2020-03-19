@@ -35,8 +35,10 @@ import chalk = require("chalk")
 
 const dockerDaemonDeploymentName = "garden-docker-daemon"
 const dockerDaemonContainerName = "docker-daemon"
-const kanikoImage = "gcr.io/kaniko-project/executor:debug-v0.17.1"
+
+const kanikoImage = "gcr.io/kaniko-project/executor:debug-v0.19.0"
 const skopeoImage = "gardendev/skopeo:1.41.0-1"
+
 const registryPort = 5000
 
 export const buildSyncDeploymentName = "garden-build-sync"

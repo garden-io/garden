@@ -123,4 +123,20 @@ describe("PluginsCommand", () => {
 
     expect(result).to.eql({ args: ["foo"] })
   })
+
+  it(`ignore the env flag when printing help text`, async () => {
+    const garden = await TestGarden.factory(tmpDir.path, { plugins: [testPluginA, testPluginB] })
+    const log = garden.log
+
+    const result = await command.action({
+      garden,
+      log,
+      headerLog: log,
+      footerLog: log,
+      args: { plugin: undefined, command: undefined },
+      opts: withDefaultGlobalOpts({ env: "invalid-env" }),
+    })
+
+    expect(result.errors).to.be.undefined
+  })
 })

@@ -33,6 +33,26 @@ describe("cli", () => {
       const { result } = await cli.parse(["test-command", "some", "args"])
       expect(result).to.eql({ args: { _: ["some", "args"] } })
     })
+
+    it(`should configure a dummy environment when command has noProject=true and --env is specified`, async () => {
+      class TestCommand2 extends Command {
+        name = "test-command-2"
+        help = "halp!"
+        noProject = true
+
+        async action({ garden }) {
+          return { result: { environmentName: garden.environmentName } }
+        }
+      }
+
+      const command = new TestCommand2()
+      const cli = new GardenCli()
+      cli.addCommand(command, cli["program"])
+
+      const { result, errors } = await cli.parse(["test-command-2", "--env", "missing-env"])
+      expect(errors).to.eql([])
+      expect(result).to.eql({ environmentName: "missing-env" })
+    })
   })
 
   describe("makeDummyGarden", () => {

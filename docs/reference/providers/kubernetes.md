@@ -214,14 +214,14 @@ providers:
 
         # Set to `cert-manager` to configure [cert-manager](https://github.com/jetstack/cert-manager) to manage this
         # certificate. See our
-        # [cert-manager integration guide](https://docs.garden.io/guides/cert-manager-integration) for details.
+        # [cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
         managedBy:
 
     # cert-manager configuration, for creating and managing TLS certificates. See the
-    # [cert-manager guide](https://docs.garden.io/guides/cert-manager-integration) for details.
+    # [cert-manager guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
     certManager:
       # Automatically install `cert-manager` on initialization. See the
-      # [cert-manager integration guide](https://docs.garden.io/guides/cert-manager-integration) for details.
+      # [cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
       install: false
 
       # The email to use when requesting Let's Encrypt certificates.
@@ -1092,7 +1092,7 @@ The namespace where the secret is stored. If necessary, the secret may be copied
 
 Set to `cert-manager` to configure [cert-manager](https://github.com/jetstack/cert-manager) to manage this
 certificate. See our
-[cert-manager integration guide](https://docs.garden.io/guides/cert-manager-integration) for details.
+[cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1111,7 +1111,7 @@ providers:
 [providers](#providers) > certManager
 
 cert-manager configuration, for creating and managing TLS certificates. See the
-[cert-manager guide](https://docs.garden.io/guides/cert-manager-integration) for details.
+[cert-manager guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1122,7 +1122,7 @@ cert-manager configuration, for creating and managing TLS certificates. See the
 [providers](#providers) > [certManager](#providerscertmanager) > install
 
 Automatically install `cert-manager` on initialization. See the
-[cert-manager integration guide](https://docs.garden.io/guides/cert-manager-integration) for details.
+[cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
