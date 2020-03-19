@@ -13,6 +13,7 @@ import { Garden } from "../garden"
 import { Task } from "../types/task"
 import { RunTaskResult } from "../types/plugin/task/runTask"
 import { ModuleVersion } from "../vcs/vcs"
+import { Profile } from "../util/profiling"
 
 export interface GetTaskResultTaskParams {
   force: boolean
@@ -22,6 +23,7 @@ export interface GetTaskResultTaskParams {
   version: ModuleVersion
 }
 
+@Profile()
 export class GetTaskResultTask extends BaseTask {
   type: TaskType = "get-task-result"
 

@@ -15,6 +15,7 @@ import { pickBy, mapValues, mapKeys } from "lodash"
 import { ServiceStatus } from "../types/service"
 import { RunTaskResult } from "../types/plugin/task/runTask"
 import { splitLast } from "../util/util"
+import { Profile } from "../util/profiling"
 
 export type TaskType =
   | "build"
@@ -42,6 +43,7 @@ export interface TaskParams {
   version: ModuleVersion
 }
 
+@Profile()
 export abstract class BaseTask {
   abstract type: TaskType
   garden: Garden

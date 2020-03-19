@@ -99,6 +99,7 @@ import { getArtifactKey } from "./util/artifacts"
 import { AugmentGraphResult, AugmentGraphParams } from "./types/plugin/provider/augmentGraph"
 import { DeployTask } from "./tasks/deploy"
 import { BuildDependencyConfig } from "./config/module"
+import { Profile } from "./util/profiling"
 
 const maxArtifactLogLines = 5 // max number of artifacts to list in console after task+test runs
 
@@ -120,6 +121,7 @@ export interface DeployServicesParams {
  * Each plugin and module action has a corresponding method on this class (aside from configureProvider, which
  * is handled especially elsewhere).
  */
+@Profile()
 export class ActionRouter implements TypeGuard {
   private readonly actionHandlers: WrappedPluginActionMap
   private readonly moduleActionHandlers: WrappedModuleActionMap

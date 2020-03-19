@@ -25,6 +25,7 @@ import { makeTestTaskName } from "./helpers"
 import { BuildTask } from "./build"
 import { TaskTask } from "./task"
 import { TaskResults } from "../task-graph"
+import { Profile } from "../util/profiling"
 
 class TestError extends Error {
   toString() {
@@ -43,6 +44,7 @@ export interface TestTaskParams {
   hotReloadServiceNames?: string[]
 }
 
+@Profile()
 export class TestTask extends BaseTask {
   type: TaskType = "test"
 

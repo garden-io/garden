@@ -20,6 +20,7 @@ import { dedent } from "./util/string"
 import { defer, relationshipClasses, uuidv4 } from "./util/util"
 import { renderError } from "./logger/renderers"
 import { DependencyValidationGraph } from "./util/validate-dependencies"
+import { Profile } from "./util/profiling"
 
 class TaskGraphError extends GardenBaseError {
   type = "task-graph"
@@ -55,6 +56,7 @@ export interface ProcessTasksOpts {
   unlimitedConcurrency?: boolean
 }
 
+@Profile()
 export class TaskGraph {
   private roots: TaskNodeMap
   private index: TaskNodeMap

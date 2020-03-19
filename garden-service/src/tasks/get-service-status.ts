@@ -18,6 +18,7 @@ import { getTaskVersion } from "./task"
 import Bluebird from "bluebird"
 import { GetTaskResultTask } from "./get-task-result"
 import chalk from "chalk"
+import { Profile } from "../util/profiling"
 
 export interface GetServiceStatusTaskParams {
   garden: Garden
@@ -28,6 +29,7 @@ export interface GetServiceStatusTaskParams {
   hotReloadServiceNames?: string[]
 }
 
+@Profile()
 export class GetServiceStatusTask extends BaseTask {
   type: TaskType = "get-service-status"
 

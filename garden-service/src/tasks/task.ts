@@ -20,6 +20,7 @@ import { BuildTask } from "./build"
 import { RunTaskResult } from "../types/plugin/task/runTask"
 import { TaskResults } from "../task-graph"
 import { GetTaskResultTask } from "./get-task-result"
+import { Profile } from "../util/profiling"
 
 export interface TaskTaskParams {
   garden: Garden
@@ -36,6 +37,7 @@ class RunTaskError extends Error {
   }
 }
 
+@Profile()
 export class TaskTask extends BaseTask {
   // ... to be renamed soon.
   type: TaskType = "task"
