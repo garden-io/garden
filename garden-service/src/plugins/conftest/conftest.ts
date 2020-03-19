@@ -20,7 +20,7 @@ import { matchGlobs, listDirectory } from "../../util/fs"
 import { PluginError } from "../../exceptions"
 import { getModuleTypeUrl, getGitHubUrl, getProviderUrl } from "../../docs/common"
 
-interface ConftestProviderConfig extends ProviderConfig {
+export interface ConftestProviderConfig extends ProviderConfig {
   policyPath: string
   namespace?: string
   testFailureThreshold: "deny" | "warn" | "none"

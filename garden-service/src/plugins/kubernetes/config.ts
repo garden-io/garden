@@ -25,6 +25,7 @@ import { hotReloadableKinds, HotReloadableKind } from "./hot-reload"
 import { baseTaskSpecSchema, BaseTaskSpec, cacheResultSchema } from "../../config/task"
 import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
 import { ArtifactSpec } from "../../config/validation"
+import { V1Toleration } from "@kubernetes/client-node"
 
 export interface ProviderSecretRef {
   name: string
@@ -80,14 +81,6 @@ interface KubernetesStorage {
   sync: KubernetesStorageSpec
 }
 
-export interface Toleration {
-  effect?: "NoSchedule" | "PreferNoSchedule" | "NoExecute"
-  key?: string
-  operator: "Exists" | "Equal"
-  tolerationSeconds?: number
-  value?: string
-}
-
 export type ContainerBuildMode = "local-docker" | "cluster-docker" | "kaniko"
 
 export type DefaultDeploymentStrategy = "rolling"
@@ -110,7 +103,7 @@ export interface KubernetesConfig extends ProviderConfig {
   ingressClass?: string
   kubeconfig?: string
   namespace?: string
-  registryProxyTolerations: Toleration[]
+  registryProxyTolerations: V1Toleration[]
   resources: KubernetesResources
   storage: KubernetesStorage
   gardenSystemNamespace: string

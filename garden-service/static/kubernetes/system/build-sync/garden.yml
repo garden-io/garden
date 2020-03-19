@@ -20,3 +20,4 @@ values:
     storageClass: ${var.sync-storage-class}
   pvc:
     name: ${var.sync-volume-name}
+  tolerations: ${var.system-tolerations}
