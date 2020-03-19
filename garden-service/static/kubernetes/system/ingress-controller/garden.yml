@@ -24,5 +24,6 @@ values:
     service:
       omitClusterIP: true
     minReadySeconds: 1
+    tolerations: ${var.system-tolerations}
   defaultBackend:
     enabled: false
