@@ -140,28 +140,16 @@ const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } 
     const registryHostname = getRegistryHostname(provider.config)
 
     const remoteId = await containerHelpers.getDeploymentImageId(module, deploymentRegistry)
+    const inClusterRegistry = deploymentRegistry?.hostname === inClusterRegistryHostname
     const skopeoCommand = ["skopeo", "--command-timeout=30s", "inspect", "--raw"]
-
-    if (deploymentRegistry?.hostname === inClusterRegistryHostname) {
+    if (inClusterRegistry) {
       // The in-cluster registry is not exposed, so we don't configure TLS on it.
       skopeoCommand.push("--tls-verify=false")
     }
 
     skopeoCommand.push(`docker://${remoteId}`)
 
-    // Have to ensure the registry proxy is up before querying, in case the in-cluster registry is being used
-    const commandStr = dedent`
-      while true; do
-        if pidof socat > /dev/null; then
-          ${skopeoCommand.join(" ")};
-          export exitcode=$?
-          killall socat;
-          exit $exitcode;
-        else
-          sleep 0.3;
-        fi
-      done
-    `
+    const containers = getKanikoContainers(registryHostname, inClusterRegistry, skopeoCommand)
 
     const runner = new PodRunner({
       api,
@@ -176,21 +164,7 @@ const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } 
           // Mount the docker auth secret, so skopeo can inspect private registries.
           getDockerAuthVolume(),
         ],
-        containers: [
-          {
-            name: "skopeo",
-            image: skopeoImage,
-            command: ["sh", "-c", commandStr],
-            volumeMounts: [
-              {
-                name: dockerAuthSecretName,
-                mountPath: "/root/.docker",
-                readOnly: true,
-              },
-            ],
-          },
-          getSocatContainer(registryHostname),
-        ],
+        containers,
       },
     })
 
@@ -212,6 +186,49 @@ const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } 
 
     return { ready: res.success }
   },
+}
+
+function getKanikoContainers(registryHostname: string, inClusterRegistry: boolean, skopeoCommand: string[]) {
+  let commandStr: string
+  if (inClusterRegistry) {
+    commandStr = dedent`
+      while true; do
+        if pidof socat > /dev/null; then
+          ${skopeoCommand.join(" ")};
+          export exitcode=$?
+          killall socat;
+          exit $exitcode;
+        else
+          sleep 0.3;
+        fi
+      done
+    `
+  } else {
+    commandStr = skopeoCommand.join(" ")
+  }
+
+  // Have to ensure the registry proxy is up before querying, in case the in-cluster registry is being used
+  const containers: any = [
+    {
+      name: "skopeo",
+      image: skopeoImage,
+      command: ["sh", "-c", commandStr],
+      volumeMounts: [
+        {
+          name: dockerAuthSecretName,
+          mountPath: "/root/.docker",
+          readOnly: true,
+        },
+      ],
+    },
+  ]
+
+  // we only need the socat container if we're using the in cluster registry
+  if (inClusterRegistry) {
+    containers.push(getSocatContainer(registryHostname))
+  }
+
+  return containers
 }
 
 type BuildHandler = (params: BuildModuleParams<ContainerModule>) => Promise<BuildResult>
