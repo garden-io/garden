@@ -18,7 +18,7 @@ import { KubernetesResource, KubernetesWorkload, KubernetesPod, KubernetesServer
 import { splitLast, serializeValues, findByName } from "../../util/util"
 import { KubeApi, KubernetesError } from "./api"
 import { gardenAnnotationKey, base64, deline } from "../../util/string"
-import { MAX_CONFIGMAP_DATA_SIZE } from "./constants"
+import { MAX_CONFIGMAP_DATA_SIZE, dockerAuthSecretName, dockerAuthSecretKey } from "./constants"
 import { ContainerEnvVars } from "../container/config"
 import { ConfigurationError } from "../../exceptions"
 import { KubernetesProvider, ServiceResourceSpec } from "./config"
@@ -29,6 +29,9 @@ import { KubernetesModule } from "./kubernetes-module/config"
 import { getChartPath, renderHelmTemplateString } from "./helm/common"
 import { HotReloadableResource } from "./hot-reload"
 import { getSystemNamespace } from "./namespace"
+
+export const kanikoImage = "gcr.io/kaniko-project/executor:debug-v0.17.1"
+export const skopeoImage = "gardendev/skopeo:1.41.0-1"
 
 const STATIC_LABEL_REGEX = /[0-9]/g
 export const workloadTypes = ["Deployment", "DaemonSet", "ReplicaSet", "StatefulSet"]
@@ -578,4 +581,37 @@ export function makePodName(type: string, ...parts: string[]) {
   const id = `${type}-${parts.join("-")}`
   const hash = hasha(`${id}-${Math.round(new Date().getTime())}`, { algorithm: "sha1" })
   return id.slice(0, maxPodNamePrefixLength) + "-" + hash.slice(0, podNameHashLength)
+}
+
+/**
+ * Gets the Docker auth volume details to be mounted into a container.
+ */
+export function getDockerAuthVolume() {
+  return {
+    name: dockerAuthSecretName,
+    secret: {
+      secretName: dockerAuthSecretName,
+      items: [{ key: dockerAuthSecretKey, path: "config.json" }],
+    },
+  }
+}
+
+/**
+ * Creates a skopeo container configuration to be execued by a PodRunner.
+ *
+ * @param command the skopeo command to execute
+ */
+export function getSkopeoContainer(command: string) {
+  return {
+    name: "skopeo",
+    image: skopeoImage,
+    command: ["sh", "-c", command],
+    volumeMounts: [
+      {
+        name: dockerAuthSecretName,
+        mountPath: "/root/.docker",
+        readOnly: true,
+      },
+    ],
+  }
 }

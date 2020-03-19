@@ -13,12 +13,19 @@ import { containerHelpers } from "../../container/helpers"
 import { buildContainerModule, getContainerBuildStatus, getDockerBuildFlags } from "../../container/build"
 import { GetBuildStatusParams, BuildStatus } from "../../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams, BuildResult } from "../../../types/plugin/module/build"
-import { millicpuToString, megabytesToString, getRunningPodInDeployment, makePodName } from "../util"
-import { RSYNC_PORT, dockerAuthSecretName, dockerAuthSecretKey, inClusterRegistryHostname } from "../constants"
+import {
+  millicpuToString,
+  megabytesToString,
+  getRunningPodInDeployment,
+  makePodName,
+  getSkopeoContainer,
+} from "../util"
+import { RSYNC_PORT, dockerAuthSecretName, inClusterRegistryHostname } from "../constants"
 import { posix, resolve } from "path"
 import { KubeApi } from "../api"
 import { kubectl } from "../kubectl"
 import { LogEntry } from "../../../logger/log-entry"
+import { getDockerAuthVolume } from "../util"
 import { KubernetesProvider, ContainerBuildMode, KubernetesPluginContext, KubernetesConfig } from "../config"
 import { PluginError, InternalError, RuntimeError, BuildError } from "../../../exceptions"
 import { PodRunner } from "../run"
@@ -37,7 +44,6 @@ const dockerDaemonDeploymentName = "garden-docker-daemon"
 const dockerDaemonContainerName = "docker-daemon"
 
 const kanikoImage = "gcr.io/kaniko-project/executor:debug-v0.19.0"
-const skopeoImage = "gardendev/skopeo:1.41.0-1"
 
 const registryPort = 5000
 
@@ -628,16 +634,6 @@ async function getManifestInspectArgs(module: ContainerModule, deploymentRegistr
 
 function isLocalHostname(hostname: string) {
   return hostname === "localhost" || hostname.startsWith("127.")
-}
-
-function getDockerAuthVolume() {
-  return {
-    name: dockerAuthSecretName,
-    secret: {
-      secretName: dockerAuthSecretName,
-      items: [{ key: dockerAuthSecretKey, path: "config.json" }],
-    },
-  }
 }
 
 function getSocatContainer(registryHostname: string) {

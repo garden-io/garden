@@ -539,6 +539,60 @@ export class PodRunner extends PodRunnerParams {
     return { proc: this.proc, pod, state, debugLog }
   }
 
+  async spawn(params: ExecParams) {
+    const { log, command, container, ignoreError, input, stdout, stderr, timeout } = params
+
+    if (!this.proc) {
+      throw new PodRunnerError(`Attempting to spawn a command in Pod before starting it`, { command })
+    }
+
+    // TODO: use API library
+    const args = ["exec", "-i", this.podName, "-c", container || this.spec.containers[0].name, "--", ...command]
+
+    const startedAt = new Date()
+
+    const proc = await kubectl.spawn({
+      args,
+      namespace: this.namespace,
+      ignoreError,
+      input,
+      log,
+      provider: this.provider,
+      stdout,
+      stderr,
+      timeout,
+    })
+
+    return new Promise((_resolve, reject) => {
+      proc.on("close", (code) => {
+        if (code === 0) {
+          _resolve({
+            moduleName: this.module.name,
+            command,
+            version: this.module.version.versionString,
+            startedAt,
+            completedAt: new Date(),
+            log: "", // TODO: what here.
+            success: code === 0,
+          })
+        }
+
+        reject(
+          new RuntimeError(`Failed to spawn kubectl process with code ${code}`, {
+            code,
+          })
+        )
+      })
+
+      proc.on("error", (err) => {
+        !proc.killed && proc.kill()
+        throw err
+      })
+
+      stdout && proc.stdout?.pipe(stdout)
+    })
+  }
+
   /**
    * Executes a command in the running Pod. Must be called after `start()`.
    */
