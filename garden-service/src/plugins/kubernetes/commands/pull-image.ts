@@ -76,7 +76,7 @@ function ensureAllModulesValid(modules: Module[]) {
       return module.name
     })
 
-    throw new ParameterError(chalk.red(`Modules ${chalk.white(invalidModuleNames)} is not a container module.`), {
+    throw new ParameterError(chalk.red(`Modules ${chalk.white(invalidModuleNames)} are not container modules.`), {
       invalidModuleNames,
       compatibleTypes: "container",
     })

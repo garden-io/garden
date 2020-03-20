@@ -10,7 +10,7 @@ import { resolve } from "path"
 import tar from "tar"
 import tmp from "tmp-promise"
 import { V1PodSpec, V1Pod, V1Container } from "@kubernetes/client-node"
-
+import { tailString } from "../../util/string"
 import { RunResult } from "../../types/plugin/base"
 import { kubectl } from "./kubectl"
 import { Module } from "../../types/module"
@@ -32,6 +32,8 @@ import { ArtifactSpec } from "../../config/validation"
 import cpy from "cpy"
 import { prepareImagePullSecrets } from "./secrets"
 import { configureVolumes } from "./container/deployment"
+
+const MAX_BUFFER_SIZE = 1024 * 1024
 
 export async function runAndCopy({
   ctx,
@@ -563,6 +565,8 @@ export class PodRunner extends PodRunnerParams {
       timeout,
     })
 
+    let result: string = ""
+
     return new Promise((_resolve, reject) => {
       proc.on("close", (code) => {
         if (code === 0) {
@@ -572,7 +576,7 @@ export class PodRunner extends PodRunnerParams {
             version: this.module.version.versionString,
             startedAt,
             completedAt: new Date(),
-            log: "", // TODO: what here.
+            log: result,
             success: code === 0,
           })
         }
@@ -589,7 +593,12 @@ export class PodRunner extends PodRunnerParams {
         throw err
       })
 
+      proc.stdout!.on("data", (s) => {
+        result = tailString(result + s, MAX_BUFFER_SIZE, true)
+      })
+
       stdout && proc.stdout?.pipe(stdout)
+      stderr && proc.stderr?.pipe(stderr)
     })
   }
 
