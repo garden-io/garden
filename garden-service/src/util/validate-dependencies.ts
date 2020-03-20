@@ -15,6 +15,7 @@ import { ConfigurationError, ParameterError } from "../exceptions"
 import { ModuleConfig } from "../config/module"
 import { deline } from "./string"
 import { DependencyGraph, DependencyGraphNode, nodeKey as configGraphNodeKey } from "../config-graph"
+import { Profile } from "./profiling"
 
 export function handleDependencyErrors(
   missingDepsError: ConfigurationError | null,
@@ -97,6 +98,7 @@ export type DependencyValidationGraphNode = {
   description?: string // used instead of key when rendering node in circular dependency error messages
 }
 
+@Profile()
 export class DependencyValidationGraph {
   graph: { [nodeKey: string]: DependencyValidationGraphNode }
 

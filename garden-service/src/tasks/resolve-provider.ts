@@ -21,6 +21,7 @@ import { validateWithPath } from "../config/validation"
 import Bluebird from "bluebird"
 import { defaultEnvironmentStatus } from "../types/plugin/provider/getEnvironmentStatus"
 import { getPluginBases, getPluginBaseNames } from "../plugins"
+import { Profile } from "../util/profiling"
 
 interface Params extends TaskParams {
   plugin: GardenPlugin
@@ -31,6 +32,7 @@ interface Params extends TaskParams {
 /**
  * Resolves the configuration for the specified provider.
  */
+@Profile()
 export class ResolveProviderTask extends BaseTask {
   type: TaskType = "resolve-provider"
 

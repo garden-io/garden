@@ -60,6 +60,7 @@ import { loadPlugins, getDependencyOrder, getModuleTypes } from "./plugins"
 import { deline, naturalList } from "./util/string"
 import { ensureConnected } from "./db/connection"
 import { DependencyValidationGraph } from "./util/validate-dependencies"
+import { Profile } from "./util/profiling"
 
 export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
   [actionName: string]: PluginActionHandlers[T]
@@ -115,6 +116,7 @@ export interface GardenParams {
   workingCopyId: string
 }
 
+@Profile()
 export class Garden {
   public readonly log: LogEntry
   private loadedPlugins: GardenPlugin[]

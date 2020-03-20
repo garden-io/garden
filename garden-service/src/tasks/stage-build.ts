@@ -14,6 +14,7 @@ import { BuildResult } from "../types/plugin/module/build"
 import { BaseTask, TaskType } from "../tasks/base"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
+import { Profile } from "../util/profiling"
 
 export interface StageBuildTaskParams {
   garden: Garden
@@ -23,6 +24,7 @@ export interface StageBuildTaskParams {
   dependencies?: BaseTask[]
 }
 
+@Profile()
 export class StageBuildTask extends BaseTask {
   type: TaskType = "stage-build"
 

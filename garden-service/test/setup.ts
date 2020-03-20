@@ -11,6 +11,7 @@ import timekeeper from "timekeeper"
 import { Logger } from "../src/logger/logger"
 import { LogLevel } from "../src/logger/log-node"
 import { makeTestGardenA } from "./helpers"
+import { getDefaultProfiler } from "../src/util/profiling"
 // import { BasicTerminalWriter } from "../src/logger/writers/basic-terminal-writer"
 
 // make sure logger is initialized
@@ -23,12 +24,16 @@ try {
 } catch (_) {}
 
 // Global hooks
-before(async function(this: any) {
-  // tslint:disable-next-line:no-invalid-this
-  this.timeout(10000)
+before(async () => {
+  getDefaultProfiler().setEnabled(true)
 
   // doing this to make sure ts-node completes compilation before running tests
   await makeTestGardenA()
+})
+
+after(() => {
+  // tslint:disable-next-line: no-console
+  console.log(getDefaultProfiler().report())
 })
 
 beforeEach(() => {})

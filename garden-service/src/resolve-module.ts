@@ -17,12 +17,13 @@ import { deline } from "./util/string"
 import { getModuleKey } from "./types/module"
 import { getModuleTypeBases } from "./plugins"
 import { ModuleConfig, moduleConfigSchema } from "./config/module"
+import { profileAsync } from "./util/profiling"
 
 export interface ModuleConfigResolveOpts extends ContextResolveOpts {
   configContext?: ModuleConfigContext
 }
 
-export async function resolveModuleConfig(
+export const resolveModuleConfig = profileAsync(async function $resolveModuleConfig(
   garden: Garden,
   config: ModuleConfig,
   opts: ModuleConfigResolveOpts
@@ -159,4 +160,4 @@ export async function resolveModuleConfig(
   }
 
   return config
-}
+})

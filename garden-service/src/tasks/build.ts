@@ -15,6 +15,7 @@ import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { StageBuildTask } from "./stage-build"
 import { flatten } from "lodash"
+import { Profile } from "../util/profiling"
 
 export interface BuildTaskParams {
   garden: Garden
@@ -23,6 +24,7 @@ export interface BuildTaskParams {
   force: boolean
 }
 
+@Profile()
 export class BuildTask extends BaseTask {
   type: TaskType = "build"
 

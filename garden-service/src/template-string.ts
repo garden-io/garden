@@ -13,6 +13,7 @@ import { GardenBaseError, ConfigurationError } from "./exceptions"
 import { ConfigContext, ContextResolveOpts, ScanContext, ContextResolveOutput } from "./config/config-context"
 import { uniq, isPlainObject, isNumber } from "lodash"
 import { Primitive, isPrimitive } from "./config/common"
+import { profileAsync } from "./util/profiling"
 
 export type StringOrStringPromise = Promise<string> | string
 
@@ -119,7 +120,7 @@ export async function resolveTemplateString(
 /**
  * Recursively parses and resolves all templated strings in the given object.
  */
-export async function resolveTemplateStrings<T extends object>(
+export const resolveTemplateStrings = profileAsync(async function $resolveTemplateStrings<T extends object>(
   obj: T,
   context: ConfigContext,
   opts: ContextResolveOpts = {}
@@ -130,7 +131,7 @@ export async function resolveTemplateStrings<T extends object>(
     // need to iterate sequentially to catch potential circular dependencies
     { concurrency: 1 }
   )
-}
+})
 
 /**
  * Scans for all template strings in the given object and lists the referenced keys.

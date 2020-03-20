@@ -1,4 +1,16 @@
 
+<a name="v0.11.9"></a>
+## [v0.11.9](https://github.com/garden-io/garden/compare/v0.11.8...v0.11.9) (2020-03-16)
+
+### Bug Fixes
+
+* update .nvmrc ([#1715](https://github.com/garden-io/garden/issues/1715)) ([1bf7da9f](https://github.com/garden-io/garden/commit/1bf7da9f))
+* **cli:** configure provider/env correctly in `garden plugins` command ([41aacb2c](https://github.com/garden-io/garden/commit/41aacb2c))
+* **cli:** ignore --env flag for commands that don't use a project config ([ccfd8ff3](https://github.com/garden-io/garden/commit/ccfd8ff3))
+* **core:** improved circular dependency detection ([4eea9bdb](https://github.com/garden-io/garden/commit/4eea9bdb))
+* **k8s:** pass custom kubeconfig path to stern ([cf040870](https://github.com/garden-io/garden/commit/cf040870))
+* **k8s:** don't attempt to cleanup registry when using external registry ([9d520e0d](https://github.com/garden-io/garden/commit/9d520e0d))
+
 <a name="v0.11.8"></a>
 ## [v0.11.8](https://github.com/garden-io/garden/compare/v0.11.7...v0.11.8) (2020-03-03)
 

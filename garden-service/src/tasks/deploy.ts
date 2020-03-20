@@ -21,6 +21,7 @@ import { TaskResults } from "../task-graph"
 import { prepareRuntimeContext } from "../runtime-context"
 import { GetServiceStatusTask } from "./get-service-status"
 import { GetTaskResultTask } from "./get-task-result"
+import { Profile } from "../util/profiling"
 
 export interface DeployTaskParams {
   garden: Garden
@@ -33,6 +34,7 @@ export interface DeployTaskParams {
   hotReloadServiceNames?: string[]
 }
 
+@Profile()
 export class DeployTask extends BaseTask {
   type: TaskType = "deploy"
 
