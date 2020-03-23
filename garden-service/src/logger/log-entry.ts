@@ -89,6 +89,7 @@ export class LogEntry extends LogNode {
   public readonly errorData?: GardenError
   public readonly childEntriesInheritLevel?: boolean
   public readonly id?: string
+  public isPlaceholder?: boolean
 
   constructor(params: LogEntryConstructor) {
     super(params.level, params.parent, params.id)
@@ -100,6 +101,7 @@ export class LogEntry extends LogNode {
     this.childEntriesInheritLevel = params.childEntriesInheritLevel
     this.metadata = params.metadata
     this.id = params.id
+    this.isPlaceholder = params.isPlaceholder
 
     if (!params.isPlaceholder) {
       this.update({
@@ -228,6 +230,7 @@ export class LogEntry extends LogNode {
 
   // Preserves status
   setState(params?: string | UpdateLogEntryParams): LogEntry {
+    this.isPlaceholder = false
     this.deepUpdate({ ...resolveParams(params) })
     this.root.onGraphChange(this)
     return this
