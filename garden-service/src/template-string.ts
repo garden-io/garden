@@ -12,7 +12,7 @@ import { asyncDeepMap } from "./util/util"
 import { GardenBaseError, ConfigurationError } from "./exceptions"
 import { ConfigContext, ContextResolveOpts, ScanContext, ContextResolveOutput } from "./config/config-context"
 import { uniq, isPlainObject, isNumber } from "lodash"
-import { Primitive, isPrimitive } from "./config/common"
+import { Primitive } from "./config/common"
 import { profileAsync } from "./util/profiling"
 
 export type StringOrStringPromise = Promise<string> | string
@@ -49,7 +49,7 @@ export async function resolveTemplateString(
   string: string,
   context: ConfigContext,
   opts: ContextResolveOpts = {}
-): Promise<Primitive | undefined> {
+): Promise<any> {
   if (!string) {
     return string
   }
@@ -85,7 +85,7 @@ export async function resolveTemplateString(
     }
 
     // Use value directly if there is only one (or no) value in the output.
-    let resolved: Primitive | undefined = outputs[0]?.resolved
+    let resolved: any = outputs[0]?.resolved
 
     if (outputs.length > 1) {
       resolved = outputs
@@ -96,17 +96,7 @@ export async function resolveTemplateString(
         .join("")
     }
 
-    if (resolved !== undefined && !isPrimitive(resolved)) {
-      throw new ConfigurationError(
-        `Template string doesn't resolve to a primitive (string, number, boolean or null).`,
-        {
-          string,
-          resolved,
-        }
-      )
-    }
-
-    return <Primitive | undefined>resolved
+    return resolved
   } catch (err) {
     const prefix = `Invalid template string ${string}: `
     const message = err.message.startsWith(prefix) ? err.message : prefix + err.message

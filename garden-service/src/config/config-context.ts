@@ -10,7 +10,7 @@ import Joi from "@hapi/joi"
 import chalk from "chalk"
 import username from "username"
 import { isString } from "lodash"
-import { PrimitiveMap, joiIdentifierMap, joiStringMap, joiPrimitive } from "./common"
+import { PrimitiveMap, joiIdentifierMap, joiStringMap, joiPrimitive, DeepPrimitiveMap, joiVariables } from "./common"
 import { Provider, ProviderConfig } from "./provider"
 import { ModuleConfig } from "./module"
 import { ConfigurationError } from "../exceptions"
@@ -350,16 +350,16 @@ export class ProviderConfigContext extends ProjectConfigContext {
   public providers: Map<string, ProviderContext>
 
   @schema(
-    joiIdentifierMap(joiPrimitive().description("The value of the variable."))
+    joiVariables()
       .description("A map of all variables defined in the project configuration.")
       .meta({ keyPlaceholder: "<variable-name>" })
   )
-  public variables: PrimitiveMap
+  public variables: DeepPrimitiveMap
 
   @schema(joiIdentifierMap(joiPrimitive()).description("Alias for the variables field."))
-  public var: PrimitiveMap
+  public var: DeepPrimitiveMap
 
-  constructor(garden: Garden, resolvedProviders: Provider[], variables: PrimitiveMap) {
+  constructor(garden: Garden, resolvedProviders: Provider[], variables: DeepPrimitiveMap) {
     super(garden.artifactsPath)
     const _this = this
 
@@ -562,7 +562,7 @@ export class ModuleConfigContext extends ProviderConfigContext {
   constructor(
     garden: Garden,
     resolvedProviders: Provider[],
-    variables: PrimitiveMap,
+    variables: DeepPrimitiveMap,
     moduleConfigs: ModuleConfig[],
     // We only supply this when resolving configuration in dependency order.
     // Otherwise we pass `${runtime.*} template strings through for later resolution.
@@ -605,7 +605,7 @@ export class OutputConfigContext extends ModuleConfigContext {
   constructor(
     garden: Garden,
     resolvedProviders: Provider[],
-    variables: PrimitiveMap,
+    variables: DeepPrimitiveMap,
     moduleConfigs: ModuleConfig[],
     runtimeContext: RuntimeContext
   ) {
