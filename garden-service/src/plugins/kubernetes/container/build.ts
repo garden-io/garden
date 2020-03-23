@@ -13,13 +13,7 @@ import { containerHelpers } from "../../container/helpers"
 import { buildContainerModule, getContainerBuildStatus, getDockerBuildFlags } from "../../container/build"
 import { GetBuildStatusParams, BuildStatus } from "../../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams, BuildResult } from "../../../types/plugin/module/build"
-import {
-  millicpuToString,
-  megabytesToString,
-  getRunningPodInDeployment,
-  makePodName,
-  getSkopeoContainer,
-} from "../util"
+import { millicpuToString, megabytesToString, getRunningPodInDeployment, makePodName } from "../util"
 import { RSYNC_PORT, dockerAuthSecretName, inClusterRegistryHostname } from "../constants"
 import { posix, resolve } from "path"
 import { KubeApi } from "../api"
@@ -44,6 +38,7 @@ const dockerDaemonDeploymentName = "garden-docker-daemon"
 const dockerDaemonContainerName = "docker-daemon"
 
 const kanikoImage = "gcr.io/kaniko-project/executor:debug-v0.19.0"
+const skopeoImage = "gardendev/skopeo:1.41.0-1"
 
 const registryPort = 5000
 

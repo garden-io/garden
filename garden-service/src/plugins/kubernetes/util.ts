@@ -30,7 +30,6 @@ import { getChartPath, renderHelmTemplateString } from "./helm/common"
 import { HotReloadableResource } from "./hot-reload"
 import { getSystemNamespace } from "./namespace"
 
-export const kanikoImage = "gcr.io/kaniko-project/executor:debug-v0.17.1"
 export const skopeoImage = "gardendev/skopeo:1.41.0-1"
 
 const STATIC_LABEL_REGEX = /[0-9]/g
