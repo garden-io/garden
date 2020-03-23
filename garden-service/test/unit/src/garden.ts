@@ -2156,6 +2156,106 @@ describe("Garden", () => {
       expect(module.allowPublish).to.equal(false)
     })
 
+    it("should correctly resolve template strings referencing nested variable", async () => {
+      const test = createGardenPlugin({
+        name: "test",
+        createModuleTypes: [
+          {
+            name: "test",
+            docs: "test",
+            schema: joi.object().keys({ bla: joi.string() }),
+            handlers: {},
+          },
+        ],
+      })
+
+      const garden = await TestGarden.factory(pathFoo, {
+        plugins: [test],
+        config: {
+          apiVersion: DEFAULT_API_VERSION,
+          kind: "Project",
+          name: "test",
+          path: pathFoo,
+          defaultEnvironment: "default",
+          dotIgnoreFiles: [],
+          environments: [{ name: "default", variables: { some: { nested: { key: "my value" } } } }],
+          providers: [{ name: "test" }],
+          variables: {},
+        },
+      })
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          name: "module-a",
+          type: "test",
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          outputs: {},
+          path: pathFoo,
+          serviceConfigs: [],
+          taskConfigs: [],
+          testConfigs: [],
+          spec: { bla: "${var.some.nested.key}" },
+        },
+      ])
+
+      const module = await garden.resolveModuleConfig(garden.log, "module-a")
+
+      expect(module.spec.bla).to.equal("my value")
+    })
+
+    it("should correctly resolve template strings referencing objects", async () => {
+      const test = createGardenPlugin({
+        name: "test",
+        createModuleTypes: [
+          {
+            name: "test",
+            docs: "test",
+            schema: joi.object().keys({ bla: joi.object() }),
+            handlers: {},
+          },
+        ],
+      })
+
+      const garden = await TestGarden.factory(pathFoo, {
+        plugins: [test],
+        config: {
+          apiVersion: DEFAULT_API_VERSION,
+          kind: "Project",
+          name: "test",
+          path: pathFoo,
+          defaultEnvironment: "default",
+          dotIgnoreFiles: [],
+          environments: [{ name: "default", variables: { some: { nested: { key: "my value" } } } }],
+          providers: [{ name: "test" }],
+          variables: {},
+        },
+      })
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          name: "module-a",
+          type: "test",
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          outputs: {},
+          path: pathFoo,
+          serviceConfigs: [],
+          taskConfigs: [],
+          testConfigs: [],
+          spec: { bla: "${var.some}" },
+        },
+      ])
+
+      const module = await garden.resolveModuleConfig(garden.log, "module-a")
+
+      expect(module.spec.bla).to.eql({ nested: { key: "my value" } })
+    })
+
     it("should handle module references within single file", async () => {
       const projectRoot = getDataDir("test-projects", "1067-module-ref-within-file")
       const garden = await makeTestGarden(projectRoot)

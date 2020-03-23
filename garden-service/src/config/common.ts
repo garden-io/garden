@@ -393,13 +393,19 @@ export const joiIdentifierMap = (valueSchema: Joi.Schema) =>
     .default(() => ({}))
     .description("Key/value map. Keys must be valid identifiers.")
 
+export const joiVariablesDescription =
+  "Keys may contain letters and numbers. Any values are permitted, including arrays and objects of any nesting."
+
 export const joiVariables = () =>
   joi
     .object()
-    .pattern(/[a-zA-Z][a-zA-Z0-9_\-]+/i, joiPrimitive())
+    .pattern(
+      /[a-zA-Z][a-zA-Z0-9_\-]+/i,
+      joi.alternatives(joiPrimitive(), joi.link("..."), joi.array().items(joi.link("...")))
+    )
     .default(() => ({}))
     .unknown(false)
-    .description("Key/value map. Keys may contain letters and numbers, and values must be primitives.")
+    .description("Key/value map. " + joiVariablesDescription)
 
 export const joiEnvVars = () =>
   joi

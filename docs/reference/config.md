@@ -152,7 +152,8 @@ sources:
 # multiple ones. See the `environments[].varfile` field for this option._
 varfile: garden.env
 
-# Variables to configure for all environments.
+# Key/value map of variables to configure for all environments. Keys may contain letters and numbers. Any values are
+# permitted, including arrays and objects of any nesting.
 variables: {}
 ```
 
@@ -558,7 +559,7 @@ varfile: "custom.env"
 
 ### `variables`
 
-Variables to configure for all environments.
+Key/value map of variables to configure for all environments. Keys may contain letters and numbers. Any values are permitted, including arrays and objects of any nesting.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |

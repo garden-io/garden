@@ -30,7 +30,7 @@ import { TaskGraph, TaskResults, ProcessTasksOpts } from "./task-graph"
 import { getLogger } from "./logger/logger"
 import { PluginActionHandlers, GardenPlugin } from "./types/plugin/plugin"
 import { loadConfig, findProjectConfig, prepareModuleResource } from "./config/base"
-import { PrimitiveMap } from "./config/common"
+import { DeepPrimitiveMap } from "./config/common"
 import { validateSchema } from "./config/validation"
 import { BaseTask } from "./tasks/base"
 import { LocalConfigStore, ConfigStore, GlobalConfigStore } from "./config-store"
@@ -111,7 +111,7 @@ export interface GardenParams {
   projectRoot: string
   projectSources?: SourceConfig[]
   providerConfigs: ProviderConfig[]
-  variables: PrimitiveMap
+  variables: DeepPrimitiveMap
   vcs: VcsHandler
   workingCopyId: string
 }
@@ -140,7 +140,7 @@ export class Garden {
   public readonly projectRoot: string
   public readonly projectName: string
   public readonly environmentName: string
-  public readonly variables: PrimitiveMap
+  public readonly variables: DeepPrimitiveMap
   public readonly projectSources: SourceConfig[]
   public readonly buildDir: BuildDir
   public readonly gardenDirPath: string
@@ -950,7 +950,7 @@ export class Garden {
 export interface ConfigDump {
   environmentName: string
   providers: Provider[]
-  variables: PrimitiveMap
+  variables: DeepPrimitiveMap
   moduleConfigs: ModuleConfig[]
   projectRoot: string
 }
