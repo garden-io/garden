@@ -1,5 +1,5 @@
 kind: Project
-name: demo-project
+name: base-image
 environments:
   - name: dev
   - name: prod

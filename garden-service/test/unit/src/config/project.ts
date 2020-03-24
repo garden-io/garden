@@ -483,24 +483,40 @@ describe("pickEnvironment", () => {
         {
           name: "default",
           variables: {
-            b: "B",
-            c: "c",
+            b: "env value B",
+            c: "env value C",
+            array: [{ envArrayKey: "env array value" }],
+            nested: {
+              nestedB: "nested env value B",
+              nestedC: "nested env value C",
+            },
           },
         },
       ],
       providers: [],
       variables: {
-        a: "a",
-        b: "b",
+        a: "project value A",
+        b: "project value B",
+        array: [{ projectArrayKey: "project array value" }],
+        nested: {
+          nestedA: "nested project value A",
+          nestedB: "nested project value B",
+        },
       },
     }
 
     const result = await pickEnvironment(config, "default")
 
     expect(result.variables).to.eql({
-      a: "a",
-      b: "B",
-      c: "c",
+      a: "project value A",
+      b: "env value B",
+      c: "env value C",
+      array: [{ envArrayKey: "env array value", projectArrayKey: "project array value" }],
+      nested: {
+        nestedA: "nested project value A",
+        nestedB: "nested env value B",
+        nestedC: "nested env value C",
+      },
     })
   })
 

@@ -21,7 +21,7 @@ The following option flags can be used with any of the CLI commands:
   | `--root` | `-r` | string | Override project root directory (defaults to working directory).
   | `--silent` | `-s` | boolean | Suppress log output. Same as setting --logger-type&#x3D;quiet.
   | `--env` | `-e` | string | The environment (and optionally namespace) to work against.
-  | `--logger-type` |  | `quiet` `basic` `fancy` `json`  | Set logger type.
+  | `--logger-type` |  | `quiet` `basic` `fancy` `fullscreen` `json`  | Set logger type.
 fancy: updates log lines in-place when their status changes (e.g. when tasks complete),
 basic: appends a new log line when a log line&#x27;s status changes,
 json: same as basic, but renders log lines as JSON,

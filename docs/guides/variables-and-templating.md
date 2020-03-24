@@ -117,9 +117,11 @@ This is useful when you don't want to provide _any_ value unless one is explicit
 
 A common use case for templating is to define variables in the project/environment configuration, and to use template strings to propagate values to modules in the project.
 
-You can define them in your project configuration using the [`variables` key](../reference/config.md#variables), as well as the [`environment[].variables` key](../reference/config.md#environmentsvariables) for environment-specific values. You might, for example, define project defaults using the `variables` key, and then provide environment-specific overrides in the `environment[].variables` key for each environment.
+You can define them in your project configuration using the [`variables` key](../reference/config.md#variables), as well as the [`environment[].variables` key](../reference/config.md#environmentsvariables) for environment-specific values.
 
-The variables can then be configured via `${var.<key>}` template string keys. For example:
+You might, for example, define project defaults using the `variables` key, and then provide environment-specific overrides in the `environment[].variables` key for each environment. When merging the environment-specific variables and project-wide variables, we use a [JSON Merge Patch](https://tools.ietf.org/html/rfc7396).
+
+The variables can then be referenced via `${var.<key>}` template string keys. For example:
 
 ```yaml
 kind: Project
@@ -141,6 +143,28 @@ services:
     ...
     env:
       LOG_LEVEL: ${var.log-level}   # <- resolves to "debug" for the "local" environment, "info" for the "remote" env
+```
+
+Variable values can be any valid JSON/YAML values (strings, numbers, nulls, nested objects, and arrays of any of those). When referencing a nested key, simply use a standard dot delimiter, e.g. `${var.my.nested.key}`.
+
+You can also output objects or arrays from template strings. For example:
+
+```yaml
+kind: Project
+...
+variables:
+  dockerBuildArgs: [--no-cache, --squash]   # (this is just an example, not suggesting you actually do this :)
+  envVars:
+    LOG_LEVEL: debug
+    SOME_OTHER_VAR: something
+---
+kind: Module
+...
+buildArgs: ${var.dockerBuildArgs}  # <- resolves to the whole dockerBuildArgs list
+services:
+  - name: my-service
+    ...
+    env: ${var.envVars}            # <- resolves to the whole envVars object
 ```
 
 ### Variable files (varfiles)
