@@ -113,6 +113,10 @@ export async function getPodLogs({
       }
     }
 
+    if (typeof(log) === "object") {
+      log = JSON.stringify(log)
+    }
+
     // the API returns undefined if no logs have been output, for some reason
     return { containerName, log: log || "" }
   })
