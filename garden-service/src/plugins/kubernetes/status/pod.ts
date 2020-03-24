@@ -113,7 +113,7 @@ export async function getPodLogs({
       }
     }
 
-    if (typeof(log) === "object") {
+    if (typeof log === "object") {
       log = JSON.stringify(log)
     }
 
