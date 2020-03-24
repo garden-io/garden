@@ -10,7 +10,7 @@ import { resolve } from "path"
 import tar from "tar"
 import tmp from "tmp-promise"
 import { V1PodSpec, V1Pod, V1Container } from "@kubernetes/client-node"
-
+import { tailString } from "../../util/string"
 import { RunResult } from "../../types/plugin/base"
 import { kubectl } from "./kubectl"
 import { Module } from "../../types/module"
@@ -32,6 +32,8 @@ import { ArtifactSpec } from "../../config/validation"
 import cpy from "cpy"
 import { prepareImagePullSecrets } from "./secrets"
 import { configureVolumes } from "./container/deployment"
+
+const MAX_BUFFER_SIZE = 1024 * 1024
 
 export async function runAndCopy({
   ctx,
@@ -537,6 +539,67 @@ export class PodRunner extends PodRunnerParams {
     }
 
     return { proc: this.proc, pod, state, debugLog }
+  }
+
+  async spawn(params: ExecParams) {
+    const { log, command, container, ignoreError, input, stdout, stderr, timeout } = params
+
+    if (!this.proc) {
+      throw new PodRunnerError(`Attempting to spawn a command in Pod before starting it`, { command })
+    }
+
+    // TODO: use API library
+    const args = ["exec", "-i", this.podName, "-c", container || this.spec.containers[0].name, "--", ...command]
+
+    const startedAt = new Date()
+
+    const proc = await kubectl.spawn({
+      args,
+      namespace: this.namespace,
+      ignoreError,
+      input,
+      log,
+      provider: this.provider,
+      stdout,
+      stderr,
+      timeout,
+    })
+
+    let result: string = ""
+
+    return new Promise((_resolve, reject) => {
+      proc.on("close", (code) => {
+        if (code === 0) {
+          _resolve({
+            moduleName: this.module.name,
+            command,
+            version: this.module.version.versionString,
+            startedAt,
+            completedAt: new Date(),
+            log: result,
+            success: code === 0,
+          })
+        }
+
+        reject(
+          new RuntimeError(`Failed to spawn kubectl process with code ${code}`, {
+            code,
+          })
+        )
+      })
+
+      proc.on("error", (err) => {
+        !proc.killed && proc.kill()
+        throw err
+      })
+
+      proc.stdout!.on("data", (s) => {
+        result = tailString(result + s, MAX_BUFFER_SIZE, true)
+      })
+
+      stdout && proc.stdout?.pipe(stdout)
+      stderr && proc.stderr?.pipe(stderr)
+    })
   }
 
   /**
