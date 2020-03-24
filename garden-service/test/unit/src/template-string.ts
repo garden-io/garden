@@ -121,17 +121,6 @@ describe("resolveTemplateString", async () => {
     throw new Error("Expected error")
   })
 
-  it("should throw when a found key is not a primitive", async () => {
-    return expectError(
-      () => resolveTemplateString("${some}", new TestContext({ some: {} })),
-      (err) =>
-        expect(err.message).to.equal(
-          "Invalid template string ${some}: " +
-            "Template string doesn't resolve to a primitive (string, number, boolean or null)."
-        )
-    )
-  })
-
   it("should throw with an incomplete template string", async () => {
     try {
       await resolveTemplateString("${some", new TestContext({ some: {} }))
@@ -513,6 +502,16 @@ describe("resolveTemplateString", async () => {
     it("should return a resolved null directly", async () => {
       const res = await resolveTemplateString("${a}", new TestContext({ a: null }))
       expect(res).to.equal(null)
+    })
+
+    it("should return a resolved object directly", async () => {
+      const res = await resolveTemplateString("${a}", new TestContext({ a: { b: 123 } }))
+      expect(res).to.eql({ b: 123 })
+    })
+
+    it("should return a resolved array directly", async () => {
+      const res = await resolveTemplateString("${a}", new TestContext({ a: [123] }))
+      expect(res).to.eql([123])
     })
   })
 
