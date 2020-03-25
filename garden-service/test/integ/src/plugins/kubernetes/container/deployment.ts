@@ -340,7 +340,7 @@ describe("kubernetes container deployment handlers", () => {
       })
     })
 
-    context("kaniko mode", () => {
+    grouped("kaniko").context("kaniko mode", () => {
       before(async () => {
         await init("kaniko")
       })
@@ -394,7 +394,7 @@ describe("kubernetes container deployment handlers", () => {
       })
     })
 
-    grouped("remote-only").context("kaniko-remote-registry mode", () => {
+    grouped("kaniko", "remote-only").context("kaniko-remote-registry mode", () => {
       before(async () => {
         await init("kaniko-remote-registry")
       })

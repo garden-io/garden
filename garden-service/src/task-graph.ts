@@ -523,7 +523,7 @@ export class TaskGraph {
 
   // Logging
   private logTask(node: TaskNode) {
-    const entry = this.log.debug({
+    const entry = this.log.silly({
       section: "tasks",
       msg: `Processing task ${taskStyle(node.getId())}`,
       status: "active",
