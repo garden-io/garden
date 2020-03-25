@@ -20,7 +20,7 @@ import { KubeApi } from "../api"
 import { kubectl } from "../kubectl"
 import { LogEntry } from "../../../logger/log-entry"
 import { getDockerAuthVolume } from "../util"
-import { KubernetesProvider, ContainerBuildMode, KubernetesPluginContext, KubernetesConfig } from "../config"
+import { KubernetesProvider, ContainerBuildMode, KubernetesPluginContext } from "../config"
 import { PluginError, InternalError, RuntimeError, BuildError } from "../../../exceptions"
 import { PodRunner } from "../run"
 import { getRegistryHostname, getKubernetesSystemVariables } from "../init"
@@ -29,10 +29,11 @@ import { getPortForward } from "../port-forward"
 import { Writable } from "stream"
 import { LogLevel } from "../../../logger/log-node"
 import { exec, renderOutputStream } from "../../../util/util"
-import { loadLocalImage } from "../local/kind"
+import { loadImageToKind } from "../local/kind"
 import { getSystemNamespace, getAppNamespace } from "../namespace"
 import { dedent } from "../../../util/string"
 import chalk = require("chalk")
+import { loadImageToMicrok8s, getMicrok8sImageStatus } from "../local/microk8s"
 
 const dockerDaemonDeploymentName = "garden-docker-daemon"
 const dockerDaemonContainerName = "docker-daemon"
@@ -87,6 +88,9 @@ const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } 
       }
 
       return { ready: res.code === 0 }
+    } else if (k8sCtx.provider.config.clusterType === "microk8s") {
+      const localId = await containerHelpers.getLocalImageId(module)
+      return getMicrok8sImageStatus(localId)
     } else {
       return getContainerBuildStatus(params)
     }
@@ -236,11 +240,15 @@ type BuildHandler = (params: BuildModuleParams<ContainerModule>) => Promise<Buil
 
 const localBuild: BuildHandler = async (params) => {
   const { ctx, module, log } = params
+  const provider = ctx.provider as KubernetesProvider
   const buildResult = await buildContainerModule(params)
 
-  if (!ctx.provider.config.deploymentRegistry) {
-    if ((ctx.provider.config as KubernetesConfig).clusterType === "kind") {
-      await loadLocalImage(buildResult, ctx.provider.config as KubernetesConfig)
+  if (!provider.config.deploymentRegistry) {
+    if (provider.config.clusterType === "kind") {
+      await loadImageToKind(buildResult, provider.config)
+    } else if (provider.config.clusterType === "microk8s") {
+      const imageId = await containerHelpers.getLocalImageId(module)
+      await loadImageToMicrok8s({ module, imageId, log })
     }
     return buildResult
   }
