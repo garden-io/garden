@@ -10,7 +10,7 @@ import td from "testdouble"
 import tmp from "tmp-promise"
 import Bluebird = require("bluebird")
 import { resolve, join } from "path"
-import { extend, keyBy, intersection, isString } from "lodash"
+import { extend, keyBy, intersection } from "lodash"
 import { remove, readdirSync, existsSync, copy, mkdirp, pathExists, truncate, realpath } from "fs-extra"
 import execa = require("execa")
 
@@ -47,7 +47,7 @@ import { ActionRouter } from "../src/actions"
 import { ParameterValues } from "../src/commands/base"
 import stripAnsi from "strip-ansi"
 import { RunTaskParams, RunTaskResult } from "../src/types/plugin/task/runTask"
-import { AsyncFunc, SuiteFunction, TestFunction, Suite } from "mocha"
+import { SuiteFunction, TestFunction } from "mocha"
 
 export const dataDir = resolve(GARDEN_SERVICE_ROOT, "test", "data")
 export const examplesDir = resolve(GARDEN_SERVICE_ROOT, "..", "examples")

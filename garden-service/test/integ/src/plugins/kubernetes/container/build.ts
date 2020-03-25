@@ -62,7 +62,7 @@ describe("kubernetes build flow", () => {
       await init("local-remote-registry")
     })
 
-    grouped("remote-only").it("should push to configured deploymentRegistry if specified", async () => {
+    it("should push to configured deploymentRegistry if specified", async () => {
       const module = await graph.getModule("remote-registry-test")
       await garden.buildDir.syncFromSrc(module, garden.log)
 
@@ -77,7 +77,7 @@ describe("kubernetes build flow", () => {
       await containerHelpers.dockerCli(module.buildPath, ["manifest", "inspect", remoteId], garden.log)
     })
 
-    grouped("remote-only").it("should get the build status from the deploymentRegistry", async () => {
+    it("should get the build status from the deploymentRegistry", async () => {
       const module = await graph.getModule("remote-registry-test")
       await garden.buildDir.syncFromSrc(module, garden.log)
 
@@ -293,7 +293,7 @@ describe("kubernetes build flow", () => {
     })
   })
 
-  context("kaniko mode", () => {
+  grouped("kaniko").context("kaniko mode", () => {
     before(async () => {
       await init("kaniko")
     })
@@ -372,12 +372,12 @@ describe("kubernetes build flow", () => {
     })
   })
 
-  context("kaniko-remote-registry mode", () => {
+  grouped("kaniko", "remote-only").context("kaniko-remote-registry mode", () => {
     before(async () => {
       await init("kaniko-remote-registry")
     })
 
-    grouped("remote-only").it("should push to configured deploymentRegistry if specified", async () => {
+    it("should push to configured deploymentRegistry if specified", async () => {
       const module = await graph.getModule("remote-registry-test")
       await garden.buildDir.syncFromSrc(module, garden.log)
 
@@ -388,7 +388,7 @@ describe("kubernetes build flow", () => {
       })
     })
 
-    grouped("remote-only").it("should get the build status from the registry", async () => {
+    it("should get the build status from the registry", async () => {
       const module = await graph.getModule("remote-registry-test")
       await garden.buildDir.syncFromSrc(module, garden.log)
 
@@ -407,7 +407,7 @@ describe("kubernetes build flow", () => {
       expect(status.ready).to.be.true
     })
 
-    grouped("remote-only").it("should return ready=false status when image doesn't exist in registry", async () => {
+    it("should return ready=false status when image doesn't exist in registry", async () => {
       const module = await graph.getModule("remote-registry-test")
       await garden.buildDir.syncFromSrc(module, garden.log)
 

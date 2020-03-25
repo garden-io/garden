@@ -101,6 +101,24 @@ commands:
             chmod +x kubectl
             echo 'export PATH=$HOME/bin:$PATH' >> $BASH_ENV
 
+  update_nodejs:
+    description: Update Node.js
+    steps:
+      - run:
+          name: Update Node.js
+          command: |
+            # NVM is already installed, we just need to load it...
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            # ...export for subsequent runs...
+            echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
+            echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
+            nvm install 12
+            nvm alias default 12
+            nvm use default
+            # ...and finally symlink for when calling Garden with sudo below
+            sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/node" "/usr/local/bin/node"
+            sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/npm" "/usr/local/bin/npm"
+
   install_gcloud:
     description: Install the gcloud SDK
     steps:
@@ -447,6 +465,67 @@ jobs:
           name: Cleanup
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist kubectl delete --wait=false $(kubectl get ns -o name | grep testing-$CIRCLE_BUILD_NUM) || true
           when: always
+
+  test-microk8s:
+    machine:
+      image: 'ubuntu-1604:201903-01'
+      docker_layer_caching: true
+    parameters:
+      kubernetesVersion:
+        description: The Kubernetes version to run
+        type: string
+    environment:
+      <<: *shared-env-config
+      K8S_VERSION: <<parameters.kubernetesVersion>>
+      GARDEN_LOG_LEVEL: debug
+      GARDEN_LOGGER_TYPE: basic
+    steps:
+      - checkout
+      - run:
+          name: Install system dependencies
+          command: |
+            sudo apt update
+            sudo apt install snapd nfs-common
+      - run:
+          name: Install and start microk8s
+          command: |
+            sudo snap install microk8s --classic --channel=<<parameters.kubernetesVersion>>/stable
+            sudo microk8s.status --wait-ready --timeout=300
+            sudo microk8s.enable dns storage registry
+            sudo usermod -a -G microk8s circleci
+            echo "********* microk8s ready! ************"
+
+            # Allow intra-pod communication
+            sudo iptables -P FORWARD ACCEPT
+
+            # Set up kubeconfig and environment
+            mkdir -p /home/circleci/.kube
+            sudo sh -c 'microk8s.kubectl config view --raw > /home/circleci/.kube/config'
+            sudo chown -R circleci:circleci /home/circleci/.kube
+            echo 'export PATH=/snap/bin:$PATH' >> $BASH_ENV
+            echo "********* env prepped! *********"
+      - update_nodejs
+      # Note: We can't use npm_install here because the cache conflicts
+      - run: npm ci
+      - run: npm run bootstrap
+      - run: npm run build
+      - run:
+          name: Integ tests
+          command: |
+            cd garden-service
+            # Notes:
+            # - We skip tests that only work for remote environments
+            # - Need to run with sudo to work with microk8s, because CircleCI doesn't allow us to log out
+            #   and back in to add the circleci user to the microk8s group.
+            # - We currently don't support in-cluster building on microk8s.
+            GARDEN_SKIP_TESTS="cluster-docker kaniko remote-only" sudo -E npm run integ -- -b
+      - run:
+          name: Deploy demo-project
+          command: sudo -E ./garden-service/bin/garden deploy --root examples/demo-project --logger-type basic
+      - run:
+          name: Deploy openfaas
+          command: sudo -E ./garden-service/bin/garden deploy --root examples/openfaas --logger-type basic
+
   test-minikube:
     machine:
       image: 'ubuntu-1604:201903-01'
@@ -469,20 +548,7 @@ jobs:
           command: |
             sudo apt-get update
             sudo apt install nfs-common
-      - run:
-          name: Update Node.js
-          command: |
-            # NVM is already installed, we just need to load it...
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            # ...export for subsequent runs...
-            echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
-            echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
-            nvm install 12
-            nvm alias default 12
-            nvm use default
-            # ...and finally symlink for when calling Garden with sudo below
-            sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/node" "/usr/local/bin/node"
-            sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/npm" "/usr/local/bin/npm"
+      - update_nodejs
       # Note: We can't use npm_install here because the cache conflicts
       - run: npm ci
       - run: npm run bootstrap
@@ -508,6 +574,7 @@ jobs:
       - run:
           name: Deploy openfaas
           command: sudo -E ./garden-service/bin/garden deploy --root examples/openfaas --logger-type basic
+
   test-windows:
     executor: win/vs2019
     steps:
@@ -550,6 +617,10 @@ workflows:
     jobs:
       - test-minikube:
           kubernetesVersion: "1.17.4"
+  test-microk8s-1.16:
+    jobs:
+      - test-microk8s:
+          kubernetesVersion: "1.16"
   test-minikube-1.16:
     jobs:
       - test-minikube:
