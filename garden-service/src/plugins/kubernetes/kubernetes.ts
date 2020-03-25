@@ -23,6 +23,7 @@ import { configSchema } from "./config"
 import { ConfigurationError } from "../../exceptions"
 import { cleanupClusterRegistry } from "./commands/cleanup-cluster-registry"
 import { clusterInit } from "./commands/cluster-init"
+import { pullImage } from "./commands/pull-image"
 import { uninstallGardenServices } from "./commands/uninstall-garden-services"
 import { joi, joiIdentifier } from "../../config/common"
 import { resolve } from "path"
@@ -189,7 +190,7 @@ export const gardenPlugin = createGardenPlugin({
   `,
   configSchema,
   outputsSchema,
-  commands: [cleanupClusterRegistry, clusterInit, removeTillerCmd, uninstallGardenServices],
+  commands: [cleanupClusterRegistry, clusterInit, removeTillerCmd, uninstallGardenServices, pullImage],
   handlers: {
     configureProvider,
     getEnvironmentStatus,
