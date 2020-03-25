@@ -50,7 +50,6 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
   const { base, log, projectName } = params
   let { config } = await base!(params)
 
-  const namespace = config.namespace!
   const _systemServices = config._systemServices
 
   // create dummy provider with just enough info needed for the getKubeConfig function
@@ -129,14 +128,6 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
     }
 
     await configureMicrok8sAddons(log, addons)
-
-    // Need to push to the built-in registry
-    if (config.buildMode === "local-docker") {
-      config.deploymentRegistry = {
-        hostname: "localhost:32000",
-        namespace,
-      }
-    }
   }
 
   // Docker Desktop, minikube and others are unable to run docker-in-docker overlayfs
