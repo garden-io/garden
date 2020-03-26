@@ -546,14 +546,18 @@ jobs:
 
 workflows:
   version: 2
+  test-minikube-1.17:
+    jobs:
+      - test-minikube:
+          kubernetesVersion: "1.17.4"
   test-minikube-1.16:
     jobs:
       - test-minikube:
-          kubernetesVersion: "1.16.2"
+          kubernetesVersion: "1.16.8"
   test-minikube-1.15:
     jobs:
       - test-minikube:
-          kubernetesVersion: "1.15.6"
+          kubernetesVersion: "1.15.11"
   test-minikube-1.14:
     jobs:
       - test-minikube:
