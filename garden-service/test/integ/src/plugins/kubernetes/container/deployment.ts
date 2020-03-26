@@ -19,7 +19,7 @@ import { cloneDeep, keyBy } from "lodash"
 import { getContainerTestGarden } from "./container"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
 import { getServiceStatuses } from "../../../../../../src/tasks/base"
-import { expectError } from "../../../../../helpers"
+import { expectError, grouped } from "../../../../../helpers"
 import stripAnsi = require("strip-ansi")
 
 describe("kubernetes container deployment handlers", () => {
@@ -287,7 +287,7 @@ describe("kubernetes container deployment handlers", () => {
       })
     })
 
-    context("cluster-docker mode", () => {
+    grouped("cluster-docker").context("cluster-docker mode", () => {
       before(async () => {
         await init("cluster-docker")
       })
@@ -367,12 +367,12 @@ describe("kubernetes container deployment handlers", () => {
       })
     })
 
-    context("cluster-docker-remote-registry mode", () => {
+    grouped("cluster-docker", "remote-only").context("cluster-docker-remote-registry mode", () => {
       before(async () => {
         await init("cluster-docker-remote-registry")
       })
 
-      it("should deploy a simple service (remote only)", async () => {
+      it("should deploy a simple service", async () => {
         const service = await graph.getService("remote-registry-test")
 
         const deployTask = new DeployTask({
@@ -394,12 +394,12 @@ describe("kubernetes container deployment handlers", () => {
       })
     })
 
-    context("kaniko-remote-registry mode", () => {
+    grouped("remote-only").context("kaniko-remote-registry mode", () => {
       before(async () => {
         await init("kaniko-remote-registry")
       })
 
-      it("should deploy a simple service (remote only)", async () => {
+      it("should deploy a simple service", async () => {
         const service = await graph.getService("remote-registry-test")
 
         const deployTask = new DeployTask({
