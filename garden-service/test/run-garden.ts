@@ -26,7 +26,7 @@ export const DEFAULT_RUN_TIMEOUT_SECS = 240
 export const gardenBinPath = parsedArgs.binPath || resolve(GARDEN_SERVICE_ROOT, "bin", "garden")
 export const showLog = !!parsedArgs.showlog
 
-const DEFAULT_ARGS = ["--logger-type", "json", "--log-level", "debug"]
+const DEFAULT_ARGS = ["--logger-type", "json", "--log-level", "silly"]
 
 // tslint:disable: no-console
 
