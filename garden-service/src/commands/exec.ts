@@ -54,7 +54,10 @@ export class ExecCommand extends Command<Args> {
 
   arguments = runArgs
   options = runOpts
-  loggerType: LoggerType = "basic"
+
+  getLoggerType(): LoggerType {
+    return "basic"
+  }
 
   async action({
     garden,

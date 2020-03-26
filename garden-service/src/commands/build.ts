@@ -12,7 +12,7 @@ import {
   Command,
   CommandResult,
   CommandParams,
-  handleTaskResults,
+  handleProcessResults,
   StringsParameter,
   PrepareParams,
 } from "./base"
@@ -109,6 +109,6 @@ export class BuildCommand extends Command<Args, Opts> {
       },
     })
 
-    return handleTaskResults(footerLog, "build", results)
+    return handleProcessResults(footerLog, "build", results)
   }
 }

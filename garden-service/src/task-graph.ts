@@ -9,8 +9,7 @@
 import Bluebird from "bluebird"
 import chalk from "chalk"
 import yaml from "js-yaml"
-import hasAnsi = require("has-ansi")
-import { every, flatten, intersection, merge, padEnd, union, uniqWith, without } from "lodash"
+import { every, flatten, intersection, merge, union, uniqWith, without } from "lodash"
 import { BaseTask, TaskDefinitionError, TaskType } from "./tasks/base"
 
 import { LogEntry, LogEntryMetadata, TaskLogStatus } from "./logger/log-entry"
@@ -21,6 +20,7 @@ import { defer, relationshipClasses, uuidv4 } from "./util/util"
 import { renderError } from "./logger/renderers"
 import { DependencyValidationGraph } from "./util/validate-dependencies"
 import { Profile } from "./util/profiling"
+import { renderMessageWithDivider } from "./logger/util"
 
 class TaskGraphError extends GardenBaseError {
   type = "task-graph"
@@ -577,14 +577,10 @@ export class TaskGraph {
   }
 
   private logError(err: Error, errMessagePrefix: string) {
-    const divider = padEnd("", 80, "━")
     const error = toGardenError(err)
     const errorMessage = error.message.trim()
 
-    const msg =
-      chalk.red.bold(`\n${errMessagePrefix}\n${divider}\n`) +
-      (hasAnsi(errorMessage) ? errorMessage : chalk.red(errorMessage)) +
-      chalk.red.bold(`\n${divider}\n`)
+    const msg = renderMessageWithDivider(errMessagePrefix, errorMessage, true)
 
     const entry = this.log.error({ msg, error })
     this.log.silly({ msg: renderError(entry) })

@@ -29,7 +29,6 @@ export class ServeCommand extends Command<Args, Opts> {
   help = "Starts the Garden HTTP API service - **Experimental**"
 
   cliOnly = true
-  loggerType: LoggerType = "basic"
 
   description = dedent`
     **Experimental**
@@ -41,6 +40,10 @@ export class ServeCommand extends Command<Args, Opts> {
   options = serveOpts
 
   private server: GardenServer
+
+  getLoggerType(): LoggerType {
+    return "basic"
+  }
 
   async prepare({ footerLog, opts }: PrepareParams<Args, Opts>) {
     this.server = await startServer(footerLog, opts.port)

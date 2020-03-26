@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 import chalk from "chalk"
-import { padEnd, keyBy, flatten } from "lodash"
+import { keyBy, flatten } from "lodash"
 
 import { Module } from "./types/module"
 import { BaseTask } from "./tasks/base"
@@ -20,7 +20,7 @@ import { ConfigGraph } from "./config-graph"
 import { dedent } from "./util/string"
 import { ConfigurationError } from "./exceptions"
 import { uniqByName } from "./util/util"
-import { printEmoji } from "./logger/util"
+import { printEmoji, renderDivider } from "./logger/util"
 
 export type ProcessHandler = (graph: ConfigGraph, module: Module) => Promise<BaseTask[]>
 
@@ -63,10 +63,9 @@ export async function processModules({
     .map((msg) => "  " + msg) // indent list
 
   if (linkedModulesMsg.length > 0) {
-    const divider = padEnd("", 80, "—")
-    log.info(divider)
+    log.info(renderDivider())
     log.info(chalk.gray(`Following modules are linked to a local path:\n${linkedModulesMsg.join("\n")}`))
-    log.info(divider)
+    log.info(renderDivider())
   }
 
   if (watch && !!footerLog) {

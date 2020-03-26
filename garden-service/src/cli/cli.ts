@@ -66,7 +66,6 @@ const OUTPUT_RENDERERS = {
 }
 
 const GLOBAL_OPTIONS_GROUP_NAME = "Global options"
-const DEFAULT_CLI_LOGGER_TYPE = "fancy"
 
 /**
  * Dummy Garden class that doesn't scan for modules nor resolves providers.
@@ -285,7 +284,7 @@ export class GardenCli {
         output,
       } = parsedOpts
 
-      let loggerType = loggerTypeOpt || command.loggerType || DEFAULT_CLI_LOGGER_TYPE
+      let loggerType = loggerTypeOpt || command.getLoggerType({ opts: parsedOpts, args: parsedArgs })
 
       if (silent || output) {
         loggerType = "quiet"

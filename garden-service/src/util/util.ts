@@ -225,31 +225,29 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
     if (data) {
       throw new ParameterError(`Cannot pipe to stdin when tty=true`, { cmd, args, opts })
     }
-
     _process.stdin.setEncoding("utf8")
-
     // raw mode is not available if we're running without a TTY
     _process.stdin.setRawMode && _process.stdin.setRawMode(true)
-  } else {
-    // We ensure the output strings never exceed the MAX_BUFFER_SIZE
-    proc.stdout!.on("data", (s) => {
-      result.output = tailString(result.output + s, MAX_BUFFER_SIZE, true)
-      result.stdout! = tailString(result.stdout! + s, MAX_BUFFER_SIZE, true)
-    })
+  }
 
-    proc.stderr!.on("data", (s) => {
-      result.stderr! = tailString(result.stderr! + s, MAX_BUFFER_SIZE, true)
-    })
+  // We ensure the output strings never exceed the MAX_BUFFER_SIZE
+  proc.stdout?.on("data", (s) => {
+    result.output = tailString(result.output + s, MAX_BUFFER_SIZE, true)
+    result.stdout! = tailString(result.stdout! + s, MAX_BUFFER_SIZE, true)
+  })
 
-    stdout && proc.stdout!.pipe(stdout)
-    stderr && proc.stderr!.pipe(stderr)
+  proc.stderr?.on("data", (s) => {
+    result.stderr! = tailString(result.stderr! + s, MAX_BUFFER_SIZE, true)
+  })
 
-    if (data) {
-      // This may happen if the spawned process errors while we're still writing data.
-      proc.stdin!.on("error", () => {})
+  stdout && proc.stdout?.pipe(stdout)
+  stderr && proc.stderr?.pipe(stderr)
 
-      proc.stdin!.end(data)
-    }
+  if (data) {
+    // This may happen if the spawned process errors while we're still writing data.
+    proc.stdin?.on("error", () => {})
+
+    proc.stdin?.end(data)
   }
 
   return new Promise<SpawnOutput>((resolve, reject) => {

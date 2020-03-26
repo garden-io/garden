@@ -7,10 +7,10 @@
  */
 
 import chalk from "chalk"
-import { BooleanParameter, Command, CommandParams, StringParameter, CommandResult } from "../base"
+import { BooleanParameter, Command, CommandParams, StringParameter, CommandResult, handleTaskResult } from "../base"
 import { TaskTask } from "../../tasks/task"
 import { TaskResult } from "../../task-graph"
-import { printHeader, printFooter } from "../../logger/util"
+import { printHeader } from "../../logger/util"
 import { CommandError } from "../../exceptions"
 import { dedent, deline } from "../../util/string"
 
@@ -53,7 +53,6 @@ export class RunTaskCommand extends Command<Args, Opts> {
     garden,
     log,
     headerLog,
-    footerLog,
     args,
     opts,
   }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResult | null>> {
@@ -78,14 +77,6 @@ export class RunTaskCommand extends Command<Args, Opts> {
     const taskTask = await TaskTask.factory({ garden, graph, task, log, force: true, forceBuild: opts["force-build"] })
     const result = (await garden.processTasks([taskTask]))[taskTask.getKey()]
 
-    if (result && !result.error) {
-      log.info("")
-      // TODO: The command will need to be updated to stream logs: see https://github.com/garden-io/garden/issues/630.
-      // It's ok with the current providers but the shape might change in the future.
-      log.info(chalk.white(result.output.log.trim()))
-      printFooter(footerLog)
-    }
-
-    return { result }
+    return handleTaskResult({ log, actionDescription: "task", result: result! })
   }
 }

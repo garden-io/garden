@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BooleanParameter, Command, CommandParams, CommandResult, handleTaskResults, StringsParameter } from "./base"
+import { BooleanParameter, Command, CommandParams, CommandResult, handleProcessResults, StringsParameter } from "./base"
 import { Module } from "../types/module"
 import { PublishTask } from "../tasks/publish"
 import { TaskResults } from "../task-graph"
@@ -69,7 +69,7 @@ export class PublishCommand extends Command<Args, Opts> {
 
     const results = await publishModules(garden, log, modules, !!opts["force-build"], !!opts["allow-dirty"])
 
-    return handleTaskResults(footerLog, "publish", { taskResults: results })
+    return handleProcessResults(footerLog, "publish", { taskResults: results })
   }
 }
 

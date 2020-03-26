@@ -3,7 +3,7 @@ name: module
 type: test
 tests:
   - name: unit
-    command: [exit, "10"]
+    command: ["echo test-error && exit 10"]
 tasks:
   - name: task
-    command: [exit, "10"]
+    command: ["echo task-error && exit 10"]

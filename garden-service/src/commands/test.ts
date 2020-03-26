@@ -15,7 +15,7 @@ import {
   Command,
   CommandParams,
   CommandResult,
-  handleTaskResults,
+  handleProcessResults,
   StringOption,
   StringsParameter,
   PrepareParams,
@@ -152,6 +152,6 @@ export class TestCommand extends Command<Args, Opts> {
       },
     })
 
-    return handleTaskResults(footerLog, "test", results)
+    return handleProcessResults(footerLog, "test", results)
   }
 }

@@ -71,7 +71,6 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
   help = "Create a new Garden project."
   noProject = true
   cliOnly = true
-  loggerType = <LoggerType>"basic"
 
   description = dedent`
     Creates a new Garden project configuration. The generated config includes some default values, as well as the
@@ -88,6 +87,10 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
 
   arguments = createProjectArgs
   options = createProjectOpts
+
+  getLoggerType(): LoggerType {
+    return "basic"
+  }
 
   async prepare({ headerLog }: PrepareParams<CreateProjectArgs, CreateProjectOpts>) {
     printHeader(headerLog, "Create new project", "pencil2")

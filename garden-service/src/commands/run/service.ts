@@ -16,7 +16,7 @@ import { getRunTaskResults, getServiceStatuses } from "../../tasks/base"
 import { DeployTask } from "../../tasks/deploy"
 import { RunResult } from "../../types/plugin/base"
 import { deline } from "../../util/string"
-import { BooleanParameter, Command, CommandParams, CommandResult, handleActionResult, StringParameter } from "../base"
+import { BooleanParameter, Command, CommandParams, CommandResult, handleRunResult, StringParameter } from "../base"
 import { printRuntimeContext } from "./run"
 
 const runArgs = {
@@ -91,6 +91,7 @@ export class RunServiceCommand extends Command<Args, Opts> {
     const dependencies = await graph.getDependencies({ nodeType: "deploy", name: serviceName, recursive: false })
     const serviceStatuses = getServiceStatuses(dependencyResults)
     const taskResults = getRunTaskResults(dependencyResults)
+    const interactive = true
 
     const runtimeContext = await prepareRuntimeContext({
       garden,
@@ -103,14 +104,18 @@ export class RunServiceCommand extends Command<Args, Opts> {
 
     printRuntimeContext(log, runtimeContext)
 
+    if (interactive) {
+      log.root.stop()
+    }
+
     const result = await actions.runService({
       log,
       service,
       runtimeContext,
-      interactive: true,
+      interactive,
       timeout: 999999,
     })
 
-    return handleActionResult(`Service ${service.name} in module ${module.name}`, result)
+    return handleRunResult({ log, actionDescription: "run service", result, interactive })
   }
 }

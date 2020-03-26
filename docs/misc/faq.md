@@ -167,6 +167,16 @@ garden run task <task-name>
 
 This will run the task even if the result is cached.
 
+### What's the difference between `garden test` and `garden run test`
+
+The `garden test` command can run all your tests, or a subset of your tests, and has a `--watch` flag. It won't re-run tests that are cached unless the `--force` flag is set and it won't print the output unless the test fails. [See here](https://docs.garden.io/reference/commands#garden-test) for the synopsis and examples.
+
+The `garden run test` command runs **a single test in interactive mode** regardless of whether or not it's cached. Interactive mode means that the output is streamed to the screen immediately and you can interact with it if applicable.
+
+Note that due to a [known limitation](https://github.com/garden-io/garden/issues/1739), Garden can't copy artifacts for tests in interactive mode. You can disable it by setting `--interactive false`. [See here](https://docs.garden.io/reference/commands#garden-run-test) for the full synopsis.
+
+We plan on making `--interactive=false` the default with our next major release.
+
 ## Secrets
 
 ### How do I pass secrets to container modules?

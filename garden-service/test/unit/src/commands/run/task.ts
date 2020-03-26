@@ -10,13 +10,56 @@ import stripAnsi from "strip-ansi"
 import { expect } from "chai"
 import { omit } from "lodash"
 import { RunTaskCommand } from "../../../../../src/commands/run/task"
-import { makeTestGardenA, withDefaultGlobalOpts, expectError } from "../../../../helpers"
+import {
+  withDefaultGlobalOpts,
+  expectError,
+  getLogMessages,
+  TestGarden,
+  projectRootA,
+  testPlugin,
+  projectTestFailsRoot,
+  testPluginB,
+} from "../../../../helpers"
+import { LogLevel } from "../../../../../src/logger/log-node"
+import { renderDivider } from "../../../../../src/logger/util"
+import { dedent } from "../../../../../src/util/string"
+import { runExecTask } from "../../../../../src/plugins/exec"
+import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
+
+// Use the runExecTask handler
+const testExecPlugin = createGardenPlugin({
+  ...testPlugin,
+  createModuleTypes: [
+    {
+      ...testPlugin.createModuleTypes![0],
+      handlers: {
+        ...testPlugin.createModuleTypes![0].handlers,
+        runTask: runExecTask,
+      },
+    },
+  ],
+})
+const testExecPluginB = createGardenPlugin({
+  ...testPluginB,
+  extendModuleTypes: [
+    {
+      name: "test",
+      handlers: testExecPlugin.createModuleTypes![0].handlers,
+    },
+  ],
+})
+
+async function makeExecTestGarden(projectRoot: string = projectRootA) {
+  return TestGarden.factory(projectRoot, {
+    plugins: [testExecPlugin, testExecPluginB],
+  })
+}
 
 describe("RunTaskCommand", () => {
   const cmd = new RunTaskCommand()
 
   it("should run a task", async () => {
-    const garden = await makeTestGardenA()
+    const garden = await makeExecTestGarden()
     const log = garden.log
 
     const { result } = await cmd.action({
@@ -25,15 +68,15 @@ describe("RunTaskCommand", () => {
       headerLog: log,
       footerLog: log,
       args: { task: "task-a" },
-      opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": false }),
+      opts: withDefaultGlobalOpts({ "force": false, "force-build": false }),
     })
 
     const expected = {
       command: ["echo", "OK"],
       moduleName: "module-a",
-      log: "echo OK",
+      log: "OK",
       outputs: {
-        log: "echo OK",
+        log: "OK",
       },
       success: true,
       taskName: "task-a",
@@ -44,8 +87,24 @@ describe("RunTaskCommand", () => {
     expect(omit(result!.output, omittedKeys)).to.eql(expected)
   })
 
+  it("should return an error if the task fails", async () => {
+    const garden = await makeExecTestGarden(projectTestFailsRoot)
+    const log = garden.log
+
+    const result = await cmd.action({
+      garden,
+      log,
+      headerLog: log,
+      footerLog: log,
+      args: { task: "task" },
+      opts: withDefaultGlobalOpts({ "force": false, "force-build": false }),
+    })
+
+    expect(result.errors).to.have.lengthOf(1)
+  })
+
   it("should throw if the task is disabled", async () => {
-    const garden = await makeTestGardenA()
+    const garden = await makeExecTestGarden()
     const log = garden.log
 
     await garden.getRawModuleConfigs()
@@ -70,7 +129,7 @@ describe("RunTaskCommand", () => {
   })
 
   it("should allow running a disabled task with --force flag", async () => {
-    const garden = await makeTestGardenA()
+    const garden = await makeExecTestGarden()
     const log = garden.log
 
     await garden.scanModules()
@@ -86,5 +145,48 @@ describe("RunTaskCommand", () => {
     })
 
     expect(errors).to.not.exist
+  })
+
+  it("should log the result if successful", async () => {
+    const garden = await makeExecTestGarden()
+    const log = garden.log
+
+    await cmd.action({
+      garden,
+      log,
+      headerLog: log,
+      footerLog: log,
+      args: { task: "task-a" },
+      opts: withDefaultGlobalOpts({ "force": false, "force-build": false }),
+    })
+
+    const logOutput = getLogMessages(log, (entry) => entry.level === LogLevel.info).join("\n")
+
+    expect(logOutput).to.include(dedent`
+    \nTask output:
+    ${renderDivider()}
+    OK
+    ${renderDivider()}
+
+    Done! ✔️
+    `)
+  })
+
+  it("should not log the result if error", async () => {
+    const garden = await makeExecTestGarden()
+    const log = garden.log
+
+    await cmd.action({
+      garden,
+      log,
+      headerLog: log,
+      footerLog: log,
+      args: { task: "task-a" },
+      opts: withDefaultGlobalOpts({ "force": false, "force-build": false }),
+    })
+
+    const logOutput = getLogMessages(log, (entry) => entry.level === LogLevel.error).join("\n")
+
+    expect(logOutput).to.not.include("Run task failed with error")
   })
 })

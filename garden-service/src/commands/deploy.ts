@@ -14,7 +14,7 @@ import {
   Command,
   CommandParams,
   CommandResult,
-  handleTaskResults,
+  handleProcessResults,
   StringsParameter,
   PrepareParams,
 } from "./base"
@@ -176,6 +176,6 @@ export class DeployCommand extends Command<Args, Opts> {
       },
     })
 
-    return handleTaskResults(footerLog, "deploy", results)
+    return handleProcessResults(footerLog, "deploy", results)
   }
 }
