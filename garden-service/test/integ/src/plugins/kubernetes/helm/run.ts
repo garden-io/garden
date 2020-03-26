@@ -177,6 +177,28 @@ describe("runHelmTask", () => {
       expect(await pathExists(join(garden.artifactsPath, "subdir", "task.txt"))).to.be.true
     })
 
+    it("should fail if an error occurs, but copy the artifacts out of the container", async () => {
+      const task = await graph.getTask("artifacts-task-fail")
+
+      const testTask = new TaskTask({
+        garden,
+        graph,
+        task,
+        log: garden.log,
+        force: true,
+        forceBuild: false,
+        version: task.module.version,
+      })
+      await emptyDir(garden.artifactsPath)
+
+      const results = await garden.processTasks([testTask], { throwOnError: false })
+
+      expect(results[testTask.getKey()]!.error).to.exist
+
+      expect(await pathExists(join(garden.artifactsPath, "test.txt"))).to.be.true
+      expect(await pathExists(join(garden.artifactsPath, "subdir", "test.txt"))).to.be.true
+    })
+
     it("should handle globs when copying artifacts out of the container", async () => {
       const task = await graph.getTask("globs-task")
 
