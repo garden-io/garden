@@ -17,7 +17,7 @@ import { RunResult } from "../../types/plugin/base"
 import { testFromConfig } from "../../types/test"
 import { dedent, deline } from "../../util/string"
 import { findByName, getNames } from "../../util/util"
-import { BooleanParameter, Command, CommandParams, CommandResult, handleActionResult, StringParameter } from "../base"
+import { BooleanParameter, Command, CommandParams, CommandResult, handleRunResult, StringParameter } from "../base"
 import { printRuntimeContext } from "./run"
 
 const runArgs = {
@@ -33,7 +33,9 @@ const runArgs = {
 
 const runOpts = {
   "interactive": new BooleanParameter({
-    help: "Set to false to skip interactive mode and just output the command result.",
+    help:
+      "Set to false to skip interactive mode and just output the command result. Note that Garden won't retrieve artifacts if set to true (the default).",
+    alias: "i",
     defaultValue: false,
     cliDefault: true,
     cliOnly: true,
@@ -58,8 +60,8 @@ export class RunTestCommand extends Command<Args, Opts> {
 
     Examples:
 
-        garden run test my-module integ            # run the test named 'integ' in my-module
-        garden run test my-module integ --i=false  # do not attach to the test run, just output results when completed
+        garden run test my-module integ                     # run the test named 'integ' in my-module
+        garden run test my-module integ --interactive=false # do not attach to the test run, just output results when completed
   `
 
   arguments = runArgs
@@ -98,6 +100,7 @@ export class RunTestCommand extends Command<Args, Opts> {
     printHeader(headerLog, `Running test ${chalk.cyan(testName)} in module ${chalk.cyan(moduleName)}`, "runner")
 
     const actions = await garden.getActionRouter()
+    const interactive = opts.interactive
 
     // Make sure all dependencies are ready and collect their outputs for the runtime context
     const testTask = await TestTask.factory({
@@ -109,9 +112,9 @@ export class RunTestCommand extends Command<Args, Opts> {
       module,
       testConfig,
     })
+
     const dependencyResults = await garden.processTasks(await testTask.getDependencies())
 
-    const interactive = opts.interactive
     const dependencies = await graph.getDependencies({ nodeType: "test", name: test.name, recursive: false })
 
     const serviceStatuses = getServiceStatuses(dependencyResults)
@@ -128,16 +131,20 @@ export class RunTestCommand extends Command<Args, Opts> {
 
     printRuntimeContext(log, runtimeContext)
 
+    if (interactive) {
+      log.root.stop()
+    }
+
     const result = await actions.testModule({
       log,
       module,
+      silent: false,
       interactive,
       runtimeContext,
-      silent: false,
       testConfig,
       testVersion: testTask.version,
     })
 
-    return handleActionResult(`Test ${test.name} in module ${module.name}`, result)
+    return handleRunResult({ log, actionDescription: "test", result, interactive })
   }
 }

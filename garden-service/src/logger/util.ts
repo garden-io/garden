@@ -13,6 +13,9 @@ import { LogNode, LogLevel } from "./log-node"
 import { LogEntry, LogEntryParams, EmojiName } from "./log-entry"
 import { isBuffer } from "util"
 import { deepMap } from "../util/util"
+import { padEnd } from "lodash"
+import { dedent } from "../util/string"
+import hasAnsi from "has-ansi"
 
 export interface Node {
   children: any[]
@@ -202,6 +205,20 @@ export function printFooter(log: LogEntry) {
 
 export function printWarningMessage(log: LogEntry, text: string) {
   return log.info({ emoji: "warning", msg: chalk.bold.yellow(text) })
+}
+
+export function renderDivider() {
+  return padEnd("", 80, "━")
+}
+
+export function renderMessageWithDivider(prefix: string, msg: string, isError: boolean) {
+  const color = isError ? chalk.red : chalk.white
+  return dedent`
+  \n${color.bold(prefix)}
+  ${color.bold(renderDivider())}
+  ${hasAnsi(msg) ? msg : color(msg)}
+  ${color.bold(renderDivider())}
+  `
 }
 
 /**

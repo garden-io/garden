@@ -78,7 +78,6 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
   help = "Create a new Garden module."
   noProject = true
   cliOnly = true
-  loggerType = <LoggerType>"basic"
 
   description = dedent`
     Creates a new Garden module configuration. The generated config includes some default values, as well as the
@@ -94,6 +93,10 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
 
   arguments = createModuleArgs
   options = createModuleOpts
+
+  getLoggerType(): LoggerType {
+    return "basic"
+  }
 
   async prepare({ headerLog }: PrepareParams<CreateModuleArgs, CreateModuleOpts>) {
     printHeader(headerLog, "Create new module", "pencil2")

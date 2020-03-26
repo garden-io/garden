@@ -279,6 +279,7 @@ export async function runExecTask(params: RunTaskParams<ExecModule>): Promise<Ru
 
   let completedAt: Date
   let outputLog: string
+  let success = true
 
   if (command && command.length) {
     const commandResult = await exec(command.join(" "), [], {
@@ -288,11 +289,14 @@ export async function runExecTask(params: RunTaskParams<ExecModule>): Promise<Ru
         ...mapValues(module.spec.env, (v) => v.toString()),
         ...mapValues(task.spec.env, (v) => v.toString()),
       },
+      // We handle the error at the command level
+      reject: false,
       shell: true,
     })
 
     completedAt = new Date()
     outputLog = (commandResult.stdout + commandResult.stderr).trim()
+    success = commandResult.exitCode === 0
   } else {
     completedAt = startedAt
     outputLog = ""
@@ -305,8 +309,7 @@ export async function runExecTask(params: RunTaskParams<ExecModule>): Promise<Ru
     taskName: task.name,
     command,
     version: module.version.versionString,
-    // the exec call throws on error so we can assume success if we made it this far
-    success: true,
+    success,
     log: outputLog,
     outputs: {
       log: outputLog,

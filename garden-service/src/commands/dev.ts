@@ -21,7 +21,7 @@ import {
   CommandResult,
   CommandParams,
   StringsParameter,
-  handleTaskResults,
+  handleProcessResults,
   PrepareParams,
   BooleanParameter,
 } from "./base"
@@ -164,7 +164,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       },
     })
 
-    return handleTaskResults(footerLog, "dev", results)
+    return handleProcessResults(footerLog, "dev", results)
   }
 }
 

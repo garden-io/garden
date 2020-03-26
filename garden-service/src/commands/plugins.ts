@@ -38,7 +38,6 @@ export class PluginsCommand extends Command<Args> {
 
   // FIXME: We need this while we're still resolving providers in the AnalyticsHandler
   noProject = true
-  loggerType = <LoggerType>"basic"
 
   description = dedent`
     Execute a command defined by a plugin in your project.
@@ -58,6 +57,10 @@ export class PluginsCommand extends Command<Args> {
   `
 
   arguments = pluginArgs
+
+  getLoggerType(): LoggerType {
+    return "basic"
+  }
 
   async action({ garden: dummyGarden, log, args }: CommandParams<Args>): Promise<CommandResult> {
     // FIXME: We need this while we're still resolving providers in the AnalyticsHandler

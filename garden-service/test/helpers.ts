@@ -40,13 +40,13 @@ import { SetSecretParams } from "../src/types/plugin/provider/setSecret"
 import { GetSecretParams } from "../src/types/plugin/provider/getSecret"
 import { DeleteSecretParams } from "../src/types/plugin/provider/deleteSecret"
 import { RunServiceParams } from "../src/types/plugin/service/runService"
-import { RunTaskParams, RunTaskResult } from "../src/types/plugin/task/runTask"
 import { RunResult } from "../src/types/plugin/base"
 import { ExternalSourceType, getRemoteSourceRelPath, hashRepoUrl } from "../src/util/ext-source-util"
 import { ConfigureProviderParams } from "../src/types/plugin/provider/configureProvider"
 import { ActionRouter } from "../src/actions"
 import { ParameterValues } from "../src/commands/base"
 import stripAnsi from "strip-ansi"
+import { RunTaskParams, RunTaskResult } from "../src/types/plugin/task/runTask"
 
 export const dataDir = resolve(GARDEN_SERVICE_ROOT, "test", "data")
 export const examplesDir = resolve(GARDEN_SERVICE_ROOT, "..", "examples")

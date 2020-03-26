@@ -18,7 +18,7 @@ import {
   Command,
   CommandParams,
   CommandResult,
-  handleActionResult,
+  handleRunResult,
   StringParameter,
   StringsParameter,
 } from "../base"
@@ -103,6 +103,7 @@ export class RunModuleCommand extends Command<Args, Opts> {
     await garden.processTasks(buildTasks)
 
     const dependencies = await graph.getDependencies({ nodeType: "build", name: module.name, recursive: false })
+    const interactive = opts.interactive
 
     const runtimeContext = await prepareRuntimeContext({
       garden,
@@ -117,16 +118,20 @@ export class RunModuleCommand extends Command<Args, Opts> {
 
     log.info("")
 
+    if (interactive) {
+      log.root.stop()
+    }
+
     const result = await actions.runModule({
       log,
       module,
       command: opts.command,
       args: args.arguments || [],
       runtimeContext,
-      interactive: opts.interactive,
-      timeout: opts.interactive ? 999999 : undefined,
+      interactive,
+      timeout: interactive ? 999999 : undefined,
     })
 
-    return handleActionResult(`Module ${module.name}`, result)
+    return handleRunResult({ log, actionDescription: "run module", result, interactive })
   }
 }

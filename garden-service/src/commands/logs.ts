@@ -60,7 +60,10 @@ export class LogsCommand extends Command<Args, Opts> {
 
   arguments = logsArgs
   options = logsOpts
-  loggerType: LoggerType = "basic"
+
+  getLoggerType(): LoggerType {
+    return "basic"
+  }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ServiceLogEntry[]>> {
     const { follow, tail } = opts

@@ -732,8 +732,8 @@ This can be useful for debugging tests, particularly integration/end-to-end test
 
 Examples:
 
-    garden run test my-module integ            # run the test named 'integ' in my-module
-    garden run test my-module integ --i=false  # do not attach to the test run, just output results when completed
+    garden run test my-module integ                     # run the test named 'integ' in my-module
+    garden run test my-module integ --interactive=false # do not attach to the test run, just output results when completed
 
 ##### Usage
 
@@ -750,7 +750,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--interactive` |  | boolean | Set to false to skip interactive mode and just output the command result.
+  | `--interactive` | `-i` | boolean | Set to false to skip interactive mode and just output the command result. Note that Garden won&#x27;t retrieve artifacts if set to true (the default).
   | `--force` |  | boolean | Run the test even if it&#x27;s disabled for the environment.
   | `--force-build` |  | boolean | Force rebuild of module before running.
 
