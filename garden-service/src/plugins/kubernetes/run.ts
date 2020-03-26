@@ -245,7 +245,7 @@ export async function runAndCopy({
         result = await runner.exec({
           // Pipe the output from the command to the /tmp/output pipe, including stderr. Some shell voodoo happening
           // here, but this was the only working approach I could find after a lot of trial and error.
-          command: ["sh", "-c", `echo $(${cmd}) >>/tmp/output 2>&1`],
+          command: ["sh", "-c", `exec >/tmp/output; ${cmd}`],
           container: mainContainerName,
           ignoreError: true,
           log,

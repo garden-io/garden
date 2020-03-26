@@ -128,6 +128,31 @@ describe("testKubernetesModule", () => {
       expect(await pathExists(join(garden.artifactsPath, "subdir", "test.txt"))).to.be.true
     })
 
+    it("should fail if an error occurs, but copy the artifacts out of the container", async () => {
+      const module = await graph.getModule("artifacts")
+
+      const testTask = new TestTask({
+        garden,
+        graph,
+        module,
+        testConfig: findByName(module.testConfigs, "artifacts-test-fail")!,
+        log: garden.log,
+        force: true,
+        forceBuild: false,
+        version: module.version,
+        _guard: true,
+      })
+
+      await emptyDir(garden.artifactsPath)
+
+      const results = await garden.processTasks([testTask], { throwOnError: false })
+
+      expect(results[testTask.getKey()]!.error).to.exist
+
+      expect(await pathExists(join(garden.artifactsPath, "test.txt"))).to.be.true
+      expect(await pathExists(join(garden.artifactsPath, "subdir", "test.txt"))).to.be.true
+    })
+
     it("should handle globs when copying artifacts out of the container", async () => {
       const module = await graph.getModule("artifacts")
 
