@@ -17,6 +17,7 @@ import { Module } from "../../../../../../src/types/module"
 import { containerHelpers } from "../../../../../../src/plugins/container/helpers"
 import { expect } from "chai"
 import { LogEntry } from "../../../../../../src/logger/log-entry"
+import { grouped } from "../../../../../helpers"
 
 async function ensureImagePulled(module: Module, log: LogEntry) {
   const imageId = await containerHelpers.getLocalImageId(module)
@@ -44,7 +45,7 @@ describe("pull-image plugin command", () => {
     ctx = garden.getPluginContext(provider)
   }
 
-  context("using an external cluster registry", () => {
+  grouped("cluster-docker", "remote-only").context("using an external cluster registry", () => {
     let module: Module
 
     before(async () => {
@@ -62,13 +63,13 @@ describe("pull-image plugin command", () => {
       })
     })
 
-    it("should pull the image (remote only)", async () => {
+    it("should pull the image", async () => {
       await pullModule(ctx as KubernetesPluginContext, module, garden.log)
       await ensureImagePulled(module, garden.log)
     })
   })
 
-  context("using the in cluster registry", () => {
+  grouped("cluster-docker").context("using the in cluster registry", () => {
     let module: Module
 
     before(async () => {

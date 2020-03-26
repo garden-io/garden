@@ -10,7 +10,7 @@ import td from "testdouble"
 import tmp from "tmp-promise"
 import Bluebird = require("bluebird")
 import { resolve, join } from "path"
-import { extend, keyBy } from "lodash"
+import { extend, keyBy, intersection, isString } from "lodash"
 import { remove, readdirSync, existsSync, copy, mkdirp, pathExists, truncate, realpath } from "fs-extra"
 import execa = require("execa")
 
@@ -47,6 +47,7 @@ import { ActionRouter } from "../src/actions"
 import { ParameterValues } from "../src/commands/base"
 import stripAnsi from "strip-ansi"
 import { RunTaskParams, RunTaskResult } from "../src/types/plugin/task/runTask"
+import { AsyncFunc, SuiteFunction, TestFunction, Suite } from "mocha"
 
 export const dataDir = resolve(GARDEN_SERVICE_ROOT, "test", "data")
 export const examplesDir = resolve(GARDEN_SERVICE_ROOT, "..", "examples")
@@ -533,4 +534,44 @@ export function getLogMessages(log: LogEntry, filter?: (log: LogEntry) => boolea
     .getChildEntries()
     .filter((entry) => (filter ? filter(entry) : true))
     .flatMap((entry) => entry.getMessageStates()?.map((state) => stripAnsi(state.msg || "")) || [])
+}
+
+const skipGroups = (process.env.GARDEN_SKIP_TESTS || "").split(" ")
+
+/**
+ * Helper function that wraps mocha functions and assigns them to one or more groups.
+ *
+ * If any of the specified `groups` are included in the `GARDEN_SKIP_TESTS` environment variable
+ * (which should be specified as a space-delimited string, e.g. `GARDEN_SKIP_TESTS="group-a group-b"`),
+ * the test or suite is skipped.
+ *
+ * Usage example:
+ *
+ *   // Skips the test if GARDEN_SKIP_TESTS=some-group
+ *   grouped("some-group").it("should do something", () => { ... })
+ *
+ * @param groups   The group or groups of the test/suite (specify one string or array of strings)
+ */
+export function grouped(...groups: string[]) {
+  const wrapTest = (fn: TestFunction) => {
+    if (intersection(groups, skipGroups).length > 0) {
+      return fn.skip
+    } else {
+      return fn
+    }
+  }
+
+  const wrapSuite = (fn: SuiteFunction) => {
+    if (intersection(groups, skipGroups).length > 0) {
+      return fn.skip
+    } else {
+      return fn
+    }
+  }
+
+  return {
+    it: wrapTest(it),
+    describe: wrapSuite(describe),
+    context: wrapSuite(context),
+  }
 }
