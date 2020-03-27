@@ -1,4 +1,25 @@
 
+<a name="v0.11.10"></a>
+## [v0.11.10](https://github.com/garden-io/garden/compare/v0.11.9...v0.11.10) (2020-03-25)
+
+### Bug Fixes
+
+* **k8s:** error when getting build status from microk8s cluster ([3da79ada](https://github.com/garden-io/garden/commit/3da79ada))
+* **k8s:** ensure non-zero exit code if test/task with artifacts fails ([e4f78c88](https://github.com/garden-io/garden/commit/e4f78c88))
+* **k8s:** incorrect schema for persistentvolumeclaim dependencies field ([3aee56b8](https://github.com/garden-io/garden/commit/3aee56b8))
+* **k8s:** if the output is json, stringify it ([#1728](https://github.com/garden-io/garden/issues/1728)) ([d62890d8](https://github.com/garden-io/garden/commit/d62890d8))
+
+### Features
+
+* only use socat with incluster registry ([4baf879b](https://github.com/garden-io/garden/commit/4baf879b))
+* **cli:** add experimental fullscreen logger type ([038328ae](https://github.com/garden-io/garden/commit/038328ae))
+* **config:** allow any objects and arrays in project variables ([6c2df1b1](https://github.com/garden-io/garden/commit/6c2df1b1))
+* **k8s:** add pull-image command ([#1681](https://github.com/garden-io/garden/issues/1681)) ([8f6d3c25](https://github.com/garden-io/garden/commit/8f6d3c25))
+
+### Improvements
+
+* **commands:** more consistent outputs for run commands ([a24b343f](https://github.com/garden-io/garden/commit/a24b343f))
+
 <a name="v0.11.9"></a>
 ## [v0.11.9](https://github.com/garden-io/garden/compare/v0.11.8...v0.11.9) (2020-03-16)
 
