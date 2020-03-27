@@ -215,7 +215,7 @@ const helpers = {
 
   async imageExistsLocally(module: ContainerModule, log: LogEntry) {
     const identifier = await helpers.getLocalImageId(module)
-    const exists = (await helpers.dockerCli(module.buildPath, ["images", identifier, "-q"], log)).output?.length > 0
+    const exists = (await helpers.dockerCli(module.buildPath, ["images", identifier, "-q"], log)).stdout.length > 0
     return exists ? identifier : null
   },
 
@@ -232,10 +232,10 @@ const helpers = {
         return [key, undefined]
       }
 
-      const output = res.output.trim()
+      const output = res.stdout.trim()
 
       if (!output) {
-        throw new RuntimeError(`Unexpected docker version output: ${output}`, {
+        throw new RuntimeError(`Unexpected docker version output: ${res.all.trim()}`, {
           output,
         })
       }

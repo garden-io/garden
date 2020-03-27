@@ -80,8 +80,8 @@ const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } 
       const res = await containerHelpers.dockerCli(module.buildPath, args, log, { ignoreError: true })
 
       // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
-      if (res.code !== 0 && !res.output.includes("no such manifest")) {
-        const detail = res.output || `docker manifest inspect exited with code ${res.code}`
+      if (res.code !== 0 && !res.all.includes("no such manifest")) {
+        const detail = res.all || `docker manifest inspect exited with code ${res.code}`
         log.warn(chalk.yellow(`Unable to query registry for image status: ${detail}`))
       }
 
