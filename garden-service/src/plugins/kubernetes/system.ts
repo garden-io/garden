@@ -55,7 +55,7 @@ export async function getSystemGarden(
   const conftest: ConftestProviderConfig = {
     environments: ["default"],
     name: "conftest-kubernetes",
-    policyPath: "./policy",
+    policyPath: "policy",
     testFailureThreshold: "warn",
   }
 

@@ -60,6 +60,7 @@ const basicConfig: KubernetesConfig = {
   ingressHttpsPort: 443,
   resources: defaultResources,
   storage: defaultStorage,
+  systemNodeSelector: {},
   registryProxyTolerations: [],
   tlsCertificates: [],
   _systemServices: [],

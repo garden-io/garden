@@ -13,3 +13,4 @@ values:
   storageClass:
     name: ${var.sync-storage-class}
   tolerations: ${var.system-tolerations}
+  nodeSelector: ${var.system-node-selector}

@@ -27,3 +27,4 @@ values:
     storageClass: ${var.registry-storage-class}
     deleteEnabled: true
   tolerations: ${var.system-tolerations}
+  nodeSelector: ${var.system-node-selector}

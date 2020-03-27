@@ -238,6 +238,12 @@ providers:
       # for now).
       acmeChallengeType: HTTP-01
 
+    # Exposes the `nodeSelector` field on the PodSpec of system services. This allows you to constrain
+    # the system services to only run on particular nodes. [See
+    # here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to
+    # assigning Pods to nodes.
+    systemNodeSelector: {}
+
     # For setting tolerations on the registry-proxy when using in-cluster building.
     # The registry-proxy is a DaemonSet that proxies connections to the docker registry service on each node.
     #
@@ -1202,6 +1208,25 @@ providers:
   - certManager:
       ...
       acmeChallengeType: "HTTP-01"
+```
+
+### `providers[].systemNodeSelector`
+
+[providers](#providers) > systemNodeSelector
+
+Exposes the `nodeSelector` field on the PodSpec of system services. This allows you to constrain
+the system services to only run on particular nodes. [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
+
+Example:
+
+```yaml
+providers:
+  - systemNodeSelector:
+        disktype: ssd
 ```
 
 ### `providers[].registryProxyTolerations[]`

@@ -24,3 +24,4 @@ values:
     volume:
       name: ${var.sync-volume-name}
   tolerations: ${var.system-tolerations}
+  nodeSelector: ${var.system-node-selector}
