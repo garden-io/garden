@@ -73,7 +73,7 @@ export async function buildContainerModule({ module, log }: BuildModuleParams<Co
     timeout,
   })
 
-  return { fresh: true, buildLog: res.output || "", details: { identifier } }
+  return { fresh: true, buildLog: res.all || "", details: { identifier } }
 }
 
 export function getDockerBuildFlags(module: ContainerModule) {

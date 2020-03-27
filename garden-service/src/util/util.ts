@@ -138,7 +138,7 @@ export function makeErrorMsg({
 
     ${trimEnd(error, "\n")}
   `
-  if (out !== error) {
+  if (output !== error) {
     msg +=
       lines.length > nLinesToShow
         ? `\n\nHere are the last ${nLinesToShow} lines of the output:`
@@ -198,9 +198,9 @@ export interface SpawnOpts {
 
 export interface SpawnOutput {
   code: number
-  output: string
-  stdout?: string
-  stderr?: string
+  all: string
+  stdout: string
+  stderr: string
   proc: any
 }
 
@@ -213,7 +213,7 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
 
   const result: SpawnOutput = {
     code: 0,
-    output: "",
+    all: "",
     stdout: "",
     stderr: "",
     proc,
@@ -232,11 +232,12 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
 
   // We ensure the output strings never exceed the MAX_BUFFER_SIZE
   proc.stdout?.on("data", (s) => {
-    result.output = tailString(result.output + s, MAX_BUFFER_SIZE, true)
+    result.all = tailString(result.all + s, MAX_BUFFER_SIZE, true)
     result.stdout! = tailString(result.stdout! + s, MAX_BUFFER_SIZE, true)
   })
 
   proc.stderr?.on("data", (s) => {
+    result.all = tailString(result.all + s, MAX_BUFFER_SIZE, true)
     result.stderr! = tailString(result.stderr! + s, MAX_BUFFER_SIZE, true)
   })
 
@@ -289,7 +290,7 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
           code,
           cmd,
           args,
-          output: result.output + result.stderr,
+          output: result.all,
           error: result.stderr || "",
         })
         _reject(new RuntimeError(msg, { cmd, args, opts, result }))
