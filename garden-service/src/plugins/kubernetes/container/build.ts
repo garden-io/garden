@@ -637,7 +637,7 @@ function isLocalHostname(hostname: string) {
 function getSocatContainer(registryHostname: string) {
   return {
     name: "proxy",
-    image: "basi/socat:v0.1.0",
+    image: "gardendev/socat:0.1.0",
     command: ["/bin/sh", "-c", `socat TCP-LISTEN:5000,fork TCP:${registryHostname}:5000 || exit 0`],
     ports: [
       {
