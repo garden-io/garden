@@ -465,6 +465,7 @@ export function getKubernetesSystemVariables(config: KubernetesConfig) {
 
     "registry-proxy-tolerations": <PrimitiveMap[]>registryProxyTolerations,
     "system-tolerations": <PrimitiveMap[]>systemTolerations,
+    "system-node-selector": config.systemNodeSelector,
   }
 }
 

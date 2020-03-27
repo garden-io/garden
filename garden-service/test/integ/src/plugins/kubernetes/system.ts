@@ -35,6 +35,24 @@ describe("System services", () => {
     const variables = getKubernetesSystemVariables(provider.config)
     const systemGarden = await getSystemGarden(ctx, variables, garden.log)
     const graph = await systemGarden.getConfigGraph(garden.log)
+    const conftestModuleNames = (await graph.getModules())
+      .filter((module) => module.name.startsWith("conftest-"))
+      .map((m) => m.name)
+    expect(conftestModuleNames.sort()).to.eql([
+      "conftest-build-sync",
+      "conftest-docker-daemon",
+      "conftest-docker-registry",
+      "conftest-ingress-controller",
+      "conftest-nfs-provisioner",
+      "conftest-registry-proxy",
+    ])
+  })
+
+  it("should check whether system modules pass the conftest test", async () => {
+    const ctx = <KubernetesPluginContext>garden.getPluginContext(provider)
+    const variables = getKubernetesSystemVariables(provider.config)
+    const systemGarden = await getSystemGarden(ctx, variables, garden.log)
+    const graph = await systemGarden.getConfigGraph(garden.log)
     const modules = (await graph.getModules()).filter((module) => module.name.startsWith("conftest-"))
 
     await Bluebird.map(modules, async (module) => {
