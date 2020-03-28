@@ -285,7 +285,7 @@ export const projectDocsSchema = () =>
         .description((<any>environmentsSchema().describe().flags).description),
       providers: joiArray(providerConfigBaseSchema()).description(
         "A list of providers that should be used for this project, and their configuration. " +
-        "Please refer to individual plugins/providers for details on how to configure them."
+          "Please refer to individual plugins/providers for details on how to configure them."
       ),
       defaultEnvironment: joi
         .string()
