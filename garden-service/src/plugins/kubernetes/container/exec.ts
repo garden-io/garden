@@ -90,5 +90,5 @@ export async function execInWorkload({
     tty: interactive,
   })
 
-  return { code: res.code, output: res.output }
+  return { code: res.code, output: res.all }
 }
