@@ -495,11 +495,11 @@ export class ActionRouter implements TypeGuard {
     }
   }
 
-  async getTaskResult(params: TaskActionRouterParams<GetTaskResultParams>): Promise<RunTaskResult | null> {
+  async getTaskResult(params: TaskActionRouterParams<GetTaskResultParams>): Promise<RunTaskResult | null | undefined> {
     const { result } = await this.callTaskHandler({
       params,
       actionType: "getTaskResult",
-      defaultHandler: async () => null,
+      defaultHandler: async () => undefined,
     })
     result && this.validateTaskOutputs(params.task, result)
     return result

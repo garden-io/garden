@@ -70,10 +70,16 @@ export class GetTaskResultCommand extends Command<Args> {
 
     printHeader(headerLog, `Task result for task ${chalk.cyan(taskName)}`, "rocket")
 
-    if (result === null) {
+    log.info("")
+
+    if (taskResult === null) {
       log.info(`Could not find results for task '${taskName}'`)
     } else {
-      log.info({ data: result })
+      if (taskResult === undefined) {
+        log.error(`Module type ${task.module.type} for task ${taskName} does not support storing/getting task results.`)
+      } else {
+        log.info({ data: result })
+      }
     }
 
     return { result }

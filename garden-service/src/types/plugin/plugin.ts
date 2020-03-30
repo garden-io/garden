@@ -243,7 +243,7 @@ export type TaskActionParams<T extends Module = Module> = {
 
 export interface TaskActionOutputs {
   runTask: RunTaskResult
-  getTaskResult: RunTaskResult | null
+  getTaskResult: RunTaskResult | null | undefined
 }
 
 const taskActionDescriptions: { [P in TaskActionName]: () => PluginActionDescription } = {

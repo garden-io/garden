@@ -21,7 +21,7 @@ import { deline } from "../../util/string"
 import { EnvironmentStatusMap } from "../../types/plugin/provider/getEnvironmentStatus"
 import { ServiceStatus } from "../../types/service"
 
-export type RunState = "outdated" | "succeeded" | "failed"
+export type RunState = "outdated" | "succeeded" | "failed" | "not-implemented"
 
 export interface RunStatus {
   state: RunState
@@ -129,7 +129,7 @@ async function getTaskStatuses(garden: Garden, configGraph: ConfigGraph, log: Lo
   )
 }
 
-function runStatus<R extends RunResult>(result: R | null): RunStatus {
+function runStatus<R extends RunResult>(result: R | null | undefined): RunStatus {
   if (result) {
     const { startedAt, completedAt } = result
     return {
@@ -138,6 +138,6 @@ function runStatus<R extends RunResult>(result: R | null): RunStatus {
       state: result.success ? "succeeded" : "failed",
     }
   } else {
-    return { state: "outdated" }
+    return { state: result === null ? "outdated" : "not-implemented" }
   }
 }
