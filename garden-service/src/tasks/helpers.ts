@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { intersection, flatten, uniqBy } from "lodash"
+import { includes, intersection, flatten, uniqBy } from "lodash"
 import { DeployTask } from "./deploy"
 import { Garden } from "../garden"
 import { Module } from "../types/module"
@@ -38,7 +38,29 @@ export async function getModuleWatchTasks({
 
   const dependants = graph.getDependantsForModule(module, true)
 
-  if (intersection(module.serviceNames, hotReloadServiceNames).length === 0) {
+  const dependantSourceModules = dependants.build.filter((depModule) =>
+    depModule.serviceConfigs.find((s) => s.sourceModuleName === module.name)
+  )
+
+  const dependantSourceModuleServiceNames = flatten(
+    dependantSourceModules.map((depModule) => {
+      return depModule.serviceConfigs.filter((s) => s.sourceModuleName === module.name).map((s) => s.name)
+    })
+  )
+
+  const serviceNamesForModule = [...module.serviceNames, ...dependantSourceModuleServiceNames]
+
+  /**
+   * If a service is deployed with hot reloading enabled, we don't rebuild its module
+   * (or its sourceModule, if the service instead uses a sourceModule) when its
+   * sources change.
+   *
+   * Therefore, we skip adding a build task for module if one of its services is in
+   * hotReloadServiceNames, or if one of its build dependants' services is in
+   * hotReloadServiceNames and has module as its sourceModule (in which case we
+   * also don't add a build task for the dependant's module below).
+   */
+  if (intersection(serviceNamesForModule, hotReloadServiceNames).length === 0) {
     buildTasks = await BuildTask.factory({
       garden,
       graph,
@@ -48,9 +70,11 @@ export async function getModuleWatchTasks({
     })
   }
 
+  const dependantSourceModuleNames = dependantSourceModules.map((m) => m.name)
+
   const dependantBuildTasks = flatten(
     await Bluebird.map(
-      dependants.build.filter((m) => !m.disabled),
+      dependants.build.filter((m) => !m.disabled && !includes(dependantSourceModuleNames, m.name)),
       (m) =>
         BuildTask.factory({
           garden,
