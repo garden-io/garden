@@ -21,7 +21,7 @@ import { Module, getModuleCacheContext, getModuleKey, ModuleConfigMap } from "./
 import { pluginModuleSchema, ModuleTypeMap } from "./types/plugin/plugin"
 import { SourceConfig, ProjectConfig, resolveProjectConfig, pickEnvironment, OutputSpec } from "./config/project"
 import { findByName, pickKeys, getPackageVersion, getNames, findByNames } from "./util/util"
-import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
+import { ConfigurationError, PluginError, RuntimeError, InternalError } from "./exceptions"
 import { VcsHandler, ModuleVersion } from "./vcs/vcs"
 import { GitHandler } from "./vcs/git"
 import { BuildDir } from "./build-dir"
@@ -61,6 +61,7 @@ import { deline, naturalList } from "./util/string"
 import { ensureConnected } from "./db/connection"
 import { DependencyValidationGraph } from "./util/validate-dependencies"
 import { Profile } from "./util/profiling"
+import { readAuthToken, login } from "./platform/auth"
 
 export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
   [actionName: string]: PluginActionHandlers[T]
@@ -92,19 +93,22 @@ export interface GardenOpts {
   persistent?: boolean
   log?: LogEntry
   plugins?: RegisterPluginParam[]
+  sessionId?: string
 }
 
 export interface GardenParams {
   artifactsPath: string
   buildDir: BuildDir
-  environmentName: string
+  clientAuthToken: string | null
   dotIgnoreFiles: string[]
+  environmentName: string
   gardenDirPath: string
   log: LogEntry
   moduleIncludePatterns?: string[]
   moduleExcludePatterns?: string[]
   opts: GardenOpts
   outputs: OutputSpec[]
+  platformUrl: string | null
   plugins: RegisterPluginParam[]
   production: boolean
   projectName: string
@@ -112,6 +116,7 @@ export interface GardenParams {
   projectSources?: SourceConfig[]
   providerConfigs: ProviderConfig[]
   variables: DeepPrimitiveMap
+  sessionId: string | null
   vcs: VcsHandler
   workingCopyId: string
 }
@@ -128,6 +133,11 @@ export class Garden {
   private readonly taskGraph: TaskGraph
   private watcher: Watcher
   private asyncLock: any
+
+  // Platform-related instance variables
+  public clientAuthToken: string | null
+  public platformUrl: string | null
+  public sessionId: string | null
 
   public readonly configStore: ConfigStore
   public readonly globalConfigStore: GlobalConfigStore
@@ -158,6 +168,9 @@ export class Garden {
 
   constructor(params: GardenParams) {
     this.buildDir = params.buildDir
+    this.clientAuthToken = params.clientAuthToken
+    this.platformUrl = params.platformUrl
+    this.sessionId = params.sessionId
     this.environmentName = params.environmentName
     this.gardenDirPath = params.gardenDirPath
     this.log = params.log
@@ -265,8 +278,30 @@ export class Garden {
     // Connect to the state storage
     await ensureConnected()
 
+    const sessionId = opts.sessionId || null
+
+    // TODO: Read the platformUrl from config.
+    const platformUrl = process.env.GARDEN_CLOUD ? `http://${process.env.GARDEN_CLOUD}` : null
+
+    const clientAuthToken = await readAuthToken(log)
+    // If a client auth token exists in local storage, we assume that the user wants to be logged in to the platform.
+    if (clientAuthToken && sessionId) {
+      if (!platformUrl) {
+        const errMsg = deline`
+          GARDEN_CLOUD environment variable is not set. Make sure it is set to the appropriate API
+          backend endpoint (e.g. myusername-cloud-api.cloud.dev.garden.io, without an http/https
+          prefix).`
+        throw new InternalError(errMsg, {})
+      } else {
+        await login(platformUrl, log)
+      }
+    }
+
     const garden = new this({
       artifactsPath,
+      clientAuthToken,
+      sessionId,
+      platformUrl,
       projectRoot,
       projectName,
       environmentName,

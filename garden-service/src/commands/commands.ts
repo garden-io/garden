@@ -30,6 +30,8 @@ import { ServeCommand } from "./serve"
 import { OptionsCommand } from "./options"
 import { ConfigCommand } from "./config/config"
 import { PluginsCommand } from "./plugins"
+import { LoginCommand } from "./login"
+import { LogOutCommand } from "./logout"
 
 export const coreCommands: Command[] = [
   new BuildCommand(),
@@ -55,4 +57,6 @@ export const coreCommands: Command[] = [
   new UpdateRemoteCommand(),
   new ValidateCommand(),
   new ConfigCommand(),
+  new LoginCommand(),
+  new LogOutCommand(),
 ]

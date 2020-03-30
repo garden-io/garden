@@ -41,4 +41,12 @@ export class GardenEntity extends BaseEntity {
     const connection = getConnection()
     return connection.getRepository<T>(this)
   }
+
+  /**
+   * Helper method to avoid circular import issues.
+   */
+
+  static getConnection() {
+    return getConnection()
+  }
 }
