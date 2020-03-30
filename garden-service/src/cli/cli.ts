@@ -13,7 +13,7 @@ import { resolve, join } from "path"
 import { safeDump } from "js-yaml"
 import { coreCommands } from "../commands/commands"
 import { DeepPrimitiveMap } from "../config/common"
-import { shutdown, sleep, getPackageVersion } from "../util/util"
+import { shutdown, sleep, getPackageVersion, uuidv4 } from "../util/util"
 import { deline } from "../util/string"
 import {
   BooleanParameter,
@@ -302,6 +302,8 @@ export class GardenCli {
       logger.info("")
       const footerLog = logger.placeholder()
 
+      const sessionId = uuidv4()
+
       const contextOpts: GardenOpts = {
         commandInfo: {
           name: command.getFullName(),
@@ -310,6 +312,7 @@ export class GardenCli {
         },
         environmentName,
         log,
+        sessionId,
       }
 
       let garden: Garden
