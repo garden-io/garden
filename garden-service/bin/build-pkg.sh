@@ -38,6 +38,7 @@ mkdir tmp/dist/build
 cp -r package.json package-lock.json node_modules Dockerfile tmp/dist
 cp -r build/src tmp/dist/build/src
 cp bin/garden tmp/dist/bin
+cp bin/garden-debug tmp/dist/bin
 rsync -r --exclude=.garden --exclude=.git static tmp/dist
 
 # IMPORTANT: We 'git init' the static dir. This is because in general, Garden only works
@@ -48,7 +49,7 @@ echo "-> Run 'git init' inside static dir"
 git init tmp/dist/static
 
 echo "-> Preparing packages..."
-cd dist
+cd ${dist_path}
 
 echo "  -> linux-amd64"
 pkg --target node12-linux-x64 ${tmp_dist_path}
@@ -105,3 +106,19 @@ cp ${garden_service_root}/lib/fsevents.node macos-amd64/fsevents.node
 
 echo "    -> tar"
 tar -czf garden-${version}-macos-amd64.tar.gz macos-amd64
+
+echo "  -> alpine-amd64"
+cd ${dist_path}
+rm -rf alpine-amd64
+mkdir alpine-amd64
+target_path=$(cd alpine-amd64 && pwd)
+cd ${tmp_dist_path}
+# We need to package the Alpine bin inside the container and copy the artifacts back out
+docker build -t gardendev/garden:alpine-builder -f Dockerfile .
+docker create -it --name alpine-builder gardendev/garden:alpine-builder sh
+docker cp alpine-builder:/garden/. ${target_path}
+docker rm -f alpine-builder
+cd ${dist_path}
+
+echo "    -> tar"
+tar -czf garden-${version}-alpine-amd64.tar.gz alpine-amd64

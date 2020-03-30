@@ -155,6 +155,9 @@ commands:
         type: string
         default: ""
     steps:
+      # We need Docker for building the Alpine package
+      - setup_remote_docker:
+          docker_layer_caching: true
       - checkout
       - npm_install
       - run: sudo apt-get update && sudo apt-get -y install rsync
