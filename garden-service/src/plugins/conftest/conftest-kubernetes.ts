@@ -7,6 +7,7 @@
  */
 
 import Bluebird from "bluebird"
+import slash from "slash"
 import { createGardenPlugin } from "../../types/plugin/plugin"
 import { ConftestProvider } from "./conftest"
 import { relative, resolve } from "path"
@@ -65,7 +66,8 @@ export const gardenPlugin = createGardenPlugin({
             ? [".rendered.yaml"]
             : module.include || ["*.yaml", "**/*.yaml", "*.yml", "**/*.yml"]
 
-          const policyPath = relative(module.path, resolve(ctx.projectRoot, provider.config.policyPath))
+          // Make sure the policy path is valid POSIX on Windows
+          const policyPath = slash(relative(module.path, resolve(ctx.projectRoot, provider.config.policyPath)))
 
           return {
             kind: "Module",
