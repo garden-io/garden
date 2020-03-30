@@ -151,7 +151,7 @@ providers:
           cpu: 100
 
           # Memory request in megabytes.
-          memory: 64
+          memory: 90
 
     # Storage parameters to set for the in-cluster builder, container registry and code sync persistent volumes
     # (which are automatically installed and used when `buildMode` is `cluster-docker` or `kaniko`).
@@ -533,7 +533,7 @@ Resource requests and limits for the in-cluster builder, container registry and 
 
 | Type     | Default                                                                                                                                                                                                                                                    | Required |
 | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| `object` | `{"builder":{"limits":{"cpu":4000,"memory":8192},"requests":{"cpu":200,"memory":512}},"registry":{"limits":{"cpu":2000,"memory":4096},"requests":{"cpu":200,"memory":512}},"sync":{"limits":{"cpu":500,"memory":512},"requests":{"cpu":100,"memory":64}}}` | No       |
+| `object` | `{"builder":{"limits":{"cpu":4000,"memory":8192},"requests":{"cpu":200,"memory":512}},"registry":{"limits":{"cpu":2000,"memory":4096},"requests":{"cpu":200,"memory":512}},"sync":{"limits":{"cpu":500,"memory":512},"requests":{"cpu":100,"memory":90}}}` | No       |
 
 ### `providers[].resources.builder`
 
@@ -792,7 +792,7 @@ defaults if you have many concurrent users.
 
 | Type     | Default                                                                  | Required |
 | -------- | ------------------------------------------------------------------------ | -------- |
-| `object` | `{"limits":{"cpu":500,"memory":512},"requests":{"cpu":100,"memory":64}}` | No       |
+| `object` | `{"limits":{"cpu":500,"memory":512},"requests":{"cpu":100,"memory":90}}` | No       |
 
 ### `providers[].resources.sync.limits`
 
@@ -854,7 +854,7 @@ providers:
 
 | Type     | Default                   | Required |
 | -------- | ------------------------- | -------- |
-| `object` | `{"cpu":100,"memory":64}` | No       |
+| `object` | `{"cpu":100,"memory":90}` | No       |
 
 ### `providers[].resources.sync.requests.cpu`
 
@@ -887,7 +887,7 @@ Memory request in megabytes.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `64`    | No       |
+| `number` | `90`    | No       |
 
 Example:
 
@@ -899,7 +899,7 @@ providers:
         ...
         requests:
           ...
-          memory: 64
+          memory: 90
 ```
 
 ### `providers[].storage`

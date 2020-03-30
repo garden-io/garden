@@ -15,15 +15,18 @@ import { setMinikubeDockerEnv } from "./minikube"
 import { exec } from "../../../util/util"
 import { remove } from "lodash"
 import { getNfsStorageClass } from "../init"
-import { isClusterKind } from "./kind"
 import chalk from "chalk"
+import { isKindCluster } from "./kind"
 
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
-
 // note: this is in order of preference, in case neither is set as the current kubectl context
 // and none is explicitly configured in the garden.yml
-const supportedContexts = ["docker-for-desktop", "docker-desktop", "microk8s", "minikube"]
+const supportedContexts = ["docker-for-desktop", "docker-desktop", "microk8s", "minikube", "kind-kind"]
 const nginxServices = ["ingress-controller", "default-backend"]
+
+function isSupportedContext(context: string) {
+  return supportedContexts.includes(context) || context.startsWith("kind-")
+}
 
 export interface LocalKubernetesConfig extends KubernetesConfig {
   setupIngressController: string | null
@@ -63,16 +66,16 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
 
   if (!config.context) {
     // automatically detect supported kubectl context if not explicitly configured
-    if (currentContext && supportedContexts.includes(currentContext)) {
+    if (currentContext && isSupportedContext(currentContext)) {
       // prefer current context if set and supported
       config.context = currentContext
       log.debug({ section: config.name, msg: `Using current context: ${config.context}` })
     } else {
       const availableContexts = kubeConfig.contexts?.map((c: any) => c.name) || []
 
-      for (const supportedContext of supportedContexts) {
-        if (availableContexts.includes(supportedContext)) {
-          config.context = supportedContext
+      for (const context of availableContexts) {
+        if (isSupportedContext(context)) {
+          config.context = context
           log.debug({ section: config.name, msg: `Using detected context: ${config.context}` })
           break
         }
@@ -88,13 +91,20 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
     }
   }
 
+  // TODO: change this in 0.12 to use the current context
   if (!config.context) {
     config.context = supportedContexts[0]
     log.debug({ section: config.name, msg: `No kubectl context configured, using default: ${config.context}` })
   }
 
-  if (await isClusterKind(ctx, provider, log)) {
+  if (await isKindCluster(ctx, provider, log)) {
     config.clusterType = "kind"
+
+    if (config.setupIngressController === "nginx") {
+      log.debug("Using nginx-kind service for ingress")
+      remove(_systemServices, (s) => nginxServices.includes(s))
+      _systemServices.push("nginx-kind")
+    }
   } else if (config.context === "minikube") {
     await exec("minikube", ["config", "set", "WantUpdateNotification", "false"])
 

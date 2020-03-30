@@ -241,6 +241,7 @@
     "lint": "tslint -p .",
     "migration:generate": "typeorm migration:generate --config ormconfig.js -n",
     "integ": "mocha --opts test/mocha.integ.opts",
+    "integ-kind": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"cluster-docker kaniko remote-only\" mocha --opts test/mocha.integ.opts",
     "integ-local": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=remote-only mocha --opts test/mocha.integ.opts",
     "integ-remote": "GARDEN_INTEG_TEST_MODE=remote GARDEN_SKIP_TESTS=local-only mocha --opts test/mocha.integ.opts",
     "e2e": "cd test/e2e && ../../../bin/garden test",
