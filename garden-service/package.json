@@ -98,7 +98,7 @@
     "node-forge": "^0.9.1",
     "normalize-path": "^3.0.0",
     "normalize-url": "^5.0.0",
-    "p-queue": "^6.3.0",
+    "open": "^7.0.2",
     "p-retry": "^4.2.0",
     "parse-git-config": "^3.0.0",
     "path-is-inside": "^1.0.2",
@@ -107,6 +107,7 @@
     "recursive-readdir": "^2.2.2",
     "request": "^2.88.2",
     "request-promise": "^4.2.5",
+    "slash": "^3.0.0",
     "source-map-support": "^0.5.16",
     "split": "^1.0.1",
     "split2": "^3.1.1",
@@ -129,6 +130,7 @@
     "uuid": "^7.0.2",
     "winston": "^3.2.1",
     "wrap-ansi": "^6.2.0",
+    "ws": "^7.2.1",
     "xml-js": "^1.6.11"
   },
   "devDependencies": {

@@ -8,7 +8,7 @@
 
 import dedent = require("dedent")
 
-import { joiArray, joiIdentifier, joiProviderName, joi } from "../../config/common"
+import { joiArray, joiIdentifier, joiProviderName, joi, joiStringMap } from "../../config/common"
 import { Provider, providerConfigBaseSchema, ProviderConfig } from "../../config/provider"
 import {
   containerRegistryConfigSchema,
@@ -25,6 +25,7 @@ import { hotReloadableKinds, HotReloadableKind } from "./hot-reload"
 import { baseTaskSpecSchema, BaseTaskSpec, cacheResultSchema } from "../../config/task"
 import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
 import { ArtifactSpec } from "../../config/validation"
+import { V1Toleration } from "@kubernetes/client-node"
 
 export interface ProviderSecretRef {
   name: string
@@ -80,14 +81,6 @@ interface KubernetesStorage {
   sync: KubernetesStorageSpec
 }
 
-export interface Toleration {
-  effect?: "NoSchedule" | "PreferNoSchedule" | "NoExecute"
-  key?: string
-  operator: "Exists" | "Equal"
-  tolerationSeconds?: number
-  value?: string
-}
-
 export type ContainerBuildMode = "local-docker" | "cluster-docker" | "kaniko"
 
 export type DefaultDeploymentStrategy = "rolling"
@@ -110,7 +103,8 @@ export interface KubernetesConfig extends ProviderConfig {
   ingressClass?: string
   kubeconfig?: string
   namespace?: string
-  registryProxyTolerations: Toleration[]
+  registryProxyTolerations: V1Toleration[]
+  systemNodeSelector: { [key: string]: string }
   resources: KubernetesResources
   storage: KubernetesStorage
   gardenSystemNamespace: string
@@ -491,6 +485,15 @@ export const kubernetesConfigBase = providerConfigBaseSchema().keys({
     }).description(dedent`cert-manager configuration, for creating and managing TLS certificates. See the
         [cert-manager guide](https://docs.garden.io/advanced/cert-manager-integration) for details.`),
   _systemServices: joiArray(joiIdentifier()).meta({ internal: true }),
+  systemNodeSelector: joiStringMap(joi.string())
+    .description(
+      dedent`
+      Exposes the \`nodeSelector\` field on the PodSpec of system services. This allows you to constrain
+      the system services to only run on particular nodes. [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.
+    `
+    )
+    .example({ disktype: "ssd" })
+    .default(() => ({})),
   registryProxyTolerations: joiArray(
     joi.object().keys({
       effect: joi.string().allow("NoSchedule", "PreferNoSchedule", "NoExecute").description(dedent`

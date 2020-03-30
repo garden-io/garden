@@ -9,20 +9,21 @@
 import { Connection, getConnectionManager, ConnectionOptions } from "typeorm"
 import { join } from "path"
 import { GARDEN_GLOBAL_PATH } from "../constants"
-import { LocalAddress } from "./entities/local-address"
 
 let connection: Connection
 
 // Note: This function needs to be synchronous to work with the typeorm Active Record pattern (see ./base-entity.ts)
 export function getConnection(): Connection {
   if (!connection) {
+    const { LocalAddress } = require("./entities/local-address")
+    const { ClientAuthToken } = require("./entities/client-auth-token")
     // Prepare the connection (the ormconfig.json in the static dir is only used for the typeorm CLI during dev)
     const options: ConnectionOptions = {
       type: "sqlite",
       database: join(GARDEN_GLOBAL_PATH, "db"),
       // IMPORTANT: All entities and migrations need to be manually referenced here because of how we
       // package the garden binary
-      entities: [LocalAddress],
+      entities: [LocalAddress, ClientAuthToken],
       migrations: [],
       // Auto-create new tables on init
       synchronize: true,

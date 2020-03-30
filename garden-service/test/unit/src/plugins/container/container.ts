@@ -777,7 +777,7 @@ describe("plugins.container", () => {
       td.replace(helpers, "dockerCli", async (path: string, args: string[]) => {
         expect(path).to.equal(module.buildPath)
         expect(args).to.eql(cmdArgs)
-        return { output: "log" }
+        return { all: "log" }
       })
 
       const result = await build({ ctx, log, module })
@@ -804,7 +804,7 @@ describe("plugins.container", () => {
       td.replace(helpers, "dockerCli", async (path: string, args: string[]) => {
         expect(path).to.equal(module.buildPath)
         expect(args).to.eql(cmdArgs)
-        return { output: "log" }
+        return { all: "log" }
       })
 
       const result = await build({ ctx, log, module })
@@ -839,7 +839,7 @@ describe("plugins.container", () => {
       td.replace(helpers, "dockerCli", async (path: string, args: string[]) => {
         expect(path).to.equal(module.buildPath)
         expect(args).to.eql(cmdArgs)
-        return { output: "log" }
+        return { all: "log" }
       })
 
       const result = await build({ ctx, log, module })
