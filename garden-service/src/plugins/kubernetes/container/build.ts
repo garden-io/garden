@@ -610,13 +610,17 @@ async function runKaniko({ provider, namespace, log, module, args, outputStream 
     },
   })
 
-  return runner.startAndWait({
-    ignoreError: true,
-    interactive: false,
-    log,
-    timeout: module.spec.build.timeout,
-    stdout: outputStream,
-  })
+  try {
+    return runner.startAndWait({
+      ignoreError: true,
+      interactive: false,
+      log,
+      timeout: module.spec.build.timeout,
+      stdout: outputStream,
+    })
+  } finally {
+    await runner.stop()
+  }
 }
 
 async function getManifestInspectArgs(module: ContainerModule, deploymentRegistry: ContainerRegistryConfig) {
