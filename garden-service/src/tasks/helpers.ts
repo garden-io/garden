@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { includes, intersection, flatten, uniqBy } from "lodash"
+import { intersection, flatten, uniqBy } from "lodash"
 import { DeployTask } from "./deploy"
 import { Garden } from "../garden"
 import { Module } from "../types/module"
@@ -74,7 +74,7 @@ export async function getModuleWatchTasks({
 
   const dependantBuildTasks = flatten(
     await Bluebird.map(
-      dependants.build.filter((m) => !m.disabled && !includes(dependantSourceModuleNames, m.name)),
+      dependants.build.filter((m) => !m.disabled && !dependantSourceModuleNames.includes(m.name)),
       (m) =>
         BuildTask.factory({
           garden,
