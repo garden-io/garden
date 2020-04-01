@@ -149,7 +149,7 @@ describe("configureHelmModule", () => {
     // So that Chart.yaml isn't found
     patchModuleConfig("api", { spec: { chartPath: "invalid-path" } })
     const config = await garden.resolveModule("api")
-    expect(config.include).to.eql(["*.yaml", "*.yml"])
+    expect(config.include).to.eql(["invalid-path/*.yaml", "invalid-path/*.yml"])
   })
 
   it("should not return a serviceConfig if skipDeploy=true", async () => {
