@@ -48,7 +48,7 @@ export async function getModuleWatchTasks({
     })
   )
 
-  const serviceNamesForModule = [...module.serviceNames, ...dependantSourceModuleServiceNames]
+  const serviceNamesUsingModule = [...module.serviceNames, ...dependantSourceModuleServiceNames]
 
   /**
    * If a service is deployed with hot reloading enabled, we don't rebuild its module
@@ -60,7 +60,7 @@ export async function getModuleWatchTasks({
    * hotReloadServiceNames and has module as its sourceModule (in which case we
    * also don't add a build task for the dependant's module below).
    */
-  if (intersection(serviceNamesForModule, hotReloadServiceNames).length === 0) {
+  if (intersection(serviceNamesUsingModule, hotReloadServiceNames).length === 0) {
     buildTasks = await BuildTask.factory({
       garden,
       graph,
