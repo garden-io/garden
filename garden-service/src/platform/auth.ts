@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import axios from "axios"
 import qs = require("qs")
 import open from "open"
 import { Server } from "http"
@@ -17,6 +16,8 @@ import Router = require("koa-router")
 import getPort = require("get-port")
 import { ClientAuthToken } from "../db/entities/client-auth-token"
 import { LogEntry } from "../logger/log-entry"
+import { got } from "../util/http"
+import { RuntimeError } from "../exceptions"
 
 // TODO: Add error handling and tests for all of this
 
@@ -59,9 +60,24 @@ export async function login(platformUrl: string, log: LogEntry): Promise<string>
  * Checks with the backend whether the provided client auth token is valid.
  */
 async function checkClientAuthToken(token: string, platformUrl: string, log: LogEntry): Promise<boolean> {
-  const res = await axios.get(`${platformUrl}/token/verify?${qs.stringify({ token })}`)
-  log.debug(`Checked client auth token with platform - valid: ${res.data.data.valid}`)
-  return !!res.data.data.valid
+  let valid
+  try {
+    await got({
+      method: "get",
+      url: `${platformUrl}/token/verify`,
+      headers: { "x-access-auth-token": token },
+    })
+    valid = true
+  } catch (err) {
+    const res = err.response
+    if (res && res.statusCode === 401) {
+      valid = false
+    } else {
+      throw new RuntimeError(`An error occurred while verifying client auth token with platform: ${err.message}`, {})
+    }
+  }
+  log.debug(`Checked client auth token with platform - valid: ${valid}`)
+  return valid
 }
 
 /**
