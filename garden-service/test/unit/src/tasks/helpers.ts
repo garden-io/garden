@@ -166,6 +166,65 @@ describe("TaskHelpers", () => {
       expect(sortedBaseKeys(tasks)).to.eql(["build.module-a", "deploy.service-a"])
     })
 
+    it("should not add a build task for a hot-reload-enabled service's sourceModule", async () => {
+      const garden = await makeTestGardenA()
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          name: "module-a",
+          include: [],
+          outputs: {},
+          path: garden.projectRoot,
+          serviceConfigs: [],
+          taskConfigs: [],
+          spec: { services: [] },
+          testConfigs: [],
+          type: "test",
+        },
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [{ name: "module-a", copy: [] }] },
+          disabled: false,
+          name: "module-b",
+          include: [],
+          outputs: {},
+          path: garden.projectRoot,
+          serviceConfigs: [],
+          taskConfigs: [],
+          spec: {
+            services: [
+              {
+                name: "service-b",
+                dependencies: [],
+                disabled: false,
+                sourceModule: "module-a", // <---------------
+              },
+            ],
+          },
+          testConfigs: [],
+          type: "test",
+        },
+      ])
+
+      const graph = await garden.getConfigGraph(garden.log)
+      const module = await graph.getModule("module-b", true)
+
+      const tasks = await getModuleWatchTasks({
+        garden,
+        graph,
+        log,
+        module,
+        hotReloadServiceNames: ["service-b"],
+      })
+
+      expect(sortedBaseKeys(tasks)).to.eql(["hot-reload.service-b"])
+    })
+
     context("without hot reloading enabled", () => {
       const expectedBaseKeysByChangedModule = [
         {
