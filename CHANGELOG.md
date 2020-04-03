@@ -1,4 +1,31 @@
 
+<a name="v0.11.11"></a>
+## [v0.11.11](https://github.com/garden-io/garden/compare/v0.11.10...v0.11.11) (2020-04-03)
+
+### Bug Fixes
+
+* **cmd:** better error messages in get task-result ([e44c4608](https://github.com/garden-io/garden/commit/e44c4608))
+* **conftest:** ensure policy path is valid POSIX on Windows ([ee12c80d](https://github.com/garden-io/garden/commit/ee12c80d))
+* **core:** fix watch task logic for sourceModules ([#1756](https://github.com/garden-io/garden/issues/1756)) ([1f189bb9](https://github.com/garden-io/garden/commit/1f189bb9))
+* **dashboard:** fix normalize-url to version 4 ([7f34a57b](https://github.com/garden-io/garden/commit/7f34a57b))
+* **k8s:** intermittent errors with volume mounts in build-sync pods ([e6efba8c](https://github.com/garden-io/garden/commit/e6efba8c))
+* **k8s:** cleanup kaniko pod ([#1757](https://github.com/garden-io/garden/issues/1757)) ([bb923adc](https://github.com/garden-io/garden/commit/bb923adc))
+* **k8s:** duplicate text in some error logs ([df7fdf05](https://github.com/garden-io/garden/commit/df7fdf05))
+* **k8s:** warn instead of erroring when remote image status check fails ([534698dc](https://github.com/garden-io/garden/commit/534698dc))
+
+### Features
+
+* **cli:** print basic profiling data when GARDEN_ENABLE_PROFILING=1 ([99b2f045](https://github.com/garden-io/garden/commit/99b2f045))
+* **k8s:** expose nodeSelector field on system PodSpecs ([99390140](https://github.com/garden-io/garden/commit/99390140))
+* **platform:** add client login to CLI ([fabc4720](https://github.com/garden-io/garden/commit/fabc4720))
+
+### Improvements
+
+* **core:** make module resolution faster to reduce startup time ([fbebc7dc](https://github.com/garden-io/garden/commit/fbebc7dc))
+* **k8s:** add default tolerations to system services ([63f0a04c](https://github.com/garden-io/garden/commit/63f0a04c))
+* **k8s:** add more metadata env vars to container Pod specs ([e1d4bf43](https://github.com/garden-io/garden/commit/e1d4bf43))
+* **k8s:** update socat image used for registry proxies ([ec0c99d7](https://github.com/garden-io/garden/commit/ec0c99d7))
+
 <a name="v0.11.10"></a>
 ## [v0.11.10](https://github.com/garden-io/garden/compare/v0.11.9...v0.11.10) (2020-03-25)
 
