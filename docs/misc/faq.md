@@ -51,7 +51,7 @@ Use the [`targetImage` field](https://docs.garden.io/reference/module-types/cont
 
 ### How do I use base images?
 
-See [this example project](https://github.com/garden-io/garden/tree/v0.11.10/examples/base-image).
+See [this example project](https://github.com/garden-io/garden/tree/v0.11.11/examples/base-image).
 
 ### Can I use runtime variables in container builds (e.g. from tasks)?
 
@@ -67,11 +67,11 @@ garden build --log-level debug
 
 ### Can I use a Dockerfile that lives outside the module root?
 
-No. If you have multiple modules that use the same Dockerfile, you should instead have a single base image and then let each module have its own Dockerfile that's built on the base image. See the [base image example project](https://github.com/garden-io/garden/tree/v0.11.10/examples/base-image) for an example of this.
+No. If you have multiple modules that use the same Dockerfile, you should instead have a single base image and then let each module have its own Dockerfile that's built on the base image. See the [base image example project](https://github.com/garden-io/garden/tree/v0.11.11/examples/base-image) for an example of this.
 
 ### How do I include files/dirs (e.g. shared libraries) from outside the module root with the build context?
 
-See [this example project](https://github.com/garden-io/garden/tree/v0.11.10/examples/build-dependencies).
+See [this example project](https://github.com/garden-io/garden/tree/v0.11.11/examples/build-dependencies).
 
 ### How do I add Docker specific flags to the build command?
 
@@ -85,7 +85,7 @@ You can use the `dockerfile` field. For example:
 dockerfile: "${environment.name == 'prod' ? Dockerfile.prod : Dockerfile.dev}"
 ```
 
-See also the [base image example project](https://github.com/garden-io/garden/tree/v0.11.10/examples/base-image) for an example of this.
+See also the [base image example project](https://github.com/garden-io/garden/tree/v0.11.11/examples/base-image) for an example of this.
 
 ## Remote Building
 
