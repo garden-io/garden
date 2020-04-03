@@ -394,6 +394,20 @@ jobs:
           name: Cleanup
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-docker kubectl delete --wait=false $(kubectl get ns -o name | grep testing-$CIRCLE_BUILD_NUM) || true
           when: always
+  cleanup-cluster-registry:
+    docker:
+      - image: gardendev/garden-gcloud:${CIRCLE_SHA1}
+        environment:
+          <<: *shared-env-config
+          GARDEN_TASK_CONCURRENCY_LIMIT: "10"
+    steps:
+      # Need to checkout to run example project
+      - checkout
+      - configure_kubectl_context
+      - *attach-workspace
+      - run:
+          name: Run cluster cleanup
+          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-docker /garden/garden plugins kubernetes cleanup-cluster-registry --root examples/demo-project --env remote --logger-type basic
   release-service-docker:
     <<: *node-config
     steps:
@@ -681,7 +695,7 @@ workflows:
       - build-docker-aws-gcloud:
           <<: *only-internal-prs
           context: docker
-          requires: [build-docker]    
+          requires: [build-docker]
       - build-docker-buster:
           <<: *only-internal-prs
           context: docker
@@ -706,41 +720,66 @@ workflows:
       - e2e-project:
           # Don't attempt to run e2e tests for external PRs (they won't have access to the required keys)
           <<: *only-internal-prs
+          name: e2e-demo-project
           project: demo-project
           environment: remote
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
+          name: e2e-deployment-strategies
           project: deployment-strategies
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
+          name: e2e-hot-reload
           project: hot-reload
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
+          name: e2e-openfaas
           project: openfaas
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
+          name: e2e-project-variables
           project: project-variables
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
+          name: e2e-remote-sources
           project: remote-sources
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
+          name: e2e-tasks
           project: tasks
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
+          name: e2e-vote
           project: vote
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
+          name: e2e-vote-helm
           project: vote-helm
           requires: [build]
+
+      - cleanup-cluster-registry:
+          <<: *only-internal-prs
+          context: docker
+          requires:
+            - e2e-demo-project
+            - e2e-deployment-strategies
+            - e2e-hot-reload
+            - e2e-openfaas
+            - e2e-project-variables
+            - e2e-remote-sources
+            - e2e-tasks
+            - e2e-vote
+            - e2e-vote-helm
+            - test-docker-gcloud
+            - test-windows
 
       ### MASTER ONLY ###
 
