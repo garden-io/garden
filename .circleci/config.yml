@@ -498,9 +498,6 @@ jobs:
             sudo usermod -a -G microk8s circleci
             echo "********* microk8s ready! ************"
 
-            # Allow intra-pod communication
-            sudo iptables -P FORWARD ACCEPT
-
             # Set up kubeconfig and environment
             mkdir -p /home/circleci/.kube
             sudo sh -c 'microk8s.kubectl config view --raw > /home/circleci/.kube/config'
