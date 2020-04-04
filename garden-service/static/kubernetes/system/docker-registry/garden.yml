@@ -4,7 +4,7 @@ name: docker-registry
 type: helm
 chart: stable/docker-registry
 releaseName: garden-docker-registry
-version: 1.8.3
+version: 1.9.2
 values:
   # This is to avoid a multi-attach error when updating
   updateStrategy:
