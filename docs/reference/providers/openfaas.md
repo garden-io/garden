@@ -11,7 +11,7 @@ This provider adds support for [OpenFaaS](https://www.openfaas.com/). It adds th
 
 See the reference below for configuration options for `faas-netes`, and the [module type docs](https://docs.garden.io/reference/module-types/openfaas) for how to configure the individual functions.
 
-Also see the [openfaas example project](https://github.com/garden-io/garden/tree/v0.11.10/examples/openfaas) for a simple usage example.
+Also see the [openfaas example project](https://github.com/garden-io/garden/tree/v0.11.11/examples/openfaas) for a simple usage example.
 
 Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../guides/configuration-files.md).
 

@@ -33,8 +33,8 @@ markComment: >
   This issue has been automatically marked as stale because it hasn't had any
   activity in 60 days. It will be closed in 14 days if no further activity occurs
   (e.g. changing labels, comments, commits, etc.). Please feel free to
-  remove the label if you think it doesn't apply. Thank you for submitting this
-  issue and helping make Garden a better product!
+  tag a maintainer and ask them to remove the label if you think it doesn't apply.
+  Thank you for submitting this issue and helping make Garden a better product!
 
 # Comment to post when removing the stale label.
 # unmarkComment: >

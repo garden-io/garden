@@ -14,7 +14,7 @@ Simply add this provider to your project configuration, and configure your polic
 reference for how to configure default policies, default namespaces, and test failure thresholds for the generated
 modules.
 
-See the [conftest example project](https://github.com/garden-io/garden/tree/v0.11.10/examples/conftest) for a simple
+See the [conftest example project](https://github.com/garden-io/garden/tree/v0.11.11/examples/conftest) for a simple
 usage example.
 
 Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../guides/configuration-files.md).

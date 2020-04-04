@@ -237,7 +237,7 @@ async function updateExampleLinks(version: string) {
     to: `github.com/garden-io/garden/tree/${version}/examples`,
   }
   const results = await replace(options)
-  console.log("Modified files:", results.filter(r => r.hasChanged).map(r => r.file).join(", "))
+  console.log("Modified files:", results.filter(r => r.hasChanged).map(r => r.file).join("\n"))
 }
 
 async function rollBack() {

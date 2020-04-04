@@ -49,9 +49,11 @@ spec:
             periodSeconds: 2
           livenessProbe:
             exec:
-              command: [pidof, rsync]
+              # The volume mount can go stale (for reasons not fully understood). This checks makes sure the volume
+              # mount works and terminates the container if/when the mount fails.
+              command: [stat, /data]
             initialDelaySeconds: 20
-            periodSeconds: 20
+            periodSeconds: 2
           volumeMounts:
             - mountPath: /data
               name: garden-build-sync
