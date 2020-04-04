@@ -1,0 +1,6 @@
+kind: Module
+type: container
+name: socat
+description: The socat image, used for proxy sidecars
+image: gardendev/socat:0.1.0
+dockerfile: Dockerfile

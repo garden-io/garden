@@ -13,14 +13,13 @@ import { BaseTask, TaskType } from "../../../src/tasks/base"
 import { TaskGraph, TaskResult, TaskResults } from "../../../src/task-graph"
 import { makeTestGarden, freezeTime, dataDir, expectError, TestGarden } from "../../helpers"
 import { Garden } from "../../../src/garden"
-import { deepFilter, defer, sleep } from "../../../src/util/util"
-import uuid from "uuid"
+import { deepFilter, defer, sleep, uuidv4 } from "../../../src/util/util"
 
 const projectRoot = join(dataDir, "test-project-empty")
 
-type TestTaskCallback = (name: string, result: any) => Promise<void>
+export type TestTaskCallback = (name: string, result: any) => Promise<void>
 
-interface TestTaskOptions {
+export interface TestTaskOptions {
   callback?: TestTaskCallback
   dependencies?: BaseTask[]
   versionString?: string
@@ -28,12 +27,14 @@ interface TestTaskOptions {
   throwError?: boolean
 }
 
-class TestTask extends BaseTask {
+export class TestTask extends BaseTask {
   type: TaskType = "test"
   name: string
   callback: TestTaskCallback | null
   uid: string
   throwError: boolean
+
+  dependencies: BaseTask[]
 
   constructor(garden: Garden, name: string, force: boolean, options?: TestTaskOptions) {
     super({
@@ -56,6 +57,10 @@ class TestTask extends BaseTask {
     this.uid = options.uid || ""
     this.throwError = !!options.throwError
     this.dependencies = options.dependencies || []
+  }
+
+  async resolveDependencies() {
+    return this.dependencies
   }
 
   getName() {
@@ -102,7 +107,7 @@ describe("task-graph", () => {
       const task = new TestTask(garden, "a", false)
 
       const results = await graph.process([task])
-      const generatedBatchId = results?.a?.batchId || uuid.v4()
+      const generatedBatchId = results?.a?.batchId || uuidv4()
 
       const expected: TaskResults = {
         a: {
@@ -131,7 +136,7 @@ describe("task-graph", () => {
       const task = new TestTask(garden, "a", false)
 
       const result = await graph.process([task])
-      const generatedBatchId = result?.a?.batchId || uuid.v4()
+      const generatedBatchId = result?.a?.batchId || uuidv4()
 
       expect(garden.events.eventLog).to.eql([
         { name: "taskGraphProcessing", payload: { startedAt: now } },
@@ -161,8 +166,19 @@ describe("task-graph", () => {
       ])
     })
 
-    it.skip("should throw if tasks have circular dependencies", async () => {
-      throw new Error("TODO")
+    it("should throw if tasks have circular dependencies", async () => {
+      const garden = await getGarden()
+      const graph = new TaskGraph(garden, garden.log)
+      const taskA = new TestTask(garden, "a", false)
+      const taskB = new TestTask(garden, "b", false, { dependencies: [taskA] })
+      const taskC = new TestTask(garden, "c", false, { dependencies: [taskB] })
+      taskA["dependencies"] = [taskC]
+      const errorMsg = "Circular task dependencies detected:\n\nb <- a <- c <- b\n"
+
+      await expectError(
+        () => graph.process([taskB]),
+        (err) => expect(err.message).to.eql(errorMsg)
+      )
     })
 
     it("should emit events when processing and completing a task", async () => {
@@ -178,7 +194,7 @@ describe("task-graph", () => {
       // repeatedTask has the same key and version as task, so its result is already cached
       const repeatedTask = new TestTask(garden, "a", false)
       const results = await graph.process([repeatedTask])
-      const generatedBatchId = results?.a?.batchId || uuid.v4()
+      const generatedBatchId = results?.a?.batchId || uuidv4()
 
       expect(garden.events.eventLog).to.eql([
         { name: "taskGraphProcessing", payload: { startedAt: now } },
@@ -207,7 +223,7 @@ describe("task-graph", () => {
       const task = new TestTask(garden, "a", false, { throwError: true })
 
       const result = await graph.process([task])
-      const generatedBatchId = result?.a?.batchId || uuid.v4()
+      const generatedBatchId = result?.a?.batchId || uuidv4()
 
       expect(garden.events.eventLog).to.eql([
         { name: "taskGraphProcessing", payload: { startedAt: now } },
@@ -387,7 +403,7 @@ describe("task-graph", () => {
 
       // we should be able to add tasks multiple times and in any order
       const results = await graph.process([taskA, taskB, taskC, taskC, taskD, taskA, taskD, taskB, taskD, taskA])
-      const generatedBatchId = results?.a?.batchId || uuid.v4()
+      const generatedBatchId = results?.a?.batchId || uuidv4()
 
       // repeat
 
@@ -636,7 +652,7 @@ describe("task-graph", () => {
 
       const results = await graph.process([taskA, taskB, taskC, taskD])
 
-      const generatedBatchId = results?.a?.batchId || uuid.v4()
+      const generatedBatchId = results?.a?.batchId || uuidv4()
 
       const resultA: TaskResult = {
         type: "test",
@@ -832,9 +848,14 @@ describe("task-graph", () => {
         const taskC = new TestTask(garden, "c", false)
 
         const tasks = [taskA, taskB, taskC, taskADep1, taskBDep, taskADep2]
-        const taskNodes = await graph.nodesWithDependencies(tasks, false)
+        const taskNodes = await graph["nodesWithDependencies"]({
+          tasks,
+          unlimitedConcurrency: false,
+          dependencyCache: {},
+          stack: [],
+        })
         const batches = graph.partition(taskNodes, { unlimitedConcurrency: false })
-        const batchKeys = batches.map((b) => b.nodes.map((n) => n.getKey()))
+        const batchKeys = batches.map((b) => b.nodes.map((n) => n.key))
 
         expect(batchKeys).to.eql([["a", "a-dep1", "a-dep2"], ["b", "b-dep"], ["c"]])
       })
@@ -877,9 +898,14 @@ describe("task-graph", () => {
           taskC,
         ]
 
-        const taskNodes = await graph.nodesWithDependencies(tasks, false)
+        const taskNodes = await graph["nodesWithDependencies"]({
+          tasks,
+          unlimitedConcurrency: false,
+          dependencyCache: {},
+          stack: [],
+        })
         const batches = graph.partition(taskNodes, { unlimitedConcurrency: false })
-        const batchKeys = batches.map((b) => b.nodes.map((n) => n.getKey()))
+        const batchKeys = batches.map((b) => b.nodes.map((n) => n.key))
 
         expect(batchKeys).to.eql([
           ["a-v1", "a-v1-dep1", "a-v1-dep2"],

@@ -7,19 +7,22 @@
  */
 
 import Joi = require("@hapi/joi")
+import chalk from "chalk"
+import dedent = require("dedent")
+import inquirer = require("inquirer")
 import stripAnsi from "strip-ansi"
-import { GardenError, RuntimeError, InternalError, ParameterError } from "../exceptions"
-import { TaskResults } from "../task-graph"
-import { LoggerType } from "../logger/logger"
-import { ProcessResults } from "../process"
-import { Garden } from "../garden"
-import { LogEntry } from "../logger/log-entry"
-import { printFooter } from "../logger/util"
+
 import { GlobalOptions } from "../cli/cli"
 import { joi } from "../config/common"
-import inquirer = require("inquirer")
-import dedent = require("dedent")
-import chalk from "chalk"
+import { GardenError, InternalError, ParameterError, RuntimeError } from "../exceptions"
+import { Garden } from "../garden"
+import { LogEntry } from "../logger/log-entry"
+import { LoggerType } from "../logger/logger"
+import { printFooter, renderMessageWithDivider } from "../logger/util"
+import { ProcessResults } from "../process"
+import { TaskResults, TaskResult } from "../task-graph"
+import { RunResult } from "../types/plugin/base"
+import { capitalize } from "lodash"
 
 export interface ParameterConstructor<T> {
   help: string
@@ -237,14 +240,14 @@ export interface CommandResult<T = any> {
 }
 
 export interface CommandParamsBase<T extends Parameters = {}, U extends Parameters = {}> {
-  args: ParameterValues<T>
+  args: ParameterValues<T> & { _?: string[] }
   opts: ParameterValues<GlobalOptions & U>
-  log: LogEntry
 }
 
 export interface PrepareParams<T extends Parameters = {}, U extends Parameters = {}> extends CommandParamsBase<T, U> {
   headerLog: LogEntry
   footerLog: LogEntry
+  log: LogEntry
 }
 
 export interface CommandParams<T extends Parameters = {}, U extends Parameters = {}> extends PrepareParams<T, U> {
@@ -262,7 +265,6 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
 
   description?: string
   alias?: string
-  loggerType?: LoggerType
 
   arguments?: T
   options?: U
@@ -301,6 +303,10 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
 
   getSubCommands(): Command[] {
     return this.subCommands.map((cls) => new cls(this))
+  }
+
+  getLoggerType(_: CommandParamsBase<T, U>): LoggerType {
+    return "fancy"
   }
 
   describe() {
@@ -370,7 +376,92 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   }
 }
 
-export async function handleTaskResults(
+export function printResult({
+  log,
+  result,
+  success,
+  actionDescription,
+}: {
+  log: LogEntry
+  result: string
+  success: boolean
+  actionDescription: string
+}) {
+  const prefix = success
+    ? `${capitalize(actionDescription)} output:`
+    : `${capitalize(actionDescription)} failed with error:`
+  const msg = renderMessageWithDivider(prefix, result, !success)
+  success ? log.info(chalk.white(msg)) : log.error(msg)
+}
+
+/**
+ * Handles the command result and logging for commands the return a result of type RunResult. E.g.
+ * the `run test` and `run service` commands.
+ */
+export async function handleRunResult({
+  log,
+  actionDescription,
+  result,
+  interactive,
+}: {
+  log: LogEntry
+  actionDescription: string
+  result: RunResult
+  interactive: boolean
+}): Promise<CommandResult<RunResult>> {
+  if (!interactive && result.log) {
+    printResult({ log, result: result.log, success: result.success, actionDescription })
+  }
+
+  if (!result.success) {
+    const error = new RuntimeError(`${capitalize(actionDescription)} failed!`, {
+      result,
+    })
+    return { errors: [error] }
+  }
+
+  if (!interactive) {
+    printFooter(log)
+  }
+
+  return { result }
+}
+
+/**
+ * Handles the command result and logging for commands the return a result of type TaskResult. E.g.
+ * the `run task` command.
+ */
+export async function handleTaskResult({
+  log,
+  actionDescription,
+  result,
+}: {
+  log: LogEntry
+  actionDescription: string
+  result: TaskResult
+}): Promise<CommandResult<TaskResult>> {
+  // If there's an error, the task graph prints it
+  if (!result.error && result.output.log) {
+    printResult({ log, result: result.output.log, success: true, actionDescription })
+  }
+
+  if (result.error) {
+    const error = new RuntimeError(`${capitalize(actionDescription)} failed!`, {
+      result,
+    })
+    return { errors: [error] }
+  }
+
+  printFooter(log)
+
+  return { result }
+}
+
+/**
+ * Handles the command result and logging for commands the return results of type ProcessResults.
+ * This applies to commands that can run in watch mode.
+ */
+export async function handleProcessResults(
   log: LogEntry,
   taskType: string,
   results: ProcessResults

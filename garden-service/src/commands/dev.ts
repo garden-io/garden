@@ -21,7 +21,7 @@ import {
   CommandResult,
   CommandParams,
   StringsParameter,
-  handleTaskResults,
+  handleProcessResults,
   PrepareParams,
   BooleanParameter,
 } from "./base"
@@ -97,7 +97,8 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
     const data = await readFile(ansiBannerPath)
     log.info(data.toString())
 
-    log.info(chalk.gray.italic(`Good ${getGreetingTime()}! Let's get your environment wired up...\n`))
+    log.info(chalk.gray.italic(`Good ${getGreetingTime()}! Let's get your environment wired up...`))
+    log.info("")
 
     this.server = await startServer(footerLog)
 
@@ -113,7 +114,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
     this.server.setGarden(garden)
 
     const graph = await garden.getConfigGraph(log)
-    const modules = await graph.getModules()
+    const modules = graph.getModules()
 
     const skipTests = opts["skip-tests"]
 
@@ -163,7 +164,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       },
     })
 
-    return handleTaskResults(footerLog, "dev", results)
+    return handleProcessResults(footerLog, "dev", results)
   }
 }
 
@@ -187,6 +188,7 @@ export async function getDevCommandInitialTasks({
       // Build the module (in case there are no tests, tasks or services here that need to be run)
       const buildTasks = await BuildTask.factory({
         garden,
+        graph,
         log,
         module,
         force: false,
@@ -206,7 +208,7 @@ export async function getDevCommandInitialTasks({
           })
 
       // Deploy all enabled services in module
-      const services = await graph.getServices({ names: module.serviceNames, includeDisabled: true })
+      const services = graph.getServices({ names: module.serviceNames, includeDisabled: true })
       const deployTasks = services
         .filter((s) => !s.disabled)
         .map(

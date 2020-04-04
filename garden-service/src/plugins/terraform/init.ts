@@ -10,20 +10,44 @@ import { TerraformProvider } from "./terraform"
 import { GetEnvironmentStatusParams, EnvironmentStatus } from "../../types/plugin/provider/getEnvironmentStatus"
 import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "../../types/plugin/provider/prepareEnvironment"
 import { getRoot, getTfOutputs, getStackStatus, applyStack } from "./common"
+import chalk from "chalk"
+import { deline } from "../../util/string"
 
 export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusParams): Promise<EnvironmentStatus> {
   const provider = ctx.provider as TerraformProvider
 
+  // Return if there is no root stack, or if we're running one of the terraform plugin commands
   if (!provider.config.initRoot) {
-    // Nothing to do!
     return { ready: true, outputs: {} }
   }
 
   const autoApply = provider.config.autoApply
   const root = getRoot(ctx, provider)
   const variables = provider.config.variables
+  const tfVersion = provider.config.version
 
-  return getStackStatus({ log, provider, autoApply, root, variables })
+  const status = await getStackStatus({ log, provider, root, variables })
+
+  if (status === "up-to-date") {
+    const outputs = await getTfOutputs(log, tfVersion, root)
+    return { ready: true, outputs }
+  } else if (status === "outdated") {
+    if (autoApply) {
+      return { ready: false, outputs: {} }
+    } else {
+      log.warn({
+        symbol: "warning",
+        msg: chalk.yellow(deline`
+          Terraform stack is not up-to-date and ${chalk.underline("autoApply")} is not enabled. Please run
+          ${chalk.white.bold("garden plugins terraform apply-root")} to make sure the stack is in the intended state.
+        `),
+      })
+      const outputs = await getTfOutputs(log, tfVersion, root)
+      return { ready: true, outputs }
+    }
+  } else {
+    return { ready: false, outputs: {} }
+  }
 }
 
 export async function prepareEnvironment({ ctx, log }: PrepareEnvironmentParams): Promise<PrepareEnvironmentResult> {
@@ -37,8 +61,9 @@ export async function prepareEnvironment({ ctx, log }: PrepareEnvironmentParams)
   const tfVersion = provider.config.version
   const root = getRoot(ctx, provider)
 
-  if (provider.config.autoApply) {
-    await applyStack(log, provider, root, provider.config.variables)
+  // Don't run apply when running plugin commands
+  if (provider.config.autoApply && !(ctx.command?.name === "plugins" && ctx.command?.args.plugin === provider.name)) {
+    await applyStack({ log, root, variables: provider.config.variables, version: provider.config.version })
   }
 
   const outputs = await getTfOutputs(log, tfVersion, root)

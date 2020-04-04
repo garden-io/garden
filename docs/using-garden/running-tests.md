@@ -39,8 +39,8 @@ You can view test results from the dashboard or by running `garden get test-resu
 
 Tests correspond to a **test** action in the Stack Graph.
 
-- Tests can depend on services, and tasks.
-- Tests implicitly depend on their parent module's build task.
+- **Tests** implicitly depend on the build step of their **parent module**.
+- **Tests** can depend on **services** and **tasks**.
 - Currently, nothing else can depend on tests.
 
 ## Examples

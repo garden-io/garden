@@ -7,12 +7,54 @@
  */
 
 import { expect } from "chai"
-import { makeDummyGarden } from "../../../../src/cli/cli"
+import { makeDummyGarden, GardenCli } from "../../../../src/cli/cli"
 import { getDataDir } from "../../../helpers"
 import { GARDEN_SERVICE_ROOT } from "../../../../src/constants"
 import { join } from "path"
+import { Command } from "../../../../src/commands/base"
 
 describe("cli", () => {
+  describe("run", () => {
+    it("should pass unparsed args to commands", async () => {
+      class TestCommand extends Command {
+        name = "test-command"
+        help = "halp!"
+        noProject = true
+
+        async action({ args }) {
+          return { result: { args } }
+        }
+      }
+
+      const command = new TestCommand()
+      const cli = new GardenCli()
+      cli.addCommand(command, cli["program"])
+
+      const { result } = await cli.parse(["test-command", "some", "args"])
+      expect(result).to.eql({ args: { _: ["some", "args"] } })
+    })
+
+    it(`should configure a dummy environment when command has noProject=true and --env is specified`, async () => {
+      class TestCommand2 extends Command {
+        name = "test-command-2"
+        help = "halp!"
+        noProject = true
+
+        async action({ garden }) {
+          return { result: { environmentName: garden.environmentName } }
+        }
+      }
+
+      const command = new TestCommand2()
+      const cli = new GardenCli()
+      cli.addCommand(command, cli["program"])
+
+      const { result, errors } = await cli.parse(["test-command-2", "--env", "missing-env"])
+      expect(errors).to.eql([])
+      expect(result).to.eql({ environmentName: "missing-env" })
+    })
+  })
+
   describe("makeDummyGarden", () => {
     it("should initialise and resolve config graph in a directory with no project", async () => {
       const garden = await makeDummyGarden(join(GARDEN_SERVICE_ROOT, "tmp", "foobarbas"), {})

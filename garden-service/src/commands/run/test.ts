@@ -7,17 +7,18 @@
  */
 
 import chalk from "chalk"
-import { ParameterError, CommandError } from "../../exceptions"
-import { RunResult } from "../../types/plugin/base"
-import { findByName, getNames } from "../../util/util"
-import { BooleanParameter, Command, CommandParams, CommandResult, StringParameter } from "../base"
-import { printRuntimeContext } from "./run"
-import { prepareRuntimeContext } from "../../runtime-context"
+
+import { CommandError, ParameterError } from "../../exceptions"
 import { printHeader } from "../../logger/util"
-import { TestTask } from "../../tasks/test"
+import { prepareRuntimeContext } from "../../runtime-context"
 import { getRunTaskResults, getServiceStatuses } from "../../tasks/base"
-import { dedent, deline } from "../../util/string"
+import { TestTask } from "../../tasks/test"
+import { RunResult } from "../../types/plugin/base"
 import { testFromConfig } from "../../types/test"
+import { dedent, deline } from "../../util/string"
+import { findByName, getNames } from "../../util/util"
+import { BooleanParameter, Command, CommandParams, CommandResult, handleRunResult, StringParameter } from "../base"
+import { printRuntimeContext } from "./run"
 
 const runArgs = {
   module: new StringParameter({
@@ -32,7 +33,9 @@ const runArgs = {
 
 const runOpts = {
   "interactive": new BooleanParameter({
-    help: "Set to false to skip interactive mode and just output the command result.",
+    help:
+      "Set to false to skip interactive mode and just output the command result. Note that Garden won't retrieve artifacts if set to true (the default).",
+    alias: "i",
     defaultValue: false,
     cliDefault: true,
     cliOnly: true,
@@ -57,8 +60,8 @@ export class RunTestCommand extends Command<Args, Opts> {
 
     Examples:
 
-        garden run test my-module integ            # run the test named 'integ' in my-module
-        garden run test my-module integ --i=false  # do not attach to the test run, just output results when completed
+        garden run test my-module integ                     # run the test named 'integ' in my-module
+        garden run test my-module integ --interactive=false # do not attach to the test run, just output results when completed
   `
 
   arguments = runArgs
@@ -69,7 +72,7 @@ export class RunTestCommand extends Command<Args, Opts> {
     const testName = args.test
 
     const graph = await garden.getConfigGraph(log)
-    const module = await graph.getModule(moduleName, true)
+    const module = graph.getModule(moduleName, true)
 
     const testConfig = findByName(module.testConfigs, testName)
 
@@ -97,6 +100,7 @@ export class RunTestCommand extends Command<Args, Opts> {
     printHeader(headerLog, `Running test ${chalk.cyan(testName)} in module ${chalk.cyan(moduleName)}`, "runner")
 
     const actions = await garden.getActionRouter()
+    const interactive = opts.interactive
 
     // Make sure all dependencies are ready and collect their outputs for the runtime context
     const testTask = await TestTask.factory({
@@ -108,10 +112,10 @@ export class RunTestCommand extends Command<Args, Opts> {
       module,
       testConfig,
     })
-    const dependencyResults = await garden.processTasks(await testTask.getDependencies())
 
-    const interactive = opts.interactive
-    const dependencies = await graph.getDependencies({ nodeType: "test", name: test.name, recursive: false })
+    const dependencyResults = await garden.processTasks(await testTask.resolveDependencies())
+
+    const dependencies = graph.getDependencies({ nodeType: "test", name: test.name, recursive: false })
 
     const serviceStatuses = getServiceStatuses(dependencyResults)
     const taskResults = getRunTaskResults(dependencyResults)
@@ -127,16 +131,20 @@ export class RunTestCommand extends Command<Args, Opts> {
 
     printRuntimeContext(log, runtimeContext)
 
+    if (interactive) {
+      log.root.stop()
+    }
+
     const result = await actions.testModule({
       log,
       module,
+      silent: false,
       interactive,
       runtimeContext,
-      silent: false,
       testConfig,
       testVersion: testTask.version,
     })
 
-    return { result }
+    return handleRunResult({ log, actionDescription: "test", result, interactive })
   }
 }

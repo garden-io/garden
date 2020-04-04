@@ -80,7 +80,7 @@ export const openfaasModuleOutputsSchema = () =>
   })
 
 export interface OpenFaasModule extends Module<OpenFaasModuleSpec, CommonServiceSpec, ExecTestSpec> {}
-export type OpenFaasModuleConfig = OpenFaasModule["_ConfigType"]
+export type OpenFaasModuleConfig = OpenFaasModule["_config"]
 export interface OpenFaasService extends Service<OpenFaasModule> {}
 
 export interface OpenFaasConfig extends ProviderConfig {
@@ -175,7 +175,7 @@ export function getContainerModule(module: OpenFaasModule): ContainerModule {
   return {
     ...containerModule,
     buildPath: join(module.buildPath, "build", module.name),
-    _ConfigType: {
+    _config: {
       ...containerModule,
       serviceConfigs: [],
       taskConfigs: [],

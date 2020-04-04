@@ -19,6 +19,8 @@ import {
   joi,
   includeGuideLink,
   joiPrimitive,
+  DeepPrimitiveMap,
+  joiVariablesDescription,
 } from "./common"
 import { validateWithPath } from "./validation"
 import { resolveTemplateStrings } from "../template-string"
@@ -41,7 +43,7 @@ export const fixedPlugins = ["exec", "container"]
 
 export interface CommonEnvironmentConfig {
   providers?: ProviderConfig[] // further validated by each plugin
-  variables: { [key: string]: Primitive }
+  variables: DeepPrimitiveMap
 }
 
 const environmentConfigKeys = {
@@ -160,7 +162,7 @@ export interface ProjectConfig {
   providers: ProviderConfig[]
   sources?: SourceConfig[]
   varfile?: string
-  variables: PrimitiveMap
+  variables: DeepPrimitiveMap
 }
 
 export interface ProjectResource extends ProjectConfig {
@@ -343,7 +345,9 @@ export const projectDocsSchema = () =>
       `
         )
         .example("custom.env"),
-      variables: joiVariables().description("Variables to configure for all environments."),
+      variables: joiVariables().description(
+        "Key/value map of variables to configure for all environments. " + joiVariablesDescription
+      ),
     })
     .required()
     .description(
@@ -362,11 +366,11 @@ export const projectSchema = () =>
  *
  * @param config raw project configuration
  */
-export async function resolveProjectConfig(config: ProjectConfig, artifactsPath: string): Promise<ProjectConfig> {
+export function resolveProjectConfig(config: ProjectConfig, artifactsPath: string, username: string): ProjectConfig {
   // Resolve template strings for non-environment-specific fields
   const { environments = [] } = config
 
-  const globalConfig = await resolveTemplateStrings(
+  const globalConfig = resolveTemplateStrings(
     {
       apiVersion: config.apiVersion,
       defaultEnvironment: config.defaultEnvironment,
@@ -376,7 +380,7 @@ export async function resolveProjectConfig(config: ProjectConfig, artifactsPath:
       variables: config.variables,
       environments: environments.map((e) => omit(e, ["providers"])),
     },
-    new ProjectConfigContext(artifactsPath)
+    new ProjectConfigContext(artifactsPath, username)
   )
 
   // Validate after resolving global fields
@@ -491,7 +495,7 @@ export async function pickEnvironment(config: ProjectConfig, environmentName: st
     defaultEnvVarfilePath(environmentName)
   )
 
-  const variables: PrimitiveMap = <any>(
+  const variables: DeepPrimitiveMap = <any>(
     merge(merge(config.variables, projectVarfileVars), merge(environmentConfig.variables, envVarfileVars))
   )
 

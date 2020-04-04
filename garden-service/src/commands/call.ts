@@ -35,8 +35,9 @@ interface CallResult {
   response: {
     status: number
     statusText: string
-    headers: GotResponse["headers"]
-    data: string | object
+    headers: GotResponse["headers"] | null
+    data: string | object | null
+    error: string | null
   }
 }
 
@@ -65,7 +66,7 @@ export class CallCommand extends Command<Args> {
 
     // TODO: better error when service doesn't exist
     const graph = await garden.getConfigGraph(log)
-    const service = await graph.getService(serviceName)
+    const service = graph.getService(serviceName)
     // No need for full context, since we're just checking if the service is running.
     const runtimeContext = emptyRuntimeContext
     const actions = await garden.getActionRouter()
@@ -168,34 +169,39 @@ export class CallCommand extends Command<Args> {
     // TODO: add verbose and debug logging (request/response headers etc.)
     let res: GotResponse<string>
     let statusText = ""
+    let error: string | null = null
+    let output: string | object | null = null
 
     try {
       res = await req
       entry.setSuccess()
       statusText = getStatusText(res.statusCode)
       log.info(chalk.green(`${res.statusCode} ${statusText}\n`))
+
+      output = res.body
+
+      if (res.headers["content-type"] === "application/json") {
+        try {
+          output = JSON.parse(res.body)
+        } catch (err) {
+          throw new RuntimeError(`Got content-type=application/json but could not parse output as JSON`, {
+            response: res,
+          })
+        }
+      }
     } catch (err) {
       res = err.response
       entry.setError()
-      statusText = getStatusText(res.statusCode)
-      const error = res ? `${res.statusCode} ${statusText}` : err.message
-      log.info(chalk.red(error + "\n"))
-      return {}
-    }
 
-    let output: string | object = res.body
-
-    if (res.headers["content-type"] === "application/json") {
-      try {
-        output = JSON.parse(res.body)
-      } catch (err) {
-        throw new RuntimeError(`Got content-type=application/json but could not parse output as JSON`, {
-          response: res,
-        })
+      if (res) {
+        statusText = getStatusText(res.statusCode)
       }
+
+      error = err.message
+      log.info(chalk.red(error + "\n"))
     }
 
-    res.body && log.info(chalk.white(res.body))
+    res && res.body && log.info(chalk.white(res.body))
 
     return {
       result: {
@@ -204,8 +210,9 @@ export class CallCommand extends Command<Args> {
         url,
         response: {
           data: output,
-          headers: res.headers,
-          status: res.statusCode,
+          error,
+          headers: res ? res.headers : null,
+          status: res ? res.statusCode : 204,
           statusText,
         },
       },

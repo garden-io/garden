@@ -7,8 +7,7 @@ tocTitle: "`terraform`"
 
 ## Description
 
-This provider allows you to integrate Terraform stacks into your Garden project.
-See the [Terraform guide](https://docs.garden.io/advanced/terraform) for details and usage information.
+This provider allows you to integrate Terraform stacks into your Garden project. See the [Terraform guide](https://docs.garden.io/advanced/terraform) for details and usage information.
 
 Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../guides/configuration-files.md).
 
@@ -29,20 +28,22 @@ providers:
 
     # If set to true, Garden will automatically run `terraform apply -auto-approve` when a stack is not up-to-date.
     # Otherwise, a warning is logged if the stack is out-of-date, and an error thrown if it is missing entirely.
+    #
+    # **Note: This is not recommended for production, or shared environments in general!**
     autoApply: false
 
-    # Specify the path to a Terraform config directory, that should be resolved when initializing the provider.
-    # This is useful when other providers need to be able to reference the outputs from the stack.
+    # Specify the path to a Terraform config directory, that should be resolved when initializing the provider. This
+    # is useful when other providers need to be able to reference the outputs from the stack.
     #
     # See the [Terraform guide](https://docs.garden.io/advanced/terraform) for more information.
     initRoot:
 
-    # A map of variables to use when applying Terraform stacks. You can define these here, in individual `terraform`
-    # module configs, or you can place a `terraform.tfvars` file in each working directory.
+    # A map of variables to use when applying Terraform stacks. You can define these here, in individual
+    # `terraform` module configs, or you can place a `terraform.tfvars` file in each working directory.
     variables:
 
     # The version of Terraform to use.
-    version: 0.12.7
+    version: 0.12.21
 ```
 ## Configuration Keys
 
@@ -94,6 +95,8 @@ providers:
 
 If set to true, Garden will automatically run `terraform apply -auto-approve` when a stack is not up-to-date. Otherwise, a warning is logged if the stack is out-of-date, and an error thrown if it is missing entirely.
 
+**Note: This is not recommended for production, or shared environments in general!**
+
 | Type      | Default | Required |
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
@@ -102,8 +105,7 @@ If set to true, Garden will automatically run `terraform apply -auto-approve` wh
 
 [providers](#providers) > initRoot
 
-Specify the path to a Terraform config directory, that should be resolved when initializing the provider.
-This is useful when other providers need to be able to reference the outputs from the stack.
+Specify the path to a Terraform config directory, that should be resolved when initializing the provider. This is useful when other providers need to be able to reference the outputs from the stack.
 
 See the [Terraform guide](https://docs.garden.io/advanced/terraform) for more information.
 
@@ -115,7 +117,8 @@ See the [Terraform guide](https://docs.garden.io/advanced/terraform) for more in
 
 [providers](#providers) > variables
 
-A map of variables to use when applying Terraform stacks. You can define these here, in individual `terraform` module configs, or you can place a `terraform.tfvars` file in each working directory.
+A map of variables to use when applying Terraform stacks. You can define these here, in individual
+`terraform` module configs, or you can place a `terraform.tfvars` file in each working directory.
 
 | Type     | Required |
 | -------- | -------- |
@@ -127,7 +130,7 @@ A map of variables to use when applying Terraform stacks. You can define these h
 
 The version of Terraform to use.
 
-| Type     | Default    | Required |
-| -------- | ---------- | -------- |
-| `string` | `"0.12.7"` | No       |
+| Type     | Default     | Required |
+| -------- | ----------- | -------- |
+| `string` | `"0.12.21"` | No       |
 

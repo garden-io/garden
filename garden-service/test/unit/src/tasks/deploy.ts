@@ -137,7 +137,7 @@ describe("DeployTask", () => {
 
   describe("getDependencies", () => {
     it("should always return task dependencies having force = false", async () => {
-      const testService = await graph.getService("test-service")
+      const testService = graph.getService("test-service")
 
       const forcedDeployTask = new DeployTask({
         garden,
@@ -149,7 +149,7 @@ describe("DeployTask", () => {
         log: garden.log,
       })
 
-      expect((await forcedDeployTask.getDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
+      expect((await forcedDeployTask.resolveDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
 
       const unforcedDeployTask = new DeployTask({
         garden,
@@ -161,7 +161,7 @@ describe("DeployTask", () => {
         log: garden.log,
       })
 
-      expect((await unforcedDeployTask.getDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
+      expect((await unforcedDeployTask.resolveDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
 
       const deployTaskFromWatch = new DeployTask({
         garden,
@@ -173,13 +173,13 @@ describe("DeployTask", () => {
         log: garden.log,
       })
 
-      expect((await deployTaskFromWatch.getDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
+      expect((await deployTaskFromWatch.resolveDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
     })
   })
 
   describe("process", () => {
     it("should correctly resolve runtime outputs from tasks", async () => {
-      const testService = await graph.getService("test-service")
+      const testService = graph.getService("test-service")
 
       const deployTask = new DeployTask({
         garden,

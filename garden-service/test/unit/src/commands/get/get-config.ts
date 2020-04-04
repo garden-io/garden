@@ -13,9 +13,6 @@ import { sortBy } from "lodash"
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 
 describe("GetConfigCommand", () => {
-  const pluginName = "test-plugin"
-  const provider = pluginName
-
   it("should get the project configuration", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
@@ -26,7 +23,7 @@ describe("GetConfigCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { provider },
+      args: {},
       opts: withDefaultGlobalOpts({ "exclude-disabled": false }),
     })
 
@@ -36,7 +33,7 @@ describe("GetConfigCommand", () => {
       environmentName: garden.environmentName,
       providers,
       variables: garden.variables,
-      moduleConfigs: sortBy(await garden["resolveModuleConfigs"](log), "name"),
+      moduleConfigs: sortBy(await garden.resolveModules({ log }), "name").map((m) => m._config),
       projectRoot: garden.projectRoot,
     }
 
@@ -63,7 +60,7 @@ describe("GetConfigCommand", () => {
         spec: {
           services: [
             {
-              name: "service",
+              name: "service-a",
               dependencies: [],
               disabled: false,
               spec: {},
@@ -87,7 +84,7 @@ describe("GetConfigCommand", () => {
         spec: {
           services: [
             {
-              name: "service",
+              name: "service-b",
               dependencies: [],
               disabled: false,
               spec: {},
@@ -104,14 +101,13 @@ describe("GetConfigCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { provider },
+      args: {},
       opts: withDefaultGlobalOpts({ "exclude-disabled": true }),
     })
 
     const providers = await garden.resolveProviders()
 
-    // Remove the disabled config, the first one in the array
-    let expectedModuleConfigs = sortBy(await garden["resolveModuleConfigs"](log), "name").slice(1)
+    const expectedModuleConfigs = sortBy(await garden.resolveModules({ log }), "name").map((m) => m._config)
 
     const config = {
       environmentName: garden.environmentName,
@@ -121,6 +117,7 @@ describe("GetConfigCommand", () => {
       projectRoot: garden.projectRoot,
     }
 
+    expect(expectedModuleConfigs.length).to.equal(1)
     expect(config).to.deep.equal(res.result)
   })
 
@@ -176,13 +173,13 @@ describe("GetConfigCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { provider },
+      args: {},
       opts: withDefaultGlobalOpts({ "exclude-disabled": true }),
     })
 
     const providers = await garden.resolveProviders()
 
-    const expectedModuleConfigs = await garden["resolveModuleConfigs"](log)
+    const expectedModuleConfigs = (await garden.resolveModules({ log })).map((m) => m._config)
     // Remove the disabled service
     expectedModuleConfigs[0].serviceConfigs = [
       {
@@ -271,13 +268,13 @@ describe("GetConfigCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { provider },
+      args: {},
       opts: withDefaultGlobalOpts({ "exclude-disabled": true }),
     })
 
     const providers = await garden.resolveProviders()
 
-    const expectedModuleConfigs = await garden["resolveModuleConfigs"](log)
+    const expectedModuleConfigs = (await garden.resolveModules({ log })).map((m) => m._config)
     // Remove the disabled task
     expectedModuleConfigs[0].taskConfigs = [
       {
@@ -365,13 +362,13 @@ describe("GetConfigCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { provider },
+      args: {},
       opts: withDefaultGlobalOpts({ "exclude-disabled": true }),
     })
 
     const providers = await garden.resolveProviders()
 
-    const expectedModuleConfigs = await garden["resolveModuleConfigs"](log)
+    const expectedModuleConfigs = (await garden.resolveModules({ log })).map((m) => m._config)
     // Remove the disabled task
     expectedModuleConfigs[0].testConfigs = [
       {

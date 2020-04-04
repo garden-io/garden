@@ -36,23 +36,49 @@ export async function getModuleWatchTasks({
 }): Promise<BaseTask[]> {
   let buildTasks: BaseTask[] = []
 
-  const dependants = await graph.getDependantsForModule(module, true)
+  const dependants = graph.getDependantsForModule(module, true)
 
-  if (intersection(module.serviceNames, hotReloadServiceNames).length === 0) {
+  const dependantSourceModules = dependants.build.filter((depModule) =>
+    depModule.serviceConfigs.find((s) => s.sourceModuleName === module.name)
+  )
+
+  const dependantSourceModuleServiceNames = flatten(
+    dependantSourceModules.map((depModule) => {
+      return depModule.serviceConfigs.filter((s) => s.sourceModuleName === module.name).map((s) => s.name)
+    })
+  )
+
+  const serviceNamesUsingModule = [...module.serviceNames, ...dependantSourceModuleServiceNames]
+
+  /**
+   * If a service is deployed with hot reloading enabled, we don't rebuild its module
+   * (or its sourceModule, if the service instead uses a sourceModule) when its
+   * sources change.
+   *
+   * Therefore, we skip adding a build task for module if one of its services is in
+   * hotReloadServiceNames, or if one of its build dependants' services is in
+   * hotReloadServiceNames and has module as its sourceModule (in which case we
+   * also don't add a build task for the dependant's module below).
+   */
+  if (intersection(serviceNamesUsingModule, hotReloadServiceNames).length === 0) {
     buildTasks = await BuildTask.factory({
       garden,
+      graph,
       log,
       module,
       force: true,
     })
   }
 
+  const dependantSourceModuleNames = dependantSourceModules.map((m) => m.name)
+
   const dependantBuildTasks = flatten(
     await Bluebird.map(
-      dependants.build.filter((m) => !m.disabled),
+      dependants.build.filter((m) => !m.disabled && !dependantSourceModuleNames.includes(m.name)),
       (m) =>
         BuildTask.factory({
           garden,
+          graph,
           log,
           module: m,
           force: false,
@@ -76,7 +102,7 @@ export async function getModuleWatchTasks({
         })
     )
 
-  const hotReloadServices = await graph.getServices({ names: hotReloadServiceNames, includeDisabled: true })
+  const hotReloadServices = graph.getServices({ names: hotReloadServiceNames, includeDisabled: true })
   const hotReloadTasks = hotReloadServices
     .filter(
       (service) =>

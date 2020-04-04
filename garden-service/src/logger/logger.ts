@@ -16,9 +16,10 @@ import { BasicTerminalWriter } from "./writers/basic-terminal-writer"
 import { FancyTerminalWriter } from "./writers/fancy-terminal-writer"
 import { JsonTerminalWriter } from "./writers/json-terminal-writer"
 import { parseLogLevel } from "../cli/helpers"
+import { FullscreenTerminalWriter } from "./writers/fullscreen-terminal-writer"
 
-export type LoggerType = "quiet" | "basic" | "fancy" | "json"
-export const LOGGER_TYPES = new Set<LoggerType>(["quiet", "basic", "fancy", "json"])
+export type LoggerType = "quiet" | "basic" | "fancy" | "fullscreen" | "json"
+export const LOGGER_TYPES = new Set<LoggerType>(["quiet", "basic", "fancy", "fullscreen", "json"])
 
 export function getWriterInstance(loggerType: LoggerType, level: LogLevel) {
   switch (loggerType) {
@@ -26,6 +27,8 @@ export function getWriterInstance(loggerType: LoggerType, level: LogLevel) {
       return new BasicTerminalWriter(level)
     case "fancy":
       return new FancyTerminalWriter(level)
+    case "fullscreen":
+      return new FullscreenTerminalWriter(level)
     case "json":
       return new JsonTerminalWriter(level)
     case "quiet":
@@ -54,7 +57,7 @@ export class Logger extends LogNode {
 
   static initialize(config: LoggerConfig): Logger {
     if (Logger.instance) {
-      throw new InternalError("Logger already initialized", {})
+      return Logger.instance
     }
 
     let instance: Logger
@@ -95,7 +98,7 @@ export class Logger extends LogNode {
     return instance
   }
 
-  private constructor(config: LoggerConfig) {
+  constructor(config: LoggerConfig) {
     super(config.level)
     this.writers = config.writers || []
     this.useEmoji = config.useEmoji === false ? false : true
@@ -133,6 +136,10 @@ export class Logger extends LogNode {
   stop(): void {
     this.getLogEntries().forEach((e) => e.stop())
     this.writers.forEach((writer) => writer.stop())
+  }
+
+  cleanup(): void {
+    this.writers.forEach((writer) => writer.cleanup())
   }
 }
 

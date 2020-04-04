@@ -28,7 +28,7 @@ import {
 export type KubernetesModuleSpec = KubernetesServiceSpec
 
 export interface KubernetesModule extends Module<KubernetesModuleSpec, KubernetesServiceSpec> {}
-export type KubernetesModuleConfig = KubernetesModule["_ConfigType"]
+export type KubernetesModuleConfig = KubernetesModule["_config"]
 
 export interface KubernetesServiceSpec {
   dependencies: string[]

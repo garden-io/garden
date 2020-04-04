@@ -9,7 +9,7 @@ tocTitle: "`local-kubernetes`"
 
 The `local-kubernetes` provider is a specialized version of the [`kubernetes` provider](https://docs.garden.io/reference/providers/kubernetes) that automates and simplifies working with local Kubernetes clusters.
 
-For general Kubernetes usage information, please refer to the [guides section](https://docs.garden.io/guides). For local clusters a good place to start is the [Local Kubernetes guide](https://docs.garden.io/guides/local-kubernetes) guide. The [demo-project](https://docs.garden.io/examples/demo-project) example project and guide are also helpful as an introduction.
+For general Kubernetes usage information, please refer to the [guides section](https://docs.garden.io/guides). For local clusters a good place to start is the [Local Kubernetes guide](https://docs.garden.io/guides/local-kubernetes) guide. The [demo-project](https://docs.garden.io/example-projects/demo-project) example project and guide are also helpful as an introduction.
 
 If you're working with a remote Kubernetes cluster, please refer to the [`kubernetes` provider](https://docs.garden.io/reference/providers/kubernetes) docs, and the [Remote Kubernetes guide](https://docs.garden.io/guides/remote-kubernetes) guide.
 
@@ -210,14 +210,14 @@ providers:
 
         # Set to `cert-manager` to configure [cert-manager](https://github.com/jetstack/cert-manager) to manage this
         # certificate. See our
-        # [cert-manager integration guide](https://docs.garden.io/guides/cert-manager-integration) for details.
+        # [cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
         managedBy:
 
     # cert-manager configuration, for creating and managing TLS certificates. See the
-    # [cert-manager guide](https://docs.garden.io/guides/cert-manager-integration) for details.
+    # [cert-manager guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
     certManager:
       # Automatically install `cert-manager` on initialization. See the
-      # [cert-manager integration guide](https://docs.garden.io/guides/cert-manager-integration) for details.
+      # [cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
       install: false
 
       # The email to use when requesting Let's Encrypt certificates.
@@ -233,6 +233,12 @@ providers:
       # The type of ACME challenge used to validate hostnames and generate the certificates (only HTTP-01 is supported
       # for now).
       acmeChallengeType: HTTP-01
+
+    # Exposes the `nodeSelector` field on the PodSpec of system services. This allows you to constrain
+    # the system services to only run on particular nodes. [See
+    # here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to
+    # assigning Pods to nodes.
+    systemNodeSelector: {}
 
     # For setting tolerations on the registry-proxy when using in-cluster building.
     # The registry-proxy is a DaemonSet that proxies connections to the docker registry service on each node.
@@ -1060,7 +1066,7 @@ The namespace where the secret is stored. If necessary, the secret may be copied
 
 Set to `cert-manager` to configure [cert-manager](https://github.com/jetstack/cert-manager) to manage this
 certificate. See our
-[cert-manager integration guide](https://docs.garden.io/guides/cert-manager-integration) for details.
+[cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1079,7 +1085,7 @@ providers:
 [providers](#providers) > certManager
 
 cert-manager configuration, for creating and managing TLS certificates. See the
-[cert-manager guide](https://docs.garden.io/guides/cert-manager-integration) for details.
+[cert-manager guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1090,7 +1096,7 @@ cert-manager configuration, for creating and managing TLS certificates. See the
 [providers](#providers) > [certManager](#providerscertmanager) > install
 
 Automatically install `cert-manager` on initialization. See the
-[cert-manager integration guide](https://docs.garden.io/guides/cert-manager-integration) for details.
+[cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -1170,6 +1176,25 @@ providers:
   - certManager:
       ...
       acmeChallengeType: "HTTP-01"
+```
+
+### `providers[].systemNodeSelector`
+
+[providers](#providers) > systemNodeSelector
+
+Exposes the `nodeSelector` field on the PodSpec of system services. This allows you to constrain
+the system services to only run on particular nodes. [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
+
+Example:
+
+```yaml
+providers:
+  - systemNodeSelector:
+        disktype: ssd
 ```
 
 ### `providers[].registryProxyTolerations[]`

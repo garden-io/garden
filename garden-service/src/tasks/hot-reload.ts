@@ -12,6 +12,7 @@ import { BaseTask, TaskType } from "./base"
 import { Service } from "../types/service"
 import { Garden } from "../garden"
 import { ConfigGraph } from "../config-graph"
+import { Profile } from "../util/profiling"
 
 interface Params {
   force: boolean
@@ -22,6 +23,7 @@ interface Params {
   service: Service
 }
 
+@Profile()
 export class HotReloadTask extends BaseTask {
   type: TaskType = "hot-reload"
 
@@ -34,6 +36,10 @@ export class HotReloadTask extends BaseTask {
     // this.graph = graph
     // this.hotReloadServiceNames = hotReloadServiceNames || []
     this.service = service
+  }
+
+  async resolveDependencies() {
+    return []
   }
 
   getName() {

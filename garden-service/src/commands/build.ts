@@ -12,7 +12,7 @@ import {
   Command,
   CommandResult,
   CommandParams,
-  handleTaskResults,
+  handleProcessResults,
   StringsParameter,
   PrepareParams,
 } from "./base"
@@ -84,16 +84,16 @@ export class BuildCommand extends Command<Args, Opts> {
     await garden.clearBuilds()
 
     const graph = await garden.getConfigGraph(log)
-    const modules = await graph.getModules({ names: args.modules })
+    const modules = graph.getModules({ names: args.modules })
     const moduleNames = modules.map((m) => m.name)
 
     const initialTasks = flatten(
-      await Bluebird.map(modules, (module) => BuildTask.factory({ garden, log, module, force: opts.force }))
+      await Bluebird.map(modules, (module) => BuildTask.factory({ garden, graph, log, module, force: opts.force }))
     )
 
     const results = await processModules({
       garden,
-      graph: await garden.getConfigGraph(log),
+      graph,
       log,
       footerLog,
       modules,
@@ -104,11 +104,11 @@ export class BuildCommand extends Command<Args, Opts> {
         const tasks = [module]
           .concat(deps.build)
           .filter((m) => moduleNames.includes(m.name))
-          .map((m) => BuildTask.factory({ garden, log, module: m, force: true }))
+          .map((m) => BuildTask.factory({ garden, graph, log, module: m, force: true }))
         return flatten(await Promise.all(tasks))
       },
     })
 
-    return handleTaskResults(footerLog, "build", results)
+    return handleProcessResults(footerLog, "build", results)
   }
 }

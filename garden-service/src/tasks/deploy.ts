@@ -21,6 +21,7 @@ import { TaskResults } from "../task-graph"
 import { prepareRuntimeContext } from "../runtime-context"
 import { GetServiceStatusTask } from "./get-service-status"
 import { GetTaskResultTask } from "./get-task-result"
+import { Profile } from "../util/profiling"
 
 export interface DeployTaskParams {
   garden: Garden
@@ -33,6 +34,7 @@ export interface DeployTaskParams {
   hotReloadServiceNames?: string[]
 }
 
+@Profile()
 export class DeployTask extends BaseTask {
   type: TaskType = "deploy"
 
@@ -60,7 +62,7 @@ export class DeployTask extends BaseTask {
     this.hotReloadServiceNames = hotReloadServiceNames
   }
 
-  async getDependencies() {
+  async resolveDependencies() {
     const dg = this.graph
 
     // We filter out service dependencies on services configured for hot reloading (if any)
@@ -131,6 +133,7 @@ export class DeployTask extends BaseTask {
 
       const buildTasks = await BuildTask.factory({
         garden: this.garden,
+        graph: this.graph,
         log: this.log,
         module: this.service.module,
         force: this.forceBuild,
@@ -152,7 +155,7 @@ export class DeployTask extends BaseTask {
     let version = this.version
     const hotReload = includes(this.hotReloadServiceNames, this.service.name)
 
-    const dependencies = await this.graph.getDependencies({
+    const dependencies = this.graph.getDependencies({
       nodeType: "deploy",
       name: this.getName(),
       recursive: false,

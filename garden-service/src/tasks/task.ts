@@ -20,6 +20,7 @@ import { BuildTask } from "./build"
 import { RunTaskResult } from "../types/plugin/task/runTask"
 import { TaskResults } from "../task-graph"
 import { GetTaskResultTask } from "./get-task-result"
+import { Profile } from "../util/profiling"
 
 export interface TaskTaskParams {
   garden: Garden
@@ -36,6 +37,7 @@ class RunTaskError extends Error {
   }
 }
 
+@Profile()
 export class TaskTask extends BaseTask {
   // ... to be renamed soon.
   type: TaskType = "task"
@@ -58,16 +60,16 @@ export class TaskTask extends BaseTask {
     return new TaskTask({ ...initArgs, version })
   }
 
-  async getDependencies(): Promise<BaseTask[]> {
+  async resolveDependencies(): Promise<BaseTask[]> {
     const buildTasks = await BuildTask.factory({
       garden: this.garden,
+      graph: this.graph,
       log: this.log,
       module: this.task.module,
       force: this.forceBuild,
     })
 
-    const dg = await this.garden.getConfigGraph(this.log)
-    const deps = await dg.getDependencies({ nodeType: "run", name: this.getName(), recursive: false })
+    const deps = this.graph.getDependencies({ nodeType: "run", name: this.getName(), recursive: false })
 
     const deployTasks = deps.deploy.map((service) => {
       return new DeployTask({
@@ -133,7 +135,7 @@ export class TaskTask extends BaseTask {
       status: "active",
     })
 
-    const dependencies = await this.graph.getDependencies({ nodeType: "run", name: this.getName(), recursive: false })
+    const dependencies = this.graph.getDependencies({ nodeType: "run", name: this.getName(), recursive: false })
 
     const serviceStatuses = getServiceStatuses(dependencyResults)
     const taskResults = getRunTaskResults(dependencyResults)
@@ -181,6 +183,6 @@ export class TaskTask extends BaseTask {
  */
 export async function getTaskVersion(garden: Garden, graph: ConfigGraph, task: Task): Promise<ModuleVersion> {
   const { module } = task
-  const moduleDeps = await graph.resolveDependencyModules(module.build.dependencies, task.config.dependencies)
+  const moduleDeps = graph.resolveDependencyModules(module.build.dependencies, task.config.dependencies)
   return garden.resolveVersion(module, moduleDeps)
 }

@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 import chalk from "chalk"
-import { padEnd, keyBy, flatten } from "lodash"
+import { keyBy, flatten } from "lodash"
 
 import { Module } from "./types/module"
 import { BaseTask } from "./tasks/base"
@@ -20,7 +20,7 @@ import { ConfigGraph } from "./config-graph"
 import { dedent } from "./util/string"
 import { ConfigurationError } from "./exceptions"
 import { uniqByName } from "./util/util"
-import { printEmoji } from "./logger/util"
+import { printEmoji, renderDivider } from "./logger/util"
 
 export type ProcessHandler = (graph: ConfigGraph, module: Module) => Promise<BaseTask[]>
 
@@ -63,16 +63,17 @@ export async function processModules({
     .map((msg) => "  " + msg) // indent list
 
   if (linkedModulesMsg.length > 0) {
-    const divider = padEnd("", 80, "—")
-    log.info(divider)
+    log.info(renderDivider())
     log.info(chalk.gray(`Following modules are linked to a local path:\n${linkedModulesMsg.join("\n")}`))
-    log.info(divider)
+    log.info(renderDivider())
   }
 
   if (watch && !!footerLog) {
+    footerLog.info("")
+
     garden.events.on("taskGraphProcessing", () => {
       const emoji = printEmoji("hourglass_flowing_sand", footerLog)
-      footerLog.setState(`\n${emoji} Processing...`)
+      footerLog.setState(`${emoji} Processing...`)
     })
   }
 
@@ -85,7 +86,7 @@ export async function processModules({
     }
   }
 
-  const deps = await graph.getDependenciesForMany({
+  const deps = graph.getDependenciesForMany({
     nodeType: "build",
     names: modules.map((m) => m.name),
     recursive: true,
@@ -97,8 +98,7 @@ export async function processModules({
 
   const waiting = () => {
     if (!!footerLog) {
-      const emoji = printEmoji("clock2", footerLog)
-      footerLog.setState(`\n${emoji} ${chalk.gray("Waiting for code changes...")}`)
+      footerLog.setState({ emoji: "clock2", msg: chalk.gray("Waiting for code changes...") })
     }
 
     garden.events.emit("watchingForChanges", {})
@@ -174,7 +174,7 @@ export async function processModules({
       }
 
       // Make sure the modules' versions are up to date.
-      const changedModules = await graph.getModules({ names: changedModuleNames })
+      const changedModules = graph.getModules({ names: changedModuleNames })
 
       const moduleTasks = flatten(
         await Bluebird.map(changedModules, async (m) => {

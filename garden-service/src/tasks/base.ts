@@ -15,6 +15,7 @@ import { pickBy, mapValues, mapKeys } from "lodash"
 import { ServiceStatus } from "../types/service"
 import { RunTaskResult } from "../types/plugin/task/runTask"
 import { splitLast } from "../util/util"
+import { Profile } from "../util/profiling"
 
 export type TaskType =
   | "build"
@@ -24,6 +25,8 @@ export type TaskType =
   | "get-task-result"
   | "hot-reload"
   | "publish"
+  | "resolve-module-config"
+  | "resolve-module"
   | "resolve-provider"
   | "stage-build"
   | "task"
@@ -42,6 +45,7 @@ export interface TaskParams {
   version: ModuleVersion
 }
 
+@Profile()
 export abstract class BaseTask {
   abstract type: TaskType
   garden: Garden
@@ -50,19 +54,27 @@ export abstract class BaseTask {
   force: boolean
   version: ModuleVersion
 
-  dependencies: BaseTask[]
+  _resolvedDependencies?: BaseTask[]
 
   constructor(initArgs: TaskParams) {
     this.garden = initArgs.garden
-    this.dependencies = []
     this.uid = uuidv1() // uuidv1 is timestamp-based
     this.force = !!initArgs.force
     this.version = initArgs.version
     this.log = initArgs.log
   }
 
+  abstract async resolveDependencies(): Promise<BaseTask[]>
+
+  /**
+   * Wrapper around resolveDependencies() that memoizes the results.
+   */
   async getDependencies(): Promise<BaseTask[]> {
-    return this.dependencies
+    if (!this._resolvedDependencies) {
+      this._resolvedDependencies = await this.resolveDependencies()
+    }
+
+    return this._resolvedDependencies
   }
 
   abstract getName(): string

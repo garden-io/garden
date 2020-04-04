@@ -1,3 +1,8 @@
+---
+order: 3
+title: Telemetry
+---
+
 # Telemetry
 
 Whenever you run a Garden command we collect anonymized telemetry and send it to [Segment.io](https://segment.io).
@@ -47,6 +52,7 @@ Sent every time a Garden command is run.
       testsCount: 2
     },
     projectName: 'c333b9667097f729ecfdadeb89b200663a6783290e4e2e65004cd74b4570a5c0',
+    ciName: 'CircleCI',
     sessionId: 'dcb9738d-ed92-4e5b-a85c-ed219eb99829',
     system: {
       gardenVersion: '0.10.16',
@@ -79,6 +85,7 @@ Sent for each event triggered by the Stack Graph.
       numberOfTests: 5
     },
     projectName: 'a738fa3f8e942e6101e0cf3c86b5a3261107ec18dd448a96f3b3ce96b9ff7a10',
+    ciName: 'CircleCI',
     sessionId: '0045487d-4859-4826-b53f-c4f77719a945',
     system: {
       gardenVersion: '0.10.16',
@@ -115,6 +122,7 @@ Sent whenever the Dashboard makes an API call to Garden.
       numberOfTests: 5
     },
     projectName: 'a738fa3f8e942e6101e0cf3c86b5a3261107ec18dd448a96f3b3ce96b9ff7a10',
+    ciName: 'CircleCI',
     sessionId: 'd801253b-746f-432f-99c6-d82fad953b9c',
     system: {
       gardenVersion: '0.10.16',

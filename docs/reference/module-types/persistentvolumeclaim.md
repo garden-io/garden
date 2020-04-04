@@ -103,7 +103,7 @@ build:
           target: ''
 
 # List of services and tasks to deploy/run before deploying this PVC.
-dependencies:
+dependencies: []
 
 # The namespace to deploy the PVC in. Note that any module referencing the PVC must be in the same namespace, so in
 # most cases you should leave this unset.
@@ -361,13 +361,13 @@ Defaults to to same as source path.
 | ----------- | ------- | -------- |
 | `posixPath` | `""`    | No       |
 
-### `dependencies`
+### `dependencies[]`
 
 List of services and tasks to deploy/run before deploying this PVC.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[string]` | `[]`    | No       |
 
 ### `namespace`
 

@@ -33,7 +33,7 @@ describe("kubernetes task results", () => {
     it("should trim logs when necessary", async () => {
       const ctx = garden.getPluginContext(provider)
       const graph = await garden.getConfigGraph(garden.log)
-      const task = await graph.getTask("echo-task")
+      const task = graph.getTask("echo-task")
 
       const data = randomString(1024 * 1024)
 

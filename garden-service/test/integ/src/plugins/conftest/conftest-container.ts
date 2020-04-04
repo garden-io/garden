@@ -34,8 +34,8 @@ describe("conftest-container provider", () => {
     })
 
     const graph = await garden.getConfigGraph(garden.log)
-    const containerModule = await graph.getModule("container")
-    const module = await graph.getModule("conftest-container")
+    const containerModule = graph.getModule("container")
+    const module = graph.getModule("conftest-container")
 
     expect(module.path).to.equal(containerModule.path)
     expect(module.spec).to.eql({
@@ -69,7 +69,7 @@ describe("conftest-container provider", () => {
     })
 
     let graph = await garden.getConfigGraph(garden.log)
-    const containerModule = await graph.getModule("container")
+    const containerModule = graph.getModule("container")
 
     garden["moduleConfigs"] = {
       foo: {
@@ -89,7 +89,7 @@ describe("conftest-container provider", () => {
     }
 
     graph = await garden.getConfigGraph(garden.log)
-    const module = await graph.getModule("conftest-foo")
+    const module = graph.getModule("conftest-foo")
 
     expect(module.path).to.equal(projectRoot)
     expect(module.spec).to.eql({

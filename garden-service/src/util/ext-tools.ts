@@ -10,13 +10,12 @@ import { platform } from "os"
 import { pathExists, createWriteStream, ensureDir, chmod, remove, move } from "fs-extra"
 import { ConfigurationError, ParameterError, GardenBaseError } from "../exceptions"
 import { join, dirname, basename, sep } from "path"
-import { hashString, exec } from "./util"
+import { hashString, exec, uuidv4 } from "./util"
 import tar from "tar"
 import { SupportedPlatform, GARDEN_GLOBAL_PATH } from "../constants"
 import { LogEntry } from "../logger/log-entry"
 import { Extract } from "unzipper"
 import { createHash } from "crypto"
-import uuid from "uuid"
 import crossSpawn from "cross-spawn"
 import { spawn } from "./util"
 import { Writable } from "stream"
@@ -102,7 +101,7 @@ export class Library {
         return
       }
 
-      const tmpPath = join(this.toolPath, this.versionDirname + "." + uuid.v4().substr(0, 8))
+      const tmpPath = join(this.toolPath, this.versionDirname + "." + uuidv4().substr(0, 8))
       const targetAbsPath = join(tmpPath, ...this.targetSubpath)
 
       const logEntry = log.info({
@@ -303,7 +302,7 @@ export class BinaryCmd extends Library {
     return JSON.parse(out)
   }
 
-  async spawn({ args, cwd, env, log }: ExecParams) {
+  async spawn({ args, cwd, env, log }: SpawnParams) {
     const path = await this.getPath(log)
 
     if (!args) {

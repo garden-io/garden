@@ -71,6 +71,20 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
       }
       await api.upsert({ kind: "Secret", namespace: "default", obj: authSecret, log: garden.log })
     }
+
+    const credentialHelperAuth: KubernetesResource<V1Secret> = {
+      apiVersion: "v1",
+      kind: "Secret",
+      type: "kubernetes.io/dockerconfigjson",
+      metadata: {
+        name: "test-cred-helper-auth",
+        namespace: "default",
+      },
+      stringData: {
+        ".dockerconfigjson": JSON.stringify({ credHelpers: {}, experimental: "enabled" }),
+      },
+    }
+    await api.upsert({ kind: "Secret", namespace: "default", obj: credentialHelperAuth, log: garden.log })
   }
 
   const provider = <KubernetesProvider>await garden.resolveProvider("local-kubernetes")
@@ -78,7 +92,7 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
 
   if (needsInit) {
     // Run cluster-init
-    await clusterInit.handler({ ctx, log: garden.log })
+    await clusterInit.handler({ ctx, log: garden.log, args: [], modules: [] })
     initializedEnv = environmentName
   }
 
@@ -117,7 +131,7 @@ describe("kubernetes container module handlers", () => {
     })
 
     it("should run a basic module", async () => {
-      const module = await graph.getModule("simple")
+      const module = graph.getModule("simple")
       const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
 
       const result = await runAndCopy({
@@ -136,7 +150,7 @@ describe("kubernetes container module handlers", () => {
     })
 
     it("should clean up the created container", async () => {
-      const module = await graph.getModule("simple")
+      const module = graph.getModule("simple")
       const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
       const podName = makePodName("test", module.name)
 
@@ -162,7 +176,7 @@ describe("kubernetes container module handlers", () => {
     })
 
     it("should return with success=false when command exceeds timeout", async () => {
-      const task = await graph.getTask("artifacts-task")
+      const task = graph.getTask("artifacts-task")
       const module = task.module
       const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
 
@@ -186,7 +200,7 @@ describe("kubernetes container module handlers", () => {
 
     context("artifacts are specified", () => {
       it("should copy artifacts out of the container", async () => {
-        const task = await graph.getTask("artifacts-task")
+        const task = graph.getTask("artifacts-task")
         const module = task.module
         const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
 
@@ -210,7 +224,7 @@ describe("kubernetes container module handlers", () => {
       })
 
       it("should clean up the created Pod", async () => {
-        const task = await graph.getTask("artifacts-task")
+        const task = graph.getTask("artifacts-task")
         const module = task.module
         const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
         const podName = makePodName("test", module.name)
@@ -239,7 +253,7 @@ describe("kubernetes container module handlers", () => {
       })
 
       it("should handle globs when copying artifacts out of the container", async () => {
-        const task = await graph.getTask("globs-task")
+        const task = graph.getTask("globs-task")
         const module = task.module
         const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
 
@@ -262,7 +276,7 @@ describe("kubernetes container module handlers", () => {
       })
 
       it("should not throw when an artifact is missing", async () => {
-        const task = await graph.getTask("artifacts-task")
+        const task = graph.getTask("artifacts-task")
         const module = task.module
         const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
 
@@ -282,7 +296,7 @@ describe("kubernetes container module handlers", () => {
       })
 
       it("should correctly copy a whole directory", async () => {
-        const task = await graph.getTask("dir-task")
+        const task = graph.getTask("dir-task")
         const module = task.module
         const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
 
@@ -305,7 +319,7 @@ describe("kubernetes container module handlers", () => {
       })
 
       it("should return with logs and success=false when command exceeds timeout", async () => {
-        const task = await graph.getTask("artifacts-task")
+        const task = graph.getTask("artifacts-task")
         const module = task.module
         const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
 
@@ -329,7 +343,7 @@ describe("kubernetes container module handlers", () => {
       })
 
       it("should copy artifacts out of the container even when task times out", async () => {
-        const task = await graph.getTask("artifacts-task")
+        const task = graph.getTask("artifacts-task")
         const module = task.module
         const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
 
@@ -354,7 +368,7 @@ describe("kubernetes container module handlers", () => {
       })
 
       it("should throw when container doesn't contain sh", async () => {
-        const task = await graph.getTask("missing-sh-task")
+        const task = graph.getTask("missing-sh-task")
         const module = task.module
         const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
 
@@ -394,7 +408,7 @@ describe("kubernetes container module handlers", () => {
       })
 
       it("should throw when container doesn't contain tar", async () => {
-        const task = await graph.getTask("missing-tar-task")
+        const task = graph.getTask("missing-tar-task")
         const module = task.module
         const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
 
@@ -434,7 +448,7 @@ describe("kubernetes container module handlers", () => {
       })
 
       it("should throw when no command is specified", async () => {
-        const task = await graph.getTask("missing-tar-task")
+        const task = graph.getTask("missing-tar-task")
         const module = task.module
         const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
 
@@ -467,7 +481,7 @@ describe("kubernetes container module handlers", () => {
 
   describe("runContainerService", () => {
     it("should run a service", async () => {
-      const service = await graph.getService("echo-service")
+      const service = graph.getService("echo-service")
 
       const runtimeContext = await prepareRuntimeContext({
         garden,
@@ -497,7 +511,7 @@ describe("kubernetes container module handlers", () => {
     })
 
     it("should add configured env vars to the runtime context", async () => {
-      const service = await graph.getService("env-service")
+      const service = graph.getService("env-service")
 
       const runtimeContext = await prepareRuntimeContext({
         garden,
@@ -528,7 +542,7 @@ describe("kubernetes container module handlers", () => {
 
   describe("testContainerModule", () => {
     it("should run a basic test", async () => {
-      const module = await graph.getModule("simple")
+      const module = graph.getModule("simple")
 
       const testTask = new TestTask({
         garden,
@@ -550,7 +564,7 @@ describe("kubernetes container module handlers", () => {
     })
 
     it("should fail if an error occurs, but store the result", async () => {
-      const module = await graph.getModule("simple")
+      const module = graph.getModule("simple")
 
       const testConfig = findByName(module.testConfigs, "echo-test")!
       testConfig.spec.command = ["bork"] // this will fail
@@ -587,7 +601,7 @@ describe("kubernetes container module handlers", () => {
 
     context("artifacts are specified", () => {
       it("should copy artifacts out of the container", async () => {
-        const module = await graph.getModule("simple")
+        const module = graph.getModule("simple")
 
         const testTask = new TestTask({
           garden,
@@ -609,8 +623,33 @@ describe("kubernetes container module handlers", () => {
         expect(await pathExists(join(garden.artifactsPath, "subdir", "test.txt"))).to.be.true
       })
 
-      it("should handle globs when copying artifacts out of the container", async () => {
+      it("should fail if an error occurs, but copy the artifacts out of the container", async () => {
         const module = await graph.getModule("simple")
+
+        const testTask = new TestTask({
+          garden,
+          graph,
+          module,
+          testConfig: findByName(module.testConfigs, "artifacts-test-fail")!,
+          log: garden.log,
+          force: true,
+          forceBuild: false,
+          version: module.version,
+          _guard: true,
+        })
+
+        await emptyDir(garden.artifactsPath)
+
+        const results = await garden.processTasks([testTask], { throwOnError: false })
+
+        expect(results[testTask.getKey()]!.error).to.exist
+
+        expect(await pathExists(join(garden.artifactsPath, "test.txt"))).to.be.true
+        expect(await pathExists(join(garden.artifactsPath, "subdir", "test.txt"))).to.be.true
+      })
+
+      it("should handle globs when copying artifacts out of the container", async () => {
+        const module = graph.getModule("simple")
 
         const testTask = new TestTask({
           garden,
@@ -633,7 +672,7 @@ describe("kubernetes container module handlers", () => {
       })
 
       it("should throw when container doesn't contain sh", async () => {
-        const module = await graph.getModule("missing-sh")
+        const module = graph.getModule("missing-sh")
 
         const testTask = new TestTask({
           garden,
@@ -660,7 +699,7 @@ describe("kubernetes container module handlers", () => {
       })
 
       it("should throw when container doesn't contain tar", async () => {
-        const module = await graph.getModule("missing-tar")
+        const module = graph.getModule("missing-tar")
 
         const testTask = new TestTask({
           garden,

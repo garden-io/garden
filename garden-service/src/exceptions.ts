@@ -39,6 +39,10 @@ export class AuthenticationError extends GardenBaseError {
   type = "authentication"
 }
 
+export class BuildError extends GardenBaseError {
+  type = "build"
+}
+
 export class ConfigurationError extends GardenBaseError {
   type = "configuration"
 }

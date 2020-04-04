@@ -13,9 +13,11 @@ import { PublishResult } from "../types/plugin/module/publishModule"
 import { BaseTask, TaskType } from "../tasks/base"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
+import { ConfigGraph } from "../config-graph"
 
 export interface PublishTaskParams {
   garden: Garden
+  graph: ConfigGraph
   log: LogEntry
   module: Module
   forceBuild: boolean
@@ -24,21 +26,24 @@ export interface PublishTaskParams {
 export class PublishTask extends BaseTask {
   type: TaskType = "publish"
 
+  private graph: ConfigGraph
   private module: Module
   private forceBuild: boolean
 
-  constructor({ garden, log, module, forceBuild }: PublishTaskParams) {
+  constructor({ garden, graph, log, module, forceBuild }: PublishTaskParams) {
     super({ garden, log, version: module.version })
+    this.graph = graph
     this.module = module
     this.forceBuild = forceBuild
   }
 
-  async getDependencies() {
+  async resolveDependencies() {
     if (!this.module.allowPublish) {
       return []
     }
     return BuildTask.factory({
       garden: this.garden,
+      graph: this.graph,
       log: this.log,
       module: this.module,
       force: this.forceBuild,

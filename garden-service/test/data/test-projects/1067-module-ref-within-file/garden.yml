@@ -6,9 +6,6 @@ name: container-module
 include: ["*"]
 type: container
 allowPublish: false
-build:
-  dependencies:
-    - name: exec-module
 ---
 kind: Module
 type: exec
@@ -16,6 +13,8 @@ allowPublish: false
 include: ["*"]
 name: exec-module
 build:
+  dependencies:
+    - name: container-module
   command:
     - echo
     - "${modules.container-module.path}"

@@ -10,7 +10,7 @@ import td from "testdouble"
 import tmp from "tmp-promise"
 import Bluebird = require("bluebird")
 import { resolve, join } from "path"
-import { extend, keyBy } from "lodash"
+import { extend, keyBy, intersection } from "lodash"
 import { remove, readdirSync, existsSync, copy, mkdirp, pathExists, truncate, realpath } from "fs-extra"
 import execa = require("execa")
 
@@ -30,7 +30,7 @@ import { mapValues, fromPairs } from "lodash"
 import { ModuleVersion } from "../src/vcs/vcs"
 import { GARDEN_SERVICE_ROOT, LOCAL_CONFIG_FILENAME } from "../src/constants"
 import { EventBus, Events } from "../src/events"
-import { ValueOf, exec } from "../src/util/util"
+import { ValueOf, exec, findByName, getNames } from "../src/util/util"
 import { LogEntry } from "../src/logger/log-entry"
 import timekeeper = require("timekeeper")
 import { GLOBAL_OPTIONS, GlobalOptions } from "../src/cli/cli"
@@ -40,13 +40,17 @@ import { SetSecretParams } from "../src/types/plugin/provider/setSecret"
 import { GetSecretParams } from "../src/types/plugin/provider/getSecret"
 import { DeleteSecretParams } from "../src/types/plugin/provider/deleteSecret"
 import { RunServiceParams } from "../src/types/plugin/service/runService"
-import { RunTaskParams, RunTaskResult } from "../src/types/plugin/task/runTask"
 import { RunResult } from "../src/types/plugin/base"
 import { ExternalSourceType, getRemoteSourceRelPath, hashRepoUrl } from "../src/util/ext-source-util"
 import { ConfigureProviderParams } from "../src/types/plugin/provider/configureProvider"
 import { ActionRouter } from "../src/actions"
 import { ParameterValues } from "../src/commands/base"
 import stripAnsi from "strip-ansi"
+import { RunTaskParams, RunTaskResult } from "../src/types/plugin/task/runTask"
+import { SuiteFunction, TestFunction } from "mocha"
+import { GardenBaseError } from "../src/exceptions"
+import { RuntimeContext } from "../src/runtime-context"
+import { Module } from "../src/types/module"
 
 export const dataDir = resolve(GARDEN_SERVICE_ROOT, "test", "data")
 export const examplesDir = resolve(GARDEN_SERVICE_ROOT, "..", "examples")
@@ -61,6 +65,10 @@ export const testModuleVersion: ModuleVersion = {
 // All test projects use this git URL
 export const testGitUrl = "https://my-git-server.com/my-repo.git#master"
 export const testGitUrlHash = hashRepoUrl(testGitUrl)
+
+export class TestError extends GardenBaseError {
+  type = "_test"
+}
 
 export function getDataDir(...names: string[]) {
   return resolve(dataDir, ...names)
@@ -91,6 +99,7 @@ async function runModule(params: RunModuleParams): Promise<RunResult> {
 }
 
 export const projectRootA = getDataDir("test-project-a")
+export const projectTestFailsRoot = getDataDir("test-project-fails")
 
 const testModuleTestSchema = () => containerTestSchema().keys({ command: joi.array().items(joi.string()) })
 
@@ -340,6 +349,30 @@ export class TestGarden extends Garden {
     this.modulesScanned = true
     this.moduleConfigs = keyBy(moduleConfigs, "name")
   }
+
+  /**
+   * Returns modules that are registered in this context, fully resolved and configured.
+   * Scans for modules in the project root and remote/linked sources if it hasn't already been done.
+   */
+  async resolveModules({ log, runtimeContext }: { log: LogEntry; runtimeContext?: RuntimeContext }): Promise<Module[]> {
+    const graph = await this.getConfigGraph(log, runtimeContext)
+    return graph.getModules()
+  }
+
+  /**
+   * Helper to get a single module. We don't put this on the Garden class because it is highly inefficient
+   * and not advisable except for testing.
+   */
+  async resolveModule(name: string) {
+    const modules = await this.resolveModules({ log: this.log })
+    const config = findByName(modules, name)
+
+    if (!config) {
+      throw new TestError(`Could not find module config ${name}`, { name, available: getNames(modules) })
+    }
+
+    return config
+  }
 }
 
 export const makeTestGarden = async (projectRoot: string, opts: GardenOpts = {}): Promise<TestGarden> => {
@@ -349,6 +382,10 @@ export const makeTestGarden = async (projectRoot: string, opts: GardenOpts = {})
 
 export const makeTestGardenA = async (extraPlugins: RegisterPluginParam[] = []) => {
   return makeTestGarden(projectRootA, { plugins: extraPlugins })
+}
+
+export const makeTestGardenTasksFails = async (extraPlugins: RegisterPluginParam[] = []) => {
+  return makeTestGarden(projectTestFailsRoot, { plugins: extraPlugins })
 }
 
 export function stubAction<T extends keyof PluginActionHandlers>(
@@ -507,7 +544,7 @@ export type TempDirectory = tmp.DirectoryResult
 /**
  * Create a temp directory. Make sure to clean it up after use using the `cleanup()` method on the returned object.
  */
-export async function makeTempDir({ git = false } = {}): Promise<TempDirectory> {
+export async function makeTempDir({ git = false }: { git?: boolean } = {}): Promise<TempDirectory> {
   const tmpDir = await tmp.dir({ unsafeCleanup: true })
   // Fully resolve path so that we don't get path mismatches in tests
   tmpDir.path = await realpath(tmpDir.path)
@@ -523,8 +560,49 @@ export async function makeTempDir({ git = false } = {}): Promise<TempDirectory> 
  * Retrieves all the child log entries from the given LogEntry and returns a list of all the messages,
  * stripped of ANSI characters. Useful to check if a particular message was logged.
  */
-export function getLogMessages(log: LogEntry) {
-  return log.root
-    .getLogEntries()
-    .flatMap((entry) => entry.getMessageStates()?.map((state) => stripAnsi(state.msg || "")))
+export function getLogMessages(log: LogEntry, filter?: (log: LogEntry) => boolean) {
+  return log
+    .getChildEntries()
+    .filter((entry) => (filter ? filter(entry) : true))
+    .flatMap((entry) => entry.getMessageStates()?.map((state) => stripAnsi(state.msg || "")) || [])
+}
+
+const skipGroups = (process.env.GARDEN_SKIP_TESTS || "").split(" ")
+
+/**
+ * Helper function that wraps mocha functions and assigns them to one or more groups.
+ *
+ * If any of the specified `groups` are included in the `GARDEN_SKIP_TESTS` environment variable
+ * (which should be specified as a space-delimited string, e.g. `GARDEN_SKIP_TESTS="group-a group-b"`),
+ * the test or suite is skipped.
+ *
+ * Usage example:
+ *
+ *   // Skips the test if GARDEN_SKIP_TESTS=some-group
+ *   grouped("some-group").it("should do something", () => { ... })
+ *
+ * @param groups   The group or groups of the test/suite (specify one string or array of strings)
+ */
+export function grouped(...groups: string[]) {
+  const wrapTest = (fn: TestFunction) => {
+    if (intersection(groups, skipGroups).length > 0) {
+      return fn.skip
+    } else {
+      return fn
+    }
+  }
+
+  const wrapSuite = (fn: SuiteFunction) => {
+    if (intersection(groups, skipGroups).length > 0) {
+      return fn.skip
+    } else {
+      return fn
+    }
+  }
+
+  return {
+    it: wrapTest(it),
+    describe: wrapSuite(describe),
+    context: wrapSuite(context),
+  }
 }

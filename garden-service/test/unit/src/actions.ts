@@ -69,8 +69,8 @@ describe("ActionRouter", () => {
     log = garden.log
     actions = await garden.getActionRouter()
     const graph = await garden.getConfigGraph(garden.log)
-    module = await graph.getModule("module-a")
-    service = await graph.getService("service-a")
+    module = graph.getModule("module-a")
+    service = graph.getService("service-a")
     runtimeContext = await prepareRuntimeContext({
       garden,
       graph,
@@ -84,7 +84,7 @@ describe("ActionRouter", () => {
       serviceStatuses: {},
       taskResults: {},
     })
-    task = await graph.getTask("task-a")
+    task = graph.getTask("task-a")
   })
 
   after(async () => {
@@ -115,7 +115,7 @@ describe("ActionRouter", () => {
     describe("augmentGraph", () => {
       it("should return modules and/or dependency relations to add to the stack graph", async () => {
         const graph = await garden.getConfigGraph(garden.log)
-        const modules = await graph.getModules()
+        const modules = graph.getModules()
         const providers = await garden.resolveProviders()
         const result = await actions.augmentGraph({
           log,
@@ -657,7 +657,7 @@ describe("ActionRouter", () => {
         await emptyDir(garden.artifactsPath)
 
         const graph = await garden.getConfigGraph(garden.log)
-        const _task = await graph.getTask("task-a")
+        const _task = graph.getTask("task-a")
 
         _task.spec.artifacts = [
           {
@@ -1322,7 +1322,7 @@ describe("ActionRouter", () => {
       })
 
       const graph = await garden.getConfigGraph(garden.log)
-      const moduleA = await graph.getModule("module-a")
+      const moduleA = graph.getModule("module-a")
 
       const base = Object.assign(
         async () => ({
@@ -1361,7 +1361,7 @@ describe("ActionRouter", () => {
       })
 
       const graph = await garden.getConfigGraph(garden.log)
-      const serviceA = await graph.getService("service-a")
+      const serviceA = graph.getService("service-a")
 
       const base = Object.assign(
         async () => ({
@@ -1404,8 +1404,8 @@ describe("ActionRouter", () => {
       garden["moduleConfigs"]["module-a"].spec.foo = "${runtime.services.service-b.outputs.foo}"
 
       const graph = await garden.getConfigGraph(garden.log)
-      const serviceA = await graph.getService("service-a")
-      const serviceB = await graph.getService("service-b")
+      const serviceA = graph.getService("service-a")
+      const serviceB = graph.getService("service-b")
 
       const _runtimeContext = await prepareRuntimeContext({
         garden,
@@ -1456,7 +1456,7 @@ describe("ActionRouter", () => {
       garden["moduleConfigs"]["module-a"].spec.services[0].foo = "${runtime.services.service-b.outputs.foo}"
 
       const graph = await garden.getConfigGraph(garden.log)
-      const serviceA = await graph.getService("service-a")
+      const serviceA = graph.getService("service-a")
 
       const _runtimeContext = await prepareRuntimeContext({
         garden,
@@ -1506,7 +1506,7 @@ describe("ActionRouter", () => {
       })
 
       const graph = await garden.getConfigGraph(garden.log)
-      const taskA = await graph.getTask("task-a")
+      const taskA = graph.getTask("task-a")
 
       const base = Object.assign(
         async () => ({
@@ -1566,8 +1566,8 @@ describe("ActionRouter", () => {
       garden["moduleConfigs"]["module-a"].spec.tasks[0].foo = "${runtime.services.service-b.outputs.foo}"
 
       const graph = await garden.getConfigGraph(garden.log)
-      const taskA = await graph.getTask("task-a")
-      const serviceB = await graph.getService("service-b")
+      const taskA = graph.getTask("task-a")
+      const serviceB = graph.getService("service-b")
 
       const _runtimeContext = await prepareRuntimeContext({
         garden,
@@ -1629,7 +1629,7 @@ describe("ActionRouter", () => {
       garden["moduleConfigs"]["module-a"].spec.tasks[0].foo = "${runtime.services.service-b.outputs.foo}"
 
       const graph = await garden.getConfigGraph(garden.log)
-      const taskA = await graph.getTask("task-a")
+      const taskA = graph.getTask("task-a")
 
       const _runtimeContext = await prepareRuntimeContext({
         garden,

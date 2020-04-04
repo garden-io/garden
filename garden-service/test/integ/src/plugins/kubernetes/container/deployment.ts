@@ -19,7 +19,7 @@ import { cloneDeep, keyBy } from "lodash"
 import { getContainerTestGarden } from "./container"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
 import { getServiceStatuses } from "../../../../../../src/tasks/base"
-import { expectError } from "../../../../../helpers"
+import { expectError, grouped } from "../../../../../helpers"
 import stripAnsi = require("strip-ansi")
 
 describe("kubernetes container deployment handlers", () => {
@@ -50,7 +50,7 @@ describe("kubernetes container deployment handlers", () => {
     })
 
     it("should create a basic Deployment resource", async () => {
-      const service = await graph.getService("simple-service")
+      const service = graph.getService("simple-service")
 
       const resource = await createWorkloadManifest({
         api,
@@ -87,10 +87,13 @@ describe("kubernetes container deployment handlers", () => {
                   image: "simple-service:" + version,
                   command: ["sh", "-c", "echo Server running... && nc -l -p 8080"],
                   env: [
+                    { name: "POD_HOST_IP", valueFrom: { fieldRef: { fieldPath: "status.hostIP" } } },
+                    { name: "POD_IP", valueFrom: { fieldRef: { fieldPath: "status.podIP" } } },
                     { name: "POD_NAME", valueFrom: { fieldRef: { fieldPath: "metadata.name" } } },
                     { name: "POD_NAMESPACE", valueFrom: { fieldRef: { fieldPath: "metadata.namespace" } } },
-                    { name: "POD_IP", valueFrom: { fieldRef: { fieldPath: "status.podIP" } } },
+                    { name: "POD_NODE_NAME", valueFrom: { fieldRef: { fieldPath: "spec.nodeName" } } },
                     { name: "POD_SERVICE_ACCOUNT", valueFrom: { fieldRef: { fieldPath: "spec.serviceAccountName" } } },
+                    { name: "POD_UID", valueFrom: { fieldRef: { fieldPath: "metadata.uid" } } },
                   ],
                   ports: [{ name: "http", protocol: "TCP", containerPort: 8080 }],
                   resources: { requests: { cpu: "10m", memory: "64Mi" }, limits: { cpu: "1", memory: "1Gi" } },
@@ -110,8 +113,8 @@ describe("kubernetes container deployment handlers", () => {
       })
     })
 
-    it("should copy and reference imagePullSecrets", async () => {
-      const service = await graph.getService("simple-service")
+    it("should copy and reference imagePullSecrets with docker basic auth", async () => {
+      const service = graph.getService("simple-service")
       const secretName = "test-docker-auth"
 
       const authSecret: KubernetesResource<V1Secret> = {
@@ -148,8 +151,46 @@ describe("kubernetes container deployment handlers", () => {
       expect(resource.spec.template.spec.imagePullSecrets).to.eql([{ name: secretName }])
     })
 
+    it("should copy and reference imagePullSecrets with docker credential helper", async () => {
+      const service = graph.getService("simple-service")
+      const secretName = "test-cred-helper-auth"
+
+      const authSecret: KubernetesResource<V1Secret> = {
+        apiVersion: "v1",
+        kind: "Secret",
+        type: "kubernetes.io/dockerconfigjson",
+        metadata: {
+          name: secretName,
+          namespace: "default",
+        },
+        stringData: {
+          ".dockerconfigjson": JSON.stringify({ credHelpers: {} }),
+        },
+      }
+      await api.upsert({ kind: "Secret", namespace: "default", obj: authSecret, log: garden.log })
+
+      const namespace = garden.projectName
+      const _provider = cloneDeep(provider)
+      _provider.config.imagePullSecrets = [{ name: secretName, namespace: "default" }]
+
+      const resource = await createWorkloadManifest({
+        api,
+        provider: _provider,
+        service,
+        runtimeContext: emptyRuntimeContext,
+        namespace,
+        enableHotReload: false,
+        log: garden.log,
+        production: false,
+      })
+
+      const copiedSecret = await api.core.readNamespacedSecret(secretName, namespace)
+      expect(copiedSecret).to.exist
+      expect(resource.spec.template.spec.imagePullSecrets).to.eql([{ name: secretName }])
+    })
+
     it("should correctly mount a referenced PVC module", async () => {
-      const service = await graph.getService("volume-reference")
+      const service = graph.getService("volume-reference")
       const namespace = garden.projectName
 
       const resource = await createWorkloadManifest({
@@ -170,7 +211,7 @@ describe("kubernetes container deployment handlers", () => {
     })
 
     it("should throw if incompatible module is specified as a volume module", async () => {
-      const service = await graph.getService("volume-reference")
+      const service = graph.getService("volume-reference")
       const namespace = garden.projectName
 
       service.spec.volumes = [{ name: "test", module: "simple-service" }]
@@ -202,7 +243,7 @@ describe("kubernetes container deployment handlers", () => {
       })
 
       it("should deploy a simple service", async () => {
-        const service = await graph.getService("simple-service")
+        const service = graph.getService("simple-service")
 
         const deployTask = new DeployTask({
           garden,
@@ -223,7 +264,7 @@ describe("kubernetes container deployment handlers", () => {
       })
 
       it("should deploy a service referencing a volume module", async () => {
-        const service = await graph.getService("volume-reference")
+        const service = graph.getService("volume-reference")
 
         const deployTask = new DeployTask({
           garden,
@@ -249,13 +290,13 @@ describe("kubernetes container deployment handlers", () => {
       })
     })
 
-    context("cluster-docker mode", () => {
+    grouped("cluster-docker").context("cluster-docker mode", () => {
       before(async () => {
         await init("cluster-docker")
       })
 
       it("should deploy a simple service", async () => {
-        const service = await graph.getService("simple-service")
+        const service = graph.getService("simple-service")
 
         const deployTask = new DeployTask({
           garden,
@@ -276,7 +317,7 @@ describe("kubernetes container deployment handlers", () => {
       })
 
       it("should deploy a service referencing a volume module", async () => {
-        const service = await graph.getService("volume-reference")
+        const service = graph.getService("volume-reference")
 
         const deployTask = new DeployTask({
           garden,
@@ -302,13 +343,13 @@ describe("kubernetes container deployment handlers", () => {
       })
     })
 
-    context("kaniko mode", () => {
+    grouped("kaniko").context("kaniko mode", () => {
       before(async () => {
         await init("kaniko")
       })
 
       it("should deploy a simple service", async () => {
-        const service = await graph.getService("simple-service")
+        const service = graph.getService("simple-service")
 
         const deployTask = new DeployTask({
           garden,
@@ -329,13 +370,13 @@ describe("kubernetes container deployment handlers", () => {
       })
     })
 
-    context("cluster-docker-remote-registry mode", () => {
+    grouped("cluster-docker", "remote-only").context("cluster-docker-remote-registry mode", () => {
       before(async () => {
         await init("cluster-docker-remote-registry")
       })
 
-      it("should deploy a simple service (remote only)", async () => {
-        const service = await graph.getService("remote-registry-test")
+      it("should deploy a simple service", async () => {
+        const service = graph.getService("remote-registry-test")
 
         const deployTask = new DeployTask({
           garden,
@@ -356,13 +397,13 @@ describe("kubernetes container deployment handlers", () => {
       })
     })
 
-    context("kaniko-remote-registry mode", () => {
+    grouped("kaniko", "remote-only").context("kaniko-remote-registry mode", () => {
       before(async () => {
         await init("kaniko-remote-registry")
       })
 
-      it("should deploy a simple service (remote only)", async () => {
-        const service = await graph.getService("remote-registry-test")
+      it("should deploy a simple service", async () => {
+        const service = graph.getService("remote-registry-test")
 
         const deployTask = new DeployTask({
           garden,

@@ -18,8 +18,8 @@ export class ScanCommand extends Command {
 
   async action({ garden, log }: CommandParams): Promise<CommandResult<DeepPrimitiveMap>> {
     const graph = await garden.getConfigGraph(log)
-    const modules = (await graph.getModules()).map((m) => {
-      return omit(m, ["_ConfigType", "cacheContext", "serviceNames", "taskNames"])
+    const modules = graph.getModules().map((m) => {
+      return omit(m, ["_config", "cacheContext", "serviceNames", "taskNames"])
     })
 
     const output = { modules }

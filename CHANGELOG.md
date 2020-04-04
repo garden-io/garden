@@ -1,4 +1,91 @@
 
+<a name="v0.11.11"></a>
+## [v0.11.11](https://github.com/garden-io/garden/compare/v0.11.10...v0.11.11) (2020-04-03)
+
+### Bug Fixes
+
+* **cmd:** better error messages in get task-result ([e44c4608](https://github.com/garden-io/garden/commit/e44c4608))
+* **conftest:** ensure policy path is valid POSIX on Windows ([ee12c80d](https://github.com/garden-io/garden/commit/ee12c80d))
+* **core:** fix watch task logic for sourceModules ([#1756](https://github.com/garden-io/garden/issues/1756)) ([1f189bb9](https://github.com/garden-io/garden/commit/1f189bb9))
+* **dashboard:** fix normalize-url to version 4 ([7f34a57b](https://github.com/garden-io/garden/commit/7f34a57b))
+* **k8s:** intermittent errors with volume mounts in build-sync pods ([e6efba8c](https://github.com/garden-io/garden/commit/e6efba8c))
+* **k8s:** cleanup kaniko pod ([#1757](https://github.com/garden-io/garden/issues/1757)) ([bb923adc](https://github.com/garden-io/garden/commit/bb923adc))
+* **k8s:** duplicate text in some error logs ([df7fdf05](https://github.com/garden-io/garden/commit/df7fdf05))
+* **k8s:** warn instead of erroring when remote image status check fails ([534698dc](https://github.com/garden-io/garden/commit/534698dc))
+
+### Features
+
+* **cli:** print basic profiling data when GARDEN_ENABLE_PROFILING=1 ([99b2f045](https://github.com/garden-io/garden/commit/99b2f045))
+* **k8s:** expose nodeSelector field on system PodSpecs ([99390140](https://github.com/garden-io/garden/commit/99390140))
+* **platform:** add client login to CLI ([fabc4720](https://github.com/garden-io/garden/commit/fabc4720))
+
+### Improvements
+
+* **core:** make module resolution faster to reduce startup time ([fbebc7dc](https://github.com/garden-io/garden/commit/fbebc7dc))
+* **k8s:** add default tolerations to system services ([63f0a04c](https://github.com/garden-io/garden/commit/63f0a04c))
+* **k8s:** add more metadata env vars to container Pod specs ([e1d4bf43](https://github.com/garden-io/garden/commit/e1d4bf43))
+* **k8s:** update socat image used for registry proxies ([ec0c99d7](https://github.com/garden-io/garden/commit/ec0c99d7))
+
+<a name="v0.11.10"></a>
+## [v0.11.10](https://github.com/garden-io/garden/compare/v0.11.9...v0.11.10) (2020-03-25)
+
+### Bug Fixes
+
+* **k8s:** error when getting build status from microk8s cluster ([3da79ada](https://github.com/garden-io/garden/commit/3da79ada))
+* **k8s:** ensure non-zero exit code if test/task with artifacts fails ([e4f78c88](https://github.com/garden-io/garden/commit/e4f78c88))
+* **k8s:** incorrect schema for persistentvolumeclaim dependencies field ([3aee56b8](https://github.com/garden-io/garden/commit/3aee56b8))
+* **k8s:** if the output is json, stringify it ([#1728](https://github.com/garden-io/garden/issues/1728)) ([d62890d8](https://github.com/garden-io/garden/commit/d62890d8))
+
+### Features
+
+* only use socat with incluster registry ([4baf879b](https://github.com/garden-io/garden/commit/4baf879b))
+* **cli:** add experimental fullscreen logger type ([038328ae](https://github.com/garden-io/garden/commit/038328ae))
+* **config:** allow any objects and arrays in project variables ([6c2df1b1](https://github.com/garden-io/garden/commit/6c2df1b1))
+* **k8s:** add pull-image command ([#1681](https://github.com/garden-io/garden/issues/1681)) ([8f6d3c25](https://github.com/garden-io/garden/commit/8f6d3c25))
+
+### Improvements
+
+* **commands:** more consistent outputs for run commands ([a24b343f](https://github.com/garden-io/garden/commit/a24b343f))
+
+<a name="v0.11.9"></a>
+## [v0.11.9](https://github.com/garden-io/garden/compare/v0.11.8...v0.11.9) (2020-03-16)
+
+### Bug Fixes
+
+* update .nvmrc ([#1715](https://github.com/garden-io/garden/issues/1715)) ([1bf7da9f](https://github.com/garden-io/garden/commit/1bf7da9f))
+* **cli:** configure provider/env correctly in `garden plugins` command ([41aacb2c](https://github.com/garden-io/garden/commit/41aacb2c))
+* **cli:** ignore --env flag for commands that don't use a project config ([ccfd8ff3](https://github.com/garden-io/garden/commit/ccfd8ff3))
+* **core:** improved circular dependency detection ([4eea9bdb](https://github.com/garden-io/garden/commit/4eea9bdb))
+* **k8s:** pass custom kubeconfig path to stern ([cf040870](https://github.com/garden-io/garden/commit/cf040870))
+* **k8s:** don't attempt to cleanup registry when using external registry ([9d520e0d](https://github.com/garden-io/garden/commit/9d520e0d))
+
+<a name="v0.11.8"></a>
+## [v0.11.8](https://github.com/garden-io/garden/compare/v0.11.7...v0.11.8) (2020-03-03)
+
+### Bug Fixes
+
+* **cli:** fix empty response handling in call cmd ([7d8b7f65](https://github.com/garden-io/garden/commit/7d8b7f65))
+* **k8s:** error in build status check when using kaniko ([7d3ebb93](https://github.com/garden-io/garden/commit/7d3ebb93))
+
+<a name="v0.11.7"></a>
+## [v0.11.7](https://github.com/garden-io/garden/compare/v0.11.6...v0.11.7) (2020-03-11)
+
+### Bug Fixes
+
+* **cli:** return error in garden run task if task fails ([#1669](https://github.com/garden-io/garden/issues/1669)) ([f5cf81ca](https://github.com/garden-io/garden/commit/f5cf81ca))
+* **k8s:** issues with private registry auth and kaniko build status ([011629ca](https://github.com/garden-io/garden/commit/011629ca))
+* **k8s:** better error when manifest has no apiVersion ([ef18a6c6](https://github.com/garden-io/garden/commit/ef18a6c6))
+* **task-graph:** don't include results from other batches in output ([3aed9908](https://github.com/garden-io/garden/commit/3aed9908))
+
+### Features
+
+* **k8s:** add ECR credential helper to in-cluster docker builder ([6c0d3d39](https://github.com/garden-io/garden/commit/6c0d3d39))
+* **terraform:** add plugin commands for terraform apply and plan ([b4283dd3](https://github.com/garden-io/garden/commit/b4283dd3))
+
+### Improvements
+
+* allow setting cred helpers in ImagePullSecrets ([b293fe2c](https://github.com/garden-io/garden/commit/b293fe2c))
+
 <a name="v0.11.6"></a>
 ## [v0.11.6](https://github.com/garden-io/garden/compare/v0.11.5...v0.11.6) (2020-03-06)
 

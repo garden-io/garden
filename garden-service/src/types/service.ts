@@ -40,12 +40,12 @@ export const serviceSchema = () =>
       spec: joi.object().description("The raw configuration of the service (specific to each plugin)."),
     })
 
-export async function serviceFromConfig<M extends Module = Module>(
+export function serviceFromConfig<M extends Module = Module>(
   graph: ConfigGraph,
   module: M,
   config: ServiceConfig
-): Promise<Service<M>> {
-  const sourceModule = config.sourceModuleName ? await graph.getModule(config.sourceModuleName) : module
+): Service<M> {
+  const sourceModule = config.sourceModuleName ? graph.getModule(config.sourceModuleName) : module
 
   return {
     name: config.name,

@@ -35,9 +35,9 @@
 
 ## 🌺 Example Projects
 
-* [Demo Project](./examples/demo-project.md)
-* [TLS Project](./examples/tls-project.md)
-* [Using Garden in CI](./examples/using-garden-in-ci.md)
+* [Demo Project](./example-projects/demo-project.md)
+* [TLS Project](./example-projects/tls-project.md)
+* [Using Garden in CI](./example-projects/using-garden-in-ci.md)
 
 ## ☘️ Reference
 
@@ -69,5 +69,6 @@
 
 ## 🌹 Misc
 
+* [FAQ](./misc/faq.md)
 * [Troubleshooting](./misc/troubleshooting.md)
 * [Telemetry](./misc/telemetry.md)

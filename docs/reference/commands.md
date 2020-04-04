@@ -21,7 +21,7 @@ The following option flags can be used with any of the CLI commands:
   | `--root` | `-r` | string | Override project root directory (defaults to working directory).
   | `--silent` | `-s` | boolean | Suppress log output. Same as setting --logger-type&#x3D;quiet.
   | `--env` | `-e` | string | The environment (and optionally namespace) to work against.
-  | `--logger-type` |  | `quiet` `basic` `fancy` `json`  | Set logger type.
+  | `--logger-type` |  | `quiet` `basic` `fancy` `fullscreen` `json`  | Set logger type.
 fancy: updates log lines in-place when their status changes (e.g. when tasks complete),
 basic: appends a new log line when a log line&#x27;s status changes,
 json: same as basic, but renders log lines as JSON,
@@ -356,32 +356,6 @@ Examples:
 ##### Usage
 
     garden get outputs 
-
-### garden get secret
-
-Get a secret from the environment.
-
-Returns with an error if the provided key could not be found.
-
->**Note**: The `get|set secret` commands are currently quite limited.
-For Kubernetes secrets, we recommend using kubectl for
-most non-trivial use-cases.
-
-Examples:
-
-    garden get secret kubernetes somekey
-    garden get secret local-kubernetes some-other-key
-
-##### Usage
-
-    garden get secret <provider> <key> 
-
-##### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `provider` | Yes | The name of the provider to read the secret from.
-  | `key` | Yes | The key of the configuration variable.
 
 ### garden get status
 
@@ -732,8 +706,8 @@ This can be useful for debugging tests, particularly integration/end-to-end test
 
 Examples:
 
-    garden run test my-module integ            # run the test named 'integ' in my-module
-    garden run test my-module integ --i=false  # do not attach to the test run, just output results when completed
+    garden run test my-module integ                     # run the test named 'integ' in my-module
+    garden run test my-module integ --interactive=false # do not attach to the test run, just output results when completed
 
 ##### Usage
 
@@ -750,7 +724,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--interactive` |  | boolean | Set to false to skip interactive mode and just output the command result.
+  | `--interactive` | `-i` | boolean | Set to false to skip interactive mode and just output the command result. Note that Garden won&#x27;t retrieve artifacts if set to true (the default).
   | `--force` |  | boolean | Run the test even if it&#x27;s disabled for the environment.
   | `--force-build` |  | boolean | Force rebuild of module before running.
 
@@ -780,37 +754,6 @@ Starts an HTTP server that exposes Garden commands and events.
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--port` |  | number | The port number for the Garden service to listen on.
-
-### garden set secret
-
-Set a secret value for a provider in an environment.
-
-These secrets are handled by each provider, and may for example be exposed as environment
-variables for services or mounted as files, depending on how the provider is implemented
-and configured.
-
-The value is currently always stored as a string.
-
->**Note**: The `get|set secret` commands are currently quite limited.
-For Kubernetes secrets, we recommend using kubectl for
-most non-trivial use-cases.
-
-Examples:
-
-    garden set secret kubernetes somekey myvalue
-    garden set secret local-kubernets somekey myvalue
-
-##### Usage
-
-    garden set secret <provider> <key> <value> 
-
-##### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `provider` | Yes | The name of the provider to store the secret with.
-  | `key` | Yes | A unique identifier for the secret.
-  | `value` | Yes | The value of the secret.
 
 ### garden test
 

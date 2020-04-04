@@ -13,7 +13,7 @@ import { resolve, join } from "path"
 import { safeDump } from "js-yaml"
 import { coreCommands } from "../commands/commands"
 import { DeepPrimitiveMap } from "../config/common"
-import { shutdown, sleep, getPackageVersion } from "../util/util"
+import { shutdown, sleep, getPackageVersion, uuidv4 } from "../util/util"
 import { deline } from "../util/string"
 import {
   BooleanParameter,
@@ -55,6 +55,7 @@ import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 import { AnalyticsHandler } from "../analytics/analytics"
 import { defaultDotIgnoreFiles } from "../util/fs"
 import { renderError } from "../logger/renderers"
+import { getDefaultProfiler } from "../util/profiling"
 
 const OUTPUT_RENDERERS = {
   json: (data: DeepPrimitiveMap) => {
@@ -66,7 +67,6 @@ const OUTPUT_RENDERERS = {
 }
 
 const GLOBAL_OPTIONS_GROUP_NAME = "Global options"
-const DEFAULT_CLI_LOGGER_TYPE = "fancy"
 
 /**
  * Dummy Garden class that doesn't scan for modules nor resolves providers.
@@ -81,6 +81,10 @@ class DummyGarden extends Garden {
 }
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts = {}) {
+  const environments = gardenOpts.environmentName
+    ? [{ name: gardenOpts.environmentName, variables: {} }]
+    : defaultEnvironments
+
   const config: ProjectConfig = {
     path: root,
     apiVersion: DEFAULT_API_VERSION,
@@ -88,7 +92,7 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts = {})
     name: "no-project",
     defaultEnvironment: "",
     dotIgnoreFiles: defaultDotIgnoreFiles,
-    environments: defaultEnvironments,
+    environments,
     providers: [],
     variables: {},
   }
@@ -174,6 +178,7 @@ export interface ParseResults {
   argv: any
   code: number
   errors: (GardenError | Error)[]
+  result: any
 }
 
 interface SywacParseResults extends ParseResults {
@@ -267,12 +272,20 @@ export class GardenCli {
 
     const action = async (argv, cliContext) => {
       // Sywac returns positional args and options in a single object which we separate into args and opts
-      const parsedArgs = filterByKeys(argv, argKeys)
+      // We include the "rest" parameter (`_`) in the arguments passed to the command handler
+      const parsedArgs = { _: argv._, ...filterByKeys(argv, argKeys) }
       const parsedOpts = filterByKeys(argv, optKeys.concat(globalKeys))
       const root = resolve(process.cwd(), parsedOpts.root)
-      const { "logger-type": loggerTypeOpt, "log-level": logLevel, emoji, env, silent, output } = parsedOpts
+      const {
+        "logger-type": loggerTypeOpt,
+        "log-level": logLevel,
+        emoji,
+        "env": environmentName,
+        silent,
+        output,
+      } = parsedOpts
 
-      let loggerType = loggerTypeOpt || command.loggerType || DEFAULT_CLI_LOGGER_TYPE
+      let loggerType = loggerTypeOpt || command.getLoggerType({ opts: parsedOpts, args: parsedArgs })
 
       if (silent || output) {
         loggerType = "quiet"
@@ -287,7 +300,10 @@ export class GardenCli {
       // the screen the logs are printed.
       const headerLog = logger.placeholder()
       const log = logger.placeholder()
+      logger.info("")
       const footerLog = logger.placeholder()
+
+      const sessionId = uuidv4()
 
       const contextOpts: GardenOpts = {
         commandInfo: {
@@ -295,8 +311,9 @@ export class GardenCli {
           args: parsedArgs,
           opts: parsedOpts,
         },
-        environmentName: env,
+        environmentName,
         log,
+        sessionId,
       }
 
       let garden: Garden
@@ -392,8 +409,8 @@ export class GardenCli {
     program.command(command.name, commandConfig)
   }
 
-  async parse(): Promise<ParseResults> {
-    const parseResult: SywacParseResults = await this.program.parse()
+  async parse(args?: string[]): Promise<ParseResults> {
+    const parseResult: SywacParseResults = await this.program.parse(args)
     const { argv, details, errors, output: cliOutput } = parseResult
     const { result: commandResult } = details
     const { output } = argv
@@ -470,7 +487,9 @@ export class GardenCli {
     }
 
     logger.stop()
-    return { argv, code, errors }
+    logger.cleanup()
+
+    return { argv, code, errors, result: commandResult?.result }
   }
 }
 
@@ -485,6 +504,11 @@ export async function run(): Promise<void> {
     console.log(err)
     code = 1
   } finally {
+    if (process.env.GARDEN_ENABLE_PROFILING === "1") {
+      // tslint:disable-next-line: no-console
+      console.log(getDefaultProfiler().report())
+    }
+
     shutdown(code)
   }
 }

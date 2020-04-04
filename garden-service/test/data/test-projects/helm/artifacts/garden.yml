@@ -17,6 +17,12 @@ tasks:
       - source: /task.txt
       - source: /task.txt
         target: subdir
+  - name: artifacts-task-fail
+    command: [sh, -c, "touch /test.txt && exit 1"]
+    artifacts:
+      - source: /test.txt
+      - source: /test.txt
+        target: subdir
   - name: globs-task
     command: [sh, -c, "touch /task.txt && mkdir -p /tasks && touch /tasks/output.txt && echo ok"]
     artifacts:
@@ -28,6 +34,12 @@ tests:
     command: [sh, -c, "echo ok"]
   - name: artifacts-test
     command: [sh, -c, "touch /test.txt && echo ok"]
+    artifacts:
+      - source: /test.txt
+      - source: /test.txt
+        target: subdir
+  - name: artifacts-test-fail
+    command: [sh, -c, "touch /test.txt && exit 1"]
     artifacts:
       - source: /test.txt
       - source: /test.txt

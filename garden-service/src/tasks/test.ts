@@ -25,6 +25,7 @@ import { makeTestTaskName } from "./helpers"
 import { BuildTask } from "./build"
 import { TaskTask } from "./task"
 import { TaskResults } from "../task-graph"
+import { Profile } from "../util/profiling"
 
 class TestError extends Error {
   toString() {
@@ -43,6 +44,7 @@ export interface TestTaskParams {
   hotReloadServiceNames?: string[]
 }
 
+@Profile()
 export class TestTask extends BaseTask {
   type: TaskType = "test"
 
@@ -79,15 +81,14 @@ export class TestTask extends BaseTask {
     return new TestTask({ ...initArgs, version, _guard: true })
   }
 
-  async getDependencies() {
+  async resolveDependencies() {
     const testResult = await this.getTestResult()
 
     if (testResult && testResult.success) {
       return []
     }
 
-    const dg = this.graph
-    const deps = await dg.getDependencies({
+    const deps = this.graph.getDependencies({
       nodeType: "test",
       name: this.getName(),
       recursive: false,
@@ -96,6 +97,7 @@ export class TestTask extends BaseTask {
 
     const buildTasks = await BuildTask.factory({
       garden: this.garden,
+      graph: this.graph,
       log: this.log,
       module: this.module,
       force: this.forceBuild,
@@ -157,7 +159,7 @@ export class TestTask extends BaseTask {
       status: "active",
     })
 
-    const dependencies = await this.graph.getDependencies({
+    const dependencies = this.graph.getDependencies({
       nodeType: "test",
       name: this.testConfig.name,
       recursive: false,
@@ -273,7 +275,8 @@ export async function getTestVersion(
   module: Module,
   testConfig: TestConfig
 ): Promise<ModuleVersion> {
-  const moduleDeps = (await graph.resolveDependencyModules(module.build.dependencies, testConfig.dependencies))
+  const moduleDeps = graph
+    .resolveDependencyModules(module.build.dependencies, testConfig.dependencies)
     // Don't include the module itself in the dependencies here
     .filter((m) => m.name !== module.name)
 

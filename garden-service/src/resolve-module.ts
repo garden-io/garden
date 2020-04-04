@@ -17,22 +17,19 @@ import { deline } from "./util/string"
 import { getModuleKey } from "./types/module"
 import { getModuleTypeBases } from "./plugins"
 import { ModuleConfig, moduleConfigSchema } from "./config/module"
+import { profileAsync } from "./util/profiling"
 
 export interface ModuleConfigResolveOpts extends ContextResolveOpts {
-  configContext?: ModuleConfigContext
+  configContext: ModuleConfigContext
 }
 
-export async function resolveModuleConfig(
+export const resolveModuleConfig = profileAsync(async function $resolveModuleConfig(
   garden: Garden,
   config: ModuleConfig,
   opts: ModuleConfigResolveOpts
 ): Promise<ModuleConfig> {
-  if (!opts.configContext) {
-    opts.configContext = await garden.getModuleConfigContext()
-  }
-
   // Allowing partial resolution here, to defer runtime remplate resolution
-  config = await resolveTemplateStrings(cloneDeep(config), opts.configContext, { allowPartial: true, ...opts })
+  config = resolveTemplateStrings(cloneDeep(config), opts.configContext, { allowPartial: true, ...opts })
 
   const moduleTypeDefinitions = await garden.getModuleTypes()
   const description = moduleTypeDefinitions[config.type]
@@ -159,4 +156,4 @@ export async function resolveModuleConfig(
   }
 
   return config
-}
+})

@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BooleanParameter, Command, CommandParams, CommandResult, handleTaskResults, StringsParameter } from "./base"
+import { BooleanParameter, Command, CommandParams, CommandResult, handleProcessResults, StringsParameter } from "./base"
 import { Module } from "../types/module"
 import { PublishTask } from "../tasks/publish"
 import { TaskResults } from "../task-graph"
@@ -14,6 +14,7 @@ import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { printHeader } from "../logger/util"
 import dedent = require("dedent")
+import { ConfigGraph } from "../config-graph"
 
 const publishArgs = {
   modules: new StringsParameter({
@@ -65,27 +66,42 @@ export class PublishCommand extends Command<Args, Opts> {
     printHeader(headerLog, "Publish modules", "rocket")
 
     const graph = await garden.getConfigGraph(log)
-    const modules = await graph.getModules({ names: args.modules })
+    const modules = graph.getModules({ names: args.modules })
 
-    const results = await publishModules(garden, log, modules, !!opts["force-build"], !!opts["allow-dirty"])
+    const results = await publishModules({
+      garden,
+      graph,
+      log,
+      modules,
+      forceBuild: !!opts["force-build"],
+      allowDirty: !!opts["allow-dirty"],
+    })
 
-    return handleTaskResults(footerLog, "publish", { taskResults: results })
+    return handleProcessResults(footerLog, "publish", { taskResults: results })
   }
 }
 
-export async function publishModules(
-  garden: Garden,
-  log: LogEntry,
-  modules: Module<any>[],
-  forceBuild: boolean,
+export async function publishModules({
+  garden,
+  graph,
+  log,
+  modules,
+  forceBuild,
+  allowDirty,
+}: {
+  garden: Garden
+  graph: ConfigGraph
+  log: LogEntry
+  modules: Module<any>[]
+  forceBuild: boolean
   allowDirty: boolean
-): Promise<TaskResults> {
+}): Promise<TaskResults> {
   if (!!allowDirty) {
     log.warn(`The --allow-dirty flag has been deprecated. It no longer has an effect.`)
   }
 
   const tasks = modules.map((module) => {
-    return new PublishTask({ garden, log, module, forceBuild })
+    return new PublishTask({ garden, graph, log, module, forceBuild })
   })
 
   return await garden.processTasks(tasks)

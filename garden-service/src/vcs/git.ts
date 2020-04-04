@@ -21,6 +21,7 @@ import { deline } from "../util/string"
 import { splitLast, exec } from "../util/util"
 import { LogEntry } from "../logger/log-entry"
 import parseGitConfig from "parse-git-config"
+import { Profile } from "../util/profiling"
 
 export function getCommitIdFromRefList(refList: string[]): string {
   try {
@@ -54,6 +55,7 @@ interface Submodule {
 }
 
 // TODO Consider moving git commands to separate (and testable) functions
+@Profile()
 export class GitHandler extends VcsHandler {
   name = "git"
 

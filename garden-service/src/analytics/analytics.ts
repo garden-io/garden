@@ -6,17 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import uuidv4 from "uuid/v4"
 import segmentClient = require("analytics-node")
 import { platform, release } from "os"
 import ci = require("ci-info")
 import { flatten } from "lodash"
-import { globalConfigKeys, AnalyticsGlobalConfig, GlobalConfigStore } from "../config-store"
-import { getPackageVersion } from "../util/util"
+import { globalConfigKeys, AnalyticsGlobalConfig, GlobalConfigStore, GlobalConfig } from "../config-store"
+import { getPackageVersion, uuidv4 } from "../util/util"
 import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY } from "../constants"
 import { LogEntry } from "../logger/log-entry"
 import hasha = require("hasha")
-import uuid from "uuid"
 import { Garden } from "../garden"
 import { Events, EventName } from "../events"
 import { AnalyticsType } from "./analytics-types"
@@ -24,6 +22,20 @@ import dedent from "dedent"
 import { getGitHubUrl } from "../docs/common"
 
 const API_KEY = process.env.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
+
+const CI_USER = "ci-user"
+const UNKNOWN = "unkown"
+
+/**
+ * Returns userId from global config if set and if not in CI.
+ */
+export function getUserId(globalConfig: GlobalConfig) {
+  if (ci.isCI) {
+    return CI_USER
+  } else {
+    return globalConfig.analytics?.userId || UNKNOWN
+  }
+}
 
 export interface SystemInfo {
   gardenVersion: string
@@ -44,6 +56,7 @@ interface ProjectMetadata {
 export interface AnalyticsEventProperties {
   projectId: string
   projectName: string
+  ciName: string | null
   system: SystemInfo
   isCI: boolean
   sessionId: string
@@ -114,13 +127,14 @@ export class AnalyticsHandler {
   private static instance: AnalyticsHandler
   private segment: any
   private log: LogEntry
-  private globalConfig: AnalyticsGlobalConfig
+  private analyticsConfig: AnalyticsGlobalConfig
   private globalConfigStore: GlobalConfigStore
   private projectId = ""
   private projectName = ""
+  private ciName = ci.name
   private systemConfig: SystemInfo
   private isCI = ci.isCI
-  private sessionId = uuid.v4()
+  private sessionId = uuidv4()
   protected garden: Garden
   private projectMetadata: ProjectMetadata
 
@@ -129,7 +143,7 @@ export class AnalyticsHandler {
     this.log = log
     this.garden = garden
     this.globalConfigStore = new GlobalConfigStore()
-    this.globalConfig = {
+    this.analyticsConfig = {
       userId: "",
       firstRun: true,
       optedIn: false,
@@ -175,8 +189,8 @@ export class AnalyticsHandler {
    */
   private async factory() {
     const globalConf = await this.globalConfigStore.get()
-    this.globalConfig = {
-      ...this.globalConfig,
+    this.analyticsConfig = {
+      ...this.analyticsConfig,
       ...globalConf.analytics,
     }
 
@@ -185,7 +199,7 @@ export class AnalyticsHandler {
     this.projectId = originName ? hasha(originName, { algorithm: "sha256" }) : this.projectName
 
     const gitHubUrl = getGitHubUrl("README.md#Analytics")
-    if (this.globalConfig.firstRun || this.globalConfig.showOptInMessage) {
+    if (this.analyticsConfig.firstRun || this.analyticsConfig.showOptInMessage) {
       if (!this.isCI) {
         const msg = dedent`
           Thanks for installing Garden! We work hard to provide you with the best experience we can. We collect some anonymized usage data while you use Garden. If you'd like to know more about what we collect or if you'd like to opt out of telemetry, please read more at ${gitHubUrl}
@@ -193,18 +207,18 @@ export class AnalyticsHandler {
         this.log.info({ symbol: "info", msg })
       }
 
-      this.globalConfig = {
+      this.analyticsConfig = {
         firstRun: false,
-        userId: this.globalConfig.userId || uuidv4(),
+        userId: this.analyticsConfig.userId || uuidv4(),
         optedIn: true,
         showOptInMessage: false,
       }
 
-      await this.globalConfigStore.set([globalConfigKeys.analytics], this.globalConfig)
+      await this.globalConfigStore.set([globalConfigKeys.analytics], this.analyticsConfig)
 
-      if (this.segment && this.globalConfig.optedIn) {
+      if (this.segment && this.analyticsConfig.optedIn) {
         this.segment.identify({
-          userId: this.globalConfig.userId,
+          userId: getUserId({ analytics: this.analyticsConfig }),
           traits: {
             platform: platform(),
             platformVersion: release(),
@@ -253,7 +267,7 @@ export class AnalyticsHandler {
     if (process.env.GARDEN_DISABLE_ANALYTICS === "true") {
       return false
     }
-    return this.globalConfig.optedIn || false
+    return this.analyticsConfig.optedIn || false
   }
 
   /**
@@ -287,6 +301,7 @@ export class AnalyticsHandler {
     return {
       projectId: this.projectId,
       projectName: this.projectName,
+      ciName: this.ciName,
       system: this.systemConfig,
       isCI: this.isCI,
       sessionId: this.sessionId,
@@ -302,7 +317,7 @@ export class AnalyticsHandler {
    * @memberof AnalyticsHandler
    */
   async setAnalyticsOptIn(isOptedIn: boolean) {
-    this.globalConfig.optedIn = isOptedIn
+    this.analyticsConfig.optedIn = isOptedIn
     await this.globalConfigStore.set([globalConfigKeys.analytics, "optedIn"], isOptedIn)
   }
 
@@ -317,7 +332,7 @@ export class AnalyticsHandler {
   private async track(event: AnalyticsEvent) {
     if (this.segment && this.analyticsEnabled()) {
       const segmentEvent: SegmentEvent = {
-        userId: this.globalConfig.userId || "unknown",
+        userId: getUserId({ analytics: this.analyticsConfig }),
         event: event.type,
         properties: {
           ...this.getBasicAnalyticsProperties(),

@@ -20,8 +20,7 @@ i.e. multi-tenant setups (where tenants are external, or otherwise not fully tru
 ## Requirements
 
 In-cluster building works with _most_ Kubernetes clusters, provided they have enough resources allocated. We have
-tested on GKE, AKS, EKS and some custom installations. One provider that is currently known _not to work_ is
-DigitalOcean (track [issue #877](https://github.com/garden-io/garden/issues/877) for details and progress).
+tested on GKE, AKS, EKS, DigitalOcean, and some custom installations.
 
 Specifically, the clusters need the following:
 
@@ -65,6 +64,13 @@ In this mode, builds are executed as follows:
 3. The built image is pushed to an in-cluster registry (which is automatically installed), which makes it available to the cluster.
 
 After enabling this mode (we currently still default to the `local-docker` mode), you will need to run `garden plugins kubernetes cluster-init --env=<env-name>` for each applicable environment, in order to install the required cluster-wide services. Those services include the Docker daemon itself, as well as an image registry, a sync service for receiving build contexts, two persistent volumes, an NFS volume provisioner for one of those volumes, and a couple of small utility services.
+
+Optionally, you can also enable [BuildKit]((https://github.com/moby/buildkit)). In most cases, this should work well and be more performant, but remains optional for now. If you have `cluster-docker` set as your `buildMode` you can enable BuildKit for an environment as follows:
+
+```yaml
+clusterDocker:
+  enableBuildKit: false
+```
 
 Make sure your cluster has enough resources and storage to support the required services, and keep in mind that these
 services are shared across all users of the cluster. Please look at the [resources](../reference/providers/kubernetes.md#providersresources) and [storage](../reference/providers/kubernetes.md#providersstorage) sections in the provider reference for

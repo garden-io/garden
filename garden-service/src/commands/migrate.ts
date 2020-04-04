@@ -45,7 +45,6 @@ export interface MigrateCommandResult {
 export class MigrateCommand extends Command<Args, Opts> {
   name = "migrate"
   noProject = true
-  loggerType: LoggerType = "basic"
   arguments = migrateArguments
   options = migrateOptions
   help = "Migrate `garden.yml` configuration files to version v0.11.x"
@@ -65,6 +64,10 @@ export class MigrateCommand extends Command<Args, Opts> {
         garden migrate ./garden.yml # scans the provided garden.yml file and prints the updated version.
 
   `
+
+  getLoggerType(): LoggerType {
+    return "basic"
+  }
 
   async action({ log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<MigrateCommandResult>> {
     // opts.root defaults to current directory

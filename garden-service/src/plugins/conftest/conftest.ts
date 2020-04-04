@@ -18,9 +18,10 @@ import chalk from "chalk"
 import { baseBuildSpecSchema } from "../../config/module"
 import { matchGlobs, listDirectory } from "../../util/fs"
 import { PluginError } from "../../exceptions"
-import { getModuleTypeUrl, getGitHubUrl } from "../../docs/common"
+import { getModuleTypeUrl, getGitHubUrl, getProviderUrl } from "../../docs/common"
+import slash from "slash"
 
-interface ConftestProviderConfig extends ProviderConfig {
+export interface ConftestProviderConfig extends ProviderConfig {
   policyPath: string
   namespace?: string
   testFailureThreshold: "deny" | "warn" | "none"
@@ -60,8 +61,8 @@ interface ConftestModuleSpec {
 type ConftestModule = Module<ConftestModuleSpec>
 
 const moduleTypeUrl = getModuleTypeUrl("conftest")
-const containerModuleTypeUrl = getModuleTypeUrl("conftest-container")
-const kubernetesModuleTypeUrl = getModuleTypeUrl("conftest-kubernetes")
+const containerProviderUrl = getProviderUrl("conftest-container")
+const kubernetesProviderUrl = getProviderUrl("conftest-kubernetes")
 const gitHubUrl = getGitHubUrl("examples/conftest")
 
 export const gardenPlugin = createGardenPlugin({
@@ -69,7 +70,7 @@ export const gardenPlugin = createGardenPlugin({
   docs: dedent`
     This provider allows you to validate your configuration files against policies that you specify, using the [conftest tool](https://github.com/instrumenta/conftest) and Open Policy Agent rego query files. The provider creates a module type of the same name, which allows you to specify files to validate. Each module then creates a Garden test that becomes part of your Stack Graph.
 
-    Note that, in many cases, you'll actually want to use more specific providers that can automatically configure your \`conftest\` modules, e.g. the [\`conftest-container\`](${containerModuleTypeUrl}) and/or [\`conftest-kubernetes\`](${kubernetesModuleTypeUrl}) providers. See the [conftest example project](${gitHubUrl}) for a simple usage example of the latter.
+    Note that, in many cases, you'll actually want to use more specific providers that can automatically configure your \`conftest\` modules, e.g. the [\`conftest-container\`](${containerProviderUrl}) and/or [\`conftest-kubernetes\`](${kubernetesProviderUrl}) providers. See the [conftest example project](${gitHubUrl}) for a simple usage example of the latter.
 
     If those don't match your needs, you can use this provider directly and manually configure your \`conftest\` modules. Simply add this provider to your project configuration, and see the [conftest module documentation](${moduleTypeUrl}) for a detailed reference. Also, check out the below reference for how to configure default policies, default namespaces, and test failure thresholds for all \`conftest\` modules.
   `,
@@ -82,7 +83,7 @@ export const gardenPlugin = createGardenPlugin({
         Creates a test that runs \`conftest\` on the specified files, with the specified (or default) policy and
         namespace.
 
-        > Note: In many cases, you'll let specific conftest providers (e.g. [\`conftest-container\`](${containerModuleTypeUrl}) and [\`conftest-kubernetes\`](${kubernetesModuleTypeUrl}) create this module type automatically, but you may in some cases want or need to manually specify files to test.
+        > Note: In many cases, you'll let specific conftest providers (e.g. [\`conftest-container\`](${containerProviderUrl}) and [\`conftest-kubernetes\`](${kubernetesProviderUrl}) create this module type automatically, but you may in some cases want or need to manually specify files to test.
 
         See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
       `,
@@ -135,7 +136,8 @@ export const gardenPlugin = createGardenPlugin({
           const provider = ctx.provider as ConftestProvider
 
           const defaultPolicyPath = relative(module.path, resolve(ctx.projectRoot, provider.config.policyPath))
-          const policyPath = resolve(module.path, module.spec.policyPath || defaultPolicyPath)
+          // Make sure the policy path is valid POSIX on Windows
+          const policyPath = slash(resolve(module.path, module.spec.policyPath || defaultPolicyPath))
           const namespace = module.spec.namespace || provider.config.namespace
 
           const buildPath = module.spec.sourceModule

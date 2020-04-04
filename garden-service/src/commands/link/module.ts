@@ -51,11 +51,14 @@ export class LinkModuleCommand extends Command<Args> {
 
     const { module: moduleName, path } = args
     const graph = await garden.getConfigGraph(log)
-    const moduleToLink = await graph.getModule(moduleName)
+    const moduleToLink = graph.getModule(moduleName)
 
     const isRemote = [moduleToLink].filter(hasRemoteSource)[0]
     if (!isRemote) {
-      const modulesWithRemoteSource = (await graph.getModules()).filter(hasRemoteSource).sort()
+      const modulesWithRemoteSource = graph
+        .getModules()
+        .filter(hasRemoteSource)
+        .sort()
 
       throw new ParameterError(
         `Expected module(s) ${chalk.underline(moduleName)} to have a remote source.` +

@@ -26,6 +26,7 @@ import { tailString, dedent } from "./string"
 import { Writable } from "stream"
 import { LogEntry } from "../logger/log-entry"
 import execa = require("execa")
+import { v4 } from "uuid"
 
 export type HookCallback = (callback?: () => void) => void
 
@@ -74,6 +75,8 @@ export function getPackageVersion(): string {
 export async function sleep(msec) {
   return new Promise((resolve) => setTimeout(resolve, msec))
 }
+
+export const uuidv4 = v4
 
 /**
  * Returns a promise that can be resolved/rejected by calling resolver/rejecter.
@@ -135,7 +138,7 @@ export function makeErrorMsg({
 
     ${trimEnd(error, "\n")}
   `
-  if (out !== error) {
+  if (output !== error) {
     msg +=
       lines.length > nLinesToShow
         ? `\n\nHere are the last ${nLinesToShow} lines of the output:`
@@ -195,9 +198,9 @@ export interface SpawnOpts {
 
 export interface SpawnOutput {
   code: number
-  output: string
-  stdout?: string
-  stderr?: string
+  all: string
+  stdout: string
+  stderr: string
   proc: any
 }
 
@@ -210,7 +213,7 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
 
   const result: SpawnOutput = {
     code: 0,
-    output: "",
+    all: "",
     stdout: "",
     stderr: "",
     proc,
@@ -222,31 +225,30 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
     if (data) {
       throw new ParameterError(`Cannot pipe to stdin when tty=true`, { cmd, args, opts })
     }
-
     _process.stdin.setEncoding("utf8")
-
     // raw mode is not available if we're running without a TTY
     _process.stdin.setRawMode && _process.stdin.setRawMode(true)
-  } else {
-    // We ensure the output strings never exceed the MAX_BUFFER_SIZE
-    proc.stdout!.on("data", (s) => {
-      result.output = tailString(result.output + s, MAX_BUFFER_SIZE, true)
-      result.stdout! = tailString(result.stdout! + s, MAX_BUFFER_SIZE, true)
-    })
+  }
 
-    proc.stderr!.on("data", (s) => {
-      result.stderr! = tailString(result.stderr! + s, MAX_BUFFER_SIZE, true)
-    })
+  // We ensure the output strings never exceed the MAX_BUFFER_SIZE
+  proc.stdout?.on("data", (s) => {
+    result.all = tailString(result.all + s, MAX_BUFFER_SIZE, true)
+    result.stdout! = tailString(result.stdout! + s, MAX_BUFFER_SIZE, true)
+  })
 
-    stdout && proc.stdout!.pipe(stdout)
-    stderr && proc.stderr!.pipe(stderr)
+  proc.stderr?.on("data", (s) => {
+    result.all = tailString(result.all + s, MAX_BUFFER_SIZE, true)
+    result.stderr! = tailString(result.stderr! + s, MAX_BUFFER_SIZE, true)
+  })
 
-    if (data) {
-      // This may happen if the spawned process errors while we're still writing data.
-      proc.stdin!.on("error", () => {})
+  stdout && proc.stdout?.pipe(stdout)
+  stderr && proc.stderr?.pipe(stderr)
 
-      proc.stdin!.end(data)
-    }
+  if (data) {
+    // This may happen if the spawned process errors while we're still writing data.
+    proc.stdin?.on("error", () => {})
+
+    proc.stdin?.end(data)
   }
 
   return new Promise<SpawnOutput>((resolve, reject) => {
@@ -288,7 +290,7 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
           code,
           cmd,
           args,
-          output: result.output + result.stderr,
+          output: result.all,
           error: result.stderr || "",
         })
         _reject(new RuntimeError(msg, { cmd, args, opts, result }))
@@ -524,13 +526,15 @@ export function pickKeys<T extends object, U extends keyof T>(obj: T, keys: U[],
   return picked
 }
 
-export function throwOnMissingNames<T extends ObjectWithName>(names: string[], entries: T[], description: string) {
+export function findByNames<T extends ObjectWithName>(names: string[], entries: T[], description: string) {
   const available = getNames(entries)
   const missing = difference(names, available)
 
   if (missing.length) {
     throw new ParameterError(`Could not find ${description}(s): ${missing.join(", ")}`, { available, missing })
   }
+
+  return entries.filter(({ name }) => names.includes(name))
 }
 
 export function hashString(s: string, length: number) {

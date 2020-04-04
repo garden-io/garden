@@ -15,7 +15,7 @@ import { RuntimeError } from "../../../exceptions"
 import { KubeApi } from "../api"
 import { KubernetesResource } from "../types"
 
-export async function loadLocalImage(buildResult: BuildResult, config: KubernetesConfig): Promise<void> {
+export async function loadImageToKind(buildResult: BuildResult, config: KubernetesConfig): Promise<void> {
   try {
     const clusterName = await getClusterForContext(config.context)
     if (clusterName !== null) {

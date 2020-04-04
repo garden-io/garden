@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joiIdentifier, joi } from "../../../config/common"
+import { joiIdentifier, joi, joiArray } from "../../../config/common"
 import { dedent } from "../../../util/string"
 import { BaseVolumeSpec } from "../../base-volume"
 import { V1PersistentVolumeClaimSpec, V1PersistentVolumeClaim } from "@kubernetes/client-node"
@@ -47,7 +47,9 @@ export const pvcModuleDefinition: ModuleTypeDefinition = {
     `,
   schema: joi.object().keys({
     build: baseBuildSpecSchema(),
-    dependencies: joiIdentifier().description("List of services and tasks to deploy/run before deploying this PVC."),
+    dependencies: joiArray(joiIdentifier()).description(
+      "List of services and tasks to deploy/run before deploying this PVC."
+    ),
     namespace: joiIdentifier().description(
       "The namespace to deploy the PVC in. Note that any module referencing the PVC must be in the same namespace, so in most cases you should leave this unset."
     ),
@@ -132,7 +134,7 @@ function getKubernetesService(pvcModule: PersistentVolumeClaimModule): Kubernete
 
   const module: KubernetesModule = {
     ...pvcModule,
-    _ConfigType: config,
+    _config: config,
     ...config,
     spec: {
       ...pvcModule.spec,

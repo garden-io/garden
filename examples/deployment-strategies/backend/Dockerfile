@@ -1,14 +1,11 @@
 FROM golang:1.8.3-alpine
-MAINTAINER Aurelien PERRIER <a.perrier89@gmail.com>
 
-ENV webserver_path /go/src/github.com/perriea/webserver/
-ENV PATH $PATH:$webserver_path
+ENV PORT=8080
+EXPOSE ${PORT}
+WORKDIR /app
 
-WORKDIR $webserver_path
-COPY webserver/ .
+COPY main.go .
 
-RUN go build .
+RUN go build -o main .
 
-ENTRYPOINT ./webserver
-
-EXPOSE 8080
+ENTRYPOINT ["./main"]

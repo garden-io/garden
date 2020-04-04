@@ -10,7 +10,7 @@ tocTitle: "`conftest`"
 Creates a test that runs `conftest` on the specified files, with the specified (or default) policy and
 namespace.
 
-> Note: In many cases, you'll let specific conftest providers (e.g. [`conftest-container`](https://docs.garden.io/reference/module-types/conftest-container) and [`conftest-kubernetes`](https://docs.garden.io/reference/module-types/conftest-kubernetes) create this module type automatically, but you may in some cases want or need to manually specify files to test.
+> Note: In many cases, you'll let specific conftest providers (e.g. [`conftest-container`](https://docs.garden.io/reference/providers/conftest-container) and [`conftest-kubernetes`](https://docs.garden.io/reference/providers/conftest-kubernetes) create this module type automatically, but you may in some cases want or need to manually specify files to test.
 
 See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
 

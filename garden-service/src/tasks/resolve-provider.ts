@@ -21,6 +21,7 @@ import { validateWithPath } from "../config/validation"
 import Bluebird from "bluebird"
 import { defaultEnvironmentStatus } from "../types/plugin/provider/getEnvironmentStatus"
 import { getPluginBases, getPluginBaseNames } from "../plugins"
+import { Profile } from "../util/profiling"
 
 interface Params extends TaskParams {
   plugin: GardenPlugin
@@ -31,6 +32,7 @@ interface Params extends TaskParams {
 /**
  * Resolves the configuration for the specified provider.
  */
+@Profile()
 export class ResolveProviderTask extends BaseTask {
   type: TaskType = "resolve-provider"
 
@@ -53,7 +55,7 @@ export class ResolveProviderTask extends BaseTask {
     return `resolving provider ${this.getName()}`
   }
 
-  async getDependencies() {
+  async resolveDependencies() {
     const explicitDeps = this.plugin.dependencies
     const implicitDeps = (await getProviderTemplateReferences(this.config)).filter(
       (depName) => !explicitDeps.includes(depName)
@@ -104,10 +106,16 @@ export class ResolveProviderTask extends BaseTask {
   async process(dependencyResults: TaskResults) {
     const resolvedProviders: Provider[] = Object.values(dependencyResults).map((result) => result && result.output)
 
+    // Return immediately if the provider has been previously resolved
+    const alreadyResolvedProviders = this.garden["resolvedProviders"][this.config.name]
+    if (alreadyResolvedProviders) {
+      return alreadyResolvedProviders
+    }
+
     const context = new ProviderConfigContext(this.garden, resolvedProviders, this.garden.variables)
 
     this.log.silly(`Resolving template strings for provider ${this.config.name}`)
-    let resolvedConfig = await resolveTemplateStrings(this.config, context)
+    let resolvedConfig = resolveTemplateStrings(this.config, context)
 
     const providerName = resolvedConfig.name
 

@@ -15,7 +15,7 @@ import {
   Command,
   CommandParams,
   CommandResult,
-  handleTaskResults,
+  handleProcessResults,
   StringOption,
   StringsParameter,
   PrepareParams,
@@ -104,9 +104,9 @@ export class TestCommand extends Command<Args, Opts> {
     const graph = await garden.getConfigGraph(log)
 
     const modules: Module[] = args.modules
-      ? await graph.withDependantModules(await graph.getModules({ names: args.modules }))
+      ? graph.withDependantModules(graph.getModules({ names: args.modules }))
       : // All modules are included in this case, so there's no need to compute dependants.
-        await graph.getModules()
+        graph.getModules()
 
     const filterNames = opts.name ? [opts.name] : []
     const force = opts.force
@@ -152,6 +152,6 @@ export class TestCommand extends Command<Args, Opts> {
       },
     })
 
-    return handleTaskResults(footerLog, "test", results)
+    return handleProcessResults(footerLog, "test", results)
   }
 }

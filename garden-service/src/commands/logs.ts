@@ -60,12 +60,15 @@ export class LogsCommand extends Command<Args, Opts> {
 
   arguments = logsArgs
   options = logsOpts
-  loggerType: LoggerType = "basic"
+
+  getLoggerType(): LoggerType {
+    return "basic"
+  }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ServiceLogEntry[]>> {
     const { follow, tail } = opts
     const graph = await garden.getConfigGraph(log)
-    const services = await graph.getServices({ names: args.services })
+    const services = graph.getServices({ names: args.services })
     const serviceNames = services.map((s) => s.name).filter(Boolean)
     const maxServiceName = (maxBy(serviceNames, (serviceName) => serviceName.length) || "").length
 

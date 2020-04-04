@@ -39,7 +39,7 @@ describe("exec plugin", () => {
   })
 
   it("should correctly parse exec modules", async () => {
-    const modules = keyBy(await graph.getModules(), "name")
+    const modules = keyBy(graph.getModules(), "name")
     const { "module-a": moduleA, "module-b": moduleB, "module-c": moduleC, "module-local": moduleLocal } = modules
 
     expect(moduleA.build).to.eql({
@@ -278,7 +278,7 @@ describe("exec plugin", () => {
 
   describe("build", () => {
     it("should write a build version file after building", async () => {
-      const module = await graph.getModule(moduleName)
+      const module = graph.getModule(moduleName)
       const version = module.version
       const buildMetadataPath = module.buildMetadataPath
       const versionFilePath = join(buildMetadataPath, GARDEN_BUILD_VERSION_FILENAME)
@@ -293,7 +293,7 @@ describe("exec plugin", () => {
     })
 
     it("should run the build command in the module dir if local true", async () => {
-      const module = await graph.getModule("module-local")
+      const module = graph.getModule("module-local")
       const actions = await garden.getActionRouter()
       const res = await actions.build({ log, module })
       expect(res.buildLog).to.eql(join(projectRoot, "module-local"))
@@ -302,7 +302,7 @@ describe("exec plugin", () => {
 
   describe("testExecModule", () => {
     it("should run the test command in the module dir if local true", async () => {
-      const module = await graph.getModule("module-local")
+      const module = graph.getModule("module-local")
       const actions = await garden.getActionRouter()
       const res = await actions.testModule({
         log,
@@ -331,7 +331,7 @@ describe("exec plugin", () => {
   describe("runExecTask", () => {
     it("should run the task command in the module dir if local true", async () => {
       const actions = await garden.getActionRouter()
-      const task = await graph.getTask("pwd")
+      const task = graph.getTask("pwd")
       const res = await actions.runTask({
         log,
         task,

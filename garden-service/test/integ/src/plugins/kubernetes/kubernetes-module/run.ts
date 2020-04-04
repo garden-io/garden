@@ -29,7 +29,7 @@ describe("runKubernetesTask", () => {
   })
 
   it("should run a basic task and store its result", async () => {
-    const task = await graph.getTask("echo-task")
+    const task = graph.getTask("echo-task")
     const version = task.module.version
 
     const testTask = new TaskTask({
@@ -68,7 +68,7 @@ describe("runKubernetesTask", () => {
   })
 
   it("should not store task results if cacheResult=false", async () => {
-    const task = await graph.getTask("echo-task")
+    const task = graph.getTask("echo-task")
     const version = task.module.version
     task.config.cacheResult = false
 
@@ -101,7 +101,7 @@ describe("runKubernetesTask", () => {
   })
 
   it("should run a task in a different namespace, if configured", async () => {
-    const task = await graph.getTask("with-namespace-task")
+    const task = graph.getTask("with-namespace-task")
 
     const testTask = new TaskTask({
       garden,
@@ -124,7 +124,7 @@ describe("runKubernetesTask", () => {
   })
 
   it("should fail if an error occurs, but store the result", async () => {
-    const task = await graph.getTask("echo-task")
+    const task = graph.getTask("echo-task")
     task.config.spec.command = ["bork"] // this will fail
 
     const testTask = new TaskTask({
@@ -156,7 +156,7 @@ describe("runKubernetesTask", () => {
 
   context("artifacts are specified", () => {
     it("should copy artifacts out of the container", async () => {
-      const task = await graph.getTask("artifacts-task")
+      const task = graph.getTask("artifacts-task")
 
       const testTask = new TaskTask({
         garden,
@@ -176,8 +176,30 @@ describe("runKubernetesTask", () => {
       expect(await pathExists(join(garden.artifactsPath, "subdir", "task.txt"))).to.be.true
     })
 
+    it("should fail if an error occurs, but copy the artifacts out of the container", async () => {
+      const task = await graph.getTask("artifacts-task-fail")
+
+      const testTask = new TaskTask({
+        garden,
+        graph,
+        task,
+        log: garden.log,
+        force: true,
+        forceBuild: false,
+        version: task.module.version,
+      })
+      await emptyDir(garden.artifactsPath)
+
+      const results = await garden.processTasks([testTask], { throwOnError: false })
+
+      expect(results[testTask.getKey()]!.error).to.exist
+
+      expect(await pathExists(join(garden.artifactsPath, "test.txt"))).to.be.true
+      expect(await pathExists(join(garden.artifactsPath, "subdir", "test.txt"))).to.be.true
+    })
+
     it("should handle globs when copying artifacts out of the container", async () => {
-      const task = await graph.getTask("globs-task")
+      const task = graph.getTask("globs-task")
 
       const testTask = new TaskTask({
         garden,

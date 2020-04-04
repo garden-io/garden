@@ -7,16 +7,17 @@
  */
 
 import chalk from "chalk"
-import { RunResult } from "../../types/plugin/base"
-import { BooleanParameter, Command, CommandParams, CommandResult, StringParameter } from "../base"
-import { printRuntimeContext } from "./run"
 import dedent = require("dedent")
-import { printHeader } from "../../logger/util"
-import { DeployTask } from "../../tasks/deploy"
-import { getServiceStatuses, getRunTaskResults } from "../../tasks/base"
-import { prepareRuntimeContext } from "../../runtime-context"
-import { deline } from "../../util/string"
+
 import { CommandError } from "../../exceptions"
+import { printHeader } from "../../logger/util"
+import { prepareRuntimeContext } from "../../runtime-context"
+import { getRunTaskResults, getServiceStatuses } from "../../tasks/base"
+import { DeployTask } from "../../tasks/deploy"
+import { RunResult } from "../../types/plugin/base"
+import { deline } from "../../util/string"
+import { BooleanParameter, Command, CommandParams, CommandResult, handleRunResult, StringParameter } from "../base"
+import { printRuntimeContext } from "./run"
 
 const runArgs = {
   service: new StringParameter({
@@ -58,7 +59,7 @@ export class RunServiceCommand extends Command<Args, Opts> {
   async action({ garden, log, headerLog, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
     const serviceName = args.service
     const graph = await garden.getConfigGraph(log)
-    const service = await graph.getService(serviceName, true)
+    const service = graph.getService(serviceName, true)
     const module = service.module
 
     if (service.disabled && !opts.force) {
@@ -85,11 +86,12 @@ export class RunServiceCommand extends Command<Args, Opts> {
       log,
       service,
     })
-    const dependencyResults = await garden.processTasks(await deployTask.getDependencies())
+    const dependencyResults = await garden.processTasks(await deployTask.resolveDependencies())
 
-    const dependencies = await graph.getDependencies({ nodeType: "deploy", name: serviceName, recursive: false })
+    const dependencies = graph.getDependencies({ nodeType: "deploy", name: serviceName, recursive: false })
     const serviceStatuses = getServiceStatuses(dependencyResults)
     const taskResults = getRunTaskResults(dependencyResults)
+    const interactive = true
 
     const runtimeContext = await prepareRuntimeContext({
       garden,
@@ -102,14 +104,18 @@ export class RunServiceCommand extends Command<Args, Opts> {
 
     printRuntimeContext(log, runtimeContext)
 
+    if (interactive) {
+      log.root.stop()
+    }
+
     const result = await actions.runService({
       log,
       service,
       runtimeContext,
-      interactive: true,
+      interactive,
       timeout: 999999,
     })
 
-    return { result }
+    return handleRunResult({ log, actionDescription: "run service", result, interactive })
   }
 }

@@ -51,7 +51,7 @@ spec:
     {{- with .Values.tolerations }}
       # Note that we're not using the toYAML function here because the tolerations are JSON stringified (by Garden)
       tolerations:
-        {{- . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
     {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

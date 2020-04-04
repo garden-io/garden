@@ -11,7 +11,7 @@ import { KubernetesConfig, defaultResources, defaultStorage } from "../../../../
 import { defaultSystemNamespace } from "../../../../../src/plugins/kubernetes/system"
 import { makeDummyGarden } from "../../../../../src/cli/cli"
 import { expect } from "chai"
-import { TempDirectory, makeTempDir } from "../../../../helpers"
+import { TempDirectory, makeTempDir, grouped } from "../../../../helpers"
 
 describe("kubernetes configureProvider", () => {
   const basicConfig: KubernetesConfig = {
@@ -27,6 +27,7 @@ describe("kubernetes configureProvider", () => {
     ingressHttpsPort: 443,
     resources: defaultResources,
     storage: defaultStorage,
+    systemNodeSelector: {},
     registryProxyTolerations: [],
     tlsCertificates: [],
     _systemServices: [],
@@ -42,7 +43,7 @@ describe("kubernetes configureProvider", () => {
     await tmpDir.cleanup()
   })
 
-  context("cluster-docker mode", () => {
+  grouped("cluster-docker").context("cluster-docker mode", () => {
     it("should set a default deploymentRegistry with projectName as namespace", async () => {
       const garden = await makeDummyGarden(tmpDir.path)
       const config: KubernetesConfig = {
