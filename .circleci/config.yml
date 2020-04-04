@@ -394,20 +394,6 @@ jobs:
           name: Cleanup
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-docker kubectl delete --wait=false $(kubectl get ns -o name | grep testing-$CIRCLE_BUILD_NUM) || true
           when: always
-  cleanup-cluster-registry:
-    docker:
-      - image: gardendev/garden-gcloud:${CIRCLE_SHA1}
-        environment:
-          <<: *shared-env-config
-          GARDEN_TASK_CONCURRENCY_LIMIT: "10"
-    steps:
-      # Need to checkout to run example project
-      - checkout
-      - configure_kubectl_context
-      - *attach-workspace
-      - run:
-          name: Run cluster cleanup
-          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-docker /garden/garden plugins kubernetes cleanup-cluster-registry --root examples/demo-project --env remote --logger-type basic
   release-service-docker:
     <<: *node-config
     steps:
@@ -600,10 +586,14 @@ jobs:
           command: cd garden-service && npm run integ-local -- -b
       - run:
           name: Deploy demo-project
-          command: sudo -E ./garden-service/bin/garden deploy --root examples/demo-project --logger-type basic
+          command: sudo -E ./garden-service/bin/garden deploy --root examples/demo-project
       - run:
           name: Deploy openfaas
-          command: sudo -E ./garden-service/bin/garden deploy --root examples/openfaas --logger-type basic
+          command: sudo -E ./garden-service/bin/garden deploy --root examples/openfaas
+      - run:
+          name: Run cluster cleanup
+          command: |
+            sudo -E ./garden-service/bin/garden plugins local-kubernetes cleanup-cluster-registry --root garden-service/test/data/test-projects/container --env cluster-docker
 
   test-windows:
     executor: win/vs2019
@@ -764,22 +754,6 @@ workflows:
           name: e2e-vote-helm
           project: vote-helm
           requires: [build]
-
-      - cleanup-cluster-registry:
-          <<: *only-internal-prs
-          context: docker
-          requires:
-            - e2e-demo-project
-            - e2e-deployment-strategies
-            - e2e-hot-reload
-            - e2e-openfaas
-            - e2e-project-variables
-            - e2e-remote-sources
-            - e2e-tasks
-            - e2e-vote
-            - e2e-vote-helm
-            - test-docker-gcloud
-            - test-windows
 
       ### MASTER ONLY ###
 
