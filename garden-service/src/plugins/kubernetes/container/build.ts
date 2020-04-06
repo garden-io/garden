@@ -80,11 +80,9 @@ const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } 
       const res = await containerHelpers.dockerCli(module.buildPath, args, log, { ignoreError: true })
 
       // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
-      if (res.code !== 0 && !res.output.includes("no such manifest")) {
-        throw new RuntimeError(`Unable to query registry for image status: ${res.output}`, {
-          command: "docker " + args.join(" "),
-          output: res.output,
-        })
+      if (res.code !== 0 && !res.all.includes("no such manifest")) {
+        const detail = res.all || `docker manifest inspect exited with code ${res.code}`
+        log.warn(chalk.yellow(`Unable to query registry for image status: ${detail}`))
       }
 
       return { ready: res.code === 0 }
@@ -117,11 +115,8 @@ const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } 
 
     // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
     if (res.exitCode !== 0 && !res.stderr.includes("no such manifest")) {
-      throw new RuntimeError(`Unable to query registry for image status: ${res.all || res.stderr}`, {
-        command: res.command,
-        stdout: res.stdout,
-        stderr: res.stderr,
-      })
+      const detail = res.all || `docker manifest inspect exited with code ${res.exitCode}`
+      log.warn(chalk.yellow(`Unable to query registry for image status: ${detail}`))
     }
 
     return { ready: res.exitCode === 0 }
@@ -615,13 +610,17 @@ async function runKaniko({ provider, namespace, log, module, args, outputStream 
     },
   })
 
-  return runner.startAndWait({
-    ignoreError: true,
-    interactive: false,
-    log,
-    timeout: module.spec.build.timeout,
-    stdout: outputStream,
-  })
+  try {
+    return runner.startAndWait({
+      ignoreError: true,
+      interactive: false,
+      log,
+      timeout: module.spec.build.timeout,
+      stdout: outputStream,
+    })
+  } finally {
+    await runner.stop()
+  }
 }
 
 async function getManifestInspectArgs(module: ContainerModule, deploymentRegistry: ContainerRegistryConfig) {
@@ -642,7 +641,7 @@ function isLocalHostname(hostname: string) {
 function getSocatContainer(registryHostname: string) {
   return {
     name: "proxy",
-    image: "basi/socat:v0.1.0",
+    image: "gardendev/socat:0.1.0",
     command: ["/bin/sh", "-c", `socat TCP-LISTEN:5000,fork TCP:${registryHostname}:5000 || exit 0`],
     ports: [
       {

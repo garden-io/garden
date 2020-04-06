@@ -13,7 +13,7 @@ import { resolve, join } from "path"
 import { safeDump } from "js-yaml"
 import { coreCommands } from "../commands/commands"
 import { DeepPrimitiveMap } from "../config/common"
-import { shutdown, sleep, getPackageVersion } from "../util/util"
+import { shutdown, sleep, getPackageVersion, uuidv4 } from "../util/util"
 import { deline } from "../util/string"
 import {
   BooleanParameter,
@@ -55,6 +55,7 @@ import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 import { AnalyticsHandler } from "../analytics/analytics"
 import { defaultDotIgnoreFiles } from "../util/fs"
 import { renderError } from "../logger/renderers"
+import { getDefaultProfiler } from "../util/profiling"
 
 const OUTPUT_RENDERERS = {
   json: (data: DeepPrimitiveMap) => {
@@ -302,6 +303,8 @@ export class GardenCli {
       logger.info("")
       const footerLog = logger.placeholder()
 
+      const sessionId = uuidv4()
+
       const contextOpts: GardenOpts = {
         commandInfo: {
           name: command.getFullName(),
@@ -310,6 +313,7 @@ export class GardenCli {
         },
         environmentName,
         log,
+        sessionId,
       }
 
       let garden: Garden
@@ -500,6 +504,11 @@ export async function run(): Promise<void> {
     console.log(err)
     code = 1
   } finally {
+    if (process.env.GARDEN_ENABLE_PROFILING === "1") {
+      // tslint:disable-next-line: no-console
+      console.log(getDefaultProfiler().report())
+    }
+
     shutdown(code)
   }
 }

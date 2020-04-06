@@ -19,8 +19,9 @@ import { baseBuildSpecSchema } from "../../config/module"
 import { matchGlobs, listDirectory } from "../../util/fs"
 import { PluginError } from "../../exceptions"
 import { getModuleTypeUrl, getGitHubUrl, getProviderUrl } from "../../docs/common"
+import slash from "slash"
 
-interface ConftestProviderConfig extends ProviderConfig {
+export interface ConftestProviderConfig extends ProviderConfig {
   policyPath: string
   namespace?: string
   testFailureThreshold: "deny" | "warn" | "none"
@@ -135,7 +136,8 @@ export const gardenPlugin = createGardenPlugin({
           const provider = ctx.provider as ConftestProvider
 
           const defaultPolicyPath = relative(module.path, resolve(ctx.projectRoot, provider.config.policyPath))
-          const policyPath = resolve(module.path, module.spec.policyPath || defaultPolicyPath)
+          // Make sure the policy path is valid POSIX on Windows
+          const policyPath = slash(resolve(module.path, module.spec.policyPath || defaultPolicyPath))
           const namespace = module.spec.namespace || provider.config.namespace
 
           const buildPath = module.spec.sourceModule

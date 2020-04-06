@@ -155,6 +155,9 @@ commands:
         type: string
         default: ""
     steps:
+      # We need Docker for building the Alpine package
+      - setup_remote_docker:
+          docker_layer_caching: true
       - checkout
       - npm_install
       - run: sudo apt-get update && sudo apt-get -y install rsync
@@ -494,9 +497,6 @@ jobs:
             sudo microk8s.enable dns storage registry
             sudo usermod -a -G microk8s circleci
             echo "********* microk8s ready! ************"
-
-            # Allow intra-pod communication
-            sudo iptables -P FORWARD ACCEPT
 
             # Set up kubeconfig and environment
             mkdir -p /home/circleci/.kube

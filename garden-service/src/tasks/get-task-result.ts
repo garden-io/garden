@@ -34,6 +34,10 @@ export class GetTaskResultTask extends BaseTask {
     this.task = task
   }
 
+  async resolveDependencies() {
+    return []
+  }
+
   getName() {
     return this.task.name
   }
@@ -42,7 +46,7 @@ export class GetTaskResultTask extends BaseTask {
     return `getting task result '${this.task.name}' (from module '${this.task.module.name}')`
   }
 
-  async process(): Promise<RunTaskResult | null> {
+  async process(): Promise<RunTaskResult | null | undefined> {
     const log = this.log.info({
       section: this.task.name,
       msg: "Checking result...",
@@ -50,7 +54,8 @@ export class GetTaskResultTask extends BaseTask {
     })
     const actions = await this.garden.getActionRouter()
 
-    let result: RunTaskResult | null
+    // The default handler (for plugins that don't implement getTaskResult) returns undefined.
+    let result: RunTaskResult | null | undefined
     try {
       result = await actions.getTaskResult({
         task: this.task,

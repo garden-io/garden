@@ -91,8 +91,7 @@ describe("plugins.container", () => {
 
   async function getTestModule(moduleConfig: ContainerModuleConfig) {
     const parsed = await configure({ ctx, moduleConfig, log })
-    const graph = await garden.getConfigGraph(garden.log)
-    return moduleFromConfig(garden, graph, parsed.moduleConfig)
+    return moduleFromConfig(garden, parsed.moduleConfig, [])
   }
 
   describe("configureContainerModule", () => {
@@ -777,7 +776,7 @@ describe("plugins.container", () => {
       td.replace(helpers, "dockerCli", async (path: string, args: string[]) => {
         expect(path).to.equal(module.buildPath)
         expect(args).to.eql(cmdArgs)
-        return { output: "log" }
+        return { all: "log" }
       })
 
       const result = await build({ ctx, log, module })
@@ -804,7 +803,7 @@ describe("plugins.container", () => {
       td.replace(helpers, "dockerCli", async (path: string, args: string[]) => {
         expect(path).to.equal(module.buildPath)
         expect(args).to.eql(cmdArgs)
-        return { output: "log" }
+        return { all: "log" }
       })
 
       const result = await build({ ctx, log, module })
@@ -839,7 +838,7 @@ describe("plugins.container", () => {
       td.replace(helpers, "dockerCli", async (path: string, args: string[]) => {
         expect(path).to.equal(module.buildPath)
         expect(args).to.eql(cmdArgs)
-        return { output: "log" }
+        return { all: "log" }
       })
 
       const result = await build({ ctx, log, module })

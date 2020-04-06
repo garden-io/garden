@@ -17,7 +17,7 @@ import { LogEntry } from "../../../logger/log-entry"
 export interface ConfigureModuleParams<T extends Module = Module> extends PluginActionContextParams {
   ctx: PluginContext
   log: LogEntry
-  moduleConfig: T["_ConfigType"]
+  moduleConfig: T["_config"]
 }
 
 export interface ConfigureModuleResult<T extends Module = Module> {

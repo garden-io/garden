@@ -57,7 +57,7 @@ export class RunTaskCommand extends Command<Args, Opts> {
     opts,
   }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResult | null>> {
     const graph = await garden.getConfigGraph(log)
-    const task = await graph.getTask(args.task, true)
+    const task = graph.getTask(args.task, true)
 
     if (task.disabled && !opts.force) {
       throw new CommandError(

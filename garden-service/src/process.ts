@@ -86,7 +86,7 @@ export async function processModules({
     }
   }
 
-  const deps = await graph.getDependenciesForMany({
+  const deps = graph.getDependenciesForMany({
     nodeType: "build",
     names: modules.map((m) => m.name),
     recursive: true,
@@ -174,7 +174,7 @@ export async function processModules({
       }
 
       // Make sure the modules' versions are up to date.
-      const changedModules = await graph.getModules({ names: changedModuleNames })
+      const changedModules = graph.getModules({ names: changedModuleNames })
 
       const moduleTasks = flatten(
         await Bluebird.map(changedModules, async (m) => {

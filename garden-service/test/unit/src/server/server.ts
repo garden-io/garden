@@ -204,7 +204,11 @@ describe("startServer", () => {
       garden
         .dumpConfig(garden.log)
         .then((config) => {
-          onMessage((req) => {
+          onMessage((req: any) => {
+            if (req.type !== "commandResult") {
+              return
+            }
+
             expect(req).to.eql({
               type: "commandResult",
               requestId: id,

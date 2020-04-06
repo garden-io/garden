@@ -23,7 +23,7 @@ async function ensureImagePulled(module: Module, log: LogEntry) {
   const imageId = await containerHelpers.getLocalImageId(module)
   const imageHash = await containerHelpers.dockerCli(module.buildPath, ["images", "-q", imageId], log)
 
-  expect(imageHash.output.length).to.be.greaterThan(0)
+  expect(imageHash.stdout.length).to.be.greaterThan(0)
 }
 
 describe("pull-image plugin command", () => {

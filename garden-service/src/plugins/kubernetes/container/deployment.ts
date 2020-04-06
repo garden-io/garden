@@ -273,6 +273,16 @@ export async function createWorkloadManifest({
 
   // expose some metadata to the container
   env.push({
+    name: "POD_HOST_IP",
+    valueFrom: { fieldRef: { fieldPath: "status.hostIP" } },
+  })
+
+  env.push({
+    name: "POD_IP",
+    valueFrom: { fieldRef: { fieldPath: "status.podIP" } },
+  })
+
+  env.push({
     name: "POD_NAME",
     valueFrom: { fieldRef: { fieldPath: "metadata.name" } },
   })
@@ -283,13 +293,18 @@ export async function createWorkloadManifest({
   })
 
   env.push({
-    name: "POD_IP",
-    valueFrom: { fieldRef: { fieldPath: "status.podIP" } },
+    name: "POD_NODE_NAME",
+    valueFrom: { fieldRef: { fieldPath: "spec.nodeName" } },
   })
 
   env.push({
     name: "POD_SERVICE_ACCOUNT",
     valueFrom: { fieldRef: { fieldPath: "spec.serviceAccountName" } },
+  })
+
+  env.push({
+    name: "POD_UID",
+    valueFrom: { fieldRef: { fieldPath: "metadata.uid" } },
   })
 
   const registryConfig = provider.config.deploymentRegistry

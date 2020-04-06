@@ -15,11 +15,11 @@ import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
 import { joi } from "../../../../../src/config/common"
 import { ServiceState } from "../../../../../src/types/service"
 import { GetServiceStatusParams } from "../../../../../src/types/plugin/service/getServiceStatus"
-import { TestGarden } from "../../../../helpers"
+import { TestGarden, getLogMessages } from "../../../../helpers"
 import { GetStatusCommand } from "../../../../../src/commands/get/get-status"
 import { withDefaultGlobalOpts } from "../../../../helpers"
-import stripAnsi from "strip-ansi"
 import { expect } from "chai"
+import { LogLevel } from "../../../../../src/logger/log-node"
 
 describe("GetStatusCommand", () => {
   let tmpDir: tmp.DirectoryResult
@@ -114,10 +114,10 @@ describe("GetStatusCommand", () => {
       const log = garden.log
       await command.action({ garden, log, args: {}, opts: withDefaultGlobalOpts({}), headerLog: log, footerLog: log })
 
-      const logMessages = log.root.getLogEntries().map((l) => stripAnsi(l.getMessageState().msg || ""))
+      const logMessages = getLogMessages(log, (l) => l.level === LogLevel.warn)
 
       expect(logMessages).to.include(
-        "Unable to resolve status for service test-service: Invalid template string ${runtime.tasks.test-task.outputs.log}: Could not find key log under runtime.tasks.test-task.outputs."
+        "Unable to resolve status for service test-service. It is likely missing or outdated. This can come up if the service has runtime dependencies that are not resolvable, i.e. not deployed or invalid."
       )
     })
   })

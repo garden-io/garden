@@ -109,7 +109,7 @@ export class PluginsCommand extends Command<Args> {
     // Commands can optionally ask for all the modules in the project/environment
     if (command.resolveModules) {
       const graph = await garden.getConfigGraph(garden.log)
-      modules = await graph.getModules()
+      modules = graph.getModules()
     }
 
     log.info("")

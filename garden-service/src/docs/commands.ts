@@ -22,9 +22,14 @@ export function writeCommandReferenceDocs(docsRoot: string) {
   const commands = flatten(
     coreCommands.map((cmd) => {
       if (cmd.subCommands && cmd.subCommands.length) {
-        return cmd.subCommands.map((subCommandCls) => new subCommandCls(cmd).describe())
+        return cmd.subCommands
+          .map((subCommandCls) => {
+            const subCmd = new subCommandCls(cmd)
+            return subCmd.hidden ? null : subCmd.describe()
+          })
+          .filter(Boolean)
       } else {
-        return [cmd.describe()]
+        return cmd.hidden ? [] : [cmd.describe()]
       }
     })
   )

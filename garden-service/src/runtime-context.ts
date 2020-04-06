@@ -14,6 +14,7 @@ import { ConfigGraph, DependencyRelations } from "./config-graph"
 import { ServiceStatus } from "./types/service"
 import { RunTaskResult } from "./types/plugin/task/runTask"
 import { joiArray } from "./config/common"
+import { isPrimitive } from "util"
 
 interface RuntimeDependency {
   moduleName: string
@@ -92,9 +93,13 @@ export async function prepareRuntimeContext({
     GARDEN_VERSION: versionString,
   }
 
+  // DEPRECATED: Remove in v0.12
   for (const [key, value] of Object.entries(garden.variables)) {
-    const envVarName = `GARDEN_VARIABLES_${getEnvVarName(key)}`
-    envVars[envVarName] = value
+    // Only store primitive values, objects and arrays cause issues further down.
+    if (isPrimitive(value)) {
+      const envVarName = `GARDEN_VARIABLES_${getEnvVarName(key)}`
+      envVars[envVarName] = value
+    }
   }
 
   const result: RuntimeContext = {

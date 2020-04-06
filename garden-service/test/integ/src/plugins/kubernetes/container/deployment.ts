@@ -50,7 +50,7 @@ describe("kubernetes container deployment handlers", () => {
     })
 
     it("should create a basic Deployment resource", async () => {
-      const service = await graph.getService("simple-service")
+      const service = graph.getService("simple-service")
 
       const resource = await createWorkloadManifest({
         api,
@@ -87,10 +87,13 @@ describe("kubernetes container deployment handlers", () => {
                   image: "simple-service:" + version,
                   command: ["sh", "-c", "echo Server running... && nc -l -p 8080"],
                   env: [
+                    { name: "POD_HOST_IP", valueFrom: { fieldRef: { fieldPath: "status.hostIP" } } },
+                    { name: "POD_IP", valueFrom: { fieldRef: { fieldPath: "status.podIP" } } },
                     { name: "POD_NAME", valueFrom: { fieldRef: { fieldPath: "metadata.name" } } },
                     { name: "POD_NAMESPACE", valueFrom: { fieldRef: { fieldPath: "metadata.namespace" } } },
-                    { name: "POD_IP", valueFrom: { fieldRef: { fieldPath: "status.podIP" } } },
+                    { name: "POD_NODE_NAME", valueFrom: { fieldRef: { fieldPath: "spec.nodeName" } } },
                     { name: "POD_SERVICE_ACCOUNT", valueFrom: { fieldRef: { fieldPath: "spec.serviceAccountName" } } },
+                    { name: "POD_UID", valueFrom: { fieldRef: { fieldPath: "metadata.uid" } } },
                   ],
                   ports: [{ name: "http", protocol: "TCP", containerPort: 8080 }],
                   resources: { requests: { cpu: "10m", memory: "64Mi" }, limits: { cpu: "1", memory: "1Gi" } },
@@ -111,7 +114,7 @@ describe("kubernetes container deployment handlers", () => {
     })
 
     it("should copy and reference imagePullSecrets with docker basic auth", async () => {
-      const service = await graph.getService("simple-service")
+      const service = graph.getService("simple-service")
       const secretName = "test-docker-auth"
 
       const authSecret: KubernetesResource<V1Secret> = {
@@ -149,7 +152,7 @@ describe("kubernetes container deployment handlers", () => {
     })
 
     it("should copy and reference imagePullSecrets with docker credential helper", async () => {
-      const service = await graph.getService("simple-service")
+      const service = graph.getService("simple-service")
       const secretName = "test-cred-helper-auth"
 
       const authSecret: KubernetesResource<V1Secret> = {
@@ -187,7 +190,7 @@ describe("kubernetes container deployment handlers", () => {
     })
 
     it("should correctly mount a referenced PVC module", async () => {
-      const service = await graph.getService("volume-reference")
+      const service = graph.getService("volume-reference")
       const namespace = garden.projectName
 
       const resource = await createWorkloadManifest({
@@ -208,7 +211,7 @@ describe("kubernetes container deployment handlers", () => {
     })
 
     it("should throw if incompatible module is specified as a volume module", async () => {
-      const service = await graph.getService("volume-reference")
+      const service = graph.getService("volume-reference")
       const namespace = garden.projectName
 
       service.spec.volumes = [{ name: "test", module: "simple-service" }]
@@ -240,7 +243,7 @@ describe("kubernetes container deployment handlers", () => {
       })
 
       it("should deploy a simple service", async () => {
-        const service = await graph.getService("simple-service")
+        const service = graph.getService("simple-service")
 
         const deployTask = new DeployTask({
           garden,
@@ -261,7 +264,7 @@ describe("kubernetes container deployment handlers", () => {
       })
 
       it("should deploy a service referencing a volume module", async () => {
-        const service = await graph.getService("volume-reference")
+        const service = graph.getService("volume-reference")
 
         const deployTask = new DeployTask({
           garden,
@@ -293,7 +296,7 @@ describe("kubernetes container deployment handlers", () => {
       })
 
       it("should deploy a simple service", async () => {
-        const service = await graph.getService("simple-service")
+        const service = graph.getService("simple-service")
 
         const deployTask = new DeployTask({
           garden,
@@ -314,7 +317,7 @@ describe("kubernetes container deployment handlers", () => {
       })
 
       it("should deploy a service referencing a volume module", async () => {
-        const service = await graph.getService("volume-reference")
+        const service = graph.getService("volume-reference")
 
         const deployTask = new DeployTask({
           garden,
@@ -346,7 +349,7 @@ describe("kubernetes container deployment handlers", () => {
       })
 
       it("should deploy a simple service", async () => {
-        const service = await graph.getService("simple-service")
+        const service = graph.getService("simple-service")
 
         const deployTask = new DeployTask({
           garden,
@@ -373,7 +376,7 @@ describe("kubernetes container deployment handlers", () => {
       })
 
       it("should deploy a simple service", async () => {
-        const service = await graph.getService("remote-registry-test")
+        const service = graph.getService("remote-registry-test")
 
         const deployTask = new DeployTask({
           garden,
@@ -400,7 +403,7 @@ describe("kubernetes container deployment handlers", () => {
       })
 
       it("should deploy a simple service", async () => {
-        const service = await graph.getService("remote-registry-test")
+        const service = graph.getService("remote-registry-test")
 
         const deployTask = new DeployTask({
           garden,

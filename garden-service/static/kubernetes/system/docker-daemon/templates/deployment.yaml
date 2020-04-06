@@ -65,13 +65,11 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
         - name: proxy
-          image: "basi/socat:v0.1.0"
+          image: "gardendev/socat:0.1.0"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command:
-            - /bin/sh
-            - -c
-            - |
-              socat TCP-LISTEN:5000,fork TCP:{{ .Values.registry.hostname }}:5000
+          args:
+            - TCP-LISTEN:5000,fork
+            - TCP:{{ .Values.registry.hostname }}:5000
           ports:
             - name: proxy
               containerPort: 5000

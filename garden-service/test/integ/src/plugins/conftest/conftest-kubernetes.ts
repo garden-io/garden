@@ -20,8 +20,8 @@ describe("conftest-kubernetes provider", () => {
     const garden = await Garden.factory(projectRoot)
 
     const graph = await garden.getConfigGraph(garden.log)
-    const helmModule = await graph.getModule("helm")
-    const module = await graph.getModule("conftest-helm")
+    const helmModule = graph.getModule("helm")
+    const module = graph.getModule("conftest-helm")
 
     expect(module.path).to.equal(helmModule.path)
     expect(module.spec).to.eql({
@@ -37,8 +37,8 @@ describe("conftest-kubernetes provider", () => {
     const garden = await Garden.factory(projectRoot)
 
     const graph = await garden.getConfigGraph(garden.log)
-    const kubernetesModule = await graph.getModule("kubernetes")
-    const module = await graph.getModule("conftest-kubernetes")
+    const kubernetesModule = graph.getModule("kubernetes")
+    const module = graph.getModule("conftest-kubernetes")
 
     expect(module.path).to.equal(kubernetesModule.path)
     expect(module.spec).to.eql({
@@ -55,7 +55,7 @@ describe("conftest-kubernetes provider", () => {
       const garden = await Garden.factory(projectRoot)
 
       const graph = await garden.getConfigGraph(garden.log)
-      const module = await graph.getModule("conftest-helm")
+      const module = graph.getModule("conftest-helm")
 
       const testTask = new TestTask({
         garden,

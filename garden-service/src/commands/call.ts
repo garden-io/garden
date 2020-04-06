@@ -66,7 +66,7 @@ export class CallCommand extends Command<Args> {
 
     // TODO: better error when service doesn't exist
     const graph = await garden.getConfigGraph(log)
-    const service = await graph.getService(serviceName)
+    const service = graph.getService(serviceName)
     // No need for full context, since we're just checking if the service is running.
     const runtimeContext = emptyRuntimeContext
     const actions = await garden.getActionRouter()

@@ -100,5 +100,5 @@ function getExternalGatewayUrl(provider: OpenFaasProvider) {
   const k8sProvider = getK8sProvider(provider.dependencies)
   const hostname = provider.config.hostname
   const ingressPort = k8sProvider.config.ingressHttpPort
-  return `http://${hostname}:${ingressPort}`
+  return provider.config.gatewayUrl || `http://${hostname}:${ingressPort}`
 }

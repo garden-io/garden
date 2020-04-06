@@ -43,12 +43,10 @@ export function handleDependencyErrors(
  * Looks for dependencies on non-existent modules, services or tasks, and returns an error
  * if any were found.
  */
-export function detectMissingDependencies(
-  moduleConfigs: ModuleConfig[],
-  serviceNames: string[],
-  taskNames: string[]
-): ConfigurationError | null {
+export function detectMissingDependencies(moduleConfigs: ModuleConfig[]): ConfigurationError | null {
   const moduleNames: Set<string> = new Set(moduleConfigs.map((m) => m.name))
+  const serviceNames = moduleConfigs.flatMap((m) => m.serviceConfigs.map((s) => s.name))
+  const taskNames = moduleConfigs.flatMap((m) => m.taskConfigs.map((t) => t.name))
   const runtimeNames: Set<string> = new Set([...serviceNames, ...taskNames])
   const missingDepDescriptions: string[] = []
 

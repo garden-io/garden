@@ -87,7 +87,7 @@ describe("TaskHelpers", () => {
       ])
 
       const graph = await garden.getConfigGraph(garden.log)
-      const module = await graph.getModule("module-a", true)
+      const module = graph.getModule("module-a", true)
 
       const tasks = await getModuleWatchTasks({
         garden,
@@ -153,7 +153,7 @@ describe("TaskHelpers", () => {
       ])
 
       const graph = await garden.getConfigGraph(garden.log)
-      const module = await graph.getModule("module-a", true)
+      const module = graph.getModule("module-a", true)
 
       const tasks = await getModuleWatchTasks({
         garden,
@@ -164,6 +164,65 @@ describe("TaskHelpers", () => {
       })
 
       expect(sortedBaseKeys(tasks)).to.eql(["build.module-a", "deploy.service-a"])
+    })
+
+    it("should not add a build task for a hot-reload-enabled service's sourceModule", async () => {
+      const garden = await makeTestGardenA()
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          name: "module-a",
+          include: [],
+          outputs: {},
+          path: garden.projectRoot,
+          serviceConfigs: [],
+          taskConfigs: [],
+          spec: { services: [] },
+          testConfigs: [],
+          type: "test",
+        },
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [{ name: "module-a", copy: [] }] },
+          disabled: false,
+          name: "module-b",
+          include: [],
+          outputs: {},
+          path: garden.projectRoot,
+          serviceConfigs: [],
+          taskConfigs: [],
+          spec: {
+            services: [
+              {
+                name: "service-b",
+                dependencies: [],
+                disabled: false,
+                sourceModule: "module-a", // <---------------
+              },
+            ],
+          },
+          testConfigs: [],
+          type: "test",
+        },
+      ])
+
+      const graph = await garden.getConfigGraph(garden.log)
+      const module = await graph.getModule("module-b", true)
+
+      const tasks = await getModuleWatchTasks({
+        garden,
+        graph,
+        log,
+        module,
+        hotReloadServiceNames: ["service-b"],
+      })
+
+      expect(sortedBaseKeys(tasks)).to.eql(["hot-reload.service-b"])
     })
 
     context("without hot reloading enabled", () => {
@@ -209,7 +268,7 @@ describe("TaskHelpers", () => {
       for (const { moduleName, expectedTasks } of expectedBaseKeysByChangedModule) {
         it(`returns the correct set of tasks for ${moduleName} with dependants`, async () => {
           const graph = await depGarden.getConfigGraph(depGarden.log)
-          const module = await graph.getModule(<string>moduleName)
+          const module = graph.getModule(<string>moduleName)
 
           const tasks = await getModuleWatchTasks({
             garden: depGarden,
@@ -252,7 +311,7 @@ describe("TaskHelpers", () => {
         ])
 
         const graph = await garden.getConfigGraph(garden.log)
-        const module = await graph.getModule("module-a", true)
+        const module = graph.getModule("module-a", true)
 
         const tasks = await getModuleWatchTasks({
           garden,
@@ -318,7 +377,7 @@ describe("TaskHelpers", () => {
         ])
 
         const graph = await garden.getConfigGraph(garden.log)
-        const module = await graph.getModule("module-a", true)
+        const module = graph.getModule("module-a", true)
 
         const tasks = await getModuleWatchTasks({
           garden,
@@ -373,7 +432,7 @@ describe("TaskHelpers", () => {
       for (const { moduleName, expectedTasks } of expectedBaseKeysByChangedModule) {
         it(`returns the correct set of tasks for ${moduleName} with dependants`, async () => {
           const graph = await depGarden.getConfigGraph(depGarden.log)
-          const module = await graph.getModule(<string>moduleName)
+          const module = graph.getModule(<string>moduleName)
 
           const tasks = await getModuleWatchTasks({
             garden: depGarden,
@@ -416,7 +475,7 @@ describe("TaskHelpers", () => {
         ])
 
         const graph = await garden.getConfigGraph(garden.log)
-        const module = await graph.getModule("module-a", true)
+        const module = graph.getModule("module-a", true)
 
         const tasks = await getModuleWatchTasks({
           garden,
@@ -482,7 +541,7 @@ describe("TaskHelpers", () => {
         ])
 
         const graph = await garden.getConfigGraph(garden.log)
-        const module = await graph.getModule("module-a", true)
+        const module = graph.getModule("module-a", true)
 
         const tasks = await getModuleWatchTasks({
           garden,

@@ -18,7 +18,7 @@ export interface GCloudParams {
 
 export interface GCloudOutput {
   code: number
-  output: string
+  all: string
   stdout?: string
   stderr?: string
 }
@@ -48,7 +48,7 @@ export class GCloud {
 
     const result = await this.call(args, opts)
 
-    return JSON.parse(result.output)
+    return JSON.parse(result.all)
   }
 
   private prepareArgs(args: string[]) {

@@ -37,8 +37,8 @@ describe("kubernetes", () => {
     })
 
     it("should write service logs to stream", async () => {
-      const module = await graph.getModule("simple-service")
-      const service = await graph.getService("simple-service")
+      const module = graph.getModule("simple-service")
+      const service = graph.getService("simple-service")
 
       const entries: ServiceLogEntry[] = []
 

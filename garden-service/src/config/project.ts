@@ -366,11 +366,11 @@ export const projectSchema = () =>
  *
  * @param config raw project configuration
  */
-export async function resolveProjectConfig(config: ProjectConfig, artifactsPath: string): Promise<ProjectConfig> {
+export function resolveProjectConfig(config: ProjectConfig, artifactsPath: string, username: string): ProjectConfig {
   // Resolve template strings for non-environment-specific fields
   const { environments = [] } = config
 
-  const globalConfig = await resolveTemplateStrings(
+  const globalConfig = resolveTemplateStrings(
     {
       apiVersion: config.apiVersion,
       defaultEnvironment: config.defaultEnvironment,
@@ -380,7 +380,7 @@ export async function resolveProjectConfig(config: ProjectConfig, artifactsPath:
       variables: config.variables,
       environments: environments.map((e) => omit(e, ["providers"])),
     },
-    new ProjectConfigContext(artifactsPath)
+    new ProjectConfigContext(artifactsPath, username)
   )
 
   // Validate after resolving global fields

@@ -59,7 +59,7 @@ export class RunServiceCommand extends Command<Args, Opts> {
   async action({ garden, log, headerLog, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
     const serviceName = args.service
     const graph = await garden.getConfigGraph(log)
-    const service = await graph.getService(serviceName, true)
+    const service = graph.getService(serviceName, true)
     const module = service.module
 
     if (service.disabled && !opts.force) {
@@ -86,9 +86,9 @@ export class RunServiceCommand extends Command<Args, Opts> {
       log,
       service,
     })
-    const dependencyResults = await garden.processTasks(await deployTask.getDependencies())
+    const dependencyResults = await garden.processTasks(await deployTask.resolveDependencies())
 
-    const dependencies = await graph.getDependencies({ nodeType: "deploy", name: serviceName, recursive: false })
+    const dependencies = graph.getDependencies({ nodeType: "deploy", name: serviceName, recursive: false })
     const serviceStatuses = getServiceStatuses(dependencyResults)
     const taskResults = getRunTaskResults(dependencyResults)
     const interactive = true

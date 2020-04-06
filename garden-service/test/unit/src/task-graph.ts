@@ -14,7 +14,6 @@ import { TaskGraph, TaskResult, TaskResults } from "../../../src/task-graph"
 import { makeTestGarden, freezeTime, dataDir, expectError, TestGarden } from "../../helpers"
 import { Garden } from "../../../src/garden"
 import { deepFilter, defer, sleep, uuidv4 } from "../../../src/util/util"
-import { DependencyValidationGraph } from "../../../src/util/validate-dependencies"
 
 const projectRoot = join(dataDir, "test-project-empty")
 
@@ -34,6 +33,8 @@ export class TestTask extends BaseTask {
   callback: TestTaskCallback | null
   uid: string
   throwError: boolean
+
+  dependencies: BaseTask[]
 
   constructor(garden: Garden, name: string, force: boolean, options?: TestTaskOptions) {
     super({
@@ -56,6 +57,10 @@ export class TestTask extends BaseTask {
     this.uid = options.uid || ""
     this.throwError = !!options.throwError
     this.dependencies = options.dependencies || []
+  }
+
+  async resolveDependencies() {
+    return this.dependencies
   }
 
   getName() {
@@ -168,7 +173,7 @@ describe("task-graph", () => {
       const taskB = new TestTask(garden, "b", false, { dependencies: [taskA] })
       const taskC = new TestTask(garden, "c", false, { dependencies: [taskB] })
       taskA["dependencies"] = [taskC]
-      const errorMsg = "\nCircular task dependencies detected:\n\nb <- a <- c <- b\n"
+      const errorMsg = "Circular task dependencies detected:\n\nb <- a <- c <- b\n"
 
       await expectError(
         () => graph.process([taskB]),
@@ -843,10 +848,14 @@ describe("task-graph", () => {
         const taskC = new TestTask(garden, "c", false)
 
         const tasks = [taskA, taskB, taskC, taskADep1, taskBDep, taskADep2]
-        const validationGraph = new DependencyValidationGraph()
-        const taskNodes = await graph.nodesWithDependencies(tasks, validationGraph, false)
+        const taskNodes = await graph["nodesWithDependencies"]({
+          tasks,
+          unlimitedConcurrency: false,
+          dependencyCache: {},
+          stack: [],
+        })
         const batches = graph.partition(taskNodes, { unlimitedConcurrency: false })
-        const batchKeys = batches.map((b) => b.nodes.map((n) => n.getKey()))
+        const batchKeys = batches.map((b) => b.nodes.map((n) => n.key))
 
         expect(batchKeys).to.eql([["a", "a-dep1", "a-dep2"], ["b", "b-dep"], ["c"]])
       })
@@ -889,10 +898,14 @@ describe("task-graph", () => {
           taskC,
         ]
 
-        const validationGraph = new DependencyValidationGraph()
-        const taskNodes = await graph.nodesWithDependencies(tasks, validationGraph, false)
+        const taskNodes = await graph["nodesWithDependencies"]({
+          tasks,
+          unlimitedConcurrency: false,
+          dependencyCache: {},
+          stack: [],
+        })
         const batches = graph.partition(taskNodes, { unlimitedConcurrency: false })
-        const batchKeys = batches.map((b) => b.nodes.map((n) => n.getKey()))
+        const batchKeys = batches.map((b) => b.nodes.map((n) => n.key))
 
         expect(batchKeys).to.eql([
           ["a-v1", "a-v1-dep1", "a-v1-dep2"],

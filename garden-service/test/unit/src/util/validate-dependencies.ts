@@ -16,53 +16,138 @@ import {
 import { makeTestGarden, dataDir, expectError } from "../../../helpers"
 import { ModuleConfig } from "../../../../src/config/module"
 import { ConfigurationError } from "../../../../src/exceptions"
-import { Garden } from "../../../../src/garden"
-import { flatten } from "lodash"
-
-/**
- * Here, we cast the garden arg to any in order to access the private moduleConfigs property.
- *
- * We also ignore any exeptions thrown by scanModules, because we want to more granularly
- * test the validation methods below (which normally throw their exceptions during the
- * execution of scanModules).
- */
-async function scanAndGetConfigs(garden: Garden) {
-  const moduleConfigs: ModuleConfig[] = await garden["resolveModuleConfigs"](garden.log)
-
-  const serviceNames = flatten(moduleConfigs.map((m) => m.serviceConfigs.map((s) => s.name)))
-  const taskNames = flatten(moduleConfigs.map((m) => m.taskConfigs.map((s) => s.name)))
-
-  return {
-    moduleConfigs,
-    serviceNames,
-    taskNames,
-  }
-}
+import { DEFAULT_API_VERSION } from "../../../../src/constants"
 
 describe("validate-dependencies", () => {
   describe("detectMissingDependencies", () => {
     it("should return an error when a build dependency is missing", async () => {
-      const projectRoot = join(dataDir, "test-projects", "missing-deps", "missing-build-dep")
-      const garden = await makeTestGarden(projectRoot)
-      const { moduleConfigs, serviceNames, taskNames } = await scanAndGetConfigs(garden)
-      const err = detectMissingDependencies(moduleConfigs, serviceNames, taskNames)
+      const moduleConfigs: ModuleConfig[] = [
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          name: "test",
+          type: "test",
+          allowPublish: false,
+          build: { dependencies: [{ name: "missing", copy: [] }] },
+          disabled: false,
+          outputs: {},
+          path: "/tmp",
+          serviceConfigs: [],
+          taskConfigs: [],
+          testConfigs: [],
+          spec: {},
+        },
+      ]
+      const err = detectMissingDependencies(moduleConfigs)
       expect(err).to.be.an.instanceOf(ConfigurationError)
     })
 
-    it("should return an error when a runtime dependency is missing", async () => {
-      const projectRoot = join(dataDir, "test-projects", "missing-deps", "missing-runtime-dep")
-      const garden = await makeTestGarden(projectRoot)
-      const { moduleConfigs, serviceNames, taskNames } = await scanAndGetConfigs(garden)
-      const err = detectMissingDependencies(moduleConfigs, serviceNames, taskNames)
+    it("should return an error when a service dependency is missing", async () => {
+      const moduleConfigs: ModuleConfig[] = [
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          name: "test",
+          type: "test",
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          outputs: {},
+          path: "/tmp",
+          serviceConfigs: [
+            {
+              name: "test",
+              dependencies: ["missing"],
+              disabled: false,
+              hotReloadable: false,
+              spec: {},
+            },
+          ],
+          taskConfigs: [],
+          testConfigs: [],
+          spec: {},
+        },
+      ]
+      const err = detectMissingDependencies(moduleConfigs)
+      expect(err).to.be.an.instanceOf(ConfigurationError)
+    })
+
+    it("should return an error when a task dependency is missing", async () => {
+      const moduleConfigs: ModuleConfig[] = [
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          name: "test",
+          type: "test",
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          outputs: {},
+          path: "/tmp",
+          serviceConfigs: [],
+          taskConfigs: [
+            {
+              name: "test",
+              cacheResult: true,
+              dependencies: ["missing"],
+              disabled: false,
+              spec: {},
+              timeout: null,
+            },
+          ],
+          testConfigs: [],
+          spec: {},
+        },
+      ]
+      const err = detectMissingDependencies(moduleConfigs)
+      expect(err).to.be.an.instanceOf(ConfigurationError)
+    })
+
+    it("should return an error when a test dependency is missing", async () => {
+      const moduleConfigs: ModuleConfig[] = [
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          name: "test",
+          type: "test",
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          outputs: {},
+          path: "/tmp",
+          serviceConfigs: [],
+          taskConfigs: [],
+          testConfigs: [
+            {
+              name: "test",
+              dependencies: ["missing"],
+              disabled: false,
+              spec: {},
+              timeout: null,
+            },
+          ],
+          spec: {},
+        },
+      ]
+      const err = detectMissingDependencies(moduleConfigs)
       expect(err).to.be.an.instanceOf(ConfigurationError)
     })
 
     it("should return null when no dependencies are missing", async () => {
-      const projectRoot = join(dataDir, "test-project-b")
-      const garden = await makeTestGarden(projectRoot)
-      const { moduleConfigs, serviceNames, taskNames } = await scanAndGetConfigs(garden)
-      const err = detectMissingDependencies(moduleConfigs, serviceNames, taskNames)
-      expect(err).to.eql(null)
+      const moduleConfigs: ModuleConfig[] = [
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          name: "test",
+          type: "test",
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          outputs: {},
+          path: "/tmp",
+          serviceConfigs: [],
+          taskConfigs: [],
+          testConfigs: [],
+          spec: {},
+        },
+      ]
+      const result = detectMissingDependencies(moduleConfigs)
+      expect(result).to.be.null
     })
   })
 
@@ -96,16 +181,6 @@ describe("validate-dependencies", () => {
         vg.addDependency("c", "a")
         const cycles = vg.detectCircularDependencies()
         expect(cycles).to.be.empty
-      })
-
-      it("should return an error when circular config dependencies are present", async () => {
-        const circularProjectRoot = join(dataDir, "test-project-circular-deps")
-        const garden = await makeTestGarden(circularProjectRoot)
-        // This implicitly tests detectCircularDependencies, since that method is called in ConfigGraph's constructor.
-        await expectError(
-          () => garden.getConfigGraph(garden.log),
-          (e) => expect(e).to.be.instanceOf(ConfigurationError)
-        )
       })
 
       it("should return null when no circular config dependencies are present", async () => {

@@ -11,6 +11,8 @@ import { sum, sortBy } from "lodash"
 import { renderTable, tablePresets } from "./string"
 import chalk from "chalk"
 
+const maxReportRows = 50
+
 // Just storing the invocation duration for now
 type Invocation = number
 
@@ -64,15 +66,23 @@ export class Profiler {
       }),
       // Sort by total duration
       (row) => -row[2]
-    ).map((row) => [row[0], row[1], formatDuration(<number>row[2]), formatDuration(<number>row[3])])
+    )
+      .map((row) => [row[0], row[1], formatDuration(<number>row[2]), formatDuration(<number>row[3])])
+      .slice(0, maxReportRows)
+
+    const totalRows = keys.length
+
+    if (totalRows > maxReportRows) {
+      tableData.push([chalk.gray("...")])
+    }
 
     const table = renderTable([heading, [], ...tableData], tablePresets["no-borders"])
 
     return `
  ${chalk.white.bold("Profiling data:")}
- ────────────────────────────────────────────────────────────────────────────────
+ ─────────────────────────────────────────────────────────────────────────────────────────
 ${table}
- ────────────────────────────────────────────────────────────────────────────────
+ ─────────────────────────────────────────────────────────────────────────────────────────
     `
   }
 

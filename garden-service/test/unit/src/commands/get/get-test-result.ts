@@ -122,7 +122,7 @@ describe("GetTestResultCommand", () => {
     const name = "unit"
 
     const graph = await garden.getConfigGraph(garden.log)
-    const module = await graph.getModule("module-a")
+    const module = graph.getModule("module-a")
     const artifactKey = getArtifactKey("test", name, module.version.versionString)
     const metadataPath = join(garden.artifactsPath, `.metadata.${artifactKey}.json`)
     const metadata = {

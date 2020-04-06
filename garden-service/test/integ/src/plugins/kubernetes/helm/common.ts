@@ -42,8 +42,18 @@ export async function getHelmTestGarden() {
 }
 
 export async function buildHelmModules(garden: TestGarden, graph: ConfigGraph) {
-  const modules = await graph.getModules()
-  const tasks = modules.map((module) => new BuildTask({ garden, log: garden.log, module, force: false, _guard: true }))
+  const modules = graph.getModules()
+  const tasks = modules.map(
+    (module) =>
+      new BuildTask({
+        garden,
+        graph,
+        log: garden.log,
+        module,
+        force: false,
+        _guard: true,
+      })
+  )
   const results = await garden.processTasks(tasks)
 
   const err = first(Object.values(results).map((r) => r && r.error))
@@ -74,19 +84,19 @@ describe("Helm common functions", () => {
 
   describe("containsSource", () => {
     it("should return true if the specified module contains chart sources", async () => {
-      const module = await graph.getModule("api")
+      const module = graph.getModule("api")
       expect(await containsSource(module)).to.be.true
     })
 
     it("should return false if the specified module does not contain chart sources", async () => {
-      const module = await graph.getModule("postgres")
+      const module = graph.getModule("postgres")
       expect(await containsSource(module)).to.be.false
     })
   })
 
   describe("getChartResources", () => {
     it("should render and return resources for a local template", async () => {
-      const module = await graph.getModule("api")
+      const module = graph.getModule("api")
       const resources = await getChartResources(ctx, module, false, log)
 
       expect(resources).to.eql([
@@ -204,7 +214,7 @@ describe("Helm common functions", () => {
     })
 
     it("should render and return resources for a remote template", async () => {
-      const module = await graph.getModule("postgres")
+      const module = graph.getModule("postgres")
       const resources = await getChartResources(ctx, module, false, log)
 
       expect(resources).to.eql([
@@ -438,12 +448,12 @@ describe("Helm common functions", () => {
     })
 
     it("should handle duplicate keys in template", async () => {
-      const module = await graph.getModule("duplicate-keys-in-template")
+      const module = graph.getModule("duplicate-keys-in-template")
       expect(await getChartResources(ctx, module, false, log)).to.not.throw
     })
 
     it("should filter out resources with hooks", async () => {
-      const module = await graph.getModule("chart-with-test-pod")
+      const module = graph.getModule("chart-with-test-pod")
       const resources = await getChartResources(ctx, module, false, log)
 
       expect(resources).to.eql([
@@ -473,14 +483,14 @@ describe("Helm common functions", () => {
 
   describe("getBaseModule", () => {
     it("should return undefined if no base module is specified", async () => {
-      const module = await graph.getModule("api")
+      const module = graph.getModule("api")
 
       expect(await getBaseModule(module)).to.be.undefined
     })
 
     it("should return the resolved base module if specified", async () => {
-      const module = await graph.getModule("api")
-      const baseModule = await graph.getModule("postgres")
+      const module = graph.getModule("api")
+      const baseModule = graph.getModule("postgres")
 
       module.spec.base = baseModule.name
       module.buildDependencies = { postgres: baseModule }
@@ -489,7 +499,7 @@ describe("Helm common functions", () => {
     })
 
     it("should throw if the base module isn't in the build dependency map", async () => {
-      const module = await graph.getModule("api")
+      const module = graph.getModule("api")
 
       module.spec.base = "postgres"
 
@@ -503,8 +513,8 @@ describe("Helm common functions", () => {
     })
 
     it("should throw if the base module isn't a Helm module", async () => {
-      const module = await graph.getModule("api")
-      const baseModule = await graph.getModule("postgres")
+      const module = graph.getModule("api")
+      const baseModule = graph.getModule("postgres")
 
       baseModule.type = "foo"
 
@@ -525,14 +535,14 @@ describe("Helm common functions", () => {
   describe("getChartPath", () => {
     context("module has chart sources", () => {
       it("should return the chart path in the build directory", async () => {
-        const module = await graph.getModule("api")
+        const module = graph.getModule("api")
         expect(await getChartPath(module)).to.equal(resolve(ctx.projectRoot, ".garden", "build", "api"))
       })
     })
 
     context("module references remote chart", () => {
       it("should construct the chart path based on the chart name", async () => {
-        const module = await graph.getModule("postgres")
+        const module = graph.getModule("postgres")
         expect(await getChartPath(module)).to.equal(
           resolve(ctx.projectRoot, ".garden", "build", "postgres", "postgresql")
         )
@@ -548,14 +558,14 @@ describe("Helm common functions", () => {
 
   describe("getValueArgs", () => {
     it("should return just garden-values.yml if no valueFiles are configured", async () => {
-      const module = await graph.getModule("api")
+      const module = graph.getModule("api")
       module.spec.valueFiles = []
       const gardenValuesPath = getGardenValuesPath(module.buildPath)
       expect(await getValueArgs(module, false)).to.eql(["--values", gardenValuesPath])
     })
 
     it("should add a --set flag if hotReload=true", async () => {
-      const module = await graph.getModule("api")
+      const module = graph.getModule("api")
       module.spec.valueFiles = []
       const gardenValuesPath = getGardenValuesPath(module.buildPath)
       expect(await getValueArgs(module, true)).to.eql([
@@ -567,7 +577,7 @@ describe("Helm common functions", () => {
     })
 
     it("should return a --values arg for each valueFile configured", async () => {
-      const module = await graph.getModule("api")
+      const module = graph.getModule("api")
       module.spec.valueFiles = ["foo.yaml", "bar.yaml"]
       const gardenValuesPath = getGardenValuesPath(module.buildPath)
 
@@ -584,13 +594,13 @@ describe("Helm common functions", () => {
 
   describe("getReleaseName", () => {
     it("should return the module name if not overridden in config", async () => {
-      const module = await graph.getModule("api")
+      const module = graph.getModule("api")
       delete module.spec.releaseName
       expect(getReleaseName(module)).to.equal("api")
     })
 
     it("should return the configured release name if any", async () => {
-      const module = await graph.getModule("api")
+      const module = graph.getModule("api")
       expect(getReleaseName(module)).to.equal("api-release")
     })
   })
