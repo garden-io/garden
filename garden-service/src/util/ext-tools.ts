@@ -228,6 +228,7 @@ export interface ExecParams {
 
 export interface SpawnParams extends ExecParams {
   tty?: boolean
+  rawMode?: boolean // Only used if tty = true. See also: https://nodejs.org/api/tty.html#tty_readstream_setrawmode_mode
 }
 
 /**
@@ -316,7 +317,7 @@ export class BinaryCmd extends Library {
     return crossSpawn(path, args, { cwd, env })
   }
 
-  async spawnAndWait({ args, cwd, env, log, ignoreError, stdout, stderr, timeout, tty }: SpawnParams) {
+  async spawnAndWait({ args, cwd, env, log, ignoreError, rawMode, stdout, stderr, timeout, tty }: SpawnParams) {
     const path = await this.getPath(log)
 
     if (!args) {
@@ -332,6 +333,7 @@ export class BinaryCmd extends Library {
       timeout: this.getTimeout(timeout),
       ignoreError,
       env,
+      rawMode,
       stdout,
       stderr,
       tty,
