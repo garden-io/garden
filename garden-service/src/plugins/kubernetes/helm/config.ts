@@ -32,6 +32,7 @@ import {
   KubernetesTaskSpec,
   namespaceSchema,
 } from "../config"
+import { posix } from "path"
 
 export const defaultHelmTimeout = 300
 
@@ -219,7 +220,7 @@ export const helmModuleSpecSchema = () =>
 export async function configureHelmModule({
   moduleConfig,
 }: ConfigureModuleParams<HelmModule>): Promise<ConfigureModuleResult<HelmModule>> {
-  const { base, dependencies, serviceResource, skipDeploy, tasks, tests } = moduleConfig.spec
+  const { base, chartPath, dependencies, serviceResource, skipDeploy, tasks, tests } = moduleConfig.spec
 
   const sourceModuleName = serviceResource ? serviceResource.containerModule : undefined
 
@@ -296,6 +297,8 @@ export async function configureHelmModule({
     moduleConfig.include = containsSources
       ? ["*", "charts/**/*", "templates/**/*", ...valueFiles]
       : ["*.yaml", "*.yml", ...valueFiles]
+
+    moduleConfig.include = moduleConfig.include.map((path) => posix.join(chartPath, path))
   }
 
   return { moduleConfig }
