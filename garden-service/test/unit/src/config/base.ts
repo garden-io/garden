@@ -34,6 +34,7 @@ describe("loadConfig", () => {
       async () => await loadConfig(projectPath, resolve(projectPath, "invalid-syntax-module")),
       (err) => {
         expect(err.message).to.match(/Could not parse/)
+        expect(err.message).to.match(/duplicated mapping key/) // include syntax erorrs in the output
       }
     )
   })

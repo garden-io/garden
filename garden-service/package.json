@@ -131,7 +131,8 @@
     "winston": "^3.2.1",
     "wrap-ansi": "^6.2.0",
     "ws": "^7.2.1",
-    "xml-js": "^1.6.11"
+    "xml-js": "^1.6.11",
+    "yaml-lint": "^1.2.4"
   },
   "devDependencies": {
     "@commitlint/cli": "^8.3.5",

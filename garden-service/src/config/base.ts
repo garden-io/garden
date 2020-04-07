@@ -8,6 +8,7 @@
 
 import { sep, resolve, relative, basename, dirname } from "path"
 import yaml from "js-yaml"
+import yamlLint from "yaml-lint"
 import { readFile } from "fs-extra"
 import { omit, isPlainObject, find, isArray } from "lodash"
 import { ModuleResource, coreModuleSpecSchema, baseModuleSchemaKeys, BuildDependencyConfig } from "./module"
@@ -24,11 +25,34 @@ export interface GardenResource {
   path: string
 }
 
+/**
+ * Attempts to parse content as YAML, and applies a linter to produce more informative error messages when
+ * content is not valid YAML.
+ *
+ * @param content - The contents of the file as a string.
+ * @param path - The path to the file.
+ */
+export async function loadAndValidateYaml(content: string, path: string): Promise<any[]> {
+  try {
+    return yaml.safeLoadAll(content) || []
+  } catch (err) {
+    // We try to find the error using a YAML linter
+    try {
+      await yamlLint(content)
+    } catch (linterErr) {
+      throw new ConfigurationError(
+        `Could not parse ${basename(path)} in directory ${path} as valid YAML: ${err.message}`,
+        linterErr
+      )
+    }
+    // ... but default to throwing a generic error, in case the error wasn't caught by yaml-lint.
+    throw new ConfigurationError(`Could not parse ${basename(path)} in directory ${path} as valid YAML.`, err)
+  }
+}
+
 export async function loadConfig(projectRoot: string, path: string): Promise<GardenResource[]> {
-  // TODO: nicer error messages when load/validation fails
   const configPath = await getConfigFilePath(path)
   let fileData: Buffer
-  let rawSpecs: any[]
 
   // loadConfig returns undefined if config file is not found in the given directory
   try {
@@ -37,11 +61,7 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
     return []
   }
 
-  try {
-    rawSpecs = yaml.safeLoadAll(fileData.toString()) || []
-  } catch (err) {
-    throw new ConfigurationError(`Could not parse ${basename(configPath)} in directory ${path} as valid YAML`, err)
-  }
+  let rawSpecs = await loadAndValidateYaml(fileData.toString(), path)
 
   // Ignore empty resources
   rawSpecs = rawSpecs.filter(Boolean)
