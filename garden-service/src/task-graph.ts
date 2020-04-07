@@ -564,12 +564,12 @@ export class TaskGraph {
 
   private initLogging() {
     if (!Object.keys(this.logEntryMap).length) {
-      const header = this.log.debug("Processing tasks...")
-      const counter = this.log.debug({
+      const header = this.log.silly("Processing tasks...")
+      const counter = this.log.silly({
         msg: remainingTasksToStr(this.index.length),
         status: "active",
       })
-      const inProgress = this.log.debug(inProgressToStr(this.inProgress.getNodes()))
+      const inProgress = this.log.silly(inProgressToStr(this.inProgress.getNodes()))
       this.logEntryMap = {
         ...this.logEntryMap,
         header,
