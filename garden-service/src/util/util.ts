@@ -190,6 +190,7 @@ export interface SpawnOpts {
   data?: Buffer
   ignoreError?: boolean
   env?: { [key: string]: string | undefined }
+  rawMode?: boolean // Only used if tty = true. See also: https://nodejs.org/api/tty.html#tty_readstream_setrawmode_mode
   stdout?: Writable
   stderr?: Writable
   tty?: boolean
@@ -206,7 +207,7 @@ export interface SpawnOutput {
 
 // TODO Dump output to a log file if it exceeds the MAX_BUFFER_SIZE
 export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
-  const { timeout = 0, cwd, data, ignoreError = false, env, stdout, stderr, tty, wait = true } = opts
+  const { timeout = 0, cwd, data, ignoreError = false, env, rawMode = true, stdout, stderr, tty, wait = true } = opts
 
   const stdio = tty ? "inherit" : "pipe"
   const proc = _spawn(cmd, args, { cwd, env, stdio })
@@ -227,7 +228,9 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
     }
     _process.stdin.setEncoding("utf8")
     // raw mode is not available if we're running without a TTY
-    _process.stdin.setRawMode && _process.stdin.setRawMode(true)
+    if (rawMode) {
+      _process.stdin.setRawMode && _process.stdin.setRawMode(true)
+    }
   }
 
   // We ensure the output strings never exceed the MAX_BUFFER_SIZE
