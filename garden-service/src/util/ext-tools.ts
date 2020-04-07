@@ -23,6 +23,7 @@ import got from "got/dist/source"
 const AsyncLock = require("async-lock")
 
 const toolsPath = join(GARDEN_GLOBAL_PATH, "tools")
+const defaultCommandTimeoutSecs = 60 * 10
 
 export interface LibraryExtractSpec {
   // Archive format. Note: the "tar" format also implicitly supports gzip and bz2 compression.
@@ -244,12 +245,12 @@ export class BinaryCmd extends Library {
   spec: LibraryPlatformSpec
 
   private chmodDone: boolean
-  private defaultTimeout: number
+  private defaultTimeoutSecs: number
 
   constructor(spec: BinarySpec) {
     super(spec)
     this.chmodDone = false
-    this.defaultTimeout = 60
+    this.defaultTimeoutSecs = spec.defaultTimeout || defaultCommandTimeoutSecs
   }
 
   async getPath(log: LogEntry) {
@@ -341,6 +342,6 @@ export class BinaryCmd extends Library {
   }
 
   private getTimeout(timeout?: number) {
-    return timeout === undefined ? this.defaultTimeout : timeout
+    return timeout === undefined ? this.defaultTimeoutSecs : timeout
   }
 }

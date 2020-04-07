@@ -46,7 +46,14 @@ function makeRootCommand(commandName: string) {
       await tfValidate(log, provider, root, provider.config.variables)
 
       args = [commandName, ...(await prepareVariables(root, provider.config.variables)), ...args]
-      await terraform(provider.config.version).spawnAndWait({ log, args, cwd: root, rawMode: false, tty: true })
+      await terraform(provider.config.version).spawnAndWait({
+        log,
+        args,
+        cwd: root,
+        rawMode: false,
+        tty: true,
+        timeout: 999999,
+      })
 
       return { result: {} }
     },
@@ -73,7 +80,14 @@ function makeModuleCommand(commandName: string) {
       await tfValidate(log, provider, root, provider.config.variables)
 
       args = [commandName, ...(await prepareVariables(root, module.spec.variables)), ...args.slice(1)]
-      await terraform(module.spec.version).spawnAndWait({ log, args, cwd: root, rawMode: false, tty: true })
+      await terraform(module.spec.version).spawnAndWait({
+        log,
+        args,
+        cwd: root,
+        rawMode: false,
+        tty: true,
+        timeout: 999999,
+      })
 
       return { result: {} }
     },

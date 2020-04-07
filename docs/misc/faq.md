@@ -247,7 +247,7 @@ We're exploring how we can release it incrementally. Please let us know if this 
 
 ### What system components does Garden install?
 
-The components installed when using the remote building functionality are discussed in the [In-cluster building docs](https://docs.garden.io/using-garden/in-cluster-building).
+The components installed when using the remote building functionality are discussed in the [In-cluster building docs](https://docs.garden.io/guides/in-cluster-building).
 
 Garden also optionally installs Nginx. The `local-kubernetes` provider defaults to installing Nginx, but the (remote) `kubernetes` provider does not install it by default.
 
