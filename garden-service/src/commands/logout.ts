@@ -15,6 +15,7 @@ export class LogOutCommand extends Command {
   name = "logout"
   help = "Log out of Garden Cloud."
   hidden = true
+  noProject = true
 
   description = dedent`
     Logs you out of Garden Cloud.
