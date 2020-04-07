@@ -273,7 +273,14 @@ export class GardenCli {
     const action = async (argv, cliContext) => {
       // Sywac returns positional args and options in a single object which we separate into args and opts
       // We include the "rest" parameter (`_`) in the arguments passed to the command handler
-      const parsedArgs = { _: argv._, ...filterByKeys(argv, argKeys) }
+      let rest = argv._
+
+      // sywac leaves the "--" argument (used to deliniate arguments that should be unparsed), so we strip it out here.
+      if (rest[0] === "--") {
+        rest = rest.slice(1)
+      }
+
+      const parsedArgs = { _: rest, ...filterByKeys(argv, argKeys) }
       const parsedOpts = filterByKeys(argv, optKeys.concat(globalKeys))
       const root = resolve(process.cwd(), parsedOpts.root)
       const {
