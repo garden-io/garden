@@ -15,6 +15,7 @@ export class LoginCommand extends Command {
   name = "login"
   help = "Log in to Garden Cloud."
   hidden = true
+  noProject = true
 
   description = dedent`
     Logs you in to Garden Cloud. Subsequent commands will have access to platform features.
