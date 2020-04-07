@@ -7,18 +7,19 @@
  */
 
 import { Command, CommandParams, CommandResult, BooleanParameter, StringsParameter } from "./base"
-import yaml, { safeDump } from "js-yaml"
+import { safeDump } from "js-yaml"
 import { dedent } from "../util/string"
 import { readFile, writeFile } from "fs-extra"
 import { cloneDeep, isEqual } from "lodash"
 import { ConfigurationError, RuntimeError } from "../exceptions"
-import { basename, resolve, parse } from "path"
+import { resolve, parse } from "path"
 import { findConfigPathsInPath, getConfigFilePath } from "../util/fs"
 import { GitHandler } from "../vcs/git"
 import { DEFAULT_GARDEN_DIR_NAME } from "../constants"
 import { exec } from "../util/util"
 import { LoggerType } from "../logger/logger"
 import Bluebird from "bluebird"
+import { loadAndValidateYaml } from "../config/base"
 
 const migrateOptions = {
   write: new BooleanParameter({ help: "Update the `garden.yml` in place." }),
@@ -196,17 +197,9 @@ async function findRoot(path: string): Promise<string | null> {
  * Read the contents of a YAML file and dump to JSON
  */
 async function readYaml(path: string) {
-  let rawSpecs: any[]
   const fileData = await readFile(path)
-
-  try {
-    rawSpecs = yaml.safeLoadAll(fileData.toString()) || []
-  } catch (err) {
-    throw new ConfigurationError(`Could not parse ${basename(path)} in directory ${path} as valid YAML`, err)
-  }
-
-  // Ignore empty resources
-  return rawSpecs.filter(Boolean)
+  const rawSpecs = await loadAndValidateYaml(fileData.toString(), path)
+  return rawSpecs.filter(Boolean) // Ignore empty resources
 }
 
 /**
