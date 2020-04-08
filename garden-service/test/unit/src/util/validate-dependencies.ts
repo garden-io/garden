@@ -37,8 +37,7 @@ describe("validate-dependencies", () => {
           spec: {},
         },
       ]
-      const err = detectMissingDependencies(moduleConfigs)
-      expect(err).to.be.an.instanceOf(ConfigurationError)
+      expect(() => detectMissingDependencies(moduleConfigs)).to.throw()
     })
 
     it("should return an error when a service dependency is missing", async () => {
@@ -66,8 +65,7 @@ describe("validate-dependencies", () => {
           spec: {},
         },
       ]
-      const err = detectMissingDependencies(moduleConfigs)
-      expect(err).to.be.an.instanceOf(ConfigurationError)
+      expect(() => detectMissingDependencies(moduleConfigs)).to.throw()
     })
 
     it("should return an error when a task dependency is missing", async () => {
@@ -96,8 +94,7 @@ describe("validate-dependencies", () => {
           spec: {},
         },
       ]
-      const err = detectMissingDependencies(moduleConfigs)
-      expect(err).to.be.an.instanceOf(ConfigurationError)
+      expect(() => detectMissingDependencies(moduleConfigs)).to.throw()
     })
 
     it("should return an error when a test dependency is missing", async () => {
@@ -125,8 +122,7 @@ describe("validate-dependencies", () => {
           spec: {},
         },
       ]
-      const err = detectMissingDependencies(moduleConfigs)
-      expect(err).to.be.an.instanceOf(ConfigurationError)
+      expect(() => detectMissingDependencies(moduleConfigs)).to.throw()
     })
 
     it("should return null when no dependencies are missing", async () => {
@@ -146,8 +142,7 @@ describe("validate-dependencies", () => {
           spec: {},
         },
       ]
-      const result = detectMissingDependencies(moduleConfigs)
-      expect(result).to.be.null
+      expect(() => detectMissingDependencies(moduleConfigs))
     })
   })
 

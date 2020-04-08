@@ -9,7 +9,8 @@
 import { resolve, join } from "path"
 import { expect } from "chai"
 import { ensureDir } from "fs-extra"
-import { makeTestGardenA, makeTestGarden, dataDir, expectError } from "../../helpers"
+import stripAnsi from "strip-ansi"
+import { makeTestGardenA, makeTestGarden, dataDir, expectError, makeTestModule } from "../../helpers"
 import { getNames } from "../../../src/util/util"
 import { ConfigGraph, DependencyGraphNode } from "../../../src/config-graph"
 import { Garden } from "../../../src/garden"
@@ -131,6 +132,58 @@ describe("ConfigGraph", () => {
       }
 
       throw new Error("Expected error")
+    })
+
+    it("should throw if a build dependency is missing", async () => {
+      const garden = await makeTestGardenA()
+
+      garden.setModuleConfigs([
+        makeTestModule({
+          name: "test",
+          path: tmpPath,
+          build: {
+            dependencies: [{ name: "missing-build-dep", copy: [] }],
+          },
+        }),
+      ])
+
+      await expectError(
+        () => garden.getConfigGraph(garden.log),
+        (err) =>
+          expect(stripAnsi(err.message)).to.match(
+            /Could not find build dependency missing-build-dep, configured in module test/
+          )
+      )
+    })
+
+    it("should throw if a runtime dependency is missing", async () => {
+      const garden = await makeTestGardenA()
+
+      garden.setModuleConfigs([
+        makeTestModule({
+          name: "test",
+          path: tmpPath,
+          spec: {
+            services: [
+              {
+                name: "test-service",
+                dependencies: ["missing-runtime-dep"],
+                disabled: false,
+                hotReloadable: false,
+                spec: {},
+              },
+            ],
+          },
+        }),
+      ])
+
+      await expectError(
+        () => garden.getConfigGraph(garden.log),
+        (err) =>
+          expect(stripAnsi(err.message)).to.match(
+            /Unknown service or task 'missing-runtime-dep' referenced in dependencies/
+          )
+      )
     })
   })
 

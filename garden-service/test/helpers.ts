@@ -28,7 +28,7 @@ import { Garden, GardenParams, GardenOpts } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { mapValues, fromPairs } from "lodash"
 import { ModuleVersion } from "../src/vcs/vcs"
-import { GARDEN_SERVICE_ROOT, LOCAL_CONFIG_FILENAME } from "../src/constants"
+import { GARDEN_SERVICE_ROOT, LOCAL_CONFIG_FILENAME, DEFAULT_API_VERSION } from "../src/constants"
 import { EventBus, Events } from "../src/events"
 import { ValueOf, exec, findByName, getNames } from "../src/util/util"
 import { LogEntry } from "../src/logger/log-entry"
@@ -276,7 +276,7 @@ export const testPluginC = createGardenPlugin({
 })
 
 const defaultModuleConfig: ModuleConfig = {
-  apiVersion: "garden.io/v0",
+  apiVersion: DEFAULT_API_VERSION,
   type: "test",
   name: "test",
   path: "bla",
