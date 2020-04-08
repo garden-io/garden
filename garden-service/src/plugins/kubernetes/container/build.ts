@@ -193,7 +193,7 @@ function getKanikoContainers(registryHostname: string, inClusterRegistry: boolea
   if (inClusterRegistry) {
     commandStr = dedent`
       while true; do
-        if pidof socat > /dev/null; then
+        if pidof socat 2> /dev/null; then
           ${skopeoCommand.join(" ")};
           export exitcode=$?
           killall socat;
@@ -506,7 +506,7 @@ async function runKaniko({ provider, namespace, log, module, args, outputStream 
   // hackery.
   const commandStr = dedent`
     while true; do
-      if ls ${commsMountPath}/socatStarted > /dev/null; then
+      if ls ${commsMountPath}/socatStarted 2> /dev/null; then
         /kaniko/executor ${argsStr};
         export exitcode=$?;
         touch ${commsMountPath}/done;
@@ -583,7 +583,7 @@ async function runKaniko({ provider, namespace, log, module, args, outputStream 
             "-c",
             dedent`
               while true; do
-                if pidof socat > /dev/null; then
+                if pidof socat 2> /dev/null; then
                   touch ${commsMountPath}/socatStarted;
                   break;
                 else
@@ -591,7 +591,7 @@ async function runKaniko({ provider, namespace, log, module, args, outputStream 
                 fi
               done
               while true; do
-                if ls ${commsMountPath}/done > /dev/null; then
+                if ls ${commsMountPath}/done 2> /dev/null; then
                   killall socat; exit 0;
                 else
                   sleep 0.3;
