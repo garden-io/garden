@@ -16,11 +16,7 @@ import { TestConfig } from "./config/test"
 import { uniqByName, pickKeys } from "./util/util"
 import { ConfigurationError } from "./exceptions"
 import { deline } from "./util/string"
-import {
-  detectMissingDependencies,
-  handleDependencyErrors,
-  DependencyValidationGraph,
-} from "./util/validate-dependencies"
+import { detectMissingDependencies, DependencyValidationGraph } from "./util/validate-dependencies"
 import { ServiceConfig } from "./config/service"
 import { TaskConfig } from "./config/task"
 import { makeTestTaskName } from "./tasks/helpers"
@@ -167,7 +163,7 @@ export class ConfigGraph {
       }
     }
 
-    const missingDepsError = detectMissingDependencies(Object.values(this.modules))
+    detectMissingDependencies(Object.values(this.modules))
 
     // Add relations between nodes
     for (const module of modules) {
@@ -267,17 +263,11 @@ export class ConfigGraph {
     const validationGraph = DependencyValidationGraph.fromDependencyGraph(this.dependencyGraph)
     const cycles = validationGraph.detectCircularDependencies()
 
-    let circularDepsError
     if (cycles.length > 0) {
       const description = validationGraph.cyclesToString(cycles)
       const errMsg = `\nCircular dependencies detected: \n\n${description}\n`
-      circularDepsError = new ConfigurationError(errMsg, { "circular-dependencies": description })
-    } else {
-      circularDepsError = null
+      throw new ConfigurationError(errMsg, { "circular-dependencies": description })
     }
-
-    // Throw an error if one or both of these errors is non-null.
-    handleDependencyErrors(missingDepsError, circularDepsError)
   }
 
   // Convenience method used in the constructor above.

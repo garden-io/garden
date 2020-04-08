@@ -7,7 +7,7 @@
  */
 
 import { DepGraph } from "dependency-graph"
-import { merge, flatten, uniq } from "lodash"
+import { flatten, uniq } from "lodash"
 import indentString from "indent-string"
 import { get, isEqual, join, set, uniqWith } from "lodash"
 import { getModuleKey } from "../types/module"
@@ -17,33 +17,11 @@ import { deline } from "./string"
 import { DependencyGraph, DependencyGraphNode, nodeKey as configGraphNodeKey } from "../config-graph"
 import { Profile } from "./profiling"
 
-export function handleDependencyErrors(
-  missingDepsError: ConfigurationError | null,
-  circularDepsError: ConfigurationError | null
-) {
-  let errMsg = ""
-  let detail = {}
-
-  if (missingDepsError) {
-    errMsg += missingDepsError.message
-    detail = merge(detail, missingDepsError.detail)
-  }
-
-  if (circularDepsError) {
-    errMsg += "\n" + circularDepsError.message
-    detail = merge(detail, circularDepsError.detail)
-  }
-
-  if (missingDepsError || circularDepsError) {
-    throw new ConfigurationError(errMsg, detail)
-  }
-}
-
 /**
- * Looks for dependencies on non-existent modules, services or tasks, and returns an error
+ * Looks for dependencies on non-existent modules, services or tasks, and throws a ConfigurationError
  * if any were found.
  */
-export function detectMissingDependencies(moduleConfigs: ModuleConfig[]): ConfigurationError | null {
+export function detectMissingDependencies(moduleConfigs: ModuleConfig[]) {
   const moduleNames: Set<string> = new Set(moduleConfigs.map((m) => m.name))
   const serviceNames = moduleConfigs.flatMap((m) => m.serviceConfigs.map((s) => s.name))
   const taskNames = moduleConfigs.flatMap((m) => m.taskConfigs.map((t) => t.name))
@@ -79,13 +57,11 @@ export function detectMissingDependencies(moduleConfigs: ModuleConfig[]): Config
   if (missingDepDescriptions.length > 0) {
     const errMsg = "Unknown dependencies detected.\n\n" + indentString(missingDepDescriptions.join("\n\n"), 2) + "\n"
 
-    return new ConfigurationError(errMsg, {
+    throw new ConfigurationError(errMsg, {
       unknownDependencies: missingDepDescriptions,
       availableModules: Array.from(moduleNames),
       availableServicesAndTasks: Array.from(runtimeNames),
     })
-  } else {
-    return null
   }
 }
 
