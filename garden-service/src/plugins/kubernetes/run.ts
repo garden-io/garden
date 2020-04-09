@@ -122,7 +122,7 @@ export async function runAndCopy({
 
     // We start the container with a named pipe and tail that, to get the logs from the actual command
     // we plan on running. Then we sleep, so that we can copy files out of the container.
-    spec.containers[0].command = ["sh", "-c", "mkfifo /tmp/output && tail /tmp/output && sleep 86400"]
+    spec.containers[0].command = ["sh", "-c", "mkfifo /tmp/output && tail -f /tmp/output && sleep 86400"]
   } else {
     if (args) {
       spec.containers[0].args = args
