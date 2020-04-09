@@ -7,10 +7,9 @@
  */
 
 import Joi from "@hapi/joi"
-import { safeDump } from "js-yaml"
 import { flatten, uniq, isFunction, extend } from "lodash"
 import { NormalizedSchemaDescription, NormalizeOptions } from "./common"
-import { findByName } from "../util/util"
+import { findByName, safeDumpYaml } from "../util/util"
 import { normalizeJsonSchema } from "./json-schema"
 
 // Need this to fix the Joi typing
@@ -129,7 +128,7 @@ function normalizeJoiKeyDescription(schemaDescription: JoiDescription): Normaliz
   if (schemaDescription.examples && schemaDescription.examples.length) {
     const example = schemaDescription.examples[0]
     if (schemaDescription.type === "object" || schemaDescription.type === "array") {
-      formattedExample = safeDump(example).trim()
+      formattedExample = safeDumpYaml(example).trim()
     } else {
       formattedExample = JSON.stringify(example)
     }

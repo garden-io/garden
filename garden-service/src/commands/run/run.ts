@@ -6,9 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { safeDump } from "js-yaml"
 import { RuntimeContext } from "../../runtime-context"
-import { highlightYaml } from "../../util/util"
+import { highlightYaml, safeDumpYaml } from "../../util/util"
 import { Command } from "../base"
 import { RunModuleCommand } from "./module"
 import { RunServiceCommand } from "./service"
@@ -30,8 +29,8 @@ export class RunCommand extends Command {
 export function printRuntimeContext(log: LogEntry, runtimeContext: RuntimeContext) {
   log.verbose("-----------------------------------\n")
   log.verbose("Environment variables:")
-  log.verbose(highlightYaml(safeDump(runtimeContext.envVars)))
+  log.verbose(highlightYaml(safeDumpYaml(runtimeContext.envVars)))
   log.verbose("Dependencies:")
-  log.verbose(highlightYaml(safeDump(runtimeContext.dependencies)))
+  log.verbose(highlightYaml(safeDumpYaml(runtimeContext.dependencies)))
   log.verbose("-----------------------------------\n")
 }

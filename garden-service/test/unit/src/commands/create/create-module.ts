@@ -13,8 +13,8 @@ import { makeDummyGarden } from "../../../../../src/cli/cli"
 import { Garden } from "../../../../../src/garden"
 import { basename, join } from "path"
 import { pathExists, readFile, writeFile, mkdirp } from "fs-extra"
-import { safeLoadAll, safeDump } from "js-yaml"
-import { exec } from "../../../../../src/util/util"
+import { safeLoadAll } from "js-yaml"
+import { exec, safeDumpYaml } from "../../../../../src/util/util"
 import stripAnsi = require("strip-ansi")
 import { getModuleTypes } from "../../../../../src/plugins"
 import { supportedPlugins } from "../../../../../src/plugins/plugins"
@@ -92,7 +92,7 @@ describe("CreateModuleCommand", () => {
       type: "foo",
       name: "foo",
     }
-    await writeFile(join(tmp.path, "garden.yml"), safeDump(existing))
+    await writeFile(join(tmp.path, "garden.yml"), safeDumpYaml(existing))
 
     const { result } = await command.action({
       garden,
@@ -122,7 +122,7 @@ describe("CreateModuleCommand", () => {
       type: "exec",
     }
     const configPath = join(tmp.path, "garden.yml")
-    await writeFile(configPath, safeDump(existing))
+    await writeFile(configPath, safeDumpYaml(existing))
 
     await expectError(
       () =>

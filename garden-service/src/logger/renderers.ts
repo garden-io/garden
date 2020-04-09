@@ -7,7 +7,6 @@
  */
 
 import logSymbols from "log-symbols"
-import yaml from "js-yaml"
 import chalk from "chalk"
 import stripAnsi from "strip-ansi"
 import { isArray, isEmpty, repeat } from "lodash"
@@ -17,7 +16,7 @@ import hasAnsi = require("has-ansi")
 
 import { LogEntry, MessageState } from "./log-entry"
 import { JsonLogEntry } from "./writers/json-terminal-writer"
-import { highlightYaml, deepFilter, PickFromUnion } from "../util/util"
+import { highlightYaml, deepFilter, PickFromUnion, safeDumpYaml } from "../util/util"
 import { isNumber } from "util"
 import { printEmoji, sanitizeObject } from "./util"
 import { LoggerType, Logger } from "./logger"
@@ -98,7 +97,7 @@ export function renderError(entry: LogEntry) {
     if (!isEmpty(filteredDetail)) {
       try {
         const sanitized = sanitizeObject(filteredDetail)
-        const yamlDetail = yaml.safeDump(sanitized, { noRefs: true, skipInvalid: true })
+        const yamlDetail = safeDumpYaml(sanitized, { noRefs: true })
         out += `\nError Details:\n${yamlDetail}`
       } catch (err) {
         out += `\nUnable to render error details:\n${err.message}`
@@ -157,7 +156,7 @@ export function renderData(entry: LogEntry): string {
     return ""
   }
   if (!dataFormat || dataFormat === "yaml") {
-    const asYaml = yaml.safeDump(data, { noRefs: true, skipInvalid: true })
+    const asYaml = safeDumpYaml(data, { noRefs: true })
     return highlightYaml(asYaml)
   }
   return JSON.stringify(data, null, 2)

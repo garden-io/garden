@@ -21,6 +21,7 @@ import {
   renderOutputStream,
   spawn,
   relationshipClasses,
+  safeDumpYaml,
 } from "../../../../src/util/util"
 import { expectError } from "../../../helpers"
 import { splitFirst } from "../../../../src/util/util"
@@ -342,6 +343,38 @@ describe("util", () => {
     it("should return a single partition when only one item is passed", () => {
       const isRelated = (s1: string, s2: string) => s1[0] === s2[0]
       expect(relationshipClasses(["a"], isRelated)).to.eql([["a"]])
+    })
+  })
+
+  describe("safeDumpYaml", () => {
+    it("should exclude invalid values from resulting YAML", () => {
+      const json = {
+        foo: {
+          a: "a",
+          fn: () => {},
+          deep: {
+            undf: undefined,
+            b: "b",
+            deeper: {
+              date: new Date("2020-01-01"),
+              fn: () => {},
+              c: "c",
+            },
+          },
+          undf: undefined,
+          d: "d",
+        },
+      }
+      expect(safeDumpYaml(json)).to.eql(dedent`
+      foo:
+        a: a
+        deep:
+          b: b
+          deeper:
+            date: 2020-01-01T00:00:00.000Z
+            c: c
+        d: d\n
+      `)
     })
   })
 })

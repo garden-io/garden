@@ -9,7 +9,7 @@
 import { LogEntry } from "../../../logger/log-entry"
 import { KubernetesResource } from "../types"
 import { helm, helmPlugin2to3 } from "./helm-cli"
-import { safeLoadAll, safeDump } from "js-yaml"
+import { safeLoadAll } from "js-yaml"
 import { KubeApi, getKubeConfig } from "../api"
 import { checkResourceStatuses } from "../status/status"
 import { combineStates } from "../../../types/service"
@@ -17,7 +17,7 @@ import { KubernetesPluginContext } from "../config"
 import { convertDeprecatedManifestVersion } from "../util"
 import Bluebird from "bluebird"
 import tmp from "tmp-promise"
-import { findByName, getNames } from "../../../util/util"
+import { findByName, getNames, safeDumpYaml } from "../../../util/util"
 import { ConfigurationError } from "../../../exceptions"
 import { writeFile } from "fs-extra"
 import { resolve } from "path"
@@ -187,7 +187,7 @@ export async function migrateToHelm3({
         }
 
         const configPath = resolve(tmpDir.path, "kubeconfig.json")
-        await writeFile(configPath, safeDump(resolvedConfig))
+        await writeFile(configPath, safeDumpYaml(resolvedConfig))
 
         log.debug(
           // It's not possible to install/update/execute Helm plugins on Windows because of this:
