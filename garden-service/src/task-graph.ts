@@ -8,7 +8,6 @@
 
 import Bluebird from "bluebird"
 import chalk from "chalk"
-import yaml from "js-yaml"
 import { every, flatten, intersection, merge, union, uniqWith, without } from "lodash"
 import { BaseTask, TaskDefinitionError, TaskType } from "./tasks/base"
 
@@ -16,7 +15,7 @@ import { LogEntry, LogEntryMetadata, TaskLogStatus } from "./logger/log-entry"
 import { toGardenError, GardenBaseError } from "./exceptions"
 import { Garden } from "./garden"
 import { dedent } from "./util/string"
-import { defer, relationshipClasses, uuidv4 } from "./util/util"
+import { defer, relationshipClasses, uuidv4, safeDumpYaml } from "./util/util"
 import { renderError } from "./logger/renderers"
 import { cyclesToString } from "./util/validate-dependencies"
 import { Profile } from "./util/profiling"
@@ -318,7 +317,7 @@ export class TaskGraph {
       this.log.silly("")
       this.log.silly("TaskGraph: this.index before processing")
       this.log.silly("---------------------------------------")
-      this.log.silly(yaml.safeDump(this.index.inspect(), { noRefs: true, skipInvalid: true }))
+      this.log.silly(safeDumpYaml(this.index.inspect(), { noRefs: true }))
 
       this.garden.events.emit("taskGraphProcessing", { startedAt: new Date() })
     }

@@ -7,7 +7,6 @@
  */
 
 import { Command, CommandParams, CommandResult, BooleanParameter, StringsParameter } from "./base"
-import { safeDump } from "js-yaml"
 import { dedent } from "../util/string"
 import { readFile, writeFile } from "fs-extra"
 import { cloneDeep, isEqual } from "lodash"
@@ -16,7 +15,7 @@ import { resolve, parse } from "path"
 import { findConfigPathsInPath, getConfigFilePath } from "../util/fs"
 import { GitHandler } from "../vcs/git"
 import { DEFAULT_GARDEN_DIR_NAME } from "../constants"
-import { exec } from "../util/util"
+import { exec, safeDumpYaml } from "../util/util"
 import { LoggerType } from "../logger/logger"
 import Bluebird from "bluebird"
 import { loadAndValidateYaml } from "../config/base"
@@ -167,7 +166,7 @@ export class MigrateCommand extends Command<Args, Opts> {
  * Dump JSON specs to YAML. Join specs by `---`.
  */
 export function dumpSpec(specs: any[]) {
-  return specs.map((spec) => safeDump(spec)).join("\n---\n\n")
+  return specs.map((spec) => safeDumpYaml(spec)).join("\n---\n\n")
 }
 
 /**

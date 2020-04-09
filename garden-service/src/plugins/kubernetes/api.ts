@@ -28,10 +28,10 @@ import {
 import AsyncLock = require("async-lock")
 import request = require("request-promise")
 import requestErrors = require("request-promise/errors")
-import { safeLoad, safeDump } from "js-yaml"
+import { safeLoad } from "js-yaml"
 import { readFile } from "fs-extra"
 
-import { Omit } from "../../util/util"
+import { Omit, safeDumpYaml } from "../../util/util"
 import { omitBy, isObject, isPlainObject, keyBy } from "lodash"
 import { GardenBaseError, RuntimeError, ConfigurationError } from "../../exceptions"
 import { KubernetesResource, KubernetesServerResource, KubernetesServerList } from "./types"
@@ -505,7 +505,7 @@ async function getContextConfig(log: LogEntry, provider: KubernetesProvider): Pr
   const kc = new KubeConfig()
 
   // There doesn't appear to be a method to just load the parsed config :/
-  kc.loadFromString(safeDump(rawConfig))
+  kc.loadFromString(safeDumpYaml(rawConfig))
   kc.setCurrentContext(context)
 
   cachedConfigs[cacheKey] = kc

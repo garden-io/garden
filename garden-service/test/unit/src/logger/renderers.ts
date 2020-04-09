@@ -26,8 +26,7 @@ import dedent = require("dedent")
 import { TaskMetadata } from "../../../../src/logger/log-entry"
 import logSymbols = require("log-symbols")
 import stripAnsi = require("strip-ansi")
-import yaml from "js-yaml"
-import { highlightYaml } from "../../../../src/util/util"
+import { highlightYaml, safeDumpYaml } from "../../../../src/util/util"
 
 const logger: any = getLogger()
 
@@ -263,12 +262,12 @@ describe("renderers", () => {
     })
     it("should render yaml by default if data is passed", () => {
       const entry = logger.info({ data: sampleData })
-      const dataAsYaml = yaml.safeDump(sampleData, { noRefs: true, skipInvalid: true })
+      const dataAsYaml = safeDumpYaml(sampleData, { noRefs: true })
       expect(renderData(entry)).to.eql(highlightYaml(dataAsYaml))
     })
     it('should render yaml if dataFormat is "yaml"', () => {
       const entry = logger.info({ data: sampleData, dataFormat: "yaml" })
-      const dataAsYaml = yaml.safeDump(sampleData, { noRefs: true, skipInvalid: true })
+      const dataAsYaml = safeDumpYaml(sampleData, { noRefs: true })
       expect(renderData(entry)).to.eql(highlightYaml(dataAsYaml))
     })
     it('should render json if dataFormat is "json"', () => {

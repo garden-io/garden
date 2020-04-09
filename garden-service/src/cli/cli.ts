@@ -10,10 +10,9 @@ import sywac from "sywac"
 import chalk from "chalk"
 import { intersection, merge, sortBy } from "lodash"
 import { resolve, join } from "path"
-import { safeDump } from "js-yaml"
 import { coreCommands } from "../commands/commands"
 import { DeepPrimitiveMap } from "../config/common"
-import { shutdown, sleep, getPackageVersion, uuidv4 } from "../util/util"
+import { shutdown, sleep, getPackageVersion, uuidv4, safeDumpYaml } from "../util/util"
 import { deline } from "../util/string"
 import {
   BooleanParameter,
@@ -62,7 +61,7 @@ const OUTPUT_RENDERERS = {
     return stringify(data, null, 2)
   },
   yaml: (data: DeepPrimitiveMap) => {
-    return safeDump(data, { noRefs: true, skipInvalid: true })
+    return safeDumpYaml(data, { noRefs: true })
   },
 }
 

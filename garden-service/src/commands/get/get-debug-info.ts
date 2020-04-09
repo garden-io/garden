@@ -6,11 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import yaml from "js-yaml"
 import { Command, CommandParams, ChoicesParameter, BooleanParameter } from "../base"
 import { findProjectConfig } from "../../config/base"
 import { ensureDir, copy, remove, pathExists, writeFile } from "fs-extra"
-import { getPackageVersion, exec } from "../../util/util"
+import { getPackageVersion, exec, safeDumpYaml } from "../../util/util"
 import { platform, release } from "os"
 import { join, relative, basename, dirname } from "path"
 import { LogEntry } from "../../logger/log-entry"
@@ -225,7 +224,7 @@ function renderInfo(info: any, format: string) {
   if (format === "json") {
     return JSON.stringify(info, null, 4)
   } else {
-    return yaml.safeDump(info, { noRefs: true, skipInvalid: true })
+    return safeDumpYaml(info, { noRefs: true })
   }
 }
 

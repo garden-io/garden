@@ -6,9 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { safeDump } from "js-yaml"
 import { DeepPrimitiveMap } from "../config/common"
-import { highlightYaml } from "../util/util"
+import { highlightYaml, safeDumpYaml } from "../util/util"
 import { Command, CommandParams, CommandResult } from "./base"
 import { omit } from "lodash"
 
@@ -33,9 +32,8 @@ export class ScanCommand extends Command {
 
     log.info(
       highlightYaml(
-        safeDump(shortOutput, {
+        safeDumpYaml(shortOutput, {
           noRefs: true,
-          skipInvalid: true,
           sortKeys: true,
         })
       )

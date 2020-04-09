@@ -11,7 +11,6 @@ import split2 = require("split2")
 import Bluebird = require("bluebird")
 import { ResolvableProps } from "bluebird"
 import exitHook from "async-exit-hook"
-import yaml from "js-yaml"
 import Cryo from "cryo"
 import _spawn from "cross-spawn"
 import { readFile, writeFile } from "fs-extra"
@@ -20,7 +19,7 @@ import { TimeoutError, ParameterError, RuntimeError, GardenError } from "../exce
 import { isArray, isPlainObject, extend, mapValues, pickBy, range, some } from "lodash"
 import highlight from "cli-highlight"
 import chalk from "chalk"
-import { safeDump } from "js-yaml"
+import { safeDump, safeLoad, DumpOptions } from "js-yaml"
 import { createHash } from "crypto"
 import { tailString, dedent } from "./string"
 import { Writable } from "stream"
@@ -303,14 +302,21 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
 }
 
 export async function dumpYaml(yamlPath, data) {
-  return writeFile(yamlPath, yaml.safeDump(data, { noRefs: true }))
+  return writeFile(yamlPath, safeDumpYaml(data, { noRefs: true }))
+}
+
+/**
+ * Wraps safeDump and enforces that invalid values are skipped
+ */
+export function safeDumpYaml(data, opts: DumpOptions = {}) {
+  return safeDump(data, { ...opts, skipInvalid: true })
 }
 
 /**
  * Encode multiple objects as one multi-doc YAML file
  */
 export function encodeYamlMulti(objects: object[]) {
-  return objects.map((s) => safeDump(s, { noRefs: true }) + "---\n").join("")
+  return objects.map((s) => safeDumpYaml(s, { noRefs: true }) + "---\n").join("")
 }
 
 /**
@@ -457,7 +463,7 @@ export function highlightYaml(s: string) {
 
 export async function loadYamlFile(path: string): Promise<any> {
   const fileData = await readFile(path)
-  return yaml.safeLoad(fileData.toString())
+  return safeLoad(fileData.toString())
 }
 
 export interface ObjectWithName {

@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { safeDump } from "js-yaml"
 import { flatten, isArray } from "lodash"
 import { NormalizedSchemaDescription, NormalizeOptions } from "./common"
 import { ValidationError } from "../exceptions"
+import { safeDumpYaml } from "../util/util"
 
 /**
  * Takes a JSON Schema and translates to a list of NormalizedKeyDescription objects.
@@ -85,7 +85,7 @@ function normalizeJsonKeyDescription(
   if (schema.examples && schema.examples.length > 0) {
     const example = schema.examples[0]
     if (type === "object" || type === "array") {
-      formattedExample = safeDump(example).trim()
+      formattedExample = safeDumpYaml(example).trim()
     } else {
       formattedExample = JSON.stringify(example)
     }

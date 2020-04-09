@@ -8,7 +8,6 @@
 
 import Joi from "@hapi/joi"
 import { readFileSync } from "fs"
-import { safeDump } from "js-yaml"
 import linewrap from "linewrap"
 import { resolve } from "path"
 import { projectDocsSchema } from "../config/project"
@@ -19,6 +18,7 @@ import { joi } from "../config/common"
 import { STATIC_DIR } from "../constants"
 import { indent, renderMarkdownTable, convertMarkdownLinks, NormalizedSchemaDescription } from "./common"
 import { normalizeJoiSchemaDescription, JoiDescription } from "./joi-schema"
+import { safeDumpYaml } from "../util/util"
 
 export const TEMPLATES_DIR = resolve(STATIC_DIR, "docs", "templates")
 const partialTemplatePath = resolve(TEMPLATES_DIR, "config-partial.hbs")
@@ -246,10 +246,10 @@ export function renderSchemaDescriptionYaml(
       if (value === undefined) {
         formattedValue = ""
       } else if (isPrimitive || exceptionallyTreatAsPrimitive) {
-        formattedValue = safeDump(value)
+        formattedValue = safeDumpYaml(value)
       } else {
         formattedValue = indent(
-          safeDump(value)
+          safeDumpYaml(value)
             .trim()
             .split("\n"),
           1
