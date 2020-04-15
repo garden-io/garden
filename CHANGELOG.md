@@ -1,4 +1,25 @@
 
+<a name="v0.11.12"></a>
+## [v0.11.12](https://github.com/garden-io/garden/compare/v0.11.11...v0.11.12) (2020-02-10)
+
+### Bug Fixes
+
+* **chore:** fix spurious logline from busybox ([db7dd294](https://github.com/garden-io/garden/commit/db7dd294))
+* **cli:** properly handle -- arg for provider commands ([d96ab9d2](https://github.com/garden-io/garden/commit/d96ab9d2))
+* **core:** skip invalid yaml by default ([5a44da51](https://github.com/garden-io/garden/commit/5a44da51))
+* **core:** missing dep detection in ConfigGraph ([006ad98c](https://github.com/garden-io/garden/commit/006ad98c))
+* **core:** better error messages for invalid YAML ([6720b95f](https://github.com/garden-io/garden/commit/6720b95f))
+* **k8s:** don't truncate logs in task/test runs ([68047339](https://github.com/garden-io/garden/commit/68047339))
+* **k8s:** automatic include for helm modules should include chartPath ([88c9d26a](https://github.com/garden-io/garden/commit/88c9d26a))
+* **platform:** use noProject for login & logout ([13826ac6](https://github.com/garden-io/garden/commit/13826ac6))
+* **platform:** fixes to token validation logic ([a1651695](https://github.com/garden-io/garden/commit/a1651695))
+* **terraform:** fix stdin handling in commands ([4eb30b31](https://github.com/garden-io/garden/commit/4eb30b31))
+* **terraform:** more sensible timeouts + remove timeout on plugin cmds ([ed642090](https://github.com/garden-io/garden/commit/ed642090))
+
+### Features
+
+* **core:** add event and log streaming ([ffc10943](https://github.com/garden-io/garden/commit/ffc10943))
+
 <a name="v0.11.11"></a>
 ## [v0.11.11](https://github.com/garden-io/garden/compare/v0.11.10...v0.11.11) (2020-04-03)
 
