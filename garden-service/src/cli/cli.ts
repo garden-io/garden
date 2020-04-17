@@ -98,7 +98,7 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts = {})
   }
   gardenOpts.config = config
 
-  return DummyGarden.factory(root, gardenOpts)
+  return DummyGarden.factory(root, { ...gardenOpts, noPlatform: true })
 }
 
 // The help text for these commands is only displayed when calling `garden options`.
