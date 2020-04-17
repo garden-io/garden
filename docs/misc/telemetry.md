@@ -140,3 +140,9 @@ If you would like to update your analytics settings, please run:
 ```sh
     garden config analytics-enabled true|false
 ```
+
+You can also disable telemetry by setting the environment variable `GARDEN_DISABLE_ANALYTICS`:
+
+```sh
+export GARDEN_DISABLE_ANALYTICS=true
+```
