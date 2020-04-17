@@ -14,7 +14,15 @@ import { buildContainerModule, getContainerBuildStatus, getDockerBuildFlags } fr
 import { GetBuildStatusParams, BuildStatus } from "../../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams, BuildResult } from "../../../types/plugin/module/build"
 import { millicpuToString, megabytesToString, getRunningPodInDeployment, makePodName } from "../util"
-import { RSYNC_PORT, dockerAuthSecretName, inClusterRegistryHostname } from "../constants"
+import {
+  RSYNC_PORT,
+  dockerAuthSecretName,
+  inClusterRegistryHostname,
+  dockerDaemonDeploymentName,
+  gardenUtilDaemonDeploymentName,
+  dockerDaemonContainerName,
+  skopeoDaemonContainerName,
+} from "../constants"
 import { posix, resolve } from "path"
 import { KubeApi } from "../api"
 import { kubectl } from "../kubectl"
@@ -35,11 +43,7 @@ import { dedent } from "../../../util/string"
 import chalk = require("chalk")
 import { loadImageToMicrok8s, getMicrok8sImageStatus } from "../local/microk8s"
 
-const dockerDaemonDeploymentName = "garden-docker-daemon"
-const dockerDaemonContainerName = "docker-daemon"
-
 const kanikoImage = "gcr.io/kaniko-project/executor:debug-v0.19.0"
-const skopeoImage = "gardendev/skopeo:1.41.0-1"
 
 const registryPort = 5000
 
@@ -110,8 +114,16 @@ const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } 
     const args = await getManifestInspectArgs(module, deploymentRegistry)
     const pushArgs = ["/bin/sh", "-c", "DOCKER_CLI_EXPERIMENTAL=enabled docker " + args.join(" ")]
 
-    const podName = await getBuilderPodName(provider, log)
-    const res = await execInBuilder({ provider, log, args: pushArgs, timeout: 300, podName, ignoreError: true })
+    const podName = await getDeploymentPodName(dockerDaemonDeploymentName, provider, log)
+    const res = await execInPod({
+      provider,
+      log,
+      args: pushArgs,
+      timeout: 300,
+      podName,
+      containerName: dockerDaemonContainerName,
+      ignoreError: true,
+    })
 
     // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
     if (res.exitCode !== 0 && !res.stderr.includes("no such manifest")) {
@@ -133,12 +145,6 @@ const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } 
       throw new InternalError(`Expected configured deploymentRegistry for remote build`, { config: provider.config })
     }
 
-    const api = await KubeApi.factory(log, provider)
-    const namespace = await getAppNamespace(ctx, log, provider)
-    const systemNamespace = await getSystemNamespace(provider, log)
-    const podName = makePodName("skopeo", namespace, module.name)
-    const registryHostname = getRegistryHostname(provider.config)
-
     const remoteId = await containerHelpers.getDeploymentImageId(module, deploymentRegistry)
     const inClusterRegistry = deploymentRegistry?.hostname === inClusterRegistryHostname
     const skopeoCommand = ["skopeo", "--command-timeout=30s", "inspect", "--raw"]
@@ -149,86 +155,28 @@ const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } 
 
     skopeoCommand.push(`docker://${remoteId}`)
 
-    const containers = getKanikoContainers(registryHostname, inClusterRegistry, skopeoCommand)
-
-    const runner = new PodRunner({
-      api,
-      podName,
+    const podCommand = ["sh", "-c", skopeoCommand.join(" ")]
+    const podName = await getDeploymentPodName(gardenUtilDaemonDeploymentName, provider, log)
+    const res = await execInPod({
       provider,
-      image: kanikoImage,
-      module,
-      namespace: systemNamespace,
-      spec: {
-        shareProcessNamespace: true,
-        volumes: [
-          // Mount the docker auth secret, so skopeo can inspect private registries.
-          getDockerAuthVolume(),
-        ],
-        containers,
-      },
-    })
-
-    const res = await runner.startAndWait({
-      ignoreError: true,
-      interactive: false,
       log,
-      // The timeout set on the skopeo command should kick in first
-      timeout: 60,
+      args: podCommand,
+      timeout: 300,
+      podName,
+      containerName: skopeoDaemonContainerName,
+      ignoreError: true,
     })
 
     // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
-    if (!res.success && !res.log.includes("manifest unknown")) {
-      throw new RuntimeError(`Unable to query registry for image status: ${res.log}`, {
+    if (res.exitCode !== 0 && !res.stderr.includes("manifest unknown")) {
+      throw new RuntimeError(`Unable to query registry for image status: ${res.all}`, {
         command: skopeoCommand,
-        output: res.log,
+        output: res.all,
       })
     }
 
-    return { ready: res.success }
+    return { ready: res.exitCode === 0 }
   },
-}
-
-function getKanikoContainers(registryHostname: string, inClusterRegistry: boolean, skopeoCommand: string[]) {
-  let commandStr: string
-  if (inClusterRegistry) {
-    commandStr = dedent`
-      while true; do
-        if pidof socat 2> /dev/null; then
-          ${skopeoCommand.join(" ")};
-          export exitcode=$?
-          killall socat;
-          exit $exitcode;
-        else
-          sleep 0.3;
-        fi
-      done
-    `
-  } else {
-    commandStr = skopeoCommand.join(" ")
-  }
-
-  // Have to ensure the registry proxy is up before querying, in case the in-cluster registry is being used
-  const containers: any = [
-    {
-      name: "skopeo",
-      image: skopeoImage,
-      command: ["sh", "-c", commandStr],
-      volumeMounts: [
-        {
-          name: dockerAuthSecretName,
-          mountPath: "/root/.docker",
-          readOnly: true,
-        },
-      ],
-    },
-  ]
-
-  // we only need the socat container if we're using the in cluster registry
-  if (inClusterRegistry) {
-    containers.push(getSocatContainer(registryHostname))
-  }
-
-  return containers
 }
 
 type BuildHandler = (params: BuildModuleParams<ContainerModule>) => Promise<BuildResult>
@@ -362,14 +310,15 @@ const remoteBuild: BuildHandler = async (params) => {
     ]
 
     // Execute the build
-    const podName = await getBuilderPodName(provider, log)
+    const podName = await getDeploymentPodName(dockerDaemonDeploymentName, provider, log)
+    const containerName = dockerDaemonContainerName
     const buildTimeout = module.spec.build.timeout
 
     if (provider.config.clusterDocker && provider.config.clusterDocker.enableBuildKit) {
       args = ["/bin/sh", "-c", "DOCKER_BUILDKIT=1 " + args.join(" ")]
     }
 
-    const buildRes = await execInBuilder({ provider, log, args, timeout: buildTimeout, podName, stdout })
+    const buildRes = await execInPod({ provider, log, args, timeout: buildTimeout, podName, containerName, stdout })
     buildLog = buildRes.stdout + buildRes.stderr
 
     // Push the image to the registry
@@ -378,7 +327,7 @@ const remoteBuild: BuildHandler = async (params) => {
     const dockerCmd = ["docker", "push", deploymentImageId]
     const pushArgs = ["/bin/sh", "-c", dockerCmd.join(" ")]
 
-    const pushRes = await execInBuilder({ provider, log, args: pushArgs, timeout: 300, podName, stdout })
+    const pushRes = await execInPod({ provider, log, args: pushArgs, timeout: 300, podName, containerName, stdout })
     buildLog += pushRes.stdout + pushRes.stderr
   } else {
     // build with Kaniko
@@ -426,6 +375,7 @@ export interface BuilderExecParams {
   ignoreError?: boolean
   timeout: number
   podName: string
+  containerName: string
   stdout?: Writable
   stderr?: Writable
 }
@@ -437,17 +387,18 @@ const buildHandlers: { [mode in ContainerBuildMode]: BuildHandler } = {
 }
 
 // TODO: we should make a simple service around this instead of execing into containers
-export async function execInBuilder({
+export async function execInPod({
   provider,
   log,
   args,
   ignoreError,
   timeout,
   podName,
+  containerName,
   stdout,
   stderr,
 }: BuilderExecParams) {
-  const execCmd = ["exec", "-i", podName, "-c", dockerDaemonContainerName, "--", ...args]
+  const execCmd = ["exec", "-i", podName, "-c", containerName, "--", ...args]
   const systemNamespace = await getSystemNamespace(provider, log)
 
   log.verbose(`Running: kubectl ${execCmd.join(" ")}`)
@@ -464,13 +415,13 @@ export async function execInBuilder({
   })
 }
 
-export async function getBuilderPodName(provider: KubernetesProvider, log: LogEntry) {
-  const pod = await getRunningPodInDeployment(dockerDaemonDeploymentName, provider, log)
+export async function getDeploymentPodName(deployment: string, provider: KubernetesProvider, log: LogEntry) {
+  const pod = await getRunningPodInDeployment(deployment, provider, log)
   const systemNamespace = await getSystemNamespace(provider, log)
 
   if (!pod) {
     throw new PluginError(`Could not find running image builder`, {
-      builderDeploymentName: dockerDaemonDeploymentName,
+      builderDeploymentName: deployment,
       systemNamespace,
     })
   }

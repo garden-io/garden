@@ -19,13 +19,18 @@ import { queryRegistry } from "../container/util"
 import { splitFirst, splitLast } from "../../../util/util"
 import { LogEntry } from "../../../logger/log-entry"
 import Bluebird from "bluebird"
-import { CLUSTER_REGISTRY_DEPLOYMENT_NAME, inClusterRegistryHostname } from "../constants"
+import {
+  CLUSTER_REGISTRY_DEPLOYMENT_NAME,
+  inClusterRegistryHostname,
+  dockerDaemonDeploymentName,
+  dockerDaemonContainerName,
+} from "../constants"
 import { PluginError } from "../../../exceptions"
 import { apply, kubectl } from "../kubectl"
 import { waitForResources } from "../status/status"
 import { execInWorkload } from "../container/exec"
 import { dedent, deline } from "../../../util/string"
-import { execInBuilder, getBuilderPodName, BuilderExecParams, buildSyncDeploymentName } from "../container/build"
+import { execInPod, getDeploymentPodName, BuilderExecParams, buildSyncDeploymentName } from "../container/build"
 import { getPods } from "../util"
 import { getSystemNamespace } from "../namespace"
 
@@ -305,14 +310,15 @@ async function deleteImagesFromDaemon(provider: KubernetesProvider, log: LogEntr
   })
 
   log.info("Getting list of images from daemon...")
-  const podName = await getBuilderPodName(provider, log)
+  const podName = await getDeploymentPodName(dockerDaemonDeploymentName, provider, log)
 
   const listArgs = ["docker", "images", "--format", "{{.Repository}}:{{.Tag}}"]
-  const res = await execInBuilder({
+  const res = await execInPod({
     provider,
     log,
     args: listArgs,
     podName,
+    containerName: dockerDaemonContainerName,
     timeout: 300,
   })
   const imagesInDaemon = res.stdout
@@ -342,7 +348,7 @@ async function deleteImagesFromDaemon(provider: KubernetesProvider, log: LogEntr
       imagesBatches,
       async (images) => {
         const args = ["docker", "rmi", ...images]
-        await execInBuilder({ provider, log, args, podName, timeout: 300 })
+        await execInPod({ provider, log, args, podName, containerName: dockerDaemonContainerName, timeout: 300 })
         log.setState(deline`
         Deleting images:
          ${pluralize("batch", counter, true)} of ${imagesBatches.length} left...`)
@@ -354,11 +360,12 @@ async function deleteImagesFromDaemon(provider: KubernetesProvider, log: LogEntr
 
   // Run a prune operation
   log.info(`Pruning with \`docker image prune -f\`...`)
-  await execInBuilder({
+  await execInPod({
     provider,
     log,
     args: ["docker", "image", "prune", "-f"],
     podName,
+    containerName: dockerDaemonContainerName,
     timeout: 300,
   })
 
@@ -379,6 +386,7 @@ async function cleanupBuildSyncVolume(provider: KubernetesProvider, log: LogEntr
     args: statArgs,
     timeout: 30,
     podName,
+    containerName: dockerDaemonContainerName,
   })
 
   // Remove directories last accessed more than workspaceSyncDirTtl ago
@@ -405,6 +413,7 @@ async function cleanupBuildSyncVolume(provider: KubernetesProvider, log: LogEntr
     args: deleteArgs,
     timeout: 300,
     podName,
+    containerName: dockerDaemonContainerName,
   })
 
   log.setSuccess()

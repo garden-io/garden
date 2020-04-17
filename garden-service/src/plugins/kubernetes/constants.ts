@@ -17,3 +17,9 @@ export const MAX_RUN_RESULT_LOG_LENGTH = 250 * 1024
 export const dockerAuthSecretName = "builder-docker-config"
 export const dockerAuthSecretKey = ".dockerconfigjson"
 export const inClusterRegistryHostname = "127.0.0.1:5000"
+
+export const gardenUtilDaemonDeploymentName = "garden-util-daemon"
+export const dockerDaemonDeploymentName = "garden-docker-daemon"
+
+export const dockerDaemonContainerName = "docker-daemon"
+export const skopeoDaemonContainerName = "util"
