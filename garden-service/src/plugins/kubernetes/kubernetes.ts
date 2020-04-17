@@ -73,6 +73,8 @@ export async function configureProvider({
         namespace: config.deploymentRegistry?.namespace || projectName,
       }
       config._systemServices.push("docker-registry", "registry-proxy")
+    } else {
+      config._systemServices.push("util")
     }
 
     if (config.buildMode === "cluster-docker") {

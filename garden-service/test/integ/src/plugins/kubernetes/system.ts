@@ -45,6 +45,7 @@ describe("System services", () => {
       "conftest-ingress-controller",
       "conftest-nfs-provisioner",
       "conftest-registry-proxy",
+      "conftest-util",
     ])
   })
 

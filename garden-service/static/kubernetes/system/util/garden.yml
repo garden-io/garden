@@ -1,0 +1,5 @@
+kind: Module
+name: util
+description: Long lived utility containers.
+type: helm
+releaseName: garden-util-daemon

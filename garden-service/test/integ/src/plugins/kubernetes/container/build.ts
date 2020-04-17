@@ -12,14 +12,18 @@ import { ConfigGraph } from "../../../../../../src/config-graph"
 import {
   k8sBuildContainer,
   k8sGetContainerBuildStatus,
-  getBuilderPodName,
-  execInBuilder,
+  getDeploymentPodName,
+  execInPod,
 } from "../../../../../../src/plugins/kubernetes/container/build"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { expect } from "chai"
 import { getContainerTestGarden } from "./container"
 import { containerHelpers } from "../../../../../../src/plugins/container/helpers"
+import {
+  dockerDaemonDeploymentName,
+  dockerDaemonContainerName,
+} from "../../../../../../src/plugins/kubernetes/constants"
 
 describe("kubernetes build flow", () => {
   let garden: Garden
@@ -156,9 +160,10 @@ describe("kubernetes build flow", () => {
 
       // Clear the image tag from the in-cluster builder
       const remoteId = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
-      const podName = await getBuilderPodName(provider, garden.log)
+      const podName = await getDeploymentPodName(dockerDaemonDeploymentName, provider, garden.log)
+      const containerName = dockerDaemonContainerName
       const args = ["docker", "rmi", remoteId]
-      await execInBuilder({ provider, log: garden.log, args, timeout: 300, podName })
+      await execInPod({ provider, log: garden.log, args, timeout: 300, podName, containerName })
 
       // This should still report the build as ready, because it's in the registry
       const status = await k8sGetContainerBuildStatus({
@@ -214,9 +219,10 @@ describe("kubernetes build flow", () => {
 
       // Clear the image tag from the in-cluster builder
       const remoteId = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
-      const podName = await getBuilderPodName(provider, garden.log)
+      const podName = await getDeploymentPodName(dockerDaemonDeploymentName, provider, garden.log)
+      const containerName = dockerDaemonContainerName
       const args = ["docker", "rmi", remoteId]
-      await execInBuilder({ provider, log: garden.log, args, timeout: 300, podName })
+      await execInPod({ provider, log: garden.log, args, timeout: 300, podName, containerName })
 
       // This should still report the build as ready, because it's in the registry
       const status = await k8sGetContainerBuildStatus({
