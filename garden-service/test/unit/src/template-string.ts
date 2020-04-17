@@ -480,6 +480,50 @@ describe("resolveTemplateString", async () => {
     expect(res).to.equal(true)
   })
 
+  it("should correctly propagate errors from nested contexts", async () => {
+    await expectError(
+      () => resolveTemplateString("${nested.missing}", new TestContext({ nested: new TestContext({}) })),
+      (err) =>
+        expect(stripAnsi(err.message)).to.equal(
+          "Invalid template string ${nested.missing}: Could not find key missing under nested."
+        )
+    )
+  })
+
+  it("should correctly propagate errors from nested objects", async () => {
+    await expectError(
+      () => resolveTemplateString("${nested.missing}", new TestContext({ nested: {} })),
+      (err) =>
+        expect(stripAnsi(err.message)).to.equal(
+          "Invalid template string ${nested.missing}: Could not find key missing under nested."
+        )
+    )
+  })
+
+  it("should correctly propagate errors when resolving key on object in nested context", async () => {
+    const c = new TestContext({ nested: new TestContext({ deeper: {} }) })
+
+    await expectError(
+      () => resolveTemplateString("${nested.deeper.missing}", c),
+      (err) =>
+        expect(stripAnsi(err.message)).to.equal(
+          "Invalid template string ${nested.deeper.missing}: Could not find key missing under nested.deeper."
+        )
+    )
+  })
+
+  it("should correctly propagate errors from deeply nested contexts", async () => {
+    const c = new TestContext({ nested: new TestContext({ deeper: new TestContext({}) }) })
+
+    await expectError(
+      () => resolveTemplateString("${nested.deeper.missing}", c),
+      (err) =>
+        expect(stripAnsi(err.message)).to.equal(
+          "Invalid template string ${nested.deeper.missing}: Could not find key missing under nested.deeper."
+        )
+    )
+  })
+
   context("when the template string is the full input string", () => {
     it("should return a resolved number directly", async () => {
       const res = resolveTemplateString("${a}", new TestContext({ a: 100 }))
