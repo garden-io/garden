@@ -344,6 +344,22 @@ jobs:
             cd garden-service
             docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f gcloud.Dockerfile .
             docker push ${TAG}
+  build-docker-aws-gcloud:
+    <<: *node-config
+    steps:
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - checkout
+      - *attach-workspace
+      - run:
+          name: Build image and push to registry
+          command: |
+            docker login -u $DOCKER_USER -p $DOCKER_PASS
+            TAG=gardendev/garden-aws-gcloud:${CIRCLE_SHA1}
+            cd garden-service
+            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f aws.gcloud.Dockerfile .
+            docker push ${TAG}
+
   build-docker-buster:
     <<: *node-config
     steps:
@@ -662,6 +678,10 @@ workflows:
           <<: *only-internal-prs
           context: docker
           requires: [build-docker]
+      - build-docker-aws-gcloud:
+          <<: *only-internal-prs
+          context: docker
+          requires: [build-docker]    
       - build-docker-buster:
           <<: *only-internal-prs
           context: docker

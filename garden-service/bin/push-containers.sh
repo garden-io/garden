@@ -14,4 +14,5 @@ echo "Pushing images"
 docker push gardendev/garden:${version}
 docker push gardendev/garden-aws:${version}
 docker push gardendev/garden-gcloud:${version}
+docker push gardendev/garden-aws-gcloud:${version}
 docker push gardendev/garden:${version}-buster
