@@ -8,14 +8,15 @@
 
 import React, { useEffect } from "react"
 import styled from "@emotion/styled"
+
 import Graph from "../components/graph"
 import PageError from "../components/page-error"
-import { TaskState, useApi } from "../contexts/api"
+import { TestEntity, TaskEntity, ModuleEntity, ServiceEntity, Entities, TaskState, useApi } from "../contexts/api"
 import { StackGraphSupportedFilterKeys, EntityResultSupportedTypes, useUiState } from "../contexts/ui"
 import EntityResult from "./entity-result"
 import Spinner from "../components/spinner"
 import { Filters } from "../components/group-filter"
-import { capitalize } from "lodash"
+import { capitalize, partial } from "lodash"
 import { RenderedNode } from "garden-service/build/src/config-graph"
 import { GraphOutput } from "garden-service/build/src/commands/get/get-graph"
 import { loadGraph } from "../api/actions"
@@ -25,8 +26,32 @@ const Wrapper = styled.div`
   padding-left: 0.75rem;
 `
 
+const getStackGraphNodeFromEntities = (entities: Entities, node: RenderedNode): StackGraphNode => {
+  let entity: TestEntity | TaskEntity | ModuleEntity | ServiceEntity
+  switch (node.type) {
+    case "deploy":
+      entity = entities.services[node.name]
+      break
+    case "build":
+      entity = entities.modules[node.name]
+      break
+    case "run":
+      entity = entities.tasks[node.name]
+      break
+    case "test":
+      entity = entities.tests[getTestKey({ testName: node.name, moduleName: node.moduleName })]
+      break
+    default:
+      throw new Error(`Could not find an entity for node.type: ${node.type}`)
+  }
+  const disabled = entity.config?.disabled || entity.config?.moduleDisabled
+  const taskState: TaskState = entity.taskState || "taskComplete"
+  return { ...node, disabled, status: taskState }
+}
+
 export interface StackGraphNode extends RenderedNode {
   status?: TaskState
+
   disabled: boolean
 }
 export interface GraphOutputWithNodeStatus extends GraphOutput {
@@ -39,7 +64,7 @@ export default () => {
     store: { entities, requestStates },
   } = useApi()
 
-  const { project, modules, services, tests, tasks, graph } = entities
+  const { project, graph } = entities
 
   const {
     actions: { selectGraphNode, stackGraphToggleItemsView, clearGraphNodeSelection },
@@ -66,31 +91,7 @@ export default () => {
     return <Spinner />
   }
 
-  const nodesWithStatus: StackGraphNode[] = graph.nodes.map((node) => {
-    let taskState: TaskState = "taskComplete"
-    let disabled = modules[node.name]?.disabled
-    switch (node.type) {
-      case "deploy":
-        const service = services[node.name]
-        disabled = service.config.disabled || service.config.moduleDisabled
-        taskState = service.taskState
-        break
-      case "build":
-        taskState = modules[node.name].taskState
-        break
-      case "run":
-        const task = tasks[node.name]
-        disabled = task.config.disabled || task.config.moduleDisabled
-        taskState = task.taskState
-        break
-      case "test":
-        const test = tests[getTestKey({ testName: node.name, moduleName: node.moduleName })]
-        disabled = test.config.disabled || test.config.moduleDisabled
-        taskState = test.taskState
-        break
-    }
-    return { ...node, disabled, status: taskState }
-  })
+  const nodesWithStatus: StackGraphNode[] = graph.nodes.map(partial(getStackGraphNodeFromEntities, entities))
 
   let graphWithStatus: GraphOutputWithNodeStatus = { nodes: nodesWithStatus, relationships: graph.relationships }
 

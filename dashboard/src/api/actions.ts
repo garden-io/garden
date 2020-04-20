@@ -115,6 +115,10 @@ function processConfigInitResult(entities: Entities, config: ConfigDump) {
         tests: cfg.testConfigs.map((test) => `${cfg.name}.${test.name}`),
         tasks: cfg.taskConfigs.map((task) => task.name),
         taskState: "taskComplete",
+        config: {
+          ...cfg,
+          moduleDisabled: cfg.disabled,
+        },
       }
       draft.modules[cfg.name] = module
 

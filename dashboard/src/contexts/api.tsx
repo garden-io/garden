@@ -81,6 +81,7 @@ export type ModuleEntity = Pick<
   tasks: string[]
   tests: string[]
   taskState: TaskState // State of the build task for the module
+  config: ModuleConfig
 }
 
 export interface ServiceEntity {
