@@ -175,8 +175,6 @@ export async function runAndCopy({
   }
 
   if (getArtifacts) {
-    const tmpDir = await tmp.dir({ unsafeCleanup: true })
-
     try {
       // Start the Pod
       const { pod, state, debugLog } = await runner.start({
@@ -265,6 +263,7 @@ export async function runAndCopy({
       // Copy the artifacts
       await Promise.all(
         artifacts.map(async (artifact) => {
+          const tmpDir = await tmp.dir({ unsafeCleanup: true })
           // Remove leading slash (which is required in the schema)
           const sourcePath = artifact.source.slice(1)
           const targetPath = resolve(artifactsPath!, artifact.target || ".")
@@ -279,56 +278,59 @@ export async function runAndCopy({
             `$(ls ${sourcePath} 2>/dev/null) .DS_Store`,
           ]
 
-          await new Promise((_resolve, reject) => {
-            // Create an extractor to receive the tarball we will stream from the container
-            // and extract to the artifacts directory.
-            let done = 0
+          try {
+            await new Promise((_resolve, reject) => {
+              // Create an extractor to receive the tarball we will stream from the container
+              // and extract to the artifacts directory.
+              let done = 0
 
-            const extractor = tar.x({
-              cwd: tmpDir.path,
-              strict: true,
-              onentry: (entry) => log.debug("tar: got file " + entry.path),
-            })
-
-            extractor.on("end", () => {
-              // Need to make sure both processes are complete before resolving (may happen in either order)
-              done++
-              done === 2 && _resolve()
-            })
-            extractor.on("error", (err) => {
-              reject(err)
-            })
-
-            // Tarball the requested files and stream to the above extractor.
-            runner
-              .exec({
-                command: ["sh", "-c", "cd / && touch .DS_Store && " + tarCmd.join(" ")],
-                container: mainContainerName,
-                ignoreError: false,
-                log,
-                stdout: extractor,
+              const extractor = tar.x({
+                cwd: tmpDir.path,
+                strict: true,
+                onentry: (entry) => log.debug("tar: got file " + entry.path),
               })
-              .then(() => {
+
+              extractor.on("end", () => {
                 // Need to make sure both processes are complete before resolving (may happen in either order)
                 done++
                 done === 2 && _resolve()
               })
-              .catch(reject)
-          })
+              extractor.on("error", (err) => {
+                reject(err)
+              })
 
-          // Copy the resulting files to the artifacts directory
-          try {
-            await cpy("**/*", targetPath, { cwd: tmpDir.path, ignoreJunk: true })
-          } catch (err) {
-            // Ignore error thrown when the directory is empty
-            if (err.name !== "CpyError" || !err.message.includes("the file doesn't exist")) {
-              throw err
+              // Tarball the requested files and stream to the above extractor.
+              runner
+                .exec({
+                  command: ["sh", "-c", "cd / && touch .DS_Store && " + tarCmd.join(" ")],
+                  container: mainContainerName,
+                  ignoreError: false,
+                  log,
+                  stdout: extractor,
+                })
+                .then(() => {
+                  // Need to make sure both processes are complete before resolving (may happen in either order)
+                  done++
+                  done === 2 && _resolve()
+                })
+                .catch(reject)
+            })
+
+            // Copy the resulting files to the artifacts directory
+            try {
+              await cpy("**/*", targetPath, { cwd: tmpDir.path, ignoreJunk: true })
+            } catch (err) {
+              // Ignore error thrown when the directory is empty
+              if (err.name !== "CpyError" || !err.message.includes("the file doesn't exist")) {
+                throw err
+              }
             }
+          } finally {
+            await tmpDir.cleanup()
           }
         })
       )
     } finally {
-      await tmpDir.cleanup()
       await runner.stop()
     }
   } else {
