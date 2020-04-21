@@ -338,7 +338,7 @@ describe("kubernetes container module handlers", () => {
           timeout: 3,
         })
 
-        expect(result.log.trim()).to.equal("Command timed out.")
+        expect(result.log.trim()).to.equal("Command timed out. Here are the logs until the timeout occurred:\n\nbanana")
         expect(result.success).to.be.false
       })
 
