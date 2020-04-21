@@ -56,9 +56,9 @@ export class BufferedEventStream {
   private log: LogEntry
   private eventBus: EventBus
   public sessionId: string
-  private platformUrl: string
+  private cloudDomain: string
   private clientAuthToken: string
-  private projectName: string
+  private projectId: string
 
   /**
    * We maintain this map to facilitate unsubscribing from a previously connected event bus
@@ -80,11 +80,10 @@ export class BufferedEventStream {
     this.bufferedLogEntries = []
   }
 
-  // TODO: Replace projectName with projectId once we've figured out the flow for that.
-  connect(eventBus: EventBus, clientAuthToken: string, platformUrl: string, projectName: string) {
+  connect(eventBus: EventBus, clientAuthToken: string, cloudDomain: string, projectId: string) {
     this.clientAuthToken = clientAuthToken
-    this.platformUrl = platformUrl
-    this.projectName = projectName
+    this.cloudDomain = cloudDomain
+    this.projectId = projectId
 
     if (!this.intervalId) {
       this.startInterval()
@@ -150,10 +149,10 @@ export class BufferedEventStream {
     const data = {
       events,
       sessionId: this.sessionId,
-      projectName: this.projectName,
+      projectId: this.projectId,
     }
     const headers = makeAuthHeader(this.clientAuthToken)
-    got.post(`${this.platformUrl}/events`, { json: data, headers }).catch((err) => {
+    got.post(`${this.cloudDomain}/events`, { json: data, headers }).catch((err) => {
       this.log.error(err)
     })
   }
@@ -162,10 +161,10 @@ export class BufferedEventStream {
     const data = {
       logEntries,
       sessionId: this.sessionId,
-      projectName: this.projectName,
+      projectId: this.projectId,
     }
     const headers = makeAuthHeader(this.clientAuthToken)
-    got.post(`${this.platformUrl}/log-entries`, { json: data, headers }).catch((err) => {
+    got.post(`${this.cloudDomain}/log-entries`, { json: data, headers }).catch((err) => {
       this.log.error(err)
     })
   }

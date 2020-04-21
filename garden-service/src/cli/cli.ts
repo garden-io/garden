@@ -346,8 +346,8 @@ export class GardenCli {
             garden = await Garden.factory(root, contextOpts)
           }
 
-          if (garden.clientAuthToken && garden.platformUrl) {
-            bufferedEventStream.connect(garden.events, garden.clientAuthToken, garden.platformUrl, garden.projectName)
+          if (garden.clientAuthToken && garden.cloudDomain && garden.projectId) {
+            bufferedEventStream.connect(garden.events, garden.clientAuthToken, garden.cloudDomain, garden.projectId)
           }
 
           // Register log file writers. We need to do this after the Garden class is initialised because
