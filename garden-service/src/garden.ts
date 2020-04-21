@@ -61,7 +61,7 @@ import { deline, naturalList } from "./util/string"
 import { ensureConnected } from "./db/connection"
 import { DependencyValidationGraph } from "./util/validate-dependencies"
 import { Profile } from "./util/profiling"
-import { readAuthToken, login } from "./cloud/auth"
+import { readAuthToken, checkClientAuthToken } from "./cloud/auth"
 import { ResolveModuleTask, getResolvedModules } from "./tasks/resolve-module"
 import username from "username"
 
@@ -96,6 +96,7 @@ export interface GardenOpts {
   log?: LogEntry
   plugins?: RegisterPluginParam[]
   sessionId?: string
+  noPlatform?: boolean
 }
 
 export interface GardenParams {
@@ -291,7 +292,7 @@ export class Garden {
 
     const clientAuthToken = await readAuthToken(log)
     // If a client auth token exists in local storage, we assume that the user wants to be logged in to the platform.
-    if (clientAuthToken && sessionId) {
+    if (clientAuthToken && !opts.noPlatform) {
       if (!platformUrl) {
         const errMsg = deline`
           GARDEN_CLOUD environment variable is not set. Make sure it is set to the appropriate API
@@ -299,7 +300,14 @@ export class Garden {
           prefix).`
         throw new InternalError(errMsg, {})
       } else {
-        await login(platformUrl, log)
+        const tokenIsValid = await checkClientAuthToken(clientAuthToken, platformUrl, log)
+        if (!tokenIsValid) {
+          log.warn(deline`
+            You were previously logged in to the platform, but your session has expired or is invalid. Please run
+            ${chalk.bold("garden login")} to continue using platform features, or run ${chalk.bold("garden logout")}
+            to suppress this message.
+          `)
+        }
       }
     }
 

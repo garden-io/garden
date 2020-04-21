@@ -61,7 +61,7 @@ export async function login(platformUrl: string, log: LogEntry): Promise<string>
 /**
  * Checks with the backend whether the provided client auth token is valid.
  */
-async function checkClientAuthToken(token: string, platformUrl: string, log: LogEntry): Promise<boolean> {
+export async function checkClientAuthToken(token: string, platformUrl: string, log: LogEntry): Promise<boolean> {
   let valid
   try {
     await got({

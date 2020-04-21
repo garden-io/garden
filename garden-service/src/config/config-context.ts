@@ -100,6 +100,7 @@ export abstract class ConfigContext {
     let nextKey = key[0]
     let lookupPath: string[] = []
     let nestedNodePath = nodePath
+    let message: string | undefined = undefined
 
     for (let p = 0; p < key.length; p++) {
       nextKey = key[p]
@@ -137,6 +138,7 @@ export abstract class ConfigContext {
           opts.stack.push(stackEntry)
           const res = value.resolve({ key: remainder, nodePath: nestedNodePath, opts })
           value = res.resolved
+          message = res.message
           partial = !!res.partial
         }
         break
@@ -154,11 +156,13 @@ export abstract class ConfigContext {
     }
 
     if (value === undefined) {
-      let message = chalk.red(`Could not find key ${chalk.white(nextKey)}`)
-      if (nestedNodePath.length > 1) {
-        message += chalk.red(" under ") + chalk.white(nestedNodePath.slice(0, -1).join("."))
+      if (message === undefined) {
+        message = chalk.red(`Could not find key ${chalk.white(nextKey)}`)
+        if (nestedNodePath.length > 1) {
+          message += chalk.red(" under ") + chalk.white(nestedNodePath.slice(0, -1).join("."))
+        }
+        message += chalk.red(".")
       }
-      message += chalk.red(".")
 
       if (opts.allowUndefined) {
         return { resolved: undefined, message }

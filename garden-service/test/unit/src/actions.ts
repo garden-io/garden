@@ -1489,7 +1489,7 @@ describe("ActionRouter", () => {
           }),
         (err) =>
           expect(stripAnsi(err.message)).to.equal(
-            "Invalid template string ${runtime.services.service-b.outputs.foo}: Could not find key runtime."
+            "Invalid template string ${runtime.services.service-b.outputs.foo}: Could not find key service-b under runtime.services."
           )
       )
     })
@@ -1664,7 +1664,7 @@ describe("ActionRouter", () => {
           }),
         (err) =>
           expect(stripAnsi(err.message)).to.equal(
-            "Invalid template string ${runtime.services.service-b.outputs.foo}: Could not find key runtime."
+            "Invalid template string ${runtime.services.service-b.outputs.foo}: Could not find key service-b under runtime.services."
           )
       )
     })

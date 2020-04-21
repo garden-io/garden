@@ -129,7 +129,55 @@ describe("ConfigContext", () => {
       await expectError(() => resolveKey(c, ["nested", "bla"]), "configuration")
     })
 
-    it("should show full template string in error when unable to resolve in nested context", async () => {
+    it("should show helpful error when unable to resolve nested key in map", async () => {
+      class Context extends ConfigContext {
+        nested: Map<string, string>
+
+        constructor(parent?: ConfigContext) {
+          super(parent)
+          this.nested = new Map()
+        }
+      }
+      const c = new Context()
+      await expectError(
+        () => resolveKey(c, ["nested", "bla"]),
+        (err) => expect(stripAnsi(err.message)).to.equal("Could not find key bla under nested.")
+      )
+    })
+
+    it("should show helpful error when unable to resolve nested key in object", async () => {
+      class Context extends ConfigContext {
+        nested: any
+
+        constructor(parent?: ConfigContext) {
+          super(parent)
+          this.nested = {}
+        }
+      }
+      const c = new Context()
+      await expectError(
+        () => resolveKey(c, ["nested", "bla"]),
+        (err) => expect(stripAnsi(err.message)).to.equal("Could not find key bla under nested.")
+      )
+    })
+
+    it("should show helpful error when unable to resolve two-level nested key in object", async () => {
+      class Context extends ConfigContext {
+        nested: any
+
+        constructor(parent?: ConfigContext) {
+          super(parent)
+          this.nested = { deeper: {} }
+        }
+      }
+      const c = new Context()
+      await expectError(
+        () => resolveKey(c, ["nested", "deeper", "bla"]),
+        (err) => expect(stripAnsi(err.message)).to.equal("Could not find key bla under nested.deeper.")
+      )
+    })
+
+    it("should show helpful error when unable to resolve in nested context", async () => {
       class Nested extends ConfigContext {}
       class Context extends ConfigContext {
         nested: ConfigContext
@@ -257,6 +305,19 @@ describe("ProjectConfigContext", () => {
       resolved: "value",
     })
     delete process.env.TEST_VARIABLE
+  })
+
+  it("should throw helpful error when resolving missing env variable", async () => {
+    const c = new ProjectConfigContext("/tmp", "some-user")
+    const key = "fiaogsyecgbsjyawecygaewbxrbxajyrgew"
+
+    await expectError(
+      () => c.resolve({ key: ["local", "env", key], nodePath: [], opts: {} }),
+      (err) =>
+        expect(stripAnsi(err.message)).to.equal(
+          "Could not find key fiaogsyecgbsjyawecygaewbxrbxajyrgew under local.env."
+        )
+    )
   })
 
   it("should should resolve the local platform", async () => {
