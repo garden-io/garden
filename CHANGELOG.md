@@ -1,4 +1,19 @@
 
+<a name="v0.11.13"></a>
+## [v0.11.13](https://github.com/garden-io/garden/compare/v0.11.12...v0.11.13) (2020-04-22)
+
+### Bug Fixes
+
+* **commands:** ensure get config returns disabled configs (by default) ([e4569798](https://github.com/garden-io/garden/commit/e4569798))
+* **k8s:** artifact logs ([7fd02d0e](https://github.com/garden-io/garden/commit/7fd02d0e))
+* **k8s:** only copy artifacts once ([6dcbb61f](https://github.com/garden-io/garden/commit/6dcbb61f))
+* **platform:** fix login/logout control flow ([8f3defd5](https://github.com/garden-io/garden/commit/8f3defd5))
+* **template:** fix imprecise error when key on nested context is missing ([2af9b0bb](https://github.com/garden-io/garden/commit/2af9b0bb))
+
+### Features
+
+* **k8s:** run a persistent skopeo daemon ([9ddc749d](https://github.com/garden-io/garden/commit/9ddc749d))
+
 <a name="v0.11.12"></a>
 ## [v0.11.12](https://github.com/garden-io/garden/compare/v0.11.11...v0.11.12) (2020-02-10)
 
