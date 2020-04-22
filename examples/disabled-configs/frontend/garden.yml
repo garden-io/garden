@@ -23,6 +23,6 @@ tests:
     args: [npm, test]
   - name: integ
     args: [npm, run, integ]
-    disabled: ${environment.name == local}
+    disabled: ${environment.name == "local"}
     dependencies:
       - frontend
