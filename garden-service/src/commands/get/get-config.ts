@@ -23,20 +23,19 @@ export class GetConfigCommand extends Command<{}, Opts> {
   options = options
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<ConfigDump>> {
-    const config = await garden.dumpConfig(log)
+    const config = await garden.dumpConfig(log, !opts["exclude-disabled"])
 
+    // Also filter out service, task, and test configs
     if (opts["exclude-disabled"]) {
-      const filteredModuleConfigs = config.moduleConfigs
-        .filter((moduleConfig) => !moduleConfig.disabled)
-        .map((moduleConfig) => {
-          const filteredConfig = {
-            ...moduleConfig,
-            serviceConfigs: moduleConfig.serviceConfigs.filter((c) => !c.disabled),
-            taskConfigs: moduleConfig.taskConfigs.filter((c) => !c.disabled),
-            testConfigs: moduleConfig.testConfigs.filter((c) => !c.disabled),
-          }
-          return filteredConfig
-        })
+      const filteredModuleConfigs = config.moduleConfigs.map((moduleConfig) => {
+        const filteredConfig = {
+          ...moduleConfig,
+          serviceConfigs: moduleConfig.serviceConfigs.filter((c) => !c.disabled),
+          taskConfigs: moduleConfig.taskConfigs.filter((c) => !c.disabled),
+          testConfigs: moduleConfig.testConfigs.filter((c) => !c.disabled),
+        }
+        return filteredConfig
+      })
 
       config.moduleConfigs = filteredModuleConfigs
     }
