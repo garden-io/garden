@@ -1,0 +1,16 @@
+kind: Project
+name: disabled-configs
+# defaultEnvironment: "remote" # Uncomment if you'd like the remote environment to be the default for this project.
+environments:
+  - name: local
+  - name: remote
+providers:
+  - name: local-kubernetes
+    environments: [local]
+  - name: kubernetes
+    environments: [remote]
+    # Replace these values as appropriate
+    context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
+    namespace: disabled-configs-testing-${local.env.USER || local.username}
+    defaultHostname: ${local.env.USER || local.username}-disabled-configs.dev-1.sys.garden
+    buildMode: cluster-docker
