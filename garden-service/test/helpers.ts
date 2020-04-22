@@ -351,12 +351,22 @@ export class TestGarden extends Garden {
   }
 
   /**
-   * Returns modules that are registered in this context, fully resolved and configured.
+   * Returns modules that are registered in this context, fully resolved and configured. Optionally includes
+   * disabled modules.
+   *
    * Scans for modules in the project root and remote/linked sources if it hasn't already been done.
    */
-  async resolveModules({ log, runtimeContext }: { log: LogEntry; runtimeContext?: RuntimeContext }): Promise<Module[]> {
+  async resolveModules({
+    log,
+    runtimeContext,
+    includeDisabled = false,
+  }: {
+    log: LogEntry
+    runtimeContext?: RuntimeContext
+    includeDisabled?: boolean
+  }): Promise<Module[]> {
     const graph = await this.getConfigGraph(log, runtimeContext)
-    return graph.getModules()
+    return graph.getModules({ includeDisabled })
   }
 
   /**

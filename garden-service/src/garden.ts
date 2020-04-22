@@ -1033,9 +1033,9 @@ export class Garden {
   /**
    * This dumps the full project configuration including all modules.
    */
-  public async dumpConfig(log: LogEntry): Promise<ConfigDump> {
+  public async dumpConfig(log: LogEntry, includeDisabled: boolean = false): Promise<ConfigDump> {
     const graph = await this.getConfigGraph(log)
-    const modules = graph.getModules()
+    const modules = graph.getModules({ includeDisabled })
 
     return {
       environmentName: this.environmentName,
