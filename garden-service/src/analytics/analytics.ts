@@ -16,7 +16,6 @@ import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY } from "../constants"
 import { LogEntry } from "../logger/log-entry"
 import hasha = require("hasha")
 import { Garden } from "../garden"
-import { Events, EventName } from "../events"
 import { AnalyticsType } from "./analytics-types"
 import dedent from "dedent"
 import { getGitHubUrl } from "../docs/common"
@@ -38,7 +37,7 @@ export function getUserId(globalConfig: GlobalConfig) {
   }
 }
 
-export interface SystemInfo {
+interface SystemInfo {
   gardenVersion: string
   platform: string
   platformVersion: string
@@ -54,7 +53,7 @@ interface ProjectMetadata {
   moduleTypes: string[]
 }
 
-export interface AnalyticsEventProperties {
+interface AnalyticsEventProperties {
   projectId: string
   projectName: string
   ciName: string | null
@@ -64,50 +63,42 @@ export interface AnalyticsEventProperties {
   projectMetadata: ProjectMetadata
 }
 
-export interface AnalyticsCommandEventProperties extends AnalyticsEventProperties {
+interface AnalyticsCommandEventProperties extends AnalyticsEventProperties {
   name: string
 }
 
-export interface AnalyticsTaskEventProperties extends AnalyticsEventProperties {
-  batchId: string
-  taskType: string
-  taskName: string
-  taskStatus: string
-}
-export interface AnalyticsApiEventProperties extends AnalyticsEventProperties {
+interface AnalyticsApiEventProperties extends AnalyticsEventProperties {
   path: string
   command: string
   name: string
 }
 
-export interface AnalyticsConfigErrorProperties extends AnalyticsEventProperties {
+interface AnalyticsConfigErrorProperties extends AnalyticsEventProperties {
   moduleType: string
 }
 
-export interface AnalyticsProjectErrorProperties extends AnalyticsEventProperties {
+interface AnalyticsProjectErrorProperties extends AnalyticsEventProperties {
   fields: Array<string>
 }
 
-export interface AnalyticsValidationErrorProperties extends AnalyticsEventProperties {
+interface AnalyticsValidationErrorProperties extends AnalyticsEventProperties {
   fields: Array<string>
 }
 
-export interface ApiRequestBody {
+interface ApiRequestBody {
   command: string
 }
 
-export interface AnalyticsEvent {
+interface AnalyticsEvent {
   type: AnalyticsType
   properties: AnalyticsEventProperties
 }
 
-export interface SegmentEvent {
+interface SegmentEvent {
   userId: string
   event: AnalyticsType
   properties: AnalyticsEventProperties
 }
-
-type SupportedEvents = Events["taskPending"] | Events["taskProcessing"] | Events["taskComplete"] | Events["taskError"]
 
 /**
  * A Segment client wrapper with utility functionalities global config and info,
@@ -233,36 +224,14 @@ export class AnalyticsHandler {
         })
       }
     }
-    // Subscribe to the TaskGraph events
-    this.garden.events.onAny((name, payload) => this.processEvent(name, payload))
 
     this.projectMetadata = await this.generateProjectMetadata()
 
     return this
   }
 
-  /**
-   * Handler used internally to process the TaskGraph events.
-   */
-  private async processEvent<T extends EventName>(name: T, payload: Events[T]) {
-    if (AnalyticsHandler.isSupportedEvent(name, payload)) {
-      await this.trackTask(payload.batchId, payload.name, payload.type, name)
-    }
-  }
-
   static async refreshGarden(garden: Garden) {
     AnalyticsHandler.instance.garden = garden
-    AnalyticsHandler.instance.garden.events.onAny((name, payload) =>
-      AnalyticsHandler.instance.processEvent(name, payload)
-    )
-  }
-
-  /**
-   * Typeguard to check wether we can process or not an event
-   */
-  static isSupportedEvent(name: EventName, _event: Events[EventName]): _event is SupportedEvents {
-    const supportedEventsKeys = ["taskPending", "taskProcessing", "taskComplete", "taskError"]
-    return supportedEventsKeys.includes(name)
   }
 
   /**
@@ -282,11 +251,11 @@ export class AnalyticsHandler {
    */
   private async generateProjectMetadata(): Promise<ProjectMetadata> {
     const configGraph = await this.garden.getConfigGraph(this.log)
-    const modules = await configGraph.getModules()
+    const modules = configGraph.getModules()
     const moduleTypes = [...new Set(modules.map((m) => m.type))]
 
-    const tasks = await configGraph.getTasks()
-    const services = await configGraph.getServices()
+    const tasks = configGraph.getTasks()
+    const services = configGraph.getServices()
     const tests = modules.map((m) => m.testConfigs)
     const testsCount = flatten(tests).length
 
@@ -381,32 +350,6 @@ export class AnalyticsHandler {
         name: commandName,
         ...this.getBasicAnalyticsProperties(),
       },
-    })
-  }
-
-  /**
-   * Tracks a Garden Task. The taskName is hashed since it could contain sensitive information
-   *
-   * @param {string} batchId An id representing the current TaskGraph execution batch
-   * @param {string} taskName The name of the Task. Usually in the format '<taskType>.<moduleName>'
-   * @param {string} taskType The type of the Task
-   * @param {string} taskStatus the status of the task: "taskPending", "taskProcessing", "taskComplete" or "taskError"
-   * @returns
-   * @memberof AnalyticsHandler
-   */
-  trackTask(batchId: string, taskName: string, taskType: string, taskStatus: string) {
-    const hashedTaskName = hasha(taskName, { algorithm: "sha256" })
-    const properties: AnalyticsTaskEventProperties = {
-      batchId,
-      taskName: hashedTaskName,
-      taskType,
-      ...this.getBasicAnalyticsProperties(),
-      taskStatus,
-    }
-
-    return this.track({
-      type: AnalyticsType.TASK,
-      properties,
     })
   }
 
