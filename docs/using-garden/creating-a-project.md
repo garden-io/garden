@@ -35,12 +35,12 @@ A project consists of one or more **modules** that each has a specific `type`, f
 Consider a project with the following three environments:
 
 ```yaml
-  kind: Project
-  name: my-project
-  environments:
-    - name: empty
-    - name: local
-    - name: remote
+kind: Project
+name: my-project
+environments:
+  - name: empty
+  - name: local
+  - name: remote
 providers:
   - name: local-kubernetes
     environments: ["local"]
@@ -48,11 +48,11 @@ providers:
     environments: ["remote"]
     context: my-context
     ...
-  ---
-  kind: Module
-  name: my-module
-  type: container
-  ...
+---
+kind: Module
+name: my-module
+type: container
+...
 ```
 
 Our choice of providers and their configuration dictates how the module in the example above is handled:
