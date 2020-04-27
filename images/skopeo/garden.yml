@@ -2,5 +2,5 @@ kind: Module
 type: container
 name: skopeo
 description: Used by the kubernetes provider for interacting with container registries within a cluster
-image: gardendev/skopeo:1.41.0-1
+image: gardendev/skopeo:1.41.0-2
 dockerfile: Dockerfile

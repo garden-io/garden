@@ -29,7 +29,7 @@ import { getChartPath, renderHelmTemplateString } from "./helm/common"
 import { HotReloadableResource } from "./hot-reload/hot-reload"
 import { ProviderMap } from "../../config/provider"
 
-export const skopeoImage = "gardendev/skopeo:1.41.0-1"
+export const skopeoImage = "gardendev/skopeo:1.41.0-2"
 
 const STATIC_LABEL_REGEX = /[0-9]/g
 export const workloadTypes = ["Deployment", "DaemonSet", "ReplicaSet", "StatefulSet"]

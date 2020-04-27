@@ -700,6 +700,7 @@ workflows:
           <<: *only-internal-prs
           context: docker
           requires: [build-dist]
+
       - test-docker-gcloud:
           <<: *only-internal-prs
           context: docker
@@ -711,12 +712,10 @@ workflows:
           <<: *only-internal-prs
           requires: [build-dist]
       - test-windows:
-          # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
           <<: *only-internal-prs
           requires: [build-dist]
 
       - e2e-project:
-          # Don't attempt to run e2e tests for external PRs (they won't have access to the required keys)
           <<: *only-internal-prs
           name: e2e-demo-project
           project: demo-project
@@ -726,6 +725,12 @@ workflows:
           <<: *only-internal-prs
           name: e2e-deployment-strategies
           project: deployment-strategies
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-gke-kaniko-gcr
+          project: gke
+          environment: gke-kaniko-gcr
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
