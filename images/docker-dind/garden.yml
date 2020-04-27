@@ -2,5 +2,5 @@ kind: Module
 type: container
 name: docker-dind
 description: The image used for the in-cluster docker daemon. Extending the base image to add credential helpers.
-image: gardendev/docker-dind:19.03.7
+image: gardendev/docker-dind:19.03.8-1
 dockerfile: Dockerfile

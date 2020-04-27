@@ -49,6 +49,17 @@ See https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-
 a registry auth secret.
 `
 
+// Used to automatically support GCR auth on GKE.
+// Users can override by setting other values for any of these keys in any of their imagePullSecrets.
+const defaultCredHelpers = {
+  "asia.gcr.io": "gcr",
+  "eu.gcr.io": "gcr",
+  "gcr.io": "gcr",
+  "marketplace.gcr.io": "gcr",
+  "staging-k8s.gcr.io": "gcr",
+  "us.gcr.io": "gcr",
+}
+
 interface KubernetesProviderOutputs extends PrimitiveMap {
   "app-namespace": string
   "metadata-namespace": string
@@ -282,6 +293,7 @@ export async function prepareSystem({
 
   // Set auth secret for in-cluster builder
   if (provider.config.buildMode !== "local-docker") {
+    log.info("Updating builder auth secret")
     const authSecret = await prepareDockerAuth(sysApi, ctx, sysProvider, log)
     await sysApi.upsert({ kind: "Secret", namespace: systemNamespace, obj: authSecret, log })
   }
@@ -490,7 +502,7 @@ export async function buildDockerAuthConfig(
         credHelpers: { ...accumulator.credHelpers, ...decoded.credHelpers },
       }
     },
-    { experimental: "enabled", auths: {}, credHelpers: {} }
+    { experimental: "enabled", auths: {}, credHelpers: defaultCredHelpers }
   )
 }
 

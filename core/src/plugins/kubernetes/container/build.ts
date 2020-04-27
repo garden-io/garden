@@ -140,7 +140,7 @@ const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } 
       })
       return { ready: true }
     } catch (err) {
-      const res = err.detail.result
+      const res = err.detail?.result
 
       // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
       if (res.exitCode !== 0 && !res.stderr.includes("no such manifest")) {
@@ -187,12 +187,15 @@ const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } 
       })
       return { ready: true }
     } catch (err) {
-      const res = err.detail.result
+      const res = err.detail?.result || {}
+
       // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
       if (res.exitCode !== 0 && !res.stderr.includes("manifest unknown")) {
-        throw new RuntimeError(`Unable to query registry for image status: ${res.all}`, {
+        const output = res.allLogs || err.message
+
+        throw new RuntimeError(`Unable to query registry for image status: ${output}`, {
           command: skopeoCommand,
-          output: res.all,
+          output,
         })
       }
       return { ready: false }
