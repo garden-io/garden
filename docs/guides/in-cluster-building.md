@@ -199,3 +199,5 @@ providers:
 ```
 
 This is often more scalable than using the default in-cluster registry, and may fit better with existing deployment pipelines. Just make sure the configured `imagePullSecrets` have the privileges to push to repos in the configured namespace.
+
+For GKE, take a look at the [gke example project](https://github.com/garden-io/garden/tree/master/examples/gke)) to see the additional steps required to set up in-cluster building on GKE with Kaniko and GCR as a deployment registry.

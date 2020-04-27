@@ -6,7 +6,7 @@ replicaCount: 1
 
 image:
   repository: gardendev/skopeo
-  tag: "1.41.0-1"
+  tag: "1.41.0-2"
   pullPolicy: IfNotPresent
 
 nameOverride: "garden-util-daemon"

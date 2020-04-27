@@ -103,7 +103,7 @@ const crudMap = {
     group: "core",
     read: "readNamespacedSecret",
     create: "createNamespacedSecret",
-    patch: "patchNamespacedSecret",
+    replace: "replaceNamespacedSecret",
     delete: "deleteNamespacedSecret",
   },
 }
@@ -485,7 +485,7 @@ export class KubeApi {
 
     try {
       await api[crudMap[kind].read](name, namespace)
-      await api[crudMap[kind].patch](name, namespace, obj)
+      await api[crudMap[kind].replace](name, namespace, obj)
       log.debug(`Patched ${kind} ${namespace}/${name}`)
     } catch (err) {
       if (err.statusCode === 404) {
@@ -495,7 +495,7 @@ export class KubeApi {
         } catch (err) {
           if (err.statusCode === 409) {
             log.debug(`Patched ${kind} ${namespace}/${name}`)
-            await api[crudMap[kind].patch](name, namespace, obj)
+            await api[crudMap[kind].replace](name, namespace, obj)
           } else {
             throw err
           }

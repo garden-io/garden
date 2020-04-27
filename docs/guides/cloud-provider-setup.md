@@ -50,6 +50,10 @@ name: your-project
 
 Run `garden --env=remote plugins kubernetes cluster-init`, then `garden dev --env=remote`. Now you should be good to go.
 
+### Optional: Use in-cluster building with GCR and Kaniko
+
+Take a look at the [gke example project](https://github.com/garden-io/garden/tree/master/examples/gke)) to see the additional steps required to set up in-cluster building on GKE with Kaniko and GCR as a deployment registry.
+
 ### Optional: Configure DNS
 
 First, get the public IP address of the ingress controller you set up in the previous step. If you configured Garden to set up _nginx_, run: `kubectl describe service --namespace=garden-system garden-nginx-ingress-nginx-controller | grep 'LoadBalancer Ingress'` and make note of returned IP address.
