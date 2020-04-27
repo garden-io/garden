@@ -21,7 +21,7 @@ import { Module, getModuleCacheContext, getModuleKey, ModuleConfigMap, moduleFro
 import { pluginModuleSchema, ModuleTypeMap } from "./types/plugin/plugin"
 import { SourceConfig, ProjectConfig, resolveProjectConfig, pickEnvironment, OutputSpec } from "./config/project"
 import { findByName, pickKeys, getPackageVersion, getNames, findByNames } from "./util/util"
-import { ConfigurationError, PluginError, RuntimeError, InternalError } from "./exceptions"
+import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
 import { VcsHandler, ModuleVersion } from "./vcs/vcs"
 import { GitHandler } from "./vcs/git"
 import { BuildDir } from "./build-dir"
@@ -111,7 +111,8 @@ export interface GardenParams {
   moduleExcludePatterns?: string[]
   opts: GardenOpts
   outputs: OutputSpec[]
-  platformUrl: string | null
+  projectId: string | null
+  cloudDomain: string | null
   plugins: RegisterPluginParam[]
   production: boolean
   projectName: string
@@ -140,7 +141,8 @@ export class Garden {
 
   // Platform-related instance variables
   public clientAuthToken: string | null
-  public platformUrl: string | null
+  public projectId: string | null
+  public cloudDomain: string | null
   public sessionId: string | null
 
   public readonly configStore: ConfigStore
@@ -174,7 +176,7 @@ export class Garden {
   constructor(params: GardenParams) {
     this.buildDir = params.buildDir
     this.clientAuthToken = params.clientAuthToken
-    this.platformUrl = params.platformUrl
+    this.cloudDomain = params.cloudDomain
     this.sessionId = params.sessionId
     this.environmentName = params.environmentName
     this.gardenDirPath = params.gardenDirPath
@@ -287,20 +289,37 @@ export class Garden {
 
     const sessionId = opts.sessionId || null
 
-    // TODO: Read the platformUrl from config.
-    const platformUrl = process.env.GARDEN_CLOUD ? `http://${process.env.GARDEN_CLOUD}` : null
+    const { id: projectId, domain: cloudDomain } = config
 
     const clientAuthToken = await readAuthToken(log)
     // If a client auth token exists in local storage, we assume that the user wants to be logged in to the platform.
     if (clientAuthToken && !opts.noPlatform) {
-      if (!platformUrl) {
-        const errMsg = deline`
-          GARDEN_CLOUD environment variable is not set. Make sure it is set to the appropriate API
-          backend endpoint (e.g. myusername-cloud-api.cloud.dev.garden.io, without an http/https
-          prefix).`
-        throw new InternalError(errMsg, {})
+      if (!cloudDomain || !projectId) {
+        const errorMessages: string[] = []
+        if (!cloudDomain) {
+          errorMessages.push(deline`
+            ${chalk.bold("project.domain")} is not set in your project-level ${chalk.bold("garden.yml")}. Make sure it
+            is set to the appropriate API backend endpoint (e.g. myusername-cloud-api.cloud.dev.garden.io, without an
+            http/https prefix).
+          `)
+        }
+        if (!projectId) {
+          errorMessages.push(deline`
+            ${chalk.bold("project.id")} is not set in your project-level ${chalk.bold("garden.yml")}. Please visit
+            Garden Cloud's web UI for your project and copy your project's ID from there.
+          `)
+        }
+        if (errorMessages.length > 0) {
+          throw new ConfigurationError(
+            dedent`
+              ${errorMessages.join("\n\n")}
+
+              Logging out via the ${chalk.bold("garden logout")} command will suppress this message.`,
+            {}
+          )
+        }
       } else {
-        const tokenIsValid = await checkClientAuthToken(clientAuthToken, platformUrl, log)
+        const tokenIsValid = await checkClientAuthToken(clientAuthToken, cloudDomain, log)
         if (!tokenIsValid) {
           log.warn(deline`
             You were previously logged in to the platform, but your session has expired or is invalid. Please run
@@ -315,7 +334,8 @@ export class Garden {
       artifactsPath,
       clientAuthToken,
       sessionId,
-      platformUrl,
+      cloudDomain: cloudDomain || null,
+      projectId: projectId || null,
       projectRoot,
       projectName,
       environmentName,

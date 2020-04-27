@@ -24,8 +24,8 @@ export class LoginCommand extends Command {
   async action({ garden, log, headerLog }: CommandParams): Promise<CommandResult> {
     printHeader(headerLog, "Login", "cloud")
 
-    if (garden.platformUrl) {
-      await login(garden.platformUrl, log)
+    if (garden.cloudDomain) {
+      await login(garden.cloudDomain, log)
     }
 
     return {}

@@ -150,6 +150,8 @@ export interface ProjectConfig {
   kind: "Project"
   name: string
   path: string
+  id?: string
+  domain?: string
   configPath?: string
   defaultEnvironment: string
   dotIgnoreFiles: string[]
@@ -251,8 +253,7 @@ const projectOutputSchema = () =>
       .description(
         dedent`
         The value for the output. Must be a primitive (string, number, boolean or null). May also be any valid template
-        string.
-      `
+        string.`
       )
       .example("${modules.my-module.outputs.some-output}"),
   })
@@ -277,6 +278,16 @@ export const projectDocsSchema = () =>
         .meta({ internal: true })
         .description("The path to the project config file."),
       name: projectNameSchema(),
+      // TODO: Refer to platform documentation for more details.
+      id: joi
+        .string()
+        .meta({ internal: true })
+        .description("The project's ID in Garden Cloud."),
+      // TODO: Refer to platform documentation for more details.
+      domain: joi
+        .string()
+        .meta({ internal: true })
+        .description("The domain to use for cloud features. Should point to the API/backend hostname."),
       // Note: We provide a different schema below for actual validation, but need to define it this way for docs
       // because joi.alternatives() isn't handled well in the doc generation.
       environments: joi

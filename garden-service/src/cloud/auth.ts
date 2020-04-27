@@ -26,13 +26,13 @@ export const makeAuthHeader = (clientAuthToken: string) => ({ "x-access-auth-tok
 /**
  * Logs in to the platform if needed, and returns a valid client auth token.
  */
-export async function login(platformUrl: string, log: LogEntry): Promise<string> {
+export async function login(cloudDomain: string, log: LogEntry): Promise<string> {
   const savedToken = await readAuthToken(log)
 
   // Ping platform with saved token (if it exists)
   if (savedToken) {
     log.debug("Local client auth token found, verifying it with platform...")
-    if (await checkClientAuthToken(savedToken, platformUrl, log)) {
+    if (await checkClientAuthToken(savedToken, cloudDomain, log)) {
       log.debug("Local client token is valid, no need for login.")
       return savedToken
     }
@@ -43,7 +43,7 @@ export async function login(platformUrl: string, log: LogEntry): Promise<string>
    * the redirect and finish running.
    */
   const events = new EventEmitter2()
-  const server = new AuthRedirectServer(platformUrl, events, log)
+  const server = new AuthRedirectServer(cloudDomain, events, log)
   log.debug(`Redirecting to platform login page...`)
   const newToken: string = await new Promise(async (resolve, _reject) => {
     // The server resolves the promise with the new auth token once it's received the redirect.
@@ -61,12 +61,12 @@ export async function login(platformUrl: string, log: LogEntry): Promise<string>
 /**
  * Checks with the backend whether the provided client auth token is valid.
  */
-export async function checkClientAuthToken(token: string, platformUrl: string, log: LogEntry): Promise<boolean> {
+export async function checkClientAuthToken(token: string, cloudDomain: string, log: LogEntry): Promise<boolean> {
   let valid
   try {
     await got({
       method: "get",
-      url: `${platformUrl}/token/verify`,
+      url: `${cloudDomain}/token/verify`,
       headers: makeAuthHeader(token),
     })
     valid = true
@@ -146,11 +146,11 @@ export class AuthRedirectServer {
   private log: LogEntry
   private server: Server
   private app: Koa
-  private platformUrl: string
+  private cloudDomain: string
   private events: EventEmitter2
 
-  constructor(platformUrl: string, events: EventEmitter2, log: LogEntry, public port?: number) {
-    this.platformUrl = platformUrl
+  constructor(cloudDomain: string, events: EventEmitter2, log: LogEntry, public port?: number) {
+    this.cloudDomain = cloudDomain
     this.events = events
     this.log = log.placeholder()
   }
@@ -167,7 +167,7 @@ export class AuthRedirectServer {
     await this.createApp()
 
     const query = { cliport: `${this.port}` }
-    await open(`${this.platformUrl}/cli/login/?${qs.stringify(query)}`)
+    await open(`${this.cloudDomain}/cli/login/?${qs.stringify(query)}`)
   }
 
   async close() {
