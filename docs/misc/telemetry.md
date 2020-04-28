@@ -63,42 +63,6 @@ Sent every time a Garden command is run.
 }
 ```
 
-### Run Task
-
-Sent for each event triggered by the Stack Graph.
-
-```js
-{
-  userId: 'cba7eb41-a370-4869-81a2-a0b21ae89c71',
-  event: 'Run Task',
-  properties: {
-    batchId: '944c9523-e2cd-42ef-bad5-13290354fb68',
-    isCI: false,
-    projectId: '740fa4458581c6983614a7c72ea9e9bcec46350fa965bc66b0979c7a5b4dd951',
-    projectMetadata: {
-      moduleTypes: [
-        'test'
-      ],
-      numberOfModules: 3,
-      numberOfServices: 3,
-      numberOfTasks: 3,
-      numberOfTests: 5
-    },
-    projectName: 'a738fa3f8e942e6101e0cf3c86b5a3261107ec18dd448a96f3b3ce96b9ff7a10',
-    ciName: 'CircleCI',
-    sessionId: '0045487d-4859-4826-b53f-c4f77719a945',
-    system: {
-      gardenVersion: '0.10.16',
-      platform: 'darwin',
-      platformVersion: '18.7.0'
-    },
-    taskName: '3ce7d581095184d695bf1965775076d66ae4b3ddc2560aef4d8d09b338a001ed',
-    taskStatus: 'taskComplete',
-    taskType: 'build'
-  }
-}
-```
-
 ### Call API
 
 Sent whenever the Dashboard makes an API call to Garden.
