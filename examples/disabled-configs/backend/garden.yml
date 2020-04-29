@@ -2,7 +2,7 @@ kind: Module
 name: backend
 description: Backend service container
 type: container
-disabled: ${environment.name == local}
+disabled: ${environment.name == "local"}
 services:
   - name: backend
     ports:
