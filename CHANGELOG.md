@@ -1,4 +1,11 @@
 
+<a name="v0.11.14"></a>
+## [v0.11.14](https://github.com/garden-io/garden/compare/v0.11.13...v0.11.14) (2020-04-24)
+
+### Features
+
+* **platform:** added id and domain to projects ([dc6f27b6](https://github.com/garden-io/garden/commit/dc6f27b6))
+
 <a name="v0.11.13"></a>
 ## [v0.11.13](https://github.com/garden-io/garden/compare/v0.11.12...v0.11.13) (2020-04-22)
 
