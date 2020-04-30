@@ -19,12 +19,14 @@ import {
   getGardenValuesPath,
   getBaseModule,
   getValueArgs,
+  renderTemplates,
 } from "../../../../../../src/plugins/kubernetes/helm/common"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { LogEntry } from "../../../../../../src/logger/log-entry"
 import { BuildTask } from "../../../../../../src/tasks/build"
-import { deline } from "../../../../../../src/util/string"
+import { deline, dedent } from "../../../../../../src/util/string"
 import { ConfigGraph } from "../../../../../../src/config-graph"
+import { KubernetesPluginContext } from "../../../../../../src/plugins/kubernetes/config"
 
 let helmTestGarden: TestGarden
 
@@ -91,6 +93,262 @@ describe("Helm common functions", () => {
     it("should return false if the specified module does not contain chart sources", async () => {
       const module = graph.getModule("postgres")
       expect(await containsSource(module)).to.be.false
+    })
+  })
+
+  describe("renderTemplates", () => {
+    it("should render and return the manifests for a local template", async () => {
+      const module = graph.getModule("api")
+      const templates = await renderTemplates(<KubernetesPluginContext>ctx, module, false, log)
+      expect(templates).to.eql(dedent`
+      ---
+      # Source: api/templates/service.yaml
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: api-release
+        labels:
+          app.kubernetes.io/name: api
+          helm.sh/chart: api-0.1.0
+          app.kubernetes.io/instance: api-release
+          app.kubernetes.io/managed-by: Helm
+      spec:
+        type: ClusterIP
+        ports:
+          - port: 80
+            targetPort: http
+            protocol: TCP
+            name: http
+        selector:
+          app.kubernetes.io/name: api
+          app.kubernetes.io/instance: api-release
+      ---
+      # Source: api/templates/deployment.yaml
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: api-release
+        labels:
+          app.kubernetes.io/name: api
+          helm.sh/chart: api-0.1.0
+          app.kubernetes.io/instance: api-release
+          app.kubernetes.io/managed-by: Helm
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app.kubernetes.io/name: api
+            app.kubernetes.io/instance: api-release
+        template:
+          metadata:
+            labels:
+              app.kubernetes.io/name: api
+              app.kubernetes.io/instance: api-release
+          spec:
+            containers:
+              - name: api
+                image: "api-image:v-74e9653167"
+                imagePullPolicy: IfNotPresent
+                args: [python, app.py]
+                ports:
+                  - name: http
+                    containerPort: 80
+                    protocol: TCP
+                resources:
+                  {}
+      ---
+      # Source: api/templates/ingress.yaml
+      apiVersion: extensions/v1beta1
+      kind: Ingress
+      metadata:
+        name: api-release
+        labels:
+          app.kubernetes.io/name: api
+          helm.sh/chart: api-0.1.0
+          app.kubernetes.io/instance: api-release
+          app.kubernetes.io/managed-by: Helm
+      spec:
+        rules:
+          - host: "api.local.app.garden"
+            http:
+              paths:
+                - path: /
+                  backend:
+                    serviceName: api-release
+                    servicePort: http\n
+      `)
+    })
+
+    it("should render and return the manifests for a remote template", async () => {
+      const module = graph.getModule("postgres")
+      const templates = await renderTemplates(<KubernetesPluginContext>ctx, module, false, log)
+      expect(templates).to.eql(dedent`
+      ---
+      # Source: postgresql/templates/secrets.yaml
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: postgres
+        labels:
+          app: postgresql
+          chart: postgresql-3.9.2
+          release: "postgres"
+          heritage: "Helm"
+      type: Opaque
+      data:
+        postgresql-password: "cG9zdGdyZXM="
+      ---
+      # Source: postgresql/templates/svc-headless.yaml
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: postgres-headless
+        labels:
+          app: postgresql
+          chart: postgresql-3.9.2
+          release: "postgres"
+          heritage: "Helm"
+      spec:
+        type: ClusterIP
+        clusterIP: None
+        ports:
+        - name: postgresql
+          port: 5432
+          targetPort: postgresql
+        selector:
+          app: postgresql
+          release: "postgres"
+      ---
+      # Source: postgresql/templates/svc.yaml
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: postgres
+        labels:
+          app: postgresql
+          chart: postgresql-3.9.2
+          release: "postgres"
+          heritage: "Helm"
+      spec:
+        type: ClusterIP
+        ports:
+        - name: postgresql
+          port: 5432
+          targetPort: postgresql
+        selector:
+          app: postgresql
+          release: "postgres"
+          role: master
+      ---
+      # Source: postgresql/templates/statefulset.yaml
+      apiVersion: apps/v1beta2
+      kind: StatefulSet
+      metadata:
+        name: postgres
+        labels:
+          app: postgresql
+          chart: postgresql-3.9.2
+          release: "postgres"
+          heritage: "Helm"
+      spec:
+        serviceName: postgres-headless
+        replicas: 1
+        updateStrategy:
+          type: RollingUpdate
+        selector:
+          matchLabels:
+            app: postgresql
+            release: "postgres"
+            role: master
+        template:
+          metadata:
+            name: postgres
+            labels:
+              app: postgresql
+              chart: postgresql-3.9.2
+              release: "postgres"
+              heritage: "Helm"
+              role: master
+          spec:
+            securityContext:
+              fsGroup: 1001
+              runAsUser: 1001
+            initContainers:
+            - name: init-chmod-data
+              image: docker.io/bitnami/minideb:latest
+              imagePullPolicy: "Always"
+              resources:
+                requests:
+                  cpu: 250m
+                  memory: 256Mi
+              command:
+                - sh
+                - -c
+                - |
+                  chown -R 1001:1001 /bitnami
+                  if [ -d /bitnami/postgresql/data ]; then
+                    chmod  0700 /bitnami/postgresql/data;
+                  fi
+              securityContext:
+                runAsUser: 0
+              volumeMounts:
+              - name: data
+                mountPath: /bitnami/postgresql
+            containers:
+            - name: postgres
+              image: docker.io/bitnami/postgresql:10.6.0
+              imagePullPolicy: "Always"
+              resources:
+                requests:
+                  cpu: 250m
+                  memory: 256Mi
+              env:
+              - name: POSTGRESQL_USERNAME
+                value: "postgres"
+              - name: POSTGRESQL_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: postgres
+                    key: postgresql-password
+              ports:
+              - name: postgresql
+                containerPort: 5432
+              livenessProbe:
+                exec:
+                  command:
+                  - sh
+                  - -c
+                  - exec pg_isready -U "postgres" -h localhost
+                initialDelaySeconds: 30
+                periodSeconds: 10
+                timeoutSeconds: 5
+                successThreshold: 1
+                failureThreshold: 6
+              readinessProbe:
+                exec:
+                  command:
+                  - sh
+                  - -c
+                  - exec pg_isready -U "postgres" -h localhost
+                initialDelaySeconds: 5
+                periodSeconds: 10
+                timeoutSeconds: 5
+                successThreshold: 1
+                failureThreshold: 6
+              volumeMounts:
+              - name: data
+                mountPath: /bitnami/postgresql
+            volumes:
+        volumeClaimTemplates:
+          - metadata:
+              name: data
+            spec:
+              accessModes:
+                - "ReadWriteOnce"
+              resources:
+                requests:
+                  storage: "8Gi"\n
+      `)
     })
   })
 
