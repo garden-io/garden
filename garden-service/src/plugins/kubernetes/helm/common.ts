@@ -25,6 +25,7 @@ import { getAnnotation, flattenResources } from "../util"
 import { KubernetesPluginContext } from "../config"
 import { RunResult } from "../../../types/plugin/base"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../constants"
+import { getReleaseStatus } from "./status"
 
 const gardenValuesFilename = "garden-values.yml"
 
@@ -85,20 +86,32 @@ export async function renderTemplates(ctx: KubernetesPluginContext, module: Modu
     skipCreate: true,
   })
 
-  return helm({
+  const releaseStatus = await getReleaseStatus(ctx, module, releaseName, log, hotReload)
+  // Use `install|upgrade --dry-run` since `template` doesn't render values that need to be retrieved from the cluster.
+  const cmd = releaseStatus.state === "missing" ? "install" : "upgrade"
+
+  const res = await helm({
     ctx,
     log,
     namespace,
     args: [
-      "template",
+      cmd,
       releaseName,
+      chartPath,
+      "--dry-run",
       "--namespace",
       namespace,
-      "--dependency-update",
+      // Set output to JSON so that we can get just the manifests. The default output contains notes and additional data
+      "--output",
+      "json",
+      "--timeout",
+      module.spec.timeout.toString(10) + "s",
       ...(await getValueArgs(module, hotReload)),
-      chartPath,
     ],
   })
+
+  const manifest = JSON.parse(res).manifest as string
+  return manifest
 }
 
 /**
