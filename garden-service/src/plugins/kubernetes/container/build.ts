@@ -43,7 +43,7 @@ import { dedent } from "../../../util/string"
 import chalk = require("chalk")
 import { loadImageToMicrok8s, getMicrok8sImageStatus } from "../local/microk8s"
 
-const kanikoImage = "gcr.io/kaniko-project/executor:debug-v0.19.0"
+const kanikoImage = "gcr.io/kaniko-project/executor:debug-v0.20.0"
 
 const registryPort = 5000
 
