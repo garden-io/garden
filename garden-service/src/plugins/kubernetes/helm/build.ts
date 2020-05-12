@@ -7,7 +7,7 @@
  */
 
 import { join } from "path"
-import { writeFile } from "fs-extra"
+import { remove, writeFile } from "fs-extra"
 import { HelmModule } from "./config"
 import { containsBuildSource, getChartPath, getGardenValuesPath, getBaseModule, renderTemplates } from "./common"
 import { helm } from "./helm-cli"
@@ -77,6 +77,8 @@ export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<He
 
 async function fetchChart(ctx: KubernetesPluginContext, log: LogEntry, module: HelmModule) {
   const buildPath = module.buildPath
+
+  await remove(await getChartPath(module))
 
   const fetchArgs = ["fetch", module.spec.chart!, "--destination", buildPath, "--untar"]
   if (module.spec.version) {
