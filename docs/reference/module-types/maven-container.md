@@ -335,9 +335,6 @@ tests:
     # specific environments, e.g. only during CI.
     disabled: false
 
-    # Maximum duration (in seconds) of the test run.
-    timeout: null
-
     # The arguments used to run the test inside the container.
     args:
 
@@ -388,6 +385,9 @@ tests:
         # services at the same time. Refer to the documentation of the module type in question to learn more.
         module:
 
+    # Maximum duration (in seconds) of the test run.
+    timeout: 600
+
 # A list of tasks that can be run from this container module. These can be used as dependencies for services (executed
 # before the service is deployed) or for other tasks.
 tasks:
@@ -413,9 +413,6 @@ tasks:
     # when the task is disabled, so you need to make sure to provide alternate values for those if you're using them,
     # using conditional expressions.
     disabled: false
-
-    # Maximum duration (in seconds) of the task's execution.
-    timeout: null
 
     # The arguments used to run the task inside the container.
     args:
@@ -471,6 +468,9 @@ tasks:
         # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
         # services at the same time. Refer to the documentation of the module type in question to learn more.
         module:
+
+    # Maximum duration (in seconds) of the task's execution.
+    timeout: 600
 
 # Set this to override the default OpenJDK container image version. Make sure the image version matches the
 # configured `jdkVersion`. Ignored if you provide your own Dockerfile.
@@ -1379,16 +1379,6 @@ specific environments, e.g. only during CI.
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
 
-### `tests[].timeout`
-
-[tests](#tests) > timeout
-
-Maximum duration (in seconds) of the test run.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `null`  | No       |
-
 ### `tests[].args[]`
 
 [tests](#tests) > args
@@ -1575,6 +1565,16 @@ Note: Make sure to pay attention to the supported `accessModes` of the reference
 | -------- | -------- |
 | `string` | No       |
 
+### `tests[].timeout`
+
+[tests](#tests) > timeout
+
+Maximum duration (in seconds) of the test run.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `600`   | No       |
+
 ### `tasks[]`
 
 A list of tasks that can be run from this container module. These can be used as dependencies for services (executed before the service is deployed) or for other tasks.
@@ -1626,16 +1626,6 @@ Note however that template strings referencing the task's outputs (i.e. runtime 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
-
-### `tasks[].timeout`
-
-[tasks](#tasks) > timeout
-
-Maximum duration (in seconds) of the task's execution.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `null`  | No       |
 
 ### `tasks[].args[]`
 
@@ -1832,6 +1822,16 @@ Note: Make sure to pay attention to the supported `accessModes` of the reference
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `tasks[].timeout`
+
+[tasks](#tasks) > timeout
+
+Maximum duration (in seconds) of the task's execution.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `600`   | No       |
 
 ### `imageVersion`
 

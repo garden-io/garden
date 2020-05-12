@@ -25,11 +25,14 @@ import { Service, ingressHostnameSchema, linkUrlSchema } from "../../types/servi
 import { DEFAULT_PORT_PROTOCOL } from "../../constants"
 import { ModuleSpec, ModuleConfig, baseBuildSpecSchema, BaseBuildSpec } from "../../config/module"
 import { CommonServiceSpec, ServiceConfig, baseServiceSpecSchema } from "../../config/service"
-import { baseTaskSpecSchema, BaseTaskSpec, cacheResultSchema } from "../../config/task"
-import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
+import { baseTaskSpecSchema, BaseTaskSpec, cacheResultSchema, baseTaskTimeoutSchema } from "../../config/task"
+import { baseTestSpecSchema, BaseTestSpec, baseTestTimeoutSchema } from "../../config/test"
 import { joiStringMap } from "../../config/common"
 import { dedent } from "../../util/string"
 import { getModuleTypeUrl } from "../../docs/common"
+
+export const defaultContainerTestTimeoutSeconds = 60 * 10
+export const defaultContainerTaskTimeoutSeconds = 60 * 10
 
 export const defaultContainerLimits: ServiceLimitSpec = {
   cpu: 1000, // = 1000 millicpu = 1 CPU
@@ -507,6 +510,7 @@ export const containerTestSchema = () =>
       .example(commandExample),
     env: containerEnvVarsSchema(),
     volumes: getContainerVolumesSchema("test"),
+    timeout: baseTestTimeoutSchema.default(defaultContainerTestTimeoutSeconds),
   })
 
 export interface ContainerTaskSpec extends BaseTaskSpec {
@@ -535,6 +539,7 @@ export const containerTaskSchema = () =>
         .example(commandExample),
       env: containerEnvVarsSchema(),
       volumes: getContainerVolumesSchema("task"),
+      timeout: baseTaskTimeoutSchema.default(defaultContainerTaskTimeoutSeconds),
     })
     .description("A task that can be run in the container.")
 

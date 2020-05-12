@@ -194,9 +194,6 @@ tasks:
     # using conditional expressions.
     disabled: false
 
-    # Maximum duration (in seconds) of the task's execution.
-    timeout: null
-
     # Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time
     # your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its
     # version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run task`.
@@ -219,6 +216,9 @@ tasks:
 
         # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
         target: .
+
+    # Maximum duration (in seconds) of the task's execution.
+    timeout: 600
 
     # The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task. If not specified, the
     # `serviceResource` configured on the module will be used. If neither is specified, an error will be thrown.
@@ -263,9 +263,6 @@ tests:
     # specific environments, e.g. only during CI.
     disabled: false
 
-    # Maximum duration (in seconds) of the test run.
-    timeout: null
-
     # The command/entrypoint used to run the test inside the container.
     command:
 
@@ -283,6 +280,9 @@ tests:
 
         # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
         target: .
+
+    # Maximum duration (in seconds) of the test run.
+    timeout: 600
 
     # The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite. If not specified,
     # the `serviceResource` configured on the module will be used. If neither is specified, an error will be thrown.
@@ -746,16 +746,6 @@ Note however that template strings referencing the task's outputs (i.e. runtime 
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
 
-### `tasks[].timeout`
-
-[tasks](#tasks) > timeout
-
-Maximum duration (in seconds) of the task's execution.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `null`  | No       |
-
 ### `tasks[].cacheResult`
 
 [tasks](#tasks) > cacheResult
@@ -872,6 +862,16 @@ tasks:
   - artifacts:
       - target: "outputs/foo/"
 ```
+
+### `tasks[].timeout`
+
+[tasks](#tasks) > timeout
+
+Maximum duration (in seconds) of the task's execution.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `600`   | No       |
 
 ### `tasks[].resource`
 
@@ -997,16 +997,6 @@ specific environments, e.g. only during CI.
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
 
-### `tests[].timeout`
-
-[tests](#tests) > timeout
-
-Maximum duration (in seconds) of the test run.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `null`  | No       |
-
 ### `tests[].command[]`
 
 [tests](#tests) > command
@@ -1113,6 +1103,16 @@ tests:
   - artifacts:
       - target: "outputs/foo/"
 ```
+
+### `tests[].timeout`
+
+[tests](#tests) > timeout
+
+Maximum duration (in seconds) of the test run.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `600`   | No       |
 
 ### `tests[].resource`
 

@@ -17,13 +17,15 @@ import {
   containerEnvVarsSchema,
   containerArtifactSchema,
   ContainerEnvVars,
+  defaultContainerTaskTimeoutSeconds,
+  defaultContainerTestTimeoutSeconds,
 } from "../container/config"
 import { PluginContext } from "../../plugin-context"
 import { deline } from "../../util/string"
 import { defaultSystemNamespace } from "./system"
 import { hotReloadableKinds, HotReloadableKind } from "./hot-reload"
-import { baseTaskSpecSchema, BaseTaskSpec, cacheResultSchema } from "../../config/task"
-import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
+import { baseTaskSpecSchema, BaseTaskSpec, cacheResultSchema, baseTaskTimeoutSchema } from "../../config/task"
+import { baseTestSpecSchema, BaseTestSpec, baseTestTimeoutSchema } from "../../config/test"
 import { ArtifactSpec } from "../../config/validation"
 import { V1Toleration } from "@kubernetes/client-node"
 
@@ -633,6 +635,7 @@ export const kubernetesTaskSchema = () =>
       artifacts: joiArray(containerArtifactSchema()).description(
         "Specify artifacts to copy out of the container after the task is complete."
       ),
+      timeout: baseTaskTimeoutSchema.default(defaultContainerTaskTimeoutSeconds),
     })
     .description("The task definitions for this module.")
 
@@ -658,6 +661,7 @@ export const kubernetesTestSchema = () =>
       artifacts: joiArray(containerArtifactSchema()).description(
         "Specify artifacts to copy out of the container after the test is complete."
       ),
+      timeout: baseTestTimeoutSchema.default(defaultContainerTestTimeoutSeconds),
     })
     .description("The test suite definitions for this module.")
 
