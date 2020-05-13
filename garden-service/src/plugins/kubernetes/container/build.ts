@@ -42,6 +42,7 @@ import { getSystemNamespace, getAppNamespace } from "../namespace"
 import { dedent } from "../../../util/string"
 import chalk = require("chalk")
 import { loadImageToMicrok8s, getMicrok8sImageStatus } from "../local/microk8s"
+import { RunResult } from "../../../types/plugin/base"
 
 const kanikoImage = "gcr.io/kaniko-project/executor:debug-v0.21.0"
 
@@ -352,7 +353,7 @@ const remoteBuild: BuildHandler = async (params) => {
     const buildRes = await runKaniko({ provider, namespace, log, module, args, outputStream: stdout })
     buildLog = buildRes.log
 
-    if (!buildRes.success) {
+    if (kanikoBuildFailed(buildRes)) {
       throw new BuildError(`Failed building module ${chalk.bold(module.name)}:\n\n${buildLog}`, { buildLog })
     }
   }
@@ -378,6 +379,10 @@ export interface BuilderExecParams {
   containerName: string
   stdout?: Writable
   stderr?: Writable
+}
+
+export function kanikoBuildFailed(buildRes: RunResult) {
+  return !buildRes.success && !buildRes.log.includes("cannot be overwritten because the repository is immutable.")
 }
 
 const buildHandlers: { [mode in ContainerBuildMode]: BuildHandler } = {
