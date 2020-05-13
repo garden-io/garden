@@ -309,8 +309,10 @@ providers:
     # Path to kubeconfig file to use instead of the system default. Must be a POSIX-style path.
     kubeconfig:
 
-    # Specify which namespace to deploy services to (defaults to <project name>). Note that the framework generates
-    # other namespaces as well with this name as a prefix.
+    # Specify which namespace to deploy services to. Defaults to the environment namespace, if specified and enabled,
+    # otherwise the project name.
+    #
+    # Note that the framework generates other namespaces as well with this name as a prefix.
     namespace:
 
     # Set this to `nginx` to install/enable the NGINX ingress controller.
@@ -1440,7 +1442,9 @@ Path to kubeconfig file to use instead of the system default. Must be a POSIX-st
 
 [providers](#providers) > namespace
 
-Specify which namespace to deploy services to (defaults to <project name>). Note that the framework generates other namespaces as well with this name as a prefix.
+Specify which namespace to deploy services to. Defaults to the environment namespace, if specified and enabled, otherwise the project name.
+
+Note that the framework generates other namespaces as well with this name as a prefix.
 
 | Type     | Required |
 | -------- | -------- |

@@ -44,12 +44,12 @@ name: ci-demo-project
 environments:
   ...
   - name: preview
+    defaultNamespace: ${project.name}-${local.env.CIRCLE_BRANCH || local.username}
 providers:
   - name: kubernetes
     environments: [preview]
     context: my-preview-cluster
-    defaultHostname: ci-demo-project-${local.env.CIRCLE_BRANCH || local.username}.preview.my-domain
-    namespace: ci-demo-project-${local.env.CIRCLE_BRANCH || local.username}
+    defaultHostname: ${environment.namespace}.preview.my-domain
     buildMode: cluster-docker
 ```
 

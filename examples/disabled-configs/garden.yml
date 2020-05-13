@@ -7,10 +7,10 @@ environments:
 providers:
   - name: local-kubernetes
     environments: [local]
+    defaultNamespace: ${project.name}-testing-${local.env.CIRCLE_BUILD_NUM || local.username}
   - name: kubernetes
     environments: [remote]
     # Replace these values as appropriate
     context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
-    namespace: disabled-configs-testing-${local.env.USER || local.username}
-    defaultHostname: ${local.env.USER || local.username}-disabled-configs.dev-1.sys.garden
+    defaultHostname: ${local.username}-disabled-configs.dev-1.sys.garden
     buildMode: cluster-docker

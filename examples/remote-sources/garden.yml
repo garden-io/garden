@@ -8,14 +8,14 @@ sources:
 environments:
   - name: local
   - name: testing
+    defaultNamespace: ${project.name}-testing-${local.env.CIRCLE_BUILD_NUM || local.username}
 providers:
   - name: local-kubernetes
     environments: [local]
   - name: kubernetes
     environments: [testing]
     context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
-    namespace: remote-sources-testing-${local.env.CIRCLE_BUILD_NUM || local.username}
-    defaultHostname: remote-sources-testing.dev-1.sys.garden
+    defaultHostname: ${environment.namespace}.dev-1.sys.garden
     buildMode: cluster-docker
 variables:
   postgres-database: postgres

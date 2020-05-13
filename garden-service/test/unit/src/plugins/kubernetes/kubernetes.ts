@@ -52,6 +52,7 @@ describe("kubernetes configureProvider", () => {
       }
 
       const result = await configureProvider({
+        environmentName: "default",
         projectName: garden.projectName,
         projectRoot: garden.projectRoot,
         config,
@@ -78,6 +79,7 @@ describe("kubernetes configureProvider", () => {
       }
 
       const result = await configureProvider({
+        environmentName: "default",
         projectName: garden.projectName,
         projectRoot: garden.projectRoot,
         config,

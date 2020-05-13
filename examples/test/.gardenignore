@@ -1,3 +1,0 @@
-# Add paths here that you would like Garden to ignore when building modules and computing versions,
-# using the same syntax as .gitignore files.
-# For more info, see https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories

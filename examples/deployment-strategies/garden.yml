@@ -5,6 +5,7 @@ environments:
   - name: local-default
   - name: local-blue-green
   - name: testing
+    defaultNamespace: ${project.name}-testing-${local.env.CIRCLE_BUILD_NUM || local.username}
 providers:
     # Default deployment strategy
   - name: local-kubernetes
@@ -21,7 +22,6 @@ providers:
   - name: kubernetes
     environments: [testing]
     context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
-    namespace: deployment-strategies-testing-${local.env.CIRCLE_BUILD_NUM || local.username}
     defaultHostname: deployment-strategies-testing.dev-1.sys.garden
     buildMode: cluster-docker
     deploymentStrategy: blue-green

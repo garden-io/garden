@@ -9,12 +9,12 @@ environments:
       # We only want one replica of each service when developing locally
       service-replicas: 1
   - name: testing
+    defaultNamespace: ${project.name}-testing-${local.env.CIRCLE_BUILD_NUM || local.username}
 providers:
   - name: local-kubernetes
     environments: [local]
   - name: kubernetes
     environments: [testing]
     context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
-    namespace: ${project.name}-testing-${local.env.CIRCLE_BUILD_NUM || local.username}
-    defaultHostname: ${project.name}-testing.dev-1.sys.garden
+    defaultHostname: ${environment.namespace}.dev-1.sys.garden
     buildMode: cluster-docker

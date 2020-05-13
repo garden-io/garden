@@ -71,9 +71,31 @@ describe("cli", () => {
       const cli = new GardenCli()
       cli.addCommand(command, cli["program"])
 
-      const { result, errors } = await cli.parse(["test-command-2", "--env", "missing-env"])
+      const { result, errors } = await cli.parse(["test-command-2", "--env", "missing-env"], false)
       expect(errors).to.eql([])
       expect(result).to.eql({ environmentName: "missing-env" })
+    })
+
+    it("should error if an invalid --env parameter is passed", async () => {
+      class TestCommand3 extends Command {
+        name = "test-command-3"
+        help = "halp!"
+        noProject = true
+
+        async action({ garden }) {
+          return { result: { environmentName: garden.environmentName } }
+        }
+      }
+
+      const command = new TestCommand3()
+      const cli = new GardenCli()
+      cli.addCommand(command, cli["program"])
+
+      const { errors } = await cli.parse(["test-command-3", "--env", "$.%"], false)
+      expect(errors.length).to.equal(1)
+      expect(errors[0].message).to.equal(
+        "Invalid environment specified ($.%): must be a valid environment name or <namespace>.<environment>"
+      )
     })
 
     context("test analytics", () => {

@@ -30,7 +30,7 @@ import { mapValues, fromPairs } from "lodash"
 import { ModuleVersion } from "../src/vcs/vcs"
 import { GARDEN_SERVICE_ROOT, LOCAL_CONFIG_FILENAME, DEFAULT_API_VERSION } from "../src/constants"
 import { EventBus, Events } from "../src/events"
-import { ValueOf, exec, findByName, getNames } from "../src/util/util"
+import { ValueOf, exec, findByName, getNames, isPromise } from "../src/util/util"
 import { LogEntry } from "../src/logger/log-entry"
 import timekeeper = require("timekeeper")
 import { GLOBAL_OPTIONS, GlobalOptions } from "../src/cli/cli"
@@ -48,7 +48,7 @@ import { ParameterValues } from "../src/commands/base"
 import stripAnsi from "strip-ansi"
 import { RunTaskParams, RunTaskResult } from "../src/types/plugin/task/runTask"
 import { SuiteFunction, TestFunction } from "mocha"
-import { GardenBaseError } from "../src/exceptions"
+import { GardenBaseError, GardenError } from "../src/exceptions"
 import { RuntimeContext } from "../src/runtime-context"
 import { Module } from "../src/types/module"
 import { WorkflowConfig } from "../src/config/workflow"
@@ -431,14 +431,13 @@ export function stubModuleAction<T extends keyof ModuleAndRuntimeActionHandlers<
   return td.replace(actions["moduleActionHandlers"][actionType][moduleType], pluginName, handler)
 }
 
-export async function expectError(fn: Function, typeOrCallback?: string | ((err: any) => void)) {
-  try {
-    await fn()
-  } catch (err) {
+export function expectError(fn: Function, typeOrCallback?: string | ((err: any) => void)) {
+  const handleError = (err: GardenError) => {
     if (typeOrCallback === undefined) {
-      return
+      return true
     } else if (typeof typeOrCallback === "function") {
-      return typeOrCallback(err)
+      typeOrCallback(err)
+      return true
     } else {
       if (!err.type) {
         const newError = Error(`Expected GardenError with type ${typeOrCallback}, got: ${err}`)
@@ -450,15 +449,31 @@ export async function expectError(fn: Function, typeOrCallback?: string | ((err:
         newError.stack = err.stack
         throw newError
       }
+      return true
     }
+  }
+
+  const handleNonError = (caught: boolean) => {
+    if (caught) {
+      return
+    } else if (typeof typeOrCallback === "string") {
+      throw new Error(`Expected ${typeOrCallback} error (got no error)`)
+    } else {
+      throw new Error(`Expected error (got no error)`)
+    }
+  }
+
+  try {
+    const res = fn()
+    if (isPromise(res)) {
+      return res.catch(handleError).then(handleNonError)
+    }
+  } catch (err) {
+    handleError(err)
     return
   }
 
-  if (typeof typeOrCallback === "string") {
-    throw new Error(`Expected ${typeOrCallback} error (got no error)`)
-  } else {
-    throw new Error(`Expected error (got no error)`)
-  }
+  return handleNonError(false)
 }
 
 export function taskResultOutputs(results: TaskResults) {

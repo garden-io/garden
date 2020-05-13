@@ -16,7 +16,7 @@ import minimist from "minimist"
 
 import { GlobalOptions } from "../cli/cli"
 import { joi } from "../config/common"
-import { GardenError, InternalError, ParameterError, RuntimeError } from "../exceptions"
+import { GardenError, InternalError, RuntimeError, ParameterError } from "../exceptions"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { LoggerType } from "../logger/logger"
@@ -25,6 +25,7 @@ import { ProcessResults } from "../process"
 import { TaskResults, TaskResult } from "../task-graph"
 import { RunResult } from "../types/plugin/base"
 import { capitalize } from "lodash"
+import { parseEnvironment } from "../config/project"
 
 export interface ParameterConstructor<T> {
   help: string
@@ -83,7 +84,9 @@ export abstract class Parameter<T> {
     return input
   }
 
-  abstract parseString(input: string): T
+  parseString(input?: string): T {
+    return (input as unknown) as T
+  }
 
   async autoComplete(): Promise<string[]> {
     return []
@@ -93,10 +96,6 @@ export abstract class Parameter<T> {
 export class StringParameter extends Parameter<string> {
   type = "string"
   schema = joi.string()
-
-  parseString(input: string) {
-    return input
-  }
 }
 
 // Separating this from StringParameter for now because we can't set the output type based on the required flag
@@ -104,10 +103,6 @@ export class StringParameter extends Parameter<string> {
 export class StringOption extends Parameter<string | undefined> {
   type = "string"
   schema = joi.string()
-
-  parseString(input?: string) {
-    return input
-  }
 }
 
 export interface StringsConstructor extends ParameterConstructor<string[]> {
@@ -135,18 +130,14 @@ export class StringsParameter extends Parameter<string[] | undefined> {
     return filtered
   }
 
-  parseString(input: string) {
-    return input.split(this.delimiter)
+  parseString(input?: string) {
+    return input?.split(this.delimiter) || []
   }
 }
 
 export class PathParameter extends Parameter<string> {
   type = "path"
   schema = joi.posixPath()
-
-  parseString(input: string) {
-    return input
-  }
 }
 
 export class PathsParameter extends Parameter<string[]> {
@@ -215,14 +206,25 @@ export class BooleanParameter extends Parameter<boolean> {
   }
 }
 
-// TODO: maybe this should be a global option?
 export class EnvironmentOption extends StringParameter {
+  type = "string"
+  schema = joi.environment()
+
   constructor({ help = "The environment (and optionally namespace) to work against." } = {}) {
     super({
       help,
       required: false,
       alias: "e",
     })
+  }
+
+  coerce(input: string | undefined) {
+    if (!input) {
+      return
+    }
+    // Validate the environment
+    parseEnvironment(input)
+    return input
   }
 }
 
