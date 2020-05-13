@@ -16,6 +16,7 @@ import {
   pickEnvironment,
   defaultVarfilePath,
   defaultEnvVarfilePath,
+  parseEnvironment,
 } from "../../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { expectError } from "../../../helpers"
@@ -44,6 +45,7 @@ describe("resolveProjectConfig", () => {
       environments: [
         {
           name: "default",
+          namespacing: "optional",
           production: false,
           providers: [],
           variables: {},
@@ -113,6 +115,7 @@ describe("resolveProjectConfig", () => {
       environments: [
         {
           name: "default",
+          namespacing: "optional",
           production: false,
           providers: [],
           variables: {
@@ -174,6 +177,7 @@ describe("resolveProjectConfig", () => {
       environments: [
         {
           name: "default",
+          namespacing: "optional",
           production: false,
           providers: [],
           variables: {
@@ -284,6 +288,7 @@ describe("resolveProjectConfig", () => {
       environments: [
         {
           name: "default",
+          namespacing: "optional",
           production: false,
           providers: [],
           variables: {
@@ -346,6 +351,7 @@ describe("resolveProjectConfig", () => {
       environments: [
         {
           name: "default",
+          namespacing: "optional",
           providers: [],
           production: false,
           variables: {
@@ -415,6 +421,8 @@ describe("pickEnvironment", () => {
     }
 
     expect(await pickEnvironment(config, "default")).to.eql({
+      environmentName: "default",
+      namespace: undefined,
       providers: [{ name: "exec" }, { name: "container" }],
       production: false,
       variables: {},
@@ -440,6 +448,8 @@ describe("pickEnvironment", () => {
     }
 
     expect(await pickEnvironment(config, "default")).to.eql({
+      environmentName: "default",
+      namespace: undefined,
       providers: [{ name: "exec" }, { name: "container", newKey: "foo" }, { name: "my-provider", a: "c", b: "b" }],
       production: false,
       variables: {},
@@ -465,6 +475,8 @@ describe("pickEnvironment", () => {
     }
 
     expect(await pickEnvironment(config, "default")).to.eql({
+      environmentName: "default",
+      namespace: undefined,
       providers: [{ name: "exec" }, { name: "container", newKey: "foo" }, { name: "my-provider", b: "b" }],
       production: false,
       variables: {},
@@ -780,6 +792,168 @@ describe("pickEnvironment", () => {
     await expectError(
       () => pickEnvironment(config, "default"),
       (err) => expect(err.message).to.equal("Could not find varfile at path 'foo.env'")
+    )
+  })
+
+  it("should set environment namespace if specified", async () => {
+    const config: ProjectConfig = {
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Project",
+      name: "my-project",
+      path: "/tmp/foo",
+      defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
+      environments: [{ name: "default", variables: {} }],
+      providers: [],
+      variables: {},
+    }
+
+    expect(await pickEnvironment(config, "foo.default")).to.eql({
+      environmentName: "default",
+      namespace: "foo",
+      providers: [{ name: "exec" }, { name: "container" }],
+      production: false,
+      variables: {},
+    })
+  })
+
+  it("should set defaultNamespace if set and no explicit namespace is specified", async () => {
+    const config: ProjectConfig = {
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Project",
+      name: "my-project",
+      path: "/tmp/foo",
+      defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
+      environments: [{ name: "default", defaultNamespace: "default-ns", variables: {} }],
+      providers: [],
+      variables: {},
+    }
+
+    expect(await pickEnvironment(config, "default")).to.eql({
+      environmentName: "default",
+      namespace: "default-ns",
+      providers: [{ name: "exec" }, { name: "container" }],
+      production: false,
+      variables: {},
+    })
+  })
+
+  it("should use explicit namespace if specified, if defaultNamespace is set", async () => {
+    const config: ProjectConfig = {
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Project",
+      name: "my-project",
+      path: "/tmp/foo",
+      defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
+      environments: [{ name: "default", defaultNamespace: "default-ns", variables: {} }],
+      providers: [],
+      variables: {},
+    }
+
+    expect(await pickEnvironment(config, "foo.default")).to.eql({
+      environmentName: "default",
+      namespace: "foo",
+      providers: [{ name: "exec" }, { name: "container" }],
+      production: false,
+      variables: {},
+    })
+  })
+
+  it("should throw if invalid environment is specified", async () => {
+    const config: ProjectConfig = {
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Project",
+      name: "my-project",
+      path: "/tmp/foo",
+      defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
+      environments: [{ name: "default", variables: {} }],
+      providers: [],
+      variables: {},
+    }
+
+    await expectError(
+      () => pickEnvironment(config, "$.%"),
+      (err) =>
+        expect(err.message).to.equal(
+          "Invalid environment specified ($.%): must be a valid environment name or <namespace>.<environment>"
+        )
+    )
+  })
+
+  it("should throw if environment requires namespace but none is specified and no defaultNamespace set", async () => {
+    const config: ProjectConfig = {
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Project",
+      name: "my-project",
+      path: "/tmp/foo",
+      defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
+      environments: [{ name: "default", namespacing: "required", variables: {} }],
+      providers: [],
+      variables: {},
+    }
+
+    await expectError(
+      () => pickEnvironment(config, "default"),
+      (err) =>
+        expect(err.message).to.equal(
+          "Environment default requires a namespace, but none was specified and no defaultNamespace is configured."
+        )
+    )
+  })
+
+  it("should throw if environment doesn't allow namespacing but one is specified", async () => {
+    const config: ProjectConfig = {
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Project",
+      name: "my-project",
+      path: "/tmp/foo",
+      defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
+      environments: [{ name: "default", namespacing: "disabled", variables: {} }],
+      providers: [],
+      variables: {},
+    }
+
+    await expectError(
+      () => pickEnvironment(config, "foo.default"),
+      (err) =>
+        expect(err.message).to.equal(
+          "Environment default does not allow namespacing, but namespace 'foo' was specified."
+        )
+    )
+  })
+})
+
+describe("parseEnvironment", () => {
+  it("should correctly parse with no namespace", () => {
+    const result = parseEnvironment("env")
+    expect(result).to.eql({ environment: "env" })
+  })
+
+  it("should correctly parse with a namespace", () => {
+    const result = parseEnvironment("ns.env")
+    expect(result).to.eql({ environment: "env", namespace: "ns" })
+  })
+
+  it("should throw if string contains more than two segments", () => {
+    expectError(
+      () => parseEnvironment("a.b.c"),
+      (err) =>
+        expect(err.message).to.equal("Invalid environment specified (a.b.c): may only contain a single delimiter")
+    )
+  })
+
+  it("should throw if string is not a valid hostname", () => {
+    expectError(
+      () => parseEnvironment("&.$"),
+      (err) =>
+        expect(err.message).to.equal(
+          "Invalid environment specified (&.$): must be a valid environment name or <namespace>.<environment>"
+        )
     )
   })
 })

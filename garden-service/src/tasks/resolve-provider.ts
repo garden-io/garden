@@ -147,6 +147,8 @@ export class ResolveProviderTask extends BaseTask {
     const actions = await this.garden.getActionRouter()
 
     const configureOutput = await actions.configureProvider({
+      environmentName: this.garden.environmentName,
+      namespace: this.garden.namespace,
       pluginName: providerName,
       log: this.log,
       config: resolvedConfig,

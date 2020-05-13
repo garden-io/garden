@@ -6,14 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import dedent = require("dedent")
 import { projectNameSchema, projectRootSchema } from "../../../config/project"
 import { ProviderConfig, Provider, providerConfigBaseSchema, providerSchema } from "../../../config/provider"
 import { logEntrySchema } from "../base"
 import { configStoreSchema, ConfigStore } from "../../../config-store"
-import { joiArray, joi } from "../../../config/common"
+import { joiArray, joi, joiIdentifier } from "../../../config/common"
 import { moduleConfigSchema, ModuleConfig } from "../../../config/module"
-import { deline } from "../../../util/string"
+import { deline, dedent } from "../../../util/string"
 import { ActionHandler, ActionHandlerParamsBase } from "../plugin"
 import { LogEntry } from "../../../logger/log-entry"
 
@@ -21,6 +20,8 @@ import { LogEntry } from "../../../logger/log-entry"
 export interface ConfigureProviderParams<T extends ProviderConfig = any> extends ActionHandlerParamsBase {
   log: LogEntry
   config: T
+  environmentName: string
+  namespace?: string
   projectName: string
   projectRoot: string
   dependencies: Provider[]
@@ -47,6 +48,8 @@ export const configureProvider = () => ({
   `,
   paramsSchema: joi.object().keys({
     config: providerConfigBaseSchema().required(),
+    environmentName: joiIdentifier(),
+    namespace: joiIdentifier(),
     log: logEntrySchema(),
     projectName: projectNameSchema(),
     projectRoot: projectRootSchema(),

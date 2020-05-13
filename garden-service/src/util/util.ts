@@ -568,3 +568,10 @@ export function pushToKey(obj: object, key: string, value: any) {
     obj[key] = [value]
   }
 }
+
+/**
+ * Returns true if `obj` is a Promise, otherwise false.
+ */
+export function isPromise(obj: any): obj is Promise<any> {
+  return !!obj && (typeof obj === "object" || typeof obj === "function") && typeof obj.then === "function"
+}

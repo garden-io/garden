@@ -110,6 +110,7 @@ export interface PosixPathSchema extends Joi.StringSchema {
 
 interface CustomJoi extends Joi.Root {
   customObject: () => CustomObjectSchema
+  environment: () => Joi.StringSchema
   gitUrl: () => GitUrlSchema
   posixPath: () => PosixPathSchema
 }
@@ -243,6 +244,35 @@ joi = joi.extend({
         return value
       },
     },
+  },
+})
+
+/**
+ * Add a joi.environment() type, used for validating an environment name, including an optional namespace
+ * (e.g. my-namespace.env-name).
+ */
+joi = joi.extend({
+  base: Joi.string(),
+  type: "environment",
+  messages: {
+    base: "{{#label}} must be a valid environment name or <namespace>.<environment>",
+    multipleDelimiters: "{{#label}} may only contain a single delimiter",
+  },
+  validate(value: string, { error }) {
+    const baseSchema = joi.string().hostname()
+    const result = baseSchema.validate(value)
+
+    if (result.error) {
+      return { value, errors: error("base") }
+    }
+
+    const split = value.split(".")
+
+    if (split.length > 2) {
+      return { value, errors: error("multipleDelimiters") }
+    }
+
+    return { value }
   },
 })
 

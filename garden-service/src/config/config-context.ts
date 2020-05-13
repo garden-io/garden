@@ -245,24 +245,6 @@ class LocalContext extends ConfigContext {
   }
 }
 
-/**
- * This context is available for template strings under the `project` key in configuration files.
- */
-
-export class ProjectConfigContext extends ConfigContext {
-  @schema(
-    LocalContext.getSchema().description(
-      "Context variables that are specific to the currently running environment/machine."
-    )
-  )
-  public local: LocalContext
-
-  constructor(artifactsPath: string, username?: string) {
-    super()
-    this.local = new LocalContext(this, artifactsPath, username)
-  }
-}
-
 class ProjectContext extends ConfigContext {
   @schema(
     joi
@@ -278,18 +260,67 @@ class ProjectContext extends ConfigContext {
   }
 }
 
+/**
+ * This context is available for template strings for all Project config fields (except name)
+ */
+export class ProjectConfigContext extends ConfigContext {
+  @schema(
+    LocalContext.getSchema().description(
+      "Context variables that are specific to the currently running environment/machine."
+    )
+  )
+  public local: LocalContext
+
+  @schema(ProjectContext.getSchema().description("Information about the Garden project."))
+  public project: ProjectContext
+
+  constructor({
+    projectName,
+    artifactsPath,
+    username,
+  }: {
+    projectName: string
+    artifactsPath: string
+    username?: string
+  }) {
+    super()
+    this.local = new LocalContext(this, artifactsPath, username)
+    this.project = new ProjectContext(this, projectName)
+  }
+}
+
 class EnvironmentContext extends ConfigContext {
   @schema(
     joi
       .string()
-      .description("The name of the environment Garden is running against.")
+      .required()
+      .description("The name of the environment Garden is running against, excluding the namespace.")
       .example("local")
   )
   public name: string
 
-  constructor(root: ConfigContext, name: string) {
+  @schema(
+    joi
+      .string()
+      .required()
+      .description("The full name of the environment Garden is running against, including the namespace.")
+      .example("my-namespace.local")
+  )
+  public fullName: string
+
+  @schema(
+    joi
+      .string()
+      .description("The currently active namespace (if any).")
+      .example("my-namespace")
+  )
+  public namespace: string
+
+  constructor(root: ConfigContext, name: string, fullName: string, namespace?: string) {
     super(root)
     this.name = name
+    this.fullName = fullName
+    this.namespace = namespace || ""
   }
 }
 
@@ -338,9 +369,6 @@ export class ProviderConfigContext extends ProjectConfigContext {
   )
   public environment: EnvironmentContext
 
-  @schema(ProjectContext.getSchema().description("Information about the Garden project."))
-  public project: ProjectContext
-
   @schema(
     joiIdentifierMap(ProviderContext.getSchema())
       .description("Retrieve information about providers that are defined in the project.")
@@ -369,10 +397,12 @@ export class ProviderConfigContext extends ProjectConfigContext {
   public secrets: PrimitiveMap
 
   constructor(garden: Garden, resolvedProviders: Provider[], variables: DeepPrimitiveMap, secrets: PrimitiveMap) {
-    super(garden.artifactsPath, garden.username)
+    super({ projectName: garden.projectName, artifactsPath: garden.artifactsPath, username: garden.username })
     const _this = this
 
-    this.environment = new EnvironmentContext(this, garden.environmentName)
+    const fullEnvName = garden.namespace ? `${garden.namespace}.${garden.environmentName}` : garden.environmentName
+    this.environment = new EnvironmentContext(this, garden.environmentName, fullEnvName, garden.namespace)
+
     this.project = new ProjectContext(this, garden.projectName)
 
     this.providers = new Map(

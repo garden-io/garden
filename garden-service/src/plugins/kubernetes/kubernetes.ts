@@ -41,6 +41,7 @@ import { pvcModuleDefinition } from "./volumes/persistentvolumeclaim"
 import { getModuleTypeUrl, getProviderUrl } from "../../docs/common"
 
 export async function configureProvider({
+  namespace,
   projectName,
   projectRoot,
   config,
@@ -48,7 +49,7 @@ export async function configureProvider({
   config._systemServices = []
 
   if (!config.namespace) {
-    config.namespace = projectName
+    config.namespace = namespace || projectName
   }
 
   if (config.setupIngressController === "nginx") {

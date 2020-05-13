@@ -423,7 +423,7 @@ export class GardenCli {
     program.command(command.name, commandConfig)
   }
 
-  async parse(args?: string[]): Promise<ParseResults> {
+  async parse(args?: string[], exit = true): Promise<ParseResults> {
     const parseResult: SywacParseResults = await this.program.parse(args)
     const { argv, details, errors, output: cliOutput } = parseResult
     const { result: commandResult } = details
@@ -453,16 +453,20 @@ export class GardenCli {
 
     // --help or --version options were called so we log the cli output and exit
     if (cliOutput && errors.length < 1) {
-      logger.stop()
-      // tslint:disable-next-line: no-console
-      console.log(cliOutput)
+      if (exit) {
+        logger.stop()
+        // tslint:disable-next-line: no-console
+        console.log(cliOutput)
 
-      // fix issue where sywac returns exit code 0 even when a command doesn't exist
-      if (!argv.h && !argv.v) {
-        code = 1
+        // fix issue where sywac returns exit code 0 even when a command doesn't exist
+        if (!argv.h && !argv.v) {
+          code = 1
+        }
+
+        process.exit(code)
+      } else {
+        return { argv, code, errors, result: undefined }
       }
-
-      process.exit(code)
     }
 
     const gardenErrors: GardenError[] = errors.map(toGardenError).concat((commandResult && commandResult.errors) || [])
