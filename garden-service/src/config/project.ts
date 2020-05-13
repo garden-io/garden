@@ -26,7 +26,7 @@ import { validateWithPath } from "./validation"
 import { resolveTemplateStrings } from "../template-string"
 import { ProjectConfigContext } from "./config-context"
 import { findByName, getNames } from "../util/util"
-import { ConfigurationError, ParameterError } from "../exceptions"
+import { ConfigurationError, ParameterError, ValidationError } from "../exceptions"
 import { PrimitiveMap } from "./common"
 import { cloneDeep, omit } from "lodash"
 import { providerConfigBaseSchema, ProviderConfig } from "./provider"
@@ -41,42 +41,22 @@ export const defaultEnvVarfilePath = (environmentName: string) => `garden.${envi
 // These plugins are always loaded
 export const fixedPlugins = ["exec", "container"]
 
-export interface CommonEnvironmentConfig {
-  providers?: ProviderConfig[] // further validated by each plugin
-  variables: DeepPrimitiveMap
+export type EnvironmentNamespacing = "disabled" | "optional" | "required"
+
+export interface ParsedEnvironment {
+  environment: string
+  namespace?: string
 }
 
-const environmentConfigKeys = {
-  providers: joiArray(providerConfigBaseSchema())
-    .unique("name")
-    .meta({ deprecated: true }).description(deline`
-        DEPRECATED - Please use the top-level \`providers\` field instead, and if needed use the \`environments\` key
-        on the provider configurations to limit them to specific environments.
-      `),
-  varfile: joi
-    .posixPath()
-    .description(
-      dedent`
-        Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
-        _environment-specific_ \`variables\` field. The file should be in a standard "dotenv" format, specified
-        [here](https://github.com/motdotla/dotenv#rules).
+const defaultEnvironmentNamespacing: EnvironmentNamespacing = "optional"
 
-        If you don't set the field and the \`${defaultEnvVarfilePath("<env-name>")}\` file does not exist,
-        we simply ignore it. If you do override the default value and the file doesn't exist, an error will be thrown.
-      `
-    )
-    .example("custom.env"),
-  variables: joiVariables().description(deline`
-        A key/value map of variables that modules can reference when using this environment. These take precedence
-        over variables defined in the top-level \`variables\` field.
-      `),
-}
-
-export const environmentConfigSchema = () => joi.object().keys(environmentConfigKeys)
-
-export interface EnvironmentConfig extends CommonEnvironmentConfig {
+export interface EnvironmentConfig {
   name: string
+  namespacing?: EnvironmentNamespacing
+  defaultNamespace?: string
+  providers?: ProviderConfig[] // further validated by each plugin
   varfile?: string
+  variables: DeepPrimitiveMap
   production?: boolean
 }
 
@@ -89,6 +69,33 @@ export const environmentNameSchema = () =>
 export const environmentSchema = () =>
   joi.object().keys({
     name: environmentNameSchema(),
+    namespacing: joi
+      .string()
+      .allow("disabled", "optional", "required")
+      .default("optional").description(dedent`
+        Control if and how this environment should support namespaces. If set to "optional" (the default), users can
+        set a namespace for the environment. This is useful for any shared environments, e.g. testing and development
+        environments, where namespaces separate different users or code versions within an environment. Users then
+        specify an environment with \`--env <namespace>.<environment>\`, e.g. \`--env alice.dev\` or
+        \`--env my-branch.testing\`.
+
+        If set to "required", this namespace separation is enforced, and an error is thrown if a namespace is not
+        specified with the \`--env\` parameter.
+
+        If set to "disabled", an error is thrown if a namespace is specified. This makes sense for e.g. production or
+        staging environments, where you don't want to split the environment between users or code versions.
+
+        When specified, namespaces must be a valid DNS-style label, much like other identifiers.
+      `),
+    defaultNamespace: joiIdentifier()
+      .description(
+        dedent`
+        Set a default namespace to use, when \`namespacing\` is \`required\` or \`optional\`. This can be templated to be user-specific, or to use an environment variable (e.g. in CI).
+
+        If this is set, users can specify \`--env <environment>\` and skip the namespace part, even when \`namespacing\` is \`required\` for the environment.
+        `
+      )
+      .example("user-${local.username}"),
     production: joi
       .boolean()
       .default(false)
@@ -106,7 +113,29 @@ export const environmentSchema = () =>
       `
       )
       .example(true),
-    ...environmentConfigKeys,
+    providers: joiArray(providerConfigBaseSchema())
+      .unique("name")
+      .meta({ deprecated: true }).description(deline`
+          DEPRECATED - Please use the top-level \`providers\` field instead, and if needed use the \`environments\` key
+          on the provider configurations to limit them to specific environments.
+        `),
+    varfile: joi
+      .posixPath()
+      .description(
+        dedent`
+          Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
+          _environment-specific_ \`variables\` field. The file should be in a standard "dotenv" format, specified
+          [here](https://github.com/motdotla/dotenv#rules).
+
+          If you don't set the field and the \`${defaultEnvVarfilePath("<env-name>")}\` file does not exist,
+          we simply ignore it. If you do override the default value and the file doesn't exist, an error will be thrown.
+        `
+      )
+      .example("custom.env"),
+    variables: joiVariables().description(deline`
+          A key/value map of variables that modules can reference when using this environment. These take precedence
+          over variables defined in the top-level \`variables\` field.
+        `),
   })
 
 export const environmentsSchema = () =>
@@ -174,6 +203,7 @@ export interface ProjectResource extends ProjectConfig {
 export const defaultEnvironments: EnvironmentConfig[] = [
   {
     name: "local",
+    namespacing: defaultEnvironmentNamespacing,
     providers: [
       {
         name: "local-kubernetes",
@@ -300,13 +330,15 @@ export const projectDocsSchema = () =>
       ),
       defaultEnvironment: joi
         .string()
+        .hostname()
         .allow("")
         .default("")
         .description(
           deline`
-        The default environment to use when calling commands without the \`--env\` parameter.
-        Defaults to the first configured environment.
-      `
+            The default environment to use when calling commands without the \`--env\` parameter.
+            May include a namespace name, in the format \`<namespace>.<environment>\`.
+            Defaults to the first configured environment, with no namespace set.
+          `
         )
         .example("dev"),
       dotIgnoreFiles: joiArray(joi.posixPath().filenameOnly())
@@ -379,24 +411,23 @@ export const projectSchema = () =>
  */
 export function resolveProjectConfig(config: ProjectConfig, artifactsPath: string, username: string): ProjectConfig {
   // Resolve template strings for non-environment-specific fields
-  const { environments = [] } = config
+  const { environments = [], name } = config
 
   const globalConfig = resolveTemplateStrings(
     {
       apiVersion: config.apiVersion,
       defaultEnvironment: config.defaultEnvironment,
-      name: config.name,
       sources: config.sources,
       varfile: config.varfile,
       variables: config.variables,
       environments: environments.map((e) => omit(e, ["providers"])),
     },
-    new ProjectConfigContext(artifactsPath, username)
+    new ProjectConfigContext({ projectName: name, artifactsPath, username })
   )
 
   // Validate after resolving global fields
   config = validateWithPath({
-    config: { ...config, ...globalConfig },
+    config: { ...config, ...globalConfig, name },
     schema: projectSchema(),
     configType: "project",
     path: config.path,
@@ -467,25 +498,48 @@ export function resolveProjectConfig(config: ProjectConfig, artifactsPath: strin
  * Note: This assumes that deprecated fields have been converted, e.g. by the resolveProjectConfig() function.
  *
  * @param config a resolved project config (as returned by `resolveProjectConfig()`)
- * @param environmentName the name of the environment to use
+ * @param envString the name of the environment to use
  */
-export async function pickEnvironment(config: ProjectConfig, environmentName: string) {
+export async function pickEnvironment(config: ProjectConfig, envString: string) {
   const { environments, name: projectName } = config
 
-  const environmentConfig = findByName(environments, environmentName)
+  let { environment, namespace } = parseEnvironment(envString)
+
+  const environmentConfig = findByName(environments, environment)
 
   if (!environmentConfig) {
-    throw new ParameterError(`Project ${projectName} does not specify environment ${environmentName}`, {
+    throw new ParameterError(`Project ${projectName} does not specify environment ${environment}`, {
       projectName,
-      environmentName,
+      environmentName: environment,
+      namespace,
       definedEnvironments: getNames(environments),
     })
+  }
+
+  if (namespace && environmentConfig.namespacing === "disabled") {
+    throw new ParameterError(
+      `Environment ${environment} does not allow namespacing, but namespace '${namespace}' was specified.`,
+      { environmentConfig, namespace }
+    )
+  }
+
+  if (!namespace && environmentConfig.defaultNamespace) {
+    namespace = environmentConfig.defaultNamespace
+  }
+
+  if (!namespace && environmentConfig.namespacing === "required") {
+    throw new ParameterError(
+      `Environment ${environment} requires a namespace, but none was specified and no defaultNamespace is configured.`,
+      {
+        environmentConfig,
+      }
+    )
   }
 
   const fixedProviders = fixedPlugins.map((name) => ({ name }))
   const allProviders = [
     ...fixedProviders,
-    ...config.providers.filter((p) => !p.environments || p.environments.includes(environmentName)),
+    ...config.providers.filter((p) => !p.environments || p.environments.includes(environment)),
   ]
 
   const mergedProviders: { [name: string]: ProviderConfig } = {}
@@ -500,20 +554,35 @@ export async function pickEnvironment(config: ProjectConfig, environmentName: st
   }
 
   const projectVarfileVars = await loadVarfile(config.path, config.varfile, defaultVarfilePath)
-  const envVarfileVars = await loadVarfile(
-    config.path,
-    environmentConfig.varfile,
-    defaultEnvVarfilePath(environmentName)
-  )
+  const envVarfileVars = await loadVarfile(config.path, environmentConfig.varfile, defaultEnvVarfilePath(environment))
 
   const variables: DeepPrimitiveMap = <any>(
     merge(merge(config.variables, projectVarfileVars), merge(environmentConfig.variables, envVarfileVars))
   )
 
   return {
+    environmentName: environment,
+    namespace,
+    production: !!environmentConfig.production,
     providers: Object.values(mergedProviders),
     variables,
-    production: !!environmentConfig.production,
+  }
+}
+
+export function parseEnvironment(env: string): ParsedEnvironment {
+  const result = joi.environment().validate(env, { errors: { label: false } })
+
+  if (result.error) {
+    throw new ValidationError(`Invalid environment specified (${env}): ${result.error.message}`, { env })
+  }
+
+  // Note: This is validated above to be either one or two parts
+  const split = env.split(".")
+
+  if (split.length === 1) {
+    return { environment: env }
+  } else {
+    return { environment: split[1], namespace: split[0] }
   }
 }
 

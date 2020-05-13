@@ -34,6 +34,28 @@ environments:
   - # The name of the environment.
     name:
 
+    # Control if and how this environment should support namespaces. If set to "optional" (the default), users can
+    # set a namespace for the environment. This is useful for any shared environments, e.g. testing and development
+    # environments, where namespaces separate different users or code versions within an environment. Users then
+    # specify an environment with `--env <namespace>.<environment>`, e.g. `--env alice.dev` or
+    # `--env my-branch.testing`.
+    #
+    # If set to "required", this namespace separation is enforced, and an error is thrown if a namespace is not
+    # specified with the `--env` parameter.
+    #
+    # If set to "disabled", an error is thrown if a namespace is specified. This makes sense for e.g. production or
+    # staging environments, where you don't want to split the environment between users or code versions.
+    #
+    # When specified, namespaces must be a valid DNS-style label, much like other identifiers.
+    namespacing: optional
+
+    # Set a default namespace to use, when `namespacing` is `required` or `optional`. This can be templated to be
+    # user-specific, or to use an environment variable (e.g. in CI).
+    #
+    # If this is set, users can specify `--env <environment>` and skip the namespace part, even when `namespacing` is
+    # `required` for the environment.
+    defaultNamespace:
+
     # Flag the environment as a production environment.
     #
     # Setting this flag to `true` will activate the protection on the `deploy`, `test`, `task`, `build`,
@@ -67,8 +89,8 @@ providers:
     # disables the provider. To use a provider in all environments, omit this field.
     environments:
 
-# The default environment to use when calling commands without the `--env` parameter. Defaults to the first configured
-# environment.
+# The default environment to use when calling commands without the `--env` parameter. May include a namespace name, in
+# the format `<namespace>.<environment>`. Defaults to the first configured environment, with no namespace set.
 defaultEnvironment: ''
 
 # Specify a list of filenames that should be used as ".ignore" files across the project, using the same syntax and
@@ -205,6 +227,47 @@ Example:
 ```yaml
 environments:
   - name: "dev"
+```
+
+### `environments[].namespacing`
+
+[environments](#environments) > namespacing
+
+Control if and how this environment should support namespaces. If set to "optional" (the default), users can
+set a namespace for the environment. This is useful for any shared environments, e.g. testing and development
+environments, where namespaces separate different users or code versions within an environment. Users then
+specify an environment with `--env <namespace>.<environment>`, e.g. `--env alice.dev` or
+`--env my-branch.testing`.
+
+If set to "required", this namespace separation is enforced, and an error is thrown if a namespace is not
+specified with the `--env` parameter.
+
+If set to "disabled", an error is thrown if a namespace is specified. This makes sense for e.g. production or
+staging environments, where you don't want to split the environment between users or code versions.
+
+When specified, namespaces must be a valid DNS-style label, much like other identifiers.
+
+| Type     | Default      | Required |
+| -------- | ------------ | -------- |
+| `string` | `"optional"` | No       |
+
+### `environments[].defaultNamespace`
+
+[environments](#environments) > defaultNamespace
+
+Set a default namespace to use, when `namespacing` is `required` or `optional`. This can be templated to be user-specific, or to use an environment variable (e.g. in CI).
+
+If this is set, users can specify `--env <environment>` and skip the namespace part, even when `namespacing` is `required` for the environment.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+Example:
+
+```yaml
+environments:
+  - defaultNamespace: "user-${local.username}"
 ```
 
 ### `environments[].production`
@@ -352,7 +415,7 @@ providers:
 
 ### `defaultEnvironment`
 
-The default environment to use when calling commands without the `--env` parameter. Defaults to the first configured environment.
+The default environment to use when calling commands without the `--env` parameter. May include a namespace name, in the format `<namespace>.<environment>`. Defaults to the first configured environment, with no namespace set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |

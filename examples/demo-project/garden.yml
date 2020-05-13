@@ -4,6 +4,7 @@ name: demo-project
 environments:
   - name: local
   - name: remote
+    defaultNamespace: ${project.name}-testing-${local.env.CIRCLE_BUILD_NUM || local.username}
 providers:
   - name: local-kubernetes
     environments: [local]
@@ -11,6 +12,5 @@ providers:
     environments: [remote]
     # Replace these values as appropriate
     context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
-    namespace: demo-project-testing-${local.env.USER || local.username}
-    defaultHostname: ${local.env.USER || local.username}-demo-project.dev-1.sys.garden
+    defaultHostname: ${environment.namespace}.dev-1.sys.garden
     buildMode: cluster-docker
