@@ -10,6 +10,7 @@ import { performance } from "perf_hooks"
 import { sum, sortBy } from "lodash"
 import { renderTable, tablePresets } from "./string"
 import chalk from "chalk"
+import { isPromise } from "./util"
 
 const maxReportRows = 50
 
@@ -206,8 +207,4 @@ export const profileAsync = <T extends Array<any>, U>(fn: (...args: T) => Promis
         })
     }
   }
-}
-
-function isPromise(obj: any): obj is Promise<any> {
-  return !!obj && (typeof obj === "object" || typeof obj === "function") && typeof obj.then === "function"
 }

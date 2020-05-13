@@ -14,8 +14,9 @@ import {
   schema,
   ProjectConfigContext,
   ModuleConfigContext,
+  ProviderConfigContext,
 } from "../../../../src/config/config-context"
-import { expectError, makeTestGardenA, TestGarden } from "../../../helpers"
+import { expectError, makeTestGardenA, TestGarden, projectRootA, makeTestGarden } from "../../../helpers"
 import { join } from "path"
 import { joi } from "../../../../src/config/common"
 import { prepareRuntimeContext } from "../../../../src/runtime-context"
@@ -298,20 +299,20 @@ describe("ConfigContext", () => {
 })
 
 describe("ProjectConfigContext", () => {
-  it("should resolve local env variables", async () => {
+  it("should resolve local env variables", () => {
     process.env.TEST_VARIABLE = "value"
-    const c = new ProjectConfigContext("/tmp", "some-user")
-    expect(await c.resolve({ key: ["local", "env", "TEST_VARIABLE"], nodePath: [], opts: {} })).to.eql({
+    const c = new ProjectConfigContext({ projectName: "some-project", artifactsPath: "/tmp", username: "some-user" })
+    expect(c.resolve({ key: ["local", "env", "TEST_VARIABLE"], nodePath: [], opts: {} })).to.eql({
       resolved: "value",
     })
     delete process.env.TEST_VARIABLE
   })
 
-  it("should throw helpful error when resolving missing env variable", async () => {
-    const c = new ProjectConfigContext("/tmp", "some-user")
+  it("should throw helpful error when resolving missing env variable", () => {
+    const c = new ProjectConfigContext({ projectName: "some-project", artifactsPath: "/tmp", username: "some-user" })
     const key = "fiaogsyecgbsjyawecygaewbxrbxajyrgew"
 
-    await expectError(
+    expectError(
       () => c.resolve({ key: ["local", "env", key], nodePath: [], opts: {} }),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(
@@ -320,11 +321,29 @@ describe("ProjectConfigContext", () => {
     )
   })
 
-  it("should should resolve the local platform", async () => {
-    const c = new ProjectConfigContext("/tmp", "some-user")
-    expect(await c.resolve({ key: ["local", "platform"], nodePath: [], opts: {} })).to.eql({
+  it("should resolve the local platform", () => {
+    const c = new ProjectConfigContext({ projectName: "some-project", artifactsPath: "/tmp", username: "some-user" })
+    expect(c.resolve({ key: ["local", "platform"], nodePath: [], opts: {} })).to.eql({
       resolved: process.platform,
     })
+  })
+})
+
+describe("ProviderConfigContext", () => {
+  it("should set an empty namespace and environment.fullName to environment.name if no namespace is set", async () => {
+    const garden = await makeTestGarden(projectRootA, { environmentName: "local" })
+    const c = new ProviderConfigContext(garden, await garden.resolveProviders(), {}, {})
+
+    expect(c.resolve({ key: ["environment", "name"], nodePath: [], opts: {} })).to.eql({ resolved: "local" })
+  })
+
+  it("should set environment.namespace and environment.fullName to properly if namespace is set", async () => {
+    const garden = await makeTestGarden(projectRootA, { environmentName: "foo.local" })
+    const c = new ProviderConfigContext(garden, await garden.resolveProviders(), {}, {})
+
+    expect(c.resolve({ key: ["environment", "name"], nodePath: [], opts: {} })).to.eql({ resolved: "local" })
+    expect(c.resolve({ key: ["environment", "namespace"], nodePath: [], opts: {} })).to.eql({ resolved: "foo" })
+    expect(c.resolve({ key: ["environment", "fullName"], nodePath: [], opts: {} })).to.eql({ resolved: "foo.local" })
   })
 })
 

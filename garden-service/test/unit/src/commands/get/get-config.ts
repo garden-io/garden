@@ -29,19 +29,9 @@ describe("GetConfigCommand", () => {
       opts: withDefaultGlobalOpts({ "exclude-disabled": false }),
     })
 
-    const providers = await garden.resolveProviders()
+    const expectedModuleConfigs = sortBy(await garden.resolveModules({ log }), "name").map((m) => m._config)
 
-    const config = {
-      environmentName: garden.environmentName,
-      providers,
-      variables: garden.variables,
-      moduleConfigs: sortBy(await garden.resolveModules({ log }), "name").map((m) => m._config),
-      workflowConfigs: [],
-      projectId: "test-project-id",
-      projectRoot: garden.projectRoot,
-    }
-
-    expect(config).to.deep.equal(res.result)
+    expect(res.result?.moduleConfigs).to.deep.equal(expectedModuleConfigs)
   })
 
   it("should include workflow configs", async () => {
@@ -70,19 +60,9 @@ describe("GetConfigCommand", () => {
       opts: withDefaultGlobalOpts({ "exclude-disabled": false }),
     })
 
-    const providers = await garden.resolveProviders()
+    const expectedModuleConfigs = sortBy(await garden.resolveModules({ log }), "name").map((m) => m._config)
 
-    const config = {
-      environmentName: garden.environmentName,
-      providers,
-      variables: garden.variables,
-      moduleConfigs: sortBy(await garden.resolveModules({ log }), "name").map((m) => m._config),
-      workflowConfigs,
-      projectRoot: garden.projectRoot,
-      projectId: "test-project-id",
-    }
-
-    expect(config).to.deep.equal(res.result)
+    expect(res.result?.moduleConfigs).to.deep.equal(expectedModuleConfigs)
   })
 
   it("should include disabled module configs", async () => {
@@ -150,24 +130,11 @@ describe("GetConfigCommand", () => {
       opts: withDefaultGlobalOpts({ "exclude-disabled": false }),
     })
 
-    const providers = await garden.resolveProviders()
-
     const expectedModuleConfigs = sortBy(await garden.resolveModules({ log, includeDisabled: true }), "name").map(
       (m) => m._config
     )
 
-    const config = {
-      environmentName: garden.environmentName,
-      providers,
-      variables: garden.variables,
-      moduleConfigs: expectedModuleConfigs,
-      workflowConfigs: [],
-      projectRoot: garden.projectRoot,
-      projectId: "test-project-id",
-    }
-
-    expect(expectedModuleConfigs.length).to.equal(2)
-    expect(config).to.deep.equal(res.result)
+    expect(res.result?.moduleConfigs).to.deep.equal(expectedModuleConfigs)
   })
 
   it("should include disabled service configs", async () => {
@@ -226,21 +193,9 @@ describe("GetConfigCommand", () => {
       opts: withDefaultGlobalOpts({ "exclude-disabled": false }),
     })
 
-    const providers = await garden.resolveProviders()
-
     const expectedModuleConfigs = (await garden.resolveModules({ log, includeDisabled: true })).map((m) => m._config)
 
-    const config = {
-      environmentName: garden.environmentName,
-      providers,
-      variables: garden.variables,
-      moduleConfigs: expectedModuleConfigs,
-      workflowConfigs: [],
-      projectRoot: garden.projectRoot,
-      projectId: "test-project-id",
-    }
-
-    expect(config).to.deep.equal(res.result)
+    expect(res.result?.moduleConfigs).to.deep.equal(expectedModuleConfigs)
   })
 
   it("should include disabled task configs", async () => {
@@ -296,21 +251,9 @@ describe("GetConfigCommand", () => {
       opts: withDefaultGlobalOpts({ "exclude-disabled": false }),
     })
 
-    const providers = await garden.resolveProviders()
-
     const expectedModuleConfigs = (await garden.resolveModules({ log, includeDisabled: true })).map((m) => m._config)
 
-    const config = {
-      environmentName: garden.environmentName,
-      providers,
-      variables: garden.variables,
-      moduleConfigs: expectedModuleConfigs,
-      workflowConfigs: [],
-      projectRoot: garden.projectRoot,
-      projectId: "test-project-id",
-    }
-
-    expect(res.result).to.deep.equal(config)
+    expect(res.result?.moduleConfigs).to.deep.equal(expectedModuleConfigs)
   })
 
   it("should include disabled test configs", async () => {
@@ -373,21 +316,9 @@ describe("GetConfigCommand", () => {
       opts: withDefaultGlobalOpts({ "exclude-disabled": false }),
     })
 
-    const providers = await garden.resolveProviders()
-
     const expectedModuleConfigs = (await garden.resolveModules({ log, includeDisabled: true })).map((m) => m._config)
 
-    const config = {
-      environmentName: garden.environmentName,
-      providers,
-      variables: garden.variables,
-      moduleConfigs: expectedModuleConfigs,
-      workflowConfigs: [],
-      projectRoot: garden.projectRoot,
-      projectId: "test-project-id",
-    }
-
-    expect(res.result).to.deep.equal(config)
+    expect(res.result?.moduleConfigs).to.deep.equal(expectedModuleConfigs)
   })
 
   context("--exclude-disabled", () => {
@@ -456,22 +387,9 @@ describe("GetConfigCommand", () => {
         opts: withDefaultGlobalOpts({ "exclude-disabled": true }),
       })
 
-      const providers = await garden.resolveProviders()
-
       const expectedModuleConfigs = sortBy(await garden.resolveModules({ log }), "name").map((m) => m._config)
 
-      const config = {
-        environmentName: garden.environmentName,
-        providers,
-        variables: garden.variables,
-        moduleConfigs: expectedModuleConfigs,
-        workflowConfigs: [],
-        projectRoot: garden.projectRoot,
-        projectId: "test-project-id",
-      }
-
-      expect(expectedModuleConfigs.length).to.equal(1)
-      expect(config).to.deep.equal(res.result)
+      expect(res.result?.moduleConfigs).to.deep.equal(expectedModuleConfigs)
     })
 
     it("should exclude disabled service configs", async () => {
@@ -530,8 +448,6 @@ describe("GetConfigCommand", () => {
         opts: withDefaultGlobalOpts({ "exclude-disabled": true }),
       })
 
-      const providers = await garden.resolveProviders()
-
       const expectedModuleConfigs = (await garden.resolveModules({ log })).map((m) => m._config)
       // Remove the disabled service
       expectedModuleConfigs[0].serviceConfigs = [
@@ -561,17 +477,7 @@ describe("GetConfigCommand", () => {
         },
       ]
 
-      const config = {
-        environmentName: garden.environmentName,
-        providers,
-        variables: garden.variables,
-        moduleConfigs: expectedModuleConfigs,
-        workflowConfigs: [],
-        projectRoot: garden.projectRoot,
-        projectId: "test-project-id",
-      }
-
-      expect(config).to.deep.equal(res.result)
+      expect(res.result?.moduleConfigs).to.deep.equal(expectedModuleConfigs)
     })
 
     it("should exclude disabled task configs", async () => {
@@ -627,8 +533,6 @@ describe("GetConfigCommand", () => {
         opts: withDefaultGlobalOpts({ "exclude-disabled": true }),
       })
 
-      const providers = await garden.resolveProviders()
-
       const expectedModuleConfigs = (await garden.resolveModules({ log })).map((m) => m._config)
       // Remove the disabled task
       expectedModuleConfigs[0].taskConfigs = [
@@ -650,17 +554,7 @@ describe("GetConfigCommand", () => {
         },
       ]
 
-      const config = {
-        environmentName: garden.environmentName,
-        providers,
-        variables: garden.variables,
-        moduleConfigs: expectedModuleConfigs,
-        workflowConfigs: [],
-        projectRoot: garden.projectRoot,
-        projectId: "test-project-id",
-      }
-
-      expect(res.result).to.deep.equal(config)
+      expect(res.result?.moduleConfigs).to.deep.equal(expectedModuleConfigs)
     })
 
     it("should exclude disabled test configs", async () => {
@@ -723,8 +617,6 @@ describe("GetConfigCommand", () => {
         opts: withDefaultGlobalOpts({ "exclude-disabled": true }),
       })
 
-      const providers = await garden.resolveProviders()
-
       const expectedModuleConfigs = (await garden.resolveModules({ log })).map((m) => m._config)
       // Remove the disabled task
       expectedModuleConfigs[0].testConfigs = [
@@ -744,17 +636,7 @@ describe("GetConfigCommand", () => {
         },
       ]
 
-      const config = {
-        environmentName: garden.environmentName,
-        providers,
-        variables: garden.variables,
-        moduleConfigs: expectedModuleConfigs,
-        workflowConfigs: [],
-        projectRoot: garden.projectRoot,
-        projectId: "test-project-id",
-      }
-
-      expect(res.result).to.deep.equal(config)
+      expect(res.result?.moduleConfigs).to.deep.equal(expectedModuleConfigs)
     })
   })
 })

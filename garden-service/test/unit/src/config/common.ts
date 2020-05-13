@@ -269,6 +269,35 @@ describe("joi.posixPath", () => {
   })
 })
 
+describe("joi.environment", () => {
+  const schema = joi.environment()
+
+  it("should accept a basic alphanumeric string", () => {
+    const result = schema.validate("foo")
+    expect(result.error).to.be.undefined
+  })
+
+  it("should accept a string with a dash", () => {
+    const result = schema.validate("foo-bar")
+    expect(result.error).to.be.undefined
+  })
+
+  it("should accept an env with a namespace", () => {
+    const result = schema.validate("foo.bar")
+    expect(result.error).to.be.undefined
+  })
+
+  it("should reject an env with multiple dots", () => {
+    const result = schema.validate("foo.bar.baz")
+    expect(result.error).to.exist
+  })
+
+  it("should reject an env invalid characters", () => {
+    const result = schema.validate("$.%")
+    expect(result.error).to.exist
+  })
+})
+
 describe("joiRepositoryUrl", () => {
   it("should accept a git:// URL", () => {
     const url = "git://github.com/garden-io/garden-example-remote-sources-web-services.git#my-tag"

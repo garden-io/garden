@@ -97,6 +97,7 @@ describe("ActionRouter", () => {
       it("should configure the provider", async () => {
         const config = { name: "test-plugin", foo: "bar" }
         const result = await actions.configureProvider({
+          environmentName: "default",
           pluginName: "test-plugin",
           log,
           config,

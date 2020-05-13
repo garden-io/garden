@@ -11,7 +11,7 @@ Note that there are four sections below, since different configuration sections 
 
 ## Project configuration context
 
-The following keys are available in any template strings within project definitions in `garden.yml` config files (see the [Provider](#provider-configuration-context) section below for additional keys available when configuring `providers`):
+The following keys are available in any template strings within project definitions in `garden.yml` config files, except the `name` field (which cannot be templated). See the [Provider](#provider-configuration-context) section below for additional keys available when configuring `providers`:
 
 
 ### `${local.*}`
@@ -70,6 +70,28 @@ Example:
 
 ```yaml
 my-variable: ${local.username}
+```
+
+### `${project.*}`
+
+Information about the Garden project.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${project.name}`
+
+The name of the Garden project.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${project.name}
 ```
 
 
@@ -138,28 +160,6 @@ Example:
 my-variable: ${local.username}
 ```
 
-### `${environment.*}`
-
-Information about the environment that Garden is running against.
-
-| Type     |
-| -------- |
-| `object` |
-
-### `${environment.name}`
-
-The name of the environment Garden is running against.
-
-| Type     |
-| -------- |
-| `string` |
-
-Example:
-
-```yaml
-my-variable: ${environment.name}
-```
-
 ### `${project.*}`
 
 Information about the Garden project.
@@ -180,6 +180,56 @@ Example:
 
 ```yaml
 my-variable: ${project.name}
+```
+
+### `${environment.*}`
+
+Information about the environment that Garden is running against.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${environment.name}`
+
+The name of the environment Garden is running against, excluding the namespace.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${environment.name}
+```
+
+### `${environment.fullName}`
+
+The full name of the environment Garden is running against, including the namespace.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${environment.fullName}
+```
+
+### `${environment.namespace}`
+
+The currently active namespace (if any).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${environment.namespace}
 ```
 
 ### `${providers.*}`
@@ -275,28 +325,6 @@ Example:
 my-variable: ${local.username}
 ```
 
-### `${environment.*}`
-
-Information about the environment that Garden is running against.
-
-| Type     |
-| -------- |
-| `object` |
-
-### `${environment.name}`
-
-The name of the environment Garden is running against.
-
-| Type     |
-| -------- |
-| `string` |
-
-Example:
-
-```yaml
-my-variable: ${environment.name}
-```
-
 ### `${project.*}`
 
 Information about the Garden project.
@@ -317,6 +345,56 @@ Example:
 
 ```yaml
 my-variable: ${project.name}
+```
+
+### `${environment.*}`
+
+Information about the environment that Garden is running against.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${environment.name}`
+
+The name of the environment Garden is running against, excluding the namespace.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${environment.name}
+```
+
+### `${environment.fullName}`
+
+The full name of the environment Garden is running against, including the namespace.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${environment.fullName}
+```
+
+### `${environment.namespace}`
+
+The currently active namespace (if any).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${environment.namespace}
 ```
 
 ### `${providers.*}`
@@ -444,28 +522,6 @@ Example:
 my-variable: ${local.username}
 ```
 
-### `${environment.*}`
-
-Information about the environment that Garden is running against.
-
-| Type     |
-| -------- |
-| `object` |
-
-### `${environment.name}`
-
-The name of the environment Garden is running against.
-
-| Type     |
-| -------- |
-| `string` |
-
-Example:
-
-```yaml
-my-variable: ${environment.name}
-```
-
 ### `${project.*}`
 
 Information about the Garden project.
@@ -486,6 +542,56 @@ Example:
 
 ```yaml
 my-variable: ${project.name}
+```
+
+### `${environment.*}`
+
+Information about the environment that Garden is running against.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${environment.name}`
+
+The name of the environment Garden is running against, excluding the namespace.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${environment.name}
+```
+
+### `${environment.fullName}`
+
+The full name of the environment Garden is running against, including the namespace.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${environment.fullName}
+```
+
+### `${environment.namespace}`
+
+The currently active namespace (if any).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${environment.namespace}
 ```
 
 ### `${providers.*}`

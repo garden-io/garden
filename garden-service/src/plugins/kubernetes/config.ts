@@ -552,12 +552,11 @@ export const configSchema = kubernetesConfigBase
     kubeconfig: joi
       .posixPath()
       .description("Path to kubeconfig file to use instead of the system default. Must be a POSIX-style path."),
-    namespace: joi
-      .string()
-      .description(
-        "Specify which namespace to deploy services to (defaults to <project name>). " +
-          "Note that the framework generates other namespaces as well with this name as a prefix."
-      ),
+    namespace: joi.string().description(dedent`
+      Specify which namespace to deploy services to. Defaults to the environment namespace, if specified and enabled, otherwise the project name.
+
+      Note that the framework generates other namespaces as well with this name as a prefix.
+      `),
     setupIngressController: joi
       .string()
       .allow("nginx", false, null)
