@@ -48,24 +48,24 @@ const helm3 = new BinaryCmd({
   name: "helm3",
   specs: {
     darwin: {
-      url: "https://get.helm.sh/helm-v3.0.2-darwin-amd64.tar.gz",
-      sha256: "05c7748da0ea8d5f85576491cd3c615f94063f20986fd82a0f5658ddc286cdb1",
+      url: "https://get.helm.sh/helm-v3.2.1-darwin-amd64.tar.gz",
+      sha256: "983c4f167060b3892a42f353c7891cabac36ec49f6042eae1046bd8a258b8a14",
       extract: {
         format: "tar",
         targetPath: ["darwin-amd64", "helm"],
       },
     },
     linux: {
-      url: "https://get.helm.sh/helm-v3.0.2-linux-amd64.tar.gz",
-      sha256: "c6b7aa7e4ffc66e8abb4be328f71d48c643cb8f398d95c74d075cfb348710e1d",
+      url: "https://get.helm.sh/helm-v3.2.1-linux-amd64.tar.gz",
+      sha256: "018f9908cb950701a5d59e757653a790c66d8eda288625dbb185354ca6f41f6b",
       extract: {
         format: "tar",
         targetPath: ["linux-amd64", "helm"],
       },
     },
     win32: {
-      url: "https://get.helm.sh/helm-v3.0.2-windows-amd64.zip",
-      sha256: "b76dabf4e25166ebf1db7337145b02cc986fcfcee06e195df983c39c36722f46",
+      url: "https://get.helm.sh/helm-v3.2.1-windows-amd64.zip",
+      sha256: "dbd30c03f5ba110348a20ffb5ed8770080757937c157987cce59287507af79dd",
       extract: {
         format: "zip",
         targetPath: ["windows-amd64", "helm.exe"],
