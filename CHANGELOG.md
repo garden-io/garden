@@ -1,4 +1,22 @@
 
+<a name="v0.11.14-alpha.0"></a>
+## [v0.11.14-alpha.0](https://github.com/garden-io/garden/compare/v0.11.14...v0.11.14-alpha.0) (2020-05-13)
+
+### Bug Fixes
+
+* **k8s:** error in cleanup-cluster-registry command and added test ([ce4af74b](https://github.com/garden-io/garden/commit/ce4af74b))
+
+### Features
+
+* **core:** provide secrets to template strings ([a6c89e2e](https://github.com/garden-io/garden/commit/a6c89e2e))
+
+### Improvements
+
+* **k8s:** upgrade helm to v3.2.1 ([#1826](https://github.com/garden-io/garden/issues/1826)) ([df9e4e47](https://github.com/garden-io/garden/commit/df9e4e47))
+* **k8s:** update in-cluster docker registry to 2.7.1 ([a2f38aee](https://github.com/garden-io/garden/commit/a2f38aee))
+* **k8s:** bump kaniko to v0.21 ([#1820](https://github.com/garden-io/garden/issues/1820)) ([15390ff1](https://github.com/garden-io/garden/commit/15390ff1))
+* **k8s:** upgrade kaniko version ([#1817](https://github.com/garden-io/garden/issues/1817)) ([334ae831](https://github.com/garden-io/garden/commit/334ae831))
+
 <a name="v0.11.13"></a>
 ## [v0.11.13](https://github.com/garden-io/garden/compare/v0.11.12...v0.11.13) (2020-04-22)
 
