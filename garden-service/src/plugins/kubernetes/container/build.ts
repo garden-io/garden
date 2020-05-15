@@ -44,7 +44,7 @@ import chalk = require("chalk")
 import { loadImageToMicrok8s, getMicrok8sImageStatus } from "../local/microk8s"
 import { RunResult } from "../../../types/plugin/base"
 
-const kanikoImage = "gcr.io/kaniko-project/executor:debug-v0.21.0"
+const kanikoImage = "gcr.io/kaniko-project/executor:debug-v0.22.0"
 
 const registryPort = 5000
 
