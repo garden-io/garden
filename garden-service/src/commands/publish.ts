@@ -16,7 +16,7 @@ import { printHeader } from "../logger/util"
 import dedent = require("dedent")
 import { ConfigGraph } from "../config-graph"
 
-const publishArgs = {
+export const publishArgs = {
   modules: new StringsParameter({
     help:
       "The name(s) of the module(s) to publish (skip to publish all modules). " +
@@ -24,7 +24,7 @@ const publishArgs = {
   }),
 }
 
-const publishOpts = {
+export const publishOpts = {
   "force-build": new BooleanParameter({
     help: "Force rebuild of module(s) before publishing.",
   }),

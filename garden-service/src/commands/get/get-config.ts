@@ -9,18 +9,18 @@
 import { Command, CommandResult, CommandParams, BooleanParameter } from "../base"
 import { ConfigDump } from "../../garden"
 
-const options = {
+export const getConfigOptions = {
   "exclude-disabled": new BooleanParameter({
     help: "Exclude disabled module, service, test, and task configs from output.",
   }),
 }
 
-type Opts = typeof options
+type Opts = typeof getConfigOptions
 
 export class GetConfigCommand extends Command<{}, Opts> {
   name = "config"
   help = "Outputs the fully resolved configuration for this project and environment."
-  options = options
+  options = getConfigOptions
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<ConfigDump>> {
     const config = await garden.dumpConfig(log, !opts["exclude-disabled"])

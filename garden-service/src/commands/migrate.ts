@@ -20,18 +20,18 @@ import { LoggerType } from "../logger/logger"
 import Bluebird from "bluebird"
 import { loadAndValidateYaml } from "../config/base"
 
-const migrateOptions = {
+const migrateOpts = {
   write: new BooleanParameter({ help: "Update the `garden.yml` in place." }),
 }
 
-const migrateArguments = {
+const migrateArgs = {
   configPaths: new StringsParameter({
     help: "Specify the path to a `garden.yml` file to convert. Use comma as a separator to specify multiple files.",
   }),
 }
 
-type Args = typeof migrateArguments
-type Opts = typeof migrateOptions
+type Args = typeof migrateArgs
+type Opts = typeof migrateOpts
 
 interface UpdatedConfig {
   path: string
@@ -45,8 +45,8 @@ export interface MigrateCommandResult {
 export class MigrateCommand extends Command<Args, Opts> {
   name = "migrate"
   noProject = true
-  arguments = migrateArguments
-  options = migrateOptions
+  arguments = migrateArgs
+  options = migrateOpts
   help = "Migrate `garden.yml` configuration files to version v0.11.x"
 
   description = dedent`

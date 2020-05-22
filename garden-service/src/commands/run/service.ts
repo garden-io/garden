@@ -19,14 +19,14 @@ import { deline } from "../../util/string"
 import { BooleanParameter, Command, CommandParams, CommandResult, handleRunResult, StringParameter } from "../base"
 import { printRuntimeContext } from "./run"
 
-const runArgs = {
+const runServiceArgs = {
   service: new StringParameter({
     help: "The service to run.",
     required: true,
   }),
 }
 
-const runOpts = {
+const runServiceOpts = {
   "force": new BooleanParameter({
     help: "Run the service even if it's disabled for the environment.",
   }),
@@ -35,8 +35,8 @@ const runOpts = {
   }),
 }
 
-type Args = typeof runArgs
-type Opts = typeof runOpts
+type Args = typeof runServiceArgs
+type Opts = typeof runServiceOpts
 
 export class RunServiceCommand extends Command<Args, Opts> {
   name = "service"
@@ -53,8 +53,8 @@ export class RunServiceCommand extends Command<Args, Opts> {
         garden run service my-service   # run an ad-hoc instance of a my-service and attach to it
   `
 
-  arguments = runArgs
-  options = runOpts
+  arguments = runServiceArgs
+  options = runServiceOpts
 
   async action({ garden, log, headerLog, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
     const serviceName = args.service
