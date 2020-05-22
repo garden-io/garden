@@ -11,6 +11,8 @@ import chalk from "chalk"
 import dedent = require("dedent")
 import inquirer = require("inquirer")
 import stripAnsi from "strip-ansi"
+import { range } from "lodash"
+import minimist from "minimist"
 
 import { GlobalOptions } from "../cli/cli"
 import { joi } from "../config/common"
@@ -494,4 +496,59 @@ export function describeParameters(args?: Parameters) {
     ...arg,
     help: stripAnsi(arg.help),
   }))
+}
+
+export type ParamSpec = {
+  [key: string]: Parameter<string | string[] | number | boolean | undefined>
+}
+
+/**
+ * Parses the arguments and options for a command invocation using its command class' arguments
+ * and options specs.
+ *
+ * Returns args and opts ready to pass to that command's action method.
+ *
+ * @param args The arguments + options to the command (everything after the command name)
+ * @param argSpec The arguments spec for the command in question.
+ * @param optSpec The options spec for the command in question.
+ */
+export function parseCliArgs(args: string[], argSpec: ParamSpec, optSpec: ParamSpec): { args: any; opts: any } {
+  const parsed = minimist(args)
+  const argKeys = Object.keys(argSpec)
+  const parsedArgs = {}
+  for (const idx of range(argKeys.length)) {
+    // Commands expect unused arguments to be explicitly set to undefined.
+    parsedArgs[argKeys[idx]] = undefined
+  }
+  for (const idx of range(parsed._.length)) {
+    const argKey = argKeys[idx]
+    const argVal = parsed._[idx]
+    const spec = argSpec[argKey]
+    parsedArgs[argKey] = spec.coerce(spec.parseString(argVal))
+  }
+  const parsedOpts = {}
+  for (const optKey of Object.keys(optSpec)) {
+    const spec = optSpec[optKey]
+    let optVal = parsed[optKey]
+    if (Array.isArray(optVal)) {
+      optVal = optVal[0] // Use the first value if the option is used multiple times
+    }
+    // Need special handling for string-ish boolean values
+    optVal = optVal === "false" ? false : optVal
+    if (!optVal && optVal !== false) {
+      optVal = parsed[spec.alias] === "false" ? false : parsed[spec.alias]
+    }
+    if (optVal || optVal === false) {
+      if (optVal === true && spec.type !== "boolean") {
+        // minimist sets the value of options like --hot (with no value) to true, so we need
+        // to convert to a string here.
+        optVal = ""
+      }
+      parsedOpts[optKey] = spec.coerce(spec.parseString(optVal))
+    }
+  }
+  return {
+    args: parsedArgs,
+    opts: parsedOpts,
+  }
 }
