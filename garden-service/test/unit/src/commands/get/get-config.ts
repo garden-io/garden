@@ -11,6 +11,8 @@ import { makeTestGardenA, withDefaultGlobalOpts } from "../../../../helpers"
 import { GetConfigCommand } from "../../../../../src/commands/get/get-config"
 import { sortBy } from "lodash"
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
+import { WorkflowConfig } from "../../../../../src/config/workflow"
+import { defaultContainerLimits } from "../../../../../src/plugins/container/config"
 
 describe("GetConfigCommand", () => {
   it("should get the project configuration", async () => {
@@ -34,6 +36,48 @@ describe("GetConfigCommand", () => {
       providers,
       variables: garden.variables,
       moduleConfigs: sortBy(await garden.resolveModules({ log }), "name").map((m) => m._config),
+      workflowConfigs: [],
+      projectId: "test-project-id",
+      projectRoot: garden.projectRoot,
+    }
+
+    expect(config).to.deep.equal(res.result)
+  })
+
+  it("should include workflow configs", async () => {
+    const garden = await makeTestGardenA()
+    const log = garden.log
+    const command = new GetConfigCommand()
+    const workflowConfigs: WorkflowConfig[] = [
+      {
+        apiVersion: DEFAULT_API_VERSION,
+        name: "workflow-a",
+        kind: "Workflow",
+        keepAliveHours: 48,
+        limits: defaultContainerLimits,
+        path: garden.projectRoot,
+        steps: [{ command: ["run", "task", "foo"] }],
+      },
+    ]
+    garden.setWorkflowConfigs(workflowConfigs)
+
+    const res = await command.action({
+      garden,
+      log,
+      headerLog: log,
+      footerLog: log,
+      args: {},
+      opts: withDefaultGlobalOpts({ "exclude-disabled": false }),
+    })
+
+    const providers = await garden.resolveProviders()
+
+    const config = {
+      environmentName: garden.environmentName,
+      providers,
+      variables: garden.variables,
+      moduleConfigs: sortBy(await garden.resolveModules({ log }), "name").map((m) => m._config),
+      workflowConfigs,
       projectRoot: garden.projectRoot,
       projectId: "test-project-id",
     }
@@ -117,6 +161,7 @@ describe("GetConfigCommand", () => {
       providers,
       variables: garden.variables,
       moduleConfigs: expectedModuleConfigs,
+      workflowConfigs: [],
       projectRoot: garden.projectRoot,
       projectId: "test-project-id",
     }
@@ -190,6 +235,7 @@ describe("GetConfigCommand", () => {
       providers,
       variables: garden.variables,
       moduleConfigs: expectedModuleConfigs,
+      workflowConfigs: [],
       projectRoot: garden.projectRoot,
       projectId: "test-project-id",
     }
@@ -259,6 +305,7 @@ describe("GetConfigCommand", () => {
       providers,
       variables: garden.variables,
       moduleConfigs: expectedModuleConfigs,
+      workflowConfigs: [],
       projectRoot: garden.projectRoot,
       projectId: "test-project-id",
     }
@@ -335,6 +382,7 @@ describe("GetConfigCommand", () => {
       providers,
       variables: garden.variables,
       moduleConfigs: expectedModuleConfigs,
+      workflowConfigs: [],
       projectRoot: garden.projectRoot,
       projectId: "test-project-id",
     }
@@ -417,6 +465,7 @@ describe("GetConfigCommand", () => {
         providers,
         variables: garden.variables,
         moduleConfigs: expectedModuleConfigs,
+        workflowConfigs: [],
         projectRoot: garden.projectRoot,
         projectId: "test-project-id",
       }
@@ -517,6 +566,7 @@ describe("GetConfigCommand", () => {
         providers,
         variables: garden.variables,
         moduleConfigs: expectedModuleConfigs,
+        workflowConfigs: [],
         projectRoot: garden.projectRoot,
         projectId: "test-project-id",
       }
@@ -605,6 +655,7 @@ describe("GetConfigCommand", () => {
         providers,
         variables: garden.variables,
         moduleConfigs: expectedModuleConfigs,
+        workflowConfigs: [],
         projectRoot: garden.projectRoot,
         projectId: "test-project-id",
       }
@@ -698,6 +749,7 @@ describe("GetConfigCommand", () => {
         providers,
         variables: garden.variables,
         moduleConfigs: expectedModuleConfigs,
+        workflowConfigs: [],
         projectRoot: garden.projectRoot,
         projectId: "test-project-id",
       }

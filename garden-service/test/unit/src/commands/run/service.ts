@@ -73,7 +73,7 @@ describe("RunServiceCommand", () => {
   })
 
   it("should allow running a disabled service with --force flag", async () => {
-    await garden.scanModules()
+    await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-a"].disabled = true
 
     const { errors } = await cmd.action({

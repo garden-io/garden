@@ -648,3 +648,9 @@ export class OutputConfigContext extends ModuleConfigContext {
     })
   }
 }
+
+export class WorkflowConfigContext extends ProviderConfigContext {
+  constructor(garden: Garden, resolvedProviders: Provider[], variables: DeepPrimitiveMap, secrets: PrimitiveMap) {
+    super(garden, resolvedProviders, variables, secrets)
+  }
+}

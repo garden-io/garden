@@ -536,7 +536,7 @@ export function parseCliArgs(args: string[], argSpec: ParamSpec, optSpec: ParamS
     // Need special handling for string-ish boolean values
     optVal = optVal === "false" ? false : optVal
     if (!optVal && optVal !== false) {
-      optVal = parsed[spec.alias] === "false" ? false : parsed[spec.alias]
+      optVal = parsed[spec.alias!] === "false" ? false : parsed[spec.alias!]
     }
     if (optVal || optVal === false) {
       if (optVal === true && spec.type !== "boolean") {

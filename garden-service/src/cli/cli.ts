@@ -77,7 +77,7 @@ class DummyGarden extends Garden {
   async resolveProviders() {
     return []
   }
-  async scanModules() {}
+  async scanAndAddConfigs() {}
 }
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts = {}) {

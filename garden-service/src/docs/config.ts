@@ -420,5 +420,10 @@ export function renderBaseConfigReference() {
   const { markdownReference: moduleMarkdownReference, yaml: moduleYaml } = renderConfigReference(baseModuleSpecSchema())
 
   const template = handlebars.compile(readFileSync(baseTemplatePath).toString())
-  return template({ projectMarkdownReference, projectYaml, moduleMarkdownReference, moduleYaml })
+  return template({
+    projectMarkdownReference,
+    projectYaml,
+    moduleMarkdownReference,
+    moduleYaml,
+  })
 }

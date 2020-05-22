@@ -91,6 +91,7 @@
     "lodash": "^4.17.15",
     "log-symbols": "^4.0.0",
     "minimatch": "^3.0.4",
+    "minimist": "^1.2.5",
     "mocha-logger": "^1.0.6",
     "moment": "^2.26.0",
     "neo-blessed": "git+https://github.com/garden-io/neo-blessed.git#garden",
