@@ -86,20 +86,30 @@ export class DeployCommand extends Command<Args, Opts> {
   options = deployOpts
 
   private server: GardenServer
+  private isPersistent = (opts) => !!opts.watch || !!opts["hot-reload"]
 
   async prepare({ headerLog, footerLog, opts }: PrepareParams<Args, Opts>) {
-    printHeader(headerLog, "Deploy", "rocket")
-
-    const persistent = !!opts.watch || !!opts["hot-reload"]
+    const persistent = this.isPersistent(opts)
 
     if (persistent) {
+      printHeader(headerLog, "Deploy", "rocket")
       this.server = await startServer(footerLog)
     }
 
     return { persistent }
   }
 
-  async action({ garden, log, footerLog, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
+  async action({
+    garden,
+    log,
+    headerLog,
+    footerLog,
+    args,
+    opts,
+  }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
+    if (!this.isPersistent(opts)) {
+      printHeader(headerLog, "Deploy", "rocket")
+    }
     if (this.server) {
       this.server.setGarden(garden)
     }

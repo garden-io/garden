@@ -63,20 +63,31 @@ export class BuildCommand extends Command<Args, Opts> {
   options = buildOpts
 
   private server: GardenServer
+  private isPersistent = (opts) => !!opts.watch
 
   async prepare({ headerLog, footerLog, opts }: PrepareParams<Args, Opts>) {
-    printHeader(headerLog, "Build", "hammer")
-
-    const persistent = !!opts.watch
+    const persistent = this.isPersistent(opts)
 
     if (persistent) {
+      printHeader(headerLog, "Build", "hammer")
       this.server = await startServer(footerLog)
     }
 
     return { persistent }
   }
 
-  async action({ args, opts, garden, log, footerLog }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
+  async action({
+    garden,
+    log,
+    headerLog,
+    footerLog,
+    args,
+    opts,
+  }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
+    if (!this.isPersistent(opts)) {
+      printHeader(headerLog, "Build", "hammer")
+    }
+
     if (this.server) {
       this.server.setGarden(garden)
     }
