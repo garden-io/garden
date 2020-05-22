@@ -93,7 +93,7 @@ describe("RunTestCommand", () => {
     const garden = await makeTestGardenA()
     const log = garden.log
 
-    await garden.scanModules()
+    await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-a"].disabled = true
 
     const { errors } = await cmd.action({

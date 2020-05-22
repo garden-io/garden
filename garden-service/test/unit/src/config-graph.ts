@@ -88,7 +88,7 @@ describe("ConfigGraph", () => {
     it("should omit disabled modules", async () => {
       const garden = await makeTestGardenA()
 
-      await garden.scanModules()
+      await garden.scanAndAddConfigs()
       garden["moduleConfigs"]["module-c"].disabled = true
 
       const graph = await garden.getConfigGraph(garden.log)
@@ -100,7 +100,7 @@ describe("ConfigGraph", () => {
     it("should optionally include disabled modules", async () => {
       const garden = await makeTestGardenA()
 
-      await garden.scanModules()
+      await garden.scanAndAddConfigs()
       garden["moduleConfigs"]["module-c"].disabled = true
 
       const graph = await garden.getConfigGraph(garden.log)
@@ -112,7 +112,7 @@ describe("ConfigGraph", () => {
     it("should throw if specifically requesting a disabled module", async () => {
       const garden = await makeTestGardenA()
 
-      await garden.scanModules()
+      await garden.scanAndAddConfigs()
       garden["moduleConfigs"]["module-c"].disabled = true
 
       const graph = await garden.getConfigGraph(garden.log)

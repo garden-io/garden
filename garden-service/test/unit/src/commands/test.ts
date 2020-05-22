@@ -148,7 +148,7 @@ describe("TestCommand", () => {
     const garden = await makeTestGardenA()
     const log = garden.log
 
-    await garden.scanModules()
+    await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].spec.tests[0].disabled = true
 
     const { result, errors } = await command.action({
@@ -184,7 +184,7 @@ describe("TestCommand", () => {
     const garden = await makeTestGardenA()
     const log = garden.log
 
-    await garden.scanModules()
+    await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].disabled = true
 
     const { result, errors } = await command.action({

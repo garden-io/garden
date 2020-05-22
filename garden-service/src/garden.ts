@@ -66,6 +66,7 @@ import { ResolveModuleTask, getResolvedModules } from "./tasks/resolve-module"
 import { getSecrets } from "./cloud/secrets"
 import username from "username"
 import { throwOnMissingSecretKeys } from "./template-string"
+import { WorkflowConfig, WorkflowResource, WorkflowConfigMap, resolveWorkflowConfig } from "./config/workflow"
 
 export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
   [actionName: string]: PluginActionHandlers[T]
@@ -107,6 +108,7 @@ export interface GardenParams {
   clientAuthToken: string | null
   dotIgnoreFiles: string[]
   environmentName: string
+  allEnvironmentNames: string[]
   gardenDirPath: string
   log: LogEntry
   moduleIncludePatterns?: string[]
@@ -134,9 +136,10 @@ export class Garden {
   public readonly log: LogEntry
   private loadedPlugins: GardenPlugin[]
   protected moduleConfigs: ModuleConfigMap
+  protected workflowConfigs: WorkflowConfigMap
   private pluginModuleConfigs: ModuleConfig[]
   private resolvedProviders: { [key: string]: Provider }
-  protected modulesScanned: boolean
+  protected configsScanned: boolean
   private readonly registeredPlugins: { [key: string]: GardenPlugin }
   private readonly taskGraph: TaskGraph
   private watcher: Watcher
@@ -159,6 +162,7 @@ export class Garden {
   public readonly projectRoot: string
   public readonly projectName: string
   public readonly environmentName: string
+  public readonly allEnvironmentNames: string[]
   public readonly variables: DeepPrimitiveMap
   public readonly secrets: StringMap
   public readonly projectSources: SourceConfig[]
@@ -183,6 +187,7 @@ export class Garden {
     this.cloudDomain = params.cloudDomain
     this.sessionId = params.sessionId
     this.environmentName = params.environmentName
+    this.allEnvironmentNames = params.allEnvironmentNames
     this.gardenDirPath = params.gardenDirPath
     this.log = params.log
     this.artifactsPath = params.artifactsPath
@@ -217,7 +222,7 @@ export class Garden {
       throw new RuntimeError(`Unsupported CPU architecture: ${currentArch}`, { arch: currentArch })
     }
 
-    this.modulesScanned = false
+    this.configsScanned = false
     // TODO: Support other VCS options.
     this.configStore = new LocalConfigStore(this.gardenDirPath)
     this.globalConfigStore = new GlobalConfigStore()
@@ -225,6 +230,7 @@ export class Garden {
 
     this.moduleConfigs = {}
     this.pluginModuleConfigs = []
+    this.workflowConfigs = {}
     this.registeredPlugins = {}
     this.resolvedProviders = {}
 
@@ -276,6 +282,7 @@ export class Garden {
       environmentName = defaultEnvironment
     }
 
+    const environmentNames = config.environments.map((env) => env.name)
     const { providers, variables, production } = await pickEnvironment(config, environmentName)
 
     const buildDir = await BuildDir.factory(projectRoot, gardenDirPath)
@@ -354,6 +361,7 @@ export class Garden {
       projectRoot,
       projectName,
       environmentName,
+      allEnvironmentNames: environmentNames,
       variables,
       secrets,
       projectSources,
@@ -638,6 +646,21 @@ export class Garden {
     return providers
   }
 
+  async getWorkflowConfig(name: string): Promise<WorkflowConfig> {
+    return (await this.getWorkflowConfigs([name]))[0]
+  }
+
+  async getWorkflowConfigs(names?: string[]): Promise<WorkflowConfig[]> {
+    const providers = await this.resolveProviders()
+
+    if (!names) {
+      names = Object.keys(this.workflowConfigs)
+    }
+
+    const configs = Object.values(pickKeys(this.workflowConfigs, names, "workflow"))
+    return configs.map((config) => resolveWorkflowConfig(this, providers, config))
+  }
+
   /**
    * Returns the reported status from all configured providers.
    */
@@ -666,8 +689,8 @@ export class Garden {
    * Scans for modules in the project root and remote/linked sources if it hasn't already been done.
    */
   async getRawModuleConfigs(keys?: string[]): Promise<ModuleConfig[]> {
-    if (!this.modulesScanned) {
-      await this.scanModules()
+    if (!this.configsScanned) {
+      await this.scanAndAddConfigs()
     }
 
     return Object.values(keys ? pickKeys(this.moduleConfigs, keys, "module config") : this.moduleConfigs)
@@ -693,10 +716,7 @@ export class Garden {
   async getConfigGraph(log: LogEntry, runtimeContext?: RuntimeContext) {
     const providers = await this.resolveProviders()
     const configs = await this.getRawModuleConfigs()
-
     this.log.silly(`Resolving module configs`)
-    throwOnMissingSecretKeys(Object.fromEntries(configs.map((c) => [c.name, c])), this.secrets, "Module")
-
     // Resolve the project module configs
     const tasks = configs.map(
       (moduleConfig) =>
@@ -930,15 +950,15 @@ export class Garden {
   }
 
   /*
-    Scans the project root for modules and adds them to the context.
+    Scans the project root for modules and workflows and adds them to the context.
    */
-  async scanModules(force = false) {
-    return this.asyncLock.acquire("scan-modules", async () => {
-      if (this.modulesScanned && !force) {
+  async scanAndAddConfigs(force = false) {
+    return this.asyncLock.acquire("scan-configs", async () => {
+      if (this.configsScanned && !force) {
         return
       }
 
-      this.log.silly(`Scanning for modules`)
+      this.log.silly(`Scanning for modules and workflows`)
 
       let extSourcePaths: string[] = []
 
@@ -954,22 +974,32 @@ export class Garden {
       }
 
       const dirsToScan = [this.projectRoot, ...extSourcePaths]
-      const modulePaths = flatten(await Bluebird.map(dirsToScan, (path) => this.scanForConfigs(path)))
+      const configPaths = flatten(await Bluebird.map(dirsToScan, (path) => this.scanForConfigs(path)))
 
-      const rawConfigs: ModuleConfig[] = [...this.pluginModuleConfigs]
+      const rawModuleConfigs: ModuleConfig[] = [...this.pluginModuleConfigs]
+      const rawWorkflowConfigs: WorkflowConfig[] = []
 
-      await Bluebird.map(modulePaths, async (path) => {
-        const configs = await this.loadModuleConfigs(dirname(path))
+      await Bluebird.map(configPaths, async (path) => {
+        const configs = await this.loadConfigs(dirname(path))
         if (configs) {
-          rawConfigs.push(...configs)
+          const moduleConfigs = <ModuleResource[]>configs.filter((c) => c.kind === "Module")
+          const workflowConfigs = <WorkflowResource[]>configs.filter((c) => c.kind === "Workflow")
+          rawModuleConfigs.push(...moduleConfigs)
+          rawWorkflowConfigs.push(...workflowConfigs)
         }
       })
 
-      await Bluebird.map(rawConfigs, async (config) => this.addModule(config))
+      throwOnMissingSecretKeys(Object.fromEntries(rawModuleConfigs.map((c) => [c.name, c])), this.secrets, "Module")
+      throwOnMissingSecretKeys(Object.fromEntries(rawWorkflowConfigs.map((c) => [c.name, c])), this.secrets, "Workflow")
 
-      this.log.silly(`Scanned and found ${rawConfigs.length} modules`)
+      await Bluebird.all([
+        Bluebird.map(rawModuleConfigs, async (config) => this.addModule(config)),
+        Bluebird.map(rawWorkflowConfigs, async (config) => this.addWorkflow(config)),
+      ])
 
-      this.modulesScanned = true
+      this.log.silly(`Scanned and found ${rawModuleConfigs.length} modules and ${rawWorkflowConfigs.length} workflows`)
+
+      this.configsScanned = true
     })
   }
 
@@ -982,7 +1012,6 @@ export class Garden {
 
   /**
    * Add a module config to the context, after validating and calling the appropriate configure plugin handler.
-   * Template strings should be resolved on the config before calling this.
    */
   private async addModule(config: ModuleConfig) {
     const key = getModuleKey(config.name, config.plugin)
@@ -1004,16 +1033,40 @@ export class Garden {
   }
 
   /**
-   * Load a module from the specified directory and return the config, or null if no module is found.
+   * Add a workflow config to the context after validating that its name doesn't conflict with
+   * previously added workflows.
+   */
+  private async addWorkflow(config: WorkflowConfig) {
+    const key = config.name
+    this.log.silly(`Adding workflow ${key}`)
+
+    if (this.workflowConfigs[key]) {
+      const paths = [this.workflowConfigs[key].path, config.path]
+      const [pathA, pathB] = (
+        await Bluebird.map(paths, async (path) => relative(this.projectRoot, await getConfigFilePath(path)))
+      ).sort()
+
+      throw new ConfigurationError(`Workflow ${key} is declared multiple times (in '${pathA}' and '${pathB}')`, {
+        pathA,
+        pathB,
+      })
+    }
+
+    this.workflowConfigs[key] = config
+  }
+
+  /**
+   * Load a module and/or a workflow from the specified directory and return the configs,
+   * or null if no module or workflow is found.
    *
    * @param path Directory containing the module
    */
-  private async loadModuleConfigs(path: string): Promise<ModuleConfig[]> {
+  private async loadConfigs(path: string): Promise<(ModuleResource | WorkflowResource)[]> {
     path = resolve(this.projectRoot, path)
-    this.log.silly(`Load module configs from ${path}`)
+    this.log.silly(`Load module and workflow configs from ${path}`)
     const resources = await loadConfig(this.projectRoot, path)
-    this.log.silly(`Loaded module configs from ${path}`)
-    return <ModuleResource[]>resources.filter((r) => r.kind === "Module")
+    this.log.silly(`Loaded module and workflow configs from ${path}`)
+    return <(ModuleResource | WorkflowResource)[]>resources.filter((r) => r.kind === "Module" || r.kind === "Workflow")
   }
 
   //===========================================================================
@@ -1083,6 +1136,7 @@ export class Garden {
   public async dumpConfig(log: LogEntry, includeDisabled: boolean = false): Promise<ConfigDump> {
     const graph = await this.getConfigGraph(log)
     const modules = graph.getModules({ includeDisabled })
+    const workflowConfigs = await this.getWorkflowConfigs()
 
     return {
       environmentName: this.environmentName,
@@ -1092,6 +1146,7 @@ export class Garden {
         modules.map((m) => m._config),
         "name"
       ),
+      workflowConfigs: sortBy(workflowConfigs, "name"),
       projectRoot: this.projectRoot,
       projectId: this.projectId,
     }
@@ -1105,6 +1160,7 @@ export interface ConfigDump {
   providers: Provider[]
   variables: DeepPrimitiveMap
   moduleConfigs: ModuleConfig[]
+  workflowConfigs: WorkflowConfig[]
   projectRoot: string
   projectId: string | null
 }

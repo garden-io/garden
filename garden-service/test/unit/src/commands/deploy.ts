@@ -207,7 +207,7 @@ describe("DeployCommand", () => {
     const log = garden.log
     const command = new DeployCommand()
 
-    await garden.scanModules()
+    await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].spec.services[0].disabled = true
 
     const { result, errors } = await command.action({
@@ -255,7 +255,7 @@ describe("DeployCommand", () => {
     const log = garden.log
     const command = new DeployCommand()
 
-    await garden.scanModules()
+    await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].disabled = true
 
     const { result, errors } = await command.action({

@@ -71,7 +71,7 @@ describe("BuildCommand", () => {
     const footerLog = garden.log
     const command = new BuildCommand()
 
-    await garden.scanModules()
+    await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].disabled = true
 
     const { result } = await command.action({
@@ -97,7 +97,7 @@ describe("BuildCommand", () => {
     const footerLog = garden.log
     const command = new BuildCommand()
 
-    await garden.scanModules()
+    await garden.scanAndAddConfigs()
     // module-b is a build dependency of module-c
     garden["moduleConfigs"]["module-b"].disabled = true
 

@@ -154,7 +154,7 @@ describe("DevCommand", () => {
   it("should skip disabled services", async () => {
     const garden = await makeTestGardenA()
 
-    await garden.scanModules()
+    await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].spec.services[0].disabled = true
 
     const args = {}
@@ -175,7 +175,7 @@ describe("DevCommand", () => {
   it("should skip disabled tasks", async () => {
     const garden = await makeTestGardenA()
 
-    await garden.scanModules()
+    await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].spec.tasks[0].disabled = true
 
     const args = {}
@@ -196,7 +196,7 @@ describe("DevCommand", () => {
   it("should skip disabled tests", async () => {
     const garden = await makeTestGardenA()
 
-    await garden.scanModules()
+    await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-b"].spec.tests[0].disabled = true
 
     const args = {}
@@ -217,7 +217,7 @@ describe("DevCommand", () => {
   it("should skip services from disabled modules", async () => {
     const garden = await makeTestGardenA()
 
-    await garden.scanModules()
+    await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].disabled = true
 
     const args = {}
@@ -238,7 +238,7 @@ describe("DevCommand", () => {
   it("should skip tasks from disabled modules", async () => {
     const garden = await makeTestGardenA()
 
-    await garden.scanModules()
+    await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].disabled = true
 
     const args = {}
@@ -259,7 +259,7 @@ describe("DevCommand", () => {
   it("should skip tests from disabled modules", async () => {
     const garden = await makeTestGardenA()
 
-    await garden.scanModules()
+    await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].disabled = true
 
     const args = {}
