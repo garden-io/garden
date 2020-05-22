@@ -13,7 +13,7 @@ import { printHeader } from "../logger/util"
 import { Command, CommandResult, CommandParams, StringParameter, BooleanParameter, StringsParameter } from "./base"
 import dedent = require("dedent")
 
-const runArgs = {
+const execArgs = {
   service: new StringParameter({
     help: "The service to exec the command in.",
     required: true,
@@ -25,7 +25,7 @@ const runArgs = {
   }),
 }
 
-const runOpts = {
+const execOpts = {
   interactive: new BooleanParameter({
     help: "Set to false to skip interactive mode and just output the command result",
     defaultValue: false,
@@ -34,8 +34,8 @@ const runOpts = {
   }),
 }
 
-type Args = typeof runArgs
-type Opts = typeof runOpts
+type Args = typeof execArgs
+type Opts = typeof execOpts
 
 export class ExecCommand extends Command<Args> {
   name = "exec"
@@ -52,8 +52,8 @@ export class ExecCommand extends Command<Args> {
          garden exec my-service /bin/sh   # runs a shell in the my-service container
   `
 
-  arguments = runArgs
-  options = runOpts
+  arguments = execArgs
+  options = execOpts
 
   getLoggerType(): LoggerType {
     return "basic"

@@ -20,7 +20,7 @@ import { findByName, getNames } from "../../util/util"
 import { BooleanParameter, Command, CommandParams, CommandResult, handleRunResult, StringParameter } from "../base"
 import { printRuntimeContext } from "./run"
 
-const runArgs = {
+export const runTestArgs = {
   module: new StringParameter({
     help: "The name of the module to run.",
     required: true,
@@ -31,7 +31,7 @@ const runArgs = {
   }),
 }
 
-const runOpts = {
+export const runTestOpts = {
   "interactive": new BooleanParameter({
     help:
       "Set to false to skip interactive mode and just output the command result. Note that Garden won't retrieve artifacts if set to true (the default).",
@@ -48,8 +48,8 @@ const runOpts = {
   }),
 }
 
-type Args = typeof runArgs
-type Opts = typeof runOpts
+type Args = typeof runTestArgs
+type Opts = typeof runTestOpts
 
 export class RunTestCommand extends Command<Args, Opts> {
   name = "test"
@@ -64,8 +64,8 @@ export class RunTestCommand extends Command<Args, Opts> {
         garden run test my-module integ --interactive=false # do not attach to the test run, just output results when completed
   `
 
-  arguments = runArgs
-  options = runOpts
+  arguments = runTestArgs
+  options = runTestOpts
 
   async action({ garden, log, headerLog, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
     const moduleName = args.module

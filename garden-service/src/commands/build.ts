@@ -24,13 +24,13 @@ import { startServer, GardenServer } from "../server/server"
 import { flatten } from "lodash"
 import { BuildTask } from "../tasks/build"
 
-const buildArguments = {
+const buildArgs = {
   modules: new StringsParameter({
     help: "Specify module(s) to build. Use comma as a separator to specify multiple modules.",
   }),
 }
 
-const buildOptions = {
+const buildOpts = {
   force: new BooleanParameter({ help: "Force rebuild of module(s)." }),
   watch: new BooleanParameter({
     help: "Watch for changes in module(s) and auto-build.",
@@ -39,8 +39,8 @@ const buildOptions = {
   }),
 }
 
-type Args = typeof buildArguments
-type Opts = typeof buildOptions
+type Args = typeof buildArgs
+type Opts = typeof buildOpts
 
 export class BuildCommand extends Command<Args, Opts> {
   name = "build"
@@ -59,8 +59,8 @@ export class BuildCommand extends Command<Args, Opts> {
         garden build --watch    # watch for changes to code
   `
 
-  arguments = buildArguments
-  options = buildOptions
+  arguments = buildArgs
+  options = buildOpts
 
   private server: GardenServer
 

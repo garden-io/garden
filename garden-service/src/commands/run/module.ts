@@ -24,7 +24,7 @@ import {
 } from "../base"
 import { printRuntimeContext } from "./run"
 
-const runArgs = {
+const runModuleArgs = {
   module: new StringParameter({
     help: "The name of the module to run.",
     required: true,
@@ -36,7 +36,7 @@ const runArgs = {
   }),
 }
 
-const runOpts = {
+const runModuleOpts = {
   // TODO: we could provide specific parameters like this by adding commands for specific modules, via plugins
   //entrypoint: new StringParameter({ help: "Override default entrypoint in module" }),
   "interactive": new BooleanParameter({
@@ -57,8 +57,8 @@ const runOpts = {
   }),
 }
 
-type Args = typeof runArgs
-type Opts = typeof runOpts
+type Args = typeof runModuleArgs
+type Opts = typeof runModuleOpts
 
 export class RunModuleCommand extends Command<Args, Opts> {
   name = "module"
@@ -77,8 +77,8 @@ export class RunModuleCommand extends Command<Args, Opts> {
          return the output
   `
 
-  arguments = runArgs
-  options = runOpts
+  arguments = runModuleArgs
+  options = runModuleOpts
 
   async action({ garden, log, headerLog, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
     const moduleName = args.module
