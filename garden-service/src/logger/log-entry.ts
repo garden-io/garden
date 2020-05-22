@@ -9,7 +9,7 @@
 import logSymbols from "log-symbols"
 import nodeEmoji from "node-emoji"
 
-import { LogNode, LogLevel, CreateNodeParams } from "./log-node"
+import { LogNode, LogLevel, CreateNodeParams, PlaceholderOpts } from "./log-node"
 import { Omit } from "../util/util"
 import { getChildEntries, findParentEntry } from "./util"
 import { GardenError } from "../exceptions"
@@ -222,12 +222,12 @@ export class LogEntry extends LogNode {
     return { ...msgState }
   }
 
-  placeholder(level: LogLevel = LogLevel.info, childEntriesInheritLevel = false): LogEntry {
+  placeholder({ level = LogLevel.info, childEntriesInheritLevel = false, indent = 0 }: PlaceholderOpts = {}): LogEntry {
     // Ensure placeholder child entries align with parent context
-    const indent = Math.max((this.indent || 0) - 1, -1)
+    const indentForNode = Math.max((indent || this.indent || 0) - 1, -1)
     return this.addNode({
       level,
-      indent,
+      indent: indentForNode,
       childEntriesInheritLevel,
       isPlaceholder: true,
     })
