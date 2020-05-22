@@ -163,7 +163,7 @@ export async function getSystemServiceStatus({ sysGarden, log, serviceNames }: G
   const actions = await sysGarden.getActionRouter()
 
   const serviceStatuses = await actions.getServiceStatuses({
-    log: log.placeholder(LogLevel.verbose, true),
+    log: log.placeholder({ level: LogLevel.verbose, childEntriesInheritLevel: true }),
     serviceNames,
   })
   const state = combineStates(Object.values(serviceStatuses).map((s) => (s && s.state) || "unknown"))

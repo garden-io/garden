@@ -25,6 +25,12 @@ export interface CreateNodeParams extends LogEntryParams {
   isPlaceholder?: boolean
 }
 
+export interface PlaceholderOpts {
+  level?: number
+  childEntriesInheritLevel?: boolean
+  indent?: number
+}
+
 export function resolveParams(level: LogLevel, params: string | LogEntryParams): CreateNodeParams {
   if (typeof params === "string") {
     return { msg: params, level }
@@ -50,7 +56,7 @@ export abstract class LogNode {
    * A placeholder entry is an empty entry whose children should be aligned with the parent context.
    * Useful for setting a placeholder in the middle of the log that can later be populated.
    */
-  abstract placeholder(level: LogLevel, childEntriesInheritLevel?: boolean): LogEntry
+  abstract placeholder(PlaceholderOpts?): LogEntry
 
   protected addNode(params: CreateNodeParams): LogEntry {
     const node = this.createNode(params)
