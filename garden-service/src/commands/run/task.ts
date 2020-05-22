@@ -14,14 +14,14 @@ import { printHeader } from "../../logger/util"
 import { CommandError } from "../../exceptions"
 import { dedent, deline } from "../../util/string"
 
-const runArgs = {
+export const runTaskArgs = {
   task: new StringParameter({
     help: "The name of the task to run.",
     required: true,
   }),
 }
 
-const runOpts = {
+export const runTaskOpts = {
   "force": new BooleanParameter({
     help: "Run the task even if it's disabled for the environment.",
   }),
@@ -30,8 +30,8 @@ const runOpts = {
   }),
 }
 
-type Args = typeof runArgs
-type Opts = typeof runOpts
+type Args = typeof runTaskArgs
+type Opts = typeof runTaskOpts
 
 export class RunTaskCommand extends Command<Args, Opts> {
   name = "task"
@@ -46,8 +46,8 @@ export class RunTaskCommand extends Command<Args, Opts> {
         garden run task my-db-migration   # run my-migration
   `
 
-  arguments = runArgs
-  options = runOpts
+  arguments = runTaskArgs
+  options = runTaskOpts
 
   async action({
     garden,
