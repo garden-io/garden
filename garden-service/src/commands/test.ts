@@ -27,7 +27,7 @@ import { getTestTasks } from "../tasks/test"
 import { printHeader } from "../logger/util"
 import { GardenServer, startServer } from "../server/server"
 
-const testArgs = {
+export const testArgs = {
   modules: new StringsParameter({
     help:
       "The name(s) of the module(s) to test (skip to test all modules). " +
@@ -35,7 +35,7 @@ const testArgs = {
   }),
 }
 
-const testOpts = {
+export const testOpts = {
   "name": new StringOption({
     help:
       "Only run tests with the specfied name (e.g. unit or integ). " +

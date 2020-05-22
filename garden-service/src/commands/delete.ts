@@ -105,7 +105,7 @@ export class DeleteEnvironmentCommand extends Command {
   }
 }
 
-const deleteServiceArgs = {
+export const deleteServiceArgs = {
   services: new StringsParameter({
     help: "The name(s) of the service(s) to delete. Use comma as a separator to specify multiple services.",
     required: true,
