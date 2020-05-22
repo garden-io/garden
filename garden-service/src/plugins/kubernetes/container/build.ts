@@ -277,7 +277,7 @@ const remoteBuild: BuildHandler = async (params) => {
 
   // Stream debug log to a status line
   const stdout = split2()
-  const statusLine = log.placeholder(LogLevel.verbose)
+  const statusLine = log.placeholder({ level: LogLevel.verbose })
 
   stdout.on("error", () => {})
   stdout.on("data", (line: Buffer) => {

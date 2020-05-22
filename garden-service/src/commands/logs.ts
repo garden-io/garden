@@ -98,7 +98,7 @@ export class LogsCommand extends Command<Args, Opts> {
     })
 
     const actions = await garden.getActionRouter()
-    const voidLog = log.placeholder(LogLevel.silly, true)
+    const voidLog = log.placeholder({ level: LogLevel.silly, childEntriesInheritLevel: true })
 
     await Bluebird.map(services, async (service: Service<any>) => {
       const status = await actions.getServiceStatus({
