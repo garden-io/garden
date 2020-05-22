@@ -161,7 +161,7 @@ describe("Terraform module type", () => {
   })
 
   async function deployStack(autoApply: boolean) {
-    await garden.scanModules()
+    await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["tf"].spec.autoApply = autoApply
 
     graph = await garden.getConfigGraph(garden.log)
@@ -180,7 +180,7 @@ describe("Terraform module type", () => {
   }
 
   async function runTestTask(autoApply: boolean) {
-    await garden.scanModules()
+    await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["tf"].spec.autoApply = autoApply
 
     graph = await garden.getConfigGraph(garden.log)

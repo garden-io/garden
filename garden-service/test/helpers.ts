@@ -17,7 +17,7 @@ import execa = require("execa")
 import { containerModuleSpecSchema, containerTestSchema, containerTaskSchema } from "../src/plugins/container/config"
 import { testExecModule, buildExecModule, execBuildSpecSchema } from "../src/plugins/exec"
 import { TaskResults } from "../src/task-graph"
-import { joiArray, joi } from "../src/config/common"
+import { joiArray, joi, StringMap, DeepPrimitiveMap } from "../src/config/common"
 import {
   PluginActionHandlers,
   createGardenPlugin,
@@ -51,6 +51,7 @@ import { SuiteFunction, TestFunction } from "mocha"
 import { GardenBaseError } from "../src/exceptions"
 import { RuntimeContext } from "../src/runtime-context"
 import { Module } from "../src/types/module"
+import { WorkflowConfig } from "../src/config/workflow"
 
 export const dataDir = resolve(GARDEN_SERVICE_ROOT, "test", "data")
 export const examplesDir = resolve(GARDEN_SERVICE_ROOT, "..", "examples")
@@ -339,6 +340,8 @@ export const testPlugins = [testPlugin, testPluginB, testPluginC]
 
 export class TestGarden extends Garden {
   events: TestEventBus
+  public secrets: StringMap // Not readonly, to allow setting secrets in tests
+  public variables: DeepPrimitiveMap // Not readonly, to allow setting variables in tests
 
   constructor(params: GardenParams) {
     super(params)
@@ -346,8 +349,12 @@ export class TestGarden extends Garden {
   }
 
   setModuleConfigs(moduleConfigs: ModuleConfig[]) {
-    this.modulesScanned = true
+    this.configsScanned = true
     this.moduleConfigs = keyBy(moduleConfigs, "name")
+  }
+
+  setWorkflowConfigs(workflowConfigs: WorkflowConfig[]) {
+    this.workflowConfigs = keyBy(workflowConfigs, "name")
   }
 
   /**

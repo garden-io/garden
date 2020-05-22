@@ -13,13 +13,14 @@ import { RunModuleCommand } from "./module"
 import { RunServiceCommand } from "./service"
 import { RunTaskCommand } from "./task"
 import { RunTestCommand } from "./test"
+import { RunWorkflowCommand } from "./workflow"
 import { LogEntry } from "../../logger/log-entry"
 
 export class RunCommand extends Command {
   name = "run"
   help = "Run ad-hoc instances of your modules, services and tests."
 
-  subCommands = [RunModuleCommand, RunServiceCommand, RunTaskCommand, RunTestCommand]
+  subCommands = [RunModuleCommand, RunServiceCommand, RunTaskCommand, RunTestCommand, RunWorkflowCommand]
 
   async action() {
     return {}

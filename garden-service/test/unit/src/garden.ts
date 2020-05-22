@@ -1261,33 +1261,6 @@ describe("Garden", () => {
     })
   })
 
-  describe("getConfigGraph", () => {
-    it("should throw an error if references to missing secrets are present in a module config", async () => {
-      const garden = await makeTestGardenA()
-      garden.setModuleConfigs([
-        {
-          apiVersion: DEFAULT_API_VERSION,
-          name: "module-a",
-          type: "test",
-          allowPublish: false,
-          build: { dependencies: [] },
-          disabled: false,
-          outputs: {},
-          path: pathFoo,
-          serviceConfigs: [],
-          taskConfigs: [],
-          testConfigs: [],
-          spec: { bla: "${secrets.missing}" }, // <-------
-        },
-      ])
-
-      await expectError(
-        () => garden.getConfigGraph(garden.log),
-        (err) => expect(err.message).to.match(/Module module-a: missing/)
-      )
-    })
-  })
-
   describe("resolveProviders", () => {
     it("should throw when plugins are missing", async () => {
       const garden = await TestGarden.factory(projectRootA)
@@ -2062,11 +2035,11 @@ describe("Garden", () => {
     })
   })
 
-  describe("scanModules", () => {
+  describe("scanAndAddConfigs", () => {
     // TODO: assert that gitignore in project root is respected
     it("should scan the project root for modules and add to the context", async () => {
       const garden = await makeTestGardenA()
-      await garden.scanModules()
+      await garden.scanAndAddConfigs()
 
       const modules = await garden.resolveModules({ log: garden.log })
       expect(getNames(modules).sort()).to.eql(["module-a", "module-b", "module-c"])
@@ -2074,7 +2047,7 @@ describe("Garden", () => {
 
     it("should scan and add modules for projects with configs defining multiple modules", async () => {
       const garden = await makeTestGarden(resolve(dataDir, "test-projects", "multiple-module-config"))
-      await garden.scanModules()
+      await garden.scanAndAddConfigs()
 
       const modules = await garden.resolveModules({ log: garden.log })
       expect(getNames(modules).sort()).to.eql([
@@ -2089,7 +2062,7 @@ describe("Garden", () => {
 
     it("should scan and add modules for projects with external project sources", async () => {
       const garden = await makeExtProjectSourcesGarden()
-      await garden.scanModules()
+      await garden.scanAndAddConfigs()
       const modules = await garden.resolveModules({ log: garden.log })
       expect(getNames(modules).sort()).to.eql(["module-a", "module-b", "module-c"])
     })
@@ -2098,7 +2071,7 @@ describe("Garden", () => {
       const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-module"))
 
       await expectError(
-        () => garden.scanModules(),
+        () => garden.scanAndAddConfigs(),
         (err) =>
           expect(err.message).to.equal(
             "Module module-a is declared multiple times (in 'module-a/garden.yml' and 'module-b/garden.yml')"
@@ -2155,21 +2128,37 @@ describe("Garden", () => {
         }
       )
     })
+
+    it("should throw an error if references to missing secrets are present in a module config", async () => {
+      const garden = await makeTestGarden(join(dataDir, "missing-secrets", "module"))
+      await expectError(
+        () => garden.scanAndAddConfigs(),
+        (err) => expect(err.message).to.match(/Module module-a: missing/)
+      )
+    })
+
+    it("should throw an error if references to missing secrets are present in a workflow config", async () => {
+      const garden = await makeTestGarden(join(dataDir, "missing-secrets", "workflow"))
+      await expectError(
+        () => garden.scanAndAddConfigs(),
+        (err) => expect(err.message).to.match(/Workflow test-workflow: missing/)
+      )
+    })
   })
 
-  describe("loadModuleConfigs", () => {
+  describe("loadConfigs", () => {
     it("should resolve module by absolute path", async () => {
       const garden = await makeTestGardenA()
       const path = join(projectRootA, "module-a")
 
-      const module = (await (<any>garden).loadModuleConfigs(path))[0]
+      const module = (await (<any>garden).loadConfigs(path))[0]
       expect(module!.name).to.equal("module-a")
     })
 
     it("should resolve module by relative path to project root", async () => {
       const garden = await makeTestGardenA()
 
-      const module = (await (<any>garden).loadModuleConfigs("./module-a"))[0]
+      const module = (await (<any>garden).loadConfigs("./module-a"))[0]
       expect(module!.name).to.equal("module-a")
     })
   })
@@ -3214,7 +3203,7 @@ describe("Garden", () => {
 
     it("should otherwise return version from VCS handler", async () => {
       const garden = await makeTestGardenA()
-      await garden.scanModules()
+      await garden.scanAndAddConfigs()
 
       garden.cache.delete(["moduleVersions", "module-b"])
 

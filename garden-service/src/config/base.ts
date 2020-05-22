@@ -17,6 +17,7 @@ import { DEFAULT_API_VERSION } from "../constants"
 import { ProjectResource } from "../config/project"
 import { getConfigFilePath } from "../util/fs"
 import { validateWithPath } from "./validation"
+import { WorkflowResource } from "./workflow"
 
 export interface GardenResource {
   apiVersion: string
@@ -79,19 +80,10 @@ export async function loadConfig(projectRoot: string, path: string): Promise<Gar
   return resources
 }
 
-export type ConfigKind = "Module" | "Project"
+export type ConfigKind = "Module" | "Workflow" | "Project"
 
 /**
- * Each YAML document in a garden.yml file consists of a project definition and/or a module definition.
- *
- * A document can be structured according to either the (old) nested or the (new) flat style.
- *
- * In the nested style, the project/module's config is nested under the project/module key respectively.
- *
- * In the flat style, the project/module's config is at the top level, and the kind key is used to indicate
- * whether the entity being configured is a project or a module (similar to the YAML syntax for k8s object
- * definitions). The kind key is removed before validation, so that specs following both styles can be validated
- * with the same schema.
+ * Each YAML document in a garden.yml file defines a project, a module or a workflow.
  */
 function prepareResource(spec: any, path: string, configPath: string, projectRoot: string): GardenResource {
   if (!isPlainObject(spec)) {
@@ -108,6 +100,8 @@ function prepareResource(spec: any, path: string, configPath: string, projectRoo
     return prepareProjectConfig(spec, path, configPath)
   } else if (kind === "Module") {
     return prepareModuleResource(spec, path, configPath, projectRoot)
+  } else if (kind === "Workflow") {
+    return prepareWorkflowResource(spec, path, configPath)
   } else if (!kind) {
     throw new ConfigurationError(`Missing \`kind\` field in config at ${relPath}`, {
       kind,
@@ -188,6 +182,18 @@ export function prepareModuleResource(
   })
 
   return config
+}
+
+export function prepareWorkflowResource(spec: any, path: string, configPath: string): WorkflowResource {
+  if (!spec.apiVersion) {
+    spec.apiVersion = DEFAULT_API_VERSION
+  }
+
+  spec.kind = "Workflow"
+  spec.path = path
+  spec.configPath = configPath
+
+  return spec
 }
 
 export async function findProjectConfig(path: string, allowInvalid = false): Promise<ProjectResource | undefined> {
