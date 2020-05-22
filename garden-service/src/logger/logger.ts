@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogNode, CreateNodeParams } from "./log-node"
+import { LogNode, CreateNodeParams, PlaceholderOpts } from "./log-node"
 import { LogEntry, EVENT_LOG_LEVEL } from "./log-entry"
 import { getChildEntries, findLogNode } from "./util"
 import { Writer } from "./writers/base"
@@ -112,9 +112,9 @@ export class Logger extends LogNode {
     return new LogEntry({ ...params, root: this })
   }
 
-  placeholder(level: LogLevel = LogLevel.info): LogEntry {
+  placeholder({ level = LogLevel.info, indent }: PlaceholderOpts = {}): LogEntry {
     // Ensure placeholder child entries align with parent context
-    return this.addNode({ level, indent: -1, isPlaceholder: true })
+    return this.addNode({ level, indent: indent || -1, isPlaceholder: true })
   }
 
   onGraphChange(entry: LogEntry) {
