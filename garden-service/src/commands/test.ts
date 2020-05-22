@@ -83,20 +83,31 @@ export class TestCommand extends Command<Args, Opts> {
   options = testOpts
 
   private server: GardenServer
+  private isPersistent = (opts) => !!opts.watch
 
   async prepare({ headerLog, footerLog, opts }: PrepareParams<Args, Opts>) {
-    printHeader(headerLog, `Running tests`, "thermometer")
-
-    const persistent = !!opts.watch
+    const persistent = this.isPersistent(opts)
 
     if (persistent) {
+      printHeader(headerLog, `Running tests`, "thermometer")
       this.server = await startServer(footerLog)
     }
 
     return { persistent }
   }
 
-  async action({ garden, log, footerLog, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
+  async action({
+    garden,
+    log,
+    headerLog,
+    footerLog,
+    args,
+    opts,
+  }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
+    if (!this.isPersistent(opts)) {
+      printHeader(headerLog, `Running tests`, "thermometer")
+    }
+
     if (this.server) {
       this.server.setGarden(garden)
     }
