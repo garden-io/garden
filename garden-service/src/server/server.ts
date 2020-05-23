@@ -121,7 +121,7 @@ export class GardenServer {
         this.analytics = await AnalyticsHandler.init(this.garden, this.log)
       }
 
-      await this.analytics.trackApi("POST", ctx.originalUrl, { ...ctx.request.body })
+      this.analytics.trackApi("POST", ctx.originalUrl, { ...ctx.request.body })
 
       const result = await resolveRequest(ctx, this.garden, this.log, commands, ctx.request.body)
       ctx.status = 200
