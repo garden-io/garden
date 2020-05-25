@@ -487,7 +487,7 @@ jobs:
 
   test-microk8s:
     machine:
-      image: 'ubuntu-1604:201903-01'
+      image: 'ubuntu-1604:202004-01'
       docker_layer_caching: true
     parameters:
       kubernetesVersion:
@@ -544,7 +544,7 @@ jobs:
 
   test-minikube:
     machine:
-      image: 'ubuntu-1604:201903-01'
+      image: 'ubuntu-1604:202004-01'
       docker_layer_caching: true
     parameters:
       kubernetesVersion:
