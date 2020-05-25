@@ -100,7 +100,7 @@ You can, however, run multiple [Kaniko pods](https://docs.garden.io/guides/in-cl
 Please **do not** delete the `garden-system` namespace directly, because Kubernetes may fail to remove persistent volumes. Instead, use this command:
 
 ```console
-garden plugin kubernetes uninstall-garden-services --env <env-name>
+garden plugins kubernetes uninstall-garden-services --env <env-name>
 ```
 
 It removes all cluster-wide Garden services.
