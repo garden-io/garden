@@ -35,6 +35,7 @@ describe("GetConfigCommand", () => {
       variables: garden.variables,
       moduleConfigs: sortBy(await garden.resolveModules({ log }), "name").map((m) => m._config),
       projectRoot: garden.projectRoot,
+      projectId: "test-project-id",
     }
 
     expect(config).to.deep.equal(res.result)
@@ -117,6 +118,7 @@ describe("GetConfigCommand", () => {
       variables: garden.variables,
       moduleConfigs: expectedModuleConfigs,
       projectRoot: garden.projectRoot,
+      projectId: "test-project-id",
     }
 
     expect(expectedModuleConfigs.length).to.equal(2)
@@ -189,6 +191,7 @@ describe("GetConfigCommand", () => {
       variables: garden.variables,
       moduleConfigs: expectedModuleConfigs,
       projectRoot: garden.projectRoot,
+      projectId: "test-project-id",
     }
 
     expect(config).to.deep.equal(res.result)
@@ -257,6 +260,7 @@ describe("GetConfigCommand", () => {
       variables: garden.variables,
       moduleConfigs: expectedModuleConfigs,
       projectRoot: garden.projectRoot,
+      projectId: "test-project-id",
     }
 
     expect(res.result).to.deep.equal(config)
@@ -332,6 +336,7 @@ describe("GetConfigCommand", () => {
       variables: garden.variables,
       moduleConfigs: expectedModuleConfigs,
       projectRoot: garden.projectRoot,
+      projectId: "test-project-id",
     }
 
     expect(res.result).to.deep.equal(config)
@@ -413,6 +418,7 @@ describe("GetConfigCommand", () => {
         variables: garden.variables,
         moduleConfigs: expectedModuleConfigs,
         projectRoot: garden.projectRoot,
+        projectId: "test-project-id",
       }
 
       expect(expectedModuleConfigs.length).to.equal(1)
@@ -512,6 +518,7 @@ describe("GetConfigCommand", () => {
         variables: garden.variables,
         moduleConfigs: expectedModuleConfigs,
         projectRoot: garden.projectRoot,
+        projectId: "test-project-id",
       }
 
       expect(config).to.deep.equal(res.result)
@@ -599,6 +606,7 @@ describe("GetConfigCommand", () => {
         variables: garden.variables,
         moduleConfigs: expectedModuleConfigs,
         projectRoot: garden.projectRoot,
+        projectId: "test-project-id",
       }
 
       expect(res.result).to.deep.equal(config)
@@ -691,6 +699,7 @@ describe("GetConfigCommand", () => {
         variables: garden.variables,
         moduleConfigs: expectedModuleConfigs,
         projectRoot: garden.projectRoot,
+        projectId: "test-project-id",
       }
 
       expect(res.result).to.deep.equal(config)
