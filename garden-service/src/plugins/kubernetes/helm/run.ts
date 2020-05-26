@@ -21,6 +21,7 @@ import { prepareEnvVars } from "../util"
 import { V1PodSpec } from "@kubernetes/client-node"
 import { KubeApi } from "../api"
 import { getModuleNamespace } from "../namespace"
+import { DEFAULT_TASK_TIMEOUT } from "../../../constants"
 
 export async function runHelmModule({
   ctx,
@@ -97,7 +98,7 @@ export async function runHelmModule({
 }
 
 export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<RunTaskResult> {
-  const { ctx, log, module, task, taskVersion, timeout } = params
+  const { ctx, log, module, task, taskVersion } = params
   // TODO: deduplicate this from testHelmModule
   const k8sCtx = <KubernetesPluginContext>ctx
 
@@ -132,7 +133,7 @@ export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<Ru
     namespace,
     podName: makePodName("task", module.name, task.name),
     description: `Task '${task.name}' in container module '${module.name}'`,
-    timeout,
+    timeout: task.config.timeout || DEFAULT_TASK_TIMEOUT,
   })
 
   const result: RunTaskResult = {
