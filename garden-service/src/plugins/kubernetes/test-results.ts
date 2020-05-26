@@ -56,7 +56,7 @@ export async function getTestResult({
 
     return <TestResult>result
   } catch (err) {
-    if (err.code === 404) {
+    if (err.statusCode === 404) {
       return null
     } else {
       throw err

@@ -99,7 +99,7 @@ type CrudMapTypes = { [T in keyof CrudMap]: CrudMap[T]["cls"] }
 export class KubernetesError extends GardenBaseError {
   type = "kubernetes"
 
-  code?: number
+  statusCode?: number
   response?: any
 }
 
@@ -356,7 +356,7 @@ export class KubeApi {
     try {
       await this.request({ log, path: apiPath, opts: { method: "delete" } })
     } catch (err) {
-      if (err.code !== 404) {
+      if (err.statusCode !== 404) {
         throw err
       }
     }
@@ -402,12 +402,12 @@ export class KubeApi {
       await api[crudMap[kind].patch](name, namespace, obj)
       log.debug(`Patched ${kind} ${namespace}/${name}`)
     } catch (err) {
-      if (err.code === 404) {
+      if (err.statusCode === 404) {
         try {
           await api[crudMap[kind].create](namespace, <any>obj)
           log.debug(`Created ${kind} ${namespace}/${name}`)
         } catch (err) {
-          if (err.code === 409) {
+          if (err.statusCode === 409) {
             log.debug(`Patched ${kind} ${namespace}/${name}`)
             await api[crudMap[kind].patch](name, namespace, obj)
           } else {
@@ -521,7 +521,6 @@ function wrapError(err: any) {
       body,
       request: omitBy(response.request, (v, k) => isObject(v) || k[0] === "_"),
     })
-    wrapped.code = response.statusCode
     return wrapped
   } else {
     return err
@@ -533,7 +532,7 @@ function handleRequestPromiseError(err: Error) {
     const wrapped = new KubernetesError(`StatusCodeError from Kubernetes API - ${err.message}`, {
       body: err.error,
     })
-    wrapped.code = err.statusCode
+    wrapped.statusCode = err.statusCode
 
     return wrapped
   } else {

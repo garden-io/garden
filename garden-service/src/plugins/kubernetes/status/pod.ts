@@ -77,7 +77,7 @@ export async function getPodLogs({
   try {
     podRes = await api.core.readNamespacedPod(podName, namespace)
   } catch (err) {
-    if (err.code === 404) {
+    if (err.statusCode === 404) {
       return []
     } else {
       throw err
@@ -99,6 +99,7 @@ export async function getPodLogs({
         namespace,
         containerName,
         false, // follow
+        false, // insecureSkipTLSVerify
         byteLimit,
         undefined, // pretty
         false, // previous
