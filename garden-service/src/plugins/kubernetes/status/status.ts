@@ -144,7 +144,7 @@ export async function checkResourceStatus(
     resource = await api.readBySpec({ namespace, manifest, log })
     resourceVersion = parseInt(resource.metadata.resourceVersion!, 10)
   } catch (err) {
-    if (err.code === 404) {
+    if (err.statusCode === 404) {
       return { state: <ServiceState>"missing", resource: manifest }
     } else {
       throw err
@@ -410,7 +410,7 @@ async function getDeployedResource(
     const res = await api.readBySpec({ namespace, manifest: resource, log })
     return <KubernetesResource>res
   } catch (err) {
-    if (err.code === 404) {
+    if (err.statusCode === 404) {
       return null
     } else {
       throw err

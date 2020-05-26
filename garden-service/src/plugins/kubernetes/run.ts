@@ -506,7 +506,7 @@ export class PodRunner extends PodRunnerParams {
       try {
         pod = await this.api.core.readNamespacedPod(this.podName, this.namespace)
       } catch (err) {
-        if (err.code === 404) {
+        if (err.statusCode === 404) {
           if (this.proc.killed) {
             if (ignoreError) {
               break
@@ -658,7 +658,7 @@ export class PodRunner extends PodRunnerParams {
     try {
       await this.api.core.deleteNamespacedPod(this.podName, this.namespace, undefined, undefined, 0)
     } catch (err) {
-      if (err.code !== 404) {
+      if (err.statusCode !== 404) {
         throw err
       }
     }

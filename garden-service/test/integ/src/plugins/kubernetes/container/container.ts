@@ -171,7 +171,7 @@ describe("kubernetes container module handlers", () => {
 
       await expectError(
         () => api.core.readNamespacedPod(podName, namespace),
-        (err) => expect(err.code).to.equal(404)
+        (err) => expect(err.statusCode).to.equal(404)
       )
     })
 
@@ -248,7 +248,7 @@ describe("kubernetes container module handlers", () => {
 
         await expectError(
           () => api.core.readNamespacedPod(podName, namespace),
-          (err) => expect(err.code).to.equal(404)
+          (err) => expect(err.statusCode).to.equal(404)
         )
       })
 

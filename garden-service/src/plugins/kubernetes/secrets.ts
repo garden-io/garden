@@ -25,7 +25,7 @@ export async function getSecret({ ctx, log, key }: GetSecretParams) {
     const res = await api.core.readNamespacedSecret(key, ns)
     return { value: Buffer.from(res.data!.value, "base64").toString() }
   } catch (err) {
-    if (err.code === 404) {
+    if (err.statusCode === 404) {
       return { value: null }
     } else {
       throw err
@@ -56,7 +56,7 @@ export async function setSecret({ ctx, log, key, value }: SetSecretParams) {
   try {
     await api.core.createNamespacedSecret(ns, <any>body)
   } catch (err) {
-    if (err.code === 409) {
+    if (err.statusCode === 409) {
       await api.core.patchNamespacedSecret(key, ns, body)
     } else {
       throw err
@@ -74,7 +74,7 @@ export async function deleteSecret({ ctx, log, key }: DeleteSecretParams) {
   try {
     await api.core.deleteNamespacedSecret(key, ns, <any>{})
   } catch (err) {
-    if (err.code === 404) {
+    if (err.statusCode === 404) {
       return { found: false }
     } else {
       throw err
@@ -90,7 +90,7 @@ export async function readSecret(api: KubeApi, secretRef: ProviderSecretRef) {
   try {
     return await api.core.readNamespacedSecret(secretRef.name, secretRef.namespace)
   } catch (err) {
-    if (err.code === 404) {
+    if (err.statusCode === 404) {
       throw new ConfigurationError(
         `Could not find secret '${secretRef.name}' in namespace '${secretRef.namespace}'. ` +
           `Have you correctly configured your secrets?`,

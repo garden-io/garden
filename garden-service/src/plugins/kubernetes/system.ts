@@ -107,7 +107,7 @@ export async function systemNamespaceUpToDate(
   try {
     namespaceResource = await api.core.readNamespace(namespace)
   } catch (err) {
-    if (err.code === 404) {
+    if (err.statusCode === 404) {
       return false
     } else {
       throw err

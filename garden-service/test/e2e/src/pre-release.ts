@@ -10,7 +10,7 @@ import execa = require("execa")
 import { expect } from "chai"
 import { resolve } from "path"
 import mlog from "mocha-logger"
-import replace from "replace-in-file"
+import { replaceInFile } from "replace-in-file"
 import { examplesDir } from "../../helpers"
 import {
   changeFileStep,
@@ -151,7 +151,7 @@ describe("PreReleaseTests", () => {
           {
             description: "change 'Node' -> 'foo' in node-service/app.js",
             action: async () => {
-              await replace({
+              await replaceInFile({
                 files: resolve(hotReloadProjectPath, "node-service/app.js"),
                 from: /Hello from Node/,
                 to: "Hello from foo",
@@ -206,7 +206,7 @@ describe("PreReleaseTests", () => {
           {
             description: "change 'Node' -> 'foo' in node-service/app.js",
             action: async () => {
-              await replace({
+              await replaceInFile({
                 files: resolve(hotReloadProjectPath, "node-service/app.js"),
                 from: /Hello from Node/,
                 to: "Hello from foo",
