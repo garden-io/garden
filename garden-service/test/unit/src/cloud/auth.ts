@@ -11,6 +11,7 @@ import { expect } from "chai"
 import { ClientAuthToken } from "../../../../src/db/entities/client-auth-token"
 import { makeTestGardenA } from "../../../helpers"
 import { saveAuthToken, readAuthToken, clearAuthToken } from "../../../../src/cloud/auth"
+import { getLogger } from "../../../../src/logger/logger"
 
 async function cleanupAuthTokens() {
   await ClientAuthToken.createQueryBuilder()
@@ -61,6 +62,19 @@ describe("cloud", () => {
         await saveAuthToken(testToken, garden.log)
         const savedToken = await readAuthToken(garden.log)
         expect(savedToken).to.eql("test-token")
+      })
+
+      it("should return the value of GARDEN_AUTH_TOKEN if it's present", async () => {
+        const envBackup = { ...process.env }
+        const testToken = "token-from-env"
+        process.env.GARDEN_AUTH_TOKEN = testToken
+        const log = getLogger().placeholder()
+        try {
+          const savedToken = await readAuthToken(log)
+          expect(savedToken).to.eql(testToken)
+        } finally {
+          process.env = envBackup
+        }
       })
 
       it("should clean up duplicate auth tokens in the erroneous case when several exist", async () => {
