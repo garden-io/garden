@@ -100,12 +100,21 @@ export async function saveAuthToken(token: string, log: LogEntry) {
 }
 
 /**
- * If a persisted client auth token was found, returns it. Returns null otherwise.
+ * If a persisted client auth token was found, or if the GARDEN_AUTH_TOKEN environment variable is present, returns it.
+ * Returns null otherwise.
+ *
+ * Note that the GARDEN_AUTH_TOKEN environment variable takes precedence over a persisted auth token if both are
+ * present.
  *
  * In the inconsistent/erroneous case of more than one auth token existing in the local store, picks the first auth
  * token and deletes all others.
  */
 export async function readAuthToken(log: LogEntry): Promise<string | null> {
+  const tokenFromEnv = process.env.GARDEN_AUTH_TOKEN
+  if (tokenFromEnv) {
+    return tokenFromEnv
+  }
+
   const [tokens, tokenCount] = await ClientAuthToken.findAndCount()
 
   const token = tokens[0] ? tokens[0].token : null
