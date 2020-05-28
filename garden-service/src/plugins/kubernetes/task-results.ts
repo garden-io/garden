@@ -57,7 +57,7 @@ export async function getTaskResult({
 
     return <RunTaskResult>result
   } catch (err) {
-    if (err.code === 404) {
+    if (err.statusCode === 404) {
       return null
     } else {
       throw err
@@ -143,7 +143,7 @@ export async function clearTaskResult({
   try {
     await api.core.deleteNamespacedConfigMap(key, namespace)
   } catch (err) {
-    if (err.code !== 404) {
+    if (err.statusCode !== 404) {
       throw err
     }
   }

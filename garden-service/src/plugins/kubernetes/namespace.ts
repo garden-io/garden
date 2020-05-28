@@ -165,7 +165,7 @@ export async function deleteNamespaces(namespaces: string[], api: KubeApi, log?:
       await api.core.deleteNamespace(ns, <any>{})
     } catch (err) {
       // Ignore not found errors.
-      if (err.code !== 404) {
+      if (err.statusCode !== 404) {
         throw err
       }
     }
