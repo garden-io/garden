@@ -18,6 +18,7 @@ import { isConfigFilename, matchPath } from "./util/fs"
 import Bluebird from "bluebird"
 import { InternalError } from "./exceptions"
 import { EventEmitter } from "events"
+import fs  from "fs"
 
 // How long we wait between processing added files and directories
 const DEFAULT_BUFFER_INTERVAL = 400
@@ -109,6 +110,16 @@ export class Watcher extends EventEmitter {
               error,
             })
           }
+        }
+
+        // Make sure we aren't trying to watch too many files at the same time. 
+        // We can exclude windows because it uses a different mechanism that doen't have the same limits
+        if (process.platform != "win32") {
+            var inotifyLimit = +fs.readFileSync('/proc/sys/fs/inotify/max_user_watches','utf8')
+            if (this.paths.length > inotifyLimit) {
+              this.log.warn("inotify watcher limit exceeded. Updates to some files may not trigger change detection")
+              this.paths = this.paths.slice(0,inotifyLimit - 1)
+            }
         }
 
         this.log.debug(`Watcher: Starting FSWatcher`)
