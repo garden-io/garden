@@ -7,8 +7,11 @@
  */
 
 import { expect } from "chai"
+import nock from "nock"
+import { isEqual } from "lodash"
+
 import { makeDummyGarden, GardenCli } from "../../../../src/cli/cli"
-import { getDataDir } from "../../../helpers"
+import { getDataDir, TestGarden, makeTestGardenA, enableAnalytics } from "../../../helpers"
 import { GARDEN_SERVICE_ROOT } from "../../../../src/constants"
 import { join } from "path"
 import { Command } from "../../../../src/commands/base"
@@ -72,6 +75,59 @@ describe("cli", () => {
       expect(errors).to.eql([])
       expect(result).to.eql({ environmentName: "missing-env" })
     })
+
+    context("test analytics", () => {
+      const host = "https://api.segment.io"
+      const scope = nock(host)
+      let garden: TestGarden
+      let resetAnalyticsConfig: Function
+
+      before(async () => {
+        garden = await makeTestGardenA()
+        resetAnalyticsConfig = await enableAnalytics(garden)
+      })
+
+      after(async () => {
+        await resetAnalyticsConfig()
+        nock.cleanAll()
+      })
+
+      it("should wait for queued analytic events to flush", async () => {
+        class TestCommand extends Command {
+          name = "test-command"
+          help = "hilfe!"
+          noProject = true
+
+          async action({ args }) {
+            return { result: { args } }
+          }
+        }
+
+        const command = new TestCommand()
+        const cli = new GardenCli()
+        cli.addCommand(command, cli["program"])
+
+        scope
+          .post(`/v1/batch`, (body) => {
+            const events = body.batch.map((event: any) => ({
+              event: event.event,
+              type: event.type,
+              name: event.properties.name,
+            }))
+            return isEqual(events, [
+              {
+                event: "Run Command",
+                type: "track",
+                name: "test-command",
+              },
+            ])
+          })
+          .reply(200)
+        await cli.parse(["test-command"])
+
+        expect(scope.done()).to.not.throw
+      })
+    })
   })
 
   describe("makeDummyGarden", () => {
@@ -79,7 +135,7 @@ describe("cli", () => {
       const garden = await makeDummyGarden(join(GARDEN_SERVICE_ROOT, "tmp", "foobarbas"), {})
       const dg = await garden.getConfigGraph(garden.log)
       expect(garden).to.be.ok
-      expect(await dg.getModules()).to.not.throw
+      expect(dg.getModules()).to.not.throw
     })
     it("should initialise and resolve config graph in a project with invalid config", async () => {
       const root = getDataDir("test-project-invalid-config")
@@ -93,7 +149,7 @@ describe("cli", () => {
       const garden = await makeDummyGarden(root, {})
       const dg = await garden.getConfigGraph(garden.log)
       expect(garden).to.be.ok
-      expect(await dg.getModules()).to.not.throw
+      expect(dg.getModules()).to.not.throw
     })
   })
 })

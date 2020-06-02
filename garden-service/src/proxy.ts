@@ -162,11 +162,11 @@ async function createProxy(garden: Garden, log: LogEntry, service: Service, spec
       return _remote
     }
 
-    local.on("connect", () => {
-      log.debug(`Connection from ${local.remoteAddress}:${local.remotePort}`)
-      // tslint:disable-next-line: no-floating-promises
-      getRemote()
-    })
+    // net.Server.listen doesn't call the handler until a connection is established, in which
+    // case we can actually go ahead and contact the remote. Indeed, we need to in case the remote
+    // responds on connection.
+    // tslint:disable-next-line: no-floating-promises
+    getRemote()
 
     const writeToRemote = (remote: Socket, data: Buffer) => {
       if (!remote.writable) {

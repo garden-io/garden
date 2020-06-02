@@ -9,9 +9,9 @@
 import segmentClient = require("analytics-node")
 import { platform, release } from "os"
 import ci = require("ci-info")
-import { flatten } from "lodash"
+import { uniq } from "lodash"
 import { globalConfigKeys, AnalyticsGlobalConfig, GlobalConfigStore, GlobalConfig } from "../config-store"
-import { getPackageVersion, uuidv4 } from "../util/util"
+import { getPackageVersion, uuidv4, sleep } from "../util/util"
 import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY } from "../constants"
 import { LogEntry } from "../logger/log-entry"
 import hasha = require("hasha")
@@ -94,7 +94,7 @@ interface AnalyticsEvent {
   properties: AnalyticsEventProperties
 }
 
-interface SegmentEvent {
+export interface SegmentEvent {
   userId: string
   event: AnalyticsType
   properties: AnalyticsEventProperties
@@ -116,7 +116,7 @@ interface SegmentEvent {
  * @class AnalyticsHandler
  */
 export class AnalyticsHandler {
-  private static instance: AnalyticsHandler
+  private static instance?: AnalyticsHandler
   private segment: any
   private log: LogEntry
   private analyticsConfig: AnalyticsGlobalConfig
@@ -127,6 +127,7 @@ export class AnalyticsHandler {
   private systemConfig: SystemInfo
   private isCI = ci.isCI
   private sessionId: string
+  private pendingEvents: Map<string, SegmentEvent>
   protected garden: Garden
   private projectMetadata: ProjectMetadata
 
@@ -139,6 +140,8 @@ export class AnalyticsHandler {
     this.garden = garden
     this.sessionId = garden.sessionId
     this.globalConfigStore = new GlobalConfigStore()
+    // Events that are queued or flushed but the network response hasn't returned
+    this.pendingEvents = new Map()
     this.analyticsConfig = {
       userId: "",
       firstRun: true,
@@ -172,6 +175,10 @@ export class AnalyticsHandler {
       throw Error("Analytics not initialized. Init first")
     }
     return AnalyticsHandler.instance
+  }
+
+  static clearInstance() {
+    AnalyticsHandler.instance = undefined
   }
 
   /**
@@ -212,7 +219,7 @@ export class AnalyticsHandler {
 
       await this.globalConfigStore.set([globalConfigKeys.analytics], this.analyticsConfig)
 
-      if (this.segment && this.analyticsConfig.optedIn) {
+      if (this.segment && this.analyticsEnabled()) {
         this.segment.identify({
           userId: getUserId({ analytics: this.analyticsConfig }),
           traits: {
@@ -231,7 +238,9 @@ export class AnalyticsHandler {
   }
 
   static async refreshGarden(garden: Garden) {
-    AnalyticsHandler.instance.garden = garden
+    if (AnalyticsHandler.instance) {
+      AnalyticsHandler.instance.garden = garden
+    }
   }
 
   /**
@@ -250,21 +259,16 @@ export class AnalyticsHandler {
    * eg. number of modules, types of modules, number of tests, etc.
    */
   private async generateProjectMetadata(): Promise<ProjectMetadata> {
-    const configGraph = await this.garden.getConfigGraph(this.log)
-    const modules = configGraph.getModules()
-    const moduleTypes = [...new Set(modules.map((m) => m.type))]
+    const moduleConfigs = await this.garden.getRawModuleConfigs()
 
-    const tasks = configGraph.getTasks()
-    const services = configGraph.getServices()
-    const tests = modules.map((m) => m.testConfigs)
-    const testsCount = flatten(tests).length
+    const count = (key: string) => moduleConfigs.flatMap((c) => c.spec[key]).filter((spec) => !!spec).length
 
     return {
-      modulesCount: modules.length,
-      moduleTypes,
-      tasksCount: tasks.length,
-      servicesCount: services.length,
-      testsCount,
+      modulesCount: moduleConfigs.length,
+      moduleTypes: uniq(moduleConfigs.map((c) => c.type)),
+      tasksCount: count("tasks"),
+      servicesCount: count("services"),
+      testsCount: count("tests"),
     }
   }
 
@@ -303,7 +307,7 @@ export class AnalyticsHandler {
    * @returns
    * @memberof AnalyticsHandler
    */
-  private async track(event: AnalyticsEvent) {
+  private track(event: AnalyticsEvent) {
     if (this.segment && this.analyticsEnabled()) {
       const segmentEvent: SegmentEvent = {
         userId: getUserId({ analytics: this.analyticsConfig }),
@@ -314,24 +318,19 @@ export class AnalyticsHandler {
         },
       }
 
-      // NOTE: We need to wrap the track method in a Promise because of the race condition
-      // when tracking flushing the first event. See: https://github.com/segmentio/analytics-node/issues/219
-      const trackToRemote = (eventToTrack: SegmentEvent) => {
-        return new Promise((resolve) => {
-          this.segment.track(eventToTrack, (err) => {
-            this.log.silly(dedent`Tracking ${eventToTrack.event} event.
-              Payload:
-                ${JSON.stringify(eventToTrack)}
-            `)
-            if (err && this.log) {
-              this.log.debug(`Error sending ${eventToTrack.event} tracking event: ${err}`)
-            }
-            resolve(true)
-          })
-        })
-      }
-
-      return trackToRemote(segmentEvent)
+      const eventUid = uuidv4()
+      this.pendingEvents.set(eventUid, segmentEvent)
+      this.segment.track(segmentEvent, (err: any) => {
+        this.pendingEvents.delete(eventUid)
+        this.log.silly(dedent`Tracking ${segmentEvent.event} event.
+          Payload:
+            ${JSON.stringify(segmentEvent)}
+        `)
+        if (err && this.log) {
+          this.log.debug(`Error sending ${segmentEvent.event} tracking event: ${err}`)
+        }
+      })
+      return event
     }
     return false
   }
@@ -431,19 +430,57 @@ export class AnalyticsHandler {
   }
 
   /**
-   *  Make sure the Segment client flushes the events queue
+   * Flushes the event queue and waits if there are still pending events after flushing.
+   * This can happen if Segment has already flushed, which means the queue is empty and segment.flush()
+   * will return immediately.
+   *
+   * Waits for 2000 ms at most if there are still pending events.
+   * That should be enough time for a network request to fire, even if we don't wait for the response.
    *
    * @returns
    * @memberof AnalyticsHandler
    */
-  flush() {
-    return new Promise((resolve) =>
+  async flush() {
+    // This is to handle an edge case where Segment flushes the events (e.g. at the interval) and
+    // Garden exits at roughly the same time. When that happens, `segment.flush()` will return immediately since
+    // the event queue is already empty. However, the network request might not have fired and the events are
+    // dropped if Garden exits before the request gets the chance to. We therefore wait until
+    // `pendingEvents.size === 0` or until we time out.
+    const waitForPending = async (retry: number = 0) => {
+      // Wait for 500 ms, for 3 retries at most, or a total of 2000 ms.
+      await sleep(500)
+      if (this.pendingEvents.size === 0 || retry >= 3) {
+        if (this.pendingEvents.size > 0) {
+          const pendingEvents = Array.from(this.pendingEvents.values())
+            .map((event) => event.event)
+            .join(", ")
+          this.log.debug(`Timed out while waiting for events to flush: ${pendingEvents}`)
+        }
+        return
+      } else {
+        return waitForPending(retry + 1)
+      }
+    }
+
+    await this.segmentFlush()
+
+    if (this.pendingEvents.size === 0) {
+      // We're done
+      return
+    } else {
+      // There are still pending events that we're waiting for
+      return waitForPending()
+    }
+  }
+
+  private async segmentFlush() {
+    return new Promise((resolve) => {
       this.segment.flush((err, _data) => {
         if (err && this.log) {
           this.log.debug(`Error flushing analytics: ${err}`)
         }
         resolve()
       })
-    )
+    })
   }
 }
