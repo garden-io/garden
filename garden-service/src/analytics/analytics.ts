@@ -203,7 +203,9 @@ export class AnalyticsHandler {
 
     const gitHubUrl = getGitHubUrl("README.md#Analytics")
     if (this.analyticsConfig.firstRun || this.analyticsConfig.showOptInMessage) {
-      if (!this.isCI) {
+      const analyticsEnabled = this.analyticsEnabled()
+
+      if (!this.isCI && analyticsEnabled) {
         const msg = dedent`
           Thanks for installing Garden! We work hard to provide you with the best experience we can. We collect some anonymized usage data while you use Garden. If you'd like to know more about what we collect or if you'd like to opt out of telemetry, please read more at ${gitHubUrl}
         `
@@ -219,7 +221,7 @@ export class AnalyticsHandler {
 
       await this.globalConfigStore.set([globalConfigKeys.analytics], this.analyticsConfig)
 
-      if (this.segment && this.analyticsEnabled()) {
+      if (this.segment && analyticsEnabled) {
         this.segment.identify({
           userId: getUserId({ analytics: this.analyticsConfig }),
           traits: {
