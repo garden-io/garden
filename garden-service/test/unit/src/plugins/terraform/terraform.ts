@@ -41,7 +41,7 @@ describe("Terraform provider", () => {
   context("autoApply=false", () => {
     beforeEach(async () => {
       await reset()
-      garden = await makeTestGarden(testRoot, { environmentName: "prod" })
+      garden = await makeTestGarden(testRoot, { environmentName: "prod", forceRefresh: true })
     })
 
     after(async () => {
@@ -49,11 +49,12 @@ describe("Terraform provider", () => {
     })
 
     it("should warn if stack is not up-to-date", async () => {
-      await garden.resolveProvider("terraform")
+      const provider = await garden.resolveProvider("terraform")
       const messages = getLogMessages(garden.log, (e) => e.level === LogLevel.warn)
       expect(messages).to.include(
         "Terraform stack is not up-to-date and autoApply is not enabled. Please run garden plugins terraform apply-root to make sure the stack is in the intended state."
       )
+      expect(provider.status.disableCache).to.be.true
     })
 
     it("should expose outputs to template contexts after applying", async () => {
@@ -110,7 +111,7 @@ describe("Terraform provider", () => {
   context("autoApply=true", () => {
     before(async () => {
       await reset()
-      garden = await makeTestGarden(testRoot, { environmentName: "local" })
+      garden = await makeTestGarden(testRoot, { environmentName: "local", forceRefresh: true })
     })
 
     after(async () => {

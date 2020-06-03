@@ -14,8 +14,10 @@ import { prepareVariables, tfValidate } from "./common"
 import { Module } from "../../types/module"
 import { findByName } from "../../util/util"
 import { TerraformModule } from "./module"
-import { PluginCommand } from "../../types/plugin/command"
+import { PluginCommand, PluginCommandParams } from "../../types/plugin/command"
 import { join } from "path"
+import { remove } from "fs-extra"
+import { getProviderStatusCachePath } from "../../tasks/resolve-provider"
 
 const commandsToWrap = ["apply", "plan"]
 const initCommand = chalk.bold("terraform init")
@@ -32,7 +34,7 @@ function makeRootCommand(commandName: string) {
     name: commandName + "-root",
     description: `Runs ${terraformCommand} for the provider root stack, with the provider variables automatically configured as inputs. Positional arguments are passed to the command. If necessary, ${initCommand} is run first.`,
     title: chalk.bold.magenta(`Running ${chalk.white.bold(terraformCommand)} for project root stack`),
-    async handler({ ctx, args, log }) {
+    async handler({ ctx, args, log }: PluginCommandParams) {
       const provider = ctx.provider as TerraformProvider
 
       if (!provider.config.initRoot) {
@@ -40,6 +42,14 @@ function makeRootCommand(commandName: string) {
           config: provider.config,
         })
       }
+
+      // Clear the provider status cache, to avoid any user confusion
+      const cachePath = getProviderStatusCachePath({
+        gardenDirPath: ctx.gardenDirPath,
+        pluginName: provider.name,
+        environmentName: ctx.environmentName,
+      })
+      await remove(cachePath)
 
       const root = join(ctx.projectRoot, provider.config.initRoot)
 
