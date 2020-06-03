@@ -399,14 +399,14 @@ export const makeTestGarden = async (projectRoot: string, opts: GardenOpts = {})
 }
 
 export const makeTestGardenA = async (extraPlugins: RegisterPluginParam[] = []) => {
-  return makeTestGarden(projectRootA, { plugins: extraPlugins })
+  return makeTestGarden(projectRootA, { plugins: extraPlugins, forceRefresh: true })
 }
 
 export const makeTestGardenTasksFails = async (extraPlugins: RegisterPluginParam[] = []) => {
   return makeTestGarden(projectTestFailsRoot, { plugins: extraPlugins })
 }
 
-export function stubAction<T extends keyof PluginActionHandlers>(
+export async function stubAction<T extends keyof PluginActionHandlers>(
   garden: Garden,
   pluginName: string,
   type: T,
@@ -415,7 +415,8 @@ export function stubAction<T extends keyof PluginActionHandlers>(
   if (handler) {
     handler["pluginName"] = pluginName
   }
-  return td.replace(garden["actionHandlers"][type], pluginName, handler)
+  const actions = await garden.getActionRouter()
+  return td.replace(actions["actionHandlers"][type], pluginName, handler)
 }
 
 export function stubModuleAction<T extends keyof ModuleAndRuntimeActionHandlers<any>>(
