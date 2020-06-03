@@ -546,10 +546,11 @@ export function findByNames<T extends ObjectWithName>(names: string[], entries: 
   return entries.filter(({ name }) => names.includes(name))
 }
 
-export function hashString(s: string, length: number) {
+export function hashString(s: string, length?: number): string {
   const urlHash = createHash("sha256")
   urlHash.update(s)
-  return urlHash.digest("hex").slice(0, length)
+  const str = urlHash.digest("hex")
+  return length ? str.slice(0, length) : str
 }
 
 /**

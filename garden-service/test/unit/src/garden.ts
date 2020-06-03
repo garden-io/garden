@@ -158,7 +158,7 @@ describe("Garden", () => {
 
       const projectRoot = join(dataDir, "test-project-templated")
 
-      const garden = await makeTestGarden(projectRoot)
+      const garden = await makeTestGarden(projectRoot, { forceRefresh: true })
 
       delete process.env.TEST_PROVIDER_TYPE
       delete process.env.TEST_VARIABLE

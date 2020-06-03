@@ -164,6 +164,10 @@ export const GLOBAL_OPTIONS = {
     help: "Automatically approve any yes/no prompts during execution.",
     defaultValue: false,
   }),
+  "force-refresh": new BooleanParameter({
+    help: "Force refresh of any caches, e.g. cached provider statuses.",
+    defaultValue: false,
+  }),
 }
 
 export type GlobalOptions = typeof GLOBAL_OPTIONS
@@ -290,6 +294,7 @@ export class GardenCli {
         "env": environmentName,
         silent,
         output,
+        "force-refresh": forceRefresh,
       } = parsedOpts
 
       let loggerType = loggerTypeOpt || command.getLoggerType({ opts: parsedOpts, args: parsedArgs })
@@ -323,6 +328,7 @@ export class GardenCli {
         environmentName,
         log,
         sessionId,
+        forceRefresh,
       }
 
       let garden: Garden

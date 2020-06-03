@@ -30,6 +30,7 @@ quiet: suppresses all log output, same as --silent.
   | `--output` | `-o` | `json` `yaml`  | Output command result in specified format (note: disables progress logging and interactive functionality).
   | `--emoji` |  | boolean | Enable emoji in output (defaults to true if the environment supports it).
   | `--yes` | `-y` | boolean | Automatically approve any yes/no prompts during execution.
+  | `--force-refresh` |  | boolean | Force refresh of any caches, e.g. cached provider statuses.
 
 ### garden build
 

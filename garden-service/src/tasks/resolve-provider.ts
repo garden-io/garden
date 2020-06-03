@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import stableStringify = require("json-stable-stringify")
 import chalk from "chalk"
 import { BaseTask, TaskParams, TaskType } from "./base"
 import { ProviderConfig, Provider, providerFromConfig, getProviderTemplateReferences } from "../config/provider"
@@ -17,17 +18,35 @@ import { ProviderConfigContext } from "../config/config-context"
 import { ModuleConfig } from "../config/module"
 import { GardenPlugin } from "../types/plugin/plugin"
 import { joi } from "../config/common"
-import { validateWithPath } from "../config/validation"
+import { validateWithPath, validateSchema } from "../config/validation"
 import Bluebird from "bluebird"
-import { defaultEnvironmentStatus } from "../types/plugin/provider/getEnvironmentStatus"
+import { defaultEnvironmentStatus, EnvironmentStatus } from "../types/plugin/provider/getEnvironmentStatus"
 import { getPluginBases, getPluginBaseNames } from "../plugins"
 import { Profile } from "../util/profiling"
+import { join, dirname } from "path"
+import { readFile, writeFile, ensureDir } from "fs-extra"
+import { deserialize, serialize } from "v8"
+import { environmentStatusSchema } from "../config/status"
+import { hashString } from "../util/util"
 
 interface Params extends TaskParams {
   plugin: GardenPlugin
   config: ProviderConfig
+  forceRefresh: boolean
   forceInit: boolean
 }
+
+interface CachedStatus extends EnvironmentStatus {
+  configHash: string
+  resolvedAt: Date
+}
+
+const cachedStatusSchema = environmentStatusSchema().keys({
+  configHash: joi.string().required(),
+  resolvedAt: joi.date().required(),
+})
+
+const defaultCacheTtl = 3600 // 1 hour
 
 /**
  * Resolves the configuration for the specified provider.
@@ -38,12 +57,14 @@ export class ResolveProviderTask extends BaseTask {
 
   private config: ProviderConfig
   private plugin: GardenPlugin
+  private forceRefresh: boolean
   private forceInit: boolean
 
   constructor(params: Params) {
     super(params)
     this.config = params.config
     this.plugin = params.plugin
+    this.forceRefresh = params.forceRefresh
     this.forceInit = params.forceInit
   }
 
@@ -96,6 +117,7 @@ export class ResolveProviderTask extends BaseTask {
             config,
             log: this.log,
             version: this.version,
+            forceRefresh: this.forceRefresh,
             forceInit: this.forceInit,
           })
         })
@@ -197,12 +219,85 @@ export class ResolveProviderTask extends BaseTask {
     return providerFromConfig(resolvedConfig, resolvedProviders, moduleConfigs, status)
   }
 
+  private getCachePath() {
+    return getProviderStatusCachePath({
+      gardenDirPath: this.garden.gardenDirPath,
+      pluginName: this.plugin.name,
+      environmentName: this.garden.environmentName,
+    })
+  }
+
+  private hashConfig(config: ProviderConfig) {
+    return hashString(stableStringify(config))
+  }
+
+  private async getCachedStatus(config: ProviderConfig): Promise<EnvironmentStatus | null> {
+    const cachePath = this.getCachePath()
+
+    this.log.silly(`Checking provider status cache for ${this.plugin.name} at ${cachePath}`)
+
+    let cachedStatus: CachedStatus | null = null
+
+    if (!this.forceRefresh) {
+      try {
+        const cachedData = deserialize(await readFile(cachePath))
+        cachedStatus = validateSchema(cachedData, cachedStatusSchema)
+      } catch (err) {
+        // Can't find or read a cached status
+        this.log.silly(`Unable to find or read provider status from ${cachePath}: ${err.message}`)
+      }
+    }
+
+    if (!cachedStatus) {
+      return null
+    }
+
+    const configHash = this.hashConfig(config)
+
+    if (cachedStatus.configHash !== configHash) {
+      this.log.silly(`Cached provider status at ${cachePath} does not match the current config`)
+      return null
+    }
+
+    const ttl = process.env.GARDEN_CACHE_TTL ? parseInt(process.env.GARDEN_CACHE_TTL, 10) : defaultCacheTtl
+    const cacheAge = (new Date().getTime() - cachedStatus?.resolvedAt.getTime()) / 1000
+
+    if (cacheAge > ttl) {
+      this.log.silly(`Cached provider status at ${cachePath} is out of date`)
+      return null
+    }
+
+    return omit(cachedStatus, ["configHash", "resolvedAt"])
+  }
+
+  private async setCachedStatus(config: ProviderConfig, status: EnvironmentStatus) {
+    const cachePath = this.getCachePath()
+    this.log.silly(`Caching provider status for ${this.plugin.name} at ${cachePath}`)
+
+    const cachedStatus: CachedStatus = {
+      ...status,
+      cached: true,
+      resolvedAt: new Date(),
+      configHash: this.hashConfig(config),
+    }
+
+    await ensureDir(dirname(cachePath))
+    await writeFile(cachePath, serialize(cachedStatus))
+  }
+
   private async ensurePrepared(tmpProvider: Provider) {
     const pluginName = tmpProvider.name
     const actions = await this.garden.getActionRouter()
     const ctx = this.garden.getPluginContext(tmpProvider)
 
     this.log.silly(`Getting status for ${pluginName}`)
+
+    // Check for cached provider status
+    const cachedStatus = await this.getCachedStatus(tmpProvider.config)
+
+    if (cachedStatus) {
+      return cachedStatus
+    }
 
     // TODO: avoid calling the handler manually (currently doing it to override the plugin context)
     const handler = await actions["getActionHandler"]({
@@ -245,6 +340,22 @@ export class ResolveProviderTask extends BaseTask {
       )
     }
 
+    if (!status.disableCache) {
+      await this.setCachedStatus(tmpProvider.config, status)
+    }
+
     return status
   }
+}
+
+export function getProviderStatusCachePath({
+  gardenDirPath,
+  pluginName,
+  environmentName,
+}: {
+  gardenDirPath: string
+  pluginName: string
+  environmentName: string
+}) {
+  return join(gardenDirPath, "cache", "provider-statuses", `${pluginName}.${environmentName}.json`)
 }

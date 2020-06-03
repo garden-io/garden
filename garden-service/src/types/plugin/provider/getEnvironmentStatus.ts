@@ -17,6 +17,8 @@ export interface EnvironmentStatus<O extends {} = any, D extends {} = any> {
   dashboardPages?: DashboardPage[]
   detail?: D
   outputs: O
+  disableCache?: boolean
+  cached?: boolean
 }
 
 export const defaultEnvironmentStatus: EnvironmentStatus = {
