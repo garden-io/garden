@@ -43,7 +43,8 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
         `),
       })
       const outputs = await getTfOutputs(log, tfVersion, root)
-      return { ready: true, outputs }
+      // Make sure the status is not cached when the stack is not up-to-date
+      return { ready: true, outputs, disableCache: true }
     }
   } else {
     return { ready: false, outputs: {} }

@@ -61,5 +61,14 @@ export const environmentStatusSchema = () =>
       outputs: joiVariables()
         .meta({ extendable: true })
         .description("Output variables that modules and other variables can reference."),
+      disableCache: joi
+        .boolean()
+        .optional()
+        .description("Set to true to disable caching of the status."),
+      cached: joi
+        .boolean()
+        .optional()
+        .meta({ internal: true })
+        .description("Indicates if the status was retrieved from cache by the framework."),
     })
     .description("Description of an environment's status for a provider.")

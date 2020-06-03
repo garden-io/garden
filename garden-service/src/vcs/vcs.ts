@@ -250,7 +250,7 @@ export function hashVersions(moduleConfig: ModuleConfig, versions: NamedTreeVers
   return hashStrings([configString, ...versionStrings])
 }
 
-export function hashStrings(hashes: string[]) {
+function hashStrings(hashes: string[]) {
   const versionHash = createHash("sha256")
   versionHash.update(hashes.join("."))
   return versionHash.digest("hex").slice(0, 10)

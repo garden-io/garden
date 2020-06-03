@@ -95,6 +95,7 @@ export interface GardenOpts {
   commandInfo?: CommandInfo
   gardenDirPath?: string
   environmentName?: string
+  forceRefresh?: boolean
   persistent?: boolean
   log?: LogEntry
   plugins?: RegisterPluginParam[]
@@ -130,6 +131,7 @@ export interface GardenParams {
   username: string | undefined
   vcs: VcsHandler
   workingCopyId: string
+  forceRefresh?: boolean
 }
 
 @Profile()
@@ -182,6 +184,7 @@ export class Garden {
   public readonly systemNamespace: string
   public readonly username?: string
   public readonly version: ModuleVersion
+  private readonly forceRefresh: boolean
 
   constructor(params: GardenParams) {
     this.buildDir = params.buildDir
@@ -212,6 +215,7 @@ export class Garden {
     this.persistent = !!params.opts.persistent
     this.username = params.username
     this.vcs = params.vcs
+    this.forceRefresh = !!params.forceRefresh
 
     // make sure we're on a supported platform
     const currentPlatform = platform()
@@ -386,6 +390,7 @@ export class Garden {
       log,
       username: _username,
       vcs,
+      forceRefresh: opts.forceRefresh,
     }) as InstanceType<T>
 
     return garden
@@ -613,6 +618,7 @@ export class Garden {
           plugin,
           config,
           version: this.version,
+          forceRefresh: this.forceRefresh,
           forceInit,
         })
       })
@@ -634,6 +640,8 @@ export class Garden {
 
       providers = Object.values(taskResults).map((result) => result!.output)
 
+      const gotCachedResult = !!providers.find((p) => p.status.cached)
+
       await Bluebird.map(providers, async (provider) =>
         Bluebird.map(provider.moduleConfigs, async (moduleConfig) => {
           // Make sure module and all nested entities are scoped to the plugin
@@ -646,7 +654,16 @@ export class Garden {
         this.resolvedProviders[provider.name] = provider
       }
 
-      log.setSuccess({ msg: chalk.green("Done"), append: true })
+      if (gotCachedResult) {
+        log.setSuccess({ msg: chalk.green("Cached"), append: true })
+        log.info({
+          symbol: "info",
+          msg: chalk.gray("Run with --force-refresh to force a refresh of provider statuses."),
+        })
+      } else {
+        log.setSuccess({ msg: chalk.green("Done"), append: true })
+      }
+
       this.log.silly(`Resolved providers: ${providers.map((p) => p.name).join(", ")}`)
     })
 
