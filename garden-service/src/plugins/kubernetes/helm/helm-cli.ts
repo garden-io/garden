@@ -14,44 +14,6 @@ import { mkdirp } from "fs-extra"
 import { StringMap } from "../../../config/common"
 import { PluginToolSpec } from "../../../types/plugin/tools"
 
-export const helm2Spec: PluginToolSpec = {
-  name: "helm2",
-  description: "The Helm CLI (version 2.x).",
-  type: "binary",
-  builds: [
-    {
-      platform: "darwin",
-      architecture: "amd64",
-      url: "https://storage.googleapis.com/kubernetes-helm/helm-v2.14.1-darwin-amd64.tar.gz",
-      sha256: "392ec847ecc5870a48a39cb0b8d13c8aa72aaf4365e0315c4d7a2553019a451c",
-      extract: {
-        format: "tar",
-        targetPath: "darwin-amd64/helm",
-      },
-    },
-    {
-      platform: "linux",
-      architecture: "amd64",
-      url: "https://storage.googleapis.com/kubernetes-helm/helm-v2.14.1-linux-amd64.tar.gz",
-      sha256: "804f745e6884435ef1343f4de8940f9db64f935cd9a55ad3d9153d064b7f5896",
-      extract: {
-        format: "tar",
-        targetPath: "linux-amd64/helm",
-      },
-    },
-    {
-      platform: "windows",
-      architecture: "amd64",
-      url: "https://storage.googleapis.com/kubernetes-helm/helm-v2.14.1-windows-amd64.zip",
-      sha256: "2c833d9625d3713b625255043151e82969382ef05b48d1ac270f876eb774f325",
-      extract: {
-        format: "zip",
-        targetPath: "windows-amd64/helm.exe",
-      },
-    },
-  ],
-}
-
 export const helm3Spec: PluginToolSpec = {
   name: "helm",
   description: "The Helm CLI (version 3.x).",
@@ -90,44 +52,6 @@ export const helm3Spec: PluginToolSpec = {
   ],
 }
 
-export const helm2to3Spec: PluginToolSpec = {
-  name: "helm-2to3",
-  description: "Conversion utility for transitioning between Helm 2.x and 3.x",
-  type: "binary",
-  builds: [
-    {
-      platform: "darwin",
-      architecture: "amd64",
-      url: "https://github.com/helm/helm-2to3/releases/download/v0.2.1/helm-2to3_0.2.1_darwin_amd64.tar.gz",
-      sha256: "b0ab2f81da90aa3d53731784a4c93ceb5c316d86098425aac0f09c8014acc2c1",
-      extract: {
-        format: "tar",
-        targetPath: "2to3",
-      },
-    },
-    {
-      platform: "linux",
-      architecture: "amd64",
-      url: "https://github.com/helm/helm-2to3/releases/download/v0.2.1/helm-2to3_0.2.1_linux_amd64.tar.gz",
-      sha256: "f90c6cc3f4670be71d89d2f74739f53fd4b1b190d4b1dd4af5fa8002978a41f6",
-      extract: {
-        format: "tar",
-        targetPath: "2to3",
-      },
-    },
-    {
-      platform: "windows",
-      architecture: "amd64",
-      url: "https://github.com/helm/helm-2to3/releases/download/v0.2.1/helm-2to3_0.2.1_windows_amd64.tar.gz",
-      sha256: "01b2671103b05b6b0d698dbec89ea09ee99d83380fc70c1e89324b2c8615cd0f",
-      extract: {
-        format: "tar",
-        targetPath: "2to3.exe",
-      },
-    },
-  ],
-}
-
 export async function helm({
   ctx,
   namespace,
@@ -154,7 +78,7 @@ export async function helm({
   const helmHome = join(GARDEN_GLOBAL_PATH, `.helm${version}`)
   await mkdirp(helmHome)
 
-  const cmd = version === 2 ? ctx.provider.tools.helm2 : ctx.provider.tools.helm
+  const cmd = ctx.provider.tools.helm
 
   const envVars: StringMap = {
     ...process.env,
@@ -163,12 +87,7 @@ export async function helm({
   }
 
   if (namespace) {
-    if (version === 2) {
-      opts.push("--tiller-namespace", namespace)
-      envVars.TILLER_NAMESPACE = namespace
-    } else {
-      opts.push("--namespace", namespace)
-    }
+    opts.push("--namespace", namespace)
   }
 
   return cmd.stdout({
