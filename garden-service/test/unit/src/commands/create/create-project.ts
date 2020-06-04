@@ -80,6 +80,25 @@ describe("CreateProjectCommand", () => {
     expect((await readFile(ignoreFilePath)).toString()).to.equal(ignoreContent)
   })
 
+  it("should copy existing .gitignore to .gardenignore if it exists", async () => {
+    const ignoreContent = "node_modules/\n"
+    await writeFile(join(tmp.path, ".gitignore"), ignoreContent)
+
+    const { result } = await command.action({
+      garden,
+      footerLog: garden.log,
+      headerLog: garden.log,
+      log: garden.log,
+      args: {},
+      opts: withDefaultGlobalOpts({ dir: tmp.path, interactive: false, name: undefined }),
+    })
+    const { ignoreFileCreated, ignoreFilePath } = result!
+
+    expect(ignoreFileCreated).to.be.true
+    expect(await pathExists(ignoreFilePath)).to.be.true
+    expect((await readFile(ignoreFilePath)).toString()).to.equal(ignoreContent)
+  })
+
   it("should optionally set a project name", async () => {
     const { result } = await command.action({
       garden,
