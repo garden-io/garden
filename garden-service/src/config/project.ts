@@ -345,18 +345,14 @@ export const projectDocsSchema = () =>
         .default(defaultDotIgnoreFiles)
         .description(
           deline`
-        Specify a list of filenames that should be used as ".ignore" files across the project, using the same syntax and
-        semantics as \`.gitignore\` files. By default, patterns matched in \`.gitignore\` and \`.gardenignore\`
-        files, found anywhere in the project, are ignored when scanning for modules and module sources.
+        Specify a list of filenames that should be used as ".ignore" files across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for modules and module sources (Note: prior to version 0.12.0, \`.gitignore\` files were also used by default).
 
-        Note that these take precedence over the project \`module.include\` field, and module \`include\` fields,
-        so any paths matched by the .ignore files will be ignored even if they are explicitly specified in those fields.
+        Note that these take precedence over the project \`module.include\` field, and module \`include\` fields, so any paths matched by the .ignore files will be ignored even if they are explicitly specified in those fields.
 
-        See the [Configuration Files guide](${DOCS_BASE_URL}/guides/configuration-files#including-excluding-files-and-directories)
-        for details.
+        See the [Configuration Files guide](${DOCS_BASE_URL}/guides/configuration-files#including-excluding-files-and-directories) for details.
       `
         )
-        .example([".gardenignore", ".customignore"]),
+        .example([".gardenignore", ".gitignore"]),
       modules: projectModulesSchema().description("Control where to scan for modules in the project."),
       outputs: joiArray(projectOutputSchema())
         .unique("name")
