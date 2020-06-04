@@ -934,11 +934,12 @@ description:
 # after these files are generated. This means you can reference the files specified here in your provider
 # configurations.
 files:
-  - # POSIX-style path to write the file to, relative to the project root. If the path contains one or more
-    # directories, they are created automatically if necessary.
+  - # POSIX-style path to write the file to, relative to the project root (or absolute). If the path contains one
+    # or more directories, they are created automatically if necessary.
     # If any of those directories conflict with existing file paths, or if the file path conflicts with an existing
     # directory path, an error will be thrown.
-    # Any existing file with the same path will be overwritten.
+    # **Any existing file with the same path will be overwritten, so be careful not to accidentally accidentally
+    # overwrite files unrelated to your workflow.**
     path:
 
     # The file data as a string.
@@ -960,7 +961,7 @@ limits:
 # The steps the workflow should run. At least one step is required. Steps are run sequentially. If a step fails,
 # subsequent steps are skipped.
 steps:
-  - # The Garden command this step should run.
+  - # A Garden command this step should run.
     #
     # Supported commands:
     #
@@ -983,6 +984,11 @@ steps:
 
     # A description of the workflow step.
     description:
+
+    # A bash script to run. Note that the host running the workflow must have bash installed and on path. It is
+    # considered to have run successfully if it returns an exit code of 0. Any other exit code signals an error, and
+    # the remainder of the workflow is aborted.
+    script:
 
 # A list of triggers that determine when the workflow should be run, and which environment should be used (Garden
 # Enterprise only).
@@ -1061,9 +1067,10 @@ Note that you cannot reference provider configuration in template strings within
 
 [files](#files) > path
 
-POSIX-style path to write the file to, relative to the project root. If the path contains one or more directories, they are created automatically if necessary.
+POSIX-style path to write the file to, relative to the project root (or absolute). If the path contains one
+or more directories, they are created automatically if necessary.
 If any of those directories conflict with existing file paths, or if the file path conflicts with an existing directory path, an error will be thrown.
-Any existing file with the same path will be overwritten.
+**Any existing file with the same path will be overwritten, so be careful not to accidentally accidentally overwrite files unrelated to your workflow.**
 
 | Type        | Required |
 | ----------- | -------- |
@@ -1142,7 +1149,7 @@ The steps the workflow should run. At least one step is required. Steps are run 
 
 [steps](#steps) > command
 
-The Garden command this step should run.
+A Garden command this step should run.
 
 Supported commands:
 
@@ -1164,13 +1171,23 @@ Supported commands:
 
 | Type            | Required |
 | --------------- | -------- |
-| `array[string]` | Yes      |
+| `array[string]` | No       |
 
 ### `steps[].description`
 
 [steps](#steps) > description
 
 A description of the workflow step.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `steps[].script`
+
+[steps](#steps) > script
+
+A bash script to run. Note that the host running the workflow must have bash installed and on path. It is considered to have run successfully if it returns an exit code of 0. Any other exit code signals an error, and the remainder of the workflow is aborted.
 
 | Type     | Required |
 | -------- | -------- |
