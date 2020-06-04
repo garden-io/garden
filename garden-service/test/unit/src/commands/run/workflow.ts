@@ -19,6 +19,8 @@ import { ProjectConfig } from "../../../../../src/config/project"
 import { join } from "path"
 import { remove, readFile, pathExists } from "fs-extra"
 import { defaultDotIgnoreFiles } from "../../../../../src/util/fs"
+import { dedent } from "../../../../../src/util/string"
+import stripAnsi from "strip-ansi"
 
 describe("RunWorkflowCommand", () => {
   const cmd = new RunWorkflowCommand()
@@ -58,6 +60,41 @@ describe("RunWorkflowCommand", () => {
     ])
 
     await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
+  })
+
+  it("should collect log outputs from a command step", async () => {
+    garden.setWorkflowConfigs([
+      {
+        apiVersion: DEFAULT_API_VERSION,
+        name: "workflow-a",
+        kind: "Workflow",
+        path: garden.projectRoot,
+        files: [],
+        steps: [
+          {
+            command: ["run", "task", "task-a"],
+          },
+        ],
+      },
+    ])
+
+    const { result, errors } = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
+
+    expect(result).to.exist
+    expect(errors).to.not.exist
+    expect(stripAnsi(result?.stepLogs[0]!).trim()).to.equal(dedent`
+      Checking result...
+      Done
+      Running...
+      Done (took 0 sec)
+
+      Task output:
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      echo OK
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+      Done! ✔️
+    `)
   })
 
   it("should abort subsequent steps if a command returns an error", async () => {
@@ -313,5 +350,70 @@ describe("RunWorkflowCommand", () => {
           `Unable to write file '.garden': EISDIR: illegal operation on a directory, open '${garden.gardenDirPath}'`
         )
     )
+  })
+
+  it("should run a script step in the project root", async () => {
+    garden.setWorkflowConfigs([
+      {
+        apiVersion: DEFAULT_API_VERSION,
+        name: "workflow-a",
+        kind: "Workflow",
+        path: garden.projectRoot,
+        files: [],
+        steps: [{ script: "pwd" }],
+      },
+    ])
+
+    await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
+
+    const { result, errors } = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
+
+    expect(result).to.exist
+    expect(errors).to.not.exist
+    expect(result?.stepLogs[0]).to.equal(garden.projectRoot)
+  })
+
+  it("should collect log outputs, including stderr, from a script step", async () => {
+    garden.setWorkflowConfigs([
+      {
+        apiVersion: DEFAULT_API_VERSION,
+        name: "workflow-a",
+        kind: "Workflow",
+        path: garden.projectRoot,
+        files: [],
+        steps: [
+          {
+            script: dedent`
+              echo stdout
+              echo stderr 1>&2
+            `,
+          },
+        ],
+      },
+    ])
+
+    const { result, errors } = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
+
+    expect(result).to.exist
+    expect(errors).to.not.exist
+    expect(result?.stepLogs[0]).to.equal("stdout\nstderr")
+  })
+
+  it("should throw if a script step fails", async () => {
+    garden.setWorkflowConfigs([
+      {
+        apiVersion: DEFAULT_API_VERSION,
+        name: "workflow-a",
+        kind: "Workflow",
+        path: garden.projectRoot,
+        files: [],
+        steps: [{ script: "echo boo!; exit 1" }],
+      },
+    ])
+
+    const { errors } = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
+
+    expect(errors![0].message).to.equal("Script exited with code 1")
+    expect(errors![0].detail.stdout).to.equal("boo!")
   })
 })

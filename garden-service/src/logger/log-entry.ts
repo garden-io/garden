@@ -293,4 +293,17 @@ export class LogEntry extends LogNode {
   getChildEntries() {
     return getChildEntries(this)
   }
+
+  /**
+   * Dumps the log entry and all child entries as a string, optionally filtering the entries with `filter`.
+   * For example, to dump all the logs of level info or higher:
+   *
+   *   log.toString((entry) => entry.level <= LogLevel.info)
+   */
+  toString(filter?: (log: LogEntry) => boolean) {
+    return this.getChildEntries()
+      .filter((entry) => (filter ? filter(entry) : true))
+      .flatMap((entry) => entry.getMessageStates()?.map((state) => state.msg))
+      .join("\n")
+  }
 }
