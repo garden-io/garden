@@ -381,7 +381,11 @@ Note that the module `include` and `exclude` fields have no effect on which path
 
 #### .ignore files
 
-By default, Garden respects `.gitignore` and `.gardenignore` files and excludes any patterns matched in those files.
+{% hint style="warning" %}
+Prior to Garden 0.12.0, `.gitignore` files were also respected by default. The default is now to only respect `.gardenignore` files. See below how you can revert to the previous behavior.
+{% endhint %}
+
+By default, Garden respects `.gardenignore` files and excludes any patterns matched in those files. You can place the ignore files anywhere in your repository, much like `.gitignore` files, and they will follow the same semantics.
 
 You can use those to exclude files and directories across the project, _both from being scanned for Garden modules and when selecting source files for individual module_. For example, you might put this `.gardenignore` file in your project root directory:
 
@@ -391,16 +395,16 @@ public
 *.log
 ```
 
-This would cause Garden to ignore `node_modules` and `public` directories across your project/repo, and all `.log` files. You can place the ignore files anywhere in your repository, much like `.gitignore` files, and they will follow the same semantics.
+This would cause Garden to ignore `node_modules` and `public` directories across your project/repo, and all `.log` files.
 
 Note that _these take precedence over both `modules.include` fields in your project config, and `include` fields in your module configs_. If a path is matched by one of the ignore files, the path will not be included in your project or modules.
 
-You can override which filenames to use as ".ignore" files using the `dotIgnoreFiles` field in your project configuration. For example, you might choose to only use `.gardenignore` files and not exclude paths based on your `.gitignore` files:
+You can override which filenames to use as ".ignore" files using the `dotIgnoreFiles` field in your project configuration. For example, you might choose to also respect `.gitignore` files (this was the default behavior prior to Garden 0.12.0):
 
 ```yaml
 kind: Project
 name: my-project
-dotIgnoreFiles: [.gardenignore]
+dotIgnoreFiles: [.gardenignore, .gitignore]
 ```
 
 #### Git submodules

@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import dedent from "dedent"
-import { pathExists, writeFile } from "fs-extra"
+import { pathExists, writeFile, copyFile } from "fs-extra"
 import inquirer from "inquirer"
 import {
   Command,
@@ -159,10 +159,26 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
     let ignoreFileCreated = false
 
     if (!(await pathExists(ignoreFilePath))) {
-      await writeFile(ignoreFilePath, defaultIgnorefile + "\n")
-      log.info(
-        chalk.green(`-> Created .gardenignore file at ${chalk.bold.white(relative(process.cwd(), ignoreFilePath))}`)
-      )
+      const gitIgnorePath = resolve(configDir, ".gitignore")
+
+      if (await pathExists(gitIgnorePath)) {
+        await copyFile(gitIgnorePath, ignoreFilePath)
+        const gitIgnoreRelPath = chalk.bold.white(relative(process.cwd(), ignoreFilePath))
+        log.info(
+          chalk.green(
+            `-> Copied the .gitignore file at ${gitIgnoreRelPath} to a new .gardenignore in the same directory. Please edit the .gardenignore file if you'd like Garden to include or ignore different files.`
+          )
+        )
+      } else {
+        await writeFile(ignoreFilePath, defaultIgnorefile + "\n")
+        const gardenIgnoreRelPath = chalk.bold.white(relative(process.cwd(), ignoreFilePath))
+        log.info(
+          chalk.green(
+            `-> Created default .gardenignore file at ${gardenIgnoreRelPath}. Please edit the .gardenignore file to add files or patterns that Garden should ignore when scanning and building.`
+          )
+        )
+      }
+
       ignoreFileCreated = true
     }
 
