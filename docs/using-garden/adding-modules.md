@@ -82,14 +82,14 @@ name: backend
 description: Backend service container
 type: container
 include:
-  - ./backend
+  - backend/**/*
 ---
 kind: Module
 name: frontend
 description: Frontend service container
 type: container
 include:
-  - ./frontend
+  - frontend/**/*
 ```
 
 ### Container Module with a Remote Image
