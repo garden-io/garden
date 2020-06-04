@@ -12,15 +12,18 @@ import { printHeader, getTerminalWidth, formatGardenError } from "../../logger/u
 import { StringParameter, Command, CommandParams, CommandResult, parseCliArgs } from "../base"
 import { dedent, wordWrap, deline } from "../../util/string"
 import { Garden } from "../../garden"
-import { getStepCommandConfigs, WorkflowFileSpec } from "../../config/workflow"
+import { getStepCommandConfigs, WorkflowStepSpec, WorkflowConfig, WorkflowFileSpec } from "../../config/workflow"
 import { LogEntry } from "../../logger/log-entry"
-import { GardenError } from "../../exceptions"
+import { GardenError, GardenBaseError } from "../../exceptions"
 import { WorkflowConfigContext } from "../../config/config-context"
 import { resolveTemplateStrings } from "../../template-string"
 import { ConfigurationError, FilesystemError } from "../../exceptions"
 import { posix, join } from "path"
 import { ensureDir, writeFile } from "fs-extra"
 import Bluebird from "bluebird"
+import { splitStream } from "../../util/util"
+import execa, { ExecaError } from "execa"
+import { LogLevel } from "../../logger/log-node"
 
 const runWorkflowArgs = {
   workflow: new StringParameter({
@@ -30,6 +33,10 @@ const runWorkflowArgs = {
 }
 
 type Args = typeof runWorkflowArgs
+
+interface WorkflowRunOutput {
+  stepLogs: { [stepName: string]: string }
+}
 
 export class RunWorkflowCommand extends Command<Args, {}> {
   name = "workflow"
@@ -46,7 +53,13 @@ export class RunWorkflowCommand extends Command<Args, {}> {
 
   arguments = runWorkflowArgs
 
-  async action({ garden, log, headerLog, args, opts }: CommandParams<Args, {}>): Promise<CommandResult<null>> {
+  async action({
+    garden,
+    log,
+    headerLog,
+    args,
+    opts,
+  }: CommandParams<Args, {}>): Promise<CommandResult<WorkflowRunOutput>> {
     // Partially resolve the workflow config, and prepare any configured files before continuing
     const rawWorkflow = garden.getRawWorkflowConfig(args.workflow)
     const templateContext = new WorkflowConfigContext(garden, {}, garden.variables, garden.secrets)
@@ -63,50 +76,91 @@ export class RunWorkflowCommand extends Command<Args, {}> {
 
     const stepCommandConfigs = getStepCommandConfigs()
     const startedAt = new Date().valueOf()
+
+    const result = {
+      stepLogs: {},
+    }
+
     for (const [index, step] of steps.entries()) {
       printStepHeader(log, index, steps.length, step.description)
+
       const stepHeaderLog = log.placeholder({ indent: 1 })
       const stepBodyLog = log.placeholder({ indent: 1 })
       const stepFooterLog = log.placeholder({ indent: 1 })
-      let result: CommandResult
+      let commandResult: CommandResult
+      const inheritedOpts = cloneDeep(opts)
+
       try {
-        result = await runStepCommand({
-          commandSpec: step.command,
-          inheritedOpts: cloneDeep(opts),
-          garden,
-          headerLog: stepHeaderLog,
-          log: stepBodyLog,
-          footerLog: stepFooterLog,
-          stepCommandConfigs,
-        })
+        if (step.command) {
+          commandResult = await runStepCommand({
+            step,
+            inheritedOpts,
+            garden,
+            headerLog: stepHeaderLog,
+            log: stepBodyLog,
+            footerLog: stepFooterLog,
+            stepCommandConfigs,
+          })
+        } else if (step.script) {
+          commandResult = await runStepScript({
+            step,
+            inheritedOpts,
+            garden,
+            headerLog: stepHeaderLog,
+            log: stepBodyLog,
+            footerLog: stepFooterLog,
+          })
+        } else {
+          throw new ConfigurationError(`Workflow steps must specify either a command or a script.`, { step })
+        }
       } catch (err) {
-        throw err
+        printStepDuration({
+          log,
+          stepIndex: index,
+          stepCount: steps.length,
+          durationSecs: stepBodyLog.getDuration(),
+          success: false,
+        })
+        printResult({ startedAt, log, workflow, success: false })
+
+        logErrors(log, [err], index, steps.length, step.description)
+        return { result, errors: [err] }
       }
-      if (result.errors) {
-        logErrors(log, result.errors, index, steps.length, step.description)
-        return { errors: result.errors }
+
+      // Extract the text from the body log entry, info-level and higher
+      result.stepLogs[index.toString()] = stepBodyLog.toString((entry) => entry.level <= LogLevel.info)
+
+      if (commandResult.errors) {
+        logErrors(log, commandResult.errors, index, steps.length, step.description)
+        return { result, errors: commandResult.errors }
       }
-      printStepDuration(log, index, steps.length, stepBodyLog.getDuration())
+
+      printStepDuration({
+        log,
+        stepIndex: index,
+        stepCount: steps.length,
+        durationSecs: stepBodyLog.getDuration(),
+        success: true,
+      })
     }
-    const completedAt = new Date().valueOf()
-    const totalDuration = ((completedAt - startedAt) / 1000).toFixed(2)
 
-    log.info("")
-    log.info(chalk.magenta(`Workflow ${chalk.white(workflow.name)} completed.`))
-    log.info(chalk.magenta(`Total time elapsed: ${chalk.white(totalDuration)} Sec.`))
+    printResult({ startedAt, log, workflow, success: true })
 
-    return {}
+    return { result }
   }
 }
 
-export type RunStepCommandParams = {
+export interface RunStepParams {
   garden: Garden
   log: LogEntry
   headerLog: LogEntry
   footerLog: LogEntry
   inheritedOpts: any
+  step: WorkflowStepSpec
+}
+
+export interface RunStepCommandParams extends RunStepParams {
   stepCommandConfigs: any
-  commandSpec: string[]
 }
 
 export function printStepHeader(log: LogEntry, stepIndex: number, stepCount: number, stepDescription?: string) {
@@ -120,9 +174,23 @@ export function printStepHeader(log: LogEntry, stepIndex: number, stepCount: num
   log.info(header)
 }
 
-export function printStepDuration(log: LogEntry, stepIndex: number, stepCount: number, durationSecs: number) {
+export function printStepDuration({
+  log,
+  stepIndex,
+  stepCount,
+  durationSecs,
+  success,
+}: {
+  log: LogEntry
+  stepIndex: number
+  stepCount: number
+  durationSecs: number
+  success: boolean
+}) {
+  const result = success ? chalk.green("completed") : chalk.red("failed")
+
   const text = deline`
-    Step ${formattedStepNumber(stepIndex, stepCount)} ${chalk.green("completed")} in
+    Step ${formattedStepNumber(stepIndex, stepCount)} ${chalk.bold(result)} in
     ${chalk.white(durationSecs)} Sec
   `
   const maxWidth = Math.min(getTerminalWidth(), 120)
@@ -148,6 +216,27 @@ export function formattedStepNumber(stepIndex: number, stepCount: number) {
   return `${chalk.white(stepIndex + 1)}/${chalk.white(stepCount)}`
 }
 
+function printResult({
+  startedAt,
+  log,
+  workflow,
+  success,
+}: {
+  startedAt: number
+  log: LogEntry
+  workflow: WorkflowConfig
+  success: boolean
+}) {
+  const completedAt = new Date().valueOf()
+  const totalDuration = ((completedAt - startedAt) / 1000).toFixed(2)
+
+  const resultColor = success ? chalk.magenta : chalk.red
+
+  log.info("")
+  log.info(resultColor(`Workflow ${chalk.white(workflow.name)} completed.`))
+  log.info(chalk.magenta(`Total time elapsed: ${chalk.white(totalDuration)} Sec.`))
+}
+
 export async function runStepCommand({
   garden,
   log,
@@ -155,10 +244,10 @@ export async function runStepCommand({
   headerLog,
   inheritedOpts,
   stepCommandConfigs,
-  commandSpec,
+  step,
 }: RunStepCommandParams): Promise<CommandResult<any>> {
-  const config = stepCommandConfigs.find((c) => isEqual(c.prefix, take(commandSpec, c.prefix.length)))
-  const rest = commandSpec.slice(config.prefix.length) // arguments + options
+  const config = stepCommandConfigs.find((c) => isEqual(c.prefix, take(step.command!, c.prefix.length)))
+  const rest = step.command!.slice(config.prefix.length) // arguments + options
   const { args, opts } = parseCliArgs(rest, config.args, config.opts)
   const command: Command = new config.cmdClass()
   const result = await command.action({
@@ -224,5 +313,56 @@ async function writeWorkflowFile(garden: Garden, file: WorkflowFileSpec) {
     await writeFile(fullPath, data)
   } catch (error) {
     throw new FilesystemError(`Unable to write file '${file.path}': ${error.message}`, { error, file })
+  }
+}
+
+class WorkflowScriptError extends GardenBaseError {
+  type = "workflow-script"
+}
+
+export async function runStepScript({ garden, log, step }: RunStepParams): Promise<CommandResult<any>> {
+  // Run the script, capturing any errors
+  const proc = execa("bash", ["-s"], {
+    all: true,
+    cwd: garden.projectRoot,
+    // The script is piped to stdin
+    input: step.script,
+    // Set a very large max buffer (we only hold one of these at a time, and want to avoid overflow errors)
+    buffer: true,
+    maxBuffer: 100 * 1024 * 1024,
+  })
+
+  // Stream output to `log`, splitting by line
+  const stdout = splitStream()
+  const stderr = splitStream()
+
+  stdout.on("error", () => {})
+  stdout.on("data", (line: Buffer) => {
+    log.info(line.toString())
+  })
+  stderr.on("error", () => {})
+  stderr.on("data", (line: Buffer) => {
+    log.info(line.toString())
+  })
+
+  proc.stdout!.pipe(stdout)
+  proc.stderr!.pipe(stderr)
+
+  try {
+    await proc
+    return {}
+  } catch (_err) {
+    const error = _err as ExecaError
+
+    // Unexpected error (failed to execute script, as opposed to script returning an error code)
+    if (!error.exitCode) {
+      throw error
+    }
+
+    throw new WorkflowScriptError(`Script exited with code ${error.exitCode}`, {
+      exitCode: error.exitCode,
+      stdout: error.stdout,
+      stderr: error.stderr,
+    })
   }
 }

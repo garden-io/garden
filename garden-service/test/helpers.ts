@@ -467,7 +467,10 @@ export function expectError(fn: Function, typeOrCallback?: string | ((err: any) 
   try {
     const res = fn()
     if (isPromise(res)) {
-      return res.catch(handleError).then(handleNonError)
+      return res
+        .then(() => false)
+        .catch(handleError)
+        .then((caught) => handleNonError(caught))
     }
   } catch (err) {
     handleError(err)

@@ -595,3 +595,7 @@ export function getArchitecture() {
   const arch = process.arch
   return archMap[arch] || arch
 }
+
+// Wrapping split2 (which splits Buffer streams, by default by newline) for convenience
+// TODO: make type-safe
+export const splitStream = require("split2")

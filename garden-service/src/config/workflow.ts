@@ -114,9 +114,10 @@ export const workflowFileSchema = () =>
         .subPathOnly()
         .description(
           dedent`
-          POSIX-style path to write the file to, relative to the project root. If the path contains one or more directories, they are created automatically if necessary.
+          POSIX-style path to write the file to, relative to the project root (or absolute). If the path contains one
+          or more directories, they are created automatically if necessary.
           If any of those directories conflict with existing file paths, or if the file path conflicts with an existing directory path, an error will be thrown.
-          Any existing file with the same path will be overwritten.
+          **Any existing file with the same path will be overwritten, so be careful not to accidentally accidentally overwrite files unrelated to your workflow.**
           `
         )
         .example(".auth/kubeconfig.yaml"),
@@ -131,8 +132,9 @@ export const workflowFileSchema = () =>
     )
 
 export interface WorkflowStepSpec {
-  command: string[]
+  command?: string[]
   description?: string
+  script?: string
 }
 
 export const workflowStepSchema = () => {
@@ -142,19 +144,27 @@ export const workflowStepSchema = () => {
     .sort()
     .map((prefix) => `\`[${prefix}]\``)
     .join("\n\n")
-  return joi.object().keys({
-    command: joi
-      .array()
-      .items(joi.string())
-      .required().description(dedent`
-        The Garden command this step should run.
+  return joi
+    .object()
+    .keys({
+      command: joi.array().items(joi.string()).description(dedent`
+        A Garden command this step should run.
 
         Supported commands:
 
         ${cmdDescriptions}
       `),
-    description: joi.string().description("A description of the workflow step."),
-  })
+      description: joi.string().description("A description of the workflow step."),
+      script: joi.string().description(
+        deline`
+        A bash script to run. Note that the host running the workflow must have bash installed and on path.
+        It is considered to have run successfully if it returns an exit code of 0. Any other exit code signals an error,
+        and the remainder of the workflow is aborted.
+        `
+      ),
+    })
+    .xor("command", "script")
+    .description("A workflow step. Must specify either `command` or `script` (but not both).")
 }
 
 export const triggerEvents = [
@@ -265,22 +275,18 @@ export function getStepCommandConfigs() {
  * Throws if one or more steps refers to a command that is not supported in workflows.
  */
 function validateSteps(config: WorkflowConfig) {
-  const invalidSteps: WorkflowStepSpec[] = []
   const validStepCommandPrefixes = getStepCommandConfigs().map((c) => c.prefix)
-  for (const step of config.steps) {
-    const command = step.command
-    const validStepPrefix = validStepCommandPrefixes.find((valid) => isEqual(valid, take(command, valid.length)))
-    if (!validStepPrefix) {
-      invalidSteps.push(step)
-    }
-  }
+  const invalidSteps: WorkflowStepSpec[] = config.steps.filter(
+    (step) =>
+      !!step.command && !validStepCommandPrefixes.find((valid) => isEqual(valid, take(step.command, valid.length)))
+  )
 
   if (invalidSteps.length > 0) {
     const msgPrefix =
       invalidSteps.length === 1
         ? `Invalid step command for workflow ${config.name}:`
         : `Invalid step commands for workflow ${config.name}:`
-    const descriptions = invalidSteps.map((step) => `[${step.command.join(", ")}]`)
+    const descriptions = invalidSteps.map((step) => `[${step.command!.join(", ")}]`)
     const validDescriptions = validStepCommandPrefixes.map((cmd) => `[${cmd.join(", ")}]`)
     const msg = dedent`
       ${msgPrefix}
