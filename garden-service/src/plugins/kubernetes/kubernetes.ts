@@ -34,12 +34,11 @@ import { isNumber } from "util"
 import chalk from "chalk"
 import pluralize from "pluralize"
 import { getSystemMetadataNamespaceName } from "./system"
-import { removeTillerCmd } from "./commands/remove-tiller"
 import { DOCS_BASE_URL } from "../../constants"
 import { inClusterRegistryHostname } from "./constants"
 import { pvcModuleDefinition } from "./volumes/persistentvolumeclaim"
 import { getModuleTypeUrl, getProviderUrl } from "../../docs/common"
-import { helm2Spec, helm3Spec, helm2to3Spec } from "./helm/helm-cli"
+import { helm3Spec } from "./helm/helm-cli"
 import { sternSpec } from "./logs"
 
 export async function configureProvider({
@@ -195,7 +194,7 @@ export const gardenPlugin = createGardenPlugin({
   `,
   configSchema,
   outputsSchema,
-  commands: [cleanupClusterRegistry, clusterInit, removeTillerCmd, uninstallGardenServices, pullImage],
+  commands: [cleanupClusterRegistry, clusterInit, uninstallGardenServices, pullImage],
   handlers: {
     configureProvider,
     getEnvironmentStatus,
@@ -242,5 +241,5 @@ export const gardenPlugin = createGardenPlugin({
       handlers: containerHandlers,
     },
   ],
-  tools: [kubectlSpec, helm2Spec, helm3Spec, helm2to3Spec, sternSpec],
+  tools: [kubectlSpec, helm3Spec, sternSpec],
 })

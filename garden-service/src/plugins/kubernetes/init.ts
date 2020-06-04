@@ -15,7 +15,6 @@ import {
   getSystemNamespace,
 } from "./namespace"
 import { KubernetesPluginContext, KubernetesConfig, KubernetesProvider, ProviderSecretRef } from "./config"
-import { checkTillerStatus, migrateToHelm3 } from "./helm/tiller"
 import { prepareSystemServices, getSystemServiceStatus, getSystemGarden, systemNamespaceUpToDate } from "./system"
 import { GetEnvironmentStatusParams, EnvironmentStatus } from "../../types/plugin/provider/getEnvironmentStatus"
 import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "../../types/plugin/provider/prepareEnvironment"
@@ -57,11 +56,9 @@ interface KubernetesProviderOutputs extends PrimitiveMap {
 
 interface KubernetesEnvironmentDetail {
   projectHelmMigrated: boolean
-  projectTillerInstalled: boolean
   serviceStatuses: ServiceStatusMap
   systemReady: boolean
   systemServiceState: ServiceState
-  systemTillerInstalled: boolean
   systemCertManagerReady: boolean
   systemManagedCertificatesReady: boolean
 }
@@ -69,10 +66,7 @@ interface KubernetesEnvironmentDetail {
 type KubernetesEnvironmentStatus = EnvironmentStatus<KubernetesProviderOutputs, KubernetesEnvironmentDetail>
 
 /**
- * Performs the following actions to check environment status:
- *   1. Checks Tiller status in the project namespace
- *   2. Checks Tiller status in the system namespace (if provider has system services)
- *   3. Checks system service statuses (if provider has system services)
+ * Checks system service statuses (if provider has system services)
  *
  * Returns ready === true if all the above are ready.
  */
@@ -85,31 +79,16 @@ export async function getEnvironmentStatus({
   const api = await KubeApi.factory(log, provider)
 
   let projectHelmMigrated = true
-  let projectTillerInstalled = false
 
   const namespaces = await prepareNamespaces({ ctx, log })
-
-  // Check Tiller status in project namespace
-  if ((await checkTillerStatus(k8sCtx, api, namespaces["app-namespace"], log)) !== "missing") {
-    projectTillerInstalled = true
-
-    // Check if Helm 2->3 migration has been performed
-    const projectNamespace = await api.core.readNamespace(namespaces["app-namespace"])
-    if (projectNamespace.metadata.annotations?.[gardenAnnotationKey("helm-migrated")] !== "true") {
-      projectHelmMigrated = false
-    }
-  }
-
   const systemServiceNames = k8sCtx.provider.config._systemServices
   const systemNamespace = await getSystemNamespace(k8sCtx.provider, log)
 
   const detail: KubernetesEnvironmentDetail = {
     projectHelmMigrated,
-    projectTillerInstalled,
     serviceStatuses: {},
     systemReady: true,
     systemServiceState: <ServiceState>"unknown",
-    systemTillerInstalled: false,
     systemCertManagerReady: true,
     systemManagedCertificatesReady: true,
   }
@@ -135,16 +114,6 @@ export async function getEnvironmentStatus({
 
   const variables = getKubernetesSystemVariables(provider.config)
   const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
-  const sysProvider = <KubernetesProvider>await sysGarden.resolveProvider(provider.name)
-  const sysCtx = <KubernetesPluginContext>sysGarden.getPluginContext(sysProvider)
-  const sysApi = await KubeApi.factory(log, sysProvider)
-
-  // Check Tiller status in system namespace
-  const sysTillerStatus = await checkTillerStatus(sysCtx, sysApi, systemNamespace, log)
-
-  if (sysTillerStatus !== "missing") {
-    detail.systemTillerInstalled = true
-  }
 
   if (provider.config.certManager) {
     const certManagerStatus = await checkCertManagerStatus({ provider, log })
@@ -225,19 +194,6 @@ export async function prepareEnvironment(
 ): Promise<PrepareEnvironmentResult> {
   const { ctx, log, status } = params
   const k8sCtx = <KubernetesPluginContext>ctx
-
-  // Migrate from Helm 2.x and remove Tiller from project namespace, if necessary
-  const systemNamespace = await getSystemNamespace(k8sCtx.provider, log)
-
-  if (
-    k8sCtx.provider.config.namespace !== systemNamespace &&
-    status.detail!.projectTillerInstalled &&
-    !status.detail!.projectHelmMigrated
-  ) {
-    const api = await KubeApi.factory(log, k8sCtx.provider)
-    const namespace = await getAppNamespace(ctx, log, k8sCtx.provider)
-    await migrateToHelm3({ ctx: k8sCtx, api, namespace, log, cleanup: false })
-  }
 
   // Prepare system services
   await prepareSystem({ ...params, clusterInit: false })
@@ -321,16 +277,10 @@ export async function prepareSystem({
 
   const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
   const sysProvider = <KubernetesProvider>await sysGarden.resolveProvider(provider.name)
-  const sysCtx = <KubernetesPluginContext>sysGarden.getPluginContext(sysProvider)
   const systemNamespace = await getSystemNamespace(sysProvider, log)
   const sysApi = await KubeApi.factory(log, sysProvider)
 
   await sysGarden.clearBuilds()
-
-  // Migrate from Helm 2.x and remove Tiller from system namespace, if necessary
-  if (status.detail!.systemTillerInstalled) {
-    await migrateToHelm3({ ctx: sysCtx, api: sysApi, namespace: systemNamespace, sysGarden, log, cleanup: true })
-  }
 
   // Set auth secret for in-cluster builder
   if (provider.config.buildMode !== "local-docker") {
