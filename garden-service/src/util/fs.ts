@@ -24,7 +24,7 @@ import { uuidv4 } from "./util"
 
 const VALID_CONFIG_FILENAMES = ["garden.yml", "garden.yaml"]
 const metadataFilename = "metadata.json"
-export const defaultDotIgnoreFiles = [".gitignore", ".gardenignore"]
+export const defaultDotIgnoreFiles = [".gardenignore"]
 export const fixedExcludes = [".git", ".gitmodules", ".garden/**/*", "debug-info*/**"]
 
 /*
