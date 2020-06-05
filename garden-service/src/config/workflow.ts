@@ -128,9 +128,9 @@ export const triggerEvents = [
   "release",
   "release-published",
   "release-unpublished",
-  "release-created ",
-  "release-edited ",
-  "release-deleted ",
+  "release-created",
+  "release-edited",
+  "release-deleted",
   "release-prereleased",
 ]
 
