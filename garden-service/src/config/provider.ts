@@ -7,7 +7,7 @@
  */
 
 import { deline } from "../util/string"
-import { joiIdentifier, joiUserIdentifier, joiArray, joi } from "./common"
+import { joiIdentifier, joiUserIdentifier, joiArray, joi, joiIdentifierMap } from "./common"
 import { collectTemplateReferences } from "../template-string"
 import { ConfigurationError } from "../exceptions"
 import { ModuleConfig, moduleConfigSchema } from "./module"
@@ -15,6 +15,7 @@ import { uniq } from "lodash"
 import { GardenPlugin } from "../types/plugin/plugin"
 import { EnvironmentStatus } from "../types/plugin/provider/getEnvironmentStatus"
 import { environmentStatusSchema } from "./status"
+import { PluginTools } from "../types/plugin/tools"
 
 export interface ProviderConfig {
   name: string
@@ -49,22 +50,26 @@ export const providerConfigBaseSchema = () =>
 
 export interface Provider<T extends ProviderConfig = ProviderConfig> {
   name: string
-  dependencies: Provider[]
+  dependencies: { [name: string]: Provider }
   environments?: string[]
   moduleConfigs: ModuleConfig[]
   config: T
   status: EnvironmentStatus
+  tools: PluginTools
 }
 
 export const providerSchema = () =>
   providerFixedFieldsSchema()
     .keys({
-      dependencies: joiArray(joi.link("..."))
-        .description("List of all the providers that this provider depends on.")
+      dependencies: joiIdentifierMap(joi.link("..."))
+        .description("Map of all the providers that this provider depends on.")
         .required(),
       config: providerConfigBaseSchema().required(),
       moduleConfigs: joiArray(moduleConfigSchema().optional()),
       status: environmentStatusSchema(),
+      tools: joiIdentifierMap(joi.object())
+        .required()
+        .description("Map of tools defined by the provider."),
     })
     .id("provider")
 
@@ -77,17 +82,19 @@ export const defaultProviders = [{ name: "container" }]
 // this is used for default handlers in the action handler
 export const defaultProvider: Provider = {
   name: "_default",
-  dependencies: [],
+  dependencies: {},
   moduleConfigs: [],
   config: { name: "_default" },
   status: { ready: true, outputs: {} },
+  tools: {},
 }
 
 export function providerFromConfig(
   config: ProviderConfig,
-  dependencies: Provider[],
+  dependencies: ProviderMap,
   moduleConfigs: ModuleConfig[],
-  status: EnvironmentStatus
+  status: EnvironmentStatus,
+  tools: PluginTools
 ): Provider {
   return {
     name: config.name,
@@ -95,6 +102,7 @@ export function providerFromConfig(
     moduleConfigs,
     config,
     status,
+    tools,
   }
 }
 

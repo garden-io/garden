@@ -16,7 +16,7 @@ import { KubeApi } from "../kubernetes/api"
 import { waitForResources } from "../kubernetes/status/status"
 import { checkWorkloadStatus } from "../kubernetes/status/workload"
 import { createGardenPlugin } from "../../types/plugin/plugin"
-import { faasCli } from "./faas-cli"
+import { faasCliSpec } from "./faas-cli"
 import { getAllLogs } from "../kubernetes/logs"
 import { DeployServiceParams } from "../../types/plugin/service/deployService"
 import { GetServiceStatusParams } from "../../types/plugin/service/getServiceStatus"
@@ -44,7 +44,7 @@ import {
 import { getOpenfaasModuleBuildStatus, buildOpenfaasModule, writeStackFile, stackFilename } from "./build"
 import { dedent } from "../../util/string"
 import { LogEntry } from "../../logger/log-entry"
-import { Provider } from "../../config/provider"
+import { ProviderMap } from "../../config/provider"
 import { parse } from "url"
 import { trim } from "lodash"
 import { getModuleTypeUrl, getGitHubUrl } from "../../docs/common"
@@ -89,6 +89,7 @@ export const gardenPlugin = createGardenPlugin({
       },
     },
   ],
+  tools: [faasCliSpec],
 })
 
 const templateModuleConfig: ExecModuleConfig = {
@@ -223,7 +224,7 @@ async function getFunctionNamespace(
   log: LogEntry,
   projectName: string,
   config: OpenFaasConfig,
-  dependencies: Provider[]
+  dependencies: ProviderMap
 ) {
   // Check for configured namespace in faas-netes custom values
   return (
@@ -270,7 +271,7 @@ async function deployService(params: DeployServiceParams<OpenFaasModule>): Promi
 
   while (true) {
     try {
-      await faasCli.stdout({
+      await ctx.provider.tools["faas-cli"].stdout({
         log,
         cwd: module.buildPath,
         args: ["deploy", "-f", stackFilename],
@@ -331,7 +332,7 @@ async function deleteService(params: DeleteServiceParams<OpenFaasModule>): Promi
 
     found = !!status.state
 
-    await faasCli.stdout({
+    await ctx.provider.tools["faas-cli"].stdout({
       log,
       cwd: service.module.buildPath,
       args: ["remove", "-f", stackFilename],

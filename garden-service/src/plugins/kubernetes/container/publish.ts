@@ -12,11 +12,13 @@ import { containerHelpers } from "../../container/helpers"
 import { KubernetesPluginContext } from "../config"
 import { publishContainerModule } from "../../container/publish"
 import { getRegistryPortForward } from "./util"
+import { ContainerProvider } from "../../container/container"
 
 export async function k8sPublishContainerModule(params: PublishModuleParams<ContainerModule>) {
   const { ctx, module, log } = params
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
+  const containerProvider = provider.dependencies.container as ContainerProvider
 
   if (!(await containerHelpers.hasDockerfile(module))) {
     log.setState({ msg: `Nothing to publish` })
@@ -40,12 +42,22 @@ export async function k8sPublishContainerModule(params: PublishModuleParams<Cont
       host: `local.app.garden:${fwd.localPort}`,
     })
 
-    await containerHelpers.dockerCli(module.buildPath, ["pull", pullImageName], log)
+    await containerHelpers.dockerCli({
+      cwd: module.buildPath,
+      args: ["pull", pullImageName],
+      log,
+      containerProvider,
+    })
 
     // We need to tag the remote image with the local ID before we publish it
     const localId = await containerHelpers.getLocalImageId(module)
-    await containerHelpers.dockerCli(module.buildPath, ["tag", pullImageName, localId], log)
+    await containerHelpers.dockerCli({
+      cwd: module.buildPath,
+      args: ["tag", pullImageName, localId],
+      log,
+      containerProvider,
+    })
   }
 
-  return publishContainerModule(params)
+  return publishContainerModule({ ...params, ctx: { ...ctx, provider: provider.dependencies.container } })
 }

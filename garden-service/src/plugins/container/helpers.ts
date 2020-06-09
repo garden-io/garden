@@ -11,7 +11,7 @@ import { readFile, pathExists, lstat } from "fs-extra"
 import semver from "semver"
 import { parse, CommandEntry } from "docker-file-parser"
 import isGlob from "is-glob"
-import { ConfigurationError, RuntimeError, InternalError } from "../../exceptions"
+import { ConfigurationError, RuntimeError } from "../../exceptions"
 import { splitFirst, spawn, splitLast, SpawnOutput } from "../../util/util"
 import { ModuleConfig } from "../../config/module"
 import { ContainerModule, ContainerRegistryConfig, defaultTag, defaultNamespace, ContainerModuleConfig } from "./config"
@@ -21,9 +21,9 @@ import { flatten, uniq, fromPairs } from "lodash"
 import { LogEntry } from "../../logger/log-entry"
 import chalk from "chalk"
 import isUrl from "is-url"
-import { BinaryCmd } from "../../util/ext-tools"
 import titleize from "titleize"
 import { stripQuotes } from "../../util/string"
+import { ContainerProvider } from "./container"
 
 interface DockerVersion {
   client?: string
@@ -208,14 +208,20 @@ const helpers = {
     }
   },
 
-  async pullImage(module: ContainerModule, log: LogEntry) {
+  async pullImage(module: ContainerModule, log: LogEntry, provider: ContainerProvider) {
     const identifier = await helpers.getPublicImageId(module)
-    await helpers.dockerCli(module.buildPath, ["pull", identifier], log)
+    await helpers.dockerCli({ cwd: module.buildPath, args: ["pull", identifier], log, containerProvider: provider })
   },
 
-  async imageExistsLocally(module: ContainerModule, log: LogEntry) {
+  async imageExistsLocally(module: ContainerModule, log: LogEntry, provider: ContainerProvider) {
     const identifier = await helpers.getLocalImageId(module)
-    const exists = (await helpers.dockerCli(module.buildPath, ["images", identifier, "-q"], log)).stdout.length > 0
+    const result = await helpers.dockerCli({
+      cwd: module.buildPath,
+      args: ["images", identifier, "-q"],
+      log,
+      containerProvider: provider,
+    })
+    const exists = result.stdout!.length > 0
     return exists ? identifier : null
   },
 
@@ -249,21 +255,6 @@ const helpers = {
   /**
    * Asserts that the specified docker client version meets the minimum requirements.
    */
-  checkDockerClientVersion(version: DockerVersion) {
-    if (!version.client) {
-      // This should not occur in normal usage, so it is classed as an internal error
-      throw new InternalError(`Docker client is not installed.`, version)
-    } else if (!checkMinDockerVersion(version.client, minDockerVersion.client!)) {
-      throw new RuntimeError(
-        `Docker client needs to be version ${minDockerVersion.client} or newer (got ${version.client})`,
-        version
-      )
-    }
-  },
-
-  /**
-   * Asserts that the specified docker client version meets the minimum requirements.
-   */
   checkDockerServerVersion(version: DockerVersion) {
     if (!version.server) {
       throw new RuntimeError(`Docker server is not running or cannot be reached.`, version)
@@ -277,38 +268,34 @@ const helpers = {
     }
   },
 
-  async getDockerCliPath(log: LogEntry) {
-    // Check if docker is already installed
-    try {
-      const version = await helpers.getDockerVersion("docker")
-      helpers.checkDockerClientVersion(version)
-      return "docker"
-    } catch (_) {
-      // Need to fetch a docker client
-      return dockerBin.getPath(log)
-    }
-  },
-
-  async dockerCli(
-    cwd: string,
-    args: string[],
-    log: LogEntry,
-    {
-      ignoreError = false,
-      outputStream,
-      timeout = DEFAULT_BUILD_TIMEOUT,
-    }: { ignoreError?: boolean; outputStream?: Writable; timeout?: number } = {}
-  ) {
-    // Check if docker is already installed
-    const cliPath = await helpers.getDockerCliPath(log)
+  async dockerCli({
+    cwd,
+    args,
+    log,
+    containerProvider,
+    ignoreError = false,
+    outputStream,
+    timeout = DEFAULT_BUILD_TIMEOUT,
+  }: {
+    cwd: string
+    args: string[]
+    log: LogEntry
+    containerProvider: ContainerProvider
+    ignoreError?: boolean
+    outputStream?: Writable
+    timeout?: number
+  }) {
+    const docker = containerProvider.tools.docker
 
     try {
-      const res = await spawn(cliPath, args, {
+      const res = await docker.spawnAndWait({
+        args,
         cwd,
-        ignoreError,
-        stdout: outputStream,
-        timeout,
         env: { ...process.env, DOCKER_CLI_EXPERIMENTAL: "enabled" },
+        ignoreError,
+        log,
+        stdout: outputStream,
+        timeoutSec: timeout,
       })
       return res
     } catch (err) {
@@ -436,33 +423,3 @@ function fixDockerVersionString(v: string) {
 function getDockerfilePath(basePath: string, dockerfile = "Dockerfile") {
   return join(basePath, dockerfile)
 }
-
-export const dockerBin = new BinaryCmd({
-  name: "docker",
-  specs: {
-    darwin: {
-      url: "https://download.docker.com/mac/static/stable/x86_64/docker-19.03.6.tgz",
-      sha256: "82d279c6a2df05c2bb628607f4c3eacb5a7447be6d5f2a2f65643fbb6ed2f9af",
-      extract: {
-        format: "tar",
-        targetPath: ["docker", "docker"],
-      },
-    },
-    linux: {
-      url: "https://download.docker.com/linux/static/stable/x86_64/docker-19.03.6.tgz",
-      sha256: "34ff89ce917796594cd81149b1777d07786d297ffd0fef37a796b5897052f7cc",
-      extract: {
-        format: "tar",
-        targetPath: ["docker", "docker"],
-      },
-    },
-    win32: {
-      url: "https://github.com/rgl/docker-ce-windows-binaries-vagrant/releases/download/v19.03.6/docker-19.03.6.zip",
-      sha256: "b4591baa2b7016af9ff3328a26146e4db3e6ce3fbe0503a7fd87363f29d63f5c",
-      extract: {
-        format: "zip",
-        targetPath: ["docker", "docker.exe"],
-      },
-    },
-  },
-})

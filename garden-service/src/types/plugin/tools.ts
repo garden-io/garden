@@ -1,0 +1,98 @@
+/*
+ * Copyright (C) 2018-2020 Garden Technologies, Inc. <info@garden.io>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+import { joi, joiIdentifier } from "../../config/common"
+import { deline } from "../../util/string"
+import { PluginTool } from "../../util/ext-tools"
+
+export interface ToolBuildSpec {
+  platform: string
+  architecture: string
+  url: string
+  sha256: string
+  extract?: {
+    format: string
+    targetPath: string
+  }
+}
+
+const toolBuildSchema = () =>
+  joi.object().keys({
+    platform: joi
+      .string()
+      .allow("darwin", "linux", "windows")
+      .required()
+      .example("linux")
+      .description("The platform this build is for."),
+    architecture: joi
+      .string()
+      .allow("amd64")
+      .required()
+      .example("amd64")
+      .description("The architecture of the build."),
+    url: joi
+      .string()
+      .uri({ allowRelative: false })
+      .required()
+      .example("https://github.com/some/tool/releases/download/my-tool-linux-amd64.tar.gz")
+      .description("The URL to download for the build."),
+    sha256: joi
+      .string()
+      .required()
+      .example("a81b23abe67e70f8395ff7a3659bea6610fba98cda1126ef19e0a995f0075d54")
+      .description("The SHA256 sum the target URL should have."),
+    extract: joi
+      .object()
+      .keys({
+        format: joi
+          .string()
+          .allow("tar", "zip")
+          .required()
+          .example("tar")
+          .description("The archive format."),
+        targetPath: joi
+          .posixPath()
+          .relativeOnly()
+          .example("my-tool/binary.exe")
+          .description("The path to the binary within the archive, if applicable."),
+      })
+      .description("Specify instructions for extraction, if the URL points to an archive."),
+  })
+
+export interface PluginToolSpec {
+  name: string
+  description: string
+  type: "library" | "binary"
+  builds: ToolBuildSpec[]
+}
+
+export interface PluginTools {
+  [name: string]: PluginTool
+}
+
+export const toolSchema = () =>
+  joi.object().keys({
+    name: joiIdentifier().description("The name of the tool. This must be unique within the provider."),
+    description: joi
+      .string()
+      .required()
+      .description("A short description of the tool, used for help texts."),
+    type: joi
+      .string()
+      .allow("library", "binary")
+      .description(
+        `Set this to "library" if the tool is not an executable. Set to "binary" if it should be exposed as a command.`
+      ),
+    builds: joi
+      .array()
+      .items(toolBuildSchema())
+      .required().description(deline`
+        List of platform and architecture builds, with URLs and (if applicable) archive extraction information.
+        The list should include at least an amd64 build for each of darwin, linux and windows.
+      `),
+  })

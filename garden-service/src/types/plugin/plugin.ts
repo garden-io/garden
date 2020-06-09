@@ -43,6 +43,7 @@ import { StopPortForwardParams, stopPortForward } from "./service/stopPortForwar
 import { AugmentGraphResult, AugmentGraphParams, augmentGraph } from "./provider/augmentGraph"
 import { suggestModules, SuggestModulesParams, SuggestModulesResult } from "./module/suggestModules"
 import { templateStringLiteral } from "../../docs/common"
+import { toolSchema, PluginToolSpec } from "./tools"
 
 export interface ActionHandlerParamsBase {
   base?: ActionHandler<any, any>
@@ -361,6 +362,7 @@ interface GardenPluginSpec {
 
   handlers?: Partial<PluginActionHandlers>
   commands?: PluginCommand[]
+  tools?: PluginToolSpec[]
 
   createModuleTypes?: ModuleTypeDefinition[]
   extendModuleTypes?: ModuleTypeExtension[]
@@ -539,6 +541,19 @@ export const pluginSchema = () =>
         .items(extendModuleTypeSchema())
         .unique("name").description(dedent`
         List of module types to extend/override with additional handlers.
+      `),
+
+      tools: joi
+        .array()
+        .items(toolSchema())
+        .unique("name").description(dedent`
+        List of tools that this plugin exposes via \`garden tools <name>\`, and within its own plugin handlers and commands.
+
+        The tools are downloaded automatically on first use, and cached under the user's global \`~/.garden\` directory.
+
+        If multiple plugins specify a tool with the same name, you can reference them prefixed with the plugin name and a period, e.g. \`kubernetes.kubectl\` to pick a specific plugin's command. Otherwise a warning is emitted when running \`garden tools\`, and the tool that's configured by the plugin that is last in the dependency order is used. Since that can often be ambiguous, it is highly recommended to use the fully qualified name in automated scripts.
+
+        If you specify a \`base\`, new tools are added in addition to the tools of the base plugin, and if you specify a tool with the same name as one in the base plugin, you override the one declared in the base.
       `),
     })
     .description("The schema for Garden plugins.")

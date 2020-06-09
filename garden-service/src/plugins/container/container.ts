@@ -23,6 +23,10 @@ import { SuggestModulesParams, SuggestModulesResult } from "../../types/plugin/m
 import { listDirectory } from "../../util/fs"
 import { dedent } from "../../util/string"
 import { getModuleTypeUrl } from "../../docs/common"
+import { Provider, ProviderConfig } from "../../config/provider"
+
+export interface ContainerProviderConfig extends ProviderConfig {}
+export type ContainerProvider = Provider<ContainerProviderConfig>
 
 export const containerModuleOutputsSchema = () =>
   joi.object().keys({
@@ -240,6 +244,46 @@ export const gardenPlugin = createGardenPlugin({
           return {}
         },
       },
+    },
+  ],
+  tools: [
+    {
+      name: "docker",
+      description: "The official Docker CLI.",
+      type: "binary",
+      builds: [
+        {
+          platform: "darwin",
+          architecture: "amd64",
+          url: "https://download.docker.com/mac/static/stable/x86_64/docker-19.03.6.tgz",
+          sha256: "82d279c6a2df05c2bb628607f4c3eacb5a7447be6d5f2a2f65643fbb6ed2f9af",
+          extract: {
+            format: "tar",
+            targetPath: "docker/docker",
+          },
+        },
+        {
+          platform: "linux",
+          architecture: "amd64",
+          url: "https://download.docker.com/linux/static/stable/x86_64/docker-19.03.6.tgz",
+          sha256: "34ff89ce917796594cd81149b1777d07786d297ffd0fef37a796b5897052f7cc",
+          extract: {
+            format: "tar",
+            targetPath: "docker/docker",
+          },
+        },
+        {
+          platform: "windows",
+          architecture: "amd64",
+          url:
+            "https://github.com/rgl/docker-ce-windows-binaries-vagrant/releases/download/v19.03.6/docker-19.03.6.zip",
+          sha256: "b4591baa2b7016af9ff3328a26146e4db3e6ce3fbe0503a7fd87363f29d63f5c",
+          extract: {
+            format: "zip",
+            targetPath: "docker/docker.exe",
+          },
+        },
+      ],
     },
   ],
 })

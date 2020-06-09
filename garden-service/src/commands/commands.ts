@@ -32,10 +32,13 @@ import { ConfigCommand } from "./config/config"
 import { PluginsCommand } from "./plugins"
 import { LoginCommand } from "./login"
 import { LogOutCommand } from "./logout"
+import { ToolsCommand } from "./tools"
+import { UtilCommand } from "./util"
 
 export const coreCommands: Command[] = [
   new BuildCommand(),
   new CallCommand(),
+  new ConfigCommand(),
   new CreateCommand(),
   new DeleteCommand(),
   new DeployCommand(),
@@ -43,6 +46,8 @@ export const coreCommands: Command[] = [
   new ExecCommand(),
   new GetCommand(),
   new LinkCommand(),
+  new LoginCommand(),
+  new LogOutCommand(),
   new LogsCommand(),
   new MigrateCommand(),
   new OptionsCommand(),
@@ -53,10 +58,9 @@ export const coreCommands: Command[] = [
   new ServeCommand(),
   new SetCommand(),
   new TestCommand(),
+  new ToolsCommand(),
   new UnlinkCommand(),
   new UpdateRemoteCommand(),
+  new UtilCommand(),
   new ValidateCommand(),
-  new ConfigCommand(),
-  new LoginCommand(),
-  new LogOutCommand(),
 ]

@@ -47,7 +47,7 @@ export const configSchema = kubernetesConfigBase
   .description("The provider configuration for the local-kubernetes plugin.")
 
 export async function configureProvider(params: ConfigureProviderParams<LocalKubernetesConfig>) {
-  const { base, log, projectName } = params
+  const { base, log, projectName, tools } = params
   let { config } = await base!(params)
 
   const _systemServices = config._systemServices
@@ -55,10 +55,11 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
   // create dummy provider with just enough info needed for the getKubeConfig function
   const provider = {
     name: config.name,
-    dependencies: [],
+    dependencies: {},
     config,
     moduleConfigs: [],
     status: { ready: true, outputs: {} },
+    tools,
   }
   const kubeConfig = await getKubeConfig(log, provider)
   const currentContext = kubeConfig["current-context"]

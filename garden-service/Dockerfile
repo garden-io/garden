@@ -11,17 +11,17 @@ RUN apk add --no-cache \
 
 WORKDIR /tmp
 
-RUN npm install pkg@4.4.2 && node_modules/.bin/pkg-fetch node12 alpine x64
+RUN npm install pkg@4.4.8 && node_modules/.bin/pkg-fetch node12 alpine x64
 
 ADD package.json /tmp/
 ADD package-lock.json /tmp/
 
 RUN npm install \
   && rm -rf /root/.npm/* \
-    /usr/lib/node_modules/npm/man/* \
-    /usr/lib/node_modules/npm/doc/* \
-    /usr/lib/node_modules/npm/html/* \
-    /usr/lib/node_modules/npm/scripts/*
+  /usr/lib/node_modules/npm/man/* \
+  /usr/lib/node_modules/npm/doc/* \
+  /usr/lib/node_modules/npm/html/* \
+  /usr/lib/node_modules/npm/scripts/*
 
 ADD bin/garden /tmp/bin/garden
 ADD bin/garden-debug /tmp/bin/garden-debug
@@ -56,6 +56,7 @@ WORKDIR /project
 
 RUN chmod +x /garden/garden \
   && ln -s /garden/garden /bin/garden \
-  && chmod +x /bin/garden
+  && chmod +x /bin/garden \
+  && cd /garden/static && garden util fetch-tools --all --logger-type=basic
 
 ENTRYPOINT ["/garden/garden"]

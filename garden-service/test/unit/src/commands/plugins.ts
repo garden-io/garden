@@ -96,7 +96,7 @@ describe("PluginsCommand", () => {
     expect(infoLog).to.equal(dedent`
     USAGE
 
-      garden [global options] <command> [args ...]
+      garden [global options] <command> -- [args ...]
 
     PLUGIN COMMANDS
       test-plugin-a command-a    Description for command A

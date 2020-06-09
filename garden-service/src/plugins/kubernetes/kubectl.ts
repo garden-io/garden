@@ -8,12 +8,13 @@
 
 import _spawn from "cross-spawn"
 import { encodeYamlMulti } from "../../util/util"
-import { BinaryCmd, ExecParams } from "../../util/ext-tools"
+import { ExecParams, PluginTool } from "../../util/ext-tools"
 import { LogEntry } from "../../logger/log-entry"
 import { KubernetesProvider } from "./config"
 import { KubernetesResource } from "./types"
 import { gardenAnnotationKey } from "../../util/string"
 import { hashManifest } from "./util"
+import { PluginToolSpec } from "../../types/plugin/tools"
 
 export interface ApplyParams {
   log: LogEntry
@@ -57,7 +58,7 @@ export async function apply({
   args.push("--output=json", "-f", "-")
   !validate && args.push("--validate=false")
 
-  const result = await kubectl.stdout({ log, provider, namespace, args, input })
+  const result = await kubectl(provider).stdout({ log, namespace, args, input })
 
   try {
     return JSON.parse(result)
@@ -88,7 +89,7 @@ export async function deleteResources({
 
   includeUninitialized && args.push("--include-uninitialized")
 
-  return kubectl.stdout({ provider, namespace, args, log })
+  return kubectl(provider).stdout({ namespace, args, log })
 }
 
 export async function deleteObjectsBySelector({
@@ -110,12 +111,11 @@ export async function deleteObjectsBySelector({
 
   includeUninitialized && args.push("--include-uninitialized")
 
-  return kubectl.stdout({ provider, namespace, args, log })
+  return kubectl(provider).stdout({ namespace, args, log })
 }
 
 interface KubectlParams extends ExecParams {
   log: LogEntry
-  provider: KubernetesProvider
   namespace?: string
   configPath?: string
   args: string[]
@@ -126,15 +126,23 @@ interface KubectlSpawnParams extends KubectlParams {
   wait?: boolean
 }
 
-class Kubectl extends BinaryCmd {
-  async exec(params: KubectlParams) {
-    this.prepareArgs(params)
-    return super.exec(params)
+export function kubectl(provider: KubernetesProvider) {
+  return new Kubectl(provider.tools.kubectl.spec, provider)
+}
+
+class Kubectl extends PluginTool {
+  constructor(spec: PluginToolSpec, private provider: KubernetesProvider) {
+    super(spec)
   }
 
   async stdout(params: KubectlParams) {
     this.prepareArgs(params)
     return super.stdout(params)
+  }
+
+  async exec(params: KubectlParams) {
+    this.prepareArgs(params)
+    return super.exec(params)
   }
 
   async spawn(params: KubectlParams) {
@@ -158,12 +166,12 @@ class Kubectl extends BinaryCmd {
   }
 
   private prepareArgs(params: KubectlParams) {
-    const { provider, namespace, configPath, args } = params
+    const { namespace, configPath, args } = params
 
-    const opts: string[] = [`--context=${provider.config.context}`]
+    const opts: string[] = [`--context=${this.provider.config.context}`]
 
-    if (provider.config.kubeconfig) {
-      opts.push(`--kubeconfig=${provider.config.kubeconfig}`)
+    if (this.provider.config.kubeconfig) {
+      opts.push(`--kubeconfig=${this.provider.config.kubeconfig}`)
     }
 
     if (namespace) {
@@ -178,21 +186,28 @@ class Kubectl extends BinaryCmd {
   }
 }
 
-export const kubectl = new Kubectl({
+export const kubectlSpec: PluginToolSpec = {
   name: "kubectl",
-  defaultTimeout: KUBECTL_DEFAULT_TIMEOUT,
-  specs: {
-    darwin: {
+  description: "The official Kubernetes CLI.",
+  type: "binary",
+  builds: [
+    {
+      platform: "darwin",
+      architecture: "amd64",
       url: "https://storage.googleapis.com/kubernetes-release/release/v1.16.0/bin/darwin/amd64/kubectl",
       sha256: "a81b23abe67e70f8395ff7a3659bea6610fba98cda1126ef19e0a995f0075d54",
     },
-    linux: {
+    {
+      platform: "linux",
+      architecture: "amd64",
       url: "https://storage.googleapis.com/kubernetes-release/release/v1.16.0/bin/linux/amd64/kubectl",
       sha256: "4fc8a7024ef17b907820890f11ba7e59a6a578fa91ea593ce8e58b3260f7fb88",
     },
-    win32: {
+    {
+      platform: "windows",
+      architecture: "amd64",
       url: "https://storage.googleapis.com/kubernetes-release/release/v1.16.0/bin/windows/amd64/kubectl.exe",
       sha256: "a7e4e527735f5bc49ad80b92f4a9d3bb6aebd129f9a708baac80465ebc33a9bc",
     },
-  },
-})
+  ],
+}

@@ -8,14 +8,14 @@
 
 import { PluginActionParamsBase, actionParamsSchema } from "../base"
 import { dedent } from "../../../util/string"
-import { joi, joiArray, joiIdentifier } from "../../../config/common"
+import { joi, joiArray, joiIdentifier, joiIdentifierMap } from "../../../config/common"
 import { baseModuleSpecSchema, AddModuleSpec } from "../../../config/module"
-import { Provider, providerSchema } from "../../../config/provider"
+import { providerSchema, ProviderMap } from "../../../config/provider"
 import { Module, moduleSchema } from "../../module"
 
 export interface AugmentGraphParams extends PluginActionParamsBase {
   modules: Module[]
-  providers: Provider[]
+  providers: ProviderMap
 }
 
 interface AddDependency {
@@ -51,7 +51,7 @@ export const augmentGraph = () => ({
           handlers defined by other providers that this provider depends on.
         `
     ),
-    providers: joiArray(providerSchema()).description("All configured providers in the project."),
+    providers: joiIdentifierMap(providerSchema()).description("Map of all configured providers in the project."),
   }),
   resultSchema: joi.object().keys({
     addBuildDependencies: joi

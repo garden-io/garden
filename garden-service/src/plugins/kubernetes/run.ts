@@ -446,14 +446,13 @@ export class PodRunner extends PodRunnerParams {
     const startedAt = new Date()
 
     // TODO: use API library
-    const res = await kubectl.spawnAndWait({
+    const res = await kubectl(this.provider).spawnAndWait({
       log,
-      provider: this.provider,
       namespace: this.namespace,
       ignoreError,
       args: kubecmd,
       stdout,
-      timeout,
+      timeoutSec: timeout,
       tty: interactive,
     })
 
@@ -482,9 +481,8 @@ export class PodRunner extends PodRunnerParams {
     log.verbose(`Starting Pod ${this.podName} with command '${command.join(" ")}'`)
 
     // TODO: use API directly
-    this.proc = await kubectl.spawn({
+    this.proc = await kubectl(this.provider).spawn({
       log,
-      provider: this.provider,
       namespace: this.namespace,
       args: kubecmd,
       stdout,
@@ -555,16 +553,15 @@ export class PodRunner extends PodRunnerParams {
 
     const startedAt = new Date()
 
-    const proc = await kubectl.spawn({
+    const proc = await kubectl(this.provider).spawn({
       args,
       namespace: this.namespace,
       ignoreError,
       input,
       log,
-      provider: this.provider,
       stdout,
       stderr,
-      timeout,
+      timeoutSec: timeout,
     })
 
     let result: string = ""
@@ -619,16 +616,15 @@ export class PodRunner extends PodRunnerParams {
 
     const startedAt = new Date()
 
-    const res = await kubectl.exec({
+    const res = await kubectl(this.provider).exec({
       args,
       namespace: this.namespace,
       ignoreError,
       input,
       log,
-      provider: this.provider,
       stdout,
       stderr,
-      timeout,
+      timeoutSec: timeout,
     })
 
     if (res.timedOut) {

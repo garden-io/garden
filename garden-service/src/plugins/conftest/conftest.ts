@@ -13,7 +13,6 @@ import { joi, joiIdentifier } from "../../config/common"
 import { dedent, naturalList } from "../../util/string"
 import { TestModuleParams } from "../../types/plugin/module/testModule"
 import { Module } from "../../types/module"
-import { BinaryCmd } from "../../util/ext-tools"
 import chalk from "chalk"
 import { baseBuildSpecSchema } from "../../config/module"
 import { matchGlobs, listDirectory } from "../../util/fs"
@@ -167,7 +166,7 @@ export const gardenPlugin = createGardenPlugin({
           }
           args.push(...files)
 
-          const result = await conftest.exec({ log, args, ignoreError: true, cwd: buildPath })
+          const result = await provider.tools.conftest.exec({ log, args, ignoreError: true, cwd: buildPath })
 
           let success = true
           let parsed: any = []
@@ -246,34 +245,43 @@ export const gardenPlugin = createGardenPlugin({
       },
     },
   ],
-})
-
-const conftest = new BinaryCmd({
-  name: "conftest",
-  specs: {
-    darwin: {
-      url: "https://github.com/instrumenta/conftest/releases/download/v0.15.0/conftest_0.15.0_Darwin_x86_64.tar.gz",
-      sha256: "73cea42e467edf7bec58648514096f5975353b0523a5f2b309833ff4a972765e",
-      extract: {
-        format: "tar",
-        targetPath: ["conftest"],
-      },
+  tools: [
+    {
+      name: "conftest",
+      description: "A rego-based configuration validator.",
+      type: "binary",
+      builds: [
+        {
+          platform: "darwin",
+          architecture: "amd64",
+          url: "https://github.com/instrumenta/conftest/releases/download/v0.15.0/conftest_0.15.0_Darwin_x86_64.tar.gz",
+          sha256: "73cea42e467edf7bec58648514096f5975353b0523a5f2b309833ff4a972765e",
+          extract: {
+            format: "tar",
+            targetPath: "conftest",
+          },
+        },
+        {
+          platform: "linux",
+          architecture: "amd64",
+          url: "https://github.com/instrumenta/conftest/releases/download/v0.15.0/conftest_0.15.0_Linux_x86_64.tar.gz",
+          sha256: "23c6af69dcd2c9fe935ee3cd5652cc14ffc9d7cf0fd55d4abc6a5c3bd470b692",
+          extract: {
+            format: "tar",
+            targetPath: "conftest",
+          },
+        },
+        {
+          platform: "windows",
+          architecture: "amd64",
+          url: "https://github.com/instrumenta/conftest/releases/download/v0.15.0/conftest_0.15.0_Windows_x86_64.zip",
+          sha256: "c452bb4b71d6fbf5d918e1b3ed28092f7bc3a157f44e0ecd6fa1968e1cad4bec",
+          extract: {
+            format: "zip",
+            targetPath: "conftest.exe",
+          },
+        },
+      ],
     },
-    linux: {
-      url: "https://github.com/instrumenta/conftest/releases/download/v0.15.0/conftest_0.15.0_Linux_x86_64.tar.gz",
-      sha256: "23c6af69dcd2c9fe935ee3cd5652cc14ffc9d7cf0fd55d4abc6a5c3bd470b692",
-      extract: {
-        format: "tar",
-        targetPath: ["conftest"],
-      },
-    },
-    win32: {
-      url: "https://github.com/instrumenta/conftest/releases/download/v0.15.0/conftest_0.15.0_Windows_x86_64.zip",
-      sha256: "c452bb4b71d6fbf5d918e1b3ed28092f7bc3a157f44e0ecd6fa1968e1cad4bec",
-      extract: {
-        format: "zip",
-        targetPath: ["conftest.exe"],
-      },
-    },
-  },
+  ],
 })

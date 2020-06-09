@@ -9,7 +9,13 @@
 import stableStringify = require("json-stable-stringify")
 import chalk from "chalk"
 import { BaseTask, TaskParams, TaskType } from "./base"
-import { ProviderConfig, Provider, providerFromConfig, getProviderTemplateReferences } from "../config/provider"
+import {
+  ProviderConfig,
+  Provider,
+  providerFromConfig,
+  getProviderTemplateReferences,
+  ProviderMap,
+} from "../config/provider"
 import { resolveTemplateStrings } from "../template-string"
 import { ConfigurationError, PluginError } from "../exceptions"
 import { keyBy, omit, flatten } from "lodash"
@@ -28,6 +34,7 @@ import { readFile, writeFile, ensureDir } from "fs-extra"
 import { deserialize, serialize } from "v8"
 import { environmentStatusSchema } from "../config/status"
 import { hashString } from "../util/util"
+import { PluginTool } from "../util/ext-tools"
 
 interface Params extends TaskParams {
   plugin: GardenPlugin
@@ -126,7 +133,10 @@ export class ResolveProviderTask extends BaseTask {
   }
 
   async process(dependencyResults: TaskResults) {
-    const resolvedProviders: Provider[] = Object.values(dependencyResults).map((result) => result && result.output)
+    const resolvedProviders: ProviderMap = keyBy(
+      Object.values(dependencyResults).map((result) => result && result.output),
+      "name"
+    )
 
     // Return immediately if the provider has been previously resolved
     const alreadyResolvedProviders = this.garden["resolvedProviders"][this.config.name]
@@ -168,6 +178,11 @@ export class ResolveProviderTask extends BaseTask {
 
     const actions = await this.garden.getActionRouter()
 
+    const tools = keyBy(
+      (this.plugin.tools || []).map((spec) => new PluginTool(spec)),
+      "name"
+    )
+
     const configureOutput = await actions.configureProvider({
       environmentName: this.garden.environmentName,
       namespace: this.garden.namespace,
@@ -178,6 +193,7 @@ export class ResolveProviderTask extends BaseTask {
       projectName: this.garden.projectName,
       projectRoot: this.garden.projectRoot,
       dependencies: resolvedProviders,
+      tools,
     })
 
     this.log.silly(`Validating ${providerName} config returned from configureProvider handler`)
@@ -213,10 +229,16 @@ export class ResolveProviderTask extends BaseTask {
 
     this.log.silly(`Ensuring ${providerName} provider is ready`)
 
-    const tmpProvider = providerFromConfig(resolvedConfig, resolvedProviders, moduleConfigs, defaultEnvironmentStatus)
+    const tmpProvider = providerFromConfig(
+      resolvedConfig,
+      resolvedProviders,
+      moduleConfigs,
+      defaultEnvironmentStatus,
+      tools
+    )
     const status = await this.ensurePrepared(tmpProvider)
 
-    return providerFromConfig(resolvedConfig, resolvedProviders, moduleConfigs, status)
+    return providerFromConfig(resolvedConfig, resolvedProviders, moduleConfigs, status, tools)
   }
 
   private getCachePath() {

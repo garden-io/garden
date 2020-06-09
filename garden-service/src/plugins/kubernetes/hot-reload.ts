@@ -203,11 +203,10 @@ export async function hotReloadContainer({
     [gardenAnnotationKey("service")]: service.name,
   })
   // TODO: make and use a KubeApi method for this
-  const res: KubernetesList<KubernetesWorkload> = await kubectl.json({
+  const res: KubernetesList<KubernetesWorkload> = await kubectl(provider).json({
     args: ["get", manifest.kind, "-l", selector],
     log,
     namespace,
-    provider,
   })
   const list = res.items.filter((r) => r.metadata.annotations![gardenAnnotationKey("hot-reload")] === "true")
 

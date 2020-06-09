@@ -73,9 +73,9 @@ const GLOBAL_OPTIONS_GROUP_NAME = "Global options"
  * Used by commands that have noProject=true. That is, commands that need
  * to run outside of valid Garden projects.
  */
-class DummyGarden extends Garden {
+export class DummyGarden extends Garden {
   async resolveProviders() {
-    return []
+    return {}
   }
   async scanAndAddConfigs() {}
 }
@@ -312,7 +312,6 @@ export class GardenCli {
       // the screen the logs are printed.
       const headerLog = logger.placeholder()
       const log = logger.placeholder()
-      logger.info("")
       const footerLog = logger.placeholder()
 
       // Init event & log streaming.

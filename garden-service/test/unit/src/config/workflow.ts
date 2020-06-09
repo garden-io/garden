@@ -10,12 +10,12 @@ import { expect } from "chai"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { expectError, makeTestGardenA, TestGarden } from "../../../helpers"
 import { WorkflowConfig, resolveWorkflowConfig } from "../../../../src/config/workflow"
-import { Provider } from "../../../../src/config/provider"
+import { ProviderMap } from "../../../../src/config/provider"
 import { defaultContainerLimits } from "../../../../src/plugins/container/config"
 
 describe("resolveWorkflowConfig", () => {
   let garden: TestGarden
-  let resolvedProviders: Provider[]
+  let resolvedProviders: ProviderMap
   const defaults = {
     limits: defaultContainerLimits,
     keepAliveHours: 48,

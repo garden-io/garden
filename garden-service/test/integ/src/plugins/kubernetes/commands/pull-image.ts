@@ -18,18 +18,13 @@ import { containerHelpers } from "../../../../../../src/plugins/container/helper
 import { expect } from "chai"
 import { LogEntry } from "../../../../../../src/logger/log-entry"
 import { grouped } from "../../../../../helpers"
-
-async function ensureImagePulled(module: Module, log: LogEntry) {
-  const imageId = await containerHelpers.getLocalImageId(module)
-  const imageHash = await containerHelpers.dockerCli(module.buildPath, ["images", "-q", imageId], log)
-
-  expect(imageHash.stdout.length).to.be.greaterThan(0)
-}
+import { ContainerProvider } from "../../../../../../src/plugins/container/container"
 
 describe("pull-image plugin command", () => {
   let garden: Garden
   let graph: ConfigGraph
   let provider: KubernetesProvider
+  let containerProvider: ContainerProvider
   let ctx: PluginContext
 
   after(async () => {
@@ -42,7 +37,20 @@ describe("pull-image plugin command", () => {
     garden = await getContainerTestGarden(environmentName)
     graph = await garden.getConfigGraph(garden.log)
     provider = <KubernetesProvider>await garden.resolveProvider("local-kubernetes")
+    containerProvider = <ContainerProvider>await garden.resolveProvider("container")
     ctx = garden.getPluginContext(provider)
+  }
+
+  async function ensureImagePulled(module: Module, log: LogEntry) {
+    const imageId = await containerHelpers.getLocalImageId(module)
+    const imageHash = await containerHelpers.dockerCli({
+      cwd: module.buildPath,
+      args: ["images", "-q", imageId],
+      log,
+      containerProvider,
+    })
+
+    expect(imageHash.stdout.length).to.be.greaterThan(0)
   }
 
   grouped("cluster-docker", "remote-only").context("using an external cluster registry", () => {

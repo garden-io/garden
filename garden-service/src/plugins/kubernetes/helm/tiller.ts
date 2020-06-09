@@ -8,7 +8,7 @@
 
 import { LogEntry } from "../../../logger/log-entry"
 import { KubernetesResource } from "../types"
-import { helm, helmPlugin2to3 } from "./helm-cli"
+import { helm } from "./helm-cli"
 import { safeLoadAll } from "js-yaml"
 import { KubeApi, getKubeConfig } from "../api"
 import { checkResourceStatuses } from "../status/status"
@@ -193,7 +193,7 @@ export async function migrateToHelm3({
           // It's not possible to install/update/execute Helm plugins on Windows because of this:
           // https://github.com/helm/helm-2to3/issues/55
           // So instead we download and execute the plugin binary directly, without passing it through the Helm CLI.
-          await helmPlugin2to3.stdout({
+          await ctx.provider.tools["helm-2to3"].stdout({
             log,
             args: ["convert", releaseName, "--tiller-ns", namespace],
             env: {
