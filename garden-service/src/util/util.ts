@@ -576,3 +576,22 @@ export function pushToKey(obj: object, key: string, value: any) {
 export function isPromise(obj: any): obj is Promise<any> {
   return !!obj && (typeof obj === "object" || typeof obj === "function") && typeof obj.then === "function"
 }
+
+// Used to make the platforms more consistent with other tools
+const platformMap = {
+  win32: "windows",
+}
+
+const archMap = {
+  x32: "386",
+  x64: "amd64",
+}
+
+export function getPlatform() {
+  return platformMap[process.platform] || process.platform
+}
+
+export function getArchitecture() {
+  const arch = process.arch
+  return archMap[arch] || arch
+}

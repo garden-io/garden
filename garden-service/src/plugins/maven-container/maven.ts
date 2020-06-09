@@ -6,22 +6,36 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BinaryCmd, LibraryPlatformSpec } from "../../util/ext-tools"
+import { PluginToolSpec } from "../../types/plugin/tools"
 
-const spec: LibraryPlatformSpec = {
+const spec = {
   url: "http://mirror.23media.de/apache/maven/maven-3/3.6.0/binaries/apache-maven-3.6.0-bin.tar.gz",
   sha256: "6a1b346af36a1f1a491c1c1a141667c5de69b42e6611d3687df26868bc0f4637",
   extract: {
     format: "tar",
-    targetPath: ["apache-maven-3.6.0", "bin", "mvn"],
+    targetPath: "apache-maven-3.6.0/bin/mvn",
   },
 }
 
-export const maven = new BinaryCmd({
+export const mavenSpec: PluginToolSpec = {
   name: "maven",
-  specs: {
-    darwin: spec,
-    linux: spec,
-    win32: spec,
-  },
-})
+  description: "The Maven CLI.",
+  type: "binary",
+  builds: [
+    {
+      platform: "darwin",
+      architecture: "amd64",
+      ...spec,
+    },
+    {
+      platform: "linux",
+      architecture: "amd64",
+      ...spec,
+    },
+    {
+      platform: "windows",
+      architecture: "amd64",
+      ...spec,
+    },
+  ],
+}

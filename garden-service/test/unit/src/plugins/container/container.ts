@@ -13,7 +13,7 @@ import td from "testdouble"
 
 import { Garden } from "../../../../../src/garden"
 import { PluginContext } from "../../../../../src/plugin-context"
-import { gardenPlugin } from "../../../../../src/plugins/container/container"
+import { gardenPlugin, ContainerProvider } from "../../../../../src/plugins/container/container"
 import { dataDir, expectError, makeTestGarden } from "../../../../helpers"
 import { moduleFromConfig } from "../../../../../src/types/module"
 import { ModuleConfig } from "../../../../../src/config/module"
@@ -74,12 +74,13 @@ describe("plugins.container", () => {
   let garden: Garden
   let ctx: PluginContext
   let log: LogEntry
+  let containerProvider: ContainerProvider
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin] })
     log = garden.log
-    const provider = await garden.resolveProvider("container")
-    ctx = garden.getPluginContext(provider)
+    containerProvider = await garden.resolveProvider("container")
+    ctx = garden.getPluginContext(containerProvider)
 
     td.replace(garden.buildDir, "syncDependencyProducts", () => null)
 
@@ -774,9 +775,10 @@ describe("plugins.container", () => {
 
       const cmdArgs = ["build", "-t", "some/image", module.buildPath]
 
-      td.replace(helpers, "dockerCli", async (path: string, args: string[]) => {
-        expect(path).to.equal(module.buildPath)
+      td.replace(helpers, "dockerCli", async ({ cwd, args, containerProvider: provider }) => {
+        expect(cwd).to.equal(module.buildPath)
         expect(args).to.eql(cmdArgs)
+        expect(provider).to.exist
         return { all: "log" }
       })
 
@@ -801,9 +803,10 @@ describe("plugins.container", () => {
 
       const cmdArgs = ["build", "-t", "some/image", "--target", "foo", module.buildPath]
 
-      td.replace(helpers, "dockerCli", async (path: string, args: string[]) => {
-        expect(path).to.equal(module.buildPath)
+      td.replace(helpers, "dockerCli", async ({ cwd, args, containerProvider: provider }) => {
+        expect(cwd).to.equal(module.buildPath)
         expect(args).to.eql(cmdArgs)
+        expect(provider).to.exist
         return { all: "log" }
       })
 
@@ -836,9 +839,10 @@ describe("plugins.container", () => {
         module.buildPath,
       ]
 
-      td.replace(helpers, "dockerCli", async (path: string, args: string[]) => {
-        expect(path).to.equal(module.buildPath)
+      td.replace(helpers, "dockerCli", async ({ cwd, args, containerProvider: provider }) => {
+        expect(cwd).to.equal(module.buildPath)
         expect(args).to.eql(cmdArgs)
+        expect(provider).to.exist
         return { all: "log" }
       })
 
@@ -873,16 +877,15 @@ describe("plugins.container", () => {
       td.replace(helpers, "getLocalImageId", async () => "some/image:12345")
       td.replace(helpers, "getPublicImageId", async () => "some/image:12345")
 
-      const dockerCli = td.replace(helpers, "dockerCli")
+      td.replace(helpers, "dockerCli", async ({ cwd, args, containerProvider: provider }) => {
+        expect(cwd).to.equal(module.buildPath)
+        expect(args).to.eql(["push", "some/image:12345"])
+        expect(provider).to.exist
+        return { all: "log" }
+      })
 
       const result = await publishModule({ ctx, log, module })
       expect(result).to.eql({ message: "Published some/image:12345", published: true })
-
-      td.verify(dockerCli(module.buildPath, ["tag", "some/image:12345", "some/image:12345"]), {
-        ignoreExtraArgs: true,
-        times: 0,
-      })
-      td.verify(dockerCli(module.buildPath, ["push", "some/image:12345"]), { ignoreExtraArgs: true })
     })
 
     it("should tag image if remote id differs from local id", async () => {
@@ -899,50 +902,22 @@ describe("plugins.container", () => {
       const result = await publishModule({ ctx, log, module })
       expect(result).to.eql({ message: "Published some/image:1.1", published: true })
 
-      td.verify(dockerCli(module.buildPath, ["tag", "some/image:12345", "some/image:1.1"]), { ignoreExtraArgs: true })
-      td.verify(dockerCli(module.buildPath, ["push", "some/image:1.1"]), { ignoreExtraArgs: true })
-    })
-  })
-
-  describe("checkDockerClientVersion", () => {
-    it("should return if client version is equal to the minimum version", async () => {
-      helpers.checkDockerClientVersion(minDockerVersion)
-    })
-
-    it("should return if client version is greater than the minimum version", async () => {
-      const version = {
-        client: "99.99",
-        server: "99.99",
-      }
-
-      helpers.checkDockerClientVersion(version)
-    })
-
-    it("should throw if client is not installed (version is undefined)", async () => {
-      const version = {
-        client: undefined,
-        server: minDockerVersion.server,
-      }
-
-      await expectError(
-        () => helpers.checkDockerClientVersion(version),
-        (err) => {
-          expect(err.message).to.equal("Docker client is not installed.")
-        }
+      td.verify(
+        dockerCli({
+          cwd: module.buildPath,
+          args: ["tag", "some/image:12345", "some/image:1.1"],
+          log: td.matchers.anything(),
+          containerProvider: td.matchers.anything(),
+        })
       )
-    })
 
-    it("should throw if client version is too old", async () => {
-      const version = {
-        client: "17.06",
-        server: minDockerVersion.server,
-      }
-
-      await expectError(
-        () => helpers.checkDockerClientVersion(version),
-        (err) => {
-          expect(err.message).to.equal("Docker client needs to be version 19.03.0 or newer (got 17.06)")
-        }
+      td.verify(
+        dockerCli({
+          cwd: module.buildPath,
+          args: ["push", "some/image:1.1"],
+          log: td.matchers.anything(),
+          containerProvider: td.matchers.anything(),
+        })
       )
     })
   })

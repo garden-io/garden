@@ -17,7 +17,7 @@ import { containerHandlers } from "./container/handlers"
 import { kubernetesHandlers } from "./kubernetes-module/handlers"
 import { ConfigureProviderParams } from "../../types/plugin/provider/configureProvider"
 import { DebugInfo, GetDebugInfoParams } from "../../types/plugin/provider/getDebugInfo"
-import { kubectl } from "./kubectl"
+import { kubectl, kubectlSpec } from "./kubectl"
 import { KubernetesConfig, KubernetesPluginContext } from "./config"
 import { configSchema } from "./config"
 import { ConfigurationError } from "../../exceptions"
@@ -39,6 +39,8 @@ import { DOCS_BASE_URL } from "../../constants"
 import { inClusterRegistryHostname } from "./constants"
 import { pvcModuleDefinition } from "./volumes/persistentvolumeclaim"
 import { getModuleTypeUrl, getProviderUrl } from "../../docs/common"
+import { helm2Spec, helm3Spec, helm2to3Spec } from "./helm/helm-cli"
+import { sternSpec } from "./logs"
 
 export async function configureProvider({
   namespace,
@@ -149,7 +151,7 @@ export async function debugInfo({ ctx, log, includeProject }: GetDebugInfoParams
   }
   const namespaces = await Bluebird.map(namespacesList, async (ns) => {
     const nsEntry = entry.info({ section: ns, msg: "collecting namespace configuration", status: "active" })
-    const out = await kubectl.stdout({ log, provider, args: ["get", "all", "--namespace", ns, "--output", "json"] })
+    const out = await kubectl(provider).stdout({ log, args: ["get", "all", "--namespace", ns, "--output", "json"] })
     nsEntry.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
     return {
       namespace: ns,
@@ -158,7 +160,7 @@ export async function debugInfo({ ctx, log, includeProject }: GetDebugInfoParams
   })
   entry.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
 
-  const version = await kubectl.stdout({ log, provider, args: ["version", "--output", "json"] })
+  const version = await kubectl(provider).stdout({ log, args: ["version", "--output", "json"] })
 
   return {
     info: { version: JSON.parse(version), namespaces },
@@ -240,4 +242,5 @@ export const gardenPlugin = createGardenPlugin({
       handlers: containerHandlers,
     },
   ],
+  tools: [kubectlSpec, helm2Spec, helm3Spec, helm2to3Spec, sternSpec],
 })

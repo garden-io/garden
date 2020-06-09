@@ -104,7 +104,8 @@ describe("ActionRouter", () => {
           configStore: garden.configStore,
           projectName: garden.projectName,
           projectRoot: garden.projectRoot,
-          dependencies: [],
+          dependencies: {},
+          tools: {},
         })
         expect(result).to.eql({
           config,

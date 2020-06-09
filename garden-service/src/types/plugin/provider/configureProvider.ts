@@ -7,25 +7,27 @@
  */
 
 import { projectNameSchema, projectRootSchema } from "../../../config/project"
-import { ProviderConfig, Provider, providerConfigBaseSchema, providerSchema } from "../../../config/provider"
+import { ProviderConfig, providerConfigBaseSchema, providerSchema, ProviderMap } from "../../../config/provider"
 import { logEntrySchema } from "../base"
 import { configStoreSchema, ConfigStore } from "../../../config-store"
-import { joiArray, joi, joiIdentifier } from "../../../config/common"
+import { joiArray, joi, joiIdentifier, joiIdentifierMap } from "../../../config/common"
 import { moduleConfigSchema, ModuleConfig } from "../../../config/module"
 import { deline, dedent } from "../../../util/string"
 import { ActionHandler, ActionHandlerParamsBase } from "../plugin"
 import { LogEntry } from "../../../logger/log-entry"
+import { PluginTools } from "../tools"
 
 // Note: These are the only plugin handler params that don't inherit from PluginActionParamsBase
 export interface ConfigureProviderParams<T extends ProviderConfig = any> extends ActionHandlerParamsBase {
-  log: LogEntry
   config: T
+  configStore: ConfigStore
+  dependencies: ProviderMap
   environmentName: string
+  log: LogEntry
   namespace?: string
   projectName: string
   projectRoot: string
-  dependencies: Provider[]
-  configStore: ConfigStore
+  tools: PluginTools
   base?: ActionHandler<ConfigureProviderParams<T>, ConfigureProviderResult<T>>
 }
 
@@ -53,8 +55,9 @@ export const configureProvider = () => ({
     log: logEntrySchema(),
     projectName: projectNameSchema(),
     projectRoot: projectRootSchema(),
-    dependencies: joiArray(providerSchema()).description("All providers that this provider depends on."),
+    dependencies: joiIdentifierMap(providerSchema()).description("Map of all providers that this provider depends on."),
     configStore: configStoreSchema(),
+    tools: joiIdentifierMap(joi.object()),
   }),
   resultSchema: joi.object().keys({
     config: providerConfigBaseSchema(),

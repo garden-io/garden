@@ -144,7 +144,7 @@ export function isCertificateReady(cert) {
  */
 export async function getAllCertificates(log: LogEntry, provider: KubernetesProvider, namespace: string) {
   const args = ["get", "certificates", "--namespace", namespace]
-  return kubectl.json({ log, provider, args })
+  return kubectl(provider).json({ log, args })
 }
 
 /**

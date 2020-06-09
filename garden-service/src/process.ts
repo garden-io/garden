@@ -68,12 +68,14 @@ export async function processModules({
     log.info(renderDivider())
   }
 
+  let statusLine: LogEntry
+
   if (watch && !!footerLog) {
-    footerLog.info("")
+    statusLine = footerLog.info("").placeholder()
 
     garden.events.on("taskGraphProcessing", () => {
-      const emoji = printEmoji("hourglass_flowing_sand", footerLog)
-      footerLog.setState(`${emoji} Processing...`)
+      const emoji = printEmoji("hourglass_flowing_sand", statusLine)
+      statusLine.setState(`${emoji} Processing...`)
     })
   }
 
@@ -97,8 +99,8 @@ export async function processModules({
   await garden.startWatcher(graph)
 
   const waiting = () => {
-    if (!!footerLog) {
-      footerLog.setState({ emoji: "clock2", msg: chalk.gray("Waiting for code changes...") })
+    if (!!statusLine) {
+      statusLine.setState({ emoji: "clock2", msg: chalk.gray("Waiting for code changes...") })
     }
 
     garden.events.emit("watchingForChanges", {})

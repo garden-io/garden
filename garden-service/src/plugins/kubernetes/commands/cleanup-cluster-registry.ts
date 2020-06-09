@@ -436,11 +436,10 @@ async function execInBuildSync({ provider, log, args, timeout, podName }: Builde
 
   log.verbose(`Running: kubectl ${execCmd.join(" ")}`)
 
-  return kubectl.exec({
+  return kubectl(provider).exec({
     args: execCmd,
-    provider,
     log,
     namespace: systemNamespace,
-    timeout,
+    timeoutSec: timeout,
   })
 }

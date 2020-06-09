@@ -24,11 +24,13 @@ import {
   dockerDaemonDeploymentName,
   dockerDaemonContainerName,
 } from "../../../../../../src/plugins/kubernetes/constants"
+import { ContainerProvider } from "../../../../../../src/plugins/container/container"
 
 describe("kubernetes build flow", () => {
   let garden: Garden
   let graph: ConfigGraph
   let provider: KubernetesProvider
+  let containerProvider: ContainerProvider
   let ctx: PluginContext
 
   after(async () => {
@@ -41,6 +43,7 @@ describe("kubernetes build flow", () => {
     garden = await getContainerTestGarden(environmentName)
     graph = await garden.getConfigGraph(garden.log)
     provider = <KubernetesProvider>await garden.resolveProvider("local-kubernetes")
+    containerProvider = <ContainerProvider>await garden.resolveProvider("container")
     ctx = garden.getPluginContext(provider)
   }
 
@@ -78,7 +81,12 @@ describe("kubernetes build flow", () => {
 
       const remoteId = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
       // This throws if the image doesn't exist
-      await containerHelpers.dockerCli(module.buildPath, ["manifest", "inspect", remoteId], garden.log)
+      await containerHelpers.dockerCli({
+        cwd: module.buildPath,
+        args: ["manifest", "inspect", remoteId],
+        log: garden.log,
+        containerProvider,
+      })
     })
 
     it("should get the build status from the deploymentRegistry", async () => {
@@ -92,7 +100,12 @@ describe("kubernetes build flow", () => {
       })
 
       const remoteId = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
-      await containerHelpers.dockerCli(module.buildPath, ["rmi", remoteId], garden.log)
+      await containerHelpers.dockerCli({
+        cwd: module.buildPath,
+        args: ["rmi", remoteId],
+        log: garden.log,
+        containerProvider,
+      })
 
       const status = await k8sGetContainerBuildStatus({
         ctx,

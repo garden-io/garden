@@ -45,6 +45,7 @@ import { dedent } from "../../../util/string"
 import chalk = require("chalk")
 import { loadImageToMicrok8s, getMicrok8sImageStatus } from "../local/microk8s"
 import { RunResult } from "../../../types/plugin/base"
+import { ContainerProvider } from "../../container/container"
 
 const registryPort = 5000
 
@@ -78,11 +79,18 @@ const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } 
   "local-docker": async (params) => {
     const { ctx, module, log } = params
     const k8sCtx = ctx as KubernetesPluginContext
+    const containerProvider = k8sCtx.provider.dependencies.container as ContainerProvider
     const deploymentRegistry = k8sCtx.provider.config.deploymentRegistry
 
     if (deploymentRegistry) {
       const args = await getManifestInspectArgs(module, deploymentRegistry)
-      const res = await containerHelpers.dockerCli(module.buildPath, args, log, { ignoreError: true })
+      const res = await containerHelpers.dockerCli({
+        cwd: module.buildPath,
+        args,
+        log,
+        containerProvider,
+        ignoreError: true,
+      })
 
       // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
       if (res.code !== 0 && !res.all.includes("no such manifest")) {
@@ -95,7 +103,7 @@ const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } 
       const localId = await containerHelpers.getLocalImageId(module)
       return getMicrok8sImageStatus(localId)
     } else {
-      return getContainerBuildStatus(params)
+      return getContainerBuildStatus({ ...params, ctx: { ...ctx, provider: ctx.provider.dependencies.container } })
     }
   },
 
@@ -185,14 +193,15 @@ type BuildHandler = (params: BuildModuleParams<ContainerModule>) => Promise<Buil
 const localBuild: BuildHandler = async (params) => {
   const { ctx, module, log } = params
   const provider = ctx.provider as KubernetesProvider
-  const buildResult = await buildContainerModule(params)
+  const containerProvider = provider.dependencies.container as ContainerProvider
+  const buildResult = await buildContainerModule({ ...params, ctx: { ...ctx, provider: containerProvider } })
 
   if (!provider.config.deploymentRegistry) {
     if (provider.config.clusterType === "kind") {
       await loadImageToKind(buildResult, provider.config)
     } else if (provider.config.clusterType === "microk8s") {
       const imageId = await containerHelpers.getLocalImageId(module)
-      await loadImageToMicrok8s({ module, imageId, log })
+      await loadImageToMicrok8s({ module, imageId, log, containerProvider })
     }
     return buildResult
   }
@@ -206,8 +215,8 @@ const localBuild: BuildHandler = async (params) => {
 
   log.setState({ msg: `Pushing image ${remoteId} to cluster...` })
 
-  await containerHelpers.dockerCli(module.buildPath, ["tag", localId, remoteId], log)
-  await containerHelpers.dockerCli(module.buildPath, ["push", remoteId], log)
+  await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["tag", localId, remoteId], log, containerProvider })
+  await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["push", remoteId], log, containerProvider })
 
   return buildResult
 }
@@ -416,13 +425,12 @@ export async function execInPod({
 
   log.verbose(`Running: kubectl ${execCmd.join(" ")}`)
 
-  return kubectl.exec({
+  return kubectl(provider).exec({
     args: execCmd,
     ignoreError,
-    provider,
     log,
     namespace: systemNamespace,
-    timeout,
+    timeoutSec: timeout,
     stdout,
     stderr,
   })

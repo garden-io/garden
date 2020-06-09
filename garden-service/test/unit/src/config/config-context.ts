@@ -23,7 +23,7 @@ import { prepareRuntimeContext } from "../../../../src/runtime-context"
 import { Service } from "../../../../src/types/service"
 import stripAnsi = require("strip-ansi")
 import { resolveTemplateString } from "../../../../src/template-string"
-import { fromPairs } from "lodash"
+import { fromPairs, keyBy } from "lodash"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>
@@ -358,7 +358,7 @@ describe("ModuleConfigContext", () => {
 
     c = new ModuleConfigContext({
       garden,
-      resolvedProviders: await garden.resolveProviders(),
+      resolvedProviders: keyBy(await garden.resolveProviders(), "name"),
       variables: garden.variables,
       secrets: { someSecret: "someSecretValue" },
       dependencyConfigs: modules,
@@ -500,7 +500,7 @@ describe("ModuleConfigContext", () => {
 
       withRuntime = new ModuleConfigContext({
         garden,
-        resolvedProviders: await garden.resolveProviders(),
+        resolvedProviders: keyBy(await garden.resolveProviders(), "name"),
         variables: garden.variables,
         secrets,
         dependencyConfigs: modules,

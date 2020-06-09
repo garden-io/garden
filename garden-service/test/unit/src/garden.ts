@@ -37,7 +37,7 @@ import { ProjectConfig } from "../../../src/config/project"
 import { ModuleConfig, baseModuleSpecSchema, baseBuildSpecSchema } from "../../../src/config/module"
 import { DEFAULT_API_VERSION } from "../../../src/constants"
 import { providerConfigBaseSchema } from "../../../src/config/provider"
-import { keyBy, set } from "lodash"
+import { keyBy, set, mapValues } from "lodash"
 import stripAnsi from "strip-ansi"
 import { joi } from "../../../src/config/common"
 import { defaultDotIgnoreFiles } from "../../../src/util/fs"
@@ -117,7 +117,7 @@ describe("Garden", () => {
           environments: ["local"],
           path: projectRoot,
         },
-        dependencies: [],
+        dependencies: {},
         moduleConfigs: [],
         status: {
           ready: true,
@@ -127,25 +127,19 @@ describe("Garden", () => {
 
       expect(garden.projectName).to.equal("test-project-a")
 
-      expect(await garden.resolveProviders()).to.eql([
-        emptyProvider(projectRoot, "exec"),
-        emptyProvider(projectRoot, "container"),
-        testPluginProvider,
-        {
+      const providers = await garden.resolveProviders()
+      const configs = mapValues(providers, (p) => p.config)
+
+      expect(configs).to.eql({
+        "exec": emptyProvider(projectRoot, "exec").config,
+        "container": emptyProvider(projectRoot, "container").config,
+        "test-plugin": testPluginProvider.config,
+        "test-plugin-b": {
           name: "test-plugin-b",
-          config: {
-            name: "test-plugin-b",
-            environments: ["local"],
-            path: projectRoot,
-          },
-          dependencies: [testPluginProvider],
-          moduleConfigs: [],
-          status: {
-            ready: true,
-            outputs: {},
-          },
+          environments: ["local"],
+          path: projectRoot,
         },
-      ])
+      })
 
       expect(garden.variables).to.eql({
         some: "variable",
@@ -163,23 +157,17 @@ describe("Garden", () => {
       delete process.env.TEST_PROVIDER_TYPE
       delete process.env.TEST_VARIABLE
 
-      expect(await garden.resolveProviders()).to.eql([
-        emptyProvider(projectRoot, "exec"),
-        emptyProvider(projectRoot, "container"),
-        {
+      const providers = await garden.resolveProviders()
+      const configs = mapValues(providers, (p) => p.config)
+
+      expect(configs).to.eql({
+        "exec": emptyProvider(projectRoot, "exec").config,
+        "container": emptyProvider(projectRoot, "container").config,
+        "test-plugin": {
           name: "test-plugin",
-          config: {
-            name: "test-plugin",
-            path: projectRoot,
-          },
-          dependencies: [],
-          moduleConfigs: [],
-          status: {
-            ready: true,
-            outputs: {},
-          },
+          path: projectRoot,
         },
-      ])
+      })
 
       expect(garden.variables).to.eql({
         "some": "banana",
@@ -766,6 +754,60 @@ describe("Garden", () => {
           base: base.commands[0],
         })
         expect(findByName(parsed.commands!, "bar")).to.eql(foo.commands[1])
+      })
+
+      it("should combine tools from both plugins, ignoring base tools when overriding", async () => {
+        const base = createGardenPlugin({
+          name: "base",
+          tools: [
+            {
+              name: "base-tool",
+              type: "binary",
+              description: "Test",
+              builds: [],
+            },
+            {
+              name: "common-tool",
+              type: "binary",
+              description: "Base description",
+              builds: [],
+            },
+          ],
+        })
+        const foo = createGardenPlugin({
+          name: "foo",
+          base: "base",
+          tools: [
+            {
+              name: "common-tool",
+              type: "library",
+              description: "Different description",
+              builds: [],
+            },
+            {
+              name: "different-tool",
+              type: "binary",
+              description: "Test",
+              builds: [],
+            },
+          ],
+        })
+
+        const garden = await TestGarden.factory(pathFoo, {
+          plugins: [base, foo],
+          config: projectConfigFoo,
+        })
+
+        const parsed = await garden.getPlugin("foo")
+
+        expect(parsed.tools!.length).to.equal(3)
+        expect(findByName(parsed.tools!, "base-tool")).to.eql({
+          ...base.tools![0],
+        })
+        expect(findByName(parsed.tools!, "common-tool")).to.eql({
+          ...foo.tools![0],
+        })
+        expect(findByName(parsed.tools!, "different-tool")).to.eql(foo.tools![1])
       })
 
       it("should register module types from both plugins", async () => {
@@ -1360,25 +1402,19 @@ describe("Garden", () => {
         },
       }
 
-      expect(await garden.resolveProviders()).to.eql([
-        emptyProvider(projectRoot, "exec"),
-        emptyProvider(projectRoot, "container"),
-        testPluginProvider,
-        {
+      const providers = await garden.resolveProviders()
+      const configs = mapValues(providers, (p) => p.config)
+
+      expect(configs).to.eql({
+        "exec": emptyProvider(projectRoot, "exec").config,
+        "container": emptyProvider(projectRoot, "container").config,
+        "test-plugin": testPluginProvider.config,
+        "test-plugin-b": {
           name: "test-plugin-b",
-          config: {
-            name: "test-plugin-b",
-            environments: ["local"],
-            path: projectRoot,
-          },
-          dependencies: [testPluginProvider],
-          moduleConfigs: [],
-          status: {
-            ready: true,
-            outputs: {},
-          },
+          environments: ["local"],
+          path: projectRoot,
         },
-      ])
+      })
     })
 
     it("should call a configureProvider handler if applicable", async () => {
@@ -1923,7 +1959,7 @@ describe("Garden", () => {
       const providerA = await garden.resolveProvider("test-a")
       const providerB = await garden.resolveProvider("test-b")
 
-      expect(providerB.dependencies).to.eql([providerA])
+      expect(providerB.dependencies).to.eql({ "test-a": providerA })
     })
 
     it("should match a dependency to a plugin base that's declared by multiple plugins", async () => {
@@ -1974,7 +2010,7 @@ describe("Garden", () => {
       const providerB = await garden.resolveProvider("test-b")
       const providerC = await garden.resolveProvider("test-c")
 
-      expect(providerC.dependencies).to.eql([providerA, providerB])
+      expect(providerC.dependencies).to.eql({ "test-a": providerA, "test-b": providerB })
     })
 
     context("when a plugin has a base", () => {
@@ -3459,7 +3495,7 @@ function emptyProvider(projectRoot: string, name: string) {
       name,
       path: projectRoot,
     },
-    dependencies: [],
+    dependencies: {},
     moduleConfigs: [],
     status: {
       ready: true,

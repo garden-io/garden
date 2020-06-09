@@ -186,6 +186,16 @@ function resolvePlugin(plugin: GardenPlugin, loadedPlugins: PluginMap, configs: 
     }
   }
 
+  // Add tools from base (unless they're overridden, in which case we ignore the one from the base)
+  resolved.tools = [...(plugin.tools || [])]
+
+  for (const baseTool of base.tools || []) {
+    const tool = findByName(resolved.tools, baseTool.name)
+    if (!tool) {
+      resolved.tools.push(baseTool)
+    }
+  }
+
   // If the base is not expressly configured for the environment, we pull and coalesce its module declarations.
   // We also make sure the plugin doesn't redeclare a module type from the base.
   resolved.createModuleTypes = [...plugin.createModuleTypes]

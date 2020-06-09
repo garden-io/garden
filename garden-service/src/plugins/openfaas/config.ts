@@ -17,8 +17,8 @@ import { Service } from "../../types/service"
 import { ExecModuleSpecBase, ExecTestSpec } from "../exec"
 import { KubernetesProvider } from "../kubernetes/config"
 import { CommonServiceSpec } from "../../config/service"
-import { Provider, providerConfigBaseSchema, ProviderConfig } from "../../config/provider"
-import { keyBy, union } from "lodash"
+import { Provider, providerConfigBaseSchema, ProviderConfig, ProviderMap } from "../../config/provider"
+import { union } from "lodash"
 import { ContainerModule } from "../container/config"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../types/plugin/module/configure"
 import { getNamespace } from "../kubernetes/namespace"
@@ -140,10 +140,9 @@ export const configSchema = () =>
 export type OpenFaasProvider = Provider<OpenFaasConfig>
 export type OpenFaasPluginContext = PluginContext<OpenFaasConfig>
 
-export function getK8sProvider(providers: Provider[]): KubernetesProvider {
-  const providerMap = keyBy(providers, "name")
+export function getK8sProvider(providers: ProviderMap): KubernetesProvider {
   // FIXME: use new plugin inheritance mechanism here, instead of explicitly checking for local-kubernetes
-  const provider = <KubernetesProvider>(providerMap["local-kubernetes"] || providerMap.kubernetes)
+  const provider = <KubernetesProvider>(providers["local-kubernetes"] || providers.kubernetes)
 
   if (!provider) {
     throw new ConfigurationError(`openfaas requires a kubernetes (or local-kubernetes) provider to be configured`, {
