@@ -43,7 +43,7 @@ providers:
     variables:
 
     # The version of Terraform to use.
-    version: 0.12.24
+    version: 0.12.26
 ```
 ## Configuration Keys
 
@@ -132,5 +132,5 @@ The version of Terraform to use.
 
 | Type     | Default     | Required |
 | -------- | ----------- | -------- |
-| `string` | `"0.12.24"` | No       |
+| `string` | `"0.12.26"` | No       |
 
