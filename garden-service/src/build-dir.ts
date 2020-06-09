@@ -18,9 +18,9 @@ import { LogEntry } from "./logger/log-entry"
 import { ModuleConfig } from "./config/module"
 import { ConfigGraph } from "./config-graph"
 import { exec } from "./util/util"
-import { LogLevel } from "./logger/log-node"
 import { deline } from "./util/string"
 import { Profile } from "./util/profiling"
+import { syncWithOptions } from "./util/sync"
 
 const minRsyncVersion = "3.1.0"
 const versionRegex = /rsync  version ([\d\.]+)  /
@@ -99,9 +99,8 @@ export class BuildDir {
       return
     }
 
-    const files = module.version.files
-      // Normalize to relative POSIX-style paths
-      .map((f) => normalize(isAbsolute(f) ? relative(module.path, f) : f))
+    // Normalize to relative POSIX-style paths
+    const files = module.version.files.map((f) => normalize(isAbsolute(f) ? relative(module.path, f) : f))
 
     await this.sync({
       module,
@@ -245,36 +244,7 @@ export class BuildDir {
 
     log.debug(logMsg)
 
-    // rsync benefits from file lists being sorted
-    files && files.sort()
-    let input: string | undefined
-
-    if (withDelete) {
-      syncOpts.push("--prune-empty-dirs")
-
-      if (files === undefined) {
-        syncOpts.push("--delete")
-      } else {
-        // Workaround for this issue: https://stackoverflow.com/questions/1813907
-        syncOpts.push("--include-from=-", "--exclude=*", "--delete-excluded")
-
-        // -> Make sure the file list is anchored (otherwise filenames are matched as patterns)
-        files = files.map((f) => "/" + f)
-
-        input = "/**/\n" + files.join("\n")
-      }
-    } else if (files !== undefined) {
-      syncOpts.push("--files-from=-")
-      input = files.join("\n")
-    }
-
-    // Avoid rendering the full file list except when at the silly log level
-    if (log.root.level === LogLevel.silly) {
-      log.silly(`File list: ${JSON.stringify(files)}`)
-      log.silly(`Rsync args: ${[...syncOpts, sourcePath, destinationPath].join(" ")}`)
-    }
-
-    await exec("rsync", [...syncOpts, sourcePath, destinationPath], { input })
+    await syncWithOptions({ log, syncOpts, sourcePath, destinationPath, withDelete, files })
   }
 }
 
