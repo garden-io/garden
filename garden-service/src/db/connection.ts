@@ -6,11 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Connection, getConnectionManager, ConnectionOptions } from "typeorm"
 import { join } from "path"
+import { Connection, getConnectionManager, ConnectionOptions } from "typeorm"
 import { GARDEN_GLOBAL_PATH } from "../constants"
 
 let connection: Connection
+
+const databasePath = join(process.env.GARDEN_DB_DIR || GARDEN_GLOBAL_PATH, "db")
 
 // Note: This function needs to be synchronous to work with the typeorm Active Record pattern (see ./base-entity.ts)
 export function getConnection(): Connection {
@@ -20,7 +22,7 @@ export function getConnection(): Connection {
     // Prepare the connection (the ormconfig.json in the static dir is only used for the typeorm CLI during dev)
     const options: ConnectionOptions = {
       type: "sqlite",
-      database: join(GARDEN_GLOBAL_PATH, "db"),
+      database: databasePath,
       // IMPORTANT: All entities and migrations need to be manually referenced here because of how we
       // package the garden binary
       entities: [LocalAddress, ClientAuthToken],
