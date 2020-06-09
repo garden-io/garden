@@ -8,9 +8,9 @@
 
 import Joi from "@hapi/joi"
 import chalk from "chalk"
-import { isString, fromPairs } from "lodash"
+import { isString, fromPairs, mapValues } from "lodash"
 import { PrimitiveMap, joiIdentifierMap, joiStringMap, joiPrimitive, DeepPrimitiveMap, joiVariables } from "./common"
-import { Provider, ProviderConfig } from "./provider"
+import { Provider, ProviderConfig, ProviderMap } from "./provider"
 import { ConfigurationError } from "../exceptions"
 import { resolveTemplateString } from "../template-string"
 import { Garden } from "../garden"
@@ -396,8 +396,9 @@ export class ProviderConfigContext extends ProjectConfigContext {
   )
   public secrets: PrimitiveMap
 
-  constructor(garden: Garden, resolvedProviders: Provider[], variables: DeepPrimitiveMap, secrets: PrimitiveMap) {
+  constructor(garden: Garden, resolvedProviders: ProviderMap, variables: DeepPrimitiveMap, secrets: PrimitiveMap) {
     super({ projectName: garden.projectName, artifactsPath: garden.artifactsPath, username: garden.username })
+
     const _this = this
 
     const fullEnvName = garden.namespace ? `${garden.namespace}.${garden.environmentName}` : garden.environmentName
@@ -405,9 +406,7 @@ export class ProviderConfigContext extends ProjectConfigContext {
 
     this.project = new ProjectContext(this, garden.projectName)
 
-    this.providers = new Map(
-      resolvedProviders.map((p) => <[string, ProviderContext]>[p.name, new ProviderContext(_this, p)])
-    )
+    this.providers = new Map(Object.entries(mapValues(resolvedProviders, (p) => new ProviderContext(_this, p))))
 
     this.var = this.variables = variables
     this.secrets = secrets
@@ -620,7 +619,7 @@ export class ModuleConfigContext extends ProviderConfigContext {
     runtimeContext,
   }: {
     garden: Garden
-    resolvedProviders: Provider[]
+    resolvedProviders: ProviderMap
     variables: DeepPrimitiveMap
     secrets: PrimitiveMap
     moduleName?: string
@@ -660,7 +659,7 @@ export class OutputConfigContext extends ModuleConfigContext {
     runtimeContext,
   }: {
     garden: Garden
-    resolvedProviders: Provider[]
+    resolvedProviders: ProviderMap
     variables: DeepPrimitiveMap
     secrets: PrimitiveMap
     modules: Module[]
@@ -680,7 +679,7 @@ export class OutputConfigContext extends ModuleConfigContext {
 }
 
 export class WorkflowConfigContext extends ProviderConfigContext {
-  constructor(garden: Garden, resolvedProviders: Provider[], variables: DeepPrimitiveMap, secrets: PrimitiveMap) {
+  constructor(garden: Garden, resolvedProviders: ProviderMap, variables: DeepPrimitiveMap, secrets: PrimitiveMap) {
     super(garden, resolvedProviders, variables, secrets)
   }
 }

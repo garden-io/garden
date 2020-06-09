@@ -10,7 +10,6 @@ import { join } from "path"
 import { PrimitiveMap } from "../../config/common"
 import { KubernetesProvider } from "../kubernetes/config"
 import { dumpYaml } from "../../util/util"
-import { faasCli } from "./faas-cli"
 import { BuildModuleParams } from "../../types/plugin/module/build"
 import { containerHelpers } from "../container/helpers"
 import { k8sBuildContainer, k8sGetContainerBuildStatus } from "../kubernetes/container/build"
@@ -89,7 +88,7 @@ async function buildOpenfaasFunction(
 ) {
   await writeStackFile(provider, k8sProvider, module, {})
 
-  return await faasCli.stdout({
+  return await provider.tools["faas-cli"].stdout({
     log,
     cwd: module.buildPath,
     args: ["build", "--shrinkwrap", "-f", stackFilename],

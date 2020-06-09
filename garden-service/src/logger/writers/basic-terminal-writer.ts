@@ -21,7 +21,7 @@ export class BasicTerminalWriter extends Writer {
   onGraphChange(entry: LogEntry, logger: Logger) {
     const out = basicRender(entry, logger)
     if (out) {
-      process.stdout.write(out)
+      this.output.write(out)
     }
   }
 

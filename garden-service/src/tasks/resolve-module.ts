@@ -17,7 +17,7 @@ import { keyBy, fromPairs } from "lodash"
 import { ConfigurationError } from "../exceptions"
 import { RuntimeContext } from "../runtime-context"
 import { ModuleConfigContext } from "../config/config-context"
-import { Provider } from "../config/provider"
+import { ProviderMap } from "../config/provider"
 import { resolveModuleConfig } from "../resolve-module"
 import { getModuleTemplateReferences } from "../template-string"
 import { Profile } from "../util/profiling"
@@ -26,7 +26,7 @@ interface ResolveModuleConfigTaskParams {
   garden: Garden
   log: LogEntry
   moduleConfig: ModuleConfig
-  resolvedProviders: Provider[]
+  resolvedProviders: ProviderMap
   runtimeContext?: RuntimeContext
 }
 
@@ -39,7 +39,7 @@ export class ResolveModuleConfigTask extends BaseTask {
   type: TaskType = "resolve-module-config"
 
   private moduleConfig: ModuleConfig
-  private resolvedProviders: Provider[]
+  private resolvedProviders: ProviderMap
   private runtimeContext?: RuntimeContext
 
   constructor({ garden, log, moduleConfig, resolvedProviders, runtimeContext }: ResolveModuleConfigTaskParams) {
@@ -127,7 +127,7 @@ interface ResolveModuleTaskParams {
   garden: Garden
   log: LogEntry
   moduleConfig: ModuleConfig
-  resolvedProviders: Provider[]
+  resolvedProviders: ProviderMap
   runtimeContext?: RuntimeContext
 }
 
@@ -139,7 +139,7 @@ export class ResolveModuleTask extends BaseTask {
   type: TaskType = "resolve-module"
 
   private moduleConfig: ModuleConfig
-  private resolvedProviders: Provider[]
+  private resolvedProviders: ProviderMap
   private runtimeContext?: RuntimeContext
 
   constructor({ garden, log, moduleConfig, resolvedProviders, runtimeContext }: ResolveModuleTaskParams) {

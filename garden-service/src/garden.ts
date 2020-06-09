@@ -12,7 +12,7 @@ import { ensureDir } from "fs-extra"
 import dedent from "dedent"
 import { platform, arch } from "os"
 import { parse, relative, resolve, dirname } from "path"
-import { flatten, isString, sortBy, fromPairs, keyBy } from "lodash"
+import { flatten, isString, sortBy, fromPairs, keyBy, mapValues, omit } from "lodash"
 const AsyncLock = require("async-lock")
 
 import { TreeCache } from "./cache"
@@ -52,7 +52,13 @@ import {
   detectModuleOverlap,
   ModuleOverlap,
 } from "./util/fs"
-import { Provider, ProviderConfig, getAllProviderDependencyNames, defaultProvider } from "./config/provider"
+import {
+  Provider,
+  ProviderConfig,
+  getAllProviderDependencyNames,
+  defaultProvider,
+  ProviderMap,
+} from "./config/provider"
 import { ResolveProviderTask } from "./tasks/resolve-provider"
 import { ActionRouter } from "./actions"
 import { RuntimeContext } from "./runtime-context"
@@ -143,7 +149,7 @@ export class Garden {
   private pluginModuleConfigs: ModuleConfig[]
   private resolvedProviders: { [key: string]: Provider }
   protected configsScanned: boolean
-  private readonly registeredPlugins: { [key: string]: GardenPlugin }
+  public readonly registeredPlugins: { [key: string]: GardenPlugin }
   private readonly taskGraph: TaskGraph
   private watcher: Watcher
   private asyncLock: any
@@ -263,6 +269,7 @@ export class Garden {
     opts: GardenOpts = {}
   ): Promise<InstanceType<T>> {
     let { environmentName: environmentStr, config, gardenDirPath, plugins = [] } = opts
+
     if (!config) {
       config = await findProjectConfig(currentDirectory)
 
@@ -540,10 +547,10 @@ export class Garden {
     }
 
     const providers = await this.resolveProviders(false, [name])
-    const provider = findByName(providers, name)
+    const provider = providers[name]
 
     if (!provider) {
-      const providerNames = providers.map((p) => p.name)
+      const providerNames = Object.keys(providers)
       throw new PluginError(
         `Could not find provider '${name}' in environment '${this.environmentName}' ` +
           `(configured providers: ${providerNames.join(", ")})`,
@@ -557,7 +564,7 @@ export class Garden {
     return provider
   }
 
-  async resolveProviders(forceInit = false, names?: string[]): Promise<Provider[]> {
+  async resolveProviders(forceInit = false, names?: string[]): Promise<ProviderMap> {
     let providers: Provider[] = []
 
     await this.asyncLock.acquire("resolve-providers", async () => {
@@ -667,7 +674,7 @@ export class Garden {
       this.log.silly(`Resolved providers: ${providers.map((p) => p.name).join(", ")}`)
     })
 
-    return providers
+    return keyBy(providers, "name")
   }
 
   async getWorkflowConfig(name: string): Promise<WorkflowConfig> {
@@ -690,7 +697,7 @@ export class Garden {
    */
   async getEnvironmentStatus() {
     const providers = await this.resolveProviders()
-    return fromPairs(providers.map((p) => [p.name, p.status]))
+    return mapValues(providers, (p) => p.status)
   }
 
   async getActionRouter() {
@@ -792,7 +799,7 @@ export class Garden {
     }
 
     // Walk through all plugins in dependency order, and allow them to augment the graph
-    for (const provider of getDependencyOrder(providers, this.registeredPlugins)) {
+    for (const provider of getDependencyOrder(Object.values(providers), this.registeredPlugins)) {
       // Skip the routine if the provider doesn't have the handler
       const handler = await actions.getActionHandler({
         actionType: "augmentGraph",
@@ -819,7 +826,7 @@ export class Garden {
 
       const configContext = new ModuleConfigContext({
         garden: this,
-        resolvedProviders: providers,
+        resolvedProviders: keyBy(providers, "name"),
         variables: this.variables,
         secrets: this.secrets,
         dependencyConfigs: resolvedModules,
@@ -1165,7 +1172,7 @@ export class Garden {
     return {
       environmentName: this.environmentName,
       namespace: this.namespace,
-      providers: await this.resolveProviders(),
+      providers: Object.values(await this.resolveProviders()).map((p) => omit(p, ["tools"])),
       variables: this.variables,
       moduleConfigs: sortBy(
         modules.map((m) => m._config),
@@ -1183,7 +1190,7 @@ export class Garden {
 export interface ConfigDump {
   environmentName: string
   namespace?: string
-  providers: Provider[]
+  providers: Omit<Provider, "tools">[]
   variables: DeepPrimitiveMap
   moduleConfigs: ModuleConfig[]
   workflowConfigs: WorkflowConfig[]

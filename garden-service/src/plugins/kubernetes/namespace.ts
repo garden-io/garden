@@ -137,7 +137,7 @@ export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams
 
   try {
     // TODO: use API instead of kubectl (I just couldn't find which API call to make)
-    await kubectl.exec({ log, provider: k8sCtx.provider, args: ["version"] })
+    await kubectl(k8sCtx.provider).exec({ log, args: ["version"] })
   } catch (err) {
     log.setError("Error")
 

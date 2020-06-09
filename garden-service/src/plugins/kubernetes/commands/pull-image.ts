@@ -24,6 +24,7 @@ import { inClusterRegistryHostname } from "../constants"
 import { getAppNamespace, getSystemNamespace } from "../namespace"
 import { makePodName, skopeoImage, getSkopeoContainer, getDockerAuthVolume } from "../util"
 import { getRegistryPortForward } from "../container/util"
+import { ContainerProvider } from "../../container/container"
 
 export const pullImage: PluginCommand = {
   name: "pull-image",
@@ -120,10 +121,16 @@ async function pullFromInClusterRegistry(
     // https://github.com/docker/for-mac/issues/3611
     host: `local.app.garden:${fwd.localPort}`,
   })
+  const containerProvider = k8sCtx.provider.dependencies.container as ContainerProvider
 
-  await containerHelpers.dockerCli(module.buildPath, ["pull", pullImageId], log)
-  await containerHelpers.dockerCli(module.buildPath, ["tag", pullImageId, localId], log)
-  await containerHelpers.dockerCli(module.buildPath, ["rmi", pullImageId], log)
+  await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["pull", pullImageId], log, containerProvider })
+  await containerHelpers.dockerCli({
+    cwd: module.buildPath,
+    args: ["tag", pullImageId, localId],
+    log,
+    containerProvider,
+  })
+  await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["rmi", pullImageId], log, containerProvider })
 }
 
 async function pullFromExternalRegistry(ctx: KubernetesPluginContext, module: Module, log: LogEntry, localId: string) {
@@ -133,6 +140,7 @@ async function pullFromExternalRegistry(ctx: KubernetesPluginContext, module: Mo
   const systemNamespace = await getSystemNamespace(ctx.provider, log)
   const imageId = await containerHelpers.getDeploymentImageId(module, ctx.provider.config.deploymentRegistry)
   const tarName = `${module.name}-${module.version.versionString}`
+  const containerProvider = ctx.provider.dependencies.container as ContainerProvider
 
   const skopeoCommand = [
     "skopeo",
@@ -147,9 +155,9 @@ async function pullFromExternalRegistry(ctx: KubernetesPluginContext, module: Mo
 
   try {
     await pullImageFromRegistry(runner, skopeoCommand.join(" "), log)
-    await importImage(module, runner, tarName, imageId, log)
-    await containerHelpers.dockerCli(module.buildPath, ["tag", imageId, localId], log)
-    await containerHelpers.dockerCli(module.buildPath, ["rmi", imageId], log)
+    await importImage({ module, runner, tarName, imageId, log, containerProvider })
+    await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["tag", imageId, localId], log, containerProvider })
+    await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["rmi", imageId], log, containerProvider })
   } catch (err) {
     throw new RuntimeError(`Failed pulling image for module ${module.name} with image id ${imageId}: ${err}`, {
       err,
@@ -160,7 +168,21 @@ async function pullFromExternalRegistry(ctx: KubernetesPluginContext, module: Mo
   }
 }
 
-async function importImage(module: Module, runner: PodRunner, tarName: string, imageId: string, log: LogEntry) {
+async function importImage({
+  module,
+  runner,
+  tarName,
+  imageId,
+  log,
+  containerProvider,
+}: {
+  module: Module
+  runner: PodRunner
+  tarName: string
+  imageId: string
+  log: LogEntry
+  containerProvider: ContainerProvider
+}) {
   const sourcePath = `/${tarName}`
   const getOutputCommand = ["cat", sourcePath]
   await tmp.withFile(async ({ path }) => {
@@ -175,7 +197,7 @@ async function importImage(module: Module, runner: PodRunner, tarName: string, i
     })
 
     const args = ["import", path, imageId]
-    await containerHelpers.dockerCli(module.buildPath, args, log)
+    await containerHelpers.dockerCli({ cwd: module.buildPath, args, log, containerProvider })
   })
 }
 

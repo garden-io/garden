@@ -12,7 +12,7 @@ import { DEFAULT_API_VERSION } from "../constants"
 import { deline, dedent } from "../util/string"
 import { defaultContainerLimits, ServiceLimitSpec } from "../plugins/container/config"
 import { Garden } from "../garden"
-import { Provider } from "./provider"
+import { ProviderMap } from "./provider"
 import { WorkflowConfigContext } from "./config-context"
 import { resolveTemplateStrings } from "../template-string"
 import { validateWithPath } from "./validation"
@@ -179,7 +179,7 @@ export interface WorkflowConfigMap {
   [key: string]: WorkflowConfig
 }
 
-export function resolveWorkflowConfig(garden: Garden, resolvedProviders: Provider[], config: WorkflowConfig) {
+export function resolveWorkflowConfig(garden: Garden, resolvedProviders: ProviderMap, config: WorkflowConfig) {
   const log = garden.log
   const { variables, secrets } = garden
   const context = new WorkflowConfigContext(garden, resolvedProviders, variables, secrets)

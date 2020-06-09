@@ -13,7 +13,7 @@ import { LogLevel } from "../log-node"
 export abstract class Writer {
   abstract type: string
 
-  constructor(public level: LogLevel = LogLevel.info) {}
+  constructor(public level: LogLevel = LogLevel.info, public output = process.stdout) {}
 
   abstract onGraphChange(entry: LogEntry, logger: Logger): void
   abstract stop(): void

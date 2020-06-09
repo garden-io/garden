@@ -7,12 +7,12 @@
  */
 
 import { platform } from "os"
-import { pathExists, createWriteStream, ensureDir, chmod, remove, move } from "fs-extra"
+import { pathExists, createWriteStream, ensureDir, chmod, remove, move, createReadStream } from "fs-extra"
 import { ConfigurationError, ParameterError, GardenBaseError } from "../exceptions"
-import { join, dirname, basename, sep } from "path"
-import { hashString, exec, uuidv4 } from "./util"
+import { join, dirname, basename, posix } from "path"
+import { hashString, exec, uuidv4, getPlatform, getArchitecture } from "./util"
 import tar from "tar"
-import { SupportedPlatform, GARDEN_GLOBAL_PATH } from "../constants"
+import { GARDEN_GLOBAL_PATH } from "../constants"
 import { LogEntry } from "../logger/log-entry"
 import { Extract } from "unzipper"
 import { createHash } from "crypto"
@@ -20,199 +20,14 @@ import crossSpawn from "cross-spawn"
 import { spawn } from "./util"
 import { Writable } from "stream"
 import got from "got/dist/source"
+import { PluginToolSpec, ToolBuildSpec } from "../types/plugin/tools"
+import { parse } from "url"
 const AsyncLock = require("async-lock")
 
 const toolsPath = join(GARDEN_GLOBAL_PATH, "tools")
-const defaultCommandTimeoutSecs = 60 * 10
-
-export interface LibraryExtractSpec {
-  // Archive format. Note: the "tar" format also implicitly supports gzip and bz2 compression.
-  format: "tar" | "zip"
-  // Path to the target file or directory, relative to the download directory, after downloading and
-  // extracting the archive. For BinaryCmds, this should point to the executable in the archive.
-  targetPath: string[]
-}
-
-export interface LibraryPlatformSpec {
-  url: string
-  // Optionally specify sha256 checksum for validation.
-  sha256?: string
-  // If the URL contains an archive, provide extraction instructions.
-  extract?: LibraryExtractSpec
-}
-
-// TODO: support different architectures? (the Garden class currently errors on non-x64 archs, and many tools may
-// only be available in x64).
-interface LibrarySpec {
-  name: string
-  specs: { [key in SupportedPlatform]: LibraryPlatformSpec }
-}
 
 export class DownloadError extends GardenBaseError {
   type = "download"
-}
-
-/**
- * This helper class allows you to declare a library dependency by providing a URL to a file or an archive,
- * for each of our supported platforms. When requesting the path to the library, the appropriate URL for the
- * current platform will be downloaded, extracted (if applicable) and cached in the user's home directory
- * (under .garden/tools/<name>/<url-hash>).
- *
- * Note: The file or archive currently needs to be self-contained and work without further installation steps.
- */
-export class Library {
-  name: string
-  spec: LibraryPlatformSpec
-
-  private lock: any
-  private toolPath: string
-  private versionDirname: string
-  protected versionPath: string
-  protected targetSubpath: string[]
-
-  constructor(spec: LibrarySpec, currentPlatform = platform()) {
-    const platformSpec = spec.specs[currentPlatform]
-
-    if (!platformSpec) {
-      throw new ConfigurationError(`Command ${spec.name} doesn't have a spec for this platform (${currentPlatform})`, {
-        spec,
-        currentPlatform,
-      })
-    }
-
-    this.lock = new AsyncLock()
-
-    this.name = spec.name
-    this.spec = platformSpec
-    this.toolPath = join(toolsPath, this.name)
-    this.versionDirname = hashString(this.spec.url, 16)
-    this.versionPath = join(this.toolPath, this.versionDirname)
-
-    this.targetSubpath = this.spec.extract ? this.spec.extract.targetPath : [basename(this.spec.url)]
-  }
-
-  async getPath(log: LogEntry) {
-    await this.download(log)
-    return join(this.versionPath, ...this.targetSubpath)
-  }
-
-  protected async download(log: LogEntry) {
-    return this.lock.acquire("download", async () => {
-      if (await pathExists(this.versionPath)) {
-        return
-      }
-
-      const tmpPath = join(this.toolPath, this.versionDirname + "." + uuidv4().substr(0, 8))
-      const targetAbsPath = join(tmpPath, ...this.targetSubpath)
-
-      const logEntry = log.info({
-        symbol: "info",
-        msg: `Fetching ${this.name}...`,
-      })
-      const debug = logEntry.debug(`Downloading ${this.spec.url}...`)
-
-      await ensureDir(tmpPath)
-
-      try {
-        await this.fetch(tmpPath, log)
-
-        if (this.spec.extract && !(await pathExists(targetAbsPath))) {
-          throw new ConfigurationError(
-            `Archive ${this.spec.url} does not contain a file or directory at ${this.targetSubpath.join(sep)}`,
-            { name: this.name, spec: this.spec }
-          )
-        }
-
-        await move(tmpPath, this.versionPath, { overwrite: true })
-      } finally {
-        // make sure tmp path is cleared after errors
-        if (await pathExists(tmpPath)) {
-          await remove(tmpPath)
-        }
-      }
-
-      debug && debug.setSuccess("Done")
-      logEntry.setSuccess(`Fetched ${this.name}`)
-    })
-  }
-
-  protected async fetch(tmpPath: string, log: LogEntry) {
-    const response = got.stream({
-      method: "GET",
-      url: this.spec.url,
-    })
-
-    // compute the sha256 checksum
-    const hash = createHash("sha256")
-    hash.setEncoding("hex")
-    response.pipe(hash)
-
-    return new Promise((resolve, reject) => {
-      response.on("error", (err) => {
-        log.setError(`Failed fetching ${this.spec.url}`)
-        reject(err)
-      })
-
-      hash.on("readable", () => {
-        // validate sha256 if provided
-        const sha256 = hash.read()
-
-        // end of stream event
-        if (sha256 === null) {
-          return
-        }
-
-        if (this.spec.sha256 && sha256 !== this.spec.sha256) {
-          reject(
-            new DownloadError(`Invalid checksum from ${this.spec.url} (got ${sha256})`, {
-              name: this.name,
-              spec: this.spec,
-              sha256,
-            })
-          )
-        }
-      })
-
-      if (!this.spec.extract) {
-        const targetExecutable = join(tmpPath, ...this.targetSubpath)
-        response.pipe(createWriteStream(targetExecutable))
-        response.on("end", () => resolve())
-      } else {
-        const format = this.spec.extract.format
-        let extractor: Writable
-
-        if (format === "tar") {
-          extractor = tar.x({
-            C: tmpPath,
-            strict: true,
-          })
-          extractor.on("end", () => resolve())
-        } else if (format === "zip") {
-          extractor = Extract({ path: tmpPath })
-          extractor.on("close", () => resolve())
-        } else {
-          reject(
-            new ParameterError(`Invalid archive format: ${format}`, {
-              name: this.name,
-              spec: this.spec,
-            })
-          )
-          return
-        }
-
-        response.pipe(extractor)
-
-        extractor.on("error", (err) => {
-          log.setError(`Failed extracting ${format} archive ${this.spec.url}`)
-          reject(err)
-        })
-      }
-    })
-  }
-}
-
-interface BinarySpec extends LibrarySpec {
-  defaultTimeout?: number
 }
 
 export interface ExecParams {
@@ -220,7 +35,7 @@ export interface ExecParams {
   cwd?: string
   env?: { [key: string]: string }
   log: LogEntry
-  timeout?: number
+  timeoutSec?: number
   input?: Buffer | string
   ignoreError?: boolean
   stdout?: Writable
@@ -232,6 +47,11 @@ export interface SpawnParams extends ExecParams {
   rawMode?: boolean // Only used if tty = true. See also: https://nodejs.org/api/tty.html#tty_readstream_setrawmode_mode
 }
 
+interface PluginToolOpts {
+  platform?: string
+  architecture?: string
+}
+
 /**
  * This helper class allows you to declare a tool dependency by providing a URL to a single-file binary,
  * or an archive containing an executable, for each of our supported platforms. When executing the tool,
@@ -240,30 +60,65 @@ export interface SpawnParams extends ExecParams {
  *
  * Note: The binary or archive currently needs to be self-contained and work without further installation steps.
  */
-export class BinaryCmd extends Library {
+export class PluginTool {
   name: string
-  spec: LibraryPlatformSpec
+  type: string
+  spec: PluginToolSpec
+  buildSpec: ToolBuildSpec
 
+  private lock: any
+  private toolPath: string
+  private versionDirname: string
+  protected versionPath: string
+  protected targetSubpath: string
   private chmodDone: boolean
-  private defaultTimeoutSecs: number
 
-  constructor(spec: BinarySpec) {
-    super(spec)
+  constructor(spec: PluginToolSpec, opts: PluginToolOpts = {}) {
+    const _platform = opts.platform || getPlatform()
+    const architecture = opts.architecture || getArchitecture()
+
+    this.buildSpec = spec.builds.find((build) => build.platform === _platform && build.architecture === architecture)!
+
+    if (!this.buildSpec) {
+      throw new ConfigurationError(
+        `Command ${spec.name} doesn't have a spec for this platform/architecture (${platform}-${architecture})`,
+        {
+          spec,
+          platform,
+          architecture,
+        }
+      )
+    }
+
+    this.lock = new AsyncLock()
+
+    this.name = spec.name
+    this.type = spec.type
+    this.spec = spec
+    this.toolPath = join(toolsPath, this.name)
+    this.versionDirname = hashString(this.buildSpec.url, 16)
+    this.versionPath = join(this.toolPath, this.versionDirname)
+
+    this.targetSubpath = this.buildSpec.extract ? this.buildSpec.extract.targetPath : basename(this.buildSpec.url)
     this.chmodDone = false
-    this.defaultTimeoutSecs = spec.defaultTimeout || defaultCommandTimeoutSecs
   }
 
   async getPath(log: LogEntry) {
-    const path = await super.getPath(log)
-    // Make sure the target path is executable
-    if (!this.chmodDone) {
-      await chmod(path, 0o755)
-      this.chmodDone = true
+    await this.download(log)
+    const path = join(this.versionPath, ...this.targetSubpath.split(posix.sep))
+
+    if (this.spec.type === "binary") {
+      // Make sure the target path is executable
+      if (!this.chmodDone) {
+        await chmod(path, 0o755)
+        this.chmodDone = true
+      }
     }
+
     return path
   }
 
-  async exec({ args, cwd, env, log, timeout, input, ignoreError, stdout, stderr }: ExecParams) {
+  async exec({ args, cwd, env, log, timeoutSec, input, ignoreError, stdout, stderr }: ExecParams) {
     const path = await this.getPath(log)
 
     if (!args) {
@@ -277,7 +132,7 @@ export class BinaryCmd extends Library {
 
     return exec(path, args, {
       cwd,
-      timeout: this.getTimeout(timeout) * 1000,
+      timeout: timeoutSec ? timeoutSec * 1000 : undefined,
       env,
       input,
       reject: !ignoreError,
@@ -318,7 +173,7 @@ export class BinaryCmd extends Library {
     return crossSpawn(path, args, { cwd, env })
   }
 
-  async spawnAndWait({ args, cwd, env, log, ignoreError, rawMode, stdout, stderr, timeout, tty }: SpawnParams) {
+  async spawnAndWait({ args, cwd, env, log, ignoreError, rawMode, stdout, stderr, timeoutSec, tty }: SpawnParams) {
     const path = await this.getPath(log)
 
     if (!args) {
@@ -331,7 +186,7 @@ export class BinaryCmd extends Library {
     log.debug(`Spawning '${path} ${args.join(" ")}' in ${cwd}`)
     return spawn(path, args || [], {
       cwd,
-      timeout: this.getTimeout(timeout),
+      timeout: timeoutSec,
       ignoreError,
       env,
       rawMode,
@@ -341,7 +196,123 @@ export class BinaryCmd extends Library {
     })
   }
 
-  private getTimeout(timeout?: number) {
-    return timeout === undefined ? this.defaultTimeoutSecs : timeout
+  protected async download(log: LogEntry) {
+    return this.lock.acquire("download", async () => {
+      if (await pathExists(this.versionPath)) {
+        return
+      }
+
+      const tmpPath = join(this.toolPath, this.versionDirname + "." + uuidv4().substr(0, 8))
+      const targetAbsPath = join(tmpPath, ...this.targetSubpath.split(posix.sep))
+
+      const logEntry = log.info({
+        status: "active",
+        msg: `Fetching ${this.name}...`,
+      })
+      const debug = logEntry.debug(`Downloading ${this.buildSpec.url}...`)
+
+      await ensureDir(tmpPath)
+
+      try {
+        await this.fetch(tmpPath, log)
+
+        if (this.buildSpec.extract && !(await pathExists(targetAbsPath))) {
+          throw new ConfigurationError(
+            `Archive ${this.buildSpec.url} does not contain a file or directory at ${this.targetSubpath}`,
+            { name: this.name, spec: this.spec }
+          )
+        }
+
+        await move(tmpPath, this.versionPath, { overwrite: true })
+      } finally {
+        // make sure tmp path is cleared after errors
+        if (await pathExists(tmpPath)) {
+          await remove(tmpPath)
+        }
+      }
+
+      debug && debug.setSuccess("Done")
+      logEntry.setSuccess(`Fetched ${this.name}`)
+    })
+  }
+
+  protected async fetch(tmpPath: string, log: LogEntry) {
+    const parsed = parse(this.buildSpec.url)
+    const protocol = parsed.protocol
+
+    const response =
+      protocol === "file:"
+        ? createReadStream(parsed.path!)
+        : got.stream({
+            method: "GET",
+            url: this.buildSpec.url,
+          })
+
+    // compute the sha256 checksum
+    const hash = createHash("sha256")
+    hash.setEncoding("hex")
+    response.pipe(hash)
+
+    return new Promise((resolve, reject) => {
+      response.on("error", (err) => {
+        log.setError(`Failed fetching ${this.buildSpec.url}`)
+        reject(err)
+      })
+
+      hash.on("readable", () => {
+        // validate sha256 if provided
+        const sha256 = hash.read()
+
+        // end of stream event
+        if (sha256 === null) {
+          return
+        }
+
+        if (this.buildSpec.sha256 && sha256 !== this.buildSpec.sha256) {
+          reject(
+            new DownloadError(`Invalid checksum from ${this.buildSpec.url} (got ${sha256})`, {
+              name: this.name,
+              spec: this.spec,
+              sha256,
+            })
+          )
+        }
+      })
+
+      if (!this.buildSpec.extract) {
+        const targetExecutable = join(tmpPath, ...this.targetSubpath.split(posix.sep))
+        response.pipe(createWriteStream(targetExecutable))
+        response.on("end", () => resolve())
+      } else {
+        const format = this.buildSpec.extract.format
+        let extractor: Writable
+
+        if (format === "tar") {
+          extractor = tar.x({
+            C: tmpPath,
+            strict: true,
+          })
+          extractor.on("end", () => resolve())
+        } else if (format === "zip") {
+          extractor = Extract({ path: tmpPath })
+          extractor.on("close", () => resolve())
+        } else {
+          reject(
+            new ParameterError(`Invalid archive format: ${format}`, {
+              name: this.name,
+              spec: this.spec,
+            })
+          )
+          return
+        }
+
+        response.pipe(extractor)
+
+        extractor.on("error", (err) => {
+          log.setError(`Failed extracting ${format} archive ${this.buildSpec.url}`)
+          reject(err)
+        })
+      }
+    })
   }
 }

@@ -13,7 +13,6 @@ import { joi, joiIdentifier, joiArray } from "../../config/common"
 import { dedent, naturalList } from "../../util/string"
 import { TestModuleParams } from "../../types/plugin/module/testModule"
 import { Module } from "../../types/module"
-import { BinaryCmd } from "../../util/ext-tools"
 import chalk from "chalk"
 import { baseBuildSpecSchema } from "../../config/module"
 import { matchGlobs, listDirectory } from "../../util/fs"
@@ -172,7 +171,7 @@ export const gardenPlugin = createGardenPlugin({
           const args = prepareArgs(ctx, provider, module)
           args.push(...files)
 
-          const result = await conftest.exec({ log, args, ignoreError: true, cwd: buildPath })
+          const result = await provider.tools.conftest.exec({ log, args, ignoreError: true, cwd: buildPath })
 
           const { success, formattedResult } = parseConftestResult(provider, log, result)
 
@@ -238,7 +237,7 @@ export const gardenPlugin = createGardenPlugin({
           const args = prepareArgs(ctx, provider, module)
           args.push("-")
 
-          const result = await conftest.exec({
+          const result = await provider.tools.conftest.exec({
             log,
             args,
             ignoreError: true,
@@ -263,38 +262,47 @@ export const gardenPlugin = createGardenPlugin({
       },
     },
   ],
-})
-
-const conftest = new BinaryCmd({
-  name: "conftest",
-  specs: {
-    darwin: {
-      url:
-        "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/conftest_0.17.1_Darwin_x86_64.tar.gz",
-      sha256: "1c97f0e43fab99c94593696d362fc1e00e8e80bd0321729412de51d83ecbfb73",
-      extract: {
-        format: "tar",
-        targetPath: ["conftest"],
-      },
+  tools: [
+    {
+      name: "conftest",
+      description: "A rego-based configuration validator.",
+      type: "binary",
+      builds: [
+        {
+          platform: "darwin",
+          architecture: "amd64",
+          url:
+            "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/conftest_0.17.1_Darwin_x86_64.tar.gz",
+          sha256: "1c97f0e43fab99c94593696d362fc1e00e8e80bd0321729412de51d83ecbfb73",
+          extract: {
+            format: "tar",
+            targetPath: "conftest",
+          },
+        },
+        {
+          platform: "linux",
+          architecture: "amd64",
+          url:
+            "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/conftest_0.17.1_Linux_x86_64.tar.gz",
+          sha256: "d18c95a4b04e87bfd59e06cc980801d2df5dabb371b495506ef03f70a0a40624",
+          extract: {
+            format: "tar",
+            targetPath: "conftest",
+          },
+        },
+        {
+          platform: "windows",
+          architecture: "amd64",
+          url: "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/conftest_0.17.1_Windows_x86_64.zip",
+          sha256: "4c2df80420f2f148ec085bb75a8c5b92e1c665c6a041768a79924c81082527c3",
+          extract: {
+            format: "zip",
+            targetPath: "conftest.exe",
+          },
+        },
+      ],
     },
-    linux: {
-      url:
-        "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/conftest_0.17.1_Linux_x86_64.tar.gz",
-      sha256: "d18c95a4b04e87bfd59e06cc980801d2df5dabb371b495506ef03f70a0a40624",
-      extract: {
-        format: "tar",
-        targetPath: ["conftest"],
-      },
-    },
-    win32: {
-      url: "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/conftest_0.17.1_Windows_x86_64.zip",
-      sha256: "4c2df80420f2f148ec085bb75a8c5b92e1c665c6a041768a79924c81082527c3",
-      extract: {
-        format: "zip",
-        targetPath: ["conftest.exe"],
-      },
-    },
-  },
+  ],
 })
 
 function prepareArgs(ctx: PluginContext, provider: ConftestProvider, module: ConftestModule) {

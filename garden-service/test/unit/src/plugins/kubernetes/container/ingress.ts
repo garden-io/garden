@@ -30,6 +30,9 @@ import {
   ContainerServiceSpec,
 } from "../../../../../../src/plugins/container/config"
 import { defaultSystemNamespace } from "../../../../../../src/plugins/kubernetes/system"
+import { PluginTools } from "../../../../../../src/types/plugin/tools"
+import { keyBy } from "lodash"
+import { PluginTool } from "../../../../../../src/util/ext-tools"
 
 const kubeConfigEnvVar = process.env.KUBECONFIG
 const namespace = "my-namespace"
@@ -66,14 +69,6 @@ const basicConfig: KubernetesConfig = {
   _systemServices: [],
 }
 
-const basicProvider: KubernetesProvider = {
-  name: "kubernetes",
-  config: basicConfig,
-  dependencies: [],
-  moduleConfigs: [],
-  status: { ready: true, outputs: {} },
-}
-
 const singleTlsConfig: KubernetesConfig = {
   ...basicConfig,
   forceSsl: true,
@@ -86,14 +81,6 @@ const singleTlsConfig: KubernetesConfig = {
       },
     },
   ],
-}
-
-const singleTlsProvider: KubernetesProvider = {
-  name: "kubernetes",
-  config: singleTlsConfig,
-  dependencies: [],
-  moduleConfigs: [],
-  status: { ready: true, outputs: {} },
 }
 
 const multiTlsConfig: KubernetesConfig = {
@@ -122,14 +109,6 @@ const multiTlsConfig: KubernetesConfig = {
       },
     },
   ],
-}
-
-const multiTlsProvider: KubernetesProvider = {
-  name: "kubernetes",
-  config: multiTlsConfig,
-  dependencies: [],
-  moduleConfigs: [],
-  status: { ready: true, outputs: {} },
 }
 
 // generated with `openssl req -newkey rsa:2048 -nodes -keyout key.pem -x509 -days 365 -out certificate.pem`
@@ -328,6 +307,10 @@ describe("createIngressResources", () => {
   const configure = plugin.createModuleTypes![0].handlers.configure!
 
   let garden: Garden
+  let tools: PluginTools
+  let basicProvider: KubernetesProvider
+  let singleTlsProvider: KubernetesProvider
+  let multiTlsProvider: KubernetesProvider
 
   before(() => {
     process.env.KUBECONFIG = join(projectRoot, "kubeconfig.yml")
@@ -343,6 +326,11 @@ describe("createIngressResources", () => {
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin] })
+    const k8sPlugin = garden.registeredPlugins.kubernetes
+    tools = keyBy(
+      (k8sPlugin.tools || []).map((t) => new PluginTool(t)),
+      "name"
+    )
 
     td.replace(garden.buildDir, "syncDependencyProducts", () => null)
 
@@ -351,6 +339,33 @@ describe("createIngressResources", () => {
       dependencyVersions: {},
       files: [],
     }))
+
+    basicProvider = {
+      name: "kubernetes",
+      config: basicConfig,
+      dependencies: {},
+      moduleConfigs: [],
+      status: { ready: true, outputs: {} },
+      tools,
+    }
+
+    multiTlsProvider = {
+      name: "kubernetes",
+      config: multiTlsConfig,
+      dependencies: {},
+      moduleConfigs: [],
+      status: { ready: true, outputs: {} },
+      tools,
+    }
+
+    singleTlsProvider = {
+      name: "kubernetes",
+      config: singleTlsConfig,
+      dependencies: {},
+      moduleConfigs: [],
+      status: { ready: true, outputs: {} },
+      tools,
+    }
   })
 
   async function getTestService(...ingresses: ContainerIngressSpec[]): Promise<ContainerService> {
@@ -670,9 +685,10 @@ describe("createIngressResources", () => {
           },
         ],
       },
-      dependencies: [],
+      dependencies: {},
       moduleConfigs: [],
       status: { ready: true, outputs: {} },
+      tools,
     }
 
     const err: any = new Error("nope")
@@ -703,9 +719,10 @@ describe("createIngressResources", () => {
           },
         ],
       },
-      dependencies: [],
+      dependencies: {},
       moduleConfigs: [],
       status: { ready: true, outputs: {} },
+      tools,
     }
 
     const api = await getKubeApi(basicProvider)
@@ -738,9 +755,10 @@ describe("createIngressResources", () => {
           },
         ],
       },
-      dependencies: [],
+      dependencies: {},
       moduleConfigs: [],
       status: { ready: true, outputs: {} },
+      tools,
     }
 
     const api = await getKubeApi(basicProvider)
@@ -833,9 +851,10 @@ describe("createIngressResources", () => {
           },
         ],
       },
-      dependencies: [],
+      dependencies: {},
       moduleConfigs: [],
       status: { ready: true, outputs: {} },
+      tools,
     }
 
     td.when(api.core.readNamespacedSecret("foo", "default")).thenResolve(myDomainCertSecret)

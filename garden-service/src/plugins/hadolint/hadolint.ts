@@ -15,7 +15,6 @@ import { joi } from "../../config/common"
 import { dedent, splitLines, naturalList } from "../../util/string"
 import { TestModuleParams } from "../../types/plugin/module/testModule"
 import { Module } from "../../types/module"
-import { BinaryCmd } from "../../util/ext-tools"
 import { STATIC_DIR } from "../../constants"
 import { padStart, padEnd } from "lodash"
 import chalk from "chalk"
@@ -188,7 +187,7 @@ export const gardenPlugin = createGardenPlugin({
           }
 
           const args = ["--config", configPath, "--format", "json", dockerfilePath]
-          const result = await hadolint.exec({ log, args, ignoreError: true })
+          const result = await ctx.provider.tools.hadolint.exec({ log, args, ignoreError: true })
 
           let success = true
 
@@ -255,22 +254,31 @@ export const gardenPlugin = createGardenPlugin({
       },
     },
   ],
-})
-
-const hadolint = new BinaryCmd({
-  name: "hadolint",
-  specs: {
-    darwin: {
-      url: "https://github.com/hadolint/hadolint/releases/download/v1.17.2/hadolint-Darwin-x86_64",
-      sha256: "da3bd1fae47f1ba4c4bca6a86d2c70bdbd6705308bd300d1f897c162bc32189a",
+  tools: [
+    {
+      name: "hadolint",
+      description: "A Dockerfile linter.",
+      type: "binary",
+      builds: [
+        {
+          platform: "darwin",
+          architecture: "amd64",
+          url: "https://github.com/hadolint/hadolint/releases/download/v1.17.2/hadolint-Darwin-x86_64",
+          sha256: "da3bd1fae47f1ba4c4bca6a86d2c70bdbd6705308bd300d1f897c162bc32189a",
+        },
+        {
+          platform: "linux",
+          architecture: "amd64",
+          url: "https://github.com/hadolint/hadolint/releases/download/v1.17.2/hadolint-Linux-x86_64",
+          sha256: "b23e4d0e8964774cc0f4dd7ff81f1d05b5d7538b0b80dae5235b1239ab60749d",
+        },
+        {
+          platform: "windows",
+          architecture: "amd64",
+          url: "https://github.com/hadolint/hadolint/releases/download/v1.17.2/hadolint-Windows-x86_64.exe",
+          sha256: "8ba81d1fe79b91afb7ee16ac4e9fc6635646c2f770071d1ba924a8d26debe298",
+        },
+      ],
     },
-    linux: {
-      url: "https://github.com/hadolint/hadolint/releases/download/v1.17.2/hadolint-Linux-x86_64",
-      sha256: "b23e4d0e8964774cc0f4dd7ff81f1d05b5d7538b0b80dae5235b1239ab60749d",
-    },
-    win32: {
-      url: "https://github.com/hadolint/hadolint/releases/download/v1.17.2/hadolint-Windows-x86_64.exe",
-      sha256: "8ba81d1fe79b91afb7ee16ac4e9fc6635646c2f770071d1ba924a8d26debe298",
-    },
-  },
+  ],
 })

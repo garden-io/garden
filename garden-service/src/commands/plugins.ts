@@ -127,7 +127,7 @@ async function listPlugins(garden: Garden, log: LogEntry, pluginsToList: string[
   log.info(dedent`
   ${chalk.white.bold("USAGE")}
 
-    garden ${chalk.yellow("[global options]")} ${chalk.blueBright("<command>")} ${chalk.white("[args ...]")}
+    garden ${chalk.yellow("[global options]")} ${chalk.blueBright("<command>")} -- ${chalk.white("[args ...]")}
 
   ${chalk.white.bold("PLUGIN COMMANDS")}
   `)

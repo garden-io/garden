@@ -12,6 +12,8 @@ import { defaultSystemNamespace } from "../../../../../src/plugins/kubernetes/sy
 import { makeDummyGarden } from "../../../../../src/cli/cli"
 import { expect } from "chai"
 import { TempDirectory, makeTempDir, grouped } from "../../../../helpers"
+import { keyBy } from "lodash"
+import { PluginTool } from "../../../../../src/util/ext-tools"
 
 describe("kubernetes configureProvider", () => {
   const basicConfig: KubernetesConfig = {
@@ -50,6 +52,7 @@ describe("kubernetes configureProvider", () => {
         ...basicConfig,
         buildMode: "cluster-docker",
       }
+      const plugin = garden.registeredPlugins.kubernetes
 
       const result = await configureProvider({
         environmentName: "default",
@@ -57,8 +60,12 @@ describe("kubernetes configureProvider", () => {
         projectRoot: garden.projectRoot,
         config,
         log: garden.log,
-        dependencies: [],
+        dependencies: {},
         configStore: garden.configStore,
+        tools: keyBy(
+          plugin.tools?.map((t) => new PluginTool(t)),
+          "name"
+        ),
       })
 
       expect(result.config.deploymentRegistry).to.eql({
@@ -77,6 +84,7 @@ describe("kubernetes configureProvider", () => {
           namespace: "my-namespace",
         },
       }
+      const plugin = garden.registeredPlugins.kubernetes
 
       const result = await configureProvider({
         environmentName: "default",
@@ -84,8 +92,12 @@ describe("kubernetes configureProvider", () => {
         projectRoot: garden.projectRoot,
         config,
         log: garden.log,
-        dependencies: [],
+        dependencies: {},
         configStore: garden.configStore,
+        tools: keyBy(
+          plugin.tools?.map((t) => new PluginTool(t)),
+          "name"
+        ),
       })
 
       expect(result.config.deploymentRegistry).to.eql({

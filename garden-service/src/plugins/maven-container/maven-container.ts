@@ -25,8 +25,6 @@ import { STATIC_DIR } from "../../constants"
 import { xml2json } from "xml-js"
 import { containerModuleSpecSchema } from "../container/config"
 import { providerConfigBaseSchema } from "../../config/provider"
-import { openJdks } from "./openjdk"
-import { maven } from "./maven"
 import { LogEntry } from "../../logger/log-entry"
 import { dedent } from "../../util/string"
 import { ModuleConfig } from "../../config/module"
@@ -78,7 +76,7 @@ const mavenKeys = {
   jdkVersion: joi
     .number()
     .integer()
-    .allow(...Object.keys(openJdks))
+    .allow(8, 11, 13)
     .default(8)
     .description("The JDK version to use."),
   mvnOpts: joiArray(joi.string()).description("Options to add to the `mvn package` command when building."),
@@ -181,7 +179,7 @@ async function getBuildStatus(params: GetBuildStatusParams<MavenContainerModule>
 
 async function build(params: BuildModuleParams<MavenContainerModule>) {
   // Run the maven build
-  const { base, module, log } = params
+  const { ctx, base, module, log } = params
   let { jarPath, jdkVersion, mvnOpts, useDefaultDockerfile, image } = module.spec
 
   // Fall back to using the image field
@@ -206,7 +204,7 @@ async function build(params: BuildModuleParams<MavenContainerModule>) {
 
   log.setState(`Creating jar artifact...`)
 
-  const openJdk = openJdks[jdkVersion]
+  const openJdk = ctx.provider.tools["openjdk-" + jdkVersion]
   const openJdkPath = await openJdk.getPath(log)
 
   const mvnArgs = ["package", "--batch-mode", "--projects", ":" + artifactId, "--also-make", ...mvnOpts]
@@ -215,7 +213,7 @@ async function build(params: BuildModuleParams<MavenContainerModule>) {
   // Maven has issues when running concurrent processes, so we're working around that with a lock.
   // TODO: http://takari.io/book/30-team-maven.html would be a more robust solution.
   await buildLock.acquire("mvn", async () => {
-    await maven.exec({
+    await ctx.provider.tools.maven.exec({
       args: mvnArgs,
       cwd: module.path,
       log,
