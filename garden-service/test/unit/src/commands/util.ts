@@ -13,7 +13,6 @@ import { expect } from "chai"
 import { DEFAULT_API_VERSION, GARDEN_GLOBAL_PATH } from "../../../../src/constants"
 import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
 import { pick } from "lodash"
-import { homedir } from "os"
 import { join } from "path"
 
 describe("FetchToolsCommand", () => {

@@ -459,6 +459,6 @@ async function execInBuildSync({ provider, log, args, timeout, podName }: Builde
     args: execCmd,
     log,
     namespace: systemNamespace,
-    timeout,
+    timeoutSec: timeout,
   })
 }

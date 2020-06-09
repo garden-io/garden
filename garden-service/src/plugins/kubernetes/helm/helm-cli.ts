@@ -174,6 +174,6 @@ export async function helm({
     args: [...opts, ...args],
     env: envVars,
     // Helm itself will time out pretty reliably, so we shouldn't time out early on our side.
-    timeout: 3600,
+    timeoutSec: 3600,
   })
 }

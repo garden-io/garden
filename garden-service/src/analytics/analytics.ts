@@ -19,6 +19,7 @@ import { Garden } from "../garden"
 import { AnalyticsType } from "./analytics-types"
 import dedent from "dedent"
 import { getGitHubUrl } from "../docs/common"
+import { InternalError } from "../exceptions"
 
 const API_KEY = process.env.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
 
@@ -125,12 +126,15 @@ export class AnalyticsHandler {
   private ciName = ci.name
   private systemConfig: SystemInfo
   private isCI = ci.isCI
-  private sessionId: string | null
+  private sessionId: string
   private pendingEvents: Map<string, SegmentEvent>
   protected garden: Garden
   private projectMetadata: ProjectMetadata
 
   private constructor(garden: Garden, log: LogEntry) {
+    if (!garden.sessionId) {
+      throw new InternalError(`Garden instance with null sessionId passed to AnalyticsHandler constructor.`, {})
+    }
     this.segment = new segmentClient(API_KEY, { flushAt: 20, flushInterval: 300 })
     this.log = log
     this.garden = garden
@@ -243,7 +247,7 @@ export class AnalyticsHandler {
    * Used internally to check if a users has opted-in or not.
    */
   private analyticsEnabled(): boolean {
-    if (!this.sessionId || process.env.GARDEN_DISABLE_ANALYTICS === "true") {
+    if (process.env.GARDEN_DISABLE_ANALYTICS === "true") {
       return false
     }
     return this.analyticsConfig.optedIn || false
@@ -278,7 +282,7 @@ export class AnalyticsHandler {
       ciName: this.ciName,
       system: this.systemConfig,
       isCI: this.isCI,
-      sessionId: this.sessionId!,
+      sessionId: this.sessionId,
       projectMetadata: this.projectMetadata,
     }
   }

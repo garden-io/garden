@@ -62,7 +62,7 @@ function makeRootCommand(commandName: string) {
         cwd: root,
         rawMode: false,
         tty: true,
-        timeout: 999999,
+        timeoutSec: 999999,
       })
 
       return { result: {} }
@@ -96,7 +96,7 @@ function makeModuleCommand(commandName: string) {
         cwd: root,
         rawMode: false,
         tty: true,
-        timeout: 999999,
+        timeoutSec: 999999,
       })
 
       return { result: {} }

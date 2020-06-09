@@ -422,7 +422,7 @@ export async function execInPod({
     ignoreError,
     log,
     namespace: systemNamespace,
-    timeout,
+    timeoutSec: timeout,
     stdout,
     stderr,
   })

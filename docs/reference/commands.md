@@ -826,21 +826,13 @@ Examples:
 
 Access tools included by providers.
 
-Run a tool defined by a provider in your project, downloading and extracting it if
-necessary. Run without arguments to get a list of all tools available.
+Run a tool defined by a provider in your project, downloading and extracting it if necessary. Run without arguments to get a list of all tools available.
 
-Run with the --get-path flag to just print the path to the binary or library
-directory (depending on the tool type). If the tool is a non-executable library, this
-flag is implicit.
+Run with the --get-path flag to just print the path to the binary or library directory (depending on the tool type). If the tool is a non-executable library, this flag is implicit.
 
-When multiple plugins provide a tool with the same name, you can choose a specific
-plugin/version by specifying <plugin name>.<tool name>, instead of just <tool name>.
-This is generally advisable when using this command in scripts, to avoid accidental
-conflicts.
+When multiple plugins provide a tool with the same name, you can choose a specific plugin/version by specifying <plugin name>.<tool name>, instead of just <tool name>. This is generally advisable when using this command in scripts, to avoid accidental conflicts.
 
-When there are name conflicts and a plugin name is not specified, the preference is
-for defined by configured providers in the current project (if applicable), and then
-alphabetical by plugin name.
+When there are name conflicts and a plugin name is not specified, we first prefer tools defined by configured providers in the current project (if applicable), and then alphabetical by plugin name.
 
 Examples:
 

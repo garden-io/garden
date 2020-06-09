@@ -85,7 +85,7 @@ export async function execInWorkload({
     namespace,
     args: kubecmd,
     ignoreError: true,
-    timeout: 999999,
+    timeoutSec: 999999,
     tty: interactive,
   })
 

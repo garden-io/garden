@@ -295,7 +295,7 @@ const helpers = {
         ignoreError,
         log,
         stdout: outputStream,
-        timeout,
+        timeoutSec: timeout,
       })
       return res
     } catch (err) {

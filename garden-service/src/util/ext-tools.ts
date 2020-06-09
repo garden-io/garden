@@ -35,7 +35,7 @@ export interface ExecParams {
   cwd?: string
   env?: { [key: string]: string }
   log: LogEntry
-  timeout?: number
+  timeoutSec?: number
   input?: Buffer | string
   ignoreError?: boolean
   stdout?: Writable
@@ -118,7 +118,7 @@ export class PluginTool {
     return path
   }
 
-  async exec({ args, cwd, env, log, timeout, input, ignoreError, stdout, stderr }: ExecParams) {
+  async exec({ args, cwd, env, log, timeoutSec, input, ignoreError, stdout, stderr }: ExecParams) {
     const path = await this.getPath(log)
 
     if (!args) {
@@ -132,7 +132,7 @@ export class PluginTool {
 
     return exec(path, args, {
       cwd,
-      timeout: timeout ? timeout * 1000 : undefined,
+      timeout: timeoutSec ? timeoutSec * 1000 : undefined,
       env,
       input,
       reject: !ignoreError,
@@ -173,7 +173,7 @@ export class PluginTool {
     return crossSpawn(path, args, { cwd, env })
   }
 
-  async spawnAndWait({ args, cwd, env, log, ignoreError, rawMode, stdout, stderr, timeout, tty }: SpawnParams) {
+  async spawnAndWait({ args, cwd, env, log, ignoreError, rawMode, stdout, stderr, timeoutSec, tty }: SpawnParams) {
     const path = await this.getPath(log)
 
     if (!args) {
@@ -186,7 +186,7 @@ export class PluginTool {
     log.debug(`Spawning '${path} ${args.join(" ")}' in ${cwd}`)
     return spawn(path, args || [], {
       cwd,
-      timeout,
+      timeout: timeoutSec,
       ignoreError,
       env,
       rawMode,

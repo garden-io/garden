@@ -452,7 +452,7 @@ export class PodRunner extends PodRunnerParams {
       ignoreError,
       args: kubecmd,
       stdout,
-      timeout,
+      timeoutSec: timeout,
       tty: interactive,
     })
 
@@ -561,7 +561,7 @@ export class PodRunner extends PodRunnerParams {
       log,
       stdout,
       stderr,
-      timeout,
+      timeoutSec: timeout,
     })
 
     let result: string = ""
@@ -624,7 +624,7 @@ export class PodRunner extends PodRunnerParams {
       log,
       stdout,
       stderr,
-      timeout,
+      timeoutSec: timeout,
     })
 
     if (res.timedOut) {
