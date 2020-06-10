@@ -9,16 +9,15 @@
 import logSymbols from "log-symbols"
 import chalk from "chalk"
 import stripAnsi from "strip-ansi"
-import { isArray, isEmpty, repeat } from "lodash"
+import { isArray, repeat } from "lodash"
 import cliTruncate = require("cli-truncate")
 import stringWidth = require("string-width")
 import hasAnsi = require("has-ansi")
 
 import { LogEntry, MessageState } from "./log-entry"
 import { JsonLogEntry } from "./writers/json-terminal-writer"
-import { highlightYaml, deepFilter, PickFromUnion, safeDumpYaml } from "../util/util"
-import { isNumber } from "util"
-import { printEmoji, sanitizeObject } from "./util"
+import { highlightYaml, PickFromUnion, safeDumpYaml } from "../util/util"
+import { printEmoji, formatGardenError } from "./util"
 import { LoggerType, Logger } from "./logger"
 
 type RenderFn = (entry: LogEntry) => string
@@ -86,24 +85,7 @@ export function renderEmoji(entry: LogEntry): string {
 export function renderError(entry: LogEntry) {
   const { errorData: error } = entry
   if (error) {
-    const { detail, message, stack } = error
-    let out = stack || message
-
-    // We recursively filter out internal fields (i.e. having names starting with _).
-    const filteredDetail = deepFilter(detail, (_: any, key: string | number) => {
-      return !isNumber(key) && !key.startsWith("_")
-    })
-
-    if (!isEmpty(filteredDetail)) {
-      try {
-        const sanitized = sanitizeObject(filteredDetail)
-        const yamlDetail = safeDumpYaml(sanitized, { noRefs: true })
-        out += `\nError Details:\n${yamlDetail}`
-      } catch (err) {
-        out += `\nUnable to render error details:\n${err.message}`
-      }
-    }
-    return out
+    return formatGardenError(error)
   }
 
   const msg = chainMessages(entry.getMessageStates() || [])
