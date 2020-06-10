@@ -44,7 +44,7 @@ import chalk = require("chalk")
 import { loadImageToMicrok8s, getMicrok8sImageStatus } from "../local/microk8s"
 import { RunResult } from "../../../types/plugin/base"
 
-const kanikoImage = "gcr.io/kaniko-project/executor:debug-v0.22.0"
+const kanikoImage = "gcr.io/kaniko-project/executor:debug-v0.23.0"
 
 const registryPort = 5000
 
@@ -294,7 +294,6 @@ const remoteBuild: BuildHandler = async (params) => {
   stdout.on("data", (line: Buffer) => {
     statusLine.setState(renderOutputStream(line.toString()))
   })
-
   if (provider.config.buildMode === "cluster-docker") {
     // Prepare the build command
     const dockerfilePath = posix.join(contextPath, dockerfile)
