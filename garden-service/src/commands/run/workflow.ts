@@ -12,9 +12,15 @@ import { printHeader, getTerminalWidth, formatGardenError } from "../../logger/u
 import { StringParameter, Command, CommandParams, CommandResult, parseCliArgs } from "../base"
 import { dedent, wordWrap, deline } from "../../util/string"
 import { Garden } from "../../garden"
-import { getStepCommandConfigs } from "../../config/workflow"
+import { getStepCommandConfigs, WorkflowFileSpec } from "../../config/workflow"
 import { LogEntry } from "../../logger/log-entry"
 import { GardenError } from "../../exceptions"
+import { WorkflowConfigContext } from "../../config/config-context"
+import { resolveTemplateStrings } from "../../template-string"
+import { ConfigurationError, FilesystemError } from "../../exceptions"
+import { posix, join } from "path"
+import { ensureDir, writeFile } from "fs-extra"
+import Bluebird from "bluebird"
 
 const runWorkflowArgs = {
   workflow: new StringParameter({
@@ -41,6 +47,15 @@ export class RunWorkflowCommand extends Command<Args, {}> {
   arguments = runWorkflowArgs
 
   async action({ garden, log, headerLog, args, opts }: CommandParams<Args, {}>): Promise<CommandResult<null>> {
+    // Partially resolve the workflow config, and prepare any configured files before continuing
+    const rawWorkflow = garden.getRawWorkflowConfig(args.workflow)
+    const templateContext = new WorkflowConfigContext(garden, {}, garden.variables, garden.secrets)
+    const files = resolveTemplateStrings(rawWorkflow.files || [], templateContext)
+
+    // Write all the configured files for the workflow
+    await Bluebird.map(files, (file) => writeWorkflowFile(garden, file))
+
+    // Fully resolve the config
     const workflow = await garden.getWorkflowConfig(args.workflow)
     const steps = workflow.steps
 
@@ -177,5 +192,37 @@ export function logErrors(
   for (const error of errors) {
     log.error("")
     log.error(formatGardenError(error))
+  }
+}
+
+async function writeWorkflowFile(garden: Garden, file: WorkflowFileSpec) {
+  let data: string
+
+  if (file.data !== undefined) {
+    data = file.data
+  } else if (file.secretName) {
+    data = garden.secrets[file.secretName]
+
+    if (data === undefined) {
+      throw new ConfigurationError(
+        `File '${file.path}' requires secret '${file.secretName}' which could not be found.`,
+        {
+          file,
+          availableSecrets: Object.keys(garden.secrets),
+        }
+      )
+    }
+  } else {
+    throw new ConfigurationError(`File '${file.path}' specifies neither string data nor a secret name.`, { file })
+  }
+
+  const fullPath = join(garden.projectRoot, ...file.path.split(posix.sep))
+  const parsedPath = posix.parse(fullPath)
+
+  try {
+    await ensureDir(parsedPath.dir)
+    await writeFile(fullPath, data)
+  } catch (error) {
+    throw new FilesystemError(`Unable to write file '${file.path}': ${error.message}`, { error, file })
   }
 }

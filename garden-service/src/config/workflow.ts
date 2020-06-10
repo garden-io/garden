@@ -7,7 +7,7 @@
  */
 
 import { cloneDeep, isEqual, take } from "lodash"
-import { joi, joiUserIdentifier } from "./common"
+import { joi, joiUserIdentifier, joiVariableName } from "./common"
 import { DEFAULT_API_VERSION } from "../constants"
 import { deline, dedent } from "../util/string"
 import { defaultContainerLimits, ServiceLimitSpec } from "../plugins/container/config"
@@ -26,6 +26,7 @@ export interface WorkflowConfig {
   path: string
   configPath?: string
   keepAliveHours?: number
+  files?: WorkflowFileSpec[]
   limits?: ServiceLimitSpec
   steps: WorkflowStepSpec[]
   triggers?: TriggerSpec[]
@@ -51,6 +52,13 @@ export const workflowConfigSchema = () =>
         .description("The name of this workflow.")
         .example("my-workflow"),
       description: joi.string().description("A description of the workflow."),
+      files: joi.array().items(workflowFileSchema()).description(dedent`
+          A list of files to write before starting the workflow.
+
+          This is useful to e.g. create files required for provider authentication, and can be created from data stored in secrets or templated strings.
+
+          Note that you cannot reference provider configuration in template strings within this field, since they are resolved after these files are generated. This means you can reference the files specified here in your provider configurations.
+          `),
       keepAliveHours: joi
         .number()
         .default(48)
@@ -81,16 +89,46 @@ export const workflowConfigSchema = () =>
         .array()
         .items(triggerSchema())
         .description(
-          deline`
-            A list of triggers that determine when the workflow should be run, and which environment should be used.
-        `
+          `A list of triggers that determine when the workflow should be run, and which environment should be used (Garden Enterprise only).`
         )
-        .meta({ internal: true }),
+        .meta({ enterprise: true }),
     })
     .required()
     .unknown(true)
     .description("Configure a workflow for this project.")
     .meta({ extendable: true })
+
+export interface WorkflowFileSpec {
+  path: string
+  data?: string
+  secretName?: string
+}
+
+export const workflowFileSchema = () =>
+  joi
+    .object()
+    .keys({
+      path: joi
+        .posixPath()
+        .relativeOnly()
+        .subPathOnly()
+        .description(
+          dedent`
+          POSIX-style path to write the file to, relative to the project root. If the path contains one or more directories, they are created automatically if necessary.
+          If any of those directories conflict with existing file paths, or if the file path conflicts with an existing directory path, an error will be thrown.
+          Any existing file with the same path will be overwritten.
+          `
+        )
+        .example(".auth/kubeconfig.yaml"),
+      data: joi.string().description("The file data as a string."),
+      secretName: joiVariableName()
+        .description("The name of a Garden secret to copy the file data from (Garden Enterprise only).")
+        .meta({ enterprise: true }),
+    })
+    .xor("data", "secretName")
+    .description(
+      "A file to create ahead of running the workflow, within the project root. Must specify one of `data` or `secretName` (but not both)."
+    )
 
 export interface WorkflowStepSpec {
   command: string[]

@@ -636,18 +636,25 @@ export class Garden {
     return keyBy(providers, "name")
   }
 
+  getRawWorkflowConfig(name: string) {
+    return this.getRawWorkflowConfigs([name])[0]
+  }
+
+  getRawWorkflowConfigs(names?: string[]) {
+    if (names) {
+      return Object.values(pickKeys(this.workflowConfigs, names, "workflow"))
+    } else {
+      return Object.values(this.workflowConfigs)
+    }
+  }
+
   async getWorkflowConfig(name: string): Promise<WorkflowConfig> {
     return (await this.getWorkflowConfigs([name]))[0]
   }
 
   async getWorkflowConfigs(names?: string[]): Promise<WorkflowConfig[]> {
     const providers = await this.resolveProviders()
-
-    if (!names) {
-      names = Object.keys(this.workflowConfigs)
-    }
-
-    const configs = Object.values(pickKeys(this.workflowConfigs, names, "workflow"))
+    const configs = this.getRawWorkflowConfigs(names)
     return configs.map((config) => resolveWorkflowConfig(this, providers, config))
   }
 
