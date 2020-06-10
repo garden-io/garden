@@ -5,12 +5,15 @@ title: Config Files
 
 # garden.yml reference
 
-Below is the schema reference for the [Project](#project-configuration-keys) and [Module](#module-configuration-keys) `garden.yml` configuration files. For an introduction to configuring a Garden project,
-please look at our [configuration guide](../guides/configuration-files.md).
+Below is the schema reference for the [Project](#project-configuration-keys), [Module](#module-configuration-keys) and [Workflow](#workflow-configuration-keys) `garden.yml` configuration files. For an introduction to configuring a Garden project, please look at our [configuration guide](../guides/configuration-files.md).
 
-The reference is divided into four sections. The [first section](#project-yaml-schema) contains the project level YAML schema, and the [second section](#project-configuration-keys) describes each individual schema key for the project level configuration.
-
-The [third section](#module-yaml-schema) contains the module level YAML schema, and the [fourth section](#module-configuration-keys) describes each individual schema key for the module level configuration.
+The reference is divided into a few sections:
+* [Project YAML schema](#project-yaml-schema) contains the Project config YAML schema
+* [Project configuration keys](#project-configuration-keys) describes each individual schema key for Project configuration files.
+* [Module YAML schema](#module-yaml-schema) contains the Module config YAML schema
+* [Module configuration keys](#module-configuration-keys) describes each individual schema key for Module configuration files.
+* [Workflow YAML schema](#workflow-yaml-schema) contains the Workflow config YAML schema
+* [Workflow configuration keys](#module-configuration-keys) describes each individual schema key for Workflow configuration files.
 
 Note that individual providers, e.g. `kubernetes`, add their own project level configuration keys. The provider types are listed on the [Providers page](../reference/providers/README.md).
 
@@ -911,9 +914,333 @@ Defaults to to same as source path.
 
 ## Workflow YAML schema
 ```yaml
+# The schema version of this workflow's config (currently not used).
+apiVersion: garden.io/v0
 
+kind: Workflow
+
+# The name of this workflow.
+name:
+
+# A description of the workflow.
+description:
+
+# A list of files to write before starting the workflow.
+#
+# This is useful to e.g. create files required for provider authentication, and can be created from data stored in
+# secrets or templated strings.
+#
+# Note that you cannot reference provider configuration in template strings within this field, since they are resolved
+# after these files are generated. This means you can reference the files specified here in your provider
+# configurations.
+files:
+  - # POSIX-style path to write the file to, relative to the project root. If the path contains one or more
+    # directories, they are created automatically if necessary.
+    # If any of those directories conflict with existing file paths, or if the file path conflicts with an existing
+    # directory path, an error will be thrown.
+    # Any existing file with the same path will be overwritten.
+    path:
+
+    # The file data as a string.
+    data:
+
+    # The name of a Garden secret to copy the file data from (Garden Enterprise only).
+    secretName:
+
+# The number of hours to keep the workflow pod running after completion.
+keepAliveHours: 48
+
+limits:
+  # The maximum amount of CPU the workflow pod can use, in millicpus (i.e. 1000 = 1 CPU)
+  cpu: 1000
+
+  # The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB)
+  memory: 1024
+
+# The steps the workflow should run. At least one step is required. Steps are run sequentially. If a step fails,
+# subsequent steps are skipped.
+steps:
+  - # The Garden command this step should run.
+    #
+    # Supported commands:
+    #
+    # `[delete, environment]`
+    #
+    # `[delete, service]`
+    #
+    # `[deploy]`
+    #
+    # `[get, outputs]`
+    #
+    # `[publish]`
+    #
+    # `[run, task]`
+    #
+    # `[run, test]`
+    #
+    # `[test]`
+    command:
+
+    # A description of the workflow step.
+    description:
+
+# A list of triggers that determine when the workflow should be run, and which environment should be used (Garden
+# Enterprise only).
+triggers:
+  - # The environment name (from your project configuration) to use for the workflow when matched by this trigger.
+    environment:
+
+    # A list of GitHub events that should trigger this workflow.
+    events:
+
+    # If specified, only run the workflow for branches matching one of these filters.
+    branches:
+
+    # If specified, only run the workflow for tags matching one of these filters.
+    tags:
+
+    # If specified, do not run the workflow for branches matching one of these filters.
+    ignoreBranches:
+
+    # If specified, do not run the workflow for tags matching one of these filters.
+    ignoreTags:
 ```
 
 ## Workflow configuration keys
 
+
+### `apiVersion`
+
+The schema version of this workflow's config (currently not used).
+
+| Type     | Allowed Values | Default          | Required |
+| -------- | -------------- | ---------------- | -------- |
+| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
+
+### `kind`
+
+| Type     | Allowed Values | Default      | Required |
+| -------- | -------------- | ------------ | -------- |
+| `string` | "Workflow"     | `"Workflow"` | Yes      |
+
+### `name`
+
+The name of this workflow.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+Example:
+
+```yaml
+name: "my-workflow"
+```
+
+### `description`
+
+A description of the workflow.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `files[]`
+
+A list of files to write before starting the workflow.
+
+This is useful to e.g. create files required for provider authentication, and can be created from data stored in secrets or templated strings.
+
+Note that you cannot reference provider configuration in template strings within this field, since they are resolved after these files are generated. This means you can reference the files specified here in your provider configurations.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[object]` | No       |
+
+### `files[].path`
+
+[files](#files) > path
+
+POSIX-style path to write the file to, relative to the project root. If the path contains one or more directories, they are created automatically if necessary.
+If any of those directories conflict with existing file paths, or if the file path conflicts with an existing directory path, an error will be thrown.
+Any existing file with the same path will be overwritten.
+
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | No       |
+
+Example:
+
+```yaml
+files:
+  - path: ".auth/kubeconfig.yaml"
+```
+
+### `files[].data`
+
+[files](#files) > data
+
+The file data as a string.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `files[].secretName`
+
+[files](#files) > secretName
+
+The name of a Garden secret to copy the file data from (Garden Enterprise only).
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `keepAliveHours`
+
+The number of hours to keep the workflow pod running after completion.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `48`    | No       |
+
+### `limits`
+
+| Type     | Default                      | Required |
+| -------- | ---------------------------- | -------- |
+| `object` | `{"cpu":1000,"memory":1024}` | No       |
+
+### `limits.cpu`
+
+[limits](#limits) > cpu
+
+The maximum amount of CPU the workflow pod can use, in millicpus (i.e. 1000 = 1 CPU)
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `1000`  | No       |
+
+### `limits.memory`
+
+[limits](#limits) > memory
+
+The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB)
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `1024`  | No       |
+
+### `steps[]`
+
+The steps the workflow should run. At least one step is required. Steps are run sequentially. If a step fails, subsequent steps are skipped.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[object]` | Yes      |
+
+### `steps[].command[]`
+
+[steps](#steps) > command
+
+The Garden command this step should run.
+
+Supported commands:
+
+`[delete, environment]`
+
+`[delete, service]`
+
+`[deploy]`
+
+`[get, outputs]`
+
+`[publish]`
+
+`[run, task]`
+
+`[run, test]`
+
+`[test]`
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | Yes      |
+
+### `steps[].description`
+
+[steps](#steps) > description
+
+A description of the workflow step.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `triggers[]`
+
+A list of triggers that determine when the workflow should be run, and which environment should be used (Garden Enterprise only).
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[object]` | No       |
+
+### `triggers[].environment`
+
+[triggers](#triggers) > environment
+
+The environment name (from your project configuration) to use for the workflow when matched by this trigger.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `triggers[].events[]`
+
+[triggers](#triggers) > events
+
+A list of GitHub events that should trigger this workflow.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `triggers[].branches[]`
+
+[triggers](#triggers) > branches
+
+If specified, only run the workflow for branches matching one of these filters.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `triggers[].tags[]`
+
+[triggers](#triggers) > tags
+
+If specified, only run the workflow for tags matching one of these filters.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `triggers[].ignoreBranches[]`
+
+[triggers](#triggers) > ignoreBranches
+
+If specified, do not run the workflow for branches matching one of these filters.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `triggers[].ignoreTags[]`
+
+[triggers](#triggers) > ignoreTags
+
+If specified, do not run the workflow for tags matching one of these filters.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
 
