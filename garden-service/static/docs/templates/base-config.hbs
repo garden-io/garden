@@ -5,12 +5,15 @@ title: Config Files
 
 # garden.yml reference
 
-Below is the schema reference for the [Project](#project-configuration-keys) and [Module](#module-configuration-keys) `garden.yml` configuration files. For an introduction to configuring a Garden project,
-please look at our [configuration guide](../guides/configuration-files.md).
+Below is the schema reference for the [Project](#project-configuration-keys), [Module](#module-configuration-keys) and [Workflow](#workflow-configuration-keys) `garden.yml` configuration files. For an introduction to configuring a Garden project, please look at our [configuration guide](../guides/configuration-files.md).
 
-The reference is divided into four sections. The [first section](#project-yaml-schema) contains the project level YAML schema, and the [second section](#project-configuration-keys) describes each individual schema key for the project level configuration.
-
-The [third section](#module-yaml-schema) contains the module level YAML schema, and the [fourth section](#module-configuration-keys) describes each individual schema key for the module level configuration.
+The reference is divided into a few sections:
+* [Project YAML schema](#project-yaml-schema) contains the Project config YAML schema
+* [Project configuration keys](#project-configuration-keys) describes each individual schema key for Project configuration files.
+* [Module YAML schema](#module-yaml-schema) contains the Module config YAML schema
+* [Module configuration keys](#module-configuration-keys) describes each individual schema key for Module configuration files.
+* [Workflow YAML schema](#workflow-yaml-schema) contains the Workflow config YAML schema
+* [Workflow configuration keys](#module-configuration-keys) describes each individual schema key for Workflow configuration files.
 
 Note that individual providers, e.g. `kubernetes`, add their own project level configuration keys. The provider types are listed on the [Providers page](../reference/providers/README.md).
 

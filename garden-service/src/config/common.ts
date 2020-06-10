@@ -40,6 +40,7 @@ export const enumToArray = (Enum) => Object.values(Enum).filter((k) => typeof k 
 interface MetadataKeys {
   internal?: boolean
   deprecated?: boolean
+  enterprise?: boolean
   extendable?: boolean
   experimental?: boolean
   keyPlaceholder?: string
@@ -361,6 +362,7 @@ export const identifierRegex = /^(?![0-9]+$)(?!.*-$)(?!-)[a-z0-9-]{1,63}$/
 export const userIdentifierRegex = /^(?!garden)(?=.{1,63}$)[a-z][a-z0-9]*(-[a-z0-9]+)*$/
 export const envVarRegex = /^(?!garden)[a-z_][a-z0-9_\.]*$/i
 export const gitUrlRegex = /(?:git|ssh|https?|git@[-\w.]+):(\/\/)?(.*?)(\/?|\#[-\d\w._\/]+?)$/
+export const variableNameRegex = /[a-zA-Z][a-zA-Z0-9_\-]+/i
 
 export const joiIdentifierDescription =
   "valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, " +
@@ -426,13 +428,12 @@ export const joiIdentifierMap = (valueSchema: Joi.Schema) =>
 export const joiVariablesDescription =
   "Keys may contain letters and numbers. Any values are permitted, including arrays and objects of any nesting."
 
+export const joiVariableName = () => joi.string().regex(variableNameRegex)
+
 export const joiVariables = () =>
   joi
     .object()
-    .pattern(
-      /[a-zA-Z][a-zA-Z0-9_\-]+/i,
-      joi.alternatives(joiPrimitive(), joi.link("..."), joi.array().items(joi.link("...")))
-    )
+    .pattern(variableNameRegex, joi.alternatives(joiPrimitive(), joi.link("..."), joi.array().items(joi.link("..."))))
     .default(() => ({}))
     .unknown(false)
     .description("Key/value map. " + joiVariablesDescription)

@@ -19,6 +19,7 @@ import { STATIC_DIR } from "../constants"
 import { indent, renderMarkdownTable, convertMarkdownLinks, NormalizedSchemaDescription } from "./common"
 import { normalizeJoiSchemaDescription, JoiDescription } from "./joi-schema"
 import { safeDumpYaml } from "../util/util"
+import { workflowConfigSchema } from "../config/workflow"
 
 export const TEMPLATES_DIR = resolve(STATIC_DIR, "docs", "templates")
 const partialTemplatePath = resolve(TEMPLATES_DIR, "config-partial.hbs")
@@ -418,6 +419,9 @@ export function renderBaseConfigReference() {
   const baseTemplatePath = resolve(TEMPLATES_DIR, "base-config.hbs")
   const { markdownReference: projectMarkdownReference, yaml: projectYaml } = renderProjectConfigReference()
   const { markdownReference: moduleMarkdownReference, yaml: moduleYaml } = renderConfigReference(baseModuleSpecSchema())
+  const { markdownReference: workflowMarkdownReference, yaml: workflowYaml } = renderConfigReference(
+    workflowConfigSchema()
+  )
 
   const template = handlebars.compile(readFileSync(baseTemplatePath).toString())
   return template({
@@ -425,5 +429,7 @@ export function renderBaseConfigReference() {
     projectYaml,
     moduleMarkdownReference,
     moduleYaml,
+    workflowMarkdownReference,
+    workflowYaml,
   })
 }
