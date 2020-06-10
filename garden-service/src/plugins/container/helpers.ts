@@ -296,7 +296,7 @@ const helpers = {
     {
       ignoreError = false,
       outputStream,
-      timeout = DEFAULT_BUILD_TIMEOUT,
+      timeout,
     }: { ignoreError?: boolean; outputStream?: Writable; timeout?: number } = {}
   ) {
     // Check if docker is already installed
