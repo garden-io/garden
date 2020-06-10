@@ -18,7 +18,7 @@ export async function getSecretsFromGardenCloud({
   environmentName,
 }: GetSecretsParams): Promise<StringMap> {
   try {
-    const url = `${cloudDomain}/secrets/project/${projectId}/env/${environmentName}`
+    const url = `${cloudDomain}/secrets/projectUid/${projectId}/env/${environmentName}`
     const headers = { "x-access-auth-token": clientAuthToken }
     const res = await got(url, { headers }).json<GotResponse<any>>()
     if (res && res["status"] === "success") {

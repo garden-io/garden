@@ -9,7 +9,7 @@
 import { EventEmitter2 } from "eventemitter2"
 import { ModuleVersion } from "./vcs/vcs"
 import { TaskResult } from "./task-graph"
-import { LogEntryEvent } from "./cloud/buffered-event-stream"
+import { LogEntryEvent } from "./enterprise/buffered-event-stream"
 
 /**
  * This simple class serves as the central event bus for a Garden instance. Its function

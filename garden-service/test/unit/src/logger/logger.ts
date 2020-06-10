@@ -11,7 +11,7 @@ import { omit } from "lodash"
 
 import { LogLevel } from "../../../../src/logger/log-node"
 import { getLogger } from "../../../../src/logger/logger"
-import { LogEntryEvent, formatForEventStream } from "../../../../src/cloud/buffered-event-stream"
+import { LogEntryEvent, formatForEventStream } from "../../../../src/enterprise/buffered-event-stream"
 
 const logger: any = getLogger()
 

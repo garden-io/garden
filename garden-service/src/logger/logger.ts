@@ -18,7 +18,7 @@ import { JsonTerminalWriter } from "./writers/json-terminal-writer"
 import { parseLogLevel } from "../cli/helpers"
 import { FullscreenTerminalWriter } from "./writers/fullscreen-terminal-writer"
 import { EventBus } from "../events"
-import { formatForEventStream } from "../cloud/buffered-event-stream"
+import { formatForEventStream } from "../enterprise/buffered-event-stream"
 
 export type LoggerType = "quiet" | "basic" | "fancy" | "fullscreen" | "json"
 export const LOGGER_TYPES = new Set<LoggerType>(["quiet", "basic", "fancy", "fullscreen", "json"])
