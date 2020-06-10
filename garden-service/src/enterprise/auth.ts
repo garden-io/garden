@@ -17,7 +17,7 @@ import getPort = require("get-port")
 import { ClientAuthToken } from "../db/entities/client-auth-token"
 import { LogEntry } from "../logger/log-entry"
 import { got } from "../util/http"
-import { RuntimeError } from "../exceptions"
+import { RuntimeError, InternalError } from "../exceptions"
 
 export const makeAuthHeader = (clientAuthToken: string) => ({ "x-access-auth-token": clientAuthToken })
 
@@ -53,6 +53,9 @@ export async function login(cloudDomain: string, log: LogEntry): Promise<string>
     })
   })
   await server.close()
+  if (!newToken) {
+    throw new InternalError(`Error: Did not receive an auth token after logging in.`, {})
+  }
   await saveAuthToken(newToken, log)
   return newToken
 }

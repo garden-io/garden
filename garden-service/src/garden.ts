@@ -67,9 +67,9 @@ import { deline, naturalList } from "./util/string"
 import { ensureConnected } from "./db/connection"
 import { DependencyValidationGraph } from "./util/validate-dependencies"
 import { Profile } from "./util/profiling"
-import { readAuthToken, checkClientAuthToken } from "./cloud/auth"
+import { readAuthToken, checkClientAuthToken } from "./enterprise/auth"
 import { ResolveModuleTask, getResolvedModules } from "./tasks/resolve-module"
-import { getSecrets } from "./cloud/secrets"
+import { getSecrets } from "./enterprise/secrets"
 import username from "username"
 import { throwOnMissingSecretKeys } from "./template-string"
 import { WorkflowConfig, WorkflowResource, WorkflowConfigMap, resolveWorkflowConfig } from "./config/workflow"
@@ -330,8 +330,8 @@ export class Garden {
         if (!cloudDomain) {
           errorMessages.push(deline`
             ${chalk.bold("project.domain")} is not set in your project-level ${chalk.bold("garden.yml")}. Make sure it
-            is set to the appropriate API backend endpoint (e.g. myusername-cloud-api.cloud.dev.garden.io, without an
-            http/https prefix).
+            is set to the appropriate API backend endpoint (e.g. http://myusername-cloud-api.cloud.dev.garden.io,
+            with an http/https prefix).
           `)
         }
         if (!projectId) {
