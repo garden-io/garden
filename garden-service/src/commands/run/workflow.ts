@@ -8,12 +8,13 @@
 
 import chalk from "chalk"
 import { cloneDeep, isEqual, merge, repeat, take } from "lodash"
-import { printHeader, getTerminalWidth } from "../../logger/util"
+import { printHeader, getTerminalWidth, formatGardenError } from "../../logger/util"
 import { StringParameter, Command, CommandParams, CommandResult, parseCliArgs } from "../base"
 import { dedent, wordWrap, deline } from "../../util/string"
 import { Garden } from "../../garden"
 import { getStepCommandConfigs } from "../../config/workflow"
 import { LogEntry } from "../../logger/log-entry"
+import { GardenError } from "../../exceptions"
 
 const runWorkflowArgs = {
   workflow: new StringParameter({
@@ -52,8 +53,9 @@ export class RunWorkflowCommand extends Command<Args, {}> {
       const stepHeaderLog = log.placeholder({ indent: 1 })
       const stepBodyLog = log.placeholder({ indent: 1 })
       const stepFooterLog = log.placeholder({ indent: 1 })
+      let result: CommandResult
       try {
-        await runStepCommand({
+        result = await runStepCommand({
           commandSpec: step.command,
           inheritedOpts: cloneDeep(opts),
           garden,
@@ -64,6 +66,10 @@ export class RunWorkflowCommand extends Command<Args, {}> {
         })
       } catch (err) {
         throw err
+      }
+      if (result.errors) {
+        logErrors(log, result.errors, index, steps.length, step.description)
+        return { errors: result.errors }
       }
       printStepDuration(log, index, steps.length, stepBodyLog.getDuration())
     }
@@ -90,10 +96,7 @@ export type RunStepCommandParams = {
 
 export function printStepHeader(log: LogEntry, stepIndex: number, stepCount: number, stepDescription?: string) {
   const maxWidth = Math.min(getTerminalWidth(), 120)
-  let text = `Running step ${chalk.white(stepIndex + 1)}/${chalk.white(stepCount)}`
-  if (stepDescription) {
-    text = text + ` — ${chalk.white(stepDescription)}`
-  }
+  let text = `Running step ${formattedStepDescription(stepIndex, stepCount, stepDescription)}`
   const bar = repeat("═", maxWidth)
   const header = chalk.cyan(dedent`
     \n${wordWrap(text, maxWidth)}
@@ -104,17 +107,30 @@ export function printStepHeader(log: LogEntry, stepIndex: number, stepCount: num
 
 export function printStepDuration(log: LogEntry, stepIndex: number, stepCount: number, durationSecs: number) {
   const text = deline`
-    Step ${chalk.white(stepIndex + 1)}/${chalk.white(stepCount)} ${chalk.green("completed")} in
+    Step ${formattedStepNumber(stepIndex, stepCount)} ${chalk.green("completed")} in
     ${chalk.white(durationSecs)} Sec
   `
   const maxWidth = Math.min(getTerminalWidth(), 120)
   const bar = repeat("═", maxWidth)
   log.info(
     chalk.cyan(dedent`
-      \n${bar}
+      ${bar}
       ${text}
+      \n\n
     `)
   )
+}
+
+export function formattedStepDescription(stepIndex: number, stepCount: number, stepDescription?: string) {
+  let formatted = formattedStepNumber(stepIndex, stepCount)
+  if (stepDescription) {
+    formatted += ` — ${chalk.white(stepDescription)}`
+  }
+  return formatted
+}
+
+export function formattedStepNumber(stepIndex: number, stepCount: number) {
+  return `${chalk.white(stepIndex + 1)}/${chalk.white(stepCount)}`
 }
 
 export async function runStepCommand({
@@ -139,4 +155,27 @@ export async function runStepCommand({
     opts: merge(inheritedOpts, opts),
   })
   return result
+}
+
+export function logErrors(
+  log: LogEntry,
+  errors: GardenError[],
+  stepIndex: number,
+  stepCount: number,
+  stepDescription?: string
+) {
+  const description = formattedStepDescription(stepIndex, stepCount, stepDescription)
+  const errMsg = dedent`
+    An error occurred while running step ${chalk.white(description)}.
+
+    Aborting all subsequent steps.
+
+    See the log output below for additional details.
+  `
+  log.error("")
+  log.error(chalk.red(errMsg))
+  for (const error of errors) {
+    log.error("")
+    log.error(formatGardenError(error))
+  }
 }
