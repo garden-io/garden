@@ -59,8 +59,6 @@ export async function buildContainerModule({ module, log }: BuildModuleParams<Co
 
   const cmdOpts = ["build", "-t", identifier, ...getDockerBuildFlags(module)]
 
-  cmdOpts.push(...(module.spec.extraFlags || []))
-
   if (module.spec.dockerfile) {
     cmdOpts.push("--file", containerHelpers.getDockerfileBuildPath(module))
   }
@@ -93,6 +91,8 @@ export function getDockerBuildFlags(module: ContainerModule) {
   if (module.spec.build.targetImage) {
     args.push("--target", module.spec.build.targetImage)
   }
+
+  args.push(...(module.spec.extraFlags || []))
 
   return args
 }
