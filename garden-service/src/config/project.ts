@@ -308,12 +308,12 @@ export const projectDocsSchema = () =>
         .meta({ internal: true })
         .description("The path to the project config file."),
       name: projectNameSchema(),
-      // TODO: Refer to platform documentation for more details.
+      // TODO: Refer to enterprise documentation for more details.
       id: joi
         .string()
         .meta({ internal: true })
-        .description("The project's ID in Garden Cloud."),
-      // TODO: Refer to platform documentation for more details.
+        .description("The project's ID in Garden Enterprise."),
+      // TODO: Refer to enterprise documentation for more details.
       domain: joi
         .string()
         .meta({ internal: true })
