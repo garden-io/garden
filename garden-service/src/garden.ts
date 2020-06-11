@@ -67,12 +67,11 @@ import { deline, naturalList } from "./util/string"
 import { ensureConnected } from "./db/connection"
 import { DependencyValidationGraph } from "./util/validate-dependencies"
 import { Profile } from "./util/profiling"
-import { readAuthToken, checkClientAuthToken } from "./enterprise/auth"
 import { ResolveModuleTask, getResolvedModules } from "./tasks/resolve-module"
-import { getSecrets } from "./enterprise/secrets"
 import username from "username"
 import { throwOnMissingSecretKeys } from "./template-string"
 import { WorkflowConfig, WorkflowResource, WorkflowConfigMap, resolveWorkflowConfig } from "./config/workflow"
+import { enterpriseInit } from "./enterprise/init"
 
 export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
   [actionName: string]: PluginActionHandlers[T]
@@ -106,7 +105,7 @@ export interface GardenOpts {
   log?: LogEntry
   plugins?: RegisterPluginParam[]
   sessionId?: string
-  noPlatform?: boolean
+  noEnterprise?: boolean
 }
 
 export interface GardenParams {
@@ -124,7 +123,7 @@ export interface GardenParams {
   opts: GardenOpts
   outputs: OutputSpec[]
   projectId: string | null
-  cloudDomain: string | null
+  enterpriseDomain: string | null
   plugins: RegisterPluginParam[]
   production: boolean
   projectName: string
@@ -157,7 +156,7 @@ export class Garden {
   // Platform-related instance variables
   public clientAuthToken: string | null
   public projectId: string | null
-  public cloudDomain: string | null
+  public enterpriseDomain: string | null
   public sessionId: string | null
 
   public readonly configStore: ConfigStore
@@ -195,7 +194,7 @@ export class Garden {
   constructor(params: GardenParams) {
     this.buildDir = params.buildDir
     this.clientAuthToken = params.clientAuthToken
-    this.cloudDomain = params.cloudDomain
+    this.enterpriseDomain = params.enterpriseDomain
     this.sessionId = params.sessionId
     this.environmentName = params.environmentName
     this.allEnvironmentNames = params.allEnvironmentNames
@@ -319,61 +318,21 @@ export class Garden {
 
     const sessionId = opts.sessionId || null
 
-    const { id: projectId, domain: cloudDomain } = config
+    const { id: projectId, domain: enterpriseDomain } = config
 
-    let secrets = {}
-    const clientAuthToken = await readAuthToken(log)
-    // If a client auth token exists in local storage, we assume that the user wants to be logged in to the platform.
-    if (clientAuthToken && !opts.noPlatform) {
-      if (!cloudDomain || !projectId) {
-        const errorMessages: string[] = []
-        if (!cloudDomain) {
-          errorMessages.push(deline`
-            ${chalk.bold("project.domain")} is not set in your project-level ${chalk.bold("garden.yml")}. Make sure it
-            is set to the appropriate API backend endpoint (e.g. http://myusername-cloud-api.cloud.dev.garden.io,
-            with an http/https prefix).
-          `)
-        }
-        if (!projectId) {
-          errorMessages.push(deline`
-            ${chalk.bold("project.id")} is not set in your project-level ${chalk.bold("garden.yml")}. Please visit
-            Garden Cloud's web UI for your project and copy your project's ID from there.
-          `)
-        }
-        if (errorMessages.length > 0) {
-          throw new ConfigurationError(
-            dedent`
-              ${errorMessages.join("\n\n")}
-
-              Logging out via the ${chalk.bold("garden logout")} command will suppress this message.`,
-            {}
-          )
-        }
-      } else {
-        const tokenIsValid = await checkClientAuthToken(clientAuthToken, cloudDomain, log)
-        if (tokenIsValid) {
-          secrets = await getSecrets({
-            projectId,
-            cloudDomain,
-            clientAuthToken,
-            log,
-            environmentName,
-          })
-        } else {
-          log.warn(deline`
-            You were previously logged in to the platform, but your session has expired or is invalid. Please run
-            ${chalk.bold("garden login")} to continue using platform features, or run ${chalk.bold("garden logout")}
-            to suppress this message.
-          `)
-        }
-      }
+    let secrets: StringMap = {}
+    let clientAuthToken: string | null = null
+    if (!opts.noEnterprise) {
+      const enterpriseInitResult = await enterpriseInit({ log, projectConfig: config, environmentName })
+      secrets = enterpriseInitResult.secrets
+      clientAuthToken = enterpriseInitResult.clientAuthToken
     }
 
     const garden = new this({
       artifactsPath,
       clientAuthToken,
       sessionId,
-      cloudDomain: cloudDomain || null,
+      enterpriseDomain: enterpriseDomain || null,
       projectId: projectId || null,
       projectRoot,
       projectName,

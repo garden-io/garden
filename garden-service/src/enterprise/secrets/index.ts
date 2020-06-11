@@ -13,7 +13,7 @@ import { StringMap } from "../../config/common"
 export interface GetSecretsParams {
   log: LogEntry
   projectId: string
-  cloudDomain: string
+  enterpriseDomain: string
   clientAuthToken: string
   environmentName: string
 }
