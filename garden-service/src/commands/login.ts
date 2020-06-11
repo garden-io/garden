@@ -14,19 +14,19 @@ import { ConfigurationError } from "../exceptions"
 
 export class LoginCommand extends Command {
   name = "login"
-  help = "Log in to Garden Cloud."
+  help = "Log in to Garden Enterprise."
   hidden = true
 
   description = dedent`
-    Logs you in to Garden Cloud. Subsequent commands will have access to platform features.
+    Logs you in to Garden Enterprise. Subsequent commands will have access to enterprise features.
   `
 
   async action({ garden, log, headerLog }: CommandParams): Promise<CommandResult> {
     printHeader(headerLog, "Login", "cloud")
-    if (!garden.cloudDomain) {
+    if (!garden.enterpriseDomain) {
       throw new ConfigurationError(`Error: Your project configuration does not specify a domain.`, {})
     }
-    await login(garden.cloudDomain, log)
+    await login(garden.enterpriseDomain, log)
     return {}
   }
 }
