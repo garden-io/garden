@@ -44,7 +44,7 @@ export const FLUSH_INTERVAL_MSEC = 1000
 export const MAX_BATCH_SIZE = 100
 
 /**
- * Buffers events and log entries and periodically POSTs them to the platform.
+ * Buffers events and log entries and periodically POSTs them to Garden Enterprise if the user is logged in.
  *
  * Subscribes to logger events once, in the constructor.
  *
@@ -56,7 +56,7 @@ export class BufferedEventStream {
   private log: LogEntry
   private eventBus: EventBus
   public sessionId: string
-  private cloudDomain: string
+  private enterpriseDomain: string
   private clientAuthToken: string
   private projectId: string
 
@@ -80,9 +80,9 @@ export class BufferedEventStream {
     this.bufferedLogEntries = []
   }
 
-  connect(eventBus: EventBus, clientAuthToken: string, cloudDomain: string, projectId: string) {
+  connect(eventBus: EventBus, clientAuthToken: string, enterpriseDomain: string, projectId: string) {
     this.clientAuthToken = clientAuthToken
-    this.cloudDomain = cloudDomain
+    this.enterpriseDomain = enterpriseDomain
     this.projectId = projectId
 
     if (!this.intervalId) {
@@ -152,7 +152,7 @@ export class BufferedEventStream {
       projectId: this.projectId,
     }
     const headers = makeAuthHeader(this.clientAuthToken)
-    got.post(`${this.cloudDomain}/events`, { json: data, headers }).catch((err) => {
+    got.post(`${this.enterpriseDomain}/events`, { json: data, headers }).catch((err) => {
       this.log.error(err)
     })
   }
@@ -164,7 +164,7 @@ export class BufferedEventStream {
       projectId: this.projectId,
     }
     const headers = makeAuthHeader(this.clientAuthToken)
-    got.post(`${this.cloudDomain}/log-entries`, { json: data, headers }).catch((err) => {
+    got.post(`${this.enterpriseDomain}/log-entries`, { json: data, headers }).catch((err) => {
       this.log.error(err)
     })
   }

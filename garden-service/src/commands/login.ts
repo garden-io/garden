@@ -9,25 +9,24 @@
 import { Command, CommandParams, CommandResult } from "./base"
 import { printHeader } from "../logger/util"
 import dedent = require("dedent")
-import { login } from "../cloud/auth"
+import { login } from "../enterprise/auth"
+import { ConfigurationError } from "../exceptions"
 
 export class LoginCommand extends Command {
   name = "login"
-  help = "Log in to Garden Cloud."
+  help = "Log in to Garden Enterprise."
   hidden = true
-  noProject = true
 
   description = dedent`
-    Logs you in to Garden Cloud. Subsequent commands will have access to platform features.
+    Logs you in to Garden Enterprise. Subsequent commands will have access to enterprise features.
   `
 
   async action({ garden, log, headerLog }: CommandParams): Promise<CommandResult> {
     printHeader(headerLog, "Login", "cloud")
-
-    if (garden.cloudDomain) {
-      await login(garden.cloudDomain, log)
+    if (!garden.enterpriseDomain) {
+      throw new ConfigurationError(`Error: Your project configuration does not specify a domain.`, {})
     }
-
+    await login(garden.enterpriseDomain, log)
     return {}
   }
 }

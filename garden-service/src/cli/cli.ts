@@ -55,7 +55,7 @@ import { AnalyticsHandler } from "../analytics/analytics"
 import { defaultDotIgnoreFiles } from "../util/fs"
 import { renderError } from "../logger/renderers"
 import { getDefaultProfiler } from "../util/profiling"
-import { BufferedEventStream } from "../cloud/buffered-event-stream"
+import { BufferedEventStream } from "../enterprise/buffered-event-stream"
 
 const OUTPUT_RENDERERS = {
   json: (data: DeepPrimitiveMap) => {
@@ -98,7 +98,7 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts = {})
   }
   gardenOpts.config = config
 
-  return DummyGarden.factory(root, { ...gardenOpts, noPlatform: true })
+  return DummyGarden.factory(root, { ...gardenOpts, noEnterprise: true })
 }
 
 // The help text for these commands is only displayed when calling `garden options`.
@@ -351,8 +351,13 @@ export class GardenCli {
             garden = await Garden.factory(root, contextOpts)
           }
 
-          if (garden.clientAuthToken && garden.cloudDomain && garden.projectId) {
-            bufferedEventStream.connect(garden.events, garden.clientAuthToken, garden.cloudDomain, garden.projectId)
+          if (garden.clientAuthToken && garden.enterpriseDomain && garden.projectId) {
+            bufferedEventStream.connect(
+              garden.events,
+              garden.clientAuthToken,
+              garden.enterpriseDomain,
+              garden.projectId
+            )
           }
 
           // Register log file writers. We need to do this after the Garden class is initialised because
