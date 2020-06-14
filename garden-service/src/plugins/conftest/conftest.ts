@@ -55,6 +55,7 @@ interface ConftestModuleSpec {
   policyPath: string
   namespace: string
   files: string[]
+  data: string
   sourceModule: string
 }
 
@@ -120,6 +121,14 @@ export const gardenPlugin = createGardenPlugin({
               A list of files to test with the given policy. Must be POSIX-style paths, and may include wildcards.
             `
           ),
+        data: joi
+          .posixPath()
+          .relativeOnly()
+          .description(
+            dedent`
+            A list of additional files that are passed in to conftest via the --data option. Must be POSIX-style paths, and may include wildcards.
+          `
+          ),
       }),
       handlers: {
         configure: async ({ moduleConfig }) => {
@@ -139,6 +148,7 @@ export const gardenPlugin = createGardenPlugin({
           // Make sure the policy path is valid POSIX on Windows
           const policyPath = slash(resolve(module.path, module.spec.policyPath || defaultPolicyPath))
           const namespace = module.spec.namespace || provider.config.namespace
+          const data = module.spec.data
 
           const buildPath = module.spec.sourceModule
             ? module.buildDependencies[module.spec.sourceModule].buildPath
@@ -164,6 +174,9 @@ export const gardenPlugin = createGardenPlugin({
           const args = ["test", "--policy", policyPath, "--output", "json"]
           if (namespace) {
             args.push("--namespace", namespace)
+          }
+          if (data) {
+            args.push("--data", data)
           }
           args.push(...files)
 
