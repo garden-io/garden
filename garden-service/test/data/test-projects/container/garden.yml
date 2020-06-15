@@ -8,6 +8,7 @@ environments:
   - name: cluster-docker-auth
   - name: cluster-docker-remote-registry
   - name: kaniko
+  - name: kaniko-image-override
   - name: kaniko-remote-registry
 providers:
   - name: local-kubernetes
@@ -40,4 +41,10 @@ providers:
   - <<: *clusterDocker
     environments: [kaniko-remote-registry]
     buildMode: kaniko
+    deploymentRegistry: *deploymentRegistry
+  - <<: *clusterDocker
+    environments: [kaniko-image-override]
+    buildMode: kaniko
+    kaniko:
+      image: gcr.io/kaniko-project/executor:debug-perf
     deploymentRegistry: *deploymentRegistry

@@ -50,6 +50,11 @@ providers:
       # performant, but we're opting to keep it optional until it's enabled by default in Docker.
       enableBuildKit: false
 
+    # Configuration options for the `kaniko` build mode.
+    kaniko:
+      # Change the kaniko image (repository/image:tag) to use when building in kaniko mode.
+      image: 'gcr.io/kaniko-project/executor:debug-v0.23.0'
+
     # A default hostname to use when no hostname is explicitly configured for a service.
     defaultHostname:
 
@@ -354,6 +359,26 @@ Enable [BuildKit](https://github.com/moby/buildkit) support. This should in most
 | Type      | Default | Required |
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
+
+### `providers[].kaniko`
+
+[providers](#providers) > kaniko
+
+Configuration options for the `kaniko` build mode.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `providers[].kaniko.image`
+
+[providers](#providers) > [kaniko](#providerskaniko) > image
+
+Change the kaniko image (repository/image:tag) to use when building in kaniko mode.
+
+| Type     | Default                                          | Required |
+| -------- | ------------------------------------------------ | -------- |
+| `string` | `"gcr.io/kaniko-project/executor:debug-v0.23.0"` | No       |
 
 ### `providers[].defaultHostname`
 
