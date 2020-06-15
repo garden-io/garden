@@ -8,6 +8,7 @@
 
 import pRetry from "p-retry"
 import split2 = require("split2")
+import { differenceBy } from "lodash"
 import { ContainerModule, ContainerRegistryConfig } from "../../container/config"
 import { containerHelpers } from "../../container/helpers"
 import { buildContainerModule, getContainerBuildStatus, getDockerBuildFlags } from "../../container/build"
@@ -336,7 +337,7 @@ const remoteBuild: BuildHandler = async (params) => {
       dockerfile,
       "--destination",
       deploymentImageId,
-      "--cache=true",
+      ...getKanikoFlags(module.spec.extraFlags),
     ]
 
     if (provider.config.deploymentRegistry?.hostname === inClusterRegistryHostname) {
@@ -378,6 +379,24 @@ export interface BuilderExecParams {
   containerName: string
   stdout?: Writable
   stderr?: Writable
+}
+
+export const DEFAULT_KANIKO_FLAGS = ["--cache=true"]
+
+export const getKanikoFlags = (flags?: string[]): string[] => {
+  if (!flags) {
+    return DEFAULT_KANIKO_FLAGS
+  }
+  const flagToKey = (flag) => {
+    const found = flag.match(/--([a-zA-Z]*)/)
+    if (found === null) {
+      throw new ConfigurationError(`Invalid format for a kaniko flag`, { flag })
+    }
+    return found[0]
+  }
+  const defaultsToKeep = differenceBy(DEFAULT_KANIKO_FLAGS, flags, flagToKey)
+
+  return [...flags, ...defaultsToKeep]
 }
 
 export function kanikoBuildFailed(buildRes: RunResult) {
