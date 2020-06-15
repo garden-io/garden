@@ -6,12 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { kanikoBuildFailed } from "../../../../../../src/plugins/kubernetes/container/build"
+import {
+  kanikoBuildFailed,
+  getKanikoFlags,
+  DEFAULT_KANIKO_FLAGS,
+} from "../../../../../../src/plugins/kubernetes/container/build"
 import { expect } from "chai"
 
 describe("kaniko build", () => {
   it("should return as successful when immutable tag already exists in destination", () => {
-    const errorMessage = `error pushing image: failed to push to destination dockerhub.com/garden/backend:v-1234567: TAG_INVALID: The image tag 'v-1234567' already exists in the 'garden/backend' repository and cannot be overwritten because the repository is immutable.`
+    const errorMessage = `error pushing image: failed to push to destination dockerhub.com/garden/backend:v-1234567: TAG_INVALID: The image tag "v-1234567" already exists in the "garden/backend" repository and cannot be overwritten because the repository is immutable.`
 
     expect(
       kanikoBuildFailed({
@@ -54,5 +58,32 @@ describe("kaniko build", () => {
         log: "",
       })
     ).to.be.false
+  })
+
+  describe("getKanikoFlags", () => {
+    it("should only keep all declarations of each flag + the defaults", () => {
+      expect(getKanikoFlags(["--here=first", "--here=again"])).to.deep.equal([
+        "--here=first",
+        "--here=again",
+        "--cache=true",
+      ])
+    })
+    it("should allow overriding default flags", () => {
+      const overridenFlags = DEFAULT_KANIKO_FLAGS.map((f) => f + "cat")
+      expect(getKanikoFlags(overridenFlags)).to.deep.equal(overridenFlags)
+    })
+
+    it("should allow toggles", () => {
+      expect(getKanikoFlags(["--myToggle"])).to.deep.equal(["--myToggle", "--cache=true"])
+    })
+
+    it("should throw if a flag is malformed", () => {
+      expect(() => getKanikoFlags(["--here=first", "-my-flag"])).to.throw(/Invalid format for a kaniko flag/)
+    })
+
+    it("should return --cache=true when extraFlags is empty", () => {
+      expect(getKanikoFlags([])).to.deep.equal(DEFAULT_KANIKO_FLAGS)
+      expect(getKanikoFlags()).to.deep.equal(DEFAULT_KANIKO_FLAGS)
+    })
   })
 })
