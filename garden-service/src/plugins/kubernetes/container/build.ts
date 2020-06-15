@@ -28,8 +28,8 @@ import { KubeApi } from "../api"
 import { kubectl } from "../kubectl"
 import { LogEntry } from "../../../logger/log-entry"
 import { getDockerAuthVolume } from "../util"
-import { KubernetesProvider, ContainerBuildMode, KubernetesPluginContext } from "../config"
-import { PluginError, InternalError, RuntimeError, BuildError } from "../../../exceptions"
+import { KubernetesProvider, ContainerBuildMode, KubernetesPluginContext, DEFAULT_KANIKO_IMAGE } from "../config"
+import { PluginError, InternalError, RuntimeError, BuildError, ConfigurationError } from "../../../exceptions"
 import { PodRunner } from "../run"
 import { getRegistryHostname, getKubernetesSystemVariables } from "../init"
 import { normalizeLocalRsyncPath } from "../../../util/fs"
@@ -43,8 +43,6 @@ import { dedent } from "../../../util/string"
 import chalk = require("chalk")
 import { loadImageToMicrok8s, getMicrok8sImageStatus } from "../local/microk8s"
 import { RunResult } from "../../../types/plugin/base"
-
-const kanikoImage = "gcr.io/kaniko-project/executor:debug-v0.23.0"
 
 const registryPort = 5000
 
@@ -329,7 +327,7 @@ const remoteBuild: BuildHandler = async (params) => {
 
     const pushRes = await execInPod({ provider, log, args: pushArgs, timeout: 300, podName, containerName, stdout })
     buildLog += pushRes.stdout + pushRes.stderr
-  } else {
+  } else if (provider.config.buildMode === "kaniko") {
     // build with Kaniko
     const args = [
       "--context",
@@ -355,6 +353,8 @@ const remoteBuild: BuildHandler = async (params) => {
     if (kanikoBuildFailed(buildRes)) {
       throw new BuildError(`Failed building module ${chalk.bold(module.name)}:\n\n${buildLog}`, { buildLog })
     }
+  } else {
+    throw new ConfigurationError("Uknown build mode", { buildMode: provider.config.buildMode })
   }
 
   log.silly(buildLog)
@@ -471,6 +471,8 @@ async function runKaniko({ provider, namespace, log, module, args, outputStream 
       fi
     done
   `
+
+  const kanikoImage = provider.config.kaniko?.image || DEFAULT_KANIKO_IMAGE
 
   const runner = new PodRunner({
     api,

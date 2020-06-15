@@ -27,6 +27,7 @@ import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
 import { ArtifactSpec } from "../../config/validation"
 import { V1Toleration } from "@kubernetes/client-node"
 
+export const DEFAULT_KANIKO_IMAGE = "gcr.io/kaniko-project/executor:debug-v0.23.0"
 export interface ProviderSecretRef {
   name: string
   namespace: string
@@ -90,6 +91,9 @@ export interface KubernetesConfig extends ProviderConfig {
   buildMode: ContainerBuildMode
   clusterDocker?: {
     enableBuildKit?: boolean
+  }
+  kaniko?: {
+    image?: string
   }
   context: string
   defaultHostname?: string
@@ -327,6 +331,20 @@ export const kubernetesConfigBase = providerConfigBaseSchema().keys({
     })
     .default(() => {})
     .description("Configuration options for the `cluster-docker` build mode."),
+  kaniko: joi
+    .object()
+    .keys({
+      image: joi
+        .string()
+        .default(DEFAULT_KANIKO_IMAGE)
+        .description(
+          deline`
+            Change the kaniko image (repository/image:tag) to use when building in kaniko mode.
+          `
+        ),
+    })
+    .default(() => {})
+    .description("Configuration options for the `kaniko` build mode."),
   defaultHostname: joi
     .string()
     .description("A default hostname to use when no hostname is explicitly configured for a service.")
