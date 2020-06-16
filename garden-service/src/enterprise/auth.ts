@@ -17,21 +17,21 @@ import getPort = require("get-port")
 import { ClientAuthToken } from "../db/entities/client-auth-token"
 import { LogEntry } from "../logger/log-entry"
 import { got } from "../util/http"
-import { RuntimeError } from "../exceptions"
+import { RuntimeError, InternalError } from "../exceptions"
 
 export const makeAuthHeader = (clientAuthToken: string) => ({ "x-access-auth-token": clientAuthToken })
 
 // TODO: Add error handling and tests for all of this
 
 /**
- * Logs in to the platform if needed, and returns a valid client auth token.
+ * Logs in to Garden Enterprise if needed, and returns a valid client auth token.
  */
-export async function login(cloudDomain: string, log: LogEntry): Promise<string> {
+export async function login(enterpriseDomain: string, log: LogEntry): Promise<string> {
   const savedToken = await readAuthToken(log)
   // Ping platform with saved token (if it exists)
   if (savedToken) {
     log.debug("Local client auth token found, verifying it with platform...")
-    if (await checkClientAuthToken(savedToken, cloudDomain, log)) {
+    if (await checkClientAuthToken(savedToken, enterpriseDomain, log)) {
       log.debug("Local client token is valid, no need for login.")
       return savedToken
     }
@@ -42,8 +42,8 @@ export async function login(cloudDomain: string, log: LogEntry): Promise<string>
    * the redirect and finish running.
    */
   const events = new EventEmitter2()
-  const server = new AuthRedirectServer(cloudDomain, events, log)
-  log.debug(`Redirecting to platform login page...`)
+  const server = new AuthRedirectServer(enterpriseDomain, events, log)
+  log.debug(`Redirecting to Garden Enterprise login page...`)
   const newToken: string = await new Promise(async (resolve, _reject) => {
     // The server resolves the promise with the new auth token once it's received the redirect.
     await server.start()
@@ -53,6 +53,9 @@ export async function login(cloudDomain: string, log: LogEntry): Promise<string>
     })
   })
   await server.close()
+  if (!newToken) {
+    throw new InternalError(`Error: Did not receive an auth token after logging in.`, {})
+  }
   await saveAuthToken(newToken, log)
   return newToken
 }
@@ -60,12 +63,12 @@ export async function login(cloudDomain: string, log: LogEntry): Promise<string>
 /**
  * Checks with the backend whether the provided client auth token is valid.
  */
-export async function checkClientAuthToken(token: string, cloudDomain: string, log: LogEntry): Promise<boolean> {
+export async function checkClientAuthToken(token: string, enterpriseDomain: string, log: LogEntry): Promise<boolean> {
   let valid
   try {
     await got({
       method: "get",
-      url: `${cloudDomain}/token/verify`,
+      url: `${enterpriseDomain}/token/verify`,
       headers: makeAuthHeader(token),
     })
     valid = true
@@ -154,11 +157,11 @@ export class AuthRedirectServer {
   private log: LogEntry
   private server: Server
   private app: Koa
-  private cloudDomain: string
+  private enterpriseDomain: string
   private events: EventEmitter2
 
-  constructor(cloudDomain: string, events: EventEmitter2, log: LogEntry, public port?: number) {
-    this.cloudDomain = cloudDomain
+  constructor(enterpriseDomain: string, events: EventEmitter2, log: LogEntry, public port?: number) {
+    this.enterpriseDomain = enterpriseDomain
     this.events = events
     this.log = log.placeholder()
   }
@@ -175,7 +178,7 @@ export class AuthRedirectServer {
     await this.createApp()
 
     const query = { cliport: `${this.port}` }
-    await open(`${this.cloudDomain}/cli/login/?${qs.stringify(query)}`)
+    await open(`${this.enterpriseDomain}/cli/login/?${qs.stringify(query)}`)
   }
 
   async close() {

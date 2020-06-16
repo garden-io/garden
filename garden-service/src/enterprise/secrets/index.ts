@@ -6,14 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { getSecretsFromGardenCloud } from "./garden-cloud/get-secret"
+import { getSecretsFromGardenCloud } from "./garden/get-secret"
 import { LogEntry } from "../../logger/log-entry"
 import { StringMap } from "../../config/common"
 
 export interface GetSecretsParams {
   log: LogEntry
   projectId: string
-  cloudDomain: string
+  enterpriseDomain: string
   clientAuthToken: string
   environmentName: string
 }

@@ -10,7 +10,7 @@ import Bluebird from "bluebird"
 import { expect } from "chai"
 import { ClientAuthToken } from "../../../../src/db/entities/client-auth-token"
 import { makeTestGardenA } from "../../../helpers"
-import { saveAuthToken, readAuthToken, clearAuthToken } from "../../../../src/cloud/auth"
+import { saveAuthToken, readAuthToken, clearAuthToken } from "../../../../src/enterprise/auth"
 import { getLogger } from "../../../../src/logger/logger"
 
 async function cleanupAuthTokens() {

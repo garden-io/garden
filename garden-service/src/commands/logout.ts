@@ -9,16 +9,16 @@
 import { Command, CommandParams, CommandResult } from "./base"
 import { printHeader } from "../logger/util"
 import dedent = require("dedent")
-import { clearAuthToken } from "../cloud/auth"
+import { clearAuthToken } from "../enterprise/auth"
 
 export class LogOutCommand extends Command {
   name = "logout"
-  help = "Log out of Garden Cloud."
+  help = "Log out of Garden Enterprise."
   hidden = true
   noProject = true
 
   description = dedent`
-    Logs you out of Garden Cloud.
+    Logs you out of Garden Enterprise.
   `
 
   async action({ log, headerLog }: CommandParams): Promise<CommandResult> {

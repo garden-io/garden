@@ -11,11 +11,12 @@ import chalk from "chalk"
 import CircularJSON from "circular-json"
 import { LogNode, LogLevel } from "./log-node"
 import { LogEntry, LogEntryParams, EmojiName } from "./log-entry"
-import { isBuffer } from "util"
-import { deepMap } from "../util/util"
-import { padEnd } from "lodash"
+import { isBuffer, isNumber } from "util"
+import { deepMap, deepFilter, safeDumpYaml } from "../util/util"
+import { padEnd, isEmpty } from "lodash"
 import { dedent } from "../util/string"
 import hasAnsi from "has-ansi"
+import { GardenError } from "../exceptions"
 
 export interface Node {
   children: any[]
@@ -219,6 +220,27 @@ export function renderMessageWithDivider(prefix: string, msg: string, isError: b
   ${hasAnsi(msg) ? msg : color(msg)}
   ${color.bold(renderDivider())}
   `
+}
+
+export function formatGardenError(error: GardenError) {
+  const { detail, message, stack } = error
+  let out = stack || message
+
+  // We recursively filter out internal fields (i.e. having names starting with _).
+  const filteredDetail = deepFilter(detail, (_: any, key: string | number) => {
+    return !isNumber(key) && !key.startsWith("_")
+  })
+
+  if (!isEmpty(filteredDetail)) {
+    try {
+      const sanitized = sanitizeObject(filteredDetail)
+      const yamlDetail = safeDumpYaml(sanitized, { noRefs: true })
+      out += `\nError Details:\n${yamlDetail}`
+    } catch (err) {
+      out += `\nUnable to render error details:\n${err.message}`
+    }
+  }
+  return out
 }
 
 /**
