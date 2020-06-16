@@ -6,17 +6,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { cloneDeep, isEqual, take } from "lodash"
-import { joi, joiUserIdentifier, joiVariableName } from "./common"
+import { cloneDeep, isEqual, take, pickBy } from "lodash"
+import { joi, joiUserIdentifier, joiVariableName, joiIdentifier } from "./common"
 import { DEFAULT_API_VERSION } from "../constants"
 import { deline, dedent } from "../util/string"
 import { defaultContainerLimits, ServiceLimitSpec } from "../plugins/container/config"
 import { Garden } from "../garden"
-import { ProviderMap } from "./provider"
 import { WorkflowConfigContext } from "./config-context"
 import { resolveTemplateStrings } from "../template-string"
 import { validateWithPath } from "./validation"
 import { ConfigurationError } from "../exceptions"
+import { coreCommands } from "../commands/commands"
+import { Parameters } from "../commands/base"
 
 export interface WorkflowConfig {
   apiVersion: string
@@ -93,10 +94,8 @@ export const workflowConfigSchema = () =>
         )
         .meta({ enterprise: true }),
     })
-    .required()
     .unknown(true)
     .description("Configure a workflow for this project.")
-    .meta({ extendable: true })
 
 export interface WorkflowFileSpec {
   path: string
@@ -132,6 +131,7 @@ export const workflowFileSchema = () =>
     )
 
 export interface WorkflowStepSpec {
+  name?: string
   command?: string[]
   description?: string
   script?: string
@@ -143,23 +143,43 @@ export const workflowStepSchema = () => {
     .map((c) => c.prefix.join(", "))
     .sort()
     .map((prefix) => `\`[${prefix}]\``)
-    .join("\n\n")
+    .join("\n")
+
   return joi
     .object()
     .keys({
-      command: joi.array().items(joi.string()).description(dedent`
-        A Garden command this step should run.
+      name: joiIdentifier().description(dedent`
+        An identifier to assign to this step. If none is specified, this defaults to "step-<number of step>", where
+        <number of step> is the sequential number of the step (first step being number 1).
 
-        Supported commands:
-
-        ${cmdDescriptions}
+        This identifier is useful when referencing command outputs in following steps. For example, if you set this
+        to "my-step", following steps can reference the \${steps.my-step.outputs.*} key in the \`script\` or \`command\`
+        fields.
       `),
+      command: joi
+        .array()
+        .items(joi.string())
+        .description(
+          dedent`
+          A Garden command this step should run, followed by any required or optional arguments and flags.
+          Arguments and options for the commands may be templated, including references to previous steps, but for now
+          the commands themselves (as listed below) must be hard-coded.
+
+          Supported commands:
+
+          ${cmdDescriptions}
+          \n
+          `
+        )
+        .example(["run", "task", "my-task"]),
       description: joi.string().description("A description of the workflow step."),
       script: joi.string().description(
         deline`
         A bash script to run. Note that the host running the workflow must have bash installed and on path.
         It is considered to have run successfully if it returns an exit code of 0. Any other exit code signals an error,
         and the remainder of the workflow is aborted.
+
+        The script may include template strings, including references to previous steps.
         `
       ),
     })
@@ -227,12 +247,12 @@ export interface WorkflowConfigMap {
   [key: string]: WorkflowConfig
 }
 
-export function resolveWorkflowConfig(garden: Garden, resolvedProviders: ProviderMap, config: WorkflowConfig) {
+export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
   const log = garden.log
   const { variables, secrets } = garden
-  const context = new WorkflowConfigContext(garden, resolvedProviders, variables, secrets)
+  const context = new WorkflowConfigContext(garden, variables, secrets)
   log.silly(`Resolving template strings for workflow ${config.name}`)
-  let resolvedConfig = resolveTemplateStrings(cloneDeep(config), context)
+  let resolvedConfig = resolveTemplateStrings(cloneDeep(config), context, { allowPartial: true })
   log.silly(`Validating config for workflow ${config.name}`)
 
   resolvedConfig = <WorkflowConfig>validateWithPath({
@@ -249,26 +269,22 @@ export function resolveWorkflowConfig(garden: Garden, resolvedProviders: Provide
   return resolvedConfig
 }
 
-// Wrapping this in a function to avoid circular import issues.
+function filterParameters(params: Parameters) {
+  return pickBy(params, (arg) => !arg.cliOnly)
+}
+
+/**
+ * Get all commands whitelisted for workflows, and allowed args/opts.
+ */
 export function getStepCommandConfigs() {
-  // TODO: This is a bit ad-hoc, we should consider a different setup if we move away from sywac for the CLI.
-  const { DeployCommand, deployArgs, deployOpts } = require("../commands/deploy")
-  const { DeleteEnvironmentCommand, DeleteServiceCommand, deleteServiceArgs } = require("../commands/delete")
-  const { GetOutputsCommand } = require("../commands/get/get-outputs")
-  const { TestCommand, testArgs, testOpts } = require("../commands/test")
-  const { RunTaskCommand, runTaskArgs, runTaskOpts } = require("../commands/run/task")
-  const { PublishCommand, publishArgs, publishOpts } = require("../commands/publish")
-  const { RunTestCommand, runTestOpts, runTestArgs } = require("../commands/run/test")
-  return [
-    { prefix: ["deploy"], cmdClass: DeployCommand, args: deployArgs, opts: deployOpts },
-    { prefix: ["delete", "environment"], cmdClass: DeleteEnvironmentCommand, args: {}, opts: {} },
-    { prefix: ["delete", "service"], cmdClass: DeleteServiceCommand, args: deleteServiceArgs, opts: {} },
-    { prefix: ["get", "outputs"], cmdClass: GetOutputsCommand, args: {}, opts: {} },
-    { prefix: ["test"], cmdClass: TestCommand, args: testArgs, opts: testOpts },
-    { prefix: ["run", "task"], cmdClass: RunTaskCommand, args: runTaskArgs, opts: runTaskOpts },
-    { prefix: ["run", "test"], cmdClass: RunTestCommand, args: runTestArgs, opts: runTestOpts },
-    { prefix: ["publish"], cmdClass: PublishCommand, args: publishArgs, opts: publishOpts },
-  ]
+  const workflowCommands = coreCommands.flatMap((cmd) => [cmd, ...cmd.getSubCommands()]).filter((cmd) => cmd.workflows)
+
+  return workflowCommands.map((cmd) => ({
+    prefix: cmd.getPath(),
+    cmdClass: cmd.constructor,
+    args: filterParameters(cmd.arguments || {}),
+    opts: filterParameters(cmd.options || {}),
+  }))
 }
 
 /**

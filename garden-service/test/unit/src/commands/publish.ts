@@ -21,6 +21,7 @@ import {
 } from "../../../helpers"
 import { taskResultOutputs } from "../../../helpers"
 import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
+import { keyBy } from "lodash"
 
 const projectRootB = join(dataDir, "test-project-b")
 
@@ -81,6 +82,8 @@ describe("PublishCommand", () => {
       }),
     })
 
+    expect(command.outputsSchema().validate(result).error).to.be.undefined
+
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: false },
       "build.module-b": { fresh: false },
@@ -89,6 +92,43 @@ describe("PublishCommand", () => {
       "publish.module-c": { published: false },
       "stage-build.module-a": {},
       "stage-build.module-b": {},
+    })
+
+    const { published } = result!
+
+    for (const res of Object.values(published)) {
+      expect(res.durationMsec).to.gte(0)
+      res.durationMsec = 0
+    }
+
+    const graph = await garden.getConfigGraph(log)
+    const modules = keyBy(graph.getModules(), "name")
+
+    expect(published).to.eql({
+      "module-a": {
+        published: true,
+        aborted: false,
+        durationMsec: 0,
+        error: undefined,
+        success: true,
+        version: modules["module-a"].version.versionString,
+      },
+      "module-b": {
+        published: true,
+        aborted: false,
+        durationMsec: 0,
+        error: undefined,
+        success: true,
+        version: modules["module-b"].version.versionString,
+      },
+      "module-c": {
+        published: false,
+        aborted: false,
+        durationMsec: 0,
+        error: undefined,
+        success: true,
+        version: modules["module-c"].version.versionString,
+      },
     })
   })
 

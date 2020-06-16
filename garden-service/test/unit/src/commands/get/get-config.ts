@@ -30,6 +30,8 @@ describe("GetConfigCommand", () => {
       opts: withDefaultGlobalOpts({ "exclude-disabled": false }),
     })
 
+    expect(command.outputsSchema().validate(res.result).error).to.be.undefined
+
     const expectedModuleConfigs = sortBy(await garden.resolveModules({ log }), "name").map((m) => m._config)
 
     expect(res.result?.moduleConfigs).to.deep.equal(expectedModuleConfigs)

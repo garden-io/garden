@@ -12,7 +12,7 @@ import { BaseTask, TaskType, getServiceStatuses, getRunTaskResults } from "./bas
 import { Service, ServiceStatus } from "../types/service"
 import { Garden } from "../garden"
 import { ConfigGraph } from "../config-graph"
-import { TaskResults } from "../task-graph"
+import { GraphResults } from "../task-graph"
 import { prepareRuntimeContext } from "../runtime-context"
 import { getTaskVersion } from "./task"
 import Bluebird from "bluebird"
@@ -79,7 +79,7 @@ export class GetServiceStatusTask extends BaseTask {
     return `getting status for service '${this.service.name}' (from module '${this.service.module.name}')`
   }
 
-  async process(dependencyResults: TaskResults): Promise<ServiceStatus> {
+  async process(dependencyResults: GraphResults): Promise<ServiceStatus> {
     const log = this.log.placeholder()
 
     const hotReload = includes(this.hotReloadServiceNames, this.service.name)

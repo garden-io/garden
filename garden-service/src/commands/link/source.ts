@@ -16,6 +16,8 @@ import { addLinkedSources } from "../../util/ext-source-util"
 import { LinkedSource } from "../../config-store"
 import { CommandParams } from "../base"
 import { printHeader } from "../../logger/util"
+import { joiArray } from "../../config/common"
+import { linkedSourceSchema } from "../../config/project"
 
 const linkSourceArguments = {
   source: new StringParameter({
@@ -34,6 +36,10 @@ export class LinkSourceCommand extends Command<Args> {
   name = "source"
   help = "Link a remote source to a local directory."
   arguments = linkSourceArguments
+
+  workflows = true
+
+  outputsSchema = () => joiArray(linkedSourceSchema()).description("A list of all locally linked external sources.")
 
   description = dedent`
     After linking a remote source, Garden will read it from its local directory instead of

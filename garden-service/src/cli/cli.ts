@@ -24,7 +24,7 @@ import {
   StringParameter,
 } from "../commands/base"
 import { GardenError, PluginError, toGardenError } from "../exceptions"
-import { Garden, GardenOpts } from "../garden"
+import { Garden, GardenOpts, DummyGarden } from "../garden"
 import { getLogger, Logger, LoggerType, LOGGER_TYPES, getWriterInstance } from "../logger/logger"
 import { LogLevel } from "../logger/log-node"
 import { BasicTerminalWriter } from "../logger/writers/basic-terminal-writer"
@@ -67,18 +67,6 @@ const OUTPUT_RENDERERS = {
 }
 
 const GLOBAL_OPTIONS_GROUP_NAME = "Global options"
-
-/**
- * Dummy Garden class that doesn't scan for modules nor resolves providers.
- * Used by commands that have noProject=true. That is, commands that need
- * to run outside of valid Garden projects.
- */
-export class DummyGarden extends Garden {
-  async resolveProviders() {
-    return {}
-  }
-  async scanAndAddConfigs() {}
-}
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts = {}) {
   const environments = gardenOpts.environmentName

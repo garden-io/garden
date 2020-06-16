@@ -17,9 +17,10 @@ import {
   handleProcessResults,
   StringsParameter,
   PrepareParams,
+  processCommandResultSchema,
+  ProcessCommandResult,
 } from "./base"
 import { getModuleWatchTasks } from "../tasks/helpers"
-import { TaskResults } from "../task-graph"
 import { processModules } from "../process"
 import { printHeader } from "../logger/util"
 import { BaseTask } from "../tasks/base"
@@ -61,7 +62,9 @@ type Opts = typeof deployOpts
 export class DeployCommand extends Command<Args, Opts> {
   name = "deploy"
   help = "Deploy service(s) to your environment."
+
   protected = true
+  workflows = true
 
   description = dedent`
     Deploys all or specified services, taking into account service dependency order.
@@ -85,6 +88,8 @@ export class DeployCommand extends Command<Args, Opts> {
   arguments = deployArgs
   options = deployOpts
 
+  outputsSchema = () => processCommandResultSchema()
+
   private server: GardenServer
   private isPersistent = (opts) => !!opts.watch || !!opts["hot-reload"]
 
@@ -106,7 +111,7 @@ export class DeployCommand extends Command<Args, Opts> {
     footerLog,
     args,
     opts,
-  }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
+  }: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
     if (!this.isPersistent(opts)) {
       printHeader(headerLog, "Deploy", "rocket")
     }
@@ -129,7 +134,7 @@ export class DeployCommand extends Command<Args, Opts> {
 
     if (services.length === 0) {
       log.error({ msg: "No services to deploy. Aborting." })
-      return { result: {} }
+      return { result: { builds: {}, deployments: {}, tests: {}, graphResults: {} } }
     }
 
     const modules = Array.from(new Set(services.map((s) => s.module)))
@@ -137,11 +142,11 @@ export class DeployCommand extends Command<Args, Opts> {
     let watch: boolean
 
     if (hotReloadServiceNames.length > 0) {
-      await initGraph.getServices({ names: hotReloadServiceNames }) // validate the existence of these services
+      initGraph.getServices({ names: hotReloadServiceNames }) // validate the existence of these services
       const errMsg = await validateHotReloadServiceNames(hotReloadServiceNames, initGraph)
       if (errMsg) {
         log.error({ msg: errMsg })
-        return { result: {} }
+        return { result: { builds: {}, deployments: {}, tests: {}, graphResults: {} } }
       }
       watch = true
     } else {

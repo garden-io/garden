@@ -12,7 +12,7 @@ import { keyBy, flatten } from "lodash"
 
 import { Module } from "./types/module"
 import { BaseTask } from "./tasks/base"
-import { TaskResults } from "./task-graph"
+import { GraphResults } from "./task-graph"
 import { isModuleLinked } from "./util/ext-source-util"
 import { Garden } from "./garden"
 import { LogEntry } from "./logger/log-entry"
@@ -40,7 +40,7 @@ export interface ProcessModulesParams extends ProcessParams {
 }
 
 export interface ProcessResults {
-  taskResults: TaskResults
+  taskResults: GraphResults
   restartRequired?: boolean
 }
 

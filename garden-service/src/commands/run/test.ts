@@ -13,12 +13,24 @@ import { printHeader } from "../../logger/util"
 import { prepareRuntimeContext } from "../../runtime-context"
 import { getRunTaskResults, getServiceStatuses } from "../../tasks/base"
 import { TestTask } from "../../tasks/test"
-import { RunResult } from "../../types/plugin/base"
 import { testFromConfig } from "../../types/test"
 import { dedent, deline } from "../../util/string"
 import { findByName, getNames } from "../../util/util"
-import { BooleanParameter, Command, CommandParams, CommandResult, handleRunResult, StringParameter } from "../base"
+import {
+  BooleanParameter,
+  Command,
+  CommandParams,
+  CommandResult,
+  handleRunResult,
+  StringParameter,
+  resultMetadataKeys,
+  graphResultsSchema,
+  ProcessResultMetadata,
+} from "../base"
 import { printRuntimeContext } from "./run"
+import { joi } from "../../config/common"
+import { testResultSchema, TestResult } from "../../types/plugin/module/getTestResult"
+import { GraphResults } from "../../task-graph"
 
 export const runTestArgs = {
   module: new StringParameter({
@@ -51,23 +63,44 @@ export const runTestOpts = {
 type Args = typeof runTestArgs
 type Opts = typeof runTestOpts
 
+interface RunTestOutput {
+  result: TestResult & ProcessResultMetadata
+  graphResults: GraphResults
+}
+
 export class RunTestCommand extends Command<Args, Opts> {
   name = "test"
   help = "Run the specified module test."
+
+  workflows = true
 
   description = dedent`
     This can be useful for debugging tests, particularly integration/end-to-end tests.
 
     Examples:
 
-        garden run test my-module integ                     # run the test named 'integ' in my-module
-        garden run test my-module integ --interactive=false # do not attach to the test run, just output results when completed
+        garden run test my-module integ                      # run the test named 'integ' in my-module
+        garden run test my-module integ --interactive=false  # do not attach to the test run, just output results when completed
   `
 
   arguments = runTestArgs
   options = runTestOpts
 
-  async action({ garden, log, headerLog, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
+  outputsSchema = () =>
+    joi.object().keys({
+      result: testResultSchema()
+        .keys(resultMetadataKeys())
+        .description("The result of the test."),
+      graphResults: graphResultsSchema(),
+    })
+
+  async action({
+    garden,
+    log,
+    headerLog,
+    args,
+    opts,
+  }: CommandParams<Args, Opts>): Promise<CommandResult<RunTestOutput>> {
     const moduleName = args.module
     const testName = args.test
 
@@ -145,6 +178,6 @@ export class RunTestCommand extends Command<Args, Opts> {
       testVersion: testTask.version,
     })
 
-    return handleRunResult({ log, actionDescription: "test", result, interactive })
+    return handleRunResult({ log, actionDescription: "test", result, interactive, graphResults: dependencyResults })
   }
 }

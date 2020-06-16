@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { LoggerType } from "../logger/logger"
-import { ExecInServiceResult } from "../types/plugin/service/execInService"
+import { ExecInServiceResult, execInServiceResultSchema } from "../types/plugin/service/execInService"
 import { printHeader } from "../logger/util"
 import { Command, CommandResult, CommandParams, StringParameter, BooleanParameter, StringsParameter } from "./base"
 import dedent = require("dedent")
@@ -41,6 +41,8 @@ export class ExecCommand extends Command<Args> {
   name = "exec"
   help = "Executes a command (such as an interactive shell) in a running service."
 
+  workflows = true
+
   description = dedent`
     Finds an active container for a deployed service and executes the given command within the container.
     Supports interactive shells.
@@ -54,6 +56,8 @@ export class ExecCommand extends Command<Args> {
 
   arguments = execArgs
   options = execOpts
+
+  outputsSchema = () => execInServiceResultSchema()
 
   getLoggerType(): LoggerType {
     return "basic"

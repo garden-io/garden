@@ -16,7 +16,6 @@ import execa = require("execa")
 
 import { containerModuleSpecSchema, containerTestSchema, containerTaskSchema } from "../src/plugins/container/config"
 import { testExecModule, buildExecModule, execBuildSpecSchema } from "../src/plugins/exec"
-import { TaskResults } from "../src/task-graph"
 import { joiArray, joi, StringMap, DeepPrimitiveMap } from "../src/config/common"
 import {
   PluginActionHandlers,
@@ -44,7 +43,7 @@ import { RunResult } from "../src/types/plugin/base"
 import { ExternalSourceType, getRemoteSourceRelPath, hashRepoUrl } from "../src/util/ext-source-util"
 import { ConfigureProviderParams } from "../src/types/plugin/provider/configureProvider"
 import { ActionRouter } from "../src/actions"
-import { ParameterValues } from "../src/commands/base"
+import { ParameterValues, ProcessCommandResult } from "../src/commands/base"
 import stripAnsi from "strip-ansi"
 import { RunTaskParams, RunTaskResult } from "../src/types/plugin/task/runTask"
 import { SuiteFunction, TestFunction } from "mocha"
@@ -480,8 +479,8 @@ export function expectError(fn: Function, typeOrCallback?: string | ((err: any) 
   return handleNonError(false)
 }
 
-export function taskResultOutputs(results: TaskResults) {
-  return mapValues(results, (r) => r && r.output)
+export function taskResultOutputs(results: ProcessCommandResult) {
+  return mapValues(results.graphResults, (r) => r && r.output)
 }
 
 export const cleanProject = async (gardenDirPath: string) => {

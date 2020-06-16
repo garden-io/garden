@@ -14,6 +14,7 @@ import { Garden } from "../../../../../src/garden"
 import td from "testdouble"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import stripAnsi from "strip-ansi"
+import { omit } from "lodash"
 
 describe("RunServiceCommand", () => {
   // TODO: test optional flags
@@ -37,7 +38,8 @@ describe("RunServiceCommand", () => {
       opts: withDefaultGlobalOpts({ "force": false, "force-build": false }),
     })
 
-    const expected: RunResult = {
+    const expected = {
+      aborted: false,
       moduleName: "module-a",
       command: ["service-a"],
       completedAt: testNow,
@@ -47,7 +49,9 @@ describe("RunServiceCommand", () => {
       success: true,
     }
 
-    expect(result).to.eql(expected)
+    expect(result!.result.durationMsec).to.gte(0)
+
+    expect(omit(result!.result, ["durationMsec"])).to.eql(expected)
   })
 
   it("should throw if the service is disabled", async () => {

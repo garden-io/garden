@@ -11,7 +11,7 @@ import { BaseTask, TaskType } from "./base"
 import { Service, ServiceStatus } from "../types/service"
 import { Garden } from "../garden"
 import { ConfigGraph } from "../config-graph"
-import { TaskResults, TaskResult } from "../task-graph"
+import { GraphResults, GraphResult } from "../task-graph"
 import { StageBuildTask } from "./stage-build"
 
 export interface DeleteServiceTaskParams {
@@ -88,8 +88,8 @@ export class DeleteServiceTask extends BaseTask {
   }
 }
 
-export function deletedServiceStatuses(results: TaskResults): { [serviceName: string]: ServiceStatus } {
-  const deleted = <TaskResult[]>Object.values(results).filter((r) => r && r.type === "delete-service")
+export function deletedServiceStatuses(results: GraphResults): { [serviceName: string]: ServiceStatus } {
+  const deleted = <GraphResult[]>Object.values(results).filter((r) => r && r.type === "delete-service")
   const statuses = {}
 
   for (const res of deleted) {
