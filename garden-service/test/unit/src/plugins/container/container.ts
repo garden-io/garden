@@ -28,6 +28,7 @@ import {
   minDockerVersion,
   DEFAULT_BUILD_TIMEOUT,
 } from "../../../../../src/plugins/container/helpers"
+import { getDockerBuildFlags } from "../../../../../src/plugins/container/build"
 
 describe("plugins.container", () => {
   const projectRoot = resolve(dataDir, "test-project-container")
@@ -986,6 +987,43 @@ describe("plugins.container", () => {
           expect(err.message).to.equal("Docker server needs to be version 17.07.0 or newer (got 17.06)")
         }
       )
+    })
+  })
+
+  describe("getDockerBuildFlags", () => {
+    it("should include extraFlags", async () => {
+      const module = await getTestModule({
+        allowPublish: false,
+        build: {
+          dependencies: [],
+        },
+        disabled: false,
+        apiVersion: "garden.io/v0",
+        name: "module-a",
+        outputs: {},
+        path: modulePath,
+        type: "container",
+
+        spec: {
+          build: {
+            dependencies: [],
+            timeout: DEFAULT_BUILD_TIMEOUT,
+          },
+          buildArgs: {},
+          extraFlags: ["--cache-from", "some-image:latest"],
+          services: [],
+          tasks: [],
+          tests: [],
+        },
+
+        serviceConfigs: [],
+        taskConfigs: [],
+        testConfigs: [],
+      })
+
+      const args = getDockerBuildFlags(module)
+
+      expect(args).to.eql(["--cache-from", "some-image:latest"])
     })
   })
 })
