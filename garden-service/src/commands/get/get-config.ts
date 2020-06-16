@@ -8,6 +8,11 @@
 
 import { Command, CommandResult, CommandParams, BooleanParameter } from "../base"
 import { ConfigDump } from "../../garden"
+import { environmentNameSchema } from "../../config/project"
+import { joiIdentifier, joiIdentifierMap, joiVariables, joiArray, joi } from "../../config/common"
+import { providerSchemaWithoutTools } from "../../config/provider"
+import { moduleConfigSchema } from "../../config/module"
+import { workflowConfigSchema } from "../../config/workflow"
 
 export const getConfigOptions = {
   "exclude-disabled": new BooleanParameter({
@@ -20,6 +25,26 @@ type Opts = typeof getConfigOptions
 export class GetConfigCommand extends Command<{}, Opts> {
   name = "config"
   help = "Outputs the fully resolved configuration for this project and environment."
+
+  workflows = true
+
+  outputsSchema = () =>
+    joi.object().keys({
+      environmentName: environmentNameSchema().required(),
+      namespace: joiIdentifier().description("The namespace of the current environment (if applicable)."),
+      providers: joiArray(providerSchemaWithoutTools()).description(
+        "A list of all configured providers in the environment."
+      ),
+      variables: joiVariables().description("All configured variables in the environment."),
+      moduleConfigs: joiArray(moduleConfigSchema()).description("All module configs in the project."),
+      workflowConfigs: joi
+        .array()
+        .items(workflowConfigSchema())
+        .description("All workflow configs in the project."),
+      projectRoot: joi.string().description("The local path to the project root."),
+      projectId: joi.string().description("The project ID (Garden Enterprise only)."),
+    })
+
   options = getConfigOptions
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<ConfigDump>> {

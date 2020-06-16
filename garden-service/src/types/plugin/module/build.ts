@@ -21,16 +21,8 @@ export interface BuildResult {
   details?: any
 }
 
-export const build = () => ({
-  description: dedent`
-    Build the current version of a module. This must wait until the build is complete before returning.
-
-    Called ahead of a number of actions, including \`deployService\` and \`publishModule\`.
-  `,
-
-  paramsSchema: moduleActionParamsSchema(),
-
-  resultSchema: joi.object().keys({
+export const buildResultSchema = () =>
+  joi.object().keys({
     buildLog: joi
       .string()
       .allow("")
@@ -41,5 +33,15 @@ export const build = () => ({
       .description("Set to true if the build was performed, false if it was already built, or fetched from a registry"),
     version: joi.string().description("The version that was built."),
     details: joi.object().description("Additional information, specific to the provider."),
-  }),
+  })
+
+export const build = () => ({
+  description: dedent`
+    Build the current version of a module. This must wait until the build is complete before returning.
+
+    Called ahead of a number of actions, including \`deployService\` and \`publishModule\`.
+  `,
+
+  paramsSchema: moduleActionParamsSchema(),
+  resultSchema: buildResultSchema(),
 })

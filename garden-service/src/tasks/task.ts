@@ -18,7 +18,7 @@ import { ConfigGraph } from "../config-graph"
 import { ModuleVersion } from "../vcs/vcs"
 import { BuildTask } from "./build"
 import { RunTaskResult } from "../types/plugin/task/runTask"
-import { TaskResults } from "../task-graph"
+import { GraphResults } from "../task-graph"
 import { GetTaskResultTask } from "./get-task-result"
 import { Profile } from "../util/profiling"
 
@@ -112,7 +112,7 @@ export class TaskTask extends BaseTask {
     return `running task ${this.task.name} in module ${this.task.module.name}`
   }
 
-  async process(dependencyResults: TaskResults) {
+  async process(dependencyResults: GraphResults) {
     const task = this.task
 
     if (!this.force && task.config.cacheResult) {

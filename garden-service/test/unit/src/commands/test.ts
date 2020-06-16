@@ -32,6 +32,10 @@ describe("TestCommand", () => {
       }),
     })
 
+    console.log(result)
+
+    expect(command.outputsSchema().validate(result).error).to.be.undefined
+
     expect(
       isSubset(taskResultOutputs(result!), {
         "build.module-a": {
@@ -57,6 +61,89 @@ describe("TestCommand", () => {
         },
       })
     ).to.be.true
+
+    const { tests } = result!
+
+    const dummyDate = new Date()
+
+    for (const res of Object.values(tests)) {
+      expect(res.durationMsec).to.gte(0)
+      res.durationMsec = 0
+
+      expect(res.startedAt).to.be.a("Date")
+      res.startedAt = dummyDate
+
+      expect(res.completedAt).to.be.a("Date")
+      res.completedAt = dummyDate
+    }
+
+    expect(tests).to.eql({
+      "module-a.unit": {
+        moduleName: "module-a",
+        command: ["echo", "OK"],
+        testName: "unit",
+        version: "v-9b30bc93e5",
+        success: true,
+        startedAt: dummyDate,
+        completedAt: dummyDate,
+        log: "OK",
+        aborted: false,
+        durationMsec: 0,
+        error: undefined,
+      },
+      "module-a.integration": {
+        moduleName: "module-a",
+        command: ["echo", "OK"],
+        testName: "integration",
+        version: "v-9b30bc93e5",
+        success: true,
+        startedAt: dummyDate,
+        completedAt: dummyDate,
+        log: "OK",
+        aborted: false,
+        durationMsec: 0,
+        error: undefined,
+      },
+      "module-b.unit": {
+        moduleName: "module-b",
+        command: ["echo", "OK"],
+        testName: "unit",
+        version: "v-4ce023171a",
+        success: true,
+        startedAt: dummyDate,
+        completedAt: dummyDate,
+        log: "OK",
+        aborted: false,
+        durationMsec: 0,
+        error: undefined,
+      },
+      "module-c.unit": {
+        moduleName: "module-c",
+        command: ["echo", "OK"],
+        testName: "unit",
+        version: "v-f4716c5e03",
+        success: true,
+        startedAt: dummyDate,
+        completedAt: dummyDate,
+        log: "OK",
+        aborted: false,
+        durationMsec: 0,
+        error: undefined,
+      },
+      "module-c.integ": {
+        moduleName: "module-c",
+        command: ["echo", "OK"],
+        testName: "integ",
+        version: "v-f4716c5e03",
+        success: true,
+        startedAt: dummyDate,
+        completedAt: dummyDate,
+        log: "OK",
+        aborted: false,
+        durationMsec: 0,
+        error: undefined,
+      },
+    })
   })
 
   it("should optionally test single module", async () => {

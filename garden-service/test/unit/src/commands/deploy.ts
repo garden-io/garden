@@ -128,9 +128,11 @@ describe("DeployCommand", () => {
       }),
     })
 
-    if (errors) {
+    if (errors?.length) {
       throw errors[0]
     }
+
+    expect(command.outputsSchema().validate(result).error).to.be.undefined
 
     expect(Object.keys(taskResultOutputs(result!)).sort()).to.eql([
       "build.module-a",
@@ -152,6 +154,56 @@ describe("DeployCommand", () => {
       "task.task-a",
       "task.task-c",
     ])
+
+    const { deployments } = result!
+
+    for (const res of Object.values(deployments)) {
+      expect(res.durationMsec).to.gte(0)
+      res.durationMsec = 0
+    }
+
+    expect(deployments).to.eql({
+      "service-c": {
+        version: "1",
+        state: "ready",
+        detail: {},
+        forwardablePorts: [],
+        aborted: false,
+        durationMsec: 0,
+        error: undefined,
+        success: true,
+      },
+      "service-d": {
+        version: "1",
+        state: "ready",
+        detail: {},
+        forwardablePorts: [],
+        aborted: false,
+        durationMsec: 0,
+        error: undefined,
+        success: true,
+      },
+      "service-a": {
+        version: "1",
+        state: "ready",
+        detail: {},
+        forwardablePorts: [],
+        aborted: false,
+        durationMsec: 0,
+        error: undefined,
+        success: true,
+      },
+      "service-b": {
+        version: "1",
+        state: "ready",
+        detail: {},
+        forwardablePorts: [],
+        aborted: false,
+        durationMsec: 0,
+        error: undefined,
+        success: true,
+      },
+    })
   })
 
   it("should optionally build and deploy single service and its dependencies", async () => {

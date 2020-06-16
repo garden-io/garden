@@ -11,13 +11,14 @@ import dedent = require("dedent")
 import chalk from "chalk"
 
 import { Command, StringsParameter, CommandResult, CommandParams, ParameterValues } from "../base"
-import { SourceConfig } from "../../config/project"
+import { SourceConfig, moduleSourceSchema } from "../../config/project"
 import { ParameterError } from "../../exceptions"
 import { pruneRemoteSources } from "./helpers"
 import { hasRemoteSource } from "../../util/ext-source-util"
 import { printHeader } from "../../logger/util"
 import { Garden } from "../../garden"
 import { LogEntry } from "../../logger/log-entry"
+import { joiArray } from "../../config/common"
 
 const updateRemoteModulesArguments = {
   modules: new StringsParameter({
@@ -31,6 +32,11 @@ export class UpdateRemoteModulesCommand extends Command<Args> {
   name = "modules"
   help = "Update remote modules."
   arguments = updateRemoteModulesArguments
+
+  workflows = true
+
+  outputsSchema = () =>
+    joiArray(moduleSourceSchema()).description("A list of all external module sources in the project.")
 
   description = dedent`
     Updates remote modules, i.e. modules that have a \`repositoryUrl\` field
@@ -61,9 +67,10 @@ export async function updateRemoteModules({
   const graph = await garden.getConfigGraph(log)
   const modules = graph.getModules({ names: moduleNames })
 
-  const moduleSources = <SourceConfig[]>(
-    modules.filter(hasRemoteSource).filter((src) => (moduleNames ? moduleNames.includes(src.name) : true))
-  )
+  const moduleSources = <SourceConfig[]>modules
+    .filter(hasRemoteSource)
+    .filter((src) => (moduleNames ? moduleNames.includes(src.name) : true))
+    .map((m) => ({ name: m.name, repositoryUrl: m.repositoryUrl }))
 
   const names = moduleSources.map((src) => src.name)
 

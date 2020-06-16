@@ -24,19 +24,8 @@ export interface ExecInServiceResult {
   stderr?: string
 }
 
-export const execInService = () => ({
-  description: dedent`
-    Execute the specified command next to a running service, e.g. in a service container.
-
-    Called by the \`garden exec\` command.
-  `,
-
-  paramsSchema: serviceActionParamsSchema().keys({
-    command: joiArray(joi.string()).description("The command to run alongside the service."),
-    interactive: joi.boolean(),
-  }),
-
-  resultSchema: joi.object().keys({
+export const execInServiceResultSchema = () =>
+  joi.object().keys({
     code: joi
       .number()
       .required()
@@ -54,5 +43,19 @@ export const execInService = () => ({
       .string()
       .allow("")
       .description("The stderr output of the executed command (if available)."),
+  })
+
+export const execInService = () => ({
+  description: dedent`
+    Execute the specified command next to a running service, e.g. in a service container.
+
+    Called by the \`garden exec\` command.
+  `,
+
+  paramsSchema: serviceActionParamsSchema().keys({
+    command: joiArray(joi.string()).description("The command to run alongside the service."),
+    interactive: joi.boolean(),
   }),
+
+  resultSchema: execInServiceResultSchema(),
 })

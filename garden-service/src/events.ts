@@ -8,7 +8,7 @@
 
 import { EventEmitter2 } from "eventemitter2"
 import { ModuleVersion } from "./vcs/vcs"
-import { TaskResult } from "./task-graph"
+import { GraphResult } from "./task-graph"
 import { LogEntryEvent } from "./enterprise/buffered-event-stream"
 
 /**
@@ -102,8 +102,8 @@ export interface Events extends LoggerEvents {
     name: string
     version: ModuleVersion
   }
-  taskComplete: TaskResult
-  taskError: TaskResult
+  taskComplete: GraphResult
+  taskError: GraphResult
   taskCancelled: {
     cancelledAt: Date
     batchId: string

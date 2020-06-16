@@ -9,11 +9,13 @@
 import { Command, CommandResult, CommandParams, StringParameter, StringsParameter } from "./base"
 import { NotFoundError } from "../exceptions"
 import dedent from "dedent"
-import { ServiceStatusMap } from "../types/service"
+import { ServiceStatusMap, serviceStatusSchema } from "../types/service"
 import { printHeader } from "../logger/util"
 import { DeleteSecretResult } from "../types/plugin/provider/deleteSecret"
 import { EnvironmentStatusMap } from "../types/plugin/provider/getEnvironmentStatus"
 import { DeleteServiceTask, deletedServiceStatuses } from "../tasks/delete-service"
+import { joi, joiIdentifierMap } from "../config/common"
+import { environmentStatusSchema } from "../config/status"
 
 export class DeleteCommand extends Command {
   name = "delete"
@@ -72,15 +74,17 @@ export class DeleteSecretCommand extends Command<typeof deleteSecretArgs> {
 }
 
 interface DeleteEnvironmentResult {
+  providerStatuses: EnvironmentStatusMap
   serviceStatuses: ServiceStatusMap
-  environmentStatuses: EnvironmentStatusMap
 }
 
 export class DeleteEnvironmentCommand extends Command {
   name = "environment"
   alias = "env"
   help = "Deletes a running environment."
+
   protected = true
+  workflows = true
 
   description = dedent`
     This will delete all services in the specified environment, and trigger providers to clear up any other resources
@@ -89,6 +93,16 @@ export class DeleteEnvironmentCommand extends Command {
     This can be useful if you find the environment to be in an inconsistent state, or need/want to free up
     resources.
   `
+
+  outputsSchema = () =>
+    joi.object().keys({
+      providerStatuses: joiIdentifierMap(environmentStatusSchema()).description(
+        "The status of each provider in the environment."
+      ),
+      serviceStatuses: joiIdentifierMap(serviceStatusSchema()).description(
+        "The status of each service in the environment."
+      ),
+    })
 
   async action({ garden, log, headerLog }: CommandParams): Promise<CommandResult<DeleteEnvironmentResult>> {
     printHeader(headerLog, `Deleting ${garden.environmentName} environment`, "skull_and_crossbones")
@@ -99,9 +113,9 @@ export class DeleteEnvironmentCommand extends Command {
 
     log.info("")
 
-    const environmentStatuses = await actions.cleanupAll(log)
+    const providerStatuses = await actions.cleanupAll(log)
 
-    return { result: { serviceStatuses, environmentStatuses } }
+    return { result: { serviceStatuses, providerStatuses } }
   }
 }
 
@@ -118,7 +132,9 @@ export class DeleteServiceCommand extends Command {
   alias = "services"
   help = "Deletes running services."
   arguments = deleteServiceArgs
+
   protected = true
+  workflows = true
 
   description = dedent`
     Deletes (i.e. un-deploys) the specified services. Note that this command does not take into account any
@@ -129,6 +145,9 @@ export class DeleteServiceCommand extends Command {
 
         garden delete service my-service # deletes my-service
   `
+
+  outputsSchema = () =>
+    joiIdentifierMap(serviceStatusSchema()).description("A map of statuses for all the deleted services.")
 
   async action({ garden, log, headerLog, args }: CommandParams<DeleteServiceArgs>): Promise<CommandResult> {
     const graph = await garden.getConfigGraph(log)

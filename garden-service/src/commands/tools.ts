@@ -10,7 +10,7 @@ import chalk from "chalk"
 import { max, omit, sortBy } from "lodash"
 import { dedent, renderTable, tablePresets } from "../util/string"
 import { LogEntry } from "../logger/log-entry"
-import { Garden } from "../garden"
+import { Garden, DummyGarden } from "../garden"
 import { Command, CommandParams, StringOption, BooleanParameter } from "./base"
 import { getTerminalWidth } from "../logger/util"
 import { LoggerType } from "../logger/logger"
@@ -18,7 +18,6 @@ import { ParameterError } from "../exceptions"
 import { uniqByName, exec } from "../util/util"
 import { PluginTool } from "../util/ext-tools"
 import { findProjectConfig } from "../config/base"
-import { DummyGarden } from "../cli/cli"
 
 const toolsArgs = {
   tool: new StringOption({

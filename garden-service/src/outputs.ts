@@ -12,7 +12,7 @@ import { OutputConfigContext } from "./config/config-context"
 import { emptyRuntimeContext, prepareRuntimeContext } from "./runtime-context"
 import { DeployTask } from "./tasks/deploy"
 import { TaskTask } from "./tasks/task"
-import { TaskResults } from "./task-graph"
+import { GraphResults } from "./task-graph"
 import { getServiceStatuses, getRunTaskResults } from "./tasks/base"
 import { LogEntry } from "./logger/log-entry"
 import { OutputSpec } from "./config/project"
@@ -105,7 +105,7 @@ export async function resolveProjectOutputs(garden: Garden, log: LogEntry): Prom
     )),
   ]
 
-  const dependencyResults: TaskResults = graphTasks.length > 0 ? await garden.processTasks(graphTasks) : {}
+  const dependencyResults: GraphResults = graphTasks.length > 0 ? await garden.processTasks(graphTasks) : {}
 
   const serviceStatuses = getServiceStatuses(dependencyResults)
   const taskResults = getRunTaskResults(dependencyResults)

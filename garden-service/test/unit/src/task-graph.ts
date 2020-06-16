@@ -10,7 +10,7 @@ import Bluebird from "bluebird"
 import { join } from "path"
 import { expect } from "chai"
 import { BaseTask, TaskType } from "../../../src/tasks/base"
-import { TaskGraph, TaskResult, TaskResults } from "../../../src/task-graph"
+import { TaskGraph, GraphResult, GraphResults } from "../../../src/task-graph"
 import { makeTestGarden, freezeTime, dataDir, expectError, TestGarden } from "../../helpers"
 import { Garden } from "../../../src/garden"
 import { deepFilter, defer, sleep, uuidv4 } from "../../../src/util/util"
@@ -79,7 +79,7 @@ export class TestTask extends BaseTask {
     return this.getId()
   }
 
-  async process(dependencyResults: TaskResults) {
+  async process(dependencyResults: GraphResults) {
     const result = { result: "result-" + this.getId(), dependencyResults }
 
     if (this.callback) {
@@ -109,12 +109,13 @@ describe("task-graph", () => {
       const results = await graph.process([task])
       const generatedBatchId = results?.a?.batchId || uuidv4()
 
-      const expected: TaskResults = {
+      const expected: GraphResults = {
         a: {
           type: "test",
           description: "a",
           key: "a",
           name: "a",
+          startedAt: now,
           completedAt: now,
           batchId: generatedBatchId,
           output: {
@@ -122,6 +123,7 @@ describe("task-graph", () => {
             dependencyResults: {},
           },
           dependencyResults: {},
+          version: task.version.versionString,
         },
       }
 
@@ -201,6 +203,7 @@ describe("task-graph", () => {
         {
           name: "taskComplete",
           payload: {
+            startedAt: now,
             completedAt: now,
             dependencyResults: {},
             batchId: generatedBatchId,
@@ -209,6 +212,7 @@ describe("task-graph", () => {
             type: "test",
             name: "a",
             output: { dependencyResults: {}, result: "result-a" },
+            version: task.version.versionString,
           },
         },
         { name: "taskGraphComplete", payload: { completedAt: now } },
@@ -430,11 +434,12 @@ describe("task-graph", () => {
 
       await graph.process([repeatTaskBforced, repeatTaskAforced, repeatTaskC])
 
-      const resultA: TaskResult = {
+      const resultA: GraphResult = {
         type: "test",
         description: "a.a1",
         key: "a",
         name: "a",
+        startedAt: now,
         completedAt: now,
         batchId: generatedBatchId,
         output: {
@@ -442,12 +447,14 @@ describe("task-graph", () => {
           dependencyResults: {},
         },
         dependencyResults: {},
+        version: taskA.version.versionString,
       }
-      const resultB: TaskResult = {
+      const resultB: GraphResult = {
         type: "test",
         key: "b",
         name: "b",
         description: "b.b1",
+        startedAt: now,
         completedAt: now,
         batchId: generatedBatchId,
         output: {
@@ -455,12 +462,14 @@ describe("task-graph", () => {
           dependencyResults: { a: resultA },
         },
         dependencyResults: { a: resultA },
+        version: taskB.version.versionString,
       }
-      const resultC: TaskResult = {
+      const resultC: GraphResult = {
         type: "test",
         description: "c.c1",
         key: "c",
         name: "c",
+        startedAt: now,
         completedAt: now,
         batchId: generatedBatchId,
         output: {
@@ -468,9 +477,10 @@ describe("task-graph", () => {
           dependencyResults: { b: resultB },
         },
         dependencyResults: { b: resultB },
+        version: taskC.version.versionString,
       }
 
-      const expected: TaskResults = {
+      const expected: GraphResults = {
         a: resultA,
         b: resultB,
         c: resultC,
@@ -479,6 +489,7 @@ describe("task-graph", () => {
           description: "d.d1",
           key: "d",
           name: "d",
+          startedAt: now,
           completedAt: now,
           batchId: generatedBatchId,
           output: {
@@ -492,6 +503,7 @@ describe("task-graph", () => {
             b: resultB,
             c: resultC,
           },
+          version: taskD.version.versionString,
         },
       }
 
@@ -654,11 +666,12 @@ describe("task-graph", () => {
 
       const generatedBatchId = results?.a?.batchId || uuidv4()
 
-      const resultA: TaskResult = {
+      const resultA: GraphResult = {
         type: "test",
         description: "a",
         key: "a",
         name: "a",
+        startedAt: now,
         completedAt: now,
         batchId: generatedBatchId,
         output: {
@@ -666,6 +679,7 @@ describe("task-graph", () => {
           dependencyResults: {},
         },
         dependencyResults: {},
+        version: taskA.version.versionString,
       }
 
       const filteredKeys: Set<string | number> = new Set([

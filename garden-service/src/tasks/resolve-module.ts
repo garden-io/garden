@@ -12,7 +12,7 @@ import { BaseTask, TaskType } from "../tasks/base"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { ModuleConfig } from "../config/module"
-import { TaskResults } from "../task-graph"
+import { GraphResults } from "../task-graph"
 import { keyBy, fromPairs } from "lodash"
 import { ConfigurationError } from "../exceptions"
 import { RuntimeContext } from "../runtime-context"
@@ -101,7 +101,7 @@ export class ResolveModuleConfigTask extends BaseTask {
     return `resolving module config ${this.getName()}`
   }
 
-  async process(dependencyResults: TaskResults): Promise<ModuleConfig> {
+  async process(dependencyResults: GraphResults): Promise<ModuleConfig> {
     const dependencyConfigs = getResolvedModuleConfigs(dependencyResults)
     const dependencyModules = getResolvedModules(dependencyResults)
 
@@ -199,7 +199,7 @@ export class ResolveModuleTask extends BaseTask {
     return `resolving module ${this.getName()}`
   }
 
-  async process(dependencyResults: TaskResults): Promise<Module> {
+  async process(dependencyResults: GraphResults): Promise<Module> {
     const resolvedConfig = dependencyResults["resolve-module-config." + this.getName()]!.output as ModuleConfig
     const dependencyModules = getResolvedModules(dependencyResults)
 
@@ -207,13 +207,13 @@ export class ResolveModuleTask extends BaseTask {
   }
 }
 
-function getResolvedModuleConfigs(dependencyResults: TaskResults): ModuleConfig[] {
+function getResolvedModuleConfigs(dependencyResults: GraphResults): ModuleConfig[] {
   return Object.values(dependencyResults)
     .filter((r) => r && r.type === "resolve-module-config")
     .map((r) => r!.output) as ModuleConfig[]
 }
 
-export function getResolvedModules(dependencyResults: TaskResults): Module[] {
+export function getResolvedModules(dependencyResults: GraphResults): Module[] {
   return Object.values(dependencyResults)
     .filter((r) => r && r.type === "resolve-module")
     .map((r) => r!.output) as Module[]

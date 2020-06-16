@@ -71,7 +71,10 @@ describe("RunTaskCommand", () => {
       opts: withDefaultGlobalOpts({ "force": false, "force-build": false }),
     })
 
+    expect(cmd.outputsSchema().validate(result).error).to.be.undefined
+
     const expected = {
+      aborted: false,
       command: ["echo", "OK"],
       moduleName: "module-a",
       log: "OK",
@@ -79,12 +82,18 @@ describe("RunTaskCommand", () => {
         log: "OK",
       },
       success: true,
+      error: undefined,
       taskName: "task-a",
     }
 
-    const omittedKeys = ["dependencyResults", "description", "type", "completedAt", "startedAt", "version"]
+    expect(result!.result.durationMsec).to.gte(0)
+    expect(result!.result.startedAt).to.be.a("Date")
+    expect(result!.result.completedAt).to.be.a("Date")
+    expect(result!.result.version).to.be.a("string")
 
-    expect(omit(result!.output, omittedKeys)).to.eql(expected)
+    const omittedKeys = ["durationMsec", "completedAt", "startedAt", "version"]
+
+    expect(omit(result!.result, omittedKeys)).to.eql(expected)
   })
 
   it("should return an error if the task fails", async () => {

@@ -19,8 +19,9 @@ import {
   StringOption,
   StringsParameter,
   PrepareParams,
+  ProcessCommandResult,
+  processCommandResultSchema,
 } from "./base"
-import { TaskResults } from "../task-graph"
 import { processModules } from "../process"
 import { Module } from "../types/module"
 import { getTestTasks } from "../tasks/test"
@@ -60,7 +61,9 @@ type Opts = typeof testOpts
 export class TestCommand extends Command<Args, Opts> {
   name = "test"
   help = "Test all or specified modules."
+
   protected = true
+  workflows = true
 
   description = dedent`
     Runs all or specified tests defined in the project. Also builds modules and dependencies,
@@ -81,6 +84,8 @@ export class TestCommand extends Command<Args, Opts> {
 
   arguments = testArgs
   options = testOpts
+
+  outputsSchema = () => processCommandResultSchema()
 
   private server: GardenServer
   private isPersistent = (opts) => !!opts.watch
@@ -103,7 +108,7 @@ export class TestCommand extends Command<Args, Opts> {
     footerLog,
     args,
     opts,
-  }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
+  }: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
     if (!this.isPersistent(opts)) {
       printHeader(headerLog, `Running tests`, "thermometer")
     }

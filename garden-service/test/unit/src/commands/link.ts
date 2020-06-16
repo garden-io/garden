@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { join } from "path"
+import { join, resolve } from "path"
 
 import { LinkModuleCommand } from "../../../../src/commands/link/module"
 import {
@@ -92,6 +92,31 @@ describe("LinkCommand", () => {
         "parameter"
       )
     })
+
+    it("should return linked module sources", async () => {
+      const path = resolve("..", "test-project-local-module-sources", "module-a")
+
+      const { result } = await cmd.action({
+        garden,
+        log,
+        headerLog: log,
+        footerLog: log,
+        args: {
+          module: "module-a",
+          path,
+        },
+        opts: withDefaultGlobalOpts({}),
+      })
+
+      expect(cmd.outputsSchema().validate(result).error).to.be.undefined
+
+      expect(result).to.eql([
+        {
+          name: "module-a",
+          path,
+        },
+      ])
+    })
   })
 
   describe("LinkSourceCommand", () => {
@@ -141,6 +166,31 @@ describe("LinkCommand", () => {
       const { linkedProjectSources } = await garden.configStore.get()
 
       expect(linkedProjectSources).to.eql([{ name: "source-a", path: localSourcePath }])
+    })
+
+    it("should return linked sources", async () => {
+      const path = localSourcePath
+
+      const { result } = await cmd.action({
+        garden,
+        log,
+        headerLog: log,
+        footerLog: log,
+        args: {
+          source: "source-a",
+          path,
+        },
+        opts: withDefaultGlobalOpts({}),
+      })
+
+      expect(cmd.outputsSchema().validate(result).error).to.be.undefined
+
+      expect(result).to.eql([
+        {
+          name: "source-a",
+          path,
+        },
+      ])
     })
   })
 })

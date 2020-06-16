@@ -12,7 +12,7 @@ import { ensureDir } from "fs-extra"
 import dedent from "dedent"
 import { platform, arch } from "os"
 import { parse, relative, resolve, dirname } from "path"
-import { flatten, isString, sortBy, fromPairs, keyBy, mapValues, omit } from "lodash"
+import { flatten, isString, sortBy, fromPairs, keyBy, mapValues, omit, cloneDeep } from "lodash"
 const AsyncLock = require("async-lock")
 
 import { TreeCache } from "./cache"
@@ -26,7 +26,7 @@ import { VcsHandler, ModuleVersion } from "./vcs/vcs"
 import { GitHandler } from "./vcs/git"
 import { BuildDir } from "./build-dir"
 import { ConfigGraph } from "./config-graph"
-import { TaskGraph, TaskResults, ProcessTasksOpts } from "./task-graph"
+import { TaskGraph, GraphResults, ProcessTasksOpts } from "./task-graph"
 import { getLogger } from "./logger/logger"
 import { PluginActionHandlers, GardenPlugin } from "./types/plugin/plugin"
 import { loadConfig, findProjectConfig, prepareModuleResource } from "./config/base"
@@ -378,7 +378,7 @@ export class Garden {
     return this.buildDir.clear()
   }
 
-  async processTasks(tasks: BaseTask[], opts?: ProcessTasksOpts): Promise<TaskResults> {
+  async processTasks(tasks: BaseTask[], opts?: ProcessTasksOpts): Promise<GraphResults> {
     return this.taskGraph.process(tasks, opts)
   }
 
@@ -538,7 +538,7 @@ export class Garden {
       // As an optimization, we return immediately if all requested providers are already resolved
       const alreadyResolvedProviders = names.map((name) => this.resolvedProviders[name]).filter(Boolean)
       if (alreadyResolvedProviders.length === names.length) {
-        providers = alreadyResolvedProviders
+        providers = cloneDeep(alreadyResolvedProviders)
         return
       }
 
@@ -653,9 +653,8 @@ export class Garden {
   }
 
   async getWorkflowConfigs(names?: string[]): Promise<WorkflowConfig[]> {
-    const providers = await this.resolveProviders()
     const configs = this.getRawWorkflowConfigs(names)
-    return configs.map((config) => resolveWorkflowConfig(this, providers, config))
+    return configs.map((config) => resolveWorkflowConfig(this, config))
   }
 
   /**
@@ -720,7 +719,7 @@ export class Garden {
         new ResolveModuleTask({ garden: this, log, moduleConfig, resolvedProviders: providers, runtimeContext })
     )
 
-    let results: TaskResults
+    let results: GraphResults
 
     try {
       results = await this.processTasks(tasks, { unlimitedConcurrency: true })
@@ -1139,7 +1138,12 @@ export class Garden {
       environmentName: this.environmentName,
       allEnvironmentNames: this.allEnvironmentNames,
       namespace: this.namespace,
-      providers: Object.values(await this.resolveProviders()).map((p) => omit(p, ["tools"])),
+      providers: Object.values(await this.resolveProviders()).map((p) => {
+        return {
+          ...omit(p, ["tools"]),
+          dependencies: mapValues(p.dependencies, (d) => omit(d, ["tools"])),
+        } as Provider
+      }),
       variables: this.variables,
       moduleConfigs: sortBy(
         modules.map((m) => m._config),
@@ -1153,6 +1157,18 @@ export class Garden {
   }
 
   //endregion
+}
+
+/**
+ * Dummy Garden class that doesn't scan for modules nor resolves providers.
+ * Used by commands that have noProject=true. That is, commands that need
+ * to run outside of valid Garden projects.
+ */
+export class DummyGarden extends Garden {
+  async resolveProviders() {
+    return {}
+  }
+  async scanAndAddConfigs() {}
 }
 
 export interface ConfigDump {

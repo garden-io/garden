@@ -8,12 +8,13 @@
 
 import { Command, CommandResult, CommandParams, StringParameter } from "../base"
 import { NotFoundError } from "../../exceptions"
-import { TestResult } from "../../types/plugin/module/getTestResult"
+import { TestResult, testResultSchema } from "../../types/plugin/module/getTestResult"
 import { getTestVersion } from "../../tasks/test"
 import { findByName, getNames } from "../../util/util"
 import { printHeader } from "../../logger/util"
 import chalk from "chalk"
 import { getArtifactFileList, getArtifactKey } from "../../util/artifacts"
+import { joi, joiArray } from "../../config/common"
 
 const getTestResultArgs = {
   module: new StringParameter({
@@ -38,7 +39,16 @@ export class GetTestResultCommand extends Command<Args> {
   name = "test-result"
   help = "Outputs the latest execution result of a provided test."
 
+  workflows = true
+
   arguments = getTestResultArgs
+
+  outputsSchema = () =>
+    testResultSchema()
+      .keys({
+        artifacts: joiArray(joi.string()).description("Local file paths to any exported artifacts from the test run."),
+      })
+      .description("The result from the test. May also return null if no test result is found.")
 
   async action({
     garden,
