@@ -102,6 +102,8 @@ describe("GetTestResultCommand", () => {
       opts: withDefaultGlobalOpts({}),
     })
 
+    expect(command.outputsSchema().validate(res.result).error).to.be.undefined
+
     expect(res.result).to.eql({
       artifacts: [],
       moduleName: "module-a",

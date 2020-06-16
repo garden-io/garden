@@ -3017,11 +3017,6 @@ describe("Garden", () => {
         expect(module.spec).to.eql({ foo: "bar", build: { dependencies: [] } })
       })
 
-      // TODO: Complete this once we've gotten rid of the <plugin-name>--<module-name> prefix business
-      it.skip("should flag added modules as added by the plugin", async () => {
-        throw "TODO"
-      })
-
       it("should throw if a build dependency's `by` reference can't be resolved", async () => {
         const foo = createGardenPlugin({
           name: "foo",

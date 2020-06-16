@@ -11,11 +11,12 @@ import { join } from "path"
 import { ensureFile, readFile } from "fs-extra"
 import { get, isPlainObject, unset } from "lodash"
 
-import { Primitive, joiArray, joiUserIdentifier, joiPrimitive, joi } from "./config/common"
+import { Primitive, joiArray, joiPrimitive, joi } from "./config/common"
 import { validateSchema } from "./config/validation"
 import { LocalConfigError } from "./exceptions"
 import { dumpYaml } from "./util/util"
 import { LOCAL_CONFIG_FILENAME, GLOBAL_CONFIG_FILENAME, GARDEN_GLOBAL_PATH } from "./constants"
+import { linkedSourceSchema } from "./config/project"
 
 export type ConfigValue = Primitive | Primitive[] | Object[] | Object
 
@@ -174,15 +175,6 @@ export interface LocalConfig {
   linkedProjectSources?: LinkedSource[]
   analytics: AnalyticsLocalConfig
 }
-
-const linkedSourceSchema = () =>
-  joi
-    .object()
-    .keys({
-      name: joiUserIdentifier(),
-      path: joi.string(),
-    })
-    .meta({ internal: true })
 
 const analyticsLocalConfigSchema = () =>
   joi

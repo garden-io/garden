@@ -19,7 +19,7 @@ import {
 import { resolveTemplateStrings } from "../template-string"
 import { ConfigurationError, PluginError } from "../exceptions"
 import { keyBy, omit, flatten } from "lodash"
-import { TaskResults } from "../task-graph"
+import { GraphResults } from "../task-graph"
 import { ProviderConfigContext } from "../config/config-context"
 import { ModuleConfig } from "../config/module"
 import { GardenPlugin } from "../types/plugin/plugin"
@@ -132,7 +132,7 @@ export class ResolveProviderTask extends BaseTask {
     )
   }
 
-  async process(dependencyResults: TaskResults) {
+  async process(dependencyResults: GraphResults) {
     const resolvedProviders: ProviderMap = keyBy(
       Object.values(dependencyResults).map((result) => result && result.output),
       "name"

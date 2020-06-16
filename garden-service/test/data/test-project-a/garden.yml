@@ -11,3 +11,6 @@ providers:
     environments: [local]
 variables:
   some: variable
+outputs:
+  - name: taskName
+    value: task-a

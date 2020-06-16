@@ -44,3 +44,11 @@ Output values may also reference outputs defined by modules, via the `${modules.
 For details on which outputs are available for a given module type, please refer to the [reference](https://docs.garden.io/reference/module-types) docs for the module type in question, and look for the _Outputs_ section.
 
 {{{outputContext}}}
+
+## Workflow configuration context
+
+The below keys are available in template strings for Workflow configurations.
+
+Note that the `{steps.*}` key is only available for the `steps[].command` and `steps[].script` fields in Workflow configs, and may only reference previous steps in the same workflow. See below for more details.
+
+{{{workflowContext}}}

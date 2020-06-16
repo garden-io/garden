@@ -37,15 +37,21 @@ describe("RunTestCommand", () => {
       opts: withDefaultGlobalOpts({ "force": false, "force-build": false, "interactive": false }),
     })
 
-    const expected = {
+    expect(cmd.outputsSchema().validate(result).error).to.be.undefined
+
+    expect(result!.result.durationMsec).to.gte(0)
+    expect(result!.result.startedAt).to.be.a("Date")
+    expect(result!.result.completedAt).to.be.a("Date")
+    expect(result!.result.version).to.be.a("string")
+
+    expect(omit(result!.result, ["durationMsec", "startedAt", "completedAt", "version"])).to.eql({
+      aborted: false,
       command: ["echo", "OK"],
       moduleName: "module-a",
       log: "OK",
       success: true,
       testName: "unit",
-    }
-
-    expect(omit(result, ["completedAt", "startedAt", "version"])).to.eql(expected)
+    })
   })
 
   it("should return an error if the test fails", async () => {

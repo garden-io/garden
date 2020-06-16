@@ -46,6 +46,9 @@ describe("UpdateRemoteCommand", () => {
         args: { sources: undefined },
         opts: withDefaultGlobalOpts({}),
       })
+
+      expect(cmd.outputsSchema().validate(result).error).to.be.undefined
+
       expect(result!.map((s) => s.name).sort()).to.eql(["source-a", "source-b", "source-c"])
     })
 
@@ -111,6 +114,9 @@ describe("UpdateRemoteCommand", () => {
         args: { modules: undefined },
         opts: withDefaultGlobalOpts({}),
       })
+
+      expect(cmd.outputsSchema().validate(result).error).to.be.undefined
+
       expect(result!.map((s) => s.name).sort()).to.eql(["module-a", "module-b", "module-c"])
     })
 
@@ -140,7 +146,7 @@ describe("UpdateRemoteCommand", () => {
       expect(await pathExists(stalePath)).to.be.false
     })
 
-    it("should throw if project source is not found", async () => {
+    it("should throw if module source is not found", async () => {
       await expectError(
         async () =>
           await cmd.action({

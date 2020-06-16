@@ -11,12 +11,11 @@ import { RuntimeError } from "../exceptions"
 import dedent from "dedent"
 import { GardenPlugin } from "../types/plugin/plugin"
 import { findProjectConfig } from "../config/base"
-import { Garden } from "../garden"
+import { Garden, DummyGarden } from "../garden"
 import Bluebird from "bluebird"
 import { PluginTool } from "../util/ext-tools"
 import { fromPairs, omit, uniqBy } from "lodash"
 import { printHeader, printFooter } from "../logger/util"
-import { DummyGarden } from "../cli/cli"
 
 export class UtilCommand extends Command {
   name = "util"

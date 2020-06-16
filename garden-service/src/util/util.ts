@@ -599,3 +599,7 @@ export function getArchitecture() {
 // Wrapping split2 (which splits Buffer streams, by default by newline) for convenience
 // TODO: make type-safe
 export const splitStream = require("split2")
+
+export function getDurationMsec(start: Date, end: Date): number {
+  return Math.round(end.getTime() - start.getTime())
+}

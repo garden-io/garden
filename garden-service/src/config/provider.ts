@@ -58,15 +58,19 @@ export interface Provider<T extends ProviderConfig = ProviderConfig> {
   tools: PluginTools
 }
 
+export const providerSchemaWithoutTools = () =>
+  providerFixedFieldsSchema().keys({
+    dependencies: joiIdentifierMap(joi.link("..."))
+      .description("Map of all the providers that this provider depends on.")
+      .required(),
+    config: providerConfigBaseSchema().required(),
+    moduleConfigs: joiArray(moduleConfigSchema().optional()),
+    status: environmentStatusSchema(),
+  })
+
 export const providerSchema = () =>
-  providerFixedFieldsSchema()
+  providerSchemaWithoutTools()
     .keys({
-      dependencies: joiIdentifierMap(joi.link("..."))
-        .description("Map of all the providers that this provider depends on.")
-        .required(),
-      config: providerConfigBaseSchema().required(),
-      moduleConfigs: joiArray(moduleConfigSchema().optional()),
-      status: environmentStatusSchema(),
       tools: joiIdentifierMap(joi.object())
         .required()
         .description("Map of tools defined by the provider."),

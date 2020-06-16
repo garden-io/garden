@@ -112,7 +112,16 @@ describe("GetStatusCommand", () => {
 
       const command = new GetStatusCommand()
       const log = garden.log
-      await command.action({ garden, log, args: {}, opts: withDefaultGlobalOpts({}), headerLog: log, footerLog: log })
+      const { result } = await command.action({
+        garden,
+        log,
+        args: {},
+        opts: withDefaultGlobalOpts({}),
+        headerLog: log,
+        footerLog: log,
+      })
+
+      expect(command.outputsSchema().validate(result).error).to.be.undefined
 
       const logMessages = getLogMessages(log, (l) => l.level === LogLevel.warn)
 

@@ -10,12 +10,11 @@ import { expect } from "chai"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { expectError, makeTestGardenA, TestGarden } from "../../../helpers"
 import { WorkflowConfig, resolveWorkflowConfig } from "../../../../src/config/workflow"
-import { ProviderMap } from "../../../../src/config/provider"
 import { defaultContainerLimits } from "../../../../src/plugins/container/config"
 
 describe("resolveWorkflowConfig", () => {
   let garden: TestGarden
-  let resolvedProviders: ProviderMap
+
   const defaults = {
     limits: defaultContainerLimits,
     keepAliveHours: 48,
@@ -25,7 +24,6 @@ describe("resolveWorkflowConfig", () => {
     garden = await makeTestGardenA()
     garden["secrets"] = { foo: "bar" }
     garden["variables"] = { foo: "baz" }
-    resolvedProviders = await garden.resolveProviders()
   })
 
   it("should pass through a canonical workflow config", async () => {
@@ -49,7 +47,7 @@ describe("resolveWorkflowConfig", () => {
       ],
     }
 
-    expect(resolveWorkflowConfig(garden, resolvedProviders, config)).to.eql({
+    expect(resolveWorkflowConfig(garden, config)).to.eql({
       ...config,
     })
   })
@@ -65,7 +63,7 @@ describe("resolveWorkflowConfig", () => {
       steps: [{ description: "Deploy the stack", command: ["deploy"] }, { command: ["test"] }],
     }
 
-    expect(resolveWorkflowConfig(garden, resolvedProviders, config)).to.eql({
+    expect(resolveWorkflowConfig(garden, config)).to.eql({
       ...config,
       description: `Secret: bar, var: baz`,
     })
@@ -81,7 +79,7 @@ describe("resolveWorkflowConfig", () => {
       steps: [{ description: "Deploy the stack", command: ["deploy"] }, { command: ["test"] }],
     }
 
-    expect(resolveWorkflowConfig(garden, resolvedProviders, config)).to.eql({ ...config, ...defaults })
+    expect(resolveWorkflowConfig(garden, config)).to.eql({ ...config, ...defaults })
   })
 
   it("should throw if a step uses an invalid/unsupported command", async () => {
@@ -109,7 +107,7 @@ describe("resolveWorkflowConfig", () => {
     }
 
     await expectError(
-      () => resolveWorkflowConfig(garden, resolvedProviders, config),
+      () => resolveWorkflowConfig(garden, config),
       (err) => expect(err.message).to.match(/Invalid step command for workflow workflow-a/)
     )
   })
@@ -136,7 +134,7 @@ describe("resolveWorkflowConfig", () => {
     }
 
     await expectError(
-      () => resolveWorkflowConfig(garden, resolvedProviders, config),
+      () => resolveWorkflowConfig(garden, config),
       (err) => expect(err.message).to.match(/Invalid environment in trigger for workflow workflow-a/)
     )
   })

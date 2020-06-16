@@ -13,6 +13,8 @@ import { getTaskVersion } from "../../tasks/task"
 import { RunTaskResult } from "../../types/plugin/task/runTask"
 import chalk from "chalk"
 import { getArtifactFileList, getArtifactKey } from "../../util/artifacts"
+import { taskResultSchema } from "../../types/plugin/task/getTaskResult"
+import { joiArray, joi } from "../../config/common"
 
 const getTaskResultArgs = {
   name: new StringParameter({
@@ -33,7 +35,16 @@ export class GetTaskResultCommand extends Command<Args> {
   name = "task-result"
   help = "Outputs the latest execution result of a provided task."
 
+  workflows = true
+
   arguments = getTaskResultArgs
+
+  outputsSchema = () =>
+    taskResultSchema()
+      .keys({
+        artifacts: joiArray(joi.string()).description("Local file paths to any exported artifacts from the task run."),
+      })
+      .description("The output from the task. May also return null if no task result is found.")
 
   async action({
     garden,

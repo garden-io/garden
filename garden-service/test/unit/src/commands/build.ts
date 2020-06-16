@@ -10,9 +10,10 @@ import { BuildCommand } from "../../../../src/commands/build"
 import { expect } from "chai"
 import { makeTestGardenA, withDefaultGlobalOpts } from "../../../helpers"
 import { taskResultOutputs } from "../../../helpers"
+import { keyBy } from "lodash"
 
 describe("BuildCommand", () => {
-  it("should build all modules in a project", async () => {
+  it("should build all modules in a project and output the results", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
     const footerLog = garden.log
@@ -27,6 +28,10 @@ describe("BuildCommand", () => {
       opts: withDefaultGlobalOpts({ watch: false, force: true }),
     })
 
+    expect(command.outputsSchema().validate(result).error).to.be.undefined
+
+    const { builds } = result!
+
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: true, buildLog: "A" },
       "build.module-b": { fresh: true, buildLog: "B" },
@@ -34,6 +39,42 @@ describe("BuildCommand", () => {
       "stage-build.module-a": {},
       "stage-build.module-b": {},
       "stage-build.module-c": {},
+    })
+
+    for (const build of Object.values(builds)) {
+      expect(build.durationMsec).to.gte(0)
+      build.durationMsec = 0
+    }
+
+    const graph = await garden.getConfigGraph(log)
+    const modules = keyBy(graph.getModules(), "name")
+
+    expect(builds).to.eql({
+      "module-a": {
+        fresh: true,
+        buildLog: "A",
+        aborted: false,
+        durationMsec: 0,
+        error: undefined,
+        success: true,
+        version: modules["module-a"].version.versionString,
+      },
+      "module-b": {
+        fresh: true,
+        buildLog: "B",
+        aborted: false,
+        durationMsec: 0,
+        error: undefined,
+        success: true,
+        version: modules["module-b"].version.versionString,
+      },
+      "module-c": {
+        aborted: false,
+        durationMsec: 0,
+        error: undefined,
+        success: true,
+        version: modules["module-c"].version.versionString,
+      },
     })
   })
 

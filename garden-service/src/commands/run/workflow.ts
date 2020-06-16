@@ -15,8 +15,8 @@ import { Garden } from "../../garden"
 import { getStepCommandConfigs, WorkflowStepSpec, WorkflowConfig, WorkflowFileSpec } from "../../config/workflow"
 import { LogEntry } from "../../logger/log-entry"
 import { GardenError, GardenBaseError } from "../../exceptions"
-import { WorkflowConfigContext } from "../../config/config-context"
-import { resolveTemplateStrings } from "../../template-string"
+import { WorkflowConfigContext, WorkflowStepConfigContext, WorkflowStepResult } from "../../config/config-context"
+import { resolveTemplateStrings, resolveTemplateString } from "../../template-string"
 import { ConfigurationError, FilesystemError } from "../../exceptions"
 import { posix, join } from "path"
 import { ensureDir, writeFile } from "fs-extra"
@@ -35,7 +35,7 @@ const runWorkflowArgs = {
 type Args = typeof runWorkflowArgs
 
 interface WorkflowRunOutput {
-  stepLogs: { [stepName: string]: string }
+  steps: { [stepName: string]: WorkflowStepResult }
 }
 
 export class RunWorkflowCommand extends Command<Args, {}> {
@@ -63,27 +63,31 @@ export class RunWorkflowCommand extends Command<Args, {}> {
     const outerLog = log.placeholder()
     // Partially resolve the workflow config, and prepare any configured files before continuing
     const rawWorkflow = garden.getRawWorkflowConfig(args.workflow)
-    const templateContext = new WorkflowConfigContext(garden, {}, garden.variables, garden.secrets)
+    const templateContext = new WorkflowConfigContext(garden, garden.variables, garden.secrets)
     const files = resolveTemplateStrings(rawWorkflow.files || [], templateContext)
 
     // Write all the configured files for the workflow
     await Bluebird.map(files, (file) => writeWorkflowFile(garden, file))
 
     // Fully resolve the config
+    // (aside from the step script and command fields, since they need to be resolved just-in-time)
     const workflow = await garden.getWorkflowConfig(args.workflow)
     const steps = workflow.steps
+    const allStepNames = steps.map((s, i) => getStepName(i, s.name))
 
     printHeader(headerLog, `Running workflow ${chalk.white(workflow.name)}`, "runner")
 
     const stepCommandConfigs = getStepCommandConfigs()
     const startedAt = new Date().valueOf()
 
-    const result = {
-      stepLogs: {},
+    const result: WorkflowRunOutput = {
+      steps: {},
     }
 
     for (const [index, step] of steps.entries()) {
       printStepHeader(outerLog, index, steps.length, step.description)
+
+      const stepName = getStepName(index, step.name)
 
       const metadata = {
         workflowStep: { index },
@@ -92,13 +96,22 @@ export class RunWorkflowCommand extends Command<Args, {}> {
       const stepBodyLog = log.placeholder({ indent: 1, metadata })
       const stepFooterLog = log.placeholder({ indent: 1, metadata })
       garden.log.setState({ metadata })
-      let commandResult: CommandResult
+      let stepResult: CommandResult
       const inheritedOpts = cloneDeep(opts)
 
       garden.events.emit("workflowStepProcessing", { index })
+      const stepTemplateContext = new WorkflowStepConfigContext({
+        allStepNames,
+        garden,
+        resolvedSteps: result.steps,
+        stepName,
+      })
+
       try {
         if (step.command) {
-          commandResult = await runStepCommand({
+          step.command = resolveTemplateStrings(step.command, stepTemplateContext)
+
+          stepResult = await runStepCommand({
             step,
             inheritedOpts,
             garden,
@@ -108,7 +121,9 @@ export class RunWorkflowCommand extends Command<Args, {}> {
             stepCommandConfigs,
           })
         } else if (step.script) {
-          commandResult = await runStepScript({
+          step.script = resolveTemplateString(step.script, stepTemplateContext)
+
+          stepResult = await runStepScript({
             step,
             inheritedOpts,
             garden,
@@ -136,12 +151,18 @@ export class RunWorkflowCommand extends Command<Args, {}> {
       }
 
       // Extract the text from the body log entry, info-level and higher
-      result.stepLogs[index.toString()] = stepBodyLog.toString((entry) => entry.level <= LogLevel.info)
+      const stepLog = stepBodyLog.toString((entry) => entry.level <= LogLevel.info)
 
-      if (commandResult.errors) {
+      result.steps[stepName] = {
+        number: index + 1,
+        outputs: stepResult.result || {},
+        log: stepLog,
+      }
+
+      if (stepResult.errors) {
         garden.events.emit("workflowStepError", { index })
-        logErrors(log, commandResult.errors, index, steps.length, step.description)
-        return { result, errors: commandResult.errors }
+        logErrors(log, stepResult.errors, index, steps.length, step.description)
+        return { result, errors: stepResult.errors }
       }
 
       garden.events.emit("workflowStepComplete", { index })
@@ -171,6 +192,10 @@ export interface RunStepParams {
 
 export interface RunStepCommandParams extends RunStepParams {
   stepCommandConfigs: any
+}
+
+function getStepName(index: number, name?: string) {
+  return name || `step-${index + 1}`
 }
 
 export function printStepHeader(log: LogEntry, stepIndex: number, stepCount: number, stepDescription?: string) {
@@ -360,7 +385,7 @@ export async function runStepScript({ garden, log, step }: RunStepParams): Promi
 
   try {
     await proc
-    return {}
+    return { result: {} }
   } catch (_err) {
     const error = _err as ExecaError
 

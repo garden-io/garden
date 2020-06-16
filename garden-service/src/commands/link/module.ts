@@ -15,6 +15,8 @@ import { Command, CommandResult, StringParameter, PathParameter, CommandParams }
 import { LinkedSource } from "../../config-store"
 import { printHeader } from "../../logger/util"
 import { addLinkedSources, hasRemoteSource } from "../../util/ext-source-util"
+import { joiArray } from "../../config/common"
+import { linkedModuleSchema } from "../../config/project"
 
 const linkModuleArguments = {
   module: new StringParameter({
@@ -33,6 +35,10 @@ export class LinkModuleCommand extends Command<Args> {
   name = "module"
   help = "Link a module to a local directory."
   arguments = linkModuleArguments
+
+  workflows = true
+
+  outputsSchema = () => joiArray(linkedModuleSchema()).description("A list of all locally linked external modules.")
 
   description = dedent`
     After linking a remote module, Garden will read the source from the module's local directory instead of from
