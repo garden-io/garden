@@ -16,7 +16,7 @@ type: container
 name: backend
 # Setting the "builder" module as a dependency ensures that the Go binary is built
 # before the build step for this module is executed.
-include: []
+include: [Dockerfile]
 build:
   dependencies:
     - name: builder
