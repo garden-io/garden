@@ -29,24 +29,26 @@ class CircularDependenciesError extends GardenBaseError {
   type = "circular-dependencies"
 }
 
-export interface TaskResult {
+export interface GraphResult {
   type: TaskType
   description: string
   key: string
   name: string
   output?: any
-  dependencyResults?: TaskResults
+  dependencyResults?: GraphResults
   batchId: string
+  startedAt?: Date
   completedAt?: Date
   error?: Error
+  version: string
 }
 
 /**
  * When multiple tasks with the same key are completed during a call to processTasks,
  * the result from the last processed is used (hence only one key-value pair here per key).
  */
-export interface TaskResults {
-  [key: string]: TaskResult | null
+export interface GraphResults {
+  [key: string]: GraphResult | null
 }
 
 const DEFAULT_CONCURRENCY = 6
@@ -88,7 +90,7 @@ export class TaskGraph {
     this.logEntryMap = {}
   }
 
-  async process(tasks: BaseTask[], opts?: ProcessTasksOpts): Promise<TaskResults> {
+  async process(tasks: BaseTask[], opts?: ProcessTasksOpts): Promise<GraphResults> {
     const unlimitedConcurrency = opts ? !!opts.unlimitedConcurrency : false
 
     let nodes: TaskNode[]
@@ -114,7 +116,7 @@ export class TaskGraph {
      * Note that these promises will never throw errors, since all errors in async code related
      * to processing tasks are caught in processNode and stored on that task's result.error.
      */
-    const results: TaskResults = merge({}, ...(await Bluebird.map(batches, (b) => b.promise)))
+    const results: GraphResults = merge({}, ...(await Bluebird.map(batches, (b) => b.promise)))
 
     if (opts && opts.throwOnError) {
       const failed = Object.entries(results).filter(([_, result]) => result && result.error)
@@ -278,7 +280,7 @@ export class TaskGraph {
         return null
       }
       // No need to add task or its dependencies.
-      const dependencyResults = <TaskResult[]>this.keysWithDependencies(node)
+      const dependencyResults = <GraphResult[]>this.keysWithDependencies(node)
         .map((k) => this.resultCache.getNewest(k))
         .filter(Boolean)
       this.provideCachedResultToInProgressBatches(cachedResult, dependencyResults)
@@ -371,14 +373,16 @@ export class TaskGraph {
       const key = node.key
       const batchId = node.batchId
       const description = node.getDescription()
+      const version = node.getVersion()
 
-      let result: TaskResult = { type, description, key: task.getKey(), name: task.getName(), batchId }
+      let result: GraphResult = { type, description, key: task.getKey(), name: task.getName(), batchId, version }
 
       this.logTask(node)
       this.logEntryMap.inProgress.setState(inProgressToStr(this.inProgress.getNodes()))
 
       const dependencyBaseKeys = node.getDependencies().map((dep) => dep.key)
       const dependencyResults = this.resultCache.pick(dependencyBaseKeys)
+      const startedAt = new Date()
 
       try {
         this.garden.events.emit("taskProcessing", {
@@ -390,10 +394,11 @@ export class TaskGraph {
           version: task.version,
         })
         result = await node.process(dependencyResults)
+        result.startedAt = startedAt
         this.garden.events.emit("taskComplete", result)
       } catch (error) {
         success = false
-        result = { type, description, key, name, error, completedAt: new Date(), batchId }
+        result = { type, description, key, name, error, startedAt, completedAt: new Date(), batchId, version }
         this.garden.events.emit("taskError", result)
         this.logTaskError(node, error)
         this.cancelDependants(node)
@@ -483,7 +488,7 @@ export class TaskGraph {
     return pickedBatches
   }
 
-  private provideResultToInProgressBatches(result: TaskResult) {
+  private provideResultToInProgressBatches(result: GraphResult) {
     const finished: TaskNodeBatch[] = []
     for (const batch of this.inProgressBatches) {
       const batchFinished = batch.taskFinished(result)
@@ -494,7 +499,7 @@ export class TaskGraph {
     this.inProgressBatches = without(this.inProgressBatches, ...finished)
   }
 
-  private provideCachedResultToInProgressBatches(result: TaskResult, depResults: TaskResult[]) {
+  private provideCachedResultToInProgressBatches(result: GraphResult, depResults: GraphResult[]) {
     const finished: TaskNodeBatch[] = []
     for (const batch of this.inProgressBatches) {
       const batchFinished = batch.taskCached(result, depResults)
@@ -750,7 +755,7 @@ class TaskNode {
     }
   }
 
-  async process(dependencyResults: TaskResults): Promise<TaskResult> {
+  async process(dependencyResults: GraphResults): Promise<GraphResult> {
     const output = await this.task.process(dependencyResults)
 
     return {
@@ -762,12 +767,13 @@ class TaskNode {
       batchId: this.batchId,
       output,
       dependencyResults,
+      version: this.getVersion(),
     }
   }
 }
 
 interface CachedResult {
-  result: TaskResult
+  result: GraphResult
   versionString: string
 }
 
@@ -784,23 +790,23 @@ class ResultCache {
     this.cache = {}
   }
 
-  put(key: string, versionString: string, result: TaskResult): void {
+  put(key: string, versionString: string, result: GraphResult): void {
     this.cache[key] = { result, versionString }
   }
 
-  get(key: string, versionString: string): TaskResult | null {
+  get(key: string, versionString: string): GraphResult | null {
     const r = this.cache[key]
     return r && r.versionString === versionString ? r.result : null
   }
 
-  getNewest(key: string): TaskResult | null {
+  getNewest(key: string): GraphResult | null {
     const r = this.cache[key]
     return r ? r.result : null
   }
 
   // Returns newest cached results, if any, for keys
-  pick(keys: string[]): TaskResults {
-    const results: TaskResults = {}
+  pick(keys: string[]): GraphResults {
+    const results: GraphResults = {}
 
     for (const key of keys) {
       const cachedResult = this.getNewest(key)
@@ -825,8 +831,8 @@ export class TaskNodeBatch {
    */
   public resultKeys: string[]
   public remainingResultKeys: Set<string>
-  public results: TaskResults
-  public promise: Promise<TaskResults>
+  public results: GraphResults
+  public promise: Promise<GraphResults>
   private resolver: any
 
   /**
@@ -840,7 +846,7 @@ export class TaskNodeBatch {
     this.resultKeys = resultKeys
     this.remainingResultKeys = new Set(resultKeys)
     this.results = {}
-    const { promise, resolver } = defer<TaskResults>()
+    const { promise, resolver } = defer<GraphResults>()
     this.promise = promise
     this.resolver = resolver
   }
@@ -861,7 +867,7 @@ export class TaskNodeBatch {
    *
    * Returns true if this call finishes the batch.
    */
-  taskFinished(result: TaskResult): boolean {
+  taskFinished(result: GraphResult): boolean {
     const key = result.key
     if (!this.remainingResultKeys.has(key)) {
       return false
@@ -881,7 +887,7 @@ export class TaskNodeBatch {
    *
    * Returns true if this call finishes the batch.
    */
-  taskCached(result: TaskResult, depResults: TaskResult[]): boolean {
+  taskCached(result: GraphResult, depResults: GraphResult[]): boolean {
     const key = result.key
     if (this.remainingResultKeys.has(key)) {
       this.results[key] = result

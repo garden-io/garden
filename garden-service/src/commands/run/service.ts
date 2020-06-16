@@ -16,8 +16,17 @@ import { getRunTaskResults, getServiceStatuses } from "../../tasks/base"
 import { DeployTask } from "../../tasks/deploy"
 import { RunResult } from "../../types/plugin/base"
 import { deline } from "../../util/string"
-import { BooleanParameter, Command, CommandParams, CommandResult, handleRunResult, StringParameter } from "../base"
+import {
+  BooleanParameter,
+  Command,
+  CommandParams,
+  CommandResult,
+  handleRunResult,
+  StringParameter,
+  ProcessResultMetadata,
+} from "../base"
 import { printRuntimeContext } from "./run"
+import { GraphResults } from "../../task-graph"
 
 const runServiceArgs = {
   service: new StringParameter({
@@ -38,6 +47,11 @@ const runServiceOpts = {
 type Args = typeof runServiceArgs
 type Opts = typeof runServiceOpts
 
+interface RunServiceOutput {
+  result: RunResult & ProcessResultMetadata
+  graphResults: GraphResults
+}
+
 export class RunServiceCommand extends Command<Args, Opts> {
   name = "service"
   help = "Run an ad-hoc instance of the specified service."
@@ -56,7 +70,13 @@ export class RunServiceCommand extends Command<Args, Opts> {
   arguments = runServiceArgs
   options = runServiceOpts
 
-  async action({ garden, log, headerLog, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
+  async action({
+    garden,
+    log,
+    headerLog,
+    args,
+    opts,
+  }: CommandParams<Args, Opts>): Promise<CommandResult<RunServiceOutput>> {
     const serviceName = args.service
     const graph = await garden.getConfigGraph(log)
     const service = graph.getService(serviceName, true)
@@ -116,6 +136,12 @@ export class RunServiceCommand extends Command<Args, Opts> {
       timeout: 999999,
     })
 
-    return handleRunResult({ log, actionDescription: "run service", result, interactive })
+    return handleRunResult({
+      log,
+      actionDescription: "run service",
+      result,
+      interactive,
+      graphResults: dependencyResults,
+    })
   }
 }

@@ -18,6 +18,15 @@ export interface PublishResult {
   message?: string
 }
 
+export const publishResultSchema = () =>
+  joi.object().keys({
+    published: joi
+      .boolean()
+      .required()
+      .description("Set to true if the module was published."),
+    message: joi.string().description("Optional result message from the provider."),
+  })
+
 export const publishModule = () => ({
   description: dedent`
     Publish a built module to a remote registry.
@@ -25,11 +34,5 @@ export const publishModule = () => ({
     Called by the \`garden publish\` command.
   `,
   paramsSchema: moduleActionParamsSchema(),
-  resultSchema: joi.object().keys({
-    published: joi
-      .boolean()
-      .required()
-      .description("Set to true if the module was published."),
-    message: joi.string().description("Optional result message."),
-  }),
+  resultSchema: publishResultSchema(),
 })

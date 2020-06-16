@@ -24,7 +24,7 @@ import { ConfigGraph } from "../config-graph"
 import { makeTestTaskName } from "./helpers"
 import { BuildTask } from "./build"
 import { TaskTask } from "./task"
-import { TaskResults } from "../task-graph"
+import { GraphResults } from "../task-graph"
 import { Profile } from "../util/profiling"
 
 class TestError extends Error {
@@ -137,7 +137,7 @@ export class TestTask extends BaseTask {
     return `running ${this.testConfig.name} tests in module ${this.module.name}`
   }
 
-  async process(dependencyResults: TaskResults): Promise<TestResult> {
+  async process(dependencyResults: GraphResults): Promise<TestResult> {
     // find out if module has already been tested
     const testResult = await this.getTestResult()
 

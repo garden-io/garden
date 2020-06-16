@@ -11,8 +11,9 @@ import dedent = require("dedent")
 import { Command, CommandResult, CommandParams } from "../base"
 import { updateRemoteSources } from "./sources"
 import { updateRemoteModules } from "./modules"
-import { SourceConfig } from "../../config/project"
+import { SourceConfig, projectSourceSchema, moduleSourceSchema } from "../../config/project"
 import { printHeader } from "../../logger/util"
+import { joi, joiArray } from "../../config/common"
 
 export interface UpdateRemoteAllResult {
   projectSources: SourceConfig[]
@@ -22,6 +23,16 @@ export interface UpdateRemoteAllResult {
 export class UpdateRemoteAllCommand extends Command {
   name = "all"
   help = "Update all remote sources and modules."
+
+  workflows = true
+
+  outputsSchema = () =>
+    joi.object().keys({
+      projectSources: joiArray(projectSourceSchema()).description("A list of all configured external project sources."),
+      moduleSources: joiArray(moduleSourceSchema()).description(
+        "A list of all external module sources in the project."
+      ),
+    })
 
   description = dedent`
     Examples:

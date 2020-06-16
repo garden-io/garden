@@ -13,10 +13,11 @@ import chalk from "chalk"
 import { Command, StringsParameter, CommandResult, CommandParams, ParameterValues } from "../base"
 import { ParameterError } from "../../exceptions"
 import { pruneRemoteSources } from "./helpers"
-import { SourceConfig } from "../../config/project"
+import { SourceConfig, projectSourceSchema } from "../../config/project"
 import { printHeader } from "../../logger/util"
 import { Garden } from "../../garden"
 import { LogEntry } from "../../logger/log-entry"
+import { joiArray } from "../../config/common"
 
 const updateRemoteSourcesArguments = {
   sources: new StringsParameter({
@@ -30,6 +31,11 @@ export class UpdateRemoteSourcesCommand extends Command<Args> {
   name = "sources"
   help = "Update remote sources."
   arguments = updateRemoteSourcesArguments
+
+  workflows = true
+
+  outputsSchema = () =>
+    joiArray(projectSourceSchema()).description("A list of all configured external project sources.")
 
   description = dedent`
     Updates the remote sources declared in the project level \`garden.yml\` config file.

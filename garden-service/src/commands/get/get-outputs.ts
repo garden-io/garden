@@ -9,7 +9,7 @@
 import { Command, CommandResult, CommandParams, PrepareParams } from "../base"
 import { printHeader } from "../../logger/util"
 import { fromPairs } from "lodash"
-import { PrimitiveMap } from "../../config/common"
+import { PrimitiveMap, joiVariables } from "../../config/common"
 import { renderTable, dedent } from "../../util/string"
 import chalk from "chalk"
 import { resolveProjectOutputs } from "../../outputs"
@@ -17,6 +17,8 @@ import { resolveProjectOutputs } from "../../outputs"
 export class GetOutputsCommand extends Command {
   name = "outputs"
   help = "Resolves and returns the outputs of the project."
+
+  workflows = true
 
   description = dedent`
     Resolves and returns the outputs of the project. If necessary, this may involve deploying services and/or running
@@ -28,6 +30,8 @@ export class GetOutputsCommand extends Command {
         garden get outputs --env=prod      # resolve and print the outputs from the project for the prod environment
         garden get outputs --output=json   # resolve and return the project outputs in JSON format
   `
+
+  outputsSchema = () => joiVariables().description("A map of all the defined project outputs, fully resolved.")
 
   async prepare({ headerLog }: PrepareParams) {
     printHeader(headerLog, "Resolving project outputs", "notebook")

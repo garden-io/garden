@@ -155,6 +155,15 @@ export interface SourceConfig {
   repositoryUrl: string
 }
 
+export const moduleSourceSchema = () =>
+  joi.object().keys({
+    name: joiUserIdentifier()
+      .required()
+      .description("The name of the module.")
+      .example("my-external-module"),
+    repositoryUrl: joiRepositoryUrl().required(),
+  })
+
 export const projectSourceSchema = () =>
   joi.object().keys({
     name: joiUserIdentifier()
@@ -168,6 +177,18 @@ export const projectSourcesSchema = () =>
   joiArray(projectSourceSchema())
     .unique("name")
     .description("A list of remote sources to import into project.")
+
+export const linkedSourceSchema = () =>
+  joi.object().keys({
+    name: joiUserIdentifier().description("The name of the linked source."),
+    path: joi.string().description("The local directory path of the linked repo clone."),
+  })
+
+export const linkedModuleSchema = () =>
+  joi.object().keys({
+    name: joiUserIdentifier().description("The name of the linked module."),
+    path: joi.string().description("The local directory path of the linked repo clone."),
+  })
 
 export interface OutputSpec {
   name: string

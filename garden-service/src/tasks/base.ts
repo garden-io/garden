@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { TaskResults } from "../task-graph"
+import { GraphResults } from "../task-graph"
 import { ModuleVersion } from "../vcs/vcs"
 import { v1 as uuidv1 } from "uuid"
 import { Garden } from "../garden"
@@ -89,10 +89,10 @@ export abstract class BaseTask {
 
   abstract getDescription(): string
 
-  abstract async process(dependencyResults: TaskResults): Promise<any>
+  abstract async process(dependencyResults: GraphResults): Promise<any>
 }
 
-export function getServiceStatuses(dependencyResults: TaskResults): { [name: string]: ServiceStatus } {
+export function getServiceStatuses(dependencyResults: GraphResults): { [name: string]: ServiceStatus } {
   const getServiceStatusResults = pickBy(dependencyResults, (r) => r && r.type === "get-service-status")
   const deployResults = pickBy(dependencyResults, (r) => r && r.type === "deploy")
   // DeployTask results take precedence over GetServiceStatusTask results, because status changes after deployment
@@ -101,7 +101,7 @@ export function getServiceStatuses(dependencyResults: TaskResults): { [name: str
   return mapKeys(statuses, (_, key) => splitLast(key, ".")[1])
 }
 
-export function getRunTaskResults(dependencyResults: TaskResults): { [name: string]: RunTaskResult } {
+export function getRunTaskResults(dependencyResults: GraphResults): { [name: string]: RunTaskResult } {
   const storedResults = pickBy(dependencyResults, (r) => r && r.type === "get-task-result")
   const runResults = pickBy(dependencyResults, (r) => r && r.type === "task")
   // TaskTask results take precedence over GetTaskResultTask results

@@ -15,8 +15,9 @@ import {
   handleProcessResults,
   StringsParameter,
   PrepareParams,
+  ProcessCommandResult,
+  processCommandResultSchema,
 } from "./base"
-import { TaskResults } from "../task-graph"
 import dedent from "dedent"
 import { processModules } from "../process"
 import { printHeader } from "../logger/util"
@@ -45,7 +46,9 @@ type Opts = typeof buildOpts
 export class BuildCommand extends Command<Args, Opts> {
   name = "build"
   help = "Build your modules."
+
   protected = true
+  workflows = true
 
   description = dedent`
     Builds all or specified modules, taking into account build dependency order.
@@ -61,6 +64,8 @@ export class BuildCommand extends Command<Args, Opts> {
 
   arguments = buildArgs
   options = buildOpts
+
+  outputsSchema = () => processCommandResultSchema()
 
   private server: GardenServer
   private isPersistent = (opts) => !!opts.watch
@@ -83,7 +88,7 @@ export class BuildCommand extends Command<Args, Opts> {
     footerLog,
     args,
     opts,
-  }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
+  }: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
     if (!this.isPersistent(opts)) {
       printHeader(headerLog, "Build", "hammer")
     }

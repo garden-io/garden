@@ -159,9 +159,13 @@ describe("RunWorkflowCommand", () => {
 
     const { result, errors } = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
 
+    if (errors) {
+      throw errors[0]
+    }
+
     expect(result).to.exist
     expect(errors).to.not.exist
-    expect(stripAnsi(result?.stepLogs[0]!).trim()).to.equal(dedent`
+    expect(stripAnsi(result?.steps["step-1"].log!).trim()).to.equal(dedent`
       Checking result...
       Done
       Running...
@@ -455,7 +459,7 @@ describe("RunWorkflowCommand", () => {
 
     expect(result).to.exist
     expect(errors).to.not.exist
-    expect(result?.stepLogs[0]).to.equal(garden.projectRoot)
+    expect(result?.steps["step-1"].log).to.equal(garden.projectRoot)
   })
 
   it("should collect log outputs, including stderr, from a script step", async () => {
@@ -481,7 +485,7 @@ describe("RunWorkflowCommand", () => {
 
     expect(result).to.exist
     expect(errors).to.not.exist
-    expect(result?.stepLogs[0]).to.equal("stdout\nstderr")
+    expect(result?.steps["step-1"].log).to.equal("stdout\nstderr")
   })
 
   it("should throw if a script step fails", async () => {
@@ -500,6 +504,125 @@ describe("RunWorkflowCommand", () => {
 
     expect(errors![0].message).to.equal("Script exited with code 1")
     expect(errors![0].detail.stdout).to.equal("boo!")
+  })
+
+  it("should include outputs from steps in the command output", async () => {
+    garden.setWorkflowConfigs([
+      {
+        apiVersion: DEFAULT_API_VERSION,
+        name: "workflow-a",
+        kind: "Workflow",
+        path: garden.projectRoot,
+        files: [],
+        steps: [
+          {
+            command: ["get", "config"],
+          },
+          {
+            command: ["run", "task", "task-a"],
+          },
+        ],
+      },
+    ])
+
+    const { result, errors } = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
+
+    if (errors) {
+      throw errors[0]
+    }
+
+    const config = await garden.dumpConfig(garden.log)
+
+    expect(result).to.exist
+    expect(errors).to.not.exist
+    expect(result?.steps["step-1"].outputs).to.eql(config)
+    expect(result?.steps["step-2"].outputs["result"]!["outputs"]["log"]).to.eql("echo OK")
+  })
+
+  it("should use explicit names for steps if specified", async () => {
+    garden.setWorkflowConfigs([
+      {
+        apiVersion: DEFAULT_API_VERSION,
+        name: "workflow-a",
+        kind: "Workflow",
+        path: garden.projectRoot,
+        files: [],
+        steps: [
+          {
+            name: "test",
+            command: ["run", "task", "task-a"],
+          },
+        ],
+      },
+    ])
+
+    const { result, errors } = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
+
+    if (errors) {
+      throw errors[0]
+    }
+
+    expect(result).to.exist
+    expect(errors).to.not.exist
+    expect(result?.steps["test"].outputs["result"]!["outputs"]["log"]).to.eql("echo OK")
+  })
+
+  it("should resolve references to previous steps when running a command step", async () => {
+    garden.setWorkflowConfigs([
+      {
+        apiVersion: DEFAULT_API_VERSION,
+        name: "workflow-a",
+        kind: "Workflow",
+        path: garden.projectRoot,
+        files: [],
+        steps: [
+          {
+            command: ["get", "outputs"],
+          },
+          {
+            command: ["run", "task", "${steps.step-1.outputs.taskName}"],
+          },
+        ],
+      },
+    ])
+
+    const { result, errors } = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
+
+    if (errors) {
+      throw errors[0]
+    }
+
+    expect(result).to.exist
+    expect(result?.steps["step-2"].outputs["result"]!["outputs"]["log"]).to.equal("echo OK")
+  })
+
+  it("should resolve references to previous steps when running a script step", async () => {
+    garden.setWorkflowConfigs([
+      {
+        apiVersion: DEFAULT_API_VERSION,
+        name: "workflow-a",
+        kind: "Workflow",
+        path: garden.projectRoot,
+        files: [],
+        steps: [
+          {
+            command: ["get", "outputs"],
+          },
+          {
+            script: "echo ${steps.step-1.outputs.taskName}",
+          },
+        ],
+      },
+    ])
+
+    const { result, errors } = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
+
+    if (errors) {
+      throw errors[0]
+    }
+
+    expect(result).to.exist
+    expect(result?.steps["step-2"].log).to.equal("task-a")
   })
 })
 

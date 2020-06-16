@@ -21,8 +21,10 @@ import {
   handleRunResult,
   StringParameter,
   StringsParameter,
+  ProcessResultMetadata,
 } from "../base"
 import { printRuntimeContext } from "./run"
+import { GraphResults } from "../../task-graph"
 
 const runModuleArgs = {
   module: new StringParameter({
@@ -60,6 +62,11 @@ const runModuleOpts = {
 type Args = typeof runModuleArgs
 type Opts = typeof runModuleOpts
 
+interface RunModuleOutput {
+  result: RunResult & ProcessResultMetadata
+  graphResults: GraphResults
+}
+
 export class RunModuleCommand extends Command<Args, Opts> {
   name = "module"
   help = "Run an ad-hoc instance of a module."
@@ -80,7 +87,13 @@ export class RunModuleCommand extends Command<Args, Opts> {
   arguments = runModuleArgs
   options = runModuleOpts
 
-  async action({ garden, log, headerLog, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunResult>> {
+  async action({
+    garden,
+    log,
+    headerLog,
+    args,
+    opts,
+  }: CommandParams<Args, Opts>): Promise<CommandResult<RunModuleOutput>> {
     const moduleName = args.module
 
     const graph = await garden.getConfigGraph(log)
@@ -101,7 +114,7 @@ export class RunModuleCommand extends Command<Args, Opts> {
       module,
       force: opts["force-build"],
     })
-    await garden.processTasks(buildTasks)
+    const graphResults = await garden.processTasks(buildTasks)
 
     const dependencies = graph.getDependencies({ nodeType: "build", name: module.name, recursive: false })
     const interactive = opts.interactive
@@ -133,6 +146,6 @@ export class RunModuleCommand extends Command<Args, Opts> {
       timeout: interactive ? 999999 : undefined,
     })
 
-    return handleRunResult({ log, actionDescription: "run module", result, interactive })
+    return handleRunResult({ log, actionDescription: "run module", result, interactive, graphResults })
   }
 }

@@ -11,21 +11,25 @@ import chalk from "chalk"
 import dedent = require("dedent")
 import inquirer = require("inquirer")
 import stripAnsi from "strip-ansi"
-import { range } from "lodash"
+import { range, fromPairs } from "lodash"
 import minimist from "minimist"
 
 import { GlobalOptions } from "../cli/cli"
-import { joi } from "../config/common"
+import { joi, joiIdentifierMap, joiStringMap } from "../config/common"
 import { GardenError, InternalError, RuntimeError, ParameterError } from "../exceptions"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { LoggerType } from "../logger/logger"
 import { printFooter, renderMessageWithDivider } from "../logger/util"
 import { ProcessResults } from "../process"
-import { TaskResults, TaskResult } from "../task-graph"
+import { GraphResults, GraphResult } from "../task-graph"
 import { RunResult } from "../types/plugin/base"
 import { capitalize } from "lodash"
 import { parseEnvironment } from "../config/project"
+import { getDurationMsec, splitFirst } from "../util/util"
+import { buildResultSchema, BuildResult } from "../types/plugin/module/build"
+import { ServiceStatus, serviceStatusSchema } from "../types/service"
+import { TestResult, testResultSchema } from "../types/plugin/module/getTestResult"
 
 export interface ParameterConstructor<T> {
   help: string
@@ -273,11 +277,13 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   arguments?: T
   options?: U
 
-  cliOnly: boolean = false
-  noProject: boolean = false
-  hidden: boolean = false
+  outputsSchema?: () => Joi.Schema
 
+  cliOnly: boolean = false
+  hidden: boolean = false
+  noProject: boolean = false
   protected: boolean = false
+  workflows: boolean = false // Set to true to whitelist for executing in workflow steps
 
   subCommands: CommandConstructor[] = []
 
@@ -305,8 +311,15 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
     return !!this.parent ? `${this.parent.getFullName()} ${this.name}` : this.name
   }
 
+  getPath() {
+    return !!this.parent ? [...this.parent.getPath(), this.name] : [this.name]
+  }
+
   getSubCommands(): Command[] {
-    return this.subCommands.map((cls) => new cls(this))
+    return this.subCommands.flatMap((cls) => {
+      const cmd = new cls(this)
+      return [cmd, ...cmd.getSubCommands()]
+    })
   }
 
   getLoggerType(_: CommandParamsBase<T, U>): LoggerType {
@@ -402,17 +415,19 @@ export function printResult({
  * Handles the command result and logging for commands the return a result of type RunResult. E.g.
  * the `run test` and `run service` commands.
  */
-export async function handleRunResult({
+export async function handleRunResult<T extends RunResult>({
   log,
   actionDescription,
+  graphResults,
   result,
   interactive,
 }: {
   log: LogEntry
   actionDescription: string
-  result: RunResult
+  graphResults: GraphResults
+  result: T
   interactive: boolean
-}): Promise<CommandResult<RunResult>> {
+}) {
   if (!interactive && result.log) {
     printResult({ log, result: result.log, success: result.success, actionDescription })
   }
@@ -428,7 +443,14 @@ export async function handleRunResult({
     printFooter(log)
   }
 
-  return { result }
+  const resultWithMetadata = {
+    ...result,
+    aborted: false,
+    durationMsec: getDurationMsec(result.startedAt, result.completedAt),
+    version: result.version,
+  }
+
+  return { result: { result: resultWithMetadata, graphResults } }
 }
 
 /**
@@ -438,12 +460,16 @@ export async function handleRunResult({
 export async function handleTaskResult({
   log,
   actionDescription,
-  result,
+  graphResults,
+  key,
 }: {
   log: LogEntry
   actionDescription: string
-  result: TaskResult
-}): Promise<CommandResult<TaskResult>> {
+  graphResults: GraphResults
+  key: string
+}) {
+  const result = graphResults[key]!
+
   // If there's an error, the task graph prints it
   if (!result.error && result.output.log) {
     printResult({ log, result: result.output.log, success: true, actionDescription })
@@ -458,8 +484,58 @@ export async function handleTaskResult({
 
   printFooter(log)
 
-  return { result }
+  return { result: { result: prepareProcessResult(result), graphResults } }
 }
+
+export type ProcessResultMetadata = {
+  aborted: boolean
+  durationMsec?: number
+  success: boolean
+  error?: string
+  version?: string
+}
+
+export interface ProcessCommandResult {
+  builds: { [moduleName: string]: BuildResult & ProcessResultMetadata }
+  deployments: { [serviceName: string]: ServiceStatus & ProcessResultMetadata }
+  tests: { [testName: string]: TestResult & ProcessResultMetadata }
+  graphResults: GraphResults
+}
+
+export const resultMetadataKeys = () => ({
+  aborted: joi.boolean().description("Set to true if the build was not attempted, e.g. if a dependency build failed."),
+  durationMsec: joi
+    .number()
+    .integer()
+    .description("The duration of the build in msec, if applicable."),
+  success: joi
+    .boolean()
+    .required()
+    .description("Whether the build was succeessful."),
+  error: joi.string().description("An error message, if the build failed."),
+  version: joi.string().description("The version of the module, service, task or test."),
+})
+
+export const graphResultsSchema = () =>
+  joi
+    .object()
+    .description(
+      "A map of all raw graph results. Avoid using this programmatically if you can, and use more structured keys instead."
+    )
+
+export const processCommandResultSchema = () =>
+  joi.object().keys({
+    builds: joiIdentifierMap(buildResultSchema().keys(resultMetadataKeys())).description(
+      "A map of all modules that were built (or builds scheduled/attempted for) and information about the builds."
+    ),
+    deployments: joiIdentifierMap(serviceStatusSchema().keys(resultMetadataKeys())).description(
+      "A map of all services that were deployed (or deployment scheduled/attempted for) and the service status."
+    ),
+    tests: joiStringMap(testResultSchema().keys(resultMetadataKeys())).description(
+      "A map of all tests that were run (or scheduled/attempted) and the test results."
+    ),
+    graphResults: graphResultsSchema(),
+  })
 
 /**
  * Handles the command result and logging for commands the return results of type ProcessResults.
@@ -469,22 +545,58 @@ export async function handleProcessResults(
   log: LogEntry,
   taskType: string,
   results: ProcessResults
-): Promise<CommandResult<TaskResults>> {
+): Promise<CommandResult<ProcessCommandResult>> {
+  const graphResults = results.taskResults
+
+  const result = {
+    builds: prepareProcessResults("build", graphResults),
+    deployments: prepareProcessResults("deploy", graphResults),
+    tests: prepareProcessResults("test", graphResults),
+    graphResults,
+  }
+
   const failed = Object.values(results.taskResults).filter((r) => r && r.error).length
 
   if (failed) {
     const error = new RuntimeError(`${failed} ${taskType} task(s) failed!`, {
       results,
     })
-    return { errors: [error] }
+    return { result, errors: [error], restartRequired: false }
   }
 
   if (!results.restartRequired) {
     printFooter(log)
   }
   return {
-    result: results.taskResults,
+    result,
     restartRequired: results.restartRequired,
+  }
+}
+
+/**
+ * Extracts structured results for builds, deploys or tests from TaskGraph results, suitable for command output.
+ */
+export function prepareProcessResults(taskType: string, graphResults: GraphResults) {
+  const graphBuildResults = Object.entries(graphResults).filter(([name, _]) => name.split(".")[0] === taskType)
+
+  return fromPairs(
+    graphBuildResults.map(([name, graphResult]) => {
+      return [splitFirst(name, ".")[1], prepareProcessResult(graphResult)]
+    })
+  )
+}
+
+function prepareProcessResult(graphResult: GraphResult | null) {
+  return {
+    ...(graphResult?.output || {}),
+    aborted: !graphResult,
+    durationMsec:
+      graphResult?.startedAt &&
+      graphResult?.completedAt &&
+      getDurationMsec(graphResult?.startedAt, graphResult?.completedAt),
+    error: graphResult?.error?.message,
+    success: !!graphResult && !graphResult.error,
+    version: graphResult?.output?.version || graphResult?.version,
   }
 }
 

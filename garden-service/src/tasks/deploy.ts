@@ -17,7 +17,7 @@ import { TaskTask, getTaskVersion } from "./task"
 import { BuildTask } from "./build"
 import { ConfigGraph } from "../config-graph"
 import { startPortProxies } from "../proxy"
-import { TaskResults } from "../task-graph"
+import { GraphResults } from "../task-graph"
 import { prepareRuntimeContext } from "../runtime-context"
 import { GetServiceStatusTask } from "./get-service-status"
 import { GetTaskResultTask } from "./get-task-result"
@@ -151,7 +151,7 @@ export class DeployTask extends BaseTask {
     return `deploying service '${this.service.name}' (from module '${this.service.module.name}')`
   }
 
-  async process(dependencyResults: TaskResults): Promise<ServiceStatus> {
+  async process(dependencyResults: GraphResults): Promise<ServiceStatus> {
     let version = this.version
     const hotReload = includes(this.hotReloadServiceNames, this.service.name)
 

@@ -6,15 +6,29 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BooleanParameter, Command, CommandParams, CommandResult, handleProcessResults, StringsParameter } from "./base"
+import {
+  BooleanParameter,
+  Command,
+  CommandParams,
+  CommandResult,
+  handleProcessResults,
+  StringsParameter,
+  ProcessCommandResult,
+  ProcessResultMetadata,
+  prepareProcessResults,
+  processCommandResultSchema,
+  resultMetadataKeys,
+} from "./base"
 import { Module } from "../types/module"
 import { PublishTask } from "../tasks/publish"
-import { TaskResults } from "../task-graph"
+import { GraphResults } from "../task-graph"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { printHeader } from "../logger/util"
 import dedent = require("dedent")
 import { ConfigGraph } from "../config-graph"
+import { PublishResult, publishResultSchema } from "../types/plugin/module/publishModule"
+import { joiIdentifierMap } from "../config/common"
 
 export const publishArgs = {
   modules: new StringsParameter({
@@ -36,9 +50,15 @@ export const publishOpts = {
 type Args = typeof publishArgs
 type Opts = typeof publishOpts
 
+interface PublishCommandResult extends ProcessCommandResult {
+  published: { [moduleName: string]: PublishResult & ProcessResultMetadata }
+}
+
 export class PublishCommand extends Command<Args, Opts> {
   name = "publish"
   help = "Build and publish module(s) to a remote registry."
+
+  workflows = true
 
   description = dedent`
     Publishes built module artifacts for all or specified modules.
@@ -55,6 +75,13 @@ export class PublishCommand extends Command<Args, Opts> {
   arguments = publishArgs
   options = publishOpts
 
+  outputsSchema = () =>
+    processCommandResultSchema().keys({
+      published: joiIdentifierMap(publishResultSchema().keys(resultMetadataKeys())).description(
+        "A map of all modules that were published (or scheduled/attempted for publishing) and the results."
+      ),
+    })
+
   async action({
     garden,
     log,
@@ -62,7 +89,7 @@ export class PublishCommand extends Command<Args, Opts> {
     footerLog,
     args,
     opts,
-  }: CommandParams<Args, Opts>): Promise<CommandResult<TaskResults>> {
+  }: CommandParams<Args, Opts>): Promise<CommandResult<PublishCommandResult>> {
     printHeader(headerLog, "Publish modules", "rocket")
 
     const graph = await garden.getConfigGraph(log)
@@ -77,7 +104,15 @@ export class PublishCommand extends Command<Args, Opts> {
       allowDirty: !!opts["allow-dirty"],
     })
 
-    return handleProcessResults(footerLog, "publish", { taskResults: results })
+    const output = await handleProcessResults(footerLog, "publish", { taskResults: results })
+
+    return {
+      ...output,
+      result: {
+        ...output.result!,
+        published: prepareProcessResults("publish", output.result!.graphResults),
+      },
+    }
   }
 }
 
@@ -95,7 +130,7 @@ export async function publishModules({
   modules: Module<any>[]
   forceBuild: boolean
   allowDirty: boolean
-}): Promise<TaskResults> {
+}): Promise<GraphResults> {
   if (!!allowDirty) {
     log.warn(`The --allow-dirty flag has been deprecated. It no longer has an effect.`)
   }

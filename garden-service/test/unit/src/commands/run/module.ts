@@ -13,6 +13,7 @@ import { RunModuleCommand } from "../../../../../src/commands/run/module"
 import { Garden } from "../../../../../src/garden"
 import { RunResult } from "../../../../../src/types/plugin/base"
 import { makeTestGardenA, testModuleVersion, testNow, withDefaultGlobalOpts } from "../../../../helpers"
+import { omit } from "lodash"
 
 describe("RunModuleCommand", () => {
   // TODO: test optional flags
@@ -40,7 +41,8 @@ describe("RunModuleCommand", () => {
       }),
     })
 
-    const expected: RunResult = {
+    const expected = {
+      aborted: false,
       moduleName: "module-a",
       command: [],
       completedAt: testNow,
@@ -50,7 +52,9 @@ describe("RunModuleCommand", () => {
       success: true,
     }
 
-    expect(result).to.eql(expected)
+    expect(result!.result.durationMsec).to.gte(0)
+
+    expect(omit(result!.result, ["durationMsec"])).to.eql(expected)
   })
 
   it("should run a module with an arguments param", async () => {
@@ -68,7 +72,8 @@ describe("RunModuleCommand", () => {
       }),
     })
 
-    const expected: RunResult = {
+    const expected = {
+      aborted: false,
       moduleName: "module-a",
       command: ["my", "command"],
       completedAt: testNow,
@@ -78,7 +83,9 @@ describe("RunModuleCommand", () => {
       success: true,
     }
 
-    expect(result).to.eql(expected)
+    expect(result!.result.durationMsec).to.gte(0)
+
+    expect(omit(result!.result, ["durationMsec"])).to.eql(expected)
   })
 
   it("should run a module with a command option", async () => {
@@ -96,7 +103,8 @@ describe("RunModuleCommand", () => {
       }),
     })
 
-    const expected: RunResult = {
+    const expected = {
+      aborted: false,
       moduleName: "module-a",
       command: ["/bin/sh", "-c", "my", "command"],
       completedAt: testNow,
@@ -106,6 +114,8 @@ describe("RunModuleCommand", () => {
       success: true,
     }
 
-    expect(result).to.eql(expected)
+    expect(result!.result.durationMsec).to.gte(0)
+
+    expect(omit(result!.result, ["durationMsec"])).to.eql(expected)
   })
 })

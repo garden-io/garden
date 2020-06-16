@@ -17,7 +17,7 @@ import { Garden } from "../garden"
 import { joi } from "../config/common"
 import { KeyedSet } from "../util/keyed-set"
 import { RuntimeContext } from "../runtime-context"
-import { deline } from "../util/string"
+import { deline, dedent } from "../util/string"
 import { getProviderUrl, getModuleTypeUrl } from "../docs/common"
 import { Module } from "../types/module"
 import { ModuleConfig } from "./module"
@@ -324,6 +324,133 @@ class EnvironmentContext extends ConfigContext {
   }
 }
 
+export class WorkflowConfigContext extends ProjectConfigContext {
+  @schema(
+    EnvironmentContext.getSchema().description("Information about the environment that Garden is running against.")
+  )
+  public environment: EnvironmentContext
+
+  @schema(
+    joiVariables()
+      .description("A map of all variables defined in the project configuration.")
+      .meta({ keyPlaceholder: "<variable-name>" })
+  )
+  public variables: DeepPrimitiveMap
+
+  @schema(joiIdentifierMap(joiPrimitive()).description("Alias for the variables field."))
+  public var: DeepPrimitiveMap
+
+  @schema(
+    joiStringMap(joi.string().description("The secret's value."))
+      .description("A map of all secrets for this project in the current environment.")
+      .meta({
+        internal: true,
+        keyPlaceholder: "<secret-name>",
+      })
+  )
+  public secrets: PrimitiveMap
+
+  // We ignore step references here, and keep for later resolution
+  public steps: Map<string, WorkflowStepContext | ErrorContext> | PassthroughContext
+
+  constructor(garden: Garden, variables: DeepPrimitiveMap, secrets: PrimitiveMap) {
+    super({ projectName: garden.projectName, artifactsPath: garden.artifactsPath, username: garden.username })
+
+    const fullEnvName = garden.namespace ? `${garden.namespace}.${garden.environmentName}` : garden.environmentName
+    this.environment = new EnvironmentContext(this, garden.environmentName, fullEnvName, garden.namespace)
+
+    this.project = new ProjectContext(this, garden.projectName)
+
+    this.var = this.variables = variables
+    this.secrets = secrets
+
+    this.steps = new PassthroughContext()
+  }
+}
+
+export class WorkflowStepContext extends ConfigContext {
+  @schema(joi.string().description("The full output log from the step."))
+  public log: string
+
+  @schema(
+    joiVariables()
+      // TODO: populate and then link to command docs
+      .description(
+        dedent`
+        The outputs returned by the step, as a mapping. Script steps will always have \`stdout\` and \`stderr\` keys.
+        Command steps return different keys, including potentially nested maps and arrays. Please refer to each command
+        for its output schema.
+        `
+      )
+      .example({ stdout: "my script output" })
+      .meta({ keyPlaceholder: "<output-key>" })
+  )
+  public outputs: DeepPrimitiveMap
+
+  constructor(root: ConfigContext, stepResult: WorkflowStepResult) {
+    super(root)
+    this.log = stepResult.log
+    this.outputs = stepResult.outputs
+  }
+}
+
+export interface WorkflowStepResult {
+  number: number
+  outputs: DeepPrimitiveMap
+  log: string
+}
+
+export class WorkflowStepConfigContext extends WorkflowConfigContext {
+  @schema(
+    joiIdentifierMap(WorkflowStepContext.getSchema())
+      .description(
+        dedent`
+        Reference previous steps in a workflow. Only available in the \`steps[].command\` and \`steps[].script\` fields.
+        The name of the step should be the explicitly set \`name\` of the other step, or if one is not set, use
+        \`step-<n>\`, where <n> is the sequential number of the step (starting from 1).
+        `
+      )
+      .meta({ keyPlaceholder: "<step-name>" })
+  )
+  public steps: Map<string, WorkflowStepContext | ErrorContext>
+
+  constructor({
+    allStepNames,
+    garden,
+    resolvedSteps,
+    stepName,
+  }: {
+    allStepNames: string[]
+    garden: Garden
+    resolvedSteps: { [name: string]: WorkflowStepResult }
+    stepName: string
+  }) {
+    super(garden, garden.variables, garden.secrets)
+
+    this.steps = new Map<string, WorkflowStepContext | ErrorContext>()
+
+    for (const name of allStepNames) {
+      this.steps.set(
+        name,
+        new ErrorContext(
+          `Step ${name} is referenced in a template for step ${stepName}, but step ${name} is later in the execution order. Only previous steps in the workflow can be referenced.`
+        )
+      )
+    }
+
+    this.steps.set(
+      stepName,
+      new ErrorContext(
+        `Step ${stepName} references itself in a template. Only previous steps in the workflow can be referenced.`
+      )
+    )
+
+    for (const [name, result] of Object.entries(resolvedSteps)) {
+      this.steps.set(name, new WorkflowStepContext(this, result))
+    }
+  }
+}
+
 class ProviderContext extends ConfigContext {
   @schema(
     joi
@@ -363,12 +490,7 @@ class ProviderContext extends ConfigContext {
   }
 }
 
-export class ProviderConfigContext extends ProjectConfigContext {
-  @schema(
-    EnvironmentContext.getSchema().description("Information about the environment that Garden is running against.")
-  )
-  public environment: EnvironmentContext
-
+export class ProviderConfigContext extends WorkflowConfigContext {
   @schema(
     joiIdentifierMap(ProviderContext.getSchema())
       .description("Retrieve information about providers that are defined in the project.")
@@ -376,40 +498,10 @@ export class ProviderConfigContext extends ProjectConfigContext {
   )
   public providers: Map<string, ProviderContext>
 
-  @schema(
-    joiVariables()
-      .description("A map of all variables defined in the project configuration.")
-      .meta({ keyPlaceholder: "<variable-name>" })
-  )
-  public variables: DeepPrimitiveMap
-
-  @schema(joiIdentifierMap(joiPrimitive()).description("Alias for the variables field."))
-  public var: DeepPrimitiveMap
-
-  @schema(
-    joiStringMap(joi.string().description("The secret's value."))
-      .description("A map of all secrets for this project in the current environment.")
-      .meta({
-        internal: true,
-        keyPlaceholder: "<secret-name>",
-      })
-  )
-  public secrets: PrimitiveMap
-
   constructor(garden: Garden, resolvedProviders: ProviderMap, variables: DeepPrimitiveMap, secrets: PrimitiveMap) {
-    super({ projectName: garden.projectName, artifactsPath: garden.artifactsPath, username: garden.username })
+    super(garden, variables, secrets)
 
-    const _this = this
-
-    const fullEnvName = garden.namespace ? `${garden.namespace}.${garden.environmentName}` : garden.environmentName
-    this.environment = new EnvironmentContext(this, garden.environmentName, fullEnvName, garden.namespace)
-
-    this.project = new ProjectContext(this, garden.projectName)
-
-    this.providers = new Map(Object.entries(mapValues(resolvedProviders, (p) => new ProviderContext(_this, p))))
-
-    this.var = this.variables = variables
-    this.secrets = secrets
+    this.providers = new Map(Object.entries(mapValues(resolvedProviders, (p) => new ProviderContext(this, p))))
   }
 }
 
@@ -514,7 +606,34 @@ export class TaskRuntimeContext extends ServiceRuntimeContext {
   public outputs: PrimitiveMap
 }
 
-class RuntimeConfigContext extends ConfigContext {
+/**
+ * Used to defer and return the template string back, when allowPartial=true.
+ */
+class PassthroughContext extends ConfigContext {
+  resolve(params: ContextResolveParams): ContextResolveOutput {
+    const opts = { ...(params.opts || {}), allowUndefined: params.opts.allowPartial || params.opts.allowUndefined }
+    const res = super.resolve({ ...params, opts })
+
+    if (res.resolved === undefined) {
+      if (params.opts.allowPartial) {
+        // If value can't be resolved and allowPartial is set, we defer the resolution by returning another template
+        // string, that can be resolved later.
+        const { key, nodePath } = params
+        const fullKey = nodePath.concat(key)
+        return { resolved: "${" + fullKey.join(".") + "}", partial: true }
+      } else {
+        // If undefined values are allowed, we simply return undefined (We know allowUndefined is set here, because
+        // otherwise an error would have been thrown by `super.resolve()` above).
+        return res
+      }
+    } else {
+      // Value successfully resolved
+      return res
+    }
+  }
+}
+
+class RuntimeConfigContext extends PassthroughContext {
   @schema(
     joiIdentifierMap(ServiceRuntimeContext.getSchema())
       .required()
@@ -547,44 +666,18 @@ class RuntimeConfigContext extends ConfigContext {
       }
     }
   }
-
-  resolve(params: ContextResolveParams): ContextResolveOutput {
-    // We're customizing the resolver so that we can defer and return the template string back
-    // for later resolution, but fail correctly when attempting to resolve the runtime templates.
-    const opts = { ...(params.opts || {}), allowUndefined: params.opts.allowPartial || params.opts.allowUndefined }
-    const res = super.resolve({ ...params, opts })
-
-    if (res.resolved === undefined) {
-      if (params.opts.allowPartial) {
-        // If value can't be resolved and allowPartial is set, we defer the resolution by returning another template
-        // string, that can be resolved later.
-        const { key, nodePath } = params
-        const fullKey = nodePath.concat(key)
-        return { resolved: "${" + fullKey.join(".") + "}", partial: true }
-      } else {
-        // If undefined values are allowed, we simply return undefined (We know allowUndefined is set here, because
-        // otherwise an error would have been thrown by `super.resolve()` above).
-        return res
-      }
-    } else {
-      // Value successfully resolved
-      return res
-    }
-  }
 }
 
 /**
- * Used to throw a specific error when a module attempts to reference itself.
+ * Used to throw a specific error, e.g. when a module attempts to reference itself.
  */
-class CircularContext extends ConfigContext {
-  constructor(private moduleName: string) {
+class ErrorContext extends ConfigContext {
+  constructor(private message: string) {
     super()
   }
 
   resolve({}): ContextResolveOutput {
-    throw new ConfigurationError(`Module ${chalk.white.bold(this.moduleName)} cannot reference itself.`, {
-      moduleName: this.moduleName,
-    })
+    throw new ConfigurationError(this.message, {})
   }
 }
 
@@ -639,7 +732,8 @@ export class ModuleConfigContext extends ProviderConfigContext {
     )
 
     if (moduleName) {
-      this.modules.set(moduleName, new CircularContext(moduleName))
+      // Throw specific error when attempting to resolve self
+      this.modules.set(moduleName, new ErrorContext(`Module ${chalk.white.bold(moduleName)} cannot reference itself.`))
     }
 
     this.runtime = new RuntimeConfigContext(this, runtimeContext)
@@ -675,11 +769,5 @@ export class OutputConfigContext extends ModuleConfigContext {
       dependencyVersions: versions,
       runtimeContext,
     })
-  }
-}
-
-export class WorkflowConfigContext extends ProviderConfigContext {
-  constructor(garden: Garden, resolvedProviders: ProviderMap, variables: DeepPrimitiveMap, secrets: PrimitiveMap) {
-    super(garden, resolvedProviders, variables, secrets)
   }
 }

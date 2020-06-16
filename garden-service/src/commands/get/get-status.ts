@@ -19,7 +19,9 @@ import { RunResult } from "../../types/plugin/base"
 import chalk from "chalk"
 import { deline } from "../../util/string"
 import { EnvironmentStatusMap } from "../../types/plugin/provider/getEnvironmentStatus"
-import { ServiceStatus } from "../../types/service"
+import { ServiceStatus, serviceStatusSchema } from "../../types/service"
+import { joi, joiIdentifierMap, joiStringMap } from "../../config/common"
+import { environmentStatusSchema } from "../../config/status"
 
 export type RunState = "outdated" | "succeeded" | "failed" | "not-implemented"
 
@@ -36,17 +38,39 @@ export interface TaskStatuses {
   [taskKey: string]: RunStatus
 }
 
+const runStatusSchema = () =>
+  joi.object().keys({
+    state: joi
+      .string()
+      .allow("outdated", "succeeded", "failed", "not-implemented")
+      .required(),
+    startedAt: joi.date().description("When the last run was started (if applicable)."),
+    completedAT: joi.date().description("When the last run completed (if applicable)."),
+  })
+
 // Value is "completed" if the test/task has been run for the current version.
 export interface StatusCommandResult {
   providers: EnvironmentStatusMap
   services: { [name: string]: ServiceStatus }
-  tests?: TestStatuses
-  tasks?: TaskStatuses
+  tests: TestStatuses
+  tasks: TaskStatuses
 }
 
 export class GetStatusCommand extends Command {
   name = "status"
-  help = "Outputs the status of your environment."
+  help = "Outputs the full status of your environment."
+
+  workflows = true
+
+  outputsSchema = () =>
+    joi.object().keys({
+      providers: joiIdentifierMap(environmentStatusSchema()).description(
+        "A map of statuses for each configured provider."
+      ),
+      services: joiIdentifierMap(serviceStatusSchema()).description("A map of statuses for each configured service."),
+      tasks: joiStringMap(runStatusSchema()).description("A map of statuses for each configured task."),
+      tests: joiStringMap(runStatusSchema()).description("A map of statuses for each configured test."),
+    })
 
   async action({ garden, log, opts }: CommandParams): Promise<CommandResult<StatusCommandResult>> {
     const actions = await garden.getActionRouter()
@@ -57,6 +81,8 @@ export class GetStatusCommand extends Command {
     let result: StatusCommandResult = {
       providers: envStatus,
       services: serviceStatuses,
+      tests: {},
+      tasks: {},
     }
 
     if (opts.output) {
