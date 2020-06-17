@@ -21,6 +21,7 @@ import { remove, readFile, pathExists } from "fs-extra"
 import { defaultDotIgnoreFiles } from "../../../../../src/util/fs"
 import { dedent } from "../../../../../src/util/string"
 import stripAnsi from "strip-ansi"
+import { LogEntry } from "../../../../../src/logger/log-entry"
 
 describe("RunWorkflowCommand", () => {
   const cmd = new RunWorkflowCommand()
@@ -61,6 +62,84 @@ describe("RunWorkflowCommand", () => {
 
     await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
   })
+
+  it("should add workflowStep metadata to log entries provided to steps", async () => {
+    const _garden = await makeTestGardenA()
+    const _log = _garden.log
+    const _defaultParams = {
+      garden: _garden,
+      log: _log,
+      headerLog: _log,
+      footerLog: _log,
+      opts: withDefaultGlobalOpts({}),
+    }
+    _garden.setWorkflowConfigs([
+      {
+        apiVersion: DEFAULT_API_VERSION,
+        name: "workflow-a",
+        kind: "Workflow",
+        path: garden.projectRoot,
+        steps: [{ command: ["deploy"] }, { command: ["test"] }],
+      },
+    ])
+
+    await cmd.action({ ..._defaultParams, args: { workflow: "workflow-a" } })
+    const entries = _garden.log.getChildEntries()
+    const runningWorkflowEntry = filterLogEntries(entries, /Running workflow/)[0]
+    const stepHeaderEntries = filterLogEntries(entries, /Running step/)
+    const stepBodyEntries = filterLogEntries(entries, /Starting processModules/)
+    const stepFooterEntries = filterLogEntries(entries, /Step.*completed/)
+    const workflowCompletedEntry = filterLogEntries(entries, /Workflow.*completed/)[0]
+
+    expect(runningWorkflowEntry).to.exist
+    expect(runningWorkflowEntry!.getMetadata()).to.eql({})
+    expect(stepHeaderEntries.map((e) => e.getMetadata())).to.eql([{}, {}], "stepHeaderEntries")
+
+    const stepBodyEntriesMetadata = stepBodyEntries.map((e) => e.getMetadata())
+    expect(stepBodyEntriesMetadata).to.eql(
+      [{ workflowStep: { index: 0 } }, { workflowStep: { index: 1 } }],
+      "stepBodyEntries"
+    )
+
+    expect(stepFooterEntries.map((e) => e.getMetadata())).to.eql([{}, {}], "stepFooterEntries")
+    expect(workflowCompletedEntry).to.exist
+    expect(workflowCompletedEntry!.getMetadata()).to.eql({}, "workflowCompletedEntry")
+  })
+
+  it("should emit workflow step events", async () => {
+    const _garden = await makeTestGardenA()
+    const _log = _garden.log
+    const _defaultParams = {
+      garden: _garden,
+      log: _log,
+      headerLog: _log,
+      footerLog: _log,
+      opts: withDefaultGlobalOpts({}),
+    }
+    _garden.setWorkflowConfigs([
+      {
+        apiVersion: DEFAULT_API_VERSION,
+        name: "workflow-a",
+        kind: "Workflow",
+        path: garden.projectRoot,
+        steps: [{ command: ["deploy"] }, { command: ["test"] }],
+      },
+    ])
+
+    await cmd.action({ ..._defaultParams, args: { workflow: "workflow-a" } })
+
+    const workflowEvents = getWorkflowEvents(_garden)
+    expect(workflowEvents).to.eql([
+      { name: "workflowStepProcessing", payload: { index: 0 } },
+      { name: "workflowStepComplete", payload: { index: 0 } },
+      { name: "workflowStepProcessing", payload: { index: 1 } },
+      { name: "workflowStepComplete", payload: { index: 1 } },
+    ])
+  })
+
+  function filterLogEntries(entries: LogEntry[], msgRegex: RegExp): LogEntry[] {
+    return entries.filter((e) => msgRegex.test(e.getMessageState().msg || ""))
+  }
 
   it("should collect log outputs from a command step", async () => {
     garden.setWorkflowConfigs([
@@ -225,6 +304,12 @@ describe("RunWorkflowCommand", () => {
       args: { workflow: "workflow-a" },
     })
     expect(testModuleLog.length).to.eql(0)
+
+    const workflowEvents = getWorkflowEvents(_garden)
+    expect(workflowEvents).to.eql([
+      { name: "workflowStepProcessing", payload: { index: 0 } },
+      { name: "workflowStepError", payload: { index: 0 } },
+    ])
   })
 
   it("should write a file with string data ahead of the run, before resolving providers", async () => {
@@ -417,3 +502,8 @@ describe("RunWorkflowCommand", () => {
     expect(errors![0].detail.stdout).to.equal("boo!")
   })
 })
+
+function getWorkflowEvents(garden: TestGarden) {
+  const eventNames = ["workflowStepProcessing", "workflowStepError", "workflowStepComplete"]
+  return garden.events.eventLog.filter((e) => eventNames.includes(e.name))
+}

@@ -60,6 +60,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
     args,
     opts,
   }: CommandParams<Args, {}>): Promise<CommandResult<WorkflowRunOutput>> {
+    const outerLog = log.placeholder()
     // Partially resolve the workflow config, and prepare any configured files before continuing
     const rawWorkflow = garden.getRawWorkflowConfig(args.workflow)
     const templateContext = new WorkflowConfigContext(garden, {}, garden.variables, garden.secrets)
@@ -82,14 +83,19 @@ export class RunWorkflowCommand extends Command<Args, {}> {
     }
 
     for (const [index, step] of steps.entries()) {
-      printStepHeader(log, index, steps.length, step.description)
+      printStepHeader(outerLog, index, steps.length, step.description)
 
-      const stepHeaderLog = log.placeholder({ indent: 1 })
-      const stepBodyLog = log.placeholder({ indent: 1 })
-      const stepFooterLog = log.placeholder({ indent: 1 })
+      const metadata = {
+        workflowStep: { index },
+      }
+      const stepHeaderLog = log.placeholder({ indent: 1, metadata })
+      const stepBodyLog = log.placeholder({ indent: 1, metadata })
+      const stepFooterLog = log.placeholder({ indent: 1, metadata })
+      garden.log.setState({ metadata })
       let commandResult: CommandResult
       const inheritedOpts = cloneDeep(opts)
 
+      garden.events.emit("workflowStepProcessing", { index })
       try {
         if (step.command) {
           commandResult = await runStepCommand({
@@ -111,17 +117,19 @@ export class RunWorkflowCommand extends Command<Args, {}> {
             footerLog: stepFooterLog,
           })
         } else {
+          garden.events.emit("workflowStepError", { index })
           throw new ConfigurationError(`Workflow steps must specify either a command or a script.`, { step })
         }
       } catch (err) {
+        garden.events.emit("workflowStepError", { index })
         printStepDuration({
-          log,
+          log: outerLog,
           stepIndex: index,
           stepCount: steps.length,
           durationSecs: stepBodyLog.getDuration(),
           success: false,
         })
-        printResult({ startedAt, log, workflow, success: false })
+        printResult({ startedAt, log: outerLog, workflow, success: false })
 
         logErrors(log, [err], index, steps.length, step.description)
         return { result, errors: [err] }
@@ -131,12 +139,14 @@ export class RunWorkflowCommand extends Command<Args, {}> {
       result.stepLogs[index.toString()] = stepBodyLog.toString((entry) => entry.level <= LogLevel.info)
 
       if (commandResult.errors) {
+        garden.events.emit("workflowStepError", { index })
         logErrors(log, commandResult.errors, index, steps.length, step.description)
         return { result, errors: commandResult.errors }
       }
 
+      garden.events.emit("workflowStepComplete", { index })
       printStepDuration({
-        log,
+        log: outerLog,
         stepIndex: index,
         stepCount: steps.length,
         durationSecs: stepBodyLog.getDuration(),
@@ -144,7 +154,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
       })
     }
 
-    printResult({ startedAt, log, workflow, success: true })
+    printResult({ startedAt, log: outerLog, workflow, success: true })
 
     return { result }
   }

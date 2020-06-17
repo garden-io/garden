@@ -9,7 +9,7 @@
 import uniqid from "uniqid"
 import { round } from "lodash"
 
-import { LogEntry, LogEntryParams } from "./log-entry"
+import { LogEntry, LogEntryParams, LogEntryMetadata } from "./log-entry"
 
 export enum LogLevel {
   error = 0,
@@ -29,6 +29,7 @@ export interface PlaceholderOpts {
   level?: number
   childEntriesInheritLevel?: boolean
   indent?: number
+  metadata?: LogEntryMetadata
 }
 
 export function resolveParams(level: LogLevel, params: string | LogEntryParams): CreateNodeParams {
