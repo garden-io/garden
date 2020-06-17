@@ -45,6 +45,31 @@ describe("LogEntry", () => {
     ]
     expect(indents).to.eql([undefined, 1, 2, 3, 2, 3])
   })
+  context("metadata", () => {
+    it("should pass on any metadata to placeholder or child nodes", () => {
+      const ph1 = logger.placeholder({ metadata: { foo: "bar" } })
+      const ph2 = ph1.placeholder()
+      const entry = logger.info({ msg: "hello", metadata: { foo: "bar" } })
+      const ph3 = entry.placeholder()
+      const nested = entry.info("nested")
+      const entry2 = logger.info("hello")
+      const ph4 = entry2.placeholder({ msg: "placeholder", metadata: { foo: "bar" } })
+      expect(ph1.metadata).to.eql({ foo: "bar" })
+      expect(ph2.metadata).to.eql({ foo: "bar" })
+      expect(ph3.metadata).to.eql({ foo: "bar" })
+      expect(ph4.metadata).to.eql({ foo: "bar" }, "ph4")
+      expect(entry.metadata).to.eql({ foo: "bar" })
+      expect(entry2.metadata).to.eql(undefined)
+      expect(nested.metadata).to.eql({ foo: "bar" })
+    })
+
+    it("should not set metadata on parent when creating placeholders or child nodes", () => {
+      const entry = logger.info("hello")
+      const ph = entry.placeholder({ metadata: { foo: "bar" } })
+      expect(entry.metadata).to.eql(undefined)
+      expect(ph.metadata).to.eql({ foo: "bar" })
+    })
+  })
   context("childEntriesInheritLevel is set to true", () => {
     it("should create a log entry whose children inherit the parent level", () => {
       const verbose = logger.verbose({ childEntriesInheritLevel: true })

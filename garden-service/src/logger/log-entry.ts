@@ -8,6 +8,7 @@
 
 import logSymbols from "log-symbols"
 import nodeEmoji from "node-emoji"
+import { cloneDeep, merge } from "lodash"
 
 import { LogNode, LogLevel, CreateNodeParams, PlaceholderOpts } from "./log-node"
 import { Omit } from "../util/util"
@@ -22,6 +23,7 @@ export type TaskLogStatus = "active" | "success" | "error"
 
 export interface LogEntryMetadata {
   task?: TaskMetadata
+  workflowStep?: WorkflowStepMetadata
 }
 
 export interface TaskMetadata {
@@ -31,6 +33,10 @@ export interface TaskMetadata {
   uid: string
   versionString: string
   durationMs?: number
+}
+
+export interface WorkflowStepMetadata {
+  index: number
 }
 
 export const EVENT_LOG_LEVEL = LogLevel.debug
@@ -190,6 +196,7 @@ export class LogEntry extends LogNode {
       ...params,
       indent,
       level,
+      metadata: merge(cloneDeep(this.metadata || {}), params.metadata || {}),
       root: this.root,
       parent: this,
     })
@@ -222,7 +229,12 @@ export class LogEntry extends LogNode {
     return { ...msgState }
   }
 
-  placeholder({ level = LogLevel.info, childEntriesInheritLevel = false, indent = 0 }: PlaceholderOpts = {}): LogEntry {
+  placeholder({
+    level = LogLevel.info,
+    childEntriesInheritLevel = false,
+    indent = 0,
+    metadata,
+  }: PlaceholderOpts = {}): LogEntry {
     // Ensure placeholder child entries align with parent context
     const indentForNode = Math.max((indent || this.indent || 0) - 1, -1)
     return this.addNode({
@@ -230,6 +242,7 @@ export class LogEntry extends LogNode {
       indent: indentForNode,
       childEntriesInheritLevel,
       isPlaceholder: true,
+      metadata,
     })
   }
 

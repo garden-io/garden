@@ -112,9 +112,9 @@ export class Logger extends LogNode {
     return new LogEntry({ ...params, root: this })
   }
 
-  placeholder({ level = LogLevel.info, indent }: PlaceholderOpts = {}): LogEntry {
+  placeholder({ level = LogLevel.info, indent, metadata }: PlaceholderOpts = {}): LogEntry {
     // Ensure placeholder child entries align with parent context
-    return this.addNode({ level, indent: indent || -1, isPlaceholder: true })
+    return this.addNode({ level, indent: indent || -1, isPlaceholder: true, metadata })
   }
 
   onGraphChange(entry: LogEntry) {

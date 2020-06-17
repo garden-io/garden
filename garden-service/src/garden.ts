@@ -141,7 +141,7 @@ export interface GardenParams {
 
 @Profile()
 export class Garden {
-  public readonly log: LogEntry
+  public log: LogEntry
   private loadedPlugins: GardenPlugin[]
   protected moduleConfigs: ModuleConfigMap
   protected workflowConfigs: WorkflowConfigMap
