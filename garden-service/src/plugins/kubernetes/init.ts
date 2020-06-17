@@ -379,7 +379,7 @@ export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams)
         const annotations = (await api.core.readNamespace(ns)).metadata.annotations || {}
         return annotations[gardenAnnotationKey("generated")] === "true" ? ns : null
       } catch (err) {
-        if (err.code === 404) {
+        if (err.statusCode === 404) {
           return null
         } else {
           throw err

@@ -161,7 +161,7 @@ async function getCertificateHostnames(api: KubeApi, cert: IngressTlsCertificate
     try {
       secret = await api.core.readNamespacedSecret(cert.secretRef.name, cert.secretRef.namespace)
     } catch (err) {
-      if (err.code === 404) {
+      if (err.statusCode === 404) {
         throw new ConfigurationError(
           `Cannot find Secret ${cert.secretRef.name} configured for TLS certificate ${cert.name}`,
           cert

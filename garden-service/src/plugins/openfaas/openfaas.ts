@@ -388,7 +388,7 @@ async function getServiceStatus({
   try {
     deployment = await api.apps.readNamespacedDeployment(service.name, namespace)
   } catch (err) {
-    if (err.code === 404) {
+    if (err.statusCode === 404) {
       return { state: "missing", detail: {} }
     } else {
       throw err

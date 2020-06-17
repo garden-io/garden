@@ -55,10 +55,10 @@ export async function getAllPods(
   defaultNamespace: string,
   resources: KubernetesResource[]
 ): Promise<KubernetesPod[]> {
-  const pods: KubernetesPod[] = flatten(
+  const pods: KubernetesServerResource<V1Pod>[] = flatten(
     await Bluebird.map(resources, async (resource) => {
       if (resource.apiVersion === "v1" && resource.kind === "Pod") {
-        return [<KubernetesPod>resource]
+        return [<KubernetesServerResource<V1Pod>>resource]
       }
 
       if (isWorkload(resource)) {
@@ -69,7 +69,7 @@ export async function getAllPods(
     })
   )
 
-  return <KubernetesPod[]>deduplicateResources(pods)
+  return <KubernetesServerResource<V1Pod>[]>deduplicateResources(pods)
 }
 
 /**
@@ -307,7 +307,7 @@ export async function upsertConfigMap({
   try {
     await api.core.createNamespacedConfigMap(namespace, <any>body)
   } catch (err) {
-    if (err.code === 409) {
+    if (err.statusCode === 409) {
       await api.core.patchNamespacedConfigMap(key, namespace, body)
     } else {
       throw err

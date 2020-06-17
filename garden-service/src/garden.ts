@@ -190,6 +190,7 @@ export class Garden {
     this.rawOutputs = params.outputs
     this.production = params.production
     this.projectName = params.projectName
+    this.projectId = params.projectId
     this.projectRoot = params.projectRoot
     this.projectSources = params.projectSources || []
     this.providerConfigs = params.providerConfigs
@@ -1092,6 +1093,7 @@ export class Garden {
         "name"
       ),
       projectRoot: this.projectRoot,
+      projectId: this.projectId,
     }
   }
 
@@ -1104,4 +1106,5 @@ export interface ConfigDump {
   variables: DeepPrimitiveMap
   moduleConfigs: ModuleConfig[]
   projectRoot: string
+  projectId: string | null
 }

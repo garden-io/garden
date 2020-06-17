@@ -428,4 +428,21 @@ describe("kubernetes build flow", () => {
       expect(status.ready).to.be.false
     })
   })
+
+  grouped("kaniko", "image-override", "remote-only").context("kaniko - image - override mode", () => {
+    before(async () => {
+      await init("kaniko-image-override")
+    })
+
+    it("should push to configured deploymentRegistry if specified", async () => {
+      const module = graph.getModule("remote-registry-test")
+      await garden.buildDir.syncFromSrc(module, garden.log)
+
+      await k8sBuildContainer({
+        ctx,
+        log: garden.log,
+        module,
+      })
+    })
+  })
 })

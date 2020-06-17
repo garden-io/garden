@@ -8,6 +8,7 @@
 
 import pRetry from "p-retry"
 import split2 = require("split2")
+import { differenceBy } from "lodash"
 import { ContainerModule, ContainerRegistryConfig } from "../../container/config"
 import { containerHelpers } from "../../container/helpers"
 import { buildContainerModule, getContainerBuildStatus, getDockerBuildFlags } from "../../container/build"
@@ -28,8 +29,8 @@ import { KubeApi } from "../api"
 import { kubectl } from "../kubectl"
 import { LogEntry } from "../../../logger/log-entry"
 import { getDockerAuthVolume } from "../util"
-import { KubernetesProvider, ContainerBuildMode, KubernetesPluginContext } from "../config"
-import { PluginError, InternalError, RuntimeError, BuildError } from "../../../exceptions"
+import { KubernetesProvider, ContainerBuildMode, KubernetesPluginContext, DEFAULT_KANIKO_IMAGE } from "../config"
+import { PluginError, InternalError, RuntimeError, BuildError, ConfigurationError } from "../../../exceptions"
 import { PodRunner } from "../run"
 import { getRegistryHostname, getKubernetesSystemVariables } from "../init"
 import { normalizeLocalRsyncPath } from "../../../util/fs"
@@ -42,8 +43,7 @@ import { getSystemNamespace, getAppNamespace } from "../namespace"
 import { dedent } from "../../../util/string"
 import chalk = require("chalk")
 import { loadImageToMicrok8s, getMicrok8sImageStatus } from "../local/microk8s"
-
-const kanikoImage = "gcr.io/kaniko-project/executor:debug-v0.21.0"
+import { RunResult } from "../../../types/plugin/base"
 
 const registryPort = 5000
 
@@ -293,7 +293,6 @@ const remoteBuild: BuildHandler = async (params) => {
   stdout.on("data", (line: Buffer) => {
     statusLine.setState(renderOutputStream(line.toString()))
   })
-
   if (provider.config.buildMode === "cluster-docker") {
     // Prepare the build command
     const dockerfilePath = posix.join(contextPath, dockerfile)
@@ -329,7 +328,7 @@ const remoteBuild: BuildHandler = async (params) => {
 
     const pushRes = await execInPod({ provider, log, args: pushArgs, timeout: 300, podName, containerName, stdout })
     buildLog += pushRes.stdout + pushRes.stderr
-  } else {
+  } else if (provider.config.buildMode === "kaniko") {
     // build with Kaniko
     const args = [
       "--context",
@@ -338,7 +337,7 @@ const remoteBuild: BuildHandler = async (params) => {
       dockerfile,
       "--destination",
       deploymentImageId,
-      "--cache=true",
+      ...getKanikoFlags(module.spec.extraFlags),
     ]
 
     if (provider.config.deploymentRegistry?.hostname === inClusterRegistryHostname) {
@@ -352,9 +351,11 @@ const remoteBuild: BuildHandler = async (params) => {
     const buildRes = await runKaniko({ provider, namespace, log, module, args, outputStream: stdout })
     buildLog = buildRes.log
 
-    if (!buildRes.success) {
+    if (kanikoBuildFailed(buildRes)) {
       throw new BuildError(`Failed building module ${chalk.bold(module.name)}:\n\n${buildLog}`, { buildLog })
     }
+  } else {
+    throw new ConfigurationError("Uknown build mode", { buildMode: provider.config.buildMode })
   }
 
   log.silly(buildLog)
@@ -378,6 +379,28 @@ export interface BuilderExecParams {
   containerName: string
   stdout?: Writable
   stderr?: Writable
+}
+
+export const DEFAULT_KANIKO_FLAGS = ["--cache=true"]
+
+export const getKanikoFlags = (flags?: string[]): string[] => {
+  if (!flags) {
+    return DEFAULT_KANIKO_FLAGS
+  }
+  const flagToKey = (flag) => {
+    const found = flag.match(/--([a-zA-Z]*)/)
+    if (found === null) {
+      throw new ConfigurationError(`Invalid format for a kaniko flag`, { flag })
+    }
+    return found[0]
+  }
+  const defaultsToKeep = differenceBy(DEFAULT_KANIKO_FLAGS, flags, flagToKey)
+
+  return [...flags, ...defaultsToKeep]
+}
+
+export function kanikoBuildFailed(buildRes: RunResult) {
+  return !buildRes.success && !buildRes.log.includes("cannot be overwritten because the repository is immutable.")
 }
 
 const buildHandlers: { [mode in ContainerBuildMode]: BuildHandler } = {
@@ -467,6 +490,8 @@ async function runKaniko({ provider, namespace, log, module, args, outputStream 
       fi
     done
   `
+
+  const kanikoImage = provider.config.kaniko?.image || DEFAULT_KANIKO_IMAGE
 
   const runner = new PodRunner({
     api,

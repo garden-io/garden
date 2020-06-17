@@ -24,5 +24,5 @@ export async function decryptSecretFile(path: string) {
   const ciphertext = await readFile(path)
   const [result] = await client.decrypt({ name, ciphertext })
 
-  return result.plaintext
+  return result.plaintext!
 }

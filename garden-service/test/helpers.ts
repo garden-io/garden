@@ -51,6 +51,7 @@ import { SuiteFunction, TestFunction } from "mocha"
 import { GardenBaseError } from "../src/exceptions"
 import { RuntimeContext } from "../src/runtime-context"
 import { Module } from "../src/types/module"
+import { AnalyticsGlobalConfig } from "../src/config-store"
 
 export const dataDir = resolve(GARDEN_SERVICE_ROOT, "test", "data")
 export const examplesDir = resolve(GARDEN_SERVICE_ROOT, "..", "examples")
@@ -615,4 +616,43 @@ export function grouped(...groups: string[]) {
     describe: wrapSuite(describe),
     context: wrapSuite(context),
   }
+}
+
+/**
+ * Helper function that enables analytics while testing by updating the global config
+ * and setting the appropriate environment variables.
+ *
+ * Returns a reset function that resets the config and environment variables to their
+ * previous state.
+ *
+ * Call this function in a `before` hook and the reset function in an `after` hook.
+ *
+ * NOTE: Network calls to the analytics endpoint should be mocked when unit testing analytics.
+ */
+export async function enableAnalytics(garden: TestGarden) {
+  const originalDisableAnalyticsEnvVar = process.env.GARDEN_DISABLE_ANALYTICS
+  const originalAnalyticsDevEnvVar = process.env.ANALYTICS_DEV
+
+  let originalAnalyticsConfig: AnalyticsGlobalConfig | undefined
+  // Throws if analytics is not set
+  try {
+    // Need to clone object!
+    originalAnalyticsConfig = { ...((await garden.globalConfigStore.get(["analytics"])) as AnalyticsGlobalConfig) }
+  } catch {}
+
+  await garden.globalConfigStore.set(["analytics", "optedIn"], true)
+  process.env.GARDEN_DISABLE_ANALYTICS = undefined
+  // Set the analytics mode to dev for good measure
+  process.env.ANALYTICS_DEV = "1"
+
+  const resetConfig = async () => {
+    if (originalAnalyticsConfig) {
+      await garden.globalConfigStore.set(["analytics"], originalAnalyticsConfig)
+    } else {
+      await garden.globalConfigStore.delete(["analytics"])
+    }
+    process.env.GARDEN_DISABLE_ANALYTICS = originalDisableAnalyticsEnvVar
+    process.env.ANALYTICS_DEV = originalAnalyticsDevEnvVar
+  }
+  return resetConfig
 }

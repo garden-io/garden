@@ -487,7 +487,7 @@ jobs:
 
   test-microk8s:
     machine:
-      image: 'ubuntu-1604:201903-01'
+      image: 'ubuntu-1604:202004-01'
       docker_layer_caching: true
     parameters:
       kubernetesVersion:
@@ -544,7 +544,7 @@ jobs:
 
   test-minikube:
     machine:
-      image: 'ubuntu-1604:201903-01'
+      image: 'ubuntu-1604:202004-01'
       docker_layer_caching: true
     parameters:
       kubernetesVersion:
@@ -586,10 +586,14 @@ jobs:
           command: cd garden-service && npm run integ-local -- -b
       - run:
           name: Deploy demo-project
-          command: sudo -E ./garden-service/bin/garden deploy --root examples/demo-project --logger-type basic
+          command: sudo -E ./garden-service/bin/garden deploy --root examples/demo-project
       - run:
           name: Deploy openfaas
-          command: sudo -E ./garden-service/bin/garden deploy --root examples/openfaas --logger-type basic
+          command: sudo -E ./garden-service/bin/garden deploy --root examples/openfaas
+      - run:
+          name: Run cluster cleanup
+          command: |
+            sudo -E ./garden-service/bin/garden plugins local-kubernetes cleanup-cluster-registry --root garden-service/test/data/test-projects/container --env cluster-docker
 
   test-windows:
     executor: win/vs2019
@@ -681,7 +685,7 @@ workflows:
       - build-docker-aws-gcloud:
           <<: *only-internal-prs
           context: docker
-          requires: [build-docker]    
+          requires: [build-docker]
       - build-docker-buster:
           <<: *only-internal-prs
           context: docker
@@ -706,39 +710,48 @@ workflows:
       - e2e-project:
           # Don't attempt to run e2e tests for external PRs (they won't have access to the required keys)
           <<: *only-internal-prs
+          name: e2e-demo-project
           project: demo-project
           environment: remote
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
+          name: e2e-deployment-strategies
           project: deployment-strategies
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
+          name: e2e-hot-reload
           project: hot-reload
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
+          name: e2e-openfaas
           project: openfaas
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
+          name: e2e-project-variables
           project: project-variables
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
+          name: e2e-remote-sources
           project: remote-sources
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
+          name: e2e-tasks
           project: tasks
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
+          name: e2e-vote
           project: vote
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
+          name: e2e-vote-helm
           project: vote-helm
           requires: [build]
 

@@ -676,7 +676,7 @@ describe("createIngressResources", () => {
     }
 
     const err: any = new Error("nope")
-    err.code = 404
+    err.statusCode = 404
     td.when(api.core.readNamespacedSecret("foo", "default")).thenReject(err)
 
     await expectError(
@@ -711,7 +711,7 @@ describe("createIngressResources", () => {
     const api = await getKubeApi(basicProvider)
 
     const err: any = new Error("nope")
-    err.code = 404
+    err.statusCode = 404
     td.when(api.core.readNamespacedSecret("foo", "default")).thenResolve({ data: {} })
 
     await expectError(
@@ -746,7 +746,7 @@ describe("createIngressResources", () => {
     const api = await getKubeApi(basicProvider)
 
     const err: any = new Error("nope")
-    err.code = 404
+    err.statusCode = 404
     td.when(api.core.readNamespacedSecret("foo", "default")).thenResolve({
       data: {
         "tls.crt": "blablablablablalbalblabl",

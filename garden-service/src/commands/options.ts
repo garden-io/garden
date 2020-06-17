@@ -73,7 +73,7 @@ export class OptionsCommand extends Command {
     const table = new CliTable({
       ...tableConfig,
       colWidths: [nameColWidth, textColWidth],
-    }) as CliTable.HorizontalTable
+    }) as CliTable.Table
 
     table.push(...zip(optNames, helpTexts))
 
