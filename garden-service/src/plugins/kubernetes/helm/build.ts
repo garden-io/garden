@@ -6,7 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { remove } from "fs-extra"
+import { move } from "fs-extra"
+import tmp from "tmp-promise"
 import { HelmModule } from "./config"
 import { containsBuildSource, getChartPath, getBaseModule } from "./common"
 import { helm } from "./helm-cli"
@@ -15,6 +16,7 @@ import { deline } from "../../../util/string"
 import { LogEntry } from "../../../logger/log-entry"
 import { KubernetesPluginContext } from "../config"
 import { BuildModuleParams, BuildResult } from "../../../types/plugin/module/build"
+import { basename, join } from "path"
 
 export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<HelmModule>): Promise<BuildResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
@@ -30,7 +32,7 @@ export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<He
     }
     log.debug("Fetching chart...")
     try {
-      await fetchChart(k8sCtx, log, module)
+      await pullChart(k8sCtx, log, module)
     } catch {
       // Update the local helm repos and retry
       log.debug("Updating Helm repos...")
@@ -42,24 +44,33 @@ export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<He
       })
       await helm({ ctx: k8sCtx, log, args: ["repo", "update"] })
       log.debug("Fetching chart (after updating)...")
-      await fetchChart(k8sCtx, log, module)
+      await pullChart(k8sCtx, log, module)
     }
   }
 
   return { fresh: true }
 }
 
-async function fetchChart(ctx: KubernetesPluginContext, log: LogEntry, module: HelmModule) {
-  const buildPath = module.buildPath
+async function pullChart(ctx: KubernetesPluginContext, log: LogEntry, module: HelmModule) {
+  const chartPath = await getChartPath(module)
+  const chartDir = basename(chartPath)
 
-  await remove(await getChartPath(module))
+  const tmpDir = await tmp.dir({ unsafeCleanup: true })
 
-  const fetchArgs = ["fetch", module.spec.chart!, "--destination", buildPath, "--untar"]
-  if (module.spec.version) {
-    fetchArgs.push("--version", module.spec.version)
+  try {
+    const args = ["pull", module.spec.chart!, "--untar", "--untardir", tmpDir.path]
+
+    if (module.spec.version) {
+      args.push("--version", module.spec.version)
+    }
+    if (module.spec.repo) {
+      args.push("--repo", module.spec.repo)
+    }
+
+    await helm({ ctx, log, args: [...args], cwd: tmpDir.path })
+
+    await move(join(tmpDir.path, chartDir), chartPath, { overwrite: true })
+  } finally {
+    await tmpDir.cleanup()
   }
-  if (module.spec.repo) {
-    fetchArgs.push("--repo", module.spec.repo)
-  }
-  await helm({ ctx, log, args: [...fetchArgs] })
 }

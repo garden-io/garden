@@ -111,6 +111,7 @@ export async function helm({
   args,
   version = 3,
   env = {},
+  cwd,
 }: {
   ctx: KubernetesPluginContext
   namespace?: string
@@ -118,6 +119,7 @@ export async function helm({
   args: string[]
   version?: 2 | 3
   env?: { [key: string]: string }
+  cwd?: string
 }) {
   const opts = ["--kube-context", ctx.provider.config.context]
 
@@ -151,5 +153,6 @@ export async function helm({
     env: envVars,
     // Helm itself will time out pretty reliably, so we shouldn't time out early on our side.
     timeout: 3600,
+    cwd,
   })
 }
