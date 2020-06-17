@@ -9,7 +9,7 @@
 import { resolve, relative } from "path"
 import { createGardenPlugin } from "../../types/plugin/plugin"
 import { providerConfigBaseSchema, ProviderConfig, Provider } from "../../config/provider"
-import { joi, joiIdentifier } from "../../config/common"
+import { joi, joiIdentifier, joiArray } from "../../config/common"
 import { dedent, naturalList } from "../../util/string"
 import { TestModuleParams } from "../../types/plugin/module/testModule"
 import { Module } from "../../types/module"
@@ -17,9 +17,14 @@ import { BinaryCmd } from "../../util/ext-tools"
 import chalk from "chalk"
 import { baseBuildSpecSchema } from "../../config/module"
 import { matchGlobs, listDirectory } from "../../util/fs"
-import { PluginError } from "../../exceptions"
+import { PluginError, ConfigurationError } from "../../exceptions"
 import { getModuleTypeUrl, getGitHubUrl, getProviderUrl } from "../../docs/common"
 import slash from "slash"
+import { ExecaReturnValue } from "execa"
+import { PluginContext } from "../../plugin-context"
+import { getK8sProvider } from "../openfaas/config"
+import { renderTemplates } from "../kubernetes/helm/common"
+import { LogEntry } from "../../logger/log-entry"
 
 export interface ConftestProviderConfig extends ProviderConfig {
   policyPath: string
@@ -65,6 +70,26 @@ const containerProviderUrl = getProviderUrl("conftest-container")
 const kubernetesProviderUrl = getProviderUrl("conftest-kubernetes")
 const gitHubUrl = getGitHubUrl("examples/conftest")
 
+const commonModuleSchema = joi.object().keys({
+  build: baseBuildSpecSchema(),
+  sourceModule: joiIdentifier().description("Specify a module whose sources we want to test."),
+  policyPath: joi
+    .posixPath()
+    .relativeOnly()
+    .description(
+      dedent`
+        POSIX-style path to a directory containing the policies to match the config against, or a
+        specific .rego file, relative to the module root.
+        Must be a relative path, and should in most cases be within the project root.
+        Defaults to the \`policyPath\` set in the provider config.
+      `
+    ),
+  namespace: joi
+    .string()
+    .default("main")
+    .description("The policy namespace in which to find _deny_ and _warn_ rules."),
+})
+
 export const gardenPlugin = createGardenPlugin({
   name: "conftest",
   docs: dedent`
@@ -87,24 +112,7 @@ export const gardenPlugin = createGardenPlugin({
 
         See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
       `,
-      schema: joi.object().keys({
-        build: baseBuildSpecSchema(),
-        sourceModule: joiIdentifier().description("Specify a module whose sources we want to test."),
-        policyPath: joi
-          .posixPath()
-          .relativeOnly()
-          .description(
-            dedent`
-              POSIX-style path to a directory containing the policies to match the config against, or a
-              specific .rego file, relative to the module root.
-              Must be a relative path, and should in most cases be within the project root.
-              Defaults to the \`policyPath\` set in the provider config.
-            `
-          ),
-        namespace: joi
-          .string()
-          .default("main")
-          .description("The policy namespace in which to find _deny_ and _warn_ rules."),
+      schema: commonModuleSchema.keys({
         files: joi
           .array()
           .items(
@@ -135,11 +143,6 @@ export const gardenPlugin = createGardenPlugin({
           const startedAt = new Date()
           const provider = ctx.provider as ConftestProvider
 
-          const defaultPolicyPath = relative(module.path, resolve(ctx.projectRoot, provider.config.policyPath))
-          // Make sure the policy path is valid POSIX on Windows
-          const policyPath = slash(resolve(module.path, module.spec.policyPath || defaultPolicyPath))
-          const namespace = module.spec.namespace || provider.config.namespace
-
           const buildPath = module.spec.sourceModule
             ? module.buildDependencies[module.spec.sourceModule].buildPath
             : module.buildPath
@@ -161,76 +164,85 @@ export const gardenPlugin = createGardenPlugin({
             }
           }
 
-          const args = ["test", "--policy", policyPath, "--output", "json"]
-          if (namespace) {
-            args.push("--namespace", namespace)
-          }
+          const args = prepareArgs(ctx, provider, module)
           args.push(...files)
 
           const result = await conftest.exec({ log, args, ignoreError: true, cwd: buildPath })
 
-          let success = true
-          let parsed: any = []
+          const { success, formattedResult } = parseConftestResult(provider, log, result)
 
-          try {
-            parsed = JSON.parse(result.stdout)
-          } catch (err) {
-            throw new PluginError(`Error running conftest: ${result.all}`, { result })
+          return {
+            testName: testConfig.name,
+            moduleName: module.name,
+            command: ["conftest", ...args],
+            version: module.version.versionString,
+            success,
+            startedAt,
+            completedAt: new Date(),
+            log: formattedResult,
+          }
+        },
+      },
+    },
+    {
+      name: "conftest-helm",
+      docs: dedent`
+        Special module type for validating helm modules with conftest. This is necessary in addition to the \`conftest\` module type in order to be able to properly render the Helm chart ahead of validation, including all runtime values.
+
+        If the helm module requires runtime outputs from other modules, you must list the corresponding dependencies with the \`runtimeDependencies\` field.
+
+        > Note: In most cases, you'll let the [\`conftest-kubernetes\`](${kubernetesProviderUrl}) provider create this module type automatically, but you may in some cases want or need to manually specify files to test.
+
+        See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
+      `,
+      schema: commonModuleSchema.keys({
+        sourceModule: joiIdentifier()
+          .required()
+          .description("Specify a helm module whose chart we want to test."),
+        runtimeDependencies: joiArray(joiIdentifier()).description(
+          "A list of runtime dependencies that need to be resolved before rendering the Helm chart."
+        ),
+      }),
+      handlers: {
+        configure: async ({ moduleConfig }) => {
+          moduleConfig.build.dependencies.push({ name: moduleConfig.spec.sourceModule, copy: [] })
+          moduleConfig.include = []
+          moduleConfig.testConfigs = [{ name: "test", dependencies: moduleConfig.spec.runtimeDependencies, spec: {} }]
+          return { moduleConfig }
+        },
+        testModule: async ({ ctx, log, module, testConfig }: TestModuleParams<ConftestModule>) => {
+          const startedAt = new Date()
+          const provider = ctx.provider as ConftestProvider
+
+          // Render the Helm chart
+          // TODO: find a way to avoid these direct code dependencies
+          const k8sProvider = getK8sProvider(ctx.provider.dependencies)
+          const k8sCtx = { ...ctx, provider: k8sProvider }
+          const sourceModule = module.buildDependencies[module.spec.sourceModule]
+
+          if (sourceModule?.type !== "helm") {
+            throw new ConfigurationError(`Must specify a helm module as a sourceModule`, {
+              sourceModuleName: sourceModule?.name,
+              sourceModuleType: sourceModule?.type,
+            })
           }
 
-          const allFailures = parsed.filter((p: any) => p.Failures?.length > 0)
-          const allWarnings = parsed.filter((p: any) => p.Warnings?.length > 0)
+          const templates = await renderTemplates(k8sCtx, sourceModule, false, log)
 
-          const resultCategories: string[] = []
-          let formattedResult = "OK"
+          // Run conftest, piping the rendered chart to stdin
+          const args = prepareArgs(ctx, provider, module)
+          args.push("-")
 
-          if (allFailures.length > 0) {
-            resultCategories.push(`${allFailures.length} failure(s)`)
-          }
+          const result = await conftest.exec({
+            log,
+            args,
+            ignoreError: true,
+            cwd: sourceModule.buildPath,
+            input: templates,
+          })
 
-          if (allWarnings.length > 0) {
-            resultCategories.push(`${allWarnings.length} warning(s)`)
-          }
-
-          let formattedHeader = `conftest reported ${naturalList(resultCategories)}`
-
-          if (allFailures.length > 0 || allWarnings.length > 0) {
-            const lines = [`${formattedHeader}:\n`]
-
-            // We let the format match the conftest output
-            for (const { filename, Warnings, Failures } of parsed) {
-              for (const failure of Failures) {
-                lines.push(
-                  chalk.redBright.bold("FAIL") +
-                    chalk.gray(" - ") +
-                    chalk.redBright(filename) +
-                    chalk.gray(" - ") +
-                    failure
-                )
-              }
-              for (const warning of Warnings) {
-                lines.push(
-                  chalk.yellowBright.bold("WARN") +
-                    chalk.gray(" - ") +
-                    chalk.yellowBright(filename) +
-                    chalk.gray(" - ") +
-                    warning
-                )
-              }
-            }
-
-            formattedResult = lines.join("\n")
-          }
-
-          const threshold = provider.config.testFailureThreshold
-
-          if (allWarnings.length > 0 && threshold === "warn") {
-            success = false
-          } else if (allFailures.length > 0 && threshold !== "none") {
-            success = false
-          } else if (allWarnings.length > 0) {
-            log.warn(chalk.yellow(formattedHeader))
-          }
+          // Parse and return the results
+          const { success, formattedResult } = parseConftestResult(provider, log, result)
 
           return {
             testName: testConfig.name,
@@ -277,3 +289,79 @@ const conftest = new BinaryCmd({
     },
   },
 })
+
+function prepareArgs(ctx: PluginContext, provider: ConftestProvider, module: ConftestModule) {
+  const defaultPolicyPath = relative(module.path, resolve(ctx.projectRoot, provider.config.policyPath))
+  // Make sure the policy path is valid POSIX on Windows
+  const policyPath = slash(resolve(module.path, module.spec.policyPath || defaultPolicyPath))
+  const namespace = module.spec.namespace || provider.config.namespace
+
+  const args = ["test", "--policy", policyPath, "--output", "json"]
+  if (namespace) {
+    args.push("--namespace", namespace)
+  }
+  return args
+}
+
+function parseConftestResult(provider: ConftestProvider, log: LogEntry, result: ExecaReturnValue) {
+  let success = true
+  let parsed: any = []
+
+  try {
+    parsed = JSON.parse(result.stdout)
+  } catch (err) {
+    throw new PluginError(`Error running conftest: ${result.all}`, { result })
+  }
+
+  const allFailures = parsed.filter((p: any) => p.Failures?.length > 0)
+  const allWarnings = parsed.filter((p: any) => p.Warnings?.length > 0)
+
+  const resultCategories: string[] = []
+  let formattedResult = "OK"
+
+  if (allFailures.length > 0) {
+    resultCategories.push(`${allFailures.length} failure(s)`)
+  }
+
+  if (allWarnings.length > 0) {
+    resultCategories.push(`${allWarnings.length} warning(s)`)
+  }
+
+  let formattedHeader = `conftest reported ${naturalList(resultCategories)}`
+
+  if (allFailures.length > 0 || allWarnings.length > 0) {
+    const lines = [`${formattedHeader}:\n`]
+
+    // We let the format match the conftest output
+    for (const { filename, Warnings, Failures } of parsed) {
+      for (const failure of Failures) {
+        lines.push(
+          chalk.redBright.bold("FAIL") + chalk.gray(" - ") + chalk.redBright(filename) + chalk.gray(" - ") + failure
+        )
+      }
+      for (const warning of Warnings) {
+        lines.push(
+          chalk.yellowBright.bold("WARN") +
+            chalk.gray(" - ") +
+            chalk.yellowBright(filename) +
+            chalk.gray(" - ") +
+            warning
+        )
+      }
+    }
+
+    formattedResult = lines.join("\n")
+  }
+
+  const threshold = provider.config.testFailureThreshold
+
+  if (allWarnings.length > 0 && threshold === "warn") {
+    success = false
+  } else if (allFailures.length > 0 && threshold !== "none") {
+    success = false
+  } else if (allWarnings.length > 0) {
+    log.warn(chalk.yellow(formattedHeader))
+  }
+
+  return { success, formattedResult }
+}

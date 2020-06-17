@@ -6,16 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join } from "path"
-import { remove, writeFile } from "fs-extra"
+import { remove } from "fs-extra"
 import { HelmModule } from "./config"
-import { containsBuildSource, getChartPath, getGardenValuesPath, getBaseModule, renderTemplates } from "./common"
+import { containsBuildSource, getChartPath, getBaseModule } from "./common"
 import { helm } from "./helm-cli"
 import { ConfigurationError } from "../../../exceptions"
 import { deline } from "../../../util/string"
-import { dumpYaml } from "../../../util/util"
 import { LogEntry } from "../../../logger/log-entry"
-import { apply as jsonMerge } from "json-merge-patch"
 import { KubernetesPluginContext } from "../config"
 import { BuildModuleParams, BuildResult } from "../../../types/plugin/module/build"
 
@@ -48,29 +45,6 @@ export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<He
       await fetchChart(k8sCtx, log, module)
     }
   }
-
-  const chartPath = await getChartPath(module)
-
-  // create the values.yml file (merge the configured parameters into the default values)
-  log.debug("Preparing chart...")
-  // Merge with the base module's values, if applicable
-  const specValues = baseModule ? jsonMerge(baseModule.spec.values, module.spec.values) : module.spec.values
-
-  // Add Garden metadata
-  specValues[".garden"] = {
-    moduleName: module.name,
-    projectName: ctx.projectName,
-    version: module.version.versionString,
-  }
-
-  const valuesPath = getGardenValuesPath(chartPath)
-  log.silly(`Writing chart values to ${valuesPath}`)
-  await dumpYaml(valuesPath, specValues)
-
-  const renderedPath = join(module.buildPath, ".rendered.yaml")
-  log.silly(`Writing rendered template to ${renderedPath}`)
-  const rendered = await renderTemplates(k8sCtx, module, false, log)
-  await writeFile(renderedPath, rendered)
 
   return { fresh: true }
 }

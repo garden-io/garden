@@ -4,3 +4,6 @@ type: helm
 name: helm
 chart: stable/postgresql
 version: 3.9.2
+dependencies: [kubernetes]
+values:
+  foo: ${runtime.services.kubernetes.outputs}
