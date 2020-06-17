@@ -118,6 +118,17 @@ export interface Events extends LoggerEvents {
     completedAt: Date
   }
   watchingForChanges: {}
+
+  // Workflow events
+  workflowStepProcessing: {
+    index: number
+  }
+  workflowStepComplete: {
+    index: number
+  }
+  workflowStepError: {
+    index: number
+  }
 }
 
 export type EventName = keyof Events
@@ -142,4 +153,7 @@ export const eventNames: EventName[] = [
   "taskGraphProcessing",
   "taskGraphComplete",
   "watchingForChanges",
+  "workflowStepProcessing",
+  "workflowStepError",
+  "workflowStepComplete",
 ]
