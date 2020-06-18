@@ -15,7 +15,7 @@ import { containerHelpers } from "../../container/helpers"
 import { buildContainerModule, getContainerBuildStatus, getDockerBuildFlags } from "../../container/build"
 import { GetBuildStatusParams, BuildStatus } from "../../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams, BuildResult } from "../../../types/plugin/module/build"
-import { millicpuToString, megabytesToString, getRunningPodInDeployment, makePodName } from "../util"
+import { millicpuToString, megabytesToString, getDeploymentPodName, makePodName } from "../util"
 import {
   RSYNC_PORT,
   dockerAuthSecretName,
@@ -31,7 +31,7 @@ import { kubectl } from "../kubectl"
 import { LogEntry } from "../../../logger/log-entry"
 import { getDockerAuthVolume } from "../util"
 import { KubernetesProvider, ContainerBuildMode, KubernetesPluginContext, DEFAULT_KANIKO_IMAGE } from "../config"
-import { PluginError, InternalError, RuntimeError, BuildError, ConfigurationError } from "../../../exceptions"
+import { InternalError, RuntimeError, BuildError, ConfigurationError } from "../../../exceptions"
 import { PodRunner } from "../run"
 import { getRegistryHostname, getKubernetesSystemVariables } from "../init"
 import { normalizeLocalRsyncPath } from "../../../util/fs"
@@ -222,17 +222,7 @@ const remoteBuild: BuildHandler = async (params) => {
     return {}
   }
 
-  const buildSyncPod = await getRunningPodInDeployment(buildSyncDeploymentName, provider, log)
-
-  // TODO: remove this after a few releases (from 0.10.15), since this is only necessary for environments initialized
-  // with 0.10.14 or earlier.
-  if (!buildSyncPod) {
-    throw new PluginError(`Could not find running build sync Pod`, {
-      deploymentName: buildSyncDeploymentName,
-      systemNamespace,
-    })
-  }
-
+  const buildSyncPod = await getDeploymentPodName(buildSyncDeploymentName, provider, log)
   // Sync the build context to the remote sync service
   // -> Get a tunnel to the service
   log.setState("Syncing sources to cluster...")
@@ -240,7 +230,7 @@ const remoteBuild: BuildHandler = async (params) => {
     ctx,
     log,
     namespace: systemNamespace,
-    targetResource: `Pod/${buildSyncPod.metadata.name}`,
+    targetResource: `Pod/${buildSyncPod}`,
     port: RSYNC_PORT,
   })
 
@@ -436,20 +426,6 @@ export async function execInPod({
     stdout,
     stderr,
   })
-}
-
-export async function getDeploymentPodName(deployment: string, provider: KubernetesProvider, log: LogEntry) {
-  const pod = await getRunningPodInDeployment(deployment, provider, log)
-  const systemNamespace = await getSystemNamespace(provider, log)
-
-  if (!pod) {
-    throw new PluginError(`Could not find running image builder`, {
-      builderDeploymentName: deployment,
-      systemNamespace,
-    })
-  }
-
-  return pod.metadata.name
 }
 
 interface RunKanikoParams {
