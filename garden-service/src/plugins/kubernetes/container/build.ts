@@ -9,6 +9,7 @@
 import pRetry from "p-retry"
 import split2 = require("split2")
 import { differenceBy } from "lodash"
+import { V1PodSpec } from "@kubernetes/client-node"
 import { ContainerModule, ContainerRegistryConfig } from "../../container/config"
 import { containerHelpers } from "../../container/helpers"
 import { buildContainerModule, getContainerBuildStatus, getDockerBuildFlags } from "../../container/build"
@@ -493,71 +494,69 @@ async function runKaniko({ provider, namespace, log, module, args, outputStream 
 
   const kanikoImage = provider.config.kaniko?.image || DEFAULT_KANIKO_IMAGE
 
-  const runner = new PodRunner({
-    api,
-    podName,
-    provider,
-    image: kanikoImage,
-    module,
-    namespace: systemNamespace,
-    spec: {
-      shareProcessNamespace: true,
-      volumes: [
-        // Mount the build sync volume, to get the build context from.
-        {
-          name: syncDataVolumeName,
-          persistentVolumeClaim: { claimName: syncDataVolumeName },
-        },
-        // Mount the docker auth secret, so Kaniko can pull from private registries.
-        getDockerAuthVolume(),
-        // Mount a volume to communicate between the containers in the Pod.
-        {
-          name: commsVolumeName,
-          emptyDir: {},
-        },
-      ],
-      containers: [
-        {
-          name: "kaniko",
-          image: kanikoImage,
-          command: ["sh", "-c", commandStr],
-          volumeMounts: [
-            {
-              name: syncDataVolumeName,
-              mountPath: "/garden-build",
-            },
-            {
-              name: dockerAuthSecretName,
-              mountPath: "/kaniko/.docker",
-              readOnly: true,
-            },
-            {
-              name: commsVolumeName,
-              mountPath: commsMountPath,
-            },
-          ],
-          resources: {
-            limits: {
-              cpu: millicpuToString(provider.config.resources.builder.limits.cpu),
-              memory: megabytesToString(provider.config.resources.builder.limits.memory),
-            },
-            requests: {
-              cpu: millicpuToString(provider.config.resources.builder.requests.cpu),
-              memory: megabytesToString(provider.config.resources.builder.requests.memory),
-            },
+  const spec: V1PodSpec = {
+    shareProcessNamespace: true,
+    volumes: [
+      // Mount the build sync volume, to get the build context from.
+      {
+        name: syncDataVolumeName,
+        persistentVolumeClaim: { claimName: syncDataVolumeName },
+      },
+      // Mount the docker auth secret, so Kaniko can pull from private registries.
+      getDockerAuthVolume(),
+      // Mount a volume to communicate between the containers in the Pod.
+      {
+        name: commsVolumeName,
+        emptyDir: {},
+      },
+    ],
+    containers: [
+      {
+        name: "kaniko",
+        image: kanikoImage,
+        command: ["sh", "-c", commandStr],
+        volumeMounts: [
+          {
+            name: syncDataVolumeName,
+            mountPath: "/garden-build",
+          },
+          {
+            name: dockerAuthSecretName,
+            mountPath: "/kaniko/.docker",
+            readOnly: true,
+          },
+          {
+            name: commsVolumeName,
+            mountPath: commsMountPath,
+          },
+        ],
+        resources: {
+          limits: {
+            cpu: millicpuToString(provider.config.resources.builder.limits.cpu),
+            memory: megabytesToString(provider.config.resources.builder.limits.memory),
+          },
+          requests: {
+            cpu: millicpuToString(provider.config.resources.builder.requests.cpu),
+            memory: megabytesToString(provider.config.resources.builder.requests.memory),
           },
         },
-        getSocatContainer(registryHostname),
-        // This is a workaround so that the kaniko executor can wait until socat starts, and so that the socat proxy
-        // doesn't just keep running after the build finishes. Doing this in the kaniko Pod is currently not possible
-        // because of https://github.com/GoogleContainerTools/distroless/issues/225
-        {
-          name: "support",
-          image: "busybox:1.31.1",
-          command: [
-            "sh",
-            "-c",
-            dedent`
+      },
+    ],
+  }
+
+  if (provider.config.deploymentRegistry?.hostname === inClusterRegistryHostname) {
+    spec.containers = spec.containers.concat([
+      getSocatContainer(registryHostname),
+      // This is a workaround so that the kaniko executor can wait until socat starts, and so that the socat proxy
+      // doesn't just keep running after the build finishes. Doing this in the kaniko Pod is currently not possible
+      // because of https://github.com/GoogleContainerTools/distroless/issues/225
+      {
+        name: "support",
+        image: "busybox:1.31.1",
+        command: [
+          "sh",
+          "-c",
+          dedent`
               while true; do
                 if pidof socat 2> /dev/null; then
                   touch ${commsMountPath}/socatStarted;
@@ -574,16 +573,25 @@ async function runKaniko({ provider, namespace, log, module, args, outputStream 
                 fi
               done
             `,
-          ],
-          volumeMounts: [
-            {
-              name: commsVolumeName,
-              mountPath: commsMountPath,
-            },
-          ],
-        },
-      ],
-    },
+        ],
+        volumeMounts: [
+          {
+            name: commsVolumeName,
+            mountPath: commsMountPath,
+          },
+        ],
+      },
+    ])
+  }
+
+  const runner = new PodRunner({
+    api,
+    podName,
+    provider,
+    image: kanikoImage,
+    module,
+    namespace: systemNamespace,
+    spec,
   })
 
   try {
