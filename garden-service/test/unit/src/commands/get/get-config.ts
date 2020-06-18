@@ -7,6 +7,7 @@
  */
 
 import { expect } from "chai"
+import { pick } from "lodash"
 import { makeTestGardenA, withDefaultGlobalOpts } from "../../../../helpers"
 import { GetConfigCommand } from "../../../../../src/commands/get/get-config"
 import { sortBy } from "lodash"
@@ -32,6 +33,28 @@ describe("GetConfigCommand", () => {
     const expectedModuleConfigs = sortBy(await garden.resolveModules({ log }), "name").map((m) => m._config)
 
     expect(res.result?.moduleConfigs).to.deep.equal(expectedModuleConfigs)
+  })
+
+  it("should include the project name and all environment names", async () => {
+    const garden = await makeTestGardenA()
+    const log = garden.log
+    const command = new GetConfigCommand()
+
+    const result = (
+      await command.action({
+        garden,
+        log,
+        headerLog: log,
+        footerLog: log,
+        args: {},
+        opts: withDefaultGlobalOpts({ "exclude-disabled": false }),
+      })
+    ).result
+
+    expect(pick(result, ["projectName", "allEnvironmentNames"])).to.eql({
+      projectName: "test-project-a",
+      allEnvironmentNames: ["local", "other"],
+    })
   })
 
   it("should include workflow configs", async () => {
