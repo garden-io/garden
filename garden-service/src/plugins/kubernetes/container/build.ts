@@ -221,6 +221,17 @@ const remoteBuild: BuildHandler = async (params) => {
     return {}
   }
 
+  const buildSyncPod = await getRunningPodInDeployment(buildSyncDeploymentName, provider, log)
+
+  // TODO: remove this after a few releases (from 0.10.15), since this is only necessary for environments initialized
+  // with 0.10.14 or earlier.
+  if (!buildSyncPod) {
+    throw new PluginError(`Could not find running build sync Pod`, {
+      deploymentName: buildSyncDeploymentName,
+      systemNamespace,
+    })
+  }
+
   // Sync the build context to the remote sync service
   // -> Get a tunnel to the service
   log.setState("Syncing sources to cluster...")
@@ -228,7 +239,7 @@ const remoteBuild: BuildHandler = async (params) => {
     ctx,
     log,
     namespace: systemNamespace,
-    targetResource: `Deployment/${buildSyncDeploymentName}`,
+    targetResource: `Pod/${buildSyncPod.metadata.name}`,
     port: RSYNC_PORT,
   })
 
@@ -256,18 +267,6 @@ const remoteBuild: BuildHandler = async (params) => {
   ]
 
   log.debug(`Syncing from ${src} to ${destination}`)
-
-  // TODO: remove this after a few releases (from 0.10.15), since this is only necessary for environments initialized
-  // with 0.10.14 or earlier.
-  const buildSyncPod = await getRunningPodInDeployment(buildSyncDeploymentName, provider, log)
-
-  if (!buildSyncPod) {
-    throw new PluginError(`Could not find running build sync Pod`, {
-      deploymentName: buildSyncDeploymentName,
-      systemNamespace,
-    })
-  }
-
   // We retry a couple of times, because we may get intermittent connection issues or concurrency issues
   await pRetry(() => exec("rsync", syncArgs), {
     retries: 3,
