@@ -1137,6 +1137,7 @@ export class Garden {
 
     return {
       environmentName: this.environmentName,
+      allEnvironmentNames: this.allEnvironmentNames,
       namespace: this.namespace,
       providers: Object.values(await this.resolveProviders()).map((p) => omit(p, ["tools"])),
       variables: this.variables,
@@ -1145,6 +1146,7 @@ export class Garden {
         "name"
       ),
       workflowConfigs: sortBy(workflowConfigs, "name"),
+      projectName: this.projectName,
       projectRoot: this.projectRoot,
       projectId: this.projectId,
     }
@@ -1154,12 +1156,14 @@ export class Garden {
 }
 
 export interface ConfigDump {
-  environmentName: string
+  environmentName: string // TODO: Remove this?
+  allEnvironmentNames: string[]
   namespace?: string
   providers: Omit<Provider, "tools">[]
   variables: DeepPrimitiveMap
   moduleConfigs: ModuleConfig[]
   workflowConfigs: WorkflowConfig[]
+  projectName: string
   projectRoot: string
   projectId: string | null
 }
