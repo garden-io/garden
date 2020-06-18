@@ -12,9 +12,9 @@ import { ConfigGraph } from "../../../../../../src/config-graph"
 import {
   k8sBuildContainer,
   k8sGetContainerBuildStatus,
-  getDeploymentPodName,
   execInPod,
 } from "../../../../../../src/plugins/kubernetes/container/build"
+import { getDeploymentPodName } from "../../../../../../src/plugins/kubernetes/util"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { expect } from "chai"

@@ -30,8 +30,8 @@ import { apply, kubectl } from "../kubectl"
 import { waitForResources } from "../status/status"
 import { execInWorkload } from "../container/exec"
 import { dedent, deline } from "../../../util/string"
-import { execInPod, getDeploymentPodName, BuilderExecParams, buildSyncDeploymentName } from "../container/build"
-import { getRunningPodInDeployment } from "../util"
+import { execInPod, BuilderExecParams, buildSyncDeploymentName } from "../container/build"
+import { getDeploymentPodName } from "../util"
 import { getSystemNamespace } from "../namespace"
 
 const workspaceSyncDirTtl = 0.5 * 86400 // 2 days
@@ -388,14 +388,7 @@ async function cleanupBuildSyncVolume(provider: KubernetesProvider, log: LogEntr
     status: "active",
   })
 
-  const pod = await getRunningPodInDeployment(buildSyncDeploymentName, provider, log)
-  const systemNamespace = await getSystemNamespace(provider, log)
-  if (!pod) {
-    throw new PluginError(`Could not find running image builder`, {
-      builderDeploymentName: buildSyncDeploymentName,
-      systemNamespace,
-    })
-  }
+  const podName = await getDeploymentPodName(buildSyncDeploymentName, provider, log)
 
   const statArgs = ["sh", "-c", 'stat /data/* -c "%n %X"']
   const stat = await execInBuildSync({
@@ -403,7 +396,7 @@ async function cleanupBuildSyncVolume(provider: KubernetesProvider, log: LogEntr
     log,
     args: statArgs,
     timeout: 30,
-    podName: pod.metadata.name,
+    podName,
     containerName: dockerDaemonContainerName,
   })
 
@@ -430,7 +423,7 @@ async function cleanupBuildSyncVolume(provider: KubernetesProvider, log: LogEntr
     log,
     args: deleteArgs,
     timeout: 300,
-    podName: pod.metadata.name,
+    podName,
     containerName: dockerDaemonContainerName,
   })
 

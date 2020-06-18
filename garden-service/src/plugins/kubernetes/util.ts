@@ -20,7 +20,7 @@ import { KubeApi, KubernetesError } from "./api"
 import { gardenAnnotationKey, base64, deline } from "../../util/string"
 import { MAX_CONFIGMAP_DATA_SIZE, dockerAuthSecretName, dockerAuthSecretKey } from "./constants"
 import { ContainerEnvVars } from "../container/config"
-import { ConfigurationError } from "../../exceptions"
+import { ConfigurationError, PluginError } from "../../exceptions"
 import { KubernetesProvider, ServiceResourceSpec } from "./config"
 import { LogEntry } from "../../logger/log-entry"
 import { PluginContext } from "../../plugin-context"
@@ -395,14 +395,21 @@ export function convertDeprecatedManifestVersion(manifest: KubernetesResource): 
   return manifest
 }
 
-export async function getRunningPodInDeployment(deploymentName: string, provider: KubernetesProvider, log: LogEntry) {
+export async function getDeploymentPodName(deploymentName: string, provider: KubernetesProvider, log: LogEntry) {
   const api = await KubeApi.factory(log, provider)
   const systemNamespace = await getSystemNamespace(provider, log)
 
   const status = await api.apps.readNamespacedDeployment(deploymentName, systemNamespace)
   const pods = await getPods(api, systemNamespace, status.spec.selector.matchLabels)
+  const pod = sample(pods)
+  if (!pod) {
+    throw new PluginError(`Could not a running pod in a deployment: ${deploymentName}`, {
+      deploymentName,
+      systemNamespace,
+    })
+  }
 
-  return sample(pods)
+  return pod.metadata.name
 }
 
 export function getStaticLabelsFromPod(pod: KubernetesPod): { [key: string]: string } {
