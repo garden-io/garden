@@ -70,6 +70,7 @@ export const gardenPlugin = createGardenPlugin({
             path: module.path,
             policyPath: provider.config.policyPath,
             namespace: provider.config.namespace,
+            combine: false,
             files: [relative(module.path, containerHelpers.getDockerfileSourcePath(module))],
           }
         }),

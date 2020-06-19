@@ -30,6 +30,7 @@ describe("conftest-kubernetes provider", () => {
       namespace: "main",
       policyPath: "../custom-policy",
       sourceModule: "helm",
+      combine: false,
       runtimeDependencies: ["kubernetes"],
     })
   })
@@ -47,6 +48,7 @@ describe("conftest-kubernetes provider", () => {
       files: kubernetesModule.spec.files,
       namespace: "main",
       policyPath: "../custom-policy",
+      combine: false,
       sourceModule: "kubernetes",
     })
   })

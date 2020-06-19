@@ -117,6 +117,9 @@ policyPath:
 # The policy namespace in which to find _deny_ and _warn_ rules.
 namespace: main
 
+# Set to true to use the conftest --combine flag
+combine: false
+
 # A list of files to test with the given policy. Must be POSIX-style paths, and may include wildcards.
 files:
 ```
@@ -343,6 +346,14 @@ The policy namespace in which to find _deny_ and _warn_ rules.
 | Type     | Default  | Required |
 | -------- | -------- | -------- |
 | `string` | `"main"` | No       |
+
+### `combine`
+
+Set to true to use the conftest --combine flag
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 ### `files[]`
 

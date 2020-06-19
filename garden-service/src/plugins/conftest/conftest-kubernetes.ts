@@ -84,6 +84,7 @@ export const gardenPlugin = createGardenPlugin({
               sourceModule: module.name,
               policyPath,
               namespace: provider.config.namespace,
+              combine: false,
               runtimeDependencies,
             }
           } else {
@@ -96,6 +97,7 @@ export const gardenPlugin = createGardenPlugin({
               sourceModule: module.name,
               policyPath,
               namespace: provider.config.namespace,
+              combine: false,
               files: module.include || ["*.yaml", "**/*.yaml", "*.yml", "**/*.yml"],
             }
           }

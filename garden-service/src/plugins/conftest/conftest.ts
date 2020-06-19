@@ -61,7 +61,7 @@ interface ConftestModuleSpec {
   namespace: string
   files: string[]
   sourceModule: string
-  combine: boolean
+  combine?: boolean
 }
 
 type ConftestModule = Module<ConftestModuleSpec>
@@ -302,13 +302,12 @@ function prepareArgs(ctx: PluginContext, provider: ConftestProvider, module: Con
   // Make sure the policy path is valid POSIX on Windows
   const policyPath = slash(resolve(module.path, module.spec.policyPath || defaultPolicyPath))
   const namespace = module.spec.namespace || provider.config.namespace
-  const useCombine = module.spec.combine
 
   const args = ["test", "--policy", policyPath, "--output", "json"]
   if (namespace) {
     args.push("--namespace", namespace)
   }
-  if (useCombine) {
+  if (module.spec.combine) {
     args.push("--combine")
   }
   return args
