@@ -119,6 +119,10 @@ namespace: main
 
 # A list of files to test with the given policy. Must be POSIX-style paths, and may include wildcards.
 files:
+
+# A list of additional files that are passed in to conftest via the --data option. Must be POSIX-style paths, and may
+# include wildcards.
+data:
 ```
 
 ## Configuration Keys
@@ -351,6 +355,14 @@ A list of files to test with the given policy. Must be POSIX-style paths, and ma
 | Type               | Required |
 | ------------------ | -------- |
 | `array[posixPath]` | Yes      |
+
+### `data`
+
+A list of additional files that are passed in to conftest via the --data option. Must be POSIX-style paths, and may include wildcards.
+
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | No       |
 
 
 ## Outputs

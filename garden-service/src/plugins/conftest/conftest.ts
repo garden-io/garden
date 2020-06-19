@@ -55,6 +55,7 @@ interface ConftestModuleSpec {
   policyPath: string
   namespace: string
   files: string[]
+  data: string
   sourceModule: string
 }
 
@@ -120,14 +121,24 @@ export const gardenPlugin = createGardenPlugin({
               A list of files to test with the given policy. Must be POSIX-style paths, and may include wildcards.
             `
           ),
+        data: joi
+          .posixPath()
+          .relativeOnly()
+          .description(
+            dedent`
+            A file or folder that are passed in to conftest via the --data option. Must be a POSIX-style path. 
+            If it is a folder then conftest will recursively scan it for files.
+          `
+          ),
       }),
       handlers: {
         configure: async ({ moduleConfig }) => {
           if (moduleConfig.spec.sourceModule) {
             moduleConfig.build.dependencies.push({ name: moduleConfig.spec.sourceModule, copy: [] })
           }
-
-          moduleConfig.include = moduleConfig.spec.files
+          moduleConfig.include = moduleConfig.spec.data
+            ? moduleConfig.spec.files.concat([moduleConfig.spec.data])
+            : moduleConfig.spec.files
           moduleConfig.testConfigs = [{ name: "test", dependencies: [], spec: {}, timeout: 10 }]
           return { moduleConfig }
         },
@@ -139,6 +150,7 @@ export const gardenPlugin = createGardenPlugin({
           // Make sure the policy path is valid POSIX on Windows
           const policyPath = slash(resolve(module.path, module.spec.policyPath || defaultPolicyPath))
           const namespace = module.spec.namespace || provider.config.namespace
+          const data = module.spec.data
 
           const buildPath = module.spec.sourceModule
             ? module.buildDependencies[module.spec.sourceModule].buildPath
@@ -164,6 +176,9 @@ export const gardenPlugin = createGardenPlugin({
           const args = ["test", "--policy", policyPath, "--output", "json"]
           if (namespace) {
             args.push("--namespace", namespace)
+          }
+          if (data) {
+            args.push("--data", data)
           }
           args.push(...files)
 
@@ -252,24 +267,26 @@ const conftest = new BinaryCmd({
   name: "conftest",
   specs: {
     darwin: {
-      url: "https://github.com/instrumenta/conftest/releases/download/v0.15.0/conftest_0.15.0_Darwin_x86_64.tar.gz",
-      sha256: "73cea42e467edf7bec58648514096f5975353b0523a5f2b309833ff4a972765e",
+      url:
+        "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/conftest_0.17.1_Darwin_x86_64.tar.gz",
+      sha256: "1c97f0e43fab99c94593696d362fc1e00e8e80bd0321729412de51d83ecbfb73",
       extract: {
         format: "tar",
         targetPath: ["conftest"],
       },
     },
     linux: {
-      url: "https://github.com/instrumenta/conftest/releases/download/v0.15.0/conftest_0.15.0_Linux_x86_64.tar.gz",
-      sha256: "23c6af69dcd2c9fe935ee3cd5652cc14ffc9d7cf0fd55d4abc6a5c3bd470b692",
+      url:
+        "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/conftest_0.17.1_Linux_x86_64.tar.gz",
+      sha256: "d18c95a4b04e87bfd59e06cc980801d2df5dabb371b495506ef03f70a0a40624",
       extract: {
         format: "tar",
         targetPath: ["conftest"],
       },
     },
     win32: {
-      url: "https://github.com/instrumenta/conftest/releases/download/v0.15.0/conftest_0.15.0_Windows_x86_64.zip",
-      sha256: "c452bb4b71d6fbf5d918e1b3ed28092f7bc3a157f44e0ecd6fa1968e1cad4bec",
+      url: "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/conftest_0.17.1_Windows_x86_64.zip",
+      sha256: "4c2df80420f2f148ec085bb75a8c5b92e1c665c6a041768a79924c81082527c3",
       extract: {
         format: "zip",
         targetPath: ["conftest.exe"],

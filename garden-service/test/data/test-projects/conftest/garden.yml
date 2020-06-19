@@ -14,3 +14,9 @@ kind: Module
 type: conftest
 name: warn-and-fail
 files: [warn-and-fail.yaml]
+---
+kind: Module
+type: conftest
+name: extra-data
+files: [some-data.yaml]
+data: extra-data.yaml

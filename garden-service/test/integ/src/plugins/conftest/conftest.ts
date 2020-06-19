@@ -153,5 +153,35 @@ describe("conftest provider", () => {
       expect(result).to.exist
       expect(result!.error).to.not.exist
     })
+    it("should include extra data in policy test", async () => {
+      const garden = await Garden.factory(projectRoot, {
+        plugins: [],
+        config: {
+          ...projectConfig,
+          providers: [{ name: "conftest", policyPath: "policy-for-extra-data.rego", testFailureThreshold: "none" }],
+        },
+      })
+
+      const graph = await garden.getConfigGraph(garden.log)
+      const module = graph.getModule("extra-data")
+
+      const testTask = new TestTask({
+        garden,
+        module,
+        log: garden.log,
+        graph,
+        testConfig: module.testConfigs[0],
+        force: true,
+        forceBuild: false,
+        version: module.version,
+        _guard: true,
+      })
+
+      const key = testTask.getKey()
+      const { [key]: result } = await garden.processTasks([testTask])
+
+      expect(result).to.exist
+      expect(result!.error).to.not.exist
+    })
   })
 })
