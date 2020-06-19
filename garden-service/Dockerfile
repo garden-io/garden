@@ -6,6 +6,7 @@ RUN apk add --no-cache \
   git \
   gzip \
   libstdc++ \
+  openssh \
   openssl \
   tar
 
