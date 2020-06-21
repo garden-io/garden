@@ -29,8 +29,10 @@ export interface JoiDescription extends Joi.Description {
 // Filters out internal descriptions.
 export function normalizeJoiSchemaDescription(
   joiDesc: JoiDescription,
-  { level = 0, name, parent, renderPatternKeys = false }: NormalizeOptions = {}
+  opts: NormalizeOptions = {}
 ): NormalizedSchemaDescription[] {
+  const { level = 0, name, parent, renderPatternKeys = false } = opts
+
   let schemaDescription: NormalizedSchemaDescription | undefined
   let childDescriptions: NormalizedSchemaDescription[] = []
 
@@ -48,6 +50,7 @@ export function normalizeJoiSchemaDescription(
     childDescriptions = flatten(
       children.map(([childName, childDescription]) =>
         normalizeJoiSchemaDescription(childDescription as JoiDescription, {
+          ...opts,
           level: nextLevel,
           parent: nextParent,
           name: childName,
@@ -59,6 +62,7 @@ export function normalizeJoiSchemaDescription(
       const metas: any = extend({}, ...(joiDesc.metas || []))
       childDescriptions.push(
         ...normalizeJoiSchemaDescription(joiDesc.patterns[0].rule as JoiDescription, {
+          ...opts,
           level: nextLevel,
           parent: nextParent,
           name: metas.keyPlaceholder || "<name>",
@@ -75,6 +79,7 @@ export function normalizeJoiSchemaDescription(
         ...flatten(
           Object.entries(jsonSchema.properties).map(([childName, childDescription]) =>
             normalizeJsonSchema(childDescription as JoiDescription, {
+              ...opts,
               level: nextLevel,
               parent: nextParent,
               name: childName,
@@ -86,7 +91,9 @@ export function normalizeJoiSchemaDescription(
   } else if (joiDesc.type === "array") {
     // We only use the first array item
     const item = joiDesc.items[0]
-    childDescriptions = item ? normalizeJoiSchemaDescription(item, { level: level + 2, parent: schemaDescription }) : []
+    childDescriptions = item
+      ? normalizeJoiSchemaDescription(item, { ...opts, level: level + 2, parent: schemaDescription, name: undefined })
+      : []
   }
 
   if (!schemaDescription) {

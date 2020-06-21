@@ -7,7 +7,6 @@
  */
 
 import { RunServiceCommand } from "../../../../../src/commands/run/service"
-import { RunResult } from "../../../../../src/types/plugin/base"
 import { makeTestGardenA, testModuleVersion, testNow, withDefaultGlobalOpts, expectError } from "../../../../helpers"
 import { expect } from "chai"
 import { Garden } from "../../../../../src/garden"

@@ -16,7 +16,13 @@ import { baseModuleSpecSchema } from "../config/module"
 import handlebars = require("handlebars")
 import { joi } from "../config/common"
 import { STATIC_DIR } from "../constants"
-import { indent, renderMarkdownTable, convertMarkdownLinks, NormalizedSchemaDescription } from "./common"
+import {
+  indent,
+  renderMarkdownTable,
+  convertMarkdownLinks,
+  NormalizedSchemaDescription,
+  NormalizeOptions,
+} from "./common"
 import { normalizeJoiSchemaDescription, JoiDescription } from "./joi-schema"
 import { safeDumpYaml } from "../util/util"
 import { workflowConfigSchema } from "../config/workflow"
@@ -322,6 +328,7 @@ export function renderSchemaDescriptionYaml(
 
 interface RenderConfigOpts {
   titlePrefix?: string
+  normalizeOpts?: NormalizeOptions
   yamlOpts?: RenderYamlOpts
 }
 
@@ -330,8 +337,11 @@ interface RenderConfigOpts {
  * The config reference contains a list of keys and their description in Markdown
  * and a YAML schema.
  */
-export function renderConfigReference(configSchema: Joi.ObjectSchema, { yamlOpts = {} }: RenderConfigOpts = {}) {
-  const normalizedDescriptions = normalizeJoiSchemaDescription(configSchema.describe() as JoiDescription)
+export function renderConfigReference(
+  configSchema: Joi.ObjectSchema,
+  { normalizeOpts = {}, yamlOpts = {} }: RenderConfigOpts = {}
+) {
+  const normalizedDescriptions = normalizeJoiSchemaDescription(configSchema.describe() as JoiDescription, normalizeOpts)
 
   const yaml = renderSchemaDescriptionYaml(normalizedDescriptions, { renderBasicDescription: true, ...yamlOpts })
   const keys = normalizedDescriptions.map((d) => makeMarkdownDescription(d))

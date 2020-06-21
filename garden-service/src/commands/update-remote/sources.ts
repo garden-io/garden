@@ -17,7 +17,7 @@ import { SourceConfig, projectSourceSchema } from "../../config/project"
 import { printHeader } from "../../logger/util"
 import { Garden } from "../../garden"
 import { LogEntry } from "../../logger/log-entry"
-import { joiArray } from "../../config/common"
+import { joiArray, joi } from "../../config/common"
 
 const updateRemoteSourcesArguments = {
   sources: new StringsParameter({
@@ -27,6 +27,10 @@ const updateRemoteSourcesArguments = {
 
 type Args = typeof updateRemoteSourcesArguments
 
+interface Output {
+  sources: SourceConfig[]
+}
+
 export class UpdateRemoteSourcesCommand extends Command<Args> {
   name = "sources"
   help = "Update remote sources."
@@ -35,7 +39,9 @@ export class UpdateRemoteSourcesCommand extends Command<Args> {
   workflows = true
 
   outputsSchema = () =>
-    joiArray(projectSourceSchema()).description("A list of all configured external project sources.")
+    joi.object().keys({
+      sources: joiArray(projectSourceSchema()).description("A list of all configured external project sources."),
+    })
 
   description = dedent`
     Updates the remote sources declared in the project level \`garden.yml\` config file.
@@ -46,7 +52,7 @@ export class UpdateRemoteSourcesCommand extends Command<Args> {
         garden update-remote sources my-source  # update remote source my-source
   `
 
-  async action({ garden, log, headerLog, args }: CommandParams<Args>): Promise<CommandResult<SourceConfig[]>> {
+  async action({ garden, log, headerLog, args }: CommandParams<Args>): Promise<CommandResult<Output>> {
     printHeader(headerLog, "Update remote sources", "hammer_and_wrench")
     return updateRemoteSources({ garden, log, args })
   }
@@ -60,7 +66,7 @@ export async function updateRemoteSources({
   garden: Garden
   log: LogEntry
   args: ParameterValues<Args>
-}): Promise<CommandResult<SourceConfig[]>> {
+}) {
   const { sources } = args
 
   const projectSources = garden.projectSources.filter((src) => (sources ? sources.includes(src.name) : true))
@@ -96,5 +102,5 @@ export async function updateRemoteSources({
     sources: projectSources,
   })
 
-  return { result: projectSources }
+  return { result: { sources: projectSources } }
 }

@@ -277,7 +277,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   arguments?: T
   options?: U
 
-  outputsSchema?: () => Joi.Schema
+  outputsSchema?: () => Joi.ObjectSchema
 
   cliOnly: boolean = false
   hidden: boolean = false
@@ -307,7 +307,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
     return !!this.parent ? `${this.parent.getKey()}.${this.name}` : this.name
   }
 
-  getFullName() {
+  getFullName(): string {
     return !!this.parent ? `${this.parent.getFullName()} ${this.name}` : this.name
   }
 
@@ -339,6 +339,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
       subCommands,
       arguments: describeParameters(this.arguments),
       options: describeParameters(this.options),
+      outputsSchema: this.outputsSchema,
     }
   }
 
@@ -412,7 +413,7 @@ export function printResult({
 }
 
 /**
- * Handles the command result and logging for commands the return a result of type RunResult. E.g.
+ * Handles the command result and logging for commands that return a result of type RunResult. E.g.
  * the `run test` and `run service` commands.
  */
 export async function handleRunResult<T extends RunResult>({
@@ -522,18 +523,23 @@ export const graphResultsSchema = () =>
     .description(
       "A map of all raw graph results. Avoid using this programmatically if you can, and use more structured keys instead."
     )
+    .meta({ keyPlaceholder: "<key>" })
 
 export const processCommandResultSchema = () =>
   joi.object().keys({
-    builds: joiIdentifierMap(buildResultSchema().keys(resultMetadataKeys())).description(
-      "A map of all modules that were built (or builds scheduled/attempted for) and information about the builds."
-    ),
-    deployments: joiIdentifierMap(serviceStatusSchema().keys(resultMetadataKeys())).description(
-      "A map of all services that were deployed (or deployment scheduled/attempted for) and the service status."
-    ),
-    tests: joiStringMap(testResultSchema().keys(resultMetadataKeys())).description(
-      "A map of all tests that were run (or scheduled/attempted) and the test results."
-    ),
+    builds: joiIdentifierMap(buildResultSchema().keys(resultMetadataKeys()))
+      .description(
+        "A map of all modules that were built (or builds scheduled/attempted for) and information about the builds."
+      )
+      .meta({ keyPlaceholder: "<module name>" }),
+    deployments: joiIdentifierMap(serviceStatusSchema().keys(resultMetadataKeys()))
+      .description(
+        "A map of all services that were deployed (or deployment scheduled/attempted for) and the service status."
+      )
+      .meta({ keyPlaceholder: "<service name>" }),
+    tests: joiStringMap(testResultSchema().keys(resultMetadataKeys()))
+      .description("A map of all tests that were run (or scheduled/attempted) and the test results.")
+      .meta({ keyPlaceholder: "<test name>" }),
     graphResults: graphResultsSchema(),
   })
 

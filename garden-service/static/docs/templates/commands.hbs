@@ -12,6 +12,8 @@ The commands should be run in a Garden project, and are always scoped to that pr
 Note: You can get a list of commands in the CLI by running `garden -h/--help`,
 and detailed help for each command using `garden <command> -h/--help`
 
+The _Outputs_ sections show the output structure when running the command with `--output yaml`. The same structure is used when `--output json` is used and when querying through the REST API, but in JSON format.
+
 ##### Global options
 
 The following option flags can be used with any of the CLI commands:
@@ -30,12 +32,12 @@ The following option flags can be used with any of the CLI commands:
 {{#if description}}{{{description}}}
 {{/if}}
 
-##### Usage
+#### Usage
 
     garden {{fullName}} {{#each arguments}}{{{usageName}}} {{/each}}{{#if options}}[options]{{/if}}
 
 {{#if arguments}}
-##### Arguments
+#### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
@@ -45,13 +47,21 @@ The following option flags can be used with any of the CLI commands:
 
 {{/if}}
 {{#if options}}
-##### Options
+#### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
 {{#each options}}
   | `--{{name}}` | {{#if alias}}`-{{alias}}`{{/if}} | {{> argType}} | {{help}}
 {{/each}}
-
 {{/if}}
+
+{{#if outputsYaml}}
+#### Outputs
+
+```yaml
+{{{outputsYaml}}}
+```
+{{/if}}
+
 {{/each}}

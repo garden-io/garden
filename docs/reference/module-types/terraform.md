@@ -445,3 +445,9 @@ A map of all the outputs defined in the Terraform stack.
 | -------- |
 | `object` |
 
+### `${runtime.services.<service-name>.outputs.<name>}`
+
+| Type  |
+| ----- |
+| `any` |
+

@@ -16,7 +16,7 @@ import { addLinkedSources } from "../../util/ext-source-util"
 import { LinkedSource } from "../../config-store"
 import { CommandParams } from "../base"
 import { printHeader } from "../../logger/util"
-import { joiArray } from "../../config/common"
+import { joiArray, joi } from "../../config/common"
 import { linkedSourceSchema } from "../../config/project"
 
 const linkSourceArguments = {
@@ -32,6 +32,10 @@ const linkSourceArguments = {
 
 type Args = typeof linkSourceArguments
 
+interface Output {
+  sources: LinkedSource[]
+}
+
 export class LinkSourceCommand extends Command<Args> {
   name = "source"
   help = "Link a remote source to a local directory."
@@ -39,7 +43,10 @@ export class LinkSourceCommand extends Command<Args> {
 
   workflows = true
 
-  outputsSchema = () => joiArray(linkedSourceSchema()).description("A list of all locally linked external sources.")
+  outputsSchema = () =>
+    joi.object().keys({
+      sources: joiArray(linkedSourceSchema()).description("A list of all locally linked external sources."),
+    })
 
   description = dedent`
     After linking a remote source, Garden will read it from its local directory instead of
@@ -51,7 +58,7 @@ export class LinkSourceCommand extends Command<Args> {
         garden link source my-source path/to/my-source # links my-source to its local version at the given path
   `
 
-  async action({ garden, log, headerLog, args }: CommandParams<Args>): Promise<CommandResult<LinkedSource[]>> {
+  async action({ garden, log, headerLog, args }: CommandParams<Args>): Promise<CommandResult<Output>> {
     printHeader(headerLog, "Link source", "link")
 
     const sourceType = "project"
@@ -82,6 +89,6 @@ export class LinkSourceCommand extends Command<Args> {
 
     log.info(`Linked source ${sourceName}`)
 
-    return { result: linkedProjectSources }
+    return { result: { sources: linkedProjectSources } }
   }
 }
