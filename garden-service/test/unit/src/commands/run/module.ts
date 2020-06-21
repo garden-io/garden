@@ -11,7 +11,6 @@ import td from "testdouble"
 
 import { RunModuleCommand } from "../../../../../src/commands/run/module"
 import { Garden } from "../../../../../src/garden"
-import { RunResult } from "../../../../../src/types/plugin/base"
 import { makeTestGardenA, testModuleVersion, testNow, withDefaultGlobalOpts } from "../../../../helpers"
 import { omit } from "lodash"
 

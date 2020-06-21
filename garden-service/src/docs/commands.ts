@@ -11,16 +11,15 @@ import handlebars from "handlebars"
 import { resolve } from "path"
 import { GLOBAL_OPTIONS } from "../cli/cli"
 import { coreCommands } from "../commands/commands"
-import { flatten } from "lodash"
 import { describeParameters } from "../commands/base"
-import { TEMPLATES_DIR } from "./config"
+import { TEMPLATES_DIR, renderConfigReference } from "./config"
 
 export function writeCommandReferenceDocs(docsRoot: string) {
   const referenceDir = resolve(docsRoot, "reference")
   const outputPath = resolve(referenceDir, "commands.md")
 
-  const commands = flatten(
-    coreCommands.map((cmd) => {
+  const commands = coreCommands
+    .flatMap((cmd) => {
       if (cmd.subCommands && cmd.subCommands.length) {
         return cmd.subCommands
           .map((subCommandCls) => {
@@ -32,7 +31,15 @@ export function writeCommandReferenceDocs(docsRoot: string) {
         return cmd.hidden ? [] : [cmd.describe()]
       }
     })
-  )
+    .map((desc) => ({
+      ...desc,
+      outputsYaml: desc.outputsSchema
+        ? renderConfigReference(desc.outputsSchema(), {
+            normalizeOpts: { renderPatternKeys: true },
+            yamlOpts: { renderRequired: false, renderFullDescription: true, renderValue: "none" },
+          }).yaml
+        : null,
+    }))
 
   const globalOptions = describeParameters(GLOBAL_OPTIONS)
 

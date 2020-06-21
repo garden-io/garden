@@ -108,6 +108,12 @@ describe("loadConfig", () => {
           { name: "test-plugin", environments: ["local"] },
           { name: "test-plugin-b", environments: ["local"] },
         ],
+        outputs: [
+          {
+            name: "taskName",
+            value: "task-a",
+          },
+        ],
         variables: { some: "variable" },
       },
     ])

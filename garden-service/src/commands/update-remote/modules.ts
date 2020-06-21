@@ -18,7 +18,7 @@ import { hasRemoteSource } from "../../util/ext-source-util"
 import { printHeader } from "../../logger/util"
 import { Garden } from "../../garden"
 import { LogEntry } from "../../logger/log-entry"
-import { joiArray } from "../../config/common"
+import { joiArray, joi } from "../../config/common"
 
 const updateRemoteModulesArguments = {
   modules: new StringsParameter({
@@ -28,6 +28,10 @@ const updateRemoteModulesArguments = {
 
 type Args = typeof updateRemoteModulesArguments
 
+interface Output {
+  sources: SourceConfig[]
+}
+
 export class UpdateRemoteModulesCommand extends Command<Args> {
   name = "modules"
   help = "Update remote modules."
@@ -36,7 +40,9 @@ export class UpdateRemoteModulesCommand extends Command<Args> {
   workflows = true
 
   outputsSchema = () =>
-    joiArray(moduleSourceSchema()).description("A list of all external module sources in the project.")
+    joi.object().keys({
+      sources: joiArray(moduleSourceSchema()).description("A list of all external module sources in the project."),
+    })
 
   description = dedent`
     Updates remote modules, i.e. modules that have a \`repositoryUrl\` field
@@ -48,7 +54,7 @@ export class UpdateRemoteModulesCommand extends Command<Args> {
         garden update-remote modules my-module  # update remote module my-module
   `
 
-  async action({ garden, log, headerLog, args }: CommandParams<Args>): Promise<CommandResult<SourceConfig[]>> {
+  async action({ garden, log, headerLog, args }: CommandParams<Args>): Promise<CommandResult<Output>> {
     printHeader(headerLog, "Update remote modules", "hammer_and_wrench")
     return updateRemoteModules({ garden, log, args })
   }
@@ -62,7 +68,7 @@ export async function updateRemoteModules({
   garden: Garden
   log: LogEntry
   args: ParameterValues<Args>
-}): Promise<CommandResult<SourceConfig[]>> {
+}) {
   const { modules: moduleNames } = args
   const graph = await garden.getConfigGraph(log)
   const modules = graph.getModules({ names: moduleNames })
@@ -104,5 +110,5 @@ export async function updateRemoteModules({
     sources: moduleSources,
   })
 
-  return { result: moduleSources }
+  return { result: { sources: moduleSources } }
 }
