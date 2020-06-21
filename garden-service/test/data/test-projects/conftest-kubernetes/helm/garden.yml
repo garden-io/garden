@@ -2,8 +2,9 @@ kind: Module
 description: Test Helm chart
 type: helm
 name: helm
-chart: stable/postgresql
-version: 3.9.2
+chart: postgresql
+repo: https://charts.bitnami.com/bitnami
+version: "8.10.5"
 dependencies: [kubernetes]
 values:
   foo: ${runtime.services.kubernetes.outputs}
