@@ -961,25 +961,41 @@ limits:
 # The steps the workflow should run. At least one step is required. Steps are run sequentially. If a step fails,
 # subsequent steps are skipped.
 steps:
-  - # A Garden command this step should run.
+  - # An identifier to assign to this step. If none is specified, this defaults to "step-<number of step>", where
+    # <number of step> is the sequential number of the step (first step being number 1).
+    #
+    # This identifier is useful when referencing command outputs in following steps. For example, if you set this
+    # to "my-step", following steps can reference the \${steps.my-step.outputs.*} key in the `script` or `command`
+    # fields.
+    name:
+
+    # A Garden command this step should run, followed by any required or optional arguments and flags.
+    # Arguments and options for the commands may be templated, including references to previous steps, but for now
+    # the commands themselves (as listed below) must be hard-coded.
     #
     # Supported commands:
     #
+    # `[build]`
     # `[delete, environment]`
-    #
     # `[delete, service]`
-    #
     # `[deploy]`
-    #
+    # `[exec]`
+    # `[get, config]`
     # `[get, outputs]`
-    #
+    # `[get, status]`
+    # `[get, task-result]`
+    # `[get, test-result]`
+    # `[link, module]`
+    # `[link, source]`
     # `[publish]`
-    #
     # `[run, task]`
-    #
     # `[run, test]`
-    #
     # `[test]`
+    # `[update-remote, all]`
+    # `[update-remote, modules]`
+    # `[update-remote, sources]`
+    #
+    #
     command:
 
     # A description of the workflow step.
@@ -988,6 +1004,7 @@ steps:
     # A bash script to run. Note that the host running the workflow must have bash installed and on path. It is
     # considered to have run successfully if it returns an exit code of 0. Any other exit code signals an error, and
     # the remainder of the workflow is aborted.
+    # The script may include template strings, including references to previous steps.
     script:
 
 # A list of triggers that determine when the workflow should be run, and which environment should be used (Garden
@@ -1145,33 +1162,66 @@ The steps the workflow should run. At least one step is required. Steps are run 
 | --------------- | -------- |
 | `array[object]` | Yes      |
 
+### `steps[].name`
+
+[steps](#steps) > name
+
+An identifier to assign to this step. If none is specified, this defaults to "step-<number of step>", where
+<number of step> is the sequential number of the step (first step being number 1).
+
+This identifier is useful when referencing command outputs in following steps. For example, if you set this
+to "my-step", following steps can reference the \${steps.my-step.outputs.*} key in the `script` or `command`
+fields.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
 ### `steps[].command[]`
 
 [steps](#steps) > command
 
-A Garden command this step should run.
+A Garden command this step should run, followed by any required or optional arguments and flags.
+Arguments and options for the commands may be templated, including references to previous steps, but for now
+the commands themselves (as listed below) must be hard-coded.
 
 Supported commands:
 
+`[build]`
 `[delete, environment]`
-
 `[delete, service]`
-
 `[deploy]`
-
+`[exec]`
+`[get, config]`
 `[get, outputs]`
-
+`[get, status]`
+`[get, task-result]`
+`[get, test-result]`
+`[link, module]`
+`[link, source]`
 `[publish]`
-
 `[run, task]`
-
 `[run, test]`
-
 `[test]`
+`[update-remote, all]`
+`[update-remote, modules]`
+`[update-remote, sources]`
+
+
 
 | Type            | Required |
 | --------------- | -------- |
 | `array[string]` | No       |
+
+Example:
+
+```yaml
+steps:
+  - command:
+      - run
+      - task
+      - my-task
+```
 
 ### `steps[].description`
 
@@ -1188,6 +1238,7 @@ A description of the workflow step.
 [steps](#steps) > script
 
 A bash script to run. Note that the host running the workflow must have bash installed and on path. It is considered to have run successfully if it returns an exit code of 0. Any other exit code signals an error, and the remainder of the workflow is aborted.
+The script may include template strings, including references to previous steps.
 
 | Type     | Required |
 | -------- | -------- |

@@ -20,16 +20,17 @@ export interface PluginCommandParams {
   modules: Module[]
 }
 
-export const pluginParamsSchema = joi.object().keys({
-  ctx: pluginContextSchema(),
-  args: joiArray(joi.string()).description(
-    "A list of arguments from the command line. This excludes any parsed global options, as well as the command name itself."
-  ),
-  log: logEntrySchema(),
-  modules: joiArray(moduleSchema()).description(
-    "If the command defnitions has `resolveModules` set to `true`, this is set to a list of all modules in the project/environment. Otherwise this is an empty list."
-  ),
-})
+export const pluginParamsSchema = () =>
+  joi.object().keys({
+    ctx: pluginContextSchema(),
+    args: joiArray(joi.string()).description(
+      "A list of arguments from the command line. This excludes any parsed global options, as well as the command name itself."
+    ),
+    log: logEntrySchema(),
+    modules: joiArray(moduleSchema()).description(
+      "If the command defnitions has `resolveModules` set to `true`, this is set to a list of all modules in the project/environment. Otherwise this is an empty list."
+    ),
+  })
 
 export interface PluginCommandResult<T extends object = object> {
   result: T
