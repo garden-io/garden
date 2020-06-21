@@ -15,7 +15,7 @@ import { Command, CommandResult, StringParameter, PathParameter, CommandParams }
 import { LinkedSource } from "../../config-store"
 import { printHeader } from "../../logger/util"
 import { addLinkedSources, hasRemoteSource } from "../../util/ext-source-util"
-import { joiArray } from "../../config/common"
+import { joiArray, joi } from "../../config/common"
 import { linkedModuleSchema } from "../../config/project"
 
 const linkModuleArguments = {
@@ -31,6 +31,10 @@ const linkModuleArguments = {
 
 type Args = typeof linkModuleArguments
 
+interface Output {
+  sources: LinkedSource[]
+}
+
 export class LinkModuleCommand extends Command<Args> {
   name = "module"
   help = "Link a module to a local directory."
@@ -38,7 +42,10 @@ export class LinkModuleCommand extends Command<Args> {
 
   workflows = true
 
-  outputsSchema = () => joiArray(linkedModuleSchema()).description("A list of all locally linked external modules.")
+  outputsSchema = () =>
+    joi.object().keys({
+      sources: joiArray(linkedModuleSchema()).description("A list of all locally linked external modules."),
+    })
 
   description = dedent`
     After linking a remote module, Garden will read the source from the module's local directory instead of from
@@ -50,7 +57,7 @@ export class LinkModuleCommand extends Command<Args> {
         garden link module my-module path/to/my-module # links my-module to its local version at the given path
   `
 
-  async action({ garden, log, headerLog, args }: CommandParams<Args>): Promise<CommandResult<LinkedSource[]>> {
+  async action({ garden, log, headerLog, args }: CommandParams<Args>): Promise<CommandResult<Output>> {
     printHeader(headerLog, "Link module", "link")
 
     const sourceType = "module"
@@ -85,6 +92,6 @@ export class LinkModuleCommand extends Command<Args> {
 
     log.info(`Linked module ${moduleName}`)
 
-    return { result: linkedModuleSources }
+    return { result: { sources: linkedModuleSources } }
   }
 }

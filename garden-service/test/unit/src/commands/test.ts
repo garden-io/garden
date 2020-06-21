@@ -32,8 +32,6 @@ describe("TestCommand", () => {
       }),
     })
 
-    console.log(result)
-
     expect(command.outputsSchema().validate(result).error).to.be.undefined
 
     expect(

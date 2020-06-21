@@ -594,8 +594,8 @@ describe("WorkflowConfigContext", () => {
     expect(c.resolve({ key: ["var", "some"], nodePath: [], opts: {} })).to.eql({ resolved: "variable" })
   })
 
-  it("should return a step reference back", async () => {
-    expect(c.resolve({ key: ["steps", "step-1", "foo"], nodePath: [], opts: {} })).to.eql({
+  it("should return a step reference back with allowPartial=true", async () => {
+    expect(c.resolve({ key: ["steps", "step-1", "foo"], nodePath: [], opts: { allowPartial: true } })).to.eql({
       resolved: "${steps.step-1.foo}",
     })
   })
@@ -636,7 +636,9 @@ describe("WorkflowStepConfigContext", () => {
       },
       stepName: "step-2",
     })
-    expect(c.resolve({ key: ["steps", "step-1", "outputs", "some"], nodePath: [], opts: {} })).to.equal("value")
+    expect(c.resolve({ key: ["steps", "step-1", "outputs", "some"], nodePath: [], opts: {} }).resolved).to.equal(
+      "value"
+    )
   })
 
   it("should successfully resolve the log from a prior resolved step", () => {
@@ -652,7 +654,7 @@ describe("WorkflowStepConfigContext", () => {
       },
       stepName: "step-2",
     })
-    expect(c.resolve({ key: ["steps", "step-1", "log"], nodePath: [], opts: {} })).to.equal("bla")
+    expect(c.resolve({ key: ["steps", "step-1", "log"], nodePath: [], opts: {} }).resolved).to.equal("bla")
   })
 
   it("should throw error when attempting to reference a following step", () => {
@@ -664,7 +666,10 @@ describe("WorkflowStepConfigContext", () => {
     })
     expectError(
       () => c.resolve({ key: ["steps", "step-2", "log"], nodePath: [], opts: {} }),
-      (err) => expect(stripAnsi(err.message)).to.equal("")
+      (err) =>
+        expect(stripAnsi(err.message)).to.equal(
+          "Step step-2 is referenced in a template for step step-1, but step step-2 is later in the execution order. Only previous steps in the workflow can be referenced."
+        )
     )
   })
 
@@ -677,7 +682,7 @@ describe("WorkflowStepConfigContext", () => {
     })
     expectError(
       () => c.resolve({ key: ["steps", "step-foo", "log"], nodePath: [], opts: {} }),
-      (err) => expect(stripAnsi(err.message)).to.equal("")
+      (err) => expect(stripAnsi(err.message)).to.equal("Could not find key step-foo under steps.")
     )
   })
 
@@ -690,7 +695,10 @@ describe("WorkflowStepConfigContext", () => {
     })
     expectError(
       () => c.resolve({ key: ["steps", "step-1", "log"], nodePath: [], opts: {} }),
-      (err) => expect(stripAnsi(err.message)).to.equal("")
+      (err) =>
+        expect(stripAnsi(err.message)).to.equal(
+          "Step step-1 references itself in a template. Only previous steps in the workflow can be referenced."
+        )
     )
   })
 })

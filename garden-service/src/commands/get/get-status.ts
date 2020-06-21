@@ -45,7 +45,7 @@ const runStatusSchema = () =>
       .allow("outdated", "succeeded", "failed", "not-implemented")
       .required(),
     startedAt: joi.date().description("When the last run was started (if applicable)."),
-    completedAT: joi.date().description("When the last run completed (if applicable)."),
+    completedAt: joi.date().description("When the last run completed (if applicable)."),
   })
 
 // Value is "completed" if the test/task has been run for the current version.

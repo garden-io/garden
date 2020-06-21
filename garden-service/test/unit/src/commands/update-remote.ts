@@ -49,7 +49,7 @@ describe("UpdateRemoteCommand", () => {
 
       expect(cmd.outputsSchema().validate(result).error).to.be.undefined
 
-      expect(result!.map((s) => s.name).sort()).to.eql(["source-a", "source-b", "source-c"])
+      expect(result!.sources.map((s) => s.name).sort()).to.eql(["source-a", "source-b", "source-c"])
     })
 
     it("should update the specified project sources", async () => {
@@ -61,7 +61,7 @@ describe("UpdateRemoteCommand", () => {
         args: { sources: ["source-a"] },
         opts: withDefaultGlobalOpts({}),
       })
-      expect(result!.map((s) => s.name).sort()).to.eql(["source-a"])
+      expect(result!.sources.map((s) => s.name).sort()).to.eql(["source-a"])
     })
 
     it("should remove stale remote project sources", async () => {
@@ -117,7 +117,7 @@ describe("UpdateRemoteCommand", () => {
 
       expect(cmd.outputsSchema().validate(result).error).to.be.undefined
 
-      expect(result!.map((s) => s.name).sort()).to.eql(["module-a", "module-b", "module-c"])
+      expect(result!.sources.map((s) => s.name).sort()).to.eql(["module-a", "module-b", "module-c"])
     })
 
     it("should update the specified module sources", async () => {
@@ -129,7 +129,7 @@ describe("UpdateRemoteCommand", () => {
         args: { modules: ["module-a"] },
         opts: withDefaultGlobalOpts({}),
       })
-      expect(result!.map((s) => s.name).sort()).to.eql(["module-a"])
+      expect(result!.sources.map((s) => s.name).sort()).to.eql(["module-a"])
     })
 
     it("should remove stale remote module sources", async () => {

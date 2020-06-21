@@ -110,12 +110,14 @@ describe("LinkCommand", () => {
 
       expect(cmd.outputsSchema().validate(result).error).to.be.undefined
 
-      expect(result).to.eql([
-        {
-          name: "module-a",
-          path,
-        },
-      ])
+      expect(result).to.eql({
+        sources: [
+          {
+            name: "module-a",
+            path,
+          },
+        ],
+      })
     })
   })
 
@@ -185,12 +187,14 @@ describe("LinkCommand", () => {
 
       expect(cmd.outputsSchema().validate(result).error).to.be.undefined
 
-      expect(result).to.eql([
-        {
-          name: "source-a",
-          path,
-        },
-      ])
+      expect(result).to.eql({
+        sources: [
+          {
+            name: "source-a",
+            path,
+          },
+        ],
+      })
     })
   })
 })

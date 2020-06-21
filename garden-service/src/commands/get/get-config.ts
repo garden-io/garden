@@ -9,7 +9,7 @@
 import { Command, CommandResult, CommandParams, BooleanParameter } from "../base"
 import { ConfigDump } from "../../garden"
 import { environmentNameSchema } from "../../config/project"
-import { joiIdentifier, joiIdentifierMap, joiVariables, joiArray, joi } from "../../config/common"
+import { joiIdentifier, joiVariables, joiArray, joi } from "../../config/common"
 import { providerSchemaWithoutTools } from "../../config/provider"
 import { moduleConfigSchema } from "../../config/module"
 import { workflowConfigSchema } from "../../config/workflow"
@@ -30,6 +30,7 @@ export class GetConfigCommand extends Command<{}, Opts> {
 
   outputsSchema = () =>
     joi.object().keys({
+      allEnvironmentNames: joiArray(environmentNameSchema()).required(),
       environmentName: environmentNameSchema().required(),
       namespace: joiIdentifier().description("The namespace of the current environment (if applicable)."),
       providers: joiArray(providerSchemaWithoutTools()).description(
@@ -41,6 +42,7 @@ export class GetConfigCommand extends Command<{}, Opts> {
         .array()
         .items(workflowConfigSchema())
         .description("All workflow configs in the project."),
+      projectName: joi.string().description("The name of the project."),
       projectRoot: joi.string().description("The local path to the project root."),
       projectId: joi.string().description("The project ID (Garden Enterprise only)."),
     })
