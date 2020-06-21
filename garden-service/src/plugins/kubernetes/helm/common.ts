@@ -10,6 +10,7 @@ import { isPlainObject, flatten } from "lodash"
 import { join, resolve } from "path"
 import { pathExists, writeFile, remove } from "fs-extra"
 import cryptoRandomString = require("crypto-random-string")
+import { apply as jsonMerge } from "json-merge-patch"
 
 import { PluginContext } from "../../../plugin-context"
 import { LogEntry } from "../../../logger/log-entry"
@@ -25,6 +26,7 @@ import { getAnnotation, flattenResources } from "../util"
 import { KubernetesPluginContext } from "../config"
 import { RunResult } from "../../../types/plugin/base"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../constants"
+import { dumpYaml } from "../../../util/util"
 
 const gardenValuesFilename = "garden-values.yml"
 
@@ -74,8 +76,30 @@ export async function getChartResources(ctx: PluginContext, module: Module, hotR
   return flattenResources(resources)
 }
 
+/**
+ * Renders the given Helm module and returns a multi-document YAML string.
+ */
 export async function renderTemplates(ctx: KubernetesPluginContext, module: Module, hotReload: boolean, log: LogEntry) {
+  log.debug("Preparing chart...")
+
   const chartPath = await getChartPath(module)
+
+  // create the values.yml file (merge the configured parameters into the default values)
+  // Merge with the base module's values, if applicable
+  const baseModule = getBaseModule(module)
+  const specValues = baseModule ? jsonMerge(baseModule.spec.values, module.spec.values) : module.spec.values
+
+  // Add Garden metadata
+  specValues[".garden"] = {
+    moduleName: module.name,
+    projectName: ctx.projectName,
+    version: module.version.versionString,
+  }
+
+  const valuesPath = getGardenValuesPath(chartPath)
+  log.silly(`Writing chart values to ${valuesPath}`)
+  await dumpYaml(valuesPath, specValues)
+
   const releaseName = getReleaseName(module)
   const namespace = await getModuleNamespace({
     ctx,
