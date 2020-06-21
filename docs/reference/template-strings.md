@@ -44,6 +44,14 @@ A map of all local environment variables (see https://nodejs.org/api/process.htm
 | -------- |
 | `object` |
 
+### `${local.env.<env-var-name>}`
+
+The environment variable value.
+
+| Type     |
+| -------- |
+| `string` |
+
 ### `${local.platform}`
 
 A string indicating the platform that the framework is running on (see https://nodejs.org/api/process.html#process_process_platform)
@@ -132,6 +140,14 @@ A map of all local environment variables (see https://nodejs.org/api/process.htm
 | -------- |
 | `object` |
 
+### `${local.env.<env-var-name>}`
+
+The environment variable value.
+
+| Type     |
+| -------- |
+| `string` |
+
 ### `${local.platform}`
 
 A string indicating the platform that the framework is running on (see https://nodejs.org/api/process.html#process_process_platform)
@@ -240,6 +256,12 @@ A map of all variables defined in the project configuration.
 | -------- | ------- |
 | `object` | `{}`    |
 
+### `${variables.<variable-name>}`
+
+| Type                                             |
+| ------------------------------------------------ |
+| `number | string | boolean | link | array[link]` |
+
 ### `${var.*}`
 
 Alias for the variables field.
@@ -248,6 +270,14 @@ Alias for the variables field.
 | -------- | ------- |
 | `object` | `{}`    |
 
+### `${var.<name>}`
+
+Number, string or boolean
+
+| Type                        |
+| --------------------------- |
+| `number | string | boolean` |
+
 ### `${providers.*}`
 
 Retrieve information about providers that are defined in the project.
@@ -255,6 +285,38 @@ Retrieve information about providers that are defined in the project.
 | Type     | Default |
 | -------- | ------- |
 | `object` | `{}`    |
+
+### `${providers.<provider-name>.config.*}`
+
+The resolved configuration for the provider.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${providers.<provider-name>.config.<config-key>}`
+
+The provider config key value. Refer to individual [provider references](https://docs.garden.io/reference/providers) for details.
+
+| Type                        |
+| --------------------------- |
+| `number | string | boolean` |
+
+### `${providers.<provider-name>.outputs.*}`
+
+The outputs defined by the provider (see individual plugin docs for details).
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${providers.<provider-name>.outputs.<output-key>}`
+
+The provider output value. Refer to individual [provider references](https://docs.garden.io/reference/providers) for details.
+
+| Type                        |
+| --------------------------- |
+| `number | string | boolean` |
 
 
 ## Module configuration context
@@ -297,6 +359,14 @@ A map of all local environment variables (see https://nodejs.org/api/process.htm
 | -------- |
 | `object` |
 
+### `${local.env.<env-var-name>}`
+
+The environment variable value.
+
+| Type     |
+| -------- |
+| `string` |
+
 ### `${local.platform}`
 
 A string indicating the platform that the framework is running on (see https://nodejs.org/api/process.html#process_process_platform)
@@ -405,6 +475,12 @@ A map of all variables defined in the project configuration.
 | -------- | ------- |
 | `object` | `{}`    |
 
+### `${variables.<variable-name>}`
+
+| Type                                             |
+| ------------------------------------------------ |
+| `number | string | boolean | link | array[link]` |
+
 ### `${var.*}`
 
 Alias for the variables field.
@@ -412,6 +488,14 @@ Alias for the variables field.
 | Type     | Default |
 | -------- | ------- |
 | `object` | `{}`    |
+
+### `${var.<name>}`
+
+Number, string or boolean
+
+| Type                        |
+| --------------------------- |
+| `number | string | boolean` |
 
 ### `${providers.*}`
 
@@ -421,6 +505,38 @@ Retrieve information about providers that are defined in the project.
 | -------- | ------- |
 | `object` | `{}`    |
 
+### `${providers.<provider-name>.config.*}`
+
+The resolved configuration for the provider.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${providers.<provider-name>.config.<config-key>}`
+
+The provider config key value. Refer to individual [provider references](https://docs.garden.io/reference/providers) for details.
+
+| Type                        |
+| --------------------------- |
+| `number | string | boolean` |
+
+### `${providers.<provider-name>.outputs.*}`
+
+The outputs defined by the provider (see individual plugin docs for details).
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${providers.<provider-name>.outputs.<output-key>}`
+
+The provider output value. Refer to individual [provider references](https://docs.garden.io/reference/providers) for details.
+
+| Type                        |
+| --------------------------- |
+| `number | string | boolean` |
+
 ### `${modules.*}`
 
 Retrieve information about modules that are defined in the project.
@@ -428,6 +544,64 @@ Retrieve information about modules that are defined in the project.
 | Type     | Default |
 | -------- | ------- |
 | `object` | `{}`    |
+
+### `${modules.<module-name>.buildPath}`
+
+The build path of the module.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${modules.<module-name>.buildPath}
+```
+
+### `${modules.<module-name>.outputs.*}`
+
+The outputs defined by the module (see individual module type [references](https://docs.garden.io/reference/module-types) for details).
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${modules.<module-name>.outputs.<output-name>}`
+
+The module output value. Refer to individual [module type references](https://docs.garden.io/reference/module-types) for details.
+
+| Type                        |
+| --------------------------- |
+| `number | string | boolean` |
+
+### `${modules.<module-name>.path}`
+
+The local path of the module.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${modules.<module-name>.path}
+```
+
+### `${modules.<module-name>.version}`
+
+The current version of the module.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${modules.<module-name>.version}
+```
 
 ### `${runtime.*}`
 
@@ -445,6 +619,22 @@ Runtime information from the services that the service/task being run depends on
 | -------- | ------- |
 | `object` | `{}`    |
 
+### `${runtime.services.<service-name>.outputs.*}`
+
+The runtime outputs defined by the service (see individual module type [references](https://docs.garden.io/reference/module-types) for details).
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${runtime.services.<service-name>.outputs.<output-name>}`
+
+The service output value. Refer to individual [module type references](https://docs.garden.io/reference/module-types) for details.
+
+| Type                        |
+| --------------------------- |
+| `number | string | boolean` |
+
 ### `${runtime.tasks.*}`
 
 Runtime information from the tasks that the service/task being run depends on.
@@ -452,6 +642,22 @@ Runtime information from the tasks that the service/task being run depends on.
 | Type     | Default |
 | -------- | ------- |
 | `object` | `{}`    |
+
+### `${runtime.tasks.<task-name>.outputs.*}`
+
+The runtime outputs defined by the task (see individual module type [references](https://docs.garden.io/reference/module-types) for details).
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${runtime.tasks.<task-name>.outputs.<output-name>}`
+
+The task output value. Refer to individual [module type references](https://docs.garden.io/reference/module-types) for details.
+
+| Type                        |
+| --------------------------- |
+| `number | string | boolean` |
 
 
 ## Output configuration context
@@ -494,6 +700,14 @@ A map of all local environment variables (see https://nodejs.org/api/process.htm
 | -------- |
 | `object` |
 
+### `${local.env.<env-var-name>}`
+
+The environment variable value.
+
+| Type     |
+| -------- |
+| `string` |
+
 ### `${local.platform}`
 
 A string indicating the platform that the framework is running on (see https://nodejs.org/api/process.html#process_process_platform)
@@ -602,6 +816,12 @@ A map of all variables defined in the project configuration.
 | -------- | ------- |
 | `object` | `{}`    |
 
+### `${variables.<variable-name>}`
+
+| Type                                             |
+| ------------------------------------------------ |
+| `number | string | boolean | link | array[link]` |
+
 ### `${var.*}`
 
 Alias for the variables field.
@@ -609,6 +829,14 @@ Alias for the variables field.
 | Type     | Default |
 | -------- | ------- |
 | `object` | `{}`    |
+
+### `${var.<name>}`
+
+Number, string or boolean
+
+| Type                        |
+| --------------------------- |
+| `number | string | boolean` |
 
 ### `${providers.*}`
 
@@ -618,6 +846,38 @@ Retrieve information about providers that are defined in the project.
 | -------- | ------- |
 | `object` | `{}`    |
 
+### `${providers.<provider-name>.config.*}`
+
+The resolved configuration for the provider.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${providers.<provider-name>.config.<config-key>}`
+
+The provider config key value. Refer to individual [provider references](https://docs.garden.io/reference/providers) for details.
+
+| Type                        |
+| --------------------------- |
+| `number | string | boolean` |
+
+### `${providers.<provider-name>.outputs.*}`
+
+The outputs defined by the provider (see individual plugin docs for details).
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${providers.<provider-name>.outputs.<output-key>}`
+
+The provider output value. Refer to individual [provider references](https://docs.garden.io/reference/providers) for details.
+
+| Type                        |
+| --------------------------- |
+| `number | string | boolean` |
+
 ### `${modules.*}`
 
 Retrieve information about modules that are defined in the project.
@@ -625,6 +885,64 @@ Retrieve information about modules that are defined in the project.
 | Type     | Default |
 | -------- | ------- |
 | `object` | `{}`    |
+
+### `${modules.<module-name>.buildPath}`
+
+The build path of the module.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${modules.<module-name>.buildPath}
+```
+
+### `${modules.<module-name>.outputs.*}`
+
+The outputs defined by the module (see individual module type [references](https://docs.garden.io/reference/module-types) for details).
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${modules.<module-name>.outputs.<output-name>}`
+
+The module output value. Refer to individual [module type references](https://docs.garden.io/reference/module-types) for details.
+
+| Type                        |
+| --------------------------- |
+| `number | string | boolean` |
+
+### `${modules.<module-name>.path}`
+
+The local path of the module.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${modules.<module-name>.path}
+```
+
+### `${modules.<module-name>.version}`
+
+The current version of the module.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${modules.<module-name>.version}
+```
 
 ### `${runtime.*}`
 
@@ -642,6 +960,22 @@ Runtime information from the services that the service/task being run depends on
 | -------- | ------- |
 | `object` | `{}`    |
 
+### `${runtime.services.<service-name>.outputs.*}`
+
+The runtime outputs defined by the service (see individual module type [references](https://docs.garden.io/reference/module-types) for details).
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${runtime.services.<service-name>.outputs.<output-name>}`
+
+The service output value. Refer to individual [module type references](https://docs.garden.io/reference/module-types) for details.
+
+| Type                        |
+| --------------------------- |
+| `number | string | boolean` |
+
 ### `${runtime.tasks.*}`
 
 Runtime information from the tasks that the service/task being run depends on.
@@ -649,6 +983,22 @@ Runtime information from the tasks that the service/task being run depends on.
 | Type     | Default |
 | -------- | ------- |
 | `object` | `{}`    |
+
+### `${runtime.tasks.<task-name>.outputs.*}`
+
+The runtime outputs defined by the task (see individual module type [references](https://docs.garden.io/reference/module-types) for details).
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${runtime.tasks.<task-name>.outputs.<output-name>}`
+
+The task output value. Refer to individual [module type references](https://docs.garden.io/reference/module-types) for details.
+
+| Type                        |
+| --------------------------- |
+| `number | string | boolean` |
 
 
 ## Workflow configuration context
@@ -688,6 +1038,14 @@ A map of all local environment variables (see https://nodejs.org/api/process.htm
 | -------- |
 | `object` |
 
+### `${local.env.<env-var-name>}`
+
+The environment variable value.
+
+| Type     |
+| -------- |
+| `string` |
+
 ### `${local.platform}`
 
 A string indicating the platform that the framework is running on (see https://nodejs.org/api/process.html#process_process_platform)
@@ -796,6 +1154,12 @@ A map of all variables defined in the project configuration.
 | -------- | ------- |
 | `object` | `{}`    |
 
+### `${variables.<variable-name>}`
+
+| Type                                             |
+| ------------------------------------------------ |
+| `number | string | boolean | link | array[link]` |
+
 ### `${var.*}`
 
 Alias for the variables field.
@@ -803,6 +1167,14 @@ Alias for the variables field.
 | Type     | Default |
 | -------- | ------- |
 | `object` | `{}`    |
+
+### `${var.<name>}`
+
+Number, string or boolean
+
+| Type                        |
+| --------------------------- |
+| `number | string | boolean` |
 
 ### `${steps.*}`
 
@@ -813,4 +1185,28 @@ The name of the step should be the explicitly set `name` of the other step, or i
 | Type     | Default |
 | -------- | ------- |
 | `object` | `{}`    |
+
+### `${steps.<step-name>.log}`
+
+The full output log from the step.
+
+| Type     |
+| -------- |
+| `string` |
+
+### `${steps.<step-name>.outputs.*}`
+
+The outputs returned by the step, as a mapping. Script steps will always have `stdout` and `stderr` keys.
+Command steps return different keys, including potentially nested maps and arrays. Please refer to each command
+for its output schema.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${steps.<step-name>.outputs.<output-key>}`
+
+| Type                                             |
+| ------------------------------------------------ |
+| `number | string | boolean | link | array[link]` |
 

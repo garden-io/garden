@@ -56,8 +56,8 @@ export class UpdateRemoteAllCommand extends Command {
 
     return {
       result: {
-        projectSources: projectSources!,
-        moduleSources: moduleSources!,
+        projectSources: projectSources!.sources,
+        moduleSources: moduleSources!.sources,
       },
     }
   }

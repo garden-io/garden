@@ -249,7 +249,6 @@ export interface WorkflowConfigMap {
 
 export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
   const log = garden.log
-  const { variables, secrets } = garden
   const context = new WorkflowConfigContext(garden)
   log.silly(`Resolving template strings for workflow ${config.name}`)
   let resolvedConfig = resolveTemplateStrings(cloneDeep(config), context, { allowPartial: true })
