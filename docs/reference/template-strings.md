@@ -232,14 +232,6 @@ Example:
 my-variable: ${environment.namespace}
 ```
 
-### `${providers.*}`
-
-Retrieve information about providers that are defined in the project.
-
-| Type     | Default |
-| -------- | ------- |
-| `object` | `{}`    |
-
 ### `${variables.*}`
 
 A map of all variables defined in the project configuration.
@@ -251,6 +243,14 @@ A map of all variables defined in the project configuration.
 ### `${var.*}`
 
 Alias for the variables field.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${providers.*}`
+
+Retrieve information about providers that are defined in the project.
 
 | Type     | Default |
 | -------- | ------- |
@@ -397,14 +397,6 @@ Example:
 my-variable: ${environment.namespace}
 ```
 
-### `${providers.*}`
-
-Retrieve information about providers that are defined in the project.
-
-| Type     | Default |
-| -------- | ------- |
-| `object` | `{}`    |
-
 ### `${variables.*}`
 
 A map of all variables defined in the project configuration.
@@ -416,6 +408,14 @@ A map of all variables defined in the project configuration.
 ### `${var.*}`
 
 Alias for the variables field.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${providers.*}`
+
+Retrieve information about providers that are defined in the project.
 
 | Type     | Default |
 | -------- | ------- |
@@ -594,14 +594,6 @@ Example:
 my-variable: ${environment.namespace}
 ```
 
-### `${providers.*}`
-
-Retrieve information about providers that are defined in the project.
-
-| Type     | Default |
-| -------- | ------- |
-| `object` | `{}`    |
-
 ### `${variables.*}`
 
 A map of all variables defined in the project configuration.
@@ -613,6 +605,14 @@ A map of all variables defined in the project configuration.
 ### `${var.*}`
 
 Alias for the variables field.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${providers.*}`
+
+Retrieve information about providers that are defined in the project.
 
 | Type     | Default |
 | -------- | ------- |
@@ -645,6 +645,170 @@ Runtime information from the services that the service/task being run depends on
 ### `${runtime.tasks.*}`
 
 Runtime information from the tasks that the service/task being run depends on.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+
+## Workflow configuration context
+
+The below keys are available in template strings for Workflow configurations.
+
+Note that the `{steps.*}` key is only available for the `steps[].command` and `steps[].script` fields in Workflow configs, and may only reference previous steps in the same workflow. See below for more details.
+
+
+### `${local.*}`
+
+Context variables that are specific to the currently running environment/machine.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${local.artifactsPath}`
+
+The absolute path to the directory where exported artifacts from test and task runs are stored.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.artifactsPath}
+```
+
+### `${local.env.*}`
+
+A map of all local environment variables (see https://nodejs.org/api/process.html#process_process_env).
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${local.platform}`
+
+A string indicating the platform that the framework is running on (see https://nodejs.org/api/process.html#process_process_platform)
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.platform}
+```
+
+### `${local.username}`
+
+The current username (as resolved by https://github.com/sindresorhus/username)
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.username}
+```
+
+### `${project.*}`
+
+Information about the Garden project.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${project.name}`
+
+The name of the Garden project.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${project.name}
+```
+
+### `${environment.*}`
+
+Information about the environment that Garden is running against.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${environment.name}`
+
+The name of the environment Garden is running against, excluding the namespace.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${environment.name}
+```
+
+### `${environment.fullName}`
+
+The full name of the environment Garden is running against, including the namespace.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${environment.fullName}
+```
+
+### `${environment.namespace}`
+
+The currently active namespace (if any).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${environment.namespace}
+```
+
+### `${variables.*}`
+
+A map of all variables defined in the project configuration.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${var.*}`
+
+Alias for the variables field.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${steps.*}`
+
+Reference previous steps in a workflow. Only available in the `steps[].command` and `steps[].script` fields.
+The name of the step should be the explicitly set `name` of the other step, or if one is not set, use
+`step-<n>`, where <n> is the sequential number of the step (starting from 1).
 
 | Type     | Default |
 | -------- | ------- |

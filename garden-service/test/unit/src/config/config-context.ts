@@ -15,6 +15,8 @@ import {
   ProjectConfigContext,
   ModuleConfigContext,
   ProviderConfigContext,
+  WorkflowConfigContext,
+  WorkflowStepConfigContext,
 } from "../../../../src/config/config-context"
 import { expectError, makeTestGardenA, TestGarden, projectRootA, makeTestGarden } from "../../../helpers"
 import { join } from "path"
@@ -332,14 +334,14 @@ describe("ProjectConfigContext", () => {
 describe("ProviderConfigContext", () => {
   it("should set an empty namespace and environment.fullName to environment.name if no namespace is set", async () => {
     const garden = await makeTestGarden(projectRootA, { environmentName: "local" })
-    const c = new ProviderConfigContext(garden, await garden.resolveProviders(), {}, {})
+    const c = new ProviderConfigContext(garden, await garden.resolveProviders())
 
     expect(c.resolve({ key: ["environment", "name"], nodePath: [], opts: {} })).to.eql({ resolved: "local" })
   })
 
   it("should set environment.namespace and environment.fullName to properly if namespace is set", async () => {
     const garden = await makeTestGarden(projectRootA, { environmentName: "foo.local" })
-    const c = new ProviderConfigContext(garden, await garden.resolveProviders(), {}, {})
+    const c = new ProviderConfigContext(garden, await garden.resolveProviders())
 
     expect(c.resolve({ key: ["environment", "name"], nodePath: [], opts: {} })).to.eql({ resolved: "local" })
     expect(c.resolve({ key: ["environment", "namespace"], nodePath: [], opts: {} })).to.eql({ resolved: "foo" })
@@ -353,14 +355,13 @@ describe("ModuleConfigContext", () => {
 
   before(async () => {
     garden = await makeTestGardenA()
+    garden["secrets"] = { someSecret: "someSecretValue" }
     const graph = await garden.getConfigGraph(garden.log)
     const modules = graph.getModules()
 
     c = new ModuleConfigContext({
       garden,
       resolvedProviders: keyBy(await garden.resolveProviders(), "name"),
-      variables: garden.variables,
-      secrets: { someSecret: "someSecretValue" },
       dependencyConfigs: modules,
       dependencyVersions: fromPairs(modules.map((m) => [m.name, m.version])),
     })
@@ -368,54 +369,54 @@ describe("ModuleConfigContext", () => {
 
   it("should resolve local env variables", async () => {
     process.env.TEST_VARIABLE = "foo"
-    expect(await c.resolve({ key: ["local", "env", "TEST_VARIABLE"], nodePath: [], opts: {} })).to.eql({
+    expect(c.resolve({ key: ["local", "env", "TEST_VARIABLE"], nodePath: [], opts: {} })).to.eql({
       resolved: "foo",
     })
     delete process.env.TEST_VARIABLE
   })
 
   it("should resolve the local platform", async () => {
-    expect(await c.resolve({ key: ["local", "platform"], nodePath: [], opts: {} })).to.eql({
+    expect(c.resolve({ key: ["local", "platform"], nodePath: [], opts: {} })).to.eql({
       resolved: process.platform,
     })
   })
 
   it("should resolve the environment config", async () => {
-    expect(await c.resolve({ key: ["environment", "name"], nodePath: [], opts: {} })).to.eql({
+    expect(c.resolve({ key: ["environment", "name"], nodePath: [], opts: {} })).to.eql({
       resolved: garden.environmentName,
     })
   })
 
   it("should resolve the path of a module", async () => {
     const path = join(garden.projectRoot, "module-a")
-    expect(await c.resolve({ key: ["modules", "module-a", "path"], nodePath: [], opts: {} })).to.eql({ resolved: path })
+    expect(c.resolve({ key: ["modules", "module-a", "path"], nodePath: [], opts: {} })).to.eql({ resolved: path })
   })
 
   it("should should resolve the version of a module", async () => {
     const config = await garden.resolveModule("module-a")
     const { versionString } = await garden.resolveVersion(config, [])
-    expect(await c.resolve({ key: ["modules", "module-a", "version"], nodePath: [], opts: {} })).to.eql({
+    expect(c.resolve({ key: ["modules", "module-a", "version"], nodePath: [], opts: {} })).to.eql({
       resolved: versionString,
     })
   })
 
   it("should resolve the outputs of a module", async () => {
-    expect(await c.resolve({ key: ["modules", "module-a", "outputs", "foo"], nodePath: [], opts: {} })).to.eql({
+    expect(c.resolve({ key: ["modules", "module-a", "outputs", "foo"], nodePath: [], opts: {} })).to.eql({
       resolved: "bar",
     })
   })
 
   it("should resolve a project variable", async () => {
-    expect(await c.resolve({ key: ["variables", "some"], nodePath: [], opts: {} })).to.eql({ resolved: "variable" })
+    expect(c.resolve({ key: ["variables", "some"], nodePath: [], opts: {} })).to.eql({ resolved: "variable" })
   })
 
   it("should resolve a project variable under the var alias", async () => {
-    expect(await c.resolve({ key: ["var", "some"], nodePath: [], opts: {} })).to.eql({ resolved: "variable" })
+    expect(c.resolve({ key: ["var", "some"], nodePath: [], opts: {} })).to.eql({ resolved: "variable" })
   })
 
   context("secrets", () => {
     it("should resolve a secret", async () => {
-      expect(await c.resolve({ key: ["secrets", "someSecret"], nodePath: [], opts: {} })).to.eql({
+      expect(c.resolve({ key: ["secrets", "someSecret"], nodePath: [], opts: {} })).to.eql({
         resolved: "someSecretValue",
       })
     })
@@ -430,7 +431,7 @@ describe("ModuleConfigContext", () => {
 
   context("runtimeContext is not set", () => {
     it("should return runtime template strings unchanged if allowPartial=true", async () => {
-      expect(await c.resolve({ key: ["runtime", "some", "key"], nodePath: [], opts: { allowPartial: true } })).to.eql({
+      expect(c.resolve({ key: ["runtime", "some", "key"], nodePath: [], opts: { allowPartial: true } })).to.eql({
         resolved: "${runtime.some.key}",
       })
     })
@@ -463,8 +464,6 @@ describe("ModuleConfigContext", () => {
       serviceA = graph.getService("service-a")
       const serviceB = graph.getService("service-b")
       const taskB = graph.getTask("task-b")
-
-      const secrets = {}
 
       const runtimeContext = await prepareRuntimeContext({
         garden,
@@ -501,8 +500,6 @@ describe("ModuleConfigContext", () => {
       withRuntime = new ModuleConfigContext({
         garden,
         resolvedProviders: keyBy(await garden.resolveProviders(), "name"),
-        variables: garden.variables,
-        secrets,
         dependencyConfigs: modules,
         dependencyVersions: fromPairs(modules.map((m) => [m.name, m.version])),
         runtimeContext,
@@ -510,7 +507,7 @@ describe("ModuleConfigContext", () => {
     })
 
     it("should resolve service outputs", async () => {
-      const result = await withRuntime.resolve({
+      const result = withRuntime.resolve({
         key: ["runtime", "services", "service-b", "outputs", "foo"],
         nodePath: [],
         opts: {},
@@ -519,7 +516,7 @@ describe("ModuleConfigContext", () => {
     })
 
     it("should resolve task outputs", async () => {
-      const result = await withRuntime.resolve({
+      const result = withRuntime.resolve({
         key: ["runtime", "tasks", "task-b", "outputs", "moo"],
         nodePath: [],
         opts: {},
@@ -528,7 +525,7 @@ describe("ModuleConfigContext", () => {
     })
 
     it("should return the template string back if allowPartial=true and outputs haven't been resolved ", async () => {
-      const result = await withRuntime.resolve({
+      const result = withRuntime.resolve({
         key: ["runtime", "services", "not-ready", "outputs", "foo"],
         nodePath: [],
         opts: { allowPartial: true },
@@ -556,5 +553,144 @@ describe("ModuleConfigContext", () => {
           expect(stripAnsi(err.message)).to.equal("Could not find key boo under runtime.services.service-b.outputs.")
       )
     })
+  })
+})
+
+describe("WorkflowConfigContext", () => {
+  let garden: TestGarden
+  let c: WorkflowConfigContext
+
+  before(async () => {
+    garden = await makeTestGardenA()
+    garden["secrets"] = { someSecret: "someSecretValue" }
+    c = new WorkflowConfigContext(garden)
+  })
+
+  it("should resolve local env variables", async () => {
+    process.env.TEST_VARIABLE = "foo"
+    expect(c.resolve({ key: ["local", "env", "TEST_VARIABLE"], nodePath: [], opts: {} })).to.eql({
+      resolved: "foo",
+    })
+    delete process.env.TEST_VARIABLE
+  })
+
+  it("should resolve the local platform", async () => {
+    expect(c.resolve({ key: ["local", "platform"], nodePath: [], opts: {} })).to.eql({
+      resolved: process.platform,
+    })
+  })
+
+  it("should resolve the environment config", async () => {
+    expect(c.resolve({ key: ["environment", "name"], nodePath: [], opts: {} })).to.eql({
+      resolved: garden.environmentName,
+    })
+  })
+
+  it("should resolve a project variable", async () => {
+    expect(c.resolve({ key: ["variables", "some"], nodePath: [], opts: {} })).to.eql({ resolved: "variable" })
+  })
+
+  it("should resolve a project variable under the var alias", async () => {
+    expect(c.resolve({ key: ["var", "some"], nodePath: [], opts: {} })).to.eql({ resolved: "variable" })
+  })
+
+  it("should return a step reference back", async () => {
+    expect(c.resolve({ key: ["steps", "step-1", "foo"], nodePath: [], opts: {} })).to.eql({
+      resolved: "${steps.step-1.foo}",
+    })
+  })
+
+  context("secrets", () => {
+    it("should resolve a secret", async () => {
+      expect(c.resolve({ key: ["secrets", "someSecret"], nodePath: [], opts: {} })).to.eql({
+        resolved: "someSecretValue",
+      })
+    })
+
+    it("should throw when resolving a secret with a missing key", async () => {
+      await expectError(
+        () => c.resolve({ key: ["secrets", "missingSecret"], nodePath: [], opts: {} }),
+        (err) => expect(stripAnsi(err.message)).to.equal("Could not find key missingSecret under secrets.")
+      )
+    })
+  })
+})
+
+describe("WorkflowStepConfigContext", () => {
+  let garden: TestGarden
+
+  before(async () => {
+    garden = await makeTestGardenA()
+  })
+
+  it("should successfully resolve an output from a prior resolved step", () => {
+    const c = new WorkflowStepConfigContext({
+      garden,
+      allStepNames: ["step-1", "step-2"],
+      resolvedSteps: {
+        "step-1": {
+          log: "bla",
+          number: 1,
+          outputs: { some: "value" },
+        },
+      },
+      stepName: "step-2",
+    })
+    expect(c.resolve({ key: ["steps", "step-1", "outputs", "some"], nodePath: [], opts: {} })).to.equal("value")
+  })
+
+  it("should successfully resolve the log from a prior resolved step", () => {
+    const c = new WorkflowStepConfigContext({
+      garden,
+      allStepNames: ["step-1", "step-2"],
+      resolvedSteps: {
+        "step-1": {
+          log: "bla",
+          number: 1,
+          outputs: {},
+        },
+      },
+      stepName: "step-2",
+    })
+    expect(c.resolve({ key: ["steps", "step-1", "log"], nodePath: [], opts: {} })).to.equal("bla")
+  })
+
+  it("should throw error when attempting to reference a following step", () => {
+    const c = new WorkflowStepConfigContext({
+      garden,
+      allStepNames: ["step-1", "step-2"],
+      resolvedSteps: {},
+      stepName: "step-1",
+    })
+    expectError(
+      () => c.resolve({ key: ["steps", "step-2", "log"], nodePath: [], opts: {} }),
+      (err) => expect(stripAnsi(err.message)).to.equal("")
+    )
+  })
+
+  it("should throw error when attempting to reference a missing step", () => {
+    const c = new WorkflowStepConfigContext({
+      garden,
+      allStepNames: ["step-1", "step-2"],
+      resolvedSteps: {},
+      stepName: "step-1",
+    })
+    expectError(
+      () => c.resolve({ key: ["steps", "step-foo", "log"], nodePath: [], opts: {} }),
+      (err) => expect(stripAnsi(err.message)).to.equal("")
+    )
+  })
+
+  it("should throw error when attempting to reference current step", () => {
+    const c = new WorkflowStepConfigContext({
+      garden,
+      allStepNames: ["step-1", "step-2"],
+      resolvedSteps: {},
+      stepName: "step-1",
+    })
+    expectError(
+      () => c.resolve({ key: ["steps", "step-1", "log"], nodePath: [], opts: {} }),
+      (err) => expect(stripAnsi(err.message)).to.equal("")
+    )
   })
 })
