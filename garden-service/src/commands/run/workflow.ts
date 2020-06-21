@@ -63,7 +63,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
     const outerLog = log.placeholder()
     // Partially resolve the workflow config, and prepare any configured files before continuing
     const rawWorkflow = garden.getRawWorkflowConfig(args.workflow)
-    const templateContext = new WorkflowConfigContext(garden, garden.variables, garden.secrets)
+    const templateContext = new WorkflowConfigContext(garden)
     const files = resolveTemplateStrings(rawWorkflow.files || [], templateContext)
 
     // Write all the configured files for the workflow

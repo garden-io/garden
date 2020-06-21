@@ -697,8 +697,6 @@ export class Garden {
     return new OutputConfigContext({
       garden: this,
       resolvedProviders: providers,
-      variables: this.variables,
-      secrets: this.secrets,
       modules,
       runtimeContext,
     })
@@ -792,8 +790,6 @@ export class Garden {
       const configContext = new ModuleConfigContext({
         garden: this,
         resolvedProviders: keyBy(providers, "name"),
-        variables: this.variables,
-        secrets: this.secrets,
         dependencyConfigs: resolvedModules,
         dependencyVersions: fromPairs(resolvedModules.map((m) => [m.name, m.version])),
         runtimeContext,

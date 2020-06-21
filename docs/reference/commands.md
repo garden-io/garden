@@ -388,7 +388,7 @@ Examples:
 
 ### garden get status
 
-Outputs the status of your environment.
+Outputs the full status of your environment.
 
 
 ##### Usage
@@ -735,8 +735,8 @@ This can be useful for debugging tests, particularly integration/end-to-end test
 
 Examples:
 
-    garden run test my-module integ                     # run the test named 'integ' in my-module
-    garden run test my-module integ --interactive=false # do not attach to the test run, just output results when completed
+    garden run test my-module integ                      # run the test named 'integ' in my-module
+    garden run test my-module integ --interactive=false  # do not attach to the test run, just output results when completed
 
 ##### Usage
 
