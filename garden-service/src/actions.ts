@@ -798,8 +798,6 @@ export class ActionRouter implements TypeGuard {
       const configContext = new ModuleConfigContext({
         garden: this.garden,
         resolvedProviders: providers,
-        variables: this.garden.variables,
-        secrets: this.garden.secrets,
         dependencyConfigs: modules,
         dependencyVersions: fromPairs(modules.map((m) => [m.name, m.version])),
         runtimeContext,
@@ -860,8 +858,6 @@ export class ActionRouter implements TypeGuard {
       const configContext = new ModuleConfigContext({
         garden: this.garden,
         resolvedProviders: providers,
-        variables: this.garden.variables,
-        secrets: this.garden.secrets,
         dependencyConfigs: modules,
         dependencyVersions: fromPairs(modules.map((m) => [m.name, m.version])),
         runtimeContext,

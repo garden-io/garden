@@ -353,7 +353,7 @@ export class WorkflowConfigContext extends ProjectConfigContext {
   // We ignore step references here, and keep for later resolution
   public steps: Map<string, WorkflowStepContext | ErrorContext> | PassthroughContext
 
-  constructor(garden: Garden, variables: DeepPrimitiveMap, secrets: PrimitiveMap) {
+  constructor(garden: Garden) {
     super({ projectName: garden.projectName, artifactsPath: garden.artifactsPath, username: garden.username })
 
     const fullEnvName = garden.namespace ? `${garden.namespace}.${garden.environmentName}` : garden.environmentName
@@ -361,14 +361,14 @@ export class WorkflowConfigContext extends ProjectConfigContext {
 
     this.project = new ProjectContext(this, garden.projectName)
 
-    this.var = this.variables = variables
-    this.secrets = secrets
+    this.var = this.variables = garden.variables
+    this.secrets = garden.secrets
 
     this.steps = new PassthroughContext()
   }
 }
 
-export class WorkflowStepContext extends ConfigContext {
+class WorkflowStepContext extends ConfigContext {
   @schema(joi.string().description("The full output log from the step."))
   public log: string
 
@@ -425,7 +425,7 @@ export class WorkflowStepConfigContext extends WorkflowConfigContext {
     resolvedSteps: { [name: string]: WorkflowStepResult }
     stepName: string
   }) {
-    super(garden, garden.variables, garden.secrets)
+    super(garden)
 
     this.steps = new Map<string, WorkflowStepContext | ErrorContext>()
 
@@ -498,8 +498,8 @@ export class ProviderConfigContext extends WorkflowConfigContext {
   )
   public providers: Map<string, ProviderContext>
 
-  constructor(garden: Garden, resolvedProviders: ProviderMap, variables: DeepPrimitiveMap, secrets: PrimitiveMap) {
-    super(garden, variables, secrets)
+  constructor(garden: Garden, resolvedProviders: ProviderMap) {
+    super(garden)
 
     this.providers = new Map(Object.entries(mapValues(resolvedProviders, (p) => new ProviderContext(this, p))))
   }
@@ -704,8 +704,6 @@ export class ModuleConfigContext extends ProviderConfigContext {
   constructor({
     garden,
     resolvedProviders,
-    variables,
-    secrets,
     moduleName,
     dependencyConfigs,
     dependencyVersions,
@@ -713,8 +711,6 @@ export class ModuleConfigContext extends ProviderConfigContext {
   }: {
     garden: Garden
     resolvedProviders: ProviderMap
-    variables: DeepPrimitiveMap
-    secrets: PrimitiveMap
     moduleName?: string
     dependencyConfigs: ModuleConfig[]
     dependencyVersions: { [name: string]: ModuleVersion }
@@ -722,7 +718,7 @@ export class ModuleConfigContext extends ProviderConfigContext {
     // Otherwise we pass `${runtime.*} template strings through for later resolution.
     runtimeContext?: RuntimeContext
   }) {
-    super(garden, resolvedProviders, variables, secrets)
+    super(garden, resolvedProviders)
 
     this.modules = new Map(
       dependencyConfigs.map(
@@ -747,15 +743,11 @@ export class OutputConfigContext extends ModuleConfigContext {
   constructor({
     garden,
     resolvedProviders,
-    variables,
-    secrets,
     modules,
     runtimeContext,
   }: {
     garden: Garden
     resolvedProviders: ProviderMap
-    variables: DeepPrimitiveMap
-    secrets: PrimitiveMap
     modules: Module[]
     runtimeContext: RuntimeContext
   }) {
@@ -763,8 +755,6 @@ export class OutputConfigContext extends ModuleConfigContext {
     super({
       garden,
       resolvedProviders,
-      variables,
-      secrets,
       dependencyConfigs: modules,
       dependencyVersions: versions,
       runtimeContext,

@@ -108,8 +108,6 @@ export class ResolveModuleConfigTask extends BaseTask {
     const configContext = new ModuleConfigContext({
       garden: this.garden,
       resolvedProviders: this.resolvedProviders,
-      variables: this.garden.variables,
-      secrets: this.garden.secrets,
       moduleName: this.moduleConfig.name,
       dependencyConfigs: [...dependencyConfigs, ...dependencyModules],
       dependencyVersions: fromPairs(dependencyModules.map((m) => [m.name, m.version])),
