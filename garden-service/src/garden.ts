@@ -1124,27 +1124,50 @@ export class Garden {
 
   /**
    * This dumps the full project configuration including all modules.
+   * Set includeDisabled=true to include disabled modules, services, tasks and tests.
+   * Set partial=true to avoid resolving providers. If set, includeDisabled is implicitly true.
    */
-  public async dumpConfig(log: LogEntry, includeDisabled: boolean = false): Promise<ConfigDump> {
-    const graph = await this.getConfigGraph(log)
-    const modules = graph.getModules({ includeDisabled })
+  public async dumpConfig({
+    log,
+    includeDisabled = false,
+    partial = false,
+  }: {
+    log: LogEntry
+    includeDisabled?: boolean
+    partial?: boolean
+  }): Promise<ConfigDump> {
+    let providers: ConfigDump["providers"] = []
+    let moduleConfigs: ModuleConfig[]
+
+    if (partial) {
+      providers = this.getRawProviderConfigs()
+      moduleConfigs = await this.getRawModuleConfigs()
+    } else {
+      const graph = await this.getConfigGraph(log)
+      const modules = graph.getModules({ includeDisabled })
+
+      moduleConfigs = sortBy(
+        modules.map((m) => m._config),
+        "name"
+      )
+
+      providers = Object.values(await this.resolveProviders()).map((p) => {
+        return {
+          ...omit(p, ["tools"]),
+          dependencies: mapValues(p.dependencies, (d) => omit(d, ["tools"])),
+        } as Provider
+      })
+    }
+
     const workflowConfigs = await this.getWorkflowConfigs()
 
     return {
       environmentName: this.environmentName,
       allEnvironmentNames: this.allEnvironmentNames,
       namespace: this.namespace,
-      providers: Object.values(await this.resolveProviders()).map((p) => {
-        return {
-          ...omit(p, ["tools"]),
-          dependencies: mapValues(p.dependencies, (d) => omit(d, ["tools"])),
-        } as Provider
-      }),
+      providers,
       variables: this.variables,
-      moduleConfigs: sortBy(
-        modules.map((m) => m._config),
-        "name"
-      ),
+      moduleConfigs,
       workflowConfigs: sortBy(workflowConfigs, "name"),
       projectName: this.projectName,
       projectRoot: this.projectRoot,
@@ -1171,7 +1194,7 @@ export interface ConfigDump {
   environmentName: string // TODO: Remove this?
   allEnvironmentNames: string[]
   namespace?: string
-  providers: Omit<Provider, "tools">[]
+  providers: (Omit<Provider, "tools"> | ProviderConfig)[]
   variables: DeepPrimitiveMap
   moduleConfigs: ModuleConfig[]
   workflowConfigs: WorkflowConfig[]

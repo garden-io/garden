@@ -531,7 +531,7 @@ describe("RunWorkflowCommand", () => {
       throw errors[0]
     }
 
-    const config = await garden.dumpConfig(garden.log)
+    const config = await garden.dumpConfig({ log: garden.log })
 
     expect(result).to.exist
     expect(errors).to.not.exist
