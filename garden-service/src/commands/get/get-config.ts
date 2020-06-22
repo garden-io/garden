@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandResult, CommandParams, BooleanParameter } from "../base"
+import { Command, CommandResult, CommandParams, BooleanParameter, ChoicesParameter } from "../base"
 import { ConfigDump } from "../../garden"
 import { environmentNameSchema } from "../../config/project"
 import { joiIdentifier, joiVariables, joiArray, joi } from "../../config/common"
-import { providerSchemaWithoutTools } from "../../config/provider"
+import { providerSchemaWithoutTools, providerConfigBaseSchema } from "../../config/provider"
 import { moduleConfigSchema } from "../../config/module"
 import { workflowConfigSchema } from "../../config/workflow"
 
@@ -18,13 +18,20 @@ export const getConfigOptions = {
   "exclude-disabled": new BooleanParameter({
     help: "Exclude disabled module, service, test, and task configs from output.",
   }),
+  "resolve": new ChoicesParameter({
+    help:
+      "Choose level of resolution of config templates. Defaults to full. Specify --resolve=partial to avoid resolving providers.",
+    // TODO: add "raw" option, to just scan for configs and return completely unresolved
+    choices: ["full", "partial"],
+    defaultValue: "full",
+  }),
 }
 
 type Opts = typeof getConfigOptions
 
 export class GetConfigCommand extends Command<{}, Opts> {
   name = "config"
-  help = "Outputs the fully resolved configuration for this project and environment."
+  help = "Outputs the full configuration for this project and environment."
 
   workflows = true
 
@@ -33,7 +40,7 @@ export class GetConfigCommand extends Command<{}, Opts> {
       allEnvironmentNames: joiArray(environmentNameSchema()).required(),
       environmentName: environmentNameSchema().required(),
       namespace: joiIdentifier().description("The namespace of the current environment (if applicable)."),
-      providers: joiArray(providerSchemaWithoutTools()).description(
+      providers: joiArray(joi.alternatives(providerSchemaWithoutTools(), providerConfigBaseSchema())).description(
         "A list of all configured providers in the environment."
       ),
       variables: joiVariables().description("All configured variables in the environment."),
@@ -50,7 +57,11 @@ export class GetConfigCommand extends Command<{}, Opts> {
   options = getConfigOptions
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<ConfigDump>> {
-    const config = await garden.dumpConfig(log, !opts["exclude-disabled"])
+    const config = await garden.dumpConfig({
+      log,
+      includeDisabled: !opts["exclude-disabled"],
+      partial: opts["resolve"] === "partial",
+    })
 
     // Also filter out service, task, and test configs
     if (opts["exclude-disabled"]) {
