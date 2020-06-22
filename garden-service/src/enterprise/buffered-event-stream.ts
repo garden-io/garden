@@ -152,7 +152,7 @@ export class BufferedEventStream {
       events,
       workflowUid,
       sessionId: this.sessionId,
-      projectId: this.projectId,
+      projectUid: this.projectId,
     }
     const headers = makeAuthHeader(this.clientAuthToken)
     got.post(`${this.enterpriseDomain}/events`, { json: data, headers }).catch((err) => {
@@ -165,7 +165,7 @@ export class BufferedEventStream {
       logEntries,
       workflowUid,
       sessionId: this.sessionId,
-      projectId: this.projectId,
+      projectUid: this.projectId,
     }
     const headers = makeAuthHeader(this.clientAuthToken)
     got.post(`${this.enterpriseDomain}/log-entries`, { json: data, headers }).catch((err) => {
