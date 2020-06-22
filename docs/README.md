@@ -2,22 +2,32 @@
 
 ## 🌳 Basics
 
-* [Installation](./basics/installation.md)
-* [Quick Start](./basics/quick-start.md)
-* [Stack Graph](./basics/stack-graph.md)
+* [How Garden Works](./basics/how-garden-works.md)
+* [The Stack Graph (Terminology)](./basics/stack-graph.md)
 
-## 🌻 Using Garden
+## 🌻 Getting Started
 
-* [Creating a Project](./using-garden/creating-a-project.md)
-* [Adding Modules](./using-garden/adding-modules.md)
-* [Adding Services](./using-garden/adding-services.md)
-* [Running Tests](./using-garden/running-tests.md)
-* [Running Tasks](./using-garden/running-tasks.md)
+* [0. Introduction](./getting-started/0-introduction.md)
+* [1. Installation](./getting-started/1-installation.md)
+* [2. Initialize a Project](./getting-started/2-initialize-a-project.md)
+* [3. Connect to a Cluster](./getting-started/3-connect-to-a-cluster.md)
+* [4. Deploy and Test](./getting-started/4-deploy-and-test.md)
+* [5. Configure Your Project](./getting-started/5-configure-your-project.md)
 
-## 💐 Guides
+## 💐 Using Garden
+
+* [Configuration Overview](./using-garden/configuration-overview.md)
+* [Projects](./using-garden/projects.md)
+* [Modules](./using-garden/modules.md)
+* [Services](./using-garden/services.md)
+* [Tests](./using-garden/tests.md)
+* [Tasks](./using-garden/tasks.md)
+* [Workflows](./using-garden/workflows.md)
+* [Variables and templating](./using-garden/variables-and-templating.md)
+
+## 🌿 Guides
 
 * [Cloud Provider Set-up](./guides/cloud-provider-setup.md)
-* [Configuration Files](./guides/configuration-files.md)
 * [Container Modules](./guides/container-modules.md)
 * [Development Workflows](./guides/development-workflows.md)
 * [Helm Charts](./guides/using-helm-charts.md)
@@ -25,19 +35,13 @@
 * [In-Cluster Building](./guides/in-cluster-building.md)
 * [Local Kubernetes](./guides/local-kubernetes.md)
 * [Remote Kubernetes](./guides/remote-kubernetes.md)
-* [Variables and templating](./guides/variables-and-templating.md)
+* [Using Garden in CI](./guides/using-garden-in-ci.md)
 
-## 🌿 Advanced
+## 🌺 Advanced
 
 * [Remote Sources](./advanced/using-remote-sources.md)
 * [Terraform](./advanced/terraform.md)
 * [cert-manager Integration](./advanced/cert-manager-integration.md)
-
-## 🌺 Example Projects
-
-* [Demo Project](./example-projects/demo-project.md)
-* [TLS Project](./example-projects/tls-project.md)
-* [Using Garden in CI](./example-projects/using-garden-in-ci.md)
 
 ## ☘️ Reference
 

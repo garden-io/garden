@@ -257,7 +257,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
     // This is to avoid `prettier` messing with the string formatting...
     const moduleTypeUrl = chalk.cyan.underline(getModuleTypeUrl(type))
     const providerUrl = chalk.cyan.underline(getProviderUrl(pluginName))
-    const configFilesUrl = chalk.cyan.underline(`${DOCS_BASE_URL}/guides/configuration-files`)
+    const configFilesUrl = chalk.cyan.underline(`${DOCS_BASE_URL}/using-garden/configuration-overview`)
     const formattedType = chalk.bold(type)
     const formattedPluginName = chalk.bold(pluginName)
 

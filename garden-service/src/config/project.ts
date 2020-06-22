@@ -354,7 +354,7 @@ export const projectDocsSchema = () =>
 
         Note that these take precedence over the project \`module.include\` field, and module \`include\` fields, so any paths matched by the .ignore files will be ignored even if they are explicitly specified in those fields.
 
-        See the [Configuration Files guide](${DOCS_BASE_URL}/guides/configuration-files#including-excluding-files-and-directories) for details.
+        See the [Configuration Files guide](${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
       `
         )
         .example([".gardenignore", ".gitignore"]),

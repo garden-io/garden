@@ -13,7 +13,7 @@ You will have to use the module level [`include`](https://docs.garden.io/referen
 
 If the module only has a Dockerfile but no other files, say because it's a 3rd party image, you should set `include: []`.
 
-See [this section](https://docs.garden.io/guides/configuration-files#multiple-modules-in-the-same-file) of our docs for more.
+See [this section](https://docs.garden.io/using-garden/configuration-overview#multiple-modules-in-the-same-file) of our docs for more.
 
 ### Should I `.gitignore` the `.garden` dir?
 
@@ -21,7 +21,7 @@ Yes.
 
 ### How do I disable modules based on environments?
 
-You can use the `disabled` field to disable [modules](https://docs.garden.io/using-garden/adding-modules#disabling-modules), [services](https://docs.garden.io/using-garden/adding-services#disabling-services), [tests](https://docs.garden.io/using-garden/running-tests#disabling-tests), and [tasks](https://docs.garden.io/using-garden/running-tasks#disabling-tasks).
+You can use the `disabled` field to disable [modules](https://docs.garden.io/using-garden/modules#disabling-modules), [services](https://docs.garden.io/using-garden/services#disabling-services), [tests](https://docs.garden.io/using-garden/tests#disabling-tests), and [tasks](https://docs.garden.io/using-garden/tasks#disabling-tasks).
 
 ### How do I use the `image` field in `container` modules? Is it for pulling or publishing images?
 
@@ -35,7 +35,7 @@ We aim to change to this behavior and make it more user-friendly with our next m
 
 ### When should I use the module level `include`/`exclude` fields? How are they different from the project level  `module.include/module.exclude` fields? What about ignore files?
 
-Read all about it in [this section](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) of our docs.
+Read all about it in [this section](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) of our docs.
 
 ### How do I share a single service (like a database) across multiple namespaces?
 
@@ -205,7 +205,7 @@ See [this section](https://docs.garden.io/guides/container-modules#mounting-volu
 
 ### How do I access files that are generated at runtime (e.g. migration files that are checked into version control)?
 
-You can generate the files via a task, store them as artifacts, and copy them from the local artifacts directory. [Here's an example](https://docs.garden.io/using-garden/running-tests#test-artifacts) of this.
+You can generate the files via a task, store them as artifacts, and copy them from the local artifacts directory. [Here's an example](https://docs.garden.io/using-garden/tests#test-artifacts) of this.
 
 You can also use the [`persistentvolumeclaim`](https://docs.garden.io/reference/module-types/persistentvolumeclaim) module type to store data and share it across modules. See [this section](https://docs.garden.io/guides/container-modules#mounting-volumes) of our docs for more.
 

@@ -1,9 +1,9 @@
 ---
-order: 2
-title: Creating a Project
+order: 20
+title: Projects
 ---
 
-# Creating a Project
+# Projects
 
 The first step to using Garden is to create a project. You can use the `garden create project` helper command, or manually create a `garden.yml` file in the root directory of your project:
 
@@ -26,11 +26,45 @@ The top-level `garden.yml` file is where project-wide configuration takes place.
 
 Garden treats the directory containing the project configuration as the project's top-level directory. Garden commands that run in subdirectories of the project root are assumed to apply to that project, and commands above/outside a project root will fail—similarly to how Git uses the location of the repo's `.git` directory as the repo's root directory.
 
+### Environments and namespaces
+
 Every Garden command is run against one of the environments defined in the project level `garden.yml` file. You can specify the environment with the `--env` flag or by setting a `defaultEnvironment`. Alternatively, Garden defaults to the first environment in the `garden.yml` file.
+
+An environment can further be separated using _namespaces_. A common use-case being to split a shared development or testing environment by namespace, between e.g. users or different branches of code.
+
+{% hint style="warning" %}
+Namespaces are similar in nature to Kubernetes but **do not directly map to Kubernetes namespaces unless you explicitly configure them to do so**. By default, the `kubernetes` and `local-kubernetes` providers set the Kubernetes namespace to `<project name>-<Garden namespace>`. You can override this by setting the `namespace` field in the respective provider configuration (more on that below), for example `namespace: ${environment.namespace}`.
+{% endhint %}
+
+Here's a fairly typical list of environments:
+
+```yaml
+kind: Project
+name: my-project
+defaultEnvironment: dev
+environments:
+  - name: local   # local development environment
+  - name: dev     # remote/shared development environment
+    defaultNamespace: user-${local.username}
+  - name: staging
+    production: true
+  - name: prod
+    production: true
+```
+
+A few things to notice here. Starting with the two development environments, we have a local one for those preferring to e.g. use a local Kubernetes cluster, and a shared `dev` environment. For the latter we set the `defaultNamespace` to the current username (plus a prefix), to implicitly split it up by different users.
+
+Another option there would be to set `defaultNamespace: null` and require users to explicitly set a namespace at runtime. You do this by specifying `--env=<namespace>.<env>` at the command line, e.g. `--env=hellothisisme.dev`.
+
+For the other environments we leave `defaultNamespace` set to the default, which is simply `default`. So when you run Garden with `--env=staging`, that automatically expands to `--env=default.staging`.
+
+The `staging` and `prod` environments have an additional flag set, the `production` flag. This flag changes some default behavior and turns on protection for certain Garden commands that might be destructive, e.g. `garden deploy`, requiring you to explicitly confirm that you want to execute them. See more details on that in [the reference](../reference/config.md#environmentsproduction).
+
+The current environment and namespace are frequently used in template strings. `${environment.name}` resolves to the environment name (in the above example, `local`, `dev`, `staging` or `prod`), `${environment.namespace}` resolves to the namespace, and `${environment.fullName}` resolves to the two combined with a DNS-style notation, e.g. `my-namespace.dev`.
 
 ### Providers
 
-A project consists of one or more **modules** that each has a specific `type`, for example `container` or `kubernetes`. (We talk about adding modules in the [next guide](./adding-modules.md).) **Providers** implement some of the behaviour of these module types.
+A project consists of one or more **modules** that each has a specific `type`, for example `container` or `kubernetes`. (We talk about adding modules in the [next guide](./modules.md).) **Providers** implement some of the behaviour of these module types.
 
 Consider a project with the following three environments:
 
@@ -57,7 +91,7 @@ type: container
 
 Our choice of providers and their configuration dictates how the module in the example above is handled:
 
-1. If we run `garden build my-module --env empty`, the `build` handler for the `container` module type will do the build, essentially calling `docker build` behind the scenes. Running `garden deploy` will fail because no provider is configured to handle the deployment.
+1. If we run `garden build my-module --env empty`, the `build` handler for the `container` module type (which is configured automatically) will do the build, essentially calling `docker build` behind the scenes. Running `garden deploy` will fail because no provider is configured to handle the deployment.
 2. If we run `garden build my-module --env local`, the `local-kubernetes` provider will "step in". It will still build the module via Docker but it will also push the image to the local Kubernetes cluster. Running `garden deploy` will deploy the project to a local Kubernetes cluster such as Minikube or Docker Desktop.
 3. If we run `garden build my-module --env remote`, the `kubernetes` provider will take over. It basically does the same thing as the `build` handler for the `local-kubernetes` provider, but requires some extra configuration. Running `garden deploy` will deploy the project to the remote cluster.
 
@@ -76,7 +110,7 @@ Variables defined in the project config are accessible in [template strings](../
 kind: Project
 name: my-project
 variables:
-  # This variable is referenced in the module configs, and overridden in the local project below
+  # This variable is referenced in the module configs, and overridden in the local environment below
   service-replicas: 3
 environments:
   - name: local
@@ -109,9 +143,9 @@ services:
 ## Further Reading
 
 * [Full project config reference](../reference/config.md).
-* [A guide on template strings and setting project wide variables](../guides/variables-and-templating.md).
+* [A guide on template strings and setting project wide variables](../using-garden/variables-and-templating.md).
 * [Template string reference](../reference/template-strings.md).
 
 ## Next Steps
 
-Continue on to the next guide for an introduction to [adding modules](./adding-modules.md), the building blocks of any Garden project.
+Continue on to the next guide for an introduction to [adding modules](./modules.md), the building blocks of any Garden project.

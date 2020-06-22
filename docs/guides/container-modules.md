@@ -19,7 +19,7 @@ type: container
 name: my-container
 ```
 
-If you have a `Dockerfile` next to this file, this is enough to tell Garden to build it. You can also specify `dockerfile: <path-to-Dockerfile>` if you need to override the Dockerfile name. You might also want to explicitly [include or exclude](./configuration-files.md#includingexcluding-files-and-directories) files in the build context.
+If you have a `Dockerfile` next to this file, this is enough to tell Garden to build it. You can also specify `dockerfile: <path-to-Dockerfile>` if you need to override the Dockerfile name. You might also want to explicitly [include or exclude](../using-garden/configuration-overview.md#includingexcluding-files-and-directories) files in the build context.
 
 ## Using remote images
 
@@ -105,7 +105,7 @@ services:
 ...
 ```
 
-`env` is a simple mapping of "name: value". Above we see a simple example with a string value, but you'll also commonly use [template strings](./variables-and-templating.md#template-string-basics) to interpolate variables to be consumed by the container service.
+`env` is a simple mapping of "name: value". Above we see a simple example with a string value, but you'll also commonly use [template strings](../using-garden/variables-and-templating.md#template-string-basics) to interpolate variables to be consumed by the container service.
 
 #### Secrets
 
@@ -197,7 +197,7 @@ See the [reference](../reference/module-types/container.md#tasks) for all the co
 
 ## Referencing from other modules
 
-Modules can reference outputs from each other using [template strings](./variables-and-templating.md#template-string-basics). `container` modules are, for instance, often referenced by other module types such as `helm` module types. For example:
+Modules can reference outputs from each other using [template strings](../using-garden/variables-and-templating.md#template-string-basics). `container` modules are, for instance, often referenced by other module types such as `helm` module types. For example:
 
 ```yaml
 kind: Module

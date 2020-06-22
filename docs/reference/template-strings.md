@@ -5,7 +5,7 @@ title: Template Strings
 
 # Template string reference
 
-Below you'll find the schema of the keys available when interpolating template strings (see our [Variables and Templating](../guides/variables-and-templating.md) guide for more information and usage examples).
+Below you'll find the schema of the keys available when interpolating template strings (see our [Variables and Templating](../using-garden/variables-and-templating.md) guide for more information and usage examples).
 
 Note that there are four sections below, since different configuration sections have different keys available to them. Please make sure to refer to the correct section.
 

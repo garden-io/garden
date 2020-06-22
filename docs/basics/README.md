@@ -5,6 +5,5 @@ title: Basics
 
 # Basics
 
-* [Installation](./installation.md)
-* [Quick Start](./quick-start.md)
-* [Stack Graph](./stack-graph.md)
+* [How Garden Works](./how-garden-works.md)
+* [The Stack Graph (Terminology)](./stack-graph.md)

@@ -1,19 +1,21 @@
 ---
-order: 6
-title: Running Tasks
+order: 60
+title: Tasks
 ---
 
-# Running Tasks
+# Tasks
 
 You add tasks when you want Garden to execute specific commands before deploying a service or running a test. At its most basic, the configuration looks like this:
 
-    # garden.yml
-    kind: Module
-    tasks:
-      - name: db-init
-        args: [rake, db:migrate]
-      - name: db-clear
-        args: [rake, db:rollback]
+```yaml
+# garden.yml
+kind: Module
+tasks:
+  - name: db-init
+    args: [rake, db:migrate]
+  - name: db-clear
+    args: [rake, db:rollback]
+```
 
 > Note that not all [modules types](../reference/module-types/README.md) support tasks.
 

@@ -33,7 +33,7 @@ const ignorefileName = ".gardenignore"
 const defaultIgnorefile = dedent`
 # Add paths here that you would like Garden to ignore when building modules and computing versions,
 # using the same syntax as .gitignore files.
-# For more info, see https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories
+# For more info, see https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories
 `
 
 const createProjectArgs = {}
@@ -186,7 +186,7 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
 
     // This is to avoid `prettier` messing with the string formatting...
     const formattedIgnoreName = chalk.bold.white(".gardenignore")
-    const configFilesUrl = chalk.cyan.underline("https://docs.garden.io/guides/configuration-files")
+    const configFilesUrl = chalk.cyan.underline("https://docs.garden.io/using-garden/configuration-overview")
     const referenceUrl = chalk.cyan.underline("https://docs.garden.io/reference/config")
 
     log.info({

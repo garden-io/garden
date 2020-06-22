@@ -11,7 +11,7 @@ Adds the [maven-container module type](https://docs.garden.io/reference/module-t
 
 To use it, simply add the provider to your provider configuration, and refer to the [maven-container module docs](https://docs.garden.io/reference/module-types/maven-container) for details on how to configure the modules.
 
-Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../guides/configuration-files.md).
+Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 

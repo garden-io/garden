@@ -1,10 +1,8 @@
 # Development Workflows
 
-Now that you've had a glimpse of the basic Garden commands in the [Quick Start](../basics/quick-start.md) guide, and
-learned about the [Stack Graph](../basics/stack-graph.md), let's go through some typical Garden workflows.
+Here we'll describe at a high level some common day-to-day workflows using Garden.
 
-We'll keep using the [Demo Project](../example-projects/demo-project.md) example, but the same principles will apply for most
-Garden projects.
+We'll use the [Demo Project](https://github.com/garden-io/garden/tree/v0.11.14/examples/demo-project) example, but the same principles will apply for most Garden projects.
 
 ## garden dev
 
@@ -15,8 +13,7 @@ When you start it, `garden dev` will start your development environment and run 
 changes. When you then make changes, Garden re-builds, re-deploys, and re-tests the modules/services that are affected,
 based on the dependency graph.
 
-For example, if we run `garden dev` inside the [Demo Project](../example-projects/demo-project.md), the output should be
-something like this:
+For example, if we run `garden dev` inside the [Demo Project](https://github.com/garden-io/garden/tree/v0.11.14/examples/demo-project), the output should be something like this:
 
 ```plain
 Good evening! Let's get your environment wired up...
@@ -106,6 +103,8 @@ tests:
       - frontend
 ```
 
+To run the tests in a project, you generally use the `garden test` command to run multiple tests, or the `garden run test` command which runs a specific test.
+
 Garden doesn't mind what happens inside each of those test suites. It just makes sure the module is built and up-to-date
 when they run, and if they declare `dependencies`, Garden will make sure those dependencies are up-to-date before
 running or re-running the tests.
@@ -120,8 +119,3 @@ and runtime dependencies. That way, Garden knows which tests to run when any sou
 In this example, since the `integ` tests depends on the `frontend` which has a transitive dependency on the `backend`,
 Garden will ensure that both the `frontend` and `backend` are deployed with the latest code before running the `integ` tests.
 The `unit` test only requires a build of the `frontend` which is an implicit dependency for all tests in the module.
-
-## Next steps
-
-We recommend diving into our [configuration files guide](./configuration-files.md) next, to learn more about how to
-set up a project with Garden.

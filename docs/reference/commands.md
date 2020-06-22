@@ -23,11 +23,7 @@ The following option flags can be used with any of the CLI commands:
   | `--root` | `-r` | string | Override project root directory (defaults to working directory).
   | `--silent` | `-s` | boolean | Suppress log output. Same as setting --logger-type&#x3D;quiet.
   | `--env` | `-e` | string | The environment (and optionally namespace) to work against.
-  | `--logger-type` |  | `quiet` `basic` `fancy` `fullscreen` `json`  | Set logger type.
-fancy: updates log lines in-place when their status changes (e.g. when tasks complete),
-basic: appends a new log line when a log line&#x27;s status changes,
-json: same as basic, but renders log lines as JSON,
-quiet: suppresses all log output, same as --silent.
+  | `--logger-type` |  | `quiet` `basic` `fancy` `fullscreen` `json`  | Set logger type. fancy updates log lines in-place when their status changes (e.g. when tasks complete), basic appends a new log line when a log line&#x27;s status changes, json same as basic, but renders log lines as JSON, quiet suppresses all log output, same as --silent.
   | `--log-level` | `-l` | `error` `warn` `info` `verbose` `debug` `silly` `0` `1` `2` `3` `4` `5`  | Set logger level. Values can be either string or numeric and are prioritized from 0 to 5 (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5.
   | `--output` | `-o` | `json` `yaml`  | Output command result in specified format (note: disables progress logging and interactive functionality).
   | `--emoji` |  | boolean | Enable emoji in output (defaults to true if the environment supports it).
@@ -36,7 +32,7 @@ quiet: suppresses all log output, same as --silent.
 
 ### garden build
 
-Build your modules.
+**Build your modules.**
 
 Builds all or specified modules, taking into account build dependency order.
 Optionally stays running and automatically builds modules if their source (or their dependencies' sources) change.
@@ -47,6 +43,10 @@ Examples:
     garden build my-module  # only build my-module
     garden build --force    # force rebuild of modules
     garden build --watch    # watch for changes to code
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| Yes |                                                  |
 
 #### Usage
 
@@ -227,7 +227,7 @@ graphResults:
 
 ### garden call
 
-Call a service ingress endpoint.
+**Call a service ingress endpoint.**
 
 Resolves the deployed ingress endpoint for the given service and path, calls the given endpoint and
 outputs the result.
@@ -238,6 +238,10 @@ Examples:
     garden call my-container/some-path
 
 Note: Currently only supports simple GET requests for HTTP/HTTPS ingresses.
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
 
 #### Usage
 
@@ -253,7 +257,7 @@ Note: Currently only supports simple GET requests for HTTP/HTTPS ingresses.
 
 ### garden config analytics-enabled
 
-Update your preferences regarding analytics.
+**Update your preferences regarding analytics.**
 
 To help us make Garden better, you can opt in to the collection of usage data.
 We make sure all the data collected is anonymized and stripped of sensitive
@@ -269,6 +273,10 @@ Examples:
     garden config analytics-enabled true   # enable analytics
     garden config analytics-enabled false  # disable analytics
 
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
+
 #### Usage
 
     garden config analytics-enabled [enable] 
@@ -283,7 +291,7 @@ Examples:
 
 ### garden create project
 
-Create a new Garden project.
+**Create a new Garden project.**
 
 Creates a new Garden project configuration. The generated config includes some default values, as well as the
 schema of the config in the form of commentented-out fields. Also creates a default (blank) .gardenignore file
@@ -295,6 +303,10 @@ Examples:
     garden create project --dir some-dir      # create a Garden project config in the ./some-dir directory
     garden create project --name my-project   # set the project name to my-project
     garden create project --interactive=false # don't prompt for user inputs when creating the config
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
 
 #### Usage
 
@@ -311,7 +323,7 @@ Examples:
 
 ### garden create module
 
-Create a new Garden module.
+**Create a new Garden module.**
 
 Creates a new Garden module configuration. The generated config includes some default values, as well as the
 schema of the config in the form of commentented-out fields.
@@ -322,6 +334,10 @@ Examples:
     garden create module --dir some-dir       # create a Garden module config in the ./some-dir directory
     garden create module --name my-module     # set the module name to my-module
     garden create module --interactive=false  # don't prompt for user inputs when creating the module
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
 
 #### Usage
 
@@ -339,7 +355,7 @@ Examples:
 
 ### garden delete secret
 
-Delete a secret from the environment.
+**Delete a secret from the environment.**
 
 Returns with an error if the provided key could not be found by the provider.
 
@@ -347,6 +363,10 @@ Examples:
 
     garden delete secret kubernetes somekey
     garden del secret local-kubernetes some-other-key
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
 
 #### Usage
 
@@ -363,13 +383,17 @@ Examples:
 
 ### garden delete environment
 
-Deletes a running environment.
+**Deletes a running environment.**
 
 This will delete all services in the specified environment, and trigger providers to clear up any other resources
 and reset it. When you then run `garden deploy`, the environment will be reconfigured.
 
 This can be useful if you find the environment to be in an inconsistent state, or need/want to free up
 resources.
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| Yes |                                                  |
 
 #### Usage
 
@@ -483,7 +507,7 @@ serviceStatuses:
 
 ### garden delete service
 
-Deletes running services.
+**Deletes running services.**
 
 Deletes (i.e. un-deploys) the specified services. Note that this command does not take into account any
 services depending on the deleted service, and might therefore leave the project in an unstable state.
@@ -492,6 +516,10 @@ Running `garden deploy` will re-deploy any missing services.
 Examples:
 
     garden delete service my-service # deletes my-service
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| Yes |                                                  |
 
 #### Usage
 
@@ -578,7 +606,7 @@ Examples:
 
 ### garden deploy
 
-Deploy service(s) to your environment.
+**Deploy service(s) to your environment.**
 
 Deploys all or specified services, taking into account service dependency order.
 Also builds modules and dependencies if needed.
@@ -596,6 +624,10 @@ Examples:
     garden deploy --hot=my-service     # deploys all services, with hot reloading enabled for my-service
     garden deploy --hot=*              # deploys all compatible services with hot reloading enabled
     garden deploy --env stage          # deploy your services to an environment called stage
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| Yes |                                                  |
 
 #### Usage
 
@@ -778,7 +810,7 @@ graphResults:
 
 ### garden dev
 
-Starts the garden development console.
+**Starts the garden development console.**
 
 The Garden dev console is a combination of the `build`, `deploy` and `test` commands.
 It builds, deploys and tests all your modules and services, and re-builds, re-deploys and re-tests
@@ -792,6 +824,10 @@ Examples:
     garden dev --skip-tests=                  # skip running any tests
     garden dev --name integ                   # run all tests with the name 'integ' in the project
     garden test --name integ*                 # run all tests with the name starting with 'integ' in the project
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
 
 #### Usage
 
@@ -808,7 +844,7 @@ Examples:
 
 ### garden exec
 
-Executes a command (such as an interactive shell) in a running service.
+**Executes a command (such as an interactive shell) in a running service.**
 
 Finds an active container for a deployed service and executes the given command within the container.
 Supports interactive shells.
@@ -818,6 +854,10 @@ _NOTE: This command may not be supported for all module types._
 Examples:
 
      garden exec my-service /bin/sh   # runs a shell in the my-service container
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| Yes |                                                  |
 
 #### Usage
 
@@ -854,8 +894,12 @@ stderr:
 
 ### garden get graph
 
-Outputs the dependency relationships specified in this project&#x27;s garden.yml files.
+**Outputs the dependency relationships specified in this project's garden.yml files.**
 
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
 
 #### Usage
 
@@ -865,8 +909,12 @@ Outputs the dependency relationships specified in this project&#x27;s garden.yml
 
 ### garden get config
 
-Outputs the full configuration for this project and environment.
+**Outputs the full configuration for this project and environment.**
 
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| Yes |                                                  |
 
 #### Usage
 
@@ -934,7 +982,8 @@ moduleConfigs:
     #
     # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
     # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-    # guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories) for details.
+    # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
+    # details.
     #
     # Also note that specifying an empty list here means _no sources_ should be included.
     include:
@@ -946,7 +995,8 @@ moduleConfigs:
     # Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include`
     # field, the files/patterns specified here are filtered from the files matched by `include`. See the
     # [Configuration Files
-    # guide](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories)for details.
+    # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
+    # details.
     #
     # Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and
     # directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large
@@ -1217,9 +1267,13 @@ projectId:
 
 ### garden get eysi
 
-Meet our CTO.
+**Meet our CTO.**
 
 Just try it.
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
 
 #### Usage
 
@@ -1229,8 +1283,12 @@ Just try it.
 
 ### garden get linked-repos
 
-Outputs a list of all linked remote sources and modules for this project.
+**Outputs a list of all linked remote sources and modules for this project.**
 
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
 
 #### Usage
 
@@ -1240,7 +1298,7 @@ Outputs a list of all linked remote sources and modules for this project.
 
 ### garden get outputs
 
-Resolves and returns the outputs of the project.
+**Resolves and returns the outputs of the project.**
 
 Resolves and returns the outputs of the project. If necessary, this may involve deploying services and/or running
 tasks referenced by the outputs in the project configuration.
@@ -1250,6 +1308,10 @@ Examples:
     garden get outputs                 # resolve and print the outputs from the project
     garden get outputs --env=prod      # resolve and print the outputs from the project for the prod environment
     garden get outputs --output=json   # resolve and return the project outputs in JSON format
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| Yes |                                                  |
 
 #### Usage
 
@@ -1264,8 +1326,12 @@ Examples:
 
 ### garden get status
 
-Outputs the full status of your environment.
+**Outputs the full status of your environment.**
 
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| Yes |                                                  |
 
 #### Usage
 
@@ -1401,8 +1467,12 @@ tests:
 
 ### garden get tasks
 
-Lists the tasks defined in your project&#x27;s modules.
+**Lists the tasks defined in your project's modules.**
 
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
 
 #### Usage
 
@@ -1418,8 +1488,12 @@ Lists the tasks defined in your project&#x27;s modules.
 
 ### garden get task-result
 
-Outputs the latest execution result of a provided task.
+**Outputs the latest execution result of a provided task.**
 
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| Yes |                                                  |
 
 #### Usage
 
@@ -1470,8 +1544,12 @@ artifacts:
 
 ### garden get test-result
 
-Outputs the latest execution result of a provided test.
+**Outputs the latest execution result of a provided test.**
 
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| Yes |                                                  |
 
 #### Usage
 
@@ -1524,13 +1602,17 @@ artifacts:
 
 ### garden get debug-info
 
-Outputs the status of your environment for debug purposes.
+**Outputs the status of your environment for debug purposes.**
 
 Examples:
 
 garden get debug-info                    # create a zip file at the root of the project with debug information
 garden get debug-info --format yaml      # output provider info as YAML files (default is JSON)
 garden get debug-info --include-project  # include provider info for the project namespace (disabled by default)
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
 
 #### Usage
 
@@ -1547,7 +1629,7 @@ Note that this may include sensitive data, depending on the provider and your co
 
 ### garden link source
 
-Link a remote source to a local directory.
+**Link a remote source to a local directory.**
 
 After linking a remote source, Garden will read it from its local directory instead of
 from the remote URL. Garden can only link remote sources that have been declared in the project
@@ -1556,6 +1638,10 @@ level `garden.yml` config.
 Examples:
 
     garden link source my-source path/to/my-source # links my-source to its local version at the given path
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| Yes |                                                  |
 
 #### Usage
 
@@ -1583,7 +1669,7 @@ sources:
 
 ### garden link module
 
-Link a module to a local directory.
+**Link a module to a local directory.**
 
 After linking a remote module, Garden will read the source from the module's local directory instead of from
 the remote URL. Garden can only link modules that have a remote source,
@@ -1592,6 +1678,10 @@ i.e. modules that specifiy a `repositoryUrl` in their `garden.yml` config file.
 Examples:
 
     garden link module my-module path/to/my-module # links my-module to its local version at the given path
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| Yes |                                                  |
 
 #### Usage
 
@@ -1619,7 +1709,7 @@ sources:
 
 ### garden logs
 
-Retrieves the most recent logs for the specified service(s).
+**Retrieves the most recent logs for the specified service(s).**
 
 Outputs logs for all or specified services, and optionally waits for news logs to come in.
 
@@ -1628,6 +1718,10 @@ Examples:
     garden logs               # prints latest logs from all services
     garden logs my-service    # prints latest logs for my-service
     garden logs -t            # keeps running and streams all incoming logs to the console
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
 
 #### Usage
 
@@ -1649,7 +1743,7 @@ Examples:
 
 ### garden migrate
 
-Migrate &#x60;garden.yml&#x60; configuration files to version v0.11.x
+**Migrate `garden.yml` configuration files to version v0.11.x**
 
 Scans the project for `garden.yml` configuration files and updates those that are not compatible with version v0.11.
 By default the command prints the updated versions to the terminal. You can optionally update the files in place with the `write` flag.
@@ -1663,6 +1757,10 @@ Examples:
     garden migrate              # scans all garden.yml files and prints the updated versions along with the paths to them.
     garden migrate --write      # scans all garden.yml files and overwrites them with the updated versions.
     garden migrate ./garden.yml # scans the provided garden.yml file and prints the updated version.
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
 
 #### Usage
 
@@ -1683,9 +1781,13 @@ Examples:
 
 ### garden options
 
-Print global options.
+**Print global options.**
 
 Prints all global options (options that can be applied to any command).
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
 
 #### Usage
 
@@ -1695,7 +1797,7 @@ Prints all global options (options that can be applied to any command).
 
 ### garden plugins
 
-Plugin-specific commands.
+**Plugin-specific commands.**
 
 Execute a command defined by a plugin in your project.
 Run without arguments to get a list of all plugin commands available.
@@ -1712,6 +1814,10 @@ Examples:
     # List all the commands from the `kubernetes` plugin.
     garden plugins kubernetes
 
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
+
 #### Usage
 
     garden plugins [plugin] [command] 
@@ -1727,7 +1833,7 @@ Examples:
 
 ### garden publish
 
-Build and publish module(s) to a remote registry.
+**Build and publish module(s) to a remote registry.**
 
 Publishes built module artifacts for all or specified modules.
 Also builds modules and dependencies if needed.
@@ -1738,6 +1844,10 @@ Examples:
     garden publish my-container   # only publish my-container
     garden publish --force-build  # force re-build of modules before publishing artifacts
     garden publish --allow-dirty  # allow publishing dirty builds (which by default triggers error)
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| Yes |                                                  |
 
 #### Usage
 
@@ -1942,7 +2052,7 @@ published:
 
 ### garden run module
 
-Run an ad-hoc instance of a module.
+**Run an ad-hoc instance of a module.**
 
 This is useful for debugging or ad-hoc experimentation with modules.
 
@@ -1951,6 +2061,10 @@ Examples:
     garden run module my-container                                   # run an ad-hoc instance of a my-container container and attach to it
     garden run module my-container /bin/sh                           # run an interactive shell in a new my-container container
     garden run module my-container --interactive=false /some/script  # execute a script in my-container and return the output
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
 
 #### Usage
 
@@ -1974,13 +2088,17 @@ Examples:
 
 ### garden run service
 
-Run an ad-hoc instance of the specified service.
+**Run an ad-hoc instance of the specified service.**
 
 This can be useful for debugging or ad-hoc experimentation with services.
 
 Examples:
 
     garden run service my-service   # run an ad-hoc instance of a my-service and attach to it
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
 
 #### Usage
 
@@ -2002,13 +2120,17 @@ Examples:
 
 ### garden run task
 
-Run a task (in the context of its parent module).
+**Run a task (in the context of its parent module).**
 
 This is useful for re-running tasks ad-hoc, for example after writing/modifying database migrations.
 
 Examples:
 
     garden run task my-db-migration   # run my-migration
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| Yes |                                                  |
 
 #### Usage
 
@@ -2076,7 +2198,7 @@ graphResults:
 
 ### garden run test
 
-Run the specified module test.
+**Run the specified module test.**
 
 This can be useful for debugging tests, particularly integration/end-to-end tests.
 
@@ -2084,6 +2206,10 @@ Examples:
 
     garden run test my-module integ                      # run the test named 'integ' in my-module
     garden run test my-module integ --interactive=false  # do not attach to the test run, just output results when completed
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| Yes |                                                  |
 
 #### Usage
 
@@ -2153,8 +2279,12 @@ graphResults:
 
 ### garden scan
 
-Scans your project and outputs an overview of all modules.
+**Scans your project and outputs an overview of all modules.**
 
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
 
 #### Usage
 
@@ -2164,11 +2294,15 @@ Scans your project and outputs an overview of all modules.
 
 ### garden serve
 
-Starts the Garden HTTP API service - **Experimental**
+**Starts the Garden HTTP API service - **Experimental****
 
 **Experimental**
 
 Starts an HTTP server that exposes Garden commands and events.
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
 
 #### Usage
 
@@ -2183,7 +2317,7 @@ Starts an HTTP server that exposes Garden commands and events.
 
 ### garden test
 
-Test all or specified modules.
+**Test all or specified modules.**
 
 Runs all or specified tests defined in the project. Also builds modules and dependencies,
 and deploys service dependencies if needed.
@@ -2199,6 +2333,10 @@ Examples:
     garden test --name integ* # run all tests with the name starting with 'integ' in the project
     garden test --force       # force tests to be re-run, even if they've already run successfully
     garden test --watch       # watch for changes to code
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| Yes |                                                  |
 
 #### Usage
 
@@ -2381,7 +2519,7 @@ graphResults:
 
 ### garden tools
 
-Access tools included by providers.
+**Access tools included by providers.**
 
 Run a tool defined by a provider in your project, downloading and extracting it if necessary. Run without arguments to get a list of all tools available.
 
@@ -2405,6 +2543,10 @@ Examples:
     # List all available tools.
     garden tools
 
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
+
 #### Usage
 
     garden tools [tool] [options]
@@ -2424,7 +2566,7 @@ Examples:
 
 ### garden unlink source
 
-Unlink a previously linked remote source from its local directory.
+**Unlink a previously linked remote source from its local directory.**
 
 After unlinking a remote source, Garden will go back to reading it from its remote URL instead
 of its local directory.
@@ -2433,6 +2575,10 @@ Examples:
 
     garden unlink source my-source  # unlinks my-source
     garden unlink source --all      # unlinks all sources
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
 
 #### Usage
 
@@ -2453,7 +2599,7 @@ Examples:
 
 ### garden unlink module
 
-Unlink a previously linked remote module from its local directory.
+**Unlink a previously linked remote module from its local directory.**
 
 After unlinking a remote module, Garden will go back to reading the module's source from
 its remote URL instead of its local directory.
@@ -2462,6 +2608,10 @@ Examples:
 
     garden unlink module my-module  # unlinks my-module
     garden unlink module --all      # unlink all modules
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
 
 #### Usage
 
@@ -2482,7 +2632,7 @@ Examples:
 
 ### garden update-remote sources
 
-Update remote sources.
+**Update remote sources.**
 
 Updates the remote sources declared in the project level `garden.yml` config file.
 
@@ -2490,6 +2640,10 @@ Examples:
 
     garden update-remote sources            # update all remote sources
     garden update-remote sources my-source  # update remote source my-source
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| Yes |                                                  |
 
 #### Usage
 
@@ -2517,7 +2671,7 @@ sources:
 
 ### garden update-remote modules
 
-Update remote modules.
+**Update remote modules.**
 
 Updates remote modules, i.e. modules that have a `repositoryUrl` field
 in their `garden.yml` config that points to a remote repository.
@@ -2526,6 +2680,10 @@ Examples:
 
     garden update-remote modules            # update all remote modules in the project
     garden update-remote modules my-module  # update remote module my-module
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| Yes |                                                  |
 
 #### Usage
 
@@ -2553,11 +2711,15 @@ sources:
 
 ### garden update-remote all
 
-Update all remote sources and modules.
+**Update all remote sources and modules.**
 
 Examples:
 
     garden update-remote all # update all remote sources and modules in the project
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| Yes |                                                  |
 
 #### Usage
 
@@ -2588,7 +2750,7 @@ moduleSources:
 
 ### garden util fetch-tools
 
-Pre-fetch plugin tools.
+**Pre-fetch plugin tools.**
 
 Pre-fetch all the available tools for the configured providers in the current
 project/environment, or all registered providers if the --all parameter is
@@ -2598,6 +2760,10 @@ Examples:
 
     garden util fetch-tools        # fetch for just the current project/env
     garden util fetch-tools --all  # fetch for all registered providers
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
 
 #### Usage
 
@@ -2612,9 +2778,13 @@ Examples:
 
 ### garden validate
 
-Check your garden configuration for errors.
+**Check your garden configuration for errors.**
 
 Throws an error and exits with code 1 if something's not right in your garden.yml files.
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
 
 #### Usage
 

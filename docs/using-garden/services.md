@@ -1,6 +1,6 @@
 ---
-order: 4
-title: Adding Services
+order: 40
+title: Services
 ---
 
 # Services
@@ -127,4 +127,4 @@ For full service configuration by module type, please take a look at our [refere
 
 ## Next Steps
 
-In the [next section](./running-tests.md), we'll see how Garden can run your tests for you.
+In the [next section](./tests.md), we'll see how Garden can run your tests for you.

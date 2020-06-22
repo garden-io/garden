@@ -10,7 +10,7 @@ Represents the current configuration and status of any running services in the [
 inspected and modified via the Garden CLI's `environment` command.
 
 Several named environment configurations may be defined (e.g. _dev_, _testing_, ...) in the [project's
-`garden.yml`](../guides/configuration-files.md#project-configuration).
+`garden.yml`](../using-garden/projects.md).
 
 #### Module
 The unit of building in Garden. A module is defined by its [`garden.yml` configuration file](./config.md),

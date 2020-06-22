@@ -2,196 +2,147 @@
   <img src="docs/logo.png" align="center">
 </p>
 
-**Garden is a developer tool that automates your workflows and makes developing and testing Kubernetes applications faster and easier than ever.**
+**Garden provides production-like Kubernetes testing environments for integration tests, QA, and development.**
 
-- Keep your development environment **up-to-date as you code**, and get rapid feedback.
-- **Develop and iterate as quickly with remote clusters as you do locally**, and share development clusters with your team. With remote clusters you can even **run Garden without Kubernetes or Docker installed** on your machine!
-- **Start simple** and grow complexity gradually as your needs evolve. Use simplified abstractions to start, and move to raw Kubernetes YAML, Helm, etc. only when you have to.
-- **Simplify your CI** by running the same commands and configuration during development and testing—and use the same build and test caches!
+Featuring:
+
+- **In-cluster builds:** Build images in your Kubernetes development cluster–and avoid having to use local Kubernetes clusters.
+- **Test orchestration:** Garden has first-class support for testing, and allows you to easily define tests that run in-cluster, alongside your services.
+- **Result caching:** Built and test results are shared between users when using the same cluster. Teams can easily share build and test results, and your CI can use the same build caches as the team.
+
+| Resources | What is it? |
+| --------- | ----------- |
+| [Garden Website](https://garden.io) | The official Garden website, including information about the supported enterprise edition of the product |
+| [Garden Documentation / Getting Started](https://docs.garden.io) | Documentation for all editions of Garden, and the best place to get started |
+| [Blog](https://medium.com/garden-io) | Our company blog, where we share product updates, how-to guides, and other resources |
+| [Community Slack](https://chat.garden.io) | The best place to ask questions as a user of open source Garden Core |
 
 > _If you’re using Garden or if you like the project, please ★ star this repository to show your support 💖_
 
 ![Dashboard](docs/dashboard.gif)
 
-## Features
+- [Common Use Cases: What Can I Do With Garden?](#common-use-cases-what-can-i-do-with-garden)
+- [Features: Why Use Garden?](#features-why-use-garden)
+- [How does Garden work?](#how-does-garden-work)
+- [FAQs](#faqs)
+- [Project Status](#project-status)
+- [Stay in Touch](#stay-in-touch)
 
-- Spin up your whole stack with a single command, and (optionally) watch for changes. Only what’s needed gets re-built, re-deployed, and/or re-tested, so you get a **much faster feedback loop**.
-- **Shared development clusters with fast in-cluster building and image caching for Kubernetes.** This allows teams to easily share build and test results, and for CI to become much faster because it can use the same build and test caches as the team.
-- Get helpful information when your deployments fail. Garden collects events and logs and displays them prominently when issues come up, and strives to "fail fast", so that you don't need to wait for timeouts or dive into kubectl whenever something is wrong.
-- Easily write [integration test suites](https://docs.garden.io/guides/development-workflows#tests-and-dependencies) that have runtime dependencies. Run tests *before* pushing your code to CI, and avoid having to mock or stub your own services.
-- Define [tasks](https://github.com/garden-io/garden/tree/v0.11.14/examples/tasks) that run as part of your deployment process—e.g. database migrations or scaffolding.
-- [Hot reload](https://docs.garden.io/guides/hot-reload) lets you near-instantaneously update code and static files in containers as they run, for services that support in-place reloading.
-- [Remote sources](https://docs.garden.io/advanced/using-remote-sources) support allows your project to automatically pull code from different repositories.
-- The built-in web **dashboard** gives you a full overview of your stack (and many more UI features are planned to further aid with development).
-- Build, test and deploy Docker containers, [Helm charts](https://docs.garden.io/guides/using-helm-charts), OpenFaaS functions and more.
-- An extensible plug-in system ensures you’ll later be able add anything that’s not on the above list, or create custom module types tailored to your needs (*due summer 2019*).
+## Common Use Cases: What Can I Do With Garden?
 
-## Installation
+Users typically implement Garden for one or more of the following:
 
-*(Check out our documentation for more [detailed instructions](https://docs.garden.io/basics/installation))*
+- **Integration testing:** Because testing environments in Garden capture the full configuration of an application, it’s possible to run proper integration tests with runtime dependencies–no mocking or stubbing required. A developer can run integration tests with a single command before creating a PR, or integration tests can be run against a feature branch every time a PR is created.
+- **Manual QA & Review:** Garden makes it possible for developers and QA engineers to spin up production-like preview environments on demand. These preview environments can be used, for example, to QA any part of an application that can’t be covered by automated testing (e.g. complex frontend functionality) or in cases when client developers need a fully-functioning backend to validate new features.
+- **Troubleshooting & Development:** With Garden, developers working on distributed systems get a dependency-aware development environment, making it possible to receive feedback about integration issues with adjacent services and systems early in the dev process.
 
-### macOS
+## Features: Why Use Garden?
 
-```sh
-    brew tap garden-io/garden
-    brew install garden-cli
-```
-
-### Linux
-
-```sh
-    curl -sL https://get.garden.io/install.sh | bash
-```
-
-### Windows
-
-```sh
-    Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/garden-io/garden/master/support/install.ps1'))
-```
-
-## Quick start
-
-With the CLI installed, you can try out a few commands using the [Demo Project](https://docs.garden.io/example-projects/demo-project) from our [example projects](https://github.com/garden-io/garden/tree/v0.11.14/examples). The example project consists of a couple of simple modules, each defining one service.
-
-*Note: This example assumes you have a local Kubernetes instance running.*
-
-Clone the repo and change into the `demo-project` directory:
-
-```sh
-    git clone https://github.com/garden-io/garden.git
-    cd garden/examples/demo-project
-```
-
-Set up your environment, build the services and deploy the project by running:
-
-```sh
-    garden deploy
-```
-
-The services are now running on the Garden framework. You can see for yourself by querying the `/hello-backend` endpoint of `backend`’s running container:
-
-```sh
-    garden call backend/hello-backend
-```
-
-To run tests for all modules:
-
-```sh
-    garden test
-```
-
-And if you prefer an all-in-one command that watches your project for changes and re-builds, re-deploys, and re-tests automatically, try:
-
-```sh
-    garden dev
-```
-
-You can leave it running and change one of the files in the project, then watch it re-build and re-test as you edit your code!
+- **Production-like testing environments:** A testing environment in Garden captures the full configuration of an application, [including all adjacent services and dependencies](https://docs.garden.io/guides/development-workflows#tests-and-dependencies). Garden testing environments provide consistency across your entire org–no more, “Well, it works fine on my laptop.”
+- **Namespaced environments on demand:** Any developer can spin up (and tear down) a namespaced environment in a shared cluster without help from DevOps, or an environment can be created by CI on every pull request.
+- **Stack-aware builds and testing with result caching:** Garden is aware of the relationship between every service in your stack, and so instead of building an entire application or running a full suite of integration tests every time, Garden will only build or test what’s necessary based on what’s been changed. These build and test results are cached and can be shared across developers on a team. The result: much faster builds and test runs, which means faster feedback loops for developers.
+- **Shared development clusters with fast in-cluster building:** Build images in your Kubernetes development cluster, thus avoiding the need for local Kubernetes clusters (in other words, no Docker or Kubernetes on your local machine).
+- **Define [tasks](https://github.com/garden-io/garden/tree/v0.11.12/examples/tasks)** that run as part of your deployment process—e.g. database migrations or scaffolding.
+- **[Remote sources (multi-repository) support:](https://docs.garden.io/advanced/using-remote-sources)** Garden allows your project to automatically pull code from different repositories.
+- **Hardware and platform flexibility:** Run Garden on-prem or in one of several supported cloud providers. Build, test, and deploy Docker containers, [Helm charts](https://docs.garden.io/guides/using-helm-charts), and more. Choose from a variety of Kubernetes platforms and CI tools.
+- **Terraform integration:** Garden includes a [Terraform provider](https://docs.garden.io/advanced/terraform) that you can use to automatically validate and provision infrastructure as part of your project.
+- **Extensible plugin system:** Garden’s plugin system ensures you’ll be able to create custom module types tailored to your needs or take advantage of existing plugins (e.g. conftest, hadolint).
+- **Supported enterprise edition (if you need it):** Garden offers an enterprise edition of the product which provides secrets management, centralized environment management, direct integration with GitHub and other VCS providers, and enterprise security features (e.g. RBAC, SSO). The enterprise product comes with support SLAs and access to technical consulting. To learn more, [check out our website](https://garden.io) or [get in touch](https://garden.io/contact).
 
 ## Documentation
 
-You can find Garden’s full documentation at [https://docs.garden.io](https://docs.garden.io/).
+You can find Garden’s full documentation at <https://docs.garden.io.>.
 
 Overview:
 
-- [Using Garden](https://docs.garden.io/using-garden)—short Guides on incrementally adding the main Garden constructs to your project.
-- [Guides](https://docs.garden.io/guides)—development workflows, Garden configuration files, usage with remote Kubernetes clusters, and setting up hot reload.
-- [Example Projects](https://docs.garden.io/example-projects)—guides based on some of the [examples](https://github.com/garden-io/garden/tree/v0.11.14/examples).
-- [Reference](https://docs.garden.io/reference)—glossary, commands reference, configuration files reference, and template strings reference.
-- [FAQs](https://docs.garden.io/#faqs).
+- **TODO**
 
-The [examples](https://github.com/garden-io/garden/tree/v0.11.14/examples) folder of our repository also shows a myriad of different ways to use Garden. Check out the README in each example for more information
+The [examples folder](https://github.com/garden-io/garden/tree/v0.12.0/examples) of our repository also shows a myriad of different ways to use Garden. Check out the README in each example for more information
 
-## How does it work?
+## How does Garden work?
 
-Garden runs as a developer tool on your machine or in CI, that looks at your source code and configuration files, runs tests, and resolves your changes to update your development environment. Garden can watch your files and run continuously, or you can trigger it manually via the CLI.
+Garden Core is a standalone tool that can run from CI or from a developer’s machine. It allows you to codify a complete description of your stack, including how it's built, deployed and tested, using the [Stack Graph](https://docs.garden.io/basics/stack-graph)—making your workflows reproducible and portable.
 
-For configuration, Garden is centered around the **[Stack Graph](https://docs.garden.io/basics/stack-graph)**, which allows you to fully codify how each part of your stack is built, deployed and tested—making your workflow reproducible and portable.
+**TODO: Stack Graph image**
 
-<p align="center">
-  <img src="docs/stack-graph.png" width="50%">
-</p>
+With the Stack Graph, each part of your stack can describe itself using simple, intuitive declarations, without changing any of your code. Garden collects all of your declarations—even across multiple repositories—into a full graph of your stack, and leverages that information to help you develop and test faster.
 
-With the Stack Graph, each part of your stack can *describe itself* using simple, intuitive declarations, without changing any of your code. Garden collects all of your declarations—even across multiple repositories—into a full graph of your stack, and leverages that information to help you develop and test faster.
+When you run Garden with a shared Kubernetes cluster, Garden has its own namespace with a small set of services, including:
+
+- **Image cache and test cache:** Every time an image is built for a service, Garden saves it a cache. If a different developer wants to deploy the same version of an image, the image doesn’t have to be rebuilt–instead, Garden will check if the image exists in the Docker registry and skip the build step if it does. Test results are also saved in a test cache and can be shared across developers. These caches can reduce build and test time significantly, often by 80% or more.
+- **Build service:** Developers and CI processes don’t need to run Docker and Kubernetes on their machine (unless they want to). The build service makes it possible for all of this to be handled in the cluster.
+
+Every developer, in turn, has a private namespace in the cluster. With one command, a dev can spin up a development and testing environment in their private namespace. In other words, they get a complete version of the application running in a namespace that they can then test and develop against.
+
+**TODO: cluster diagram**
+
+And whenever you open a PR or merge a branch, your CI processes can also spin up a testing environment in a namespace on the same Kubernetes cluster.
+
+See our [documentation](https://garden.io) for more details.
 
 ## FAQs
 
-<details>
-<summary><b>Is Garden a CI platform/tool?</b></summary>
+**How is Garden different from other Kubernetes development tools?**
 
-Not exactly, but you can certainly use Garden to make your CI faster and easier to work with. We highly recommend [running Garden from your CI setup](https://docs.garden.io/example-projects/using-garden-in-ci), so that you can re-use the same structure and config, as well as your build and test result caches (if you're using shared dev clusters).
-</details>
-<br>
-<details>
-<summary><b>Does Garden work with Docker Swarm/Mesos/&lt;other platform&gt;?</b></summary>
+Garden is focused on testing and its role in cloud native application development: running fast and reliable integration tests, spinning up production like preview environments to manually QA a new feature, giving developers an environment where they can troubleshoot integration issues, and more. So Garden has a lot of features to manage dependencies, tests and other relationships between different parts of your stack. In turn, Garden might take a little bit longer to get started with, and has some additional terminology to learn.
 
-We currently primarily support Kubernetes, but Garden is designed to be pluggable to work with any operational platform. Our focus is on making development and testing of *distributed systems* faster and easier, but Kubernetes is where we're focusing our efforts today.
+Tools such as Skaffold and Tilt, for example, are coupled to Kubernetes, whereas Garden is designed to be more extensible and flexible. Tight coupling can in some cases enable more specific Kubernetes-related features. But even with its flexibility, we still believe that Garden offers some of the most comprehensive Kubernetes functionality available.
 
-That said, we have made experimental plugins for Docker Swarm, Google Cloud Functions and more. When we release our plugin SDK later this year, we plan on working with the developer community to support a variety of platforms, including a number of serverless/FaaS platforms. This will allow users to pick and choose platforms for individual services, but keep the same development and testing workflows across the board.
-</details>
-<br>
-<details>
-<summary><b>How is Garden different from Skaffold/Tilt?</b></summary>
+We also feel strongly that testing and development tools should be adaptable across platforms, especially considering all the interesting technologies that are on the horizon, such as WASM, serverless, edge functions, etc.
 
-Garden generally has a broader focus, and has a lot of features to manage dependencies, tests and other relationships between different parts of your stack. In turn, Garden may be slightly more complex to get started with, and has some additional terminology to learn. Skaffold and Tilt are also coupled to Kubernetes, whereas Garden is designed to be more extensible and flexible.
+**Is Garden a CI platform/tool?**
 
-This has pros and cons in either direction, since tight coupling can in some cases enable some more specific Kubernetes-related features. However, we feel strongly that your developer tools should be adaptable across platforms, especially considering all the interesting technologies that are on the horizon, such as WASM, serverless, edge functions, etc.
+Not exactly, but you can certainly use Garden to make your CI faster and easier to work with. We highly recommend [running Garden from your CI](https://docs.garden.io/example-projects/using-garden-in-ci) setup, so that you can re-use the same structure and config, as well as your build and test result caches (if you’re using shared dev clusters).
 
-</details>
-<br>
-<details>
-<summary><b>Should I use Garden to deploy to production?</b></summary>
+**Does Garden work with Nomad/Fargate/Lambda/<other platform>?**
 
-You can use `garden deploy` to deploy to production if you don't need gradual rollouts, canary deployments, etc. but Garden does _not yet_ support those directly.
+We currently primarily support Kubernetes, but Garden is designed to be pluggable to work with any operational platform. Our focus is on making development and testing of distributed systems faster and easier. Kubernetes is where we’re focusing our efforts today because that’s the platform of choice for a large majority of our user base. That said, we have made experimental plugins for Google Cloud Functions and more.
 
-As your needs evolve (if they haven't already), we recommend using `helm` modules or raw Kubernetes manifests using the `kubernetes` module type. You can then use those same Helm charts and manifests with any CD/GitOps tool of your choosing.
+When we release our plugin SDK (tentatively later this year), we plan on working with the developer community to support a variety of platforms, including a number of serverless/FaaS platforms. This will allow users to pick and choose platforms for individual services, but keep the same testing and development workflows across the board.
 
-</details>
-<br>
-<details>
-<summary><b>How much does Garden cost?</b></summary>
+**Should I use Garden to deploy to production?**
 
-Garden is free and open source. We are working on SaaS and Enterprise products that *use* the open-source project, but we will not make a closed-source version of this project. If you need professional support, please [reach out](https://garden.io/#get-demo).
+Technically, there are many cases where you can use Garden to deploy to production. But at this point in time, Garden is not expressly designed for production rollouts and does not yet support capabilities such as gradual rollouts or canary deployments.
 
-</details>
-<br>
-<details>
-<summary><b>Why TypeScript?</b></summary>
+As your needs evolve (if they haven’t already), we recommend using helm modules or raw Kubernetes manifests using the kubernetes module type. You can then use those same Helm charts and manifests with any CD/GitOps tool of your choosing.
 
-We find TypeScript strikes a good balance between power and simplicity, and it handles asynchronous work really well. We also get rid of some of the key weaknesses of Node.js by using Zeit's [pkg](https://github.com/zeit/pkg) to distribute Garden as a single binary, so users don't need to think about npm and all that stuff.
+**Is there an enterprise edition, or is enterprise support available?**
 
-We do plan on splitting Garden into more components, some of which will be written in Go, and to make plugin SDKs for both TypeScript/JavaScript and Go.
+Yes, Garden (the company) offers an enterprise version of the product–and enterprise support is only available to customers of the enterprise product. If you’d like to ask questions about our enterprise offering, [you can reach out here](https://garden.io/contact).
 
-</details>
-<br>
-<details>
-<summary><b>Why the name "Garden?</b></summary>
+**Why TypeScript?**
 
-We feel it's a nice and welcoming name :) And we like the notion that your software grows in a living environment. Like a well kept garden of flowers and plants, your software stack is a living system of living things.
+We find TypeScript strikes a good balance between power and simplicity, and it handles asynchronous work really well. We also get rid of some of the key weaknesses of Node.js by using Zeit’s [pkg](https://github.com/zeit/pkg) to distribute Garden as a single binary, so users don’t need to think about npm and all that stuff. We plan on splitting Garden into more components, some of which will be written in Go, and to make plugin SDKs for both TypeScript/JavaScript and Go.
 
-Seasons change, as technologies do. New ideas come alive and some die or fall out of favor. Most importantly, all of them need to work and thrive together in their little ecosystem—your own Garden.
+**Why the name "Garden”?**
 
-</details>
+We feel it’s a nice and welcoming name :) And we like the notion that your software grows in a living environment. Like a well kept garden of flowers and plants, your software stack is a living system of living things. Seasons change, as technologies do. New ideas come alive and some die or fall out of favor. Most importantly, all of them need to work and thrive together in their little ecosystem—your own Garden.
 
-## Status
+## Project Status
 
-Until Garden reaches 1.0, APIs may still change between minor releases (0.x). Patch releases (0.x.y) are guaranteed not to include any breaking changes. We detail all breaking changes in our release notes.
+Garden is in active use by a number of teams. Until Garden reaches 1.0, APIs may still change between minor releases (0.x). Patch releases (0.x.y) are guaranteed not to include any breaking changes. We detail all breaking changes in our release notes.
 
-## Support
+To learn about Garden Enterprise (available in closed beta from June 2020), [please visit the Garden website](https://garden.io/product).
 
-Please join the #garden channel on the [Kubernetes Slack](https://slack.k8s.io/) to ask questions, discuss how Garden can fit into your workflow, or just chat about all things DevOps.
+## Stay in Touch
+
+- Join the #garden channel on the [Kubernetes Slack](https://slack.k8s.io/) to ask questions and give feedback
+- [Follow us on Twitter](https://twitter.com/garden_io) to stay up to date on product announcements, blog posts, webinars, and other resources.
+- To discuss an enterprise license and enterprise support, [contact us here](https://garden.io/contact).
 
 ## Acknowledgements
 
 Garden would not be possible without an amazing ecosystem of open-source projects. Here are some of the projects that Garden uses, either directly or indirectly:
 
 - [Kubernetes](https://kubernetes.io/)
-- [OpenFaaS](https://www.openfaas.com/)
 - [TypeScript](https://www.typescriptlang.org/)
-- [Golang](https://golang.org/)
+- [zeit/pkg](https://github.com/zeit/pkg)
 - [Moby](https://github.com/moby/moby)
 - [Helm](https://helm.sh/)
-- [zeit/pkg](https://github.com/zeit/pkg)
+- [OpenFaaS](https://www.openfaas.com/)
+- [Golang](https://golang.org/)
+- [Hadolint](https://github.com/hadolint/hadolint)
+- [conftest](https://www.conftest.dev/)
 
 Garden, as a company, is also a proud member of the [CNCF](https://www.cncf.io/).
 
