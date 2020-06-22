@@ -27,7 +27,7 @@ describe("GetConfigCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {},
-      opts: withDefaultGlobalOpts({ "exclude-disabled": false }),
+      opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "full" }),
     })
 
     expect(command.outputsSchema().validate(res.result).error).to.be.undefined
@@ -49,7 +49,7 @@ describe("GetConfigCommand", () => {
         headerLog: log,
         footerLog: log,
         args: {},
-        opts: withDefaultGlobalOpts({ "exclude-disabled": false }),
+        opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "full" }),
       })
     ).result
 
@@ -82,7 +82,7 @@ describe("GetConfigCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {},
-      opts: withDefaultGlobalOpts({ "exclude-disabled": false }),
+      opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "full" }),
     })
 
     const expectedModuleConfigs = sortBy(await garden.resolveModules({ log }), "name").map((m) => m._config)
@@ -152,7 +152,7 @@ describe("GetConfigCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {},
-      opts: withDefaultGlobalOpts({ "exclude-disabled": false }),
+      opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "full" }),
     })
 
     const expectedModuleConfigs = sortBy(await garden.resolveModules({ log, includeDisabled: true }), "name").map(
@@ -215,7 +215,7 @@ describe("GetConfigCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {},
-      opts: withDefaultGlobalOpts({ "exclude-disabled": false }),
+      opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "full" }),
     })
 
     const expectedModuleConfigs = (await garden.resolveModules({ log, includeDisabled: true })).map((m) => m._config)
@@ -273,7 +273,7 @@ describe("GetConfigCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {},
-      opts: withDefaultGlobalOpts({ "exclude-disabled": false }),
+      opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "full" }),
     })
 
     const expectedModuleConfigs = (await garden.resolveModules({ log, includeDisabled: true })).map((m) => m._config)
@@ -338,7 +338,7 @@ describe("GetConfigCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {},
-      opts: withDefaultGlobalOpts({ "exclude-disabled": false }),
+      opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "full" }),
     })
 
     const expectedModuleConfigs = (await garden.resolveModules({ log, includeDisabled: true })).map((m) => m._config)
@@ -409,7 +409,7 @@ describe("GetConfigCommand", () => {
         headerLog: log,
         footerLog: log,
         args: {},
-        opts: withDefaultGlobalOpts({ "exclude-disabled": true }),
+        opts: withDefaultGlobalOpts({ "exclude-disabled": true, "resolve": "full" }),
       })
 
       const expectedModuleConfigs = sortBy(await garden.resolveModules({ log }), "name").map((m) => m._config)
@@ -470,7 +470,7 @@ describe("GetConfigCommand", () => {
         headerLog: log,
         footerLog: log,
         args: {},
-        opts: withDefaultGlobalOpts({ "exclude-disabled": true }),
+        opts: withDefaultGlobalOpts({ "exclude-disabled": true, "resolve": "full" }),
       })
 
       const expectedModuleConfigs = (await garden.resolveModules({ log })).map((m) => m._config)
@@ -555,7 +555,7 @@ describe("GetConfigCommand", () => {
         headerLog: log,
         footerLog: log,
         args: {},
-        opts: withDefaultGlobalOpts({ "exclude-disabled": true }),
+        opts: withDefaultGlobalOpts({ "exclude-disabled": true, "resolve": "full" }),
       })
 
       const expectedModuleConfigs = (await garden.resolveModules({ log })).map((m) => m._config)
@@ -639,7 +639,7 @@ describe("GetConfigCommand", () => {
         headerLog: log,
         footerLog: log,
         args: {},
-        opts: withDefaultGlobalOpts({ "exclude-disabled": true }),
+        opts: withDefaultGlobalOpts({ "exclude-disabled": true, "resolve": "full" }),
       })
 
       const expectedModuleConfigs = (await garden.resolveModules({ log })).map((m) => m._config)
@@ -662,6 +662,90 @@ describe("GetConfigCommand", () => {
       ]
 
       expect(res.result?.moduleConfigs).to.deep.equal(expectedModuleConfigs)
+    })
+  })
+
+  context("resolve=partial", () => {
+    it("should return raw module configs instead of fully resolved module configs", async () => {
+      const garden = await makeTestGardenA()
+      const log = garden.log
+      const command = new GetConfigCommand()
+
+      const rawConfigs = [
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          name: "enabled",
+          include: [],
+          outputs: {},
+          path: garden.projectRoot,
+          serviceConfigs: [],
+          taskConfigs: [],
+          spec: {
+            services: [],
+            tasks: [],
+            tests: [
+              {
+                name: "test-enabled",
+                dependencies: [],
+                disabled: false,
+                command: ["${project.name}"],
+              },
+            ],
+          },
+          testConfigs: [],
+          type: "test",
+        },
+      ]
+
+      garden.setModuleConfigs(rawConfigs)
+
+      const res = await command.action({
+        garden,
+        log,
+        headerLog: log,
+        footerLog: log,
+        args: {},
+        opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "partial" }),
+      })
+
+      expect(res.result?.moduleConfigs).to.deep.equal(rawConfigs)
+    })
+
+    it("should return raw provider configs instead of fully resolved providers", async () => {
+      const garden = await makeTestGardenA()
+      const log = garden.log
+      const command = new GetConfigCommand()
+
+      const res = await command.action({
+        garden,
+        log,
+        headerLog: log,
+        footerLog: log,
+        args: {},
+        opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "partial" }),
+      })
+
+      expect(res.result!.providers).to.eql(garden.getRawProviderConfigs())
+    })
+
+    it("should not resolve providers", async () => {
+      const garden = await makeTestGardenA()
+      const log = garden.log
+      const command = new GetConfigCommand()
+
+      await command.action({
+        garden,
+        log,
+        headerLog: log,
+        footerLog: log,
+        args: {},
+        opts: withDefaultGlobalOpts({ "exclude-disabled": false, "resolve": "partial" }),
+      })
+
+      expect(garden["resolvedProviders"]).to.eql({})
     })
   })
 })
