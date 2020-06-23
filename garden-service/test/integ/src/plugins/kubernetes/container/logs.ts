@@ -28,7 +28,7 @@ describe("kubernetes", () => {
       const root = getDataDir("test-projects", "container")
       garden = await makeTestGarden(root)
       graph = await garden.getConfigGraph(garden.log)
-      provider = await garden.resolveProvider("local-kubernetes")
+      provider = await garden.resolveProvider(garden.log, "local-kubernetes")
       ctx = garden.getPluginContext(provider)
     })
 

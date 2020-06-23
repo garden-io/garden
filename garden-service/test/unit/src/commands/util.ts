@@ -64,7 +64,7 @@ describe("FetchToolsCommand", () => {
     garden.providerConfigs = [{ name: "test" }]
     garden.registeredPlugins = pick(garden["registeredPlugins"], "test")
 
-    await garden.resolveProviders()
+    await garden.resolveProviders(garden.log)
 
     const log = garden.log
     const command = new FetchToolsCommand()
@@ -107,7 +107,7 @@ describe("FetchToolsCommand", () => {
     garden.providerConfigs = []
     garden.registeredPlugins = pick(garden["registeredPlugins"], "test")
 
-    await garden.resolveProviders()
+    await garden.resolveProviders(garden.log)
 
     const log = garden.log
     const command = new FetchToolsCommand()

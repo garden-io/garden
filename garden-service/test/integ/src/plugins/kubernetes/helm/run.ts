@@ -45,7 +45,7 @@ describe("runHelmTask", () => {
     const key = testTask.getKey()
 
     // Clear any existing task result
-    const provider = await garden.resolveProvider("local-kubernetes")
+    const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
     const ctx = garden.getPluginContext(provider)
     await clearTaskResult({ ctx, log: garden.log, module: task.module, task, taskVersion: version })
 
@@ -84,7 +84,7 @@ describe("runHelmTask", () => {
     })
 
     // Clear any existing task result
-    const provider = await garden.resolveProvider("local-kubernetes")
+    const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
     const ctx = garden.getPluginContext(provider)
     await clearTaskResult({ ctx, log: garden.log, module: task.module, task, taskVersion: version })
 

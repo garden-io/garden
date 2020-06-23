@@ -122,7 +122,7 @@ export async function resolveProjectOutputs(garden: Garden, log: LogEntry): Prom
     taskResults,
   })
 
-  const configContext = await garden.getOutputConfigContext(modules, runtimeContext)
+  const configContext = await garden.getOutputConfigContext(log, modules, runtimeContext)
 
   return resolveTemplateStrings(garden.rawOutputs, configContext)
 }

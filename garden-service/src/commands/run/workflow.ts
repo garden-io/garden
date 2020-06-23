@@ -92,9 +92,9 @@ export class RunWorkflowCommand extends Command<Args, {}> {
       const metadata = {
         workflowStep: { index },
       }
-      const stepHeaderLog = log.placeholder({ indent: 1, metadata })
-      const stepBodyLog = log.placeholder({ indent: 1, metadata })
-      const stepFooterLog = log.placeholder({ indent: 1, metadata })
+      const stepHeaderLog = outerLog.placeholder({ indent: 1, metadata })
+      const stepBodyLog = outerLog.placeholder({ indent: 1, metadata })
+      const stepFooterLog = outerLog.placeholder({ indent: 1, metadata })
       garden.log.setState({ metadata })
       let stepResult: CommandResult
       const inheritedOpts = cloneDeep(opts)
@@ -146,7 +146,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
         })
         printResult({ startedAt, log: outerLog, workflow, success: false })
 
-        logErrors(log, [err], index, steps.length, step.description)
+        logErrors(outerLog, [err], index, steps.length, step.description)
         return { result, errors: [err] }
       }
 
@@ -161,7 +161,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
 
       if (stepResult.errors) {
         garden.events.emit("workflowStepError", { index })
-        logErrors(log, stepResult.errors, index, steps.length, step.description)
+        logErrors(outerLog, stepResult.errors, index, steps.length, step.description)
         return { result, errors: stepResult.errors }
       }
 
@@ -201,12 +201,15 @@ function getStepName(index: number, name?: string) {
 export function printStepHeader(log: LogEntry, stepIndex: number, stepCount: number, stepDescription?: string) {
   const maxWidth = Math.min(getTerminalWidth(), 120)
   let text = `Running step ${formattedStepDescription(stepIndex, stepCount, stepDescription)}`
-  const bar = repeat("═", maxWidth)
-  const header = chalk.cyan(dedent`
-    \n${wordWrap(text, maxWidth)}
-    ${bar}\n
-  `)
+  const header = dedent`
+    ${chalk.cyan.bold(wordWrap(text, maxWidth))}
+    ${getSeparatorBar(maxWidth)}
+  `
   log.info(header)
+}
+
+function getSeparatorBar(width: number) {
+  return chalk.white(repeat("═", width))
 }
 
 export function printStepDuration({
@@ -229,14 +232,8 @@ export function printStepDuration({
     ${chalk.white(durationSecs)} Sec
   `
   const maxWidth = Math.min(getTerminalWidth(), 120)
-  const bar = repeat("═", maxWidth)
-  log.info(
-    chalk.cyan(dedent`
-      ${bar}
-      ${text}
-      \n\n
-    `)
-  )
+
+  log.info(`${getSeparatorBar(maxWidth)}\n${chalk.cyan.bold(text)}\n\n`)
 }
 
 export function formattedStepDescription(stepIndex: number, stepCount: number, stepDescription?: string) {
@@ -265,11 +262,14 @@ function printResult({
   const completedAt = new Date().valueOf()
   const totalDuration = ((completedAt - startedAt) / 1000).toFixed(2)
 
-  const resultColor = success ? chalk.magenta : chalk.red
+  const resultColor = success ? chalk.magenta.bold : chalk.red.bold
+  const resultMessage = success ? "completed successfully" : "failed"
 
+  log.info(
+    resultColor(`Workflow ${chalk.white.bold(workflow.name)} ${resultMessage}. `) +
+      chalk.magenta(`Total time elapsed: ${chalk.white.bold(totalDuration)} Sec.`)
+  )
   log.info("")
-  log.info(resultColor(`Workflow ${chalk.white(workflow.name)} completed.`))
-  log.info(chalk.magenta(`Total time elapsed: ${chalk.white(totalDuration)} Sec.`))
 }
 
 export async function runStepCommand({
