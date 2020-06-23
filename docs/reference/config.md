@@ -1013,6 +1013,10 @@ triggers:
   - # The environment name (from your project configuration) to use for the workflow when matched by this trigger.
     environment:
 
+    # The namespace to use for the workflow when matched by this trigger. Follows the namespacing setting used for
+    # this trigger's environment, as defined in your project's environment configs.
+    namespace:
+
     # A list of GitHub events that should trigger this workflow.
     events:
 
@@ -1261,6 +1265,16 @@ The environment name (from your project configuration) to use for the workflow w
 | Type     | Required |
 | -------- | -------- |
 | `string` | Yes      |
+
+### `triggers[].namespace`
+
+[triggers](#triggers) > namespace
+
+The namespace to use for the workflow when matched by this trigger. Follows the namespacing setting used for this trigger's environment, as defined in your project's environment configs.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `triggers[].events[]`
 

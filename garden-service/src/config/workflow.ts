@@ -18,6 +18,7 @@ import { validateWithPath } from "./validation"
 import { ConfigurationError } from "../exceptions"
 import { coreCommands } from "../commands/commands"
 import { Parameters } from "../commands/base"
+import { EnvironmentConfig, getNamespace } from "./project"
 
 export interface WorkflowConfig {
   apiVersion: string
@@ -204,6 +205,7 @@ export const triggerEvents = [
 
 export interface TriggerSpec {
   environment: string
+  namespace?: string
   events?: string[]
   branches?: string[]
   tags?: string[]
@@ -215,6 +217,10 @@ export const triggerSchema = () =>
   joi.object().keys({
     environment: joi.string().required().description(deline`
         The environment name (from your project configuration) to use for the workflow when matched by this trigger.
+      `),
+    namespace: joi.string().description(deline`
+        The namespace to use for the workflow when matched by this trigger. Follows the namespacing setting used for
+        this trigger's environment, as defined in your project's environment configs.
       `),
     events: joi
       .array()
@@ -263,7 +269,8 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
   })
 
   validateSteps(resolvedConfig)
-  validateTriggers(resolvedConfig, garden.allEnvironmentNames)
+  validateTriggers(resolvedConfig, garden.environmentConfigs)
+  populateNamespaceForTriggers(resolvedConfig, garden.environmentConfigs)
 
   return resolvedConfig
 }
@@ -319,8 +326,9 @@ function validateSteps(config: WorkflowConfig) {
 /**
  * Throws if one or more triggers uses an environment that isn't defined in the project's config.
  */
-function validateTriggers(config: WorkflowConfig, environmentNames: string[]) {
+function validateTriggers(config: WorkflowConfig, environmentConfigs: EnvironmentConfig[]) {
   const invalidTriggers: TriggerSpec[] = []
+  const environmentNames = environmentConfigs.map((c) => c.name)
   for (const trigger of config.triggers || []) {
     if (!environmentNames.includes(trigger.environment)) {
       invalidTriggers.push(trigger)
@@ -344,5 +352,16 @@ function validateTriggers(config: WorkflowConfig, environmentNames: string[]) {
     `
 
     throw new ConfigurationError(msg, { invalidTriggers })
+  }
+}
+
+export function populateNamespaceForTriggers(config: WorkflowConfig, environmentConfigs: EnvironmentConfig[]) {
+  try {
+    for (const trigger of config.triggers || []) {
+      const environmentConfigForTrigger = environmentConfigs.find((c) => c.name === trigger.environment)
+      trigger.namespace = getNamespace(environmentConfigForTrigger!, trigger.namespace)
+    }
+  } catch (err) {
+    throw new ConfigurationError(`Invalid namespace in trigger for workflow ${config.name}: ${err.message}`, { err })
   }
 }

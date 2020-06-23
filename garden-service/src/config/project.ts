@@ -533,25 +533,7 @@ export async function pickEnvironment(config: ProjectConfig, envString: string) 
     })
   }
 
-  if (namespace && environmentConfig.namespacing === "disabled") {
-    throw new ParameterError(
-      `Environment ${environment} does not allow namespacing, but namespace '${namespace}' was specified.`,
-      { environmentConfig, namespace }
-    )
-  }
-
-  if (!namespace && environmentConfig.defaultNamespace) {
-    namespace = environmentConfig.defaultNamespace
-  }
-
-  if (!namespace && environmentConfig.namespacing === "required") {
-    throw new ParameterError(
-      `Environment ${environment} requires a namespace, but none was specified and no defaultNamespace is configured.`,
-      {
-        environmentConfig,
-      }
-    )
-  }
+  namespace = getNamespace(environmentConfig, namespace)
 
   const fixedProviders = fixedPlugins.map((name) => ({ name }))
   const allProviders = [
@@ -584,6 +566,36 @@ export async function pickEnvironment(config: ProjectConfig, envString: string) 
     providers: Object.values(mergedProviders),
     variables,
   }
+}
+
+/**
+ * Validates that the value passed for `namespace` conforms with the namespacing setting in `environmentConfig`,
+ * and returns `namespace` (or a default namespace, if appropriate).
+ */
+export function getNamespace(environmentConfig: EnvironmentConfig, namespace: string | undefined): string | undefined {
+  const envName = environmentConfig.name
+
+  if (namespace && environmentConfig.namespacing === "disabled") {
+    throw new ParameterError(
+      `Environment ${envName} does not allow namespacing, but namespace '${namespace}' was specified.`,
+      { environmentConfig, namespace }
+    )
+  }
+
+  if (!namespace && environmentConfig.defaultNamespace) {
+    namespace = environmentConfig.defaultNamespace
+  }
+
+  if (!namespace && environmentConfig.namespacing === "required") {
+    throw new ParameterError(
+      `Environment ${envName} requires a namespace, but none was specified and no defaultNamespace is configured.`,
+      {
+        environmentConfig,
+      }
+    )
+  }
+
+  return namespace
 }
 
 export function parseEnvironment(env: string): ParsedEnvironment {
