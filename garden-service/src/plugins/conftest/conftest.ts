@@ -61,6 +61,7 @@ interface ConftestModuleSpec {
   namespace: string
   files: string[]
   sourceModule: string
+  combine?: boolean
 }
 
 type ConftestModule = Module<ConftestModuleSpec>
@@ -88,6 +89,10 @@ const commonModuleSchema = joi.object().keys({
     .string()
     .default("main")
     .description("The policy namespace in which to find _deny_ and _warn_ rules."),
+  combine: joi
+    .boolean()
+    .default(false)
+    .description("Set to true to use the conftest --combine flag"),
 })
 
 export const gardenPlugin = createGardenPlugin({
@@ -264,24 +269,26 @@ const conftest = new BinaryCmd({
   name: "conftest",
   specs: {
     darwin: {
-      url: "https://github.com/instrumenta/conftest/releases/download/v0.15.0/conftest_0.15.0_Darwin_x86_64.tar.gz",
-      sha256: "73cea42e467edf7bec58648514096f5975353b0523a5f2b309833ff4a972765e",
+      url:
+        "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/conftest_0.17.1_Darwin_x86_64.tar.gz",
+      sha256: "1c97f0e43fab99c94593696d362fc1e00e8e80bd0321729412de51d83ecbfb73",
       extract: {
         format: "tar",
         targetPath: ["conftest"],
       },
     },
     linux: {
-      url: "https://github.com/instrumenta/conftest/releases/download/v0.15.0/conftest_0.15.0_Linux_x86_64.tar.gz",
-      sha256: "23c6af69dcd2c9fe935ee3cd5652cc14ffc9d7cf0fd55d4abc6a5c3bd470b692",
+      url:
+        "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/conftest_0.17.1_Linux_x86_64.tar.gz",
+      sha256: "d18c95a4b04e87bfd59e06cc980801d2df5dabb371b495506ef03f70a0a40624",
       extract: {
         format: "tar",
         targetPath: ["conftest"],
       },
     },
     win32: {
-      url: "https://github.com/instrumenta/conftest/releases/download/v0.15.0/conftest_0.15.0_Windows_x86_64.zip",
-      sha256: "c452bb4b71d6fbf5d918e1b3ed28092f7bc3a157f44e0ecd6fa1968e1cad4bec",
+      url: "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/conftest_0.17.1_Windows_x86_64.zip",
+      sha256: "4c2df80420f2f148ec085bb75a8c5b92e1c665c6a041768a79924c81082527c3",
       extract: {
         format: "zip",
         targetPath: ["conftest.exe"],
@@ -300,6 +307,9 @@ function prepareArgs(ctx: PluginContext, provider: ConftestProvider, module: Con
   if (namespace) {
     args.push("--namespace", namespace)
   }
+  if (module.spec.combine) {
+    args.push("--combine")
+  }
   return args
 }
 
@@ -313,8 +323,8 @@ function parseConftestResult(provider: ConftestProvider, log: LogEntry, result: 
     throw new PluginError(`Error running conftest: ${result.all}`, { result })
   }
 
-  const allFailures = parsed.filter((p: any) => p.Failures?.length > 0)
-  const allWarnings = parsed.filter((p: any) => p.Warnings?.length > 0)
+  const allFailures = parsed.filter((p: any) => p.failures?.length > 0)
+  const allWarnings = parsed.filter((p: any) => p.warnings?.length > 0)
 
   const resultCategories: string[] = []
   let formattedResult = "OK"
@@ -333,19 +343,19 @@ function parseConftestResult(provider: ConftestProvider, log: LogEntry, result: 
     const lines = [`${formattedHeader}:\n`]
 
     // We let the format match the conftest output
-    for (const { filename, Warnings, Failures } of parsed) {
-      for (const failure of Failures) {
+    for (const { filename, warnings, failures } of parsed) {
+      for (const failure of failures) {
         lines.push(
-          chalk.redBright.bold("FAIL") + chalk.gray(" - ") + chalk.redBright(filename) + chalk.gray(" - ") + failure
+          chalk.redBright.bold("FAIL") + chalk.gray(" - ") + chalk.redBright(filename) + chalk.gray(" - ") + failure.msg
         )
       }
-      for (const warning of Warnings) {
+      for (const warning of warnings) {
         lines.push(
           chalk.yellowBright.bold("WARN") +
             chalk.gray(" - ") +
             chalk.yellowBright(filename) +
             chalk.gray(" - ") +
-            warning
+            warning.msg
         )
       }
     }

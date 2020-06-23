@@ -42,6 +42,7 @@ describe("conftest-container provider", () => {
       build: { dependencies: [] },
       files: ["Dockerfile"],
       namespace: "main",
+      combine: false,
       policyPath: "dockerfile.rego",
     })
   })
@@ -96,6 +97,7 @@ describe("conftest-container provider", () => {
       build: { dependencies: [] },
       files: ["Dockerfile"],
       namespace: "main",
+      combine: false,
       policyPath: "dockerfile.rego",
     })
   })
