@@ -26,7 +26,7 @@ describe("runContainerTask", () => {
 
   before(async () => {
     garden = await getContainerTestGarden()
-    provider = <KubernetesProvider>await garden.resolveProvider("local-kubernetes")
+    provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
   })
 
   beforeEach(async () => {

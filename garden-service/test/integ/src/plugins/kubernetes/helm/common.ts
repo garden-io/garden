@@ -74,7 +74,7 @@ describe("Helm common functions", () => {
 
   before(async () => {
     garden = await getHelmTestGarden()
-    const provider = await garden.resolveProvider("local-kubernetes")
+    const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = garden.getPluginContext(provider)
     log = garden.log
     graph = await garden.getConfigGraph(garden.log)
