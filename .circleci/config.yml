@@ -329,6 +329,21 @@ jobs:
             cd garden-service
             docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f aws.Dockerfile .
             docker push ${TAG}
+  build-docker-azure:
+    <<: *node-config
+    steps:
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - checkout
+      - *attach-workspace
+      - run:
+          name: Build image and push to registry
+          command: |
+            docker login -u $DOCKER_USER -p $DOCKER_PASS
+            TAG=gardendev/garden-azure:${CIRCLE_SHA1}
+            cd garden-service
+            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f azure.Dockerfile .
+            docker push ${TAG}
   build-docker-gcloud:
     <<: *node-config
     steps:
@@ -675,6 +690,10 @@ workflows:
           context: docker
           requires: [build]
       - build-docker-aws:
+          <<: *only-internal-prs
+          context: docker
+          requires: [build-docker]
+      - build-docker-azure:
           <<: *only-internal-prs
           context: docker
           requires: [build-docker]
