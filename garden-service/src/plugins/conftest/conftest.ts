@@ -323,8 +323,8 @@ function parseConftestResult(provider: ConftestProvider, log: LogEntry, result: 
     throw new PluginError(`Error running conftest: ${result.all}`, { result })
   }
 
-  const allFailures = parsed.filter((p: any) => p.Failures?.length > 0)
-  const allWarnings = parsed.filter((p: any) => p.Warnings?.length > 0)
+  const allFailures = parsed.filter((p: any) => p.failures?.length > 0)
+  const allWarnings = parsed.filter((p: any) => p.warnings?.length > 0)
 
   const resultCategories: string[] = []
   let formattedResult = "OK"
@@ -343,19 +343,19 @@ function parseConftestResult(provider: ConftestProvider, log: LogEntry, result: 
     const lines = [`${formattedHeader}:\n`]
 
     // We let the format match the conftest output
-    for (const { filename, Warnings, Failures } of parsed) {
-      for (const failure of Failures) {
+    for (const { filename, warnings, failures } of parsed) {
+      for (const failure of failures) {
         lines.push(
-          chalk.redBright.bold("FAIL") + chalk.gray(" - ") + chalk.redBright(filename) + chalk.gray(" - ") + failure
+          chalk.redBright.bold("FAIL") + chalk.gray(" - ") + chalk.redBright(filename) + chalk.gray(" - ") + failure.msg
         )
       }
-      for (const warning of Warnings) {
+      for (const warning of warnings) {
         lines.push(
           chalk.yellowBright.bold("WARN") +
             chalk.gray(" - ") +
             chalk.yellowBright(filename) +
             chalk.gray(" - ") +
-            warning
+            warning.msg
         )
       }
     }
