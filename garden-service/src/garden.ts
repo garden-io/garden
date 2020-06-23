@@ -19,7 +19,14 @@ import { TreeCache } from "./cache"
 import { builtinPlugins } from "./plugins/plugins"
 import { Module, getModuleCacheContext, getModuleKey, ModuleConfigMap, moduleFromConfig } from "./types/module"
 import { pluginModuleSchema, ModuleTypeMap } from "./types/plugin/plugin"
-import { SourceConfig, ProjectConfig, resolveProjectConfig, pickEnvironment, OutputSpec } from "./config/project"
+import {
+  SourceConfig,
+  ProjectConfig,
+  resolveProjectConfig,
+  pickEnvironment,
+  OutputSpec,
+  EnvironmentConfig,
+} from "./config/project"
 import { findByName, pickKeys, getPackageVersion, getNames, findByNames } from "./util/util"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
 import { VcsHandler, ModuleVersion } from "./vcs/vcs"
@@ -114,7 +121,7 @@ export interface GardenParams {
   clientAuthToken: string | null
   dotIgnoreFiles: string[]
   environmentName: string
-  allEnvironmentNames: string[]
+  environmentConfigs: EnvironmentConfig[]
   namespace?: string
   gardenDirPath: string
   log: LogEntry
@@ -170,7 +177,7 @@ export class Garden {
   public readonly projectRoot: string
   public readonly projectName: string
   public readonly environmentName: string
-  public readonly allEnvironmentNames: string[]
+  public readonly environmentConfigs: EnvironmentConfig[]
   public readonly namespace?: string
   public readonly variables: DeepPrimitiveMap
   public readonly secrets: StringMap
@@ -197,7 +204,7 @@ export class Garden {
     this.enterpriseDomain = params.enterpriseDomain
     this.sessionId = params.sessionId
     this.environmentName = params.environmentName
-    this.allEnvironmentNames = params.allEnvironmentNames
+    this.environmentConfigs = params.environmentConfigs
     this.namespace = params.namespace
     this.gardenDirPath = params.gardenDirPath
     this.log = params.log
@@ -295,7 +302,6 @@ export class Garden {
       environmentStr = defaultEnvironment
     }
 
-    const environmentNames = config.environments.map((env) => env.name)
     const { environmentName, namespace, providers, variables, production } = await pickEnvironment(
       config,
       environmentStr
@@ -337,7 +343,7 @@ export class Garden {
       projectRoot,
       projectName,
       environmentName,
-      allEnvironmentNames: environmentNames,
+      environmentConfigs: config.environments,
       namespace,
       variables,
       secrets,
@@ -1160,10 +1166,11 @@ export class Garden {
     }
 
     const workflowConfigs = await this.getWorkflowConfigs()
+    const allEnvironmentNames = this.environmentConfigs.map((c) => c.name)
 
     return {
       environmentName: this.environmentName,
-      allEnvironmentNames: this.allEnvironmentNames,
+      allEnvironmentNames,
       namespace: this.namespace,
       providers,
       variables: this.variables,
