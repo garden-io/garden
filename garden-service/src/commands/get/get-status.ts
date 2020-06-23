@@ -120,7 +120,7 @@ export class GetStatusCommand extends Command {
   }
 }
 
-async function getTestStatuses(garden: Garden, configGraph: ConfigGraph, log: LogEntry) {
+export async function getTestStatuses(garden: Garden, configGraph: ConfigGraph, log: LogEntry) {
   const modules = await configGraph.getModules()
   const actions = await garden.getActionRouter()
 

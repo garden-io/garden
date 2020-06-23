@@ -24,6 +24,7 @@ import Bluebird from "bluebird"
 import { splitStream } from "../../util/util"
 import execa, { ExecaError } from "execa"
 import { LogLevel } from "../../logger/log-node"
+import { getTestStatuses } from "../get/get-status"
 
 const runWorkflowArgs = {
   workflow: new StringParameter({
@@ -61,6 +62,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
     opts,
   }: CommandParams<Args, {}>): Promise<CommandResult<WorkflowRunOutput>> {
     const outerLog = log.placeholder()
+    await emitWorkflowEnvironmentStatus(garden, log)
     // Partially resolve the workflow config, and prepare any configured files before continuing
     const rawWorkflow = garden.getRawWorkflowConfig(args.workflow)
     const templateContext = new WorkflowConfigContext(garden)
@@ -179,6 +181,16 @@ export class RunWorkflowCommand extends Command<Args, {}> {
 
     return { result }
   }
+}
+
+export async function emitWorkflowEnvironmentStatus(garden: Garden, log: LogEntry) {
+  const actions = await garden.getActionRouter()
+  const graph = await garden.getConfigGraph(log)
+  const environmentStatus = await Bluebird.props({
+    services: actions.getServiceStatuses({ log }),
+    tests: getTestStatuses(garden, graph, log),
+  })
+  garden.events.emit("workflowEnvironmentStatus", environmentStatus)
 }
 
 export interface RunStepParams {

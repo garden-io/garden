@@ -128,8 +128,36 @@ describe("RunWorkflowCommand", () => {
 
     await cmd.action({ ..._defaultParams, args: { workflow: "workflow-a" } })
 
+    const workflowEnvironmentStatus = {
+      services: {
+        "service-a": {
+          detail: {},
+          forwardablePorts: [],
+          state: "ready",
+        },
+        "service-b": {
+          detail: {},
+          forwardablePorts: [],
+          state: "ready",
+        },
+        "service-c": {
+          detail: {},
+          forwardablePorts: [],
+          state: "ready",
+        }
+      },
+      tests: {
+        "module-a.integration": { state: "outdated" },
+        "module-a.unit": { state: "outdated" },
+        "module-b.unit": { state: "outdated" },
+        "module-c.integ": { state: "outdated" },
+        "module-c.unit": { state: "outdated" },
+      },
+    }
+
     const workflowEvents = getWorkflowEvents(_garden)
     expect(workflowEvents).to.eql([
+      { name: "workflowEnvironmentStatus", payload: workflowEnvironmentStatus },
       { name: "workflowStepProcessing", payload: { index: 0 } },
       { name: "workflowStepComplete", payload: { index: 0 } },
       { name: "workflowStepProcessing", payload: { index: 1 } },
@@ -309,8 +337,11 @@ describe("RunWorkflowCommand", () => {
     })
     expect(testModuleLog.length).to.eql(0)
 
+    const workflowEnvironmentStatus = { services: {}, tests: { "test.unit": { state: "outdated" } } }
+
     const workflowEvents = getWorkflowEvents(_garden)
     expect(workflowEvents).to.eql([
+      { name: "workflowEnvironmentStatus", payload: workflowEnvironmentStatus },
       { name: "workflowStepProcessing", payload: { index: 0 } },
       { name: "workflowStepError", payload: { index: 0 } },
     ])
@@ -627,6 +658,11 @@ describe("RunWorkflowCommand", () => {
 })
 
 function getWorkflowEvents(garden: TestGarden) {
-  const eventNames = ["workflowStepProcessing", "workflowStepError", "workflowStepComplete"]
+  const eventNames = [
+    "workflowEnvironmentStatus",
+    "workflowStepProcessing",
+    "workflowStepError",
+    "workflowStepComplete",
+  ]
   return garden.events.eventLog.filter((e) => eventNames.includes(e.name))
 }
