@@ -49,7 +49,7 @@ describe("Terraform provider", () => {
     })
 
     it("should warn if stack is not up-to-date", async () => {
-      const provider = await garden.resolveProvider("terraform")
+      const provider = await garden.resolveProvider(garden.log, "terraform")
       const messages = getLogMessages(garden.log, (e) => e.level === LogLevel.warn)
       expect(messages).to.include(
         "Terraform stack is not up-to-date and autoApply is not enabled. Please run garden plugins terraform apply-root to make sure the stack is in the intended state."
@@ -58,7 +58,7 @@ describe("Terraform provider", () => {
     })
 
     it("should expose outputs to template contexts after applying", async () => {
-      const provider = await garden.resolveProvider("terraform")
+      const provider = await garden.resolveProvider(garden.log, "terraform")
       const ctx = garden.getPluginContext(provider)
       const applyRootCommand = findByName(terraformCommands, "apply-root")!
       await applyRootCommand.handler({
@@ -69,7 +69,7 @@ describe("Terraform provider", () => {
       })
 
       const _garden = await makeTestGarden(testRoot, { environmentName: "prod" })
-      const _provider = await _garden.resolveProvider("terraform")
+      const _provider = await _garden.resolveProvider(_garden.log, "terraform")
 
       expect(_provider.status.outputs).to.eql({
         "my-output": "input: foo",
@@ -79,7 +79,7 @@ describe("Terraform provider", () => {
 
     describe("apply-root command", () => {
       it("call terraform apply for the project root", async () => {
-        const provider = (await garden.resolveProvider("terraform")) as TerraformProvider
+        const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
         const ctx = garden.getPluginContext(provider)
 
         const command = findByName(terraformCommands, "apply-root")!
@@ -94,7 +94,7 @@ describe("Terraform provider", () => {
 
     describe("plan-root command", () => {
       it("call terraform plan for the project root", async () => {
-        const provider = (await garden.resolveProvider("terraform")) as TerraformProvider
+        const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
         const ctx = garden.getPluginContext(provider)
 
         const command = findByName(terraformCommands, "plan-root")!
@@ -119,13 +119,13 @@ describe("Terraform provider", () => {
     })
 
     it("should apply a stack on init and use configured variables", async () => {
-      await garden.resolveProvider("terraform")
+      await garden.resolveProvider(garden.log, "terraform")
       const testFileContent = await readFile(testFilePath)
       expect(testFileContent.toString()).to.equal("foo")
     })
 
     it("should expose outputs to template contexts", async () => {
-      const provider = await garden.resolveProvider("terraform")
+      const provider = await garden.resolveProvider(garden.log, "terraform")
       expect(provider.status.outputs).to.eql({
         "my-output": "input: foo",
         "test-file-path": "./test.log",
@@ -202,7 +202,7 @@ describe("Terraform module type", () => {
 
   describe("apply-module command", () => {
     it("call terraform apply for the module root", async () => {
-      const provider = (await garden.resolveProvider("terraform")) as TerraformProvider
+      const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
       const ctx = garden.getPluginContext(provider)
       graph = await garden.getConfigGraph(garden.log)
 
@@ -218,7 +218,7 @@ describe("Terraform module type", () => {
 
   describe("plan-module command", () => {
     it("call terraform apply for the module root", async () => {
-      const provider = (await garden.resolveProvider("terraform")) as TerraformProvider
+      const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
       const ctx = garden.getPluginContext(provider)
       graph = await garden.getConfigGraph(garden.log)
 
@@ -242,7 +242,7 @@ describe("Terraform module type", () => {
     })
 
     it("should expose runtime outputs to template contexts if stack had already been applied", async () => {
-      const provider = await garden.resolveProvider("terraform")
+      const provider = await garden.resolveProvider(garden.log, "terraform")
       const ctx = garden.getPluginContext(provider)
       const applyCommand = findByName(terraformCommands, "apply-module")!
       await applyCommand.handler({

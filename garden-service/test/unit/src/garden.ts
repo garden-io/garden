@@ -127,7 +127,7 @@ describe("Garden", () => {
 
       expect(garden.projectName).to.equal("test-project-a")
 
-      const providers = await garden.resolveProviders()
+      const providers = await garden.resolveProviders(garden.log)
       const configs = mapValues(providers, (p) => p.config)
 
       expect(configs).to.eql({
@@ -157,7 +157,7 @@ describe("Garden", () => {
       delete process.env.TEST_PROVIDER_TYPE
       delete process.env.TEST_VARIABLE
 
-      const providers = await garden.resolveProviders()
+      const providers = await garden.resolveProviders(garden.log)
       const configs = mapValues(providers, (p) => p.config)
 
       expect(configs).to.eql({
@@ -1378,7 +1378,7 @@ describe("Garden", () => {
       const garden = await TestGarden.factory(projectRootA)
 
       await expectError(
-        () => garden.resolveProviders(),
+        () => garden.resolveProviders(garden.log),
         (err) => expect(err.message).to.equal("Configured provider 'test-plugin' has not been registered.")
       )
     })
@@ -1402,7 +1402,7 @@ describe("Garden", () => {
         },
       }
 
-      const providers = await garden.resolveProviders()
+      const providers = await garden.resolveProviders(garden.log)
       const configs = mapValues(providers, (p) => p.config)
 
       expect(configs).to.eql({
@@ -1449,7 +1449,7 @@ describe("Garden", () => {
         config: projectConfig,
       })
 
-      const provider = await garden.resolveProvider("test")
+      const provider = await garden.resolveProvider(garden.log, "test")
 
       expect(provider.config).to.eql({
         name: "test",
@@ -1477,7 +1477,7 @@ describe("Garden", () => {
 
       const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins: [test] })
       await expectError(
-        () => garden.resolveProviders(),
+        () => garden.resolveProviders(garden.log),
         (err) => {
           expect(err.message).to.equal("Failed resolving one or more providers:\n" + "- test")
           expect(stripAnsi(err.detail.messages[0])).to.equal(
@@ -1505,7 +1505,7 @@ describe("Garden", () => {
       }
 
       const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins: [test] })
-      await expectError(() => garden.resolveProviders())
+      await expectError(() => garden.resolveProviders(garden.log))
     })
 
     it("should throw if providers reference missing secrets in template strings", async () => {
@@ -1527,7 +1527,7 @@ describe("Garden", () => {
 
       const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins: [test] })
       await expectError(
-        () => garden.resolveProviders(),
+        () => garden.resolveProviders(garden.log),
         (err) => expect(err.message).to.match(/Provider test: missing/)
       )
     })
@@ -1610,7 +1610,7 @@ describe("Garden", () => {
       const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins })
 
       await expectError(
-        () => garden.resolveProviders(),
+        () => garden.resolveProviders(garden.log),
         (err) =>
           expect(err.message).to.equal(
             "Found a circular dependency between registered plugins:\n\ntest-a <- test-b <- test-a"
@@ -1639,7 +1639,7 @@ describe("Garden", () => {
       const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins: [testA] })
 
       await expectError(
-        () => garden.resolveProviders(),
+        () => garden.resolveProviders(garden.log),
         (err) =>
           expect(err.message).to.equal("Found a circular dependency between registered plugins:\n\ntest-a <- test-a")
       )
@@ -1672,7 +1672,7 @@ describe("Garden", () => {
       const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins })
 
       await expectError(
-        () => garden.resolveProviders(),
+        () => garden.resolveProviders(garden.log),
         (err) =>
           expect(err.message).to.equal(deline`
             One or more circular dependencies found between providers or their configurations:\n\ntest-a <- test-b <- test-a
@@ -1706,7 +1706,7 @@ describe("Garden", () => {
       const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins })
 
       await expectError(
-        () => garden.resolveProviders(),
+        () => garden.resolveProviders(garden.log),
         (err) =>
           expect(err.message).to.equal(deline`
             One or more circular dependencies found between providers or their
@@ -1736,7 +1736,7 @@ describe("Garden", () => {
       }
 
       const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins: [test] })
-      const providers = keyBy(await garden.resolveProviders(), "name")
+      const providers = keyBy(await garden.resolveProviders(garden.log), "name")
 
       expect(providers.test).to.exist
       expect(providers.test.config.foo).to.equal("bar")
@@ -1765,7 +1765,7 @@ describe("Garden", () => {
       const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins: [test] })
 
       await expectError(
-        () => garden.resolveProviders(),
+        () => garden.resolveProviders(garden.log),
         (err) => {
           expect(err.message).to.equal("Failed resolving one or more providers:\n" + "- test")
           expect(stripAnsi(err.detail.messages[0])).to.equal(
@@ -1803,7 +1803,7 @@ describe("Garden", () => {
       const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins: [test] })
 
       await expectError(
-        () => garden.resolveProviders(),
+        () => garden.resolveProviders(garden.log),
         (err) => {
           expect(err.message).to.equal("Failed resolving one or more providers:\n" + "- test")
           expect(stripAnsi(err.detail.messages[0])).to.equal(
@@ -1845,7 +1845,7 @@ describe("Garden", () => {
       const plugins = [testA, testB]
       const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins })
 
-      const providerB = await garden.resolveProvider("test-b")
+      const providerB = await garden.resolveProvider(garden.log, "test-b")
 
       expect(providerB.config.foo).to.equal("bar")
     })
@@ -1888,7 +1888,7 @@ describe("Garden", () => {
       const plugins = [testA, testB]
       const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins })
 
-      const providerB = await garden.resolveProvider("test-b")
+      const providerB = await garden.resolveProvider(garden.log, "test-b")
 
       expect(providerB.config.foo).to.equal("default")
     })
@@ -1913,7 +1913,7 @@ describe("Garden", () => {
       const plugins = [testA]
       const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins })
 
-      const providerB = await garden.resolveProvider("test-a")
+      const providerB = await garden.resolveProvider(garden.log, "test-a")
 
       expect(providerB.config.foo).to.equal("bar")
     })
@@ -1956,8 +1956,8 @@ describe("Garden", () => {
       const plugins = [baseA, testA, testB]
       const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins })
 
-      const providerA = await garden.resolveProvider("test-a")
-      const providerB = await garden.resolveProvider("test-b")
+      const providerA = await garden.resolveProvider(garden.log, "test-a")
+      const providerB = await garden.resolveProvider(garden.log, "test-b")
 
       expect(providerB.dependencies).to.eql({ "test-a": providerA })
     })
@@ -2006,9 +2006,9 @@ describe("Garden", () => {
       const plugins = [baseA, testA, testB, testC]
       const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins })
 
-      const providerA = await garden.resolveProvider("test-a")
-      const providerB = await garden.resolveProvider("test-b")
-      const providerC = await garden.resolveProvider("test-c")
+      const providerA = await garden.resolveProvider(garden.log, "test-a")
+      const providerB = await garden.resolveProvider(garden.log, "test-b")
+      const providerC = await garden.resolveProvider(garden.log, "test-c")
 
       expect(providerC.dependencies).to.eql({ "test-a": providerA, "test-b": providerB })
     })
@@ -2042,7 +2042,7 @@ describe("Garden", () => {
         const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins: [base, test] })
 
         await expectError(
-          () => garden.resolveProviders(),
+          () => garden.resolveProviders(garden.log),
           (err) => {
             expect(err.message).to.equal("Failed resolving one or more providers:\n" + "- test")
             expect(stripAnsi(err.detail.messages[0])).to.equal(
@@ -2086,7 +2086,7 @@ describe("Garden", () => {
         const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins: [base, test] })
 
         await expectError(
-          () => garden.resolveProviders(),
+          () => garden.resolveProviders(garden.log),
           (err) => {
             expect(err.message).to.equal("Failed resolving one or more providers:\n" + "- test")
             expect(stripAnsi(err.detail.messages[0])).to.equal(

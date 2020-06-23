@@ -495,7 +495,7 @@ export class Garden {
     return names ? findByNames(names, this.providerConfigs, "provider") : this.providerConfigs
   }
 
-  async resolveProvider(name: string) {
+  async resolveProvider(log: LogEntry, name: string) {
     this.log.silly(`Resolving provider ${name}`)
     if (name === "_default") {
       return defaultProvider
@@ -505,7 +505,7 @@ export class Garden {
       return this.resolvedProviders[name]
     }
 
-    const providers = await this.resolveProviders(false, [name])
+    const providers = await this.resolveProviders(log, false, [name])
     const provider = providers[name]
 
     if (!provider) {
@@ -523,7 +523,7 @@ export class Garden {
     return provider
   }
 
-  async resolveProviders(forceInit = false, names?: string[]): Promise<ProviderMap> {
+  async resolveProviders(log: LogEntry, forceInit = false, names?: string[]): Promise<ProviderMap> {
     let providers: Provider[] = []
 
     await this.asyncLock.acquire("resolve-providers", async () => {
@@ -542,9 +542,9 @@ export class Garden {
         return
       }
 
-      this.log.silly(`Resolving providers`)
+      log.silly(`Resolving providers`)
 
-      const log = this.log.info({
+      log = log.info({
         section: "providers",
         msg: "Getting status...",
         status: "active",
@@ -630,7 +630,7 @@ export class Garden {
         log.setSuccess({ msg: chalk.green("Done"), append: true })
       }
 
-      this.log.silly(`Resolved providers: ${providers.map((p) => p.name).join(", ")}`)
+      log.silly(`Resolved providers: ${providers.map((p) => p.name).join(", ")}`)
     })
 
     return keyBy(providers, "name")
@@ -660,8 +660,8 @@ export class Garden {
   /**
    * Returns the reported status from all configured providers.
    */
-  async getEnvironmentStatus() {
-    const providers = await this.resolveProviders()
+  async getEnvironmentStatus(log: LogEntry) {
+    const providers = await this.resolveProviders(log)
     return mapValues(providers, (p) => p.status)
   }
 
@@ -692,8 +692,8 @@ export class Garden {
     return Object.values(keys ? pickKeys(this.moduleConfigs, keys, "module config") : this.moduleConfigs)
   }
 
-  async getOutputConfigContext(modules: Module[], runtimeContext: RuntimeContext) {
-    const providers = await this.resolveProviders()
+  async getOutputConfigContext(log: LogEntry, modules: Module[], runtimeContext: RuntimeContext) {
+    const providers = await this.resolveProviders(log)
     return new OutputConfigContext({
       garden: this,
       resolvedProviders: providers,
@@ -708,9 +708,9 @@ export class Garden {
    * For long-running processes, you need to call this again when any module or configuration has been updated.
    */
   async getConfigGraph(log: LogEntry, runtimeContext?: RuntimeContext) {
-    const providers = await this.resolveProviders()
+    const providers = await this.resolveProviders(log)
     const configs = await this.getRawModuleConfigs()
-    this.log.silly(`Resolving module configs`)
+    log.silly(`Resolving module configs`)
     // Resolve the project module configs
     const tasks = configs.map(
       (moduleConfig) =>
@@ -1151,7 +1151,7 @@ export class Garden {
         "name"
       )
 
-      providers = Object.values(await this.resolveProviders()).map((p) => {
+      providers = Object.values(await this.resolveProviders(log)).map((p) => {
         return {
           ...omit(p, ["tools"]),
           dependencies: mapValues(p.dependencies, (d) => omit(d, ["tools"])),

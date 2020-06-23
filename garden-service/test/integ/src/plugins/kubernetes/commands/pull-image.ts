@@ -36,8 +36,8 @@ describe("pull-image plugin command", () => {
   const init = async (environmentName: string) => {
     garden = await getContainerTestGarden(environmentName)
     graph = await garden.getConfigGraph(garden.log)
-    provider = <KubernetesProvider>await garden.resolveProvider("local-kubernetes")
-    containerProvider = <ContainerProvider>await garden.resolveProvider("container")
+    provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
+    containerProvider = <ContainerProvider>await garden.resolveProvider(garden.log, "container")
     ctx = garden.getPluginContext(provider)
   }
 
