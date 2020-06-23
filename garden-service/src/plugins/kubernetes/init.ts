@@ -276,7 +276,7 @@ export async function prepareSystem({
   }
 
   const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
-  const sysProvider = <KubernetesProvider>await sysGarden.resolveProvider(provider.name)
+  const sysProvider = <KubernetesProvider>await sysGarden.resolveProvider(log, provider.name)
   const systemNamespace = await getSystemNamespace(sysProvider, log)
   const sysApi = await KubeApi.factory(log, sysProvider)
 

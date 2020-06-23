@@ -118,7 +118,7 @@ describe("ActionRouter", () => {
       it("should return modules and/or dependency relations to add to the stack graph", async () => {
         const graph = await garden.getConfigGraph(garden.log)
         const modules = graph.getModules()
-        const providers = await garden.resolveProviders()
+        const providers = await garden.resolveProviders(garden.log)
         const result = await actions.augmentGraph({
           log,
           pluginName: "test-plugin",

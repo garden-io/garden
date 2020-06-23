@@ -409,7 +409,7 @@ describe("createIngressResources", () => {
       testConfigs: [],
     }
 
-    const provider = await garden.resolveProvider("container")
+    const provider = await garden.resolveProvider(garden.log, "container")
     const ctx = garden.getPluginContext(provider)
     const parsed = await configure({ ctx, moduleConfig, log: garden.log })
     const module = await moduleFromConfig(garden, parsed.moduleConfig, [])

@@ -101,7 +101,7 @@ export class PluginsCommand extends Command<Args> {
       printHeader(log, title, "gear")
     }
 
-    const provider = await garden.resolveProvider(args.plugin)
+    const provider = await garden.resolveProvider(log, args.plugin)
     const ctx = garden.getPluginContext(provider)
 
     let modules: Module[] = []

@@ -270,7 +270,7 @@ describe("exec plugin", () => {
           ],
         },
       })
-      const provider = await garden.resolveProvider("test-plugin")
+      const provider = await garden.resolveProvider(garden.log, "test-plugin")
       const ctx = garden.getPluginContext(provider)
       await expectError(async () => await configureExecModule({ ctx, moduleConfig, log }), "configuration")
     })

@@ -24,7 +24,7 @@ describe("deployHelmService", () => {
 
   before(async () => {
     garden = await getHelmTestGarden()
-    provider = <KubernetesProvider>await garden.resolveProvider("local-kubernetes")
+    provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = <KubernetesPluginContext>garden.getPluginContext(provider)
     const graph = await garden.getConfigGraph(garden.log)
     await buildHelmModules(garden, graph)

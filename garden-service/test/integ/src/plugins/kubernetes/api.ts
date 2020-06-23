@@ -25,7 +25,7 @@ describe("KubeApi", () => {
   before(async () => {
     const root = getDataDir("test-projects", "container")
     garden = await makeTestGarden(root)
-    provider = (await garden.resolveProvider("local-kubernetes")) as Provider<KubernetesConfig>
+    provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as Provider<KubernetesConfig>
     api = await KubeApi.factory(garden.log, provider)
   })
 

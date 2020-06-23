@@ -623,7 +623,7 @@ export class ActionRouter implements TypeGuard {
     const envLog = log.info({ msg: chalk.white("Cleaning up environments..."), status: "active" })
     const environmentStatuses: EnvironmentStatusMap = {}
 
-    const providers = await this.garden.resolveProviders()
+    const providers = await this.garden.resolveProviders(log)
     await Bluebird.each(Object.values(providers), async (provider) => {
       await this.cleanupEnvironment({ pluginName: provider.name, log: envLog })
       environmentStatuses[provider.name] = await this.getEnvironmentStatus({ pluginName: provider.name, log: envLog })
@@ -687,7 +687,7 @@ export class ActionRouter implements TypeGuard {
 
   // TODO: find a nicer way to do this (like a type-safe wrapper function)
   private async commonParams(handler: WrappedActionHandler<any, any>, log: LogEntry): Promise<PluginActionParamsBase> {
-    const provider = await this.garden.resolveProvider(handler.pluginName)
+    const provider = await this.garden.resolveProvider(log, handler.pluginName)
 
     return {
       ctx: this.garden.getPluginContext(provider),
@@ -789,7 +789,7 @@ export class ActionRouter implements TypeGuard {
     if (!runtimeContextIsEmpty && (await getRuntimeTemplateReferences(module)).length > 0) {
       log.silly(`Resolving runtime template strings for service '${service.name}'`)
 
-      const providers = await this.garden.resolveProviders()
+      const providers = await this.garden.resolveProviders(log)
       const graph = await this.garden.getConfigGraph(log, runtimeContext)
       service = graph.getService(service.name)
       module = service.module
@@ -849,7 +849,7 @@ export class ActionRouter implements TypeGuard {
     if (runtimeContext && (await getRuntimeTemplateReferences(module)).length > 0) {
       log.silly(`Resolving runtime template strings for task '${task.name}'`)
 
-      const providers = await this.garden.resolveProviders()
+      const providers = await this.garden.resolveProviders(log)
       const graph = await this.garden.getConfigGraph(log, runtimeContext)
       task = graph.getTask(task.name)
       module = task.module
