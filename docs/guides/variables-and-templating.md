@@ -6,7 +6,7 @@ This guide introduces the templating capabilities available in Garden configurat
 
 String configuration values in `garden.yml` can be templated to inject variables, information about the user's environment, references to other modules/services and more.
 
-The syntax for templated strings is `${some.key}`. The key is looked up from the context available when resolving the string. The context depends on which top-level key the configuration value belongs to (`project` or `module`).
+The basic syntax for templated strings is `${some.key}`. The key is looked up from the context available when resolving the string. The context depends on which top-level key the configuration value belongs to (`project` or `module`).
 
 For example, for one service you might want to reference something from another module and expose it as an environment variable:
 
@@ -95,6 +95,39 @@ services:
   replicas: ${var.default-replicas * 2}
   ...
 ```
+
+### Nested lookups and maps
+
+In addition to dot-notation for key lookups, we also support bracketed lookups, e.g. `${some["key"]}` and `${some-array[0]}`.
+
+This style offer nested template resolution, which is quite powerful, because you can use the output of one expression to choose a key in a parent expression.
+
+For example, you can declare a mapping variable for your project, and look up values by another variable such as the current environment name. To illustrate, here's an excerpt from a project config with a mapping variable:
+
+```yaml
+kind: Project
+...
+variables:
+  - replicas:
+      dev: 1
+      prod: 3
+  ...
+```
+
+And here that variable is used in a module:
+
+```yaml
+kind: Module
+type: container
+...
+services:
+  replicas: ${var.replicas["${environment.name}"]}
+  ...
+```
+
+When the nested expression is a simple key lookup like above, you can also just use the nested key directly, e.g. `${var.replicas[environment.name]}`.
+
+You can even use one variable to index another variable, e.g. `${var.a[var.b]}`.
 
 ### Optional values
 

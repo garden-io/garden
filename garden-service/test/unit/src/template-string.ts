@@ -442,6 +442,77 @@ describe("resolveTemplateString", async () => {
     expect(res).to.equal(21)
   })
 
+  it("should handle member lookup with bracket notation", async () => {
+    const res = resolveTemplateString("${foo['bar']}", new TestContext({ foo: { bar: true } }))
+    expect(res).to.equal(true)
+  })
+
+  it("should handle numeric member lookup with bracket notation", async () => {
+    const res = resolveTemplateString("${foo[1]}", new TestContext({ foo: [false, true] }))
+    expect(res).to.equal(true)
+  })
+
+  it("should handle consecutive member lookups with bracket notation", async () => {
+    const res = resolveTemplateString("${foo['bar']['baz']}", new TestContext({ foo: { bar: { baz: true } } }))
+    expect(res).to.equal(true)
+  })
+
+  it("should handle dot member after bracket member", async () => {
+    const res = resolveTemplateString("${foo['bar'].baz}", new TestContext({ foo: { bar: { baz: true } } }))
+    expect(res).to.equal(true)
+  })
+
+  it("should handle template expression within brackets", async () => {
+    const res = resolveTemplateString(
+      "${foo['${bar}']}",
+      new TestContext({
+        foo: { baz: true },
+        bar: "baz",
+      })
+    )
+    expect(res).to.equal(true)
+  })
+
+  it("should handle identifiers within brackets", async () => {
+    const res = resolveTemplateString(
+      "${foo[bar]}",
+      new TestContext({
+        foo: { baz: true },
+        bar: "baz",
+      })
+    )
+    expect(res).to.equal(true)
+  })
+
+  it("should handle nested identifiers within brackets", async () => {
+    const res = resolveTemplateString(
+      "${foo[a.b]}",
+      new TestContext({
+        foo: { baz: true },
+        a: { b: "baz" },
+      })
+    )
+    expect(res).to.equal(true)
+  })
+
+  it("should throw if bracket expression resolves to a non-primitive", async () => {
+    return expectError(
+      () => resolveTemplateString("${foo[bar]}", new TestContext({ foo: {}, bar: {} })),
+      (err) =>
+        expect(err.message).to.equal(
+          "Invalid template string ${foo[bar]}: Expression in bracket must resolve to a primitive (got object)."
+        )
+    )
+  })
+
+  it("should throw if attempting to index a primitive with brackets", async () => {
+    return expectError(
+      () => resolveTemplateString("${foo[bar]}", new TestContext({ foo: 123, bar: "baz" })),
+      (err) =>
+        expect(err.message).to.equal('Invalid template string ${foo[bar]}: Attempted to look up key "baz" on a number.')
+    )
+  })
+
   it("should throw when using >= on non-numeric terms", async () => {
     return expectError(
       () => resolveTemplateString("${a >= b}", new TestContext({ a: 123, b: "foo" })),
@@ -482,6 +553,16 @@ describe("resolveTemplateString", async () => {
 
   it("should handle an expression in parentheses", async () => {
     const res = resolveTemplateString("${foo || (a > 5)}", new TestContext({ foo: false, a: 10 }))
+    expect(res).to.equal(true)
+  })
+
+  it("should handle numeric indices on arrays", () => {
+    const res = resolveTemplateString("${foo.1}", new TestContext({ foo: [false, true] }))
+    expect(res).to.equal(true)
+  })
+
+  it("should resolve keys on objects in arrays", () => {
+    const res = resolveTemplateString("${foo.1.bar}", new TestContext({ foo: [{}, { bar: true }] }))
     expect(res).to.equal(true)
   })
 
