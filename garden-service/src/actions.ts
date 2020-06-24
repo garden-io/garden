@@ -29,6 +29,7 @@ import {
   PluginServiceActionParamsBase,
   PluginTaskActionParamsBase,
   RunResult,
+  runStatus,
 } from "./types/plugin/base"
 import { BuildModuleParams, BuildResult } from "./types/plugin/module/build"
 import { BuildStatus, GetBuildStatusParams } from "./types/plugin/module/getBuildStatus"
@@ -341,6 +342,11 @@ export class ActionRouter implements TypeGuard {
 
     try {
       const result = await this.callModuleHandler({ params: { ...params, artifactsPath }, actionType: "testModule" })
+      this.garden.events.emit("testStatus", {
+        testName: params.testConfig.name,
+        moduleName: params.module.name,
+        status: runStatus(result),
+      })
       return result
     } finally {
       // Copy everything from the temp directory, and then clean it up
@@ -359,11 +365,17 @@ export class ActionRouter implements TypeGuard {
   async getTestResult<T extends Module>(
     params: ModuleActionRouterParams<GetTestResultParams<T>>
   ): Promise<TestResult | null> {
-    return this.callModuleHandler({
+    const result = await this.callModuleHandler({
       params,
       actionType: "getTestResult",
       defaultHandler: async () => null,
     })
+    this.garden.events.emit("testStatus", {
+      testName: params.testName,
+      moduleName: params.module.name,
+      status: runStatus(result),
+    })
+    return result
   }
 
   //endregion
@@ -374,12 +386,20 @@ export class ActionRouter implements TypeGuard {
 
   async getServiceStatus(params: ServiceActionRouterParams<GetServiceStatusParams>): Promise<ServiceStatus> {
     const { result } = await this.callServiceHandler({ params, actionType: "getServiceStatus" })
+    this.garden.events.emit("serviceStatus", {
+      serviceName: params.service.name,
+      status: result,
+    })
     this.validateServiceOutputs(params.service, result)
     return result
   }
 
   async deployService(params: ServiceActionRouterParams<DeployServiceParams>): Promise<ServiceStatus> {
     const { result } = await this.callServiceHandler({ params, actionType: "deployService" })
+    this.garden.events.emit("serviceStatus", {
+      serviceName: params.service.name,
+      status: result,
+    })
     this.validateServiceOutputs(params.service, result)
     return result
   }
@@ -482,6 +502,10 @@ export class ActionRouter implements TypeGuard {
 
     try {
       const { result } = await this.callTaskHandler({ params: { ...params, artifactsPath }, actionType: "runTask" })
+      this.garden.events.emit("taskStatus", {
+        taskName: params.task.name,
+        status: runStatus(result),
+      })
       result && this.validateTaskOutputs(params.task, result)
       return result
     } finally {
@@ -503,6 +527,10 @@ export class ActionRouter implements TypeGuard {
       params,
       actionType: "getTaskResult",
       defaultHandler: async () => undefined,
+    })
+    this.garden.events.emit("taskStatus", {
+      taskName: params.task.name,
+      status: runStatus(result),
     })
     result && this.validateTaskOutputs(params.task, result)
     return result

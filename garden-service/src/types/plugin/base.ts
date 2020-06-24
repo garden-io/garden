@@ -124,3 +124,24 @@ export const artifactsPathSchema = () =>
     .string()
     .required()
     .description("A directory path where the handler should write any exported artifacts to.")
+
+export type RunState = "outdated" | "succeeded" | "failed" | "not-implemented"
+
+export interface RunStatus {
+  state: RunState
+  startedAt?: Date
+  completedAt?: Date
+}
+
+export function runStatus<R extends RunResult>(result: R | null | undefined): RunStatus {
+  if (result) {
+    const { startedAt, completedAt } = result
+    return {
+      startedAt,
+      completedAt,
+      state: result.success ? "succeeded" : "failed",
+    }
+  } else {
+    return { state: result === null ? "outdated" : "not-implemented" }
+  }
+}

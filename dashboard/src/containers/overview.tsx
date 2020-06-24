@@ -9,8 +9,8 @@
 import React from "react"
 import styled from "@emotion/styled"
 
-import { RunState } from "garden-service/build/src/commands/get/get-status"
 import { ServiceState } from "garden-service/build/src/types/service"
+import { RunState } from "garden-service/build/src/types/plugin/base"
 
 import PageError from "../components/page-error"
 import { ModuleCard, Props as ModuleProps } from "../components/entity-cards/module"

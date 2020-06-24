@@ -15,21 +15,13 @@ import { ConfigGraph } from "../../config-graph"
 import { getTaskVersion } from "../../tasks/task"
 import { LogEntry } from "../../logger/log-entry"
 import { getTestVersion } from "../../tasks/test"
-import { RunResult } from "../../types/plugin/base"
+import { runStatus, RunStatus } from "../../types/plugin/base"
 import chalk from "chalk"
 import { deline } from "../../util/string"
 import { EnvironmentStatusMap } from "../../types/plugin/provider/getEnvironmentStatus"
 import { ServiceStatus, serviceStatusSchema } from "../../types/service"
 import { joi, joiIdentifierMap, joiStringMap } from "../../config/common"
 import { environmentStatusSchema } from "../../config/status"
-
-export type RunState = "outdated" | "succeeded" | "failed" | "not-implemented"
-
-export interface RunStatus {
-  state: RunState
-  startedAt?: Date
-  completedAt?: Date
-}
 
 export interface TestStatuses {
   [testKey: string]: RunStatus
@@ -153,17 +145,4 @@ async function getTaskStatuses(garden: Garden, configGraph: ConfigGraph, log: Lo
       return [task.name, runStatus(result)]
     })
   )
-}
-
-function runStatus<R extends RunResult>(result: R | null | undefined): RunStatus {
-  if (result) {
-    const { startedAt, completedAt } = result
-    return {
-      startedAt,
-      completedAt,
-      state: result.success ? "succeeded" : "failed",
-    }
-  } else {
-    return { state: result === null ? "outdated" : "not-implemented" }
-  }
 }
