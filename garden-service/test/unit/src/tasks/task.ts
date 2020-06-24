@@ -9,7 +9,7 @@
 import tmp from "tmp-promise"
 import { expect } from "chai"
 import { TestGarden } from "../../../helpers"
-import { ProjectConfig } from "../../../../src/config/project"
+import { ProjectConfig, defaultNamespace } from "../../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import execa from "execa"
 import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
@@ -35,7 +35,7 @@ describe("TaskTask", () => {
       path: tmpDir.path,
       defaultEnvironment: "default",
       dotIgnoreFiles: [],
-      environments: [{ name: "default", variables: {} }],
+      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "test" }],
       variables: {},
     }

@@ -9,7 +9,7 @@
 import tmp from "tmp-promise"
 import execa from "execa"
 
-import { ProjectConfig } from "../../../../src/config/project"
+import { ProjectConfig, defaultNamespace } from "../../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
 import { joi } from "../../../../src/config/common"
@@ -36,7 +36,7 @@ describe("GetServiceStatusTask", () => {
       path: tmpDir.path,
       defaultEnvironment: "default",
       dotIgnoreFiles: [],
-      environments: [{ name: "default", variables: {} }],
+      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "test" }],
       variables: {},
     }

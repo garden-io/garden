@@ -14,6 +14,7 @@ import { DEFAULT_API_VERSION, GARDEN_GLOBAL_PATH } from "../../../../src/constan
 import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
 import { pick } from "lodash"
 import { join } from "path"
+import { defaultNamespace } from "../../../../src/config/project"
 
 describe("FetchToolsCommand", () => {
   let tmpDir: TempDirectory
@@ -55,7 +56,7 @@ describe("FetchToolsCommand", () => {
         path: tmpDir.path,
         defaultEnvironment: "default",
         dotIgnoreFiles: [],
-        environments: [{ name: "default", variables: {} }],
+        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test" }],
         variables: {},
       },
@@ -98,7 +99,7 @@ describe("FetchToolsCommand", () => {
         path: tmpDir.path,
         defaultEnvironment: "default",
         dotIgnoreFiles: [],
-        environments: [{ name: "default", variables: {} }],
+        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [],
         variables: {},
       },

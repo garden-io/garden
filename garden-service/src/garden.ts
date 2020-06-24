@@ -122,7 +122,7 @@ export interface GardenParams {
   dotIgnoreFiles: string[]
   environmentName: string
   environmentConfigs: EnvironmentConfig[]
-  namespace?: string
+  namespace: string
   gardenDirPath: string
   log: LogEntry
   moduleIncludePatterns?: string[]
@@ -178,7 +178,7 @@ export class Garden {
   public readonly projectName: string
   public readonly environmentName: string
   public readonly environmentConfigs: EnvironmentConfig[]
-  public readonly namespace?: string
+  public readonly namespace: string
   public readonly variables: DeepPrimitiveMap
   public readonly secrets: StringMap
   public readonly projectSources: SourceConfig[]
@@ -1200,7 +1200,7 @@ export class DummyGarden extends Garden {
 export interface ConfigDump {
   environmentName: string // TODO: Remove this?
   allEnvironmentNames: string[]
-  namespace?: string
+  namespace: string
   providers: (Omit<Provider, "tools"> | ProviderConfig)[]
   variables: DeepPrimitiveMap
   moduleConfigs: ModuleConfig[]

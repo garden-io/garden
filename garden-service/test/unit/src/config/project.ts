@@ -17,6 +17,7 @@ import {
   defaultVarfilePath,
   defaultEnvVarfilePath,
   parseEnvironment,
+  defaultNamespace,
 } from "../../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { expectError } from "../../../helpers"
@@ -24,6 +25,7 @@ import { defaultDotIgnoreFiles } from "../../../../src/util/fs"
 import { realpath, writeFile } from "fs-extra"
 import { dedent } from "../../../../src/util/string"
 import { resolve } from "path"
+import stripAnsi from "strip-ansi"
 
 describe("resolveProjectConfig", () => {
   it("should pass through a canonical project config", async () => {
@@ -34,7 +36,7 @@ describe("resolveProjectConfig", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
-      environments: [{ name: "default", variables: {} }],
+      environments: [{ name: "default", defaultNamespace, variables: {} }],
       outputs: [],
       providers: [{ name: "some-provider" }],
       variables: {},
@@ -45,7 +47,7 @@ describe("resolveProjectConfig", () => {
       environments: [
         {
           name: "default",
-          namespacing: "optional",
+          defaultNamespace,
           production: false,
           providers: [],
           variables: {},
@@ -91,6 +93,7 @@ describe("resolveProjectConfig", () => {
       environments: [
         {
           name: "default",
+          defaultNamespace,
           variables: {
             envVar: "${local.env.TEST_ENV_VAR}",
           },
@@ -115,7 +118,7 @@ describe("resolveProjectConfig", () => {
       environments: [
         {
           name: "default",
-          namespacing: "optional",
+          defaultNamespace,
           production: false,
           providers: [],
           variables: {
@@ -150,6 +153,7 @@ describe("resolveProjectConfig", () => {
       environments: [
         {
           name: "default",
+          defaultNamespace,
           variables: {
             envVar: "foo",
           },
@@ -177,7 +181,7 @@ describe("resolveProjectConfig", () => {
       environments: [
         {
           name: "default",
-          namespacing: "optional",
+          defaultNamespace,
           production: false,
           providers: [],
           variables: {
@@ -262,6 +266,7 @@ describe("resolveProjectConfig", () => {
       environments: [
         {
           name: "default",
+          defaultNamespace,
           variables: {
             envVar: "foo",
           },
@@ -288,7 +293,7 @@ describe("resolveProjectConfig", () => {
       environments: [
         {
           name: "default",
-          namespacing: "optional",
+          defaultNamespace,
           production: false,
           providers: [],
           variables: {
@@ -325,6 +330,7 @@ describe("resolveProjectConfig", () => {
       environments: [
         {
           name: "default",
+          defaultNamespace,
           providers: [
             {
               name: "provider-b",
@@ -351,7 +357,7 @@ describe("resolveProjectConfig", () => {
       environments: [
         {
           name: "default",
-          namespacing: "optional",
+          defaultNamespace,
           providers: [],
           production: false,
           variables: {
@@ -399,7 +405,7 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
-      environments: [{ name: "default", variables: {} }],
+      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [],
       variables: {},
     }
@@ -415,14 +421,14 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
-      environments: [{ name: "default", variables: {} }],
+      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [],
       variables: {},
     }
 
     expect(await pickEnvironment(config, "default")).to.eql({
       environmentName: "default",
-      namespace: undefined,
+      namespace: "default",
       providers: [{ name: "exec" }, { name: "container" }],
       production: false,
       variables: {},
@@ -437,7 +443,7 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
-      environments: [{ name: "default", variables: {} }],
+      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [
         { name: "container", newKey: "foo" },
         { name: "my-provider", a: "a" },
@@ -449,7 +455,7 @@ describe("pickEnvironment", () => {
 
     expect(await pickEnvironment(config, "default")).to.eql({
       environmentName: "default",
-      namespace: undefined,
+      namespace: "default",
       providers: [{ name: "exec" }, { name: "container", newKey: "foo" }, { name: "my-provider", a: "c", b: "b" }],
       production: false,
       variables: {},
@@ -464,7 +470,7 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
-      environments: [{ name: "default", variables: {} }],
+      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [
         { name: "container", newKey: "foo" },
         { name: "my-provider", a: "a" },
@@ -476,7 +482,7 @@ describe("pickEnvironment", () => {
 
     expect(await pickEnvironment(config, "default")).to.eql({
       environmentName: "default",
-      namespace: undefined,
+      namespace: "default",
       providers: [{ name: "exec" }, { name: "container", newKey: "foo" }, { name: "my-provider", b: "b" }],
       production: false,
       variables: {},
@@ -494,6 +500,7 @@ describe("pickEnvironment", () => {
       environments: [
         {
           name: "default",
+          defaultNamespace,
           variables: {
             b: "env value B",
             c: "env value C",
@@ -552,6 +559,7 @@ describe("pickEnvironment", () => {
       environments: [
         {
           name: "default",
+          defaultNamespace,
           variables: {
             b: "B",
             c: "c",
@@ -591,6 +599,7 @@ describe("pickEnvironment", () => {
       environments: [
         {
           name: "default",
+          defaultNamespace,
           variables: {},
         },
       ],
@@ -630,6 +639,7 @@ describe("pickEnvironment", () => {
       environments: [
         {
           name: "default",
+          defaultNamespace,
           variables: {
             b: "B",
             c: "c",
@@ -670,6 +680,7 @@ describe("pickEnvironment", () => {
       environments: [
         {
           name: "default",
+          defaultNamespace,
           varfile: "foo.env",
           variables: {},
         },
@@ -719,6 +730,7 @@ describe("pickEnvironment", () => {
       environments: [
         {
           name: "default",
+          defaultNamespace,
           // Precedence 2/4
           variables: {
             c: "C",
@@ -756,6 +768,7 @@ describe("pickEnvironment", () => {
       environments: [
         {
           name: "default",
+          defaultNamespace,
           variables: {},
         },
       ],
@@ -781,6 +794,7 @@ describe("pickEnvironment", () => {
       environments: [
         {
           name: "default",
+          defaultNamespace,
           varfile: "foo.env",
           variables: {},
         },
@@ -795,7 +809,7 @@ describe("pickEnvironment", () => {
     )
   })
 
-  it("should set environment namespace if specified", async () => {
+  it("should set environment namespace if specified and defaultNamespace=null", async () => {
     const config: ProjectConfig = {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Project",
@@ -803,7 +817,7 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
-      environments: [{ name: "default", variables: {} }],
+      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [],
       variables: {},
     }
@@ -817,7 +831,7 @@ describe("pickEnvironment", () => {
     })
   })
 
-  it("should set defaultNamespace if set and no explicit namespace is specified", async () => {
+  it("should use explicit namespace if specified and there is a default", async () => {
     const config: ProjectConfig = {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Project",
@@ -825,36 +839,36 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
-      environments: [{ name: "default", defaultNamespace: "default-ns", variables: {} }],
+      environments: [{ name: "default", defaultNamespace, variables: {} }],
+      providers: [],
+      variables: {},
+    }
+
+    expect(await pickEnvironment(config, "foo.default")).to.eql({
+      environmentName: "default",
+      namespace: "foo",
+      providers: [{ name: "exec" }, { name: "container" }],
+      production: false,
+      variables: {},
+    })
+  })
+
+  it("should use defaultNamespace if set and no explicit namespace is specified", async () => {
+    const config: ProjectConfig = {
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Project",
+      name: "my-project",
+      path: "/tmp/foo",
+      defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
+      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [],
       variables: {},
     }
 
     expect(await pickEnvironment(config, "default")).to.eql({
       environmentName: "default",
-      namespace: "default-ns",
-      providers: [{ name: "exec" }, { name: "container" }],
-      production: false,
-      variables: {},
-    })
-  })
-
-  it("should use explicit namespace if specified, if defaultNamespace is set", async () => {
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
-      name: "my-project",
-      path: "/tmp/foo",
-      defaultEnvironment: "default",
-      dotIgnoreFiles: defaultDotIgnoreFiles,
-      environments: [{ name: "default", defaultNamespace: "default-ns", variables: {} }],
-      providers: [],
-      variables: {},
-    }
-
-    expect(await pickEnvironment(config, "foo.default")).to.eql({
-      environmentName: "default",
-      namespace: "foo",
+      namespace: "default",
       providers: [{ name: "exec" }, { name: "container" }],
       production: false,
       variables: {},
@@ -869,7 +883,7 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
-      environments: [{ name: "default", variables: {} }],
+      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [],
       variables: {},
     }
@@ -883,7 +897,7 @@ describe("pickEnvironment", () => {
     )
   })
 
-  it("should throw if environment requires namespace but none is specified and no defaultNamespace set", async () => {
+  it("should throw if environment requires namespace but none is specified and defaultNamespace=null", async () => {
     const config: ProjectConfig = {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Project",
@@ -891,7 +905,7 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
-      environments: [{ name: "default", namespacing: "required", variables: {} }],
+      environments: [{ name: "default", defaultNamespace: null, variables: {} }],
       providers: [],
       variables: {},
     }
@@ -899,30 +913,8 @@ describe("pickEnvironment", () => {
     await expectError(
       () => pickEnvironment(config, "default"),
       (err) =>
-        expect(err.message).to.equal(
-          "Environment default requires a namespace, but none was specified and no defaultNamespace is configured."
-        )
-    )
-  })
-
-  it("should throw if environment doesn't allow namespacing but one is specified", async () => {
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
-      name: "my-project",
-      path: "/tmp/foo",
-      defaultEnvironment: "default",
-      dotIgnoreFiles: defaultDotIgnoreFiles,
-      environments: [{ name: "default", namespacing: "disabled", variables: {} }],
-      providers: [],
-      variables: {},
-    }
-
-    await expectError(
-      () => pickEnvironment(config, "foo.default"),
-      (err) =>
-        expect(err.message).to.equal(
-          "Environment default does not allow namespacing, but namespace 'foo' was specified."
+        expect(stripAnsi(err.message)).to.equal(
+          "Environment default has defaultNamespace set to null, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. --env=some-namespace.default)."
         )
     )
   })

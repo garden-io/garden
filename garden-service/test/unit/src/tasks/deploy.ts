@@ -9,7 +9,7 @@
 import tmp from "tmp-promise"
 import execa from "execa"
 
-import { ProjectConfig } from "../../../../src/config/project"
+import { ProjectConfig, defaultNamespace } from "../../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { Garden } from "../../../../src/garden"
 import { ConfigGraph } from "../../../../src/config-graph"
@@ -40,7 +40,7 @@ describe("DeployTask", () => {
       path: tmpDir.path,
       defaultEnvironment: "default",
       dotIgnoreFiles: [],
-      environments: [{ name: "default", variables: {} }],
+      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "test" }],
       variables: {},
     }

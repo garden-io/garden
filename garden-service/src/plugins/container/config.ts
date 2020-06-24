@@ -557,7 +557,7 @@ export interface ContainerModuleSpec extends ModuleSpec {
 
 export interface ContainerModuleConfig extends ModuleConfig<ContainerModuleSpec> {}
 
-export const defaultNamespace = "_"
+export const defaultImageNamespace = "_"
 export const defaultTag = "latest"
 
 export const containerModuleSpecSchema = () =>
