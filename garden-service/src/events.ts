@@ -10,6 +10,8 @@ import { EventEmitter2 } from "eventemitter2"
 import { ModuleVersion } from "./vcs/vcs"
 import { GraphResult } from "./task-graph"
 import { LogEntryEvent } from "./enterprise/buffered-event-stream"
+import { ServiceStatus } from "./types/service"
+import { RunStatus } from "./types/plugin/base"
 
 /**
  * This simple class serves as the central event bus for a Garden instance. Its function
@@ -119,6 +121,21 @@ export interface Events extends LoggerEvents {
   }
   watchingForChanges: {}
 
+  // Runtime status events
+  taskStatus: {
+    taskName: string
+    status: RunStatus
+  }
+  testStatus: {
+    testName: string
+    moduleName: string
+    status: RunStatus
+  }
+  serviceStatus: {
+    serviceName: string
+    status: ServiceStatus
+  }
+
   // Workflow events
   workflowStepProcessing: {
     index: number
@@ -153,6 +170,9 @@ export const eventNames: EventName[] = [
   "taskGraphProcessing",
   "taskGraphComplete",
   "watchingForChanges",
+  "taskStatus",
+  "testStatus",
+  "serviceStatus",
   "workflowStepProcessing",
   "workflowStepError",
   "workflowStepComplete",

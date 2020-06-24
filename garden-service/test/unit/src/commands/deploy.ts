@@ -7,7 +7,6 @@
  */
 
 import { join } from "path"
-import { Garden } from "../../../../src/garden"
 import { DeployCommand } from "../../../../src/commands/deploy"
 import { expect } from "chai"
 import { buildExecModule } from "../../../../src/plugins/exec"
@@ -18,6 +17,8 @@ import {
   withDefaultGlobalOpts,
   dataDir,
   testModuleSpecSchema,
+  makeTestGarden,
+  getRuntimeStatusEvents,
 } from "../../../helpers"
 import { GetServiceStatusParams } from "../../../../src/types/plugin/service/getServiceStatus"
 import { DeployServiceParams } from "../../../../src/types/plugin/service/deployService"
@@ -108,7 +109,7 @@ describe("DeployCommand", () => {
   // TODO: Test with --watch flag
 
   it("should build and deploy all modules in a project", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins })
+    const garden = await makeTestGarden(projectRootB, { plugins })
     const log = garden.log
     const command = new DeployCommand()
 
@@ -204,10 +205,25 @@ describe("DeployCommand", () => {
         success: true,
       },
     })
+
+    expect(getRuntimeStatusEvents(garden.events.eventLog)).to.eql([
+      { name: "taskStatus", payload: { taskName: "task-a", status: { state: "not-implemented" } } },
+      { name: "taskStatus", payload: { taskName: "task-c", status: { state: "not-implemented" } } },
+      { name: "serviceStatus", payload: { serviceName: "service-c", status: { state: "ready" } } },
+      { name: "serviceStatus", payload: { serviceName: "service-d", status: { state: "unknown" } } },
+      { name: "serviceStatus", payload: { serviceName: "service-a", status: { state: "ready" } } },
+      { name: "serviceStatus", payload: { serviceName: "service-b", status: { state: "unknown" } } },
+      { name: "serviceStatus", payload: { serviceName: "service-c", status: { state: "ready" } } },
+      { name: "serviceStatus", payload: { serviceName: "service-d", status: { state: "ready" } } },
+      { name: "taskStatus", payload: { taskName: "task-c", status: { state: "succeeded" } } },
+      { name: "taskStatus", payload: { taskName: "task-a", status: { state: "succeeded" } } },
+      { name: "serviceStatus", payload: { serviceName: "service-a", status: { state: "ready" } } },
+      { name: "serviceStatus", payload: { serviceName: "service-b", status: { state: "ready" } } },
+    ])
   })
 
   it("should optionally build and deploy single service and its dependencies", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins })
+    const garden = await makeTestGarden(projectRootB, { plugins })
     const log = garden.log
     const command = new DeployCommand()
 
@@ -255,7 +271,7 @@ describe("DeployCommand", () => {
   })
 
   it("should skip disabled services", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins })
+    const garden = await makeTestGarden(projectRootB, { plugins })
     const log = garden.log
     const command = new DeployCommand()
 
@@ -303,7 +319,7 @@ describe("DeployCommand", () => {
   })
 
   it("should skip services from disabled modules", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins })
+    const garden = await makeTestGarden(projectRootB, { plugins })
     const log = garden.log
     const command = new DeployCommand()
 
