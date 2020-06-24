@@ -11,7 +11,7 @@ import { deepMap } from "./util/util"
 import { GardenBaseError, ConfigurationError } from "./exceptions"
 import { ConfigContext, ContextResolveOpts, ScanContext, ContextResolveOutput } from "./config/config-context"
 import { difference, flatten, uniq, isPlainObject, isNumber } from "lodash"
-import { Primitive, StringMap } from "./config/common"
+import { Primitive, StringMap, isPrimitive } from "./config/common"
 import { profile } from "./util/profiling"
 import { dedent, deline } from "./util/string"
 
@@ -66,6 +66,7 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
       TemplateStringError,
       allowUndefined: opts.allowUndefined,
       optionalSuffix: "}?",
+      isPrimitive,
     })
 
     const outputs: ResolvedClause[] = parsed.map((p: any) => {
