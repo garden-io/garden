@@ -22,6 +22,7 @@ import { getProviderUrl, getModuleTypeUrl } from "../docs/common"
 import { Module } from "../types/module"
 import { ModuleConfig } from "./module"
 import { ModuleVersion } from "../vcs/vcs"
+import { isPrimitive } from "util"
 
 export type ContextKey = string[]
 
@@ -109,8 +110,15 @@ export abstract class ConfigContext {
       nestedNodePath = nodePath.concat(lookupPath)
       const stackEntry = nestedNodePath.join(".")
 
-      if (nextKey.startsWith("_")) {
+      if (typeof nextKey === "string" && nextKey.startsWith("_")) {
         value = undefined
+      } else if (isPrimitive(value)) {
+        throw new ConfigurationError(`Attempted to look up key ${JSON.stringify(nextKey)} on a ${typeof value}.`, {
+          value,
+          nodePath,
+          fullPath,
+          opts,
+        })
       } else {
         value = value instanceof Map ? value.get(nextKey) : value[nextKey]
       }

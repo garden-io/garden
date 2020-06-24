@@ -42,14 +42,6 @@ FormatEnd
   = __ "}?"
   / __ "}"
 
-KeySeparator
-  = "."
-
-Key
-  = head:Identifier tail:(KeySeparator Identifier)* {
-    return [["", head]].concat(tail).map(p => p[1])
-  }
-
 Prefix
   = !FormatStart (. ! FormatStart)* . { return text() }
 
@@ -58,6 +50,27 @@ Suffix
 
 // ---- expressions -----
 // Reduced and adapted from: https://github.com/pegjs/pegjs/blob/master/examples/javascript.pegjs
+MemberExpression
+  = head:Identifier
+    tail:(
+        "[" __ e:PrimaryExpression __ "]" {
+          if (e.resolved && !options.isPrimitive(e.resolved)) {
+            const _error = new options.TemplateStringError(
+              `Expression in bracket must resolve to a primitive (got ${typeof e}).`,
+              { text: e.resolved }
+            )
+            return { _error }
+          }
+          return e
+        }
+      / "." e:Identifier {
+          return e
+        }
+    )*
+    {
+      return [head].concat(tail)
+    }
+
 PrimaryExpression
   = v:NonStringLiteral {
     return v
@@ -66,7 +79,13 @@ PrimaryExpression
     // Allow nested template strings in literals
     return options.resolveNested(v)
   }
-  / key:Key {
+  / key:MemberExpression {
+    for (const part of key) {
+      if (part._error) {
+        return part
+      }
+    }
+    key = key.map((part) => part.resolved || part)
     return options.getKey(key, { allowUndefined: true })
   }
   / "(" __ e:Expression __ ")" {
@@ -215,6 +234,7 @@ IdentifierName "identifier"
   = head:IdentifierStart tail:IdentifierPart* {
       return head + tail.join("")
     }
+  / Integer
 
 IdentifierStart
   = UnicodeLetter
@@ -312,7 +332,10 @@ ExponentIndicator
   = "e"i
 
 SignedInteger
-  = [+-]? DecimalDigit+
+  = [+-]? Integer
+
+Integer
+  = DecimalDigit+
 
 HexIntegerLiteral
   = "0x"i digits:$HexDigit+ {
