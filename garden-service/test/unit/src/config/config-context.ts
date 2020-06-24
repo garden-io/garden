@@ -317,8 +317,8 @@ describe("ProjectConfigContext", () => {
     expectError(
       () => c.resolve({ key: ["local", "env", key], nodePath: [], opts: {} }),
       (err) =>
-        expect(stripAnsi(err.message)).to.equal(
-          "Could not find key fiaogsyecgbsjyawecygaewbxrbxajyrgew under local.env."
+        expect(stripAnsi(err.message)).to.match(
+          /Could not find key fiaogsyecgbsjyawecygaewbxrbxajyrgew under local.env. Available keys: /
         )
     )
   })
@@ -424,7 +424,10 @@ describe("ModuleConfigContext", () => {
     it("should throw when resolving a secret with a missing key", async () => {
       await expectError(
         () => c.resolve({ key: ["secrets", "missingSecret"], nodePath: [], opts: {} }),
-        (err) => expect(stripAnsi(err.message)).to.equal("Could not find key missingSecret under secrets.")
+        (err) =>
+          expect(stripAnsi(err.message)).to.equal(
+            "Could not find key missingSecret under secrets. Available keys: someSecret."
+          )
       )
     })
   })
@@ -439,7 +442,10 @@ describe("ModuleConfigContext", () => {
     it("should throw if resolving missing runtime key with allowPartial=false", async () => {
       await expectError(
         () => c.resolve({ key: ["runtime", "some", "key"], nodePath: [], opts: {} }),
-        (err) => expect(stripAnsi(err.message)).to.equal("Could not find key some under runtime.")
+        (err) =>
+          expect(stripAnsi(err.message)).to.equal(
+            "Could not find key some under runtime. Available keys: services and tasks."
+          )
       )
     })
 
@@ -550,7 +556,9 @@ describe("ModuleConfigContext", () => {
             opts: {},
           }),
         (err) =>
-          expect(stripAnsi(err.message)).to.equal("Could not find key boo under runtime.services.service-b.outputs.")
+          expect(stripAnsi(err.message)).to.equal(
+            "Could not find key boo under runtime.services.service-b.outputs. Available keys: foo."
+          )
       )
     })
   })
@@ -610,7 +618,10 @@ describe("WorkflowConfigContext", () => {
     it("should throw when resolving a secret with a missing key", async () => {
       await expectError(
         () => c.resolve({ key: ["secrets", "missingSecret"], nodePath: [], opts: {} }),
-        (err) => expect(stripAnsi(err.message)).to.equal("Could not find key missingSecret under secrets.")
+        (err) =>
+          expect(stripAnsi(err.message)).to.equal(
+            "Could not find key missingSecret under secrets. Available keys: someSecret."
+          )
       )
     })
   })
@@ -682,7 +693,10 @@ describe("WorkflowStepConfigContext", () => {
     })
     expectError(
       () => c.resolve({ key: ["steps", "step-foo", "log"], nodePath: [], opts: {} }),
-      (err) => expect(stripAnsi(err.message)).to.equal("Could not find key step-foo under steps.")
+      (err) =>
+        expect(stripAnsi(err.message)).to.equal(
+          "Could not find key step-foo under steps. Available keys: step-1 and step-2."
+        )
     )
   })
 
