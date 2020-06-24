@@ -215,6 +215,7 @@ IdentifierName "identifier"
   = head:IdentifierStart tail:IdentifierPart* {
       return head + tail.join("")
     }
+  / Integer
 
 IdentifierStart
   = UnicodeLetter
@@ -312,7 +313,10 @@ ExponentIndicator
   = "e"i
 
 SignedInteger
-  = [+-]? DecimalDigit+
+  = [+-]? Integer
+
+Integer
+  = DecimalDigit+
 
 HexIntegerLiteral
   = "0x"i digits:$HexDigit+ {

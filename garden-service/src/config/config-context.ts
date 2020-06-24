@@ -109,7 +109,7 @@ export abstract class ConfigContext {
       nestedNodePath = nodePath.concat(lookupPath)
       const stackEntry = nestedNodePath.join(".")
 
-      if (nextKey.startsWith("_")) {
+      if (typeof nextKey === "string" && nextKey.startsWith("_")) {
         value = undefined
       } else {
         value = value instanceof Map ? value.get(nextKey) : value[nextKey]

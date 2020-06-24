@@ -485,6 +485,16 @@ describe("resolveTemplateString", async () => {
     expect(res).to.equal(true)
   })
 
+  it("should handle numeric indices on arrays", () => {
+    const res = resolveTemplateString("${foo.1}", new TestContext({ foo: [false, true] }))
+    expect(res).to.equal(true)
+  })
+
+  it("should resolve keys on objects in arrays", () => {
+    const res = resolveTemplateString("${foo.1.bar}", new TestContext({ foo: [{}, { bar: true }] }))
+    expect(res).to.equal(true)
+  })
+
   it("should correctly propagate errors from nested contexts", async () => {
     await expectError(
       () => resolveTemplateString("${nested.missing}", new TestContext({ nested: new TestContext({}) })),
