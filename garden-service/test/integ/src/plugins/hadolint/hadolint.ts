@@ -7,7 +7,7 @@
  */
 
 import tmp from "tmp-promise"
-import { ProjectConfig } from "../../../../../src/config/project"
+import { ProjectConfig, defaultNamespace } from "../../../../../src/config/project"
 import execa = require("execa")
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { Garden } from "../../../../../src/garden"
@@ -39,7 +39,7 @@ describe("hadolint provider", () => {
       path: tmpPath,
       defaultEnvironment: "default",
       dotIgnoreFiles: [],
-      environments: [{ name: "default", variables: {} }],
+      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "hadolint" }],
       variables: {},
     }

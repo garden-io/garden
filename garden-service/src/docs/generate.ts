@@ -17,6 +17,7 @@ import { keyBy } from "lodash"
 import { writeFileSync } from "fs-extra"
 import { renderModuleTypeReference, moduleTypes } from "./module-type"
 import { renderProviderReference } from "./provider"
+import { defaultNamespace } from "../config/project"
 
 export async function generateDocs(targetDir: string) {
   // tslint:disable: no-console
@@ -49,6 +50,7 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
       environments: [
         {
           name: "default",
+          defaultNamespace,
           variables: {},
         },
       ],

@@ -4,7 +4,7 @@ name: build-dependencies
 environments:
   - name: local
   - name: remote
-    defaultNamespace: ${project.name}-testing-${local.env.CIRCLE_BUILD_NUM || local.username}
+    defaultNamespace: testing-${local.env.CIRCLE_BUILD_NUM || local.username}
 providers:
   - name: local-kubernetes
     environments: [local]

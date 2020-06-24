@@ -97,7 +97,6 @@ export interface KubernetesConfig extends ProviderConfig {
   }
   context: string
   defaultHostname?: string
-  defaultUsername?: string
   deploymentRegistry?: ContainerRegistryConfig
   deploymentStrategy?: DeploymentStrategy
   forceSsl: boolean
@@ -349,7 +348,6 @@ export const kubernetesConfigBase = providerConfigBaseSchema().keys({
     .string()
     .description("A default hostname to use when no hostname is explicitly configured for a service.")
     .example("api.mydomain.com"),
-  defaultUsername: joiIdentifier().description("Set a default username (used for namespacing within a cluster)."),
   deploymentStrategy: joi
     .string()
     .default("rolling")
@@ -571,9 +569,9 @@ export const configSchema = kubernetesConfigBase
       .posixPath()
       .description("Path to kubeconfig file to use instead of the system default. Must be a POSIX-style path."),
     namespace: joi.string().description(dedent`
-      Specify which namespace to deploy services to. Defaults to the environment namespace, if specified and enabled, otherwise the project name.
+      Specify which namespace to deploy services to. Defaults to \`<project name>-<environment namespace>\`.
 
-      Note that the framework generates other namespaces as well with this name as a prefix.
+      Note that the framework may generate other namespaces as well with this name as a prefix.
       `),
     setupIngressController: joi
       .string()

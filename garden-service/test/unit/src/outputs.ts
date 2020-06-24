@@ -12,7 +12,7 @@ import { resolveProjectOutputs } from "../../../src/outputs"
 import { expect } from "chai"
 import { realpath } from "fs-extra"
 import { createGardenPlugin } from "../../../src/types/plugin/plugin"
-import { ProjectConfig } from "../../../src/config/project"
+import { ProjectConfig, defaultNamespace } from "../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../src/constants"
 import { exec } from "../../../src/util/util"
 import { ServiceState } from "../../../src/types/service"
@@ -34,7 +34,7 @@ describe("resolveProjectOutputs", () => {
       path: tmpPath,
       defaultEnvironment: "default",
       dotIgnoreFiles: [],
-      environments: [{ name: "default", variables: {} }],
+      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "test" }],
       variables: {},
     }

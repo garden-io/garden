@@ -157,7 +157,7 @@ export async function runAndCopy({
       podName: runner.podName,
       containerNames: [mainContainerName],
     })
-    return containerLogs[0].log
+    return containerLogs[0]?.log || ""
   }
 
   const timedOutResult = async () => {

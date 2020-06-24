@@ -33,7 +33,7 @@ import { ModuleVersion } from "../../../src/vcs/vcs"
 import { getModuleCacheContext } from "../../../src/types/module"
 import { createGardenPlugin } from "../../../src/types/plugin/plugin"
 import { ConfigureProviderParams } from "../../../src/types/plugin/provider/configureProvider"
-import { ProjectConfig } from "../../../src/config/project"
+import { ProjectConfig, defaultNamespace } from "../../../src/config/project"
 import { ModuleConfig, baseModuleSpecSchema, baseBuildSpecSchema } from "../../../src/config/module"
 import { DEFAULT_API_VERSION } from "../../../src/constants"
 import { providerConfigBaseSchema } from "../../../src/config/provider"
@@ -64,7 +64,7 @@ describe("Garden", () => {
       path: pathFoo,
       defaultEnvironment: "default",
       dotIgnoreFiles: [],
-      environments: [{ name: "default", variables: {} }],
+      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "foo" }],
       variables: {},
     }
@@ -275,7 +275,7 @@ describe("Garden", () => {
         path: pathFoo,
         defaultEnvironment: "default",
         dotIgnoreFiles: [],
-        environments: [{ name: "default", namespacing: "required", defaultNamespace: "foo", variables: {} }],
+        environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
         variables: {},
       }
@@ -286,28 +286,6 @@ describe("Garden", () => {
       expect(garden.namespace).to.equal("foo")
     })
 
-    it("should throw if a namespace is specified and the specified environment disables namespacing", async () => {
-      const config: ProjectConfig = {
-        apiVersion: DEFAULT_API_VERSION,
-        kind: "Project",
-        name: "test",
-        path: pathFoo,
-        defaultEnvironment: "default",
-        dotIgnoreFiles: [],
-        environments: [{ name: "default", namespacing: "disabled", variables: {} }],
-        providers: [{ name: "foo" }],
-        variables: {},
-      }
-
-      await expectError(
-        () => TestGarden.factory(pathFoo, { config, environmentName: "foo.default" }),
-        (err) =>
-          expect(err.message).to.equal(
-            "Environment default does not allow namespacing, but namespace 'foo' was specified."
-          )
-      )
-    })
-
     it("should throw if a namespace is not specified and the specified environment requires namespacing", async () => {
       const config: ProjectConfig = {
         apiVersion: DEFAULT_API_VERSION,
@@ -316,7 +294,7 @@ describe("Garden", () => {
         path: pathFoo,
         defaultEnvironment: "default",
         dotIgnoreFiles: [],
-        environments: [{ name: "default", namespacing: "required", variables: {} }],
+        environments: [{ name: "default", defaultNamespace: null, variables: {} }],
         providers: [{ name: "foo" }],
         variables: {},
       }
@@ -324,8 +302,8 @@ describe("Garden", () => {
       await expectError(
         () => TestGarden.factory(pathFoo, { config, environmentName: "default" }),
         (err) =>
-          expect(err.message).to.equal(
-            "Environment default requires a namespace, but none was specified and no defaultNamespace is configured."
+          expect(stripAnsi(err.message)).to.equal(
+            `Environment default has defaultNamespace set to null, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. --env=some-namespace.default).`
           )
       )
     })
@@ -1425,7 +1403,7 @@ describe("Garden", () => {
         path: process.cwd(),
         defaultEnvironment: "default",
         dotIgnoreFiles: defaultDotIgnoreFiles,
-        environments: [{ name: "default", variables: {} }],
+        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test", foo: "bar" }],
         variables: {},
       }
@@ -1470,7 +1448,7 @@ describe("Garden", () => {
         path: projectRootA,
         defaultEnvironment: "default",
         dotIgnoreFiles: defaultDotIgnoreFiles,
-        environments: [{ name: "default", variables: {} }],
+        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test", foo: "${bla.ble}" }],
         variables: {},
       }
@@ -1499,7 +1477,7 @@ describe("Garden", () => {
         path: projectRootA,
         defaultEnvironment: "default",
         dotIgnoreFiles: defaultDotIgnoreFiles,
-        environments: [{ name: "default", variables: {} }],
+        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test", foo: "${providers.foo.config.bla}" }],
         variables: {},
       }
@@ -1520,7 +1498,7 @@ describe("Garden", () => {
         path: projectRootA,
         defaultEnvironment: "default",
         dotIgnoreFiles: defaultDotIgnoreFiles,
-        environments: [{ name: "default", variables: {} }],
+        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test", foo: "${secrets.missing}" }], // < ------
         variables: {},
       }
@@ -1572,7 +1550,7 @@ describe("Garden", () => {
         path: projectRootA,
         defaultEnvironment: "default",
         dotIgnoreFiles: defaultDotIgnoreFiles,
-        environments: [{ name: "default", variables: {} }],
+        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test", foo: "bar" }],
         variables: {},
       }
@@ -1601,7 +1579,7 @@ describe("Garden", () => {
         path: projectRootA,
         defaultEnvironment: "default",
         dotIgnoreFiles: defaultDotIgnoreFiles,
-        environments: [{ name: "default", variables: {} }],
+        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test-a" }, { name: "test-b" }],
         variables: {},
       }
@@ -1631,7 +1609,7 @@ describe("Garden", () => {
         path: projectRootA,
         defaultEnvironment: "default",
         dotIgnoreFiles: defaultDotIgnoreFiles,
-        environments: [{ name: "default", variables: {} }],
+        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test-a" }],
         variables: {},
       }
@@ -1660,7 +1638,7 @@ describe("Garden", () => {
         path: projectRootA,
         defaultEnvironment: "default",
         dotIgnoreFiles: defaultDotIgnoreFiles,
-        environments: [{ name: "default", variables: {} }],
+        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [
           { name: "test-a", foo: "${providers.test-b.outputs.foo}" },
           { name: "test-b", foo: "${providers.test-a.outputs.foo}" },
@@ -1697,7 +1675,7 @@ describe("Garden", () => {
         path: projectRootA,
         defaultEnvironment: "default",
         dotIgnoreFiles: defaultDotIgnoreFiles,
-        environments: [{ name: "default", variables: {} }],
+        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test-a", foo: "${providers.test-b.outputs.foo}" }, { name: "test-b" }],
         variables: {},
       }
@@ -1730,7 +1708,7 @@ describe("Garden", () => {
         path: projectRootA,
         defaultEnvironment: "default",
         dotIgnoreFiles: defaultDotIgnoreFiles,
-        environments: [{ name: "default", variables: {} }],
+        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test" }],
         variables: {},
       }
@@ -1757,7 +1735,7 @@ describe("Garden", () => {
         path: projectRootA,
         defaultEnvironment: "default",
         dotIgnoreFiles: defaultDotIgnoreFiles,
-        environments: [{ name: "default", variables: {} }],
+        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test", foo: 123 }],
         variables: {},
       }
@@ -1795,7 +1773,7 @@ describe("Garden", () => {
         path: projectRootA,
         defaultEnvironment: "default",
         dotIgnoreFiles: defaultDotIgnoreFiles,
-        environments: [{ name: "default", variables: {} }],
+        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test" }],
         variables: {},
       }
@@ -1837,7 +1815,7 @@ describe("Garden", () => {
         path: projectRootA,
         defaultEnvironment: "default",
         dotIgnoreFiles: defaultDotIgnoreFiles,
-        environments: [{ name: "default", variables: {} }],
+        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test-a" }, { name: "test-b", foo: "${providers.test-a.outputs.foo}" }],
         variables: {},
       }
@@ -1875,8 +1853,8 @@ describe("Garden", () => {
         defaultEnvironment: "dev",
         dotIgnoreFiles: defaultDotIgnoreFiles,
         environments: [
-          { name: "dev", variables: {} },
-          { name: "prod", variables: {} },
+          { name: "dev", defaultNamespace, variables: {} },
+          { name: "prod", defaultNamespace, variables: {} },
         ],
         providers: [
           { name: "test-a", environments: ["prod"] },
@@ -1905,7 +1883,7 @@ describe("Garden", () => {
         path: projectRootA,
         defaultEnvironment: "default",
         dotIgnoreFiles: defaultDotIgnoreFiles,
-        environments: [{ name: "default", variables: { "my-variable": "bar" } }],
+        environments: [{ name: "default", defaultNamespace, variables: { "my-variable": "bar" } }],
         providers: [{ name: "test-a", foo: "${var.my-variable}" }],
         variables: {},
       }
@@ -1948,7 +1926,7 @@ describe("Garden", () => {
         path: projectRootA,
         defaultEnvironment: "default",
         dotIgnoreFiles: defaultDotIgnoreFiles,
-        environments: [{ name: "default", variables: {} }],
+        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test-a" }, { name: "test-b" }],
         variables: {},
       }
@@ -1998,7 +1976,7 @@ describe("Garden", () => {
         path: projectRootA,
         defaultEnvironment: "default",
         dotIgnoreFiles: defaultDotIgnoreFiles,
-        environments: [{ name: "default", variables: {} }],
+        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test-a" }, { name: "test-b" }, { name: "test-c" }],
         variables: {},
       }
@@ -2034,7 +2012,7 @@ describe("Garden", () => {
           path: projectRootA,
           defaultEnvironment: "default",
           dotIgnoreFiles: defaultDotIgnoreFiles,
-          environments: [{ name: "default", variables: {} }],
+          environments: [{ name: "default", defaultNamespace, variables: {} }],
           providers: [{ name: "test", foo: 123 }],
           variables: {},
         }
@@ -2078,7 +2056,7 @@ describe("Garden", () => {
           path: projectRootA,
           defaultEnvironment: "default",
           dotIgnoreFiles: defaultDotIgnoreFiles,
-          environments: [{ name: "default", variables: {} }],
+          environments: [{ name: "default", defaultNamespace, variables: {} }],
           providers: [{ name: "test" }],
           variables: {},
         }
@@ -2326,7 +2304,7 @@ describe("Garden", () => {
           path: pathFoo,
           defaultEnvironment: "default",
           dotIgnoreFiles: [],
-          environments: [{ name: "default", variables: { some: { nested: { key: "my value" } } } }],
+          environments: [{ name: "default", defaultNamespace, variables: { some: { nested: { key: "my value" } } } }],
           providers: [{ name: "test" }],
           variables: {},
         },
@@ -2376,7 +2354,7 @@ describe("Garden", () => {
           path: pathFoo,
           defaultEnvironment: "default",
           dotIgnoreFiles: [],
-          environments: [{ name: "default", variables: { some: { nested: { key: "my value" } } } }],
+          environments: [{ name: "default", defaultNamespace, variables: { some: { nested: { key: "my value" } } } }],
           providers: [{ name: "test" }],
           variables: {},
         },

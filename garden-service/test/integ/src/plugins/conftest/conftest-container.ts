@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ProjectConfig } from "../../../../../src/config/project"
+import { ProjectConfig, defaultNamespace } from "../../../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { Garden } from "../../../../../src/garden"
 import { getDataDir } from "../../../../helpers"
@@ -22,7 +22,7 @@ describe("conftest-container provider", () => {
     path: projectRoot,
     defaultEnvironment: "default",
     dotIgnoreFiles: [],
-    environments: [{ name: "default", variables: {} }],
+    environments: [{ name: "default", defaultNamespace, variables: {} }],
     providers: [{ name: "conftest-container", policyPath: "dockerfile.rego" }],
     variables: {},
   }

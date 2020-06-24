@@ -47,7 +47,7 @@ import {
   checkForUpdates,
   checkForStaticDir,
 } from "./helpers"
-import { defaultEnvironments, ProjectConfig } from "../config/project"
+import { defaultEnvironments, ProjectConfig, defaultNamespace } from "../config/project"
 import { ERROR_LOG_FILENAME, DEFAULT_API_VERSION, DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME } from "../constants"
 import stringify = require("json-stringify-safe")
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
@@ -70,7 +70,7 @@ const GLOBAL_OPTIONS_GROUP_NAME = "Global options"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts = {}) {
   const environments = gardenOpts.environmentName
-    ? [{ name: gardenOpts.environmentName, variables: {} }]
+    ? [{ name: gardenOpts.environmentName, defaultNamespace, variables: {} }]
     : defaultEnvironments
 
   const config: ProjectConfig = {
