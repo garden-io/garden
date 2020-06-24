@@ -17,7 +17,7 @@ import { Garden } from "../garden"
 import { joi } from "../config/common"
 import { KeyedSet } from "../util/keyed-set"
 import { RuntimeContext } from "../runtime-context"
-import { deline, dedent } from "../util/string"
+import { deline, dedent, naturalList } from "../util/string"
 import { getProviderUrl, getModuleTypeUrl } from "../docs/common"
 import { Module } from "../types/module"
 import { ModuleConfig } from "./module"
@@ -96,6 +96,7 @@ export abstract class ConfigContext {
     }
 
     // keep track of which resolvers have been called, in order to detect circular references
+    let available: any[] | null = null
     let value: any = this
     let partial = false
     let nextKey = key[0]
@@ -109,6 +110,7 @@ export abstract class ConfigContext {
       const remainder = key.slice(p + 1)
       nestedNodePath = nodePath.concat(lookupPath)
       const stackEntry = nestedNodePath.join(".")
+      available = null
 
       if (typeof nextKey === "string" && nextKey.startsWith("_")) {
         value = undefined
@@ -119,8 +121,12 @@ export abstract class ConfigContext {
           fullPath,
           opts,
         })
+      } else if (value instanceof Map) {
+        available = [...value.keys()]
+        value = value.get(nextKey)
       } else {
-        value = value instanceof Map ? value.get(nextKey) : value[nextKey]
+        available = Object.keys(value).filter((k) => !k.startsWith("_"))
+        value = value[nextKey]
       }
 
       if (typeof value === "function") {
@@ -170,6 +176,10 @@ export abstract class ConfigContext {
           message += chalk.red(" under ") + chalk.white(nestedNodePath.slice(0, -1).join("."))
         }
         message += chalk.red(".")
+
+        if (available && available.length) {
+          message += chalk.red(" Available keys: " + naturalList(available.sort().map((k) => chalk.white(k))) + ".")
+        }
       }
 
       if (opts.allowUndefined) {

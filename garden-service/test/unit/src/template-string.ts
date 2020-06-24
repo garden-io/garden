@@ -433,7 +433,10 @@ describe("resolveTemplateString", async () => {
   it("should throw when using comparison operators on missing keys", async () => {
     return expectError(
       () => resolveTemplateString("${a >= b}", new TestContext({ a: 123 })),
-      (err) => expect(stripAnsi(err.message)).to.equal("Invalid template string ${a >= b}: Could not find key b.")
+      (err) =>
+        expect(stripAnsi(err.message)).to.equal(
+          "Invalid template string ${a >= b}: Could not find key b. Available keys: a."
+        )
     )
   })
 
@@ -568,20 +571,24 @@ describe("resolveTemplateString", async () => {
 
   it("should correctly propagate errors from nested contexts", async () => {
     await expectError(
-      () => resolveTemplateString("${nested.missing}", new TestContext({ nested: new TestContext({}) })),
+      () =>
+        resolveTemplateString(
+          "${nested.missing}",
+          new TestContext({ nested: new TestContext({ foo: 123, bar: 456, baz: 789 }) })
+        ),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(
-          "Invalid template string ${nested.missing}: Could not find key missing under nested."
+          "Invalid template string ${nested.missing}: Could not find key missing under nested. Available keys: bar, baz and foo."
         )
     )
   })
 
   it("should correctly propagate errors from nested objects", async () => {
     await expectError(
-      () => resolveTemplateString("${nested.missing}", new TestContext({ nested: {} })),
+      () => resolveTemplateString("${nested.missing}", new TestContext({ nested: { foo: 123, bar: 456 } })),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(
-          "Invalid template string ${nested.missing}: Could not find key missing under nested."
+          "Invalid template string ${nested.missing}: Could not find key missing under nested. Available keys: bar and foo."
         )
     )
   })
