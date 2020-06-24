@@ -1,4 +1,105 @@
 
+<a name="v0.12.0-alpha.0"></a>
+## [v0.12.0-alpha.0](https://github.com/garden-io/garden/compare/v0.11.14...v0.12.0-alpha.0) (2020-06-24)
+
+### Bug Fixes
+
+* properly connect to remote in proxy ([2a8b748f](https://github.com/garden-io/garden/commit/2a8b748f))
+* add tests for config contexts (TBS) ([48bb1afd](https://github.com/garden-io/garden/commit/48bb1afd))
+* **build-sync:** randomly choose pod for rsync ([be816791](https://github.com/garden-io/garden/commit/be816791))
+* **cli:** don't show analytics message when telemetry is disabled ([642cfe8e](https://github.com/garden-io/garden/commit/642cfe8e))
+* **container:** extraFlags weren't used when building in-cluster ([1bbaad6c](https://github.com/garden-io/garden/commit/1bbaad6c))
+* **container:** install ssh to base image ([#1890](https://github.com/garden-io/garden/issues/1890)) ([dbc601b9](https://github.com/garden-io/garden/commit/dbc601b9))
+* **docker:** remove default timeout, fix publish timeouts ([71576de3](https://github.com/garden-io/garden/commit/71576de3))
+* **docs:** fix typo in FAQ ([5062c9ec](https://github.com/garden-io/garden/commit/5062c9ec))
+* **enterprise:** use noPlatform for system Garden ([496d2696](https://github.com/garden-io/garden/commit/496d2696))
+* **enterprise:** use correct body param when streaming events ([e8afa003](https://github.com/garden-io/garden/commit/e8afa003))
+* **enterprise:** fixes to login & secrets logic ([22760447](https://github.com/garden-io/garden/commit/22760447))
+* **examples:** fix local exec example ([90d9b584](https://github.com/garden-io/garden/commit/90d9b584))
+* **helm:** allow runtime templates in helm module values field ([346e776f](https://github.com/garden-io/garden/commit/346e776f))
+* **k8s:** ensure rendered helm chart contain runtime values ([#1882](https://github.com/garden-io/garden/issues/1882)) ([26a87b9f](https://github.com/garden-io/garden/commit/26a87b9f))
+* **k8s:** make hot reloading respect excludes ([0b61ddd1](https://github.com/garden-io/garden/commit/0b61ddd1))
+* **k8s:** make helm & k8s tasks respect timeouts ([8b4a4b86](https://github.com/garden-io/garden/commit/8b4a4b86))
+* **workflows:** abort if step cmd returns errors ([2602122b](https://github.com/garden-io/garden/commit/2602122b))
+* **workflows:** fix some logging issues in run workflows command ([eb4c341b](https://github.com/garden-io/garden/commit/eb4c341b))
+
+### Code Refactoring
+
+* **pod-utils:** fold getDeploymentPodName to only one function ([447b0f55](https://github.com/garden-io/garden/commit/447b0f55))
+
+### Features
+
+* added minimist-based CLI arg + opt parsing ([b6e950b6](https://github.com/garden-io/garden/commit/b6e950b6))
+* add --resolve=partial option to get config command ([6c113071](https://github.com/garden-io/garden/commit/6c113071))
+* add garden-dev/garden-azure docker image ([#1893](https://github.com/garden-io/garden/issues/1893)) ([1a08593e](https://github.com/garden-io/garden/commit/1a08593e))
+* **commands:** add fields to get config output ([26334f60](https://github.com/garden-io/garden/commit/26334f60))
+* **conftest:** add combine option to conftest module ([9fdf6c73](https://github.com/garden-io/garden/commit/9fdf6c73))
+* **core:** add projectId to get config cmd output ([e6f0acf9](https://github.com/garden-io/garden/commit/e6f0acf9))
+* **core:** support namespaces natively at the framework level ([e5023f7e](https://github.com/garden-io/garden/commit/e5023f7e))
+* **core:** workflows for sequencing commands ([bb304cfe](https://github.com/garden-io/garden/commit/bb304cfe))
+* **core:** allow custom SQLite db directory ([ede0b69f](https://github.com/garden-io/garden/commit/ede0b69f))
+* **core:** pre-fetch provider tools and make tools a native feature ([#1858](https://github.com/garden-io/garden/issues/1858)) ([95c2aea1](https://github.com/garden-io/garden/commit/95c2aea1))
+* **core:** emit runtime status events ([841285ee](https://github.com/garden-io/garden/commit/841285ee))
+* **k8s:** support immutable build success ([1d4dcd78](https://github.com/garden-io/garden/commit/1d4dcd78))
+* **kaniko:** make kaniko image configurable in provider config ([66e6974c](https://github.com/garden-io/garden/commit/66e6974c))
+* **kaniko:** when using remote registry do not run the proxy ([547d9ba8](https://github.com/garden-io/garden/commit/547d9ba8))
+* **kaniko:** pass `extraFlags` to kaniko builders ([deaab079](https://github.com/garden-io/garden/commit/deaab079))
+* **platform:** support non-interactive auth ([b0205936](https://github.com/garden-io/garden/commit/b0205936))
+* **workflows:** add support for arbitrary user scripts in workflows ([d7b76a41](https://github.com/garden-io/garden/commit/d7b76a41))
+* **workflows:** support referencing outputs from previous steps ([d637b362](https://github.com/garden-io/garden/commit/d637b362))
+* **workflows:** allow writing files ahead of workflow execution ([12e8b247](https://github.com/garden-io/garden/commit/12e8b247))
+* **workflows:** add namespacing support ([7eefa2ea](https://github.com/garden-io/garden/commit/7eefa2ea))
+* **workflows:** improved log & event streaming ([418506c2](https://github.com/garden-io/garden/commit/418506c2))
+
+### Improvements
+
+* **core:** always require a namespace and simplify env config ([#1900](https://github.com/garden-io/garden/issues/1900)) ([a783adc0](https://github.com/garden-io/garden/commit/a783adc0))
+* **core:** don't respect .gitignore files by default ([c7ef4533](https://github.com/garden-io/garden/commit/c7ef4533))
+* **k8s:** upgrade kaniko to v0.22 ([#1834](https://github.com/garden-io/garden/issues/1834)) ([b3eb25d5](https://github.com/garden-io/garden/commit/b3eb25d5))
+* **terraform:** support v0.12.26 and remove old versions ([c84564e2](https://github.com/garden-io/garden/commit/c84564e2))
+
+### Performance Improvements
+
+* **analytics:** don't wait for event tracks ([1ee05bef](https://github.com/garden-io/garden/commit/1ee05bef))
+* **core:** cache provider statuses for faster successive startup ([db72f2a8](https://github.com/garden-io/garden/commit/db72f2a8))
+* **k8s:** remove Helm 2 support and migration flow ([b9e5f74e](https://github.com/garden-io/garden/commit/b9e5f74e))
+
+### BREAKING CHANGE
+
+
+The default namespace in the `kubernetes` provider is now
+`<project name>.<environment namespace>` (previously it was just the
+project name). Users need to override this to `"${project.name}"` if
+they would like to revert to the previous default.
+
+The JSON/YAML output from the build, deploy and test commands has been
+modified. The prior format is now nested under the `graphResults` key,
+and new more structured fields have been added, which we recommend using
+when possible.
+
+Similarly, the outputs from the `run` commands have been modified. The
+`result` key now contains the data from the previous format, along with
+some additional metadata.
+
+We no longer automatically detect and migrate from Helm 2.x and Tiller.
+
+All Terraform versions below 0.12.26 have now been removed and are no
+longer supported. If you have explicitly set a Terraform version in your
+terraform provider config, you need to update that to "0.12.26" or
+remove the field.
+
+Hot reloading now uses the tracked file list for its sync, similarly to
+how the build sync does.
+
+This means that untracked files will no longer be synced by hot
+reloading.
+
+Garden no longer respects `.gitignore` files by default now. If you'd
+like to retain the previous default behavior, you can explicitly set
+`dotIgnoreFiles: [.gitignore, .gardenignore]` in your project configs.
+If you already have `dotIgnoreFiles` set in your config, no change is
+necessary.
+
 <a name="v0.11.14"></a>
 ## [v0.11.14](https://github.com/garden-io/garden/compare/v0.11.13...v0.11.14) (2020-05-13)
 
