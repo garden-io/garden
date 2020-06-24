@@ -10,7 +10,7 @@ import td from "testdouble"
 import tmp from "tmp-promise"
 import Bluebird = require("bluebird")
 import { resolve, join } from "path"
-import { extend, keyBy, intersection } from "lodash"
+import { extend, keyBy, intersection, pick } from "lodash"
 import { remove, readdirSync, existsSync, copy, mkdirp, pathExists, truncate, realpath } from "fs-extra"
 import execa = require("execa")
 
@@ -680,4 +680,15 @@ export async function enableAnalytics(garden: TestGarden) {
     process.env.ANALYTICS_DEV = originalAnalyticsDevEnvVar
   }
   return resetConfig
+}
+
+export function getRuntimeStatusEvents(eventLog: EventLogEntry[]) {
+  const runtimeEventNames = ["taskStatus", "testStatus", "serviceStatus"]
+  return eventLog
+    .filter((e) => runtimeEventNames.includes(e.name))
+    .map((e) => {
+      const cloned = { ...e }
+      cloned.payload.status = pick(cloned.payload.status, ["state"])
+      return cloned
+    })
 }
