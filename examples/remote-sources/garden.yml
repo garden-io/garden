@@ -8,7 +8,7 @@ sources:
 environments:
   - name: local
   - name: testing
-    defaultNamespace: ${project.name}-testing-${local.env.CIRCLE_BUILD_NUM || local.username}
+    defaultNamespace: testing-${local.env.CIRCLE_BUILD_NUM || local.username}
 providers:
   - name: local-kubernetes
     environments: [local]

@@ -51,13 +51,14 @@ describe("kubernetes container deployment handlers", () => {
 
     it("should create a basic Deployment resource", async () => {
       const service = graph.getService("simple-service")
+      const namespace = provider.config.namespace!
 
       const resource = await createWorkloadManifest({
         api,
         provider,
         service,
         runtimeContext: emptyRuntimeContext,
-        namespace: garden.projectName,
+        namespace,
         enableHotReload: false,
         log: garden.log,
         production: false,
@@ -71,7 +72,7 @@ describe("kubernetes container deployment handlers", () => {
         metadata: {
           name: "simple-service-" + version,
           annotations: { "garden.io/configured.replicas": "1" },
-          namespace: "container",
+          namespace,
           labels: { "module": "simple-service", "service": "simple-service", "garden.io/version": version },
         },
         spec: {
@@ -131,7 +132,7 @@ describe("kubernetes container deployment handlers", () => {
       }
       await api.upsert({ kind: "Secret", namespace: "default", obj: authSecret, log: garden.log })
 
-      const namespace = garden.projectName
+      const namespace = provider.config.namespace!
       const _provider = cloneDeep(provider)
       _provider.config.imagePullSecrets = [{ name: secretName, namespace: "default" }]
 
@@ -169,7 +170,7 @@ describe("kubernetes container deployment handlers", () => {
       }
       await api.upsert({ kind: "Secret", namespace: "default", obj: authSecret, log: garden.log })
 
-      const namespace = garden.projectName
+      const namespace = provider.config.namespace!
       const _provider = cloneDeep(provider)
       _provider.config.imagePullSecrets = [{ name: secretName, namespace: "default" }]
 
@@ -191,7 +192,7 @@ describe("kubernetes container deployment handlers", () => {
 
     it("should correctly mount a referenced PVC module", async () => {
       const service = graph.getService("volume-reference")
-      const namespace = garden.projectName
+      const namespace = provider.config.namespace!
 
       const resource = await createWorkloadManifest({
         api,
@@ -212,7 +213,7 @@ describe("kubernetes container deployment handlers", () => {
 
     it("should throw if incompatible module is specified as a volume module", async () => {
       const service = graph.getService("volume-reference")
-      const namespace = garden.projectName
+      const namespace = provider.config.namespace!
 
       service.spec.volumes = [{ name: "test", module: "simple-service" }]
 
