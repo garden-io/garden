@@ -27,6 +27,7 @@ import { KubernetesResource } from "./types"
 import { defaultDotIgnoreFiles } from "../../util/fs"
 import { LogLevel } from "../../logger/log-node"
 import { ConftestProviderConfig } from "../conftest/conftest"
+import { defaultNamespace } from "../../config/project"
 
 const GARDEN_VERSION = getPackageVersion()
 const SYSTEM_NAMESPACE_MIN_VERSION = "0.9.0"
@@ -79,7 +80,7 @@ export async function getSystemGarden(
       name: systemNamespace,
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
-      environments: [{ name: "default", variables: {} }],
+      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [sysProvider, conftest],
       variables,
     },

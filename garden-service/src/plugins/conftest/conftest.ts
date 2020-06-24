@@ -293,7 +293,9 @@ export const gardenPlugin = createGardenPlugin({
         {
           platform: "windows",
           architecture: "amd64",
-          url: "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/conftest_0.17.1_Windows_x86_64.zip",
+          url:
+            "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/" +
+            "conftest_0.17.1_Windows_x86_64.zip",
           sha256: "4c2df80420f2f148ec085bb75a8c5b92e1c665c6a041768a79924c81082527c3",
           extract: {
             format: "zip",

@@ -16,7 +16,8 @@ import {
   TriggerSpec,
 } from "../../../../src/config/workflow"
 import { defaultContainerLimits } from "../../../../src/plugins/container/config"
-import { EnvironmentConfig } from "../../../../src/config/project"
+import { EnvironmentConfig, defaultNamespace } from "../../../../src/config/project"
+import stripAnsi from "strip-ansi"
 
 describe("resolveWorkflowConfig", () => {
   let garden: TestGarden
@@ -44,7 +45,7 @@ describe("resolveWorkflowConfig", () => {
       triggers: [
         {
           environment: "local",
-          namespace: undefined,
+          namespace: "default",
           events: ["pull-request"],
           branches: ["feature*"],
           ignoreBranches: ["feature-ignored*"],
@@ -169,7 +170,7 @@ describe("resolveWorkflowConfig", () => {
       const environmentConfigs: EnvironmentConfig[] = [
         {
           name: "test",
-          namespacing: "optional",
+          defaultNamespace,
           variables: {},
         },
       ]
@@ -182,7 +183,7 @@ describe("resolveWorkflowConfig", () => {
       const environmentConfigs: EnvironmentConfig[] = [
         {
           name: "test",
-          namespacing: "required",
+          defaultNamespace: null,
           variables: {},
         },
       ]
@@ -190,28 +191,8 @@ describe("resolveWorkflowConfig", () => {
       expectError(
         () => populateNamespaceForTriggers({ ...config, triggers: [trigger] }, environmentConfigs),
         (err) =>
-          expect(err.message).to.match(
-            /Invalid namespace in trigger for workflow workflow-a: Environment test requires a namespace/
-          )
-      )
-    })
-
-    it("should throw if a trigger's environment does not allow namespaces, but one is specified", () => {
-      const environmentConfigs: EnvironmentConfig[] = [
-        {
-          name: "test",
-          namespacing: "disabled",
-          variables: {},
-        },
-      ]
-
-      const invalidTrigger = { ...trigger, namespace: "foo" }
-
-      expectError(
-        () => populateNamespaceForTriggers({ ...config, triggers: [invalidTrigger] }, environmentConfigs),
-        (err) =>
-          expect(err.message).to.match(
-            /Invalid namespace in trigger for workflow workflow-a: Environment test does not allow namespacing/
+          expect(stripAnsi(err.message)).to.equal(
+            `Invalid namespace in trigger for workflow workflow-a: Environment test has defaultNamespace set to null, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. --env=some-namespace.test).`
           )
       )
     })
@@ -220,7 +201,6 @@ describe("resolveWorkflowConfig", () => {
       const environmentConfigs: EnvironmentConfig[] = [
         {
           name: "test",
-          namespacing: "optional",
           defaultNamespace: "foo",
           variables: {},
         },
@@ -235,7 +215,6 @@ describe("resolveWorkflowConfig", () => {
       const environmentConfigs: EnvironmentConfig[] = [
         {
           name: "test",
-          namespacing: "optional",
           defaultNamespace: "foo",
           variables: {},
         },

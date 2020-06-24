@@ -29,7 +29,7 @@ import { expect } from "chai"
 import { omit } from "lodash"
 import { joi } from "../../../src/config/common"
 import { validateSchema } from "../../../src/config/validation"
-import { ProjectConfig } from "../../../src/config/project"
+import { ProjectConfig, defaultNamespace } from "../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../src/constants"
 import { defaultProvider } from "../../../src/config/provider"
 import { RunTaskResult } from "../../../src/types/plugin/task/runTask"
@@ -56,7 +56,7 @@ describe("ActionRouter", () => {
     path: projectRootA,
     defaultEnvironment: "default",
     dotIgnoreFiles: defaultDotIgnoreFiles,
-    environments: [{ name: "default", variables: {} }],
+    environments: [{ name: "default", defaultNamespace, variables: {} }],
     providers: [{ name: "base" }, { name: "test-plugin" }, { name: "test-plugin-b" }],
     variables: {},
   }
@@ -887,7 +887,7 @@ describe("ActionRouter", () => {
             path,
             defaultEnvironment: "default",
             dotIgnoreFiles: [],
-            environments: [{ name: "default", variables: {} }],
+            environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [{ name: "foo" }],
             variables: {},
           },
@@ -940,7 +940,7 @@ describe("ActionRouter", () => {
             path,
             defaultEnvironment: "default",
             dotIgnoreFiles: [],
-            environments: [{ name: "default", variables: {} }],
+            environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [{ name: "base" }, { name: "foo" }],
             variables: {},
           },
@@ -1005,7 +1005,7 @@ describe("ActionRouter", () => {
             path,
             defaultEnvironment: "default",
             dotIgnoreFiles: [],
-            environments: [{ name: "default", variables: {} }],
+            environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [
               { name: "base" },
               // The order here matters, to verify that the dependency ordering works
@@ -1074,7 +1074,7 @@ describe("ActionRouter", () => {
               path,
               defaultEnvironment: "default",
               dotIgnoreFiles: [],
-              environments: [{ name: "default", variables: {} }],
+              environments: [{ name: "default", defaultNamespace, variables: {} }],
               providers: [
                 { name: "base" },
                 // The order here matters, since we use that as a "tie-breaker"
@@ -1131,7 +1131,7 @@ describe("ActionRouter", () => {
             path,
             defaultEnvironment: "default",
             dotIgnoreFiles: [],
-            environments: [{ name: "default", variables: {} }],
+            environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [{ name: "base" }, { name: "foo" }],
             variables: {},
           },
@@ -1155,7 +1155,7 @@ describe("ActionRouter", () => {
         path,
         defaultEnvironment: "default",
         dotIgnoreFiles: [],
-        environments: [{ name: "default", variables: {} }],
+        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "base" }, { name: "foo" }],
         variables: {},
       }
@@ -1297,7 +1297,7 @@ describe("ActionRouter", () => {
             path,
             defaultEnvironment: "default",
             dotIgnoreFiles: [],
-            environments: [{ name: "default", variables: {} }],
+            environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [{ name: "base-a" }, { name: "base-b" }, { name: "foo" }],
             variables: {},
           },
@@ -1389,7 +1389,7 @@ describe("ActionRouter", () => {
           path,
           defaultEnvironment: "default",
           dotIgnoreFiles: [],
-          environments: [{ name: "default", variables: {} }],
+          environments: [{ name: "default", defaultNamespace, variables: {} }],
           providers: [{ name: "foo" }],
           variables: {},
         },

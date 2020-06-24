@@ -96,7 +96,7 @@ describe("util", () => {
           provider,
           service,
           runtimeContext: emptyRuntimeContext,
-          namespace: "container",
+          namespace: provider.config.namespace!,
           enableHotReload: false,
           log: garden.log,
           production: false,

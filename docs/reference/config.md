@@ -37,27 +37,13 @@ environments:
   - # The name of the environment.
     name:
 
-    # Control if and how this environment should support namespaces. If set to "optional" (the default), users can
-    # set a namespace for the environment. This is useful for any shared environments, e.g. testing and development
-    # environments, where namespaces separate different users or code versions within an environment. Users then
-    # specify an environment with `--env <namespace>.<environment>`, e.g. `--env alice.dev` or
-    # `--env my-branch.testing`.
+    # Set the default namespace to use. This can be templated to be user-specific, or to use an environment variable
+    # (e.g. in CI).
     #
-    # If set to "required", this namespace separation is enforced, and an error is thrown if a namespace is not
-    # specified with the `--env` parameter.
-    #
-    # If set to "disabled", an error is thrown if a namespace is specified. This makes sense for e.g. production or
-    # staging environments, where you don't want to split the environment between users or code versions.
-    #
-    # When specified, namespaces must be a valid DNS-style label, much like other identifiers.
-    namespacing: optional
-
-    # Set a default namespace to use, when `namespacing` is `required` or `optional`. This can be templated to be
-    # user-specific, or to use an environment variable (e.g. in CI).
-    #
-    # If this is set, users can specify `--env <environment>` and skip the namespace part, even when `namespacing` is
-    # `required` for the environment.
-    defaultNamespace:
+    # You can also set this to `null`, in order to require an explicit namespace to be set on usage. This may be
+    # advisable for shared environments, but you may also be able to achieve the desired result by templating this
+    # field, as mentioned above.
+    defaultNamespace: default
 
     # Flag the environment as a production environment.
     #
@@ -232,39 +218,17 @@ environments:
   - name: "dev"
 ```
 
-### `environments[].namespacing`
-
-[environments](#environments) > namespacing
-
-Control if and how this environment should support namespaces. If set to "optional" (the default), users can
-set a namespace for the environment. This is useful for any shared environments, e.g. testing and development
-environments, where namespaces separate different users or code versions within an environment. Users then
-specify an environment with `--env <namespace>.<environment>`, e.g. `--env alice.dev` or
-`--env my-branch.testing`.
-
-If set to "required", this namespace separation is enforced, and an error is thrown if a namespace is not
-specified with the `--env` parameter.
-
-If set to "disabled", an error is thrown if a namespace is specified. This makes sense for e.g. production or
-staging environments, where you don't want to split the environment between users or code versions.
-
-When specified, namespaces must be a valid DNS-style label, much like other identifiers.
-
-| Type     | Default      | Required |
-| -------- | ------------ | -------- |
-| `string` | `"optional"` | No       |
-
 ### `environments[].defaultNamespace`
 
 [environments](#environments) > defaultNamespace
 
-Set a default namespace to use, when `namespacing` is `required` or `optional`. This can be templated to be user-specific, or to use an environment variable (e.g. in CI).
+Set the default namespace to use. This can be templated to be user-specific, or to use an environment variable (e.g. in CI).
 
-If this is set, users can specify `--env <environment>` and skip the namespace part, even when `namespacing` is `required` for the environment.
+You can also set this to `null`, in order to require an explicit namespace to be set on usage. This may be advisable for shared environments, but you may also be able to achieve the desired result by templating this field, as mentioned above.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
+| Type     | Default     | Required |
+| -------- | ----------- | -------- |
+| `string` | `"default"` | No       |
 
 Example:
 

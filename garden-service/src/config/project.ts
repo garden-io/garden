@@ -34,11 +34,13 @@ import { DEFAULT_API_VERSION, DOCS_BASE_URL } from "../constants"
 import { defaultDotIgnoreFiles } from "../util/fs"
 import { pathExists, readFile } from "fs-extra"
 import { resolve } from "path"
+import chalk = require("chalk")
 
 export const defaultVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
 
 // These plugins are always loaded
+export const defaultNamespace = "default"
 export const fixedPlugins = ["exec", "container"]
 
 export type EnvironmentNamespacing = "disabled" | "optional" | "required"
@@ -48,12 +50,9 @@ export interface ParsedEnvironment {
   namespace?: string
 }
 
-const defaultEnvironmentNamespacing: EnvironmentNamespacing = "optional"
-
 export interface EnvironmentConfig {
   name: string
-  namespacing?: EnvironmentNamespacing
-  defaultNamespace?: string
+  defaultNamespace: string | null
   providers?: ProviderConfig[] // further validated by each plugin
   varfile?: string
   variables: DeepPrimitiveMap
@@ -69,30 +68,14 @@ export const environmentNameSchema = () =>
 export const environmentSchema = () =>
   joi.object().keys({
     name: environmentNameSchema(),
-    namespacing: joi
-      .string()
-      .allow("disabled", "optional", "required")
-      .default("optional").description(dedent`
-        Control if and how this environment should support namespaces. If set to "optional" (the default), users can
-        set a namespace for the environment. This is useful for any shared environments, e.g. testing and development
-        environments, where namespaces separate different users or code versions within an environment. Users then
-        specify an environment with \`--env <namespace>.<environment>\`, e.g. \`--env alice.dev\` or
-        \`--env my-branch.testing\`.
-
-        If set to "required", this namespace separation is enforced, and an error is thrown if a namespace is not
-        specified with the \`--env\` parameter.
-
-        If set to "disabled", an error is thrown if a namespace is specified. This makes sense for e.g. production or
-        staging environments, where you don't want to split the environment between users or code versions.
-
-        When specified, namespaces must be a valid DNS-style label, much like other identifiers.
-      `),
     defaultNamespace: joiIdentifier()
+      .allow(null)
+      .default(defaultNamespace)
       .description(
         dedent`
-        Set a default namespace to use, when \`namespacing\` is \`required\` or \`optional\`. This can be templated to be user-specific, or to use an environment variable (e.g. in CI).
+        Set the default namespace to use. This can be templated to be user-specific, or to use an environment variable (e.g. in CI).
 
-        If this is set, users can specify \`--env <environment>\` and skip the namespace part, even when \`namespacing\` is \`required\` for the environment.
+        You can also set this to \`null\`, in order to require an explicit namespace to be set on usage. This may be advisable for shared environments, but you may also be able to achieve the desired result by templating this field, as mentioned above.
         `
       )
       .example("user-${local.username}"),
@@ -224,7 +207,7 @@ export interface ProjectResource extends ProjectConfig {
 export const defaultEnvironments: EnvironmentConfig[] = [
   {
     name: "local",
-    namespacing: defaultEnvironmentNamespacing,
+    defaultNamespace,
     providers: [
       {
         name: "local-kubernetes",
@@ -572,23 +555,19 @@ export async function pickEnvironment(config: ProjectConfig, envString: string) 
  * Validates that the value passed for `namespace` conforms with the namespacing setting in `environmentConfig`,
  * and returns `namespace` (or a default namespace, if appropriate).
  */
-export function getNamespace(environmentConfig: EnvironmentConfig, namespace: string | undefined): string | undefined {
+export function getNamespace(environmentConfig: EnvironmentConfig, namespace: string | undefined): string {
   const envName = environmentConfig.name
-
-  if (namespace && environmentConfig.namespacing === "disabled") {
-    throw new ParameterError(
-      `Environment ${envName} does not allow namespacing, but namespace '${namespace}' was specified.`,
-      { environmentConfig, namespace }
-    )
-  }
 
   if (!namespace && environmentConfig.defaultNamespace) {
     namespace = environmentConfig.defaultNamespace
   }
 
-  if (!namespace && environmentConfig.namespacing === "required") {
+  if (!namespace) {
+    const envHighlight = chalk.white.bold(envName)
+    const exampleFlag = chalk.white(`--env=${chalk.bold("some-namespace.")}${envName}`)
+
     throw new ParameterError(
-      `Environment ${envName} requires a namespace, but none was specified and no defaultNamespace is configured.`,
+      `Environment ${envHighlight} has defaultNamespace set to null, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. ${exampleFlag}).`,
       {
         environmentConfig,
       }

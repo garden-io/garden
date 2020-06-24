@@ -14,7 +14,13 @@ import isGlob from "is-glob"
 import { ConfigurationError, RuntimeError } from "../../exceptions"
 import { splitFirst, spawn, splitLast, SpawnOutput } from "../../util/util"
 import { ModuleConfig } from "../../config/module"
-import { ContainerModule, ContainerRegistryConfig, defaultTag, defaultNamespace, ContainerModuleConfig } from "./config"
+import {
+  ContainerModule,
+  ContainerRegistryConfig,
+  defaultTag,
+  defaultImageNamespace,
+  ContainerModuleConfig,
+} from "./config"
 import { Writable } from "stream"
 import Bluebird from "bluebird"
 import { flatten, uniq, fromPairs } from "lodash"
@@ -200,7 +206,7 @@ const helpers = {
     const name = parsed.tag ? `${parsed.repository}:${parsed.tag}` : parsed.repository
 
     if (parsed.host) {
-      return `${parsed.host}/${parsed.namespace || defaultNamespace}/${name}`
+      return `${parsed.host}/${parsed.namespace || defaultImageNamespace}/${name}`
     } else if (parsed.namespace) {
       return `${parsed.namespace}/${name}`
     } else {

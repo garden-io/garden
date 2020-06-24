@@ -58,9 +58,6 @@ providers:
     # A default hostname to use when no hostname is explicitly configured for a service.
     defaultHostname:
 
-    # Set a default username (used for namespacing within a cluster).
-    defaultUsername:
-
     # Defines the strategy for deploying the project services.
     # Default is "rolling update" and there is experimental support for "blue/green" deployment.
     # The feature only supports modules of type `container`: other types will just deploy using the default strategy.
@@ -396,16 +393,6 @@ Example:
 providers:
   - defaultHostname: "api.mydomain.com"
 ```
-
-### `providers[].defaultUsername`
-
-[providers](#providers) > defaultUsername
-
-Set a default username (used for namespacing within a cluster).
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
 
 ### `providers[].deploymentStrategy`
 

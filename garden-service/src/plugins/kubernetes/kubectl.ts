@@ -136,23 +136,19 @@ class Kubectl extends PluginTool {
   }
 
   async stdout(params: KubectlParams) {
-    this.prepareArgs(params)
     return super.stdout(params)
   }
 
   async exec(params: KubectlParams) {
-    this.prepareArgs(params)
-    return super.exec(params)
+    return super.exec(this.prepareArgs(params))
   }
 
   async spawn(params: KubectlParams) {
-    this.prepareArgs(params)
-    return super.spawn(params)
+    return super.spawn(this.prepareArgs(params))
   }
 
   async spawnAndWait(params: KubectlSpawnParams) {
-    this.prepareArgs(params)
-    return super.spawnAndWait(params)
+    return super.spawnAndWait(this.prepareArgs(params))
   }
 
   async json(params: KubectlParams): Promise<any> {
@@ -168,7 +164,11 @@ class Kubectl extends PluginTool {
   private prepareArgs(params: KubectlParams) {
     const { namespace, configPath, args } = params
 
-    const opts: string[] = [`--context=${this.provider.config.context}`]
+    const opts: string[] = []
+
+    if (this.provider.config.context) {
+      opts.push(`--context=${this.provider.config.context}`)
+    }
 
     if (this.provider.config.kubeconfig) {
       opts.push(`--kubeconfig=${this.provider.config.kubeconfig}`)
@@ -182,7 +182,7 @@ class Kubectl extends PluginTool {
       opts.push(`--kubeconfig=${configPath}`)
     }
 
-    params.args = opts.concat(args)
+    return { ...params, args: opts.concat(args) }
   }
 }
 

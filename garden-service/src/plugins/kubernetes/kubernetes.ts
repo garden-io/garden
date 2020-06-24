@@ -50,7 +50,7 @@ export async function configureProvider({
   config._systemServices = []
 
   if (!config.namespace) {
-    config.namespace = namespace || projectName
+    config.namespace = `${projectName}-${namespace}`
   }
 
   if (config.setupIngressController === "nginx") {

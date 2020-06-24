@@ -108,7 +108,7 @@ describe("kubernetes container module handlers", () => {
   before(async () => {
     garden = await makeTestGarden(root)
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-    namespace = garden.projectName
+    namespace = provider.config.namespace!
   })
 
   beforeEach(async () => {
@@ -161,7 +161,7 @@ describe("kubernetes container module handlers", () => {
         args: [],
         interactive: false,
         module,
-        namespace: garden.projectName,
+        namespace: provider.config.namespace!,
         podName,
         runtimeContext: { envVars: {}, dependencies: [] },
         image,

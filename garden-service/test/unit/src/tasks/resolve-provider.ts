@@ -18,6 +18,7 @@ import { pathExists, writeFile, remove } from "fs-extra"
 import { join } from "path"
 import { serialize } from "v8"
 import moment from "moment"
+import { defaultNamespace } from "../../../../src/config/project"
 
 describe("ResolveProviderTask", () => {
   let tmpDir: TempDirectory
@@ -46,7 +47,7 @@ describe("ResolveProviderTask", () => {
         path: tmpDir.path,
         defaultEnvironment: "default",
         dotIgnoreFiles: [],
-        environments: [{ name: "default", variables: {} }],
+        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test-plugin" }],
         variables: {},
       },

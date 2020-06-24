@@ -15,7 +15,7 @@ import { RunWorkflowCommand } from "../../../../../src/commands/run/workflow"
 import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
 import { joi } from "../../../../../src/config/common"
 import { RunTaskParams } from "../../../../../src/types/plugin/task/runTask"
-import { ProjectConfig } from "../../../../../src/config/project"
+import { ProjectConfig, defaultNamespace } from "../../../../../src/config/project"
 import { join } from "path"
 import { remove, readFile, pathExists } from "fs-extra"
 import { defaultDotIgnoreFiles } from "../../../../../src/util/fs"
@@ -249,7 +249,7 @@ describe("RunWorkflowCommand", () => {
       path: tmpDir.path,
       defaultEnvironment: "default",
       dotIgnoreFiles: [],
-      environments: [{ name: "default", variables: {} }],
+      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "test" }],
       variables: {},
     }
@@ -338,7 +338,7 @@ describe("RunWorkflowCommand", () => {
       path: garden.projectRoot,
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
-      environments: [{ name: "default", variables: {} }],
+      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "test" }],
       variables: {},
     }

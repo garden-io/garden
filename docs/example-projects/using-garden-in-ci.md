@@ -44,7 +44,7 @@ name: ci-demo-project
 environments:
   ...
   - name: preview
-    defaultNamespace: ${project.name}-${local.env.CIRCLE_BRANCH || local.username}
+    defaultNamespace: preview-${local.env.CIRCLE_BRANCH || local.username}
 providers:
   - name: kubernetes
     environments: [preview]

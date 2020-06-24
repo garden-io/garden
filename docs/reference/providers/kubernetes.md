@@ -62,9 +62,6 @@ providers:
     # A default hostname to use when no hostname is explicitly configured for a service.
     defaultHostname:
 
-    # Set a default username (used for namespacing within a cluster).
-    defaultUsername:
-
     # Defines the strategy for deploying the project services.
     # Default is "rolling update" and there is experimental support for "blue/green" deployment.
     # The feature only supports modules of type `container`: other types will just deploy using the default strategy.
@@ -314,10 +311,9 @@ providers:
     # Path to kubeconfig file to use instead of the system default. Must be a POSIX-style path.
     kubeconfig:
 
-    # Specify which namespace to deploy services to. Defaults to the environment namespace, if specified and enabled,
-    # otherwise the project name.
+    # Specify which namespace to deploy services to. Defaults to `<project name>-<environment namespace>`.
     #
-    # Note that the framework generates other namespaces as well with this name as a prefix.
+    # Note that the framework may generate other namespaces as well with this name as a prefix.
     namespace:
 
     # Set this to `nginx` to install/enable the NGINX ingress controller.
@@ -430,16 +426,6 @@ Example:
 providers:
   - defaultHostname: "api.mydomain.com"
 ```
-
-### `providers[].defaultUsername`
-
-[providers](#providers) > defaultUsername
-
-Set a default username (used for namespacing within a cluster).
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
 
 ### `providers[].deploymentStrategy`
 
@@ -1467,9 +1453,9 @@ Path to kubeconfig file to use instead of the system default. Must be a POSIX-st
 
 [providers](#providers) > namespace
 
-Specify which namespace to deploy services to. Defaults to the environment namespace, if specified and enabled, otherwise the project name.
+Specify which namespace to deploy services to. Defaults to `<project name>-<environment namespace>`.
 
-Note that the framework generates other namespaces as well with this name as a prefix.
+Note that the framework may generate other namespaces as well with this name as a prefix.
 
 | Type     | Required |
 | -------- | -------- |

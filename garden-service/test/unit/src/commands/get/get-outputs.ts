@@ -10,7 +10,7 @@ import { expect } from "chai"
 import tmp from "tmp-promise"
 import { withDefaultGlobalOpts, TestGarden } from "../../../../helpers"
 import { GetOutputsCommand } from "../../../../../src/commands/get/get-outputs"
-import { ProjectConfig } from "../../../../../src/config/project"
+import { ProjectConfig, defaultNamespace } from "../../../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
 import { exec } from "../../../../../src/util/util"
@@ -31,7 +31,7 @@ describe("GetOutputsCommand", () => {
       path: tmpDir.path,
       defaultEnvironment: "default",
       dotIgnoreFiles: [],
-      environments: [{ name: "default", variables: {} }],
+      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "test" }],
       variables: {},
     }
