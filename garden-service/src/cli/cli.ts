@@ -396,6 +396,8 @@ export class GardenCli {
         }
       } while (result.restartRequired)
 
+      await bufferedEventStream.close()
+
       // We attach the action result to cli context so that we can process it in the parse method
       cliContext.details.result = result
     }
