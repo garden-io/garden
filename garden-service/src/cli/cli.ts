@@ -340,12 +340,18 @@ export class GardenCli {
           }
 
           if (garden.clientAuthToken && garden.enterpriseDomain && garden.projectId) {
+            log.silly(`Connecting Garden instance to BufferedEventStream`)
             bufferedEventStream.connect(
               garden.events,
               garden.clientAuthToken,
               garden.enterpriseDomain,
               garden.projectId
             )
+          } else {
+            log.silly(`Skip connecting Garden instance to BufferedEventStream`)
+            log.silly(`clientAuthToken present: ${!!garden.clientAuthToken}`)
+            log.silly(`enterpriseDomain: ${garden.enterpriseDomain}`)
+            log.silly(`projectId: ${garden.projectId}`)
           }
 
           // Register log file writers. We need to do this after the Garden class is initialised because
