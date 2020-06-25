@@ -11,7 +11,7 @@ import normalizePath = require("normalize-path")
 import { V1Deployment, V1DaemonSet, V1StatefulSet } from "@kubernetes/client-node"
 import { ContainerModule, ContainerHotReloadSpec } from "../container/config"
 import { RuntimeError, ConfigurationError } from "../../exceptions"
-import { resolve as resolvePath, dirname, posix, relative, resolve } from "path"
+import { resolve as resolvePath, dirname, posix, relative, resolve, normalize } from "path"
 import { deline, gardenAnnotationKey } from "../../util/string"
 import { set, sortBy, flatten } from "lodash"
 import { Service } from "../../types/service"
@@ -377,8 +377,8 @@ export async function syncToService({ ctx, service, hotReloadSpec, namespace, wo
  * `subdir/myfile` in the output, and if `source` = `.` or `*`, it would be transformed to `mydir/subdir/myfile`.
  */
 export function filesForSync(module: Module, source: string): string[] {
-  const normalizedSource = resolve(module.path, source.replace("**/", "").replace("*", ""))
-  const moduleFiles = module.version.files
+  const normalizedSource = normalize(resolve(module.path, source.replace("**/", "").replace("*", "")))
+  const moduleFiles = module.version.files.map((f) => normalize(f))
   const files = normalizedSource === "" ? moduleFiles : moduleFiles.filter((path) => path.startsWith(normalizedSource))
   const normalizedFiles = files.map((f) => relative(normalizedSource, f))
   return normalizedFiles
