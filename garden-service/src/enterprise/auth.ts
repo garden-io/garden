@@ -66,6 +66,7 @@ export async function login(enterpriseDomain: string, log: LogEntry): Promise<st
 export async function checkClientAuthToken(token: string, enterpriseDomain: string, log: LogEntry): Promise<boolean> {
   let valid
   try {
+    log.debug(`Checking client auth token with platform: ${enterpriseDomain}/token/verify`)
     await got({
       method: "get",
       url: `${enterpriseDomain}/token/verify`,
@@ -115,6 +116,7 @@ export async function saveAuthToken(token: string, log: LogEntry) {
 export async function readAuthToken(log: LogEntry): Promise<string | null> {
   const tokenFromEnv = process.env.GARDEN_AUTH_TOKEN
   if (tokenFromEnv) {
+    log.debug("Read client auth token from env")
     return tokenFromEnv
   }
 

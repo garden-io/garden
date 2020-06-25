@@ -83,6 +83,7 @@ export class BufferedEventStream {
   }
 
   connect(eventBus: EventBus, clientAuthToken: string, enterpriseDomain: string, projectId: string) {
+    this.log.silly("BufferedEventStream: Connected")
     this.clientAuthToken = clientAuthToken
     this.enterpriseDomain = enterpriseDomain
     this.projectId = projectId
@@ -155,6 +156,10 @@ export class BufferedEventStream {
       projectUid: this.projectId,
     }
     const headers = makeAuthHeader(this.clientAuthToken)
+    this.log.silly(`Flushing ${events.length} events to ${this.enterpriseDomain}/events}`)
+    this.log.silly(`--------`)
+    this.log.silly(`data: ${JSON.stringify(data)}`)
+    this.log.silly(`--------`)
     got.post(`${this.enterpriseDomain}/events`, { json: data, headers }).catch((err) => {
       this.log.error(err)
     })
@@ -168,6 +173,10 @@ export class BufferedEventStream {
       projectUid: this.projectId,
     }
     const headers = makeAuthHeader(this.clientAuthToken)
+    this.log.silly(`Flushing ${logEntries.length} log entries to ${this.enterpriseDomain}/events}`)
+    this.log.silly(`--------`)
+    this.log.silly(`data: ${JSON.stringify(data)}`)
+    this.log.silly(`--------`)
     got.post(`${this.enterpriseDomain}/log-entries`, { json: data, headers }).catch((err) => {
       this.log.error(err)
     })
