@@ -64,7 +64,7 @@ Garden is pluggable and features a number of module types. You can find all of t
 - [exec](../reference/module-types/exec.md) modules offer a flexible way to weave in arbitrary scripts and commands, that are executed locally. This can be custom build steps, tasks, tests or really anything else. The caveat is that they always run on the same machine as the Garden CLI, and not e.g. in a Kubernetes cluster, and thus not quite as portable.
 - [terraform](../reference/module-types/terraform.md) modules offer a powerful way to deploy any cloud resources as part of your project. See the [Terraform guide](../advanced/terraform.md) for more information.
 
-See the [module types reference](../reference/module-types/README.md) for a full list of supported module types, and their configuration reference.
+There are several other module types available as well. See the [module types reference](../reference/module-types/README.md) for a full list of supported module types, and their configuration reference.
 
 ### Including and excluding files
 

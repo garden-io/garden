@@ -24,12 +24,12 @@
 * [Tasks](./using-garden/tasks.md)
 * [Workflows](./using-garden/workflows.md)
 * [Variables and templating](./using-garden/variables-and-templating.md)
+* [Using the CLI](./using-garden/using-the-cli.md)
 
 ## 🌿 Guides
 
 * [Cloud Provider Set-up](./guides/cloud-provider-setup.md)
 * [Container Modules](./guides/container-modules.md)
-* [Development Workflows](./guides/development-workflows.md)
 * [Helm Charts](./guides/using-helm-charts.md)
 * [Hot Reload](./guides/hot-reload.md)
 * [In-Cluster Building](./guides/in-cluster-building.md)

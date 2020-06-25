@@ -39,46 +39,8 @@ Importantly, what happens within each of the actions that the graph describes—
 All the Garden plugins are currently built-in; we will soon release a plugin SDK to allow any user to easily make their
 own plugins.
 
-## Configuration
+## Next Steps
 
-**TODO: move/distribute**
+Head over to the [Getting Started](../getting-started/README.md) section to learn the basics on how to get up and running with Garden.
 
-As mentioned above, each part of your stack should describe itself. This avoids massive project configuration files or scripts, and makes each part of your stack easy to understand, and even re-usable across projects in some cases.
-
-This is done through simple configuration files, which are version controlled in your project, next to each of your code modules (if applicable). For example:
-
-```yaml
-kind: Module
-type: helm
-name: redis
-description: Redis service for message queueing
-repo: https://charts.bitnami.com/bitnami
-chart: redis
-version: "10.5.7"
-```
-
-```yaml
-kind: Module
-type: container
-name: my-service
-description: My HTTP service container
-services:
-- name: my-service
-  ports:
-    - name: http
-      containerPort: 80
-  ingresses:
-    - path: /hello
-      port: http
-tests:
-- name: integ
-  command: [./test]
-  dependencies: [my-other-service]
-```
-
-Note here the first four fields, which are common across all module types—`kind`, `type`, `name` and `description`. Other fields are specified by the corresponding _module type_, which are defined by _providers_.
-
-Also notice that the `container` module explicitly declares a service, whereas the `helm` module does not. This is dictated by the module
-type. Containers often only need to be built (e.g. base images for other containers), or may contain multiple services. A Helm chart, however, is generally a single deployable so the provider makes the service implicit when configuring it.
-
-For more details on how to configure your project, take a look at the [configuration guide](../using-garden/configuration-overview.md).
+If you or your team has already set up a Garden project, you can also skip over to the [Using Garden](../using-garden/README.md) section, to learn more about the concepts and how to interact with Garden.

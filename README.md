@@ -63,7 +63,7 @@ The [examples folder](https://github.com/garden-io/garden/tree/v0.12.0/examples)
 
 Garden Core is a standalone tool that can run from CI or from a developer’s machine. It allows you to codify a complete description of your stack, including how it's built, deployed and tested, using the [Stack Graph](https://docs.garden.io/basics/stack-graph)—making your workflows reproducible and portable.
 
-**TODO: Stack Graph image**
+![The Stack Graph](./docs/stack-graph-screenshot.png "The Stack Graph, shown in the Garden dashboard")
 
 With the Stack Graph, each part of your stack can describe itself using simple, intuitive declarations, without changing any of your code. Garden collects all of your declarations—even across multiple repositories—into a full graph of your stack, and leverages that information to help you develop and test faster.
 
@@ -74,7 +74,7 @@ When you run Garden with a shared Kubernetes cluster, Garden has its own namespa
 
 Every developer, in turn, has a private namespace in the cluster. With one command, a dev can spin up a development and testing environment in their private namespace. In other words, they get a complete version of the application running in a namespace that they can then test and develop against.
 
-**TODO: cluster diagram**
+![Cluster Diagram](./docs/cluster-diagram.png "Cluster Diagram")
 
 And whenever you open a PR or merge a branch, your CI processes can also spin up a testing environment in a namespace on the same Kubernetes cluster.
 

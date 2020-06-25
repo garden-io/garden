@@ -158,4 +158,6 @@ steps:
 
 ## Next Steps
 
-Take a look at our [Variables and Templating section](../guides/README.md) for details on how to use templating in your configuration files.
+Take a look at our [Variables and Templating section](./variables-and-templating.md) for details on how to use templating in your configuration files.
+
+Also check out [Using the CLI](./using-the-cli.md) for CLI usage examples, and some common day-to-day usage tips.
