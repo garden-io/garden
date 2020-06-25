@@ -22,9 +22,11 @@ describe("BufferedEventStream", () => {
 
     bufferedEventStream["flushEvents"] = (events: StreamEvent[]) => {
       flushedEvents.push(...events)
+      return Promise.resolve()
     }
     bufferedEventStream["flushLogEntries"] = (logEntries: LogEntryEvent[]) => {
       flushedLogEntries.push(...logEntries)
+      return Promise.resolve()
     }
 
     const eventBus = new EventBus()
@@ -49,9 +51,11 @@ describe("BufferedEventStream", () => {
 
     bufferedEventStream["flushEvents"] = (events: StreamEvent[]) => {
       flushedEvents.push(...events)
+      return Promise.resolve()
     }
     bufferedEventStream["flushLogEntries"] = (logEntries: LogEntryEvent[]) => {
       flushedLogEntries.push(...logEntries)
+      return Promise.resolve()
     }
 
     const oldEventBus = new EventBus()
