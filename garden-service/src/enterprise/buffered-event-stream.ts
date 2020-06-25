@@ -156,7 +156,7 @@ export class BufferedEventStream {
       projectUid: this.projectId,
     }
     const headers = makeAuthHeader(this.clientAuthToken)
-    this.log.silly(`Flushing ${events.length} events to ${this.enterpriseDomain}/events}`)
+    this.log.silly(`Flushing ${events.length} events to ${this.enterpriseDomain}/events`)
     this.log.silly(`--------`)
     this.log.silly(`data: ${JSON.stringify(data)}`)
     this.log.silly(`--------`)
@@ -173,7 +173,7 @@ export class BufferedEventStream {
       projectUid: this.projectId,
     }
     const headers = makeAuthHeader(this.clientAuthToken)
-    this.log.silly(`Flushing ${logEntries.length} log entries to ${this.enterpriseDomain}/events}`)
+    this.log.silly(`Flushing ${logEntries.length} log entries to ${this.enterpriseDomain}/log-entries`)
     this.log.silly(`--------`)
     this.log.silly(`data: ${JSON.stringify(data)}`)
     this.log.silly(`--------`)
