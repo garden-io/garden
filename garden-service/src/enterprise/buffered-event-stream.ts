@@ -12,6 +12,7 @@ import { LogEntryMetadata, LogEntry } from "../logger/log-entry"
 import { chainMessages } from "../logger/renderers"
 import { got } from "../util/http"
 import { makeAuthHeader } from "./auth"
+import { LogLevel } from "../logger/log-node"
 
 const workflowRunUid = process.env.GARDEN_WORKFLOW_RUN_UID || null
 
@@ -27,6 +28,7 @@ export interface LogEntryEvent {
   revision: number
   msg: string | string[]
   timestamp: Date
+  level: LogLevel
   data?: any
   section?: string
   metadata?: LogEntryMetadata
@@ -34,12 +36,12 @@ export interface LogEntryEvent {
 
 export function formatForEventStream(entry: LogEntry): LogEntryEvent {
   const { section, data } = entry.getMessageState()
-  const { key, revision } = entry
+  const { key, revision, level } = entry
   const parentKey = entry.parent ? entry.parent.key : null
   const metadata = entry.getMetadata()
   const msg = chainMessages(entry.getMessageStates() || [])
   const timestamp = new Date()
-  return { key, parentKey, revision, msg, data, metadata, section, timestamp }
+  return { key, parentKey, revision, msg, data, metadata, section, timestamp, level }
 }
 
 export const FLUSH_INTERVAL_MSEC = 1000
