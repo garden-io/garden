@@ -21,7 +21,7 @@ import { ConfigurationError, FilesystemError } from "../../exceptions"
 import { posix, join } from "path"
 import { ensureDir, writeFile } from "fs-extra"
 import Bluebird from "bluebird"
-import { splitStream } from "../../util/util"
+import { splitStream, getDurationMsec } from "../../util/util"
 import execa, { ExecaError } from "execa"
 import { LogLevel } from "../../logger/log-node"
 
@@ -107,6 +107,8 @@ export class RunWorkflowCommand extends Command<Args, {}> {
         stepName,
       })
 
+      const stepStartedAt = new Date()
+
       try {
         if (step.command) {
           step.command = resolveTemplateStrings(step.command, stepTemplateContext)
@@ -132,11 +134,11 @@ export class RunWorkflowCommand extends Command<Args, {}> {
             footerLog: stepFooterLog,
           })
         } else {
-          garden.events.emit("workflowStepError", { index })
+          garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
           throw new ConfigurationError(`Workflow steps must specify either a command or a script.`, { step })
         }
       } catch (err) {
-        garden.events.emit("workflowStepError", { index })
+        garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
         printStepDuration({
           log: outerLog,
           stepIndex: index,
@@ -160,12 +162,12 @@ export class RunWorkflowCommand extends Command<Args, {}> {
       }
 
       if (stepResult.errors) {
-        garden.events.emit("workflowStepError", { index })
+        garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
         logErrors(outerLog, stepResult.errors, index, steps.length, step.description)
         return { result, errors: stepResult.errors }
       }
 
-      garden.events.emit("workflowStepComplete", { index })
+      garden.events.emit("workflowStepComplete", getStepEndEvent(index, stepStartedAt))
       printStepDuration({
         log: outerLog,
         stepIndex: index,
@@ -400,4 +402,8 @@ export async function runStepScript({ garden, log, step }: RunStepParams): Promi
       stderr: error.stderr,
     })
   }
+}
+
+function getStepEndEvent(index: number, startedAt: Date) {
+  return { index, durationMsec: getDurationMsec(startedAt, new Date()) }
 }

@@ -142,9 +142,11 @@ export interface Events extends LoggerEvents {
   }
   workflowStepComplete: {
     index: number
+    durationMsec: number
   }
   workflowStepError: {
     index: number
+    durationMsec: number
   }
 }
 
