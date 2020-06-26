@@ -459,21 +459,26 @@ async function runKaniko({ provider, namespace, log, module, args, outputStream 
   // Escape the args so that we can safely interpolate them into the kaniko command
   const argsStr = args.map((arg) => JSON.stringify(arg)).join(" ")
 
-  // This may seem kind of insane but we have to wait until the socat proxy is up (because Kaniko immediately tries to
-  // reach the registry we plan on pushing to). See the support container in the Pod spec below for more on this
-  // hackery.
-  const commandStr = dedent`
-    while true; do
-      if ls ${commsMountPath}/socatStarted 2> /dev/null; then
-        /kaniko/executor ${argsStr};
-        export exitcode=$?;
-        touch ${commsMountPath}/done;
-        exit $exitcode;
-      else
-        sleep 0.3;
-      fi
-    done
-  `
+  let commandStr = dedent`
+      /kaniko/executor ${argsStr};
+      export exitcode=$?;
+      touch ${commsMountPath}/done;
+      exit $exitcode;
+    `
+  if (provider.config.deploymentRegistry?.hostname === inClusterRegistryHostname) {
+    // This may seem kind of insane but we have to wait until the socat proxy is up (because Kaniko immediately tries to
+    // reach the registry we plan on pushing to). See the support container in the Pod spec below for more on this
+    // hackery.
+    commandStr = dedent`
+      while true; do
+        if ls ${commsMountPath}/socatStarted 2> /dev/null; then
+          ${commandStr}
+        else
+          sleep 0.3;
+        fi
+      done
+    `
+  }
 
   const kanikoImage = provider.config.kaniko?.image || DEFAULT_KANIKO_IMAGE
 
