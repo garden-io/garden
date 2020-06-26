@@ -24,7 +24,7 @@ import {
 } from "./common"
 import { validateWithPath } from "./validation"
 import { resolveTemplateStrings } from "../template-string"
-import { ProjectConfigContext } from "./config-context"
+import { ProjectConfigContext, EnvironmentConfigContext } from "./config-context"
 import { findByName, getNames } from "../util/util"
 import { ConfigurationError, ParameterError, ValidationError } from "../exceptions"
 import { PrimitiveMap } from "./common"
@@ -117,7 +117,8 @@ export const environmentSchema = () =>
       .example("custom.env"),
     variables: joiVariables().description(deline`
           A key/value map of variables that modules can reference when using this environment. These take precedence
-          over variables defined in the top-level \`variables\` field.
+          over variables defined in the top-level \`variables\` field, but may also reference the top-level variables in
+          template strings.
         `),
   })
 
@@ -405,7 +406,7 @@ export const projectSchema = () =>
 /**
  * Resolves and validates the given raw project configuration, and returns it in a canonical form.
  *
- * Note: Does _not_ resolve template strings on providers (this needs to happen later in the process).
+ * Note: Does _not_ resolve template strings on environments and providers (this needs to happen later in the process).
  *
  * @param config raw project configuration
  */
@@ -420,14 +421,19 @@ export function resolveProjectConfig(config: ProjectConfig, artifactsPath: strin
       sources: config.sources,
       varfile: config.varfile,
       variables: config.variables,
-      environments: environments.map((e) => omit(e, ["providers"])),
+      environments: [],
     },
     new ProjectConfigContext({ projectName: name, artifactsPath, username })
   )
 
   // Validate after resolving global fields
   config = validateWithPath({
-    config: { ...config, ...globalConfig, name },
+    config: {
+      ...config,
+      ...globalConfig,
+      name,
+      environments: environments.map((e) => omit(e, ["providers"])),
+    },
     schema: projectSchema(),
     configType: "project",
     path: config.path,
@@ -480,7 +486,7 @@ export function resolveProjectConfig(config: ProjectConfig, artifactsPath: strin
 
 /**
  * Given an environment name, pulls the relevant environment-specific configuration from the specified project
- * config, and merges values appropriately.
+ * config, and merges values appropriately. Also resolves template strings in the picked environment.
  *
  * For project variables, we apply the variables specified to the selected environment on the global variables
  * specified on the top-level `variables` key using a JSON Merge Patch (https://tools.ietf.org/html/rfc7396).
@@ -500,12 +506,22 @@ export function resolveProjectConfig(config: ProjectConfig, artifactsPath: strin
  * @param config a resolved project config (as returned by `resolveProjectConfig()`)
  * @param envString the name of the environment to use
  */
-export async function pickEnvironment(config: ProjectConfig, envString: string) {
+export async function pickEnvironment({
+  config,
+  envString,
+  artifactsPath,
+  username,
+}: {
+  config: ProjectConfig
+  envString: string
+  artifactsPath: string
+  username: string
+}) {
   const { environments, name: projectName } = config
 
   let { environment, namespace } = parseEnvironment(envString)
 
-  const environmentConfig = findByName(environments, environment)
+  let environmentConfig = findByName(environments, environment)
 
   if (!environmentConfig) {
     throw new ParameterError(`Project ${projectName} does not specify environment ${environment}`, {
@@ -516,12 +532,24 @@ export async function pickEnvironment(config: ProjectConfig, envString: string) 
     })
   }
 
+  const projectVarfileVars = await loadVarfile(config.path, config.varfile, defaultVarfilePath)
+  const projectVariables: DeepPrimitiveMap = <any>merge(config.variables, projectVarfileVars)
+
+  const envProviders = environmentConfig.providers || []
+
+  // Resolve template strings in the environment config, except providers
+  environmentConfig = resolveTemplateStrings(
+    { ...environmentConfig, providers: [] },
+    new EnvironmentConfigContext({ projectName, artifactsPath, username, variables: projectVariables })
+  )
+
   namespace = getNamespace(environmentConfig, namespace)
 
   const fixedProviders = fixedPlugins.map((name) => ({ name }))
   const allProviders = [
     ...fixedProviders,
     ...config.providers.filter((p) => !p.environments || p.environments.includes(environment)),
+    ...envProviders,
   ]
 
   const mergedProviders: { [name: string]: ProviderConfig } = {}
@@ -535,12 +563,9 @@ export async function pickEnvironment(config: ProjectConfig, envString: string) 
     }
   }
 
-  const projectVarfileVars = await loadVarfile(config.path, config.varfile, defaultVarfilePath)
   const envVarfileVars = await loadVarfile(config.path, environmentConfig.varfile, defaultEnvVarfilePath(environment))
 
-  const variables: DeepPrimitiveMap = <any>(
-    merge(merge(config.variables, projectVarfileVars), merge(environmentConfig.variables, envVarfileVars))
-  )
+  const variables: DeepPrimitiveMap = <any>merge(projectVariables, merge(environmentConfig.variables, envVarfileVars))
 
   return {
     environmentName: environment,

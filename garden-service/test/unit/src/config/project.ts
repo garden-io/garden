@@ -24,8 +24,9 @@ import { expectError } from "../../../helpers"
 import { defaultDotIgnoreFiles } from "../../../../src/util/fs"
 import { realpath, writeFile } from "fs-extra"
 import { dedent } from "../../../../src/util/string"
-import { resolve } from "path"
+import { resolve, join } from "path"
 import stripAnsi from "strip-ansi"
+import { keyBy } from "lodash"
 
 describe("resolveProjectConfig", () => {
   it("should pass through a canonical project config", async () => {
@@ -80,7 +81,7 @@ describe("resolveProjectConfig", () => {
     })
   })
 
-  it("should resolve template strings on fields other than provider configs", async () => {
+  it("should resolve template strings on fields other than environment and provider configs", async () => {
     const repositoryUrl = "git://github.com/foo/bar.git#boo"
 
     const config: ProjectConfig = {
@@ -122,7 +123,7 @@ describe("resolveProjectConfig", () => {
           production: false,
           providers: [],
           variables: {
-            envVar: "foo",
+            envVar: "${local.env.TEST_ENV_VAR}",
           },
         },
       ],
@@ -209,6 +210,33 @@ describe("resolveProjectConfig", () => {
     delete process.env.TEST_ENV_VAR_B
   })
 
+  it("should pass through templated fields on environment configs", async () => {
+    const config: ProjectConfig = {
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Project",
+      name: "my-project",
+      path: "/tmp/foo",
+      defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
+      environments: [
+        {
+          name: "default",
+          defaultNamespace,
+          production: false,
+          variables: {
+            envVar: "${var.foo}",
+          },
+        },
+      ],
+      providers: [],
+      variables: {},
+    }
+
+    const result = resolveProjectConfig(config, "/tmp", "some-user")
+
+    expect(result.environments).to.eql(config.environments)
+  })
+
   it("should set defaultEnvironment to first environment if not configured", async () => {
     const config: ProjectConfig = {
       apiVersion: DEFAULT_API_VERSION,
@@ -255,7 +283,7 @@ describe("resolveProjectConfig", () => {
     })
   })
 
-  it("should include providers in correct precedency order from all possible config keys", async () => {
+  it("should include providers in correct precedence order from all possible config keys", async () => {
     const config: ProjectConfig = {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Project",
@@ -387,10 +415,13 @@ describe("resolveProjectConfig", () => {
 describe("pickEnvironment", () => {
   let tmpDir: tmp.DirectoryResult
   let tmpPath: string
+  let artifactsPath: string
+  const username = "test"
 
   beforeEach(async () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
     tmpPath = await realpath(tmpDir.path)
+    artifactsPath = join(tmpPath, ".garden", "artifacts")
   })
 
   afterEach(async () => {
@@ -410,7 +441,7 @@ describe("pickEnvironment", () => {
       variables: {},
     }
 
-    await expectError(() => pickEnvironment(config, "foo"), "parameter")
+    await expectError(() => pickEnvironment({ config, envString: "foo", artifactsPath, username }), "parameter")
   })
 
   it("should include fixed providers in output", async () => {
@@ -426,7 +457,7 @@ describe("pickEnvironment", () => {
       variables: {},
     }
 
-    expect(await pickEnvironment(config, "default")).to.eql({
+    expect(await pickEnvironment({ config, envString: "default", artifactsPath, username })).to.eql({
       environmentName: "default",
       namespace: "default",
       providers: [{ name: "exec" }, { name: "container" }],
@@ -443,7 +474,14 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
-      environments: [{ name: "default", defaultNamespace, variables: {} }],
+      environments: [
+        {
+          name: "default",
+          defaultNamespace,
+          variables: {},
+          providers: [{ name: "my-provider", b: "d" }, { name: "env-provider" }],
+        },
+      ],
       providers: [
         { name: "container", newKey: "foo" },
         { name: "my-provider", a: "a" },
@@ -453,10 +491,15 @@ describe("pickEnvironment", () => {
       variables: {},
     }
 
-    expect(await pickEnvironment(config, "default")).to.eql({
+    expect(await pickEnvironment({ config, envString: "default", artifactsPath, username })).to.eql({
       environmentName: "default",
       namespace: "default",
-      providers: [{ name: "exec" }, { name: "container", newKey: "foo" }, { name: "my-provider", a: "c", b: "b" }],
+      providers: [
+        { name: "exec" },
+        { name: "container", newKey: "foo" },
+        { name: "my-provider", a: "c", b: "d" },
+        { name: "env-provider" },
+      ],
       production: false,
       variables: {},
     })
@@ -480,7 +523,7 @@ describe("pickEnvironment", () => {
       variables: {},
     }
 
-    expect(await pickEnvironment(config, "default")).to.eql({
+    expect(await pickEnvironment({ config, envString: "default", artifactsPath, username })).to.eql({
       environmentName: "default",
       namespace: "default",
       providers: [{ name: "exec" }, { name: "container", newKey: "foo" }, { name: "my-provider", b: "b" }],
@@ -524,7 +567,7 @@ describe("pickEnvironment", () => {
       },
     }
 
-    const result = await pickEnvironment(config, "default")
+    const result = await pickEnvironment({ config, envString: "default", artifactsPath, username })
 
     expect(result.variables).to.eql({
       a: "project value A",
@@ -570,7 +613,7 @@ describe("pickEnvironment", () => {
       variables: {},
     }
 
-    const result = await pickEnvironment(config, "default")
+    const result = await pickEnvironment({ config, envString: "default", artifactsPath, username })
 
     expect(result.variables).to.eql({
       a: "a",
@@ -610,7 +653,7 @@ describe("pickEnvironment", () => {
       },
     }
 
-    const result = await pickEnvironment(config, "default")
+    const result = await pickEnvironment({ config, envString: "default", artifactsPath, username })
 
     expect(result.variables).to.eql({
       a: "a",
@@ -651,7 +694,7 @@ describe("pickEnvironment", () => {
       variables: {},
     }
 
-    const result = await pickEnvironment(config, "default")
+    const result = await pickEnvironment({ config, envString: "default", artifactsPath, username })
 
     expect(result.variables).to.eql({
       a: "a",
@@ -692,12 +735,91 @@ describe("pickEnvironment", () => {
       },
     }
 
-    const result = await pickEnvironment(config, "default")
+    const result = await pickEnvironment({ config, envString: "default", artifactsPath, username })
 
     expect(result.variables).to.eql({
       a: "a",
       b: "B",
       c: "c",
+    })
+  })
+
+  it("should resolve template strings in the picked environment", async () => {
+    const config: ProjectConfig = {
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Project",
+      name: "my-project",
+      path: "/tmp/foo",
+      defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
+      environments: [{ name: "default", defaultNamespace, variables: { foo: "${local.username}" } }],
+      providers: [],
+      variables: {},
+    }
+
+    const result = await pickEnvironment({ config, envString: "default", artifactsPath, username })
+
+    expect(result.variables).to.eql({
+      foo: username,
+    })
+  })
+
+  it("should ignore template strings in other environments", async () => {
+    const config: ProjectConfig = {
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Project",
+      name: "my-project",
+      path: "/tmp/foo",
+      defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
+      environments: [
+        { name: "default", defaultNamespace, variables: {} },
+        { name: "other", defaultNamespace, variables: { foo: "${var.missing}" } },
+      ],
+      providers: [],
+      variables: {},
+    }
+
+    await pickEnvironment({ config, envString: "default", artifactsPath, username })
+  })
+
+  it("should pass through template strings in the providers field on environments", async () => {
+    const config: ProjectConfig = {
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Project",
+      name: "my-project",
+      path: "/tmp/foo",
+      defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
+      environments: [
+        { name: "default", defaultNamespace, variables: {}, providers: [{ name: "my-provider", a: "${var.missing}" }] },
+      ],
+      providers: [],
+      variables: {},
+    }
+
+    const result = await pickEnvironment({ config, envString: "default", artifactsPath, username })
+
+    expect(keyBy(result.providers, "name")["my-provider"].a).to.equal("${var.missing}")
+  })
+
+  it("should allow referencing top-level variables", async () => {
+    const config: ProjectConfig = {
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Project",
+      name: "my-project",
+      path: "/tmp/foo",
+      defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
+      environments: [{ name: "default", defaultNamespace, variables: { foo: "${var.foo}" } }],
+      providers: [],
+      variables: { foo: "value" },
+    }
+
+    const result = await pickEnvironment({ config, envString: "default", artifactsPath, username })
+
+    expect(result.variables).to.eql({
+      foo: "value",
     })
   })
 
@@ -746,7 +868,7 @@ describe("pickEnvironment", () => {
       },
     }
 
-    const result = await pickEnvironment(config, "default")
+    const result = await pickEnvironment({ config, envString: "default", artifactsPath, username })
 
     expect(result.variables).to.eql({
       a: "a",
@@ -778,7 +900,7 @@ describe("pickEnvironment", () => {
     }
 
     await expectError(
-      () => pickEnvironment(config, "default"),
+      () => pickEnvironment({ config, envString: "default", artifactsPath, username }),
       (err) => expect(err.message).to.equal("Could not find varfile at path 'foo.env'")
     )
   })
@@ -804,7 +926,7 @@ describe("pickEnvironment", () => {
     }
 
     await expectError(
-      () => pickEnvironment(config, "default"),
+      () => pickEnvironment({ config, envString: "default", artifactsPath, username }),
       (err) => expect(err.message).to.equal("Could not find varfile at path 'foo.env'")
     )
   })
@@ -822,7 +944,7 @@ describe("pickEnvironment", () => {
       variables: {},
     }
 
-    expect(await pickEnvironment(config, "foo.default")).to.eql({
+    expect(await pickEnvironment({ config, envString: "foo.default", artifactsPath, username })).to.eql({
       environmentName: "default",
       namespace: "foo",
       providers: [{ name: "exec" }, { name: "container" }],
@@ -844,7 +966,7 @@ describe("pickEnvironment", () => {
       variables: {},
     }
 
-    expect(await pickEnvironment(config, "foo.default")).to.eql({
+    expect(await pickEnvironment({ config, envString: "foo.default", artifactsPath, username })).to.eql({
       environmentName: "default",
       namespace: "foo",
       providers: [{ name: "exec" }, { name: "container" }],
@@ -866,7 +988,7 @@ describe("pickEnvironment", () => {
       variables: {},
     }
 
-    expect(await pickEnvironment(config, "default")).to.eql({
+    expect(await pickEnvironment({ config, envString: "default", artifactsPath, username })).to.eql({
       environmentName: "default",
       namespace: "default",
       providers: [{ name: "exec" }, { name: "container" }],
@@ -889,7 +1011,7 @@ describe("pickEnvironment", () => {
     }
 
     await expectError(
-      () => pickEnvironment(config, "$.%"),
+      () => pickEnvironment({ config, envString: "$.%", artifactsPath, username }),
       (err) =>
         expect(err.message).to.equal(
           "Invalid environment specified ($.%): must be a valid environment name or <namespace>.<environment>"
@@ -911,7 +1033,7 @@ describe("pickEnvironment", () => {
     }
 
     await expectError(
-      () => pickEnvironment(config, "default"),
+      () => pickEnvironment({ config, envString: "default", artifactsPath, username }),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(
           "Environment default has defaultNamespace set to null, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. --env=some-namespace.default)."
