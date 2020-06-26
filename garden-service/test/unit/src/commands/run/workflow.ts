@@ -128,13 +128,19 @@ describe("RunWorkflowCommand", () => {
 
     await cmd.action({ ..._defaultParams, args: { workflow: "workflow-a" } })
 
-    const workflowEvents = getWorkflowEvents(_garden)
-    expect(workflowEvents).to.eql([
-      { name: "workflowStepProcessing", payload: { index: 0 } },
-      { name: "workflowStepComplete", payload: { index: 0 } },
-      { name: "workflowStepProcessing", payload: { index: 1 } },
-      { name: "workflowStepComplete", payload: { index: 1 } },
-    ])
+    const we = getWorkflowEvents(_garden)
+
+    expect(we[0]).to.eql({ name: "workflowStepProcessing", payload: { index: 0 } })
+
+    expect(we[1].name).to.eql("workflowStepComplete")
+    expect(we[1].payload.index).to.eql(0)
+    expect(we[1].payload.durationMsec).to.gte(0)
+
+    expect(we[2]).to.eql({ name: "workflowStepProcessing", payload: { index: 1 } })
+
+    expect(we[3].name).to.eql("workflowStepComplete")
+    expect(we[3].payload.index).to.eql(1)
+    expect(we[3].payload.durationMsec).to.gte(0)
   })
 
   function filterLogEntries(entries: LogEntry[], msgRegex: RegExp): LogEntry[] {
@@ -309,11 +315,12 @@ describe("RunWorkflowCommand", () => {
     })
     expect(testModuleLog.length).to.eql(0)
 
-    const workflowEvents = getWorkflowEvents(_garden)
-    expect(workflowEvents).to.eql([
-      { name: "workflowStepProcessing", payload: { index: 0 } },
-      { name: "workflowStepError", payload: { index: 0 } },
-    ])
+    const we = getWorkflowEvents(_garden)
+
+    expect(we[0]).to.eql({ name: "workflowStepProcessing", payload: { index: 0 } })
+    expect(we[1].name).to.eql("workflowStepError")
+    expect(we[1].payload.index).to.eql(0)
+    expect(we[1].payload.durationMsec).to.gte(0)
   })
 
   it("should write a file with string data ahead of the run, before resolving providers", async () => {
