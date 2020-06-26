@@ -803,7 +803,7 @@ describe("ActionRouter", () => {
     it("should return all handlers for a type", async () => {
       const handlers = await actions["getActionHandlers"]("prepareEnvironment")
 
-      expect(Object.keys(handlers)).to.eql(["test-plugin", "test-plugin-b"])
+      expect(Object.keys(handlers)).to.eql(["exec", "test-plugin", "test-plugin-b"])
     })
   })
 
