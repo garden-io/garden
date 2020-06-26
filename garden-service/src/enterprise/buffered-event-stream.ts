@@ -155,7 +155,7 @@ export class BufferedEventStream {
   }
 
   // Note: Returns a promise.
-  flushEvents(events: StreamEvent[]) {
+  async flushEvents(events: StreamEvent[]) {
     if (events.length === 0) {
       return
     }
@@ -170,13 +170,13 @@ export class BufferedEventStream {
     this.log.silly(`--------`)
     this.log.silly(`data: ${JSON.stringify(data)}`)
     this.log.silly(`--------`)
-    return got.post(`${this.enterpriseDomain}/events`, { json: data, headers }).catch((err) => {
+    await got.post(`${this.enterpriseDomain}/events`, { json: data, headers }).catch((err) => {
       this.log.error(err)
     })
   }
 
   // Note: Returns a promise.
-  flushLogEntries(logEntries: LogEntryEvent[]) {
+  async flushLogEntries(logEntries: LogEntryEvent[]) {
     if (logEntries.length === 0) {
       return
     }
@@ -191,7 +191,7 @@ export class BufferedEventStream {
     this.log.silly(`--------`)
     this.log.silly(`data: ${JSON.stringify(data)}`)
     this.log.silly(`--------`)
-    got.post(`${this.enterpriseDomain}/log-entries`, { json: data, headers }).catch((err) => {
+    await got.post(`${this.enterpriseDomain}/log-entries`, { json: data, headers }).catch((err) => {
       this.log.error(err)
     })
   }
