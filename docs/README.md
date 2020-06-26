@@ -45,6 +45,7 @@
   * [`conftest-container`](./reference/providers/conftest-container.md)
   * [`conftest-kubernetes`](./reference/providers/conftest-kubernetes.md)
   * [`conftest`](./reference/providers/conftest.md)
+  * [`exec`](./reference/providers/exec.md)
   * [`hadolint`](./reference/providers/hadolint.md)
   * [`kubernetes`](./reference/providers/kubernetes.md)
   * [`local-kubernetes`](./reference/providers/local-kubernetes.md)

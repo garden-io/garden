@@ -9,6 +9,7 @@ title: Providers
 * [`conftest-container`](./conftest-container.md)
 * [`kubernetes`](./kubernetes.md)
 * [`conftest-kubernetes`](./conftest-kubernetes.md)
+* [`exec`](./exec.md)
 * [`hadolint`](./hadolint.md)
 * [`local-kubernetes`](./local-kubernetes.md)
 * [`maven-container`](./maven-container.md)

@@ -21,8 +21,9 @@ import { ConfigurationError, FilesystemError } from "../../exceptions"
 import { posix, join } from "path"
 import { ensureDir, writeFile } from "fs-extra"
 import Bluebird from "bluebird"
-import { splitStream, getDurationMsec } from "../../util/util"
-import execa, { ExecaError } from "execa"
+import { getDurationMsec } from "../../util/util"
+import { runScript } from "../../util/util"
+import { ExecaError } from "execa"
 import { LogLevel } from "../../logger/log-node"
 
 const runWorkflowArgs = {
@@ -358,35 +359,8 @@ class WorkflowScriptError extends GardenBaseError {
 }
 
 export async function runStepScript({ garden, log, step }: RunStepParams): Promise<CommandResult<any>> {
-  // Run the script, capturing any errors
-  const proc = execa("bash", ["-s"], {
-    all: true,
-    cwd: garden.projectRoot,
-    // The script is piped to stdin
-    input: step.script,
-    // Set a very large max buffer (we only hold one of these at a time, and want to avoid overflow errors)
-    buffer: true,
-    maxBuffer: 100 * 1024 * 1024,
-  })
-
-  // Stream output to `log`, splitting by line
-  const stdout = splitStream()
-  const stderr = splitStream()
-
-  stdout.on("error", () => {})
-  stdout.on("data", (line: Buffer) => {
-    log.info(line.toString())
-  })
-  stderr.on("error", () => {})
-  stderr.on("data", (line: Buffer) => {
-    log.info(line.toString())
-  })
-
-  proc.stdout!.pipe(stdout)
-  proc.stderr!.pipe(stderr)
-
   try {
-    await proc
+    await runScript(log, garden.projectRoot, step.script!)
     return { result: {} }
   } catch (_err) {
     const error = _err as ExecaError

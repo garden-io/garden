@@ -603,3 +603,34 @@ export const splitStream = require("split2")
 export function getDurationMsec(start: Date, end: Date): number {
   return Math.round(end.getTime() - start.getTime())
 }
+
+export async function runScript(log: LogEntry, cwd: string, script: string) {
+  // Run the script, capturing any errors
+  const proc = execa("bash", ["-s"], {
+    all: true,
+    cwd,
+    // The script is piped to stdin
+    input: script,
+    // Set a very large max buffer (we only hold one of these at a time, and want to avoid overflow errors)
+    buffer: true,
+    maxBuffer: 100 * 1024 * 1024,
+  })
+
+  // Stream output to `log`, splitting by line
+  const stdout = splitStream()
+  const stderr = splitStream()
+
+  stdout.on("error", () => {})
+  stdout.on("data", (line: Buffer) => {
+    log.info(line.toString())
+  })
+  stderr.on("error", () => {})
+  stderr.on("data", (line: Buffer) => {
+    log.info(line.toString())
+  })
+
+  proc.stdout!.pipe(stdout)
+  proc.stderr!.pipe(stderr)
+
+  await proc
+}
