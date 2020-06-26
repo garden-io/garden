@@ -307,6 +307,46 @@ export class ProjectConfigContext extends ConfigContext {
   }
 }
 
+/**
+ * This context is available for template strings for all `environments[]` fields (except name)
+ */
+export class EnvironmentConfigContext extends ProjectConfigContext {
+  @schema(
+    LocalContext.getSchema().description(
+      "Context variables that are specific to the currently running environment/machine."
+    )
+  )
+  public local: LocalContext
+
+  @schema(ProjectContext.getSchema().description("Information about the Garden project."))
+  public project: ProjectContext
+
+  @schema(
+    joiVariables()
+      .description("A map of all variables defined in the project configuration.")
+      .meta({ keyPlaceholder: "<variable-name>" })
+  )
+  public variables: DeepPrimitiveMap
+
+  @schema(joiIdentifierMap(joiPrimitive()).description("Alias for the variables field."))
+  public var: DeepPrimitiveMap
+
+  constructor({
+    projectName,
+    artifactsPath,
+    username,
+    variables,
+  }: {
+    projectName: string
+    artifactsPath: string
+    username?: string
+    variables: DeepPrimitiveMap
+  }) {
+    super({ projectName, artifactsPath, username })
+    this.variables = this.var = variables
+  }
+}
+
 class EnvironmentContext extends ConfigContext {
   @schema(
     joi
@@ -342,21 +382,21 @@ class EnvironmentContext extends ConfigContext {
   }
 }
 
-export class WorkflowConfigContext extends ProjectConfigContext {
+export class WorkflowConfigContext extends EnvironmentConfigContext {
   @schema(
     EnvironmentContext.getSchema().description("Information about the environment that Garden is running against.")
   )
   public environment: EnvironmentContext
 
+  // Overriding to update the description. Same schema as base.
   @schema(
     joiVariables()
-      .description("A map of all variables defined in the project configuration.")
+      .description(
+        "A map of all variables defined in the project configuration, including environment-specific variables."
+      )
       .meta({ keyPlaceholder: "<variable-name>" })
   )
   public variables: DeepPrimitiveMap
-
-  @schema(joiIdentifierMap(joiPrimitive()).description("Alias for the variables field."))
-  public var: DeepPrimitiveMap
 
   @schema(
     joiStringMap(joi.string().description("The secret's value."))
@@ -372,14 +412,18 @@ export class WorkflowConfigContext extends ProjectConfigContext {
   public steps: Map<string, WorkflowStepContext | ErrorContext> | PassthroughContext
 
   constructor(garden: Garden) {
-    super({ projectName: garden.projectName, artifactsPath: garden.artifactsPath, username: garden.username })
+    super({
+      projectName: garden.projectName,
+      artifactsPath: garden.artifactsPath,
+      username: garden.username,
+      variables: garden.variables,
+    })
 
     const fullEnvName = garden.namespace ? `${garden.namespace}.${garden.environmentName}` : garden.environmentName
     this.environment = new EnvironmentContext(this, garden.environmentName, fullEnvName, garden.namespace)
 
     this.project = new ProjectContext(this, garden.projectName)
 
-    this.var = this.variables = garden.variables
     this.secrets = garden.secrets
 
     this.steps = new PassthroughContext()

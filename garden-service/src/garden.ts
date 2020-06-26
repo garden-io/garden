@@ -302,10 +302,12 @@ export class Garden {
       environmentStr = defaultEnvironment
     }
 
-    const { environmentName, namespace, providers, variables, production } = await pickEnvironment(
-      config,
-      environmentStr
-    )
+    const { environmentName, namespace, providers, variables, production } = await pickEnvironment({
+      projectConfig: config,
+      envString: environmentStr,
+      artifactsPath,
+      username: _username,
+    })
 
     const buildDir = await BuildDir.factory(projectRoot, gardenDirPath)
     const workingCopyId = await getWorkingCopyId(gardenDirPath)
