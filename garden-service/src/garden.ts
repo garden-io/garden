@@ -303,7 +303,7 @@ export class Garden {
     }
 
     const { environmentName, namespace, providers, variables, production } = await pickEnvironment({
-      config,
+      projectConfig: config,
       envString: environmentStr,
       artifactsPath,
       username: _username,

@@ -432,7 +432,7 @@ export function resolveProjectConfig(config: ProjectConfig, artifactsPath: strin
       ...config,
       ...globalConfig,
       name,
-      environments: environments.map((e) => omit(e, ["providers"])),
+      environments: [],
     },
     schema: projectSchema(),
     configType: "project",
@@ -455,13 +455,13 @@ export function resolveProjectConfig(config: ProjectConfig, artifactsPath: strin
     environment.providers = []
   }
 
-  const variables = config.variables
+  // This will be validated separately, after resolving templates
+  config.environments = environments.map((e) => omit(e, ["providers"]))
 
   config = {
     ...config,
     environments: config.environments || [],
     providers,
-    variables,
   }
 
   // TODO: get rid of the default environment config
@@ -507,17 +507,17 @@ export function resolveProjectConfig(config: ProjectConfig, artifactsPath: strin
  * @param envString the name of the environment to use
  */
 export async function pickEnvironment({
-  config,
+  projectConfig,
   envString,
   artifactsPath,
   username,
 }: {
-  config: ProjectConfig
+  projectConfig: ProjectConfig
   envString: string
   artifactsPath: string
   username: string
 }) {
-  const { environments, name: projectName } = config
+  const { environments, name: projectName } = projectConfig
 
   let { environment, namespace } = parseEnvironment(envString)
 
@@ -532,8 +532,8 @@ export async function pickEnvironment({
     })
   }
 
-  const projectVarfileVars = await loadVarfile(config.path, config.varfile, defaultVarfilePath)
-  const projectVariables: DeepPrimitiveMap = <any>merge(config.variables, projectVarfileVars)
+  const projectVarfileVars = await loadVarfile(projectConfig.path, projectConfig.varfile, defaultVarfilePath)
+  const projectVariables: DeepPrimitiveMap = <any>merge(projectConfig.variables, projectVarfileVars)
 
   const envProviders = environmentConfig.providers || []
 
@@ -543,12 +543,20 @@ export async function pickEnvironment({
     new EnvironmentConfigContext({ projectName, artifactsPath, username, variables: projectVariables })
   )
 
+  environmentConfig = validateWithPath({
+    config: environmentConfig,
+    schema: environmentSchema(),
+    configType: `environment ${environment}`,
+    path: projectConfig.path,
+    projectRoot: projectConfig.path,
+  })
+
   namespace = getNamespace(environmentConfig, namespace)
 
   const fixedProviders = fixedPlugins.map((name) => ({ name }))
   const allProviders = [
     ...fixedProviders,
-    ...config.providers.filter((p) => !p.environments || p.environments.includes(environment)),
+    ...projectConfig.providers.filter((p) => !p.environments || p.environments.includes(environment)),
     ...envProviders,
   ]
 
@@ -563,7 +571,11 @@ export async function pickEnvironment({
     }
   }
 
-  const envVarfileVars = await loadVarfile(config.path, environmentConfig.varfile, defaultEnvVarfilePath(environment))
+  const envVarfileVars = await loadVarfile(
+    projectConfig.path,
+    environmentConfig.varfile,
+    defaultEnvVarfilePath(environment)
+  )
 
   const variables: DeepPrimitiveMap = <any>merge(projectVariables, merge(environmentConfig.variables, envVarfileVars))
 

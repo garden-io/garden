@@ -11,7 +11,7 @@ Note that there are four sections below, since different configuration sections 
 
 ## Project configuration context
 
-The following keys are available in any template strings within project definitions in `garden.yml` config files, except the `name` field (which cannot be templated). See the [Provider](#provider-configuration-context) section below for additional keys available when configuring `providers`:
+The following keys are available in any template strings within project definitions in `garden.yml` config files, except the `name` field (which cannot be templated). See the [Environment](#environment-configuration-context) and [Provider](#provider-configuration-context) sections below for additional keys available when configuring `environments` and `providers`, respectively.
 
 
 ### `${local.*}`
@@ -101,6 +101,130 @@ Example:
 ```yaml
 my-variable: ${project.name}
 ```
+
+
+## Environment configuration context
+
+The following keys are available in template strings under the `environments` key in project configs. Additional keys are available for the `environments[].providers` field, see the [Provider](#provider-configuration-context) section below for those.
+
+
+### `${local.*}`
+
+Context variables that are specific to the currently running environment/machine.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${local.artifactsPath}`
+
+The absolute path to the directory where exported artifacts from test and task runs are stored.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.artifactsPath}
+```
+
+### `${local.env.*}`
+
+A map of all local environment variables (see https://nodejs.org/api/process.html#process_process_env).
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${local.env.<env-var-name>}`
+
+The environment variable value.
+
+| Type     |
+| -------- |
+| `string` |
+
+### `${local.platform}`
+
+A string indicating the platform that the framework is running on (see https://nodejs.org/api/process.html#process_process_platform)
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.platform}
+```
+
+### `${local.username}`
+
+The current username (as resolved by https://github.com/sindresorhus/username)
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.username}
+```
+
+### `${project.*}`
+
+Information about the Garden project.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${project.name}`
+
+The name of the Garden project.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${project.name}
+```
+
+### `${variables.*}`
+
+A map of all variables defined in the project configuration.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${variables.<variable-name>}`
+
+| Type                                             |
+| ------------------------------------------------ |
+| `number | string | boolean | link | array[link]` |
+
+### `${var.*}`
+
+Alias for the variables field.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${var.<name>}`
+
+Number, string or boolean
+
+| Type                        |
+| --------------------------- |
+| `number | string | boolean` |
 
 
 ## Provider configuration context
@@ -198,6 +322,36 @@ Example:
 my-variable: ${project.name}
 ```
 
+### `${variables.*}`
+
+A map of all variables defined in the project configuration, including environment-specific variables.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${variables.<variable-name>}`
+
+| Type                                             |
+| ------------------------------------------------ |
+| `number | string | boolean | link | array[link]` |
+
+### `${var.*}`
+
+Alias for the variables field.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${var.<name>}`
+
+Number, string or boolean
+
+| Type                        |
+| --------------------------- |
+| `number | string | boolean` |
+
 ### `${environment.*}`
 
 Information about the environment that Garden is running against.
@@ -247,36 +401,6 @@ Example:
 ```yaml
 my-variable: ${environment.namespace}
 ```
-
-### `${variables.*}`
-
-A map of all variables defined in the project configuration.
-
-| Type     | Default |
-| -------- | ------- |
-| `object` | `{}`    |
-
-### `${variables.<variable-name>}`
-
-| Type                                             |
-| ------------------------------------------------ |
-| `number | string | boolean | link | array[link]` |
-
-### `${var.*}`
-
-Alias for the variables field.
-
-| Type     | Default |
-| -------- | ------- |
-| `object` | `{}`    |
-
-### `${var.<name>}`
-
-Number, string or boolean
-
-| Type                        |
-| --------------------------- |
-| `number | string | boolean` |
 
 ### `${providers.*}`
 
@@ -417,6 +541,36 @@ Example:
 my-variable: ${project.name}
 ```
 
+### `${variables.*}`
+
+A map of all variables defined in the project configuration, including environment-specific variables.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${variables.<variable-name>}`
+
+| Type                                             |
+| ------------------------------------------------ |
+| `number | string | boolean | link | array[link]` |
+
+### `${var.*}`
+
+Alias for the variables field.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${var.<name>}`
+
+Number, string or boolean
+
+| Type                        |
+| --------------------------- |
+| `number | string | boolean` |
+
 ### `${environment.*}`
 
 Information about the environment that Garden is running against.
@@ -466,36 +620,6 @@ Example:
 ```yaml
 my-variable: ${environment.namespace}
 ```
-
-### `${variables.*}`
-
-A map of all variables defined in the project configuration.
-
-| Type     | Default |
-| -------- | ------- |
-| `object` | `{}`    |
-
-### `${variables.<variable-name>}`
-
-| Type                                             |
-| ------------------------------------------------ |
-| `number | string | boolean | link | array[link]` |
-
-### `${var.*}`
-
-Alias for the variables field.
-
-| Type     | Default |
-| -------- | ------- |
-| `object` | `{}`    |
-
-### `${var.<name>}`
-
-Number, string or boolean
-
-| Type                        |
-| --------------------------- |
-| `number | string | boolean` |
 
 ### `${providers.*}`
 
@@ -758,6 +882,36 @@ Example:
 my-variable: ${project.name}
 ```
 
+### `${variables.*}`
+
+A map of all variables defined in the project configuration, including environment-specific variables.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${variables.<variable-name>}`
+
+| Type                                             |
+| ------------------------------------------------ |
+| `number | string | boolean | link | array[link]` |
+
+### `${var.*}`
+
+Alias for the variables field.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${var.<name>}`
+
+Number, string or boolean
+
+| Type                        |
+| --------------------------- |
+| `number | string | boolean` |
+
 ### `${environment.*}`
 
 Information about the environment that Garden is running against.
@@ -807,36 +961,6 @@ Example:
 ```yaml
 my-variable: ${environment.namespace}
 ```
-
-### `${variables.*}`
-
-A map of all variables defined in the project configuration.
-
-| Type     | Default |
-| -------- | ------- |
-| `object` | `{}`    |
-
-### `${variables.<variable-name>}`
-
-| Type                                             |
-| ------------------------------------------------ |
-| `number | string | boolean | link | array[link]` |
-
-### `${var.*}`
-
-Alias for the variables field.
-
-| Type     | Default |
-| -------- | ------- |
-| `object` | `{}`    |
-
-### `${var.<name>}`
-
-Number, string or boolean
-
-| Type                        |
-| --------------------------- |
-| `number | string | boolean` |
 
 ### `${providers.*}`
 
@@ -1096,6 +1220,36 @@ Example:
 my-variable: ${project.name}
 ```
 
+### `${variables.*}`
+
+A map of all variables defined in the project configuration, including environment-specific variables.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${variables.<variable-name>}`
+
+| Type                                             |
+| ------------------------------------------------ |
+| `number | string | boolean | link | array[link]` |
+
+### `${var.*}`
+
+Alias for the variables field.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${var.<name>}`
+
+Number, string or boolean
+
+| Type                        |
+| --------------------------- |
+| `number | string | boolean` |
+
 ### `${environment.*}`
 
 Information about the environment that Garden is running against.
@@ -1145,36 +1299,6 @@ Example:
 ```yaml
 my-variable: ${environment.namespace}
 ```
-
-### `${variables.*}`
-
-A map of all variables defined in the project configuration.
-
-| Type     | Default |
-| -------- | ------- |
-| `object` | `{}`    |
-
-### `${variables.<variable-name>}`
-
-| Type                                             |
-| ------------------------------------------------ |
-| `number | string | boolean | link | array[link]` |
-
-### `${var.*}`
-
-Alias for the variables field.
-
-| Type     | Default |
-| -------- | ------- |
-| `object` | `{}`    |
-
-### `${var.<name>}`
-
-Number, string or boolean
-
-| Type                        |
-| --------------------------- |
-| `number | string | boolean` |
 
 ### `${steps.*}`
 
