@@ -1,4 +1,25 @@
 
+<a name="v0.12.0-alpha.1"></a>
+## [v0.12.0-alpha.1](https://github.com/garden-io/garden/compare/v0.12.0-alpha.0...v0.12.0-alpha.1) (2020-06-26)
+
+### Bug Fixes
+
+* **enterprise:** fix final log entry flush ([996a2382](https://github.com/garden-io/garden/commit/996a2382))
+* **enterprise:** wait for event stream to flush ([d50539de](https://github.com/garden-io/garden/commit/d50539de))
+* **kaniko:** correctly set container command when using kaniko w/o socat ([419abef7](https://github.com/garden-io/garden/commit/419abef7))
+
+### Features
+
+* **config:** allow environment[].variables to reference top-level vars ([#1910](https://github.com/garden-io/garden/issues/1910)) ([fec2b535](https://github.com/garden-io/garden/commit/fec2b535))
+* **enterprise:** include log level when streaming ([d301b2e5](https://github.com/garden-io/garden/commit/d301b2e5))
+* **exec:** add script option to exec provider configuration ([fc8879d7](https://github.com/garden-io/garden/commit/fc8879d7))
+* **template:** support nested expressions, maps and numeric keys ([597b38ed](https://github.com/garden-io/garden/commit/597b38ed))
+* **workflows:** add duration to step events ([c1e2ad88](https://github.com/garden-io/garden/commit/c1e2ad88))
+
+### Improvements
+
+* **template:** show available keys when key is not found ([2c4a1af8](https://github.com/garden-io/garden/commit/2c4a1af8))
+
 <a name="v0.12.0-alpha.0"></a>
 ## [v0.12.0-alpha.0](https://github.com/garden-io/garden/compare/v0.11.14...v0.12.0-alpha.0) (2020-06-24)
 
