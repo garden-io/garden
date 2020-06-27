@@ -2,8 +2,9 @@ kind: Module
 description: Postgres database for storing voting results
 type: helm
 name: postgres
-chart: stable/postgresql
-version: 5.3.11
+chart: postgresql
+repo: https://charts.bitnami.com/bitnami
+version: "8.10.5"
 serviceResource:
   kind: StatefulSet
   name: postgres
