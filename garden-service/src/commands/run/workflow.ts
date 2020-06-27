@@ -21,8 +21,9 @@ import { ConfigurationError, FilesystemError } from "../../exceptions"
 import { posix, join } from "path"
 import { ensureDir, writeFile } from "fs-extra"
 import Bluebird from "bluebird"
-import { splitStream } from "../../util/util"
-import execa, { ExecaError } from "execa"
+import { getDurationMsec } from "../../util/util"
+import { runScript } from "../../util/util"
+import { ExecaError } from "execa"
 import { LogLevel } from "../../logger/log-node"
 
 const runWorkflowArgs = {
@@ -107,6 +108,8 @@ export class RunWorkflowCommand extends Command<Args, {}> {
         stepName,
       })
 
+      const stepStartedAt = new Date()
+
       try {
         if (step.command) {
           step.command = resolveTemplateStrings(step.command, stepTemplateContext)
@@ -132,11 +135,11 @@ export class RunWorkflowCommand extends Command<Args, {}> {
             footerLog: stepFooterLog,
           })
         } else {
-          garden.events.emit("workflowStepError", { index })
+          garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
           throw new ConfigurationError(`Workflow steps must specify either a command or a script.`, { step })
         }
       } catch (err) {
-        garden.events.emit("workflowStepError", { index })
+        garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
         printStepDuration({
           log: outerLog,
           stepIndex: index,
@@ -160,12 +163,12 @@ export class RunWorkflowCommand extends Command<Args, {}> {
       }
 
       if (stepResult.errors) {
-        garden.events.emit("workflowStepError", { index })
+        garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
         logErrors(outerLog, stepResult.errors, index, steps.length, step.description)
         return { result, errors: stepResult.errors }
       }
 
-      garden.events.emit("workflowStepComplete", { index })
+      garden.events.emit("workflowStepComplete", getStepEndEvent(index, stepStartedAt))
       printStepDuration({
         log: outerLog,
         stepIndex: index,
@@ -356,35 +359,8 @@ class WorkflowScriptError extends GardenBaseError {
 }
 
 export async function runStepScript({ garden, log, step }: RunStepParams): Promise<CommandResult<any>> {
-  // Run the script, capturing any errors
-  const proc = execa("bash", ["-s"], {
-    all: true,
-    cwd: garden.projectRoot,
-    // The script is piped to stdin
-    input: step.script,
-    // Set a very large max buffer (we only hold one of these at a time, and want to avoid overflow errors)
-    buffer: true,
-    maxBuffer: 100 * 1024 * 1024,
-  })
-
-  // Stream output to `log`, splitting by line
-  const stdout = splitStream()
-  const stderr = splitStream()
-
-  stdout.on("error", () => {})
-  stdout.on("data", (line: Buffer) => {
-    log.info(line.toString())
-  })
-  stderr.on("error", () => {})
-  stderr.on("data", (line: Buffer) => {
-    log.info(line.toString())
-  })
-
-  proc.stdout!.pipe(stdout)
-  proc.stderr!.pipe(stderr)
-
   try {
-    await proc
+    await runScript(log, garden.projectRoot, step.script!)
     return { result: {} }
   } catch (_err) {
     const error = _err as ExecaError
@@ -400,4 +376,8 @@ export async function runStepScript({ garden, log, step }: RunStepParams): Promi
       stderr: error.stderr,
     })
   }
+}
+
+function getStepEndEvent(index: number, startedAt: Date) {
+  return { index, durationMsec: getDurationMsec(startedAt, new Date()) }
 }

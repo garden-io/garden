@@ -433,13 +433,87 @@ describe("resolveTemplateString", async () => {
   it("should throw when using comparison operators on missing keys", async () => {
     return expectError(
       () => resolveTemplateString("${a >= b}", new TestContext({ a: 123 })),
-      (err) => expect(stripAnsi(err.message)).to.equal("Invalid template string ${a >= b}: Could not find key b.")
+      (err) =>
+        expect(stripAnsi(err.message)).to.equal(
+          "Invalid template string ${a >= b}: Could not find key b. Available keys: a."
+        )
     )
   })
 
   it("should correctly evaluate clauses in parentheses", async () => {
     const res = resolveTemplateString("${(1 + 2) * (3 + 4)}", new TestContext({}))
     expect(res).to.equal(21)
+  })
+
+  it("should handle member lookup with bracket notation", async () => {
+    const res = resolveTemplateString("${foo['bar']}", new TestContext({ foo: { bar: true } }))
+    expect(res).to.equal(true)
+  })
+
+  it("should handle numeric member lookup with bracket notation", async () => {
+    const res = resolveTemplateString("${foo[1]}", new TestContext({ foo: [false, true] }))
+    expect(res).to.equal(true)
+  })
+
+  it("should handle consecutive member lookups with bracket notation", async () => {
+    const res = resolveTemplateString("${foo['bar']['baz']}", new TestContext({ foo: { bar: { baz: true } } }))
+    expect(res).to.equal(true)
+  })
+
+  it("should handle dot member after bracket member", async () => {
+    const res = resolveTemplateString("${foo['bar'].baz}", new TestContext({ foo: { bar: { baz: true } } }))
+    expect(res).to.equal(true)
+  })
+
+  it("should handle template expression within brackets", async () => {
+    const res = resolveTemplateString(
+      "${foo['${bar}']}",
+      new TestContext({
+        foo: { baz: true },
+        bar: "baz",
+      })
+    )
+    expect(res).to.equal(true)
+  })
+
+  it("should handle identifiers within brackets", async () => {
+    const res = resolveTemplateString(
+      "${foo[bar]}",
+      new TestContext({
+        foo: { baz: true },
+        bar: "baz",
+      })
+    )
+    expect(res).to.equal(true)
+  })
+
+  it("should handle nested identifiers within brackets", async () => {
+    const res = resolveTemplateString(
+      "${foo[a.b]}",
+      new TestContext({
+        foo: { baz: true },
+        a: { b: "baz" },
+      })
+    )
+    expect(res).to.equal(true)
+  })
+
+  it("should throw if bracket expression resolves to a non-primitive", async () => {
+    return expectError(
+      () => resolveTemplateString("${foo[bar]}", new TestContext({ foo: {}, bar: {} })),
+      (err) =>
+        expect(err.message).to.equal(
+          "Invalid template string ${foo[bar]}: Expression in bracket must resolve to a primitive (got object)."
+        )
+    )
+  })
+
+  it("should throw if attempting to index a primitive with brackets", async () => {
+    return expectError(
+      () => resolveTemplateString("${foo[bar]}", new TestContext({ foo: 123, bar: "baz" })),
+      (err) =>
+        expect(err.message).to.equal('Invalid template string ${foo[bar]}: Attempted to look up key "baz" on a number.')
+    )
   })
 
   it("should throw when using >= on non-numeric terms", async () => {
@@ -485,22 +559,36 @@ describe("resolveTemplateString", async () => {
     expect(res).to.equal(true)
   })
 
+  it("should handle numeric indices on arrays", () => {
+    const res = resolveTemplateString("${foo.1}", new TestContext({ foo: [false, true] }))
+    expect(res).to.equal(true)
+  })
+
+  it("should resolve keys on objects in arrays", () => {
+    const res = resolveTemplateString("${foo.1.bar}", new TestContext({ foo: [{}, { bar: true }] }))
+    expect(res).to.equal(true)
+  })
+
   it("should correctly propagate errors from nested contexts", async () => {
     await expectError(
-      () => resolveTemplateString("${nested.missing}", new TestContext({ nested: new TestContext({}) })),
+      () =>
+        resolveTemplateString(
+          "${nested.missing}",
+          new TestContext({ nested: new TestContext({ foo: 123, bar: 456, baz: 789 }) })
+        ),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(
-          "Invalid template string ${nested.missing}: Could not find key missing under nested."
+          "Invalid template string ${nested.missing}: Could not find key missing under nested. Available keys: bar, baz and foo."
         )
     )
   })
 
   it("should correctly propagate errors from nested objects", async () => {
     await expectError(
-      () => resolveTemplateString("${nested.missing}", new TestContext({ nested: {} })),
+      () => resolveTemplateString("${nested.missing}", new TestContext({ nested: { foo: 123, bar: 456 } })),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(
-          "Invalid template string ${nested.missing}: Could not find key missing under nested."
+          "Invalid template string ${nested.missing}: Could not find key missing under nested. Available keys: bar and foo."
         )
     )
   })

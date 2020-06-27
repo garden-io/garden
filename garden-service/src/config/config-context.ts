@@ -17,11 +17,12 @@ import { Garden } from "../garden"
 import { joi } from "../config/common"
 import { KeyedSet } from "../util/keyed-set"
 import { RuntimeContext } from "../runtime-context"
-import { deline, dedent } from "../util/string"
+import { deline, dedent, naturalList } from "../util/string"
 import { getProviderUrl, getModuleTypeUrl } from "../docs/common"
 import { Module } from "../types/module"
 import { ModuleConfig } from "./module"
 import { ModuleVersion } from "../vcs/vcs"
+import { isPrimitive } from "util"
 
 export type ContextKey = string[]
 
@@ -95,6 +96,7 @@ export abstract class ConfigContext {
     }
 
     // keep track of which resolvers have been called, in order to detect circular references
+    let available: any[] | null = null
     let value: any = this
     let partial = false
     let nextKey = key[0]
@@ -108,11 +110,23 @@ export abstract class ConfigContext {
       const remainder = key.slice(p + 1)
       nestedNodePath = nodePath.concat(lookupPath)
       const stackEntry = nestedNodePath.join(".")
+      available = null
 
-      if (nextKey.startsWith("_")) {
+      if (typeof nextKey === "string" && nextKey.startsWith("_")) {
         value = undefined
+      } else if (isPrimitive(value)) {
+        throw new ConfigurationError(`Attempted to look up key ${JSON.stringify(nextKey)} on a ${typeof value}.`, {
+          value,
+          nodePath,
+          fullPath,
+          opts,
+        })
+      } else if (value instanceof Map) {
+        available = [...value.keys()]
+        value = value.get(nextKey)
       } else {
-        value = value instanceof Map ? value.get(nextKey) : value[nextKey]
+        available = Object.keys(value).filter((k) => !k.startsWith("_"))
+        value = value[nextKey]
       }
 
       if (typeof value === "function") {
@@ -162,6 +176,10 @@ export abstract class ConfigContext {
           message += chalk.red(" under ") + chalk.white(nestedNodePath.slice(0, -1).join("."))
         }
         message += chalk.red(".")
+
+        if (available && available.length) {
+          message += chalk.red(" Available keys: " + naturalList(available.sort().map((k) => chalk.white(k))) + ".")
+        }
       }
 
       if (opts.allowUndefined) {
@@ -289,6 +307,46 @@ export class ProjectConfigContext extends ConfigContext {
   }
 }
 
+/**
+ * This context is available for template strings for all `environments[]` fields (except name)
+ */
+export class EnvironmentConfigContext extends ProjectConfigContext {
+  @schema(
+    LocalContext.getSchema().description(
+      "Context variables that are specific to the currently running environment/machine."
+    )
+  )
+  public local: LocalContext
+
+  @schema(ProjectContext.getSchema().description("Information about the Garden project."))
+  public project: ProjectContext
+
+  @schema(
+    joiVariables()
+      .description("A map of all variables defined in the project configuration.")
+      .meta({ keyPlaceholder: "<variable-name>" })
+  )
+  public variables: DeepPrimitiveMap
+
+  @schema(joiIdentifierMap(joiPrimitive()).description("Alias for the variables field."))
+  public var: DeepPrimitiveMap
+
+  constructor({
+    projectName,
+    artifactsPath,
+    username,
+    variables,
+  }: {
+    projectName: string
+    artifactsPath: string
+    username?: string
+    variables: DeepPrimitiveMap
+  }) {
+    super({ projectName, artifactsPath, username })
+    this.variables = this.var = variables
+  }
+}
+
 class EnvironmentContext extends ConfigContext {
   @schema(
     joi
@@ -324,21 +382,21 @@ class EnvironmentContext extends ConfigContext {
   }
 }
 
-export class WorkflowConfigContext extends ProjectConfigContext {
+export class WorkflowConfigContext extends EnvironmentConfigContext {
   @schema(
     EnvironmentContext.getSchema().description("Information about the environment that Garden is running against.")
   )
   public environment: EnvironmentContext
 
+  // Overriding to update the description. Same schema as base.
   @schema(
     joiVariables()
-      .description("A map of all variables defined in the project configuration.")
+      .description(
+        "A map of all variables defined in the project configuration, including environment-specific variables."
+      )
       .meta({ keyPlaceholder: "<variable-name>" })
   )
   public variables: DeepPrimitiveMap
-
-  @schema(joiIdentifierMap(joiPrimitive()).description("Alias for the variables field."))
-  public var: DeepPrimitiveMap
 
   @schema(
     joiStringMap(joi.string().description("The secret's value."))
@@ -354,14 +412,18 @@ export class WorkflowConfigContext extends ProjectConfigContext {
   public steps: Map<string, WorkflowStepContext | ErrorContext> | PassthroughContext
 
   constructor(garden: Garden) {
-    super({ projectName: garden.projectName, artifactsPath: garden.artifactsPath, username: garden.username })
+    super({
+      projectName: garden.projectName,
+      artifactsPath: garden.artifactsPath,
+      username: garden.username,
+      variables: garden.variables,
+    })
 
     const fullEnvName = garden.namespace ? `${garden.namespace}.${garden.environmentName}` : garden.environmentName
     this.environment = new EnvironmentContext(this, garden.environmentName, fullEnvName, garden.namespace)
 
     this.project = new ProjectContext(this, garden.projectName)
 
-    this.var = this.variables = garden.variables
     this.secrets = garden.secrets
 
     this.steps = new PassthroughContext()

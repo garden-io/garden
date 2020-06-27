@@ -14,6 +14,7 @@ import {
   ProviderConfigContext,
   OutputConfigContext,
   WorkflowStepConfigContext,
+  EnvironmentConfigContext,
 } from "../config/config-context"
 import { readFileSync, writeFileSync } from "fs"
 import handlebars from "handlebars"
@@ -31,6 +32,10 @@ export function writeTemplateStringReferenceDocs(docsRoot: string) {
     schema: ProviderConfigContext.getSchema().required(),
   })
 
+  const environmentContext = renderTemplateStringReference({
+    schema: EnvironmentConfigContext.getSchema().required(),
+  })
+
   const moduleContext = renderTemplateStringReference({
     schema: ModuleConfigContext.getSchema().required(),
   })
@@ -45,7 +50,14 @@ export function writeTemplateStringReferenceDocs(docsRoot: string) {
 
   const templatePath = resolve(TEMPLATES_DIR, "template-strings.hbs")
   const template = handlebars.compile(readFileSync(templatePath).toString())
-  const markdown = template({ projectContext, providerContext, moduleContext, outputContext, workflowContext })
+  const markdown = template({
+    projectContext,
+    environmentContext,
+    providerContext,
+    moduleContext,
+    outputContext,
+    workflowContext,
+  })
 
   writeFileSync(outputPath, markdown)
 }

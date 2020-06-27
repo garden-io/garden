@@ -62,6 +62,7 @@ export async function enterpriseInit({ log, projectConfig, environmentName }: En
           log,
           environmentName,
         })
+        log.silly(`Fetched ${Object.keys(secrets).length} secrets from ${domain}`)
       } else {
         log.warn(deline`
           You were previously logged in to Garden Enterprise, but your session has expired or is invalid. Please run

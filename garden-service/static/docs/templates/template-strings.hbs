@@ -11,9 +11,15 @@ Note that there are four sections below, since different configuration sections 
 
 ## Project configuration context
 
-The following keys are available in any template strings within project definitions in `garden.yml` config files, except the `name` field (which cannot be templated). See the [Provider](#provider-configuration-context) section below for additional keys available when configuring `providers`:
+The following keys are available in any template strings within project definitions in `garden.yml` config files, except the `name` field (which cannot be templated). See the [Environment](#environment-configuration-context) and [Provider](#provider-configuration-context) sections below for additional keys available when configuring `environments` and `providers`, respectively.
 
 {{{projectContext}}}
+
+## Environment configuration context
+
+The following keys are available in template strings under the `environments` key in project configs. Additional keys are available for the `environments[].providers` field, see the [Provider](#provider-configuration-context) section below for those.
+
+{{{environmentContext}}}
 
 ## Provider configuration context
 

@@ -58,6 +58,7 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
         { name: "conftest" },
         { name: "conftest-container" },
         { name: "conftest-kubernetes" },
+        { name: "exec" },
         { name: "hadolint" },
         { name: "kubernetes" },
         { name: "local-kubernetes" },
@@ -77,7 +78,7 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
     const name = plugin.name
 
     // Currently nothing to document for these
-    if (name === "container" || name === "exec") {
+    if (name === "container") {
       continue
     }
 

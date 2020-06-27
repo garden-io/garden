@@ -10,7 +10,7 @@ import { expect } from "chai"
 import { join, resolve } from "path"
 import { Garden } from "../../../../src/garden"
 import { gardenPlugin, configureExecModule } from "../../../../src/plugins/exec"
-import { GARDEN_BUILD_VERSION_FILENAME } from "../../../../src/constants"
+import { GARDEN_BUILD_VERSION_FILENAME, DEFAULT_API_VERSION } from "../../../../src/constants"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { keyBy } from "lodash"
 import { getDataDir, makeTestModule, expectError } from "../../../helpers"
@@ -22,6 +22,8 @@ import { ConfigGraph } from "../../../../src/config-graph"
 import { pathExists, emptyDir } from "fs-extra"
 import { TestTask } from "../../../../src/tasks/test"
 import { findByName } from "../../../../src/util/util"
+import { defaultNamespace } from "../../../../src/config/project"
+import { readFile } from "fs-extra"
 
 describe("exec plugin", () => {
   const projectRoot = resolve(dataDir, "test-project-exec")
@@ -36,6 +38,48 @@ describe("exec plugin", () => {
     graph = await garden.getConfigGraph(garden.log)
     log = garden.log
     await garden.clearBuilds()
+  })
+
+  it("should run a script on init in the project root, if configured", async () => {
+    const _garden = await Garden.factory(garden.projectRoot, {
+      plugins: [],
+      config: {
+        apiVersion: DEFAULT_API_VERSION,
+        kind: "Project",
+        name: "test",
+        path: garden.projectRoot,
+        defaultEnvironment: "default",
+        dotIgnoreFiles: [],
+        environments: [{ name: "default", defaultNamespace, variables: {} }],
+        providers: [{ name: "exec", initScript: "echo hello! > .garden/test.txt" }],
+        variables: {},
+      },
+    })
+
+    await _garden.resolveProviders(_garden.log)
+
+    const f = await readFile(join(garden.projectRoot, ".garden", "test.txt"))
+
+    expect(f.toString().trim()).to.equal("hello!")
+  })
+
+  it("should throw if a script configured and exits with a non-zero code", async () => {
+    const _garden = await Garden.factory(garden.projectRoot, {
+      plugins: [],
+      config: {
+        apiVersion: DEFAULT_API_VERSION,
+        kind: "Project",
+        name: "test",
+        path: garden.projectRoot,
+        defaultEnvironment: "default",
+        dotIgnoreFiles: [],
+        environments: [{ name: "default", defaultNamespace, variables: {} }],
+        providers: [{ name: "exec", initScript: "echo oh no!; exit 1" }],
+        variables: {},
+      },
+    })
+
+    await expectError(() => _garden.resolveProviders(_garden.log), "plugin")
   })
 
   it("should correctly parse exec modules", async () => {

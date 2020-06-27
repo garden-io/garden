@@ -65,7 +65,8 @@ environments:
     varfile:
 
     # A key/value map of variables that modules can reference when using this environment. These take precedence over
-    # variables defined in the top-level `variables` field.
+    # variables defined in the top-level `variables` field, but may also reference the top-level variables in template
+    # strings.
     variables: {}
 
 # A list of providers that should be used for this project, and their configuration. Please refer to individual
@@ -330,7 +331,7 @@ environments:
 
 [environments](#environments) > variables
 
-A key/value map of variables that modules can reference when using this environment. These take precedence over variables defined in the top-level `variables` field.
+A key/value map of variables that modules can reference when using this environment. These take precedence over variables defined in the top-level `variables` field, but may also reference the top-level variables in template strings.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |

@@ -6,12 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { registerCleanupFunction } from "../util/util"
+import Bluebird from "bluebird"
 import { Events, EventName, EventBus, eventNames } from "../events"
 import { LogEntryMetadata, LogEntry } from "../logger/log-entry"
 import { chainMessages } from "../logger/renderers"
 import { got } from "../util/http"
 import { makeAuthHeader } from "./auth"
+import { LogLevel } from "../logger/log-node"
 
 const workflowRunUid = process.env.GARDEN_WORKFLOW_RUN_UID || null
 
@@ -27,6 +28,7 @@ export interface LogEntryEvent {
   revision: number
   msg: string | string[]
   timestamp: Date
+  level: LogLevel
   data?: any
   section?: string
   metadata?: LogEntryMetadata
@@ -34,12 +36,12 @@ export interface LogEntryEvent {
 
 export function formatForEventStream(entry: LogEntry): LogEntryEvent {
   const { section, data } = entry.getMessageState()
-  const { key, revision } = entry
+  const { key, revision, level } = entry
   const parentKey = entry.parent ? entry.parent.key : null
   const metadata = entry.getMetadata()
   const msg = chainMessages(entry.getMessageStates() || [])
   const timestamp = new Date()
-  return { key, parentKey, revision, msg, data, metadata, section, timestamp }
+  return { key, parentKey, revision, msg, data, metadata, section, timestamp, level }
 }
 
 export const FLUSH_INTERVAL_MSEC = 1000
@@ -83,6 +85,7 @@ export class BufferedEventStream {
   }
 
   connect(eventBus: EventBus, clientAuthToken: string, enterpriseDomain: string, projectId: string) {
+    this.log.silly("BufferedEventStream: Connected")
     this.clientAuthToken = clientAuthToken
     this.enterpriseDomain = enterpriseDomain
     this.projectId = projectId
@@ -121,18 +124,22 @@ export class BufferedEventStream {
     this.intervalId = setInterval(() => {
       this.flushBuffered({ flushAll: false })
     }, FLUSH_INTERVAL_MSEC)
-
-    registerCleanupFunction("flushAllBufferedEventsAndLogEntries", () => {
-      this.close()
-    })
   }
 
-  close() {
+  async close() {
     if (this.intervalId) {
       clearInterval(this.intervalId)
       this.intervalId = null
     }
-    this.flushBuffered({ flushAll: true })
+    try {
+      await this.flushBuffered({ flushAll: true })
+    } catch (err) {
+      /**
+       * We don't throw an exception here, since a failure to stream events and log entries doesn't mean that the
+       * command failed.
+       */
+      this.log.error(`Error while flushing events and log entries: ${err.message}`)
+    }
   }
 
   streamEvent<T extends EventName>(name: T, payload: Events[T]) {
@@ -147,7 +154,11 @@ export class BufferedEventStream {
     this.bufferedLogEntries.push(logEntry)
   }
 
-  flushEvents(events: StreamEvent[]) {
+  // Note: Returns a promise.
+  async flushEvents(events: StreamEvent[]) {
+    if (events.length === 0) {
+      return
+    }
     const data = {
       events,
       workflowRunUid,
@@ -155,12 +166,20 @@ export class BufferedEventStream {
       projectUid: this.projectId,
     }
     const headers = makeAuthHeader(this.clientAuthToken)
-    got.post(`${this.enterpriseDomain}/events`, { json: data, headers }).catch((err) => {
+    this.log.silly(`Flushing ${events.length} events to ${this.enterpriseDomain}/events`)
+    this.log.silly(`--------`)
+    this.log.silly(`data: ${JSON.stringify(data)}`)
+    this.log.silly(`--------`)
+    await got.post(`${this.enterpriseDomain}/events`, { json: data, headers }).catch((err) => {
       this.log.error(err)
     })
   }
 
-  flushLogEntries(logEntries: LogEntryEvent[]) {
+  // Note: Returns a promise.
+  async flushLogEntries(logEntries: LogEntryEvent[]) {
+    if (logEntries.length === 0) {
+      return
+    }
     const data = {
       logEntries,
       workflowRunUid,
@@ -168,7 +187,11 @@ export class BufferedEventStream {
       projectUid: this.projectId,
     }
     const headers = makeAuthHeader(this.clientAuthToken)
-    got.post(`${this.enterpriseDomain}/log-entries`, { json: data, headers }).catch((err) => {
+    this.log.silly(`Flushing ${logEntries.length} log entries to ${this.enterpriseDomain}/log-entries`)
+    this.log.silly(`--------`)
+    this.log.silly(`data: ${JSON.stringify(data)}`)
+    this.log.silly(`--------`)
+    await got.post(`${this.enterpriseDomain}/log-entries`, { json: data, headers }).catch((err) => {
       this.log.error(err)
     })
   }
@@ -176,15 +199,11 @@ export class BufferedEventStream {
   flushBuffered({ flushAll = false }) {
     const eventsToFlush = this.bufferedEvents.splice(0, flushAll ? this.bufferedEvents.length : MAX_BATCH_SIZE)
 
-    if (eventsToFlush.length > 0) {
-      this.flushEvents(eventsToFlush)
-    }
-
-    const logEntryFlushCount = flushAll ? this.bufferedLogEntries.length : MAX_BATCH_SIZE - eventsToFlush.length
+    const logEntryFlushCount = flushAll
+      ? this.bufferedLogEntries.length
+      : MAX_BATCH_SIZE - this.bufferedLogEntries.length
     const logEntriesToFlush = this.bufferedLogEntries.splice(0, logEntryFlushCount)
 
-    if (logEntriesToFlush.length > 0) {
-      this.flushLogEntries(logEntriesToFlush)
-    }
+    return Bluebird.all([this.flushEvents(eventsToFlush), this.flushLogEntries(logEntriesToFlush)])
   }
 }
