@@ -5,7 +5,7 @@ title: Modules
 
 # Modules
 
-Modules are the basic **unit of building** in Garden. They are usually the first thing you add after creating the project level configuration.
+Modules are the basic **unit of building** in Garden. They are usually the first thing you add after creating the project-level configuration.
 
 A module can correspond to a Dockerfile and its associated code, a remote Docker image, a Helm chart, an OpenFaaS function, and more, all depending on the module type.
 
@@ -26,7 +26,7 @@ tests:
 
 ## How it Works
 
-A Garden project is usually split up into the project level `garden.yml` file and several module level configuration files:
+A Garden project is usually split up into the project-level `garden.yml` file and several module-level configuration files:
 
 ```console
 .
@@ -43,7 +43,7 @@ A Garden project is usually split up into the project level `garden.yml` file an
 ```
 
 {% hint style="info" %}
-It's also possible to [define several modules in the same `garden.yml` file](#multiple-modules-in-the-same-directory) and/or in the same file as the the project level configuration.
+It's also possible to [define several modules in the same `garden.yml` file](#multiple-modules-in-the-same-directory) and/or in the same file as the the project-level configuration.
 {% endhint %}
 
 Modules must have a type. Different [module _types_](#module-types) behave in different ways. For example, the `container` module type corresponds to a Docker image, either built from a local Dockerfile or pulled from a remote repository.
@@ -56,12 +56,12 @@ Read the sections below for more information on configuring modules, including h
 
 ### Module types
 
-Garden is pluggable and features a number of module types. You can find all of them and their full reference [here](../reference/module-types/README.md), but we'll provide a high-level overview of the most commonly used types here:
+Garden is pluggable and features a number of module types. You can find all of them and their full reference documentation [here](../reference/module-types/README.md), but we'll provide a high-level overview of the most commonly used types below:
 
 - [container](../guides/container-modules.md) modules are a high level and portable way to describe how container images are both built and deployed. When working with containers you'll at least use this to build the images, but you may also specify `services`, `tasks` and `tests` on them. The `kubernetes` providers, for example, can take these service definitions, generate Kubernetes manifests and deploy them. This is generally much easier to use than the below `kubernetes` and `helm` module types, but in turn loses some of the flexibility of those two.
 - [kubernetes](../reference/module-types/kubernetes.md) modules are quite simple. They allow you to provide your own Kubernetes manifests, which the `kubernetes` providers can then deploy. Use this for any custom manifests you need or already have, and when you don't need the capabilities of the more complex `helm` modules.
 - [helm](../guides/using-helm-charts.md) modules allow you to deploy your own Helm charts, or 3rd-party charts from remote repositories. [Helm](https://helm.sh/) is a powerful tool, especially when deploying 3rd-party (or otherwise external) charts. You can also make your own charts, but we recommend only doing so when you need its flexible templating capabilities, or if you aim to publish the charts.
-- [exec](../reference/module-types/exec.md) modules offer a flexible way to weave in arbitrary scripts and commands, that are executed locally. This can be custom build steps, tasks, tests or really anything else. The caveat is that they always run on the same machine as the Garden CLI, and not e.g. in a Kubernetes cluster, and thus not quite as portable.
+- [exec](../reference/module-types/exec.md) modules offer a flexible way to weave in arbitrary scripts and commands that are executed locally. These can be custom build steps, tasks, tests or really anything else. The caveat is that they always run on the same machine as the Garden CLI, and not e.g. in a Kubernetes cluster, and thus not quite as portable.
 - [terraform](../reference/module-types/terraform.md) modules offer a powerful way to deploy any cloud resources as part of your project. See the [Terraform guide](../advanced/terraform.md) for more information.
 
 There are several other module types available as well. See the [module types reference](../reference/module-types/README.md) for a full list of supported module types, and their configuration reference.
@@ -84,13 +84,13 @@ exclude:
 ...
 ```
 
-Here we only include the `Dockerfile` and all the `.py` files under `my-sources/`, but exclude the `my-sources/tmp` directory.
+Here, we only include the `Dockerfile` and all the `.py` files under `my-sources/`, but exclude the `my-sources/tmp` directory.
 
 If you specify a list with `include`, only those files/patterns are included. If you then specify one or more `exclude` files or patterns, those are filtered out of the files matched by `include`. If you _only_ specify `exclude`, those patterns will be filtered out of all files in the module directory.
 
 Note that the module `include` and `exclude` fields have no effect on which paths Garden watches for changes. Use the [project `modules.exclude` field](./projects.md#) for that purpose.
 
-You can also use [.gardenignore files](./configuration-overview.md#ignore-files), much like `.gitignore` files, to exclude files across your project. You can place them in your project root, module roots, and even individual sub-directories of modules.
+You can also use [.gardenignore files](./configuration-overview.md#ignore-files), much like `.gitignore` files, to exclude files across your project. You can place them in your project root, in module roots, and even in individual sub-directories of modules.
 
 ### Multiple modules in the same directory
 
@@ -181,7 +181,7 @@ include:
 
 ### Container Module with a Remote Image
 
-In this example we use the `image` directive to include an external Docker image with the project. This module has no source code of its own.
+In this example, we use the `image` directive to include an external Docker image with the project. This module has no source code of its own.
 
 ```yaml
 kind: Module
@@ -207,7 +207,7 @@ image: postgres:11.7-alpine
 ```
 
 Disabling a module disables all services, tasks and tests defined in the module.
-Note however, that if a disabled module is referenced as a build dependency of another module, the module will still be built when needed, to ensure the dependant module can be built as expected.
+Note, however, that if a disabled module is referenced as a build dependency of another module, the module will still be built when needed, to ensure the dependant module can be built as expected.
 
 ## Further Reading
 

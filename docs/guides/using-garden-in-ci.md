@@ -124,6 +124,6 @@ jobs:
 
 Note the two environment variables. Setting `GARDEN_LOGGER_TYPE=basic` is important, because the default fancy logger will not play nice with CI and just spam it with spinner glyphs.
 
-Also notice that there are no configuration steps outside of just configuring the kubectl context.
+Also, notice that there are no configuration steps outside of just configuring the kubectl context.
 And no matter how you change your stack, these steps will remain the same, making for a highly portable
 workflow—and much less fiddling around with CI!

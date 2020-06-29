@@ -9,7 +9,7 @@ title: FAQ
 
 ### How do I include multiple modules with multiple Dockerfiles in the same directory?
 
-You will have to use the module level [`include`](https://docs.garden.io/reference/module-types/container#include) directive to specify which files belong to each module. You will also have to provide the path to the Dockerfile with the [`dockerfile`](https://docs.garden.io/reference/module-types/container#dockerfile) directive.
+You will have to use the module-level [`include`](https://docs.garden.io/reference/module-types/container#include) directive to specify which files belong to each module. You will also have to provide the path to the Dockerfile with the [`dockerfile`](https://docs.garden.io/reference/module-types/container#dockerfile) directive.
 
 If the module only has a Dockerfile but no other files, say because it's a 3rd party image, you should set `include: []`.
 
@@ -33,7 +33,7 @@ Both, actually.
 
 We aim to change to this behavior and make it more user-friendly with our next major release.
 
-### When should I use the module level `include`/`exclude` fields? How are they different from the project level  `module.include/module.exclude` fields? What about ignore files?
+### When should I use the module-level `include`/`exclude` fields? How are they different from the project-level  `module.include/module.exclude` fields? What about ignore files?
 
 Read all about it in [this section](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) of our docs.
 
@@ -75,7 +75,7 @@ See [this example project](https://github.com/garden-io/garden/tree/v0.11.14/exa
 
 ### How do I add Docker specific flags to the build command?
 
-Use the module level  [`extraFlags` field](https://docs.garden.io/module-types/container#extraflags).
+Use the module-level  [`extraFlags` field](https://docs.garden.io/module-types/container#extraflags).
 
 ### How do I use different Dockerfiles for different environments?
 

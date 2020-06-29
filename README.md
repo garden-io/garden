@@ -8,7 +8,7 @@ Featuring:
 
 - **In-cluster builds:** Build images in your Kubernetes development cluster–and avoid having to use local Kubernetes clusters.
 - **Test orchestration:** Garden has first-class support for testing, and allows you to easily define tests that run in-cluster, alongside your services.
-- **Result caching:** Built and test results are shared between users when using the same cluster. Teams can easily share build and test results, and your CI can use the same build caches as the team.
+- **Result caching:** Build and test results are shared between users when using the same cluster. Teams can easily share build and test results, and your CI can use the same build caches as the team.
 
 | Resources | What is it? |
 | --------- | ----------- |
@@ -33,21 +33,21 @@ Featuring:
 Users typically implement Garden for one or more of the following:
 
 - **Integration testing:** Because testing environments in Garden capture the full configuration of an application, it’s possible to run proper integration tests with runtime dependencies–no mocking or stubbing required. A developer can run integration tests with a single command before creating a PR, or integration tests can be run against a feature branch every time a PR is created.
-- **Manual QA & Review:** Garden makes it possible for developers and QA engineers to spin up production-like preview environments on demand. These preview environments can be used, for example, to QA any part of an application that can’t be covered by automated testing (e.g. complex frontend functionality) or in cases when client developers need a fully-functioning backend to validate new features.
+- **Manual QA & Review:** Garden enables developers and QA engineers to spin up production-like preview environments on demand. These preview environments can be used, for example, to QA any part of an application that can’t be covered by automated testing (e.g. complex frontend functionality) or in cases when client developers need a fully-functioning backend to validate new features.
 - **Troubleshooting & Development:** With Garden, developers working on distributed systems get a dependency-aware development environment, making it possible to receive feedback about integration issues with adjacent services and systems early in the dev process.
 
 ## Features: Why Use Garden?
 
 - **Production-like testing environments:** A testing environment in Garden captures the full configuration of an application, [including all adjacent services and dependencies](https://docs.garden.io/guides/development-workflows#tests-and-dependencies). Garden testing environments provide consistency across your entire org–no more, “Well, it works fine on my laptop.”
 - **Namespaced environments on demand:** Any developer can spin up (and tear down) a namespaced environment in a shared cluster without help from DevOps, or an environment can be created by CI on every pull request.
-- **Stack-aware builds and testing with result caching:** Garden is aware of the relationship between every service in your stack, and so instead of building an entire application or running a full suite of integration tests every time, Garden will only build or test what’s necessary based on what’s been changed. These build and test results are cached and can be shared across developers on a team. The result: much faster builds and test runs, which means faster feedback loops for developers.
-- **Shared development clusters with fast in-cluster building:** Build images in your Kubernetes development cluster, thus avoiding the need for local Kubernetes clusters (in other words, no Docker or Kubernetes on your local machine).
+- **Stack-aware builds and testing with result caching:** Garden is aware of the relationships between the services in your stack, and so instead of building an entire application or running a full suite of integration tests every time, Garden will only build or test what’s necessary based on what’s been changed. These build and test results are cached and can be shared across developers on a team. The result: much faster builds and test runs, which means faster feedback loops for developers.
+- **Shared development clusters with fast in-cluster building:** Build images in your Kubernetes development cluster, thus eliminating the need for local Kubernetes clusters (in other words, no Docker or Kubernetes on your local machine).
 - **Define [tasks](https://github.com/garden-io/garden/tree/v0.11.12/examples/tasks)** that run as part of your deployment process—e.g. database migrations or scaffolding.
 - **[Remote sources (multi-repository) support:](https://docs.garden.io/advanced/using-remote-sources)** Garden allows your project to automatically pull code from different repositories.
 - **Hardware and platform flexibility:** Run Garden on-prem or in one of several supported cloud providers. Build, test, and deploy Docker containers, [Helm charts](https://docs.garden.io/guides/using-helm-charts), and more. Choose from a variety of Kubernetes platforms and CI tools.
 - **Terraform integration:** Garden includes a [Terraform provider](https://docs.garden.io/advanced/terraform) that you can use to automatically validate and provision infrastructure as part of your project.
 - **Extensible plugin system:** Garden’s plugin system ensures you’ll be able to create custom module types tailored to your needs or take advantage of existing plugins (e.g. conftest, hadolint).
-- **Supported enterprise edition (if you need it):** Garden offers an enterprise edition of the product which provides secrets management, centralized environment management, direct integration with GitHub and other VCS providers, and enterprise security features (e.g. RBAC, SSO). The enterprise product comes with support SLAs and access to technical consulting. To learn more, [check out our website](https://garden.io) or [get in touch](https://garden.io/contact).
+- **Enterprise edition with support (if you need it):** Garden offers an enterprise edition of the product which provides secrets management, centralized environment management, direct integration with GitHub and other VCS providers, and enterprise security features (e.g. RBAC, SSO). The enterprise product comes with support SLAs and access to technical consulting. To learn more, [check out our website](https://garden.io) or [get in touch](https://garden.io/contact).
 
 ## Documentation
 
@@ -57,7 +57,7 @@ Overview:
 
 - **TODO**
 
-The [examples folder](https://github.com/garden-io/garden/tree/v0.12.0/examples) of our repository also shows a myriad of different ways to use Garden. Check out the README in each example for more information
+The [examples folder](https://github.com/garden-io/garden/tree/v0.12.0/examples) of our repository also shows a myriad of different ways to use Garden. Check out the README in each example for more information.
 
 ## How does Garden work?
 
@@ -67,12 +67,12 @@ Garden Core is a standalone tool that can run from CI or from a developer’s ma
 
 With the Stack Graph, each part of your stack can describe itself using simple, intuitive declarations, without changing any of your code. Garden collects all of your declarations—even across multiple repositories—into a full graph of your stack, and leverages that information to help you develop and test faster.
 
-When you run Garden with a shared Kubernetes cluster, Garden has its own namespace with a small set of services, including:
+When you run Garden with a shared Kubernetes cluster, Garden sets up its own namespace with a small set of services, including:
 
-- **Image cache and test cache:** Every time an image is built for a service, Garden saves it a cache. If a different developer wants to deploy the same version of an image, the image doesn’t have to be rebuilt–instead, Garden will check if the image exists in the Docker registry and skip the build step if it does. Test results are also saved in a test cache and can be shared across developers. These caches can reduce build and test time significantly, often by 80% or more.
+- **Image cache and test cache:** Every time an image is built for a service, Garden saves it a cache. If a different developer wants to deploy the same version of an image, the image doesn’t have to be rebuilt—instead, Garden will check if the image exists in the Docker registry and skip the build step if it does. Test results are also saved in a test cache and can be shared across developers. These caches can reduce build and test time significantly, often by 80% or more.
 - **Build service:** Developers and CI processes don’t need to run Docker and Kubernetes on their machine (unless they want to). The build service makes it possible for all of this to be handled in the cluster.
 
-Every developer, in turn, has a private namespace in the cluster. With one command, a dev can spin up a development and testing environment in their private namespace. In other words, they get a complete version of the application running in a namespace that they can then test and develop against.
+Every developer, in turn, has a private namespace in the cluster. With one command, a dev can spin up a development and testing environment in their private namespace. In other words, they get a full instance of the application running in a namespace that they can then test and develop against.
 
 ![Cluster Diagram](./docs/cluster-diagram.png "Cluster Diagram")
 
@@ -84,11 +84,11 @@ See our [documentation](https://garden.io) for more details.
 
 **How is Garden different from other Kubernetes development tools?**
 
-Garden is focused on testing and its role in cloud native application development: running fast and reliable integration tests, spinning up production like preview environments to manually QA a new feature, giving developers an environment where they can troubleshoot integration issues, and more. So Garden has a lot of features to manage dependencies, tests and other relationships between different parts of your stack. In turn, Garden might take a little bit longer to get started with, and has some additional terminology to learn.
+Garden is focused on testing and its role in cloud native application development: running fast and reliable integration tests, spinning up production-like preview environments to manually QA a new feature, giving developers an environment where they can troubleshoot integration issues, and more. So Garden has a lot of features to manage dependencies, tests and other relationships between different parts of your stack. In turn, Garden might take a little bit longer to get started with, and has some additional terminology to learn.
 
 Tools such as Skaffold and Tilt, for example, are coupled to Kubernetes, whereas Garden is designed to be more extensible and flexible. Tight coupling can in some cases enable more specific Kubernetes-related features. But even with its flexibility, we still believe that Garden offers some of the most comprehensive Kubernetes functionality available.
 
-We also feel strongly that testing and development tools should be adaptable across platforms, especially considering all the interesting technologies that are on the horizon, such as WASM, serverless, edge functions, etc.
+We also strongly feel that testing and development tools should be adaptable across platforms, especially considering all the interesting technologies that are on the horizon, such as WASM, serverless, edge functions, etc.
 
 **Is Garden a CI platform/tool?**
 

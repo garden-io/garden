@@ -9,11 +9,11 @@ Garden is a powerful and flexible tool, and there are several things to learn al
 3. Have a look at the [examples](https://github.com/garden-io/garden/tree/master/examples) folder in the Garden repository, which offers several usage examples that you can refer to while building out your project.
 4. Set up your modules, getting them building and deploying, **one at a time**.
 5. Make sure your whole project builds and deploys successfully.
-6. Start thinking about tests. Garden is a powerful tool for managing all the different test suites in your stack, especially integration and end-to-end tests that run inside your deployment environment.
+6. Start thinking about tests. Garden excels at managing all the different test suites in your stack, especially integration and end-to-end tests that need to run inside your deployment environment.
 7. Consider [running Garden in your CI](../guides/using-garden-in-ci.md), to deploy preview environments and/or to test your project.
 
 In summary, **gradually put all the pieces together**, learn the details as you go, and use more and more features as you get comfortable.
 
 For a large, complex project, it might be good to start with a subset of it, so that you can start getting value out of Garden quickly.
 
-Whatever your setup is, we're sure you'll be rewarded with a powerful setup for testing and developing your system!
+Whatever your setup is, we're sure you'll be rewarded with an elegant, productive setup for testing and developing your system!

@@ -105,7 +105,7 @@ services:
 ...
 ```
 
-`env` is a simple mapping of "name: value". Above we see a simple example with a string value, but you'll also commonly use [template strings](../using-garden/variables-and-templating.md#template-string-basics) to interpolate variables to be consumed by the container service.
+`env` is a simple mapping of "name: value". Above, we see a simple example with a string value, but you'll also commonly use [template strings](../using-garden/variables-and-templating.md#template-string-basics) to interpolate variables to be consumed by the container service.
 
 #### Secrets
 

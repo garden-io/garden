@@ -18,11 +18,11 @@ Lastly, you can define [workflows](./workflows.md), to codify sequences of Garde
 
 The other docs under the _Using Garden_ go into more details, and we highly recommend reading through all of them.
 
-Below you'll also find some general information on how to configure a project.
+Below, you'll also find some general information on how to configure a project.
 
 ## Including/excluding files and directories
 
-By default, all directories under the project root are scanned for Garden modules, and all files in the same directory as a module configuration file are included as source files for that module. Sometimes you need more granular control over the context, not least if you have multiple modules in the same directory.
+By default, all directories under the project root are scanned for Garden modules, and all files in the same directory as a module configuration file are included as source files for that module. Sometimes, you need more granular control over the context, not least if you have multiple modules in the same directory.
 
 Garden provides three different ways to achieve this:
 
@@ -63,7 +63,7 @@ Prior to Garden 0.12.0, `.gitignore` files were also respected by default. The d
 
 By default, Garden respects `.gardenignore` files and excludes any patterns matched in those files. You can place the ignore files anywhere in your repository, much like `.gitignore` files, and they will follow the same semantics.
 
-You can use those to exclude files and directories across the project, _both from being scanned for Garden modules and when selecting source files for individual module_. For example, you might put this `.gardenignore` file in your project root directory:
+You can use those to exclude files and directories across the project, _both from being scanned for Garden modules and when selecting source files for individual modules_. For example, you might put this `.gardenignore` file in your project root directory:
 
 ```gitignore
 node_modules
@@ -88,13 +88,13 @@ dotIgnoreFiles: [.gardenignore, .gitignore]
 If you're using Git submodules in your project, please note the following:
 
 1. You may ignore submodules using .ignore files and include/exclude filters. If a submodule path _itself_ (that is, the path to the submodule directory, not its contents), matches one that is ignored by your .ignore files or exclude filters, or if you specify include filters and the submodule path does not match one of them, the module will not be scanned.
-2. Include/exclude filters (both at the project and module level) are applied the same, whether a directory is a submodule or a normal directory.
+2. Include/exclude filters (both at the project and module-level) are applied the same way, whether a directory is a submodule or a normal directory.
 3. _.ignore files are considered in the context of each git root_. This means that a .ignore file that's outside of a submodule will be completely ignored when scanning that submodule. This is by design, to be consistent with normal Git behavior.
 
 ## Next steps
 
-We highly recommend reading all the other docs in this section, to learn about the different configuration options and entities.
+We highly recommend reading all the other docs in this section to learn about the different configuration options and entities.
 
-The [Variables and Templating guide](./variables-and-templating.md) exmplains how you can reference across different providers and modules, as well as to understand how to supply secret values to your configuration.
+The [Variables and Templating guide](./variables-and-templating.md) explains how you can reference across different providers and modules, as well as how to supply secret values to your configuration.
 
 Also, be sure to look at the [Config Files Reference](../reference/config.md) for more details on each of the available configuration fields, and the [Template Strings Reference](../reference/template-strings.md) for the keys available in template strings.

@@ -30,7 +30,7 @@ providers:
 
 We have one environment (`default`) and a single provider. We'll get back to this later.
 
-Next let's create module configs for each of our two modules, starting with `backend`:
+Next, let's create module configs for each of our two modules, starting with `backend`:
 
 ```sh
 cd backend

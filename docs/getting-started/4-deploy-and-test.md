@@ -26,6 +26,6 @@ Let's run them both:
 garden test
 ```
 
-You should see the services being ensured to run, and both tests run successfully.
+You should see Garden ensuring that the services are up and running, and that both tests run successfully.
 
 With that, we can move on from this simple example and on to [configuring your own project](./5-configure-your-project.md).

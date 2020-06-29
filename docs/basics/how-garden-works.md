@@ -20,6 +20,6 @@ When you run Garden with a shared Kubernetes cluster, Garden has its own namespa
 
 ![Cluster Diagram](../cluster-diagram.png "Garden + Kubernetes Cluster Diagram")
 
-Every developer, in turn, has a private namespace in the cluster. With one command, a dev can spin up a development and testing environment in their private namespace. In other words, they get a complete version of the application running in a namespace that they can then test and develop against.
+Every developer, in turn, has a private namespace in the cluster. With one command, a dev can spin up a development and testing environment in their private namespace. In other words, they get a full instance of the application running in a namespace that they can then test and develop against.
 
 And whenever you open a PR or merge a branch, your CI processes can also spin up a testing environment in a namespace on the same Kubernetes cluster.

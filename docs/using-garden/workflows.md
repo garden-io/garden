@@ -5,9 +5,9 @@ title: Workflows
 
 # Workflows
 
-Workflows allow users to define simple, CI-like sequences of commands and script _steps_, that can be run from a command line, in CI pipelines or directly triggered from PRs or branches using Garden Enterprise.
+Workflows allow users to define simple, CI-like sequences of Garden commands and script _steps_, that can be run from a command line, in CI pipelines or directly triggered from PRs or branches using Garden Enterprise.
 
-This provides a handy way to define a sequence of Garden commands, as well as weaving in custom scripts as part of a workflow. Custom shell scripts can be used for preparation ahead of running Garden commands, handling outputs from the commands, and more.
+Custom shell scripts can be used for preparation ahead of running Garden commands, handling outputs from the commands, and more.
 
 A sequence of commands executed in a workflow is also generally more efficent than scripting successive runs of Garden CLI commands, since state is cached between the commands, and there is no startup delay between the commands.
 
@@ -135,7 +135,7 @@ Unlike _modules_, workflows stand outside of the Stack Graph. They cannot curren
 ### Authenticate with Google Cloud before deploying a project
 
 {% hint style="info" %}
-Here we use _secrets_, which are a Garden Enterprise feature, for the auth key but you can replace those template keys with corresponding `${var.*}` or `${local.env.*}` keys as well.
+Here we use _secrets_ (which are a Garden Enterprise feature) for the auth key, but you can replace those template keys with corresponding `${var.*}` or `${local.env.*}` keys as well.
 {% endhint %}
 
 ```yaml
