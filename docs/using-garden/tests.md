@@ -1,9 +1,9 @@
 ---
-order: 5
-title: Running Tests
+order: 50
+title: Tests
 ---
 
-# Running Tests
+# Tests
 
 You add tests when you want Garden to run your test suites for you. A simple configuration looks like this:
 
@@ -144,4 +144,4 @@ source directory instead.
 
 ## Next Steps
 
-In the [next section](./running-tasks.md), we'll see how Garden can execute tasks for your. For example populating a database after it has been deployed.
+In the [next section](./tasks.md), we'll see how Garden can execute tasks for your. For example populating a database after it has been deployed.

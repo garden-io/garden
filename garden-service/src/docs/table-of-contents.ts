@@ -143,7 +143,7 @@ function generateMarkdown(tree: FileTree, docsRoot: string, depth: number, emoji
     depth = -1
   }
   // Empty folders are omitted; README files shouldn't be linked to directly.
-  if (tree.name === "README.md" || tree.emptyDir === true) {
+  if (tree.name === "README.md" || tree.emptyDir === true || tree.name === "welcome.md") {
     output = ""
   }
   for (let item in tree.children) {

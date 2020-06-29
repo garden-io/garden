@@ -1,8 +1,9 @@
 ---
-order: 3
-title: Stack Graph
+order: 2
+title: The Stack Graph (Terminology)
 ---
-# The Stack Graph
+
+# The Stack Graph (Terminology)
 
 Garden centers around the _Stack Graph_, which allows you to describe your whole stack in a consistent, structured way,
 without creating massive scripts or monolithic configuration files.
@@ -27,49 +28,19 @@ The Stack Graph is essentially an opinionated graph structure, with a handful of
 
 Each part of your stack _describes itself_ using a simple configuration file. Garden collects all those declarations, validates, and compiles them into a DAG (a _directed acyclic graph_, meaning it must have no circular dependencies).
 
+Additionally, Garden supports [Workflows](../using-garden/workflows.md), which allow you to define a CI-like sequence of Garden commands and scripts to perform.
+
+For more detail on all of the above, see the [Using Garden](../using-garden/README.md) section.
+
+## Pluggability
+
 Importantly, what happens within each of the actions that the graph describes—building, deploying, running etc.—is completely pluggable via the providers. The Stack Graph is only opinionated in terms of flows and dependencies—_what_ should happen _when_—but the _how_ is pluggable.
 
 All the Garden plugins are currently built-in; we will soon release a plugin SDK to allow any user to easily make their
 own plugins.
 
-## Configuration
+## Next Steps
 
-As mentioned above, each part of your stack should describe itself. This avoids massive project configuration files or scripts, and makes each part of your stack easy to understand, and even re-usable across projects in some cases.
+Head over to the [Getting Started](../getting-started/README.md) section to learn the basics on how to get up and running with Garden.
 
-This is done through simple configuration files, which are version controlled in your project, next to each of your code modules (if applicable). For example:
-
-```yaml
-kind: Module
-type: helm
-name: redis
-description: Redis service for message queueing
-repo: https://charts.bitnami.com/bitnami
-chart: redis
-version: "10.5.7"
-```
-
-```yaml
-kind: Module
-type: container
-name: my-service
-description: My HTTP service container
-services:
-- name: my-service
-  ports:
-    - name: http
-      containerPort: 80
-  ingresses:
-    - path: /hello
-      port: http
-tests:
-- name: integ
-  command: [./test]
-  dependencies: [my-other-service]
-```
-
-Note here the first four fields, which are common across all module types—`kind`, `type`, `name` and `description`. Other fields are specified by the corresponding _module type_, which are defined by _providers_.
-
-Also notice that the `container` module explicitly declares a service, whereas the `helm` module does not. This is dictated by the module
-type. Containers often only need to be built (e.g. base images for other containers), or may contain multiple services. A Helm chart, however, is generally a single deployable so the provider makes the service implicit when configuring it.
-
-For more details on how to configure your project, take a look at the [configuration guide](../guides/configuration-files.md).
+If you or your team has already set up a Garden project, you can also skip over to the [Using Garden](../using-garden/README.md) section, to learn more about the concepts and how to interact with Garden.

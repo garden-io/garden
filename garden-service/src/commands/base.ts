@@ -340,6 +340,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
       arguments: describeParameters(this.arguments),
       options: describeParameters(this.options),
       outputsSchema: this.outputsSchema,
+      workflows: this.workflows,
     }
   }
 

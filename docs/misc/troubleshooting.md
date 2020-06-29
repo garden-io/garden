@@ -11,7 +11,7 @@ _This section could (obviously) use more work. Contributions are most appreciate
 
 This issue often comes up on Linux, and in other scenarios where the filesystem doesn't support event-based file watching.
 
-Thankfully, you can in most cases avoid this problem using the `modules.exclude` field in your project config, and/or the `exclude` field in your individual module configs. See the [Including/excluding files and directories](../guides/configuration-files.md#includingexcluding-files-and-directories) section in our Configuration Files guide for details.
+Thankfully, you can in most cases avoid this problem using the `modules.exclude` field in your project config, and/or the `exclude` field in your individual module configs. See the [Including/excluding files and directories](../using-garden/configuration-overview.md#includingexcluding-files-and-directories) section in our Configuration Files guide for details.
 
 ### I'm getting an "EPERM: operation not permitted, rename..." error on Windows.
 
@@ -28,7 +28,7 @@ or `set -g default-terminal "tmux-256color"` to your `~/.tmux.conf` file.
 
 ### Garden hangs after resolving providers.
 
-This could be because Garden is scanning the project files. Make sure you exclude things like `node_modules` or other large vendor directories. See this [section of our docs](https://docs.garden.io/guides/configuration-files#including-excluding-files-and-directories).
+This could be because Garden is scanning the project files. Make sure you exclude things like `node_modules` or other large vendor directories. See this [section of our docs](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories).
 
 ### Ingress not working for `helm` and `kubernetes` modules.
 

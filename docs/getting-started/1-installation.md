@@ -1,8 +1,4 @@
----
-order: 1
-title: Installation
----
-# Installation
+# 1. Installation
 
 This guide will walk you through setting up the Garden framework.
 
@@ -24,10 +20,7 @@ You need the following dependencies on your local machine to use Garden:
 * Git (v2.14 or newer)
 * rsync (v3.1.0 or newer)
 
-And if you're building and running services locally, you need the following:
-
-* [Docker](https://docs.docker.com/) (v17.07.0 or newer)
-* A local installation of Kubernetes. Garden is committed to supporting the _latest six_ stable versions (i.e. if the latest stable version is v1.17.x, Garden supports v1.12.x and newer).
+And if you'd like to build and run services locally, you need a local installation of Kubernetes. Garden is committed to supporting the _latest six_ stable versions (i.e. if the latest stable version is v1.17.x, Garden supports v1.12.x and newer).
 
 ## macOS
 
@@ -131,11 +124,7 @@ If you prefer, you can perform the installation manually, as follows:
 2. Next create a `~/.garden/bin` directory, and extract the archive to that directory. _Make sure to include the whole contents of the archive._
 3. Lastly, either add the `~/.garden/bin` directory to your PATH, or add a symlink from your `/usr/local/bin/garden` to the binary at `~/.garden/bin/garden`.
 
-### Step 3 (optional): Docker
-
-To install Docker, please follow the instructions in the [official documentation](https://docs.docker.com/install/).
-
-### Step 4 (optional): Local Kubernetes
+### Step 3 (optional): Local Kubernetes
 
 If you'd like to use a local Kubernetes cluster, please refer to the [local Kubernetes guide](../guides/local-kubernetes.md)
 for installation and usage information.

@@ -1,3 +1,8 @@
+---
+order: 80
+title: Variables and templating
+---
+
 # Variables and templating
 
 This guide introduces the templating capabilities available in Garden configuration files, the available ways to provide variable values, and how to reference outputs across modules and providers.
@@ -321,3 +326,5 @@ Different module types expose different output keys for their services and tasks
 ## Next steps
 
 For a full reference of the keys available in template strings, please look at the [Template Strings Reference](../reference/template-strings.md), as well as individual [providers](../reference/providers/README.md) for provider outputs, and [module types](../reference/module-types/README.md) for module and runtime output keys.
+
+Also take a look at our [Guides section](../guides/README.md) for various specific uses of Garden.

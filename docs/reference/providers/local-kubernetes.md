@@ -13,7 +13,7 @@ For general Kubernetes usage information, please refer to the [guides section](h
 
 If you're working with a remote Kubernetes cluster, please refer to the [`kubernetes` provider](https://docs.garden.io/reference/providers/kubernetes) docs, and the [Remote Kubernetes guide](https://docs.garden.io/guides/remote-kubernetes) guide.
 
-Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../guides/configuration-files.md).
+Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 

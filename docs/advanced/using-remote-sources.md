@@ -12,7 +12,7 @@ The code examples below are from our [remote sources example](https://github.com
 
 ### Remote Sources
 
-You can import remote sources via the `sources` directive in the project level `garden.yml` like so:
+You can import remote sources via the `sources` directive in the project-level `garden.yml` like so:
 
 ```yaml
 # examples/remote-sources/garden.yml
@@ -67,7 +67,7 @@ services:
 
 ### Remote Modules
 
-You can import the source code for a _single_ Garden module from another repository via the `repositoryUrl` directive in the module level `garden.yml` like so:
+You can import the source code for a _single_ Garden module from another repository via the `repositoryUrl` directive in the module-level `garden.yml` like so:
 
 ```yaml
 # examples/remote-sources/jworker/garden.yml

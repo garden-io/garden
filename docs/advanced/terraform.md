@@ -79,7 +79,7 @@ garden --env=<env-name> plugins terraform apply-root -- -auto-approve
 
 ## Terraform modules
 
-You can also define `terraform` modules as part of your project, which act much like other Garden modules. A `terraform` module maps to a single _service_, that you can define as a runtime dependency for any of your other services and tasks. You can also reference the stack outputs of a `terraform` module using [runtime output template strings](../guides/variables-and-templating.md#runtime-outputs). For example:
+You can also define `terraform` modules as part of your project, which act much like other Garden modules. A `terraform` module maps to a single _service_, that you can define as a runtime dependency for any of your other services and tasks. You can also reference the stack outputs of a `terraform` module using [runtime output template strings](../using-garden/variables-and-templating.md#runtime-outputs). For example:
 
 ```yaml
 kind: Module

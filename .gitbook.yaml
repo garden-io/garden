@@ -1,5 +1,5 @@
 structure:
-  readme: README.md
+  readme: docs/welcome.md
   summary: docs/README.md
 
 redirects:

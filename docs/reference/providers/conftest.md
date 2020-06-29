@@ -13,7 +13,7 @@ Note that, in many cases, you'll actually want to use more specific providers th
 
 If those don't match your needs, you can use this provider directly and manually configure your `conftest` modules. Simply add this provider to your project configuration, and see the [conftest module documentation](https://docs.garden.io/reference/module-types/conftest) for a detailed reference. Also, check out the below reference for how to configure default policies, default namespaces, and test failure thresholds for all `conftest` modules.
 
-Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../guides/configuration-files.md).
+Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
 
 The reference is divided into two sections. The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 

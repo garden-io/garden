@@ -225,7 +225,7 @@ export const gardenPlugin = createGardenPlugin({
         one or more files with existing manifests.
 
         Note that if you include the manifests in the \`garden.yml\` file, you can use
-        [template strings](${DOCS_BASE_URL}/guides/variables-and-templating) to interpolate values into the manifests.
+        [template strings](${DOCS_BASE_URL}/using-garden/variables-and-templating) to interpolate values into the manifests.
 
         If you need more advanced templating features you can use the [helm](${getModuleTypeUrl("helm")}) module type.
       `,
