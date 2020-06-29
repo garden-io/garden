@@ -15,7 +15,7 @@ Featuring:
 | [Garden Website](https://garden.io) | The official Garden website, including information about the supported enterprise edition of the product |
 | [Garden Documentation / Getting Started](https://docs.garden.io) | Documentation for all editions of Garden, and the best place to get started |
 | [Blog](https://medium.com/garden-io) | Our company blog, where we share product updates, how-to guides, and other resources |
-| [Community Slack](https://chat.garden.io) | The best place to ask questions as a user of open source Garden Core |
+| [Community Slack](https://chat.garden.io) | The best place to ask questions as a user of Garden |
 
 > _If you’re using Garden or if you like the project, please ★ star this repository to show your support 💖_
 
