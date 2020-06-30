@@ -53,12 +53,6 @@ Users typically implement Garden for one or more of the following:
 
 You can find Garden’s full documentation at <https://docs.garden.io.>.
 
-Overview:
-
-- **TODO**
-
-The [examples folder](https://github.com/garden-io/garden/tree/v0.12.0/examples) of our repository also shows a myriad of different ways to use Garden. Check out the README in each example for more information.
-
 ## How does Garden work?
 
 Garden Core is a standalone tool that can run from CI or from a developer’s machine. It allows you to codify a complete description of your stack, including how it's built, deployed and tested, using the [Stack Graph](https://docs.garden.io/basics/stack-graph)—making your workflows reproducible and portable.
