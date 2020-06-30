@@ -71,3 +71,13 @@ On EKS, you can use `efs` instead, which may be more stable and scalable than th
 On AKS, you can use `azurefile`.
 
 You'll need to install the provisioners yourself and override the [`storage.sync.storageClass`](https://docs.garden.io/reference/providers/kubernetes#providers-storage-sync) field in the `kubernetes` provider config.
+
+## On Mac: "garden" cannot be opened because the developer cannot be verified.
+
+If this error came up when running the `garden` binary from inside your `~/Downloads` directory, try moving it outside
+the `~/Downloads` directory before running it again.
+
+If you're still getting this error, a workaround is to find the `garden` binary in Finder, CTRL-click it and choose
+_Open_. This should prevent this error message from coming up again.
+
+See also: https://support.apple.com/en-gb/guide/mac-help/mh40616/mac
