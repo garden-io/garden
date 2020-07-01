@@ -94,6 +94,7 @@ export interface KubernetesConfig extends ProviderConfig {
   }
   kaniko?: {
     image?: string
+    extraFlags?: string[]
   }
   context: string
   defaultHostname?: string
@@ -341,6 +342,9 @@ export const kubernetesConfigBase = providerConfigBaseSchema().keys({
             Change the kaniko image (repository/image:tag) to use when building in kaniko mode.
           `
         ),
+      extraFlags: joi.array().items(joi.string()).description(deline`
+        Specify extra flags to use when building the container image with kaniko.
+        Flags set on container module take precedence over these.`),
     })
     .default(() => {})
     .description("Configuration options for the `kaniko` build mode."),

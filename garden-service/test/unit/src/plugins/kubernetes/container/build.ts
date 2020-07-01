@@ -85,5 +85,13 @@ describe("kaniko build", () => {
       expect(getKanikoFlags([])).to.deep.equal(DEFAULT_KANIKO_FLAGS)
       expect(getKanikoFlags()).to.deep.equal(DEFAULT_KANIKO_FLAGS)
     })
+
+    it("should merge multiple flags if top level flags are provided", () => {
+      expect(getKanikoFlags(["--myToggle"], ["--cat=fast"])).to.deep.equal(["--myToggle", "--cat=fast", "--cache=true"])
+    })
+
+    it("should make leftmost flags win", () => {
+      expect(getKanikoFlags(["--cat=slow"], ["--cat=fast"])).to.deep.equal(["--cat=slow", "--cache=true"])
+    })
   })
 })

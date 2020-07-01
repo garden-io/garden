@@ -336,7 +336,7 @@ const remoteBuild: BuildHandler = async (params) => {
       dockerfile,
       "--destination",
       deploymentImageId,
-      ...getKanikoFlags(module.spec.extraFlags),
+      ...getKanikoFlags(module.spec.extraFlags, provider.config.kaniko?.extraFlags),
     ]
 
     if (provider.config.deploymentRegistry?.hostname === inClusterRegistryHostname) {
@@ -382,8 +382,8 @@ export interface BuilderExecParams {
 
 export const DEFAULT_KANIKO_FLAGS = ["--cache=true"]
 
-export const getKanikoFlags = (flags?: string[]): string[] => {
-  if (!flags) {
+export const getKanikoFlags = (flags?: string[], topLevelFlags?: string[]): string[] => {
+  if (!flags && !topLevelFlags) {
     return DEFAULT_KANIKO_FLAGS
   }
   const flagToKey = (flag) => {
@@ -393,9 +393,9 @@ export const getKanikoFlags = (flags?: string[]): string[] => {
     }
     return found[0]
   }
-  const defaultsToKeep = differenceBy(DEFAULT_KANIKO_FLAGS, flags, flagToKey)
-
-  return [...flags, ...defaultsToKeep]
+  const defaultsToKeep = differenceBy(DEFAULT_KANIKO_FLAGS, flags || topLevelFlags || [], flagToKey)
+  const topLevelToKeep = differenceBy(topLevelFlags || [], flags || [], flagToKey)
+  return [...(flags || []), ...topLevelToKeep, ...defaultsToKeep]
 }
 
 export function kanikoBuildFailed(buildRes: RunResult) {
