@@ -59,6 +59,10 @@ providers:
       # Change the kaniko image (repository/image:tag) to use when building in kaniko mode.
       image: 'gcr.io/kaniko-project/executor:debug-v0.23.0'
 
+      # Specify extra flags to use when building the container image with kaniko. Flags set on container module take
+      # precedence over these.
+      extraFlags:
+
     # A default hostname to use when no hostname is explicitly configured for a service.
     defaultHostname:
 
@@ -409,6 +413,16 @@ Change the kaniko image (repository/image:tag) to use when building in kaniko mo
 | Type     | Default                                          | Required |
 | -------- | ------------------------------------------------ | -------- |
 | `string` | `"gcr.io/kaniko-project/executor:debug-v0.23.0"` | No       |
+
+### `providers[].kaniko.extraFlags[]`
+
+[providers](#providers) > [kaniko](#providerskaniko) > extraFlags
+
+Specify extra flags to use when building the container image with kaniko. Flags set on container module take precedence over these.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
 
 ### `providers[].defaultHostname`
 
