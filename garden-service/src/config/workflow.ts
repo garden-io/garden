@@ -213,8 +213,13 @@ export interface TriggerSpec {
   ignoreTags?: string[]
 }
 
-export const triggerSchema = () =>
-  joi.object().keys({
+export const triggerSchema = () => {
+  const eventDescriptions = triggerEvents
+    .sort()
+    .map((event) => `\`${event}\``)
+    .join(", ")
+
+  return joi.object().keys({
     environment: joi.string().required().description(deline`
         The environment name (from your project configuration) to use for the workflow when matched by this trigger.
       `),
@@ -226,7 +231,16 @@ export const triggerSchema = () =>
       .array()
       .items(joi.string().valid(...triggerEvents))
       .unique()
-      .description("A list of GitHub events that should trigger this workflow."),
+      .description(
+        dedent`
+        A list of [GitHub events](https://docs.github.com/en/developers/webhooks-and-events/webhook-events-and-payloads) that should trigger this workflow.
+
+        Supported events:
+
+        ${eventDescriptions}
+        \n
+        `
+      ),
     branches: joi
       .array()
       .items(joi.string())
@@ -248,6 +262,7 @@ export const triggerSchema = () =>
       .unique()
       .description("If specified, do not run the workflow for tags matching one of these filters."),
   })
+}
 
 export interface WorkflowConfigMap {
   [key: string]: WorkflowConfig
