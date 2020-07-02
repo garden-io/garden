@@ -67,7 +67,7 @@ garden deploy my-service --watch  # or -w for short
 
 ### Deploying a service in hot-reload mode
 
-See the [Hot reload guide](../guides/hot-reload.md.md) for more information on how to configure and use hot reloading for rapid iteration on services.
+See the [Hot reload guide](../guides/hot-reload.md) for more information on how to configure and use hot reloading for rapid iteration on services.
 Enabling `--hot-reload` implicitly sets `--watch=true`.
 
 ```sh
@@ -238,7 +238,7 @@ garden dev --skip-tests
 
 ### Running garden dev with hot reloading enabled for all supported services
 
-See the [Hot reload guide](../guides/hot-reload.md.md) for more information on how to configure and use hot reloading for rapid iteration on services.
+See the [Hot reload guide](../guides/hot-reload.md) for more information on how to configure and use hot reloading for rapid iteration on services.
 
 ```sh
 garden dev --hot-reload=*
@@ -267,7 +267,7 @@ The dashboard gives you:
 ## Hot reloading
 
 For rapid iteration on a running service, you can use an advanced feature called _hot reloading_.
-See the [Hot reload guide](../guides/hot-reload.md.md) for details on how to configure and use that feature.
+See the [Hot reload guide](../guides/hot-reload.md) for details on how to configure and use that feature.
 
 ## Project outputs
 
