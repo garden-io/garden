@@ -1240,7 +1240,17 @@ workflowConfigs:
         # this trigger's environment, as defined in your project's environment configs.
         namespace:
 
-        # A list of GitHub events that should trigger this workflow.
+        # A list of [GitHub
+        # events](https://docs.github.com/en/developers/webhooks-and-events/webhook-events-and-payloads) that should
+        # trigger this workflow.
+        #
+        # Supported events:
+        #
+        # `create`, `pull-request`, `pull-request-created`, `pull-request-updated`, `push`, `release`,
+        # `release-created`, `release-deleted`, `release-edited`, `release-prereleased`, `release-published`,
+        # `release-unpublished`
+        #
+        #
         events:
 
         # If specified, only run the workflow for branches matching one of these filters.
