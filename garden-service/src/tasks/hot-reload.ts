@@ -26,6 +26,7 @@ interface Params {
 @Profile()
 export class HotReloadTask extends BaseTask {
   type: TaskType = "hot-reload"
+  concurrencyLimit = 10
 
   // private graph: ConfigGraph
   // private hotReloadServiceNames: string[]

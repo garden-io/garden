@@ -26,6 +26,7 @@ export interface GetTaskResultTaskParams {
 @Profile()
 export class GetTaskResultTask extends BaseTask {
   type: TaskType = "get-task-result"
+  concurrencyLimit = 20
 
   private task: Task
 

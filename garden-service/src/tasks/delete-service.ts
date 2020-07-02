@@ -24,6 +24,7 @@ export interface DeleteServiceTaskParams {
 
 export class DeleteServiceTask extends BaseTask {
   type: TaskType = "delete-service"
+  concurrencyLimit = 10
 
   private graph: ConfigGraph
   private service: Service

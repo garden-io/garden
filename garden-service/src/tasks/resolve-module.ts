@@ -129,12 +129,18 @@ interface ResolveModuleTaskParams {
   runtimeContext?: RuntimeContext
 }
 
+export const moduleResolutionConcurrencyLimit = 40
+
 /**
  * Fully resolve the given module config, including its final version and dependencies.
  */
 @Profile()
 export class ResolveModuleTask extends BaseTask {
   type: TaskType = "resolve-module"
+
+  // It's advisable to have _some_ limit (say if you have hundreds of modules), because the filesystem scan can cost
+  // a bit of memory, but we make it quite a bit higher than other tasks.
+  concurrencyLimit = moduleResolutionConcurrencyLimit
 
   private moduleConfig: ModuleConfig
   private resolvedProviders: ProviderMap

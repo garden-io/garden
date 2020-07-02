@@ -32,6 +32,7 @@ export interface GetServiceStatusTaskParams {
 @Profile()
 export class GetServiceStatusTask extends BaseTask {
   type: TaskType = "get-service-status"
+  concurrencyLimit = 20
 
   private graph: ConfigGraph
   private service: Service

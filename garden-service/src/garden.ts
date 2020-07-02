@@ -74,7 +74,7 @@ import { deline, naturalList } from "./util/string"
 import { ensureConnected } from "./db/connection"
 import { DependencyValidationGraph } from "./util/validate-dependencies"
 import { Profile } from "./util/profiling"
-import { ResolveModuleTask, getResolvedModules } from "./tasks/resolve-module"
+import { ResolveModuleTask, getResolvedModules, moduleResolutionConcurrencyLimit } from "./tasks/resolve-module"
 import username from "username"
 import { throwOnMissingSecretKeys } from "./template-string"
 import { WorkflowConfig, WorkflowResource, WorkflowConfigMap, resolveWorkflowConfig } from "./config/workflow"
@@ -596,7 +596,7 @@ export class Garden {
       })
 
       // Process as many providers in parallel as possible
-      const taskResults = await this.processTasks(tasks, { unlimitedConcurrency: true })
+      const taskResults = await this.processTasks(tasks)
 
       const failed = Object.values(taskResults).filter((r) => r && r.error)
 
@@ -717,7 +717,7 @@ export class Garden {
     let results: GraphResults
 
     try {
-      results = await this.processTasks(tasks, { unlimitedConcurrency: true })
+      results = await this.processTasks(tasks)
     } catch (err) {
       // Wrap the circular dependency error to print a more specific message
       if (err.type === "circular-dependencies") {
@@ -857,33 +857,38 @@ export class Garden {
     graph = new ConfigGraph(resolvedModules, moduleTypes)
 
     // Need to update versions and add the build dependency modules to the Module objects here, because plugins can
-    // add build dependencies in the configure handler.
+    // add build dependencies in the configure handler. This should resolve quickly because we perform caching as we
+    // resolve the versions, so unaffected modules should immediately get their version from cache.
     // FIXME: This should be addressed higher up in the process, but is quite tricky to manage with the current
     // TaskGraph structure which (understandably nb.) needs the dependency structure to be pre-determined before
     // processing.
     const modulesByName = keyBy(resolvedModules, "name")
 
-    await Bluebird.map(resolvedModules, async (module) => {
-      const buildDeps = module.build.dependencies.map((d) => {
-        const key = getModuleKey(d.name, d.plugin)
-        const depModule = modulesByName[key]
+    await Bluebird.map(
+      resolvedModules,
+      async (module) => {
+        const buildDeps = module.build.dependencies.map((d) => {
+          const key = getModuleKey(d.name, d.plugin)
+          const depModule = modulesByName[key]
 
-        if (!depModule) {
-          throw new ConfigurationError(
-            chalk.red(deline`
+          if (!depModule) {
+            throw new ConfigurationError(
+              chalk.red(deline`
             Module ${chalk.white.bold(module.name)} specifies build dependency ${chalk.white.bold(key)} which
             cannot be found.
             `),
-            { dependencyName: key }
-          )
-        }
+              { dependencyName: key }
+            )
+          }
 
-        return depModule
-      })
+          return depModule
+        })
 
-      module.buildDependencies = fromPairs(buildDeps.map((d) => [getModuleKey(d.name, d.plugin), d]))
-      module.version = await this.resolveVersion(module, buildDeps)
-    })
+        module.buildDependencies = fromPairs(buildDeps.map((d) => [getModuleKey(d.name, d.plugin), d]))
+        module.version = await this.resolveVersion(module, buildDeps)
+      },
+      { concurrency: moduleResolutionConcurrencyLimit }
+    )
 
     return graph
   }
