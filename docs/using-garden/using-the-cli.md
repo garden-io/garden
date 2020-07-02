@@ -10,7 +10,7 @@ If you've not installed the CLI yet, please check out the [installation guide](.
 
 Most of the examples below assume that you've already defined a Garden project.
 
-The [garden dev](#garden-dev) command, as well as the [build](#building), [deploy](#services) and [test](#testing) commands (when run with the `--watch` flag) all start a web dashboard that you can open in a browser. See [the dashboard section](#the-dashboard) for more on that.
+The [garden dev](#garden-dev) command, as well as the [build](#building), [deploy](#services) and [test](#tests) commands (when run with the `--watch` flag) all start a web dashboard that you can open in a browser. See [the dashboard section](#the-dashboard) for more on that.
 
 {% hint style="warning" %}
 It is currently not advisable to run multiple dev, build, deploy or test commands in parallel, especially with `--watch`  because they may interfere with each other. It is fine, however, to run one of those and then run other commands to the side, such as `garden logs`. We plan on improving this in the future.
@@ -252,7 +252,7 @@ garden dev --hot-reload=my-service
 
 ## The dashboard
 
-The [garden dev](#garden-dev) command, as well as the [build](#building), [deploy](#services) and [test](#testing) commands when run with the `--watch` flag all start a web dashboard that you can open in a browser. See [the dashboard section](#the-dashboard) for more on that.
+The [garden dev](#garden-dev) command, as well as the [build](#building), [deploy](#services) and [test](#tests) commands when run with the `--watch` flag all start a web dashboard that you can open in a browser. See [the dashboard section](#the-dashboard) for more on that.
 
 The CLI will print a URL which you can copy or click (or Cmd/Ctrl-click, depending on your terminal). The dashboard stays open while the command is running.
 
