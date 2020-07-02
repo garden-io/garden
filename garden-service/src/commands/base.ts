@@ -311,7 +311,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
     return !!this.parent ? `${this.parent.getFullName()} ${this.name}` : this.name
   }
 
-  getPath() {
+  getPath(): string[] {
     return !!this.parent ? [...this.parent.getPath(), this.name] : [this.name]
   }
 
@@ -633,7 +633,11 @@ export type ParamSpec = {
  * @param argSpec The arguments spec for the command in question.
  * @param optSpec The options spec for the command in question.
  */
-export function parseCliArgs(args: string[], argSpec: ParamSpec, optSpec: ParamSpec): { args: any; opts: any } {
+export function parseCliArgs(
+  args: string[],
+  argSpec: ParamSpec,
+  optSpec: ParamSpec
+): { args: Parameters; opts: Parameters } {
   const parsed = minimist(args)
   const argKeys = Object.keys(argSpec)
   const parsedArgs = {}

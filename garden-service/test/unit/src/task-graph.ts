@@ -14,6 +14,7 @@ import { TaskGraph, GraphResult, GraphResults } from "../../../src/task-graph"
 import { makeTestGarden, freezeTime, dataDir, expectError, TestGarden } from "../../helpers"
 import { Garden } from "../../../src/garden"
 import { deepFilter, defer, sleep, uuidv4 } from "../../../src/util/util"
+import { range } from "lodash"
 
 const projectRoot = join(dataDir, "test-project-empty")
 
@@ -644,6 +645,61 @@ describe("task-graph", () => {
       expect(resultOrder).to.eql(["b-dep", "a-dep1", "a"])
     })
 
+    it("should enforce a hard concurrency limit on task processing", async () => {
+      const garden = await getGarden()
+      const tasks = range(0, 10).map((n) => new TestTask(garden, "task-" + n, false))
+      const limit = 3
+      const graph = new TaskGraph(garden, garden.log, limit)
+      let gotEvents = false
+
+      graph.on("process", (event) => {
+        gotEvents = true
+        // Ensure we never go over the hard limit
+        expect(event.keys.length + event.inProgress.length).to.lte(limit)
+      })
+
+      await graph.process(tasks)
+
+      expect(gotEvents).to.be.true
+    })
+
+    it("should enforce a concurrency limit per task type", async () => {
+      const garden = await getGarden()
+      const limit = 2
+
+      class TaskTypeA extends TestTask {
+        type = <TaskType>"a"
+        concurrencyLimit = limit
+      }
+
+      class TaskTypeB extends TestTask {
+        type = <TaskType>"b"
+        concurrencyLimit = limit
+      }
+
+      const tasks = [
+        ...range(0, 10).map((n) => new TaskTypeA(garden, "a-" + n, false)),
+        ...range(0, 10).map((n) => new TaskTypeB(garden, "b-" + n, false)),
+      ]
+
+      const graph = new TaskGraph(garden, garden.log)
+
+      let gotEvents = false
+
+      graph.on("process", (event) => {
+        gotEvents = true
+        // Ensure not more than two of each task type run concurrently
+        for (const type of ["a", "b"]) {
+          const keys = [...event.keys, ...event.inProgress].filter((key) => key.startsWith(type))
+          expect(keys.length).to.lte(limit)
+        }
+      })
+
+      await graph.process(tasks)
+
+      expect(gotEvents).to.be.true
+    })
+
     it("should recursively cancel a task's dependants when it throws an error", async () => {
       const now = freezeTime()
       const garden = await getGarden()
@@ -864,11 +920,10 @@ describe("task-graph", () => {
         const tasks = [taskA, taskB, taskC, taskADep1, taskBDep, taskADep2]
         const taskNodes = await graph["nodesWithDependencies"]({
           tasks,
-          unlimitedConcurrency: false,
           dependencyCache: {},
           stack: [],
         })
-        const batches = graph.partition(taskNodes, { unlimitedConcurrency: false })
+        const batches = graph.partition(taskNodes)
         const batchKeys = batches.map((b) => b.nodes.map((n) => n.key))
 
         expect(batchKeys).to.eql([["a", "a-dep1", "a-dep2"], ["b", "b-dep"], ["c"]])
@@ -914,11 +969,10 @@ describe("task-graph", () => {
 
         const taskNodes = await graph["nodesWithDependencies"]({
           tasks,
-          unlimitedConcurrency: false,
           dependencyCache: {},
           stack: [],
         })
-        const batches = graph.partition(taskNodes, { unlimitedConcurrency: false })
+        const batches = graph.partition(taskNodes)
         const batchKeys = batches.map((b) => b.nodes.map((n) => n.key))
 
         expect(batchKeys).to.eql([

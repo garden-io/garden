@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 import chalk from "chalk"
-import { every, flatten, intersection, merge, union, uniqWith, without } from "lodash"
+import { every, flatten, intersection, merge, union, uniqWith, without, groupBy } from "lodash"
 import { BaseTask, TaskDefinitionError, TaskType } from "./tasks/base"
 import { gardenEnv } from "./constants"
 import { LogEntry, LogEntryMetadata, TaskLogStatus } from "./logger/log-entry"
@@ -20,6 +20,7 @@ import { renderError } from "./logger/renderers"
 import { cyclesToString } from "./util/validate-dependencies"
 import { Profile } from "./util/profiling"
 import { renderMessageWithDivider } from "./logger/util"
+import { EventEmitter2 } from "eventemitter2"
 
 class TaskGraphError extends GardenBaseError {
   type = "task-graph"
@@ -53,11 +54,10 @@ export interface GraphResults {
 
 export interface ProcessTasksOpts {
   throwOnError?: boolean
-  unlimitedConcurrency?: boolean
 }
 
 @Profile()
-export class TaskGraph {
+export class TaskGraph extends EventEmitter2 {
   private roots: TaskNodeMap
   private index: TaskNodeMap
   private inProgress: TaskNodeMap
@@ -74,7 +74,14 @@ export class TaskGraph {
   private logEntryMap: LogEntryMap
   private resultCache: ResultCache
 
-  constructor(private garden: Garden, private log: LogEntry) {
+  constructor(
+    private garden: Garden,
+    private log: LogEntry,
+    // We generally limit concurrency within individual task types, but we also impose a hard limit, if only to avoid
+    // thrashing the runtime for large projects, which is both sub-optimal and risks OOM crashes.
+    private hardConcurrencyLimit = gardenEnv.GARDEN_HARD_CONCURRENCY_LIMIT
+  ) {
+    super()
     this.roots = new TaskNodeMap()
     this.index = new TaskNodeMap()
     this.inProgress = new TaskNodeMap()
@@ -86,16 +93,14 @@ export class TaskGraph {
   }
 
   async process(tasks: BaseTask[], opts?: ProcessTasksOpts): Promise<GraphResults> {
-    const unlimitedConcurrency = opts ? !!opts.unlimitedConcurrency : false
-
     let nodes: TaskNode[]
     try {
-      nodes = await this.nodesWithDependencies({ tasks, unlimitedConcurrency, dependencyCache: {}, stack: [] })
+      nodes = await this.nodesWithDependencies({ tasks, dependencyCache: {}, stack: [] })
     } catch (circularDepsErr) {
       throw circularDepsErr
     }
 
-    const batches = this.partition(nodes, { unlimitedConcurrency })
+    const batches = this.partition(nodes)
     for (const batch of batches) {
       for (const node of batch.nodes) {
         this.latestNodes[node.key] = node
@@ -132,12 +137,10 @@ export class TaskGraph {
 
   private async nodesWithDependencies({
     tasks,
-    unlimitedConcurrency,
     dependencyCache,
     stack,
   }: {
     tasks: BaseTask[]
-    unlimitedConcurrency: boolean
     dependencyCache: { [key: string]: BaseTask[] }
     stack: string[]
   }): Promise<TaskNode[]> {
@@ -161,11 +164,10 @@ export class TaskGraph {
 
       const depNodes = await this.nodesWithDependencies({
         tasks: depTasks,
-        unlimitedConcurrency,
         dependencyCache,
         stack: [...stack, key],
       })
-      return new TaskNode(task, depNodes, unlimitedConcurrency)
+      return new TaskNode(task, depNodes)
     })
   }
 
@@ -175,7 +177,7 @@ export class TaskGraph {
    *
    * Also deduplicates nodes by node key + version.
    */
-  partition(nodes: TaskNode[], { unlimitedConcurrency = false }): TaskNodeBatch[] {
+  partition(nodes: TaskNode[]): TaskNodeBatch[] {
     const deduplicatedNodes = uniqWith(nodes, (n1, n2) => {
       return n1.key === n2.key && n1.getVersion() === n2.getVersion()
     })
@@ -191,7 +193,7 @@ export class TaskGraph {
     return relationshipClasses(nodesWithKeys, sharesDeps).map((cls) => {
       const nodesForBatch = cls.map((n) => n.node)
       const resultKeys: string[] = union(...cls.map((ts) => ts.resultKeys))
-      return new TaskNodeBatch(nodesForBatch, resultKeys, unlimitedConcurrency)
+      return new TaskNodeBatch(nodesForBatch, resultKeys)
     })
   }
 
@@ -314,7 +316,9 @@ export class TaskGraph {
       this.log.silly("---------------------------------------")
       this.log.silly(safeDumpYaml(this.index.inspect(), { noRefs: true }))
 
-      this.garden.events.emit("taskGraphProcessing", { startedAt: new Date() })
+      this.garden.events.emit("taskGraphProcessing", {
+        startedAt: new Date(),
+      })
     }
 
     while (this.pickDisjointPendingBatches().length > 0) {
@@ -329,14 +333,28 @@ export class TaskGraph {
     }
 
     const pendingRoots = this.roots.getNodes().filter((n) => !this.inProgress.contains(n))
-    const pendingWithUnlimitedConcurrency = pendingRoots.filter((n) => n.unlimitedConcurrency)
-    const pendingWithLimitedConcurrency = pendingRoots.filter((n) => !n.unlimitedConcurrency)
 
-    const nodesToProcess = [
-      ...pendingWithUnlimitedConcurrency,
-      ...pendingWithLimitedConcurrency.slice(0, gardenEnv.GARDEN_TASK_CONCURRENCY_LIMIT - this.inProgress.length),
-    ]
+    const inProgressNodes = this.inProgress.getNodes()
+    const inProgressByGroup = groupBy(inProgressNodes, "type")
 
+    // Enforce concurrency limits per task type
+    const grouped = groupBy(pendingRoots, "type")
+    const limitedByGroup = Object.values(grouped).flatMap((nodes) => {
+      // Note: We can be sure there is at least one node in the array
+      const groupLimit = nodes[0].task.concurrencyLimit
+      const inProgress = inProgressByGroup[nodes[0].getType()] || []
+      return nodes.slice(0, groupLimit - inProgress.length)
+    })
+
+    // Enforce hard global limit
+    const nodesToProcess = limitedByGroup.slice(0, this.hardConcurrencyLimit - this.inProgress.length)
+
+    this.emit("process", {
+      keys: nodesToProcess.map((n) => n.key),
+      inProgress: inProgressNodes.map((n) => n.key),
+    })
+
+    // Process the nodes
     nodesToProcess.forEach((n) => this.inProgress.addNode(n))
 
     this.rebuild()
@@ -684,7 +702,6 @@ class TaskNode {
   readonly key: string
   readonly id: string
   batchId: string // Set in TaskNodeBatch's constructor
-  unlimitedConcurrency: boolean
 
   /**
    * The initial dependencies of this node, equivalent to node.task.getDependencies()
@@ -698,12 +715,11 @@ class TaskNode {
    */
   private remainingDependencies: TaskNodeMap
 
-  constructor(task: BaseTask, dependencies: TaskNode[], unlimitedConcurrency: boolean) {
+  constructor(task: BaseTask, dependencies: TaskNode[]) {
     this.task = task
     this.key = task.getKey()
     this.id = getIndexId(task)
     this.dependencies = new TaskNodeMap()
-    this.unlimitedConcurrency = unlimitedConcurrency
     this.dependencies.setNodes(dependencies)
     this.remainingDependencies = new TaskNodeMap()
     this.dependencies.setNodes(dependencies)
@@ -815,7 +831,6 @@ class ResultCache {
 export class TaskNodeBatch {
   public id: string
   public nodes: TaskNode[]
-  public unlimitedConcurrency: boolean
   /**
    * The keys of nodes and their dependencies, recursively.
    *
@@ -831,11 +846,10 @@ export class TaskNodeBatch {
   /**
    * resultKeys should be the set union of the keys of nodes and those of their dependencies, recursively.
    */
-  constructor(nodes: TaskNode[], resultKeys: string[], unlimitedConcurrency = false) {
+  constructor(nodes: TaskNode[], resultKeys: string[]) {
     this.id = uuidv4()
     this.setBatchId(nodes)
     this.nodes = nodes
-    this.unlimitedConcurrency = unlimitedConcurrency
     this.resultKeys = resultKeys
     this.remainingResultKeys = new Set(resultKeys)
     this.results = {}

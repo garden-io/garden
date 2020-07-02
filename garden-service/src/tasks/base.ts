@@ -48,6 +48,10 @@ export interface TaskParams {
 @Profile()
 export abstract class BaseTask {
   abstract type: TaskType
+
+  // How many tasks of this exact type are allowed to run concurrently
+  concurrencyLimit = 10
+
   garden: Garden
   log: LogEntry
   uid: string

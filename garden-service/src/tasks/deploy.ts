@@ -37,6 +37,7 @@ export interface DeployTaskParams {
 @Profile()
 export class DeployTask extends BaseTask {
   type: TaskType = "deploy"
+  concurrencyLimit = 10
 
   private graph: ConfigGraph
   private service: Service

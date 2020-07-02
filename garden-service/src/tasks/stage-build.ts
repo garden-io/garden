@@ -29,6 +29,7 @@ export interface StageBuildTaskParams {
 @Profile()
 export class StageBuildTask extends BaseTask {
   type: TaskType = "stage-build"
+  concurrencyLimit = 10
 
   private graph: ConfigGraph
   private module: Module
