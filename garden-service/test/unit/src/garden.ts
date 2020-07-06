@@ -2228,6 +2228,14 @@ describe("Garden", () => {
         (err) => expect(err.message).to.match(/Workflow test-workflow: missing/)
       )
     })
+
+    it("should throw an error if an invalid workflow config is present", async () => {
+      const garden = await makeTestGarden(join(dataDir, "test-project-invalid-workflow"))
+      await expectError(
+        () => garden.scanAndAddConfigs(),
+        (err) => expect(stripAnsi(err.message)).to.match(/key .triggers must be an array/)
+      )
+    })
   })
 
   describe("loadConfigs", () => {
