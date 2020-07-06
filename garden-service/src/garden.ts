@@ -644,25 +644,16 @@ export class Garden {
     return keyBy(providers, "name")
   }
 
-  getRawWorkflowConfig(name: string) {
-    return this.getRawWorkflowConfigs([name])[0]
+  getWorkflowConfig(name: string): WorkflowConfig {
+    return this.getWorkflowConfigs([name])[0]
   }
 
-  getRawWorkflowConfigs(names?: string[]) {
+  getWorkflowConfigs(names?: string[]): WorkflowConfig[] {
     if (names) {
       return Object.values(pickKeys(this.workflowConfigs, names, "workflow"))
     } else {
       return Object.values(this.workflowConfigs)
     }
-  }
-
-  async getWorkflowConfig(name: string): Promise<WorkflowConfig> {
-    return (await this.getWorkflowConfigs([name]))[0]
-  }
-
-  async getWorkflowConfigs(names?: string[]): Promise<WorkflowConfig[]> {
-    const configs = this.getRawWorkflowConfigs(names)
-    return configs.map((config) => resolveWorkflowConfig(this, config))
   }
 
   /**
@@ -1033,8 +1024,9 @@ export class Garden {
   }
 
   /**
-   * Add a workflow config to the context after validating that its name doesn't conflict with
-   * previously added workflows.
+   * Add a workflow config to the context after validating that its name doesn't conflict with previously
+   * added workflows, and partially resolving it (i.e. without fully resolving step configs, which
+   * is done just-in-time before a given step is run).
    */
   private async addWorkflow(config: WorkflowConfig) {
     const key = config.name
@@ -1052,7 +1044,7 @@ export class Garden {
       })
     }
 
-    this.workflowConfigs[key] = config
+    this.workflowConfigs[key] = resolveWorkflowConfig(this, config)
   }
 
   /**

@@ -62,17 +62,14 @@ export class RunWorkflowCommand extends Command<Args, {}> {
     opts,
   }: CommandParams<Args, {}>): Promise<CommandResult<WorkflowRunOutput>> {
     const outerLog = log.placeholder()
-    // Partially resolve the workflow config, and prepare any configured files before continuing
-    const rawWorkflow = garden.getRawWorkflowConfig(args.workflow)
+    // Prepare any configured files before continuing
+    const workflow = garden.getWorkflowConfig(args.workflow)
     const templateContext = new WorkflowConfigContext(garden)
-    const files = resolveTemplateStrings(rawWorkflow.files || [], templateContext)
+    const files = resolveTemplateStrings(workflow.files || [], templateContext)
 
     // Write all the configured files for the workflow
     await Bluebird.map(files, (file) => writeWorkflowFile(garden, file))
 
-    // Fully resolve the config
-    // (aside from the step script and command fields, since they need to be resolved just-in-time)
-    const workflow = await garden.getWorkflowConfig(args.workflow)
     const steps = workflow.steps
     const allStepNames = steps.map((s, i) => getStepName(i, s.name))
 

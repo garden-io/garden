@@ -1,0 +1,16 @@
+kind: Project
+name: test-project-invalid-workflow
+environments:
+  - name: local
+providers:
+  - name: test-plugin
+
+---
+
+kind: Workflow
+name: invalid
+steps:
+  - command: [test]
+triggers: # <--- should be an array, not a map
+  events: [push, pull-request]
+  environment: local
