@@ -58,10 +58,11 @@ interface Submodule {
 @Profile()
 export class GitHandler extends VcsHandler {
   name = "git"
+  repoRoots = new Map()
 
   private gitCli(log: LogEntry, cwd: string): GitCli {
     return async (...args: string[]) => {
-      log.silly(`Calling git with args '${args.join(" ")}'`)
+      log.silly(`Calling git in ${cwd} with args '${args.join(" ")}'`)
       const { stdout } = await exec("git", args, { cwd, maxBuffer: 10 * 1024 * 1024 })
       return stdout.split("\n").filter((line) => line.length > 0)
     }
@@ -81,10 +82,16 @@ export class GitHandler extends VcsHandler {
   }
 
   async getRepoRoot(log: LogEntry, path: string) {
+    if (this.repoRoots.has(path)) {
+      return this.repoRoots.get(path)
+    }
+
     const git = this.gitCli(log, path)
 
     try {
-      return (await git("rev-parse", "--show-toplevel"))[0]
+      const repoRoot = (await git("rev-parse", "--show-toplevel"))[0]
+      this.repoRoots.set(path, repoRoot)
+      return repoRoot
     } catch (err) {
       if (err.exitCode === 128) {
         // Throw nice error when we detect that we're not in a repo root
