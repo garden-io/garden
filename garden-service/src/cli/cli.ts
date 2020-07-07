@@ -337,12 +337,14 @@ export class GardenCli {
 
           if (garden.clientAuthToken && garden.enterpriseDomain && garden.projectId) {
             log.silly(`Connecting Garden instance to BufferedEventStream`)
-            bufferedEventStream.connect(
-              garden.events,
-              garden.clientAuthToken,
-              garden.enterpriseDomain,
-              garden.projectId
-            )
+            bufferedEventStream.connect({
+              eventBus: garden.events,
+              clientAuthToken: garden.clientAuthToken,
+              enterpriseDomain: garden.enterpriseDomain,
+              projectId: garden.projectId,
+              environmentName: garden.environmentName,
+              namespace: garden.namespace,
+            })
           } else {
             log.silly(`Skip connecting Garden instance to BufferedEventStream`)
             log.silly(`clientAuthToken present: ${!!garden.clientAuthToken}`)

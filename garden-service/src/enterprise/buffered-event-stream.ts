@@ -47,6 +47,15 @@ export function formatForEventStream(entry: LogEntry): LogEntryEvent {
 export const FLUSH_INTERVAL_MSEC = 1000
 export const MAX_BATCH_SIZE = 100
 
+export interface ConnectBufferedEventStreamParams {
+  eventBus: EventBus
+  clientAuthToken: string
+  enterpriseDomain: string
+  projectId: string
+  environmentName: string
+  namespace: string
+}
+
 /**
  * Buffers events and log entries and periodically POSTs them to Garden Enterprise if the user is logged in.
  *
@@ -58,11 +67,13 @@ export const MAX_BATCH_SIZE = 100
  */
 export class BufferedEventStream {
   private log: LogEntry
-  private eventBus: EventBus
   public sessionId: string
+  private eventBus: EventBus
   private enterpriseDomain: string
   private clientAuthToken: string
   private projectId: string
+  private environmentName: string
+  private namespace: string
 
   /**
    * We maintain this map to facilitate unsubscribing from a previously connected event bus
@@ -84,11 +95,13 @@ export class BufferedEventStream {
     this.bufferedLogEntries = []
   }
 
-  connect(eventBus: EventBus, clientAuthToken: string, enterpriseDomain: string, projectId: string) {
+  connect(params: ConnectBufferedEventStreamParams) {
     this.log.silly("BufferedEventStream: Connected")
-    this.clientAuthToken = clientAuthToken
-    this.enterpriseDomain = enterpriseDomain
-    this.projectId = projectId
+    this.clientAuthToken = params.clientAuthToken
+    this.enterpriseDomain = params.enterpriseDomain
+    this.projectId = params.projectId
+    this.environmentName = params.environmentName
+    this.namespace = params.namespace
 
     if (!this.intervalId) {
       this.startInterval()
@@ -99,7 +112,7 @@ export class BufferedEventStream {
       this.unsubscribeFromGardenEvents(this.eventBus)
     }
 
-    this.eventBus = eventBus
+    this.eventBus = params.eventBus
     this.subscribeToGardenEvents(this.eventBus)
   }
 
@@ -164,6 +177,8 @@ export class BufferedEventStream {
       workflowRunUid,
       sessionId: this.sessionId,
       projectUid: this.projectId,
+      environment: this.environmentName,
+      namespace: this.namespace,
     }
     const headers = makeAuthHeader(this.clientAuthToken)
     this.log.silly(`Flushing ${events.length} events to ${this.enterpriseDomain}/events`)

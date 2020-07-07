@@ -12,6 +12,15 @@ import { getLogger } from "../../../../src/logger/logger"
 import { EventBus } from "../../../../src/events"
 
 describe("BufferedEventStream", () => {
+  const getConnectionParams = (eventBus: EventBus) => ({
+    eventBus,
+    clientAuthToken: "dummy-client-token",
+    enterpriseDomain: "dummy-platform_url",
+    projectId: "myproject",
+    environmentName: "my-env",
+    namespace: "my-ns",
+  })
+
   it("should flush events and log entries emitted by a connected event emitter", async () => {
     const flushedEvents: StreamEvent[] = []
     const flushedLogEntries: LogEntryEvent[] = []
@@ -30,7 +39,7 @@ describe("BufferedEventStream", () => {
     }
 
     const eventBus = new EventBus()
-    bufferedEventStream.connect(eventBus, "dummy-client-token", "dummy-platform_url", "myproject")
+    bufferedEventStream.connect(getConnectionParams(eventBus))
 
     eventBus.emit("_test", {})
     log.root.events.emit("_test", {})
@@ -59,9 +68,9 @@ describe("BufferedEventStream", () => {
     }
 
     const oldEventBus = new EventBus()
-    bufferedEventStream.connect(oldEventBus, "dummy-client-token", "dummy-platform_url", "myproject")
+    bufferedEventStream.connect(getConnectionParams(oldEventBus))
     const newEventBus = new EventBus()
-    bufferedEventStream.connect(newEventBus, "dummy-client-token", "dummy-platform_url", "myproject")
+    bufferedEventStream.connect(getConnectionParams(newEventBus))
 
     log.root.events.emit("_test", {})
     oldEventBus.emit("_test", {})
