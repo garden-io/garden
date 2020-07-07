@@ -1,0 +1,4 @@
+kind: Module
+name: custom-auth
+description: Test module for using custom volume mounts in builders
+type: container

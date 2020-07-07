@@ -192,7 +192,7 @@ export const gardenPlugin = createGardenPlugin({
 
     Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the [local-kubernetes provider](${localKubernetesUrl}) simplifies (and automates) the configuration and setup quite a bit.
   `,
-  configSchema,
+  configSchema: configSchema(),
   outputsSchema,
   commands: [cleanupClusterRegistry, clusterInit, uninstallGardenServices, pullImage],
   handlers: {

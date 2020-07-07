@@ -25,3 +25,5 @@ values:
       name: ${var.sync-volume-name}
   tolerations: ${var.system-tolerations}
   nodeSelector: ${var.system-node-selector}
+  volumes: ${var.cluster-docker-volumes}
+  volumeMounts: ${var.cluster-docker-volumemounts}

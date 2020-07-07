@@ -497,6 +497,7 @@ async function runKaniko({ provider, namespace, log, module, args, outputStream 
         name: commsVolumeName,
         emptyDir: {},
       },
+      ...(provider.config.kaniko?.volumes || []),
     ],
     containers: [
       {
@@ -517,6 +518,7 @@ async function runKaniko({ provider, namespace, log, module, args, outputStream 
             name: commsVolumeName,
             mountPath: commsMountPath,
           },
+          ...(provider.config.kaniko?.volumeMounts || []),
         ],
         resources: {
           limits: {

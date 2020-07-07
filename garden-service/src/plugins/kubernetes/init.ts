@@ -391,6 +391,13 @@ export function getKubernetesSystemVariables(config: KubernetesConfig) {
     "builder-storage-size": megabytesToString(config.storage.builder.size!),
     "builder-storage-class": config.storage.builder.storageClass,
 
+    // Need any casts here for this to match the `DeepPrimitiveMap` interface
+    "cluster-docker-volumes": <any[]>(config.clusterDocker?.volumes || []),
+    "cluster-docker-volumemounts": <any[]>(config.clusterDocker?.volumeMounts || []),
+
+    "kaniko-volumes": <any[]>(config.kaniko?.volumes || []),
+    "kaniko-volumemounts": <any[]>(config.kaniko?.volumeMounts || []),
+
     "ingress-http-port": config.ingressHttpPort,
     "ingress-https-port": config.ingressHttpsPort,
 

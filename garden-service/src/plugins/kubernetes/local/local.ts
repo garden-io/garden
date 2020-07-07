@@ -24,7 +24,7 @@ export const gardenPlugin = createGardenPlugin({
 
     If you're working with a remote Kubernetes cluster, please refer to the [\`kubernetes\` provider](${providerUrl}) docs, and the [Remote Kubernetes guide](${DOCS_BASE_URL}/guides/remote-kubernetes) guide.
   `,
-  configSchema,
+  configSchema: configSchema(),
   handlers: {
     configureProvider,
   },

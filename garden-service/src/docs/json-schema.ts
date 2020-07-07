@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { flatten, isArray } from "lodash"
+import { flatten, isArray, uniq } from "lodash"
 import { NormalizedSchemaDescription, NormalizeOptions } from "./common"
 import { ValidationError } from "../exceptions"
 import { safeDumpYaml } from "../util/util"
@@ -140,11 +140,13 @@ function normalizeJsonKeyDescription(
 }
 
 function getType(schema: any): string {
-  const { type } = schema
+  const { type, oneOf } = schema
 
   if (isArray(type)) {
     // TODO: handle multiple type options
     return type.filter((t) => t !== null)[0]
+  } else if (oneOf) {
+    return uniq(oneOf.map(formatType)).join(" | ")
   } else {
     return type
   }

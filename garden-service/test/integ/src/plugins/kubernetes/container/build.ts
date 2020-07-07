@@ -133,6 +133,18 @@ describe("kubernetes build flow", () => {
       })
     })
 
+    it("should expose mounted volumes to builds", async () => {
+      const module = graph.getModule("custom-auth")
+      await garden.buildDir.syncFromSrc(module, garden.log)
+
+      // The build would fail if the configured custom auth secret were not mounted in the builder
+      await k8sBuildContainer({
+        ctx,
+        log: garden.log,
+        module,
+      })
+    })
+
     grouped("remote-only").it("should support pulling from private registries", async () => {
       const module = graph.getModule("private-base")
       await garden.buildDir.syncFromSrc(module, garden.log)
@@ -321,6 +333,18 @@ describe("kubernetes build flow", () => {
       const module = graph.getModule("simple-service")
       await garden.buildDir.syncFromSrc(module, garden.log)
 
+      await k8sBuildContainer({
+        ctx,
+        log: garden.log,
+        module,
+      })
+    })
+
+    it("should expose mounted volumes to builds", async () => {
+      const module = graph.getModule("custom-auth")
+      await garden.buildDir.syncFromSrc(module, garden.log)
+
+      // The build would fail if the configured custom auth secret were not mounted in the builder
       await k8sBuildContainer({
         ctx,
         log: garden.log,

@@ -72,6 +72,20 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
       await api.upsert({ kind: "Secret", namespace: "default", obj: authSecret, log: garden.log })
     }
 
+    // Used for testing custom volume mounts
+    const customAuth: KubernetesResource<V1Secret> = {
+      apiVersion: "v1",
+      kind: "Secret",
+      metadata: {
+        name: "test-custom-auth",
+        namespace: "garden-system",
+      },
+      stringData: {
+        "key.json": "some-key",
+      },
+    }
+    await api.upsert({ kind: "Secret", namespace: "garden-system", obj: customAuth, log: garden.log })
+
     const credentialHelperAuth: KubernetesResource<V1Secret> = {
       apiVersion: "v1",
       kind: "Secret",

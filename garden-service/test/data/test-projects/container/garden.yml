@@ -5,7 +5,6 @@ environments:
   - name: local-remote-registry
   - name: cluster-docker
   - name: cluster-docker-buildkit
-  - name: cluster-docker-auth
   - name: cluster-docker-remote-registry
   - name: kaniko
   - name: kaniko-image-override
@@ -26,12 +25,19 @@ providers:
       # Note: We populate this secret in the test code
       - name: test-docker-auth
       - name: test-cred-helper-auth
+    clusterDocker:
+      volumes:
+        - name: test-custom-auth
+          secret:
+            # Note: We populate this secret in the test code
+            secretName: test-custom-auth
+      volumeMounts:
+        - name: test-custom-auth
+          mountPath: /.test-custom-auth
   - <<: *clusterDocker
     environments: [cluster-docker-buildkit]
     clusterDocker:
       enableBuildKit: true
-  - <<: *clusterDocker
-    environments: [cluster-docker-auth]
   - <<: *clusterDocker
     environments: [cluster-docker-remote-registry]
     deploymentRegistry: *deploymentRegistry

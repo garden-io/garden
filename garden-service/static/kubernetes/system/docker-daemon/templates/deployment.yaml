@@ -35,6 +35,7 @@ spec:
             items:
               - key: .dockerconfigjson
                 path: config.json
+        {{- toYaml .Values.volumes | nindent 8 }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -62,6 +63,7 @@ spec:
               mountPath: /garden-build
             - name: docker-config
               mountPath: /root/.docker
+            {{- toYaml .Values.volumeMounts | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
         - name: proxy
