@@ -141,7 +141,7 @@ export class StringsParameter extends Parameter<string[] | undefined> {
 
 export class PathParameter extends Parameter<string> {
   type = "path"
-  schema = joi.posixPath()
+  schema = joi.string()
 }
 
 export class PathsParameter extends Parameter<string[]> {

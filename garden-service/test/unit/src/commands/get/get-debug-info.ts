@@ -21,10 +21,13 @@ import {
 } from "../../../../../src/commands/get/get-debug-info"
 import { readdir, remove, pathExists, readJSON, readFile } from "fs-extra"
 import { ERROR_LOG_FILENAME } from "../../../../../src/constants"
-import { join, relative } from "path"
+import { join, relative, basename } from "path"
 import { Garden } from "../../../../../src/garden"
 import { LogEntry } from "../../../../../src/logger/log-entry"
-import { getConfigFilePath } from "../../../../../src/util/fs"
+import { defaultConfigFilename } from "../../../../../src/util/fs"
+import { makeTestGarden } from "../../../../helpers"
+import { getDataDir } from "../../../../helpers"
+import { defaultProjectConfigFilename } from "../../../../../src/commands/create/create-project"
 
 const debugZipFileRegex = new RegExp(/debug-info-.*?.zip/)
 
@@ -96,7 +99,7 @@ describe("GetDebugInfoCommand", () => {
       await collectBasicDebugInfo(garden.projectRoot, garden.gardenDirPath, log)
 
       // we first check if the main garden.yml exists
-      expect(await pathExists(await getConfigFilePath(gardenDebugTmp))).to.equal(true)
+      expect(await pathExists(join(gardenDebugTmp, defaultConfigFilename))).to.equal(true)
       const graph = await garden.getConfigGraph(garden.log)
 
       // Check that each module config files have been copied over and
@@ -108,12 +111,45 @@ describe("GetDebugInfoCommand", () => {
         expect(await pathExists(join(gardenDebugTmp, moduleRelativePath))).to.equal(true)
 
         // Checks config file is copied over
-        expect(await pathExists(await getConfigFilePath(join(gardenDebugTmp, moduleRelativePath)))).to.equal(true)
+        expect(await pathExists(join(gardenDebugTmp, moduleRelativePath, defaultConfigFilename))).to.equal(true)
 
         // Checks error logs are copied over if they exist
         if (await pathExists(join(module.path, ERROR_LOG_FILENAME))) {
           expect(await pathExists(join(gardenDebugTmp, moduleRelativePath, ERROR_LOG_FILENAME))).to.equal(true)
         }
+      }
+    })
+
+    it("should correctly handle custom-named config files", async () => {
+      const _garden = await makeTestGarden(getDataDir("test-projects", "custom-config-names"))
+      const debugTmp = join(_garden.gardenDirPath, TEMP_DEBUG_ROOT)
+
+      try {
+        await collectBasicDebugInfo(_garden.projectRoot, _garden.gardenDirPath, log)
+
+        // we first check if the project.garden.yml exists
+        expect(await pathExists(join(debugTmp, defaultProjectConfigFilename))).to.equal(true)
+        const graph = await _garden.getConfigGraph(_garden.log)
+
+        // Check that each module config files have been copied over and
+        // the folder structure is maintained
+        for (const module of graph.getModules()) {
+          const moduleRelativePath = relative(_garden.projectRoot, module.path)
+          const configFilename = basename(module.configPath!)
+
+          // Checks folder structure is maintained
+          expect(await pathExists(join(debugTmp, moduleRelativePath))).to.equal(true)
+
+          // Checks config file is copied over
+          expect(await pathExists(join(debugTmp, moduleRelativePath, configFilename))).to.equal(true)
+
+          // Checks error logs are copied over if they exist
+          if (await pathExists(join(module.path, ERROR_LOG_FILENAME))) {
+            expect(await pathExists(join(debugTmp, moduleRelativePath, ERROR_LOG_FILENAME))).to.equal(true)
+          }
+        }
+      } finally {
+        await cleanupTmpDebugFiles(_garden.projectRoot, _garden.gardenDirPath)
       }
     })
   })

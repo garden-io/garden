@@ -13,7 +13,6 @@ import { ModuleVersion, moduleVersionSchema } from "../vcs/vcs"
 import { pathToCacheContext } from "../cache"
 import { Garden } from "../garden"
 import { joiArray, joiIdentifier, joiIdentifierMap, joi } from "../config/common"
-import { getConfigFilePath } from "../util/fs"
 import { getModuleTypeBases } from "../plugins"
 import { ModuleType } from "./plugin/plugin"
 
@@ -29,7 +28,6 @@ export interface Module<M extends {} = any, S extends {} = any, T extends {} = a
   extends ModuleConfig<M, S, T, W> {
   buildPath: string
   buildMetadataPath: string
-  configPath: string
   needsBuild: boolean
 
   version: ModuleVersion
@@ -59,10 +57,7 @@ export const moduleSchema = () =>
     compatibleTypes: joiArray(joiIdentifier())
       .required()
       .description("A list of types that this module is compatible with (i.e. the module type itself + all bases)."),
-    configPath: joi
-      .string()
-      .required()
-      .description("The path to the module config file."),
+    configPath: joi.string().description("The path to the module config file, if applicable."),
     version: moduleVersionSchema().required(),
     buildDependencies: joiIdentifierMap(joi.link("..."))
       .required()
@@ -100,7 +95,6 @@ export async function moduleFromConfig(
   config: ModuleConfig,
   buildDependencies: Module[]
 ): Promise<Module> {
-  const configPath = await getConfigFilePath(config.path)
   const version = await garden.resolveVersion(config, config.build.dependencies)
   const moduleTypes = await garden.getModuleTypes()
   const compatibleTypes = [config.type, ...getModuleTypeBases(moduleTypes[config.type], moduleTypes).map((t) => t.name)]
@@ -110,7 +104,6 @@ export async function moduleFromConfig(
 
     buildPath: await garden.buildDir.buildPath(config),
     buildMetadataPath: await garden.buildDir.buildMetadataPath(config.name),
-    configPath,
 
     version,
     needsBuild: moduleNeedsBuild(config, moduleTypes[config.type]),

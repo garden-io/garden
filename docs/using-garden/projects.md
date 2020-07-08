@@ -5,10 +5,10 @@ title: Projects
 
 # Projects
 
-The first step to using Garden is to create a project. You can use the `garden create project` helper command, or manually create a `garden.yml` file in the root directory of your project:
+The first step to using Garden is to create a project. You can use the `garden create project` helper command, or manually create a `project.garden.yml` file in the root directory of your project:
 
 ```yaml
-# garden.yml - located in the top-level directory of your project
+# project.garden.yml - located in the top-level directory of your project
 kind: Project
 name: my-project
 environments:
@@ -18,17 +18,19 @@ providers:
     environments: ["local"]
 ```
 
+We suggest naming it `project.garden.yml` for clarity, but you can also use `garden.yml` or any filename ending with `.garden.yml`.
+
 The helper command has the benefit of including all the possible fields you can configure, and their documentation, so you can quickly scan through the available options and uncomment as needed.
 
 ## How it Works
 
-The top-level `garden.yml` file is where project-wide configuration takes place. This includes environment configurations and project variables. Most importantly, it's where you declare and configure the *providers* you want to use for your project ([see below](#providers)).
+The top-level `project.garden.yml` file is where project-wide configuration takes place. This includes environment configurations and project variables. Most importantly, it's where you declare and configure the *providers* you want to use for your project ([see below](#providers)).
 
 Garden treats the directory containing the project configuration as the project's top-level directory. Garden commands that run in subdirectories of the project root are assumed to apply to that project, and commands above/outside a project root will fail—similarly to how Git uses the location of the repo's `.git` directory as the repo's root directory.
 
 ### Environments and namespaces
 
-Every Garden command is run against one of the environments defined in the project-level `garden.yml` file. You can specify the environment with the `--env` flag or by setting a `defaultEnvironment`. Alternatively, Garden defaults to the first environment in the `garden.yml` file.
+Every Garden command is run against one of the environments defined in the project-level configuration file. You can specify the environment with the `--env` flag or by setting a `defaultEnvironment`. Alternatively, Garden defaults to the first environment defined in your configuration.
 
 An environment can be partitioned using _namespaces_. A common use-case is to split a shared development or testing environment by namespace, between e.g. users or different branches of code.
 

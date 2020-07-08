@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 import { withDefaultGlobalOpts, TempDirectory, makeTempDir, expectError } from "../../../../helpers"
-import { CreateProjectCommand } from "../../../../../src/commands/create/create-project"
+import { CreateProjectCommand, defaultProjectConfigFilename } from "../../../../../src/commands/create/create-project"
 import { makeDummyGarden } from "../../../../../src/cli/cli"
 import { Garden } from "../../../../../src/garden"
 import { basename, join } from "path"
@@ -38,13 +38,18 @@ describe("CreateProjectCommand", () => {
       headerLog: garden.log,
       log: garden.log,
       args: {},
-      opts: withDefaultGlobalOpts({ dir: tmp.path, interactive: false, name: undefined }),
+      opts: withDefaultGlobalOpts({
+        dir: tmp.path,
+        interactive: false,
+        name: undefined,
+        filename: defaultProjectConfigFilename,
+      }),
     })
     const { name, configPath, ignoreFileCreated, ignoreFilePath } = result!
 
     expect(name).to.equal(basename(tmp.path))
     expect(ignoreFileCreated).to.be.true
-    expect(configPath).to.equal(join(tmp.path, "garden.yml"))
+    expect(configPath).to.equal(join(tmp.path, "project.garden.yml"))
     expect(ignoreFilePath).to.equal(join(tmp.path, ".gardenignore"))
     expect(await pathExists(configPath)).to.be.true
     expect(await pathExists(ignoreFilePath)).to.be.true
@@ -71,7 +76,12 @@ describe("CreateProjectCommand", () => {
       headerLog: garden.log,
       log: garden.log,
       args: {},
-      opts: withDefaultGlobalOpts({ dir: tmp.path, interactive: false, name: undefined }),
+      opts: withDefaultGlobalOpts({
+        dir: tmp.path,
+        interactive: false,
+        name: undefined,
+        filename: defaultProjectConfigFilename,
+      }),
     })
     const { ignoreFileCreated, ignoreFilePath } = result!
 
@@ -90,7 +100,12 @@ describe("CreateProjectCommand", () => {
       headerLog: garden.log,
       log: garden.log,
       args: {},
-      opts: withDefaultGlobalOpts({ dir: tmp.path, interactive: false, name: undefined }),
+      opts: withDefaultGlobalOpts({
+        dir: tmp.path,
+        interactive: false,
+        name: undefined,
+        filename: defaultProjectConfigFilename,
+      }),
     })
     const { ignoreFileCreated, ignoreFilePath } = result!
 
@@ -106,7 +121,12 @@ describe("CreateProjectCommand", () => {
       headerLog: garden.log,
       log: garden.log,
       args: {},
-      opts: withDefaultGlobalOpts({ dir: tmp.path, interactive: false, name: "foo" }),
+      opts: withDefaultGlobalOpts({
+        dir: tmp.path,
+        interactive: false,
+        name: "foo",
+        filename: defaultProjectConfigFilename,
+      }),
     })
     const { name, configPath } = result!
 
@@ -136,7 +156,12 @@ describe("CreateProjectCommand", () => {
       headerLog: garden.log,
       log: garden.log,
       args: {},
-      opts: withDefaultGlobalOpts({ dir: tmp.path, interactive: false, name: undefined }),
+      opts: withDefaultGlobalOpts({
+        dir: tmp.path,
+        interactive: false,
+        name: undefined,
+        filename: "garden.yml",
+      }),
     })
     const { name, configPath } = result!
 
@@ -152,12 +177,32 @@ describe("CreateProjectCommand", () => {
     ])
   })
 
+  it("should allow overriding the default generated filename", async () => {
+    const { result } = await command.action({
+      garden,
+      footerLog: garden.log,
+      headerLog: garden.log,
+      log: garden.log,
+      args: {},
+      opts: withDefaultGlobalOpts({
+        dir: tmp.path,
+        interactive: false,
+        name: undefined,
+        filename: "custom.garden.yml",
+      }),
+    })
+    const { configPath } = result!
+
+    expect(configPath).to.equal(join(tmp.path, "custom.garden.yml"))
+    expect(await pathExists(configPath)).to.be.true
+  })
+
   it("should throw if a project is already in the directory", async () => {
     const existing = {
       kind: "Project",
       name: "foo",
     }
-    const configPath = join(tmp.path, "garden.yml")
+    const configPath = join(tmp.path, defaultProjectConfigFilename)
     await writeFile(configPath, safeDumpYaml(existing))
 
     await expectError(
@@ -168,7 +213,12 @@ describe("CreateProjectCommand", () => {
           headerLog: garden.log,
           log: garden.log,
           args: {},
-          opts: withDefaultGlobalOpts({ dir: tmp.path, interactive: false, name: undefined }),
+          opts: withDefaultGlobalOpts({
+            dir: tmp.path,
+            interactive: false,
+            name: undefined,
+            filename: defaultProjectConfigFilename,
+          }),
         }),
       (err) => expect(err.message).to.equal("A Garden project already exists in " + configPath)
     )
@@ -184,7 +234,12 @@ describe("CreateProjectCommand", () => {
           headerLog: garden.log,
           log: garden.log,
           args: {},
-          opts: withDefaultGlobalOpts({ dir, interactive: false, name: undefined }),
+          opts: withDefaultGlobalOpts({
+            dir,
+            interactive: false,
+            name: undefined,
+            filename: defaultProjectConfigFilename,
+          }),
         }),
       (err) => expect(err.message).to.equal(`Path ${dir} does not exist`)
     )

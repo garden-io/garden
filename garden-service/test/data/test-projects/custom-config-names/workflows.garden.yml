@@ -1,0 +1,9 @@
+kind: Workflow
+name: workflow-a
+steps:
+  - script: echo
+---
+kind: Workflow
+name: workflow-b
+steps:
+  - script: echo

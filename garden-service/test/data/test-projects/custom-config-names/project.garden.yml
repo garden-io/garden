@@ -1,0 +1,16 @@
+kind: Project
+name: test-project-a
+id: test-project-id
+environments:
+  - name: local
+  - name: other
+providers:
+  - name: test-plugin
+    environments: [local]
+  - name: test-plugin-b
+    environments: [local]
+variables:
+  some: variable
+outputs:
+  - name: taskName
+    value: task-a

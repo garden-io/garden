@@ -21,7 +21,6 @@ import {
 } from "../../helpers"
 import { CacheContext, pathToCacheContext } from "../../../src/cache"
 import { remove, pathExists, writeFile } from "fs-extra"
-import { getConfigFilePath } from "../../../src/util/fs"
 import { LinkModuleCommand } from "../../../src/commands/link/module"
 import { LinkSourceCommand } from "../../../src/commands/link/source"
 import { sleep } from "../../../src/util/util"
@@ -80,14 +79,18 @@ describe("Watcher", () => {
     return garden.events.eventLog.filter((e) => !e.name.startsWith("task"))
   }
 
+  function getConfigFilePath(path: string) {
+    return join(path, "garden.yml")
+  }
+
   it("should emit a moduleConfigChanged changed event when module config is changed", async () => {
-    const path = await getConfigFilePath(modulePath)
+    const path = getConfigFilePath(modulePath)
     emitEvent(garden, "change", path)
     expect(getEventLog()).to.eql([{ name: "moduleConfigChanged", payload: { names: ["module-a"], path } }])
   })
 
   it("should emit a moduleConfigChanged event when module config is changed and include field is set", async () => {
-    const path = await getConfigFilePath(includeModulePath)
+    const path = getConfigFilePath(includeModulePath)
     emitEvent(garden, "change", path)
     expect(getEventLog()).to.eql([
       {
@@ -98,44 +101,44 @@ describe("Watcher", () => {
   })
 
   it("should clear all module caches when a module config is changed", async () => {
-    const path = await getConfigFilePath(modulePath)
+    const path = getConfigFilePath(modulePath)
     emitEvent(garden, "change", path)
     expect(garden.cache.getByContext(moduleContext)).to.eql(new Map())
   })
 
   it("should emit a projectConfigChanged changed event when project config is changed", async () => {
-    const path = await getConfigFilePath(garden.projectRoot)
+    const path = getConfigFilePath(garden.projectRoot)
     emitEvent(garden, "change", path)
     expect(getEventLog()).to.eql([{ name: "projectConfigChanged", payload: {} }])
   })
 
   it("should emit a projectConfigChanged changed event when project config is removed", async () => {
-    const path = await getConfigFilePath(garden.projectRoot)
+    const path = getConfigFilePath(garden.projectRoot)
     emitEvent(garden, "unlink", path)
     await waitForEvent("projectConfigChanged")
     expect(getEventLog()).to.eql([{ name: "projectConfigChanged", payload: {} }])
   })
 
   it("should emit a projectConfigChanged changed event when ignore files are changed", async () => {
-    const path = join(await getConfigFilePath(garden.projectRoot), ".gardenignore")
+    const path = join(getConfigFilePath(garden.projectRoot), ".gardenignore")
     emitEvent(garden, "change", path)
     expect(getEventLog()).to.eql([{ name: "projectConfigChanged", payload: {} }])
   })
 
   it("should clear all module caches when project config is changed", async () => {
-    const path = await getConfigFilePath(garden.projectRoot)
+    const path = getConfigFilePath(garden.projectRoot)
     emitEvent(garden, "change", path)
     expect(garden.cache.getByContext(moduleContext)).to.eql(new Map())
   })
 
   it("should emit a configAdded event when adding a garden.yml file", async () => {
-    const path = await getConfigFilePath(join(garden.projectRoot, "module-b"))
+    const path = getConfigFilePath(join(garden.projectRoot, "module-b"))
     emitEvent(garden, "add", path)
     expect(await waitForEvent("configAdded")).to.eql({ path })
   })
 
   it("should emit a configRemoved event when removing a garden.yml file", async () => {
-    const path = await getConfigFilePath(join(garden.projectRoot, "module-a"))
+    const path = getConfigFilePath(join(garden.projectRoot, "module-a"))
     emitEvent(garden, "unlink", path)
     await waitForEvent("configRemoved")
     expect(getEventLog()).to.eql([{ name: "configRemoved", payload: { path } }])
@@ -223,7 +226,7 @@ describe("Watcher", () => {
   it("should emit a configAdded event when a directory is added that contains a garden.yml file", async () => {
     emitEvent(garden, "addDir", modulePath)
     expect(await waitForEvent("configAdded")).to.eql({
-      path: await getConfigFilePath(modulePath),
+      path: getConfigFilePath(modulePath),
     })
   })
 

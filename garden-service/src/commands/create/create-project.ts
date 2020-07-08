@@ -18,11 +18,12 @@ import {
   PathParameter,
   BooleanParameter,
   StringOption,
+  StringParameter,
 } from "../base"
 import { printHeader } from "../../logger/util"
-import { getConfigFilePath, isDirectory } from "../../util/fs"
-import { loadConfig } from "../../config/base"
-import { resolve, basename, relative } from "path"
+import { isDirectory } from "../../util/fs"
+import { loadConfigResources } from "../../config/base"
+import { resolve, basename, relative, join } from "path"
 import { GardenBaseError, ParameterError } from "../../exceptions"
 import { renderProjectConfigReference } from "../../docs/config"
 import { addConfig } from "./helpers"
@@ -36,11 +37,17 @@ const defaultIgnorefile = dedent`
 # For more info, see https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories
 `
 
+export const defaultProjectConfigFilename = "project.garden.yml"
+
 const createProjectArgs = {}
 const createProjectOpts = {
   dir: new PathParameter({
     help: "Directory to place the project in (defaults to current directory).",
     defaultValue: ".",
+  }),
+  filename: new StringParameter({
+    help: "Filename to place the project config in (defaults to project.garden.yml).",
+    defaultValue: defaultProjectConfigFilename,
   }),
   interactive: new BooleanParameter({
     alias: "i",
@@ -107,11 +114,11 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
       throw new ParameterError(`${configDir} is not a directory`, { configDir })
     }
 
-    const configPath = await getConfigFilePath(configDir)
+    const configPath = join(configDir, opts.filename)
 
     // Throw if a project config already exists in the config path
     if (await pathExists(configPath)) {
-      const configs = await loadConfig(configDir, configDir)
+      const configs = await loadConfigResources(configDir, configPath)
 
       if (configs.filter((c) => c.kind === "Project").length > 0) {
         throw new CreateError(`A Garden project already exists in ${configPath}`, { configDir, configPath })

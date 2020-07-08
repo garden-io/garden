@@ -7,23 +7,19 @@
  */
 
 import { expect } from "chai"
-import { join, basename } from "path"
-import { getDataDir, expectError, makeTestGardenA } from "../../../helpers"
+import { join } from "path"
+import { getDataDir, makeTestGardenA, makeTestGarden } from "../../../helpers"
 import {
   scanDirectory,
   toCygwinPath,
   getChildDirNames,
   isConfigFilename,
-  getConfigFilePath,
   getWorkingCopyId,
   findConfigPathsInPath,
   detectModuleOverlap,
 } from "../../../../src/util/fs"
 import { withDir } from "tmp-promise"
 import { ModuleConfig } from "../../../../src/config/module"
-
-const projectYamlFileExtensions = getDataDir("test-project-yaml-file-extensions")
-const projectDuplicateYamlFileExtensions = getDataDir("test-project-duplicate-yaml-file-extensions")
 
 describe("util", () => {
   describe("detectModuleOverlap", () => {
@@ -237,35 +233,12 @@ describe("util", () => {
     })
   })
 
-  describe("getConfigFilePath", () => {
-    context("name of the file is garden.yml", () => {
-      it("should return the full path to the config file", async () => {
-        const testPath = join(projectYamlFileExtensions, "module-yml")
-        expect(await getConfigFilePath(testPath)).to.eql(join(testPath, "garden.yml"))
-      })
-    })
-    context("name of the file is garden.yaml", () => {
-      it("should return the full path to the config file", async () => {
-        const testPath = join(projectYamlFileExtensions, "module-yml")
-        expect(await getConfigFilePath(testPath)).to.eql(join(testPath, "garden.yml"))
-      })
-    })
-    it("should throw if multiple valid config files found at the given path", async () => {
-      await expectError(() => getConfigFilePath(projectDuplicateYamlFileExtensions), "validation")
-    })
-    it("should return a valid default path if no config file found at the given path", async () => {
-      const testPath = join(projectYamlFileExtensions, "module-no-config")
-      const result = await getConfigFilePath(testPath)
-      expect(isConfigFilename(basename(result))).to.be.true
-    })
-  })
-
   describe("isConfigFilename", () => {
     it("should return true if the name of the file is garden.yaml", async () => {
-      expect(await isConfigFilename("garden.yaml")).to.be.true
+      expect(isConfigFilename("garden.yaml")).to.be.true
     })
     it("should return true if the name of the file is garden.yml", async () => {
-      expect(await isConfigFilename("garden.yml")).to.be.true
+      expect(isConfigFilename("garden.yml")).to.be.true
     })
     it("should return false otherwise", async () => {
       const badNames = ["agarden.yml", "garden.ymla", "garden.yaaml", "garden.ml"]
@@ -300,7 +273,7 @@ describe("util", () => {
   })
 
   describe("findConfigPathsInPath", () => {
-    it("should find all garden configs in a directory", async () => {
+    it("should recursively find all garden configs in a directory", async () => {
       const garden = await makeTestGardenA()
       const files = await findConfigPathsInPath({
         vcs: garden.vcs,
@@ -312,6 +285,21 @@ describe("util", () => {
         join(garden.projectRoot, "module-a", "garden.yml"),
         join(garden.projectRoot, "module-b", "garden.yml"),
         join(garden.projectRoot, "module-c", "garden.yml"),
+      ])
+    })
+
+    it("should find custom-named garden configs", async () => {
+      const garden = await makeTestGarden(getDataDir("test-projects", "custom-config-names"))
+      const files = await findConfigPathsInPath({
+        vcs: garden.vcs,
+        dir: garden.projectRoot,
+        log: garden.log,
+      })
+      expect(files).to.eql([
+        join(garden.projectRoot, "module-a", "garden.yml"),
+        join(garden.projectRoot, "module-b", "module-b.garden.yaml"),
+        join(garden.projectRoot, "project.garden.yml"),
+        join(garden.projectRoot, "workflows.garden.yml"),
       ])
     })
 

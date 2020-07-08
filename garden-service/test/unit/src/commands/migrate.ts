@@ -10,13 +10,13 @@ import { expect } from "chai"
 import { join } from "path"
 import tmp from "tmp-promise"
 import { dedent } from "../../../../src/util/string"
-import cpy = require("cpy")
 import { sortBy } from "lodash"
 import { expectError, withDefaultGlobalOpts, dataDir, makeTestGardenA } from "../../../helpers"
 import { MigrateCommand, MigrateCommandResult, dumpSpec } from "../../../../src/commands/migrate"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { Garden } from "../../../../src/garden"
 import execa from "execa"
+import { writeFile } from "fs-extra"
 
 describe("commands", () => {
   describe("migrate", () => {
@@ -308,7 +308,23 @@ describe("commands", () => {
     })
     it("should abort write if config file is dirty", async () => {
       await execa("git", ["init"], { cwd: tmpDir.path })
-      await cpy(join(projectPath, "garden.yml"), tmpDir.path)
+      await writeFile(
+        join(tmpDir.path, "garden.yml"),
+        dedent`
+          kind: Project
+          name: test-project-v10-config-local-openfaas
+          environments:
+            - name: local
+          providers:
+            - name: openfaas
+          ---
+          kind: Module
+          name: module-a
+          type: local-openfaas
+          build:
+            command: [echo, project]
+        `
+      )
 
       await expectError(
         () =>

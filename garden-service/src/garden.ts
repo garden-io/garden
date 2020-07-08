@@ -11,7 +11,7 @@ import chalk from "chalk"
 import { ensureDir } from "fs-extra"
 import dedent from "dedent"
 import { platform, arch } from "os"
-import { parse, relative, resolve, dirname } from "path"
+import { parse, relative, resolve, join } from "path"
 import { flatten, isString, sortBy, fromPairs, keyBy, mapValues, omit, cloneDeep } from "lodash"
 const AsyncLock = require("async-lock")
 
@@ -36,7 +36,7 @@ import { ConfigGraph } from "./config-graph"
 import { TaskGraph, GraphResults, ProcessTasksOpts } from "./task-graph"
 import { getLogger } from "./logger/logger"
 import { PluginActionHandlers, GardenPlugin } from "./types/plugin/plugin"
-import { loadConfig, findProjectConfig, prepareModuleResource } from "./config/base"
+import { loadConfigResources, findProjectConfig, prepareModuleResource } from "./config/base"
 import { DeepPrimitiveMap, StringMap } from "./config/common"
 import { validateSchema } from "./config/validation"
 import { BaseTask } from "./tasks/base"
@@ -53,11 +53,11 @@ import { EventBus } from "./events"
 import { Watcher } from "./watch"
 import {
   findConfigPathsInPath,
-  getConfigFilePath,
   getWorkingCopyId,
   fixedExcludes,
   detectModuleOverlap,
   ModuleOverlap,
+  defaultConfigFilename,
 } from "./util/fs"
 import {
   Provider,
@@ -618,7 +618,7 @@ export class Garden {
         Bluebird.map(provider.moduleConfigs, async (moduleConfig) => {
           // Make sure module and all nested entities are scoped to the plugin
           moduleConfig.plugin = provider.name
-          return this.addModule(moduleConfig)
+          return this.addModuleConfig(moduleConfig)
         })
       )
 
@@ -795,7 +795,11 @@ export class Garden {
       // Resolve modules from specs and add to the list
       await Bluebird.map(addModules || [], async (spec) => {
         const path = spec.path || this.projectRoot
-        const moduleConfig = prepareModuleResource(spec, path, path, this.projectRoot)
+        const moduleConfig = prepareModuleResource(spec, join(path, defaultConfigFilename), this.projectRoot)
+
+        // There is no actual config file for plugin modules (which the prepare function assumes)
+        delete moduleConfig.configPath
+
         const resolvedConfig = await resolveModuleConfig(this, moduleConfig, { configContext })
         resolvedModules.push(await moduleFromConfig(this, resolvedConfig, resolvedModules))
         graph = undefined
@@ -969,7 +973,7 @@ export class Garden {
       const rawWorkflowConfigs: WorkflowConfig[] = []
 
       await Bluebird.map(configPaths, async (path) => {
-        const configs = await this.loadConfigs(dirname(path))
+        const configs = await this.loadResources(path)
         if (configs) {
           const moduleConfigs = <ModuleResource[]>configs.filter((c) => c.kind === "Module")
           const workflowConfigs = <WorkflowResource[]>configs.filter((c) => c.kind === "Workflow")
@@ -982,7 +986,7 @@ export class Garden {
       throwOnMissingSecretKeys(Object.fromEntries(rawWorkflowConfigs.map((c) => [c.name, c])), this.secrets, "Workflow")
 
       await Bluebird.all([
-        Bluebird.map(rawModuleConfigs, async (config) => this.addModule(config)),
+        Bluebird.map(rawModuleConfigs, async (config) => this.addModuleConfig(config)),
         Bluebird.map(rawWorkflowConfigs, async (config) => this.addWorkflow(config)),
       ])
 
@@ -1002,15 +1006,14 @@ export class Garden {
   /**
    * Add a module config to the context, after validating and calling the appropriate configure plugin handler.
    */
-  private async addModule(config: ModuleConfig) {
+  private async addModuleConfig(config: ModuleConfig) {
     const key = getModuleKey(config.name, config.plugin)
     this.log.silly(`Adding module ${key}`)
+    const existing = this.moduleConfigs[key]
 
-    if (this.moduleConfigs[key]) {
-      const paths = [this.moduleConfigs[key].path, config.path]
-      const [pathA, pathB] = (
-        await Bluebird.map(paths, async (path) => relative(this.projectRoot, await getConfigFilePath(path)))
-      ).sort()
+    if (existing) {
+      const paths = [existing.configPath || existing.path, config.configPath || config.path]
+      const [pathA, pathB] = paths.map((path) => relative(this.projectRoot, path)).sort()
 
       throw new ConfigurationError(`Module ${key} is declared multiple times (in '${pathA}' and '${pathB}')`, {
         pathA,
@@ -1030,11 +1033,11 @@ export class Garden {
     const key = config.name
     this.log.silly(`Adding workflow ${key}`)
 
-    if (this.workflowConfigs[key]) {
-      const paths = [this.workflowConfigs[key].path, config.path]
-      const [pathA, pathB] = (
-        await Bluebird.map(paths, async (path) => relative(this.projectRoot, await getConfigFilePath(path)))
-      ).sort()
+    const existing = this.workflowConfigs[key]
+
+    if (existing) {
+      const paths = [existing.configPath || existing.path, config.path]
+      const [pathA, pathB] = paths.map((path) => relative(this.projectRoot, path)).sort()
 
       throw new ConfigurationError(`Workflow ${key} is declared multiple times (in '${pathA}' and '${pathB}')`, {
         pathA,
@@ -1046,16 +1049,16 @@ export class Garden {
   }
 
   /**
-   * Load a module and/or a workflow from the specified directory and return the configs,
+   * Load a module and/or a workflow from the specified config file path and return the configs,
    * or null if no module or workflow is found.
    *
-   * @param path Directory containing the module
+   * @param configPath Path to a garden config file
    */
-  private async loadConfigs(path: string): Promise<(ModuleResource | WorkflowResource)[]> {
-    path = resolve(this.projectRoot, path)
-    this.log.silly(`Load module and workflow configs from ${path}`)
-    const resources = await loadConfig(this.projectRoot, path)
-    this.log.silly(`Loaded module and workflow configs from ${path}`)
+  private async loadResources(configPath: string): Promise<(ModuleResource | WorkflowResource)[]> {
+    configPath = resolve(this.projectRoot, configPath)
+    this.log.silly(`Load module and workflow configs from ${configPath}`)
+    const resources = await loadConfigResources(this.projectRoot, configPath)
+    this.log.silly(`Loaded module and workflow configs from ${configPath}`)
     return <(ModuleResource | WorkflowResource)[]>resources.filter((r) => r.kind === "Module" || r.kind === "Workflow")
   }
 

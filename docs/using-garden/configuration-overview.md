@@ -5,16 +5,14 @@ title: Configuration Overview
 
 # Configuration Overview
 
-Garden is configured via `garden.yml` configuration files, which Garden collects and compiles into a
+Garden is configured via `garden.yml` (or `*.garden.yml`) configuration files, which Garden collects and compiles into a
 [Stack Graph](../basics/stack-graph.md) of your project.
 
-The [project configuration](./projects.md) `garden.yml` file should be located in the top-level directory of the
-project's Git repository.
+The [project configuration](./projects.md) file should be located in the top-level directory of the project's Git repository. We suggest naming it `project.garden.yml` for clarity, but you can also use `garden.yml` or any filename ending with `.garden.yml`.
 
-In addition, each of the project's [modules](../reference/glossary.md#module)' `garden.yml` should be located in that
-module's top-level directory. Modules define all the individual components of your project, including [services](./services.md), [tasks](./tasks.md) and [tests](./tests.md).
+In addition, each of the project's [modules](../reference/glossary.md#module)' should be located in that module's top-level directory. Modules define all the individual components of your project, including [services](./services.md), [tasks](./tasks.md) and [tests](./tests.md).
 
-Lastly, you can define [workflows](./workflows.md), to codify sequences of Garden commands and custom scripts.
+Lastly, you can define [workflows](./workflows.md), to codify sequences of Garden commands and custom scripts. We suggest placing those in a `workflows.garden.yml` file in your project root.
 
 The other docs under the _Using Garden_ go into more details, and we highly recommend reading through all of them.
 

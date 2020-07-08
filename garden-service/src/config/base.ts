@@ -6,18 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { sep, resolve, relative, basename, dirname } from "path"
+import { sep, resolve, relative, basename, dirname, join } from "path"
 import yaml from "js-yaml"
 import yamlLint from "yaml-lint"
 import { readFile } from "fs-extra"
-import { omit, isPlainObject, find, isArray } from "lodash"
+import { omit, isPlainObject, isArray } from "lodash"
 import { ModuleResource, coreModuleSpecSchema, baseModuleSchemaKeys, BuildDependencyConfig } from "./module"
-import { ConfigurationError } from "../exceptions"
+import { ConfigurationError, FilesystemError } from "../exceptions"
 import { DEFAULT_API_VERSION } from "../constants"
 import { ProjectResource } from "../config/project"
-import { getConfigFilePath } from "../util/fs"
 import { validateWithPath } from "./validation"
 import { WorkflowResource } from "./workflow"
+import { listDirectory } from "../util/fs"
+import { isConfigFilename } from "../util/fs"
 
 export interface GardenResource {
   apiVersion: string
@@ -51,31 +52,27 @@ export async function loadAndValidateYaml(content: string, path: string): Promis
   }
 }
 
-export async function loadConfig(projectRoot: string, path: string): Promise<GardenResource[]> {
-  const configPath = await getConfigFilePath(path)
+export async function loadConfigResources(
+  projectRoot: string,
+  configPath: string,
+  allowInvalid = false
+): Promise<GardenResource[]> {
   let fileData: Buffer
 
-  // loadConfig returns undefined if config file is not found in the given directory
   try {
     fileData = await readFile(configPath)
   } catch (err) {
-    return []
+    throw new FilesystemError(`Could not find configuration file at ${configPath}`, { projectRoot, configPath })
   }
 
-  let rawSpecs = await loadAndValidateYaml(fileData.toString(), path)
+  let rawSpecs = await loadAndValidateYaml(fileData.toString(), configPath)
 
   // Ignore empty resources
   rawSpecs = rawSpecs.filter(Boolean)
 
-  const resources: GardenResource[] = rawSpecs.map((s) => prepareResource(s, path, configPath, projectRoot))
-
-  const projectSpecs = resources.filter((s) => s.kind === "Project")
-
-  if (projectSpecs.length > 1) {
-    throw new ConfigurationError(`Multiple project declarations in ${path}`, {
-      projectSpecs,
-    })
-  }
+  const resources = <GardenResource[]>(
+    rawSpecs.map((s) => prepareResource({ spec: s, configPath, projectRoot, allowInvalid })).filter(Boolean)
+  )
 
   return resources
 }
@@ -85,23 +82,35 @@ export type ConfigKind = "Module" | "Workflow" | "Project"
 /**
  * Each YAML document in a garden.yml file defines a project, a module or a workflow.
  */
-function prepareResource(spec: any, path: string, configPath: string, projectRoot: string): GardenResource {
+function prepareResource({
+  spec,
+  configPath,
+  projectRoot,
+  allowInvalid = false,
+}: {
+  spec: any
+  configPath: string
+  projectRoot: string
+  allowInvalid?: boolean
+}): GardenResource | null {
   if (!isPlainObject(spec)) {
-    throw new ConfigurationError(`Invalid configuration found in ${path}`, {
+    throw new ConfigurationError(`Invalid configuration found in ${configPath}`, {
       spec,
-      path,
+      configPath,
     })
   }
 
   const kind = spec.kind
-  const relPath = `${relative(projectRoot, path)}/garden.yml`
+  const relPath = relative(projectRoot, configPath)
 
   if (kind === "Project") {
-    return prepareProjectConfig(spec, path, configPath)
+    return prepareProjectConfig(spec, configPath)
   } else if (kind === "Module") {
-    return prepareModuleResource(spec, path, configPath, projectRoot)
+    return prepareModuleResource(spec, configPath, projectRoot)
   } else if (kind === "Workflow") {
-    return prepareWorkflowResource(spec, path, configPath)
+    return prepareWorkflowResource(spec, configPath)
+  } else if (allowInvalid) {
+    return spec
   } else if (!kind) {
     throw new ConfigurationError(`Missing \`kind\` field in config at ${relPath}`, {
       kind,
@@ -115,24 +124,19 @@ function prepareResource(spec: any, path: string, configPath: string, projectRoo
   }
 }
 
-function prepareProjectConfig(spec: any, path: string, configPath: string): ProjectResource {
+function prepareProjectConfig(spec: any, configPath: string): ProjectResource {
   if (!spec.apiVersion) {
     spec.apiVersion = DEFAULT_API_VERSION
   }
 
   spec.kind = "Project"
-  spec.path = path
+  spec.path = dirname(configPath)
   spec.configPath = configPath
 
   return spec
 }
 
-export function prepareModuleResource(
-  spec: any,
-  path: string,
-  configPath: string,
-  projectRoot: string
-): ModuleResource {
+export function prepareModuleResource(spec: any, configPath: string, projectRoot: string): ModuleResource {
   /**
    * We allow specifying modules by name only as a shorthand:
    *   dependencies:
@@ -160,7 +164,7 @@ export function prepareModuleResource(
     exclude: spec.exclude,
     name: spec.name,
     outputs: {},
-    path,
+    path: dirname(configPath),
     repositoryUrl: spec.repositoryUrl,
     serviceConfigs: [],
     spec: {
@@ -184,13 +188,13 @@ export function prepareModuleResource(
   return config
 }
 
-export function prepareWorkflowResource(spec: any, path: string, configPath: string): WorkflowResource {
+export function prepareWorkflowResource(spec: any, configPath: string): WorkflowResource {
   if (!spec.apiVersion) {
     spec.apiVersion = DEFAULT_API_VERSION
   }
 
   spec.kind = "Workflow"
-  spec.path = path
+  spec.path = dirname(configPath)
   spec.configPath = configPath
 
   return spec
@@ -198,20 +202,25 @@ export function prepareWorkflowResource(spec: any, path: string, configPath: str
 
 export async function findProjectConfig(path: string, allowInvalid = false): Promise<ProjectResource | undefined> {
   let sepCount = path.split(sep).length - 1
+
   for (let i = 0; i < sepCount; i++) {
-    try {
-      const resources = await loadConfig(path, path)
-      const projectResource = find(resources, (r) => r.kind === "Project")
-      if (projectResource) {
-        return <ProjectResource>projectResource
+    const configFiles = (await listDirectory(path, { recursive: false })).filter(isConfigFilename)
+
+    for (const configFile of configFiles) {
+      const resources = await loadConfigResources(path, join(path, configFile), allowInvalid)
+
+      const projectSpecs = resources.filter((s) => s.kind === "Project")
+
+      if (projectSpecs.length > 1 && !allowInvalid) {
+        throw new ConfigurationError(`Multiple project declarations found in ${path}`, {
+          projectSpecs,
+        })
+      } else if (projectSpecs.length > 0) {
+        return <ProjectResource>projectSpecs[0]
       }
-    } catch (err) {
-      if (!allowInvalid) {
-        throw err
-      }
-    } finally {
-      path = resolve(path, "..")
     }
+
+    path = resolve(path, "..")
   }
 
   return
