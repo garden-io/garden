@@ -9,12 +9,11 @@
 import klaw = require("klaw")
 import glob from "glob"
 import _spawn from "cross-spawn"
-import Bluebird from "bluebird"
 import { pathExists, readFile, writeFile, lstat } from "fs-extra"
 import minimatch = require("minimatch")
 import { some } from "lodash"
 import { join, basename, win32, posix } from "path"
-import { ValidationError, FilesystemError } from "../exceptions"
+import { FilesystemError } from "../exceptions"
 import { platform } from "os"
 import { VcsHandler } from "../vcs/vcs"
 import { LogEntry } from "../logger/log-entry"
@@ -22,7 +21,7 @@ import { ModuleConfig } from "../config/module"
 import pathIsInside from "path-is-inside"
 import { uuidv4 } from "./util"
 
-const VALID_CONFIG_FILENAMES = ["garden.yml", "garden.yaml"]
+export const defaultConfigFilename = "garden.yml"
 const metadataFilename = "metadata.json"
 export const defaultDotIgnoreFiles = [".gardenignore"]
 export const fixedExcludes = [".git", ".gitmodules", ".garden/**/*", "debug-info*/**"]
@@ -92,35 +91,15 @@ export function detectModuleOverlap(moduleConfigs: ModuleConfig[]): ModuleOverla
 }
 
 /**
- * Returns the expected full path to the Garden config filename.
- *
- * If a valid config filename is found at the given path, it returns the full path to it.
- * If no config file is found, it returns the path joined with the first value from the VALID_CONFIG_FILENAMES list.
- * (The check for whether or not a project or a module has a valid config file at all is handled elsewehere.)
- *
- * Throws an error if there are more than one valid config filenames at the given path.
- */
-export async function getConfigFilePath(path: string) {
-  const configFilePaths = await Bluebird.map(VALID_CONFIG_FILENAMES, async (filename) => {
-    const configFilePath = join(path, filename)
-    return (await pathExists(configFilePath)) ? configFilePath : undefined
-  }).filter(Boolean)
-
-  if (configFilePaths.length > 1) {
-    throw new ValidationError(`Found more than one Garden config file at ${path}.`, {
-      path,
-      configFilenames: configFilePaths.map((filePath) => basename(filePath || "")).join(", "),
-    })
-  }
-
-  return configFilePaths[0] || join(path, VALID_CONFIG_FILENAMES[0])
-}
-
-/**
  * Helper function to check whether a given filename is a valid Garden config filename
  */
 export function isConfigFilename(filename: string) {
-  return VALID_CONFIG_FILENAMES.includes(filename)
+  return (
+    filename === "garden.yml" ||
+    filename === "garden.yaml" ||
+    filename.endsWith(".garden.yml") ||
+    filename.endsWith(".garden.yaml")
+  )
 }
 
 export async function getChildDirNames(parentDir: string): Promise<string[]> {

@@ -12,8 +12,8 @@ import { pathExists, readdir, createFile } from "fs-extra"
 import { expect } from "chai"
 import { BuildTask } from "../../../src/tasks/build"
 import { makeTestGarden, dataDir, expectError, getDataDir, TestGarden } from "../../helpers"
-import { getConfigFilePath } from "../../../src/util/fs"
 import { BuildDir } from "../../../src/build-dir"
+import { defaultConfigFilename } from "../../../src/util/fs"
 
 /*
   Module dependency diagram for build-dir test project
@@ -139,12 +139,12 @@ describe("BuildDir", () => {
       const graph = await garden.getConfigGraph(garden.log)
       const moduleA = graph.getModule("module-a")
 
-      moduleA.version.files = [await getConfigFilePath(moduleA.path)]
+      moduleA.version.files = [join(moduleA.path, defaultConfigFilename)]
 
       await garden.buildDir.syncFromSrc(moduleA, garden.log)
       const buildDirA = await garden.buildDir.buildPath(moduleA)
 
-      expect(await pathExists(await getConfigFilePath(buildDirA))).to.eql(true)
+      expect(await pathExists(join(buildDirA, defaultConfigFilename))).to.eql(true)
       expect(await pathExists(join(buildDirA, "some-dir", "some-file"))).to.eql(false)
     })
 
@@ -157,7 +157,7 @@ describe("BuildDir", () => {
 
       await createFile(deleteMe)
 
-      moduleA.version.files = [await getConfigFilePath(moduleA.path)]
+      moduleA.version.files = [join(moduleA.path, defaultConfigFilename)]
 
       await garden.buildDir.syncFromSrc(moduleA, garden.log)
 

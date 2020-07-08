@@ -101,11 +101,6 @@ describe("Garden", () => {
       expect(gardenCustomDir.moduleExcludePatterns).to.include("custom/garden-dir/**/*")
     })
 
-    it("should throw if a project has config files with yaml and yml extensions in the same dir", async () => {
-      const path = getDataDir("test-project-duplicate-yaml-file-extensions")
-      await expectError(async () => makeTestGarden(path), "validation")
-    })
-
     it("should parse and resolve the config from the project root", async () => {
       const garden = await makeTestGardenA()
       const projectRoot = garden.projectRoot
@@ -144,6 +139,12 @@ describe("Garden", () => {
       expect(garden.variables).to.eql({
         some: "variable",
       })
+    })
+
+    it("should load a project config in a custom-named config file", async () => {
+      const projectRoot = getDataDir("test-projects", "custom-config-names")
+      const garden = await makeTestGarden(projectRoot)
+      expect(garden.projectRoot).to.equal(projectRoot)
     })
 
     it("should resolve templated env variables in project config", async () => {
@@ -2144,9 +2145,26 @@ describe("Garden", () => {
       ])
     })
 
+    it("should scan and add modules contained in custom-named config files", async () => {
+      const garden = await makeTestGarden(resolve(dataDir, "test-projects", "custom-config-names"))
+      await garden.scanAndAddConfigs()
+
+      const modules = await garden.resolveModules({ log: garden.log })
+      expect(getNames(modules).sort()).to.eql(["module-a", "module-b"])
+    })
+
+    it("should scan and add workflows contained in custom-named config files", async () => {
+      const garden = await makeTestGarden(resolve(dataDir, "test-projects", "custom-config-names"))
+      await garden.scanAndAddConfigs()
+
+      const workflows = garden.getWorkflowConfigs()
+      expect(getNames(workflows)).to.eql(["workflow-a", "workflow-b"])
+    })
+
     it("should scan and add modules for projects with external project sources", async () => {
       const garden = await makeExtProjectSourcesGarden()
       await garden.scanAndAddConfigs()
+
       const modules = await garden.resolveModules({ log: garden.log })
       expect(getNames(modules).sort()).to.eql(["module-a", "module-b", "module-c"])
     })
@@ -2161,12 +2179,6 @@ describe("Garden", () => {
             "Module module-a is declared multiple times (in 'module-a/garden.yml' and 'module-b/garden.yml')"
           )
       )
-    })
-
-    it("should scan and add modules with config files with yaml and yml extensions", async () => {
-      const garden = await makeTestGarden(getDataDir("test-project-yaml-file-extensions"))
-      const modules = await garden.resolveModules({ log: garden.log })
-      expect(getNames(modules).sort()).to.eql(["module-yaml", "module-yml"])
     })
 
     it("should respect the modules.include and modules.exclude fields, if specified", async () => {
@@ -2235,23 +2247,6 @@ describe("Garden", () => {
         () => garden.scanAndAddConfigs(),
         (err) => expect(stripAnsi(err.message)).to.match(/key .triggers must be an array/)
       )
-    })
-  })
-
-  describe("loadConfigs", () => {
-    it("should resolve module by absolute path", async () => {
-      const garden = await makeTestGardenA()
-      const path = join(projectRootA, "module-a")
-
-      const module = (await (<any>garden).loadConfigs(path))[0]
-      expect(module!.name).to.equal("module-a")
-    })
-
-    it("should resolve module by relative path to project root", async () => {
-      const garden = await makeTestGardenA()
-
-      const module = (await (<any>garden).loadConfigs("./module-a"))[0]
-      expect(module!.name).to.equal("module-a")
     })
   })
 

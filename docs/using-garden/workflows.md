@@ -16,13 +16,14 @@ A sequence of commands executed in a workflow is also generally more efficent th
 Workflows are defined with a separate _kind_ of configuration file, with a list of _steps_:
 
 ```yaml
+# workflows.garden.yml
 kind: Workflow
 name: my-workflow
 steps:
   - ...
 ```
 
-You can place your workflow definitions in your project root `garden.yml` file (with a `---` separator after the project configuration), or in a separate `garden.yml` in a different directory, e.g. in `workflows/garden.yml`.
+We suggest making a `workflows.garden.yml` next to your project configuration in your project root. You can also place your workflow definitions in your project root `project.garden.yml`/`garden.yml` file (with a `---` separator after the project configuration).
 
 Each step in your workflow can either trigger Garden commands, or run custom scripts. The steps are executed in succession. If a step fails, the remainder of the workflow is aborted.
 

@@ -11,14 +11,14 @@ import { dedent } from "../util/string"
 import { readFile, writeFile } from "fs-extra"
 import { cloneDeep, isEqual } from "lodash"
 import { ConfigurationError, RuntimeError } from "../exceptions"
-import { resolve, parse } from "path"
-import { findConfigPathsInPath, getConfigFilePath } from "../util/fs"
+import { resolve } from "path"
+import { findConfigPathsInPath } from "../util/fs"
 import { GitHandler } from "../vcs/git"
 import { DEFAULT_GARDEN_DIR_NAME } from "../constants"
 import { exec, safeDumpYaml } from "../util/util"
 import { LoggerType } from "../logger/logger"
 import Bluebird from "bluebird"
-import { loadAndValidateYaml } from "../config/base"
+import { loadAndValidateYaml, findProjectConfig } from "../config/base"
 
 const migrateOpts = {
   write: new BooleanParameter({ help: "Update the `garden.yml` in place." }),
@@ -71,12 +71,15 @@ export class MigrateCommand extends Command<Args, Opts> {
 
   async action({ log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<MigrateCommandResult>> {
     // opts.root defaults to current directory
-    const root = await findRoot(opts.root)
-    if (!root) {
+    const projectConfig = await findProjectConfig(opts.root, true)
+
+    if (!projectConfig) {
       throw new ConfigurationError(`Not a project directory (or any of the parent directories): ${opts.root}`, {
         root: opts.root,
       })
     }
+
+    const root = projectConfig.path
 
     const updatedConfigs: { path: string; specs: any[] }[] = []
 
@@ -167,29 +170,6 @@ export class MigrateCommand extends Command<Args, Opts> {
  */
 export function dumpSpec(specs: any[]) {
   return specs.map((spec) => safeDumpYaml(spec)).join("\n---\n\n")
-}
-
-/**
- * Recursively search for the project root by checking if the path has a project level `garden.yml` file
- */
-async function findRoot(path: string): Promise<string | null> {
-  const configFilePath = await getConfigFilePath(path)
-  let isProjectRoot = false
-  try {
-    const rawSpecs = await readYaml(configFilePath)
-    isProjectRoot = rawSpecs.find((spec) => !!spec.project || spec.kind === "Project")
-  } catch (err) {
-    // no op
-  }
-  if (isProjectRoot) {
-    return path
-  }
-
-  // We're at the file system root and no project file was found
-  if (parse(path).root) {
-    return null
-  }
-  return findRoot(resolve(path, ".."))
 }
 
 /**

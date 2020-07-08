@@ -317,6 +317,7 @@ Examples:
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--dir` |  | path | Directory to place the project in (defaults to current directory).
+  | `--filename` |  | string | Filename to place the project config in (defaults to project.garden.yml).
   | `--interactive` | `-i` | boolean | Set to false to disable interactive prompts.
   | `--name` |  | string | Name of the project (defaults to current directory name).
 
@@ -348,6 +349,7 @@ Examples:
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--dir` |  | path | Directory to place the module in (defaults to current directory).
+  | `--filename` |  | string | Filename to place the module config in (defaults to garden.yml).
   | `--interactive` | `-i` | boolean | Set to false to disable interactive prompts.
   | `--name` |  | string | Name of the module (defaults to current directory name).
   | `--type` |  | string | The module type to create. Required if --interactive&#x3D;false.

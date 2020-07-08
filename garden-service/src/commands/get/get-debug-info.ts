@@ -13,8 +13,7 @@ import { getPackageVersion, exec, safeDumpYaml } from "../../util/util"
 import { platform, release } from "os"
 import { join, relative, basename, dirname } from "path"
 import { LogEntry } from "../../logger/log-entry"
-import { deline } from "../../util/string"
-import { findConfigPathsInPath, getConfigFilePath, defaultDotIgnoreFiles } from "../../util/fs"
+import { findConfigPathsInPath, defaultDotIgnoreFiles } from "../../util/fs"
 import { ERROR_LOG_FILENAME } from "../../constants"
 import dedent = require("dedent")
 import { Garden } from "../../garden"
@@ -40,12 +39,10 @@ export const PROVIDER_INFO_FILENAME_NO_EXT = "info"
  */
 export async function collectBasicDebugInfo(root: string, gardenDirPath: string, log: LogEntry) {
   // Find project definition
-  const config = await findProjectConfig(root, true)
-  if (!config) {
+  const projectConfig = await findProjectConfig(root, true)
+  if (!projectConfig) {
     throw new ValidationError(
-      deline`
-      Couldn't find a garden.yml with a project definition.
-      Please run this command from the root of your Garden project.`,
+      "Couldn't find a Project definition. Please run this command from the root of your Garden project.",
       {}
     )
   }
@@ -56,18 +53,19 @@ export async function collectBasicDebugInfo(root: string, gardenDirPath: string,
   await ensureDir(tempPath)
 
   // Copy project definition in tmp folder
-  const projectConfigFilePath = await getConfigFilePath(root)
+  const projectConfigFilePath = projectConfig.configPath!
   const projectConfigFilename = basename(projectConfigFilePath)
   await copy(projectConfigFilePath, join(tempPath, projectConfigFilename))
+
   // Check if error logs exist and copy it over if it does
   if (await pathExists(join(root, ERROR_LOG_FILENAME))) {
     await copy(join(root, ERROR_LOG_FILENAME), join(tempPath, ERROR_LOG_FILENAME))
   }
 
   // Find all services paths
-  const vcs = new GitHandler(root, config.dotIgnoreFiles || defaultDotIgnoreFiles)
-  const include = config.modules && config.modules.include
-  const exclude = config.modules && config.modules.exclude
+  const vcs = new GitHandler(root, projectConfig.dotIgnoreFiles || defaultDotIgnoreFiles)
+  const include = projectConfig.modules && projectConfig.modules.include
+  const exclude = projectConfig.modules && projectConfig.modules.exclude
   const paths = await findConfigPathsInPath({ vcs, dir: root, include, exclude, log })
 
   // Copy all the service configuration files
@@ -80,14 +78,13 @@ export async function collectBasicDebugInfo(root: string, gardenDirPath: string,
     })
     const tempServicePath = join(tempPath, relative(root, servicePath))
     await ensureDir(tempServicePath)
-    const moduleConfigFilePath = await getConfigFilePath(servicePath)
-    const moduleConfigFilename = basename(moduleConfigFilePath)
+    const moduleConfigFilename = basename(configPath)
     const gardenLog = gardenPathLog.info({
       section: moduleConfigFilename,
       msg: "collecting garden.yml",
       status: "active",
     })
-    await copy(moduleConfigFilePath, join(tempServicePath, moduleConfigFilename))
+    await copy(configPath, join(tempServicePath, moduleConfigFilename))
     gardenLog.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
     // Check if error logs exist and copy them over if they do
     if (await pathExists(join(servicePath, ERROR_LOG_FILENAME))) {

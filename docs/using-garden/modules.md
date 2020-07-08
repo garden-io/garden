@@ -26,11 +26,11 @@ tests:
 
 ## How it Works
 
-A Garden project is usually split up into the project-level `garden.yml` file and several module-level configuration files:
+A Garden project is usually split up into the project-level configuration file, and several module-level configuration files, each in the root directory of the respective module:
 
 ```console
 .
-├── garden.yml
+├── project.garden.yml
 ├── module-a
 │   ├── garden.yml
 │   └── ...
@@ -42,8 +42,10 @@ A Garden project is usually split up into the project-level `garden.yml` file an
      └── ...
 ```
 
+You can also choose any `*.garden.yml` filename for each module configuration file. For example, you might prefer to set the module name in the filename, e.g. `my-module.garden.yml` to make it easier to find in a large project.
+
 {% hint style="info" %}
-It's also possible to [define several modules in the same `garden.yml` file](#multiple-modules-in-the-same-directory) and/or in the same file as the the project-level configuration.
+It's also possible to [define several modules in the same `garden.yml` file](#multiple-modules-in-the-same-directory) and/or in the same file as the the project-level configuration. If you only have a couple of modules, you might for example define them together in a single `modules.garden.yml` file. See [below](#multiple-modules-in-the-same-directory) for more details.
 {% endhint %}
 
 Modules must have a type. Different [module _types_](#module-types) behave in different ways. For example, the `container` module type corresponds to a Docker image, either built from a local Dockerfile or pulled from a remote repository.
@@ -94,14 +96,11 @@ You can also use [.gardenignore files](./configuration-overview.md#ignore-files)
 
 ### Multiple modules in the same directory
 
-Sometimes, it's useful to define several modules in the same `garden.yml` file. One common situation is where more than
-one Dockerfile is in use (e.g. one for a development build and one for a production build).
+Sometimes, it's useful to define several modules in the same `garden.yml` file. One common situation is where more than one Dockerfile is in use (e.g. one for a development build and one for a production build). You may only have a handful of modules, and it may be the cleanest approach to define all of them in a `modules.garden.yml` in your project root.
 
-Another is when the dev configuration and the production configuration have different integration testing suites,
-which may depend on different external services being available.
+Another example is when the dev configuration and the production configuration have different integration testing suites, which may depend on different external services being available.
 
-To do this, add a document separator (`---`) between the module definitions. Here's a simple (if a bit contrived)
-example:
+To do this, add a document separator (`---`) between the module definitions. Here's a simple (if a bit contrived) example:
 
 ```yaml
 kind: Module
@@ -135,7 +134,9 @@ tests:
       - b-integration-testing-backend
 ```
 
-Note that you must use the `include` and/or `exclude` directives (described above) when module paths overlap. This is to help users steer away from subtle bugs that can occur when modules unintentionally consume source files from other modules. See the next section for details on including and excluding files.
+{% hint style="warning" %}
+Note that you **must** use the `include` and/or `exclude` directives (described above) when module paths overlap. This is to help users steer away from subtle bugs that can occur when modules unintentionally consume source files from other modules. See the next section for details on including and excluding files.
+{% endhint %}
 
 ## Modules in the Stack Graph
 

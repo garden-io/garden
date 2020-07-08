@@ -18,11 +18,12 @@ import {
   PathParameter,
   BooleanParameter,
   StringOption,
+  StringParameter,
 } from "../base"
 import { printHeader } from "../../logger/util"
-import { getConfigFilePath, isDirectory } from "../../util/fs"
-import { loadConfig, findProjectConfig } from "../../config/base"
-import { resolve, basename, relative } from "path"
+import { isDirectory, defaultConfigFilename } from "../../util/fs"
+import { loadConfigResources, findProjectConfig } from "../../config/base"
+import { resolve, basename, relative, join } from "path"
 import { GardenBaseError, ParameterError } from "../../exceptions"
 import { getModuleTypes, getPluginBaseNames } from "../../plugins"
 import { addConfig } from "./helpers"
@@ -45,6 +46,10 @@ const createModuleOpts = {
   dir: new PathParameter({
     help: "Directory to place the module in (defaults to current directory).",
     defaultValue: ".",
+  }),
+  filename: new StringParameter({
+    help: "Filename to place the module config in (defaults to garden.yml).",
+    defaultValue: defaultConfigFilename,
   }),
   interactive: new BooleanParameter({
     alias: "i",
@@ -113,7 +118,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
       throw new ParameterError(`${configDir} is not a directory`, { configDir })
     }
 
-    const configPath = await getConfigFilePath(configDir)
+    const configPath = join(configDir, opts.filename)
 
     let name = opts.name || basename(configDir)
     let type = opts.type
@@ -164,7 +169,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
 
     // Throw if module with same name already exists
     if (await pathExists(configPath)) {
-      const configs = await loadConfig(configDir, configDir)
+      const configs = await loadConfigResources(configDir, configPath)
 
       if (configs.filter((c) => c.kind === "Module" && c.name === name).length > 0) {
         throw new CreateError(

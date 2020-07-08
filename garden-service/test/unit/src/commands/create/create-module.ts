@@ -11,7 +11,7 @@ import { withDefaultGlobalOpts, TempDirectory, makeTempDir, expectError } from "
 import { CreateModuleCommand, getModuleTypeSuggestions } from "../../../../../src/commands/create/create-module"
 import { makeDummyGarden } from "../../../../../src/cli/cli"
 import { Garden } from "../../../../../src/garden"
-import { basename, join } from "path"
+import { join } from "path"
 import { pathExists, readFile, writeFile, mkdirp } from "fs-extra"
 import { safeLoadAll } from "js-yaml"
 import { exec, safeDumpYaml } from "../../../../../src/util/util"
@@ -19,6 +19,7 @@ import stripAnsi = require("strip-ansi")
 import { getModuleTypes } from "../../../../../src/plugins"
 import { supportedPlugins } from "../../../../../src/plugins/plugins"
 import inquirer = require("inquirer")
+import { defaultConfigFilename } from "../../../../../src/util/fs"
 
 describe("CreateModuleCommand", () => {
   const command = new CreateModuleCommand()
@@ -45,11 +46,17 @@ describe("CreateModuleCommand", () => {
       headerLog: garden.log,
       log: garden.log,
       args: {},
-      opts: withDefaultGlobalOpts({ dir, interactive: false, name: undefined, type: "exec" }),
+      opts: withDefaultGlobalOpts({
+        dir,
+        interactive: false,
+        name: undefined,
+        type: "exec",
+        filename: defaultConfigFilename,
+      }),
     })
     const { name, configPath } = result!
 
-    expect(name).to.equal(basename("test"))
+    expect(name).to.equal("test")
     expect(configPath).to.equal(join(dir, "garden.yml"))
     expect(await pathExists(configPath)).to.be.true
 
@@ -64,6 +71,27 @@ describe("CreateModuleCommand", () => {
     ])
   })
 
+  it("should allow overriding the default generated filename", async () => {
+    const { result } = await command.action({
+      garden,
+      footerLog: garden.log,
+      headerLog: garden.log,
+      log: garden.log,
+      args: {},
+      opts: withDefaultGlobalOpts({
+        dir: tmp.path,
+        interactive: false,
+        name: "test",
+        type: "exec",
+        filename: "custom.garden.yml",
+      }),
+    })
+    const { configPath } = result!
+
+    expect(configPath).to.equal(join(tmp.path, "custom.garden.yml"))
+    expect(await pathExists(configPath)).to.be.true
+  })
+
   it("should optionally set a module name", async () => {
     const { result } = await command.action({
       garden,
@@ -71,7 +99,13 @@ describe("CreateModuleCommand", () => {
       headerLog: garden.log,
       log: garden.log,
       args: {},
-      opts: withDefaultGlobalOpts({ dir: tmp.path, interactive: false, name: "test", type: "exec" }),
+      opts: withDefaultGlobalOpts({
+        dir: tmp.path,
+        interactive: false,
+        name: "test",
+        type: "exec",
+        filename: defaultConfigFilename,
+      }),
     })
     const { name, configPath } = result!
 
@@ -100,7 +134,13 @@ describe("CreateModuleCommand", () => {
       headerLog: garden.log,
       log: garden.log,
       args: {},
-      opts: withDefaultGlobalOpts({ dir: tmp.path, interactive: false, name: "test", type: "exec" }),
+      opts: withDefaultGlobalOpts({
+        dir: tmp.path,
+        interactive: false,
+        name: "test",
+        type: "exec",
+        filename: defaultConfigFilename,
+      }),
     })
     const { name, configPath } = result!
 
@@ -132,7 +172,13 @@ describe("CreateModuleCommand", () => {
           headerLog: garden.log,
           log: garden.log,
           args: {},
-          opts: withDefaultGlobalOpts({ dir: tmp.path, interactive: false, name: "test", type: "exec" }),
+          opts: withDefaultGlobalOpts({
+            dir: tmp.path,
+            interactive: false,
+            name: "test",
+            type: "exec",
+            filename: defaultConfigFilename,
+          }),
         }),
       (err) => expect(stripAnsi(err.message)).to.equal("A Garden module named test already exists in " + configPath)
     )
@@ -148,7 +194,13 @@ describe("CreateModuleCommand", () => {
           headerLog: garden.log,
           log: garden.log,
           args: {},
-          opts: withDefaultGlobalOpts({ dir, interactive: false, name: "test", type: "exec" }),
+          opts: withDefaultGlobalOpts({
+            dir,
+            interactive: false,
+            name: "test",
+            type: "exec",
+            filename: defaultConfigFilename,
+          }),
         }),
       (err) => expect(err.message).to.equal(`Path ${dir} does not exist`)
     )
@@ -163,7 +215,13 @@ describe("CreateModuleCommand", () => {
           headerLog: garden.log,
           log: garden.log,
           args: {},
-          opts: withDefaultGlobalOpts({ dir: tmp.path, interactive: false, name: undefined, type: "foo" }),
+          opts: withDefaultGlobalOpts({
+            dir: tmp.path,
+            interactive: false,
+            name: undefined,
+            type: "foo",
+            filename: defaultConfigFilename,
+          }),
         }),
       (err) => expect(stripAnsi(err.message)).to.equal("Could not find module type foo")
     )
