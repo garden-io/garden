@@ -12,6 +12,7 @@ import { ClientAuthToken } from "../../../../src/db/entities/client-auth-token"
 import { makeTestGardenA } from "../../../helpers"
 import { saveAuthToken, readAuthToken, clearAuthToken } from "../../../../src/enterprise/auth"
 import { getLogger } from "../../../../src/logger/logger"
+import { gardenEnv } from "../../../../src/constants"
 
 async function cleanupAuthTokens() {
   await ClientAuthToken.createQueryBuilder()
@@ -65,15 +66,15 @@ describe("cloud", () => {
       })
 
       it("should return the value of GARDEN_AUTH_TOKEN if it's present", async () => {
-        const envBackup = { ...process.env }
+        const tokenBackup = gardenEnv.GARDEN_AUTH_TOKEN
         const testToken = "token-from-env"
-        process.env.GARDEN_AUTH_TOKEN = testToken
+        gardenEnv.GARDEN_AUTH_TOKEN = testToken
         const log = getLogger().placeholder()
         try {
           const savedToken = await readAuthToken(log)
           expect(savedToken).to.eql(testToken)
         } finally {
-          process.env = envBackup
+          gardenEnv.GARDEN_AUTH_TOKEN = tokenBackup
         }
       })
 

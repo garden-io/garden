@@ -58,6 +58,7 @@
     "dockerode": "^3.2.0",
     "dotenv": "^8.2.0",
     "elegant-spinner": "^2.0.0",
+    "env-var": "^6.2.0",
     "escape-string-regexp": "^4.0.0",
     "eventemitter2": "^6.4.1",
     "execa": "^4.0.2",

@@ -8,6 +8,7 @@
 
 import { performance } from "perf_hooks"
 import { sum, sortBy } from "lodash"
+import { gardenEnv } from "../constants"
 import { renderTable, tablePresets } from "./string"
 import chalk from "chalk"
 import { isPromise } from "./util"
@@ -101,7 +102,7 @@ ${table}
   }
 }
 
-const defaultProfiler = new Profiler(process.env.GARDEN_ENABLE_PROFILING === "1")
+const defaultProfiler = new Profiler(gardenEnv.GARDEN_ENABLE_PROFILING === "1")
 
 export function getDefaultProfiler() {
   return defaultProfiler

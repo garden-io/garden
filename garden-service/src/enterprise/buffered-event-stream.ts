@@ -13,8 +13,7 @@ import { chainMessages } from "../logger/renderers"
 import { got } from "../util/http"
 import { makeAuthHeader } from "./auth"
 import { LogLevel } from "../logger/log-node"
-
-const workflowRunUid = process.env.GARDEN_WORKFLOW_RUN_UID || null
+import { gardenEnv } from "../constants"
 
 export type StreamEvent = {
   name: EventName
@@ -174,7 +173,7 @@ export class BufferedEventStream {
     }
     const data = {
       events,
-      workflowRunUid,
+      workflowRunUid: gardenEnv.GARDEN_WORKFLOW_RUN_UID,
       sessionId: this.sessionId,
       projectUid: this.projectId,
       environment: this.environmentName,
@@ -197,7 +196,7 @@ export class BufferedEventStream {
     }
     const data = {
       logEntries,
-      workflowRunUid,
+      workflowRunUid: gardenEnv.GARDEN_WORKFLOW_RUN_UID,
       sessionId: this.sessionId,
       projectUid: this.projectId,
     }

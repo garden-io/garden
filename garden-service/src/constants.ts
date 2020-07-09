@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import env from "env-var"
 import { resolve, join } from "path"
 import { homedir } from "os"
 
@@ -42,3 +43,66 @@ export const SEGMENT_PROD_API_KEY = "b6ovUD9A0YjQqT3ZWetWUbuZ9OmGxKMa"
 
 export const DOCS_BASE_URL = "https://docs.garden.io"
 export const VERSION_CHECK_URL = "https://get.garden.io/version"
+
+/**
+ * Environment variables, with defaults where appropriate.
+ *
+ * We set this up as a map to facilitate overriding values in tests.
+ */
+export const gardenEnv = {
+  ANALYTICS_DEV: env
+    .get("ANALYTICS_DEV")
+    .required(false)
+    .asString(),
+  GARDEN_AUTH_TOKEN: env
+    .get("GARDEN_AUTH_TOKEN")
+    .required(false)
+    .asString(),
+  GARDEN_CACHE_TTL: env
+    .get("GARDEN_CACHE_TTL")
+    .required(false)
+    .asInt(),
+  GARDEN_DB_DIR: env
+    .get("GARDEN_DB_DIR")
+    .required(false)
+    .default(GARDEN_GLOBAL_PATH)
+    .asString(),
+  GARDEN_DISABLE_ANALYTICS: env
+    .get("GARDEN_DISABLE_ANALYTICS")
+    .required(false)
+    .asBool(),
+  GARDEN_DISABLE_VERSION_CHECK: env
+    .get("GARDEN_DISABLE_VERSION_CHECK")
+    .required(false)
+    .asString(),
+  GARDEN_ENABLE_PROFILING: env
+    .get("GARDEN_ENABLE_PROFILING")
+    .required(false)
+    .asString(),
+  GARDEN_LOG_LEVEL: env
+    .get("GARDEN_LOG_LEVEL")
+    .required(false)
+    .asString(),
+  GARDEN_LOGGER_TYPE: env
+    .get("GARDEN_LOGGER_TYPE")
+    .required(false)
+    .asString(),
+  GARDEN_SERVER_PORT: env
+    .get("GARDEN_SERVER_PORT")
+    .required(false)
+    .asString(),
+  GARDEN_SKIP_TESTS: env
+    .get("GARDEN_SKIP_TESTS")
+    .required(false)
+    .default("")
+    .asString(),
+  GARDEN_TASK_CONCURRENCY_LIMIT: env
+    .get("GARDEN_TASK_CONCURRENCY_LIMIT")
+    .required(false)
+    .default(6)
+    .asInt(),
+  GARDEN_WORKFLOW_RUN_UID: env
+    .get("GARDEN_WORKFLOW_RUN_UID")
+    .required(false)
+    .asString(),
+}

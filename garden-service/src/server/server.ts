@@ -20,7 +20,7 @@ import { omit } from "lodash"
 
 import { Garden } from "../garden"
 import { prepareCommands, resolveRequest, CommandMap } from "./commands"
-import { DASHBOARD_STATIC_DIR } from "../constants"
+import { DASHBOARD_STATIC_DIR, gardenEnv } from "../constants"
 import { LogEntry } from "../logger/log-entry"
 import { CommandResult } from "../commands/base"
 import { toGardenError, GardenError } from "../exceptions"
@@ -45,7 +45,7 @@ export async function startServer(log: LogEntry, port?: number) {
   // Start HTTP API and dashboard server.
   // allow overriding automatic port picking
   if (!port) {
-    port = Number(process.env.GARDEN_SERVER_PORT) || undefined
+    port = Number(gardenEnv.GARDEN_SERVER_PORT) || undefined
   }
   const server = new GardenServer(log, port)
   await server.start()
