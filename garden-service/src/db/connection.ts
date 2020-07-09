@@ -8,11 +8,11 @@
 
 import { join } from "path"
 import { Connection, getConnectionManager, ConnectionOptions } from "typeorm"
-import { GARDEN_GLOBAL_PATH } from "../constants"
+import { gardenEnv } from "../constants"
 
 let connection: Connection
 
-const databasePath = join(process.env.GARDEN_DB_DIR || GARDEN_GLOBAL_PATH, "db")
+const databasePath = join(gardenEnv.GARDEN_DB_DIR, "db")
 
 // Note: This function needs to be synchronous to work with the typeorm Active Record pattern (see ./base-entity.ts)
 export function getConnection(): Connection {

@@ -12,7 +12,7 @@ import ci = require("ci-info")
 import { uniq } from "lodash"
 import { globalConfigKeys, AnalyticsGlobalConfig, GlobalConfigStore, GlobalConfig } from "../config-store"
 import { getPackageVersion, uuidv4, sleep } from "../util/util"
-import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY } from "../constants"
+import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY, gardenEnv } from "../constants"
 import { LogEntry } from "../logger/log-entry"
 import hasha = require("hasha")
 import { Garden } from "../garden"
@@ -249,7 +249,7 @@ export class AnalyticsHandler {
    * Used internally to check if a users has opted-in or not.
    */
   private analyticsEnabled(): boolean {
-    if (process.env.GARDEN_DISABLE_ANALYTICS === "true") {
+    if (gardenEnv.GARDEN_DISABLE_ANALYTICS) {
       return false
     }
     return this.analyticsConfig.optedIn || false
