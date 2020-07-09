@@ -87,6 +87,10 @@ export const gardenEnv = {
     .get("GARDEN_LOGGER_TYPE")
     .required(false)
     .asString(),
+  GARDEN_PLATFORM_SCHEDULED: env
+    .get("GARDEN_PLATFORM_SCHEDULED")
+    .required(false)
+    .asBool(),
   GARDEN_SERVER_PORT: env
     .get("GARDEN_SERVER_PORT")
     .required(false)

@@ -341,21 +341,16 @@ export class GardenCli {
             garden = await Garden.factory(root, contextOpts)
           }
 
-          if (garden.clientAuthToken && garden.enterpriseDomain && garden.projectId) {
+          if (garden.enterpriseContext) {
             log.silly(`Connecting Garden instance to BufferedEventStream`)
             bufferedEventStream.connect({
               eventBus: garden.events,
-              clientAuthToken: garden.clientAuthToken,
-              enterpriseDomain: garden.enterpriseDomain,
-              projectId: garden.projectId,
+              enterpriseContext: garden.enterpriseContext,
               environmentName: garden.environmentName,
               namespace: garden.namespace,
             })
           } else {
             log.silly(`Skip connecting Garden instance to BufferedEventStream`)
-            log.silly(`clientAuthToken present: ${!!garden.clientAuthToken}`)
-            log.silly(`enterpriseDomain: ${garden.enterpriseDomain}`)
-            log.silly(`projectId: ${garden.projectId}`)
           }
 
           // Register log file writers. We need to do this after the Garden class is initialised because

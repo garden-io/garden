@@ -14,6 +14,7 @@ import { got } from "../util/http"
 import { makeAuthHeader } from "./auth"
 import { LogLevel } from "../logger/log-node"
 import { gardenEnv } from "../constants"
+import { GardenEnterpriseContext } from "../garden"
 
 export type StreamEvent = {
   name: EventName
@@ -48,12 +49,12 @@ export const MAX_BATCH_SIZE = 100
 
 export interface ConnectBufferedEventStreamParams {
   eventBus: EventBus
-  clientAuthToken: string
-  enterpriseDomain: string
-  projectId: string
+  enterpriseContext: GardenEnterpriseContext
   environmentName: string
   namespace: string
 }
+
+export const controlEventNames: Set<EventName> = new Set(["_workflowRunRegistered"])
 
 /**
  * Buffers events and log entries and periodically POSTs them to Garden Enterprise if the user is logged in.
@@ -73,6 +74,7 @@ export class BufferedEventStream {
   private projectId: string
   private environmentName: string
   private namespace: string
+  private workflowRunUid: string | undefined
 
   /**
    * We maintain this map to facilitate unsubscribing from a previously connected event bus
@@ -96,9 +98,10 @@ export class BufferedEventStream {
 
   connect(params: ConnectBufferedEventStreamParams) {
     this.log.silly("BufferedEventStream: Connected")
-    this.clientAuthToken = params.clientAuthToken
-    this.enterpriseDomain = params.enterpriseDomain
-    this.projectId = params.projectId
+    const ctx = params.enterpriseContext
+    this.clientAuthToken = ctx.clientAuthToken
+    this.enterpriseDomain = ctx.enterpriseDomain
+    this.projectId = ctx.projectId
     this.environmentName = params.environmentName
     this.namespace = params.namespace
 
@@ -155,6 +158,11 @@ export class BufferedEventStream {
   }
 
   streamEvent<T extends EventName>(name: T, payload: Events[T]) {
+    if (controlEventNames.has(name)) {
+      this.handleControlEvent(name, payload)
+      return
+    }
+
     this.bufferedEvents.push({
       name,
       payload,
@@ -173,7 +181,7 @@ export class BufferedEventStream {
     }
     const data = {
       events,
-      workflowRunUid: gardenEnv.GARDEN_WORKFLOW_RUN_UID,
+      workflowRunUid: this.getWorkflowRunUid(),
       sessionId: this.sessionId,
       projectUid: this.projectId,
       environment: this.environmentName,
@@ -196,7 +204,7 @@ export class BufferedEventStream {
     }
     const data = {
       logEntries,
-      workflowRunUid: gardenEnv.GARDEN_WORKFLOW_RUN_UID,
+      workflowRunUid: this.getWorkflowRunUid(),
       sessionId: this.sessionId,
       projectUid: this.projectId,
     }
@@ -219,5 +227,15 @@ export class BufferedEventStream {
     const logEntriesToFlush = this.bufferedLogEntries.splice(0, logEntryFlushCount)
 
     return Bluebird.all([this.flushEvents(eventsToFlush), this.flushLogEntries(logEntriesToFlush)])
+  }
+
+  getWorkflowRunUid(): string | undefined {
+    return gardenEnv.GARDEN_WORKFLOW_RUN_UID || this.workflowRunUid
+  }
+
+  handleControlEvent<T extends EventName>(name: T, payload: Events[T]) {
+    if (name === "_workflowRunRegistered") {
+      this.workflowRunUid = payload.workflowRunUid
+    }
   }
 }
