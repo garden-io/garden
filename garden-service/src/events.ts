@@ -65,6 +65,9 @@ export interface Events extends LoggerEvents {
   _exit: {}
   _restart: {}
   _test: any
+  _workflowRunRegistered: {
+    workflowRunUid: string
+  }
 
   // Watcher events
   configAdded: {
@@ -137,6 +140,8 @@ export interface Events extends LoggerEvents {
   }
 
   // Workflow events
+  workflowRunning: {}
+  workflowComplete: {}
   workflowStepProcessing: {
     index: number
   }
@@ -157,6 +162,7 @@ export const eventNames: EventName[] = [
   "_exit",
   "_restart",
   "_test",
+  "_workflowRunRegistered",
   "configAdded",
   "configRemoved",
   "internalError",
@@ -175,6 +181,8 @@ export const eventNames: EventName[] = [
   "taskStatus",
   "testStatus",
   "serviceStatus",
+  "workflowRunning",
+  "workflowComplete",
   "workflowStepProcessing",
   "workflowStepError",
   "workflowStepComplete",

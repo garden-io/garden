@@ -51,7 +51,10 @@ export class GetConfigCommand extends Command<{}, Opts> {
         .description("All workflow configs in the project."),
       projectName: joi.string().description("The name of the project."),
       projectRoot: joi.string().description("The local path to the project root."),
-      projectId: joi.string().description("The project ID (Garden Enterprise only)."),
+      projectId: joi
+        .string()
+        .optional()
+        .description("The project ID (Garden Enterprise only)."),
     })
 
   options = getConfigOptions

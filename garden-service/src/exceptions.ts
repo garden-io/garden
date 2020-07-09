@@ -94,3 +94,7 @@ export class TimeoutError extends GardenBaseError {
 export class NotFoundError extends GardenBaseError {
   type = "not-found"
 }
+
+export class PlatformError extends GardenBaseError {
+  type = "platform"
+}
