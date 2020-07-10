@@ -31,7 +31,7 @@ describe("kaniko build", () => {
   })
 
   it("should return as failure when other error messages are present", () => {
-    const errorMessage = "error pushing"
+    const errorMessage = `error uploading layer to cache: failed to push to destination dockerhub.com/garden/backend:v-1234567: TAG_INVALID: The image tag "v-1234567" already exists in the "garden / backend" repository and cannot be overwritten because the repository is immutable.`
 
     expect(
       kanikoBuildFailed({

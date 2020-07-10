@@ -399,7 +399,13 @@ export const getKanikoFlags = (flags?: string[], topLevelFlags?: string[]): stri
 }
 
 export function kanikoBuildFailed(buildRes: RunResult) {
-  return !buildRes.success && !buildRes.log.includes("cannot be overwritten because the repository is immutable.")
+  return (
+    !buildRes.success &&
+    !(
+      buildRes.log.includes("error pushing image: ") &&
+      buildRes.log.includes("cannot be overwritten because the repository is immutable.")
+    )
+  )
 }
 
 const buildHandlers: { [mode in ContainerBuildMode]: BuildHandler } = {
