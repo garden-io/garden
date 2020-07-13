@@ -2287,6 +2287,32 @@ result:
 graphResults:
 ```
 
+### garden run workflow
+
+**Run a workflow.**
+
+Runs the commands and/or scripts defined in the workflow's steps, in sequence.
+
+Examples:
+
+    garden run workflow my-workflow    # run my-workflow
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
+
+#### Usage
+
+    garden run workflow <workflow> 
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `workflow` | Yes | The name of the workflow to be run.
+
+
+
 ### garden scan
 
 **Scans your project and outputs an overview of all modules.**

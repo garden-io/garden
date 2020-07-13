@@ -18,7 +18,7 @@ import { LogEntry } from "../../logger/log-entry"
 
 export class RunCommand extends Command {
   name = "run"
-  help = "Run ad-hoc instances of your modules, services and tests."
+  help = "Run ad-hoc instances of your modules, services, tests, tasks or workflows."
 
   subCommands = [RunModuleCommand, RunServiceCommand, RunTaskCommand, RunTestCommand, RunWorkflowCommand]
 
