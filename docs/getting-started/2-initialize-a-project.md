@@ -56,6 +56,7 @@ services:
     ports:
       - name: http
         containerPort: 8080
+        servicePort: 80
     ingresses:
       - path: /hello-backend
         port: http
