@@ -42,10 +42,9 @@ interface WorkflowRunOutput {
 export class RunWorkflowCommand extends Command<Args, {}> {
   name = "workflow"
   help = "Run a workflow."
-  hidden = true
 
   description = dedent`
-    Runs the commands defined in the workflow's steps, in sequence.
+    Runs the commands and/or scripts defined in the workflow's steps, in sequence.
 
     Examples:
 
