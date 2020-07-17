@@ -45,7 +45,7 @@ export async function startServer(log: LogEntry, port?: number) {
   // Start HTTP API and dashboard server.
   // allow overriding automatic port picking
   if (!port) {
-    port = Number(gardenEnv.GARDEN_SERVER_PORT) || undefined
+    port = gardenEnv.GARDEN_SERVER_PORT || undefined
   }
   const server = new GardenServer(log, port)
   await server.start()

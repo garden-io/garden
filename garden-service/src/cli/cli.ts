@@ -532,7 +532,7 @@ export async function run(): Promise<void> {
     console.log(err)
     code = 1
   } finally {
-    if (gardenEnv.GARDEN_ENABLE_PROFILING === "1") {
+    if (gardenEnv.GARDEN_ENABLE_PROFILING) {
       // tslint:disable-next-line: no-console
       console.log(getDefaultProfiler().report())
     }
