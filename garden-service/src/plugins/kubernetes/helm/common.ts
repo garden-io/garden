@@ -8,14 +8,14 @@
 
 import { isPlainObject, flatten } from "lodash"
 import { join, resolve } from "path"
-import { pathExists, writeFile, remove } from "fs-extra"
+import { pathExists, writeFile, remove, readFile } from "fs-extra"
 import cryptoRandomString = require("crypto-random-string")
 import { apply as jsonMerge } from "json-merge-patch"
 
 import { PluginContext } from "../../../plugin-context"
 import { LogEntry } from "../../../logger/log-entry"
 import { getModuleNamespace } from "../namespace"
-import { KubernetesResource } from "../types"
+import { Chart, KubernetesResource } from "../types"
 import { loadAll } from "js-yaml"
 import { helm } from "./helm-cli"
 import { HelmModule, HelmModuleConfig } from "./config"
@@ -34,6 +34,19 @@ const gardenValuesFilename = "garden-values.yml"
 async function containsChart(basePath: string, config: HelmModuleConfig) {
   const yamlPath = join(basePath, config.spec.chartPath, "Chart.yaml")
   return pathExists(yamlPath)
+}
+
+async function dependencyUpdate(ctx: KubernetesPluginContext, log: LogEntry, namespace: string, chartPath: string) {
+  await helm({
+    ctx,
+    log,
+    namespace,
+    args: [
+      "dependency",
+      "update",
+      chartPath,
+    ],
+  })
 }
 
 /**
@@ -113,6 +126,18 @@ export async function renderTemplates(ctx: KubernetesPluginContext, module: Modu
   const releaseStatus = await getReleaseStatus(ctx, module, releaseName, log, hotReload)
   // Use `install|upgrade --dry-run` since `template` doesn't render values that need to be retrieved from the cluster.
   const cmd = releaseStatus.state === "missing" ? "install" : "upgrade"
+
+  if (await pathExists(join(chartPath, "requirements.yaml"))) {
+    await dependencyUpdate(ctx, log, namespace, chartPath)
+  }
+
+  const chartYaml = join(chartPath, "Chart.yaml")
+  if (await pathExists(chartYaml)) {
+    const chart = <Chart[]>loadTemplate((await readFile(chartYaml)).toString())
+    if (chart[0].dependencies?.length) {
+      await dependencyUpdate(ctx, log, namespace, chartPath)
+    }
+  }
 
   const res = await helm({
     ctx,

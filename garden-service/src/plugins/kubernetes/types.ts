@@ -82,3 +82,14 @@ export type KubernetesWorkload =
   | KubernetesResource<V1Deployment>
   | KubernetesResource<V1ReplicaSet>
   | KubernetesResource<V1StatefulSet>
+
+
+export type Chart =
+  {
+    apiVersion: string
+    dependencies: Array<ChartDependency>
+  }
+export type ChartDependency =
+  {
+    name: string
+  }
