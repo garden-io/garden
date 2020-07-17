@@ -78,7 +78,7 @@ export const gardenEnv = {
   GARDEN_ENABLE_PROFILING: env
     .get("GARDEN_ENABLE_PROFILING")
     .required(false)
-    .asString(),
+    .asBool(),
   GARDEN_LOG_LEVEL: env
     .get("GARDEN_LOG_LEVEL")
     .required(false)
@@ -90,7 +90,7 @@ export const gardenEnv = {
   GARDEN_SERVER_PORT: env
     .get("GARDEN_SERVER_PORT")
     .required(false)
-    .asString(),
+    .asPortNumber(),
   GARDEN_SKIP_TESTS: env
     .get("GARDEN_SKIP_TESTS")
     .required(false)
