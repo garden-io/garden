@@ -43,6 +43,14 @@ We recommend using the Terraform module for cloud services that are shared by yo
 
 You can also deploy `kubernetes` and `helm` modules to their own namespaces.
 
+### How do I share code between modules?
+
+You can use the [copy directive](https://docs.garden.io/reference/module-types/container#build-dependencies-copy) of the `build.dependencies[]` field for that. See e.g. [this example project](https://github.com/garden-io/garden/tree/v0.12.0/examples/build-dependencies).
+
+Alternatively you can hoist your `garden.yml` file so that it is at the same level or parent to all relevant build context and use the `include` field.
+
+See this [GitHub issue](https://github.com/garden-io/garden/issues/1954) for more discussion on the two approaches.
+
 ## Builds
 
 ### How do I target a specific image from a multi-stage Dockerfile?
