@@ -41,11 +41,7 @@ async function dependencyUpdate(ctx: KubernetesPluginContext, log: LogEntry, nam
     ctx,
     log,
     namespace,
-    args: [
-      "dependency",
-      "update",
-      chartPath,
-    ],
+    args: ["dependency", "update", chartPath],
   })
 }
 
