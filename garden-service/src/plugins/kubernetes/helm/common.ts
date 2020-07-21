@@ -15,7 +15,7 @@ import { apply as jsonMerge } from "json-merge-patch"
 import { PluginContext } from "../../../plugin-context"
 import { LogEntry } from "../../../logger/log-entry"
 import { getModuleNamespace } from "../namespace"
-import { Chart, KubernetesResource } from "../types"
+import { KubernetesResource } from "../types"
 import { loadAll } from "js-yaml"
 import { helm } from "./helm-cli"
 import { HelmModule, HelmModuleConfig } from "./config"
@@ -30,6 +30,11 @@ import { dumpYaml } from "../../../util/util"
 import { getReleaseStatus } from "./status"
 
 const gardenValuesFilename = "garden-values.yml"
+
+interface Chart {
+  apiVersion: string
+  dependencies?: { name: string }[]
+}
 
 async function containsChart(basePath: string, config: HelmModuleConfig) {
   const yamlPath = join(basePath, config.spec.chartPath, "Chart.yaml")
