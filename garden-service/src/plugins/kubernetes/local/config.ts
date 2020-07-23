@@ -16,12 +16,15 @@ import { exec } from "../../../util/util"
 import { remove } from "lodash"
 import { getNfsStorageClass } from "../init"
 import { isClusterKind } from "./kind"
+import { ConfigurationError } from "../../../exceptions"
+import { deline, naturalList } from "../../../util/string"
+import chalk from "chalk"
 
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
 
 // note: this is in order of preference, in case neither is set as the current kubectl context
 // and none is explicitly configured in the garden.yml
-const supportedContexts = ["docker-for-desktop", "microk8s", "minikube"]
+const supportedContexts = ["docker-for-desktop", "docker-desktop", "microk8s", "minikube"]
 const nginxServices = ["ingress-controller", "default-backend"]
 
 export interface LocalKubernetesConfig extends KubernetesConfig {
@@ -81,19 +84,25 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
         }
       }
     }
-
-    if (!config.context && kubeConfig.contexts.length > 0) {
-      config.context = kubeConfig.contexts[0].name
-      log.debug({
-        section: config.name,
-        msg: `No kubectl context auto-detected, using first available: ${config.context}`,
-      })
-    }
   }
 
+  // No context set or automatically detected
   if (!config.context) {
-    config.context = supportedContexts[0]
-    log.debug({ section: config.name, msg: `No kubectl context configured, using default: ${config.context}` })
+    const msg = chalk.red(deline`
+      Missing Kubernetes context.\n
+
+      The ${chalk.bold("context")} field is empty and no context auto-detected. Either set
+      the ${chalk.bold("context")} field manually or make sure one of the supported local-kubernetes contexts
+      is set in your kubeconfig file.
+
+      Garden detects the following contexts automatically: ${naturalList(
+        supportedContexts.map((ctx) => chalk.bold(ctx))
+      )}
+    `)
+    throw new ConfigurationError(msg, {
+      supportedContexts,
+      currentContext,
+    })
   }
 
   if (await isClusterKind(provider, log)) {
