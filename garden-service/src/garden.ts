@@ -115,10 +115,16 @@ export interface GardenOpts {
   noEnterprise?: boolean
 }
 
+export interface GardenEnterpriseContext {
+  clientAuthToken: string
+  projectId: string
+  enterpriseDomain: string
+}
+
 export interface GardenParams {
   artifactsPath: string
   buildDir: BuildDir
-  clientAuthToken: string | null
+  enterpriseContext: GardenEnterpriseContext | null
   dotIgnoreFiles: string[]
   environmentName: string
   environmentConfigs: EnvironmentConfig[]
@@ -129,8 +135,6 @@ export interface GardenParams {
   moduleExcludePatterns?: string[]
   opts: GardenOpts
   outputs: OutputSpec[]
-  projectId: string | null
-  enterpriseDomain: string | null
   plugins: RegisterPluginParam[]
   production: boolean
   projectName: string
@@ -159,13 +163,8 @@ export class Garden {
   private readonly taskGraph: TaskGraph
   private watcher: Watcher
   private asyncLock: any
-
-  // Platform-related instance variables
-  public clientAuthToken: string | null
-  public projectId: string | null
-  public enterpriseDomain: string | null
+  public enterpriseContext: GardenEnterpriseContext | null
   public sessionId: string | null
-
   public readonly configStore: ConfigStore
   public readonly globalConfigStore: GlobalConfigStore
   public readonly vcs: VcsHandler
@@ -200,8 +199,7 @@ export class Garden {
 
   constructor(params: GardenParams) {
     this.buildDir = params.buildDir
-    this.clientAuthToken = params.clientAuthToken
-    this.enterpriseDomain = params.enterpriseDomain
+    this.enterpriseContext = params.enterpriseContext
     this.sessionId = params.sessionId
     this.environmentName = params.environmentName
     this.environmentConfigs = params.environmentConfigs
@@ -213,7 +211,6 @@ export class Garden {
     this.rawOutputs = params.outputs
     this.production = params.production
     this.projectName = params.projectName
-    this.projectId = params.projectId
     this.projectRoot = params.projectRoot
     this.projectSources = params.projectSources || []
     this.providerConfigs = params.providerConfigs
@@ -329,19 +326,20 @@ export class Garden {
     const { id: projectId, domain: enterpriseDomain } = config
 
     let secrets: StringMap = {}
-    let clientAuthToken: string | null = null
+    let enterpriseContext: GardenEnterpriseContext | null = null
     if (!opts.noEnterprise) {
       const enterpriseInitResult = await enterpriseInit({ log, projectConfig: config, environmentName })
       secrets = enterpriseInitResult.secrets
-      clientAuthToken = enterpriseInitResult.clientAuthToken
+      const clientAuthToken = enterpriseInitResult.clientAuthToken
+      if (clientAuthToken && projectId && enterpriseDomain) {
+        enterpriseContext = { clientAuthToken, projectId, enterpriseDomain }
+      }
     }
 
     const garden = new this({
       artifactsPath,
-      clientAuthToken,
       sessionId,
-      enterpriseDomain: enterpriseDomain || null,
-      projectId: projectId || null,
+      enterpriseContext,
       projectRoot,
       projectName,
       environmentName,
@@ -1172,7 +1170,7 @@ export class Garden {
       workflowConfigs: sortBy(workflowConfigs, "name"),
       projectName: this.projectName,
       projectRoot: this.projectRoot,
-      projectId: this.projectId,
+      projectId: this.enterpriseContext ? this.enterpriseContext.projectId : undefined,
     }
   }
 
@@ -1201,5 +1199,5 @@ export interface ConfigDump {
   workflowConfigs: WorkflowConfig[]
   projectName: string
   projectRoot: string
-  projectId: string | null
+  projectId?: string
 }

@@ -48,7 +48,13 @@ import {
   checkForStaticDir,
 } from "./helpers"
 import { defaultEnvironments, ProjectConfig, defaultNamespace } from "../config/project"
-import { ERROR_LOG_FILENAME, DEFAULT_API_VERSION, DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME } from "../constants"
+import {
+  ERROR_LOG_FILENAME,
+  DEFAULT_API_VERSION,
+  DEFAULT_GARDEN_DIR_NAME,
+  LOGS_DIR_NAME,
+  gardenEnv,
+} from "../constants"
 import stringify = require("json-stringify-safe")
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 import { AnalyticsHandler } from "../analytics/analytics"
@@ -335,21 +341,16 @@ export class GardenCli {
             garden = await Garden.factory(root, contextOpts)
           }
 
-          if (garden.clientAuthToken && garden.enterpriseDomain && garden.projectId) {
+          if (garden.enterpriseContext) {
             log.silly(`Connecting Garden instance to BufferedEventStream`)
             bufferedEventStream.connect({
               eventBus: garden.events,
-              clientAuthToken: garden.clientAuthToken,
-              enterpriseDomain: garden.enterpriseDomain,
-              projectId: garden.projectId,
+              enterpriseContext: garden.enterpriseContext,
               environmentName: garden.environmentName,
               namespace: garden.namespace,
             })
           } else {
             log.silly(`Skip connecting Garden instance to BufferedEventStream`)
-            log.silly(`clientAuthToken present: ${!!garden.clientAuthToken}`)
-            log.silly(`enterpriseDomain: ${garden.enterpriseDomain}`)
-            log.silly(`projectId: ${garden.projectId}`)
           }
 
           // Register log file writers. We need to do this after the Garden class is initialised because
@@ -526,7 +527,7 @@ export async function run(): Promise<void> {
     console.log(err)
     code = 1
   } finally {
-    if (process.env.GARDEN_ENABLE_PROFILING === "1") {
+    if (gardenEnv.GARDEN_ENABLE_PROFILING) {
       // tslint:disable-next-line: no-console
       console.log(getDefaultProfiler().report())
     }

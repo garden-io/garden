@@ -27,7 +27,7 @@ import { Garden, GardenParams, GardenOpts } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { mapValues, fromPairs } from "lodash"
 import { ModuleVersion } from "../src/vcs/vcs"
-import { GARDEN_SERVICE_ROOT, LOCAL_CONFIG_FILENAME, DEFAULT_API_VERSION } from "../src/constants"
+import { GARDEN_SERVICE_ROOT, LOCAL_CONFIG_FILENAME, DEFAULT_API_VERSION, gardenEnv } from "../src/constants"
 import { EventBus, Events } from "../src/events"
 import { ValueOf, exec, findByName, getNames, isPromise } from "../src/util/util"
 import { LogEntry } from "../src/logger/log-entry"
@@ -603,7 +603,7 @@ export function getLogMessages(log: LogEntry, filter?: (log: LogEntry) => boolea
     .flatMap((entry) => entry.getMessageStates()?.map((state) => stripAnsi(state.msg || "")) || [])
 }
 
-const skipGroups = (process.env.GARDEN_SKIP_TESTS || "").split(" ")
+const skipGroups = gardenEnv.GARDEN_SKIP_TESTS.split(" ")
 
 /**
  * Helper function that wraps mocha functions and assigns them to one or more groups.
@@ -655,8 +655,8 @@ export function grouped(...groups: string[]) {
  * NOTE: Network calls to the analytics endpoint should be mocked when unit testing analytics.
  */
 export async function enableAnalytics(garden: TestGarden) {
-  const originalDisableAnalyticsEnvVar = process.env.GARDEN_DISABLE_ANALYTICS
-  const originalAnalyticsDevEnvVar = process.env.ANALYTICS_DEV
+  const originalDisableAnalyticsEnvVar = gardenEnv.GARDEN_DISABLE_ANALYTICS
+  const originalAnalyticsDevEnvVar = gardenEnv.ANALYTICS_DEV
 
   let originalAnalyticsConfig: AnalyticsGlobalConfig | undefined
   // Throws if analytics is not set
@@ -666,9 +666,9 @@ export async function enableAnalytics(garden: TestGarden) {
   } catch {}
 
   await garden.globalConfigStore.set(["analytics", "optedIn"], true)
-  process.env.GARDEN_DISABLE_ANALYTICS = undefined
+  gardenEnv.GARDEN_DISABLE_ANALYTICS = false
   // Set the analytics mode to dev for good measure
-  process.env.ANALYTICS_DEV = "1"
+  gardenEnv.ANALYTICS_DEV = "1"
 
   const resetConfig = async () => {
     if (originalAnalyticsConfig) {
@@ -676,8 +676,8 @@ export async function enableAnalytics(garden: TestGarden) {
     } else {
       await garden.globalConfigStore.delete(["analytics"])
     }
-    process.env.GARDEN_DISABLE_ANALYTICS = originalDisableAnalyticsEnvVar
-    process.env.ANALYTICS_DEV = originalAnalyticsDevEnvVar
+    gardenEnv.GARDEN_DISABLE_ANALYTICS = originalDisableAnalyticsEnvVar
+    gardenEnv.ANALYTICS_DEV = originalAnalyticsDevEnvVar
   }
   return resetConfig
 }

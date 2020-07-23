@@ -10,7 +10,7 @@ import Bluebird from "bluebird"
 import chalk from "chalk"
 import { every, flatten, intersection, merge, union, uniqWith, without } from "lodash"
 import { BaseTask, TaskDefinitionError, TaskType } from "./tasks/base"
-
+import { gardenEnv } from "./constants"
 import { LogEntry, LogEntryMetadata, TaskLogStatus } from "./logger/log-entry"
 import { toGardenError, GardenBaseError } from "./exceptions"
 import { Garden } from "./garden"
@@ -50,11 +50,6 @@ export interface GraphResult {
 export interface GraphResults {
   [key: string]: GraphResult | null
 }
-
-const DEFAULT_CONCURRENCY = 6
-const concurrencyFromEnv = process.env.GARDEN_TASK_CONCURRENCY_LIMIT
-
-export const defaultTaskConcurrency = (concurrencyFromEnv && parseInt(concurrencyFromEnv, 10)) || DEFAULT_CONCURRENCY
 
 export interface ProcessTasksOpts {
   throwOnError?: boolean
@@ -313,8 +308,6 @@ export class TaskGraph {
    * requested tasks being processed.
    */
   private processGraph() {
-    const concurrencyLimit = defaultTaskConcurrency
-
     if (this.index.length === 0 && this.inProgressBatches.length === 0 && this.pendingBatches.length > 0) {
       this.log.silly("")
       this.log.silly("TaskGraph: this.index before processing")
@@ -341,7 +334,7 @@ export class TaskGraph {
 
     const nodesToProcess = [
       ...pendingWithUnlimitedConcurrency,
-      ...pendingWithLimitedConcurrency.slice(0, concurrencyLimit - this.inProgress.length),
+      ...pendingWithLimitedConcurrency.slice(0, gardenEnv.GARDEN_TASK_CONCURRENCY_LIMIT - this.inProgress.length),
     ]
 
     nodesToProcess.forEach((n) => this.inProgress.addNode(n))

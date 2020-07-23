@@ -18,6 +18,7 @@ import { ClientAuthToken } from "../db/entities/client-auth-token"
 import { LogEntry } from "../logger/log-entry"
 import { got } from "../util/http"
 import { RuntimeError, InternalError } from "../exceptions"
+import { gardenEnv } from "../constants"
 
 export const makeAuthHeader = (clientAuthToken: string) => ({ "x-access-auth-token": clientAuthToken })
 
@@ -114,7 +115,7 @@ export async function saveAuthToken(token: string, log: LogEntry) {
  * token and deletes all others.
  */
 export async function readAuthToken(log: LogEntry): Promise<string | null> {
-  const tokenFromEnv = process.env.GARDEN_AUTH_TOKEN
+  const tokenFromEnv = gardenEnv.GARDEN_AUTH_TOKEN
   if (tokenFromEnv) {
     log.debug("Read client auth token from env")
     return tokenFromEnv

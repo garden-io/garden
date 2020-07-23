@@ -14,9 +14,11 @@ import { EventBus } from "../../../../src/events"
 describe("BufferedEventStream", () => {
   const getConnectionParams = (eventBus: EventBus) => ({
     eventBus,
-    clientAuthToken: "dummy-client-token",
-    enterpriseDomain: "dummy-platform_url",
-    projectId: "myproject",
+    enterpriseContext: {
+      clientAuthToken: "dummy-client-token",
+      enterpriseDomain: "dummy-platform_url",
+      projectId: "myproject",
+    },
     environmentName: "my-env",
     namespace: "my-ns",
   })

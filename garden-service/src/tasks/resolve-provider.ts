@@ -35,6 +35,7 @@ import { deserialize, serialize } from "v8"
 import { environmentStatusSchema } from "../config/status"
 import { hashString } from "../util/util"
 import { PluginTool } from "../util/ext-tools"
+import { gardenEnv } from "../constants"
 
 interface Params extends TaskParams {
   plugin: GardenPlugin
@@ -276,7 +277,7 @@ export class ResolveProviderTask extends BaseTask {
       return null
     }
 
-    const ttl = process.env.GARDEN_CACHE_TTL ? parseInt(process.env.GARDEN_CACHE_TTL, 10) : defaultCacheTtl
+    const ttl = gardenEnv.GARDEN_CACHE_TTL || defaultCacheTtl
     const cacheAge = (new Date().getTime() - cachedStatus?.resolvedAt.getTime()) / 1000
 
     if (cacheAge > ttl) {
