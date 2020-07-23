@@ -51,7 +51,7 @@ Users typically implement Garden for one or more of the following:
 
 ## Documentation
 
-You can find Garden’s full documentation at <https://docs.garden.io.>.
+You can find Garden’s full documentation at <https://docs.garden.io>.
 
 ## How does Garden work?
 
