@@ -21,7 +21,7 @@ import { isClusterKind } from "./kind"
 
 // note: this is in order of preference, in case neither is set as the current kubectl context
 // and none is explicitly configured in the garden.yml
-const supportedContexts = ["docker-for-desktop", "microk8s", "minikube"]
+const supportedContexts = ["docker-for-desktop", "docker-desktop", "microk8s", "minikube"]
 const nginxServices = ["ingress-controller", "default-backend"]
 
 export interface LocalKubernetesConfig extends KubernetesConfig {
