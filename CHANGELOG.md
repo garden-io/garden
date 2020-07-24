@@ -1,4 +1,26 @@
 
+<a name="v0.12.1"></a>
+## [v0.12.1](https://github.com/garden-io/garden/compare/v0.12.0...v0.12.1) (2020-07-24)
+
+### Bug Fixes
+
+* **k8s:** correct kaniko immutability check ([f25fb516](https://github.com/garden-io/garden/commit/f25fb516))
+* **local-k8s:** add 'docker-desktop' as supported context ([1b9d0d1d](https://github.com/garden-io/garden/commit/1b9d0d1d))
+
+### Features
+
+* **core:** throw workflow config errors on scan ([7e1acf8d](https://github.com/garden-io/garden/commit/7e1acf8d))
+* **enterprise:** register workflow runs ([de072ac9](https://github.com/garden-io/garden/commit/de072ac9))
+* **enterprise:** include env and ns in events ([3e4db5ce](https://github.com/garden-io/garden/commit/3e4db5ce))
+
+### Improvements
+
+* **kaniko:** allow configuring builder flags alongside image ([3541284b](https://github.com/garden-io/garden/commit/3541284b))
+
+### Performance Improvements
+
+* **git:** cache git exec results ([5dce8350](https://github.com/garden-io/garden/commit/5dce8350))
+
 <a name="v0.12.0"></a>
 ## [v0.12.0](https://github.com/garden-io/garden/compare/v0.11.14...v0.12.0) (2020-06-29)
 
