@@ -149,6 +149,8 @@ garden --env=eks deploy
 
 Now you should be good to go.
 
+Note: In order to dynamically provision EBS/EFS volumes using `persistenvolumeclaim` modules, consult the [storage classes documentation](https://docs.aws.amazon.com/eks/latest/userguide/storage-classes.html) provided by AWS.
+
 ## AWS (kops)
 
 [kops](https://github.com/kubernetes/kops) is a handy tool for creating Kubernetes clusters on AWS. Follow [these instructions](https://github.com/kubernetes/kops/blob/master/docs/getting_started/aws.md) to create your cluster.
