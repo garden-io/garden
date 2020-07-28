@@ -63,8 +63,9 @@ export async function configureProvider({
 
   if (config.buildMode === "cluster-docker" || config.buildMode === "kaniko") {
     config._systemServices.push("build-sync")
-    
-    const usingInClusterRegistry = (!config.deploymentRegistry || config.deploymentRegistry.hostname === inClusterRegistryHostname)
+
+    const usingInClusterRegistry =
+      !config.deploymentRegistry || config.deploymentRegistry.hostname === inClusterRegistryHostname
 
     if (usingInClusterRegistry) {
       // Deploy an in-cluster registry, unless otherwise specified.
