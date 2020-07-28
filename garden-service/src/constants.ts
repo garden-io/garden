@@ -74,7 +74,7 @@ export const gardenEnv = {
   GARDEN_DISABLE_VERSION_CHECK: env
     .get("GARDEN_DISABLE_VERSION_CHECK")
     .required(false)
-    .asString(),
+    .asBool(),
   GARDEN_ENABLE_PROFILING: env
     .get("GARDEN_ENABLE_PROFILING")
     .required(false)
