@@ -31,8 +31,8 @@ jobs:
         echo "${{ secrets.DEPLOY_KEY_HOMEBREW_GARDEN }}" > ~/.ssh/homebrew_id
         chmod 600 ~/.ssh/homebrew_id
         ssh-add -K ~/.ssh/homebrew_id
-        sudo git config user.email "e.libralato@gmail.com"
-        sudo git config user.name "Github Actions"
+        git config --global user.email "e.libralato@gmail.com"
+        git config --global user.name "Github Actions"
         tee -a ~/.ssh/config << END
         Host github.com
             AddKeysToAgent yes
