@@ -21,6 +21,23 @@ name: my-container
 
 If you have a `Dockerfile` next to this file, this is enough to tell Garden to build it. You can also specify `dockerfile: <path-to-Dockerfile>` if you need to override the Dockerfile name. You might also want to explicitly [include or exclude](../using-garden/configuration-overview.md#includingexcluding-files-and-directories) files in the build context.
 
+### Build arguments
+
+You can specify [build arguments](https://docs.docker.com/engine/reference/commandline/build/#set-build-time-variables---build-arg) using the [`buildArgs`](../reference/module-types/container.md#buildArgs) field. This can be quite handy, especially when e.g. referencing other modules such as build dependencies:
+
+```yaml
+# garden.yml
+kind: Module
+type: container
+name: my-container
+build:
+  depdendencies: [base-image]
+buildArgs:
+  baseImageVersion: ${modules.base-image.version}
+```
+
+Garden will also automatically set `GARDEN_MODULE_VERSION` as a build argument, so that you can reference the version of module being built.
+
 ## Using remote images
 
 If you're not building the container image yourself and just need to deploy an external image, you can skip the Dockerfile and specify the `image` field:
