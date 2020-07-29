@@ -122,6 +122,8 @@ build:
   timeout: 1200
 
 # Specify build arguments to use when building the container image.
+#
+# Note: Garden will always set a `GARDEN_MODULE_VERSION` argument with the module version at build time.
 buildArgs: {}
 
 # Specify extra flags to use when building the container image. Note that arguments may not be portable across
@@ -702,6 +704,8 @@ Maximum time in seconds to wait for build to finish.
 ### `buildArgs`
 
 Specify build arguments to use when building the container image.
+
+Note: Garden will always set a `GARDEN_MODULE_VERSION` argument with the module version at build time.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
