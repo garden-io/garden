@@ -397,7 +397,7 @@ export async function compareDeployedResources(
   return result
 }
 
-async function getDeployedResource(
+export async function getDeployedResource(
   ctx: PluginContext,
   provider: KubernetesProvider,
   resource: KubernetesResource,
