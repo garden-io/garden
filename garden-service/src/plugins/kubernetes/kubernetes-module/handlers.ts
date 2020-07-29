@@ -6,7 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { uniq } from "lodash"
+import Bluebird from "bluebird"
+import { partition, uniq } from "lodash"
 
 import { KubernetesModule, configureKubernetesModule, KubernetesService } from "./config"
 import { KubernetesPluginContext } from "../config"
@@ -24,7 +25,7 @@ import { DeleteServiceParams } from "../../../types/plugin/service/deleteService
 import { GetServiceLogsParams } from "../../../types/plugin/service/getServiceLogs"
 import { gardenAnnotationKey } from "../../../util/string"
 import { getForwardablePorts, getPortForwardHandler, killPortForwards } from "../port-forward"
-import { getManifests, readManifests } from "./common"
+import { getManifests, readManifests, gardenNamespaceAnnotationValue } from "./common"
 import { testKubernetesModule } from "./test"
 import { runKubernetesTask } from "./run"
 import { getTestResult } from "../test-results"
@@ -105,8 +106,35 @@ export async function deployKubernetesService(
 
   const manifests = await getManifests({ api, log, module, defaultNamespace: namespace })
 
+  /**
+   * We separate out manifests for namespace resources, since we don't want to apply a prune selector
+   * when applying them.
+   */
+  const [namespaceManifests, otherManifests] = partition(manifests, (m) => m.kind === "Namespace")
+
+  if (namespaceManifests.length > 0) {
+    // Don't prune namespaces
+    await apply({ log, provider: k8sCtx.provider, manifests: namespaceManifests })
+    await waitForResources({
+      namespace,
+      provider: k8sCtx.provider,
+      serviceName: service.name,
+      resources: namespaceManifests,
+      log,
+    })
+  }
   const pruneSelector = getSelector(service)
-  await apply({ log, provider: k8sCtx.provider, manifests, pruneSelector })
+  if (otherManifests.length > 0) {
+    // Prune everything else
+    await apply({ log, provider: k8sCtx.provider, manifests: otherManifests, pruneSelector })
+    await waitForResources({
+      namespace,
+      provider: k8sCtx.provider,
+      serviceName: service.name,
+      resources: otherManifests,
+      log,
+    })
+  }
 
   await waitForResources({
     namespace,
@@ -137,14 +165,37 @@ async function deleteService(params: DeleteServiceParams): Promise<KubernetesSer
   const api = await KubeApi.factory(log, provider)
   const manifests = await getManifests({ api, log, module, defaultNamespace: namespace })
 
-  await deleteObjectsBySelector({
-    log,
-    provider,
-    namespace,
-    selector: `${gardenAnnotationKey("service")}=${service.name}`,
-    objectTypes: uniq(manifests.map((m) => m.kind)),
-    includeUninitialized: false,
-  })
+  /**
+   * We separate out manifests for namespace resources, since we need to delete each of them by name.
+   *
+   * Unlike other resources, Garden annotates namespace resources with their name - see `getManifests` for a discussion
+   * of this.
+   */
+  const [namespaceManifests, otherManifests] = partition(manifests, (m) => m.kind === "Namespace")
+
+  if (namespaceManifests.length > 0) {
+    await Bluebird.map(namespaceManifests, (ns) => {
+      const selector = `${gardenAnnotationKey("service")}=${gardenNamespaceAnnotationValue(ns.metadata.name)}`
+      return deleteObjectsBySelector({
+        log,
+        provider,
+        namespace,
+        selector,
+        objectTypes: ["Namespace"],
+        includeUninitialized: false,
+      })
+    })
+  }
+  if (otherManifests.length > 0) {
+    await deleteObjectsBySelector({
+      log,
+      provider,
+      namespace,
+      selector: `${gardenAnnotationKey("service")}=${service.name}`,
+      objectTypes: uniq(manifests.map((m) => m.kind)),
+      includeUninitialized: false,
+    })
+  }
 
   return { state: "missing", detail: { remoteResources: [] } }
 }

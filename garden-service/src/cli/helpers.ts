@@ -19,7 +19,7 @@ import { InternalError } from "../exceptions"
 import { LogLevel } from "../logger/log-node"
 import { getEnumKeys, getPackageVersion } from "../util/util"
 import { LogEntry } from "../logger/log-entry"
-import { STATIC_DIR, VERSION_CHECK_URL } from "../constants"
+import { STATIC_DIR, VERSION_CHECK_URL, gardenEnv } from "../constants"
 import { printWarningMessage } from "../logger/util"
 import { GlobalConfigStore, globalConfigKeys } from "../config-store"
 import { got, GotResponse } from "../util/http"
@@ -219,7 +219,7 @@ export async function checkForStaticDir() {
 }
 
 export async function checkForUpdates(config: GlobalConfigStore, logger: LogEntry) {
-  if (process.env.GARDEN_DISABLE_VERSION_CHECK === "true") {
+  if (gardenEnv.GARDEN_DISABLE_VERSION_CHECK) {
     return
   }
 

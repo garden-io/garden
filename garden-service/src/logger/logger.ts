@@ -19,6 +19,7 @@ import { parseLogLevel } from "../cli/helpers"
 import { FullscreenTerminalWriter } from "./writers/fullscreen-terminal-writer"
 import { EventBus } from "../events"
 import { formatForEventStream } from "../enterprise/buffered-event-stream"
+import { gardenEnv } from "../constants"
 
 export type LoggerType = "quiet" | "basic" | "fancy" | "fullscreen" | "json"
 export const LOGGER_TYPES = new Set<LoggerType>(["quiet", "basic", "fancy", "fullscreen", "json"])
@@ -65,10 +66,10 @@ export class Logger extends LogNode {
 
     let instance: Logger
 
-    // GARDEN_LOG_LEVEL env variable takes precedence over the config param
-    if (process.env.GARDEN_LOG_LEVEL) {
+    // The GARDEN_LOG_LEVEL env variable takes precedence over the config param
+    if (gardenEnv.GARDEN_LOG_LEVEL) {
       try {
-        config.level = parseLogLevel(process.env.GARDEN_LOG_LEVEL)
+        config.level = parseLogLevel(gardenEnv.GARDEN_LOG_LEVEL)
       } catch (err) {
         // Log warning if level invalid but continue process.
         // Using console logger since Garden logger hasn't been intialised.
@@ -77,12 +78,12 @@ export class Logger extends LogNode {
     }
 
     // GARDEN_LOGGER_TYPE env variable takes precedence over the config param
-    if (process.env.GARDEN_LOGGER_TYPE) {
-      const loggerType = <LoggerType>process.env.GARDEN_LOGGER_TYPE
+    if (gardenEnv.GARDEN_LOGGER_TYPE) {
+      const loggerType = <LoggerType>gardenEnv.GARDEN_LOGGER_TYPE
 
       if (!LOGGER_TYPES.has(loggerType)) {
         throw new ParameterError(`Invalid logger type specified: ${loggerType}`, {
-          loggerType: process.env.GARDEN_LOGGER_TYPE,
+          loggerType: gardenEnv.GARDEN_LOGGER_TYPE,
           availableTypes: LOGGER_TYPES,
         })
       }

@@ -88,19 +88,19 @@ test_release() {
 
   echo ""
   echo "→ Running 'garden serve' in disabled-configs project - exits after 1 minute. Use the chance to test that the dashboard works."
-  echo "→ The disabled module and test should be flagged appropriately on the Overview, and Stack Graph pages."
+  echo "→ The disabled module and test should be flagged appropriately on the Overview and Stack Graph pages."
   echo ""
   cd ..
   cd disabled-configs
   timeout 1m ${garden_release} serve
 
   echo ""
-  echo "→ Running 'garden dev' in vote project - exits after 2 minutes. Use the chance to change services and test the dashboard."
-  echo "→ Try e.g. to change the status in the POST method in this file: ${garden_root}/examples/vote/api/app.py"
+  echo "→ Running 'garden dev' in vote-helm project - exits after 2 minutes. Use the chance to change services and test the dashboard."
+  echo "→ Try e.g. to change the status in the POST method in this file: ${garden_root}/examples/vote-helm/api-image/app.py"
   echo "→ It should break the integ test"
   echo ""
   cd ..
-  cd vote
+  cd vote-helm
   timeout 2m ${garden_release} dev
 
   echo ""

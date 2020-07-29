@@ -64,7 +64,10 @@ export async function configureProvider({
   if (config.buildMode === "cluster-docker" || config.buildMode === "kaniko") {
     config._systemServices.push("build-sync")
 
-    if (!config.deploymentRegistry || config.deploymentRegistry.hostname === inClusterRegistryHostname) {
+    const usingInClusterRegistry =
+      !config.deploymentRegistry || config.deploymentRegistry.hostname === inClusterRegistryHostname
+
+    if (usingInClusterRegistry) {
       // Deploy an in-cluster registry, unless otherwise specified.
       // This is a special configuration, used in combination with the registry-proxy service,
       // to make sure every node in the cluster can resolve the image from the registry we deploy in-cluster.
@@ -75,7 +78,10 @@ export async function configureProvider({
         namespace: config.deploymentRegistry?.namespace || projectName,
       }
       config._systemServices.push("docker-registry", "registry-proxy")
-    } else {
+    }
+    if (!usingInClusterRegistry || config.buildMode === "kaniko") {
+      // If using an external registry we need the util service
+      // Also the kaniko buildMode needs the util service even if using an in-cluster registry
       config._systemServices.push("util")
     }
 

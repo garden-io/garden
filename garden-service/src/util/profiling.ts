@@ -8,6 +8,7 @@
 
 import { performance } from "perf_hooks"
 import { sum, sortBy } from "lodash"
+import { gardenEnv } from "../constants"
 import { renderTable, tablePresets } from "./string"
 import chalk from "chalk"
 import { isPromise } from "./util"
@@ -101,14 +102,14 @@ ${table}
   }
 }
 
-const defaultProfiler = new Profiler(process.env.GARDEN_ENABLE_PROFILING === "1")
+const defaultProfiler = new Profiler(gardenEnv.GARDEN_ENABLE_PROFILING)
 
 export function getDefaultProfiler() {
   return defaultProfiler
 }
 
 /**
- * Class decorator that collects profiling data on every method invocation (if GARDEN_ENABLE_PROFILING=1).
+ * Class decorator that collects profiling data on every method invocation (if GARDEN_ENABLE_PROFILING is true).
  */
 // tslint:disable-next-line: function-name
 export function Profile(profiler?: Profiler) {
@@ -158,7 +159,7 @@ export function Profile(profiler?: Profiler) {
 }
 
 /**
- * Function decorator that collects profiling data on every function invocation (if GARDEN_ENABLE_PROFILING=1).
+ * Function decorator that collects profiling data on every function invocation (if GARDEN_ENABLE_PROFILING is true).
  */
 export const profile = <T extends Array<any>, U>(fn: (...args: T) => U, profiler?: Profiler) => {
   if (!profiler) {
@@ -181,7 +182,8 @@ export const profile = <T extends Array<any>, U>(fn: (...args: T) => U, profiler
 }
 
 /**
- * Async function decorator that collects profiling data on every function invocation (if GARDEN_ENABLE_PROFILING=1).
+ * Async function decorator that collects profiling data on every function invocation (if GARDEN_ENABLE_PROFILING is
+ * true).
  */
 export const profileAsync = <T extends Array<any>, U>(fn: (...args: T) => Promise<U>, profiler?: Profiler) => {
   if (!profiler) {
