@@ -773,7 +773,14 @@ describe("plugins.container", () => {
       td.replace(helpers, "imageExistsLocally", async () => false)
       td.replace(helpers, "getLocalImageId", async () => "some/image")
 
-      const cmdArgs = ["build", "-t", "some/image", module.buildPath]
+      const cmdArgs = [
+        "build",
+        "-t",
+        "some/image",
+        "--build-arg",
+        `GARDEN_MODULE_VERSION=${module.version.versionString}`,
+        module.buildPath,
+      ]
 
       td.replace(helpers, "dockerCli", async ({ cwd, args, containerProvider: provider }) => {
         expect(cwd).to.equal(module.buildPath)
@@ -801,7 +808,16 @@ describe("plugins.container", () => {
       td.replace(helpers, "imageExistsLocally", async () => false)
       td.replace(helpers, "getLocalImageId", async () => "some/image")
 
-      const cmdArgs = ["build", "-t", "some/image", "--target", "foo", module.buildPath]
+      const cmdArgs = [
+        "build",
+        "-t",
+        "some/image",
+        "--build-arg",
+        `GARDEN_MODULE_VERSION=${module.version.versionString}`,
+        "--target",
+        "foo",
+        module.buildPath,
+      ]
 
       td.replace(helpers, "dockerCli", async ({ cwd, args, containerProvider: provider }) => {
         expect(cwd).to.equal(module.buildPath)
@@ -834,6 +850,8 @@ describe("plugins.container", () => {
         "build",
         "-t",
         "some/image",
+        "--build-arg",
+        `GARDEN_MODULE_VERSION=${module.version.versionString}`,
         "--file",
         join(module.buildPath, relDockerfilePath),
         module.buildPath,
@@ -998,7 +1016,42 @@ describe("plugins.container", () => {
 
       const args = getDockerBuildFlags(module)
 
-      expect(args).to.eql(["--cache-from", "some-image:latest"])
+      expect(args.slice(-2)).to.eql(["--cache-from", "some-image:latest"])
+    })
+
+    it("should set GARDEN_MODULE_VERSION", async () => {
+      const module = await getTestModule({
+        allowPublish: false,
+        build: {
+          dependencies: [],
+        },
+        disabled: false,
+        apiVersion: "garden.io/v0",
+        name: "module-a",
+        outputs: {},
+        path: modulePath,
+        type: "container",
+
+        spec: {
+          build: {
+            dependencies: [],
+            timeout: DEFAULT_BUILD_TIMEOUT,
+          },
+          buildArgs: {},
+          extraFlags: [],
+          services: [],
+          tasks: [],
+          tests: [],
+        },
+
+        serviceConfigs: [],
+        taskConfigs: [],
+        testConfigs: [],
+      })
+
+      const args = getDockerBuildFlags(module)
+
+      expect(args.slice(0, 2)).to.eql(["--build-arg", `GARDEN_MODULE_VERSION=${module.version.versionString}`])
     })
   })
 })

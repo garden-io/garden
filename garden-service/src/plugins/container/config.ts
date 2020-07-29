@@ -579,8 +579,11 @@ export const containerModuleSpecSchema = () =>
       buildArgs: joi
         .object()
         .pattern(/.+/, joiPrimitive())
-        .default(() => ({}))
-        .description("Specify build arguments to use when building the container image."),
+        .default(() => ({})).description(dedent`
+          Specify build arguments to use when building the container image.
+
+          Note: Garden will always set a \`GARDEN_MODULE_VERSION\` argument with the module version at build time.
+        `),
       extraFlags: joi.array().items(joi.string()).description(deline`
         Specify extra flags to use when building the container image.
         Note that arguments may not be portable across implementations.`),
