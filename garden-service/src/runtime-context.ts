@@ -90,10 +90,11 @@ export async function prepareRuntimeContext({
 }: PrepareRuntimeContextParams): Promise<RuntimeContext> {
   const { versionString } = version
   const envVars = {
-    GARDEN_VERSION: versionString,
+    GARDEN_VERSION: versionString, // TODO: deprecate, prefer the more verbose option
+    GARDEN_MODULE_VERSION: versionString,
   }
 
-  // DEPRECATED: Remove in v0.12
+  // DEPRECATED: Remove in v0.13
   for (const [key, value] of Object.entries(garden.variables)) {
     // Only store primitive values, objects and arrays cause issues further down.
     if (isPrimitive(value)) {

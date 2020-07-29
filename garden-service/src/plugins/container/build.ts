@@ -14,6 +14,7 @@ import { BuildModuleParams } from "../../types/plugin/module/build"
 import { LogLevel } from "../../logger/log-node"
 import { createOutputStream } from "../../util/util"
 import { ContainerProvider } from "./container"
+import { PrimitiveMap } from "../../config/common"
 
 export async function getContainerBuildStatus({ ctx, module, log }: GetBuildStatusParams<ContainerModule>) {
   const containerProvider = ctx.provider as ContainerProvider
@@ -84,7 +85,12 @@ export async function buildContainerModule({ ctx, module, log }: BuildModulePara
 export function getDockerBuildFlags(module: ContainerModule) {
   const args: string[] = []
 
-  for (const [key, value] of Object.entries(module.spec.buildArgs)) {
+  const buildArgs: PrimitiveMap = {
+    GARDEN_MODULE_VERSION: module.version.versionString,
+    ...module.spec.buildArgs,
+  }
+
+  for (const [key, value] of Object.entries(buildArgs)) {
     // 0 is falsy
     if (value || value === 0) {
       args.push("--build-arg", `${key}=${value}`)
