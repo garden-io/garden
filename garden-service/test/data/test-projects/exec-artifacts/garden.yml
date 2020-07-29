@@ -1,2 +1,4 @@
 kind: Project
 name: exec-artifacts
+environments:
+  - name: default

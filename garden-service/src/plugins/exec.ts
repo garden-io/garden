@@ -213,6 +213,14 @@ export async function configureExecModule({
   return { moduleConfig }
 }
 
+function getDefaultEnvVars(module: ExecModule) {
+  return {
+    ...process.env,
+    GARDEN_MODULE_VERSION: module.version.versionString,
+    ...mapValues(module.spec.env, (v) => v.toString()),
+  }
+}
+
 export async function buildExecModule({ module }: BuildModuleParams<ExecModule>): Promise<BuildResult> {
   const output: BuildResult = {}
   const { command } = module.spec.build
@@ -220,10 +228,7 @@ export async function buildExecModule({ module }: BuildModuleParams<ExecModule>)
   if (command.length) {
     const result = await exec(command.join(" "), [], {
       cwd: module.buildPath,
-      env: {
-        ...process.env,
-        ...mapValues(module.spec.env, (v) => v.toString()),
-      },
+      env: getDefaultEnvVars(module),
       shell: true,
     })
 
@@ -250,9 +255,7 @@ export async function testExecModule({
   const result = await exec(command.join(" "), [], {
     cwd: module.buildPath,
     env: {
-      ...process.env,
-      // need to cast the values to strings
-      ...mapValues(module.spec.env, (v) => v + ""),
+      ...getDefaultEnvVars(module),
       ...mapValues(testConfig.spec.env, (v) => v + ""),
     },
     reject: false,
@@ -287,8 +290,7 @@ export async function runExecTask(params: RunTaskParams<ExecModule>): Promise<Ru
     const commandResult = await exec(command.join(" "), [], {
       cwd: module.buildPath,
       env: {
-        ...process.env,
-        ...mapValues(module.spec.env, (v) => v.toString()),
+        ...getDefaultEnvVars(module),
         ...mapValues(task.spec.env, (v) => v.toString()),
       },
       // We handle the error at the command level

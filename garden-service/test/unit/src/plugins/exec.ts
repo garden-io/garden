@@ -253,7 +253,7 @@ describe("exec plugin", () => {
   it("should copy artifacts after task runs", async () => {
     const _garden = await makeTestGarden(getDataDir("test-projects", "exec-artifacts"))
     const _graph = await _garden.getConfigGraph(_garden.log)
-    const task = await _graph.getTask("task-a")
+    const task = _graph.getTask("task-a")
 
     const taskTask = new TaskTask({
       garden: _garden,
@@ -275,7 +275,7 @@ describe("exec plugin", () => {
   it("should copy artifacts after test runs", async () => {
     const _garden = await makeTestGarden(getDataDir("test-projects", "exec-artifacts"))
     const _graph = await _garden.getConfigGraph(_garden.log)
-    const module = await _graph.getModule("module-a")
+    const module = _graph.getModule("module-a")
 
     const testTask = new TestTask({
       garden: _garden,
@@ -342,6 +342,16 @@ describe("exec plugin", () => {
       const res = await actions.build({ log, module })
       expect(res.buildLog).to.eql(join(projectRoot, "module-local"))
     })
+
+    it("should receive module version as an env var", async () => {
+      const module = graph.getModule("module-local")
+      const actions = await garden.getActionRouter()
+
+      module.spec.build.command = ["echo", "$GARDEN_MODULE_VERSION"]
+      const res = await actions.build({ log, module })
+
+      expect(res.buildLog).to.equal(module.version.versionString)
+    })
   })
 
   describe("testExecModule", () => {
@@ -370,6 +380,32 @@ describe("exec plugin", () => {
       })
       expect(res.log).to.eql(join(projectRoot, "module-local"))
     })
+
+    it("should receive module version as an env var", async () => {
+      const module = graph.getModule("module-local")
+      const actions = await garden.getActionRouter()
+      const res = await actions.testModule({
+        log,
+        module,
+        interactive: true,
+        runtimeContext: {
+          envVars: {},
+          dependencies: [],
+        },
+        silent: false,
+        testConfig: {
+          name: "test",
+          dependencies: [],
+          disabled: false,
+          timeout: 1234,
+          spec: {
+            command: ["echo", "$GARDEN_MODULE_VERSION"],
+          },
+        },
+        testVersion: module.version,
+      })
+      expect(res.log).to.equal(module.version.versionString)
+    })
   })
 
   describe("runExecTask", () => {
@@ -387,6 +423,27 @@ describe("exec plugin", () => {
         taskVersion: task.module.version,
       })
       expect(res.log).to.eql(join(projectRoot, "module-local"))
+    })
+
+    it("should receive module version as an env var", async () => {
+      const module = graph.getModule("module-local")
+      const actions = await garden.getActionRouter()
+      const task = graph.getTask("pwd")
+
+      task.spec.command = ["echo", "$GARDEN_MODULE_VERSION"]
+
+      const res = await actions.runTask({
+        log,
+        task,
+        interactive: true,
+        runtimeContext: {
+          envVars: {},
+          dependencies: [],
+        },
+        taskVersion: task.module.version,
+      })
+
+      expect(res.log).to.equal(module.version.versionString)
     })
   })
 })
