@@ -37,7 +37,7 @@ describe("GetConfigCommand", () => {
     expect(res.result?.moduleConfigs).to.deep.equal(expectedModuleConfigs)
   })
 
-  it("should include the project name and all environment names", async () => {
+  it("should include the project name, id and all environment names", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
     const command = new GetConfigCommand()
@@ -53,8 +53,9 @@ describe("GetConfigCommand", () => {
       })
     ).result
 
-    expect(pick(result, ["projectName", "allEnvironmentNames"])).to.eql({
+    expect(pick(result, ["projectName", "projectId", "allEnvironmentNames"])).to.eql({
       projectName: "test-project-a",
+      projectId: "test-project-id",
       allEnvironmentNames: ["local", "other"],
     })
   })
