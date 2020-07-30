@@ -112,9 +112,52 @@ UnaryOperator
   = $TypeofToken
   / "!"
 
+ContainsExpression
+  = head:UnaryExpression __ ContainsOperator __ tail:UnaryExpression {
+      if (head && head._error) {
+        return head
+      }
+      if (tail && tail._error) {
+        return tail
+      }
+
+      head = options.getValue(head)
+      tail = options.getValue(tail)
+
+      if (!options.isPrimitive(tail)) {
+        return {
+          _error: new options.TemplateStringError(
+            `The right-hand side of a 'contains' operator must be a string, number, boolean or null (got ${typeof tail}).`
+          )
+        }
+      }
+
+      const headType = head === null ? "null" : typeof head
+
+      if (headType === "object") {
+        if (options.lodash.isArray(head)) {
+          return head.includes(tail)
+        } else {
+          return head.hasOwnProperty(tail)
+        }
+      } else if (headType === "string") {
+        return head.includes(tail.toString())
+      } else {
+        return {
+          _error: new options.TemplateStringError(
+            `The left-hand side of a 'contains' operator must be a string, array or object (got ${headType}).`
+          )
+        }
+      }
+    }
+  / UnaryExpression
+
+ContainsOperator
+  = "contains"
+
 MultiplicativeExpression
-  = head:UnaryExpression
-    tail:(__ MultiplicativeOperator __ UnaryExpression)*
+  = head:ContainsExpression
+    tail:(__ MultiplicativeOperator __ ContainsExpression)*
     { return options.buildBinaryExpression(head, tail); }
 
 MultiplicativeOperator

@@ -670,6 +670,107 @@ describe("resolveTemplateString", async () => {
       expect(res).to.equal("foo-null")
     })
   })
+
+  context("contains operator", () => {
+    it("should throw when right-hand side is not a primitive", () => {
+      const c = new TestContext({ a: [1, 2], b: [3, 4] })
+
+      expectError(
+        () => resolveTemplateString("${a contains b}", c),
+        (err) =>
+          expect(stripAnsi(err.message)).to.equal(
+            "Invalid template string ${a contains b}: The right-hand side of a 'contains' operator must be a string, number, boolean or null (got object)."
+          )
+      )
+    })
+
+    it("should throw when left-hand side is not a string, array or object", () => {
+      const c = new TestContext({ a: "foo", b: null })
+
+      expectError(
+        () => resolveTemplateString("${b contains a}", c),
+        (err) =>
+          expect(stripAnsi(err.message)).to.equal(
+            "Invalid template string ${b contains a}: The left-hand side of a 'contains' operator must be a string, array or object (got null)."
+          )
+      )
+    })
+
+    it("positive string literal contains string literal", () => {
+      const res = resolveTemplateString("${'foobar' contains 'foo'}", new TestContext({}))
+      expect(res).to.equal(true)
+    })
+
+    it("string literal contains string literal (negative)", () => {
+      const res = resolveTemplateString("${'blorg' contains 'blarg'}", new TestContext({}))
+      expect(res).to.equal(false)
+    })
+
+    it("string literal contains string reference", () => {
+      const res = resolveTemplateString("${a contains 'foo'}", new TestContext({ a: "foobar" }))
+      expect(res).to.equal(true)
+    })
+
+    it("string reference contains string literal (negative)", () => {
+      const res = resolveTemplateString("${a contains 'blarg'}", new TestContext({ a: "foobar" }))
+      expect(res).to.equal(false)
+    })
+
+    it("string contains number", () => {
+      const res = resolveTemplateString("${a contains 0}", new TestContext({ a: "hmm-0" }))
+      expect(res).to.equal(true)
+    })
+
+    it("object contains string literal", () => {
+      const res = resolveTemplateString("${a contains 'foo'}", new TestContext({ a: { foo: 123 } }))
+      expect(res).to.equal(true)
+    })
+
+    it("object contains string literal (negative)", () => {
+      const res = resolveTemplateString("${a contains 'bar'}", new TestContext({ a: { foo: 123 } }))
+      expect(res).to.equal(false)
+    })
+
+    it("object contains string reference", () => {
+      const res = resolveTemplateString("${a contains b}", new TestContext({ a: { foo: 123 }, b: "foo" }))
+      expect(res).to.equal(true)
+    })
+
+    it("object contains number reference", () => {
+      const res = resolveTemplateString("${a contains b}", new TestContext({ a: { 123: 456 }, b: 123 }))
+      expect(res).to.equal(true)
+    })
+
+    it("object contains number literal", () => {
+      const res = resolveTemplateString("${a contains 123}", new TestContext({ a: { 123: 456 } }))
+      expect(res).to.equal(true)
+    })
+
+    it("array contains string reference", () => {
+      const res = resolveTemplateString("${a contains b}", new TestContext({ a: ["foo"], b: "foo" }))
+      expect(res).to.equal(true)
+    })
+
+    it("array contains string reference (negative)", () => {
+      const res = resolveTemplateString("${a contains b}", new TestContext({ a: ["foo"], b: "bar" }))
+      expect(res).to.equal(false)
+    })
+
+    it("array contains string literal", () => {
+      const res = resolveTemplateString("${a contains 'foo'}", new TestContext({ a: ["foo"] }))
+      expect(res).to.equal(true)
+    })
+
+    it("array contains number", () => {
+      const res = resolveTemplateString("${a contains 1}", new TestContext({ a: [0, 1] }))
+      expect(res).to.equal(true)
+    })
+
+    it("array contains numeric index (negative)", () => {
+      const res = resolveTemplateString("${a contains 1}", new TestContext({ a: [0] }))
+      expect(res).to.equal(false)
+    })
+  })
 })
 
 describe("resolveTemplateStrings", () => {
