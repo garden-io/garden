@@ -214,14 +214,28 @@ services:
 
 ### Variable files (varfiles)
 
-You can also provide variables using "variable files" or _varfiles_. These work mostly like "dotenv" files or envfiles. However, they don't implicitly affect the environment of the Garden process and the configured services, but rather are added on top of the `variables` you define in your project `garden.yml`.
+You can also provide variables using "variable files" or _varfiles_. These work mostly like "dotenv" files or envfiles. However, they don't implicitly affect the environment of the Garden process and the configured services, but rather are added on top of the `variables` you define in your project configuration.
 
 This can be very useful when you need to provide secrets and other contextual values to your stack. You could add your varfiles to your `.gitignore` file to keep them out of your repository, or use e.g. [git-crypt](https://github.com/AGWA/git-crypt), [BlackBox](https://github.com/StackExchange/blackbox) or [git-secret](https://git-secret.io/) to securely store the files in your Git repo.
 
 By default, Garden will look for a `garden.env` file in your project root for project-wide variables, and a `garden.<env-name>.env` file for environment-specific variables. You can override the filename for each as well. The format of the files is the one supported by [dotenv](https://github.com/motdotla/dotenv#rules).
 
+You can also set variables on the command line, with `--var` flags. Note that while this is handy for ad-hoc invocations, we don't generally recommend relying on this for normal operations, since you lose a bit of visibility within your configuration. But here's one practical example:
+
+```sh
+# Override two specific variables value and run a task
+garden run task my-task --var my-task-arg=foo,some-numeric-var=123
+```
+
+Multiple variables are separated with a comma, and each part is parsed using [dotenv](https://github.com/motdotla/dotenv#rules) syntax.
+
 The order of precedence across the varfiles and project config fields is as follows (from highest to lowest):
-_`garden.<env-name>.env` file_ > _`environment[].variables` field_ > _`garden.env` file_ > _`variables` field
+
+1. Individual variables set with `--var` flags.
+2. The environment-specific varfile (defaults to `garden.<env-name>.env`).
+3. The environment-specific variables set in `environment[].variables`.
+4. Configured project-wide varfile (defaults to `garden.env`).
+5. The project-wide `variables` field.
 
 Here's an example, where we have some project variables defined in our project config, and environment-specific values—including secret data—in varfiles:
 

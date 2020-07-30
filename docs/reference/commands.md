@@ -29,6 +29,7 @@ The following option flags can be used with any of the CLI commands:
   | `--emoji` |  | boolean | Enable emoji in output (defaults to true if the environment supports it).
   | `--yes` | `-y` | boolean | Automatically approve any yes/no prompts during execution.
   | `--force-refresh` |  | boolean | Force refresh of any caches, e.g. cached provider statuses.
+  | `--var` |  | array:string | Set a specific variable value, using the format &lt;key&gt;&#x3D;&lt;value&gt;, e.g. &#x60;--var some-key&#x3D;custom-value&#x60;. This will override any value set in your project configuration. You can specify multiple variables by separating with a comma, e.g. &#x60;--var key-a&#x3D;foo,key-b&#x3D;&quot;value with quotes&quot;&#x60;.
 
 ### garden build
 

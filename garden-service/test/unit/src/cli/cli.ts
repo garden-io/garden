@@ -56,6 +56,25 @@ describe("cli", () => {
       expect(result).to.eql({ args: { _: ["-v", "--flag", "arg"] } })
     })
 
+    it("should correctly parse --var flag", async () => {
+      class TestCommand extends Command {
+        name = "test-command-var"
+        help = "halp!"
+        noProject = true
+
+        async action({ garden }) {
+          return { result: { variables: garden.variables } }
+        }
+      }
+
+      const command = new TestCommand()
+      const cli = new GardenCli()
+      cli.addCommand(command, cli["program"])
+
+      const { result } = await cli.parse(["test-command-var", "--var", 'key-a=value-a,key-b="value with quotes"'])
+      expect(result).to.eql({ variables: { "key-a": "value-a", "key-b": "value with quotes" } })
+    })
+
     it(`should configure a dummy environment when command has noProject=true and --env is specified`, async () => {
       class TestCommand2 extends Command {
         name = "test-command-2"

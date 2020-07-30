@@ -116,12 +116,13 @@ export interface StringsConstructor extends ParameterConstructor<string[]> {
 export class StringsParameter extends Parameter<string[] | undefined> {
   type = "array:string"
   schema = joi.array().items(joi.string())
-  delimiter: string
+  delimiter: string | RegExp
 
   constructor(args: StringsConstructor) {
     super(args)
 
-    this.delimiter = args.delimiter || ","
+    // The default delimiter splits on commas, ignoring commas between double quotes
+    this.delimiter = args.delimiter || /,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/
   }
 
   // Sywac returns [undefined] if input is empty so we coerce that into undefined.
