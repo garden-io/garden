@@ -308,6 +308,28 @@ describe("Garden", () => {
           )
       )
     })
+
+    it("should optionally override project variables", async () => {
+      const config: ProjectConfig = {
+        apiVersion: DEFAULT_API_VERSION,
+        kind: "Project",
+        name: "test",
+        path: pathFoo,
+        defaultEnvironment: "default",
+        dotIgnoreFiles: [],
+        environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
+        providers: [{ name: "foo" }],
+        variables: { foo: "default", bar: "something" },
+      }
+
+      const garden = await TestGarden.factory(pathFoo, {
+        config,
+        environmentName: "default",
+        variables: { foo: "override" },
+      })
+
+      expect(garden.variables).to.eql({ foo: "override", bar: "something" })
+    })
   })
 
   describe("getPlugins", () => {

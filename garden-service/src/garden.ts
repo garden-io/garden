@@ -37,7 +37,7 @@ import { TaskGraph, GraphResults, ProcessTasksOpts } from "./task-graph"
 import { getLogger } from "./logger/logger"
 import { PluginActionHandlers, GardenPlugin } from "./types/plugin/plugin"
 import { loadConfigResources, findProjectConfig, prepareModuleResource } from "./config/base"
-import { DeepPrimitiveMap, StringMap } from "./config/common"
+import { DeepPrimitiveMap, StringMap, PrimitiveMap } from "./config/common"
 import { validateSchema } from "./config/validation"
 import { BaseTask } from "./tasks/base"
 import { LocalConfigStore, ConfigStore, GlobalConfigStore } from "./config-store"
@@ -113,6 +113,7 @@ export interface GardenOpts {
   plugins?: RegisterPluginParam[]
   sessionId?: string
   noEnterprise?: boolean
+  variables?: PrimitiveMap
 }
 
 export interface GardenEnterpriseContext {
@@ -302,12 +303,15 @@ export class Garden {
       environmentStr = defaultEnvironment
     }
 
-    const { environmentName, namespace, providers, variables, production } = await pickEnvironment({
+    let { environmentName, namespace, providers, variables, production } = await pickEnvironment({
       projectConfig: config,
       envString: environmentStr,
       artifactsPath,
       username: _username,
     })
+
+    // Allow overriding variables
+    variables = { ...variables, ...(opts.variables || {}) }
 
     const buildDir = await BuildDir.factory(projectRoot, gardenDirPath)
     const workingCopyId = await getWorkingCopyId(gardenDirPath)

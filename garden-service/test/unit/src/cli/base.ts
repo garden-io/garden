@@ -9,7 +9,7 @@
 import { expect } from "chai"
 import { TestGarden, makeTestGardenA, withDefaultGlobalOpts } from "../../../helpers"
 import { deployOpts, deployArgs, DeployCommand } from "../../../../src/commands/deploy"
-import { parseCliArgs } from "../../../../src/commands/base"
+import { parseCliArgs, StringsParameter } from "../../../../src/commands/base"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { DeleteServiceCommand, deleteServiceArgs } from "../../../../src/commands/delete"
 import { GetOutputsCommand } from "../../../../src/commands/get/get-outputs"
@@ -143,5 +143,21 @@ describe("parseCliArgs", () => {
       args,
       opts: withDefaultGlobalOpts(opts),
     })
+  })
+})
+
+describe("StringsParameter", () => {
+  it("should by default split on a comma", () => {
+    const param = new StringsParameter({ help: "" })
+    expect(param.parseString("service-a,service-b")).to.eql(["service-a", "service-b"])
+  })
+
+  it("should not split on commas within double-quoted strings", () => {
+    const param = new StringsParameter({ help: "" })
+    expect(param.parseString('key-a="comma,in,value",key-b=foo,key-c=bar')).to.eql([
+      'key-a="comma,in,value"',
+      "key-b=foo",
+      "key-c=bar",
+    ])
   })
 })

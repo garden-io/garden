@@ -6,8 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import sywac from "sywac"
+import dotenv = require("dotenv")
 import chalk from "chalk"
+import sywac from "sywac"
 import { intersection, merge, sortBy } from "lodash"
 import { resolve, join } from "path"
 import { coreCommands } from "../commands/commands"
@@ -22,6 +23,7 @@ import {
   EnvironmentOption,
   Parameter,
   StringParameter,
+  StringsParameter,
 } from "../commands/base"
 import { GardenError, PluginError, toGardenError } from "../exceptions"
 import { Garden, GardenOpts, DummyGarden } from "../garden"
@@ -158,6 +160,10 @@ export const GLOBAL_OPTIONS = {
     help: "Force refresh of any caches, e.g. cached provider statuses.",
     defaultValue: false,
   }),
+  "var": new StringsParameter({
+    help:
+      'Set a specific variable value, using the format <key>=<value>, e.g. `--var some-key=custom-value`. This will override any value set in your project configuration. You can specify multiple variables by separating with a comma, e.g. `--var key-a=foo,key-b="value with quotes"`.',
+  }),
 }
 
 export type GlobalOptions = typeof GLOBAL_OPTIONS
@@ -285,7 +291,11 @@ export class GardenCli {
         silent,
         output,
         "force-refresh": forceRefresh,
+        "var": cliVars,
       } = parsedOpts
+
+      // Parse command line --var input
+      const parsedCliVars = cliVars ? dotenv.parse(cliVars.join("\n")) : {}
 
       let loggerType = loggerTypeOpt || command.getLoggerType({ opts: parsedOpts, args: parsedArgs })
 
@@ -318,6 +328,7 @@ export class GardenCli {
         log,
         sessionId,
         forceRefresh,
+        variables: parsedCliVars,
       }
 
       let garden: Garden

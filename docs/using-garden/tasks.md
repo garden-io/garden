@@ -129,6 +129,27 @@ tasks:
 
 Tasks are also implicitly disabled when the parent module is disabled.
 
+### Running tasks with arguments from the CLI
+
+For tasks that are often run ad-hoc from the CLI, you can use variables and the `--var` CLI flag to pass in values to the task.
+Here for example, we have a simple container task that can receive an argument via a variable:
+
+```yaml
+kind: Module
+type: container
+...
+tasks:
+  - name: my-task
+    command: ["echo", "${var.my-task-arg || ''}"]
+    ...
+```
+
+You can run this task and override the argument variable like this:
+
+```sh
+garden run task my-task --var my-task-arg="hello!"
+```
+
 ### Kubernetes Provider
 
 The Kubernetes providers execute each task in its own Pod inside the project namespace. The Pod is removed once the task has finished running.
