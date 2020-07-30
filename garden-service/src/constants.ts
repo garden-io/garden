@@ -100,6 +100,11 @@ export const gardenEnv = {
     .required(false)
     .default("")
     .asString(),
+  GARDEN_HARD_CONCURRENCY_LIMIT: env
+    .get("GARDEN_HARD_CONCURRENCY_LIMIT")
+    .required(false)
+    .default(50)
+    .asInt(),
   GARDEN_TASK_CONCURRENCY_LIMIT: env
     .get("GARDEN_TASK_CONCURRENCY_LIMIT")
     .required(false)

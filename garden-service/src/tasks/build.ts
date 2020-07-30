@@ -29,6 +29,7 @@ export interface BuildTaskParams {
 @Profile()
 export class BuildTask extends BaseTask {
   type: TaskType = "build"
+  concurrencyLimit = 5
 
   private graph: ConfigGraph
   private module: Module

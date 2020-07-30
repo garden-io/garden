@@ -25,6 +25,7 @@ export interface PublishTaskParams {
 
 export class PublishTask extends BaseTask {
   type: TaskType = "publish"
+  concurrencyLimit = 5
 
   private graph: ConfigGraph
   private module: Module
