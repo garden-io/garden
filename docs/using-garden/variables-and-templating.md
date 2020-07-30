@@ -45,6 +45,7 @@ You can use a variety of operators in template string expressions:
 * Equality: `==`, `!=`
 * Logical: `&&`, `||`, ternary (`<test> ? <value if true> : <value if false>`)
 * Unary: `!` (negation), `typeof` (returns the type of the following value as a string, e.g. `"boolean"` or `"number"`)
+* Relational: `contains` (to see if an array contains a value, an object contains a key, or a string contains a substring)
 
 The arithmetic and numeric comparison operators can only be used for numeric literals and keys that resolve to numbers. The equality and logical operators work with any term.
 
@@ -89,6 +90,12 @@ services:
   replicas: "${environment.name == 'prod' ? 3 : 1}"
   ...
 ```
+
+The `contains` operator can be used in several ways:
+
+* `${var.some-array contains "some-value"}` checks if the `var.some-array` array includes the string `"some-value"`.
+* `${var.some-string contains "some"}` checks if the `var.some-string` string includes the substring `"some"`.
+* `${var.some-object contains "some-key"}` checks if the `var.some-object` object includes the key `"some-key"`.
 
 And the arithmetic operators can be handy when provisioning resources:
 
