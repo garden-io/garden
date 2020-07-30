@@ -124,6 +124,7 @@ export interface GardenEnterpriseContext {
 export interface GardenParams {
   artifactsPath: string
   buildDir: BuildDir
+  projectId: string | null
   enterpriseContext: GardenEnterpriseContext | null
   dotIgnoreFiles: string[]
   environmentName: string
@@ -163,7 +164,8 @@ export class Garden {
   private readonly taskGraph: TaskGraph
   private watcher: Watcher
   private asyncLock: any
-  public enterpriseContext: GardenEnterpriseContext | null
+  public readonly enterpriseContext: GardenEnterpriseContext | null
+  public readonly projectId: string | null
   public sessionId: string | null
   public readonly configStore: ConfigStore
   public readonly globalConfigStore: GlobalConfigStore
@@ -200,6 +202,7 @@ export class Garden {
   constructor(params: GardenParams) {
     this.buildDir = params.buildDir
     this.enterpriseContext = params.enterpriseContext
+    this.projectId = params.projectId
     this.sessionId = params.sessionId
     this.environmentName = params.environmentName
     this.environmentConfigs = params.environmentConfigs
@@ -339,6 +342,7 @@ export class Garden {
     const garden = new this({
       artifactsPath,
       sessionId,
+      projectId: projectId || null,
       enterpriseContext,
       projectRoot,
       projectName,
@@ -1178,7 +1182,7 @@ export class Garden {
       workflowConfigs: sortBy(workflowConfigs, "name"),
       projectName: this.projectName,
       projectRoot: this.projectRoot,
-      projectId: this.enterpriseContext ? this.enterpriseContext.projectId : undefined,
+      projectId: this.projectId || undefined,
     }
   }
 
