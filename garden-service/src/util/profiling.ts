@@ -13,7 +13,7 @@ import { renderTable, tablePresets } from "./string"
 import chalk from "chalk"
 import { isPromise } from "./util"
 
-const maxReportRows = 50
+const maxReportRows = 30
 
 // Just storing the invocation duration for now
 type Invocation = number

@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandResult, CommandParams, StringParameter } from "../base"
+import { Command, CommandResult, CommandParams } from "../base"
 import { NotFoundError } from "../../exceptions"
 import { TestResult, testResultSchema } from "../../types/plugin/module/getTestResult"
 import { getTestVersion } from "../../tasks/test"
@@ -15,6 +15,7 @@ import { printHeader } from "../../logger/util"
 import chalk from "chalk"
 import { getArtifactFileList, getArtifactKey } from "../../util/artifacts"
 import { joi, joiArray } from "../../config/common"
+import { StringParameter } from "../../cli/params"
 
 const getTestResultArgs = {
   module: new StringParameter({

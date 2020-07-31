@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandParams, ChoicesParameter, BooleanParameter } from "../base"
+import { Command, CommandParams } from "../base"
 import { findProjectConfig } from "../../config/base"
 import { ensureDir, copy, remove, pathExists, writeFile } from "fs-extra"
 import { getPackageVersion, exec, safeDumpYaml } from "../../util/util"
@@ -21,6 +21,7 @@ import { zipFolder } from "../../util/archive"
 import chalk from "chalk"
 import { GitHandler } from "../../vcs/git"
 import { ValidationError } from "../../exceptions"
+import { ChoicesParameter, BooleanParameter } from "../../cli/params"
 
 export const TEMP_DEBUG_ROOT = "tmp"
 export const SYSTEM_INFO_FILENAME_NO_EXT = "system-info"

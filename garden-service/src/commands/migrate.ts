@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandParams, CommandResult, BooleanParameter, StringsParameter } from "./base"
+import { Command, CommandParams, CommandResult } from "./base"
 import { dedent } from "../util/string"
 import { readFile, writeFile } from "fs-extra"
 import { cloneDeep, isEqual } from "lodash"
@@ -19,6 +19,7 @@ import { exec, safeDumpYaml } from "../util/util"
 import { LoggerType } from "../logger/logger"
 import Bluebird from "bluebird"
 import { loadAndValidateYaml, findProjectConfig } from "../config/base"
+import { BooleanParameter, StringsParameter } from "../cli/params"
 
 const migrateOpts = {
   write: new BooleanParameter({ help: "Update the `garden.yml` in place." }),

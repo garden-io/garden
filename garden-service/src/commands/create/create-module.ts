@@ -10,16 +10,7 @@ import chalk from "chalk"
 import dedent from "dedent"
 import { pathExists } from "fs-extra"
 import inquirer from "inquirer"
-import {
-  Command,
-  CommandResult,
-  CommandParams,
-  PrepareParams,
-  PathParameter,
-  BooleanParameter,
-  StringOption,
-  StringParameter,
-} from "../base"
+import { Command, CommandResult, CommandParams, PrepareParams } from "../base"
 import { printHeader } from "../../logger/util"
 import { isDirectory, defaultConfigFilename } from "../../util/fs"
 import { loadConfigResources, findProjectConfig } from "../../config/base"
@@ -40,6 +31,7 @@ import Bluebird from "bluebird"
 import { ModuleTypeMap } from "../../types/plugin/plugin"
 import { LogEntry } from "../../logger/log-entry"
 import { getProviderUrl, getModuleTypeUrl } from "../../docs/common"
+import { PathParameter, StringParameter, BooleanParameter, StringOption } from "../../cli/params"
 
 const createModuleArgs = {}
 const createModuleOpts = {

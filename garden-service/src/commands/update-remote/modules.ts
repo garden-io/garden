@@ -10,7 +10,7 @@ import { difference } from "lodash"
 import dedent = require("dedent")
 import chalk from "chalk"
 
-import { Command, StringsParameter, CommandResult, CommandParams, ParameterValues } from "../base"
+import { Command, CommandResult, CommandParams } from "../base"
 import { SourceConfig, moduleSourceSchema } from "../../config/project"
 import { ParameterError } from "../../exceptions"
 import { pruneRemoteSources } from "./helpers"
@@ -19,6 +19,7 @@ import { printHeader } from "../../logger/util"
 import { Garden } from "../../garden"
 import { LogEntry } from "../../logger/log-entry"
 import { joiArray, joi } from "../../config/common"
+import { StringsParameter, ParameterValues } from "../../cli/params"
 
 const updateRemoteModulesArguments = {
   modules: new StringsParameter({

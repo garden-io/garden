@@ -11,12 +11,13 @@ import dedent = require("dedent")
 import chalk from "chalk"
 
 import { ParameterError } from "../../exceptions"
-import { Command, CommandResult, StringParameter, PathParameter, CommandParams } from "../base"
+import { Command, CommandResult, CommandParams } from "../base"
 import { LinkedSource } from "../../config-store"
 import { printHeader } from "../../logger/util"
 import { addLinkedSources, hasRemoteSource } from "../../util/ext-source-util"
 import { joiArray, joi } from "../../config/common"
 import { linkedModuleSchema } from "../../config/project"
+import { StringParameter, PathParameter } from "../../cli/params"
 
 const linkModuleArguments = {
   module: new StringParameter({

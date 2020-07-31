@@ -10,8 +10,9 @@ import chalk from "chalk"
 import { LoggerType } from "../logger/logger"
 import { ExecInServiceResult, execInServiceResultSchema } from "../types/plugin/service/execInService"
 import { printHeader } from "../logger/util"
-import { Command, CommandResult, CommandParams, StringParameter, BooleanParameter, StringsParameter } from "./base"
+import { Command, CommandResult, CommandParams } from "./base"
 import dedent = require("dedent")
+import { StringParameter, StringsParameter, BooleanParameter } from "../cli/params"
 
 const execArgs = {
   service: new StringParameter({

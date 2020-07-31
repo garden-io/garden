@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandParams, BooleanParameter } from "./base"
+import { Command, CommandParams, CommandGroup } from "./base"
 import { RuntimeError } from "../exceptions"
 import dedent from "dedent"
 import { GardenPlugin } from "../types/plugin/plugin"
@@ -16,16 +16,13 @@ import Bluebird from "bluebird"
 import { PluginTool } from "../util/ext-tools"
 import { fromPairs, omit, uniqBy } from "lodash"
 import { printHeader, printFooter } from "../logger/util"
+import { BooleanParameter } from "../cli/params"
 
-export class UtilCommand extends Command {
+export class UtilCommand extends CommandGroup {
   name = "util"
   help = "Misc utility commands."
 
   subCommands = [FetchToolsCommand]
-
-  async action() {
-    return {}
-  }
 }
 
 const fetchToolsOpts = {

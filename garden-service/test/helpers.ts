@@ -32,7 +32,7 @@ import { EventBus, Events } from "../src/events"
 import { ValueOf, exec, findByName, getNames, isPromise } from "../src/util/util"
 import { LogEntry } from "../src/logger/log-entry"
 import timekeeper = require("timekeeper")
-import { GLOBAL_OPTIONS, GlobalOptions } from "../src/cli/cli"
+import { ParameterValues, globalOptions, GlobalOptions } from "../src/cli/params"
 import { RunModuleParams } from "../src/types/plugin/module/runModule"
 import { ConfigureModuleParams } from "../src/types/plugin/module/configure"
 import { SetSecretParams } from "../src/types/plugin/provider/setSecret"
@@ -43,7 +43,7 @@ import { RunResult } from "../src/types/plugin/base"
 import { ExternalSourceType, getRemoteSourceRelPath, hashRepoUrl } from "../src/util/ext-source-util"
 import { ConfigureProviderParams } from "../src/types/plugin/provider/configureProvider"
 import { ActionRouter } from "../src/actions"
-import { ParameterValues, ProcessCommandResult } from "../src/commands/base"
+import { ProcessCommandResult } from "../src/commands/base"
 import stripAnsi from "strip-ansi"
 import { RunTaskParams, RunTaskResult } from "../src/types/plugin/task/runTask"
 import { SuiteFunction, TestFunction } from "mocha"
@@ -497,7 +497,7 @@ export function getExampleProjects() {
 
 export function withDefaultGlobalOpts<T extends object>(opts: T) {
   return <ParameterValues<GlobalOptions> & T>extend(
-    mapValues(GLOBAL_OPTIONS, (opt) => opt.defaultValue),
+    mapValues(globalOptions, (opt) => opt.defaultValue),
     opts
   )
 }
@@ -590,6 +590,16 @@ export async function makeTempDir({ git = false }: { git?: boolean } = {}): Prom
   }
 
   return tmpDir
+}
+
+/**
+ * Trims the ends of each line of the given input string (useful for multi-line string comparisons)
+ */
+export function trimLineEnds(str: string) {
+  return str
+    .split("\n")
+    .map((line) => line.trimRight())
+    .join("\n")
 }
 
 /**

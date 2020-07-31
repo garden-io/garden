@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command } from "../base"
+import { CommandGroup } from "../base"
 import { GetGraphCommand } from "./get-graph"
 import { GetConfigCommand } from "./get-config"
 import { GetEysiCommand } from "./get-eysi"
@@ -19,7 +19,7 @@ import { GetDebugInfoCommand } from "./get-debug-info"
 import { GetLinkedReposCommand } from "./get-linked-repos"
 import { GetOutputsCommand } from "./get-outputs"
 
-export class GetCommand extends Command {
+export class GetCommand extends CommandGroup {
   name = "get"
   help = "Retrieve and output data and objects, e.g. secrets, status info etc."
 
@@ -36,8 +36,4 @@ export class GetCommand extends Command {
     GetTestResultCommand,
     GetDebugInfoCommand,
   ]
-
-  async action() {
-    return {}
-  }
 }

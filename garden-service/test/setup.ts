@@ -12,6 +12,7 @@ import { Logger } from "../src/logger/logger"
 import { LogLevel } from "../src/logger/log-node"
 import { makeTestGardenA } from "./helpers"
 import { getDefaultProfiler } from "../src/util/profiling"
+import { gardenEnv } from "../src/constants"
 // import { BasicTerminalWriter } from "../src/logger/writers/basic-terminal-writer"
 
 // make sure logger is initialized
@@ -26,6 +27,7 @@ try {
 // Global hooks
 before(async () => {
   getDefaultProfiler().setEnabled(true)
+  gardenEnv.GARDEN_DISABLE_ANALYTICS = true
 
   // doing this to make sure ts-node completes compilation before running tests
   await makeTestGardenA()

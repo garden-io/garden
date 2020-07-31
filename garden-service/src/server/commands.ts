@@ -8,14 +8,14 @@
 
 import Joi = require("@hapi/joi")
 import Koa = require("koa")
-import { Command, Parameters, ParameterValues } from "../commands/base"
+import { Command, CommandGroup } from "../commands/base"
 import { joi } from "../config/common"
 import { validateSchema } from "../config/validation"
 import { extend, mapValues, omitBy } from "lodash"
 import { Garden } from "../garden"
 import { LogLevel } from "../logger/log-node"
 import { LogEntry } from "../logger/log-entry"
-import { GLOBAL_OPTIONS } from "../cli/cli"
+import { Parameters, ParameterValues, globalOptions } from "../cli/params"
 
 export interface CommandMap {
   [key: string]: {
@@ -77,7 +77,7 @@ export async function resolveRequest(
   const cmdLog = log.placeholder({ level: LogLevel.silly, childEntriesInheritLevel: true })
 
   const cmdArgs = mapParams(ctx, request.parameters, command.arguments)
-  const optParams = extend({ ...GLOBAL_OPTIONS, ...command.options })
+  const optParams = extend({ ...globalOptions, ...command.options })
   const cmdOpts = mapParams(ctx, request.parameters, optParams)
 
   // TODO: validate result schema
@@ -100,7 +100,7 @@ export async function prepareCommands(): Promise<CommandMap> {
         .object()
         .keys({
           ...paramsToJoi(command.arguments),
-          ...paramsToJoi({ ...GLOBAL_OPTIONS, ...command.options }),
+          ...paramsToJoi({ ...globalOptions, ...command.options }),
         })
         .unknown(false),
     })
@@ -110,7 +110,9 @@ export async function prepareCommands(): Promise<CommandMap> {
       requestSchema,
     }
 
-    command.getSubCommands().forEach(addCommand)
+    if (command instanceof CommandGroup) {
+      command.getSubCommands().forEach(addCommand)
+    }
   }
 
   // Need to import this here to avoid circular import issues

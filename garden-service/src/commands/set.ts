@@ -6,20 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandResult, CommandParams, StringParameter } from "./base"
+import { Command, CommandResult, CommandParams, CommandGroup } from "./base"
 import dedent = require("dedent")
 import { SetSecretResult } from "../types/plugin/provider/setSecret"
+import { StringParameter } from "../cli/params"
 
-export class SetCommand extends Command {
+export class SetCommand extends CommandGroup {
   name = "set"
   help = "Set or modify data, e.g. secrets."
   hidden = true
 
   subCommands = [SetSecretCommand]
-
-  async action() {
-    return {}
-  }
 }
 
 const setSecretArgs = {

@@ -13,11 +13,12 @@ import { dedent, renderTable, tablePresets } from "../util/string"
 import { ParameterError, toGardenError } from "../exceptions"
 import { LogEntry } from "../logger/log-entry"
 import { Garden } from "../garden"
-import { Command, CommandResult, CommandParams, StringOption } from "./base"
+import { Command, CommandResult, CommandParams } from "./base"
 import Bluebird from "bluebird"
 import { printHeader, getTerminalWidth } from "../logger/util"
 import { LoggerType } from "../logger/logger"
 import { Module } from "../types/module"
+import { StringOption } from "../cli/params"
 
 const pluginArgs = {
   plugin: new StringOption({

@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { cloneDeep, isEqual, take, pickBy } from "lodash"
+import { cloneDeep, isEqual, take } from "lodash"
 import { joi, joiUserIdentifier, joiVariableName, joiIdentifier } from "./common"
 import { DEFAULT_API_VERSION } from "../constants"
 import { deline, dedent } from "../util/string"
@@ -17,7 +17,7 @@ import { resolveTemplateStrings } from "../template-string"
 import { validateWithPath } from "./validation"
 import { ConfigurationError } from "../exceptions"
 import { coreCommands } from "../commands/commands"
-import { Parameters } from "../commands/base"
+import { CommandGroup } from "../commands/base"
 import { EnvironmentConfig, getNamespace } from "./project"
 
 export interface WorkflowConfig {
@@ -140,9 +140,9 @@ export interface WorkflowStepSpec {
 }
 
 export const workflowStepSchema = () => {
-  const cmdConfigs = getStepCommandConfigs()
+  const cmdConfigs = getStepCommands()
   const cmdDescriptions = cmdConfigs
-    .map((c) => c.prefix.join(", "))
+    .map((c) => c.getPath().join(", "))
     .sort()
     .map((prefix) => `\`[${prefix}]\``)
     .join("\n")
@@ -298,29 +298,27 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
   return resolvedConfig
 }
 
-function filterParameters(params: Parameters) {
-  return pickBy(params, (arg) => !arg.cliOnly)
-}
-
 /**
- * Get all commands whitelisted for workflows, and allowed args/opts.
+ * Get all commands whitelisted for workflows
  */
-export function getStepCommandConfigs() {
-  const workflowCommands = coreCommands.flatMap((cmd) => [cmd, ...cmd.getSubCommands()]).filter((cmd) => cmd.workflows)
-
-  return workflowCommands.map((cmd) => ({
-    prefix: cmd.getPath(),
-    cmdClass: cmd.constructor,
-    args: filterParameters(cmd.arguments || {}),
-    opts: filterParameters(cmd.options || {}),
-  }))
+function getStepCommands() {
+  return coreCommands
+    .flatMap((cmd) => {
+      if (cmd instanceof CommandGroup) {
+        return cmd.getSubCommands()
+      } else {
+        return [cmd]
+      }
+    })
+    .filter((cmd) => cmd.workflows)
 }
 
 /**
  * Throws if one or more steps refers to a command that is not supported in workflows.
  */
 function validateSteps(config: WorkflowConfig) {
-  const validStepCommandPrefixes = getStepCommandConfigs().map((c) => c.prefix)
+  const validStepCommandPrefixes = getStepCommands().map((c) => c.getPath())
+
   const invalidSteps: WorkflowStepSpec[] = config.steps.filter(
     (step) =>
       !!step.command && !validStepCommandPrefixes.find((valid) => isEqual(valid, take(step.command, valid.length)))
