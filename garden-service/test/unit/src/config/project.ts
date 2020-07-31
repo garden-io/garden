@@ -736,6 +736,112 @@ describe("pickEnvironment", () => {
     })
   })
 
+  it("should load variables from YAML varfiles if specified", async () => {
+    await writeFile(
+      resolve(tmpPath, "foo.yml"),
+      dedent`
+      a: value-a
+      b:
+        some: value
+      c:
+        - some
+        - values
+      `
+    )
+
+    await writeFile(
+      resolve(tmpPath, "foo.default.yaml"),
+      dedent`
+      a: new-value
+      b:
+        additional: value
+      d: something
+      `
+    )
+
+    const config: ProjectConfig = {
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Project",
+      name: "my-project",
+      path: tmpPath,
+      defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
+      environments: [
+        {
+          name: "default",
+          defaultNamespace,
+          variables: {},
+          varfile: "foo.default.yaml",
+        },
+      ],
+      providers: [],
+      varfile: "foo.yml",
+      variables: {},
+    }
+
+    const result = await pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username })
+
+    expect(result.variables).to.eql({
+      a: "new-value",
+      b: { some: "value", additional: "value" },
+      c: ["some", "values"],
+      d: "something",
+    })
+  })
+
+  it("should load variables from JSON varfiles if specified", async () => {
+    await writeFile(
+      resolve(tmpPath, "foo.json"),
+      dedent`
+      {
+        "a": "value-a",
+        "b": { "some": "value" },
+        "c": ["some", "values"]
+      }
+      `
+    )
+
+    await writeFile(
+      resolve(tmpPath, "foo.default.json"),
+      dedent`
+      {
+        "a": "new-value",
+        "b": { "additional": "value" },
+        "d": "something"
+      }
+      `
+    )
+
+    const config: ProjectConfig = {
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Project",
+      name: "my-project",
+      path: tmpPath,
+      defaultEnvironment: "default",
+      dotIgnoreFiles: defaultDotIgnoreFiles,
+      environments: [
+        {
+          name: "default",
+          defaultNamespace,
+          variables: {},
+          varfile: "foo.default.json",
+        },
+      ],
+      providers: [],
+      varfile: "foo.json",
+      variables: {},
+    }
+
+    const result = await pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username })
+
+    expect(result.variables).to.eql({
+      a: "new-value",
+      b: { some: "value", additional: "value" },
+      c: ["some", "values"],
+      d: "something",
+    })
+  })
+
   it("should resolve template strings in the picked environment", async () => {
     const config: ProjectConfig = {
       apiVersion: DEFAULT_API_VERSION,
