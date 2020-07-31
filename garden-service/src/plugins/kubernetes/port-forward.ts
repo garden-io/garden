@@ -53,9 +53,8 @@ export function killPortForward(targetResource: string, targetPort: number, log?
 }
 
 export function killPortForwards(service: Service, forwardablePorts: ForwardablePort[], log: LogEntry) {
-  const targetResource = getTargetResource(service)
-
   for (const port of forwardablePorts) {
+    const targetResource = getTargetResource(service, port.targetName)
     killPortForward(targetResource, port.targetPort, log)
   }
 }
@@ -171,13 +170,14 @@ export async function getPortForwardHandler({
   log,
   namespace,
   service,
+  targetName,
   targetPort,
 }: GetPortForwardParams & { namespace?: string }): Promise<GetPortForwardResult> {
   if (!namespace) {
     const provider = ctx.provider as KubernetesProvider
     namespace = await getAppNamespace(ctx, log, provider)
   }
-  const targetResource = getTargetResource(service)
+  const targetResource = getTargetResource(service, targetName)
 
   const fwd = await getPortForward({ ctx, log, namespace, targetResource, port: targetPort })
 
@@ -187,8 +187,8 @@ export async function getPortForwardHandler({
   }
 }
 
-function getTargetResource(service: Service) {
-  return `Service/${service.name}`
+function getTargetResource(service: Service, targetName?: string) {
+  return `Service/${targetName || service.name}`
 }
 
 /**
@@ -206,7 +206,7 @@ export function getForwardablePorts(resources: KubernetesResource[]) {
           name: portSpec.name,
           // TODO: not sure if/how possible but it would be good to deduce the protocol somehow
           protocol: "TCP",
-          targetHostname: service.metadata!.name,
+          targetName: service.metadata!.name,
           targetPort: portSpec.port,
         })
       }

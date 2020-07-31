@@ -221,7 +221,7 @@ export class DeployTask extends BaseTask {
       const proxies = await startPortProxies(this.garden, log, this.service, status)
 
       for (const proxy of proxies) {
-        const targetHost = proxy.spec.targetHostname || this.service.name
+        const targetHost = proxy.spec.targetName || this.service.name
 
         log.info(
           chalk.gray(

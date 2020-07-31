@@ -157,7 +157,7 @@ export interface ForwardablePort {
   name?: string
   // TODO: support other protocols
   protocol: "TCP"
-  targetHostname?: string
+  targetName?: string
   targetPort: number
   urlProtocol?: string
 }
@@ -171,9 +171,7 @@ export const forwardablePortKeys = {
     .allow("TCP")
     .default("TCP")
     .description("The protocol of the port."),
-  targetHostname: joi
-    .string()
-    .description("The target hostname of the service (only used for informational purposes)."),
+  targetName: joi.string().description("The target name/hostname to forward to (defaults to the service name)."),
   targetPort: joi
     .number()
     .integer()

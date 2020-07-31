@@ -122,8 +122,8 @@ deployments:
         # The protocol of the port.
         protocol:
 
-        # The target hostname of the service (only used for informational purposes).
-        targetHostname:
+        # The target name/hostname to forward to (defaults to the service name).
+        targetName:
 
         # The target port on the service.
         targetPort:
@@ -460,8 +460,8 @@ serviceStatuses:
         # The protocol of the port.
         protocol:
 
-        # The target hostname of the service (only used for informational purposes).
-        targetHostname:
+        # The target name/hostname to forward to (defaults to the service name).
+        targetName:
 
         # The target port on the service.
         targetPort:
@@ -559,8 +559,8 @@ Examples:
       # The protocol of the port.
       protocol:
 
-      # The target hostname of the service (only used for informational purposes).
-      targetHostname:
+      # The target name/hostname to forward to (defaults to the service name).
+      targetName:
 
       # The target port on the service.
       targetPort:
@@ -707,8 +707,8 @@ deployments:
         # The protocol of the port.
         protocol:
 
-        # The target hostname of the service (only used for informational purposes).
-        targetHostname:
+        # The target name/hostname to forward to (defaults to the service name).
+        targetName:
 
         # The target port on the service.
         targetPort:
@@ -1408,8 +1408,8 @@ services:
         # The protocol of the port.
         protocol:
 
-        # The target hostname of the service (only used for informational purposes).
-        targetHostname:
+        # The target name/hostname to forward to (defaults to the service name).
+        targetName:
 
         # The target port on the service.
         targetPort:
@@ -1935,8 +1935,8 @@ deployments:
         # The protocol of the port.
         protocol:
 
-        # The target hostname of the service (only used for informational purposes).
-        targetHostname:
+        # The target name/hostname to forward to (defaults to the service name).
+        targetName:
 
         # The target port on the service.
         targetPort:
@@ -2452,8 +2452,8 @@ deployments:
         # The protocol of the port.
         protocol:
 
-        # The target hostname of the service (only used for informational purposes).
-        targetHostname:
+        # The target name/hostname to forward to (defaults to the service name).
+        targetName:
 
         # The target port on the service.
         targetPort:
