@@ -224,7 +224,7 @@ function stopPortProxy(proxy: PortProxy, log?: LogEntry) {
 }
 
 function getHostname(service: Service, spec: ForwardablePort) {
-  return spec.targetHostname || service.name
+  return spec.targetName || service.name
 }
 
 function getPortKey(service: Service, spec: ForwardablePort) {
