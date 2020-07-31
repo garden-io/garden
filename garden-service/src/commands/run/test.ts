@@ -17,12 +17,10 @@ import { testFromConfig } from "../../types/test"
 import { dedent, deline } from "../../util/string"
 import { findByName, getNames } from "../../util/util"
 import {
-  BooleanParameter,
   Command,
   CommandParams,
   CommandResult,
   handleRunResult,
-  StringParameter,
   resultMetadataKeys,
   graphResultsSchema,
   ProcessResultMetadata,
@@ -31,6 +29,7 @@ import { printRuntimeContext } from "./run"
 import { joi } from "../../config/common"
 import { testResultSchema, TestResult } from "../../types/plugin/module/getTestResult"
 import { GraphResults } from "../../task-graph"
+import { StringParameter, BooleanParameter } from "../../cli/params"
 
 export const runTestArgs = {
   module: new StringParameter({

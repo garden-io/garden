@@ -6,17 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command } from "../base"
+import { CommandGroup } from "../base"
 import { UnlinkSourceCommand } from "./source"
 import { UnlinkModuleCommand } from "./module"
 
-export class UnlinkCommand extends Command {
+export class UnlinkCommand extends CommandGroup {
   name = "unlink"
   help = "Unlink a remote source or module from its local path."
 
   subCommands = [UnlinkSourceCommand, UnlinkModuleCommand]
-
-  async action() {
-    return {}
-  }
 }

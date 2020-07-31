@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command } from "./base"
+import { Command, CommandGroup } from "./base"
 import { BuildCommand } from "./build"
 import { CallCommand } from "./call"
 import { CreateCommand } from "./create/create"
@@ -35,7 +35,7 @@ import { LogOutCommand } from "./logout"
 import { ToolsCommand } from "./tools"
 import { UtilCommand } from "./util"
 
-export const coreCommands: Command[] = [
+export const coreCommands: (Command | CommandGroup)[] = [
   new BuildCommand(),
   new CallCommand(),
   new ConfigCommand(),
@@ -64,3 +64,7 @@ export const coreCommands: Command[] = [
   new UtilCommand(),
   new ValidateCommand(),
 ]
+
+export function getAllCommands() {
+  return coreCommands.flatMap((cmd) => (cmd instanceof CommandGroup ? [cmd, ...cmd.getSubCommands()] : [cmd]))
+}

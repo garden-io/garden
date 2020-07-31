@@ -10,12 +10,10 @@ import deline = require("deline")
 import dedent = require("dedent")
 
 import {
-  BooleanParameter,
   Command,
   CommandParams,
   CommandResult,
   handleProcessResults,
-  StringsParameter,
   PrepareParams,
   processCommandResultSchema,
   ProcessCommandResult,
@@ -29,6 +27,7 @@ import { startServer, GardenServer } from "../server/server"
 import { DeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
 import chalk = require("chalk")
+import { StringsParameter, BooleanParameter } from "../cli/params"
 
 export const deployArgs = {
   services: new StringsParameter({

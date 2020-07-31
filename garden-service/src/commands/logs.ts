@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandResult, CommandParams, StringsParameter, IntegerParameter, BooleanParameter } from "./base"
+import { Command, CommandResult, CommandParams } from "./base"
 import chalk from "chalk"
 import { maxBy } from "lodash"
 import { ServiceLogEntry } from "../types/plugin/service/getServiceLogs"
@@ -17,6 +17,7 @@ import { LoggerType } from "../logger/logger"
 import dedent = require("dedent")
 import { LogLevel } from "../logger/log-node"
 import { emptyRuntimeContext } from "../runtime-context"
+import { StringsParameter, BooleanParameter, IntegerParameter } from "../cli/params"
 
 const logsArgs = {
   services: new StringsParameter({

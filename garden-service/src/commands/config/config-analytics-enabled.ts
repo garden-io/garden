@@ -6,9 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandParams, CommandResult, BooleanParameter } from "../base"
+import { Command, CommandParams, CommandResult } from "../base"
 import dedent = require("dedent")
 import { AnalyticsHandler } from "../../analytics/analytics"
+import { BooleanParameter } from "../../cli/params"
 
 const configAnalyticsEnabledArgs = {
   enable: new BooleanParameter({

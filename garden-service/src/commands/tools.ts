@@ -11,13 +11,14 @@ import { max, omit, sortBy } from "lodash"
 import { dedent, renderTable, tablePresets } from "../util/string"
 import { LogEntry } from "../logger/log-entry"
 import { Garden, DummyGarden } from "../garden"
-import { Command, CommandParams, StringOption, BooleanParameter } from "./base"
+import { Command, CommandParams } from "./base"
 import { getTerminalWidth } from "../logger/util"
 import { LoggerType } from "../logger/logger"
 import { ParameterError } from "../exceptions"
 import { uniqByName, exec } from "../util/util"
 import { PluginTool } from "../util/ext-tools"
 import { findProjectConfig } from "../config/base"
+import { StringOption, BooleanParameter } from "../cli/params"
 
 const toolsArgs = {
   tool: new StringOption({

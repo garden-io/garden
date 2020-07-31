@@ -4,4 +4,5 @@ require("source-map-support").install()
 
 const cli = require("../build/src/cli/cli")
 
-cli.run()
+// tslint:disable-next-line: no-floating-promises
+cli.runCli()

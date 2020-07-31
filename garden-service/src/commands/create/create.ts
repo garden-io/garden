@@ -6,17 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command } from "../base"
+import { CommandGroup } from "../base"
 import { CreateProjectCommand } from "./create-project"
 import { CreateModuleCommand } from "./create-module"
 
-export class CreateCommand extends Command {
+export class CreateCommand extends CommandGroup {
   name = "create"
   help = "Create new project or module."
 
   subCommands = [CreateProjectCommand, CreateModuleCommand]
-
-  async action() {
-    return {}
-  }
 }

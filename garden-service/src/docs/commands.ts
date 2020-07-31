@@ -9,9 +9,9 @@
 import { readFileSync, writeFileSync } from "fs"
 import handlebars from "handlebars"
 import { resolve } from "path"
-import { GLOBAL_OPTIONS } from "../cli/cli"
+import { globalOptions } from "../cli/params"
 import { coreCommands } from "../commands/commands"
-import { describeParameters } from "../commands/base"
+import { describeParameters, CommandGroup } from "../commands/base"
 import { TEMPLATES_DIR, renderConfigReference } from "./config"
 
 export function writeCommandReferenceDocs(docsRoot: string) {
@@ -20,13 +20,11 @@ export function writeCommandReferenceDocs(docsRoot: string) {
 
   const commands = coreCommands
     .flatMap((cmd) => {
-      if (cmd.subCommands && cmd.subCommands.length) {
-        return cmd.subCommands
-          .map((subCommandCls) => {
-            const subCmd = new subCommandCls(cmd)
-            return subCmd.hidden ? null : subCmd.describe()
-          })
-          .filter(Boolean)
+      if (cmd instanceof CommandGroup && cmd.subCommands?.length) {
+        return cmd
+          .getSubCommands()
+          .filter((c) => !c.hidden)
+          .map((c) => c.describe())
       } else {
         return cmd.hidden ? [] : [cmd.describe()]
       }
@@ -41,12 +39,10 @@ export function writeCommandReferenceDocs(docsRoot: string) {
         : null,
     }))
 
-  const globalOptions = describeParameters(GLOBAL_OPTIONS)
-
   const templatePath = resolve(TEMPLATES_DIR, "commands.hbs")
   handlebars.registerPartial("argType", "{{#if choices}}{{#each choices}}`{{.}}` {{/each}}{{else}}{{type}}{{/if}}")
   const template = handlebars.compile(readFileSync(templatePath).toString())
-  const markdown = template({ commands, globalOptions })
+  const markdown = template({ commands, globalOptions: describeParameters(globalOptions) })
 
   writeFileSync(outputPath, markdown)
 }

@@ -9,60 +9,47 @@
 import chalk from "chalk"
 import ci = require("ci-info")
 import { pathExists } from "fs-extra"
-import { difference, flatten, range, reduce } from "lodash"
-import moment = require("moment")
+import { range, reduce, sortBy, max, isEqual, mapValues, pickBy } from "lodash"
+import moment from "moment"
 import { platform, release } from "os"
-import qs = require("qs")
+import qs from "qs"
+import stringWidth from "string-width"
+import { maxBy, zip } from "lodash"
 
-import { ChoicesParameter, ParameterValues, Parameter } from "../commands/base"
-import { InternalError } from "../exceptions"
-import { LogLevel } from "../logger/log-node"
-import { getEnumKeys, getPackageVersion } from "../util/util"
+import { ParameterValues, Parameter, Parameters } from "./params"
+import { InternalError, ParameterError } from "../exceptions"
+import { getPackageVersion } from "../util/util"
 import { LogEntry } from "../logger/log-entry"
 import { STATIC_DIR, VERSION_CHECK_URL, gardenEnv } from "../constants"
 import { printWarningMessage } from "../logger/util"
 import { GlobalConfigStore, globalConfigKeys } from "../config-store"
 import { got, GotResponse } from "../util/http"
 import { getUserId } from "../analytics/analytics"
+import minimist = require("minimist")
+import { renderTable, tablePresets, naturalList } from "../util/string"
+import { globalOptions, GlobalOptions } from "./params"
+import { Command, CommandGroup } from "../commands/base"
 
-// Parameter types T which map between the Parameter<T> class and the Sywac cli library.
-// In case we add types that aren't supported natively by Sywac, see: http://sywac.io/docs/sync-config.html#custom
-const VALID_PARAMETER_TYPES = ["boolean", "number", "choice", "string", "array:string", "path", "array:path"]
-
-export const styleConfig = {
-  usagePrefix: (str) =>
-    `
-${chalk.bold(str.slice(0, 5).toUpperCase())}
-  ${chalk.italic(str.slice(7))}`,
-  usageCommandPlaceholder: (str) => chalk.blue(str),
-  usagePositionals: (str) => chalk.cyan(str),
-  usageArgsPlaceholder: (str) => chalk.cyan(str),
-  usageOptionsPlaceholder: (str) => chalk.yellow(str),
-  group: (str: string) => {
-    const cleaned = str.endsWith(":") ? str.slice(0, -1) : str
-    return chalk.bold(cleaned.toUpperCase())
-  },
-  flags: (str, _type) => {
-    const style = str.startsWith("-") ? chalk.green : chalk.cyan
-    return style(str)
-  },
-  hints: (str) => chalk.gray(str),
-  groupError: (str) => chalk.red.bold(str),
-  flagsError: (str) => chalk.red.bold(str),
-  descError: (str) => chalk.yellow.bold(str),
-  hintsError: (str) => chalk.red(str),
-  messages: (str) => chalk.red.bold(str), // these are error messages
-}
-
-// Helper functions
-export const getKeys = (obj): string[] => Object.keys(obj || {})
-export const filterByKeys = (obj: any, keys: string[]): any => {
-  return keys.reduce((memo, key) => {
-    if (obj.hasOwnProperty(key)) {
-      memo[key] = obj[key]
-    }
-    return memo
-  }, {})
+export const cliStyles = {
+  heading: (str: string) => chalk.white.bold(str),
+  commandPlaceholder: () => chalk.blueBright("<command>"),
+  optionsPlaceholder: () => chalk.yellowBright("[options]"),
+  hints: (str: string) => chalk.gray(str),
+  usagePositional: (key: string, required: boolean) => chalk.cyan(required ? `<${key}>` : `[${key}]`),
+  usageOption: (str: string) => chalk.cyan(`<${str}>`),
+  //   group: (str: string) => {
+  //     const cleaned = str.endsWith(":") ? str.slice(0, -1) : str
+  //     return chalk.bold(cleaned.toUpperCase())
+  //   },
+  //   flags: (str) => {
+  //     const style = str.startsWith("-") ? chalk.green : chalk.cyan
+  //     return style(str)
+  //   },
+  //   groupError: (str) => chalk.red.bold(str),
+  //   flagsError: (str) => chalk.red.bold(str),
+  //   descError: (str) => chalk.yellow.bold(str),
+  //   hintsError: (str) => chalk.red(str),
+  //   messages: (str) => chalk.red.bold(str), // these are error messages
 }
 
 /**
@@ -70,14 +57,7 @@ export const filterByKeys = (obj: any, keys: string[]): any => {
  */
 export function helpTextMaxWidth() {
   const cols = process.stdout.columns || 100
-  return Math.min(100, cols)
-}
-
-// Add platforms/terminals?
-export function envSupportsEmoji() {
-  return (
-    process.platform === "darwin" || process.env.TERM_PROGRAM === "Hyper" || process.env.TERM_PROGRAM === "HyperTerm"
-  )
+  return Math.min(120, cols)
 }
 
 export type FalsifiedParams = { [key: string]: false }
@@ -110,101 +90,6 @@ export function negateConflictingParams(argv, params: ParameterValues<any>): Fal
     },
     {}
   )
-}
-
-// Sywac specific transformers and helpers
-export function getOptionSynopsis(key: string, { alias }: Parameter<any>): string {
-  if (alias && alias.length > 1) {
-    return `--${alias}, --${key}`
-  } else if (alias) {
-    return `-${alias}, --${key}`
-  } else {
-    return `--${key}`
-  }
-}
-
-export function getArgSynopsis(key: string, param: Parameter<any>) {
-  return param.required ? `<${key}>` : `[${key}]`
-}
-
-const getLogLevelNames = () => getEnumKeys(LogLevel)
-const getNumericLogLevels = () => range(getLogLevelNames().length)
-// Allow string or numeric log levels as CLI choices
-export const getLogLevelChoices = () => [...getLogLevelNames(), ...getNumericLogLevels().map(String)]
-
-export function parseLogLevel(level: string): LogLevel {
-  let lvl: LogLevel
-  const parsed = parseInt(level, 10)
-  // Level is numeric
-  if (parsed || parsed === 0) {
-    lvl = parsed
-    // Level is a string
-  } else {
-    lvl = LogLevel[level]
-  }
-  if (!getNumericLogLevels().includes(lvl)) {
-    throw new InternalError(
-      `Unexpected log level, expected one of ${getLogLevelChoices().join(", ")}, got ${level}`,
-      {}
-    )
-  }
-  return lvl
-}
-
-export function prepareArgConfig(param: Parameter<any>) {
-  return {
-    desc: param.help,
-    params: [prepareOptionConfig(param)],
-  }
-}
-
-export interface SywacOptionConfig {
-  desc: string | string[]
-  type: string
-  defaultValue?: any
-  coerce?: Function
-  choices?: any[]
-  required?: boolean
-  hints?: string
-  strict: true
-  mustExist: true // For parameters of path type
-}
-
-export function prepareOptionConfig(param: Parameter<any>): SywacOptionConfig {
-  const { coerce, help: desc, hints, required, type } = param
-
-  const defaultValue = param.cliDefault === undefined ? param.defaultValue : param.cliDefault
-
-  if (!VALID_PARAMETER_TYPES.includes(type)) {
-    throw new InternalError(`Invalid parameter type for cli: ${type}`, {
-      type,
-      validParameterTypes: VALID_PARAMETER_TYPES,
-    })
-  }
-  let config: SywacOptionConfig = {
-    coerce,
-    defaultValue,
-    desc,
-    required,
-    type,
-    hints,
-    strict: true,
-    mustExist: true, // For parameters of path type
-  }
-  if (type === "choice") {
-    config.type = "enum"
-    config.choices = (<ChoicesParameter>param).choices
-  }
-  return config
-}
-
-export function failOnInvalidOptions(argv, ctx) {
-  const validOptions = flatten(ctx.details.types.filter((t) => t.datatype !== "command").map((t) => t.aliases))
-  const receivedOptions = Object.keys(argv)
-  const invalid = difference(receivedOptions, validOptions)
-  if (invalid.length > 0) {
-    ctx.cliMessage(`Received invalid flag(s): ${invalid.join(", ")}`)
-  }
 }
 
 export async function checkForStaticDir() {
@@ -256,4 +141,247 @@ export async function checkForUpdates(config: GlobalConfigStore, logger: LogEntr
     logger.verbose("Something went wrong while checking for the latest Garden version.")
     logger.verbose(err)
   }
+}
+
+export function pickCommand(commands: (Command | CommandGroup)[], args: string[]) {
+  const command = sortBy(commands, (cmd) => -cmd.getPath().length).find((c) => {
+    for (const path of c.getPaths()) {
+      if (isEqual(path, args.slice(0, path.length))) {
+        return true
+      }
+    }
+    return false
+  })
+
+  const rest = command ? args.slice(command.getPath().length) : args
+  return { command, rest }
+}
+
+export type ParamSpec = {
+  [key: string]: Parameter<string | string[] | number | boolean | undefined>
+}
+
+/**
+ * Parses the given CLI arguments using minimist. The result should be fed to `processCliArgs()`
+ *
+ * @param stringArgs Raw string arguments
+ * @param command    The Command that the arguments are for, if any
+ */
+export function parseCliArgs({ stringArgs, command, cli }: { stringArgs: string[]; command?: Command; cli: boolean }) {
+  // Tell minimist which flags are to be treated explicitly as booleans and strings
+  const allOptions = { ...globalOptions, ...(command?.options || {}) }
+  const booleanKeys = Object.keys(pickBy(allOptions, (spec) => spec.type === "boolean"))
+  const stringKeys = Object.keys(pickBy(allOptions, (spec) => spec.type !== "boolean" && spec.type !== "number"))
+
+  // Specify option flag aliases
+  const aliases = {}
+  const defaultValues = {}
+
+  for (const [name, spec] of Object.entries(allOptions)) {
+    defaultValues[name] = spec.getDefaultValue(cli)
+
+    if (spec.alias) {
+      aliases[name] = spec.alias
+      defaultValues[spec.alias] = defaultValues[name]
+    }
+  }
+
+  return minimist(stringArgs, {
+    "--": true,
+    "boolean": booleanKeys,
+    "string": stringKeys,
+    "alias": aliases,
+    "default": defaultValues,
+  })
+}
+
+interface DefaultArgs {
+  // Contains anything after -- on the command line
+  _: string[]
+}
+
+/**
+ * Takes parsed arguments (as returned by `parseCliArgs()`) and a Command, validates them, and
+ * returns args and opts ready to pass to that command's action method.
+ *
+ * @param parsedArgs  Parsed arguments from `parseCliArgs()`
+ * @param command     The Command that the arguments are for
+ * @param cli         Set to false if `cliOnly` options should be ignored
+ */
+export function processCliArgs<A extends Parameters, O extends Parameters>({
+  parsedArgs,
+  command,
+  cli,
+}: {
+  parsedArgs: minimist.ParsedArgs
+  command: Command<A, O>
+  cli: boolean
+}) {
+  const argSpec = command.arguments || <A>{}
+  const argKeys = Object.keys(argSpec)
+  const processedArgs = { _: parsedArgs["--"] || [] }
+
+  const errors: string[] = []
+
+  for (const idx of range(argKeys.length)) {
+    const argKey = argKeys[idx]
+    const argVal = parsedArgs._[idx]
+    const spec = argSpec[argKey]
+
+    // Ensure all required positional arguments are present
+    if (!argVal) {
+      if (spec.required) {
+        errors.push(`Missing required argument ${chalk.white.bold(argKey)}`)
+      }
+
+      // Commands expect unused arguments to be explicitly set to undefined.
+      processedArgs[argKeys[idx]] = undefined
+    }
+  }
+
+  // TODO: support variadic arguments
+  for (const idx of range(parsedArgs._.length)) {
+    const argKey = argKeys[idx]
+    const argVal = parsedArgs._[idx]
+    const spec = argSpec[argKey]
+
+    if (!spec) {
+      const expected = argKeys.length > 0 ? "only " + naturalList(argKeys.map((key) => chalk.white.bold(key))) : "none"
+      throw new ParameterError(`Unexpected positional argument "${argVal}" (expected ${expected})`, {
+        expectedKeys: argKeys,
+        extraValue: argVal,
+      })
+    }
+
+    try {
+      processedArgs[argKey] = spec.validate(spec.coerce(argVal))
+    } catch (error) {
+      throw new ParameterError(`Invalid value for argument ${chalk.white.bold(argKey)}: ${error.message}`, {
+        error,
+        key: argKey,
+        value: argVal,
+      })
+    }
+  }
+
+  const optSpec = { ...globalOptions, ...(command.options || {}) }
+  const optsWithAliases: { [key: string]: Parameter<any> } = {}
+
+  // Apply default values
+  const processedOpts = mapValues(optSpec, (spec) => spec.getDefaultValue(cli))
+
+  for (const [name, spec] of Object.entries(optSpec)) {
+    optsWithAliases[name] = spec
+    if (spec.alias) {
+      optsWithAliases[spec.alias] = spec
+    }
+  }
+
+  for (let [key, value] of Object.entries(parsedArgs)) {
+    if (key === "_" || key === "--") {
+      continue
+    }
+
+    const spec = optsWithAliases[key]
+    const flagStr = chalk.white.bold(key.length === 1 ? "-" + key : "--" + key)
+
+    if (!spec) {
+      errors.push(`Unrecognized option flag ${flagStr}`)
+      continue
+    }
+
+    if (!optSpec[key]) {
+      // Don't double-process the aliases
+      continue
+    }
+
+    if (!cli && spec.cliOnly) {
+      // ignore cliOnly flags if cli=false
+      continue
+    }
+
+    if (Array.isArray(value)) {
+      // TODO: support multiple instances of an argument if it's an array type
+      value = value[value.length - 1] // Use the last value if the option is used multiple times
+    }
+
+    if (value !== undefined) {
+      try {
+        value = spec.validate(spec.coerce(value))
+        processedOpts[key] = value
+      } catch (err) {
+        errors.push(`Invalid value for option ${flagStr}: ${err.message}`)
+      }
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new ParameterError(chalk.red.bold(errors.join("\n")), { parsedArgs, processedArgs, processedOpts, errors })
+  }
+
+  return {
+    args: <DefaultArgs & ParameterValues<A>>processedArgs,
+    opts: <ParameterValues<GlobalOptions> & ParameterValues<O>>processedOpts,
+  }
+}
+
+export function renderCommands(commands: Command[]) {
+  if (commands.length === 0) {
+    return "\n"
+  }
+
+  const sortedCommands = sortBy(commands, (cmd) => cmd.getFullName())
+
+  const rows = sortedCommands.map((command) => {
+    return [` ${chalk.cyan(command.getFullName())}`, command.help]
+  })
+
+  const maxCommandLength = max(rows.map((r) => r[0]!.length))!
+
+  return renderTable(rows, {
+    ...tablePresets["no-borders"],
+    colWidths: [null, helpTextMaxWidth() - maxCommandLength - 2],
+  })
+}
+
+export function renderArguments(params: Parameters) {
+  return renderParameters(params, (name, param) => {
+    return " " + cliStyles.usagePositional(name, param.required)
+  })
+}
+
+export function renderOptions(params: Parameters) {
+  return renderParameters(params, (name, param) => {
+    const alias = param.alias ? `-${param.alias}, ` : ""
+    return chalk.green(` ${alias}--${name} `)
+  })
+}
+
+function renderParameters(params: Parameters, formatName: (name: string, param: Parameter<any>) => string) {
+  const sortedParams = Object.keys(params).sort()
+
+  const names = sortedParams.map((name) => formatName(name, params[name]))
+
+  const helpTexts = sortedParams.map((name) => {
+    const param = params[name]
+    let out = param.help
+    let hints = ""
+    if (param.hints) {
+      hints = param.hints
+    } else {
+      hints = `\n[${param.type}]`
+      if (param.defaultValue) {
+        hints += ` [default: ${param.defaultValue}]`
+      }
+    }
+    return out + chalk.gray(hints)
+  })
+
+  const nameColWidth = stringWidth(maxBy(names, (n) => stringWidth(n)) || "") + 2
+  const textColWidth = helpTextMaxWidth() - nameColWidth
+
+  return renderTable(zip(names, helpTexts), {
+    ...tablePresets["no-borders"],
+    colWidths: [nameColWidth, textColWidth],
+  })
 }

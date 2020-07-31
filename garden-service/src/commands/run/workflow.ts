@@ -7,12 +7,12 @@
  */
 
 import chalk from "chalk"
-import { cloneDeep, isEqual, merge, repeat, take } from "lodash"
+import { cloneDeep, merge, repeat } from "lodash"
 import { printHeader, getTerminalWidth, formatGardenError } from "../../logger/util"
-import { StringParameter, Command, CommandParams, CommandResult, parseCliArgs } from "../base"
+import { Command, CommandParams, CommandResult } from "../base"
 import { dedent, wordWrap, deline } from "../../util/string"
 import { Garden } from "../../garden"
-import { getStepCommandConfigs, WorkflowStepSpec, WorkflowConfig, WorkflowFileSpec } from "../../config/workflow"
+import { WorkflowStepSpec, WorkflowConfig, WorkflowFileSpec } from "../../config/workflow"
 import { LogEntry } from "../../logger/log-entry"
 import { GardenError, GardenBaseError } from "../../exceptions"
 import { WorkflowConfigContext, WorkflowStepConfigContext, WorkflowStepResult } from "../../config/config-context"
@@ -27,6 +27,9 @@ import { ExecaError } from "execa"
 import { LogLevel } from "../../logger/log-node"
 import { gardenEnv } from "../../constants"
 import { registerWorkflowRun } from "../../enterprise/workflow-lifecycle"
+import { parseCliArgs, pickCommand, processCliArgs } from "../../cli/helpers"
+import { StringParameter } from "../../cli/params"
+import { getAllCommands } from "../commands"
 
 const runWorkflowArgs = {
   workflow: new StringParameter({
@@ -78,7 +81,6 @@ export class RunWorkflowCommand extends Command<Args, {}> {
 
     printHeader(headerLog, `Running workflow ${chalk.white(workflow.name)}`, "runner")
 
-    const stepCommandConfigs = getStepCommandConfigs()
     const startedAt = new Date().valueOf()
 
     const result: WorkflowRunOutput = {
@@ -132,7 +134,6 @@ export class RunWorkflowCommand extends Command<Args, {}> {
             headerLog: stepHeaderLog,
             log: stepBodyLog,
             footerLog: stepFooterLog,
-            stepCommandConfigs,
           })
         } else if (step.script) {
           step.script = resolveTemplateString(step.script, stepTemplateContext)
@@ -205,9 +206,7 @@ export interface RunStepParams {
   step: WorkflowStepSpec
 }
 
-export interface RunStepCommandParams extends RunStepParams {
-  stepCommandConfigs: any
-}
+export interface RunStepCommandParams extends RunStepParams {}
 
 function getStepName(index: number, name?: string) {
   return name || `step-${index + 1}`
@@ -293,13 +292,26 @@ export async function runStepCommand({
   footerLog,
   headerLog,
   inheritedOpts,
-  stepCommandConfigs,
   step,
 }: RunStepCommandParams): Promise<CommandResult<any>> {
-  const config = stepCommandConfigs.find((c) => isEqual(c.prefix, take(step.command!, c.prefix.length)))
-  const rest = step.command!.slice(config.prefix.length) // arguments + options
-  const { args, opts } = parseCliArgs(rest, config.args, config.opts)
-  const command: Command = new config.cmdClass()
+  const { command, rest } = pickCommand(getAllCommands(), step.command!)
+
+  if (!command) {
+    throw new ConfigurationError(`Could not find Garden command '${step.command!}`, {
+      step,
+    })
+  }
+
+  if (!command?.workflows) {
+    throw new ConfigurationError(`Command '${command?.getFullName()}' is currently not supported in workflows`, {
+      step,
+      command: command?.getFullName(),
+    })
+  }
+
+  const parsedArgs = parseCliArgs({ stringArgs: rest, command, cli: false })
+  const { args, opts } = processCliArgs({ parsedArgs, command, cli: false })
+
   const result = await command.action({
     garden,
     log,

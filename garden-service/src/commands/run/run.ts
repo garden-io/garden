@@ -8,7 +8,7 @@
 
 import { RuntimeContext } from "../../runtime-context"
 import { highlightYaml, safeDumpYaml } from "../../util/util"
-import { Command } from "../base"
+import { CommandGroup } from "../base"
 import { RunModuleCommand } from "./module"
 import { RunServiceCommand } from "./service"
 import { RunTaskCommand } from "./task"
@@ -16,15 +16,11 @@ import { RunTestCommand } from "./test"
 import { RunWorkflowCommand } from "./workflow"
 import { LogEntry } from "../../logger/log-entry"
 
-export class RunCommand extends Command {
+export class RunCommand extends CommandGroup {
   name = "run"
   help = "Run ad-hoc instances of your modules, services, tests, tasks or workflows."
 
   subCommands = [RunModuleCommand, RunServiceCommand, RunTaskCommand, RunTestCommand, RunWorkflowCommand]
-
-  async action() {
-    return {}
-  }
 }
 
 export function printRuntimeContext(log: LogEntry, runtimeContext: RuntimeContext) {

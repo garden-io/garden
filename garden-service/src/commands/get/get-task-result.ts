@@ -7,7 +7,7 @@
  */
 
 import { ConfigGraph } from "../../config-graph"
-import { Command, CommandResult, CommandParams, StringParameter } from "../base"
+import { Command, CommandResult, CommandParams } from "../base"
 import { printHeader } from "../../logger/util"
 import { getTaskVersion } from "../../tasks/task"
 import { RunTaskResult } from "../../types/plugin/task/runTask"
@@ -15,6 +15,7 @@ import chalk from "chalk"
 import { getArtifactFileList, getArtifactKey } from "../../util/artifacts"
 import { taskResultSchema } from "../../types/plugin/task/getTaskResult"
 import { joiArray, joi } from "../../config/common"
+import { StringParameter } from "../../cli/params"
 
 const getTaskResultArgs = {
   name: new StringParameter({

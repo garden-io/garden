@@ -18,8 +18,7 @@ import {
   getDevCommandInitialTasks,
 } from "../../../../src/commands/dev"
 import { makeTestGardenA, withDefaultGlobalOpts, TestGarden } from "../../../helpers"
-import { ParameterValues } from "../../../../src/commands/base"
-import { GlobalOptions } from "../../../../src/cli/cli"
+import { GlobalOptions, ParameterValues } from "../../../../src/cli/params"
 import { BaseTask } from "../../../../src/tasks/base"
 
 describe("DevCommand", () => {

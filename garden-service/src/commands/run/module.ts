@@ -13,18 +13,10 @@ import { prepareRuntimeContext } from "../../runtime-context"
 import { BuildTask } from "../../tasks/build"
 import { RunResult } from "../../types/plugin/base"
 import { dedent, deline } from "../../util/string"
-import {
-  BooleanParameter,
-  Command,
-  CommandParams,
-  CommandResult,
-  handleRunResult,
-  StringParameter,
-  StringsParameter,
-  ProcessResultMetadata,
-} from "../base"
+import { Command, CommandParams, CommandResult, handleRunResult, ProcessResultMetadata } from "../base"
 import { printRuntimeContext } from "./run"
 import { GraphResults } from "../../task-graph"
+import { StringParameter, StringsParameter, BooleanParameter } from "../../cli/params"
 
 const runModuleArgs = {
   module: new StringParameter({
