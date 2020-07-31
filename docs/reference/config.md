@@ -57,8 +57,17 @@ environments:
     production: false
 
     # Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
-    # _environment-specific_ `variables` field. The file should be in a standard "dotenv" format, specified
-    # [here](https://github.com/motdotla/dotenv#rules).
+    # _environment-specific_ `variables` field.
+    #
+    # The format of the files is determined by the configured file's extension:
+    #
+    # * `.env` - Standard "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+    # * `.yaml`/`.yml` - YAML. The file must consist of a YAML document, which must be a map (dictionary). Keys may
+    # contain any value type.
+    # * `.json` - JSON. Must contain a single JSON _object_ (not an array).
+    #
+    # _NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of
+    # nested objects and arrays._
     #
     # If you don't set the field and the `garden.<env-name>.env` file does not exist,
     # we simply ignore it. If you do override the default value and the file doesn't exist, an error will be thrown.
@@ -157,8 +166,17 @@ sources:
     repositoryUrl:
 
 # Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
-# project-wide `variables` field. The file should be in a standard "dotenv" format, specified
-# [here](https://github.com/motdotla/dotenv#rules).
+# project-wide `variables` field.
+#
+# The format of the files is determined by the configured file's extension:
+#
+# * `.env` - Standard "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+# * `.yaml`/`.yml` - YAML. The file must consist of a YAML document, which must be a map (dictionary). Keys may
+# contain any value type.
+# * `.json` - JSON. Must contain a single JSON _object_ (not an array).
+#
+# _NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested
+# objects and arrays._
 #
 # If you don't set the field and the `garden.env` file does not exist, we simply ignore it.
 # If you do override the default value and the file doesn't exist, an error will be thrown.
@@ -313,8 +331,15 @@ environments:
 [environments](#environments) > varfile
 
 Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
-_environment-specific_ `variables` field. The file should be in a standard "dotenv" format, specified
-[here](https://github.com/motdotla/dotenv#rules).
+_environment-specific_ `variables` field.
+
+The format of the files is determined by the configured file's extension:
+
+* `.env` - Standard "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+* `.yaml`/`.yml` - YAML. The file must consist of a YAML document, which must be a map (dictionary). Keys may contain any value type.
+* `.json` - JSON. Must contain a single JSON _object_ (not an array).
+
+_NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested objects and arrays._
 
 If you don't set the field and the `garden.<env-name>.env` file does not exist,
 we simply ignore it. If you do override the default value and the file doesn't exist, an error will be thrown.
@@ -572,8 +597,15 @@ sources:
 ### `varfile`
 
 Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
-project-wide `variables` field. The file should be in a standard "dotenv" format, specified
-[here](https://github.com/motdotla/dotenv#rules).
+project-wide `variables` field.
+
+The format of the files is determined by the configured file's extension:
+
+* `.env` - Standard "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+* `.yaml`/`.yml` - YAML. The file must consist of a YAML document, which must be a map (dictionary). Keys may contain any value type.
+* `.json` - JSON. Must contain a single JSON _object_ (not an array).
+
+_NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested objects and arrays._
 
 If you don't set the field and the `garden.env` file does not exist, we simply ignore it.
 If you do override the default value and the file doesn't exist, an error will be thrown.

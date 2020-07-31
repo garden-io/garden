@@ -218,7 +218,19 @@ You can also provide variables using "variable files" or _varfiles_. These work 
 
 This can be very useful when you need to provide secrets and other contextual values to your stack. You could add your varfiles to your `.gitignore` file to keep them out of your repository, or use e.g. [git-crypt](https://github.com/AGWA/git-crypt), [BlackBox](https://github.com/StackExchange/blackbox) or [git-secret](https://git-secret.io/) to securely store the files in your Git repo.
 
-By default, Garden will look for a `garden.env` file in your project root for project-wide variables, and a `garden.<env-name>.env` file for environment-specific variables. You can override the filename for each as well. The format of the files is the one supported by [dotenv](https://github.com/motdotla/dotenv#rules).
+By default, Garden will look for a `garden.env` file in your project root for project-wide variables, and a `garden.<env-name>.env` file for environment-specific variables. You can override the filename for each as well.
+
+The format of the files is determined by the configured file extension:
+
+* `.env` - Standard "dotenv" format, as supported by [dotenv](https://github.com/motdotla/dotenv#rules).
+* `.yaml`/`.yml` - YAML. Must be a single document in the file, and must be a key/value map (but keys may contain any value types).
+* `.json` - JSON. Must contain a single JSON _object_ (not an array).
+
+{% hint style="info" }
+The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested objects and arrays.
+
+In the meantime, to use YAML or JSON files, you must explicitly set the varfile name(s) in your project configuration, via the [`varfile`](../reference/config.md#varfile) and/or [`environments[].varfile`]((../reference/config.md#environmentvarfile)) fields.
+{% endhint %}
 
 You can also set variables on the command line, with `--var` flags. Note that while this is handy for ad-hoc invocations, we don't generally recommend relying on this for normal operations, since you lose a bit of visibility within your configuration. But here's one practical example:
 
@@ -236,6 +248,8 @@ The order of precedence across the varfiles and project config fields is as foll
 3. The environment-specific variables set in `environment[].variables`.
 4. Configured project-wide varfile (defaults to `garden.env`).
 5. The project-wide `variables` field.
+
+When you specify variables in multiple places, we merge the different objects and files using a [JSON Merge Patch](https://tools.ietf.org/html/rfc7396).
 
 Here's an example, where we have some project variables defined in our project config, and environment-specific values—including secret data—in varfiles:
 

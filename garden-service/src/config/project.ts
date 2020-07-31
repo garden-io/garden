@@ -28,13 +28,14 @@ import { ProjectConfigContext, EnvironmentConfigContext } from "./config-context
 import { findByName, getNames } from "../util/util"
 import { ConfigurationError, ParameterError, ValidationError } from "../exceptions"
 import { PrimitiveMap } from "./common"
-import { cloneDeep, omit } from "lodash"
+import { cloneDeep, omit, isPlainObject } from "lodash"
 import { providerConfigBaseSchema, ProviderConfig } from "./provider"
 import { DEFAULT_API_VERSION, DOCS_BASE_URL } from "../constants"
 import { defaultDotIgnoreFiles } from "../util/fs"
 import { pathExists, readFile } from "fs-extra"
-import { resolve } from "path"
+import { resolve, basename, relative } from "path"
 import chalk = require("chalk")
+import { safeLoad } from "js-yaml"
 
 export const defaultVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
@@ -58,6 +59,16 @@ export interface EnvironmentConfig {
   variables: DeepPrimitiveMap
   production?: boolean
 }
+
+const varfileDescription = `
+The format of the files is determined by the configured file's extension:
+
+* \`.env\` - Standard "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+* \`.yaml\`/\`.yml\` - YAML. The file must consist of a YAML document, which must be a map (dictionary). Keys may contain any value type.
+* \`.json\` - JSON. Must contain a single JSON _object_ (not an array).
+
+_NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested objects and arrays._
+`.trim()
 
 export const environmentNameSchema = () =>
   joiUserIdentifier()
@@ -107,8 +118,9 @@ export const environmentSchema = () =>
       .description(
         dedent`
           Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
-          _environment-specific_ \`variables\` field. The file should be in a standard "dotenv" format, specified
-          [here](https://github.com/motdotla/dotenv#rules).
+          _environment-specific_ \`variables\` field.
+
+          ${varfileDescription}
 
           If you don't set the field and the \`${defaultEnvVarfilePath("<env-name>")}\` file does not exist,
           we simply ignore it. If you do override the default value and the file doesn't exist, an error will be thrown.
@@ -378,8 +390,9 @@ export const projectDocsSchema = () =>
         .description(
           dedent`
         Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
-        project-wide \`variables\` field. The file should be in a standard "dotenv" format, specified
-        [here](https://github.com/motdotla/dotenv#rules).
+        project-wide \`variables\` field.
+
+        ${varfileDescription}
 
         If you don't set the field and the \`garden.env\` file does not exist, we simply ignore it.
         If you do override the default value and the file doesn't exist, an error will be thrown.
@@ -647,7 +660,31 @@ async function loadVarfile(projectRoot: string, path: string | undefined, defaul
   }
 
   try {
-    return dotenv.parse(await readFile(resolvedPath))
+    const data = await readFile(resolvedPath)
+    const relPath = relative(projectRoot, resolvedPath)
+    const filename = basename(resolvedPath.toLowerCase())
+
+    if (filename.endsWith(".json")) {
+      const parsed = JSON.parse(data.toString())
+      if (!isPlainObject(parsed)) {
+        throw new ConfigurationError(`Configured variable file ${relPath} must be a valid plain JSON object`, {
+          parsed,
+        })
+      }
+      return parsed
+    } else if (filename.endsWith(".yml") || filename.endsWith(".yaml")) {
+      const parsed = safeLoad(data.toString())
+      if (!isPlainObject(parsed)) {
+        throw new ConfigurationError(`Configured variable file ${relPath} must be a single plain YAML mapping`, {
+          parsed,
+        })
+      }
+      return parsed
+    } else {
+      // Note: For backwards-compatibility we fall back on using .env as a default format, and don't specifically
+      // validate the extension for that.
+      return dotenv.parse(await readFile(resolvedPath))
+    }
   } catch (error) {
     throw new ConfigurationError(`Unable to load varfile at '${path}': ${error}`, {
       error,
