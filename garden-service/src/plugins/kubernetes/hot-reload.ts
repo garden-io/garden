@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 import normalizePath = require("normalize-path")
-import { V1Deployment, V1DaemonSet, V1StatefulSet } from "@kubernetes/client-node"
+import { V1Deployment, V1DaemonSet, V1StatefulSet, V1Container } from "@kubernetes/client-node"
 import { ContainerModule, ContainerHotReloadSpec } from "../container/config"
 import { RuntimeError, ConfigurationError } from "../../exceptions"
 import { resolve as resolvePath, dirname, posix, relative, resolve } from "path"
@@ -119,7 +119,7 @@ export function configureHotReload({
     mainContainer.args = hotReloadArgs
   }
 
-  const rsyncContainer = {
+  const rsyncContainer: V1Container = {
     name: "garden-rsync",
     image: "gardendev/rsync:0.2.0",
     imagePullPolicy: "IfNotPresent",
@@ -145,6 +145,14 @@ export function configureHotReload({
         containerPort: RSYNC_PORT,
       },
     ],
+    readinessProbe: {
+      initialDelaySeconds: 2,
+      periodSeconds: 1,
+      timeoutSeconds: 3,
+      successThreshold: 1,
+      failureThreshold: 5,
+      tcpSocket: { port: <object>(<unknown>RSYNC_PORT_NAME) },
+    },
   }
 
   // These any casts are necessary because of flaws in the TS definitions in the client library.
