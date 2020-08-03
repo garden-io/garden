@@ -8,13 +8,13 @@
 
 import { expect } from "chai"
 import nock from "nock"
-import { isEqual } from "lodash"
+import { isEqual, find } from "lodash"
 
-import { makeDummyGarden, GardenCli } from "../../../../src/cli/cli"
-import { getDataDir, TestGarden, makeTestGardenA, enableAnalytics } from "../../../helpers"
+import { makeDummyGarden, GardenCli, runCli } from "../../../../src/cli/cli"
+import { getDataDir, TestGarden, makeTestGardenA, enableAnalytics, projectRootA, TestEventBus } from "../../../helpers"
 import { GARDEN_SERVICE_ROOT } from "../../../../src/constants"
 import { join, resolve } from "path"
-import { Command, CommandGroup } from "../../../../src/commands/base"
+import { Command, CommandGroup, CommandParams, PrepareParams } from "../../../../src/commands/base"
 import { getPackageVersion } from "../../../../src/util/util"
 import { UtilCommand } from "../../../../src/commands/util"
 import { StringParameter } from "../../../../src/cli/params"
@@ -22,8 +22,16 @@ import stripAnsi from "strip-ansi"
 import { ToolsCommand } from "../../../../src/commands/tools"
 import { envSupportsEmoji } from "../../../../src/logger/logger"
 import { safeLoad } from "js-yaml"
+import { GardenProcess } from "../../../../src/db/entities/garden-process"
+import { ensureConnected } from "../../../../src/db/connection"
+import { startServer, GardenServer } from "../../../../src/server/server"
+import { randomString } from "../../../../src/util/string"
 
 describe("cli", () => {
+  before(async () => {
+    await ensureConnected()
+  })
+
   describe("run", () => {
     it("aborts with help text if no positional argument is provided", async () => {
       const cli = new GardenCli()
@@ -122,6 +130,239 @@ describe("cli", () => {
 
       expect(code).to.equal(0)
       expect(result).to.eql({ something: "important" })
+    })
+
+    it("updates the GardenProcess entry if given with command info before running (no server)", async () => {
+      const args = ["test-command", "--root", projectRootA]
+      const record = await GardenProcess.register(args)
+
+      class TestCommand extends Command {
+        name = "test-command"
+        help = "halp!"
+
+        async action({ garden }: CommandParams) {
+          expect(record.command).to.equal(this.name)
+          expect(record.sessionId).to.equal(garden.sessionId)
+          expect(record.persistent).to.equal(false)
+          expect(record.serverHost).to.equal(null)
+          expect(record.serverAuthKey).to.equal(null)
+          expect(record.projectRoot).to.equal(garden.projectRoot)
+          expect(record.projectName).to.equal(garden.projectName)
+          expect(record.environmentName).to.equal(garden.environmentName)
+          expect(record.namespace).to.equal(garden.namespace)
+
+          return { result: {} }
+        }
+      }
+
+      const cli = new GardenCli()
+      const cmd = new TestCommand()
+      cli.addCommand(cmd)
+
+      try {
+        await cli.run({ args, exitOnError: false, processRecord: record })
+      } finally {
+        await record.remove()
+      }
+    })
+
+    it("updates the GardenProcess entry if given with command info before running (with server)", async () => {
+      const args = ["test-command", "--root", projectRootA]
+      const record = await GardenProcess.register(args)
+
+      class TestCommand extends Command {
+        name = "test-command"
+        help = "halp!"
+
+        async prepare({ footerLog }: PrepareParams) {
+          this.server = await startServer({ log: footerLog })
+          return { persistent: true }
+        }
+
+        async action({ garden }: CommandParams) {
+          expect(record.command).to.equal(this.name)
+          expect(record.sessionId).to.equal(garden.sessionId)
+          expect(record.persistent).to.equal(true)
+          expect(record.serverHost).to.equal(this.server!.getUrl())
+          expect(record.serverAuthKey).to.equal(this.server!.authKey)
+          expect(record.projectRoot).to.equal(garden.projectRoot)
+          expect(record.projectName).to.equal(garden.projectName)
+          expect(record.environmentName).to.equal(garden.environmentName)
+          expect(record.namespace).to.equal(garden.namespace)
+
+          return { result: {} }
+        }
+      }
+
+      const cli = new GardenCli()
+      const cmd = new TestCommand()
+      cli.addCommand(cmd)
+
+      try {
+        await cli.run({ args, exitOnError: false, processRecord: record })
+      } finally {
+        await record.remove()
+      }
+    })
+
+    it("connects the process to an external dashboard instance if available", async () => {
+      // Spin up test server and register.
+      // Note: We're using test-project-a and the default env+namespace both here and in the CLI run
+      const serverGarden = await makeTestGardenA()
+      const serverEventBus = new TestEventBus()
+      const server = new GardenServer({ log: serverGarden.log })
+      server["incomingEvents"] = serverEventBus
+      await server.start()
+      server.setGarden(serverGarden)
+
+      const record = await GardenProcess.register(["dashboard"])
+      await record.setCommand({
+        command: "dashboard",
+        sessionId: serverGarden.sessionId,
+        persistent: true,
+        serverHost: server.getUrl(),
+        serverAuthKey: server.authKey,
+        projectRoot: serverGarden.projectRoot,
+        projectName: serverGarden.projectName,
+        environmentName: serverGarden.environmentName,
+        namespace: serverGarden.namespace,
+      })
+
+      class TestCommand extends Command {
+        name = "test-command"
+        help = "halp!"
+
+        async action({ garden }: CommandParams) {
+          garden.events.emit("_test", "funky functional test")
+          return { result: {} }
+        }
+      }
+
+      const cli = new GardenCli()
+      const cmd = new TestCommand()
+      cli.addCommand(cmd)
+
+      const args = ["test-command", "--root", projectRootA]
+
+      try {
+        await cli.run({ args, exitOnError: false })
+      } finally {
+        await record.remove()
+        await server.close()
+      }
+
+      serverEventBus.expectEvent("_test", "funky functional test")
+    })
+
+    it("tells the DashboardEventStream to ignore the local server URL", async () => {
+      const testEventBus = new TestEventBus()
+
+      class TestCommand extends Command {
+        name = "test-command"
+        help = "halp!"
+
+        async prepare({ footerLog }: PrepareParams) {
+          this.server = await startServer({ log: footerLog })
+          this.server["incomingEvents"] = testEventBus
+          return { persistent: true }
+        }
+
+        async action({ garden }: CommandParams) {
+          garden.events.emit("_test", "nope")
+          return { result: {} }
+        }
+      }
+
+      const cli = new GardenCli()
+      const cmd = new TestCommand()
+      cli.addCommand(cmd)
+
+      const args = ["test-command", "--root", projectRootA]
+
+      await cli.run({ args, exitOnError: false })
+
+      expect(testEventBus.eventLog).to.eql([])
+    })
+
+    it("shows the URL of local server if no external dashboard is found", async () => {
+      class TestCommand extends Command {
+        name = "test-command"
+        help = "halp!"
+
+        async prepare({ footerLog }: PrepareParams) {
+          this.server = await startServer({ log: footerLog })
+          return { persistent: true }
+        }
+
+        async action({}: CommandParams) {
+          return { result: {} }
+        }
+      }
+
+      const cli = new GardenCli()
+      const cmd = new TestCommand()
+      cli.addCommand(cmd)
+
+      const args = ["test-command", "--root", projectRootA]
+
+      await cli.run({ args, exitOnError: false })
+
+      const serverStatus = cmd.server!["statusLog"].getMessageState().msg!
+      expect(stripAnsi(serverStatus)).to.equal(`Garden dashboard running at ${cmd.server!.getUrl()}`)
+    })
+
+    it("shows the URL of an external dashboard if applicable, instead of the built-in server URL", async () => {
+      // Spin up test server and register.
+      // Note: We're using test-project-a and the default env+namespace both here and in the CLI run
+      const serverGarden = await makeTestGardenA()
+      const serverEventBus = new TestEventBus()
+      const server = new GardenServer({ log: serverGarden.log })
+      server["incomingEvents"] = serverEventBus
+      await server.start()
+      server.setGarden(serverGarden)
+
+      const record = await GardenProcess.register(["dashboard"])
+      await record.setCommand({
+        command: "dashboard",
+        sessionId: serverGarden.sessionId,
+        persistent: true,
+        serverHost: server.getUrl(),
+        serverAuthKey: server.authKey,
+        projectRoot: serverGarden.projectRoot,
+        projectName: serverGarden.projectName,
+        environmentName: serverGarden.environmentName,
+        namespace: serverGarden.namespace,
+      })
+
+      class TestCommand extends Command {
+        name = "test-command"
+        help = "halp!"
+
+        async prepare({ footerLog }: PrepareParams) {
+          this.server = await startServer({ log: footerLog })
+          return { persistent: true }
+        }
+
+        async action({}: CommandParams) {
+          return { result: {} }
+        }
+      }
+
+      const cli = new GardenCli()
+      const cmd = new TestCommand()
+      cli.addCommand(cmd)
+
+      const args = ["test-command", "--root", projectRootA]
+
+      try {
+        await cli.run({ args, exitOnError: false })
+      } finally {
+        await record.remove()
+        await server.close()
+      }
+
+      const serverStatus = cmd.server!["statusLog"].getMessageState().msg!
+      expect(stripAnsi(serverStatus)).to.equal(`Garden dashboard running at ${server.getUrl()}`)
     })
 
     it("picks and runs a subcommand in a group", async () => {
@@ -558,6 +799,56 @@ describe("cli", () => {
 
         expect(scope.done()).to.not.throw
       })
+    })
+  })
+
+  describe("runCli", () => {
+    it("should register a GardenProcess entry and pass to cli.run()", (done) => {
+      class TestCommand extends Command {
+        name = randomString(10)
+        help = "halp!"
+
+        async action({}: CommandParams) {
+          const allProcesses = await GardenProcess.getActiveProcesses()
+          const record = find(allProcesses, (p) => p.command)
+
+          if (record) {
+            done()
+          } else {
+            done("Couldn't find process record")
+          }
+
+          return { result: {} }
+        }
+      }
+
+      const cli = new GardenCli()
+      const cmd = new TestCommand()
+      cli.addCommand(cmd)
+
+      runCli({ args: [cmd.name, "--root", projectRootA], cli }).catch(done)
+    })
+
+    it("should clean up the GardenProcess entry on exit", async () => {
+      class TestCommand extends Command {
+        name = randomString(10)
+        help = "halp!"
+
+        async action({}: CommandParams) {
+          return { result: {} }
+        }
+      }
+
+      const cli = new GardenCli()
+      const cmd = new TestCommand()
+      cli.addCommand(cmd)
+
+      await runCli({ args: [cmd.name, "--root", projectRootA], cli })
+
+      const allProcesses = await GardenProcess.getActiveProcesses()
+      const record = find(allProcesses, (p) => p.command)
+
+      expect(record).to.be.undefined
     })
   })
 

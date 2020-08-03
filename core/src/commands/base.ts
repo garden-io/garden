@@ -29,6 +29,7 @@ import { ServiceStatus, serviceStatusSchema } from "../types/service"
 import { TestResult, testResultSchema } from "../types/plugin/module/getTestResult"
 import { cliStyles, renderOptions, renderCommands, renderArguments } from "../cli/helpers"
 import { GlobalOptions, ParameterValues, Parameters } from "../cli/params"
+import { GardenServer } from "../server/server"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -77,6 +78,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   noProject: boolean = false
   protected: boolean = false
   workflows: boolean = false // Set to true to whitelist for executing in workflow steps
+  server: GardenServer | undefined = undefined
 
   constructor(private parent?: CommandGroup) {
     // Make sure arguments and options don't have overlapping key names.

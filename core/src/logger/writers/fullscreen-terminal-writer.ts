@@ -125,6 +125,7 @@ export class FullscreenTerminalWriter extends Writer {
       keys: ["C-c"],
       listener: () => {
         this.cleanup()
+        // tslint:disable-next-line: no-floating-promises
         shutdown(0)
       },
     })

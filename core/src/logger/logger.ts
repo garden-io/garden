@@ -17,7 +17,7 @@ import { FancyTerminalWriter } from "./writers/fancy-terminal-writer"
 import { JsonTerminalWriter } from "./writers/json-terminal-writer"
 import { FullscreenTerminalWriter } from "./writers/fullscreen-terminal-writer"
 import { EventBus } from "../events"
-import { formatForEventStream } from "../enterprise/buffered-event-stream"
+import { formatLogEntryForEventStream } from "../enterprise/buffered-event-stream"
 import { gardenEnv } from "../constants"
 import { getEnumKeys } from "../util/util"
 import { range } from "lodash"
@@ -152,7 +152,7 @@ export class Logger extends LogNode {
 
   onGraphChange(entry: LogEntry) {
     if (entry.level <= EVENT_LOG_LEVEL) {
-      this.events.emit("logEntry", formatForEventStream(entry))
+      this.events.emit("logEntry", formatLogEntryForEventStream(entry))
     }
     for (const writer of this.writers) {
       if (entry.level <= writer.level) {

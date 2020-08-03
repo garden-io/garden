@@ -20,7 +20,8 @@ import { got } from "../util/http"
 import { RuntimeError, InternalError } from "../exceptions"
 import { gardenEnv } from "../constants"
 
-export const makeAuthHeader = (clientAuthToken: string) => ({ "x-access-auth-token": clientAuthToken })
+export const authTokenHeader = "x-access-auth-token"
+export const makeAuthHeader = (clientAuthToken: string) => ({ [authTokenHeader]: clientAuthToken })
 
 // TODO: Add error handling and tests for all of this
 
@@ -65,7 +66,7 @@ export async function login(enterpriseDomain: string, log: LogEntry): Promise<st
  * Checks with the backend whether the provided client auth token is valid.
  */
 export async function checkClientAuthToken(token: string, enterpriseDomain: string, log: LogEntry): Promise<boolean> {
-  let valid
+  let valid = false
   try {
     log.debug(`Checking client auth token with platform: ${enterpriseDomain}/token/verify`)
     await got({

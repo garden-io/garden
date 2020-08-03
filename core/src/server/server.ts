@@ -24,12 +24,17 @@ import { DASHBOARD_STATIC_DIR, gardenEnv } from "../constants"
 import { LogEntry } from "../logger/log-entry"
 import { CommandResult } from "../commands/base"
 import { toGardenError, GardenError } from "../exceptions"
-import { EventName, Events } from "../events"
+import { EventName, Events, EventBus, GardenEventListener } from "../events"
 import { ValueOf } from "../util/util"
 import { AnalyticsHandler } from "../analytics/analytics"
 import { joi } from "../config/common"
+import { randomString } from "../util/string"
+import { authTokenHeader } from "../enterprise/auth"
+import { ApiEventBatch } from "../enterprise/buffered-event-stream"
 
-export const DEFAULT_PORT = 9777
+// Note: This is different from the `garden dashboard` default port.
+// We may no longer embed servers in watch processes from 0.13 onwards.
+export const defaultWatchServerPort = 9777
 const notReadyMessage = "Waiting for Garden instance to initialize"
 
 /**
@@ -37,17 +42,18 @@ const notReadyMessage = "Waiting for Garden instance to initialize"
  *
  * Please look at the tests for usage examples.
  *
- * NOTE:
- * If `port` is not specified, a random free port is chosen. This is done so that a process can always create its
- * own server, but we won't need that functionality once we run a shared service across commands.
+ * NOTES:
+ * If `port` is not specified, the default is used or a random free port is chosen if default is not available.
+ * This is done so that a process can always create its own server, but we won't need that functionality once we
+ * run a shared service across commands.
  */
-export async function startServer(log: LogEntry, port?: number) {
+export async function startServer({ log, port }: { log: LogEntry; port?: number }) {
   // Start HTTP API and dashboard server.
   // allow overriding automatic port picking
   if (!port) {
     port = gardenEnv.GARDEN_SERVER_PORT || undefined
   }
-  const server = new GardenServer(log, port)
+  const server = new GardenServer({ log, port })
   await server.start()
   return server
 }
@@ -58,10 +64,32 @@ export class GardenServer {
   private garden: Garden | undefined
   private app: websockify.App
   private analytics: AnalyticsHandler
+  private incomingEvents: EventBus
+  private statusLog: LogEntry
+  private serversUpdatedListener: GardenEventListener<"serversUpdated">
 
-  constructor(log: LogEntry, public port?: number) {
+  public port: number | undefined
+  public readonly authKey: string
+
+  constructor({ log, port }: { log: LogEntry; port?: number }) {
     this.log = log.placeholder()
     this.garden = undefined
+    this.port = port
+    this.authKey = randomString(64)
+    this.incomingEvents = new EventBus()
+
+    this.serversUpdatedListener = ({ servers }) => {
+      // Update status log line with new `garden dashboard` server, if any
+      for (const { host, command } of servers) {
+        if (command === "dashboard") {
+          this.showUrl(host)
+          return
+        }
+      }
+
+      // No active explicit dashboard processes, show own URL instead
+      this.showUrl(this.getUrl())
+    }
   }
 
   async start() {
@@ -69,21 +97,31 @@ export class GardenServer {
       return
     }
 
-    if (!this.port) {
-      this.port = await getPort({ port: DEFAULT_PORT })
-    }
-
     this.app = await this.createApp()
 
-    // TODO: secure the server
-    this.server = this.app.listen(this.port)
-
-    const url = `http://localhost:${this.port}`
+    if (this.port) {
+      this.server = this.app.listen(this.port)
+    } else {
+      do {
+        try {
+          this.port = await getPort({ port: defaultWatchServerPort })
+          this.server = this.app.listen(this.port)
+        } catch {}
+      } while (!this.server)
+    }
 
     this.log.info("")
-    this.log.info({
+    this.statusLog = this.log.placeholder()
+  }
+
+  getUrl() {
+    return `http://localhost:${this.port}`
+  }
+
+  showUrl(url?: string) {
+    this.statusLog.setState({
       emoji: "sunflower",
-      msg: chalk.cyan("Garden dashboard and API server running on ") + url,
+      msg: chalk.cyan("Garden dashboard running at ") + (url || this.getUrl()),
     })
   }
 
@@ -92,10 +130,17 @@ export class GardenServer {
   }
 
   setGarden(garden: Garden) {
+    if (this.garden) {
+      this.garden.events.removeListener("serversUpdated", this.serversUpdatedListener)
+    }
+
     this.garden = garden
 
     // Serve artifacts as static assets
     this.app.use(mount("/artifacts", serve(garden.artifactsPath)))
+
+    // Listen for new dashboard servers
+    garden.events.on("serversUpdated", this.serversUpdatedListener)
   }
 
   private async createApp() {
@@ -113,6 +158,7 @@ export class GardenServer {
      * means we can keep a consistent format across mechanisms.
      */
     http.post("/api", async (ctx) => {
+      // TODO: require auth key here from 0.13.0 onwards
       if (!this.garden) {
         return this.notReady(ctx)
       }
@@ -132,11 +178,37 @@ export class GardenServer {
       ctx.response.body = result
     })
 
+    /**
+     * Events endpoint, for ingesting events from other Garden processes, and piping to any open websocket connections.
+     * Requires a valid auth token header, matching `this.authKey`.
+     *
+     * The API matches that of the Garden Enterprise /events endpoint.
+     */
+    http.post("/events", async (ctx) => {
+      const authHeader = ctx.header[authTokenHeader]
+
+      if (authHeader !== this.authKey) {
+        ctx.status = 401
+        return
+      }
+
+      // TODO: validate the input
+
+      const batch = ctx.request.body as ApiEventBatch
+      this.log.debug(`Received ${batch.events.length} events from session ${batch.sessionId}`)
+
+      // Pipe the events to the incoming stream, which websocket listeners will then receive
+      batch.events.forEach((e) => this.incomingEvents.emit(e.name, e.payload))
+
+      ctx.status = 200
+    })
+
     app.use(bodyParser())
     app.use(http.routes())
     app.use(http.allowedMethods())
-    app.on("error", (err) => {
-      this.log.info(`API server request failed with status ${err.status}: ${err.message}`)
+
+    app.on("error", (err, ctx) => {
+      this.log.info(`API server request failed with status ${ctx.status}: ${err.message}`)
     })
 
     // This enables navigating straight to a nested route, e.g. "localhost:<PORT>/graph".
@@ -169,6 +241,8 @@ export class GardenServer {
         return this.notReady(ctx)
       }
 
+      // TODO: require auth key on connections here, from 0.13.0 onwards
+
       // The typing for koa-websocket isn't working currently
       const websocket: Koa.Context["ws"] = ctx["websocket"]
 
@@ -182,14 +256,16 @@ export class GardenServer {
         })
       }
 
-      // Pipe everything from the event bus to the socket.
-      const eventListener = (name, payload) => send("event", { name, payload })
+      // Pipe everything from the event bus to the socket, as well as from the /events endpoint
+      const eventListener = (name: EventName, payload: any) => send("event", { name, payload })
       this.garden.events.onAny(eventListener)
+      this.incomingEvents.onAny(eventListener)
 
       // Make sure we clean up listeners when connections end.
       // TODO: detect broken connections - https://github.com/websockets/ws#how-to-detect-and-close-broken-connections
       websocket.on("close", () => {
         this.garden && this.garden.events.offAny(eventListener)
+        this.incomingEvents.offAny(eventListener)
       })
 
       // Respond to commands.
