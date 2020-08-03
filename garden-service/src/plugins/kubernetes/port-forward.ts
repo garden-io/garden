@@ -15,7 +15,7 @@ import { V1Service } from "@kubernetes/client-node"
 import { GetPortForwardParams, GetPortForwardResult } from "../../types/plugin/service/getPortForward"
 import { KubernetesProvider, KubernetesPluginContext } from "./config"
 import { getAppNamespace } from "./namespace"
-import { registerCleanupFunction } from "../../util/util"
+import { registerCleanupFunction, sleep } from "../../util/util"
 import { PluginContext } from "../../plugin-context"
 import { kubectl } from "./kubectl"
 import { KubernetesResource } from "./types"
@@ -135,6 +135,10 @@ export async function getPortForward({
       })
 
       proc.stdout!.on("data", (line) => {
+        if (resolved) {
+          return
+        }
+
         // This is unfortunately the best indication that we have that the connection is up...
         log.silly(`[${targetResource} port forwarder] ${line}`)
         output += line
@@ -142,7 +146,9 @@ export async function getPortForward({
         if (line.toString().includes("Forwarding from ")) {
           registeredPortForwards[key] = portForward
           resolved = true
-          resolve(portForward)
+          // Setting a sleep because kubectl returns a bit early sometimes
+          // tslint:disable-next-line: no-floating-promises
+          sleep(250).then(() => resolve(portForward))
         }
       })
 

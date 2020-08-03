@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 import normalizePath = require("normalize-path")
-import { V1Deployment, V1DaemonSet, V1StatefulSet } from "@kubernetes/client-node"
+import { V1Deployment, V1DaemonSet, V1StatefulSet, V1Container } from "@kubernetes/client-node"
 import { ContainerModule, ContainerHotReloadSpec } from "../container/config"
 import { RuntimeError, ConfigurationError } from "../../exceptions"
 import { resolve as resolvePath, dirname, posix, relative, resolve } from "path"
@@ -24,13 +24,14 @@ import { getAppNamespace } from "./namespace"
 import { KubernetesPluginContext } from "./config"
 import { HotReloadServiceParams, HotReloadServiceResult } from "../../types/plugin/service/hotReloadService"
 import { KubernetesResource, KubernetesWorkload, KubernetesList } from "./types"
-import { normalizeLocalRsyncPath } from "../../util/fs"
+import { normalizeLocalRsyncPath, normalizeRelativePath } from "../../util/fs"
 import { createWorkloadManifest } from "./container/deployment"
 import { kubectl } from "./kubectl"
 import { labelSelectorToString } from "./util"
 import { KubeApi } from "./api"
 import { syncWithOptions } from "../../util/sync"
 import { Module } from "../../types/module"
+import { sleep } from "../../util/util"
 
 export const RSYNC_PORT_NAME = "garden-rsync"
 
@@ -119,7 +120,7 @@ export function configureHotReload({
     mainContainer.args = hotReloadArgs
   }
 
-  const rsyncContainer = {
+  const rsyncContainer: V1Container = {
     name: "garden-rsync",
     image: "gardendev/rsync:0.2.0",
     imagePullPolicy: "IfNotPresent",
@@ -145,6 +146,14 @@ export function configureHotReload({
         containerPort: RSYNC_PORT,
       },
     ],
+    readinessProbe: {
+      initialDelaySeconds: 2,
+      periodSeconds: 1,
+      timeoutSeconds: 3,
+      successThreshold: 1,
+      failureThreshold: 5,
+      tcpSocket: { port: <object>(<unknown>RSYNC_PORT_NAME) },
+    },
   }
 
   // These any casts are necessary because of flaws in the TS definitions in the client library.
@@ -353,7 +362,7 @@ export async function syncToService({ ctx, service, hotReloadSpec, namespace, wo
     try {
       await doSync()
     } catch (error) {
-      if (error.message.includes("did not see server greeting")) {
+      if (error.message.includes("did not see server greeting") || error.message.includes("Connection reset by peer")) {
         log.debug(`Port-forward to ${targetResource} disconnected. Retrying.`)
         killPortForward(targetResource, RSYNC_PORT)
         await doSync()

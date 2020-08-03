@@ -9,7 +9,7 @@
 import { platform } from "os"
 import { expect } from "chai"
 import td from "testdouble"
-import { HotReloadableResource, rsyncSourcePath, filesForSync } from "../../../../../src/plugins/kubernetes/hot-reload"
+import { HotReloadableResource, rsyncSourcePath, filesForSync, RSYNC_PORT_NAME } from "../../../../../src/plugins/kubernetes/hot-reload"
 
 import {
   removeTrailingSlashes,
@@ -105,6 +105,14 @@ describe("configureHotReload", () => {
                 ],
               },
             ],
+            readinessProbe: {
+              initialDelaySeconds: 2,
+              periodSeconds: 1,
+              timeoutSeconds: 3,
+              successThreshold: 1,
+              failureThreshold: 5,
+              tcpSocket: { port: <object>(<unknown>RSYNC_PORT_NAME) },
+            },
             volumes: [
               {
                 name: "garden-sync",
