@@ -9,7 +9,12 @@
 import { platform } from "os"
 import { expect } from "chai"
 import td from "testdouble"
-import { HotReloadableResource, rsyncSourcePath, filesForSync, RSYNC_PORT_NAME } from "../../../../../src/plugins/kubernetes/hot-reload"
+import {
+  HotReloadableResource,
+  rsyncSourcePath,
+  filesForSync,
+  RSYNC_PORT_NAME,
+} from "../../../../../src/plugins/kubernetes/hot-reload"
 
 import {
   removeTrailingSlashes,
@@ -18,6 +23,7 @@ import {
 } from "../../../../../src/plugins/kubernetes/hot-reload"
 import { setPlatform, makeTestGarden, TestGarden, getDataDir } from "../../../../helpers"
 import { ConfigGraph } from "../../../../../src/config-graph"
+import { cloneDeep } from "lodash"
 
 describe("configureHotReload", () => {
   it("should correctly augment a resource manifest with containers and volume for hot reloading", async () => {
@@ -90,6 +96,14 @@ describe("configureHotReload", () => {
                     value: "0.0.0.0/0",
                   },
                 ],
+                readinessProbe: {
+                  initialDelaySeconds: 2,
+                  periodSeconds: 1,
+                  timeoutSeconds: 3,
+                  successThreshold: 1,
+                  failureThreshold: 5,
+                  tcpSocket: { port: <object>(<unknown>RSYNC_PORT_NAME) },
+                },
                 volumeMounts: [
                   {
                     name: "garden-sync",
@@ -105,14 +119,6 @@ describe("configureHotReload", () => {
                 ],
               },
             ],
-            readinessProbe: {
-              initialDelaySeconds: 2,
-              periodSeconds: 1,
-              timeoutSeconds: 3,
-              successThreshold: 1,
-              failureThreshold: 5,
-              tcpSocket: { port: <object>(<unknown>RSYNC_PORT_NAME) },
-            },
             volumes: [
               {
                 name: "garden-sync",
@@ -309,20 +315,34 @@ describe("filesForSync", () => {
   })
 
   it("should respect module include and exclude", async () => {
-    const moduleA = await graph.getModule("module-a")
+    const moduleA = graph.getModule("module-a")
     const files = filesForSync(moduleA, "*")
     expect(files).to.eql(["somedir/yes.txt", "yes.txt"])
   })
 
   it("should treat '.' sources the same as '*'", async () => {
-    const moduleA = await graph.getModule("module-a")
+    const moduleA = graph.getModule("module-a")
     const files = filesForSync(moduleA, ".")
     expect(files).to.eql(["somedir/yes.txt", "yes.txt"])
   })
 
   it("should filter files on source prefix, and return the relative path from the source path", async () => {
-    const moduleA = await graph.getModule("module-a")
+    const moduleA = graph.getModule("module-a")
     const files = filesForSync(moduleA, "somedir")
     expect(files).to.eql(["yes.txt"])
+  })
+
+  it("should correctly handle Windows paths", async () => {
+    const moduleA = cloneDeep(graph.getModule("module-a"))
+
+    moduleA.path = "C:\\Some Directory\\code\\module-a"
+    moduleA.version.files = [
+      "C:\\Some Directory\\code\\module-a\\somedir\\yes.txt",
+      "C:\\Some Directory\\code\\module-a\\yes.txt",
+    ]
+
+    expect(filesForSync(moduleA, "somedir")).to.eql(["yes.txt"])
+    expect(filesForSync(moduleA, "*")).to.eql(["somedir/yes.txt", "yes.txt"])
+    expect(filesForSync(moduleA, ".")).to.eql(["somedir/yes.txt", "yes.txt"])
   })
 })

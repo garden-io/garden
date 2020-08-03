@@ -8,12 +8,11 @@
 
 import { map as bluebirdMap } from "bluebird"
 import semver from "semver"
-import normalize = require("normalize-path")
 import { isAbsolute, join, parse, resolve, sep, relative } from "path"
 import { emptyDir, ensureDir } from "fs-extra"
 import { ConfigurationError, RuntimeError } from "./exceptions"
 import { FileCopySpec, Module, getModuleKey } from "./types/module"
-import { normalizeLocalRsyncPath } from "./util/fs"
+import { normalizeLocalRsyncPath, normalizeRelativePath } from "./util/fs"
 import { LogEntry } from "./logger/log-entry"
 import { ModuleConfig } from "./config/module"
 import { ConfigGraph } from "./config-graph"
@@ -100,7 +99,7 @@ export class BuildDir {
     }
 
     // Normalize to relative POSIX-style paths
-    const files = module.version.files.map((f) => normalize(isAbsolute(f) ? relative(module.path, f) : f))
+    const files = module.version.files.map((f) => normalizeRelativePath(module.path, f))
 
     await this.sync({
       module,

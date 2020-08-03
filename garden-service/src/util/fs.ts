@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import unixify = require("unixify")
 import klaw = require("klaw")
 import glob from "glob"
 import _spawn from "cross-spawn"
@@ -13,8 +14,9 @@ import { pathExists, readFile, writeFile, lstat } from "fs-extra"
 import minimatch = require("minimatch")
 import { some } from "lodash"
 import { join, basename, win32, posix } from "path"
-import { FilesystemError } from "../exceptions"
 import { platform } from "os"
+
+import { FilesystemError } from "../exceptions"
 import { VcsHandler } from "../vcs/vcs"
 import { LogEntry } from "../logger/log-entry"
 import { ModuleConfig } from "../config/module"
@@ -154,6 +156,15 @@ export function toCygwinPath(path: string) {
 
 export function normalizeLocalRsyncPath(path: string) {
   return platform() === "win32" ? toCygwinPath(path) : path
+}
+
+/**
+ * Normalize given path to POSIX-style path relative to `root`
+ */
+export function normalizeRelativePath(root: string, path: string) {
+  root = unixify(root)
+  path = unixify(path)
+  return posix.isAbsolute(path) ? posix.relative(root, path) : path
 }
 
 /**
