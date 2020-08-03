@@ -11,7 +11,7 @@ import { pathExists } from "fs-extra"
 import { createGardenPlugin } from "../../types/plugin/plugin"
 import { getEnvironmentStatus, prepareEnvironment } from "./init"
 import { providerConfigBaseSchema, ProviderConfig, Provider } from "../../config/provider"
-import { joi } from "../../config/common"
+import { joi, joiVariables } from "../../config/common"
 import { dedent } from "../../util/string"
 import { supportedVersions, defaultTerraformVersion, terraformCliSpecs } from "./cli"
 import { ConfigureProviderParams, ConfigureProviderResult } from "../../types/plugin/provider/configureProvider"
@@ -88,10 +88,7 @@ export const gardenPlugin = createGardenPlugin({
 
       See the [Terraform guide](${DOCS_BASE_URL}/advanced/terraform) for a high-level introduction to the \`terraform\` provider.
     `,
-      serviceOutputsSchema: joi
-        .object()
-        .pattern(/.+/, joi.any())
-        .description("A map of all the outputs defined in the Terraform stack."),
+      serviceOutputsSchema: joiVariables().description("A map of all the outputs defined in the Terraform stack."),
       schema,
       handlers: {
         suggestModules: async ({ name, path }: SuggestModulesParams): Promise<SuggestModulesResult> => {

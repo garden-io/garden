@@ -442,13 +442,13 @@ Note that these are only resolved when deploying/running dependants of the servi
 
 A map of all the outputs defined in the Terraform stack.
 
-| Type     |
-| -------- |
-| `object` |
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
 
 ### `${runtime.services.<service-name>.outputs.<name>}`
 
-| Type  |
-| ----- |
-| `any` |
+| Type                                             |
+| ------------------------------------------------ |
+| `number | string | boolean | link | array[link]` |
 

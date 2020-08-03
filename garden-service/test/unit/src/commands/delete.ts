@@ -142,10 +142,10 @@ describe("DeleteEnvironmentCommand", () => {
 
     expect(result!.providerStatuses["test-plugin"]["ready"]).to.be.false
     expect(result!.serviceStatuses).to.eql({
-      "service-a": { forwardablePorts: [], state: "missing", detail: {} },
-      "service-b": { forwardablePorts: [], state: "missing", detail: {} },
-      "service-c": { forwardablePorts: [], state: "missing", detail: {} },
-      "service-d": { forwardablePorts: [], state: "missing", detail: {} },
+      "service-a": { forwardablePorts: [], state: "missing", detail: {}, outputs: {} },
+      "service-b": { forwardablePorts: [], state: "missing", detail: {}, outputs: {} },
+      "service-c": { forwardablePorts: [], state: "missing", detail: {}, outputs: {} },
+      "service-d": { forwardablePorts: [], state: "missing", detail: {}, outputs: {} },
     })
     expect(deletedServices.sort()).to.eql(["service-a", "service-b", "service-c", "service-d"])
   })
@@ -212,7 +212,7 @@ describe("DeleteServiceCommand", () => {
     expect(command.outputsSchema().validate(result).error).to.be.undefined
 
     expect(result).to.eql({
-      "service-a": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {} },
+      "service-a": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
     })
   })
 
@@ -229,8 +229,8 @@ describe("DeleteServiceCommand", () => {
       opts: withDefaultGlobalOpts({}),
     })
     expect(result).to.eql({
-      "service-a": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {} },
-      "service-b": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {} },
+      "service-a": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
+      "service-b": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
     })
   })
 
