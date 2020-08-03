@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import stableStringify = require("json-stable-stringify")
 import { ServiceConfig, serviceConfigSchema } from "./service"
 import {
   joiArray,
@@ -23,7 +22,7 @@ import { TestConfig, testConfigSchema } from "./test"
 import { TaskConfig, taskConfigSchema } from "./task"
 import { DEFAULT_API_VERSION } from "../constants"
 import { joiVariables } from "./common"
-import { dedent } from "../util/string"
+import { dedent, stableStringify } from "../util/string"
 
 export interface BuildCopySpec {
   source: string

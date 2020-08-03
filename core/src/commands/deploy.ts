@@ -23,7 +23,7 @@ import { processModules } from "../process"
 import { printHeader } from "../logger/util"
 import { BaseTask } from "../tasks/base"
 import { getHotReloadServiceNames, validateHotReloadServiceNames } from "./helpers"
-import { startServer, GardenServer } from "../server/server"
+import { startServer } from "../server/server"
 import { DeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
 import chalk = require("chalk")
@@ -89,7 +89,6 @@ export class DeployCommand extends Command<Args, Opts> {
 
   outputsSchema = () => processCommandResultSchema()
 
-  private server: GardenServer
   private isPersistent = (opts) => !!opts.watch || !!opts["hot-reload"]
 
   async prepare({ headerLog, footerLog, opts }: PrepareParams<Args, Opts>) {
@@ -97,7 +96,7 @@ export class DeployCommand extends Command<Args, Opts> {
 
     if (persistent) {
       printHeader(headerLog, "Deploy", "rocket")
-      this.server = await startServer(footerLog)
+      this.server = await startServer({ log: footerLog })
     }
 
     return { persistent }

@@ -23,7 +23,7 @@ import { processModules } from "../process"
 import { GardenModule } from "../types/module"
 import { getTestTasks } from "../tasks/test"
 import { printHeader } from "../logger/util"
-import { GardenServer, startServer } from "../server/server"
+import { startServer } from "../server/server"
 import { StringsParameter, StringOption, BooleanParameter } from "../cli/params"
 
 export const testArgs = {
@@ -85,7 +85,6 @@ export class TestCommand extends Command<Args, Opts> {
 
   outputsSchema = () => processCommandResultSchema()
 
-  private server: GardenServer
   private isPersistent = (opts) => !!opts.watch
 
   async prepare({ headerLog, footerLog, opts }: PrepareParams<Args, Opts>) {
@@ -93,7 +92,7 @@ export class TestCommand extends Command<Args, Opts> {
 
     if (persistent) {
       printHeader(headerLog, `Running tests`, "thermometer")
-      this.server = await startServer(footerLog)
+      this.server = await startServer({ log: footerLog })
     }
 
     return { persistent }

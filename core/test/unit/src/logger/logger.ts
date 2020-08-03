@@ -11,7 +11,7 @@ import { omit } from "lodash"
 
 import { LogLevel } from "../../../../src/logger/log-node"
 import { getLogger } from "../../../../src/logger/logger"
-import { LogEntryEvent, formatForEventStream } from "../../../../src/enterprise/buffered-event-stream"
+import { LogEntryEvent, formatLogEntryForEventStream } from "../../../../src/enterprise/buffered-event-stream"
 
 const logger: any = getLogger()
 
@@ -36,7 +36,7 @@ describe("Logger", () => {
       const e = loggerEvents[0]
       expect(loggerEvents.length).to.eql(1)
       expect(e.revision).to.eql(0)
-      expect(omit(formatForEventStream(log), "timestamp")).to.eql(omit(e, "timestamp"))
+      expect(omit(formatLogEntryForEventStream(log), "timestamp")).to.eql(omit(e, "timestamp"))
     })
 
     it("should emit a loggerEvent with a bumped revision when an entry is updated", () => {
