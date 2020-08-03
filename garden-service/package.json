@@ -127,6 +127,7 @@
     "typeorm": "^0.2.25",
     "typescript-memoize": "^1.0.0-alpha.3",
     "uniqid": "^5.2.0",
+    "unixify": "^1.0.0",
     "unzipper": "^0.10.11",
     "username": "^5.1.0",
     "uuid": "^8.1.0",

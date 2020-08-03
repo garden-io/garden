@@ -11,7 +11,7 @@ import normalizePath = require("normalize-path")
 import { V1Deployment, V1DaemonSet, V1StatefulSet, V1Container } from "@kubernetes/client-node"
 import { ContainerModule, ContainerHotReloadSpec } from "../container/config"
 import { RuntimeError, ConfigurationError } from "../../exceptions"
-import { resolve as resolvePath, dirname, posix, relative, resolve } from "path"
+import { resolve as resolvePath, dirname, posix } from "path"
 import { deline, gardenAnnotationKey } from "../../util/string"
 import { set, sortBy, flatten } from "lodash"
 import { Service } from "../../types/service"
@@ -31,14 +31,11 @@ import { labelSelectorToString } from "./util"
 import { KubeApi } from "./api"
 import { syncWithOptions } from "../../util/sync"
 import { Module } from "../../types/module"
-import { sleep } from "../../util/util"
-
-export const RSYNC_PORT_NAME = "garden-rsync"
 
 export type HotReloadableResource = KubernetesResource<V1Deployment | V1DaemonSet | V1StatefulSet>
-
 export type HotReloadableKind = "Deployment" | "DaemonSet" | "StatefulSet"
 
+export const RSYNC_PORT_NAME = "garden-rsync"
 export const hotReloadableKinds: HotReloadableKind[] = ["Deployment", "DaemonSet", "StatefulSet"]
 
 interface ConfigureHotReloadParams {
@@ -387,9 +384,16 @@ export async function syncToService({ ctx, service, hotReloadSpec, namespace, wo
  * `subdir/myfile` in the output, and if `source` = `.` or `*`, it would be transformed to `mydir/subdir/myfile`.
  */
 export function filesForSync(module: Module, source: string): string[] {
-  const normalizedSource = resolve(module.path, source.replace("**/", "").replace("*", ""))
-  const moduleFiles = module.version.files
-  const files = normalizedSource === "" ? moduleFiles : moduleFiles.filter((path) => path.startsWith(normalizedSource))
-  const normalizedFiles = files.map((f) => relative(normalizedSource, f))
-  return normalizedFiles
+  const normalizedSource = source.replace("**/", "").replace("*", "")
+
+  // Normalize to relative POSIX-style paths
+  const moduleFiles = module.version.files.map((f) => normalizeRelativePath(module.path, f))
+
+  if (normalizedSource === "" || normalizedSource === ".") {
+    return moduleFiles
+  } else {
+    return moduleFiles
+      .filter((path) => path.startsWith(normalizedSource))
+      .map((path) => posix.relative(normalizedSource, path))
+  }
 }
