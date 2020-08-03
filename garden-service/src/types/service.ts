@@ -8,7 +8,7 @@
 
 import normalizeUrl from "normalize-url"
 import { format } from "url"
-import { joiUserIdentifier, joi, joiIdentifier, joiArray, PrimitiveMap, joiPrimitive } from "../config/common"
+import { joiUserIdentifier, joi, joiIdentifier, joiArray, PrimitiveMap, joiVariables } from "../config/common"
 import { Module } from "./module"
 import { ServiceConfig, serviceConfigSchema } from "../config/service"
 import dedent = require("dedent")
@@ -229,10 +229,7 @@ export const serviceStatusSchema = () =>
       .allow("")
       .description("Latest status message of the service (if any)."),
     lastError: joi.string().description("Latest error status message of the service (if any)."),
-    outputs: joi
-      .object()
-      .pattern(/.+/, joiPrimitive())
-      .description("A map of primitive values, output from the service."),
+    outputs: joiVariables().description("A map of values output from the service."),
     runningReplicas: joi.number().description("How many replicas of the service are currently running."),
     state: joi
       .string()

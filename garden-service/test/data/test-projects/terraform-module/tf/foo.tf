@@ -14,3 +14,7 @@ output "test-file-path" {
 output "my-output" {
   value = "input: ${var.my-variable}"
 }
+
+output "map-output" {
+  value = map("first", "second")
+}

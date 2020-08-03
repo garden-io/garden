@@ -173,6 +173,7 @@ describe("DeployCommand", () => {
         durationMsec: 0,
         error: undefined,
         success: true,
+        outputs: {},
       },
       "service-d": {
         version: "1",
@@ -183,6 +184,7 @@ describe("DeployCommand", () => {
         durationMsec: 0,
         error: undefined,
         success: true,
+        outputs: {},
       },
       "service-a": {
         version: "1",
@@ -193,6 +195,7 @@ describe("DeployCommand", () => {
         durationMsec: 0,
         error: undefined,
         success: true,
+        outputs: {},
       },
       "service-b": {
         version: "1",
@@ -203,6 +206,7 @@ describe("DeployCommand", () => {
         durationMsec: 0,
         error: undefined,
         success: true,
+        outputs: {},
       },
     })
 

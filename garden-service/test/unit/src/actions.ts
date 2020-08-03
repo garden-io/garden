@@ -548,7 +548,7 @@ describe("ActionRouter", () => {
     describe("deleteService", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const result = await actions.deleteService({ log, service, runtimeContext })
-        expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {} })
+        expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {}, outputs: {} })
       })
     })
 

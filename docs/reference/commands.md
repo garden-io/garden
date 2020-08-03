@@ -152,9 +152,8 @@ deployments:
     # Latest error status message of the service (if any).
     lastError:
 
-    # A map of primitive values, output from the service.
+    # A map of values output from the service.
     outputs:
-      # Number, string or boolean
       <name>:
 
     # How many replicas of the service are currently running.
@@ -490,9 +489,8 @@ serviceStatuses:
     # Latest error status message of the service (if any).
     lastError:
 
-    # A map of primitive values, output from the service.
+    # A map of values output from the service.
     outputs:
-      # Number, string or boolean
       <name>:
 
     # How many replicas of the service are currently running.
@@ -589,9 +587,8 @@ Examples:
   # Latest error status message of the service (if any).
   lastError:
 
-  # A map of primitive values, output from the service.
+  # A map of values output from the service.
   outputs:
-    # Number, string or boolean
     <name>:
 
   # How many replicas of the service are currently running.
@@ -737,9 +734,8 @@ deployments:
     # Latest error status message of the service (if any).
     lastError:
 
-    # A map of primitive values, output from the service.
+    # A map of values output from the service.
     outputs:
-      # Number, string or boolean
       <name>:
 
     # How many replicas of the service are currently running.
@@ -1438,9 +1434,8 @@ services:
     # Latest error status message of the service (if any).
     lastError:
 
-    # A map of primitive values, output from the service.
+    # A map of values output from the service.
     outputs:
-      # Number, string or boolean
       <name>:
 
     # How many replicas of the service are currently running.
@@ -1965,9 +1960,8 @@ deployments:
     # Latest error status message of the service (if any).
     lastError:
 
-    # A map of primitive values, output from the service.
+    # A map of values output from the service.
     outputs:
-      # Number, string or boolean
       <name>:
 
     # How many replicas of the service are currently running.
@@ -2482,9 +2476,8 @@ deployments:
     # Latest error status message of the service (if any).
     lastError:
 
-    # A map of primitive values, output from the service.
+    # A map of values output from the service.
     outputs:
-      # Number, string or boolean
       <name>:
 
     # How many replicas of the service are currently running.

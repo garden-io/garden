@@ -435,7 +435,7 @@ export const joiVariables = () =>
     .object()
     .pattern(variableNameRegex, joi.alternatives(joiPrimitive(), joi.link("..."), joi.array().items(joi.link("..."))))
     .default(() => ({}))
-    .unknown(false)
+    .unknown(true)
     .description("Key/value map. " + joiVariablesDescription)
 
 export const joiEnvVars = () =>

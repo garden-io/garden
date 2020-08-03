@@ -20,6 +20,7 @@ import { LogLevel } from "../../../../../src/logger/log-node"
 import { ConfigGraph } from "../../../../../src/config-graph"
 import { TerraformProvider } from "../../../../../src/plugins/terraform/terraform"
 import { DeployTask } from "../../../../../src/tasks/deploy"
+import { emptyRuntimeContext } from "../../../../../src/runtime-context"
 
 describe("Terraform provider", () => {
   const testRoot = getDataDir("test-projects", "terraform-provider")
@@ -256,6 +257,34 @@ describe("Terraform module type", () => {
 
       expect(result["task.test-task"]!.output.log).to.equal("input: foo")
       expect(result["task.test-task"]!.output.outputs.log).to.equal("input: foo")
+    })
+
+    it("should should return outputs with the service status", async () => {
+      const provider = await garden.resolveProvider(garden.log, "terraform")
+      const ctx = garden.getPluginContext(provider)
+      const applyCommand = findByName(terraformCommands, "apply-module")!
+      await applyCommand.handler({
+        ctx,
+        args: ["tf", "-auto-approve", "-input=false"],
+        log: garden.log,
+        modules: graph.getModules(),
+      })
+
+      const actions = await garden.getActionRouter()
+      const status = await actions.getServiceStatus({
+        service: graph.getService("tf"),
+        hotReload: false,
+        log: garden.log,
+        runtimeContext: emptyRuntimeContext,
+      })
+
+      expect(status.outputs).to.eql({
+        "map-output": {
+          first: "second",
+        },
+        "my-output": "input: foo",
+        "test-file-path": "./test.log",
+      })
     })
   })
 
