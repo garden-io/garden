@@ -306,7 +306,6 @@ export async function syncToService({ ctx, service, hotReloadSpec, namespace, wo
 
   const doSync = async () => {
     const portForward = await getPortForward({ ctx, log, namespace, targetResource, port: RSYNC_PORT })
-    const module = service.module
 
     const syncResult = await Bluebird.map(hotReloadSpec.sync, ({ source, target }) => {
       const sourcePath = rsyncSourcePath(service.sourceModule.path, source)
@@ -331,13 +330,15 @@ export async function syncToService({ ctx, service, hotReloadSpec, namespace, wo
         tmpDir,
       ]
 
+      const files = filesForSync(service.sourceModule, source)
+
       return syncWithOptions({
         syncOpts,
         sourcePath,
         destinationPath,
         withDelete: false,
         log,
-        files: filesForSync(module, source),
+        files,
       })
     })
 
