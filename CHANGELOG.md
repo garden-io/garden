@@ -1,4 +1,30 @@
 
+<a name="v0.12.2"></a>
+## [v0.12.2](https://github.com/garden-io/garden/compare/v0.12.1...v0.12.2) (2020-08-03)
+
+### Bug Fixes
+
+* **enterprise:** add project id to config dump ([c587de9e](https://github.com/garden-io/garden/commit/c587de9e))
+* **k8s:** deploy util service if using kaniko ([#1963](https://github.com/garden-io/garden/issues/1963)) ([42203bb0](https://github.com/garden-io/garden/commit/42203bb0))
+* **k8s:** fix hot reload path handling on Windows ([f0c3001d](https://github.com/garden-io/garden/commit/f0c3001d))
+* **k8s:** incorrect paths when hot reloading helm modules ([cfe399c0](https://github.com/garden-io/garden/commit/cfe399c0))
+* **k8s:** race condition caused error when connecting to rsync container ([e8fd9bc1](https://github.com/garden-io/garden/commit/e8fd9bc1))
+* **k8s:** incorrect Service name used for port forwards ([4c7cf8cb](https://github.com/garden-io/garden/commit/4c7cf8cb))
+* **kubernetes-module:** fix namespace handling ([f4cd7e6b](https://github.com/garden-io/garden/commit/f4cd7e6b))
+* **terraform:** allow map outputs from modules ([ae06754f](https://github.com/garden-io/garden/commit/ae06754f))
+
+### Features
+
+* **cli:** add --var flag for setting individual variable values ([5ec3fd51](https://github.com/garden-io/garden/commit/5ec3fd51))
+* **config:** add `contains` operator for template strings ([33d8275a](https://github.com/garden-io/garden/commit/33d8275a))
+* **config:** allow multiple config files in same directory ([75af1752](https://github.com/garden-io/garden/commit/75af1752))
+* **container:** set GARDEN_MODULE_VERSION build arg for all builds ([00365bcc](https://github.com/garden-io/garden/commit/00365bcc))
+* **exec:** set GARDEN_MODULE_VERSION when running all commands ([245d70c1](https://github.com/garden-io/garden/commit/245d70c1))
+
+### Improvements
+
+* **core:** set smarter limits on concurrent graph actions ([029ab9cf](https://github.com/garden-io/garden/commit/029ab9cf))
+
 <a name="v0.12.1"></a>
 ## [v0.12.1](https://github.com/garden-io/garden/compare/v0.12.0...v0.12.1) (2020-07-24)
 
