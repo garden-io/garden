@@ -1,5 +1,5 @@
 {
-  "name": "garden-service",
+  "name": "@garden-io/core",
   "version": "0.12.2",
   "description": "A full-featured development framework for containers and serverless",
   "repository": {
@@ -229,13 +229,10 @@
   "scripts": {
     "add-version-files": "node ./build/src/bin/add-version-files.js",
     "build": "npm run tsc && gulp pegjs && npm run add-version-files && npm run generate-docs",
-    "build-containers": "cd .. && npm run dist && ./garden-service/bin/build-containers.sh",
     "create-migration": "typeorm migration:create --config static/ormconfig.json -n",
-    "push-containers": "cd .. && npm run dist && ./garden-service/bin/push-containers.sh",
     "check-package-lock": "git diff-index --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
     "clean": "shx rm -rf build",
     "dev": "npm link && npm run watch",
-    "dist": "npm run build && npm run pkg",
     "fix-format": "prettier --write \"{src,test}/**/*.ts\"",
     "generate-docs": "node ./build/src/bin/generate-docs.js",
     "lint": "tslint -p .",
@@ -244,7 +241,6 @@
     "integ-remote": "GARDEN_INTEG_TEST_MODE=remote GARDEN_SKIP_TESTS=local-only mocha --opts test/mocha.integ.opts",
     "e2e": "cd test/e2e && ../../bin/garden test",
     "e2e-project": "node build/test/e2e/e2e-project.js",
-    "pkg": "./bin/build-pkg.sh",
     "test": "node_modules/.bin/mocha --opts test/mocha.opts",
     "tsc": "tsc -p . --outDir build --declaration --declarationMap --sourceMap",
     "view-report": "open coverage/index.html",

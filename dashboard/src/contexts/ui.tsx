@@ -8,9 +8,9 @@
 
 import React, { useState, useContext } from "react"
 import produce from "immer"
-import { ServiceIngress } from "garden-service/build/src/types/service"
-import { DependencyGraphNodeType } from "garden-service/build/src/config-graph"
-import { PickFromUnion } from "garden-service/build/src/util/util"
+import { ServiceIngress } from "@garden-io/core/build/src/types/service"
+import { DependencyGraphNodeType } from "@garden-io/core/build/src/config-graph"
+import { PickFromUnion } from "@garden-io/core/build/src/util/util"
 
 interface UiState {
   isSidebarOpen: boolean

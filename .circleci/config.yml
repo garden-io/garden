@@ -62,14 +62,14 @@ orbs:
 commands:
   npm_install:
     description: |
-      Installs npm packages for root, garden-service, and dashboard and loads and saves the caches as appropriate
+      Installs npm packages for root, core, and dashboard and loads and saves the caches as appropriate
     steps:
       - restore_cache:
           keys:
           - root-v4-{{ checksum "package-lock.json" }}
       - restore_cache:
           keys:
-          - garden-service-v4-{{ checksum "garden-service/package-lock.json" }}
+          - core-v4-{{ checksum "core/package-lock.json" }}
       - restore_cache:
           keys:
           - dashboard-v4-{{ checksum "dashboard/package-lock.json" }}
@@ -83,8 +83,8 @@ commands:
           paths: [node_modules]
           key: root-v4-{{ checksum "package-lock.json" }}
       - save_cache:
-          paths: [garden-service/node_modules]
-          key: garden-service-v4-{{ checksum "garden-service/package-lock.json" }}
+          paths: [core/node_modules]
+          key: core-v4-{{ checksum "core/package-lock.json" }}
       - save_cache:
           paths: [dashboard/node_modules]
           key: dashboard-v4-{{ checksum "dashboard/package-lock.json" }}
@@ -146,12 +146,12 @@ commands:
             gcloud --quiet auth configure-docker
 
   build_service_dist:
-    description: Package built code into executables and persist to garden-service/dist directory
+    description: Package built code into executables and persist to dist directory
     parameters:
       version:
         description: |
           The version tag used when building. Use to set the version string in the generated zip file names,
-          e.g. when creating unstable releases. The script defaults to using the version from garden-service/package.json.
+          e.g. when creating unstable releases. The script defaults to using the version from core/package.json.
         type: string
         default: ""
     steps:
@@ -164,13 +164,13 @@ commands:
       - *attach-workspace
       - run:
           name: Run dist command with the appropriate argument
-          command: npm run dist -- -- <<parameters.version>>
+          command: npm run dist -- -- garden_version=<<parameters.version>>
       - persist_to_workspace:
           root: ./
           paths:
-            - garden-service/dist/
+            - dist/
       - store_artifacts:
-          path: garden-service/dist
+          path: dist
           destination: dist
 #
 # Jobs section
@@ -195,8 +195,8 @@ jobs:
           paths:
             # Save the built output for future
             - dashboard/build/
-            - garden-service/build/
-            - garden-service/static/
+            - core/build/
+            - core/static/
   build-dist:
     <<: *node-config
     steps:
@@ -235,7 +235,7 @@ jobs:
       - run:
           name: test
           command: |
-            cd garden-service
+            cd core
             npm test
           environment:
             CHOKIDAR_USEPOLLING: "1"
@@ -253,7 +253,7 @@ jobs:
       - run:
           name: Run e2e tests
           # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
-          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-e2e ./garden-service/bin/garden test e2e-tests --root garden-service/test/e2e --logger-type basic
+          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-e2e ./bin/garden test e2e-tests --root core/test/e2e --logger-type basic
       - run:
           name: Cleanup
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-e2e kubectl delete --wait=false $(kubectl get ns -o name | grep testing-$CIRCLE_BUILD_NUM) || true
@@ -282,7 +282,7 @@ jobs:
       - run:
           name: Run e2e test
           command: |
-            cd garden-service
+            cd core
             npm run e2e-project -- --project=<<parameters.project>> --showlog=true --env=<<parameters.environment>>
       - run:
           name: Cleanup
@@ -311,8 +311,7 @@ jobs:
           command: |
             docker login -u $DOCKER_USER -p $DOCKER_PASS
             TAG=gardendev/garden:${CIRCLE_SHA1}
-            cd garden-service
-            docker build -t ${TAG} -f Dockerfile .
+            docker build -t ${TAG} -f alpine.Dockerfile .
             docker push ${TAG}
   build-docker-aws:
     <<: *node-config
@@ -326,7 +325,6 @@ jobs:
           command: |
             docker login -u $DOCKER_USER -p $DOCKER_PASS
             TAG=gardendev/garden-aws:${CIRCLE_SHA1}
-            cd garden-service
             docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f aws.Dockerfile .
             docker push ${TAG}
   build-docker-azure:
@@ -341,7 +339,6 @@ jobs:
           command: |
             docker login -u $DOCKER_USER -p $DOCKER_PASS
             TAG=gardendev/garden-azure:${CIRCLE_SHA1}
-            cd garden-service
             docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f azure.Dockerfile .
             docker push ${TAG}
   build-docker-gcloud:
@@ -356,7 +353,6 @@ jobs:
           command: |
             docker login -u $DOCKER_USER -p $DOCKER_PASS
             TAG=gardendev/garden-gcloud:${CIRCLE_SHA1}
-            cd garden-service
             docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f gcloud.Dockerfile .
             docker push ${TAG}
   build-docker-aws-gcloud:
@@ -371,8 +367,7 @@ jobs:
           command: |
             docker login -u $DOCKER_USER -p $DOCKER_PASS
             TAG=gardendev/garden-aws-gcloud:${CIRCLE_SHA1}
-            cd garden-service
-            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f aws.gcloud.Dockerfile .
+            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f aws-gcloud.Dockerfile .
             docker push ${TAG}
 
   build-docker-buster:
@@ -387,7 +382,6 @@ jobs:
           command: |
             docker login -u $DOCKER_USER -p $DOCKER_PASS
             TAG=gardendev/garden:${CIRCLE_SHA1}-buster
-            cd garden-service
             docker build -t ${TAG} -f buster.Dockerfile dist/linux-amd64
             docker push ${TAG}
   test-docker-gcloud:
@@ -426,21 +420,21 @@ jobs:
             # Switches between git tag and master for releases
             TAG=${CIRCLE_TAG:-master}
             # Push the container
-            ./garden-service/bin/push-containers.sh $TAG
+            ./scripts/push-containers.sh $TAG
             # Push again with latest tag for non-pre-release tags
             if [[ "$TAG" == "$CIRCLE_TAG" ]] && [[ $VERSION != *"-"* ]]; then
-              ./garden-service/bin/push-containers.sh latest
+              ./scripts/push-containers.sh latest
             fi
   release-service-dist:
     <<: *release-config
     steps:
-      # Need to checkout to read version from garden-service/package.json
+      # Need to checkout to read version from core/package.json
       - checkout
       - *attach-workspace
       - run:
           name: Create a release on GitHub. If the release is a pre-release we publish it right away, otherwise we make a draft.
           command: |
-            VERSION="v$(cat garden-service/package.json | jq -r .version)"
+            VERSION="v$(cat core/package.json | jq -r .version)"
             PRERELEASE=""
             DRAFT=-draft
             # If pre-release, we flag it as pre-release and not as a draft
@@ -454,7 +448,7 @@ jobs:
               -delete \
               ${PRERELEASE} \
               ${DRAFT} \
-              ${VERSION} ./garden-service/dist
+              ${VERSION} ./dist
   release-service-dist-edge:
     <<: *release-config
     steps:
@@ -471,7 +465,7 @@ jobs:
               -n ${VERSION} \
               -delete \
               -prerelease \
-              ${VERSION} ./garden-service/dist
+              ${VERSION} ./dist
   test-dist:
     <<: *node-config
     steps:
@@ -484,17 +478,17 @@ jobs:
       - run: sudo apt-get update && sudo apt-get -y install rsync
       - run:
           name: Test that the binary works with the fancy logger enabled
-          command: garden-service/dist/linux-amd64/garden options
+          command: dist/linux-amd64/garden options
       - run:
           name: Test the create commands
           command: |
             mkdir -p tmp/create-test
-            garden-service/dist/linux-amd64/garden create project --root tmp/create-test --name test-project
-            garden-service/dist/linux-amd64/garden create module --root tmp/create-test --name test-module --type exec
+            dist/linux-amd64/garden create project --root tmp/create-test --name test-project
+            dist/linux-amd64/garden create module --root tmp/create-test --name test-module --type exec
       - run:
           name: Deploy demo-project with binary
           # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
-          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist garden-service/dist/linux-amd64/garden deploy --root examples/demo-project --env remote --logger-type basic
+          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist dist/linux-amd64/garden deploy --root examples/demo-project --env remote --logger-type basic
       - run:
           name: Cleanup
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist kubectl delete --wait=false $(kubectl get ns -o name | grep testing-$CIRCLE_BUILD_NUM) || true
@@ -543,7 +537,7 @@ jobs:
       - run:
           name: Integ tests
           command: |
-            cd garden-service
+            cd core
             # Notes:
             # - We skip tests that only work for remote environments
             # - Need to run with sudo to work with microk8s, because CircleCI doesn't allow us to log out
@@ -552,10 +546,10 @@ jobs:
             GARDEN_SKIP_TESTS="cluster-docker kaniko remote-only" sudo -E npm run integ -- -b
       - run:
           name: Deploy demo-project
-          command: sudo -E ./garden-service/bin/garden deploy --root examples/demo-project --logger-type basic
+          command: sudo -E ./bin/garden deploy --root examples/demo-project --logger-type basic
       - run:
           name: Deploy openfaas
-          command: sudo -E ./garden-service/bin/garden deploy --root examples/openfaas --logger-type basic
+          command: sudo -E ./bin/garden deploy --root examples/openfaas --logger-type basic
 
   test-minikube:
     machine:
@@ -598,17 +592,17 @@ jobs:
       - run:
           name: Integ tests
           # Note: We skip tests that only work for remote environments
-          command: cd garden-service && npm run integ-local -- -b
+          command: cd core && npm run integ-local -- -b
       - run:
           name: Deploy demo-project
-          command: sudo -E ./garden-service/bin/garden deploy --root examples/demo-project
+          command: sudo -E ./bin/garden deploy --root examples/demo-project
       - run:
           name: Deploy openfaas
-          command: sudo -E ./garden-service/bin/garden deploy --root examples/openfaas
+          command: sudo -E ./bin/garden deploy --root examples/openfaas
       - run:
           name: Run cluster cleanup
           command: |
-            sudo -E ./garden-service/bin/garden plugins local-kubernetes cleanup-cluster-registry --root garden-service/test/data/test-projects/container --env cluster-docker
+            sudo -E ./bin/garden plugins local-kubernetes cleanup-cluster-registry --root core/test/data/test-projects/container --env cluster-docker
 
   test-windows:
     executor: win/vs2019
@@ -637,10 +631,10 @@ jobs:
           command: $env:CIRCLE_BUILD_NUM = "$env:CIRCLE_BUILD_NUM-win"
       - run:
           name: Build demo-project
-          command: .\garden-service\dist\windows-amd64\garden.exe build --root .\examples\demo-project\ --logger-type basic --env remote
+          command: .\dist\windows-amd64\garden.exe build --root .\examples\demo-project\ --logger-type basic --env remote
       - run:
           name: Deploy demo-project
-          command: .\garden-service\dist\windows-amd64\garden.exe deploy --root .\examples\demo-project\ --logger-type basic --env remote
+          command: .\dist\windows-amd64\garden.exe deploy --root .\examples\demo-project\ --logger-type basic --env remote
       - run:
           name: Cleanup
           command: (kubectl delete namespace --wait=false demo-project-testing-$env:CIRCLE_BUILD_NUM demo-project-testing-$env:CIRCLE_BUILD_NUM--metadata) -or $true

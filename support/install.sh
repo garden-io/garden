@@ -82,5 +82,5 @@ echo "Add the Garden CLI to your path by adding the following to your .bashrc/.z
 echo ""
 echo "  export PATH=\$PATH:\$HOME/.garden/bin"
 echo ""
-echo "Head over to our Quick Start guide for next steps: https://docs.garden.io/basics/quick-start"
+echo "Head over to our documentation for next steps: https://docs.garden.io"
 echo ""

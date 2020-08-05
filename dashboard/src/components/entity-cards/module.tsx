@@ -9,7 +9,7 @@
 import React, { useState } from "react"
 import styled from "@emotion/styled"
 
-import { Omit } from "garden-service/build/src/util/util"
+import { Omit } from "@garden-io/core/build/src/util/util"
 
 import { useUiState } from "../../contexts/ui"
 import { TestCard, Props as TestCardProps } from "./test"

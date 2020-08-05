@@ -18,15 +18,15 @@ const gardenRoot = resolve(__dirname, "..")
 /**
  * Performs the following steps to prepare for a release:
  * 1. Check out to a branch named release-${version}
- * 2. Bump the version in garden-service/package.json and garden-service/package-lock.json.
+ * 2. Bump the version in core/package.json and core/package-lock.json.
  * 5. Update the changelog.
- * 6. Add and commit CHANGELOG.md, garden-service/package.json and garden-service/package-lock.json
+ * 6. Add and commit CHANGELOG.md, core/package.json and core/package-lock.json
  * 7. Tag the commit.
  * 8. Push the tag. This triggers a CircleCI job that creates the release artifacts and publishes them to Github.
  * 9. If we're making a minor release, update links to examples and re-push the tag.
  * 10. If this is not a pre-release, pushes the release branch to Github.
  *
- * Usage: ./bin/release.ts <minor | patch | preminor | prepatch | prerelease> [--force] [--dry-run]
+ * Usage: ./scripts/release.ts <minor | patch | preminor | prepatch | prerelease> [--force] [--dry-run]
  */
 async function release() {
   // Parse arguments
@@ -50,8 +50,8 @@ async function release() {
     "version", "--no-git-tag-version", "--yes", releaseType,
   ], { cwd: gardenRoot })
 
-  // Read the version from garden-service/package.json after setting it (rather than parsing the lerna output)
-  const version = "v" + require("../garden-service/package.json").version
+  // Read the version from core/package.json after setting it (rather than parsing the lerna output)
+  const version = "v" + require("../core/package.json").version
   const branchName = `release-${version}`
 
   // Check if branch already exists locally
@@ -130,7 +130,7 @@ async function release() {
   await execa("git", [
     "add",
     "CHANGELOG.md",
-    "garden-service/package.json", "garden-service/package-lock.json",
+    "core/package.json", "core/package-lock.json",
     "dashboard/package.json", "dashboard/package-lock.json",
   ], { cwd: gardenRoot })
   await execa("git", [

@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ServerWebsocketMessage } from "garden-service/build/src/server/server"
-import { Events } from "garden-service/build/src/events"
+import { ServerWebsocketMessage } from "@garden-io/core/build/src/server/server"
+import { Events } from "@garden-io/core/build/src/events"
 
 import { Entities, Action, SupportedEventName, supportedEventNames, TaskState, taskStates } from "../contexts/api"
 import getApiUrl from "./get-api-url"

@@ -4,7 +4,7 @@
  * Helper script for encrypting files and storing them in the repository. Uses Google Cloud KMS (which devs should
  * have access to anyway) to encrypt the data, such that it's safe to commit the file to git.
  *
- * Usage example: `echo "my data" | ./bin/encrypt-file.ts filename.txt`
+ * Usage example: `echo "my data" | ./scripts/encrypt-file.ts filename.txt`
  */
 
 import kms from "@google-cloud/kms"

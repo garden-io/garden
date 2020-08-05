@@ -13,7 +13,7 @@ import Logs from "../components/logs"
 import { useApi } from "../contexts/api"
 import Spinner from "../components/spinner"
 import { loadLogs } from "../api/actions"
-import { ServiceLogEntry } from "garden-service/build/src/types/plugin/service/getServiceLogs"
+import { ServiceLogEntry } from "@garden-io/core/build/src/types/plugin/service/getServiceLogs"
 
 interface LogsLoaded {
   [serviceName: string]: ServiceLogEntry[]

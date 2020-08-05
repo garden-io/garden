@@ -1,8 +1,8 @@
 #!/bin/bash -e
 
-garden_service_root=$(cd `dirname $0` && cd .. && pwd)
+repo_root=$(cd `dirname $0` && cd .. && pwd)
 
-cd ${garden_service_root}
+cd ${repo_root}
 
 args=( $@ )
 version=${args[0]:-$(git rev-parse --short HEAD)}

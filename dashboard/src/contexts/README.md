@@ -8,7 +8,7 @@ This way, components down the tree can access the state and the dispatch functio
 
 ### api.tsx
 
-Here we define the global data store which is a normalized version of the data types used in the `garden-service` backend.
+Here we define the global data store which is a normalized version of the data types used in the `core` backend.
 
 We use a `useReduce` kind of hook to create a store and a dispatch function. The dispatch function gets passed to the API action functions in `api/actions.tsx`. The actions fetch the data and are also responsible for merging it correctly into the global store.
 

@@ -9,12 +9,12 @@
 import produce from "immer"
 import { groupBy } from "lodash"
 
-import { ServiceLogEntry } from "garden-service/build/src/types/plugin/service/getServiceLogs"
-import { StatusCommandResult } from "garden-service/build/src/commands/get/get-status"
-import { GetTaskResultCommandResult } from "garden-service/build/src/commands/get/get-task-result"
-import { ConfigDump } from "garden-service/build/src/garden"
-import { GetTestResultCommandResult } from "garden-service/build/src/commands/get/get-test-result"
-import { GraphOutput } from "garden-service/build/src/commands/get/get-graph"
+import { ServiceLogEntry } from "@garden-io/core/build/src/types/plugin/service/getServiceLogs"
+import { StatusCommandResult } from "@garden-io/core/build/src/commands/get/get-status"
+import { GetTaskResultCommandResult } from "@garden-io/core/build/src/commands/get/get-task-result"
+import { ConfigDump } from "@garden-io/core/build/src/garden"
+import { GetTestResultCommandResult } from "@garden-io/core/build/src/commands/get/get-test-result"
+import { GraphOutput } from "@garden-io/core/build/src/commands/get/get-graph"
 import {
   Entities,
   ModuleEntity,

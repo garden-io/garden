@@ -37,11 +37,12 @@ ts-node-*
 .nyc_output
 coverage/
 gulpfile.js
-!garden-service/gulpfile.js
+!core/gulpfile.js
 *.map
 *.tgz
 build/
-garden-service/static/dashboard/
+dist/
+core/static/dashboard/
 
 #debug files
 debug-info-*

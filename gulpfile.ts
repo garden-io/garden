@@ -12,9 +12,9 @@ const checkLicense = require("gulp-license-check")
 const sources = [
   "dashboard/src/**/*.ts*",
   "dashboard/src/**/*.scss",
-  "garden-service/src/**/*.ts",
-  "garden-service/test/**/*.ts",
-  "garden-service/src/*.pegjs",
+  "core/src/**/*.ts",
+  "core/test/**/*.ts",
+  "core/src/*.pegjs",
 ]
 const licenseHeaderPath = "support/license-header-js.txt"
 

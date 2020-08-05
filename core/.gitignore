@@ -12,3 +12,4 @@ test/*.js
 test/src/**/*.js
 test/integ/**/*.js
 test/data/plugins/**/*.js
+tmp/

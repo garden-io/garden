@@ -9,8 +9,8 @@
 import normalizeUrl from "normalize-url"
 import { format } from "url"
 import { flatten } from "lodash"
-import { ModuleConfig } from "garden-service/build/src/config/module"
-import { ServiceIngress } from "garden-service/build/src/types/service"
+import { ModuleConfig } from "@garden-io/core/build/src/config/module"
+import { ServiceIngress } from "@garden-io/core/build/src/types/service"
 
 export function getServiceNames(moduleConfigs: ModuleConfig[]) {
   return flatten(moduleConfigs.map((m) => m.serviceConfigs.map((s) => s.name)))

@@ -11,19 +11,19 @@ import React from "react"
 import produce from "immer"
 import { AxiosError } from "axios"
 
-import { ServiceLogEntry } from "garden-service/build/src/types/plugin/service/getServiceLogs"
-import { GraphOutput } from "garden-service/build/src/commands/get/get-graph"
-import { ServiceStatus } from "garden-service/build/src/types/service"
-import { ModuleConfig } from "garden-service/build/src/config/module"
-import { PickFromUnion } from "garden-service/build/src/util/util"
-import { ServiceConfig } from "garden-service/build/src/config/service"
-import { RunStatus } from "garden-service/build/src/types/plugin/base"
-import { TaskConfig } from "garden-service/build/src/config/task"
-import { GetTaskResultCommandResult } from "garden-service/build/src/commands/get/get-task-result"
-import { GetTestResultCommandResult } from "garden-service/build/src/commands/get/get-test-result"
-import { TestConfig } from "garden-service/build/src/config/test"
-import { EventName } from "garden-service/build/src/events"
-import { EnvironmentStatusMap } from "garden-service/build/src/types/plugin/provider/getEnvironmentStatus"
+import { ServiceLogEntry } from "@garden-io/core/build/src/types/plugin/service/getServiceLogs"
+import { GraphOutput } from "@garden-io/core/build/src/commands/get/get-graph"
+import { ServiceStatus } from "@garden-io/core/build/src/types/service"
+import { ModuleConfig } from "@garden-io/core/build/src/config/module"
+import { PickFromUnion } from "@garden-io/core/build/src/util/util"
+import { ServiceConfig } from "@garden-io/core/build/src/config/service"
+import { RunStatus } from "@garden-io/core/build/src/types/plugin/base"
+import { TaskConfig } from "@garden-io/core/build/src/config/task"
+import { GetTaskResultCommandResult } from "@garden-io/core/build/src/commands/get/get-task-result"
+import { GetTestResultCommandResult } from "@garden-io/core/build/src/commands/get/get-test-result"
+import { TestConfig } from "@garden-io/core/build/src/config/test"
+import { EventName } from "@garden-io/core/build/src/events"
+import { EnvironmentStatusMap } from "@garden-io/core/build/src/types/plugin/provider/getEnvironmentStatus"
 import { initWebSocket } from "../api/ws"
 
 export type SupportedEventName = PickFromUnion<
@@ -234,7 +234,7 @@ const Context = React.createContext<Context>({} as Context)
 export const useApi = () => useContext(Context)
 
 /**
- * A Provider component that holds all data received from the garden-service API and websocket connections.
+ * A Provider component that holds all data received from the core API and websocket connections.
  * The store and actions are accessed from components via the `useApi` function.
  */
 export const ApiProvider: React.FC = ({ children }) => {
