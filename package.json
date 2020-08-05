@@ -47,19 +47,22 @@
     "typescript-formatter": "^7.2.2"
   },
   "scripts": {
-    "build": "npm run clean && lerna bootstrap && lerna run build",
-    "dist": "npm run bootstrap && lerna run dist",
+    "add-licenses": "copyright-header --license-file support/license-header.txt --syntax support/license-syntax.yaml --add-path dashboard/src:core/src:core/test --output-dir .",
     "bootstrap": "lerna bootstrap",
-    "check-docs": "./bin/check-docs",
-    "check-licenses": "gulp check-licenses",
-    "add-licenses": "copyright-header --license-file support/license-header.txt --syntax support/license-syntax.yaml --add-path dashboard/src:garden-service/src:garden-service/test --output-dir .",
-    "check-package-lock": "git diff --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
+    "build": "npm run clean && lerna bootstrap && lerna run build",
+    "build-containers": "npm run dist && ./script/build-containers.sh",
     "check-all": "npm run check-docs && npm run check-package-lock && npm run check-licenses && npm run lint",
+    "check-docs": "./scripts/check-docs.sh",
+    "check-licenses": "gulp check-licenses",
+    "check-package-lock": "git diff --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
     "clean": "lerna run clean && git clean -X -f && find . -name \".garden\" -type d -prune -exec rm -rf '{}' '+'",
+    "dist": "lerna run dist && npm run pkg",
     "fix-format": "lerna run fix-format --no-bail",
     "generate-docs": "lerna run generate-docs",
     "integ": "lerna run integ",
     "lint": "lerna run lint --no-bail && gulp check-licenses",
+    "pkg": "./scripts/build-pkg.sh",
+    "push-containers": "npm run dist && ./script/push-containers.sh",
     "test": "lerna run test --no-bail"
   },
   "husky": {

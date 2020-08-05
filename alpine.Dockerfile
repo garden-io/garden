@@ -14,8 +14,8 @@ WORKDIR /tmp
 
 RUN npm install pkg@4.4.8 && node_modules/.bin/pkg-fetch node12 alpine x64
 
-ADD package.json /tmp/
-ADD package-lock.json /tmp/
+ADD core/package.json /tmp/
+ADD core/package-lock.json /tmp/
 
 RUN npm install \
   && rm -rf /root/.npm/* \
@@ -24,13 +24,13 @@ RUN npm install \
   /usr/lib/node_modules/npm/html/* \
   /usr/lib/node_modules/npm/scripts/*
 
-ADD bin/garden /tmp/bin/garden
-ADD bin/garden-debug /tmp/bin/garden-debug
-ADD build /tmp/build
+ADD core/bin/garden /tmp/bin/garden
+ADD core/bin/garden-debug /tmp/bin/garden-debug
+ADD core/build /tmp/build
 
 RUN node_modules/.bin/pkg --target node12-alpine-x64 . \
   && mkdir -p /garden \
-  && mv garden-service /garden/garden \
+  && mv core /garden/garden \
   && cp node_modules/sqlite3/lib/binding/node-v72-linux-x64/node_sqlite3.node /garden
 
 #### Main container ####
@@ -50,8 +50,10 @@ RUN apk add --no-cache \
 
 COPY --from=builder /garden /garden
 
-ADD static /garden/static
-RUN cd /garden/static && git init
+ADD core/static /garden/static
+# Need to make the static directory a git root, and replace the symlinked dashboard directory with the full build
+RUN cd /garden/static && git init && rm -rf /garden/static/dashboard
+ADD dashboard/build /garden/static/dashboard
 
 WORKDIR /project
 

@@ -1,7 +1,7 @@
 {
   "packages": [
     "dashboard/",
-    "garden-service/"
+    "core/"
   ],
   "version": "independent"
 }

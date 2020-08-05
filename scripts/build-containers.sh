@@ -1,8 +1,8 @@
 #!/bin/bash -e
 
-garden_service_root=$(cd `dirname $0` && cd .. && pwd)
+repo_root=$(cd `dirname $0` && cd .. && pwd)
 
-cd ${garden_service_root}
+cd ${repo_root}
 
 args=( $@ )
 version=${args[0]:-$(git rev-parse --short HEAD)}
@@ -17,7 +17,7 @@ buster_tag=gardendev/garden:${version}-buster
 echo "Building version ${version}"
 
 echo "-> Build ${base_tag}"
-docker build -t ${base_tag} -f Dockerfile .
+docker build -t ${base_tag} -f alpine.Dockerfile .
 echo "-> Check ${base_tag}"
 docker run --rm -it ${base_tag} version
 
@@ -38,7 +38,7 @@ echo "-> Check ${gcloud_tag}"
 docker run --rm -it ${gcloud_tag} version
 
 echo "-> Build ${aws_gcloud_tag}"
-docker build -t ${aws_gcloud_tag} --build-arg TAG=${version} -f aws.gcloud.Dockerfile .
+docker build -t ${aws_gcloud_tag} --build-arg TAG=${version} -f aws-gcloud.Dockerfile .
 echo "-> Check ${aws_gcloud_tag}"
 docker run --rm -it ${aws_gcloud_tag} version
 

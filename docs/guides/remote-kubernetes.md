@@ -67,7 +67,7 @@ garden --env=<environment-name> plugins kubernetes cluster-init
 To later uninstall the installed services, you can run:
 
 ```sh
-garden --env=<environment-name> plugins kubernetes uninstall-garden-services
+garden --env=<environment-name> plugins kubernetes uninstall-cores
 ```
 
 This will remove all services from the `garden-system` namespace, as well as any installed cluster-scoped resources.

@@ -260,7 +260,19 @@ export class GitHandler extends VcsHandler {
           output.hash = ""
           return output
         } else if (target.startsWith("..")) {
-          const realTarget = await realpath(resolvedPath)
+          let realTarget: string
+
+          try {
+            realTarget = await realpath(resolvedPath)
+          } catch (err) {
+            if (err.code === "ENOENT") {
+              // Link can't be resolved, so we ignore it
+              return { path: resolvedPath, hash: "" }
+            } else {
+              throw err
+            }
+          }
+
           const relPath = relative(path, realTarget)
 
           if (relPath.startsWith("..")) {

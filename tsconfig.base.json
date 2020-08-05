@@ -27,9 +27,9 @@
     "target": "es6"
   },
   "exclude": [
-    "garden-service/build",
-    "garden-service/vendor",
-    "garden-service/tmp",
+    "core/build",
+    "core/vendor",
+    "core/tmp",
     "node_modules",
     "**/node_modules",
     "tmp"

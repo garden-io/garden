@@ -31,7 +31,7 @@ cd examples/simple-project # (or some other Garden project)
 garden serve # (or some watch mode command)
 ```
 
-to start the `garden-service` API server. Then run:
+to start the `core` API server. Then run:
 
 ```sh
 cd dashboard
@@ -61,23 +61,23 @@ For other editors and more detail, please refer to the [Create React App docs](h
 
 ### CORS
 
-To avoid Cross-Origin Resource Sharing (CORS) errors while developing, we proxy the request to the `garden-service` server, defaulting to port `9777`.
+To avoid Cross-Origin Resource Sharing (CORS) errors while developing, we proxy the request to the `core` server, defaulting to port `9777`.
 
-To ensure the `garden-service` server runs on port `9777`, start it with:
+To ensure the `core` server runs on port `9777`, start it with:
 
 ```sh
-cd garden-service
+cd core
 GARDEN_SERVER_PORT=9777 garden serve
 ```
 
 or
 
 ```sh
-cd garden-service
+cd core
 GARDEN_SERVER_PORT=9777 garden dev
 ```
 
-Alternatively, you can run the `garden-service` server as usual and set the port on the dashboard side of things:
+Alternatively, you can run the `core` server as usual and set the port on the dashboard side of things:
 
 ```sh
 cd dashboard
@@ -99,7 +99,7 @@ cd dashboard
 npm run build
 ```
 
-This builds the dashboard into the `garden-service/static/dashboard` directory, from where the `garden-service` API server serves it.
+This builds the dashboard into the `core/static/dashboard` directory, from where the `core` API server serves it.
 
 ## About
 

@@ -16,8 +16,7 @@ export const LOCAL_CONFIG_FILENAME = "local-config.yml"
 export const GLOBAL_CONFIG_FILENAME = "global-config.yml"
 export const GARDEN_SERVICE_ROOT = isPkg ? resolve(process.execPath, "..") : resolve(__dirname, "..", "..")
 export const STATIC_DIR = join(GARDEN_SERVICE_ROOT, "static")
-// We copy the built dashboard to the garden-service static directory (with gulp in development, otherwise in CI).
-// TODO: Use env vars to detect if Garden is running in dev mode and serve straight from the dashboard directory.
+// We symlink to it the built dashboard to the core static directory during dev, and copy it there for dist builds
 export const DASHBOARD_STATIC_DIR = join(STATIC_DIR, "dashboard")
 export const DEFAULT_GARDEN_DIR_NAME = ".garden"
 export const LOGS_DIR_NAME = "logs"

@@ -25,7 +25,7 @@ For Mac we have a script that installs all required dependencies.
 
 If you haven't already, please [install Homebrew](https://docs.brew.sh/Installation). Then run:
 
-    ./bin/bootstrap-osx
+    ./scripts/install-osx-dependencies.sh
 
 #### Windows / Linux
 
@@ -35,7 +35,7 @@ Other platforms need to roll their own for now (contributions welcome!). Please 
 
 ### Step 4: Bootstrap project
 
-Install Node modules for the root package, and the `dashboard` and `garden-service` packages:
+Install Node modules for the root package, and the `dashboard` and `core` packages:
 
 ```sh
 npm install # To install root dependencies
@@ -44,10 +44,10 @@ npm run bootstrap # To bootstrap packages
 
 from the root directory
 
-You may need to install the Node modules in the garden-service package manually due to [lerna/lerna#1457](https://github.com/lerna/lerna/issues/1457).
+You may need to install the Node modules in the core package manually due to [lerna/lerna#1457](https://github.com/lerna/lerna/issues/1457).
 
 ```sh
-cd garden-service
+cd core
 npm install
 ```
 
@@ -67,7 +67,7 @@ from the root directory. This ensures that the dashboard is built and ready to s
 
 To develop the CLI, run the `dev` command in your console:
 
-    cd garden-service
+    cd core
     npm run dev
 
 This will `npm link` it to your global npm folder, and then watch for
@@ -88,7 +88,7 @@ We use [Prettier](https://prettier.io) for automated formatting. We highly recom
 
 ### Debugging
 
-To enable setting a breakpoint in the code, run the CLI with the `garden-service/bin/static/garden-debug` binary, which adds the `--inspect` flag. Developers might find it useful to alias this:
+To enable setting a breakpoint in the code, run the CLI with the `core/bin/static/garden-debug` binary, which adds the `--inspect` flag. Developers might find it useful to alias this:
 
 ```sh
 alias gd='/path/to/garden/bin/garden-debug'
@@ -112,7 +112,7 @@ You should now be able to inspect the code at run time in the **Console** tab of
 Unit tests are run using `mocha` via `npm test` from the directory of the package you want to test. To run a specific test, you can grep the test description with the `-g` flag.:
 
 ```sh
-cd garden-service
+cd core
 npm test                    # run all unit tests
 npm test -- -g "taskGraph"  # run only tests with descriptions matching "taskGraph"
 ```
@@ -135,7 +135,7 @@ You can also run the end-to-end tests for a specific example project using:
 npm run e2e-project -- --project=<example project name>
 ```
 
-End to end tests are run in CI by using Garden itself to test the project defined in `./garden-service/test/e2e/garden.yml`. Cf. the appropriate job in `circleci/config.yml` for details.
+End to end tests are run in CI by using Garden itself to test the project defined in `./core/test/e2e/garden.yml`. Cf. the appropriate job in `circleci/config.yml` for details.
 
 ### Commit messages
 
@@ -197,13 +197,7 @@ ANALYTICS_DEV=true
 
 ## CI
 
-We use [Circle CI](https://circleci.com) for integration and end to end testing. Sometimes
-it can be useful to test and debug the CI build locally, particularly when
-updating or adding dependencies. You can use their
-[CLI](https://circleci.com/docs/2.0/local-jobs/) for that, which
-is installed automatically by the `./bin/bootstrap-osx` script. Once you
-have it installed you can run `circleci build` in the repo root to test
-the build locally.
+We use [Circle CI](https://circleci.com) for integration and end to end testing. The configuration is in `.circleci/config.yml`.
 
 ## License/copyright headers
 
@@ -221,7 +215,7 @@ Our release process generates the following packages:
 
 ### Process
 
-We have a dedicated release branch, `latest-release`, off of which we create our releases using our [release script](https://github.com/garden-io/garden/blob/master/bin/release.ts). Once we're ready to release, we reset the `latest-release` branch to `master` and create a pre-release with the script. If there are issues with the pre-release, we merge the fixes to `master` and cherry pick them to the `latest-release` branch. We repeat this process until all issues have been resolved and we can make a proper release.
+We have a dedicated release branch, `latest-release`, off of which we create our releases using our [release script](https://github.com/garden-io/garden/blob/master/scripts/release.ts). Once we're ready to release, we reset the `latest-release` branch to `master` and create a pre-release with the script. If there are issues with the pre-release, we merge the fixes to `master` and cherry pick them to the `latest-release` branch. We repeat this process until all issues have been resolved and we can make a proper release.
 
 This procedure allows us to continue merging features into `master` without them being included in the release.
 
@@ -229,14 +223,14 @@ On every merge to `master` we also publish an **unstable** release with the vers
 
 ### Release script
 
-The [release script](https://github.com/garden-io/garden/blob/master/bin/release.ts) has the signature:
+The [release script](https://github.com/garden-io/garden/blob/master/scripts/release.ts) has the signature:
 ```sh
-./bin/release.tsx <minor | patch | preminor | prepatch | prerelease> [--force] [--dry-run]
+./scripts/release.tsx <minor | patch | preminor | prepatch | prerelease> [--force] [--dry-run]
 ```
 and does the following:
 
 * Checks out a branch named `release-<version>`.
-* Updates `garden-service/package.json`, `garden-service/package-lock.json` and `CHANGELOG.md`.
+* Updates `core/package.json`, `core/package-lock.json` and `CHANGELOG.md`.
 * Commits the changes, tags the commit, and pushes the tag and branch.
 * Pushing the tag triggers a CI process that creates the release artifacts and publishes them to Github. If the the release is not a pre-release, we create a draft instead of actually publishing.
 
@@ -248,14 +242,14 @@ To make a new release, set your current working directory to the garden root dir
 2. The next step depends on the release type:
     * If you're making the first pre-release:
         1. Reset `latest-release` to `master` with `git reset --hard origin/master`.
-        2. Run `./bin/release.ts preminor|prepatch`.
+        2. Run `./scripts/release.ts preminor|prepatch`.
     * If you’ve already created a pre-release, e.g. `v1.2.3-alpha.0`, and want to create a new pre-release `v1.2.3-alpha.1` which includes fixes merged to master since `v1.2.3-alpha.0` was created, do the following:
         1. Checkout to the most recent pre-release branch, in this case `v1.2.3-alpha.0`, and cherry-pick the appropriate commits from `master`.
-        2. Run `./bin/release.ts prerelease`.
+        2. Run `./scripts/release.ts prerelease`.
     * If you’re ready to make a proper release, do the following:
         1. Checkout to the most recent pre-release branch, e.g. `v1.2.3-alpha.1`.
         2. Remove all the `bump version...` commits. E.g. by using `git rebase -i <hash-before-first-version-bump>` and `drop`-ing the commits. In this case we drop `chore(release): bump version to v1.2.3-alpha.0` and `chore(release): bump version to v.1.2.3-alpha.1`.
-        3. Run `./bin/release.ts minor | patch`. This way, the version bump commits and changelog entries created by the pre-releases are omitted from the final history.
+        3. Run `./scripts/release.ts minor | patch`. This way, the version bump commits and changelog entries created by the pre-releases are omitted from the final history.
 3. If you're making a pre-release you're done, and you can now start testing the binaries that were just published to our Github [Releases page](https://github.com/garden-io/garden/releases) (**step 4**). Otherwise go to **step 5**.
 4. Manual testing (using the pre-release/release binary)
     * On a **Windows** machine, run `garden dev --hot=vote` in the `vote` example project.

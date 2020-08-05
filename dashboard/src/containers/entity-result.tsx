@@ -13,8 +13,8 @@ import EntityResult from "../components/entity-result"
 import { ErrorNotification } from "../components/notifications"
 import { EntityResultSupportedTypes } from "../contexts/ui"
 import { loadTestResult, loadTaskResult } from "../api/actions"
-import { GetTaskResultCommandResult } from "garden-service/build/src/commands/get/get-task-result"
-import { GetTestResultCommandResult } from "garden-service/build/src/commands/get/get-test-result"
+import { GetTaskResultCommandResult } from "@garden-io/core/build/src/commands/get/get-task-result"
+import { GetTestResultCommandResult } from "@garden-io/core/build/src/commands/get/get-test-result"
 
 const ErrorMsg = ({ error, type }) => (
   <ErrorNotification>

@@ -11,7 +11,7 @@ import React from "react"
 
 import Sidebar from "../components/sidebar"
 import { useApi } from "../contexts/api"
-import { DashboardPage } from "garden-service/build/src/config/status"
+import { DashboardPage } from "@garden-io/core/build/src/config/status"
 
 export interface Page extends DashboardPage {
   path: string
