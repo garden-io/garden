@@ -154,10 +154,10 @@ export const gardenPlugin = createGardenPlugin({
       handlers: {
         configure: async ({ moduleConfig }) => {
           moduleConfig.include = [moduleConfig.spec.dockerfilePath]
-          moduleConfig.testConfigs = [{ name: "lint", dependencies: [], spec: {}, timeout: 10 }]
+          moduleConfig.testConfigs = [{ name: "lint", dependencies: [], spec: {}, timeout: 10, disabled: false }]
           return { moduleConfig }
         },
-        testModule: async ({ ctx, log, module, testConfig }: TestModuleParams<HadolintModule>) => {
+        testModule: async ({ ctx, log, module, testConfig }) => {
           const dockerfilePath = join(module.path, module.spec.dockerfilePath)
           const startedAt = new Date()
           let dockerfile: string

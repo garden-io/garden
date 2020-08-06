@@ -140,7 +140,7 @@ export const gardenPlugin = createGardenPlugin({
           }
 
           moduleConfig.include = moduleConfig.spec.files
-          moduleConfig.testConfigs = [{ name: "test", dependencies: [], spec: {}, timeout: 10 }]
+          moduleConfig.testConfigs = [{ name: "test", dependencies: [], spec: {}, disabled: false, timeout: 10 }]
           return { moduleConfig }
         },
         testModule: async ({ ctx, log, module, testConfig }: TestModuleParams<ConftestModule>) => {
@@ -211,7 +211,15 @@ export const gardenPlugin = createGardenPlugin({
         configure: async ({ moduleConfig }) => {
           moduleConfig.build.dependencies.push({ name: moduleConfig.spec.sourceModule, copy: [] })
           moduleConfig.include = []
-          moduleConfig.testConfigs = [{ name: "test", dependencies: moduleConfig.spec.runtimeDependencies, spec: {} }]
+          moduleConfig.testConfigs = [
+            {
+              name: "test",
+              dependencies: moduleConfig.spec.runtimeDependencies,
+              spec: {},
+              disabled: false,
+              timeout: null,
+            },
+          ]
           return { moduleConfig }
         },
         testModule: async ({ ctx, log, module, testConfig }: TestModuleParams<ConftestModule>) => {

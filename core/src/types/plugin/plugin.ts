@@ -49,25 +49,25 @@ export interface ActionHandlerParamsBase {
   base?: ActionHandler<any, any>
 }
 
-export interface ActionHandler<P extends ActionHandlerParamsBase, O> {
-  (params: P): Promise<O>
+export type ActionHandler<P extends ActionHandlerParamsBase, O> = ((params: P) => Promise<O>) & {
   actionType?: string
   pluginName?: string
-  base?: WrappedActionHandler<P, O>
+  base?: ActionHandler<P, O>
 }
 
-export interface ModuleActionHandler<P extends ActionHandlerParamsBase, O> extends ActionHandler<P, O> {
-  (params: P): Promise<O>
+export type ModuleActionHandler<P extends ActionHandlerParamsBase, O> = ((params: P) => Promise<O>) & {
+  actionType?: string
+  pluginName?: string
   moduleType?: string
-  base?: WrappedModuleActionHandler<P, O>
+  base?: ModuleActionHandler<P, O>
 }
 
-export interface WrappedActionHandler<P extends ActionHandlerParamsBase, O> extends ActionHandler<P, O> {
+export type WrappedActionHandler<P extends ActionHandlerParamsBase, O> = ActionHandler<P, O> & {
   actionType: string
   pluginName: string
 }
 
-export interface WrappedModuleActionHandler<P extends ActionHandlerParamsBase, O> extends WrappedActionHandler<P, O> {
+export type WrappedModuleActionHandler<P extends ActionHandlerParamsBase, O> = WrappedActionHandler<P, O> & {
   moduleType: string
   base?: WrappedModuleActionHandler<P, O>
 }
@@ -95,9 +95,9 @@ export type ModuleAndRuntimeActionHandlers<T extends Module = Module> = ModuleAc
 export type AllActionHandlers<T extends Module = Module> = PluginActionHandlers & ModuleAndRuntimeActionHandlers<T>
 
 export type PluginActionName = keyof PluginActionHandlers
-export type ServiceActionName = keyof ServiceActionHandlers
-export type TaskActionName = keyof TaskActionHandlers
-export type ModuleActionName = keyof ModuleActionHandlers
+export type ServiceActionName = keyof ServiceActionParams
+export type TaskActionName = keyof TaskActionParams
+export type ModuleActionName = keyof ModuleActionParams
 
 export interface PluginActionDescription {
   description: string
@@ -270,6 +270,12 @@ export type ModuleActionParams<T extends Module = Module> = {
   }
 }
 
+export type ModuleAndRuntimeActionParams<T extends GardenModule = GardenModule> = ModuleActionParams<T> &
+  ServiceActionParams<T> &
+  TaskActionParams<T>
+
+export type ModuleAndRuntimeActionOutputs = ModuleActionOutputs & ServiceActionOutputs & TaskActionOutputs
+
 export interface ModuleActionOutputs extends ServiceActionOutputs {
   configure: ConfigureModuleResult
   suggestModules: SuggestModulesResult
@@ -325,8 +331,18 @@ export function getModuleActionNames() {
   return <ModuleActionName[]>Object.keys(getModuleActionDescriptions())
 }
 
-export interface ModuleTypeExtension {
-  handlers: Partial<ModuleAndRuntimeActionHandlers>
+export interface ModuleTypeExtension<M extends GardenModule = GardenModule> {
+  // Note: This needs to be this verbose because of issues with the TS compiler
+  handlers: {
+    [T in keyof ModuleAndRuntimeActionParams<M>]?: ((
+      params: ModuleAndRuntimeActionParams<M>[T]
+    ) => Promise<ModuleAndRuntimeActionOutputs[T]>) & {
+      actionType?: string
+      pluginName?: string
+      moduleType?: string
+      base?: ModuleAndRuntimeActionHandlers[T]
+    }
+  }
   name: string
 }
 
