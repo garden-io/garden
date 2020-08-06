@@ -112,14 +112,14 @@ export interface PosixPathSchema extends Joi.StringSchema {
   subPathOnly(): this
 }
 
-interface CustomJoi extends Joi.Root {
+export interface Schema extends Joi.Root {
   object: () => CustomObjectSchema
   environment: () => Joi.StringSchema
   gitUrl: () => GitUrlSchema
   posixPath: () => PosixPathSchema
 }
 
-export let joi: CustomJoi = Joi.extend({
+export let joi: Schema = Joi.extend({
   base: Joi.string(),
   type: "posixPath",
   flags: {

@@ -11,7 +11,7 @@ import { terraform } from "./cli"
 import { TerraformProvider } from "./terraform"
 import { ConfigurationError, ParameterError } from "../../exceptions"
 import { prepareVariables, tfValidate } from "./common"
-import { Module } from "../../types/module"
+import { GardenModule } from "../../types/module"
 import { findByName } from "../../util/util"
 import { TerraformModule } from "./module"
 import { PluginCommand, PluginCommandParams } from "../../types/plugin/command"
@@ -104,7 +104,7 @@ function makeModuleCommand(commandName: string) {
   }
 }
 
-function findModule(modules: Module[], name: string): TerraformModule {
+function findModule(modules: GardenModule[], name: string): TerraformModule {
   if (!name) {
     throw new ParameterError(`The first command argument must be a module name.`, { name })
   }

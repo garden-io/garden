@@ -12,7 +12,7 @@ import { KubernetesPluginContext, KubernetesProvider } from "../config"
 import { PluginError, ParameterError } from "../../../exceptions"
 import { PluginCommand } from "../../../types/plugin/command"
 import chalk from "chalk"
-import { Module } from "../../../types/module"
+import { GardenModule } from "../../../types/module"
 import { findByNames } from "../../../util/util"
 import { filter, map } from "lodash"
 import { KubeApi } from "../api"
@@ -54,8 +54,8 @@ export const pullImage: PluginCommand = {
   },
 }
 
-function findModules(modules: Module[], names: string[]): Module[] {
-  let foundModules: Module[]
+function findModules(modules: GardenModule[], names: string[]): GardenModule[] {
+  let foundModules: GardenModule[]
 
   if (!names || names.length === 0) {
     foundModules = modules
@@ -68,7 +68,7 @@ function findModules(modules: Module[], names: string[]): Module[] {
   return foundModules
 }
 
-function ensureAllModulesValid(modules: Module[]) {
+function ensureAllModulesValid(modules: GardenModule[]) {
   const invalidModules = filter(modules, (module) => {
     return !module.compatibleTypes.includes("container") || !containerHelpers.hasDockerfile(module)
   })
@@ -85,7 +85,7 @@ function ensureAllModulesValid(modules: Module[]) {
   }
 }
 
-async function pullModules(ctx: KubernetesPluginContext, modules: Module[], log: LogEntry) {
+async function pullModules(ctx: KubernetesPluginContext, modules: GardenModule[], log: LogEntry) {
   await Promise.all(
     modules.map(async (module) => {
       const remoteId = await containerHelpers.getPublicImageId(module)
@@ -97,7 +97,7 @@ async function pullModules(ctx: KubernetesPluginContext, modules: Module[], log:
   )
 }
 
-export async function pullModule(ctx: KubernetesPluginContext, module: Module, log: LogEntry) {
+export async function pullModule(ctx: KubernetesPluginContext, module: GardenModule, log: LogEntry) {
   const localId = await containerHelpers.getLocalImageId(module)
 
   if (ctx.provider.config.deploymentRegistry?.hostname === inClusterRegistryHostname) {
@@ -109,7 +109,7 @@ export async function pullModule(ctx: KubernetesPluginContext, module: Module, l
 
 async function pullFromInClusterRegistry(
   k8sCtx: KubernetesPluginContext,
-  module: Module,
+  module: GardenModule,
   log: LogEntry,
   localId: string
 ) {
@@ -133,7 +133,12 @@ async function pullFromInClusterRegistry(
   await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["rmi", pullImageId], log, containerProvider })
 }
 
-async function pullFromExternalRegistry(ctx: KubernetesPluginContext, module: Module, log: LogEntry, localId: string) {
+async function pullFromExternalRegistry(
+  ctx: KubernetesPluginContext,
+  module: GardenModule,
+  log: LogEntry,
+  localId: string
+) {
   const api = await KubeApi.factory(log, ctx.provider)
   const namespace = await getAppNamespace(ctx, log, ctx.provider)
   const podName = makePodName("skopeo", namespace, module.name)
@@ -176,7 +181,7 @@ async function importImage({
   log,
   containerProvider,
 }: {
-  module: Module
+  module: GardenModule
   runner: PodRunner
   tarName: string
   imageId: string
@@ -217,7 +222,7 @@ async function launchSkopeoContainer(
   api: KubeApi,
   podName: string,
   systemNamespace: string,
-  module: Module,
+  module: GardenModule,
   log: LogEntry
 ): Promise<PodRunner> {
   const sleepCommand = "sleep 86400"

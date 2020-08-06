@@ -17,7 +17,7 @@ const AsyncLock = require("async-lock")
 
 import { TreeCache } from "./cache"
 import { builtinPlugins } from "./plugins/plugins"
-import { Module, getModuleCacheContext, getModuleKey, ModuleConfigMap, moduleFromConfig } from "./types/module"
+import { GardenModule, getModuleCacheContext, getModuleKey, ModuleConfigMap, moduleFromConfig } from "./types/module"
 import { pluginModuleSchema, ModuleTypeMap } from "./types/plugin/plugin"
 import {
   SourceConfig,
@@ -691,7 +691,7 @@ export class Garden {
     return Object.values(keys ? pickKeys(this.moduleConfigs, keys, "module config") : this.moduleConfigs)
   }
 
-  async getOutputConfigContext(log: LogEntry, modules: Module[], runtimeContext: RuntimeContext) {
+  async getOutputConfigContext(log: LogEntry, modules: GardenModule[], runtimeContext: RuntimeContext) {
     const providers = await this.resolveProviders(log)
     return new OutputConfigContext({
       garden: this,
@@ -906,7 +906,7 @@ export class Garden {
    */
   async resolveVersion(
     moduleConfig: ModuleConfig,
-    moduleDependencies: (Module | BuildDependencyConfig)[],
+    moduleDependencies: (GardenModule | BuildDependencyConfig)[],
     force = false
   ) {
     const moduleName = moduleConfig.name

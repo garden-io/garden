@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { Module, moduleFromConfig, getModuleKey } from "../types/module"
+import { GardenModule, moduleFromConfig, getModuleKey } from "../types/module"
 import { BaseTask, TaskType } from "../tasks/base"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
@@ -203,7 +203,7 @@ export class ResolveModuleTask extends BaseTask {
     return `resolving module ${this.getName()}`
   }
 
-  async process(dependencyResults: GraphResults): Promise<Module> {
+  async process(dependencyResults: GraphResults): Promise<GardenModule> {
     const resolvedConfig = dependencyResults["resolve-module-config." + this.getName()]!.output as ModuleConfig
     const dependencyModules = getResolvedModules(dependencyResults)
 
@@ -217,8 +217,8 @@ function getResolvedModuleConfigs(dependencyResults: GraphResults): ModuleConfig
     .map((r) => r!.output) as ModuleConfig[]
 }
 
-export function getResolvedModules(dependencyResults: GraphResults): Module[] {
+export function getResolvedModules(dependencyResults: GraphResults): GardenModule[] {
   return Object.values(dependencyResults)
     .filter((r) => r && r.type === "resolve-module")
-    .map((r) => r!.output) as Module[]
+    .map((r) => r!.output) as GardenModule[]
 }

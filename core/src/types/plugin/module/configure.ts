@@ -7,20 +7,20 @@
  */
 
 import { dedent } from "../../../util/string"
-import { Module } from "../../module"
+import { GardenModule } from "../../module"
 import { PluginContext, pluginContextSchema } from "../../../plugin-context"
 import { logEntrySchema, PluginActionContextParams } from "../base"
 import { baseModuleSpecSchema, ModuleConfig, moduleConfigSchema } from "../../../config/module"
 import { joi } from "../../../config/common"
 import { LogEntry } from "../../../logger/log-entry"
 
-export interface ConfigureModuleParams<T extends Module = Module> extends PluginActionContextParams {
+export interface ConfigureModuleParams<T extends GardenModule = GardenModule> extends PluginActionContextParams {
   ctx: PluginContext
   log: LogEntry
   moduleConfig: T["_config"]
 }
 
-export interface ConfigureModuleResult<T extends Module = Module> {
+export interface ConfigureModuleResult<T extends GardenModule = GardenModule> {
   moduleConfig: ModuleConfig<
     T["spec"],
     T["serviceConfigs"][0]["spec"],

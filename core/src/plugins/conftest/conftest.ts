@@ -12,7 +12,7 @@ import { providerConfigBaseSchema, ProviderConfig, Provider } from "../../config
 import { joi, joiIdentifier, joiArray } from "../../config/common"
 import { dedent, naturalList } from "../../util/string"
 import { TestModuleParams } from "../../types/plugin/module/testModule"
-import { Module } from "../../types/module"
+import { GardenModule } from "../../types/module"
 import chalk from "chalk"
 import { baseBuildSpecSchema } from "../../config/module"
 import { matchGlobs, listDirectory } from "../../util/fs"
@@ -63,7 +63,7 @@ interface ConftestModuleSpec {
   combine?: boolean
 }
 
-type ConftestModule = Module<ConftestModuleSpec>
+type ConftestModule = GardenModule<ConftestModuleSpec>
 
 const moduleTypeUrl = getModuleTypeUrl("conftest")
 const containerProviderUrl = getProviderUrl("conftest-container")

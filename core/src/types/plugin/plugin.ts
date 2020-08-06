@@ -31,7 +31,7 @@ import { RunTaskParams, RunTaskResult, runTask } from "./task/runTask"
 import { SetSecretParams, SetSecretResult, setSecret } from "./provider/setSecret"
 import { TestModuleParams, testModule } from "./module/testModule"
 import { joiArray, joiIdentifier, joi, joiSchema } from "../../config/common"
-import { Module } from "../module"
+import { GardenModule } from "../module"
 import { RunResult } from "./base"
 import { ServiceStatus } from "../service"
 import { mapValues } from "lodash"
@@ -76,23 +76,24 @@ export type PluginActionHandlers = {
   [P in keyof PluginActionParams]: ActionHandler<PluginActionParams[P], PluginActionOutputs[P]>
 }
 
-export type ModuleActionHandlers<T extends Module = Module> = {
+export type ModuleActionHandlers<T extends GardenModule = GardenModule> = {
   [P in keyof ModuleActionParams<T>]: ModuleActionHandler<ModuleActionParams<T>[P], ModuleActionOutputs[P]>
 }
 
-export type ServiceActionHandlers<T extends Module = Module> = {
+export type ServiceActionHandlers<T extends GardenModule = GardenModule> = {
   [P in keyof ServiceActionParams<T>]: ModuleActionHandler<ServiceActionParams<T>[P], ServiceActionOutputs[P]>
 }
 
-export type TaskActionHandlers<T extends Module = Module> = {
+export type TaskActionHandlers<T extends GardenModule = GardenModule> = {
   [P in keyof TaskActionParams<T>]: ModuleActionHandler<TaskActionParams<T>[P], TaskActionOutputs[P]>
 }
 
-export type ModuleAndRuntimeActionHandlers<T extends Module = Module> = ModuleActionHandlers<T> &
+export type ModuleAndRuntimeActionHandlers<T extends GardenModule = GardenModule> = ModuleActionHandlers<T> &
   ServiceActionHandlers<T> &
   TaskActionHandlers<T>
 
-export type AllActionHandlers<T extends Module = Module> = PluginActionHandlers & ModuleAndRuntimeActionHandlers<T>
+// export type AllActionHandlers<T extends GardenModule = GardenModule> = PluginActionHandlers &
+//   ModuleAndRuntimeActionHandlers<T>
 
 export type PluginActionName = keyof PluginActionHandlers
 export type ServiceActionName = keyof ServiceActionParams
@@ -187,7 +188,7 @@ export function getPluginActionDescriptions(): PluginActionDescriptions {
   return _pluginActionDescriptions
 }
 
-interface _ServiceActionParams<T extends Module = Module> {
+interface _ServiceActionParams<T extends GardenModule = GardenModule> {
   deployService: DeployServiceParams<T>
   deleteService: DeleteServiceParams<T>
   execInService: ExecInServiceParams<T>
@@ -200,7 +201,7 @@ interface _ServiceActionParams<T extends Module = Module> {
 }
 
 // Specify base parameter more precisely than the base schema
-export type ServiceActionParams<T extends Module = Module> = {
+export type ServiceActionParams<T extends GardenModule = GardenModule> = {
   [P in keyof _ServiceActionParams<T>]: _ServiceActionParams<T>[P] & {
     base?: WrappedModuleActionHandler<_ServiceActionParams<T>[P], ServiceActionOutputs[P]>
   }
@@ -230,13 +231,13 @@ const serviceActionDescriptions: { [P in ServiceActionName]: () => PluginActionD
   stopPortForward,
 }
 
-interface _TaskActionParams<T extends Module = Module> {
+interface _TaskActionParams<T extends GardenModule = GardenModule> {
   getTaskResult: GetTaskResultParams<T>
   runTask: RunTaskParams<T>
 }
 
 // Specify base parameter more precisely than the base schema
-export type TaskActionParams<T extends Module = Module> = {
+export type TaskActionParams<T extends GardenModule = GardenModule> = {
   [P in keyof _TaskActionParams<T>]: _TaskActionParams<T>[P] & {
     base?: WrappedModuleActionHandler<_TaskActionParams<T>[P], TaskActionOutputs[P]>
   }
@@ -252,7 +253,7 @@ const taskActionDescriptions: { [P in TaskActionName]: () => PluginActionDescrip
   runTask,
 }
 
-interface _ModuleActionParams<T extends Module = Module> {
+interface _ModuleActionParams<T extends GardenModule = GardenModule> {
   configure: ConfigureModuleParams<T>
   suggestModules: SuggestModulesParams
   getBuildStatus: GetBuildStatusParams<T>
@@ -264,7 +265,7 @@ interface _ModuleActionParams<T extends Module = Module> {
 }
 
 // Specify base parameter more precisely than the base schema
-export type ModuleActionParams<T extends Module = Module> = {
+export type ModuleActionParams<T extends GardenModule = GardenModule> = {
   [P in keyof _ModuleActionParams<T>]: _ModuleActionParams<T>[P] & {
     base?: WrappedModuleActionHandler<_ModuleActionParams<T>[P], ModuleActionOutputs[P]>
   }
@@ -346,7 +347,7 @@ export interface ModuleTypeExtension<M extends GardenModule = GardenModule> {
   name: string
 }
 
-export interface ModuleTypeDefinition extends ModuleTypeExtension {
+export interface ModuleTypeDefinition<T extends GardenModule = GardenModule> extends ModuleTypeExtension<T> {
   base?: string
   docs: string
   // TODO: specify the schemas using primitives (e.g. JSONSchema/OpenAPI) and not Joi objects
@@ -357,7 +358,7 @@ export interface ModuleTypeDefinition extends ModuleTypeExtension {
   title?: string
 }
 
-export interface ModuleType extends ModuleTypeDefinition {
+export interface ModuleType<T extends GardenModule = GardenModule> extends ModuleTypeDefinition<T> {
   plugin: GardenPlugin
   needsBuild: boolean
 }
@@ -366,7 +367,7 @@ export interface ModuleTypeMap {
   [name: string]: ModuleType
 }
 
-interface GardenPluginSpec {
+export interface GardenPluginSpec {
   name: string
   base?: string
   docs?: string
@@ -584,11 +585,7 @@ export const pluginModuleSchema = () =>
     .description("A module containing a Garden plugin.")
 
 // This doesn't do much at the moment, but it makes sense to make this an SDK function to make it more future-proof
-export function createGardenPlugin(spec: GardenPluginSpec | (() => GardenPluginSpec)): GardenPlugin {
-  if (typeof spec === "function") {
-    spec = spec()
-  }
-
+export function createGardenPlugin(spec: GardenPluginSpec): GardenPlugin {
   return {
     ...spec,
     dependencies: spec.dependencies || [],

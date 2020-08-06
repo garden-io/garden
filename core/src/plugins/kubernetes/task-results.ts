@@ -19,7 +19,7 @@ import { deserializeValues } from "../../util/util"
 import { PluginContext } from "../../plugin-context"
 import { LogEntry } from "../../logger/log-entry"
 import { gardenAnnotationKey, tailString } from "../../util/string"
-import { Module } from "../../types/module"
+import { GardenModule } from "../../types/module"
 import hasha from "hasha"
 import { upsertConfigMap } from "./util"
 import { trimRunOutput } from "./helm/common"
@@ -65,7 +65,7 @@ export async function getTaskResult({
   }
 }
 
-export function getTaskResultKey(ctx: PluginContext, module: Module, taskName: string, version: ModuleVersion) {
+export function getTaskResultKey(ctx: PluginContext, module: GardenModule, taskName: string, version: ModuleVersion) {
   const key = `${ctx.projectName}--${module.name}--${taskName}--${version.versionString}`
   const hash = hasha(key, { algorithm: "sha1" })
   return `task-result--${hash.slice(0, 32)}`
@@ -74,7 +74,7 @@ export function getTaskResultKey(ctx: PluginContext, module: Module, taskName: s
 interface StoreTaskResultParams {
   ctx: PluginContext
   log: LogEntry
-  module: Module
+  module: GardenModule
   taskName: string
   taskVersion: ModuleVersion
   result: RunTaskResult

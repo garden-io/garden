@@ -9,7 +9,7 @@
 import { watch, FSWatcher } from "chokidar"
 import { parse, basename, resolve } from "path"
 import { pathToCacheContext } from "./cache"
-import { Module } from "./types/module"
+import { GardenModule } from "./types/module"
 import { Garden } from "./garden"
 import { LogEntry } from "./logger/log-entry"
 import { sleep } from "./util/util"
@@ -22,7 +22,7 @@ import { EventEmitter } from "events"
 // How long we wait between processing added files and directories
 const DEFAULT_BUFFER_INTERVAL = 400
 
-export type ChangeHandler = (module: Module | null, configChanged: boolean) => Promise<void>
+export type ChangeHandler = (module: GardenModule | null, configChanged: boolean) => Promise<void>
 
 type ChangeType = "added" | "changed" | "removed"
 
@@ -48,7 +48,7 @@ export class Watcher extends EventEmitter {
     private garden: Garden,
     private log: LogEntry,
     private paths: string[],
-    private modules: Module[],
+    private modules: GardenModule[],
     private bufferInterval: number = DEFAULT_BUFFER_INTERVAL
   ) {
     super()
@@ -388,7 +388,7 @@ export class Watcher extends EventEmitter {
     }
   }
 
-  private invalidateCached(modules: Module[]) {
+  private invalidateCached(modules: GardenModule[]) {
     // invalidate the cache for anything attached to the module path or upwards in the directory tree
     for (const module of modules) {
       const cacheContext = pathToCacheContext(module.path)

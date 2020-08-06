@@ -49,7 +49,7 @@ import { RunTaskParams, RunTaskResult } from "../src/types/plugin/task/runTask"
 import { SuiteFunction, TestFunction } from "mocha"
 import { GardenBaseError, GardenError } from "../src/exceptions"
 import { RuntimeContext } from "../src/runtime-context"
-import { Module } from "../src/types/module"
+import { GardenModule } from "../src/types/module"
 import { AnalyticsGlobalConfig } from "../src/config-store"
 import { WorkflowConfig } from "../src/config/workflow"
 
@@ -371,7 +371,7 @@ export class TestGarden extends Garden {
     log: LogEntry
     runtimeContext?: RuntimeContext
     includeDisabled?: boolean
-  }): Promise<Module[]> {
+  }): Promise<GardenModule[]> {
     const graph = await this.getConfigGraph(log, runtimeContext)
     return graph.getModules({ includeDisabled })
   }

@@ -9,12 +9,11 @@
 import Bluebird from "bluebird"
 import { join, relative, resolve } from "path"
 import { pathExists, readFile } from "fs-extra"
-import { createGardenPlugin } from "../../types/plugin/plugin"
+import { createGardenPlugin, GardenModule } from "../../sdk"
 import { providerConfigBaseSchema, ProviderConfig, Provider } from "../../config/provider"
 import { joi } from "../../config/common"
 import { dedent, splitLines, naturalList } from "../../util/string"
 import { TestModuleParams } from "../../types/plugin/module/testModule"
-import { Module } from "../../types/module"
 import { STATIC_DIR } from "../../constants"
 import { padStart, padEnd } from "lodash"
 import chalk from "chalk"
@@ -61,7 +60,7 @@ interface HadolintModuleSpec {
   dockerfilePath: string
 }
 
-type HadolintModule = Module<HadolintModuleSpec>
+type HadolintModule = GardenModule<HadolintModuleSpec>
 
 const moduleTypeUrl = getModuleTypeUrl("hadolint")
 const providerUrl = getProviderUrl("hadolint")
@@ -157,7 +156,7 @@ export const gardenPlugin = createGardenPlugin({
           moduleConfig.testConfigs = [{ name: "lint", dependencies: [], spec: {}, timeout: 10, disabled: false }]
           return { moduleConfig }
         },
-        testModule: async ({ ctx, log, module, testConfig }) => {
+        testModule: async ({ ctx, log, module, testConfig }: TestModuleParams<HadolintModule>) => {
           const dockerfilePath = join(module.path, module.spec.dockerfilePath)
           const startedAt = new Date()
           let dockerfile: string

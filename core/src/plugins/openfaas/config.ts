@@ -12,7 +12,7 @@ import { resolve as urlResolve } from "url"
 import { ConfigurationError } from "../../exceptions"
 import { PluginContext } from "../../plugin-context"
 import { joiArray, joiProviderName, joi, joiEnvVars, DeepPrimitiveMap } from "../../config/common"
-import { Module } from "../../types/module"
+import { GardenModule } from "../../types/module"
 import { Service } from "../../types/service"
 import { ExecModuleSpecBase, ExecTestSpec } from "../exec"
 import { KubernetesProvider } from "../kubernetes/config"
@@ -79,7 +79,7 @@ export const openfaasModuleOutputsSchema = () =>
       .description(`The full URL to query this service _from within_ the cluster.`),
   })
 
-export interface OpenFaasModule extends Module<OpenFaasModuleSpec, CommonServiceSpec, ExecTestSpec> {}
+export interface OpenFaasModule extends GardenModule<OpenFaasModuleSpec, CommonServiceSpec, ExecTestSpec> {}
 export type OpenFaasModuleConfig = OpenFaasModule["_config"]
 export interface OpenFaasService extends Service<OpenFaasModule> {}
 

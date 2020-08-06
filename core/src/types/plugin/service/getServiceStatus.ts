@@ -8,14 +8,14 @@
 
 import { PluginServiceActionParamsBase, serviceActionParamsSchema } from "../base"
 import { dedent } from "../../../util/string"
-import { Module } from "../../module"
+import { GardenModule } from "../../module"
 import { serviceStatusSchema } from "../../service"
 import { RuntimeContext, runtimeContextSchema } from "../../../runtime-context"
 import { joi } from "../../../config/common"
 
 export type hotReloadStatus = "enabled" | "disabled"
 
-export interface GetServiceStatusParams<M extends Module = Module, S extends Module = Module>
+export interface GetServiceStatusParams<M extends GardenModule = GardenModule, S extends GardenModule = GardenModule>
   extends PluginServiceActionParamsBase<M, S> {
   hotReload: boolean
   runtimeContext: RuntimeContext

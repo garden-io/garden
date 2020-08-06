@@ -19,7 +19,7 @@ import { KeyedSet } from "../util/keyed-set"
 import { RuntimeContext } from "../runtime-context"
 import { deline, dedent, naturalList } from "../util/string"
 import { getProviderUrl, getModuleTypeUrl } from "../docs/common"
-import { Module } from "../types/module"
+import { GardenModule } from "../types/module"
 import { ModuleConfig } from "./module"
 import { ModuleVersion } from "../vcs/vcs"
 import { isPrimitive } from "util"
@@ -811,7 +811,7 @@ export class OutputConfigContext extends ModuleConfigContext {
   }: {
     garden: Garden
     resolvedProviders: ProviderMap
-    modules: Module[]
+    modules: GardenModule[]
     runtimeContext: RuntimeContext
   }) {
     const versions = fromPairs(modules.map((m) => [m.name, m.version]))

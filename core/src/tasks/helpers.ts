@@ -10,7 +10,7 @@ import Bluebird from "bluebird"
 import { intersection, flatten, uniqBy } from "lodash"
 import { DeployTask } from "./deploy"
 import { Garden } from "../garden"
-import { Module } from "../types/module"
+import { GardenModule } from "../types/module"
 import { ConfigGraph } from "../config-graph"
 import { LogEntry } from "../logger/log-entry"
 import { BaseTask } from "./base"
@@ -31,7 +31,7 @@ export async function getModuleWatchTasks({
   garden: Garden
   log: LogEntry
   graph: ConfigGraph
-  module: Module
+  module: GardenModule
   hotReloadServiceNames: string[]
 }): Promise<BaseTask[]> {
   let buildTasks: BaseTask[] = []
