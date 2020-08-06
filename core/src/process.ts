@@ -10,7 +10,7 @@ import Bluebird from "bluebird"
 import chalk from "chalk"
 import { keyBy, flatten } from "lodash"
 
-import { Module } from "./types/module"
+import { GardenModule } from "./types/module"
 import { BaseTask } from "./tasks/base"
 import { GraphResults } from "./task-graph"
 import { isModuleLinked } from "./util/ext-source-util"
@@ -22,7 +22,7 @@ import { ConfigurationError } from "./exceptions"
 import { uniqByName } from "./util/util"
 import { printEmoji, renderDivider } from "./logger/util"
 
-export type ProcessHandler = (graph: ConfigGraph, module: Module) => Promise<BaseTask[]>
+export type ProcessHandler = (graph: ConfigGraph, module: GardenModule) => Promise<BaseTask[]>
 
 interface ProcessParams {
   garden: Garden
@@ -36,7 +36,7 @@ interface ProcessParams {
 }
 
 export interface ProcessModulesParams extends ProcessParams {
-  modules: Module[]
+  modules: GardenModule[]
 }
 
 export interface ProcessResults {

@@ -17,7 +17,7 @@ import {
   ContainerTaskSpec,
 } from "../container/config"
 import { joiArray, joiProviderName, joi, joiModuleIncludeDirective } from "../../config/common"
-import { Module } from "../../types/module"
+import { GardenModule } from "../../types/module"
 import { resolve } from "path"
 import { RuntimeError, ConfigurationError } from "../../exceptions"
 import { containerHelpers } from "../container/helpers"
@@ -54,7 +54,7 @@ export interface MavenContainerModule<
   S extends ContainerServiceSpec = ContainerServiceSpec,
   T extends ContainerTestSpec = ContainerTestSpec,
   W extends ContainerTaskSpec = ContainerTaskSpec
-> extends Module<M, S, T, W> {}
+> extends GardenModule<M, S, T, W> {}
 
 const mavenKeys = {
   imageVersion: joi

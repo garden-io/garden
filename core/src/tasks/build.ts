@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 import chalk from "chalk"
-import { Module, getModuleKey } from "../types/module"
+import { GardenModule, getModuleKey } from "../types/module"
 import { BuildResult } from "../types/plugin/module/build"
 import { BaseTask, TaskType } from "../tasks/base"
 import { Garden } from "../garden"
@@ -22,7 +22,7 @@ export interface BuildTaskParams {
   garden: Garden
   graph: ConfigGraph
   log: LogEntry
-  module: Module
+  module: GardenModule
   force: boolean
 }
 
@@ -32,7 +32,7 @@ export class BuildTask extends BaseTask {
   concurrencyLimit = 5
 
   private graph: ConfigGraph
-  private module: Module
+  private module: GardenModule
 
   constructor({ garden, graph, log, module, force }: BuildTaskParams & { _guard: true }) {
     // Note: The _guard attribute is to prevent accidentally bypassing the factory method
@@ -80,7 +80,7 @@ export class BuildTask extends BaseTask {
     const deps = this.graph.getDependencies({ nodeType: "build", name: this.getName(), recursive: false })
 
     const buildTasks = flatten(
-      await Bluebird.map(deps.build, async (m: Module) => {
+      await Bluebird.map(deps.build, async (m: GardenModule) => {
         return BuildTask.factory({
           garden: this.garden,
           graph: this.graph,

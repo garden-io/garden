@@ -9,7 +9,7 @@
 import { LogEntry } from "../../logger/log-entry"
 import { PluginContext, pluginContextSchema } from "../../plugin-context"
 import { joi, joiArray, joiIdentifier, joiIdentifierDescription } from "../../config/common"
-import { Module, moduleSchema } from "../module"
+import { GardenModule, moduleSchema } from "../module"
 import { logEntrySchema } from "./base"
 
 // TODO: parse args and opts with a schema
@@ -17,7 +17,7 @@ export interface PluginCommandParams {
   ctx: PluginContext
   args: string[]
   log: LogEntry
-  modules: Module[]
+  modules: GardenModule[]
 }
 
 export const pluginParamsSchema = () =>

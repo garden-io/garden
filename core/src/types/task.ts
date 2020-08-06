@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Module } from "./module"
+import { GardenModule } from "./module"
 import { TaskConfig } from "../config/task"
 
-export interface Task<M extends Module = Module> {
+export interface Task<M extends GardenModule = GardenModule> {
   name: string
   description?: string
   module: M
@@ -18,7 +18,7 @@ export interface Task<M extends Module = Module> {
   spec: M["taskConfigs"][0]["spec"]
 }
 
-export function taskFromConfig<M extends Module = Module>(module: M, config: TaskConfig): Task<M> {
+export function taskFromConfig<M extends GardenModule = GardenModule>(module: M, config: TaskConfig): Task<M> {
   return {
     name: config.name,
     module,

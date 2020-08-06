@@ -11,7 +11,7 @@ import semver from "semver"
 import { isAbsolute, join, parse, resolve, sep, relative } from "path"
 import { emptyDir, ensureDir } from "fs-extra"
 import { ConfigurationError, RuntimeError } from "./exceptions"
-import { FileCopySpec, Module, getModuleKey } from "./types/module"
+import { FileCopySpec, GardenModule, getModuleKey } from "./types/module"
 import { normalizeLocalRsyncPath, normalizeRelativePath } from "./util/fs"
 import { LogEntry } from "./logger/log-entry"
 import { ModuleConfig } from "./config/module"
@@ -91,7 +91,7 @@ export class BuildDir {
     return new BuildDir(projectRoot, buildDirPath, buildMetadataDirPath)
   }
 
-  async syncFromSrc(module: Module, log: LogEntry) {
+  async syncFromSrc(module: GardenModule, log: LogEntry) {
     // We don't sync local exec modules to the build dir
     if (isLocalExecModule(module)) {
       log.silly("Skipping syncing from source for local exec module")
@@ -111,7 +111,7 @@ export class BuildDir {
     })
   }
 
-  async syncDependencyProducts(module: Module, graph: ConfigGraph, log: LogEntry) {
+  async syncDependencyProducts(module: GardenModule, graph: ConfigGraph, log: LogEntry) {
     const buildPath = await this.buildPath(module)
     const buildDependencies = module.build.dependencies
 
@@ -154,7 +154,7 @@ export class BuildDir {
     await emptyDir(this.buildDirPath)
   }
 
-  async buildPath(moduleOrConfig: Module | ModuleConfig): Promise<string> {
+  async buildPath(moduleOrConfig: GardenModule | ModuleConfig): Promise<string> {
     // We don't stage the build for local exec modules, so the module path is effectively the build path.
     if (isLocalExecModule(moduleOrConfig)) {
       return moduleOrConfig.path
@@ -192,7 +192,7 @@ export class BuildDir {
     log,
     files,
   }: {
-    module: Module
+    module: GardenModule
     sourcePath: string
     destinationPath: string
     withDelete: boolean

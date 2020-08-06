@@ -7,7 +7,7 @@
  */
 
 import { dedent } from "../../../util/string"
-import { Module } from "../../module"
+import { GardenModule } from "../../module"
 import { PluginModuleActionParamsBase, artifactsPathSchema } from "../base"
 import { RuntimeContext } from "../../../runtime-context"
 import { ModuleVersion } from "../../../vcs/vcs"
@@ -15,7 +15,7 @@ import { testConfigSchema } from "../../../config/test"
 import { runModuleBaseSchema } from "./runModule"
 import { testResultSchema, testVersionSchema } from "./getTestResult"
 
-export interface TestModuleParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> {
+export interface TestModuleParams<T extends GardenModule = GardenModule> extends PluginModuleActionParamsBase<T> {
   artifactsPath: string
   interactive: boolean
   runtimeContext: RuntimeContext

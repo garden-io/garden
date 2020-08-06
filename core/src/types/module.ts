@@ -24,7 +24,7 @@ export interface FileCopySpec {
 /**
  * The Module interface adds several internally managed keys to the ModuleConfig type.
  */
-export interface Module<M extends {} = any, S extends {} = any, T extends {} = any, W extends {} = any>
+export interface GardenModule<M extends {} = any, S extends {} = any, T extends {} = any, W extends {} = any>
   extends ModuleConfig<M, S, T, W> {
   buildPath: string
   buildMetadataPath: string
@@ -82,7 +82,7 @@ export const moduleSchema = () =>
       .description("The names of all the tasks and services that the tasks in this module depend on."),
   })
 
-export interface ModuleMap<T extends Module = Module> {
+export interface ModuleMap<T extends GardenModule = GardenModule> {
   [key: string]: T
 }
 
@@ -93,13 +93,13 @@ export interface ModuleConfigMap<T extends ModuleConfig = ModuleConfig> {
 export async function moduleFromConfig(
   garden: Garden,
   config: ModuleConfig,
-  buildDependencies: Module[]
-): Promise<Module> {
+  buildDependencies: GardenModule[]
+): Promise<GardenModule> {
   const version = await garden.resolveVersion(config, config.build.dependencies)
   const moduleTypes = await garden.getModuleTypes()
   const compatibleTypes = [config.type, ...getModuleTypeBases(moduleTypes[config.type], moduleTypes).map((t) => t.name)]
 
-  const module: Module = {
+  const module: GardenModule = {
     ...cloneDeep(config),
 
     buildPath: await garden.buildDir.buildPath(config),

@@ -19,7 +19,7 @@ import { getModuleWatchTasks } from "../tasks/helpers"
 import { Command, CommandResult, CommandParams, handleProcessResults, PrepareParams } from "./base"
 import { STATIC_DIR } from "../constants"
 import { processModules } from "../process"
-import { Module } from "../types/module"
+import { GardenModule } from "../types/module"
 import { getTestTasks } from "../tasks/test"
 import { ConfigGraph } from "../config-graph"
 import { getHotReloadServiceNames, validateHotReloadServiceNames } from "./helpers"
@@ -144,7 +144,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       modules,
       watch: true,
       initialTasks,
-      changeHandler: async (updatedGraph: ConfigGraph, module: Module) => {
+      changeHandler: async (updatedGraph: ConfigGraph, module: GardenModule) => {
         return getDevCommandWatchTasks({
           garden,
           log,
@@ -172,7 +172,7 @@ export async function getDevCommandInitialTasks({
   garden: Garden
   log: LogEntry
   graph: ConfigGraph
-  modules: Module[]
+  modules: GardenModule[]
   hotReloadServiceNames: string[]
   skipTests: boolean
 }) {
@@ -235,7 +235,7 @@ export async function getDevCommandWatchTasks({
   garden: Garden
   log: LogEntry
   updatedGraph: ConfigGraph
-  module: Module
+  module: GardenModule
   hotReloadServiceNames: string[]
   testNames: string[] | undefined
   skipTests: boolean
@@ -249,7 +249,7 @@ export async function getDevCommandWatchTasks({
   })
 
   if (!skipTests) {
-    const testModules: Module[] = await updatedGraph.withDependantModules([module])
+    const testModules: GardenModule[] = await updatedGraph.withDependantModules([module])
     tasks.push(
       ...flatten(
         await Bluebird.map(testModules, (m) =>

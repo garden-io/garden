@@ -11,10 +11,10 @@ import { dedent } from "../../../util/string"
 import { joi, joiArray, joiIdentifier, joiIdentifierMap } from "../../../config/common"
 import { baseModuleSpecSchema, AddModuleSpec } from "../../../config/module"
 import { providerSchema, ProviderMap } from "../../../config/provider"
-import { Module, moduleSchema } from "../../module"
+import { GardenModule, moduleSchema } from "../../module"
 
 export interface AugmentGraphParams extends PluginActionParamsBase {
-  modules: Module[]
+  modules: GardenModule[]
   providers: ProviderMap
 }
 

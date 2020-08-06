@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Module } from "../../types/module"
+import { GardenModule } from "../../types/module"
 import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "../../types/plugin/provider/prepareEnvironment"
 import { ConfigurationError } from "../../exceptions"
 import { ExecTestSpec } from "../exec"
@@ -21,7 +21,7 @@ export interface GoogleCloudModule<
   M extends ModuleSpec = ModuleSpec,
   S extends CommonServiceSpec = CommonServiceSpec,
   T extends ExecTestSpec = ExecTestSpec
-> extends Module<M, S, T> {}
+> extends GardenModule<M, S, T> {}
 
 export async function getEnvironmentStatus() {
   let sdkInfo: any

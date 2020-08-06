@@ -8,7 +8,7 @@
 
 import { LogEntry } from "../../logger/log-entry"
 import { PluginContext, pluginContextSchema } from "../../plugin-context"
-import { Module, moduleSchema } from "../module"
+import { GardenModule, moduleSchema } from "../module"
 import { RuntimeContext, runtimeContextSchema } from "../../runtime-context"
 import { Service, serviceSchema } from "../service"
 import { Task } from "../task"
@@ -37,7 +37,7 @@ export const actionParamsSchema = () =>
     log: logEntrySchema(),
   })
 
-export interface PluginModuleActionParamsBase<T extends Module = Module> extends PluginActionParamsBase {
+export interface PluginModuleActionParamsBase<T extends GardenModule = GardenModule> extends PluginActionParamsBase {
   module: T
 }
 export const moduleActionParamsSchema = () =>
@@ -45,8 +45,10 @@ export const moduleActionParamsSchema = () =>
     module: moduleSchema(),
   })
 
-export interface PluginServiceActionParamsBase<M extends Module = Module, S extends Module = Module>
-  extends PluginModuleActionParamsBase<M> {
+export interface PluginServiceActionParamsBase<
+  M extends GardenModule = GardenModule,
+  S extends GardenModule = GardenModule
+> extends PluginModuleActionParamsBase<M> {
   runtimeContext?: RuntimeContext
   service: Service<M, S>
 }
@@ -56,7 +58,8 @@ export const serviceActionParamsSchema = () =>
     service: serviceSchema(),
   })
 
-export interface PluginTaskActionParamsBase<T extends Module = Module> extends PluginModuleActionParamsBase<T> {
+export interface PluginTaskActionParamsBase<T extends GardenModule = GardenModule>
+  extends PluginModuleActionParamsBase<T> {
   task: Task<T>
 }
 export const taskActionParamsSchema = () =>

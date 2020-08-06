@@ -11,7 +11,7 @@ import { pathExists } from "fs-extra"
 import { joi } from "../../config/common"
 import { dedent, deline } from "../../util/string"
 import { supportedVersions } from "./cli"
-import { Module } from "../../types/module"
+import { GardenModule } from "../../types/module"
 import { ConfigureModuleParams } from "../../types/plugin/module/configure"
 import { ConfigurationError } from "../../exceptions"
 import { dependenciesSchema } from "../../config/service"
@@ -27,7 +27,7 @@ export interface TerraformModuleSpec extends TerraformBaseSpec {
   root: string
 }
 
-export interface TerraformModule extends Module<TerraformModuleSpec> {}
+export interface TerraformModule extends GardenModule<TerraformModuleSpec> {}
 
 export const schema = joi.object().keys({
   build: baseBuildSpecSchema(),

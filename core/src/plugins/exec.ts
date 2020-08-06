@@ -13,7 +13,7 @@ import cpy = require("cpy")
 import { joiArray, joiEnvVars, joi } from "../config/common"
 import { validateWithPath, ArtifactSpec } from "../config/validation"
 import { createGardenPlugin } from "../types/plugin/plugin"
-import { Module, getModuleKey } from "../types/module"
+import { GardenModule, getModuleKey } from "../types/module"
 import { CommonServiceSpec } from "../config/service"
 import { BaseTestSpec, baseTestSpecSchema } from "../config/test"
 import { writeModuleVersionFile } from "../vcs/vcs"
@@ -160,7 +160,7 @@ export const execModuleSpecSchema = () =>
     .unknown(false)
     .description("The module specification for an exec module.")
 
-export interface ExecModule extends Module<ExecModuleSpec, CommonServiceSpec, ExecTestSpec, ExecTaskSpec> {}
+export interface ExecModule extends GardenModule<ExecModuleSpec, CommonServiceSpec, ExecTestSpec, ExecTaskSpec> {}
 
 export async function configureExecModule({
   ctx,

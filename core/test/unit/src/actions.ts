@@ -21,7 +21,7 @@ import { expectError, makeTestGardenA, stubModuleAction, projectRootA, TestGarde
 import { ActionRouter } from "../../../src/actions"
 import { Garden } from "../../../src/garden"
 import { LogEntry } from "../../../src/logger/log-entry"
-import { Module } from "../../../src/types/module"
+import { GardenModule } from "../../../src/types/module"
 import { ServiceLogEntry } from "../../../src/types/plugin/service/getServiceLogs"
 import Stream from "ts-stream"
 import { Task } from "../../../src/types/task"
@@ -44,7 +44,7 @@ describe("ActionRouter", () => {
   let garden: TestGarden
   let log: LogEntry
   let actions: ActionRouter
-  let module: Module
+  let module: GardenModule
   let service: Service
   let runtimeContext: RuntimeContext
   let task: Task

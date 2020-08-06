@@ -8,10 +8,10 @@
 
 import { PluginServiceActionParamsBase, serviceActionParamsSchema } from "../base"
 import { dedent } from "../../../util/string"
-import { Module } from "../../module"
+import { GardenModule } from "../../module"
 import { joiArray, joi } from "../../../config/common"
 
-export interface ExecInServiceParams<M extends Module = Module, S extends Module = Module>
+export interface ExecInServiceParams<M extends GardenModule = GardenModule, S extends GardenModule = GardenModule>
   extends PluginServiceActionParamsBase<M, S> {
   command: string[]
   interactive: boolean
