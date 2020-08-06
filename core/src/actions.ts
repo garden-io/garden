@@ -19,7 +19,7 @@ import { SetSecretParams, SetSecretResult } from "./types/plugin/provider/setSec
 import { validateSchema } from "./config/validation"
 import { defaultProvider } from "./config/provider"
 import { ParameterError, PluginError, InternalError, RuntimeError } from "./exceptions"
-import { Garden } from "./garden"
+import { Garden, ModuleActionMap } from "./garden"
 import { LogEntry } from "./logger/log-entry"
 import { Module } from "./types/module"
 import {
@@ -60,6 +60,8 @@ import {
   getPluginActionDescriptions,
   getModuleActionDescriptions,
   PluginActionDescriptions,
+  ModuleActionHandler,
+  ActionHandler,
 } from "./types/plugin/plugin"
 import { CleanupEnvironmentParams } from "./types/plugin/provider/cleanupEnvironment"
 import { DeleteSecretParams, DeleteSecretResult } from "./types/plugin/provider/deleteSecret"
@@ -128,7 +130,7 @@ export interface DeployServicesParams {
 @Profile()
 export class ActionRouter implements TypeGuard {
   private readonly actionHandlers: WrappedPluginActionMap
-  private readonly moduleActionHandlers: WrappedModuleActionMap
+  private readonly moduleActionHandlers: ModuleActionMap
   private readonly loadedPlugins: PluginMap
   private readonly pluginActionDescriptions: PluginActionDescriptions
   private readonly moduleActionDescriptions: PluginActionDescriptions
@@ -952,7 +954,7 @@ export class ActionRouter implements TypeGuard {
 
     // Wrap the handler with identifying attributes
     const wrapped = Object.assign(
-      <WrappedModuleActionHandlers[T]>(async (...args: any[]) => {
+      <ModuleActionHandlers[T]>(async (...args: any[]) => {
         const result = await handler.apply(plugin, args)
         if (result === undefined) {
           throw new PluginError(`Got empty response from ${moduleType}.${actionType} handler on ${pluginName}`, {
@@ -987,7 +989,7 @@ export class ActionRouter implements TypeGuard {
    * Recursively wraps the base handler (if any) on an action handler, such that the base handler receives the _next_
    * base handler as the `base` parameter when called from within the handler.
    */
-  private wrapBase<T extends WrappedActionHandler<any, any> | WrappedModuleActionHandler<any, any>>(
+  private wrapBase<T extends ActionHandler<any, any> | ModuleActionHandler<any, any>>(
     handler?: T
   ): T | undefined {
     if (!handler) {

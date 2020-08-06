@@ -3022,6 +3022,10 @@ describe("Garden", () => {
                   moduleConfig.serviceConfigs = [
                     {
                       name: moduleConfig.name,
+                      dependencies: [],
+                      disabled: false,
+                      hotReloadable: false,
+                      spec: {},
                     },
                   ]
                   return { moduleConfig }
@@ -3128,6 +3132,10 @@ describe("Garden", () => {
                   moduleConfig.serviceConfigs = [
                     {
                       name: moduleConfig.name,
+                      dependencies: [],
+                      disabled: false,
+                      hotReloadable: false,
+                      spec: {},
                     },
                   ]
                   return { moduleConfig }
@@ -3206,6 +3214,10 @@ describe("Garden", () => {
                   moduleConfig.serviceConfigs = [
                     {
                       name: moduleConfig.name,
+                      dependencies: [],
+                      disabled: false,
+                      hotReloadable: false,
+                      spec: {},
                     },
                   ]
                   return { moduleConfig }
