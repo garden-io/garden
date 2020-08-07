@@ -473,6 +473,28 @@ describe("RunWorkflowCommand", () => {
     expect(result?.steps["step-1"].log).to.equal(garden.projectRoot)
   })
 
+  it("should skip disabled steps", async () => {
+    garden.setWorkflowConfigs([
+      {
+        apiVersion: DEFAULT_API_VERSION,
+        name: "workflow-a",
+        kind: "Workflow",
+        path: garden.projectRoot,
+        files: [],
+        steps: [{ script: "pwd" }, { script: "echo fail!; exit 1", skip: true }],
+      },
+    ])
+
+    await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
+
+    const { result, errors } = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
+
+    expect(result).to.exist
+    expect(errors).to.not.exist
+    expect(result?.steps["step-2"].outputs).to.eql({})
+    expect(result?.steps["step-2"].log).to.equal("")
+  })
+
   it("should collect log outputs, including stderr, from a script step", async () => {
     garden.setWorkflowConfigs([
       {

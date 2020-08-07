@@ -97,6 +97,17 @@ export class RunWorkflowCommand extends Command<Args, {}> {
       const stepBodyLog = outerLog.placeholder({ indent: 1, metadata })
       const stepFooterLog = outerLog.placeholder({ indent: 1, metadata })
       garden.log.setState({ metadata })
+
+      if (step.skip) {
+        stepBodyLog.setState(chalk.yellow(`Skipping`))
+        result.steps[stepName] = {
+          number: index + 1,
+          outputs: {},
+          log: "",
+        }
+        continue
+      }
+
       let stepResult: CommandResult
       const inheritedOpts = cloneDeep(opts)
 
