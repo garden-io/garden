@@ -382,9 +382,9 @@ The namespace to deploy the PVC in. Note that any module referencing the PVC mus
 
 The spec for the PVC. This is passed directly to the created PersistentVolumeClaim resource. Note that the spec schema may include (or even require) additional fields, depending on the used `storageClass`. See the [PersistentVolumeClaim docs](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) for details.
 
-| Type           | Required |
-| -------------- | -------- |
-| `customObject` | Yes      |
+| Type     | Required |
+| -------- | -------- |
+| `object` | Yes      |
 
 ### `spec.accessModes[]`
 

@@ -141,6 +141,50 @@ When the nested expression is a simple key lookup like above, you can also just 
 
 You can even use one variable to index another variable, e.g. `${var.a[var.b]}`.
 
+### Merging maps
+
+Any object or mapping field supports a special `$merge` key, which allows you to merge two objects together. This can be used to avoid repeating a set of commonly repeated values.
+
+Here's an example where we share a common set of environment variables for two services:
+
+```yaml
+kind: Project
+...
+variables:
+  - commonEnvVars:
+      LOG_LEVEL: info
+      SOME_API_KEY: abcdefg
+      EXTERNAL_API_URL: http://api.example.com
+  ...
+```
+
+```yaml
+kind: Module
+type: container
+name: service-a
+...
+services:
+  env:
+    $merge: ${var.commonEnvVars}
+    OTHER_ENV_VAR: something
+    LOG_LEVEL: debug  # <- This overrides the value set in commonEnvVars, because it is below the $merge key
+  ...
+```
+
+```yaml
+kind: Module
+type: container
+name: service-b
+...
+services:
+  env:
+    SOME_API_KEY: default # <- Because this is above the $merge key, the API_KEY from commonEnvVars will override this
+    $merge: ${var.commonEnvVars}
+  ...
+```
+
+Notice above that the position of the `$merge` key matters. If the keys being merged overlap between the two objects, the value that's defined later is chosen.
+
 ### Optional values
 
 In some cases, you may want to provide configuration values only for certain cases, e.g. only for specific environments. By default, an error is thrown when a template string resolves to an undefined value, but you can explicitly allow that by adding a `?` after the template.

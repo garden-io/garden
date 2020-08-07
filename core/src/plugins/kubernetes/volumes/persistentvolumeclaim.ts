@@ -54,7 +54,7 @@ export const pvcModuleDefinition: ModuleTypeDefinition = {
       "The namespace to deploy the PVC in. Note that any module referencing the PVC must be in the same namespace, so in most cases you should leave this unset."
     ),
     spec: joi
-      .customObject()
+      .object()
       .jsonSchema({ ...jsonSchema.properties.spec, type: "object" })
       .required()
       .description(
