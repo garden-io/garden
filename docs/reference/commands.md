@@ -1223,11 +1223,17 @@ workflowConfigs:
         # A description of the workflow step.
         description:
 
-        # A bash script to run. Note that the host running the workflow must have bash installed and on path. It is
-        # considered to have run successfully if it returns an exit code of 0. Any other exit code signals an error,
+        # A bash script to run. Note that the host running the workflow must have bash installed and on path.
+        # It is considered to have run successfully if it returns an exit code of 0. Any other exit code signals an
+        # error,
         # and the remainder of the workflow is aborted.
+        #
         # The script may include template strings, including references to previous steps.
         script:
+
+        # Set to true to skip this step. Use this with template conditionals to skip steps for certain environments or
+        # scenarios.
+        skip:
 
     # A list of triggers that determine when the workflow should be run, and which environment should be used (Garden
     # Enterprise only).

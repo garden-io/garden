@@ -41,7 +41,10 @@ describe("resolveWorkflowConfig", () => {
       name: "workflow-a",
       path: "/tmp/foo",
       description: "Sample workflow",
-      steps: [{ description: "Deploy the stack", command: ["deploy"] }, { command: ["test"] }],
+      steps: [
+        { description: "Deploy the stack", command: ["deploy"], skip: false },
+        { command: ["test"], skip: false },
+      ],
       triggers: [
         {
           environment: "local",
@@ -68,7 +71,10 @@ describe("resolveWorkflowConfig", () => {
       name: "workflow-a",
       path: "/tmp/foo",
       description: "Secret: ${secrets.foo}, var: ${variables.foo}",
-      steps: [{ description: "Deploy the stack", command: ["deploy"] }, { command: ["test"] }],
+      steps: [
+        { description: "Deploy the stack", command: ["deploy"], skip: false },
+        { command: ["test"], skip: false },
+      ],
     }
 
     expect(resolveWorkflowConfig(garden, config)).to.eql({
@@ -87,7 +93,14 @@ describe("resolveWorkflowConfig", () => {
       steps: [{ description: "Deploy the stack", command: ["deploy"] }, { command: ["test"] }],
     }
 
-    expect(resolveWorkflowConfig(garden, config)).to.eql({ ...config, ...defaults })
+    expect(resolveWorkflowConfig(garden, config)).to.eql({
+      ...config,
+      ...defaults,
+      steps: [
+        { description: "Deploy the stack", command: ["deploy"], skip: false },
+        { command: ["test"], skip: false },
+      ],
+    })
   })
 
   it("should throw if a step uses an invalid/unsupported command", async () => {
