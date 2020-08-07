@@ -3075,6 +3075,7 @@ describe("Garden", () => {
             dependencies: ["bar"],
             disabled: false,
             hotReloadable: false,
+            spec: {},
           },
         ])
         expect(module.spec).to.eql({ foo: "bar", build: { dependencies: [] } })
@@ -3197,6 +3198,7 @@ describe("Garden", () => {
             dependencies: ["bar"],
             disabled: false,
             hotReloadable: false,
+            spec: {},
           },
         ])
       })

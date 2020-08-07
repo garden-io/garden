@@ -144,109 +144,107 @@ export async function configureTestModule({ moduleConfig }: ConfigureModuleParam
   return { moduleConfig }
 }
 
-export const testPlugin = createGardenPlugin(() => {
-  const secrets: { [key: string]: string } = {}
+const testPluginSecrets: { [key: string]: string } = {}
 
-  return {
-    name: "test-plugin",
-    handlers: {
-      async configureProvider({ config }: ConfigureProviderParams) {
-        for (let member in secrets) {
-          delete secrets[member]
-        }
-        return { config }
-      },
-
-      async prepareEnvironment() {
-        return { status: { ready: true, outputs: {} } }
-      },
-
-      async setSecret({ key, value }: SetSecretParams) {
-        secrets[key] = "" + value
-        return {}
-      },
-
-      async getSecret({ key }: GetSecretParams) {
-        return { value: secrets[key] || null }
-      },
-
-      async deleteSecret({ key }: DeleteSecretParams) {
-        if (secrets[key]) {
-          delete secrets[key]
-          return { found: true }
-        } else {
-          return { found: false }
-        }
-      },
-      async getDebugInfo() {
-        return {
-          info: {
-            exampleData: "data",
-            exampleData2: "data2",
-          },
-        }
-      },
+export const testPlugin = createGardenPlugin({
+  name: "test-plugin",
+  handlers: {
+    async configureProvider({ config }: ConfigureProviderParams) {
+      for (let member in testPluginSecrets) {
+        delete testPluginSecrets[member]
+      }
+      return { config }
     },
-    createModuleTypes: [
-      {
-        name: "test",
-        docs: "Test module type",
-        schema: testModuleSpecSchema(),
-        handlers: {
-          testModule: testExecModule,
-          configure: configureTestModule,
-          build: buildExecModule,
-          runModule,
 
-          async getServiceStatus() {
-            return { state: "ready", detail: {} }
-          },
-          async deployService() {
-            return { state: "ready", detail: {} }
-          },
+    async prepareEnvironment() {
+      return { status: { ready: true, outputs: {} } }
+    },
 
-          async runService({
+    async setSecret({ key, value }: SetSecretParams) {
+      testPluginSecrets[key] = "" + value
+      return {}
+    },
+
+    async getSecret({ key }: GetSecretParams) {
+      return { value: testPluginSecrets[key] || null }
+    },
+
+    async deleteSecret({ key }: DeleteSecretParams) {
+      if (testPluginSecrets[key]) {
+        delete testPluginSecrets[key]
+        return { found: true }
+      } else {
+        return { found: false }
+      }
+    },
+    async getDebugInfo() {
+      return {
+        info: {
+          exampleData: "data",
+          exampleData2: "data2",
+        },
+      }
+    },
+  },
+  createModuleTypes: [
+    {
+      name: "test",
+      docs: "Test module type",
+      schema: testModuleSpecSchema(),
+      handlers: {
+        testModule: testExecModule,
+        configure: configureTestModule,
+        build: buildExecModule,
+        runModule,
+
+        async getServiceStatus() {
+          return { state: "ready", detail: {} }
+        },
+        async deployService() {
+          return { state: "ready", detail: {} }
+        },
+
+        async runService({
+          ctx,
+          service,
+          interactive,
+          runtimeContext,
+          timeout,
+          log,
+        }: RunServiceParams): Promise<RunResult> {
+          return runModule({
             ctx,
-            service,
+            log,
+            module: service.module,
+            args: [service.name],
             interactive,
             runtimeContext,
             timeout,
+          })
+        },
+
+        async runTask({ ctx, task, interactive, runtimeContext, log }: RunTaskParams): Promise<RunTaskResult> {
+          const result = await runModule({
+            ctx,
+            interactive,
             log,
-          }: RunServiceParams): Promise<RunResult> {
-            return runModule({
-              ctx,
-              log,
-              module: service.module,
-              args: [service.name],
-              interactive,
-              runtimeContext,
-              timeout,
-            })
-          },
+            runtimeContext,
+            module: task.module,
+            args: task.spec.command,
+            timeout: task.spec.timeout || 9999,
+          })
 
-          async runTask({ ctx, task, interactive, runtimeContext, log }: RunTaskParams): Promise<RunTaskResult> {
-            const result = await runModule({
-              ctx,
-              interactive,
-              log,
-              runtimeContext,
-              module: task.module,
-              args: task.spec.command,
-              timeout: task.spec.timeout || 9999,
-            })
-
-            return {
-              ...result,
-              taskName: task.name,
-              outputs: {
-                log: result.log,
-              },
-            }
-          },
+          return {
+            ...result,
+            taskName: task.name,
+            outputs: {
+              log: result.log,
+            },
+          }
         },
       },
-    ],
-  }
+    },
+  ],
 })
 
 export const testPluginB = createGardenPlugin({

@@ -41,65 +41,58 @@ const placeholderTaskResult = (moduleName: string, taskName: string, command: st
   },
 })
 
-const testProvider = () =>
-  createGardenPlugin(() => {
-    const testStatuses: { [key: string]: ServiceStatus } = {
-      "service-a": {
-        state: "ready",
-        ingresses: [
-          {
-            hostname: "service-a.test-project-b.local.app.garden",
-            path: "/path-a",
-            port: 80,
-            protocol: "http",
-          },
-        ],
-        detail: {},
-      },
-      "service-c": {
-        state: "ready",
-        detail: {},
-      },
-    }
-
-    const getServiceStatus = async ({ service }: GetServiceStatusParams): Promise<ServiceStatus> => {
-      return testStatuses[service.name] || { state: "unknown", detail: {} }
-    }
-
-    const deployService = async ({ service }: DeployServiceParams) => {
-      const newStatus = {
-        version: "1",
-        state: <ServiceState>"ready",
-        detail: {},
-      }
-
-      testStatuses[service.name] = newStatus
-
-      return newStatus
-    }
-
-    const runTask = async ({ task }: RunTaskParams): Promise<RunTaskResult> => {
-      return placeholderTaskResult(task.module.name, task.name, task.spec.command)
-    }
-
-    return {
-      name: "test-plugin",
-      createModuleTypes: [
+const testProvider = () => {
+  const testStatuses: { [key: string]: ServiceStatus } = {
+    "service-a": {
+      state: "ready",
+      ingresses: [
         {
-          name: "test",
-          docs: "Test plugin",
-          schema: testModuleSpecSchema(),
-          handlers: {
-            configure: configureTestModule,
-            build: buildExecModule,
-            deployService,
-            getServiceStatus,
-            runTask,
-          },
+          hostname: "service-a.test-project-b.local.app.garden",
+          path: "/path-a",
+          port: 80,
+          protocol: "http",
         },
       ],
-    }
+      detail: {},
+    },
+    "service-c": {
+      state: "ready",
+      detail: {},
+    },
+  }
+
+  return createGardenPlugin({
+    name: "test-plugin",
+    createModuleTypes: [
+      {
+        name: "test",
+        docs: "Test plugin",
+        schema: testModuleSpecSchema(),
+        handlers: {
+          configure: configureTestModule,
+          build: buildExecModule,
+          deployService: async ({ service }: DeployServiceParams) => {
+            const newStatus = {
+              version: "1",
+              state: <ServiceState>"ready",
+              detail: {},
+            }
+
+            testStatuses[service.name] = newStatus
+
+            return newStatus
+          },
+          getServiceStatus: async ({ service }: GetServiceStatusParams): Promise<ServiceStatus> => {
+            return testStatuses[service.name] || { state: "unknown", detail: {} }
+          },
+          runTask: async ({ task }: RunTaskParams): Promise<RunTaskResult> => {
+            return placeholderTaskResult(task.module.name, task.name, task.spec.command)
+          },
+        },
+      },
+    ],
   })
+}
 
 describe("DeployCommand", () => {
   const plugins = [testProvider()]
