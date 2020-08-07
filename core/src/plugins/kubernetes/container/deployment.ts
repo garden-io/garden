@@ -7,10 +7,10 @@
  */
 
 import chalk from "chalk"
-import { V1Container, V1Affinity, V1VolumeMount, V1PodSpec } from "@kubernetes/client-node"
+import { V1Container, V1Affinity, V1VolumeMount, V1PodSpec, V1Deployment, V1DaemonSet } from "@kubernetes/client-node"
 import { Service } from "../../../types/service"
-import { extend, find, keyBy, merge, set } from "lodash"
-import { ContainerModule, ContainerService, ContainerVolumeSpec } from "../../container/config"
+import { extend, find, keyBy, merge, set, omit } from "lodash"
+import { ContainerModule, ContainerService, ContainerVolumeSpec, ContainerServiceConfig } from "../../container/config"
 import { createIngressResources } from "./ingress"
 import { createServiceResources } from "./service"
 import { waitForResources, compareDeployedResources } from "../status/status"
@@ -20,7 +20,7 @@ import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
 import { KubernetesProvider, KubernetesPluginContext } from "../config"
 import { configureHotReload } from "../hot-reload"
-import { KubernetesWorkload } from "../types"
+import { KubernetesWorkload, KubernetesResource } from "../types"
 import { ConfigurationError } from "../../../exceptions"
 import { getContainerServiceStatus, ContainerServiceStatus } from "./status"
 import { containerHelpers } from "../../container/helpers"
@@ -61,7 +61,14 @@ export async function deployContainerServiceRolling(
 
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
-  const { manifests } = await createContainerManifests(k8sCtx, log, service, runtimeContext, hotReload)
+  const { manifests } = await createContainerManifests({
+    ctx: k8sCtx,
+    log,
+    service,
+    runtimeContext,
+    enableHotReload: hotReload,
+    blueGreen: false,
+  })
 
   const provider = k8sCtx.provider
   const pruneSelector = gardenAnnotationKey("service") + "=" + service.name
@@ -93,7 +100,14 @@ export async function deployContainerServiceBlueGreen(
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
   // Create all the resource manifests for the Garden service which will be deployed
-  const { manifests } = await createContainerManifests(k8sCtx, log, service, runtimeContext, hotReload)
+  const { manifests } = await createContainerManifests({
+    ctx: k8sCtx,
+    log,
+    service,
+    runtimeContext,
+    enableHotReload: hotReload,
+    blueGreen: true,
+  })
 
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, ctx, provider)
@@ -199,13 +213,21 @@ export async function deployContainerServiceBlueGreen(
   return status
 }
 
-export async function createContainerManifests(
-  ctx: PluginContext,
-  log: LogEntry,
-  service: ContainerService,
-  runtimeContext: RuntimeContext,
+export async function createContainerManifests({
+  ctx,
+  log,
+  service,
+  runtimeContext,
+  enableHotReload,
+  blueGreen,
+}: {
+  ctx: PluginContext
+  log: LogEntry
+  service: ContainerService
+  runtimeContext: RuntimeContext
   enableHotReload: boolean
-) {
+  blueGreen: boolean
+}) {
   const k8sCtx = <KubernetesPluginContext>ctx
   const version = service.module.version
   const provider = k8sCtx.provider
@@ -222,8 +244,9 @@ export async function createContainerManifests(
     enableHotReload,
     log,
     production,
+    blueGreen,
   })
-  const kubeservices = await createServiceResources(service, namespace)
+  const kubeservices = await createServiceResources(service, namespace, blueGreen)
 
   const manifests = [workload, ...kubeservices, ...ingresses]
 
@@ -246,6 +269,7 @@ interface CreateDeploymentParams {
   enableHotReload: boolean
   log: LogEntry
   production: boolean
+  blueGreen: boolean
 }
 
 export async function createWorkloadManifest({
@@ -257,10 +281,11 @@ export async function createWorkloadManifest({
   enableHotReload,
   log,
   production,
+  blueGreen,
 }: CreateDeploymentParams): Promise<KubernetesWorkload> {
   const spec = service.spec
   let configuredReplicas = service.spec.replicas || DEFAULT_MINIMUM_REPLICAS
-  const deployment: any = deploymentConfig(service, configuredReplicas, namespace)
+  const workload = workloadConfig({ service, configuredReplicas, namespace, blueGreen })
 
   if (production && !service.spec.replicas) {
     configuredReplicas = PRODUCTION_MINIMUM_REPLICAS
@@ -337,7 +362,7 @@ export async function createWorkloadManifest({
     },
   }
 
-  deployment.spec.template.spec.containers = [container]
+  workload.spec.template.spec.containers = [container]
 
   if (service.spec.command && service.spec.command.length > 0) {
     container.command = service.spec.command
@@ -352,7 +377,7 @@ export async function createWorkloadManifest({
   }
 
   if (spec.volumes && spec.volumes.length) {
-    configureVolumes(service.module, deployment.spec.template.spec, spec.volumes)
+    configureVolumes(service.module, workload.spec.template.spec, spec.volumes)
   }
 
   const ports = spec.ports
@@ -367,8 +392,8 @@ export async function createWorkloadManifest({
 
   if (spec.daemon) {
     // this runs a pod on every node
-    deployment.kind = "DaemonSet"
-    deployment.spec.updateStrategy = {
+    const daemonSet = <V1DaemonSet>workload
+    daemonSet.spec!.updateStrategy = {
       type: "RollingUpdate",
     }
 
@@ -383,9 +408,9 @@ export async function createWorkloadManifest({
       })
     }
   } else {
-    deployment.spec.replicas = configuredReplicas
+    workload.spec.replicas = configuredReplicas
 
-    deployment.spec.strategy = {
+    workload.spec.strategy = {
       type: "RollingUpdate",
       rollingUpdate: {
         // This is optimized for fast re-deployment.
@@ -393,12 +418,12 @@ export async function createWorkloadManifest({
         maxSurge: 1,
       },
     }
-    deployment.spec.revisionHistoryLimit = production ? REVISION_HISTORY_LIMIT_PROD : REVISION_HISTORY_LIMIT_DEFAULT
+    workload.spec.revisionHistoryLimit = production ? REVISION_HISTORY_LIMIT_PROD : REVISION_HISTORY_LIMIT_DEFAULT
   }
 
   if (provider.config.imagePullSecrets.length > 0) {
     // add any configured imagePullSecrets
-    deployment.spec.template.spec.imagePullSecrets = await prepareImagePullSecrets({ api, provider, namespace, log })
+    workload.spec.template.spec.imagePullSecrets = await prepareImagePullSecrets({ api, provider, namespace, log })
   }
 
   // this is important for status checks to work correctly, because how K8s normalizes resources
@@ -440,8 +465,8 @@ export async function createWorkloadManifest({
       fsGroup: 2000,
     }
 
-    deployment.spec.template.spec.affinity = affinity
-    deployment.spec.template.spec.securityContext = securityContext
+    workload.spec.template.spec.affinity = affinity
+    workload.spec.template.spec.securityContext = securityContext
   }
 
   if (enableHotReload) {
@@ -452,45 +477,67 @@ export async function createWorkloadManifest({
     }
 
     configureHotReload({
-      target: deployment,
+      target: workload,
       hotReloadSpec,
       hotReloadCommand: service.spec.hotReloadCommand,
       hotReloadArgs: service.spec.hotReloadArgs,
     })
   }
 
-  if (!deployment.spec.template.spec.volumes.length) {
+  if (!workload.spec.template.spec.volumes.length) {
     // this is important for status checks to work correctly
-    delete deployment.spec.template.spec.volumes
+    delete workload.spec.template.spec.volumes
   }
 
-  return deployment
+  return workload
 }
 
-function getDeploymentName(service: Service) {
-  return `${service.name}-${service.module.version.versionString}`
+function getDeploymentName(service: Service, blueGreen: boolean) {
+  return blueGreen ? `${service.name}-${service.module.version.versionString}` : service.name
 }
 
-function deploymentConfig(service: Service, configuredReplicas: number, namespace: string): object {
-  const labels = {
-    [gardenAnnotationKey("module")]: service.module.name,
-    [gardenAnnotationKey("service")]: service.name,
-    [gardenAnnotationKey("version")]: service.module.version.versionString,
-  }
-
-  let selector = {
-    matchLabels: {
+export function getDeploymentLabels(service: Service, blueGreen: boolean) {
+  if (blueGreen) {
+    return {
+      [gardenAnnotationKey("module")]: service.module.name,
       [gardenAnnotationKey("service")]: service.name,
       [gardenAnnotationKey("version")]: service.module.version.versionString,
-    },
+    }
+  } else {
+    return {
+      [gardenAnnotationKey("module")]: service.module.name,
+      [gardenAnnotationKey("service")]: service.name,
+    }
+  }
+}
+
+export function getDeploymentSelector(service: Service, blueGreen: boolean) {
+  // Unfortunately we need this because matchLabels is immutable, and we had omitted the module annotation before
+  // in the selector.
+  return omit(getDeploymentLabels(service, blueGreen), gardenAnnotationKey("module"))
+}
+
+function workloadConfig({
+  service,
+  configuredReplicas,
+  namespace,
+  blueGreen,
+}: {
+  service: ContainerService
+  configuredReplicas: number
+  namespace: string
+  blueGreen: boolean
+}): KubernetesResource<V1Deployment | V1DaemonSet> {
+  const labels = getDeploymentLabels(service, blueGreen)
+  const selector = {
+    matchLabels: getDeploymentSelector(service, blueGreen),
   }
 
-  // TODO: moar type-safety
   return {
-    kind: "Deployment",
+    kind: service.spec.daemon ? "DaemonSet" : "Deployment",
     apiVersion: "apps/v1",
     metadata: {
-      name: getDeploymentName(service),
+      name: getDeploymentName(service, blueGreen),
       annotations: {
         // we can use this to avoid overriding the replica count if it has been manually scaled
         "garden.io/configured.replicas": configuredReplicas.toString(),
@@ -519,7 +566,7 @@ function deploymentConfig(service: Service, configuredReplicas: number, namespac
   }
 }
 
-function configureHealthCheck(container, spec): void {
+function configureHealthCheck(container: V1Container, spec: ContainerServiceConfig["spec"]): void {
   const readinessPeriodSeconds = 1
   const readinessFailureThreshold = 90
 
@@ -545,18 +592,19 @@ function configureHealthCheck(container, spec): void {
 
   const portsByName = keyBy(spec.ports, "name")
 
-  if (spec.healthCheck.httpGet) {
+  if (spec.healthCheck?.httpGet) {
     const httpGet: any = extend({}, spec.healthCheck.httpGet)
     httpGet.port = portsByName[httpGet.port].containerPort
 
     container.readinessProbe.httpGet = httpGet
     container.livenessProbe.httpGet = httpGet
-  } else if (spec.healthCheck.command) {
+  } else if (spec.healthCheck?.command) {
     container.readinessProbe.exec = { command: spec.healthCheck.command.map((s) => s.toString()) }
     container.livenessProbe.exec = container.readinessProbe.exec
-  } else if (spec.healthCheck.tcpPort) {
+  } else if (spec.healthCheck?.tcpPort) {
     container.readinessProbe.tcpSocket = {
-      port: portsByName[spec.healthCheck.tcpPort].containerPort,
+      // For some reason the field is an object type
+      port: (portsByName[spec.healthCheck.tcpPort].containerPort as unknown) as object,
     }
     container.livenessProbe.tcpSocket = container.readinessProbe.tcpSocket
   } else {
