@@ -204,6 +204,7 @@ export async function hotReloadContainer({
     enableHotReload: true,
     production: k8sCtx.production,
     log,
+    blueGreen: provider.config.deploymentStrategy === "blue-green",
   })
   const selector = labelSelectorToString({
     [gardenAnnotationKey("service")]: service.name,

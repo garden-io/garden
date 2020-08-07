@@ -100,6 +100,7 @@ describe("util", () => {
           enableHotReload: false,
           log: garden.log,
           production: false,
+          blueGreen: false,
         })
         await garden.processTasks([deployTask], { throwOnError: true })
 

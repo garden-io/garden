@@ -33,6 +33,7 @@ export async function getServiceLogs(params: GetServiceLogsParams<ContainerModul
       enableHotReload: false,
       production: ctx.production,
       log,
+      blueGreen: provider.config.deploymentStrategy === "blue-green",
     }),
   ]
 

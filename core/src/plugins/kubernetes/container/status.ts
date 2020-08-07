@@ -46,7 +46,14 @@ export async function getContainerServiceStatus({
   const namespace = await getAppNamespace(k8sCtx, log, provider)
 
   // FIXME: [objects, matched] and ingresses can be run in parallel
-  const { workload, manifests } = await createContainerManifests(k8sCtx, log, service, runtimeContext, hotReload)
+  const { workload, manifests } = await createContainerManifests({
+    ctx: k8sCtx,
+    log,
+    service,
+    runtimeContext,
+    enableHotReload: hotReload,
+    blueGreen: provider.config.deploymentStrategy === "blue-green",
+  })
   const { state, remoteResources } = await compareDeployedResources(k8sCtx, api, namespace, manifests, log)
   const ingresses = await getIngresses(service, api, provider)
 
