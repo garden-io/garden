@@ -807,6 +807,77 @@ describe("resolveTemplateStrings", () => {
       },
     })
   })
+
+  it("should collapse $merge keys on objects", () => {
+    const obj = {
+      $merge: { a: "a", b: "b" },
+      b: "B",
+      c: "c",
+    }
+    const templateContext = new TestContext({})
+
+    const result = resolveTemplateStrings(obj, templateContext)
+
+    expect(result).to.eql({
+      a: "a",
+      b: "B",
+      c: "c",
+    })
+  })
+
+  it("should collapse $merge keys based on position on object", () => {
+    const obj = {
+      b: "B",
+      c: "c",
+      $merge: { a: "a", b: "b" },
+    }
+    const templateContext = new TestContext({})
+
+    const result = resolveTemplateStrings(obj, templateContext)
+
+    expect(result).to.eql({
+      a: "a",
+      b: "b",
+      c: "c",
+    })
+  })
+
+  it("should resolve $merge keys before collapsing", () => {
+    const obj = {
+      $merge: "${obj}",
+      b: "B",
+      c: "c",
+    }
+    const templateContext = new TestContext({ obj: { a: "a", b: "b" } })
+
+    const result = resolveTemplateStrings(obj, templateContext)
+
+    expect(result).to.eql({
+      a: "a",
+      b: "B",
+      c: "c",
+    })
+  })
+
+  it("should resolve $merge keys depth-first", () => {
+    const obj = {
+      b: "B",
+      c: "c",
+      $merge: {
+        $merge: "${obj}",
+        a: "a",
+      },
+    }
+    const templateContext = new TestContext({ obj: { b: "b" } })
+
+    const result = resolveTemplateStrings(obj, templateContext)
+
+    expect(result).to.eql({
+      a: "a",
+      b: "b",
+      c: "c",
+    })
+  })
 })
 
 describe("collectTemplateReferences", () => {
