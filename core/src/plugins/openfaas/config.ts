@@ -17,7 +17,7 @@ import { Service } from "../../types/service"
 import { ExecModuleSpecBase, ExecTestSpec } from "../exec"
 import { KubernetesProvider } from "../kubernetes/config"
 import { CommonServiceSpec } from "../../config/service"
-import { Provider, providerConfigBaseSchema, ProviderConfig, ProviderMap } from "../../config/provider"
+import { Provider, providerConfigBaseSchema, GenericProviderConfig, ProviderMap } from "../../config/provider"
 import { union } from "lodash"
 import { ContainerModule } from "../container/config"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../types/plugin/module/configure"
@@ -83,7 +83,7 @@ export interface OpenFaasModule extends GardenModule<OpenFaasModuleSpec, CommonS
 export type OpenFaasModuleConfig = OpenFaasModule["_config"]
 export interface OpenFaasService extends Service<OpenFaasModule> {}
 
-export interface OpenFaasConfig extends ProviderConfig {
+export interface OpenFaasConfig extends GenericProviderConfig {
   gatewayUrl: string
   hostname: string
   faasNetes: {

@@ -17,9 +17,12 @@ import { EnvironmentStatus } from "../types/plugin/provider/getEnvironmentStatus
 import { environmentStatusSchema } from "./status"
 import { PluginTools } from "../types/plugin/tools"
 
-export interface ProviderConfig {
+export interface BaseProviderConfig {
   name: string
   environments?: string[]
+}
+
+export interface GenericProviderConfig extends BaseProviderConfig {
   [key: string]: any
 }
 
@@ -48,7 +51,7 @@ export const providerConfigBaseSchema = () =>
     .meta({ extendable: true })
     .id("providerConfig")
 
-export interface Provider<T extends ProviderConfig = ProviderConfig> {
+export interface Provider<T extends BaseProviderConfig = BaseProviderConfig> {
   name: string
   dependencies: { [name: string]: Provider }
   environments?: string[]
@@ -78,7 +81,7 @@ export const providerSchema = () =>
     .id("provider")
 
 export interface ProviderMap {
-  [name: string]: Provider
+  [name: string]: Provider<GenericProviderConfig>
 }
 
 export const defaultProviders = [{ name: "container" }]
@@ -94,7 +97,7 @@ export const defaultProvider: Provider = {
 }
 
 export function providerFromConfig(
-  config: ProviderConfig,
+  config: GenericProviderConfig,
   dependencies: ProviderMap,
   moduleConfigs: ModuleConfig[],
   status: EnvironmentStatus,
@@ -114,14 +117,14 @@ export function providerFromConfig(
  * Given a plugin and its provider config, return a list of dependency names based on declared dependencies,
  * as well as implicit dependencies based on template strings.
  */
-export async function getAllProviderDependencyNames(plugin: GardenPlugin, config: ProviderConfig) {
+export async function getAllProviderDependencyNames(plugin: GardenPlugin, config: GenericProviderConfig) {
   return uniq([...(plugin.dependencies || []), ...(await getProviderTemplateReferences(config))]).sort()
 }
 
 /**
  * Given a provider config, return implicit dependencies based on template strings.
  */
-export async function getProviderTemplateReferences(config: ProviderConfig) {
+export async function getProviderTemplateReferences(config: GenericProviderConfig) {
   const references = collectTemplateReferences(config)
   const deps: string[] = []
 

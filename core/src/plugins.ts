@@ -14,7 +14,7 @@ import {
   pluginSchema,
   ModuleTypeMap,
 } from "./types/plugin/plugin"
-import { ProviderConfig } from "./config/provider"
+import { GenericProviderConfig } from "./config/provider"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
 import { uniq, mapValues, fromPairs, flatten, keyBy, some } from "lodash"
 import { findByName, pushToKey, getNames } from "./util/util"
@@ -23,7 +23,7 @@ import { validateSchema } from "./config/validation"
 import { LogEntry } from "./logger/log-entry"
 import { DependencyValidationGraph } from "./util/validate-dependencies"
 
-export function loadPlugins(log: LogEntry, registeredPlugins: PluginMap, configs: ProviderConfig[]) {
+export function loadPlugins(log: LogEntry, registeredPlugins: PluginMap, configs: GenericProviderConfig[]) {
   const loadedPlugins: PluginMap = {}
 
   const loadPlugin = (name: string) => {
@@ -107,7 +107,7 @@ export function loadPlugins(log: LogEntry, registeredPlugins: PluginMap, configs
 /**
  * Returns the given provider configs in dependency order.
  */
-export function getDependencyOrder<T extends ProviderConfig>(configs: T[], registeredPlugins: PluginMap): T[] {
+export function getDependencyOrder<T extends GenericProviderConfig>(configs: T[], registeredPlugins: PluginMap): T[] {
   const graph = new DependencyValidationGraph()
 
   for (const plugin of Object.values(registeredPlugins)) {
@@ -141,7 +141,7 @@ export function getDependencyOrder<T extends ProviderConfig>(configs: T[], regis
 }
 
 // Takes a plugin and resolves it against its base plugin, if applicable
-function resolvePlugin(plugin: GardenPlugin, loadedPlugins: PluginMap, configs: ProviderConfig[]): GardenPlugin {
+function resolvePlugin(plugin: GardenPlugin, loadedPlugins: PluginMap, configs: GenericProviderConfig[]): GardenPlugin {
   if (!plugin.base) {
     return plugin
   }
@@ -320,7 +320,7 @@ interface ModuleDefinitionMap {
   [moduleType: string]: { plugin: GardenPlugin; spec: ModuleTypeDefinition }
 }
 
-function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: ProviderConfig[]): PluginMap {
+function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: GenericProviderConfig[]): PluginMap {
   // Collect module type declarations
   const graph = new DependencyValidationGraph()
   const moduleDefinitionMap: { [moduleType: string]: { plugin: GardenPlugin; spec: ModuleTypeDefinition }[] } = {}

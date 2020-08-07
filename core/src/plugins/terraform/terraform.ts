@@ -10,7 +10,7 @@ import { join } from "path"
 import { pathExists } from "fs-extra"
 import { createGardenPlugin } from "../../types/plugin/plugin"
 import { getEnvironmentStatus, prepareEnvironment } from "./init"
-import { providerConfigBaseSchema, ProviderConfig, Provider } from "../../config/provider"
+import { providerConfigBaseSchema, GenericProviderConfig, Provider } from "../../config/provider"
 import { joi, joiVariables } from "../../config/common"
 import { dedent } from "../../util/string"
 import { supportedVersions, defaultTerraformVersion, terraformCliSpecs } from "./cli"
@@ -23,7 +23,7 @@ import { SuggestModulesParams, SuggestModulesResult } from "../../types/plugin/m
 import { listDirectory } from "../../util/fs"
 import { terraformCommands } from "./commands"
 
-type TerraformProviderConfig = ProviderConfig &
+type TerraformProviderConfig = GenericProviderConfig &
   TerraformBaseSpec & {
     initRoot?: string
   }

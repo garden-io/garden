@@ -10,7 +10,7 @@ import Joi from "@hapi/joi"
 import chalk from "chalk"
 import { isString, fromPairs, mapValues } from "lodash"
 import { PrimitiveMap, joiIdentifierMap, joiStringMap, joiPrimitive, DeepPrimitiveMap, joiVariables } from "./common"
-import { Provider, ProviderConfig, ProviderMap } from "./provider"
+import { Provider, GenericProviderConfig, ProviderMap } from "./provider"
 import { ConfigurationError } from "../exceptions"
 import { resolveTemplateString } from "../template-string"
 import { Garden } from "../garden"
@@ -530,7 +530,7 @@ class ProviderContext extends ConfigContext {
       .example({ clusterHostname: "my-cluster.example.com" })
       .meta({ keyPlaceholder: "<config-key>" })
   )
-  public config: ProviderConfig
+  public config: GenericProviderConfig
 
   @schema(
     joiIdentifierMap(

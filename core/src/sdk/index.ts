@@ -8,4 +8,4 @@
 
 export { createGardenPlugin } from "../types/plugin/plugin"
 export { GardenModule } from "../types/module"
-export { ProviderConfig, Provider } from "../config/provider"
+export { GenericProviderConfig, Provider } from "../config/provider"

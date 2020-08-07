@@ -7,7 +7,7 @@
  */
 
 import { projectNameSchema, projectRootSchema } from "../../../config/project"
-import { ProviderConfig, providerConfigBaseSchema, providerSchema, ProviderMap } from "../../../config/provider"
+import { GenericProviderConfig, providerConfigBaseSchema, providerSchema, ProviderMap } from "../../../config/provider"
 import { logEntrySchema } from "../base"
 import { configStoreSchema, ConfigStore } from "../../../config-store"
 import { joiArray, joi, joiIdentifier, joiIdentifierMap } from "../../../config/common"
@@ -18,7 +18,7 @@ import { LogEntry } from "../../../logger/log-entry"
 import { PluginTools } from "../tools"
 
 // Note: These are the only plugin handler params that don't inherit from PluginActionParamsBase
-export interface ConfigureProviderParams<T extends ProviderConfig = any> extends ActionHandlerParamsBase {
+export interface ConfigureProviderParams<T extends GenericProviderConfig = any> extends ActionHandlerParamsBase {
   config: T
   configStore: ConfigStore
   dependencies: ProviderMap
@@ -31,7 +31,7 @@ export interface ConfigureProviderParams<T extends ProviderConfig = any> extends
   base?: ActionHandler<ConfigureProviderParams<T>, ConfigureProviderResult<T>>
 }
 
-export interface ConfigureProviderResult<T extends ProviderConfig = ProviderConfig> {
+export interface ConfigureProviderResult<T extends GenericProviderConfig = GenericProviderConfig> {
   config: T
   moduleConfigs?: ModuleConfig[]
 }

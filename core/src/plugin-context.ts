@@ -9,7 +9,7 @@
 import { Garden } from "./garden"
 import { cloneDeep } from "lodash"
 import { projectNameSchema, projectSourcesSchema, environmentNameSchema } from "./config/project"
-import { Provider, providerSchema, ProviderConfig } from "./config/provider"
+import { Provider, providerSchema, GenericProviderConfig } from "./config/provider"
 import { deline } from "./util/string"
 import { joi, joiVariables, PrimitiveMap } from "./config/common"
 
@@ -31,7 +31,7 @@ export interface CommandInfo {
   opts: PrimitiveMap
 }
 
-export interface PluginContext<C extends ProviderConfig = ProviderConfig> extends WrappedFromGarden {
+export interface PluginContext<C extends GenericProviderConfig = GenericProviderConfig> extends WrappedFromGarden {
   command?: CommandInfo
   provider: Provider<C>
 }
