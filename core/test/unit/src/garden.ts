@@ -1740,7 +1740,7 @@ describe("Garden", () => {
       const providers = keyBy(await garden.resolveProviders(garden.log), "name")
 
       expect(providers.test).to.exist
-      expect(providers.test.config.foo).to.equal("bar")
+      expect(providers.test.config["foo"]).to.equal("bar")
     })
 
     it("should throw if a config doesn't match a plugin's configuration schema", async () => {
@@ -1848,7 +1848,7 @@ describe("Garden", () => {
 
       const providerB = await garden.resolveProvider(garden.log, "test-b")
 
-      expect(providerB.config.foo).to.equal("bar")
+      expect(providerB.config["foo"]).to.equal("bar")
     })
 
     it("should allow providers to reference outputs from a disabled provider", async () => {
@@ -1891,7 +1891,7 @@ describe("Garden", () => {
 
       const providerB = await garden.resolveProvider(garden.log, "test-b")
 
-      expect(providerB.config.foo).to.equal("default")
+      expect(providerB.config["foo"]).to.equal("default")
     })
 
     it("should allow providers to reference variables", async () => {
@@ -1916,7 +1916,7 @@ describe("Garden", () => {
 
       const providerB = await garden.resolveProvider(garden.log, "test-a")
 
-      expect(providerB.config.foo).to.equal("bar")
+      expect(providerB.config["foo"]).to.equal("bar")
     })
 
     it("should match a dependency to a plugin base", async () => {

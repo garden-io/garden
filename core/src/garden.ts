@@ -61,7 +61,7 @@ import {
 } from "./util/fs"
 import {
   Provider,
-  ProviderConfig,
+  GenericProviderConfig,
   getAllProviderDependencyNames,
   defaultProvider,
   ProviderMap,
@@ -137,7 +137,7 @@ export interface GardenParams {
   projectName: string
   projectRoot: string
   projectSources?: SourceConfig[]
-  providerConfigs: ProviderConfig[]
+  providerConfigs: GenericProviderConfig[]
   variables: DeepPrimitiveMap
   secrets: StringMap
   sessionId: string | null
@@ -184,7 +184,7 @@ export class Garden {
   public readonly gardenDirPath: string
   public readonly artifactsPath: string
   public readonly opts: GardenOpts
-  private readonly providerConfigs: ProviderConfig[]
+  private readonly providerConfigs: GenericProviderConfig[]
   public readonly workingCopyId: string
   public readonly dotIgnoreFiles: string[]
   public readonly moduleIncludePatterns?: string[]
@@ -1203,7 +1203,7 @@ export interface ConfigDump {
   environmentName: string // TODO: Remove this?
   allEnvironmentNames: string[]
   namespace: string
-  providers: (Omit<Provider, "tools"> | ProviderConfig)[]
+  providers: (Omit<Provider, "tools"> | GenericProviderConfig)[]
   variables: DeepPrimitiveMap
   moduleConfigs: ModuleConfig[]
   workflowConfigs: WorkflowConfig[]

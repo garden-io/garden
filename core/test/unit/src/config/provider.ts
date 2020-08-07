@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { ProviderConfig, getAllProviderDependencyNames } from "../../../../src/config/provider"
+import { GenericProviderConfig, getAllProviderDependencyNames } from "../../../../src/config/provider"
 import { expectError } from "../../../helpers"
 import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
 
@@ -17,7 +17,7 @@ describe("getProviderDependencies", () => {
   })
 
   it("should extract implicit provider dependencies from template strings", async () => {
-    const config: ProviderConfig = {
+    const config: GenericProviderConfig = {
       name: "my-provider",
       someKey: "${providers.other-provider.foo}",
       anotherKey: "foo-${providers.another-provider.bar}",
@@ -26,7 +26,7 @@ describe("getProviderDependencies", () => {
   })
 
   it("should ignore template strings that don't reference providers", async () => {
-    const config: ProviderConfig = {
+    const config: GenericProviderConfig = {
       name: "my-provider",
       someKey: "${providers.other-provider.foo}",
       anotherKey: "foo-${some.other.ref}",
@@ -35,7 +35,7 @@ describe("getProviderDependencies", () => {
   })
 
   it("should throw on provider-scoped template strings without a provider name", async () => {
-    const config: ProviderConfig = {
+    const config: GenericProviderConfig = {
       name: "my-provider",
       someKey: "${providers}",
     }

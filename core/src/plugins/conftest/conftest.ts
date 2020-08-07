@@ -8,7 +8,7 @@
 
 import { resolve, relative } from "path"
 import { createGardenPlugin } from "../../types/plugin/plugin"
-import { providerConfigBaseSchema, ProviderConfig, Provider } from "../../config/provider"
+import { providerConfigBaseSchema, GenericProviderConfig, Provider } from "../../config/provider"
 import { joi, joiIdentifier, joiArray } from "../../config/common"
 import { dedent, naturalList } from "../../util/string"
 import { TestModuleParams } from "../../types/plugin/module/testModule"
@@ -25,7 +25,7 @@ import { getK8sProvider } from "../openfaas/config"
 import { renderTemplates } from "../kubernetes/helm/common"
 import { LogEntry } from "../../logger/log-entry"
 
-export interface ConftestProviderConfig extends ProviderConfig {
+export interface ConftestProviderConfig extends GenericProviderConfig {
   policyPath: string
   namespace?: string
   testFailureThreshold: "deny" | "warn" | "none"

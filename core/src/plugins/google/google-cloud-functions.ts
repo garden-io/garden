@@ -49,7 +49,7 @@ export type GcfServiceSpec = GcfModuleSpec
 
 export interface GcfModule extends GardenModule<GcfModuleSpec, GcfServiceSpec, ExecTestSpec> {}
 
-function getGcfProject<T extends GcfModule>(service: Service<T>, provider: Provider) {
+function getGcfProject<T extends GcfModule>(service: Service<T>, provider: Provider<any>) {
   return service.spec.project || provider.config.defaultProject || null
 }
 
