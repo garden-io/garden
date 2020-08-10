@@ -1,7 +1,6 @@
 #!/bin/sh
 
-# Note: version 3.2.3 adds a "v" prefix on the version string
-echo "rsync  version v3.2.3  protocol version 31
+echo "rsync  version 3.1.0  protocol version 31
 Copyright (C) 1996-2018 by Andrew Tridgell, Wayne Davison, and others.
 Web site: http://rsync.samba.org/
 Capabilities:
