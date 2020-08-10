@@ -22,7 +22,7 @@ import { Profile } from "./util/profiling"
 import { syncWithOptions } from "./util/sync"
 
 const minRsyncVersion = "3.1.0"
-const versionRegex = /rsync  version ([\d\.]+)  /
+const versionRegex = /rsync  version [v]*([\d\.]+)  /
 
 // FIXME: We don't want to keep special casing this module type so we need to think
 // of a better way around this.
