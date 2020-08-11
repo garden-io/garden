@@ -58,6 +58,7 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
         { name: "conftest" },
         { name: "conftest-container" },
         { name: "conftest-kubernetes" },
+        { name: "container" },
         { name: "exec" },
         { name: "hadolint" },
         { name: "kubernetes" },
@@ -77,11 +78,6 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
 
   for (const plugin of plugins) {
     const name = plugin.name
-
-    // Currently nothing to document for these
-    if (name === "container") {
-      continue
-    }
 
     const path = resolve(providerDir, `${name}.md`)
     console.log("->", path)

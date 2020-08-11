@@ -6,6 +6,7 @@ title: Providers
 # Providers
 
 * [`conftest`](./conftest.md)
+* [`container`](./container.md)
 * [`conftest-container`](./conftest-container.md)
 * [`kubernetes`](./kubernetes.md)
 * [`conftest-kubernetes`](./conftest-kubernetes.md)
