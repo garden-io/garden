@@ -10,7 +10,7 @@ import cls from "classnames"
 import { css } from "emotion"
 import React from "react"
 
-import { H3 } from "../components/text"
+import { H3, P } from "../components/text"
 
 import { colors } from "../styles/variables"
 import { AxiosError } from "axios"
@@ -21,29 +21,32 @@ interface Props {
 
 // TODO Style me + add prop interface
 const PageError: React.FC<Props> = ({ error }) => {
-  let suggestion
+  let suggestion: any
+
   const status = error && error.response && error.response.status
+
   if (status === 500) {
     suggestion = (
       <div>
-        <p>Are you sure Garden server is running? You can run it with:</p>
-        <p>
-          <code>garden serve</code>
-        </p>
+        <P>Please look at the terminal logs displayed by the dashboard server for details.</P>
+        <P color={colors.gardenGray}>
+          💡 You can get more detailed logs by running the server with <code>--log-level=debug</code>.
+        </P>
       </div>
     )
   }
+
   return (
     <div
       className={cls(
         css`
           text-align: center;
         `,
-        "p-2"
+        "P-2"
       )}
     >
       <H3 color={colors.gardenPink}>Whoops, something went wrong.</H3>
-      {error && error.message && <p>Messsage: {error.message}</p>}
+      {error && error.message && <P>❌ {error.message}</P>}
       {suggestion}
     </div>
   )

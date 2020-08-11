@@ -24,3 +24,8 @@ export const H3 = styled.h3`
   color: ${(props) => props.color || colors.gardenBlack};
   margin: 0 0 2rem 0;
 `
+
+export const P = styled.p`
+  ${fontRegular};
+  color: ${(props) => props.color || colors.gardenBlack};
+`
