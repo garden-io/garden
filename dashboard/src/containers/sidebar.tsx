@@ -10,7 +10,7 @@ import { kebabCase, flatten, entries } from "lodash"
 import React from "react"
 
 import Sidebar from "../components/sidebar"
-import { useApi } from "../contexts/api"
+import { useApi } from "../hooks"
 import { DashboardPage } from "@garden-io/core/build/src/config/status"
 
 export interface Page extends DashboardPage {

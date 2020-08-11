@@ -9,8 +9,7 @@
 import { ServerWebsocketMessage } from "@garden-io/core/build/src/server/server"
 import { Events } from "@garden-io/core/build/src/events"
 
-import { Entities, Action, SupportedEventName, supportedEventNames, TaskState, taskStates } from "../contexts/api"
-import getApiUrl from "./get-api-url"
+import { Entities, SupportedEventName, supportedEventNames, TaskState, taskStates } from "../contexts/api"
 import produce from "immer"
 
 export type WsEventMessage = ServerWebsocketMessage & {
@@ -40,33 +39,8 @@ export function isTaskStateChangeEvent(msg: WsEventMessage): msg is TaskStateCha
   return taskStates.includes(msg.name)
 }
 
-export function initWebSocket(dispatch: React.Dispatch<Action>) {
-  const url = getApiUrl()
-  const ws = new WebSocket(`ws://${url}/ws`)
-  ws.onopen = (event) => {
-    console.log("ws open", event)
-  }
-  ws.onclose = (event) => {
-    console.log("ws close", event)
-  }
-  ws.onmessage = (msg) => {
-    const parsedMsg = JSON.parse(msg.data) as ServerWebsocketMessage
-
-    if (parsedMsg.type === "error") {
-      console.error(parsedMsg)
-    }
-    if (isSupportedEvent(parsedMsg)) {
-      const processResults = (store: Entities) => processWebSocketMessage(store, parsedMsg)
-      dispatch({ type: "wsMessageReceived", processResults })
-    }
-  }
-  return function cleanUp() {
-    ws.close()
-  }
-}
-
 // Process the graph response and return a normalized store
-function processWebSocketMessage(store: Entities, message: WsEventMessage) {
+export function processWebSocketMessage(store: Entities, message: WsEventMessage) {
   return produce(store, (draft) => {
     if (isTaskStateChangeEvent(message)) {
       const taskState = message.name

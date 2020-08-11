@@ -19,7 +19,7 @@ interface CardProps {
   backgroundColor?: string
 }
 
-type WrapperProps = {
+interface WrapperProps {
   backgroundColor?: string
 }
 
