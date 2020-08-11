@@ -37,6 +37,10 @@ describe("GetOutputsCommand", () => {
     }
   })
 
+  after(async () => {
+    await tmpDir.cleanup()
+  })
+
   it("should resolve and return defined project outputs", async () => {
     const plugin = createGardenPlugin({
       name: "test",

@@ -30,6 +30,7 @@ import { registerWorkflowRun } from "../../enterprise/workflow-lifecycle"
 import { parseCliArgs, pickCommand, processCliArgs } from "../../cli/helpers"
 import { StringParameter } from "../../cli/params"
 import { getAllCommands } from "../commands"
+import { makeEnterpriseContext } from "../../enterprise/init"
 
 const runWorkflowArgs = {
   workflow: new StringParameter({
@@ -347,10 +348,11 @@ export function logErrors(
 }
 
 async function registerAndSetUid(garden: Garden, log: LogEntry, config: WorkflowConfig) {
-  if (garden.enterpriseContext && !gardenEnv.GARDEN_PLATFORM_SCHEDULED) {
+  const enterpriseContext = makeEnterpriseContext(garden)
+  if (enterpriseContext && !gardenEnv.GARDEN_PLATFORM_SCHEDULED) {
     const workflowRunUid = await registerWorkflowRun({
+      enterpriseContext,
       workflowConfig: config,
-      enterpriseContext: garden.enterpriseContext,
       environment: garden.environmentName,
       namespace: garden.namespace,
       log,

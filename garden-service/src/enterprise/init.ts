@@ -12,14 +12,20 @@ import { LogEntry } from "../logger/log-entry"
 import { ProjectConfig } from "../config/project"
 import { readAuthToken, checkClientAuthToken } from "./auth"
 import { deline } from "../util/string"
-import { ConfigurationError } from "../exceptions"
 import { getSecrets } from "./secrets"
 import { StringMap } from "../config/common"
+import { Garden } from "../garden"
 
 export interface EnterpriseInitParams {
   log: LogEntry
   projectConfig: ProjectConfig
   environmentName: string
+}
+
+export interface GardenEnterpriseContext {
+  clientAuthToken: string
+  projectId: string
+  enterpriseDomain: string
 }
 
 export async function enterpriseInit({ log, projectConfig, environmentName }: EnterpriseInitParams) {
@@ -44,12 +50,11 @@ export async function enterpriseInit({ log, projectConfig, environmentName }: En
         `)
       }
       if (errorMessages.length > 0) {
-        throw new ConfigurationError(
-          dedent`
+        log.verbose(
+          chalk.gray(dedent`
             ${errorMessages.join("\n\n")}
 
-            Logging out via the ${chalk.bold("garden logout")} command will suppress this message.`,
-          {}
+            Logging out via the ${chalk.bold("garden logout")} command will suppress this message.`)
         )
       }
     } else {
@@ -74,4 +79,32 @@ export async function enterpriseInit({ log, projectConfig, environmentName }: En
   }
 
   return { clientAuthToken, secrets }
+}
+
+/**
+ * Returns null if one or more parameters are null.
+ *
+ * Returns a `GardenEnterpriseContext` otherwise.
+ */
+export function makeEnterpriseContext(garden: Garden): GardenEnterpriseContext | null {
+  const missing: string[] = []
+  if (!garden.clientAuthToken) {
+    missing.push("client auth token")
+  }
+  if (!garden.projectId) {
+    missing.push("project id")
+  }
+  if (!garden.enterpriseDomain) {
+    missing.push("domain")
+  }
+  if (missing.length > 0) {
+    garden.log.silly(`Enterprise features disabled. Missing values: ${missing.join(",")}`)
+    return null
+  } else {
+    return {
+      clientAuthToken: garden.clientAuthToken!,
+      projectId: garden.projectId!,
+      enterpriseDomain: garden.enterpriseDomain!,
+    }
+  }
 }

@@ -43,6 +43,7 @@ import { defaultDotIgnoreFiles } from "../util/fs"
 import { renderError } from "../logger/renderers"
 import { getDefaultProfiler } from "../util/profiling"
 import { BufferedEventStream } from "../enterprise/buffered-event-stream"
+import { makeEnterpriseContext } from "../enterprise/init"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts = {}) {
   const environments = gardenOpts.environmentName
@@ -229,11 +230,12 @@ ${renderCommands(commands)}
           garden = await Garden.factory(root, contextOpts)
         }
 
-        if (garden.enterpriseContext) {
+        const enterpriseContext = makeEnterpriseContext(garden)
+        if (enterpriseContext) {
           log.silly(`Connecting Garden instance to BufferedEventStream`)
           bufferedEventStream.connect({
+            enterpriseContext,
             eventBus: garden.events,
-            enterpriseContext: garden.enterpriseContext,
             environmentName: garden.environmentName,
             namespace: garden.namespace,
           })
