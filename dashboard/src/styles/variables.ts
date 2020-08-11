@@ -45,6 +45,7 @@ export const colors = {
   gardenPinkLighten,
   gardenPinkRgba: "rgba(237, 131, 204, 0)",
   gardenWhite: "#ffffff",
+  gardenRed: "#eb5757",
   notifications: {
     error: {
       color: "#ce1126",

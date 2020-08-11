@@ -20,6 +20,7 @@ import { ApiProvider } from "./contexts/api"
 import { Modal } from "./components/modal"
 import ErrorBoundary from "./components/error-boundary"
 import Routes from "./containers/routes"
+import { InfoBox } from "./components/InfoBox"
 
 const AppWrapper = styled.div`
   display: flex;
@@ -38,6 +39,7 @@ const App = () => {
           <ApiProvider>
             <Routes />
           </ApiProvider>
+          <InfoBox />
         </UiStateProvider>
       </AppWrapper>
     </ErrorBoundary>

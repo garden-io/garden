@@ -12,12 +12,12 @@ import { Route } from "react-router-dom"
 
 import { colors } from "../styles/variables"
 import PageError from "../components/page-error"
-import { useApi } from "../contexts/api"
 import Spinner from "../components/spinner"
 import Provider from "../components/provider"
 import { initApiStore } from "../api/actions"
 import ErrorBoundary from "../components/error-boundary"
 import Sidebar from "../containers/sidebar"
+import { useApi } from "../hooks"
 
 const Graph = React.lazy(() => import("./graph"))
 const Logs = React.lazy(() => import("./logs"))
