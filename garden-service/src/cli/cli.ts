@@ -353,9 +353,17 @@ ${renderCommands(commands)}
       return done(1, err.message + "\n" + command.renderHelp())
     }
 
-    const runResults = await this.runCommand({ command, parsedArgs, parsedOpts })
+    let commandResult: CommandResult<any> | undefined = undefined
+    let analytics: AnalyticsHandler | undefined = undefined
 
-    const { result: commandResult, analytics } = runResults
+    try {
+      const runResults = await this.runCommand({ command, parsedArgs, parsedOpts })
+      commandResult = runResults.result
+      analytics = runResults.analytics
+    } catch (err) {
+      commandResult = { errors: [err] }
+    }
+
     errors.push(...(commandResult.errors || []))
 
     // Flushes the Analytics events queue in case there are some remaining events.
@@ -363,9 +371,7 @@ ${renderCommands(commands)}
       await analytics.flush()
     }
 
-    const gardenErrors: GardenBaseError[] = errors
-      .map(toGardenError)
-      .concat((commandResult && commandResult.errors) || [])
+    const gardenErrors: GardenBaseError[] = errors.map(toGardenError)
 
     // --output option set
     if (argv.output) {
@@ -429,7 +435,7 @@ export async function runCli(): Promise<void> {
     code = result.code
   } catch (err) {
     // tslint:disable-next-line: no-console
-    console.log(err)
+    console.log(err.message)
     code = 1
   } finally {
     if (gardenEnv.GARDEN_ENABLE_PROFILING) {

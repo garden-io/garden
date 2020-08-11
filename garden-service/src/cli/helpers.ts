@@ -9,7 +9,7 @@
 import chalk from "chalk"
 import ci = require("ci-info")
 import { pathExists } from "fs-extra"
-import { range, reduce, sortBy, max, isEqual, mapValues, pickBy } from "lodash"
+import { range, sortBy, max, isEqual, mapValues, pickBy } from "lodash"
 import moment from "moment"
 import { platform, release } from "os"
 import qs from "qs"
@@ -37,19 +37,6 @@ export const cliStyles = {
   hints: (str: string) => chalk.gray(str),
   usagePositional: (key: string, required: boolean) => chalk.cyan(required ? `<${key}>` : `[${key}]`),
   usageOption: (str: string) => chalk.cyan(`<${str}>`),
-  //   group: (str: string) => {
-  //     const cleaned = str.endsWith(":") ? str.slice(0, -1) : str
-  //     return chalk.bold(cleaned.toUpperCase())
-  //   },
-  //   flags: (str) => {
-  //     const style = str.startsWith("-") ? chalk.green : chalk.cyan
-  //     return style(str)
-  //   },
-  //   groupError: (str) => chalk.red.bold(str),
-  //   flagsError: (str) => chalk.red.bold(str),
-  //   descError: (str) => chalk.yellow.bold(str),
-  //   hintsError: (str) => chalk.red(str),
-  //   messages: (str) => chalk.red.bold(str), // these are error messages
 }
 
 /**
@@ -58,38 +45,6 @@ export const cliStyles = {
 export function helpTextMaxWidth() {
   const cols = process.stdout.columns || 100
   return Math.min(120, cols)
-}
-
-export type FalsifiedParams = { [key: string]: false }
-
-/**
- * Returns the params that need to be overridden set to false
- */
-export function negateConflictingParams(argv, params: ParameterValues<any>): FalsifiedParams {
-  return reduce(
-    argv,
-    (acc: {}, val: any, key: string) => {
-      const param = params[key]
-      const overrides = (param || {}).overrides || []
-      // argv always contains the "_" key which is irrelevant here
-      if (key === "_" || !param || !val || !(overrides.length > 0)) {
-        return acc
-      }
-      const withAliases = overrides.reduce((_, keyToOverride: string): string[] => {
-        if (!params[keyToOverride]) {
-          throw new InternalError(`Cannot override non-existing parameter: ${keyToOverride}`, {
-            keyToOverride,
-            availableKeys: Object.keys(params),
-          })
-        }
-        return [keyToOverride, ...params[keyToOverride].alias]
-      }, [])
-
-      withAliases.forEach((keyToOverride) => (acc[keyToOverride] = false))
-      return acc
-    },
-    {}
-  )
 }
 
 export async function checkForStaticDir() {
@@ -144,6 +99,7 @@ export async function checkForUpdates(config: GlobalConfigStore, logger: LogEntr
 }
 
 export function pickCommand(commands: (Command | CommandGroup)[], args: string[]) {
+  // Sorting by reverse path length to make sure we pick the most specific command
   const command = sortBy(commands, (cmd) => -cmd.getPath().length).find((c) => {
     for (const path of c.getPaths()) {
       if (isEqual(path, args.slice(0, path.length))) {
