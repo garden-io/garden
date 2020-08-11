@@ -218,6 +218,10 @@ async function suggestModules({ name, path }: SuggestModulesParams): Promise<Sug
 
 export const gardenPlugin = createGardenPlugin({
   name: "container",
+  docs: dedent`
+    Provides the [container](${getModuleTypeUrl("container")}) module type.
+    _Note that this provider is currently automatically included, and you do not need to configure it in your project configuration._
+  `,
   createModuleTypes: [
     {
       name: "container",
