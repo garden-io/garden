@@ -7,12 +7,10 @@
  */
 
 import {
-  BooleanParameter,
   Command,
   CommandParams,
   CommandResult,
   handleProcessResults,
-  StringsParameter,
   ProcessCommandResult,
   ProcessResultMetadata,
   prepareProcessResults,
@@ -29,6 +27,7 @@ import dedent = require("dedent")
 import { ConfigGraph } from "../config-graph"
 import { PublishResult, publishResultSchema } from "../types/plugin/module/publishModule"
 import { joiIdentifierMap } from "../config/common"
+import { StringsParameter, BooleanParameter } from "../cli/params"
 
 export const publishArgs = {
   modules: new StringsParameter({

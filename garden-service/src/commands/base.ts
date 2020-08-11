@@ -11,12 +11,10 @@ import chalk from "chalk"
 import dedent = require("dedent")
 import inquirer = require("inquirer")
 import stripAnsi from "strip-ansi"
-import { range, fromPairs } from "lodash"
-import minimist from "minimist"
+import { fromPairs } from "lodash"
 
-import { GlobalOptions } from "../cli/cli"
 import { joi, joiIdentifierMap, joiStringMap } from "../config/common"
-import { GardenError, InternalError, RuntimeError, ParameterError } from "../exceptions"
+import { InternalError, RuntimeError, GardenBaseError } from "../exceptions"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { LoggerType } from "../logger/logger"
@@ -25,227 +23,21 @@ import { ProcessResults } from "../process"
 import { GraphResults, GraphResult } from "../task-graph"
 import { RunResult } from "../types/plugin/base"
 import { capitalize } from "lodash"
-import { parseEnvironment } from "../config/project"
 import { getDurationMsec, splitFirst } from "../util/util"
 import { buildResultSchema, BuildResult } from "../types/plugin/module/build"
 import { ServiceStatus, serviceStatusSchema } from "../types/service"
 import { TestResult, testResultSchema } from "../types/plugin/module/getTestResult"
-
-export interface ParameterConstructor<T> {
-  help: string
-  required?: boolean
-  alias?: string
-  defaultValue?: T
-  valueName?: string
-  hints?: string
-  overrides?: string[]
-  cliDefault?: T
-  cliOnly?: boolean
-}
-
-export abstract class Parameter<T> {
-  abstract type: string
-
-  // TODO: use this for validation in the CLI (currently just used in the service API)
-  abstract schema: Joi.Schema
-
-  _valueType: T
-
-  defaultValue: T | undefined
-  help: string
-  required: boolean
-  alias?: string
-  hints?: string
-  valueName: string
-  overrides: string[]
-
-  readonly cliDefault: T | undefined // Optionally specify a separate default for CLI invocation
-  readonly cliOnly: boolean // If true, only expose in the CLI, and not in the HTTP/WS server.
-
-  constructor({
-    help,
-    required,
-    alias,
-    defaultValue,
-    valueName,
-    overrides,
-    hints,
-    cliDefault,
-    cliOnly,
-  }: ParameterConstructor<T>) {
-    this.help = help
-    this.required = required || false
-    this.alias = alias
-    this.hints = hints
-    this.defaultValue = defaultValue
-    this.valueName = valueName || "_valueType"
-    this.overrides = overrides || []
-    this.cliDefault = cliDefault
-    this.cliOnly = cliOnly || false
-  }
-
-  coerce(input: T): T | undefined {
-    return input
-  }
-
-  parseString(input?: string): T {
-    return (input as unknown) as T
-  }
-
-  async autoComplete(): Promise<string[]> {
-    return []
-  }
-}
-
-export class StringParameter extends Parameter<string> {
-  type = "string"
-  schema = joi.string()
-}
-
-// Separating this from StringParameter for now because we can't set the output type based on the required flag
-// FIXME: Maybe use a Required<Parameter> type to enforce presence, rather that an option flag?
-export class StringOption extends Parameter<string | undefined> {
-  type = "string"
-  schema = joi.string()
-}
-
-export interface StringsConstructor extends ParameterConstructor<string[]> {
-  delimiter?: string
-}
-
-export class StringsParameter extends Parameter<string[] | undefined> {
-  type = "array:string"
-  schema = joi.array().items(joi.string())
-  delimiter: string | RegExp
-
-  constructor(args: StringsConstructor) {
-    super(args)
-
-    // The default delimiter splits on commas, ignoring commas between double quotes
-    this.delimiter = args.delimiter || /,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/
-  }
-
-  // Sywac returns [undefined] if input is empty so we coerce that into undefined.
-  // This only applies to optional parameters since Sywac would throw if input is empty for a required parameter.
-  coerce(input: string[]) {
-    const filtered = input.filter((i) => !!i)
-    if (filtered.length < 1) {
-      return undefined
-    }
-    return filtered
-  }
-
-  parseString(input?: string) {
-    return input?.split(this.delimiter) || []
-  }
-}
-
-export class PathParameter extends Parameter<string> {
-  type = "path"
-  schema = joi.string()
-}
-
-export class PathsParameter extends Parameter<string[]> {
-  type = "array:path"
-  schema = joi.array().items(joi.posixPath())
-
-  parseString(input: string) {
-    return input.split(",")
-  }
-}
-
-export class IntegerParameter extends Parameter<number> {
-  type = "number"
-  schema = joi.number().integer()
-
-  parseString(input: string) {
-    try {
-      return parseInt(input, 10)
-    } catch {
-      throw new ParameterError(`Could not parse "${input}" as integer`, {
-        expectedType: "integer",
-        input,
-      })
-    }
-  }
-}
-
-export interface ChoicesConstructor extends ParameterConstructor<string> {
-  choices: string[]
-}
-
-export class ChoicesParameter extends Parameter<string> {
-  type = "choice"
-  choices: string[]
-  schema = joi.string()
-
-  constructor(args: ChoicesConstructor) {
-    super(args)
-
-    this.choices = args.choices
-    this.schema = joi.string().valid(...args.choices)
-  }
-
-  parseString(input: string) {
-    if (this.choices.includes(input)) {
-      return input
-    } else {
-      throw new ParameterError(`"${input}" is not a valid argument`, {
-        expectedType: `One of: ${this.choices.join(", ")}`,
-        input,
-      })
-    }
-  }
-
-  async autoComplete() {
-    return this.choices
-  }
-}
-
-export class BooleanParameter extends Parameter<boolean> {
-  type = "boolean"
-  schema = joi.boolean()
-
-  parseString(input: any) {
-    return !!input
-  }
-}
-
-export class EnvironmentOption extends StringParameter {
-  type = "string"
-  schema = joi.environment()
-
-  constructor({ help = "The environment (and optionally namespace) to work against." } = {}) {
-    super({
-      help,
-      required: false,
-      alias: "e",
-    })
-  }
-
-  coerce(input: string | undefined) {
-    if (!input) {
-      return
-    }
-    // Validate the environment
-    parseEnvironment(input)
-    return input
-  }
-}
-
-export type Parameters = { [key: string]: Parameter<any> }
-export type ParameterValues<T extends Parameters> = {
-  [P in keyof T]: T[P]["_valueType"]
-}
+import { cliStyles, renderOptions, renderCommands, renderArguments } from "../cli/helpers"
+import { GlobalOptions, ParameterValues, Parameters } from "../cli/params"
 
 export interface CommandConstructor {
-  new (parent?: Command): Command
+  new (parent?: CommandGroup): Command
 }
 
 export interface CommandResult<T = any> {
   result?: T
   restartRequired?: boolean
-  errors?: GardenError[]
+  errors?: GardenBaseError[]
 }
 
 export interface CommandParamsBase<T extends Parameters = {}, U extends Parameters = {}> {
@@ -286,9 +78,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   protected: boolean = false
   workflows: boolean = false // Set to true to whitelist for executing in workflow steps
 
-  subCommands: CommandConstructor[] = []
-
-  constructor(private parent?: Command) {
+  constructor(private parent?: CommandGroup) {
     // Make sure arguments and options don't have overlapping key names.
     if (this.arguments && this.options) {
       for (const key of Object.keys(this.options)) {
@@ -302,6 +92,9 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
         }
       }
     }
+
+    // TODO: make sure required arguments don't follow optional ones
+    // TODO: make sure arguments don't have default values
   }
 
   getKey() {
@@ -316,11 +109,26 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
     return !!this.parent ? [...this.parent.getPath(), this.name] : [this.name]
   }
 
-  getSubCommands(): Command[] {
-    return this.subCommands.flatMap((cls) => {
-      const cmd = new cls(this)
-      return [cmd, ...cmd.getSubCommands()]
-    })
+  /**
+   * Returns all paths that this command should match, including all aliases and permutations of those.
+   */
+  getPaths(): string[][] {
+    if (this.parent) {
+      const parentPaths = this.parent.getPaths()
+
+      if (this.alias) {
+        return parentPaths.flatMap((parentPath) => [
+          [...parentPath, this.name],
+          [...parentPath, this.alias!],
+        ])
+      } else {
+        return parentPaths.map((parentPath) => [...parentPath, this.name])
+      }
+    } else if (this.alias) {
+      return [[this.name], [this.alias]]
+    } else {
+      return [[this.name]]
+    }
   }
 
   getLoggerType(_: CommandParamsBase<T, U>): LoggerType {
@@ -329,7 +137,6 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
 
   describe() {
     const { name, help, description, cliOnly } = this
-    const subCommands = this.subCommands.map((S) => new S(this).describe())
 
     return {
       name,
@@ -337,7 +144,6 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
       help,
       description: description ? stripAnsi(description) : undefined,
       cliOnly,
-      subCommands,
       arguments: describeParameters(this.arguments),
       options: describeParameters(this.options),
       outputsSchema: this.outputsSchema,
@@ -370,7 +176,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
    * @returns {Promise<Boolean>}
    * @memberof Command
    */
-  async isAllowedToRun(garden: Garden, log: LogEntry, opts: GlobalOptions): Promise<Boolean> {
+  async isAllowedToRun(garden: Garden, log: LogEntry, opts: ParameterValues<GlobalOptions>): Promise<Boolean> {
     log.root.stop()
     if (!opts.yes && this.protected && garden.production) {
       const defaultMessage = chalk.yellow(dedent`
@@ -393,6 +199,72 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
     }
 
     return true
+  }
+
+  renderHelp() {
+    let out = `\n${cliStyles.heading("USAGE")}\n  garden ${this.getFullName()} `
+
+    if (this.arguments) {
+      out +=
+        Object.entries(this.arguments)
+          .map(([name, param]) => cliStyles.usagePositional(name, param.required))
+          .join(" ") + " "
+    }
+
+    out += cliStyles.optionsPlaceholder()
+
+    if (this.arguments) {
+      const table = renderArguments(this.arguments)
+      out += `\n\n${cliStyles.heading("ARGUMENTS")}\n${table}`
+    }
+
+    if (this.options) {
+      const table = renderOptions(this.options)
+      out += `\n\n${cliStyles.heading("OPTIONS")}\n${table}`
+    }
+
+    return out + "\n"
+  }
+}
+
+export abstract class CommandGroup extends Command {
+  abstract subCommands: CommandConstructor[]
+
+  getSubCommands(): Command[] {
+    return this.subCommands.flatMap((cls) => {
+      const cmd = new cls(this)
+      if (cmd instanceof CommandGroup) {
+        return cmd.getSubCommands()
+      } else {
+        return [cmd]
+      }
+    })
+  }
+
+  async action() {
+    return {}
+  }
+
+  describe() {
+    const description = super.describe()
+    const subCommands = this.subCommands.map((S) => new S(this).describe())
+
+    return {
+      ...description,
+      subCommands,
+    }
+  }
+
+  renderHelp() {
+    const commands = this.subCommands.map((c) => new c(this))
+
+    return `
+${cliStyles.heading("USAGE")}
+  garden ${this.getFullName()} ${cliStyles.commandPlaceholder()} ${cliStyles.optionsPlaceholder()}
+
+${cliStyles.heading("COMMANDS")}
+${renderCommands(commands)}
+`
   }
 }
 
@@ -618,63 +490,4 @@ export function describeParameters(args?: Parameters) {
     ...arg,
     help: stripAnsi(arg.help),
   }))
-}
-
-export type ParamSpec = {
-  [key: string]: Parameter<string | string[] | number | boolean | undefined>
-}
-
-/**
- * Parses the arguments and options for a command invocation using its command class' arguments
- * and options specs.
- *
- * Returns args and opts ready to pass to that command's action method.
- *
- * @param args The arguments + options to the command (everything after the command name)
- * @param argSpec The arguments spec for the command in question.
- * @param optSpec The options spec for the command in question.
- */
-export function parseCliArgs(
-  args: string[],
-  argSpec: ParamSpec,
-  optSpec: ParamSpec
-): { args: Parameters; opts: Parameters } {
-  const parsed = minimist(args)
-  const argKeys = Object.keys(argSpec)
-  const parsedArgs = {}
-  for (const idx of range(argKeys.length)) {
-    // Commands expect unused arguments to be explicitly set to undefined.
-    parsedArgs[argKeys[idx]] = undefined
-  }
-  for (const idx of range(parsed._.length)) {
-    const argKey = argKeys[idx]
-    const argVal = parsed._[idx]
-    const spec = argSpec[argKey]
-    parsedArgs[argKey] = spec.coerce(spec.parseString(argVal))
-  }
-  const parsedOpts = {}
-  for (const optKey of Object.keys(optSpec)) {
-    const spec = optSpec[optKey]
-    let optVal = parsed[optKey]
-    if (Array.isArray(optVal)) {
-      optVal = optVal[0] // Use the first value if the option is used multiple times
-    }
-    // Need special handling for string-ish boolean values
-    optVal = optVal === "false" ? false : optVal
-    if (!optVal && optVal !== false) {
-      optVal = parsed[spec.alias!] === "false" ? false : parsed[spec.alias!]
-    }
-    if (optVal || optVal === false) {
-      if (optVal === true && spec.type !== "boolean") {
-        // minimist sets the value of options like --hot (with no value) to true, so we need
-        // to convert to a string here.
-        optVal = ""
-      }
-      parsedOpts[optKey] = spec.coerce(spec.parseString(optVal))
-    }
-  }
-  return {
-    args: parsedArgs,
-    opts: parsedOpts,
-  }
 }

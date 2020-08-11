@@ -8,4 +8,4 @@
 
 const cli = require("./cli/cli")
 
-cli.run()
+cli.runCli()

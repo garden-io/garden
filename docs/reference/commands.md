@@ -20,7 +20,7 @@ The following option flags can be used with any of the CLI commands:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--root` | `-r` | string | Override project root directory (defaults to working directory).
+  | `--root` | `-r` | path | Override project root directory (defaults to working directory). Can be absolute or relative to current directory.
   | `--silent` | `-s` | boolean | Suppress log output. Same as setting --logger-type&#x3D;quiet.
   | `--env` | `-e` | string | The environment (and optionally namespace) to work against.
   | `--logger-type` |  | `quiet` `basic` `fancy` `fullscreen` `json`  | Set logger type. fancy updates log lines in-place when their status changes (e.g. when tasks complete), basic appends a new log line when a log line&#x27;s status changes, json same as basic, but renders log lines as JSON, quiet suppresses all log output, same as --silent.
@@ -30,6 +30,8 @@ The following option flags can be used with any of the CLI commands:
   | `--yes` | `-y` | boolean | Automatically approve any yes/no prompts during execution.
   | `--force-refresh` |  | boolean | Force refresh of any caches, e.g. cached provider statuses.
   | `--var` |  | array:string | Set a specific variable value, using the format &lt;key&gt;&#x3D;&lt;value&gt;, e.g. &#x60;--var some-key&#x3D;custom-value&#x60;. This will override any value set in your project configuration. You can specify multiple variables by separating with a comma, e.g. &#x60;--var key-a&#x3D;foo,key-b&#x3D;&quot;value with quotes&quot;&#x60;.
+  | `--version` | `-v` | boolean | Show the current CLI version.
+  | `--help` | `-h` | boolean | Show help
 
 ### garden build
 
@@ -63,7 +65,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--force` |  | boolean | Force rebuild of module(s).
+  | `--force` | `-f` | boolean | Force rebuild of module(s).
   | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-build.
 
 #### Outputs

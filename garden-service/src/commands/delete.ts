@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandResult, CommandParams, StringParameter, StringsParameter } from "./base"
+import { Command, CommandResult, CommandParams, CommandGroup } from "./base"
 import { NotFoundError } from "../exceptions"
 import dedent from "dedent"
 import { ServiceStatusMap, serviceStatusSchema } from "../types/service"
@@ -16,17 +16,14 @@ import { EnvironmentStatusMap } from "../types/plugin/provider/getEnvironmentSta
 import { DeleteServiceTask, deletedServiceStatuses } from "../tasks/delete-service"
 import { joi, joiIdentifierMap } from "../config/common"
 import { environmentStatusSchema } from "../config/status"
+import { StringParameter, StringsParameter } from "../cli/params"
 
-export class DeleteCommand extends Command {
+export class DeleteCommand extends CommandGroup {
   name = "delete"
   alias = "del"
   help = "Delete configuration or objects."
 
   subCommands = [DeleteSecretCommand, DeleteEnvironmentCommand, DeleteServiceCommand]
-
-  async action() {
-    return {}
-  }
 }
 
 const deleteSecretArgs = {

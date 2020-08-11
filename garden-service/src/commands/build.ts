@@ -8,12 +8,10 @@
 
 import Bluebird from "bluebird"
 import {
-  BooleanParameter,
   Command,
   CommandResult,
   CommandParams,
   handleProcessResults,
-  StringsParameter,
   PrepareParams,
   ProcessCommandResult,
   processCommandResultSchema,
@@ -24,6 +22,7 @@ import { printHeader } from "../logger/util"
 import { startServer, GardenServer } from "../server/server"
 import { flatten } from "lodash"
 import { BuildTask } from "../tasks/build"
+import { StringsParameter, BooleanParameter } from "../cli/params"
 
 const buildArgs = {
   modules: new StringsParameter({
@@ -32,7 +31,7 @@ const buildArgs = {
 }
 
 const buildOpts = {
-  force: new BooleanParameter({ help: "Force rebuild of module(s)." }),
+  force: new BooleanParameter({ help: "Force rebuild of module(s).", alias: "f" }),
   watch: new BooleanParameter({
     help: "Watch for changes in module(s) and auto-build.",
     alias: "w",

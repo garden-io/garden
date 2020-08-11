@@ -9,9 +9,10 @@
 import chalk from "chalk"
 import indentString from "indent-string"
 import { sortBy, omit, uniq } from "lodash"
-import { Command, CommandResult, CommandParams, StringsParameter, PrepareParams } from "../base"
+import { Command, CommandResult, CommandParams, PrepareParams } from "../base"
 import { printHeader } from "../../logger/util"
 import { Task } from "../../types/task"
+import { StringsParameter } from "../../cli/params"
 
 const getTasksArgs = {
   tasks: new StringsParameter({

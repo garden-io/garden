@@ -11,13 +11,10 @@ import { flatten } from "lodash"
 import dedent = require("dedent")
 
 import {
-  BooleanParameter,
   Command,
   CommandParams,
   CommandResult,
   handleProcessResults,
-  StringOption,
-  StringsParameter,
   PrepareParams,
   ProcessCommandResult,
   processCommandResultSchema,
@@ -27,6 +24,7 @@ import { Module } from "../types/module"
 import { getTestTasks } from "../tasks/test"
 import { printHeader } from "../logger/util"
 import { GardenServer, startServer } from "../server/server"
+import { StringsParameter, StringOption, BooleanParameter } from "../cli/params"
 
 export const testArgs = {
   modules: new StringsParameter({

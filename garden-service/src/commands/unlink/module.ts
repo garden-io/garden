@@ -8,10 +8,11 @@
 
 import dedent = require("dedent")
 
-import { Command, CommandResult, StringsParameter, BooleanParameter, CommandParams } from "../base"
+import { Command, CommandResult, CommandParams } from "../base"
 import { removeLinkedSources } from "../../util/ext-source-util"
 import { printHeader } from "../../logger/util"
 import { localConfigKeys, LinkedSource } from "../../config-store"
+import { StringsParameter, BooleanParameter } from "../../cli/params"
 
 const unlinkModuleArguments = {
   modules: new StringsParameter({

@@ -25,13 +25,15 @@ export abstract class GardenBaseError extends Error implements GardenError {
   }
 }
 
-export function toGardenError(err: Error | GardenError): GardenError {
+export function toGardenError(err: Error | GardenBaseError | string): GardenBaseError {
   if (err instanceof GardenBaseError) {
     return err
-  } else {
+  } else if (err instanceof Error) {
     const out = new RuntimeError(err.message, omit(err, ["message"]))
     out.stack = err.stack
     return out
+  } else {
+    return new RuntimeError(err, {})
   }
 }
 

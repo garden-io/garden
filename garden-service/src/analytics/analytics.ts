@@ -20,6 +20,7 @@ import { AnalyticsType } from "./analytics-types"
 import dedent from "dedent"
 import { getGitHubUrl } from "../docs/common"
 import { InternalError } from "../exceptions"
+import { Profile } from "../util/profiling"
 
 const API_KEY = process.env.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
 
@@ -115,6 +116,7 @@ export interface SegmentEvent {
  * @export
  * @class AnalyticsHandler
  */
+@Profile()
 export class AnalyticsHandler {
   private static instance?: AnalyticsHandler
   private segment: any
@@ -443,6 +445,10 @@ export class AnalyticsHandler {
    * @memberof AnalyticsHandler
    */
   async flush() {
+    if (!this.analyticsEnabled()) {
+      return
+    }
+
     // This is to handle an edge case where Segment flushes the events (e.g. at the interval) and
     // Garden exits at roughly the same time. When that happens, `segment.flush()` will return immediately since
     // the event queue is already empty. However, the network request might not have fired and the events are

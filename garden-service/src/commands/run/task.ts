@@ -8,10 +8,8 @@
 
 import chalk from "chalk"
 import {
-  BooleanParameter,
   Command,
   CommandParams,
-  StringParameter,
   CommandResult,
   handleTaskResult,
   ProcessResultMetadata,
@@ -26,6 +24,7 @@ import { dedent, deline } from "../../util/string"
 import { RunTaskResult } from "../../types/plugin/task/runTask"
 import { taskResultSchema } from "../../types/plugin/task/getTaskResult"
 import { joi } from "../../config/common"
+import { StringParameter, BooleanParameter } from "../../cli/params"
 
 export const runTaskArgs = {
   task: new StringParameter({

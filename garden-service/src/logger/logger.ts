@@ -15,14 +15,46 @@ import { LogLevel } from "./log-node"
 import { BasicTerminalWriter } from "./writers/basic-terminal-writer"
 import { FancyTerminalWriter } from "./writers/fancy-terminal-writer"
 import { JsonTerminalWriter } from "./writers/json-terminal-writer"
-import { parseLogLevel } from "../cli/helpers"
 import { FullscreenTerminalWriter } from "./writers/fullscreen-terminal-writer"
 import { EventBus } from "../events"
 import { formatForEventStream } from "../enterprise/buffered-event-stream"
 import { gardenEnv } from "../constants"
+import { getEnumKeys } from "../util/util"
+import { range } from "lodash"
 
 export type LoggerType = "quiet" | "basic" | "fancy" | "fullscreen" | "json"
 export const LOGGER_TYPES = new Set<LoggerType>(["quiet", "basic", "fancy", "fullscreen", "json"])
+
+const getLogLevelNames = () => getEnumKeys(LogLevel)
+const getNumericLogLevels = () => range(getLogLevelNames().length)
+// Allow string or numeric log levels as CLI choices
+export const getLogLevelChoices = () => [...getLogLevelNames(), ...getNumericLogLevels().map(String)]
+
+export function parseLogLevel(level: string): LogLevel {
+  let lvl: LogLevel
+  const parsed = parseInt(level, 10)
+  // Level is numeric
+  if (parsed || parsed === 0) {
+    lvl = parsed
+    // Level is a string
+  } else {
+    lvl = LogLevel[level]
+  }
+  if (!getNumericLogLevels().includes(lvl)) {
+    throw new InternalError(
+      `Unexpected log level, expected one of ${getLogLevelChoices().join(", ")}, got ${level}`,
+      {}
+    )
+  }
+  return lvl
+}
+
+// Add platforms/terminals?
+export function envSupportsEmoji() {
+  return (
+    process.platform === "darwin" || process.env.TERM_PROGRAM === "Hyper" || process.env.TERM_PROGRAM === "HyperTerm"
+  )
+}
 
 export function getWriterInstance(loggerType: LoggerType, level: LogLevel) {
   switch (loggerType) {

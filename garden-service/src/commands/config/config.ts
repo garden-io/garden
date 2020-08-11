@@ -6,16 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command } from "../base"
+import { CommandGroup } from "../base"
 import { ConfigAnalyticsEnabled } from "./config-analytics-enabled"
 
-export class ConfigCommand extends Command {
+export class ConfigCommand extends CommandGroup {
   name = "config"
   help = "Configure user and project settings."
 
   subCommands = [ConfigAnalyticsEnabled]
-
-  async action() {
-    return {}
-  }
 }

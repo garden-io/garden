@@ -9,7 +9,7 @@
 import { parse, resolve } from "url"
 import chalk from "chalk"
 import { getStatusText } from "http-status-codes"
-import { Command, CommandResult, CommandParams, StringParameter } from "./base"
+import { Command, CommandResult, CommandParams } from "./base"
 import { splitFirst } from "../util/util"
 import { ParameterError, RuntimeError } from "../exceptions"
 import { find, includes } from "lodash"
@@ -18,6 +18,7 @@ import { dedent } from "../util/string"
 import { printHeader } from "../logger/util"
 import { emptyRuntimeContext } from "../runtime-context"
 import { got, GotResponse } from "../util/http"
+import { StringParameter } from "../cli/params"
 
 const callArgs = {
   serviceAndPath: new StringParameter({

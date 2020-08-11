@@ -16,17 +16,10 @@ import { getRunTaskResults, getServiceStatuses } from "../../tasks/base"
 import { DeployTask } from "../../tasks/deploy"
 import { RunResult } from "../../types/plugin/base"
 import { deline } from "../../util/string"
-import {
-  BooleanParameter,
-  Command,
-  CommandParams,
-  CommandResult,
-  handleRunResult,
-  StringParameter,
-  ProcessResultMetadata,
-} from "../base"
+import { Command, CommandParams, CommandResult, handleRunResult, ProcessResultMetadata } from "../base"
 import { printRuntimeContext } from "./run"
 import { GraphResults } from "../../task-graph"
+import { StringParameter, BooleanParameter } from "../../cli/params"
 
 const runServiceArgs = {
   service: new StringParameter({

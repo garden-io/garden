@@ -76,6 +76,28 @@ describe("BuildDir", () => {
     }
   })
 
+  it("should work with rsync v3.1.0", async () => {
+    const orgPath = process.env.PATH
+
+    try {
+      process.env.PATH = getDataDir("dummy-rsync", "min-version")
+      await BuildDir.factory(garden.projectRoot, garden.gardenDirPath)
+    } finally {
+      process.env.PATH = orgPath
+    }
+  })
+
+  it("should work with rsync v3.2.3", async () => {
+    const orgPath = process.env.PATH
+
+    try {
+      process.env.PATH = getDataDir("dummy-rsync", "new-version")
+      await BuildDir.factory(garden.projectRoot, garden.gardenDirPath)
+    } finally {
+      process.env.PATH = orgPath
+    }
+  })
+
   it("should throw if rsync is too old", async () => {
     const orgPath = process.env.PATH
 

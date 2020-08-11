@@ -6,13 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandResult, CommandParams, BooleanParameter, ChoicesParameter } from "../base"
+import { Command, CommandResult, CommandParams } from "../base"
 import { ConfigDump } from "../../garden"
 import { environmentNameSchema } from "../../config/project"
 import { joiIdentifier, joiVariables, joiArray, joi } from "../../config/common"
 import { providerSchemaWithoutTools, providerConfigBaseSchema } from "../../config/provider"
 import { moduleConfigSchema } from "../../config/module"
 import { workflowConfigSchema } from "../../config/workflow"
+import { BooleanParameter, ChoicesParameter } from "../../cli/params"
 
 export const getConfigOptions = {
   "exclude-disabled": new BooleanParameter({

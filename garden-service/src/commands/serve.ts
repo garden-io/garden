@@ -8,10 +8,11 @@
 
 import dedent = require("dedent")
 import { LoggerType } from "../logger/logger"
-import { IntegerParameter, PrepareParams } from "./base"
+import { PrepareParams } from "./base"
 import { Command, CommandResult, CommandParams } from "./base"
 import { sleep } from "../util/util"
 import { GardenServer, startServer } from "../server/server"
+import { IntegerParameter } from "../cli/params"
 
 const serveArgs = {}
 

@@ -16,15 +16,7 @@ import moment = require("moment")
 import { join } from "path"
 
 import { getModuleWatchTasks } from "../tasks/helpers"
-import {
-  Command,
-  CommandResult,
-  CommandParams,
-  StringsParameter,
-  handleProcessResults,
-  PrepareParams,
-  BooleanParameter,
-} from "./base"
+import { Command, CommandResult, CommandParams, handleProcessResults, PrepareParams } from "./base"
 import { STATIC_DIR } from "../constants"
 import { processModules } from "../process"
 import { Module } from "../types/module"
@@ -36,6 +28,7 @@ import { BuildTask } from "../tasks/build"
 import { DeployTask } from "../tasks/deploy"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
+import { StringsParameter, BooleanParameter } from "../cli/params"
 
 const ansiBannerPath = join(STATIC_DIR, "garden-banner-2.txt")
 
