@@ -31,6 +31,7 @@ import { joi } from "../config/common"
 import { randomString } from "../util/string"
 import { authTokenHeader } from "../enterprise/auth"
 import { ApiEventBatch } from "../enterprise/buffered-event-stream"
+import { LogLevel } from "../logger/log-node"
 
 // Note: This is different from the `garden dashboard` default port.
 // We may no longer embed servers in watch processes from 0.13 onwards.
@@ -60,6 +61,7 @@ export async function startServer({ log, port }: { log: LogEntry; port?: number 
 
 export class GardenServer {
   private log: LogEntry
+  private debugLog: LogEntry
   private server: Server
   private garden: Garden | undefined
   private app: websockify.App
@@ -72,7 +74,8 @@ export class GardenServer {
   public readonly authKey: string
 
   constructor({ log, port }: { log: LogEntry; port?: number }) {
-    this.log = log.placeholder()
+    this.log = log
+    this.debugLog = this.log.placeholder({ level: LogLevel.debug, childEntriesInheritLevel: true })
     this.garden = undefined
     this.port = port
     this.authKey = randomString(64)
@@ -135,6 +138,7 @@ export class GardenServer {
     }
 
     this.garden = garden
+    this.garden.log = this.debugLog
 
     // Serve artifacts as static assets
     this.app.use(mount("/artifacts", serve(garden.artifactsPath)))
@@ -165,7 +169,7 @@ export class GardenServer {
 
       if (!this.analytics) {
         try {
-          this.analytics = await AnalyticsHandler.init(this.garden, this.log)
+          this.analytics = await AnalyticsHandler.init(this.garden, this.debugLog)
         } catch (err) {
           throw err
         }
@@ -173,7 +177,7 @@ export class GardenServer {
 
       this.analytics.trackApi("POST", ctx.originalUrl, { ...ctx.request.body })
 
-      const result = await resolveRequest(ctx, this.garden, this.log, commands, ctx.request.body)
+      const result = await resolveRequest(ctx, this.garden, this.debugLog, commands, ctx.request.body)
       ctx.status = 200
       ctx.response.body = result
     })
@@ -195,7 +199,7 @@ export class GardenServer {
       // TODO: validate the input
 
       const batch = ctx.request.body as ApiEventBatch
-      this.log.debug(`Received ${batch.events.length} events from session ${batch.sessionId}`)
+      this.debugLog.debug(`Received ${batch.events.length} events from session ${batch.sessionId}`)
 
       // Pipe the events to the incoming stream, which websocket listeners will then receive
       batch.events.forEach((e) => this.incomingEvents.emit(e.name, e.payload))
@@ -208,7 +212,7 @@ export class GardenServer {
     app.use(http.allowedMethods())
 
     app.on("error", (err, ctx) => {
-      this.log.info(`API server request failed with status ${ctx.status}: ${err.message}`)
+      this.debugLog.info(`API server request failed with status ${ctx.status}: ${err.message}`)
     })
 
     // This enables navigating straight to a nested route, e.g. "localhost:<PORT>/graph".
@@ -251,7 +255,7 @@ export class GardenServer {
         websocket.send(JSON.stringify({ type, ...(<object>payload) }), (err) => {
           if (err) {
             const error = toGardenError(err)
-            this.log.error({ error })
+            this.debugLog.debug({ error })
           }
         })
       }
@@ -308,7 +312,7 @@ export class GardenServer {
             return
           }
 
-          resolveRequest(ctx, this.garden, this.log, commands, omit(request, ["id", "type"]))
+          resolveRequest(ctx, this.garden, this.debugLog, commands, omit(request, ["id", "type"]))
             .then((result) => {
               send("commandResult", {
                 requestId,
