@@ -116,17 +116,12 @@ export interface GardenOpts {
   variables?: PrimitiveMap
 }
 
-export interface GardenEnterpriseContext {
-  clientAuthToken: string
-  projectId: string
-  enterpriseDomain: string
-}
-
 export interface GardenParams {
   artifactsPath: string
   buildDir: BuildDir
+  clientAuthToken: string | null
+  enterpriseDomain: string | null
   projectId: string | null
-  enterpriseContext: GardenEnterpriseContext | null
   dotIgnoreFiles: string[]
   environmentName: string
   environmentConfigs: EnvironmentConfig[]
@@ -165,7 +160,8 @@ export class Garden {
   private readonly taskGraph: TaskGraph
   private watcher: Watcher
   private asyncLock: any
-  public readonly enterpriseContext: GardenEnterpriseContext | null
+  public readonly clientAuthToken: string | null
+  public readonly enterpriseDomain: string | null
   public readonly projectId: string | null
   public sessionId: string | null
   public readonly configStore: ConfigStore
@@ -202,7 +198,8 @@ export class Garden {
 
   constructor(params: GardenParams) {
     this.buildDir = params.buildDir
-    this.enterpriseContext = params.enterpriseContext
+    this.clientAuthToken = params.clientAuthToken
+    this.enterpriseDomain = params.enterpriseDomain
     this.projectId = params.projectId
     this.sessionId = params.sessionId
     this.environmentName = params.environmentName
@@ -329,25 +326,22 @@ export class Garden {
     await ensureConnected()
 
     const sessionId = opts.sessionId || null
-
-    const { id: projectId, domain: enterpriseDomain } = config
-
+    const projectId = config.id || null
     let secrets: StringMap = {}
-    let enterpriseContext: GardenEnterpriseContext | null = null
+    let clientAuthToken: string | null = null
+    const enterpriseDomain = config.domain || null
     if (!opts.noEnterprise) {
       const enterpriseInitResult = await enterpriseInit({ log, projectConfig: config, environmentName })
       secrets = enterpriseInitResult.secrets
-      const clientAuthToken = enterpriseInitResult.clientAuthToken
-      if (clientAuthToken && projectId && enterpriseDomain) {
-        enterpriseContext = { clientAuthToken, projectId, enterpriseDomain }
-      }
+      clientAuthToken = enterpriseInitResult.clientAuthToken
     }
 
     const garden = new this({
       artifactsPath,
       sessionId,
-      projectId: projectId || null,
-      enterpriseContext,
+      clientAuthToken,
+      enterpriseDomain,
+      projectId,
       projectRoot,
       projectName,
       environmentName,

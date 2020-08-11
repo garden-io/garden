@@ -14,7 +14,7 @@ import { got } from "../util/http"
 import { makeAuthHeader } from "./auth"
 import { LogLevel } from "../logger/log-node"
 import { gardenEnv } from "../constants"
-import { GardenEnterpriseContext } from "../garden"
+import { GardenEnterpriseContext } from "./init"
 
 export type StreamEvent = {
   name: EventName

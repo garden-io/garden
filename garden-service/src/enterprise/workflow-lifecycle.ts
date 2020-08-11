@@ -11,7 +11,7 @@ import { makeAuthHeader } from "./auth"
 import { WorkflowConfig } from "../config/workflow"
 import { LogEntry } from "../logger/log-entry"
 import { PlatformError } from "../exceptions"
-import { GardenEnterpriseContext } from "../garden"
+import { GardenEnterpriseContext } from "./init"
 
 export interface RegisterWorkflowRunParams {
   workflowConfig: WorkflowConfig
