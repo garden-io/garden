@@ -32,7 +32,7 @@ function makeCommandParams(garden: TestGarden) {
 describe("LoginCommand", () => {
   let tmpDir: tmp.DirectoryResult
   let projectConfig: ProjectConfig
-  const dummyDomain = "dummy-domain"
+  const dummyDomain = "http://dummy-domain.com"
 
   before(async () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
