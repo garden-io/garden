@@ -67,7 +67,7 @@ export const execTestSchema = () =>
     .keys({
       command: joi
         .array()
-        .items(joi.string())
+        .items(joi.string().allow(""))
         .description(
           dedent`
         The command to run to test the module.
@@ -93,7 +93,7 @@ export const execTaskSpecSchema = () =>
       artifacts: artifactsSchema().description("A list of artifacts to copy after the task run."),
       command: joi
         .array()
-        .items(joi.string())
+        .items(joi.string().allow(""))
         .description(
           dedent`
         The command to run.

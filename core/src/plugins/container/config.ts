@@ -371,12 +371,12 @@ const containerServiceSchema = () =>
     ),
     command: joi
       .array()
-      .items(joi.string())
+      .items(joi.string().allow(""))
       .description("The command/entrypoint to run the container with when starting the service.")
       .example(commandExample),
     args: joi
       .array()
-      .items(joi.string())
+      .items(joi.string().allow(""))
       .description("The arguments to run the container with when starting the service.")
       .example(["npm", "start"]),
     daemon: joi.boolean().default(false).description(deline`
@@ -496,13 +496,13 @@ export const containerTestSchema = () =>
   baseTestSpecSchema().keys({
     args: joi
       .array()
-      .items(joi.string())
+      .items(joi.string().allow(""))
       .description("The arguments used to run the test inside the container.")
       .example(["npm", "test"]),
     artifacts: artifactsSchema(),
     command: joi
       .array()
-      .items(joi.string())
+      .items(joi.string().allow(""))
       .description("The command/entrypoint used to run the test inside the container.")
       .example(commandExample),
     env: containerEnvVarsSchema(),
@@ -523,14 +523,14 @@ export const containerTaskSchema = () =>
     .keys({
       args: joi
         .array()
-        .items(joi.string())
+        .items(joi.string().allow(""))
         .description("The arguments used to run the task inside the container.")
         .example(["rake", "db:migrate"]),
       artifacts: artifactsSchema(),
       cacheResult: cacheResultSchema(),
       command: joi
         .array()
-        .items(joi.string())
+        .items(joi.string().allow(""))
         .description("The command/entrypoint used to run the task inside the container.")
         .example(commandExample),
       env: containerEnvVarsSchema(),
