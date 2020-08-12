@@ -17,6 +17,8 @@ import {
   ProviderConfigContext,
   WorkflowConfigContext,
   WorkflowStepConfigContext,
+  ScanContext,
+  PassthroughContext,
 } from "../../../../src/config/config-context"
 import { expectError, makeTestGardenA, TestGarden, projectRootA, makeTestGarden } from "../../../helpers"
 import { join } from "path"
@@ -24,7 +26,7 @@ import { joi } from "../../../../src/config/common"
 import { prepareRuntimeContext } from "../../../../src/runtime-context"
 import { Service } from "../../../../src/types/service"
 import stripAnsi = require("strip-ansi")
-import { resolveTemplateString } from "../../../../src/template-string"
+import { resolveTemplateString, resolveTemplateStrings } from "../../../../src/template-string"
 import { fromPairs, keyBy } from "lodash"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
@@ -129,7 +131,7 @@ describe("ConfigContext", () => {
       const c = new TestContext({
         nested: new NestedContext(),
       })
-      await expectError(() => resolveKey(c, ["nested", "bla"]), "configuration")
+      await expectError(async () => resolveKey(c, ["nested", "bla"]), "configuration")
     })
 
     it("should show helpful error when unable to resolve nested key in map", async () => {
@@ -434,8 +436,10 @@ describe("ModuleConfigContext", () => {
 
   context("runtimeContext is not set", () => {
     it("should return runtime template strings unchanged if allowPartial=true", async () => {
-      expect(c.resolve({ key: ["runtime", "some", "key"], nodePath: [], opts: { allowPartial: true } })).to.eql({
-        resolved: "${runtime.some.key}",
+      expect(
+        c.resolve({ key: ["runtime", "some", "key.with.dots"], nodePath: [], opts: { allowPartial: true } })
+      ).to.eql({
+        resolved: '${runtime.some["key.with.dots"]}',
       })
     })
 
@@ -714,5 +718,71 @@ describe("WorkflowStepConfigContext", () => {
           "Step step-1 references itself in a template. Only previous steps in the workflow can be referenced."
         )
     )
+  })
+})
+
+describe("ScanContext", () => {
+  it("should collect found keys in an object", () => {
+    const context = new ScanContext()
+    const obj = {
+      a: "some ${templated.string}",
+      b: "${more.stuff}",
+    }
+    resolveTemplateStrings(obj, context)
+    expect(context.foundKeys.entries()).to.eql([
+      ["templated", "string"],
+      ["more", "stuff"],
+    ])
+  })
+
+  it("should handle keys with dots correctly", () => {
+    const context = new ScanContext()
+    const obj = {
+      a: "some ${templated['key.with.dots']}",
+      b: "${more.stuff}",
+    }
+    resolveTemplateStrings(obj, context)
+    expect(context.foundKeys.entries()).to.eql([
+      ["templated", "key.with.dots"],
+      ["more", "stuff"],
+    ])
+  })
+})
+
+describe("PassthroughContext", () => {
+  it("should return the template key back unresolved when allowPartial=true", () => {
+    const context = new PassthroughContext()
+    const obj = {
+      a: "some ${templated.string}",
+      b: "${more.stuff}",
+    }
+    const result = resolveTemplateStrings(obj, context, { allowPartial: true })
+    expect(result).to.eql(obj)
+  })
+
+  it("should handle keys with dots correctly", () => {
+    const context = new PassthroughContext()
+    const obj = {
+      a: "some ${templated['key.with.dots']}",
+      b: "${more.stuff}",
+    }
+    const result = resolveTemplateStrings(obj, context, { allowPartial: true })
+    expect(result).to.eql({
+      a: 'some ${templated["key.with.dots"]}',
+      b: "${more.stuff}",
+    })
+  })
+
+  it("should handle nested template keys correctly", () => {
+    const context = new PassthroughContext()
+    const obj = {
+      a: "some ${templated['${nested.key}']}",
+      b: "${more.stuff}",
+    }
+    const result = resolveTemplateStrings(obj, context, { allowPartial: true })
+    expect(result).to.eql({
+      a: 'some ${templated["${nested.key}"]}',
+      b: "${more.stuff}",
+    })
   })
 })

@@ -9,7 +9,13 @@
 import lodash from "lodash"
 import { deepMap } from "./util/util"
 import { GardenBaseError, ConfigurationError } from "./exceptions"
-import { ConfigContext, ContextResolveOpts, ScanContext, ContextResolveOutput } from "./config/config-context"
+import {
+  ConfigContext,
+  ContextResolveOpts,
+  ScanContext,
+  ContextResolveOutput,
+  ContextKeySegment,
+} from "./config/config-context"
 import { difference, flatten, uniq, isPlainObject, isNumber } from "lodash"
 import { Primitive, StringMap, isPrimitive } from "./config/common"
 import { profile } from "./util/profiling"
@@ -117,7 +123,7 @@ export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T
 /**
  * Scans for all template strings in the given object and lists the referenced keys.
  */
-export function collectTemplateReferences<T extends object>(obj: T): string[][] {
+export function collectTemplateReferences<T extends object>(obj: T): ContextKeySegment[][] {
   const context = new ScanContext()
   resolveTemplateStrings(obj, context)
   return uniq(context.foundKeys.entries()).sort()
@@ -144,7 +150,7 @@ export function throwOnMissingSecretKeys<T extends Object>(
   secrets: StringMap,
   prefix: string
 ) {
-  const allMissing: [string, string[]][] = [] // [[key, missing keys]]
+  const allMissing: [string, ContextKeySegment[]][] = [] // [[key, missing keys]]
   for (const [key, config] of Object.entries(configs)) {
     const missing = detectMissingSecretKeys(config, secrets)
     if (missing.length > 0) {
@@ -190,7 +196,7 @@ export function throwOnMissingSecretKeys<T extends Object>(
  * Collects template references to secrets in obj, and returns an array of any secret keys referenced in it that
  * aren't present (or have blank values) in the provided secrets map.
  */
-export function detectMissingSecretKeys<T extends object>(obj: T, secrets: StringMap): string[] {
+export function detectMissingSecretKeys<T extends object>(obj: T, secrets: StringMap): ContextKeySegment[] {
   const referencedKeys = collectTemplateReferences(obj)
     .filter((ref) => ref[0] === "secrets")
     .map((ref) => ref[1])

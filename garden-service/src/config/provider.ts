@@ -127,7 +127,7 @@ export async function getProviderTemplateReferences(config: ProviderConfig) {
 
   for (const key of references) {
     if (key[0] === "providers") {
-      const providerName = key[1]
+      const providerName = key[1] as string
       if (!providerName) {
         throw new ConfigurationError(
           deline`

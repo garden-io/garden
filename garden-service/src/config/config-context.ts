@@ -24,7 +24,8 @@ import { ModuleConfig } from "./module"
 import { ModuleVersion } from "../vcs/vcs"
 import { isPrimitive } from "util"
 
-export type ContextKey = string[]
+export type ContextKeySegment = string | number
+export type ContextKey = ContextKeySegment[]
 
 export interface ContextResolveOpts {
   // Allow templates to be partially resolved (used to defer runtime template resolution, for example)
@@ -72,8 +73,8 @@ export abstract class ConfigContext {
   }
 
   resolve({ key, nodePath, opts }: ContextResolveParams): ContextResolveOutput {
-    const path = key.join(".")
-    const fullPath = nodePath.concat(key).join(".")
+    const path = renderKeyPath(key)
+    const fullPath = renderKeyPath(nodePath.concat(key))
 
     // if the key has previously been resolved, return it directly
     const resolved = this._resolvedValues[path]
@@ -100,7 +101,7 @@ export abstract class ConfigContext {
     let value: any = this
     let partial = false
     let nextKey = key[0]
-    let lookupPath: string[] = []
+    let lookupPath: ContextKeySegment[] = []
     let nestedNodePath = nodePath
     let message: string | undefined = undefined
 
@@ -109,7 +110,7 @@ export abstract class ConfigContext {
       lookupPath = key.slice(0, p + 1)
       const remainder = key.slice(p + 1)
       nestedNodePath = nodePath.concat(lookupPath)
-      const stackEntry = nestedNodePath.join(".")
+      const stackEntry = renderKeyPath(nestedNodePath)
       available = null
 
       if (typeof nextKey === "string" && nextKey.startsWith("_")) {
@@ -173,7 +174,7 @@ export abstract class ConfigContext {
       if (message === undefined) {
         message = chalk.red(`Could not find key ${chalk.white(nextKey)}`)
         if (nestedNodePath.length > 1) {
-          message += chalk.red(" under ") + chalk.white(nestedNodePath.slice(0, -1).join("."))
+          message += chalk.red(" under ") + chalk.white(renderKeyPath(nestedNodePath.slice(0, -1)))
         }
         message += chalk.red(".")
 
@@ -203,17 +204,17 @@ export abstract class ConfigContext {
 }
 
 export class ScanContext extends ConfigContext {
-  foundKeys: KeyedSet<string[]>
+  foundKeys: KeyedSet<ContextKeySegment[]>
 
   constructor() {
     super()
-    this.foundKeys = new KeyedSet<string[]>((v) => v.join("."))
+    this.foundKeys = new KeyedSet<ContextKeySegment[]>((v) => renderKeyPath(v))
   }
 
   resolve({ key, nodePath }: ContextResolveParams) {
     const fullKey = nodePath.concat(key)
     this.foundKeys.add(fullKey)
-    return { resolved: "${" + fullKey.join(".") + "}" }
+    return { resolved: renderTemplateString(fullKey), partial: true }
   }
 }
 
@@ -671,7 +672,7 @@ export class TaskRuntimeContext extends ServiceRuntimeContext {
 /**
  * Used to defer and return the template string back, when allowPartial=true.
  */
-class PassthroughContext extends ConfigContext {
+export class PassthroughContext extends ConfigContext {
   resolve(params: ContextResolveParams): ContextResolveOutput {
     const opts = { ...(params.opts || {}), allowUndefined: params.opts.allowPartial || params.opts.allowUndefined }
     const res = super.resolve({ ...params, opts })
@@ -682,7 +683,7 @@ class PassthroughContext extends ConfigContext {
         // string, that can be resolved later.
         const { key, nodePath } = params
         const fullKey = nodePath.concat(key)
-        return { resolved: "${" + fullKey.join(".") + "}", partial: true }
+        return { resolved: renderTemplateString(fullKey), partial: true }
       } else {
         // If undefined values are allowed, we simply return undefined (We know allowUndefined is set here, because
         // otherwise an error would have been thrown by `super.resolve()` above).
@@ -822,4 +823,34 @@ export class OutputConfigContext extends ModuleConfigContext {
       runtimeContext,
     })
   }
+}
+
+/**
+ * Given all the segments of a template string, return a new template string that can be resolved later.
+ */
+function renderTemplateString(key: ContextKeySegment[]) {
+  return "${" + renderKeyPath(key) + "}"
+}
+
+/**
+ * Given all the segments of a template string, return a string path for the key.
+ */
+function renderKeyPath(key: ContextKeySegment[]): string {
+  // Note: We don't support bracket notation for the first part in a template string
+  if (key.length === 0) {
+    return ""
+  }
+  const stringSegments = key.map((segment) => "" + segment)
+  return (
+    stringSegments
+      .slice(1)
+      // Need to correctly handle key segments with dots in them, and nested templates
+      .reduce((output, segment) => {
+        if (segment.match(/[\.\$\{\}]/)) {
+          return `${output}[${JSON.stringify(segment)}]`
+        } else {
+          return `${output}.${segment}`
+        }
+      }, stringSegments[0])
+  )
 }

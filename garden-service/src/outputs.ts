@@ -44,14 +44,14 @@ export async function resolveProjectOutputs(garden: Garden, log: LogEntry): Prom
       continue
     }
     if (ref[0] === "providers") {
-      needProviders.push(ref[1])
+      needProviders.push(ref[1] as string)
     } else if (ref[0] === "modules") {
-      needModules.push(ref[1])
+      needModules.push(ref[1] as string)
     } else if (ref[0] === "runtime" && ref[2]) {
       if (ref[1] === "services") {
-        needServices.push(ref[2])
+        needServices.push(ref[2] as string)
       } else if (ref[1] === "tasks") {
-        needTasks.push(ref[2])
+        needTasks.push(ref[2] as string)
       }
     }
   }

@@ -450,6 +450,16 @@ describe("resolveTemplateString", async () => {
     expect(res).to.equal(true)
   })
 
+  it("should handle member lookup with bracket notation, single quotes and dot in key name", async () => {
+    const res = resolveTemplateString("${foo['bar.baz']}", new TestContext({ foo: { "bar.baz": true } }))
+    expect(res).to.equal(true)
+  })
+
+  it("should handle member lookup with bracket notation, double quotes and dot in key name", async () => {
+    const res = resolveTemplateString('${foo.bar["bla.ble"]}', new TestContext({ foo: { bar: { "bla.ble": 123 } } }))
+    expect(res).to.equal(123)
+  })
+
   it("should handle numeric member lookup with bracket notation", async () => {
     const res = resolveTemplateString("${foo[1]}", new TestContext({ foo: [false, true] }))
     expect(res).to.equal(true)
