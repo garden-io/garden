@@ -55,14 +55,16 @@ export const baseTaskSpecSchema = () =>
         Note however that template strings referencing the task's outputs (i.e. runtime outputs) will fail to resolve when the task is disabled, so you need to make sure to provide alternate values for those if you're using them, using conditional expressions.
         `
         ),
-      timeout: joi
-        .number()
-        .optional()
-        .allow(null)
-        .default(null)
-        .description("Maximum duration (in seconds) of the task's execution."),
+      timeout: baseTaskTimeoutSchema,
     })
     .description("Required configuration for module tasks.")
+
+export const baseTaskTimeoutSchema = joi
+  .number()
+  .optional()
+  .allow(null)
+  .default(null)
+  .description("Maximum duration (in seconds) of the task's execution.")
 
 export interface TaskConfig<T extends TaskSpec = TaskSpec> extends BaseTaskSpec {
   cacheResult: boolean

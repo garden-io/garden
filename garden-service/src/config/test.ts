@@ -36,12 +36,14 @@ export const baseTestSpecSchema = () =>
         specific environments, e.g. only during CI.
       `
       ),
-    timeout: joi
-      .number()
-      .allow(null)
-      .default(null)
-      .description("Maximum duration (in seconds) of the test run."),
+    timeout: baseTestTimeoutSchema,
   })
+
+export const baseTestTimeoutSchema = joi
+  .number()
+  .allow(null)
+  .default(null)
+  .description("Maximum duration (in seconds) of the test run.")
 
 export interface TestConfig<T extends {} = {}> extends BaseTestSpec {
   // Plugins can add custom fields that are kept here
