@@ -21,12 +21,13 @@ import { gardenAnnotationKey } from "../../util/string"
 import dedent from "dedent"
 import { HelmModule } from "./helm/config"
 import { KubernetesModule } from "./kubernetes-module/config"
+import { prepareImagePullSecrets } from "./secrets"
 
 const GARDEN_VERSION = getPackageVersion()
 type CreateNamespaceStatus = "pending" | "created"
 const created: { [name: string]: CreateNamespaceStatus } = {}
 
-export async function ensureNamespace(api: KubeApi, namespace: string) {
+export async function ensureNamespace(api: KubeApi, namespace: string, log?: LogEntry, provider?: KubernetesProvider) {
   if (!created[namespace]) {
     created[namespace] = "pending"
     const namespacesStatus = await api.core.listNamespace()
@@ -41,6 +42,10 @@ export async function ensureNamespace(api: KubeApi, namespace: string) {
       // TODO: the types for all the create functions in the library are currently broken
       await createNamespace(api, namespace)
       created[namespace] = "created"
+    }
+
+    if (log && provider && provider.config.imagePullSecrets.length > 0) {
+      await prepareImagePullSecrets({ api, provider, namespace, log })
     }
   }
 }
@@ -91,7 +96,7 @@ export async function getNamespace({
 
   if (!skipCreate) {
     const api = await KubeApi.factory(log, provider)
-    await ensureNamespace(api, namespace)
+    await ensureNamespace(api, namespace, log, provider)
   }
 
   return namespace
