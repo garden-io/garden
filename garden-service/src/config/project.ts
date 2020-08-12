@@ -333,8 +333,9 @@ export const projectDocsSchema = () =>
       // TODO: Refer to enterprise documentation for more details.
       domain: joi
         .string()
+        .uri()
         .meta({ internal: true })
-        .description("The domain to use for cloud features. Should point to the API/backend base URL."),
+        .description("The domain to use for cloud features. Should be the full API/backend URL."),
       // Note: We provide a different schema below for actual validation, but need to define it this way for docs
       // because joi.alternatives() isn't handled well in the doc generation.
       environments: joi
