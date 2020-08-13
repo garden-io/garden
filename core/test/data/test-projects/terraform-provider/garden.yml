@@ -5,6 +5,7 @@ environments:
   - name: prod
 providers:
   - name: terraform
+    allowDestroy: ${environment.name != 'prod'}
     autoApply: ${environment.name != 'prod'}
     initRoot: tf
     variables:

@@ -109,6 +109,10 @@ build:
           # Defaults to to same as source path.
           target: ''
 
+# If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete env` or `garden delete
+# service <module name>`.
+allowDestroy: false
+
 # If set to true, Garden will automatically run `terraform apply -auto-approve` when the stack is not
 # up-to-date. Otherwise, a warning is logged if the stack is out-of-date, and an error thrown if it is missing
 # entirely.
@@ -331,6 +335,14 @@ Defaults to to same as source path.
 | Type        | Default | Required |
 | ----------- | ------- | -------- |
 | `posixPath` | `""`    | No       |
+
+### `allowDestroy`
+
+If set to true, Garden will run `terraform destroy` on the stack when calling `garden delete env` or `garden delete service <module name>`.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 ### `autoApply`
 

@@ -23,6 +23,7 @@ import chalk from "chalk"
 export const variablesSchema = () => joiStringMap(joi.any())
 
 export interface TerraformBaseSpec {
+  allowDestroy: boolean
   autoApply: boolean
   dependencies: string[]
   variables: PrimitiveMap

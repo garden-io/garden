@@ -9,7 +9,7 @@
 import { join } from "path"
 import { pathExists } from "fs-extra"
 import { createGardenPlugin } from "../../types/plugin/plugin"
-import { getEnvironmentStatus, prepareEnvironment } from "./init"
+import { getEnvironmentStatus, prepareEnvironment, cleanupEnvironment } from "./init"
 import { providerConfigBaseSchema, GenericProviderConfig, Provider } from "../../config/provider"
 import { joi, joiVariables } from "../../config/common"
 import { dedent } from "../../util/string"
@@ -17,7 +17,7 @@ import { supportedVersions, defaultTerraformVersion, terraformCliSpecs } from ".
 import { ConfigureProviderParams, ConfigureProviderResult } from "../../types/plugin/provider/configureProvider"
 import { ConfigurationError } from "../../exceptions"
 import { variablesSchema, TerraformBaseSpec } from "./common"
-import { schema, configureTerraformModule, getTerraformStatus, deployTerraform } from "./module"
+import { schema, configureTerraformModule, getTerraformStatus, deployTerraform, deleteTerraformModule } from "./module"
 import { DOCS_BASE_URL } from "../../constants"
 import { SuggestModulesParams, SuggestModulesResult } from "../../types/plugin/module/suggestModules"
 import { listDirectory } from "../../util/fs"
@@ -32,6 +32,9 @@ export interface TerraformProvider extends Provider<TerraformProviderConfig> {}
 
 const configSchema = providerConfigBaseSchema()
   .keys({
+    allowDestroy: joi.boolean().default(false).description(dedent`
+        If set to true, Garden will run \`terraform destroy\` on the project root stack when calling \`garden delete env\`.
+      `),
     autoApply: joi.boolean().default(false).description(dedent`
         If set to true, Garden will automatically run \`terraform apply -auto-approve\` when a stack is not up-to-date. Otherwise, a warning is logged if the stack is out-of-date, and an error thrown if it is missing entirely.
 
@@ -72,6 +75,7 @@ export const gardenPlugin = createGardenPlugin({
     configureProvider,
     getEnvironmentStatus,
     prepareEnvironment,
+    cleanupEnvironment,
   },
   commands: terraformCommands,
   createModuleTypes: [
@@ -114,6 +118,7 @@ export const gardenPlugin = createGardenPlugin({
         configure: configureTerraformModule,
         getServiceStatus: getTerraformStatus,
         deployService: deployTerraform,
+        deleteService: deleteTerraformModule,
       },
     },
   ],
