@@ -12,12 +12,11 @@ import { V1Pod, V1EnvVar } from "@kubernetes/client-node"
 import { apply as jsonMerge } from "json-merge-patch"
 import chalk from "chalk"
 import hasha from "hasha"
-import stableStringify = require("json-stable-stringify")
 
 import { KubernetesResource, KubernetesWorkload, KubernetesPod, KubernetesServerResource } from "./types"
 import { splitLast, serializeValues, findByName } from "../../util/util"
 import { KubeApi, KubernetesError } from "./api"
-import { gardenAnnotationKey, base64, deline } from "../../util/string"
+import { gardenAnnotationKey, base64, deline, stableStringify } from "../../util/string"
 import { MAX_CONFIGMAP_DATA_SIZE, dockerAuthSecretName, dockerAuthSecretKey } from "./constants"
 import { ContainerEnvVars } from "../container/config"
 import { ConfigurationError, PluginError } from "../../exceptions"

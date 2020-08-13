@@ -9,18 +9,19 @@
 import { expect } from "chai"
 import { StreamEvent, LogEntryEvent, BufferedEventStream } from "../../../../src/enterprise/buffered-event-stream"
 import { getLogger } from "../../../../src/logger/logger"
-import { EventBus } from "../../../../src/events"
+import { Garden } from "../../../../src/garden"
+import { makeTestGardenA } from "../../../helpers"
+import { find, isMatch } from "lodash"
 
 describe("BufferedEventStream", () => {
-  const getConnectionParams = (eventBus: EventBus) => ({
-    eventBus,
-    enterpriseContext: {
-      clientAuthToken: "dummy-client-token",
-      enterpriseDomain: "dummy-platform_url",
-      projectId: "myproject",
-    },
-    environmentName: "my-env",
-    namespace: "my-ns",
+  const getConnectionParams = (garden: Garden) => ({
+    garden,
+    targets: [
+      {
+        host: "dummy-platform_url",
+        clientAuthToken: "dummy-client-token",
+      },
+    ],
   })
 
   it("should flush events and log entries emitted by a connected event emitter", async () => {
@@ -40,19 +41,19 @@ describe("BufferedEventStream", () => {
       return Promise.resolve()
     }
 
-    const eventBus = new EventBus()
-    bufferedEventStream.connect(getConnectionParams(eventBus))
+    const garden = await makeTestGardenA()
+    bufferedEventStream.connect(getConnectionParams(garden))
 
-    eventBus.emit("_test", {})
-    log.root.events.emit("_test", {})
+    garden.events.emit("_test", "event")
+    log.root.events.emit("_test", "log")
 
-    bufferedEventStream.flushBuffered({ flushAll: true })
+    await bufferedEventStream.flushBuffered({ flushAll: true })
 
-    expect(flushedEvents.length).to.eql(1)
-    expect(flushedLogEntries.length).to.eql(1)
+    expect(find(flushedEvents, (e) => isMatch(e, { name: "_test", payload: "event" }))).to.exist
+    expect(flushedLogEntries).to.include("log")
   })
 
-  it("should only flush events or log entries emitted by the last connected event emitter", async () => {
+  it("should only flush events or log entries emitted by the last connected Garden bus", async () => {
     const flushedEvents: StreamEvent[] = []
     const flushedLogEntries: LogEntryEvent[] = []
 
@@ -69,22 +70,23 @@ describe("BufferedEventStream", () => {
       return Promise.resolve()
     }
 
-    const oldEventBus = new EventBus()
-    bufferedEventStream.connect(getConnectionParams(oldEventBus))
-    const newEventBus = new EventBus()
-    bufferedEventStream.connect(getConnectionParams(newEventBus))
+    const gardenA = await makeTestGardenA()
+    const gardenB = await makeTestGardenA()
 
-    log.root.events.emit("_test", {})
-    oldEventBus.emit("_test", {})
+    bufferedEventStream.connect(getConnectionParams(gardenA))
+    bufferedEventStream.connect(getConnectionParams(gardenB))
 
-    bufferedEventStream.flushBuffered({ flushAll: true })
+    log.root.events.emit("_test", "log")
+    gardenA.events.emit("_test", "event")
+
+    await bufferedEventStream.flushBuffered({ flushAll: true })
 
     expect(flushedEvents.length).to.eql(0)
-    expect(flushedLogEntries.length).to.eql(1)
+    expect(flushedLogEntries).to.include("log")
 
-    newEventBus.emit("_test", {})
-    bufferedEventStream.flushBuffered({ flushAll: true })
+    gardenB.events.emit("_test", "event")
+    await bufferedEventStream.flushBuffered({ flushAll: true })
 
-    expect(flushedEvents.length).to.eql(1)
+    expect(find(flushedEvents, (e) => isMatch(e, { name: "_test", payload: "event" }))).to.exist
   })
 })

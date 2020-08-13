@@ -44,6 +44,9 @@ import { renderError } from "../logger/renderers"
 import { getDefaultProfiler } from "../util/profiling"
 import { BufferedEventStream } from "../enterprise/buffered-event-stream"
 import { makeEnterpriseContext } from "../enterprise/init"
+import { GardenProcess } from "../db/entities/garden-process"
+import { DashboardEventStream } from "../server/dashboard-event-stream"
+import { ensureConnected } from "../db/connection"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts = {}) {
   const environments = gardenOpts.environmentName
@@ -154,10 +157,12 @@ ${renderCommands(commands)}
     command,
     parsedArgs,
     parsedOpts,
+    processRecord,
   }: {
     command: Command<A, O>
     parsedArgs: ParameterValues<A>
     parsedOpts: ParameterValues<GlobalOptions & O>
+    processRecord?: GardenProcess
   }) {
     const root = resolve(process.cwd(), parsedOpts.root)
     const {
@@ -194,6 +199,7 @@ ${renderCommands(commands)}
     // Init event & log streaming.
     const sessionId = uuidv4()
     const bufferedEventStream = new BufferedEventStream(log, sessionId)
+    const dashboardEventStream = new DashboardEventStream(log, sessionId)
 
     const contextOpts: GardenOpts = {
       commandInfo: {
@@ -209,7 +215,7 @@ ${renderCommands(commands)}
     }
 
     let garden: Garden
-    let result: CommandResult<any>
+    let result: CommandResult<any> = {}
     let analytics: AnalyticsHandler
 
     const { persistent } = await command.prepare({
@@ -228,19 +234,55 @@ ${renderCommands(commands)}
           garden = await makeDummyGarden(root, contextOpts)
         } else {
           garden = await Garden.factory(root, contextOpts)
+
+          if (processRecord) {
+            // Update the db record for the process
+            await processRecord.setCommand({
+              command: command.name,
+              sessionId: garden.sessionId,
+              persistent,
+              serverHost: command.server?.port ? `http://localhost:${command.server.port}` : null,
+              serverAuthKey: command.server?.authKey || null,
+              projectRoot: garden.projectRoot,
+              projectName: garden.projectName,
+              environmentName: garden.environmentName,
+              namespace: garden.namespace,
+            })
+          }
+
+          // Connect the dashboard event streamer (making sure it doesn't stream to the local server)
+          const commandServerUrl = command.server?.getUrl() || undefined
+          dashboardEventStream.connect({ garden, ignoreHost: commandServerUrl })
+          const runningServers = await dashboardEventStream.updateTargets()
+
+          if (persistent && command.server) {
+            // If there is an explicit `garden dashboard` process running for the current project+env, and a server
+            // is started in this Command, we show the URL to the external dashboard. Otherwise the built-in one.
+            const dashboardProcess = GardenProcess.getDashboardProcess(runningServers, {
+              projectRoot: garden.projectRoot,
+              projectName: garden.projectName,
+              environmentName: garden.environmentName,
+              namespace: garden.namespace,
+            })
+
+            command.server.showUrl(dashboardProcess?.serverHost || undefined)
+          }
         }
 
         const enterpriseContext = makeEnterpriseContext(garden)
         if (enterpriseContext) {
-          log.silly(`Connecting Garden instance to BufferedEventStream`)
+          log.silly(`Connecting Garden instance to GE BufferedEventStream`)
           bufferedEventStream.connect({
-            enterpriseContext,
-            eventBus: garden.events,
-            environmentName: garden.environmentName,
-            namespace: garden.namespace,
+            garden,
+            targets: [
+              {
+                host: enterpriseContext.enterpriseDomain,
+                clientAuthToken: enterpriseContext.clientAuthToken,
+              },
+            ],
           })
         } else {
-          log.silly(`Skip connecting Garden instance to BufferedEventStream`)
+          log.silly(`Skip connecting Garden instance to GE BufferedEventStream`)
         }
 
         // Register log file writers. We need to do this after the Garden class is initialised because
@@ -280,15 +322,27 @@ ${renderCommands(commands)}
           await generateBasicDebugInfoReport(root, join(root, DEFAULT_GARDEN_DIR_NAME), log, parsedOpts.format)
         }
         throw err
+      } finally {
+        if (!result.restartRequired) {
+          await bufferedEventStream.close()
+          await dashboardEventStream.close()
+          await command.server?.close()
+        }
       }
     } while (result.restartRequired)
-
-    await bufferedEventStream.close()
 
     return { result, analytics }
   }
 
-  async run({ args, exitOnError }: { args: string[]; exitOnError: boolean }): Promise<RunOutput> {
+  async run({
+    args,
+    exitOnError,
+    processRecord,
+  }: {
+    args: string[]
+    exitOnError: boolean
+    processRecord?: GardenProcess
+  }): Promise<RunOutput> {
     let argv = parseCliArgs({ stringArgs: args, cli: true })
 
     let logger: Logger
@@ -304,11 +358,12 @@ ${renderCommands(commands)}
         // tslint:disable-next-line: no-console
         console.log(consoleOutput)
         await waitForOutputFlush()
-        process.exit(abortCode)
+        await shutdown(abortCode)
       } else {
         await waitForOutputFlush()
-        return { argv, code: abortCode, errors, result, consoleOutput }
       }
+
+      return { argv, code: abortCode, errors, result, consoleOutput }
     }
 
     if (argv.v || argv.version || argv._[0] === "version") {
@@ -359,7 +414,7 @@ ${renderCommands(commands)}
     let analytics: AnalyticsHandler | undefined = undefined
 
     try {
-      const runResults = await this.runCommand({ command, parsedArgs, parsedOpts })
+      const runResults = await this.runCommand({ command, parsedArgs, parsedOpts, processRecord })
       commandResult = runResults.result
       analytics = runResults.analytics
     } catch (err) {
@@ -427,24 +482,35 @@ ${renderCommands(commands)}
   }
 }
 
-export async function runCli(): Promise<void> {
+export async function runCli({ args, cli }: { args?: string[]; cli?: GardenCli } = {}): Promise<void> {
   let code = 0
 
+  if (!args) {
+    args = process.argv.slice(2)
+  }
+
+  await ensureConnected()
+  const processRecord = await GardenProcess.register(args)
+
   try {
-    const cli = new GardenCli()
+    if (!cli) {
+      cli = new GardenCli()
+    }
     // Note: We slice off the binary/script name from argv.
-    const result = await cli.run({ args: process.argv.slice(2), exitOnError: true })
+    const result = await cli.run({ args, exitOnError: true, processRecord })
     code = result.code
   } catch (err) {
     // tslint:disable-next-line: no-console
     console.log(err.message)
     code = 1
   } finally {
+    await processRecord.remove()
+
     if (gardenEnv.GARDEN_ENABLE_PROFILING) {
       // tslint:disable-next-line: no-console
       console.log(getDefaultProfiler().report())
     }
 
-    shutdown(code)
+    await shutdown(code)
   }
 }

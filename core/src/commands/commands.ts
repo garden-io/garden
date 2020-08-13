@@ -26,7 +26,7 @@ import { UnlinkCommand } from "./unlink/unlink"
 import { UpdateRemoteCommand } from "./update-remote/update-remote"
 import { ValidateCommand } from "./validate"
 import { ExecCommand } from "./exec"
-import { ServeCommand } from "./serve"
+import { DashboardCommand } from "./dashboard"
 import { OptionsCommand } from "./options"
 import { ConfigCommand } from "./config/config"
 import { PluginsCommand } from "./plugins"
@@ -55,7 +55,7 @@ export const coreCommands: (Command | CommandGroup)[] = [
   new PublishCommand(),
   new RunCommand(),
   new ScanCommand(),
-  new ServeCommand(),
+  new DashboardCommand(),
   new SetCommand(),
   new TestCommand(),
   new ToolsCommand(),

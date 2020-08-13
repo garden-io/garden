@@ -30,7 +30,7 @@ export const taskResultSchema = () =>
       taskName: joi.string().description("The name of the task that was run."),
       command: joi
         .array()
-        .items(joi.string())
+        .items(joi.string().allow(""))
         .required()
         .description("The command that the task ran in the module."),
       version: joi.string().description("The string version of the task."),

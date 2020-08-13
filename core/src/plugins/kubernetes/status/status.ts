@@ -31,8 +31,7 @@ import dedent = require("dedent")
 import { getPods, hashManifest } from "../util"
 import { checkWorkloadStatus } from "./workload"
 import { checkWorkloadPodStatus } from "./pod"
-import { gardenAnnotationKey } from "../../../util/string"
-import stableStringify from "json-stable-stringify"
+import { gardenAnnotationKey, stableStringify } from "../../../util/string"
 
 export interface ResourceStatus {
   state: ServiceState

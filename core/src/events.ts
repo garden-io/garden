@@ -13,6 +13,8 @@ import { LogEntryEvent } from "./enterprise/buffered-event-stream"
 import { ServiceStatus } from "./types/service"
 import { RunStatus } from "./types/plugin/base"
 
+export type GardenEventListener<T extends EventName> = (payload: Events[T]) => void
+
 /**
  * This simple class serves as the central event bus for a Garden instance. Its function
  * is mainly to consolidate all events for the instance, to ensure type-safety.
@@ -67,6 +69,11 @@ export interface Events extends LoggerEvents {
   _test: any
   _workflowRunRegistered: {
     workflowRunUid: string
+  }
+
+  // Process events
+  serversUpdated: {
+    servers: { host: string; command: string }[]
   }
 
   // Watcher events

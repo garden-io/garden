@@ -9,6 +9,7 @@
 import _dedent = require("dedent")
 import _deline = require("deline")
 import _urlJoin = require("proper-url-join")
+import _stableStringify = require("json-stable-stringify")
 import CliTable from "cli-table3"
 import cliTruncate from "cli-truncate"
 import { getTerminalWidth } from "../logger/util"
@@ -19,6 +20,7 @@ import wrapAnsi from "wrap-ansi"
 export const dedent = _dedent
 export const deline = _deline
 export const urlJoin = _urlJoin as (...args: string[]) => string
+export const stableStringify = _stableStringify
 
 const gardenAnnotationPrefix = "garden.io/"
 

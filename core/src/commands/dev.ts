@@ -23,7 +23,7 @@ import { GardenModule } from "../types/module"
 import { getTestTasks } from "../tasks/test"
 import { ConfigGraph } from "../config-graph"
 import { getHotReloadServiceNames, validateHotReloadServiceNames } from "./helpers"
-import { GardenServer, startServer } from "../server/server"
+import { startServer } from "../server/server"
 import { BuildTask } from "../tasks/build"
 import { DeployTask } from "../tasks/deploy"
 import { Garden } from "../garden"
@@ -83,8 +83,6 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
 
   options = devOpts
 
-  private server: GardenServer
-
   async prepare({ log, footerLog }: PrepareParams<DevCommandArgs, DevCommandOpts>) {
     // print ANSI banner image
     const data = await readFile(ansiBannerPath)
@@ -93,7 +91,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
     log.info(chalk.gray.italic(`Good ${getGreetingTime()}! Let's get your environment wired up...`))
     log.info("")
 
-    this.server = await startServer(footerLog)
+    this.server = await startServer({ log: footerLog })
 
     return { persistent: true }
   }
@@ -104,7 +102,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
     footerLog,
     opts,
   }: CommandParams<DevCommandArgs, DevCommandOpts>): Promise<CommandResult> {
-    this.server.setGarden(garden)
+    this.server?.setGarden(garden)
 
     const graph = await garden.getConfigGraph(log)
     const modules = graph.getModules()

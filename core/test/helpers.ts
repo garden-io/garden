@@ -10,7 +10,7 @@ import td from "testdouble"
 import tmp from "tmp-promise"
 import Bluebird = require("bluebird")
 import { resolve, join } from "path"
-import { extend, keyBy, intersection, pick } from "lodash"
+import { extend, keyBy, intersection, pick, isEqual } from "lodash"
 import { remove, readdirSync, existsSync, copy, mkdirp, pathExists, truncate, realpath } from "fs-extra"
 import execa = require("execa")
 
@@ -29,7 +29,7 @@ import { mapValues, fromPairs } from "lodash"
 import { ModuleVersion } from "../src/vcs/vcs"
 import { GARDEN_SERVICE_ROOT, LOCAL_CONFIG_FILENAME, DEFAULT_API_VERSION, gardenEnv } from "../src/constants"
 import { EventBus, Events } from "../src/events"
-import { ValueOf, exec, findByName, getNames, isPromise } from "../src/util/util"
+import { ValueOf, exec, findByName, getNames, isPromise, uuidv4 } from "../src/util/util"
 import { LogEntry } from "../src/logger/log-entry"
 import timekeeper = require("timekeeper")
 import { ParameterValues, globalOptions, GlobalOptions } from "../src/cli/params"
@@ -52,6 +52,8 @@ import { RuntimeContext } from "../src/runtime-context"
 import { GardenModule } from "../src/types/module"
 import { AnalyticsGlobalConfig } from "../src/config-store"
 import { WorkflowConfig } from "../src/config/workflow"
+import { AssertionError } from "chai"
+import { dedent } from "../src/util/string"
 
 export const dataDir = resolve(GARDEN_SERVICE_ROOT, "test", "data")
 export const examplesDir = resolve(GARDEN_SERVICE_ROOT, "..", "examples")
@@ -316,7 +318,7 @@ interface EventLogEntry {
 /**
  * Used for test Garden instances, to log emitted events.
  */
-class TestEventBus extends EventBus {
+export class TestEventBus extends EventBus {
   public eventLog: EventLogEntry[]
 
   constructor() {
@@ -331,6 +333,20 @@ class TestEventBus extends EventBus {
 
   clearLog() {
     this.eventLog = []
+  }
+
+  expectEvent<T extends keyof Events>(name: T, payload: Events[T]) {
+    for (const event of this.eventLog) {
+      if (event.name === name && isEqual(event.payload, payload)) {
+        return
+      }
+    }
+
+    throw new AssertionError(dedent`
+      Expected event in log with name '${name}' and payload ${JSON.stringify(payload)}.
+      Logged events:
+      ${this.eventLog.map((e) => JSON.stringify(e)).join("\n")}
+    `)
   }
 }
 
@@ -391,6 +407,7 @@ export class TestGarden extends Garden {
 }
 
 export const makeTestGarden = async (projectRoot: string, opts: GardenOpts = {}): Promise<TestGarden> => {
+  opts = { sessionId: uuidv4(), ...opts }
   const plugins = [...testPlugins, ...(opts.plugins || [])]
   return TestGarden.factory(projectRoot, { ...opts, plugins })
 }
