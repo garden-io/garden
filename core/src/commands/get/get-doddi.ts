@@ -13,12 +13,12 @@ import { STATIC_DIR } from "../../constants"
 import { join } from "path"
 import { exec } from "../../util/util"
 
-export class GetEysiCommand extends Command {
-  name = "eysi"
-  help = "Meet our CTO."
+export class GetDoddiCommand extends Command {
+  name = "doddi"
+  help = "Meet our VP of Engineering."
 
   description = dedent`
-    Just try it.
+    He's nice. We promise. Don't be afraid.
   `
 
   loggerType: "basic"
@@ -27,15 +27,15 @@ export class GetEysiCommand extends Command {
   noProject = true
 
   async action(): Promise<CommandResult> {
-    const eysi = (await readFile(join(STATIC_DIR, "eysi.txt"))).toString()
+    const image = (await readFile(join(STATIC_DIR, "doddi.txt"))).toString()
     // tslint:disable-next-line: no-console
-    console.log(eysi)
+    console.log(image)
 
     try {
       // Close enough.
-      await exec("say", ["Hello", ",", "I", "am", "Aysey"])
+      await exec("say", ["-v", "Daniel", "Hello. My name is dawddeeh."])
     } catch (_) {}
 
-    return { result: { eysi } }
+    return { result: { image } }
   }
 }

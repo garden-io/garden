@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { cloneDeep, isEqual, take } from "lodash"
+import { cloneDeep, isEqual, omit, take } from "lodash"
 import { joi, joiUserIdentifier, joiVariableName, joiIdentifier } from "./common"
 import { DEFAULT_API_VERSION } from "../constants"
 import { deline, dedent } from "../util/string"
@@ -32,6 +32,19 @@ export interface WorkflowConfig {
   limits?: ServiceLimitSpec
   steps: WorkflowStepSpec[]
   triggers?: TriggerSpec[]
+}
+
+export interface WorkflowRunConfig extends Omit<WorkflowConfig, "triggers"> {
+  environment: string // The environment the workflow run is executed in
+  namespace: string // The namespace the workflow run is executed in
+}
+
+export function makeRunConfig(
+  workflowConfig: WorkflowConfig,
+  environment: string,
+  namespace: string
+): WorkflowRunConfig {
+  return { ...omit(workflowConfig, ["triggers"]), environment, namespace }
 }
 
 export interface WorkflowResource extends WorkflowConfig {}
