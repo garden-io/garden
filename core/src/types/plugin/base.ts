@@ -99,7 +99,7 @@ export const runResultSchema = () =>
       moduleName: joi.string().description("The name of the module that was run."),
       command: joi
         .array()
-        .items(joi.string())
+        .items(joi.string().allow(""))
         .required()
         .description("The command that was run in the module."),
       version: joi.string().description("The string version of the module."),
