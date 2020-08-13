@@ -394,9 +394,14 @@ export function convertDeprecatedManifestVersion(manifest: KubernetesResource): 
   return manifest
 }
 
-export async function getDeploymentPodName(deploymentName: string, provider: KubernetesProvider, log: LogEntry) {
-  const api = await KubeApi.factory(log, provider)
-  const systemNamespace = await getSystemNamespace(provider, log)
+export async function getDeploymentPodName(
+  deploymentName: string,
+  ctx: PluginContext,
+  provider: KubernetesProvider,
+  log: LogEntry
+) {
+  const api = await KubeApi.factory(log, ctx, provider)
+  const systemNamespace = await getSystemNamespace(ctx, provider, log)
 
   const status = await api.apps.readNamespacedDeployment(deploymentName, systemNamespace)
   const pods = await getPods(api, systemNamespace, status.spec.selector.matchLabels)

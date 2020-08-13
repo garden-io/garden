@@ -41,7 +41,7 @@ describe("kubernetes container deployment handlers", () => {
   const init = async (environmentName: string) => {
     garden = await getContainerTestGarden(environmentName)
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-    api = await KubeApi.factory(garden.log, provider)
+    api = await KubeApi.factory(garden.log, await garden.getPluginContext(provider), provider)
   }
 
   describe("createWorkloadManifest", () => {

@@ -12,7 +12,7 @@ import { ensureDir } from "fs-extra"
 import dedent from "dedent"
 import { platform, arch } from "os"
 import { parse, relative, resolve, join } from "path"
-import { flatten, isString, sortBy, fromPairs, keyBy, mapValues, omit, cloneDeep } from "lodash"
+import { flatten, isString, sortBy, fromPairs, keyBy, mapValues, cloneDeep } from "lodash"
 const AsyncLock = require("async-lock")
 
 import { TreeCache } from "./cache"
@@ -79,6 +79,7 @@ import username from "username"
 import { throwOnMissingSecretKeys } from "./template-string"
 import { WorkflowConfig, WorkflowResource, WorkflowConfigMap, resolveWorkflowConfig } from "./config/workflow"
 import { enterpriseInit } from "./enterprise/init"
+import { PluginTool, PluginTools } from "./util/ext-tools"
 
 export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
   [actionName: string]: PluginActionHandlers[T]
@@ -170,6 +171,7 @@ export class Garden {
   public readonly cache: TreeCache
   private actionHelper: ActionRouter
   public readonly events: EventBus
+  private tools: { [key: string]: PluginTool }
 
   public readonly production: boolean
   public readonly projectRoot: string
@@ -378,7 +380,7 @@ export class Garden {
     this.watcher && (await this.watcher.stop())
   }
 
-  getPluginContext(provider: Provider) {
+  async getPluginContext(provider: Provider) {
     return createPluginContext(this, provider, this.opts.commandInfo)
   }
 
@@ -642,6 +644,22 @@ export class Garden {
     })
 
     return keyBy(providers, "name")
+  }
+
+  async getTools() {
+    if (!this.tools) {
+      const plugins = await this.getPlugins()
+      const tools: PluginTools = {}
+
+      for (const plugin of Object.values(plugins)) {
+        for (const tool of plugin.tools || []) {
+          tools[`${plugin.name}.${tool.name}`] = new PluginTool(tool)
+        }
+      }
+
+      this.tools = tools
+    }
+    return this.tools
   }
 
   getWorkflowConfig(name: string): WorkflowConfig {
@@ -1159,12 +1177,7 @@ export class Garden {
         "name"
       )
 
-      providers = Object.values(await this.resolveProviders(log)).map((p) => {
-        return {
-          ...omit(p, ["tools"]),
-          dependencies: mapValues(p.dependencies, (d) => omit(d, ["tools"])),
-        } as Provider
-      })
+      providers = Object.values(await this.resolveProviders(log))
     }
 
     const workflowConfigs = await this.getWorkflowConfigs()
@@ -1203,7 +1216,7 @@ export interface ConfigDump {
   environmentName: string // TODO: Remove this?
   allEnvironmentNames: string[]
   namespace: string
-  providers: (Omit<Provider, "tools"> | GenericProviderConfig)[]
+  providers: (Provider | GenericProviderConfig)[]
   variables: DeepPrimitiveMap
   moduleConfigs: ModuleConfig[]
   workflowConfigs: WorkflowConfig[]

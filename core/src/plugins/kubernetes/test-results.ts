@@ -32,8 +32,8 @@ export async function getTestResult({
   testVersion,
 }: GetTestResultParams<ContainerModule | HelmModule | KubernetesModule>): Promise<TestResult | null> {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const api = await KubeApi.factory(log, k8sCtx.provider)
-  const testResultNamespace = await getSystemNamespace(k8sCtx.provider, log)
+  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
+  const testResultNamespace = await getSystemNamespace(k8sCtx, k8sCtx.provider, log)
 
   const resultKey = getTestResultKey(k8sCtx, module, testName, testVersion)
 
@@ -93,8 +93,8 @@ export async function storeTestResult({
   result,
 }: StoreTestResultParams): Promise<TestResult> {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const api = await KubeApi.factory(log, k8sCtx.provider)
-  const testResultNamespace = await getSystemNamespace(k8sCtx.provider, log)
+  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
+  const testResultNamespace = await getSystemNamespace(k8sCtx, k8sCtx.provider, log)
 
   const data: TestResult = trimRunOutput(result)
 

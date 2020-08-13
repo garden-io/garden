@@ -16,7 +16,7 @@ import { BuildStatus } from "../../../types/plugin/module/getBuildStatus"
 import chalk from "chalk"
 import { naturalList, deline } from "../../../util/string"
 import { ExecaReturnValue } from "execa"
-import { ContainerProvider } from "../../container/container"
+import { PluginContext } from "../../../plugin-context"
 
 export async function configureMicrok8sAddons(log: LogEntry, addons: string[]) {
   let statusCommandResult: ExecaReturnValue | undefined = undefined
@@ -70,12 +70,12 @@ export async function loadImageToMicrok8s({
   module,
   imageId,
   log,
-  containerProvider,
+  ctx,
 }: {
   module: ContainerModule
   imageId: string
   log: LogEntry
-  containerProvider: ContainerProvider
+  ctx: PluginContext
 }): Promise<void> {
   try {
     // See https://microk8s.io/docs/registry-images for reference
@@ -84,7 +84,7 @@ export async function loadImageToMicrok8s({
         cwd: module.buildPath,
         args: ["save", "-o", file.path, imageId],
         log,
-        containerProvider,
+        ctx,
       })
       await exec("microk8s.ctr", ["image", "import", file.path])
     })

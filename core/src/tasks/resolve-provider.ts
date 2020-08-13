@@ -33,7 +33,6 @@ import { readFile, writeFile, ensureDir } from "fs-extra"
 import { deserialize, serialize } from "v8"
 import { environmentStatusSchema } from "../config/status"
 import { hashString } from "../util/util"
-import { PluginTool } from "../util/ext-tools"
 import { gardenEnv } from "../constants"
 import { stableStringify } from "../util/string"
 
@@ -175,12 +174,10 @@ export class ResolveProviderTask extends BaseTask {
 
     const actions = await this.garden.getActionRouter()
 
-    const tools = keyBy(
-      (this.plugin.tools || []).map((spec) => new PluginTool(spec)),
-      "name"
-    )
-
     const configureOutput = await actions.configureProvider({
+      ctx: await this.garden.getPluginContext(
+        providerFromConfig(resolvedConfig, {}, [], { ready: false, outputs: {} })
+      ),
       environmentName: this.garden.environmentName,
       namespace: this.garden.namespace,
       pluginName: providerName,
@@ -190,7 +187,6 @@ export class ResolveProviderTask extends BaseTask {
       projectName: this.garden.projectName,
       projectRoot: this.garden.projectRoot,
       dependencies: resolvedProviders,
-      tools,
     })
 
     this.log.silly(`Validating ${providerName} config returned from configureProvider handler`)
@@ -226,16 +222,10 @@ export class ResolveProviderTask extends BaseTask {
 
     this.log.silly(`Ensuring ${providerName} provider is ready`)
 
-    const tmpProvider = providerFromConfig(
-      resolvedConfig,
-      resolvedProviders,
-      moduleConfigs,
-      defaultEnvironmentStatus,
-      tools
-    )
+    const tmpProvider = providerFromConfig(resolvedConfig, resolvedProviders, moduleConfigs, defaultEnvironmentStatus)
     const status = await this.ensurePrepared(tmpProvider)
 
-    return providerFromConfig(resolvedConfig, resolvedProviders, moduleConfigs, status, tools)
+    return providerFromConfig(resolvedConfig, resolvedProviders, moduleConfigs, status)
   }
 
   private getCachePath() {
@@ -307,7 +297,7 @@ export class ResolveProviderTask extends BaseTask {
   private async ensurePrepared(tmpProvider: Provider) {
     const pluginName = tmpProvider.name
     const actions = await this.garden.getActionRouter()
-    const ctx = this.garden.getPluginContext(tmpProvider)
+    const ctx = await this.garden.getPluginContext(tmpProvider)
 
     this.log.silly(`Getting status for ${pluginName}`)
 

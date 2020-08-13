@@ -51,7 +51,7 @@ export async function getSystemGarden(
   variables: DeepPrimitiveMap,
   log: LogEntry
 ): Promise<Garden> {
-  const systemNamespace = await getSystemNamespace(ctx.provider, log)
+  const systemNamespace = await getSystemNamespace(ctx, ctx.provider, log)
 
   const conftest: ConftestProviderConfig = {
     environments: ["default"],
@@ -189,7 +189,7 @@ export async function prepareSystemServices({
   serviceNames,
   force,
 }: PrepareSystemServicesParams) {
-  const api = await KubeApi.factory(log, ctx.provider)
+  const api = await KubeApi.factory(log, ctx, ctx.provider)
 
   const contextForLog = `Preparing environment for plugin "${ctx.provider.name}"`
   const outdated = !(await systemNamespaceUpToDate(api, log, namespace, contextForLog))

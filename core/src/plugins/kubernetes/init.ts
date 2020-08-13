@@ -38,6 +38,7 @@ import { KubernetesResource } from "./types"
 import { compareDeployedResources } from "./status/status"
 import { PrimitiveMap } from "../../config/common"
 import { LogEntry } from "../../logger/log-entry"
+import { PluginContext } from "../../plugin-context"
 
 // Note: We need to increment a version number here if we ever make breaking changes to the NFS provisioner StatefulSet
 const nfsStorageClassVersion = 2
@@ -76,13 +77,13 @@ export async function getEnvironmentStatus({
 }: GetEnvironmentStatusParams): Promise<KubernetesEnvironmentStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
-  const api = await KubeApi.factory(log, provider)
+  const api = await KubeApi.factory(log, ctx, provider)
 
   let projectHelmMigrated = true
 
   const namespaces = await prepareNamespaces({ ctx, log })
   const systemServiceNames = k8sCtx.provider.config._systemServices
-  const systemNamespace = await getSystemNamespace(k8sCtx.provider, log)
+  const systemNamespace = await getSystemNamespace(ctx, k8sCtx.provider, log)
 
   const detail: KubernetesEnvironmentDetail = {
     projectHelmMigrated,
@@ -116,7 +117,7 @@ export async function getEnvironmentStatus({
   const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
 
   if (provider.config.certManager) {
-    const certManagerStatus = await checkCertManagerStatus({ provider, log })
+    const certManagerStatus = await checkCertManagerStatus({ ctx, provider, log })
 
     // A running cert-manager installation couldn't be found.
     if (certManagerStatus !== "ready") {
@@ -157,7 +158,7 @@ export async function getEnvironmentStatus({
   let secretsUpToDate = true
 
   if (provider.config.buildMode !== "local-docker") {
-    const authSecret = await prepareDockerAuth(api, provider, log)
+    const authSecret = await prepareDockerAuth(api, ctx, provider, log)
     const comparison = await compareDeployedResources(k8sCtx, api, systemNamespace, [authSecret], log)
     secretsUpToDate = comparison.state === "ready"
   }
@@ -277,14 +278,14 @@ export async function prepareSystem({
 
   const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
   const sysProvider = <KubernetesProvider>await sysGarden.resolveProvider(log, provider.name)
-  const systemNamespace = await getSystemNamespace(sysProvider, log)
-  const sysApi = await KubeApi.factory(log, sysProvider)
+  const systemNamespace = await getSystemNamespace(ctx, sysProvider, log)
+  const sysApi = await KubeApi.factory(log, ctx, sysProvider)
 
   await sysGarden.clearBuilds()
 
   // Set auth secret for in-cluster builder
   if (provider.config.buildMode !== "local-docker") {
-    const authSecret = await prepareDockerAuth(sysApi, sysProvider, log)
+    const authSecret = await prepareDockerAuth(sysApi, ctx, sysProvider, log)
     await sysApi.upsert({ kind: "Secret", namespace: systemNamespace, obj: authSecret, log })
   }
 
@@ -318,7 +319,7 @@ export async function prepareSystem({
 
 export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams) {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const api = await KubeApi.factory(log, k8sCtx.provider)
+  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
   const metadataNamespace = await getMetadataNamespace(k8sCtx, log, k8sCtx.provider)
 
@@ -498,6 +499,7 @@ export async function buildDockerAuthConfig(
 
 export async function prepareDockerAuth(
   api: KubeApi,
+  ctx: PluginContext,
   provider: KubernetesProvider,
   log: LogEntry
 ): Promise<KubernetesResource<V1Secret>> {
@@ -506,7 +508,7 @@ export async function prepareDockerAuth(
 
   // Enabling experimental features, in order to support advanced registry querying
   // Store the config as a Secret (overwriting if necessary)
-  const systemNamespace = await getSystemNamespace(provider, log, api)
+  const systemNamespace = await getSystemNamespace(ctx, provider, log, api)
 
   return {
     apiVersion: "v1",

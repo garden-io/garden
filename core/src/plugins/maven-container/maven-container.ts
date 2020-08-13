@@ -204,7 +204,7 @@ async function build(params: BuildModuleParams<MavenContainerModule>) {
 
   log.setState(`Creating jar artifact...`)
 
-  const openJdk = ctx.provider.tools["openjdk-" + jdkVersion]
+  const openJdk = ctx.tools["maven-container.openjdk-" + jdkVersion]
   const openJdkPath = await openJdk.getPath(log)
 
   const mvnArgs = ["package", "--batch-mode", "--projects", ":" + artifactId, "--also-make", ...mvnOpts]
@@ -213,7 +213,7 @@ async function build(params: BuildModuleParams<MavenContainerModule>) {
   // Maven has issues when running concurrent processes, so we're working around that with a lock.
   // TODO: http://takari.io/book/30-team-maven.html would be a more robust solution.
   await buildLock.acquire("mvn", async () => {
-    await ctx.provider.tools.maven.exec({
+    await ctx.tools["maven-container.maven"].exec({
       args: mvnArgs,
       cwd: module.path,
       log,
