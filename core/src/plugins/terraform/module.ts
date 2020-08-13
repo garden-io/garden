@@ -10,18 +10,26 @@ import { join } from "path"
 import { pathExists } from "fs-extra"
 import { joi } from "../../config/common"
 import { dedent, deline } from "../../util/string"
-import { supportedVersions } from "./cli"
+import { supportedVersions, terraform } from "./cli"
 import { GardenModule } from "../../types/module"
 import { ConfigureModuleParams } from "../../types/plugin/module/configure"
 import { ConfigurationError } from "../../exceptions"
 import { dependenciesSchema } from "../../config/service"
 import { DeployServiceParams } from "../../../src/types/plugin/service/deployService"
 import { GetServiceStatusParams } from "../../../src/types/plugin/service/getServiceStatus"
-import { getStackStatus, applyStack, variablesSchema, TerraformBaseSpec, getTfOutputs } from "./common"
+import {
+  getStackStatus,
+  applyStack,
+  variablesSchema,
+  TerraformBaseSpec,
+  getTfOutputs,
+  prepareVariables,
+} from "./common"
 import { TerraformProvider } from "./terraform"
 import { ServiceStatus } from "../../types/service"
 import { baseBuildSpecSchema } from "../../config/module"
 import chalk = require("chalk")
+import { DeleteServiceParams } from "../../types/plugin/service/deleteService"
 
 export interface TerraformModuleSpec extends TerraformBaseSpec {
   root: string
@@ -31,6 +39,9 @@ export interface TerraformModule extends GardenModule<TerraformModuleSpec> {}
 
 export const schema = joi.object().keys({
   build: baseBuildSpecSchema(),
+  allowDestroy: joi.boolean().default(false).description(dedent`
+    If set to true, Garden will run \`terraform destroy\` on the stack when calling \`garden delete env\` or \`garden delete service <module name>\`.
+  `),
   autoApply: joi
     .boolean()
     .allow(null)
@@ -150,6 +161,35 @@ export async function deployTerraform({
     state: "ready",
     version: module.version.versionString,
     outputs: await getTfOutputs({ log, ctx, provider, workingDir: root }),
+    detail: {},
+  }
+}
+
+export async function deleteTerraformModule({
+  ctx,
+  log,
+  module,
+}: DeleteServiceParams<TerraformModule>): Promise<ServiceStatus> {
+  const provider = ctx.provider as TerraformProvider
+
+  if (!module.spec.allowDestroy) {
+    log.warn({ section: module.name, msg: "allowDestroy is set to false. Not calling terraform destroy." })
+    return {
+      state: "outdated",
+      detail: {},
+    }
+  }
+
+  const root = getModuleStackRoot(module)
+  const variables = module.spec.variables
+
+  const args = ["destroy", "-auto-approve", "-input=false", ...(await prepareVariables(root, variables))]
+  await terraform(ctx, provider).exec({ log, args, cwd: root })
+
+  return {
+    state: "missing",
+    version: module.version.versionString,
+    outputs: {},
     detail: {},
   }
 }

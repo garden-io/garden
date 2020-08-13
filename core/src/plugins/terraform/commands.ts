@@ -19,7 +19,7 @@ import { join } from "path"
 import { remove } from "fs-extra"
 import { getProviderStatusCachePath } from "../../tasks/resolve-provider"
 
-const commandsToWrap = ["apply", "plan"]
+const commandsToWrap = ["apply", "plan", "destroy"]
 const initCommand = chalk.bold("terraform init")
 
 export const terraformCommands: PluginCommand[] = commandsToWrap.flatMap((commandName) => [

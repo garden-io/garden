@@ -29,6 +29,9 @@ providers:
     # disables the provider. To use a provider in all environments, omit this field.
     environments:
 
+    # If set to true, Garden will run `terraform destroy` on the project root stack when calling `garden delete env`.
+    allowDestroy: false
+
     # If set to true, Garden will automatically run `terraform apply -auto-approve` when a stack is not up-to-date.
     # Otherwise, a warning is logged if the stack is out-of-date, and an error thrown if it is missing entirely.
     #
@@ -109,6 +112,16 @@ providers:
       - dev
       - stage
 ```
+
+### `providers[].allowDestroy`
+
+[providers](#providers) > allowDestroy
+
+If set to true, Garden will run `terraform destroy` on the project root stack when calling `garden delete env`.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 ### `providers[].autoApply`
 

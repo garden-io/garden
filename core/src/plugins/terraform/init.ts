@@ -9,9 +9,11 @@
 import { TerraformProvider } from "./terraform"
 import { GetEnvironmentStatusParams, EnvironmentStatus } from "../../types/plugin/provider/getEnvironmentStatus"
 import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "../../types/plugin/provider/prepareEnvironment"
-import { getRoot, getTfOutputs, getStackStatus, applyStack } from "./common"
+import { getRoot, getTfOutputs, getStackStatus, applyStack, prepareVariables } from "./common"
 import chalk from "chalk"
 import { deline } from "../../util/string"
+import { CleanupEnvironmentResult, CleanupEnvironmentParams } from "../../types/plugin/provider/cleanupEnvironment"
+import { terraform } from "./cli"
 
 export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusParams): Promise<EnvironmentStatus> {
   const provider = ctx.provider as TerraformProvider
@@ -73,4 +75,29 @@ export async function prepareEnvironment({ ctx, log }: PrepareEnvironmentParams)
       outputs,
     },
   }
+}
+
+export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams): Promise<CleanupEnvironmentResult> {
+  const provider = ctx.provider as TerraformProvider
+
+  if (!provider.config.initRoot) {
+    // Nothing to do!
+    return {}
+  }
+
+  if (!provider.config.allowDestroy) {
+    log.warn({
+      section: provider.name,
+      msg: "allowDestroy is set to false. Not calling terraform destroy for root stack.",
+    })
+    return {}
+  }
+
+  const root = getRoot(ctx, provider)
+  const variables = provider.config.variables
+
+  const args = ["destroy", "-auto-approve", "-input=false", ...(await prepareVariables(root, variables))]
+  await terraform(ctx, provider).exec({ log, args, cwd: root })
+
+  return {}
 }

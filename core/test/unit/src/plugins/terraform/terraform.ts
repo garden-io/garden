@@ -79,7 +79,7 @@ describe("Terraform provider", () => {
     })
 
     describe("apply-root command", () => {
-      it("call terraform apply for the project root", async () => {
+      it("calls terraform apply for the project root", async () => {
         const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
         const ctx = await garden.getPluginContext(provider)
 
@@ -94,7 +94,7 @@ describe("Terraform provider", () => {
     })
 
     describe("plan-root command", () => {
-      it("call terraform plan for the project root", async () => {
+      it("calls terraform plan for the project root", async () => {
         const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
         const ctx = await garden.getPluginContext(provider)
 
@@ -105,6 +105,44 @@ describe("Terraform provider", () => {
           log: garden.log,
           modules: [],
         })
+      })
+    })
+
+    describe("destroy-root command", () => {
+      it("calls terraform destroy for the project root", async () => {
+        const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
+        const ctx = await garden.getPluginContext(provider)
+
+        const command = findByName(terraformCommands, "destroy-root")!
+        await command.handler({
+          ctx,
+          args: ["-input=false", "-auto-approve"],
+          log: garden.log,
+          modules: [],
+        })
+      })
+    })
+
+    context("allowDestroy=false", () => {
+      it("doesn't call terraform destroy when calling the delete service handler", async () => {
+        const provider = await garden.resolveProvider(garden.log, "terraform")
+        const ctx = await garden.getPluginContext(provider)
+
+        // This creates the test file
+        const command = findByName(terraformCommands, "apply-root")!
+        await command.handler({
+          ctx,
+          args: ["-auto-approve", "-input=false"],
+          log: garden.log,
+          modules: [],
+        })
+
+        const actions = await garden.getActionRouter()
+        await actions.cleanupEnvironment({ log: garden.log, pluginName: "terraform" })
+
+        // File should still exist
+        const testFileContent = await readFile(testFilePath)
+        expect(testFileContent.toString()).to.equal("foo")
       })
     })
   })
@@ -130,6 +168,19 @@ describe("Terraform provider", () => {
       expect(provider.status.outputs).to.eql({
         "my-output": "input: foo",
         "test-file-path": "./test.log",
+      })
+    })
+
+    context("allowDestroy=true", () => {
+      it("calls terraform destroy when calling the delete service handler", async () => {
+        // This implicitly creates the test file
+        await garden.resolveProvider(garden.log, "terraform")
+
+        // This should remove the file
+        const actions = await garden.getActionRouter()
+        await actions.cleanupEnvironment({ log: garden.log, pluginName: "terraform" })
+
+        expect(await pathExists(testFilePath)).to.be.false
       })
     })
   })
@@ -181,8 +232,9 @@ describe("Terraform module type", () => {
     return garden.processTasks([deployTask], { throwOnError: true })
   }
 
-  async function runTestTask(autoApply: boolean) {
+  async function runTestTask(autoApply: boolean, allowDestroy = false) {
     await garden.scanAndAddConfigs()
+    garden["moduleConfigs"]["tf"].spec.allowDestroy = allowDestroy
     garden["moduleConfigs"]["tf"].spec.autoApply = autoApply
 
     graph = await garden.getConfigGraph(garden.log)
@@ -202,7 +254,7 @@ describe("Terraform module type", () => {
   }
 
   describe("apply-module command", () => {
-    it("call terraform apply for the module root", async () => {
+    it("calls terraform apply for the module root", async () => {
       const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
       const ctx = await garden.getPluginContext(provider)
       graph = await garden.getConfigGraph(garden.log)
@@ -218,7 +270,7 @@ describe("Terraform module type", () => {
   })
 
   describe("plan-module command", () => {
-    it("call terraform apply for the module root", async () => {
+    it("calls terraform apply for the module root", async () => {
       const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
       const ctx = await garden.getPluginContext(provider)
       graph = await garden.getConfigGraph(garden.log)
@@ -227,6 +279,22 @@ describe("Terraform module type", () => {
       await command.handler({
         ctx,
         args: ["tf", "-input=false"],
+        log: garden.log,
+        modules: graph.getModules(),
+      })
+    })
+  })
+
+  describe("destroy-module command", () => {
+    it("calls terraform destroy for the module root", async () => {
+      const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
+      const ctx = await garden.getPluginContext(provider)
+      graph = await garden.getConfigGraph(garden.log)
+
+      const command = findByName(terraformCommands, "destroy-module")!
+      await command.handler({
+        ctx,
+        args: ["tf", "-input=false", "-auto-approve"],
         log: garden.log,
         modules: graph.getModules(),
       })
@@ -259,7 +327,7 @@ describe("Terraform module type", () => {
       expect(result["task.test-task"]!.output.outputs.log).to.equal("input: foo")
     })
 
-    it("should should return outputs with the service status", async () => {
+    it("should return outputs with the service status", async () => {
       const provider = await garden.resolveProvider(garden.log, "terraform")
       const ctx = await garden.getPluginContext(provider)
       const applyCommand = findByName(terraformCommands, "apply-module")!
@@ -300,6 +368,33 @@ describe("Terraform module type", () => {
 
       expect(result["task.test-task"]!.output.log).to.equal("input: foo")
       expect(result["task.test-task"]!.output.outputs.log).to.equal("input: foo")
+    })
+  })
+
+  context("allowDestroy=false", () => {
+    it("doesn't call terraform destroy when calling the delete service handler", async () => {
+      await runTestTask(true, false)
+
+      const actions = await garden.getActionRouter()
+      const service = graph.getService("tf")
+
+      await actions.deleteService({ service, log: garden.log })
+
+      const testFileContent = await readFile(testFilePath)
+      expect(testFileContent.toString()).to.equal("foo")
+    })
+  })
+
+  context("allowDestroy=true", () => {
+    it("calls terraform destroy when calling the delete service handler", async () => {
+      await runTestTask(true, true)
+
+      const actions = await garden.getActionRouter()
+      const service = graph.getService("tf")
+
+      await actions.deleteService({ service, log: garden.log })
+
+      expect(await pathExists(testFilePath)).to.be.false
     })
   })
 })
