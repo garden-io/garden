@@ -10,5 +10,5 @@
 // See: https://facebook.github.io/create-react-app/docs/proxying-api-requests-in-development#configuring-the-proxy-manually
 
 module.exports = {
-  GARDEN_SERVICE_DEFAULT_PORT: 9777
+  GARDEN_SERVICE_DEFAULT_PORT: 9700
 }

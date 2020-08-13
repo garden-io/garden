@@ -28,7 +28,7 @@ To develop the dashboard, first run:
 
 ```sh
 cd examples/simple-project # (or some other Garden project)
-garden serve # (or some watch mode command)
+garden dashboard
 ```
 
 to start the `core` API server. Then run:
@@ -61,27 +61,13 @@ For other editors and more detail, please refer to the [Create React App docs](h
 
 ### CORS
 
-To avoid Cross-Origin Resource Sharing (CORS) errors while developing, we proxy the request to the `core` server, defaulting to port `9777`.
-
-To ensure the `core` server runs on port `9777`, start it with:
-
-```sh
-cd core
-GARDEN_SERVER_PORT=9777 garden serve
-```
-
-or
-
-```sh
-cd core
-GARDEN_SERVER_PORT=9777 garden dev
-```
+To avoid Cross-Origin Resource Sharing (CORS) errors while developing, we proxy the request to the `core` server, defaulting to port `9700`.
 
 Alternatively, you can run the `core` server as usual and set the port on the dashboard side of things:
 
 ```sh
 cd dashboard
-REACT_APP_GARDEN_SERVICE_PORT=my_port npm start
+REACT_APP_GARDEN_SERVICE_PORT=<custom port> npm start
 ```
 
 See also `src/setupProxy.js` and [Adding Custom Environment Variables](https://facebook.github.io/create-react-app/docs/adding-custom-environment-variables).
