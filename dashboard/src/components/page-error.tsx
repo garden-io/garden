@@ -30,7 +30,10 @@ const PageError: React.FC<Props> = ({ error }) => {
       <div>
         <P>Please look at the terminal logs displayed by the dashboard server for details.</P>
         <P color={colors.gardenGray}>
-          💡 You can get more detailed logs by running the server with <code>--log-level=debug</code>.
+          <span role="img" aria-label="Tip:">
+            💡
+          </span>{" "}
+          You can get more detailed logs by running the server with <code>--log-level=debug</code>.
         </P>
       </div>
     )
@@ -46,7 +49,14 @@ const PageError: React.FC<Props> = ({ error }) => {
       )}
     >
       <H3 color={colors.gardenPink}>Whoops, something went wrong.</H3>
-      {error && error.message && <P>❌ {error.message}</P>}
+      {error && error.message && (
+        <P>
+          <span role="img" aria-label="Error:">
+            ❌
+          </span>{" "}
+          {error.message}
+        </P>
+      )}
       {suggestion}
     </div>
   )
