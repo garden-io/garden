@@ -66,7 +66,8 @@ export const workflowConfigSchema = () =>
         .default(48)
         .description("The number of hours to keep the workflow pod running after completion."),
       limits: joi
-        .object({
+        .object()
+        .keys({
           cpu: joi
             .number()
             .default(defaultContainerLimits.cpu)

@@ -8,7 +8,7 @@
 
 import { dependenciesSchema } from "../../../config/service"
 import { joiArray, joi, joiModuleIncludeDirective } from "../../../config/common"
-import { Module } from "../../../types/module"
+import { GardenModule } from "../../../types/module"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../../types/plugin/module/configure"
 import { Service } from "../../../types/service"
 import { baseBuildSpecSchema } from "../../../config/module"
@@ -27,7 +27,7 @@ import {
 // A Kubernetes Module always maps to a single Service
 export type KubernetesModuleSpec = KubernetesServiceSpec
 
-export interface KubernetesModule extends Module<KubernetesModuleSpec, KubernetesServiceSpec> {}
+export interface KubernetesModule extends GardenModule<KubernetesModuleSpec, KubernetesServiceSpec> {}
 export type KubernetesModuleConfig = KubernetesModule["_config"]
 
 export interface KubernetesServiceSpec {

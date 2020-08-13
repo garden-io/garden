@@ -19,7 +19,7 @@ import {
 import dedent from "dedent"
 import { processModules } from "../process"
 import { printHeader } from "../logger/util"
-import { startServer, GardenServer } from "../server/server"
+import { startServer } from "../server/server"
 import { flatten } from "lodash"
 import { BuildTask } from "../tasks/build"
 import { StringsParameter, BooleanParameter } from "../cli/params"
@@ -66,7 +66,6 @@ export class BuildCommand extends Command<Args, Opts> {
 
   outputsSchema = () => processCommandResultSchema()
 
-  private server: GardenServer
   private isPersistent = (opts) => !!opts.watch
 
   async prepare({ headerLog, footerLog, opts }: PrepareParams<Args, Opts>) {
@@ -74,7 +73,7 @@ export class BuildCommand extends Command<Args, Opts> {
 
     if (persistent) {
       printHeader(headerLog, "Build", "hammer")
-      this.server = await startServer(footerLog)
+      this.server = await startServer({ log: footerLog })
     }
 
     return { persistent }

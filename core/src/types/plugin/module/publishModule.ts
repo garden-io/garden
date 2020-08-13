@@ -7,11 +7,11 @@
  */
 
 import { dedent } from "../../../util/string"
-import { Module } from "../../module"
+import { GardenModule } from "../../module"
 import { PluginModuleActionParamsBase, moduleActionParamsSchema } from "../base"
 import { joi } from "../../../config/common"
 
-export interface PublishModuleParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> {}
+export interface PublishModuleParams<T extends GardenModule = GardenModule> extends PluginModuleActionParamsBase<T> {}
 
 export interface PublishResult {
   published: boolean

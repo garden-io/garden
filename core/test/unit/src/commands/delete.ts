@@ -76,45 +76,34 @@ const getServiceStatus = async (): Promise<ServiceStatus> => {
 
 describe("DeleteEnvironmentCommand", () => {
   let deletedServices: string[] = []
+  const testEnvStatuses: { [key: string]: EnvironmentStatus } = {}
 
-  const testProvider = createGardenPlugin(() => {
-    const name = "test-plugin"
-
-    const testEnvStatuses: { [key: string]: EnvironmentStatus } = {}
-
-    const cleanupEnvironment = async () => {
-      testEnvStatuses[name] = { ready: false, outputs: {} }
-      return {}
-    }
-
-    const getEnvironmentStatus = async () => {
-      return testEnvStatuses[name] || { ready: true, outputs: {} }
-    }
-
-    const deleteService = async ({ service }): Promise<ServiceStatus> => {
-      deletedServices.push(service.name)
-      return { state: "missing", detail: {} }
-    }
-
-    return {
-      name: "test-plugin",
-      handlers: {
-        cleanupEnvironment,
-        getEnvironmentStatus,
+  const testProvider = createGardenPlugin({
+    name: "test-plugin",
+    handlers: {
+      cleanupEnvironment: async ({ ctx }) => {
+        testEnvStatuses[ctx.environmentName] = { ready: false, outputs: {} }
+        return {}
       },
-      createModuleTypes: [
-        {
-          name: "test",
-          docs: "Test plugin",
-          schema: testModuleSpecSchema(),
-          handlers: {
-            configure: configureTestModule,
-            getServiceStatus,
-            deleteService,
+      getEnvironmentStatus: async ({ ctx }) => {
+        return testEnvStatuses[ctx.environmentName] || { ready: true, outputs: {} }
+      },
+    },
+    createModuleTypes: [
+      {
+        name: "test",
+        docs: "Test plugin",
+        schema: testModuleSpecSchema(),
+        handlers: {
+          configure: configureTestModule,
+          getServiceStatus,
+          deleteService: async ({ service }): Promise<ServiceStatus> => {
+            deletedServices.push(service.name)
+            return { state: "missing", detail: {} }
           },
         },
-      ],
-    }
+      },
+    ],
   })
 
   beforeEach(() => {
@@ -156,39 +145,35 @@ describe("DeleteEnvironmentCommand", () => {
 })
 
 describe("DeleteServiceCommand", () => {
-  const testProvider = createGardenPlugin(() => {
-    const testStatuses: { [key: string]: ServiceStatus } = {
-      "service-a": {
-        state: "unknown",
-        ingresses: [],
-        detail: {},
-      },
-      "service-b": {
-        state: "unknown",
-        ingresses: [],
-        detail: {},
-      },
-    }
+  const testStatuses: { [key: string]: ServiceStatus } = {
+    "service-a": {
+      state: "unknown",
+      ingresses: [],
+      detail: {},
+    },
+    "service-b": {
+      state: "unknown",
+      ingresses: [],
+      detail: {},
+    },
+  }
 
-    const deleteService = async (param: DeleteServiceParams) => {
-      return testStatuses[param.service.name]
-    }
-
-    return {
-      name: "test-plugin",
-      createModuleTypes: [
-        {
-          name: "test",
-          docs: "Test plugin",
-          schema: testModuleSpecSchema(),
-          handlers: {
-            configure: configureTestModule,
-            getServiceStatus,
-            deleteService,
+  const testProvider = createGardenPlugin({
+    name: "test-plugin",
+    createModuleTypes: [
+      {
+        name: "test",
+        docs: "Test plugin",
+        schema: testModuleSpecSchema(),
+        handlers: {
+          configure: configureTestModule,
+          getServiceStatus,
+          deleteService: async (param: DeleteServiceParams) => {
+            return testStatuses[param.service.name]
           },
         },
-      ],
-    }
+      },
+    ],
   })
 
   const plugins = [testProvider]

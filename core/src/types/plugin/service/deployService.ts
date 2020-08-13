@@ -8,12 +8,12 @@
 
 import { PluginServiceActionParamsBase, serviceActionParamsSchema } from "../base"
 import { dedent } from "../../../util/string"
-import { Module } from "../../module"
+import { GardenModule } from "../../module"
 import { RuntimeContext, runtimeContextSchema } from "../../../runtime-context"
 import { serviceStatusSchema } from "../../service"
 import { joi } from "../../../config/common"
 
-export interface DeployServiceParams<M extends Module = Module, S extends Module = Module>
+export interface DeployServiceParams<M extends GardenModule = GardenModule, S extends GardenModule = GardenModule>
   extends PluginServiceActionParamsBase<M, S> {
   force: boolean
   hotReload: boolean

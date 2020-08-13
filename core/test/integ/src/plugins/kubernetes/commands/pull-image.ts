@@ -13,7 +13,7 @@ import { getContainerTestGarden } from "../container/container"
 import { k8sBuildContainer } from "../../../../../../src/plugins/kubernetes/container/build"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { KubernetesProvider, KubernetesPluginContext } from "../../../../../../src/plugins/kubernetes/config"
-import { Module } from "../../../../../../src/types/module"
+import { GardenModule } from "../../../../../../src/types/module"
 import { containerHelpers } from "../../../../../../src/plugins/container/helpers"
 import { expect } from "chai"
 import { LogEntry } from "../../../../../../src/logger/log-entry"
@@ -41,7 +41,7 @@ describe("pull-image plugin command", () => {
     ctx = garden.getPluginContext(provider)
   }
 
-  async function ensureImagePulled(module: Module, log: LogEntry) {
+  async function ensureImagePulled(module: GardenModule, log: LogEntry) {
     const imageId = await containerHelpers.getLocalImageId(module)
     const imageHash = await containerHelpers.dockerCli({
       cwd: module.buildPath,
@@ -54,7 +54,7 @@ describe("pull-image plugin command", () => {
   }
 
   grouped("cluster-docker", "remote-only").context("using an external cluster registry", () => {
-    let module: Module
+    let module: GardenModule
 
     before(async () => {
       await init("cluster-docker-remote-registry")
@@ -78,7 +78,7 @@ describe("pull-image plugin command", () => {
   })
 
   grouped("cluster-docker").context("using the in cluster registry", () => {
-    let module: Module
+    let module: GardenModule
 
     before(async () => {
       await init("cluster-docker")

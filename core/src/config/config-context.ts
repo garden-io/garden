@@ -10,7 +10,7 @@ import Joi from "@hapi/joi"
 import chalk from "chalk"
 import { isString, fromPairs, mapValues } from "lodash"
 import { PrimitiveMap, joiIdentifierMap, joiStringMap, joiPrimitive, DeepPrimitiveMap, joiVariables } from "./common"
-import { Provider, ProviderConfig, ProviderMap } from "./provider"
+import { Provider, GenericProviderConfig, ProviderMap } from "./provider"
 import { ConfigurationError } from "../exceptions"
 import { resolveTemplateString } from "../template-string"
 import { Garden } from "../garden"
@@ -19,7 +19,7 @@ import { KeyedSet } from "../util/keyed-set"
 import { RuntimeContext } from "../runtime-context"
 import { deline, dedent, naturalList } from "../util/string"
 import { getProviderUrl, getModuleTypeUrl } from "../docs/common"
-import { Module } from "../types/module"
+import { GardenModule } from "../types/module"
 import { ModuleConfig } from "./module"
 import { ModuleVersion } from "../vcs/vcs"
 import { isPrimitive } from "util"
@@ -530,7 +530,7 @@ class ProviderContext extends ConfigContext {
       .example({ clusterHostname: "my-cluster.example.com" })
       .meta({ keyPlaceholder: "<config-key>" })
   )
-  public config: ProviderConfig
+  public config: GenericProviderConfig
 
   @schema(
     joiIdentifierMap(
@@ -811,7 +811,7 @@ export class OutputConfigContext extends ModuleConfigContext {
   }: {
     garden: Garden
     resolvedProviders: ProviderMap
-    modules: Module[]
+    modules: GardenModule[]
     runtimeContext: RuntimeContext
   }) {
     const versions = fromPairs(modules.map((m) => [m.name, m.version]))

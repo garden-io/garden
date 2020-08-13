@@ -17,7 +17,7 @@ import { DOCS_BASE_URL, STATIC_DIR } from "../../../constants"
 import { baseBuildSpecSchema } from "../../../config/module"
 import { ConfigureModuleParams } from "../../../types/plugin/module/configure"
 import { GetServiceStatusParams } from "../../../types/plugin/service/getServiceStatus"
-import { Module } from "../../../types/module"
+import { GardenModule } from "../../../types/module"
 import { KubernetesModule, KubernetesModuleConfig, KubernetesService } from "../kubernetes-module/config"
 import { KubernetesResource } from "../types"
 import { getKubernetesServiceStatus, deployKubernetesService } from "../kubernetes-module/handlers"
@@ -30,7 +30,7 @@ export interface PersistentVolumeClaimSpec extends BaseVolumeSpec {
   spec: V1PersistentVolumeClaimSpec
 }
 
-type PersistentVolumeClaimModule = Module<PersistentVolumeClaimSpec, PersistentVolumeClaimSpec>
+type PersistentVolumeClaimModule = GardenModule<PersistentVolumeClaimSpec, PersistentVolumeClaimSpec>
 
 // Need to use a sync read to avoid having to refactor createGardenPlugin()
 // The `persistentvolumeclaim.json` file is copied from the handy
@@ -54,7 +54,7 @@ export const pvcModuleDefinition: ModuleTypeDefinition = {
       "The namespace to deploy the PVC in. Note that any module referencing the PVC must be in the same namespace, so in most cases you should leave this unset."
     ),
     spec: joi
-      .customObject()
+      .object()
       .jsonSchema({ ...jsonSchema.properties.spec, type: "object" })
       .required()
       .description(

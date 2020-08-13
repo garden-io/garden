@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { BuildTask } from "./build"
-import { Module } from "../types/module"
+import { GardenModule } from "../types/module"
 import { PublishResult } from "../types/plugin/module/publishModule"
 import { BaseTask, TaskType } from "../tasks/base"
 import { Garden } from "../garden"
@@ -19,7 +19,7 @@ export interface PublishTaskParams {
   garden: Garden
   graph: ConfigGraph
   log: LogEntry
-  module: Module
+  module: GardenModule
   forceBuild: boolean
 }
 
@@ -28,7 +28,7 @@ export class PublishTask extends BaseTask {
   concurrencyLimit = 5
 
   private graph: ConfigGraph
-  private module: Module
+  private module: GardenModule
   private forceBuild: boolean
 
   constructor({ garden, graph, log, module, forceBuild }: PublishTaskParams) {

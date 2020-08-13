@@ -20,7 +20,7 @@ import { loadAll } from "js-yaml"
 import { helm } from "./helm-cli"
 import { HelmModule, HelmModuleConfig } from "./config"
 import { ConfigurationError, PluginError } from "../../../exceptions"
-import { Module } from "../../../types/module"
+import { GardenModule } from "../../../types/module"
 import { deline, tailString } from "../../../util/string"
 import { getAnnotation, flattenResources } from "../util"
 import { KubernetesPluginContext } from "../config"
@@ -68,7 +68,7 @@ export async function containsBuildSource(module: HelmModule) {
 /**
  * Render the template in the specified Helm module (locally), and return all the resources in the chart.
  */
-export async function getChartResources(ctx: PluginContext, module: Module, hotReload: boolean, log: LogEntry) {
+export async function getChartResources(ctx: PluginContext, module: GardenModule, hotReload: boolean, log: LogEntry) {
   const k8sCtx = <KubernetesPluginContext>ctx
 
   const objects = <KubernetesResource[]>loadTemplate(await renderTemplates(k8sCtx, module, hotReload, log))
@@ -94,7 +94,12 @@ export async function getChartResources(ctx: PluginContext, module: Module, hotR
 /**
  * Renders the given Helm module and returns a multi-document YAML string.
  */
-export async function renderTemplates(ctx: KubernetesPluginContext, module: Module, hotReload: boolean, log: LogEntry) {
+export async function renderTemplates(
+  ctx: KubernetesPluginContext,
+  module: GardenModule,
+  hotReload: boolean,
+  log: LogEntry
+) {
   log.debug("Preparing chart...")
 
   const chartPath = await getChartPath(module)

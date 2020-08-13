@@ -13,7 +13,7 @@ import pathIsInside = require("path-is-inside")
 import { PROJECT_SOURCES_DIR_NAME, MODULE_SOURCES_DIR_NAME } from "../constants"
 import { LinkedSource, localConfigKeys } from "../config-store"
 import { ParameterError } from "../exceptions"
-import { Module } from "../types/module"
+import { GardenModule } from "../types/module"
 import { join } from "path"
 import { Garden } from "../garden"
 import { hashString } from "./util"
@@ -45,7 +45,7 @@ export function hashRepoUrl(url: string) {
   return hashString(url, 10)
 }
 
-export function hasRemoteSource(module: Module): boolean {
+export function hasRemoteSource(module: GardenModule): boolean {
   return !!module.repositoryUrl
 }
 export function getConfigKey(type: ExternalSourceType): string {
@@ -56,7 +56,7 @@ export function getConfigKey(type: ExternalSourceType): string {
  * Check if any module is linked, including those within an external project source.
  * Returns true if module path is not under the project root or alternatively if the module is a Garden module.
  */
-export function isModuleLinked(module: Module, garden: Garden) {
+export function isModuleLinked(module: GardenModule, garden: Garden) {
   const isPluginModule = !!module.plugin
   return !pathIsInside(module.path, garden.projectRoot) && !isPluginModule
 }

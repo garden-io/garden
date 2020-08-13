@@ -56,9 +56,16 @@ export type Unpacked<T> = T extends (infer U)[]
 
 const MAX_BUFFER_SIZE = 1024 * 1024
 
-export function shutdown(code?: number) {
+// Used to control process-level operations during testing
+export const testFlags = {
+  disableShutdown: false,
+}
+
+export async function shutdown(code?: number) {
   // This is a good place to log exitHookNames if needed.
-  process.exit(code)
+  if (!testFlags.disableShutdown) {
+    process.exit(code)
+  }
 }
 
 export function registerCleanupFunction(name: string, func: HookCallback) {
@@ -348,14 +355,15 @@ export function splitLast(s: string, delimiter: string) {
  */
 export function deepMap<T extends object, U extends object = T>(
   value: T | Iterable<T>,
-  fn: (value: any, key: string | number) => any
+  fn: (value: any, key: string | number) => any,
+  key?: number | string
 ): U | Iterable<U> {
   if (isArray(value)) {
-    return value.map((v) => <U>deepMap(v, fn))
+    return value.map((v, k) => <U>deepMap(v, fn, k))
   } else if (isPlainObject(value)) {
-    return <U>mapValues(value, (v) => deepMap(v, fn))
+    return <U>mapValues(value, (v, k) => deepMap(v, fn, k))
   } else {
-    return <U>fn(value, 0)
+    return <U>fn(value, key || 0)
   }
 }
 

@@ -8,10 +8,10 @@
 
 import { PluginServiceActionParamsBase, serviceActionParamsSchema } from "../base"
 import { dedent } from "../../../util/string"
-import { Module } from "../../module"
+import { GardenModule } from "../../module"
 import { serviceStatusSchema } from "../../service"
 
-export interface DeleteServiceParams<M extends Module = Module, S extends Module = Module>
+export interface DeleteServiceParams<M extends GardenModule = GardenModule, S extends GardenModule = GardenModule>
   extends PluginServiceActionParamsBase<M, S> {}
 
 export const deleteService = () => ({

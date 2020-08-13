@@ -11,12 +11,14 @@ import { Server } from "http"
 import { startServer, GardenServer } from "../../../../src/server/server"
 import { Garden } from "../../../../src/garden"
 import { expect } from "chai"
-import { deepOmitUndefined, uuidv4 } from "../../../../src/util/util"
+import { deepOmitUndefined, uuidv4, sleep } from "../../../../src/util/util"
 import request = require("supertest")
 import getPort = require("get-port")
 import WebSocket = require("ws")
+import stripAnsi = require("strip-ansi")
+import { authTokenHeader } from "../../../../src/enterprise/auth"
 
-describe("startServer", () => {
+describe("GardenServer", () => {
   let garden: Garden
   let gardenServer: GardenServer
   let server: Server
@@ -25,16 +27,43 @@ describe("startServer", () => {
   before(async () => {
     port = await getPort()
     garden = await makeTestGardenA()
-    gardenServer = await startServer(garden.log, port)
+    gardenServer = await startServer({ log: garden.log, port })
     server = (<any>gardenServer).server
   })
 
   after(async () => {
-    await server.close()
+    server.close()
   })
 
   beforeEach(() => {
     gardenServer.setGarden(garden)
+  })
+
+  it("should show no URL on startup", async () => {
+    const line = gardenServer["statusLog"]
+    expect(line.getMessageState().msg).to.be.undefined
+  })
+
+  it("should update dashboard URL with own if the external dashboard goes down", async () => {
+    gardenServer.showUrl("http://foo")
+    garden.events.emit("serversUpdated", {
+      servers: [],
+    })
+    const line = gardenServer["statusLog"]
+    await sleep(1) // This is enough to let go of the control loop
+    const status = stripAnsi(line.getMessageState().msg || "")
+    expect(status).to.equal(`Garden dashboard running at ${gardenServer.getUrl()}`)
+  })
+
+  it("should update dashboard URL with new one if another is started", async () => {
+    gardenServer.showUrl("http://foo")
+    garden.events.emit("serversUpdated", {
+      servers: [{ host: "http://localhost:9800", command: "dashboard" }],
+    })
+    const line = gardenServer["statusLog"]
+    await sleep(1) // This is enough to let go of the control loop
+    const status = stripAnsi(line.getMessageState().msg || "")
+    expect(status).to.equal(`Garden dashboard running at http://localhost:9800`)
   })
 
   describe("GET /", () => {
@@ -102,6 +131,41 @@ describe("startServer", () => {
     })
   })
 
+  describe("/events", () => {
+    it("returns 401 if missing auth header", async () => {
+      await request(server)
+        .post("/events")
+        .send({})
+        .expect(401)
+    })
+
+    it("returns 401 if auth header doesn't match auth key", async () => {
+      await request(server)
+        .post("/events")
+        .set({ [authTokenHeader]: "foo" })
+        .send({})
+        .expect(401)
+    })
+
+    it("posts events on the incoming event bus", (done) => {
+      let passed = false
+
+      gardenServer["incomingEvents"].on("_test", () => {
+        !passed && done()
+        passed = true
+      })
+
+      request(server)
+        .post("/events")
+        .set({ [authTokenHeader]: gardenServer.authKey })
+        .send({
+          events: [{ name: "_test", payload: { some: "value" } }],
+        })
+        .expect(200)
+        .catch(done)
+    })
+  })
+
   describe("/ws", () => {
     let ws: WebSocket
 
@@ -121,12 +185,20 @@ describe("startServer", () => {
       ws.on("message", (msg) => cb(JSON.parse(msg.toString())))
     }
 
-    it("should emit events from the event bus", (done) => {
+    it("should emit events from the Garden event bus", (done) => {
       onMessage((req) => {
         expect(req).to.eql({ type: "event", name: "_test", payload: "foo" })
         done()
       })
       garden.events.emit("_test", "foo")
+    })
+
+    it("should emit events from the incoming event bus", (done) => {
+      onMessage((req) => {
+        expect(req).to.eql({ type: "event", name: "_test", payload: "foo" })
+        done()
+      })
+      gardenServer["incomingEvents"].emit("_test", "foo")
     })
 
     it("should send error when a request is not valid JSON", (done) => {

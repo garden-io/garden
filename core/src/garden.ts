@@ -17,7 +17,7 @@ const AsyncLock = require("async-lock")
 
 import { TreeCache } from "./cache"
 import { builtinPlugins } from "./plugins/plugins"
-import { Module, getModuleCacheContext, getModuleKey, ModuleConfigMap, moduleFromConfig } from "./types/module"
+import { GardenModule, getModuleCacheContext, getModuleKey, ModuleConfigMap, moduleFromConfig } from "./types/module"
 import { pluginModuleSchema, ModuleTypeMap } from "./types/plugin/plugin"
 import {
   SourceConfig,
@@ -61,7 +61,7 @@ import {
 } from "./util/fs"
 import {
   Provider,
-  ProviderConfig,
+  GenericProviderConfig,
   getAllProviderDependencyNames,
   defaultProvider,
   ProviderMap,
@@ -137,7 +137,7 @@ export interface GardenParams {
   projectName: string
   projectRoot: string
   projectSources?: SourceConfig[]
-  providerConfigs: ProviderConfig[]
+  providerConfigs: GenericProviderConfig[]
   variables: DeepPrimitiveMap
   secrets: StringMap
   sessionId: string | null
@@ -184,7 +184,7 @@ export class Garden {
   public readonly gardenDirPath: string
   public readonly artifactsPath: string
   public readonly opts: GardenOpts
-  private readonly providerConfigs: ProviderConfig[]
+  private readonly providerConfigs: GenericProviderConfig[]
   public readonly workingCopyId: string
   public readonly dotIgnoreFiles: string[]
   public readonly moduleIncludePatterns?: string[]
@@ -691,7 +691,7 @@ export class Garden {
     return Object.values(keys ? pickKeys(this.moduleConfigs, keys, "module config") : this.moduleConfigs)
   }
 
-  async getOutputConfigContext(log: LogEntry, modules: Module[], runtimeContext: RuntimeContext) {
+  async getOutputConfigContext(log: LogEntry, modules: GardenModule[], runtimeContext: RuntimeContext) {
     const providers = await this.resolveProviders(log)
     return new OutputConfigContext({
       garden: this,
@@ -906,7 +906,7 @@ export class Garden {
    */
   async resolveVersion(
     moduleConfig: ModuleConfig,
-    moduleDependencies: (Module | BuildDependencyConfig)[],
+    moduleDependencies: (GardenModule | BuildDependencyConfig)[],
     force = false
   ) {
     const moduleName = moduleConfig.name
@@ -1203,7 +1203,7 @@ export interface ConfigDump {
   environmentName: string // TODO: Remove this?
   allEnvironmentNames: string[]
   namespace: string
-  providers: (Omit<Provider, "tools"> | ProviderConfig)[]
+  providers: (Omit<Provider, "tools"> | GenericProviderConfig)[]
   variables: DeepPrimitiveMap
   moduleConfigs: ModuleConfig[]
   workflowConfigs: WorkflowConfig[]

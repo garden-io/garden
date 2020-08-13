@@ -20,10 +20,10 @@ import {
   processCommandResultSchema,
 } from "./base"
 import { processModules } from "../process"
-import { Module } from "../types/module"
+import { GardenModule } from "../types/module"
 import { getTestTasks } from "../tasks/test"
 import { printHeader } from "../logger/util"
-import { GardenServer, startServer } from "../server/server"
+import { startServer } from "../server/server"
 import { StringsParameter, StringOption, BooleanParameter } from "../cli/params"
 
 export const testArgs = {
@@ -85,7 +85,6 @@ export class TestCommand extends Command<Args, Opts> {
 
   outputsSchema = () => processCommandResultSchema()
 
-  private server: GardenServer
   private isPersistent = (opts) => !!opts.watch
 
   async prepare({ headerLog, footerLog, opts }: PrepareParams<Args, Opts>) {
@@ -93,7 +92,7 @@ export class TestCommand extends Command<Args, Opts> {
 
     if (persistent) {
       printHeader(headerLog, `Running tests`, "thermometer")
-      this.server = await startServer(footerLog)
+      this.server = await startServer({ log: footerLog })
     }
 
     return { persistent }
@@ -117,7 +116,7 @@ export class TestCommand extends Command<Args, Opts> {
 
     const graph = await garden.getConfigGraph(log)
 
-    const modules: Module[] = args.modules
+    const modules: GardenModule[] = args.modules
       ? graph.withDependantModules(graph.getModules({ names: args.modules }))
       : // All modules are included in this case, so there's no need to compute dependants.
         graph.getModules()

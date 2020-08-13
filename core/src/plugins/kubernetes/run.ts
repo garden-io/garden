@@ -13,7 +13,7 @@ import { V1PodSpec, V1Pod, V1Container } from "@kubernetes/client-node"
 import { tailString } from "../../util/string"
 import { RunResult } from "../../types/plugin/base"
 import { kubectl } from "./kubectl"
-import { Module } from "../../types/module"
+import { GardenModule } from "../../types/module"
 import { LogEntry } from "../../logger/log-entry"
 import { PluginError, GardenBaseError, TimeoutError, RuntimeError, ConfigurationError } from "../../exceptions"
 import { KubernetesProvider } from "./config"
@@ -55,7 +55,7 @@ export async function runAndCopy({
   stderr,
   namespace,
   volumes,
-}: RunModuleParams<Module> & {
+}: RunModuleParams<GardenModule> & {
   image: string
   container?: V1Container
   podName?: string
@@ -362,7 +362,7 @@ class PodRunnerParams {
   annotations?: { [key: string]: string }
   api: KubeApi
   image: string
-  module: Module
+  module: GardenModule
   namespace: string
   podName: string
   provider: KubernetesProvider

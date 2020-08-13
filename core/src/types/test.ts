@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Module } from "./module"
+import { GardenModule } from "./module"
 import { TestConfig } from "../config/test"
 
-export interface Test<M extends Module = Module> {
+export interface Test<M extends GardenModule = GardenModule> {
   name: string
   module: M
   disabled: boolean
@@ -17,7 +17,7 @@ export interface Test<M extends Module = Module> {
   spec: M["testConfigs"][0]["spec"]
 }
 
-export function testFromConfig<M extends Module = Module>(module: M, config: TestConfig): Test<M> {
+export function testFromConfig<M extends GardenModule = GardenModule>(module: M, config: TestConfig): Test<M> {
   return {
     name: config.name,
     module,

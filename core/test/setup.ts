@@ -10,9 +10,10 @@ import td from "testdouble"
 import timekeeper from "timekeeper"
 import { Logger } from "../src/logger/logger"
 import { LogLevel } from "../src/logger/log-node"
-import { makeTestGardenA } from "./helpers"
 import { getDefaultProfiler } from "../src/util/profiling"
 import { gardenEnv } from "../src/constants"
+import { testFlags } from "../src/util/util"
+import { ensureConnected } from "../src/db/connection"
 // import { BasicTerminalWriter } from "../src/logger/writers/basic-terminal-writer"
 
 // make sure logger is initialized
@@ -28,9 +29,10 @@ try {
 before(async () => {
   getDefaultProfiler().setEnabled(true)
   gardenEnv.GARDEN_DISABLE_ANALYTICS = true
+  testFlags.disableShutdown = true
 
-  // doing this to make sure ts-node completes compilation before running tests
-  await makeTestGardenA()
+  // Ensure we're connected to the sqlite db
+  await ensureConnected()
 })
 
 after(() => {

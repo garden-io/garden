@@ -8,7 +8,7 @@
 
 import deline = require("deline")
 
-import { Module, FileCopySpec } from "../../types/module"
+import { GardenModule, FileCopySpec } from "../../types/module"
 import {
   joiUserIdentifier,
   joiArray,
@@ -622,4 +622,4 @@ export interface ContainerModule<
   S extends ContainerServiceSpec = ContainerServiceSpec,
   T extends ContainerTestSpec = ContainerTestSpec,
   W extends ContainerTaskSpec = ContainerTaskSpec
-> extends Module<M, S, T, W> {}
+> extends GardenModule<M, S, T, W> {}

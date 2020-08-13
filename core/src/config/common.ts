@@ -13,6 +13,8 @@ import { deline, dedent } from "../util/string"
 import { cloneDeep } from "lodash"
 import { joiPathPlaceholder } from "./validation"
 
+export const objectSpreadKey = "$merge"
+
 const ajv = new Ajv({ allErrors: true, useDefaults: true })
 
 export type Primitive = string | number | boolean | null
@@ -94,6 +96,7 @@ declare module "@hapi/joi" {
 }
 
 export interface CustomObjectSchema extends Joi.ObjectSchema {
+  concat(schema: object): this
   jsonSchema(schema: object): this
 }
 
@@ -109,14 +112,14 @@ export interface PosixPathSchema extends Joi.StringSchema {
   subPathOnly(): this
 }
 
-interface CustomJoi extends Joi.Root {
-  customObject: () => CustomObjectSchema
+export interface Schema extends Joi.Root {
+  object: () => CustomObjectSchema
   environment: () => Joi.StringSchema
   gitUrl: () => GitUrlSchema
   posixPath: () => PosixPathSchema
 }
 
-export let joi: CustomJoi = Joi.extend({
+export let joi: Schema = Joi.extend({
   base: Joi.string(),
   type: "posixPath",
   flags: {
@@ -278,7 +281,7 @@ joi = joi.extend({
 })
 
 /**
- * Add a joi.customObject() type, which includes additional methods, including one for validating with a
+ * Extend the joi.object() type with additional methods and minor customizations, including one for validating with a
  * JSON Schema.
  *
  * Note that the jsonSchema() option should generally not be used in conjunction with other options (like keys()
@@ -286,7 +289,7 @@ joi = joi.extend({
  */
 joi = joi.extend({
   base: Joi.object(),
-  type: "customObject",
+  type: "object",
   messages: {
     validation: "<not used>",
   },
@@ -294,6 +297,13 @@ joi = joi.extend({
   // validate(value: string, { error }) {
   //   return { value }
   // },
+  args(schema: any, keys: any) {
+    // Always allow the $merge key, which we resolve and collapse in resolveTemplateStrings()
+    return schema.keys({
+      [objectSpreadKey]: joi.alternatives(joi.object(), joi.string()),
+      ...(keys || {}),
+    })
+  },
   rules: {
     jsonSchema: {
       method(jsonSchema: object) {

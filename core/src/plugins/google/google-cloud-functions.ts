@@ -7,7 +7,7 @@
  */
 
 import { joiArray, joi } from "../../config/common"
-import { Module } from "../../types/module"
+import { GardenModule } from "../../types/module"
 import { ServiceState, ServiceStatus, ingressHostnameSchema, Service } from "../../types/service"
 import { resolve } from "path"
 import { ExecTestSpec, execTestSchema } from "../exec"
@@ -47,9 +47,9 @@ export interface GcfModuleSpec extends CommonServiceSpec {
 
 export type GcfServiceSpec = GcfModuleSpec
 
-export interface GcfModule extends Module<GcfModuleSpec, GcfServiceSpec, ExecTestSpec> {}
+export interface GcfModule extends GardenModule<GcfModuleSpec, GcfServiceSpec, ExecTestSpec> {}
 
-function getGcfProject<T extends GcfModule>(service: Service<T>, provider: Provider) {
+function getGcfProject<T extends GcfModule>(service: Service<T>, provider: Provider<any>) {
   return service.spec.project || provider.config.defaultProject || null
 }
 

@@ -8,7 +8,7 @@
 
 import { deserializeValues } from "../../util/util"
 import { KubeApi } from "./api"
-import { Module } from "../../types/module"
+import { GardenModule } from "../../types/module"
 import { ModuleVersion } from "../../vcs/vcs"
 import { ContainerModule } from "../container/config"
 import { HelmModule } from "./helm/config"
@@ -64,7 +64,7 @@ export async function getTestResult({
   }
 }
 
-export function getTestResultKey(ctx: PluginContext, module: Module, testName: string, version: ModuleVersion) {
+export function getTestResultKey(ctx: PluginContext, module: GardenModule, testName: string, version: ModuleVersion) {
   const key = `${ctx.projectName}--${module.name}--${testName}--${version.versionString}`
   const hash = hasha(key, { algorithm: "sha1" })
   return `test-result--${hash.slice(0, 32)}`
@@ -73,7 +73,7 @@ export function getTestResultKey(ctx: PluginContext, module: Module, testName: s
 interface StoreTestResultParams {
   ctx: PluginContext
   log: LogEntry
-  module: Module
+  module: GardenModule
   testName: string
   testVersion: ModuleVersion
   result: TestResult

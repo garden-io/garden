@@ -29,7 +29,7 @@ import { findByName, getNames } from "../util/util"
 import { ConfigurationError, ParameterError, ValidationError } from "../exceptions"
 import { PrimitiveMap } from "./common"
 import { cloneDeep, omit, isPlainObject } from "lodash"
-import { providerConfigBaseSchema, ProviderConfig } from "./provider"
+import { providerConfigBaseSchema, GenericProviderConfig } from "./provider"
 import { DEFAULT_API_VERSION, DOCS_BASE_URL } from "../constants"
 import { defaultDotIgnoreFiles } from "../util/fs"
 import { pathExists, readFile } from "fs-extra"
@@ -54,7 +54,7 @@ export interface ParsedEnvironment {
 export interface EnvironmentConfig {
   name: string
   defaultNamespace: string | null
-  providers?: ProviderConfig[] // further validated by each plugin
+  providers?: GenericProviderConfig[] // further validated by each plugin
   varfile?: string
   variables: DeepPrimitiveMap
   production?: boolean
@@ -207,7 +207,7 @@ export interface ProjectConfig {
     exclude?: string[]
   }
   outputs?: OutputSpec[]
-  providers: ProviderConfig[]
+  providers: GenericProviderConfig[]
   sources?: SourceConfig[]
   varfile?: string
   variables: DeepPrimitiveMap
@@ -574,7 +574,7 @@ export async function pickEnvironment({
     ...envProviders,
   ]
 
-  const mergedProviders: { [name: string]: ProviderConfig } = {}
+  const mergedProviders: { [name: string]: GenericProviderConfig } = {}
 
   for (const provider of allProviders) {
     if (!!mergedProviders[provider.name]) {

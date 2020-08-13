@@ -9,13 +9,13 @@
 import normalizeUrl from "normalize-url"
 import { format } from "url"
 import { joiUserIdentifier, joi, joiIdentifier, joiArray, PrimitiveMap, joiVariables } from "../config/common"
-import { Module } from "./module"
+import { GardenModule } from "./module"
 import { ServiceConfig, serviceConfigSchema } from "../config/service"
 import dedent = require("dedent")
 import { uniq } from "lodash"
 import { ConfigGraph } from "../config-graph"
 
-export interface Service<M extends Module = Module, S extends Module = Module> {
+export interface Service<M extends GardenModule = GardenModule, S extends GardenModule = GardenModule> {
   name: string
   module: M
   config: M["serviceConfigs"][0]
@@ -40,7 +40,7 @@ export const serviceSchema = () =>
       spec: joi.object().description("The raw configuration of the service (specific to each plugin)."),
     })
 
-export function serviceFromConfig<M extends Module = Module>(
+export function serviceFromConfig<M extends GardenModule = GardenModule>(
   graph: ConfigGraph,
   module: M,
   config: ServiceConfig

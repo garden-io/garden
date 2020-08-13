@@ -10,7 +10,7 @@ import td from "testdouble"
 import tmp from "tmp-promise"
 import Bluebird = require("bluebird")
 import { resolve, join } from "path"
-import { extend, keyBy, intersection, pick } from "lodash"
+import { extend, keyBy, intersection, pick, isEqual } from "lodash"
 import { remove, readdirSync, existsSync, copy, mkdirp, pathExists, truncate, realpath } from "fs-extra"
 import execa = require("execa")
 
@@ -29,7 +29,7 @@ import { mapValues, fromPairs } from "lodash"
 import { ModuleVersion } from "../src/vcs/vcs"
 import { GARDEN_SERVICE_ROOT, LOCAL_CONFIG_FILENAME, DEFAULT_API_VERSION, gardenEnv } from "../src/constants"
 import { EventBus, Events } from "../src/events"
-import { ValueOf, exec, findByName, getNames, isPromise } from "../src/util/util"
+import { ValueOf, exec, findByName, getNames, isPromise, uuidv4 } from "../src/util/util"
 import { LogEntry } from "../src/logger/log-entry"
 import timekeeper = require("timekeeper")
 import { ParameterValues, globalOptions, GlobalOptions } from "../src/cli/params"
@@ -49,9 +49,11 @@ import { RunTaskParams, RunTaskResult } from "../src/types/plugin/task/runTask"
 import { SuiteFunction, TestFunction } from "mocha"
 import { GardenBaseError, GardenError } from "../src/exceptions"
 import { RuntimeContext } from "../src/runtime-context"
-import { Module } from "../src/types/module"
+import { GardenModule } from "../src/types/module"
 import { AnalyticsGlobalConfig } from "../src/config-store"
 import { WorkflowConfig } from "../src/config/workflow"
+import { AssertionError } from "chai"
+import { dedent } from "../src/util/string"
 
 export const dataDir = resolve(GARDEN_SERVICE_ROOT, "test", "data")
 export const examplesDir = resolve(GARDEN_SERVICE_ROOT, "..", "examples")
@@ -144,109 +146,107 @@ export async function configureTestModule({ moduleConfig }: ConfigureModuleParam
   return { moduleConfig }
 }
 
-export const testPlugin = createGardenPlugin(() => {
-  const secrets: { [key: string]: string } = {}
+const testPluginSecrets: { [key: string]: string } = {}
 
-  return {
-    name: "test-plugin",
-    handlers: {
-      async configureProvider({ config }: ConfigureProviderParams) {
-        for (let member in secrets) {
-          delete secrets[member]
-        }
-        return { config }
-      },
-
-      async prepareEnvironment() {
-        return { status: { ready: true, outputs: {} } }
-      },
-
-      async setSecret({ key, value }: SetSecretParams) {
-        secrets[key] = "" + value
-        return {}
-      },
-
-      async getSecret({ key }: GetSecretParams) {
-        return { value: secrets[key] || null }
-      },
-
-      async deleteSecret({ key }: DeleteSecretParams) {
-        if (secrets[key]) {
-          delete secrets[key]
-          return { found: true }
-        } else {
-          return { found: false }
-        }
-      },
-      async getDebugInfo() {
-        return {
-          info: {
-            exampleData: "data",
-            exampleData2: "data2",
-          },
-        }
-      },
+export const testPlugin = createGardenPlugin({
+  name: "test-plugin",
+  handlers: {
+    async configureProvider({ config }: ConfigureProviderParams) {
+      for (let member in testPluginSecrets) {
+        delete testPluginSecrets[member]
+      }
+      return { config }
     },
-    createModuleTypes: [
-      {
-        name: "test",
-        docs: "Test module type",
-        schema: testModuleSpecSchema(),
-        handlers: {
-          testModule: testExecModule,
-          configure: configureTestModule,
-          build: buildExecModule,
-          runModule,
 
-          async getServiceStatus() {
-            return { state: "ready", detail: {} }
-          },
-          async deployService() {
-            return { state: "ready", detail: {} }
-          },
+    async prepareEnvironment() {
+      return { status: { ready: true, outputs: {} } }
+    },
 
-          async runService({
+    async setSecret({ key, value }: SetSecretParams) {
+      testPluginSecrets[key] = "" + value
+      return {}
+    },
+
+    async getSecret({ key }: GetSecretParams) {
+      return { value: testPluginSecrets[key] || null }
+    },
+
+    async deleteSecret({ key }: DeleteSecretParams) {
+      if (testPluginSecrets[key]) {
+        delete testPluginSecrets[key]
+        return { found: true }
+      } else {
+        return { found: false }
+      }
+    },
+    async getDebugInfo() {
+      return {
+        info: {
+          exampleData: "data",
+          exampleData2: "data2",
+        },
+      }
+    },
+  },
+  createModuleTypes: [
+    {
+      name: "test",
+      docs: "Test module type",
+      schema: testModuleSpecSchema(),
+      handlers: {
+        testModule: testExecModule,
+        configure: configureTestModule,
+        build: buildExecModule,
+        runModule,
+
+        async getServiceStatus() {
+          return { state: "ready", detail: {} }
+        },
+        async deployService() {
+          return { state: "ready", detail: {} }
+        },
+
+        async runService({
+          ctx,
+          service,
+          interactive,
+          runtimeContext,
+          timeout,
+          log,
+        }: RunServiceParams): Promise<RunResult> {
+          return runModule({
             ctx,
-            service,
+            log,
+            module: service.module,
+            args: [service.name],
             interactive,
             runtimeContext,
             timeout,
+          })
+        },
+
+        async runTask({ ctx, task, interactive, runtimeContext, log }: RunTaskParams): Promise<RunTaskResult> {
+          const result = await runModule({
+            ctx,
+            interactive,
             log,
-          }: RunServiceParams): Promise<RunResult> {
-            return runModule({
-              ctx,
-              log,
-              module: service.module,
-              args: [service.name],
-              interactive,
-              runtimeContext,
-              timeout,
-            })
-          },
+            runtimeContext,
+            module: task.module,
+            args: task.spec.command,
+            timeout: task.spec.timeout || 9999,
+          })
 
-          async runTask({ ctx, task, interactive, runtimeContext, log }: RunTaskParams): Promise<RunTaskResult> {
-            const result = await runModule({
-              ctx,
-              interactive,
-              log,
-              runtimeContext,
-              module: task.module,
-              args: task.spec.command,
-              timeout: task.spec.timeout || 9999,
-            })
-
-            return {
-              ...result,
-              taskName: task.name,
-              outputs: {
-                log: result.log,
-              },
-            }
-          },
+          return {
+            ...result,
+            taskName: task.name,
+            outputs: {
+              log: result.log,
+            },
+          }
         },
       },
-    ],
-  }
+    },
+  ],
 })
 
 export const testPluginB = createGardenPlugin({
@@ -318,7 +318,7 @@ interface EventLogEntry {
 /**
  * Used for test Garden instances, to log emitted events.
  */
-class TestEventBus extends EventBus {
+export class TestEventBus extends EventBus {
   public eventLog: EventLogEntry[]
 
   constructor() {
@@ -333,6 +333,20 @@ class TestEventBus extends EventBus {
 
   clearLog() {
     this.eventLog = []
+  }
+
+  expectEvent<T extends keyof Events>(name: T, payload: Events[T]) {
+    for (const event of this.eventLog) {
+      if (event.name === name && isEqual(event.payload, payload)) {
+        return
+      }
+    }
+
+    throw new AssertionError(dedent`
+      Expected event in log with name '${name}' and payload ${JSON.stringify(payload)}.
+      Logged events:
+      ${this.eventLog.map((e) => JSON.stringify(e)).join("\n")}
+    `)
   }
 }
 
@@ -371,7 +385,7 @@ export class TestGarden extends Garden {
     log: LogEntry
     runtimeContext?: RuntimeContext
     includeDisabled?: boolean
-  }): Promise<Module[]> {
+  }): Promise<GardenModule[]> {
     const graph = await this.getConfigGraph(log, runtimeContext)
     return graph.getModules({ includeDisabled })
   }
@@ -393,6 +407,7 @@ export class TestGarden extends Garden {
 }
 
 export const makeTestGarden = async (projectRoot: string, opts: GardenOpts = {}): Promise<TestGarden> => {
+  opts = { sessionId: uuidv4(), ...opts }
   const plugins = [...testPlugins, ...(opts.plugins || [])]
   return TestGarden.factory(projectRoot, { ...opts, plugins })
 }

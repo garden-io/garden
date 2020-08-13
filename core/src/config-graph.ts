@@ -9,7 +9,7 @@
 import toposort from "toposort"
 import { flatten, pick, uniq, sortBy, pickBy } from "lodash"
 import { BuildDependencyConfig } from "./config/module"
-import { Module, getModuleKey, moduleNeedsBuild } from "./types/module"
+import { GardenModule, getModuleKey, moduleNeedsBuild } from "./types/module"
 import { Service, serviceFromConfig } from "./types/service"
 import { Task, taskFromConfig } from "./types/task"
 import { TestConfig } from "./config/test"
@@ -28,7 +28,7 @@ export type DependencyGraphNodeType = "build" | "deploy" | "run" | "test"
 
 // The primary output type (for dependencies and dependants).
 export type DependencyRelations = {
-  build: Module[]
+  build: GardenModule[]
   deploy: Service[]
   run: Task[]
   test: TestConfig[]
@@ -77,7 +77,7 @@ export type DependencyGraph = { [key: string]: DependencyGraphNode }
  */
 export class ConfigGraph {
   private dependencyGraph: DependencyGraph
-  private modules: { [key: string]: Module }
+  private modules: { [key: string]: GardenModule }
 
   private serviceConfigs: {
     [key: string]: EntityConfigEntry<"service", ServiceConfig>
@@ -89,7 +89,7 @@ export class ConfigGraph {
     [key: string]: EntityConfigEntry<"test", TestConfig>
   }
 
-  constructor(modules: Module[], moduleTypes: ModuleTypeMap) {
+  constructor(modules: GardenModule[], moduleTypes: ModuleTypeMap) {
     this.dependencyGraph = {}
     this.modules = {}
     this.serviceConfigs = {}
@@ -271,7 +271,7 @@ export class ConfigGraph {
   }
 
   // Convenience method used in the constructor above.
-  keyForModule(module: Module | BuildDependencyConfig) {
+  keyForModule(module: GardenModule | BuildDependencyConfig) {
     return getModuleKey(module.name, module.plugin)
   }
 
@@ -301,7 +301,7 @@ export class ConfigGraph {
   /**
    * Returns the Service with the specified name. Throws error if it doesn't exist.
    */
-  getModule(name: string, includeDisabled?: boolean): Module {
+  getModule(name: string, includeDisabled?: boolean): GardenModule {
     return this.getModules({ names: [name], includeDisabled })[0]
   }
 
@@ -358,7 +358,7 @@ export class ConfigGraph {
   /**
    * Returns the set union of modules with the set union of their dependants (across all dependency types, recursively).
    */
-  withDependantModules(modules: Module[]): Module[] {
+  withDependantModules(modules: GardenModule[]): GardenModule[] {
     const dependants = modules.flatMap((m) => this.getDependantsForModule(m, true))
     // We call getModules to ensure that the returned modules have up-to-date versions.
     const dependantModules = this.modulesForRelations(this.mergeRelations(...dependants))
@@ -370,7 +370,7 @@ export class ConfigGraph {
    * Includes the services and tasks contained in the given module, but does _not_ contain the build node for the
    * module itself.
    */
-  getDependantsForModule(module: Module, recursive: boolean): DependencyRelations {
+  getDependantsForModule(module: GardenModule, recursive: boolean): DependencyRelations {
     return this.getDependants({ nodeType: "build", name: module.name, recursive })
   }
 
@@ -476,7 +476,7 @@ export class ConfigGraph {
   /**
    * Returns the (unique by name) list of modules represented in relations.
    */
-  private modulesForRelations(relations: DependencyRelations): Module[] {
+  private modulesForRelations(relations: DependencyRelations): GardenModule[] {
     const moduleNames = uniq(
       flatten([
         relations.build,
@@ -493,7 +493,7 @@ export class ConfigGraph {
    * Given the provided lists of build and runtime (service/task) dependencies, return a list of all
    * modules required to satisfy those dependencies.
    */
-  resolveDependencyModules(buildDependencies: BuildDependencyConfig[], runtimeDependencies: string[]): Module[] {
+  resolveDependencyModules(buildDependencies: BuildDependencyConfig[], runtimeDependencies: string[]): GardenModule[] {
     const moduleNames = buildDependencies.map((d) => getModuleKey(d.name, d.plugin))
     const serviceNames = runtimeDependencies.filter(
       (d) => this.serviceConfigs[d] && !this.isDisabled(this.serviceConfigs[d])

@@ -9,7 +9,7 @@
 import Bluebird from "bluebird"
 import chalk from "chalk"
 import pluralize from "pluralize"
-import { Module, getModuleKey } from "../types/module"
+import { GardenModule, getModuleKey } from "../types/module"
 import { BuildResult } from "../types/plugin/module/build"
 import { BaseTask, TaskType } from "../tasks/base"
 import { Garden } from "../garden"
@@ -21,7 +21,7 @@ export interface StageBuildTaskParams {
   garden: Garden
   graph: ConfigGraph
   log: LogEntry
-  module: Module
+  module: GardenModule
   force: boolean
   dependencies?: BaseTask[]
 }
@@ -32,7 +32,7 @@ export class StageBuildTask extends BaseTask {
   concurrencyLimit = 10
 
   private graph: ConfigGraph
-  private module: Module
+  private module: GardenModule
   private extraDependencies: BaseTask[]
 
   constructor({ garden, graph, log, module, force, dependencies }: StageBuildTaskParams) {
@@ -45,7 +45,7 @@ export class StageBuildTask extends BaseTask {
   async resolveDependencies() {
     const deps = this.graph.getDependencies({ nodeType: "build", name: this.getName(), recursive: false }).build
 
-    const stageDeps = await Bluebird.map(deps, async (m: Module) => {
+    const stageDeps = await Bluebird.map(deps, async (m: GardenModule) => {
       return new StageBuildTask({
         garden: this.garden,
         graph: this.graph,

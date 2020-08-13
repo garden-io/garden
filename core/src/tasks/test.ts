@@ -11,7 +11,7 @@ import chalk from "chalk"
 import { find, includes } from "lodash"
 import minimatch = require("minimatch")
 
-import { Module } from "../types/module"
+import { GardenModule } from "../types/module"
 import { TestConfig } from "../config/test"
 import { ModuleVersion } from "../vcs/vcs"
 import { DeployTask } from "./deploy"
@@ -37,7 +37,7 @@ export interface TestTaskParams {
   garden: Garden
   log: LogEntry
   graph: ConfigGraph
-  module: Module
+  module: GardenModule
   testConfig: TestConfig
   force: boolean
   forceBuild: boolean
@@ -48,7 +48,7 @@ export interface TestTaskParams {
 export class TestTask extends BaseTask {
   type: TaskType = "test"
 
-  private module: Module
+  private module: GardenModule
   private graph: ConfigGraph
   private testConfig: TestConfig
   private forceBuild: boolean
@@ -238,7 +238,7 @@ export async function getTestTasks({
   garden: Garden
   log: LogEntry
   graph: ConfigGraph
-  module: Module
+  module: GardenModule
   filterNames?: string[]
   hotReloadServiceNames?: string[]
   force?: boolean
@@ -272,7 +272,7 @@ export async function getTestTasks({
 export async function getTestVersion(
   garden: Garden,
   graph: ConfigGraph,
-  module: Module,
+  module: GardenModule,
   testConfig: TestConfig
 ): Promise<ModuleVersion> {
   const moduleDeps = graph

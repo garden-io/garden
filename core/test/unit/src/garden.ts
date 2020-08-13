@@ -694,7 +694,7 @@ describe("Garden", () => {
       it("should inherit config schema from base, if none is specified", async () => {
         const base = createGardenPlugin({
           name: "base",
-          configSchema: joi.object({ foo: joi.string().default("bar") }),
+          configSchema: joi.object().keys({ foo: joi.string().default("bar") }),
         })
         const foo = createGardenPlugin({
           name: "foo",
@@ -1740,7 +1740,7 @@ describe("Garden", () => {
       const providers = keyBy(await garden.resolveProviders(garden.log), "name")
 
       expect(providers.test).to.exist
-      expect(providers.test.config.foo).to.equal("bar")
+      expect(providers.test.config["foo"]).to.equal("bar")
     })
 
     it("should throw if a config doesn't match a plugin's configuration schema", async () => {
@@ -1848,7 +1848,7 @@ describe("Garden", () => {
 
       const providerB = await garden.resolveProvider(garden.log, "test-b")
 
-      expect(providerB.config.foo).to.equal("bar")
+      expect(providerB.config["foo"]).to.equal("bar")
     })
 
     it("should allow providers to reference outputs from a disabled provider", async () => {
@@ -1891,7 +1891,7 @@ describe("Garden", () => {
 
       const providerB = await garden.resolveProvider(garden.log, "test-b")
 
-      expect(providerB.config.foo).to.equal("default")
+      expect(providerB.config["foo"]).to.equal("default")
     })
 
     it("should allow providers to reference variables", async () => {
@@ -1916,7 +1916,7 @@ describe("Garden", () => {
 
       const providerB = await garden.resolveProvider(garden.log, "test-a")
 
-      expect(providerB.config.foo).to.equal("bar")
+      expect(providerB.config["foo"]).to.equal("bar")
     })
 
     it("should match a dependency to a plugin base", async () => {
@@ -2405,6 +2405,62 @@ describe("Garden", () => {
       const module = await garden.resolveModule("module-a")
 
       expect(module.spec.bla).to.eql({ nested: { key: "my value" } })
+    })
+
+    it("should correctly resolve template strings with $merge keys", async () => {
+      const test = createGardenPlugin({
+        name: "test",
+        createModuleTypes: [
+          {
+            name: "test",
+            docs: "test",
+            schema: joi.object().keys({ bla: joi.object() }),
+            handlers: {},
+          },
+        ],
+      })
+
+      const garden = await TestGarden.factory(pathFoo, {
+        plugins: [test],
+        config: {
+          apiVersion: DEFAULT_API_VERSION,
+          kind: "Project",
+          name: "test",
+          path: pathFoo,
+          defaultEnvironment: "default",
+          dotIgnoreFiles: [],
+          environments: [{ name: "default", defaultNamespace, variables: { obj: { b: "B", c: "c" } } }],
+          providers: [{ name: "test" }],
+          variables: {},
+        },
+      })
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          name: "module-a",
+          type: "test",
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          outputs: {},
+          path: pathFoo,
+          serviceConfigs: [],
+          taskConfigs: [],
+          testConfigs: [],
+          spec: {
+            bla: {
+              a: "a",
+              b: "b",
+              $merge: "${var.obj}",
+            },
+          },
+        },
+      ])
+
+      const module = await garden.resolveModule("module-a")
+
+      expect(module.spec.bla).to.eql({ a: "a", b: "B", c: "c" })
     })
 
     it("should handle module references within single file", async () => {
@@ -2966,6 +3022,10 @@ describe("Garden", () => {
                   moduleConfig.serviceConfigs = [
                     {
                       name: moduleConfig.name,
+                      dependencies: [],
+                      disabled: false,
+                      hotReloadable: false,
+                      spec: {},
                     },
                   ]
                   return { moduleConfig }
@@ -3015,6 +3075,7 @@ describe("Garden", () => {
             dependencies: ["bar"],
             disabled: false,
             hotReloadable: false,
+            spec: {},
           },
         ])
         expect(module.spec).to.eql({ foo: "bar", build: { dependencies: [] } })
@@ -3072,6 +3133,10 @@ describe("Garden", () => {
                   moduleConfig.serviceConfigs = [
                     {
                       name: moduleConfig.name,
+                      dependencies: [],
+                      disabled: false,
+                      hotReloadable: false,
+                      spec: {},
                     },
                   ]
                   return { moduleConfig }
@@ -3133,6 +3198,7 @@ describe("Garden", () => {
             dependencies: ["bar"],
             disabled: false,
             hotReloadable: false,
+            spec: {},
           },
         ])
       })
@@ -3150,6 +3216,10 @@ describe("Garden", () => {
                   moduleConfig.serviceConfigs = [
                     {
                       name: moduleConfig.name,
+                      dependencies: [],
+                      disabled: false,
+                      hotReloadable: false,
+                      spec: {},
                     },
                   ]
                   return { moduleConfig }

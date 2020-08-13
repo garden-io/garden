@@ -9,7 +9,7 @@
 import dedent = require("dedent")
 
 import { joiArray, joiIdentifier, joiProviderName, joi, joiStringMap } from "../../config/common"
-import { Provider, providerConfigBaseSchema, ProviderConfig } from "../../config/provider"
+import { Provider, providerConfigBaseSchema, GenericProviderConfig } from "../../config/provider"
 import {
   containerRegistryConfigSchema,
   ContainerRegistryConfig,
@@ -87,7 +87,7 @@ export type ContainerBuildMode = "local-docker" | "cluster-docker" | "kaniko"
 export type DefaultDeploymentStrategy = "rolling"
 export type DeploymentStrategy = DefaultDeploymentStrategy | "blue-green"
 
-export interface KubernetesConfig extends ProviderConfig {
+export interface KubernetesConfig extends GenericProviderConfig {
   buildMode: ContainerBuildMode
   clusterDocker?: {
     enableBuildKit?: boolean

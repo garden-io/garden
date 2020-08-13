@@ -30,7 +30,7 @@ import { kubectl } from "./kubectl"
 import { labelSelectorToString } from "./util"
 import { KubeApi } from "./api"
 import { syncWithOptions } from "../../util/sync"
-import { Module } from "../../types/module"
+import { GardenModule } from "../../types/module"
 
 export type HotReloadableResource = KubernetesResource<V1Deployment | V1DaemonSet | V1StatefulSet>
 export type HotReloadableKind = "Deployment" | "DaemonSet" | "StatefulSet"
@@ -384,7 +384,7 @@ export async function syncToService({ ctx, service, hotReloadSpec, namespace, wo
  * So e.g. `source` = `mydir` would transform a tracked path `/path/to/module/mydir/subdir/myfile` to
  * `subdir/myfile` in the output, and if `source` = `.` or `*`, it would be transformed to `mydir/subdir/myfile`.
  */
-export function filesForSync(module: Module, source: string): string[] {
+export function filesForSync(module: GardenModule, source: string): string[] {
   const normalizedSource = source.replace("**/", "").replace("*", "")
 
   // Normalize to relative POSIX-style paths

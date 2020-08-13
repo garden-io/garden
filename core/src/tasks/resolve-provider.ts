@@ -6,11 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import stableStringify = require("json-stable-stringify")
 import chalk from "chalk"
 import { BaseTask, TaskParams, TaskType } from "./base"
 import {
-  ProviderConfig,
+  GenericProviderConfig,
   Provider,
   providerFromConfig,
   getProviderTemplateReferences,
@@ -36,10 +35,11 @@ import { environmentStatusSchema } from "../config/status"
 import { hashString } from "../util/util"
 import { PluginTool } from "../util/ext-tools"
 import { gardenEnv } from "../constants"
+import { stableStringify } from "../util/string"
 
 interface Params extends TaskParams {
   plugin: GardenPlugin
-  config: ProviderConfig
+  config: GenericProviderConfig
   forceRefresh: boolean
   forceInit: boolean
 }
@@ -64,7 +64,7 @@ export class ResolveProviderTask extends BaseTask {
   type: TaskType = "resolve-provider"
   concurrencyLimit = 20
 
-  private config: ProviderConfig
+  private config: GenericProviderConfig
   private plugin: GardenPlugin
   private forceRefresh: boolean
   private forceInit: boolean
@@ -155,8 +155,8 @@ export class ResolveProviderTask extends BaseTask {
 
     this.log.silly(`Validating ${providerName} config`)
 
-    const validateConfig = (config: ProviderConfig) => {
-      return <ProviderConfig>validateWithPath({
+    const validateConfig = (config: GenericProviderConfig) => {
+      return <GenericProviderConfig>validateWithPath({
         config: omit(config, "path"),
         schema: this.plugin.configSchema || joi.object(),
         path: this.garden.projectRoot,
@@ -214,7 +214,7 @@ export class ResolveProviderTask extends BaseTask {
 
       this.log.silly(`Validating '${providerName}' config against '${base.name}' schema`)
 
-      resolvedConfig = <ProviderConfig>validateWithPath({
+      resolvedConfig = <GenericProviderConfig>validateWithPath({
         config: omit(resolvedConfig, "path"),
         schema: base.configSchema.unknown(true),
         path: this.garden.projectRoot,
@@ -246,11 +246,11 @@ export class ResolveProviderTask extends BaseTask {
     })
   }
 
-  private hashConfig(config: ProviderConfig) {
+  private hashConfig(config: GenericProviderConfig) {
     return hashString(stableStringify(config))
   }
 
-  private async getCachedStatus(config: ProviderConfig): Promise<EnvironmentStatus | null> {
+  private async getCachedStatus(config: GenericProviderConfig): Promise<EnvironmentStatus | null> {
     const cachePath = this.getCachePath()
 
     this.log.silly(`Checking provider status cache for ${this.plugin.name} at ${cachePath}`)
@@ -289,7 +289,7 @@ export class ResolveProviderTask extends BaseTask {
     return omit(cachedStatus, ["configHash", "resolvedAt"])
   }
 
-  private async setCachedStatus(config: ProviderConfig, status: EnvironmentStatus) {
+  private async setCachedStatus(config: GenericProviderConfig, status: EnvironmentStatus) {
     const cachePath = this.getCachePath()
     this.log.silly(`Caching provider status for ${this.plugin.name} at ${cachePath}`)
 

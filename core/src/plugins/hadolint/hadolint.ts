@@ -9,12 +9,10 @@
 import Bluebird from "bluebird"
 import { join, relative, resolve } from "path"
 import { pathExists, readFile } from "fs-extra"
-import { createGardenPlugin } from "../../types/plugin/plugin"
-import { providerConfigBaseSchema, ProviderConfig, Provider } from "../../config/provider"
+import { createGardenPlugin, GardenModule } from "../../sdk"
+import { providerConfigBaseSchema, GenericProviderConfig, Provider } from "../../config/provider"
 import { joi } from "../../config/common"
 import { dedent, splitLines, naturalList } from "../../util/string"
-import { TestModuleParams } from "../../types/plugin/module/testModule"
-import { Module } from "../../types/module"
 import { STATIC_DIR } from "../../constants"
 import { padStart, padEnd } from "lodash"
 import chalk from "chalk"
@@ -22,11 +20,12 @@ import { ConfigurationError } from "../../exceptions"
 import { containerHelpers } from "../container/helpers"
 import { baseBuildSpecSchema } from "../../config/module"
 import { getProviderUrl, getModuleTypeUrl, getGitHubUrl } from "../../docs/common"
+import { TestModuleParams } from "../../types/plugin/module/testModule"
 
 const defaultConfigPath = join(STATIC_DIR, "hadolint", "default.hadolint.yaml")
 const configFilename = ".hadolint.yaml"
 
-interface HadolintProviderConfig extends ProviderConfig {
+interface HadolintProviderConfig extends GenericProviderConfig {
   autoInject: boolean
   testFailureThreshold: "error" | "warning" | "none"
 }
@@ -61,7 +60,7 @@ interface HadolintModuleSpec {
   dockerfilePath: string
 }
 
-type HadolintModule = Module<HadolintModuleSpec>
+type HadolintModule = GardenModule<HadolintModuleSpec>
 
 const moduleTypeUrl = getModuleTypeUrl("hadolint")
 const providerUrl = getProviderUrl("hadolint")
@@ -154,7 +153,7 @@ export const gardenPlugin = createGardenPlugin({
       handlers: {
         configure: async ({ moduleConfig }) => {
           moduleConfig.include = [moduleConfig.spec.dockerfilePath]
-          moduleConfig.testConfigs = [{ name: "lint", dependencies: [], spec: {}, timeout: 10 }]
+          moduleConfig.testConfigs = [{ name: "lint", dependencies: [], spec: {}, timeout: 10, disabled: false }]
           return { moduleConfig }
         },
         testModule: async ({ ctx, log, module, testConfig }: TestModuleParams<HadolintModule>) => {
