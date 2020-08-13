@@ -1282,22 +1282,6 @@ projectRoot:
 projectId:
 ```
 
-### garden get eysi
-
-**Meet our CTO.**
-
-Just try it.
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
-#### Usage
-
-    garden get eysi 
-
-
-
 ### garden get linked-repos
 
 **Outputs a list of all linked remote sources and modules for this project.**

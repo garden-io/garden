@@ -8,7 +8,7 @@
 
 import { got, GotResponse } from "../util/http"
 import { makeAuthHeader } from "./auth"
-import { WorkflowConfig } from "../config/workflow"
+import { WorkflowConfig, makeRunConfig } from "../config/workflow"
 import { LogEntry } from "../logger/log-entry"
 import { PlatformError } from "../exceptions"
 import { GardenEnterpriseContext } from "./init"
@@ -25,8 +25,8 @@ export interface RegisterWorkflowRunParams {
  * Registers the workflow run with the platform, and returns the UID generated for the run.
  */
 export async function registerWorkflowRun({
-  workflowConfig,
   enterpriseContext,
+  workflowConfig,
   environment,
   namespace,
   log,
@@ -34,12 +34,8 @@ export async function registerWorkflowRun({
   const { clientAuthToken, projectId, enterpriseDomain } = enterpriseContext
   log.debug(`Registering workflow run for ${workflowConfig.name}...`)
   const headers = makeAuthHeader(clientAuthToken)
-  const requestData = {
-    projectUid: projectId,
-    environment,
-    namespace,
-    workflowName: workflowConfig.name,
-  }
+  const workflowRunConfig = makeRunConfig(workflowConfig, environment, namespace)
+  const requestData = { projectUid: projectId, workflowRunConfig }
   let res
   try {
     res = await got.post(`${enterpriseDomain}/workflow-runs`, { json: requestData, headers }).json<GotResponse<any>>()
