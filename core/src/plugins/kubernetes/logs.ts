@@ -23,8 +23,10 @@ import { kubectl } from "./kubectl"
 import { splitFirst } from "../../util/util"
 import { ChildProcess } from "child_process"
 import { PluginToolSpec } from "../../types/plugin/tools"
+import { PluginContext } from "../../plugin-context"
 
 interface GetLogsBaseParams {
+  ctx: PluginContext
   defaultNamespace: string
   log: LogEntry
   provider: KubernetesProvider
@@ -95,32 +97,41 @@ export async function getPodLogs(params: GetPodLogsParams) {
  * Stream all logs for the given resources and service.
  */
 export async function getAllLogs(params: GetAllLogsParams) {
-  const api = await KubeApi.factory(params.log, params.provider)
+  const api = await KubeApi.factory(params.log, params.ctx, params.provider)
   const pods = await getAllPods(api, params.defaultNamespace, params.resources)
   return getPodLogs({ ...params, pods })
 }
 
-async function getLogs({ log, provider, service, stream, tail, follow, pod }: GetLogsParams) {
+async function getLogs({ ctx, log, provider, service, stream, tail, follow, pod }: GetLogsParams) {
   if (follow) {
-    return followLogs(log, provider, service, stream, tail, pod)
+    return followLogs({ ctx, log, provider, service, stream, tail, pod })
   }
 
-  return readLogs(log, provider, service, stream, tail, pod)
+  return readLogs({ log, ctx, provider, service, stream, tail, pod })
 }
 
-async function readLogs(
-  log: LogEntry,
-  provider: KubernetesProvider,
-  service: Service,
-  stream: Stream<ServiceLogEntry>,
-  tail: number,
+async function readLogs({
+  log,
+  ctx,
+  provider,
+  service,
+  stream,
+  tail,
+  pod,
+}: {
+  log: LogEntry
+  ctx: PluginContext
+  provider: KubernetesProvider
+  service: Service
+  stream: Stream<ServiceLogEntry>
+  tail: number
   pod: KubernetesPod
-) {
+}) {
   const kubectlArgs = ["logs", "--tail", String(tail), "--timestamps=true", "--all-containers=true"]
 
   kubectlArgs.push(`pod/${pod.metadata.name}`)
 
-  const proc = await kubectl(provider).spawn({
+  const proc = await kubectl(ctx, provider).spawn({
     args: kubectlArgs,
     log,
     namespace: pod.metadata.namespace,
@@ -129,14 +140,23 @@ async function readLogs(
   handleLogMessageStreamFromProcess(proc, stream, service)
   return proc
 }
-async function followLogs(
-  log: LogEntry,
-  provider: KubernetesProvider,
-  service: Service,
-  stream: Stream<ServiceLogEntry>,
-  tail: number,
+async function followLogs({
+  ctx,
+  log,
+  provider,
+  service,
+  stream,
+  tail,
+  pod,
+}: {
+  ctx: PluginContext
+  log: LogEntry
+  provider: KubernetesProvider
+  service: Service
+  stream: Stream<ServiceLogEntry>
+  tail: number
   pod: KubernetesPod
-) {
+}) {
   const sternArgs = [
     `--context=${provider.config.context}`,
     `--namespace=${pod.metadata.namespace}`,
@@ -161,7 +181,7 @@ async function followLogs(
     sternArgs.push(`${service.name}`)
   }
 
-  const proc = await provider.tools.stern.spawn({
+  const proc = await ctx.tools["kubernetes.stern"].spawn({
     args: sternArgs,
     log,
   })

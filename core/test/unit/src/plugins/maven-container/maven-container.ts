@@ -93,7 +93,7 @@ describe("maven-container", () => {
     garden = await makeTestGarden(projectRoot, { plugins: [mavenPlugin] })
     log = garden.log
     const provider = await garden.resolveProvider(garden.log, "maven-container")
-    ctx = garden.getPluginContext(provider)
+    ctx = await garden.getPluginContext(provider)
 
     td.replace(garden.buildDir, "syncDependencyProducts", () => null)
 

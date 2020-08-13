@@ -24,13 +24,11 @@ import {
   dockerDaemonDeploymentName,
   dockerDaemonContainerName,
 } from "../../../../../../src/plugins/kubernetes/constants"
-import { ContainerProvider } from "../../../../../../src/plugins/container/container"
 
 describe("kubernetes build flow", () => {
   let garden: Garden
   let graph: ConfigGraph
   let provider: KubernetesProvider
-  let containerProvider: ContainerProvider
   let ctx: PluginContext
 
   after(async () => {
@@ -43,8 +41,7 @@ describe("kubernetes build flow", () => {
     garden = await getContainerTestGarden(environmentName)
     graph = await garden.getConfigGraph(garden.log)
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-    containerProvider = <ContainerProvider>await garden.resolveProvider(garden.log, "container")
-    ctx = garden.getPluginContext(provider)
+    ctx = await garden.getPluginContext(provider)
   }
 
   context("local mode", () => {
@@ -85,7 +82,7 @@ describe("kubernetes build flow", () => {
         cwd: module.buildPath,
         args: ["manifest", "inspect", remoteId],
         log: garden.log,
-        containerProvider,
+        ctx,
       })
     })
 
@@ -104,7 +101,7 @@ describe("kubernetes build flow", () => {
         cwd: module.buildPath,
         args: ["rmi", remoteId],
         log: garden.log,
-        containerProvider,
+        ctx,
       })
 
       const status = await k8sGetContainerBuildStatus({
@@ -173,10 +170,10 @@ describe("kubernetes build flow", () => {
 
       // Clear the image tag from the in-cluster builder
       const remoteId = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
-      const podName = await getDeploymentPodName(dockerDaemonDeploymentName, provider, garden.log)
+      const podName = await getDeploymentPodName(dockerDaemonDeploymentName, ctx, provider, garden.log)
       const containerName = dockerDaemonContainerName
       const args = ["docker", "rmi", remoteId]
-      await execInPod({ provider, log: garden.log, args, timeout: 300, podName, containerName })
+      await execInPod({ ctx, provider, log: garden.log, args, timeout: 300, podName, containerName })
 
       // This should still report the build as ready, because it's in the registry
       const status = await k8sGetContainerBuildStatus({
@@ -232,10 +229,10 @@ describe("kubernetes build flow", () => {
 
       // Clear the image tag from the in-cluster builder
       const remoteId = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
-      const podName = await getDeploymentPodName(dockerDaemonDeploymentName, provider, garden.log)
+      const podName = await getDeploymentPodName(dockerDaemonDeploymentName, ctx, provider, garden.log)
       const containerName = dockerDaemonContainerName
       const args = ["docker", "rmi", remoteId]
-      await execInPod({ provider, log: garden.log, args, timeout: 300, podName, containerName })
+      await execInPod({ ctx, provider, log: garden.log, args, timeout: 300, podName, containerName })
 
       // This should still report the build as ready, because it's in the registry
       const status = await k8sGetContainerBuildStatus({

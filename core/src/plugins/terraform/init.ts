@@ -25,10 +25,10 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
   const root = getRoot(ctx, provider)
   const variables = provider.config.variables
 
-  const status = await getStackStatus({ log, provider, root, variables })
+  const status = await getStackStatus({ log, ctx, provider, root, variables })
 
   if (status === "up-to-date") {
-    const outputs = await getTfOutputs(log, provider, root)
+    const outputs = await getTfOutputs({ log, ctx, provider, workingDir: root })
     return { ready: true, outputs }
   } else if (status === "outdated") {
     if (autoApply) {
@@ -41,7 +41,7 @@ export async function getEnvironmentStatus({ ctx, log }: GetEnvironmentStatusPar
           ${chalk.white.bold("garden plugins terraform apply-root")} to make sure the stack is in the intended state.
         `),
       })
-      const outputs = await getTfOutputs(log, provider, root)
+      const outputs = await getTfOutputs({ log, ctx, provider, workingDir: root })
       // Make sure the status is not cached when the stack is not up-to-date
       return { ready: true, outputs, disableCache: true }
     }
@@ -62,10 +62,10 @@ export async function prepareEnvironment({ ctx, log }: PrepareEnvironmentParams)
 
   // Don't run apply when running plugin commands
   if (provider.config.autoApply && !(ctx.command?.name === "plugins" && ctx.command?.args.plugin === provider.name)) {
-    await applyStack({ log, provider, root, variables: provider.config.variables })
+    await applyStack({ ctx, log, provider, root, variables: provider.config.variables })
   }
 
-  const outputs = await getTfOutputs(log, provider, root)
+  const outputs = await getTfOutputs({ log, ctx, provider, workingDir: root })
 
   return {
     status: {

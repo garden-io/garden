@@ -51,7 +51,7 @@ describe("runContainerTask", () => {
       version,
     })
 
-    const ctx = garden.getPluginContext(provider)
+    const ctx = await garden.getPluginContext(provider)
     await clearTaskResult({ ctx, log: garden.log, module: task.module, task, taskVersion: version })
 
     const key = testTask.getKey()
@@ -88,7 +88,7 @@ describe("runContainerTask", () => {
       version,
     })
 
-    const ctx = garden.getPluginContext(provider)
+    const ctx = await garden.getPluginContext(provider)
     await clearTaskResult({ ctx, log: garden.log, module: task.module, task, taskVersion: version })
 
     await garden.processTasks([testTask], { throwOnError: true })
@@ -119,7 +119,7 @@ describe("runContainerTask", () => {
       version,
     })
 
-    const ctx = garden.getPluginContext(provider)
+    const ctx = await garden.getPluginContext(provider)
     await clearTaskResult({ ctx, log: garden.log, module: task.module, task, taskVersion: version })
 
     await expectError(

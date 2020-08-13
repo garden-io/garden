@@ -48,6 +48,7 @@ import { ProviderMap } from "../../config/provider"
 import { parse } from "url"
 import { trim } from "lodash"
 import { getModuleTypeUrl, getGitHubUrl } from "../../docs/common"
+import { PluginContext } from "../../plugin-context"
 
 const systemDir = join(STATIC_DIR, "openfaas", "system")
 const moduleTypeUrl = getModuleTypeUrl("openfaas")
@@ -122,7 +123,7 @@ const templateModuleConfig: ExecModuleConfig = {
 async function configureProvider({
   log,
   config,
-  projectName,
+  ctx,
   dependencies,
 }: ConfigureProviderParams<OpenFaasConfig>): Promise<ConfigureProviderResult> {
   const k8sProvider = getK8sProvider(dependencies)
@@ -149,7 +150,7 @@ async function configureProvider({
     }
   }
 
-  const namespace = await getFunctionNamespace(log, projectName, config, dependencies)
+  const namespace = await getFunctionNamespace(log, ctx, config, dependencies)
   // Need to scope the release name, because the OpenFaaS Helm chart installs some cluster-wide resources
   // that could conflict across projects/users.
   const releaseName = `${namespace}--openfaas`
@@ -222,7 +223,7 @@ async function configureProvider({
 
 async function getFunctionNamespace(
   log: LogEntry,
-  projectName: string,
+  ctx: PluginContext,
   config: OpenFaasConfig,
   dependencies: ProviderMap
 ) {
@@ -232,8 +233,8 @@ async function getFunctionNamespace(
     // Default to K8s app namespace
     (await getNamespace({
       log,
+      ctx,
       provider: getK8sProvider(dependencies),
-      projectName,
       skipCreate: true,
     }))
   )
@@ -243,13 +244,13 @@ async function getServiceLogs(params: GetServiceLogsParams<OpenFaasModule>) {
   const { ctx, log, service } = params
   const namespace = await getFunctionNamespace(
     log,
-    ctx.projectName,
+    ctx,
     ctx.provider.config as OpenFaasConfig,
     ctx.provider.dependencies
   )
 
   const k8sProvider = getK8sProvider(ctx.provider.dependencies)
-  const api = await KubeApi.factory(log, k8sProvider)
+  const api = await KubeApi.factory(log, ctx, k8sProvider)
   const resources = await getResources(api, service, namespace)
 
   return getAllLogs({ ...params, provider: k8sProvider, defaultNamespace: namespace, resources })
@@ -271,7 +272,7 @@ async function deployService(params: DeployServiceParams<OpenFaasModule>): Promi
 
   while (true) {
     try {
-      await ctx.provider.tools["faas-cli"].stdout({
+      await ctx.tools["openfaas.faas-cli"].stdout({
         log,
         cwd: module.buildPath,
         args: ["deploy", "-f", stackFilename],
@@ -293,15 +294,16 @@ async function deployService(params: DeployServiceParams<OpenFaasModule>): Promi
   // wait until deployment is ready
   const namespace = await getFunctionNamespace(
     log,
-    ctx.projectName,
+    ctx,
     ctx.provider.config as OpenFaasConfig,
     ctx.provider.dependencies
   )
-  const api = await KubeApi.factory(log, k8sProvider)
+  const api = await KubeApi.factory(log, ctx, k8sProvider)
   const resources = await getResources(api, service, namespace)
 
   await waitForResources({
     namespace,
+    ctx,
     provider: k8sProvider,
     serviceName: service.name,
     log,
@@ -332,7 +334,7 @@ async function deleteService(params: DeleteServiceParams<OpenFaasModule>): Promi
 
     found = !!status.state
 
-    await ctx.provider.tools["faas-cli"].stdout({
+    await ctx.tools["openfaas.faas-cli"].stdout({
       log,
       cwd: service.module.buildPath,
       args: ["remove", "-f", stackFilename],
@@ -378,11 +380,11 @@ async function getServiceStatus({
 
   const namespace = await getFunctionNamespace(
     log,
-    openFaasCtx.projectName,
+    openFaasCtx,
     openFaasCtx.provider.config,
     openFaasCtx.provider.dependencies
   )
-  const api = await KubeApi.factory(log, k8sProvider)
+  const api = await KubeApi.factory(log, ctx, k8sProvider)
 
   let deployment: KubernetesDeployment
 
