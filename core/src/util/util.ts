@@ -56,9 +56,16 @@ export type Unpacked<T> = T extends (infer U)[]
 
 const MAX_BUFFER_SIZE = 1024 * 1024
 
-export function shutdown(code?: number) {
+// Used to control process-level operations during testing
+export const testFlags = {
+  disableShutdown: false,
+}
+
+export async function shutdown(code?: number) {
   // This is a good place to log exitHookNames if needed.
-  process.exit(code)
+  if (!testFlags.disableShutdown) {
+    process.exit(code)
+  }
 }
 
 export function registerCleanupFunction(name: string, func: HookCallback) {

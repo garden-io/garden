@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import stableStringify = require("json-stable-stringify")
 import chalk from "chalk"
 import { BaseTask, TaskParams, TaskType } from "./base"
 import {
@@ -36,6 +35,7 @@ import { environmentStatusSchema } from "../config/status"
 import { hashString } from "../util/util"
 import { PluginTool } from "../util/ext-tools"
 import { gardenEnv } from "../constants"
+import { stableStringify } from "../util/string"
 
 interface Params extends TaskParams {
   plugin: GardenPlugin

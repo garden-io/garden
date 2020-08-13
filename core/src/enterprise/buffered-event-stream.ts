@@ -14,7 +14,7 @@ import { got } from "../util/http"
 import { makeAuthHeader } from "./auth"
 import { LogLevel } from "../logger/log-node"
 import { gardenEnv } from "../constants"
-import { GardenEnterpriseContext } from "./init"
+import { Garden } from "../garden"
 
 export type StreamEvent = {
   name: EventName
@@ -34,7 +34,7 @@ export interface LogEntryEvent {
   metadata?: LogEntryMetadata
 }
 
-export function formatForEventStream(entry: LogEntry): LogEntryEvent {
+export function formatLogEntryForEventStream(entry: LogEntry): LogEntryEvent {
   const { section, data } = entry.getMessageState()
   const { key, revision, level } = entry
   const parentKey = entry.parent ? entry.parent.key : null
@@ -44,20 +44,36 @@ export function formatForEventStream(entry: LogEntry): LogEntryEvent {
   return { key, parentKey, revision, msg, data, metadata, section, timestamp, level }
 }
 
-export const FLUSH_INTERVAL_MSEC = 1000
-export const MAX_BATCH_SIZE = 100
+interface StreamTarget {
+  host: string
+  clientAuthToken: string
+}
 
 export interface ConnectBufferedEventStreamParams {
-  eventBus: EventBus
-  enterpriseContext: GardenEnterpriseContext
-  environmentName: string
+  targets?: StreamTarget[]
+  garden: Garden
+}
+
+interface ApiBatchBase {
+  workflowRunUid?: string
+  sessionId: string | null
+  projectUid?: string
+}
+
+export interface ApiEventBatch extends ApiBatchBase {
+  events: StreamEvent[]
+  environment: string
   namespace: string
+}
+
+export interface ApiLogBatch extends ApiBatchBase {
+  logEntries: LogEntryEvent[]
 }
 
 export const controlEventNames: Set<EventName> = new Set(["_workflowRunRegistered"])
 
 /**
- * Buffers events and log entries and periodically POSTs them to Garden Enterprise if the user is logged in.
+ * Buffers events and log entries and periodically POSTs them to Garden Enterprise or another Garden service.
  *
  * Subscribes to logger events once, in the constructor.
  *
@@ -66,14 +82,12 @@ export const controlEventNames: Set<EventName> = new Set(["_workflowRunRegistere
  * any) e.g. when config changes during a watch-mode command.
  */
 export class BufferedEventStream {
-  private log: LogEntry
+  protected log: LogEntry
   public sessionId: string
-  private eventBus: EventBus
-  private enterpriseDomain: string
-  private clientAuthToken: string
-  private projectId: string
-  private environmentName: string
-  private namespace: string
+
+  protected targets: StreamTarget[]
+
+  protected garden: Garden
   private workflowRunUid: string | undefined
 
   /**
@@ -86,6 +100,9 @@ export class BufferedEventStream {
   private bufferedEvents: StreamEvent[]
   private bufferedLogEntries: LogEntryEvent[]
 
+  protected intervalMsec = 1000
+  protected maxBatchSize = 100
+
   constructor(log: LogEntry, sessionId: string) {
     this.sessionId = sessionId
     this.log = log
@@ -94,28 +111,29 @@ export class BufferedEventStream {
     })
     this.bufferedEvents = []
     this.bufferedLogEntries = []
+    this.targets = []
   }
 
-  connect(params: ConnectBufferedEventStreamParams) {
-    this.log.silly("BufferedEventStream: Connected")
-    const ctx = params.enterpriseContext
-    this.clientAuthToken = ctx.clientAuthToken
-    this.enterpriseDomain = ctx.enterpriseDomain
-    this.projectId = ctx.projectId
-    this.environmentName = params.environmentName
-    this.namespace = params.namespace
-
-    if (!this.intervalId) {
-      this.startInterval()
+  connect({ garden, targets }: ConnectBufferedEventStreamParams) {
+    if (this.intervalId) {
+      clearInterval(this.intervalId)
     }
 
-    if (this.eventBus) {
+    if (targets) {
+      this.targets = targets
+    }
+
+    if (this.garden) {
       // We unsubscribe from the old event bus' events.
-      this.unsubscribeFromGardenEvents(this.eventBus)
+      this.unsubscribeFromGardenEvents(this.garden.events)
     }
 
-    this.eventBus = params.eventBus
-    this.subscribeToGardenEvents(this.eventBus)
+    this.garden = garden
+    this.subscribeToGardenEvents(this.garden.events)
+
+    this.log.silly("BufferedEventStream: Connected")
+
+    this.startInterval()
   }
 
   subscribeToGardenEvents(eventBus: EventBus) {
@@ -137,8 +155,10 @@ export class BufferedEventStream {
 
   startInterval() {
     this.intervalId = setInterval(() => {
-      this.flushBuffered({ flushAll: false })
-    }, FLUSH_INTERVAL_MSEC)
+      this.flushBuffered({ flushAll: false }).catch((err) => {
+        this.log.error(err)
+      })
+    }, this.intervalMsec)
   }
 
   async close() {
@@ -174,56 +194,69 @@ export class BufferedEventStream {
     this.bufferedLogEntries.push(logEntry)
   }
 
-  // Note: Returns a promise.
+  private getHeaders(target: StreamTarget) {
+    return makeAuthHeader(target.clientAuthToken)
+  }
+
   async flushEvents(events: StreamEvent[]) {
     if (events.length === 0) {
       return
     }
-    const data = {
+
+    const data: ApiEventBatch = {
       events,
       workflowRunUid: this.getWorkflowRunUid(),
       sessionId: this.sessionId,
-      projectUid: this.projectId,
-      environment: this.environmentName,
-      namespace: this.namespace,
+      projectUid: this.garden.projectId || undefined,
+      environment: this.garden.environmentName,
+      namespace: this.garden.namespace,
     }
-    const headers = makeAuthHeader(this.clientAuthToken)
-    this.log.silly(`Flushing ${events.length} events to ${this.enterpriseDomain}/events`)
-    this.log.silly(`--------`)
-    this.log.silly(`data: ${JSON.stringify(data)}`)
-    this.log.silly(`--------`)
-    await got.post(`${this.enterpriseDomain}/events`, { json: data, headers }).catch((err) => {
-      this.log.error(err)
-    })
+
+    await this.postToTargets(`${events.length} events`, "events", data)
   }
 
-  // Note: Returns a promise.
   async flushLogEntries(logEntries: LogEntryEvent[]) {
-    if (logEntries.length === 0) {
+    if (logEntries.length === 0 || !this.garden) {
       return
     }
-    const data = {
+
+    const data: ApiLogBatch = {
       logEntries,
       workflowRunUid: this.getWorkflowRunUid(),
       sessionId: this.sessionId,
-      projectUid: this.projectId,
+      projectUid: this.garden.projectId || undefined,
     }
-    const headers = makeAuthHeader(this.clientAuthToken)
-    this.log.silly(`Flushing ${logEntries.length} log entries to ${this.enterpriseDomain}/log-entries`)
+
+    await this.postToTargets(`${logEntries.length} log entries`, "log-entries", data)
+  }
+
+  private async postToTargets(description: string, path: string, data: any) {
+    if (this.targets.length === 0) {
+      this.log.silly("No targets to send events to. Dropping them.")
+    }
+
+    const targetUrls = this.targets.map((target) => `${target.host}/${path}`)
+    this.log.silly(`Flushing ${description} to ${targetUrls.join(", ")}`)
     this.log.silly(`--------`)
     this.log.silly(`data: ${JSON.stringify(data)}`)
     this.log.silly(`--------`)
-    await got.post(`${this.enterpriseDomain}/log-entries`, { json: data, headers }).catch((err) => {
-      this.log.error(err)
+
+    await Bluebird.map(this.targets, (target) => {
+      const headers = this.getHeaders(target)
+      return got.post(`${target.host}/${path}`, { json: data, headers })
     })
   }
 
-  flushBuffered({ flushAll = false }) {
-    const eventsToFlush = this.bufferedEvents.splice(0, flushAll ? this.bufferedEvents.length : MAX_BATCH_SIZE)
+  async flushBuffered({ flushAll = false }) {
+    if (!this.garden || this.targets.length === 0) {
+      return
+    }
+
+    const eventsToFlush = this.bufferedEvents.splice(0, flushAll ? this.bufferedEvents.length : this.maxBatchSize)
 
     const logEntryFlushCount = flushAll
       ? this.bufferedLogEntries.length
-      : MAX_BATCH_SIZE - this.bufferedLogEntries.length
+      : this.maxBatchSize - this.bufferedLogEntries.length
     const logEntriesToFlush = this.bufferedLogEntries.splice(0, logEntryFlushCount)
 
     return Bluebird.all([this.flushEvents(eventsToFlush), this.flushLogEntries(logEntriesToFlush)])
