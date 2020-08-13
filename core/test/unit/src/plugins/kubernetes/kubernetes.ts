@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { configureProvider } from "../../../../../src/plugins/kubernetes/kubernetes"
+import { configureProvider, gardenPlugin } from "../../../../../src/plugins/kubernetes/kubernetes"
 import { KubernetesConfig, defaultResources, defaultStorage } from "../../../../../src/plugins/kubernetes/config"
 import { defaultSystemNamespace } from "../../../../../src/plugins/kubernetes/system"
 import { makeDummyGarden } from "../../../../../src/cli/cli"
@@ -53,7 +53,15 @@ describe("kubernetes configureProvider", () => {
       }
 
       const result = await configureProvider({
-        ctx: await garden.getPluginContext(providerFromConfig(config, {}, [], { ready: false, outputs: {} })),
+        ctx: await garden.getPluginContext(
+          providerFromConfig({
+            plugin: gardenPlugin,
+            config: basicConfig,
+            dependencies: {},
+            moduleConfigs: [],
+            status: { ready: false, outputs: {} },
+          })
+        ),
         environmentName: "default",
         projectName: garden.projectName,
         projectRoot: garden.projectRoot,
@@ -81,7 +89,15 @@ describe("kubernetes configureProvider", () => {
       }
 
       const result = await configureProvider({
-        ctx: await garden.getPluginContext(providerFromConfig(config, {}, [], { ready: false, outputs: {} })),
+        ctx: await garden.getPluginContext(
+          providerFromConfig({
+            plugin: gardenPlugin,
+            config: basicConfig,
+            dependencies: {},
+            moduleConfigs: [],
+            status: { ready: false, outputs: {} },
+          })
+        ),
         environmentName: "default",
         projectName: garden.projectName,
         projectRoot: garden.projectRoot,

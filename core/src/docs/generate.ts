@@ -63,6 +63,7 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
         { name: "kubernetes" },
         { name: "local-kubernetes" },
         { name: "maven-container" },
+        { name: "octant" },
         { name: "openfaas" },
         { name: "terraform" },
       ],

@@ -35,13 +35,9 @@ import timekeeper = require("timekeeper")
 import { ParameterValues, globalOptions, GlobalOptions } from "../src/cli/params"
 import { RunModuleParams } from "../src/types/plugin/module/runModule"
 import { ConfigureModuleParams } from "../src/types/plugin/module/configure"
-import { SetSecretParams } from "../src/types/plugin/provider/setSecret"
-import { GetSecretParams } from "../src/types/plugin/provider/getSecret"
-import { DeleteSecretParams } from "../src/types/plugin/provider/deleteSecret"
 import { RunServiceParams } from "../src/types/plugin/service/runService"
 import { RunResult } from "../src/types/plugin/base"
 import { ExternalSourceType, getRemoteSourceRelPath, hashRepoUrl } from "../src/util/ext-source-util"
-import { ConfigureProviderParams } from "../src/types/plugin/provider/configureProvider"
 import { ActionRouter } from "../src/actions"
 import { ProcessCommandResult } from "../src/commands/base"
 import stripAnsi from "strip-ansi"
@@ -150,28 +146,40 @@ const testPluginSecrets: { [key: string]: string } = {}
 
 export const testPlugin = createGardenPlugin({
   name: "test-plugin",
+  dashboardPages: [
+    {
+      name: "test",
+      description: "Test dashboard page",
+      title: "Test",
+      newWindow: false,
+    },
+  ],
   handlers: {
-    async configureProvider({ config }: ConfigureProviderParams) {
+    async configureProvider({ config }) {
       for (let member in testPluginSecrets) {
         delete testPluginSecrets[member]
       }
       return { config }
     },
 
+    async getDashboardPage({ page }) {
+      return { url: `http://localhost:12345/${page.name}` }
+    },
+
     async prepareEnvironment() {
       return { status: { ready: true, outputs: {} } }
     },
 
-    async setSecret({ key, value }: SetSecretParams) {
+    async setSecret({ key, value }) {
       testPluginSecrets[key] = "" + value
       return {}
     },
 
-    async getSecret({ key }: GetSecretParams) {
+    async getSecret({ key }) {
       return { value: testPluginSecrets[key] || null }
     },
 
-    async deleteSecret({ key }: DeleteSecretParams) {
+    async deleteSecret({ key }) {
       if (testPluginSecrets[key]) {
         delete testPluginSecrets[key]
         return { found: true }

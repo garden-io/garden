@@ -21,9 +21,9 @@ import { getModuleTypeUrl, getGitHubUrl, getProviderUrl } from "../../docs/commo
 import slash from "slash"
 import { ExecaReturnValue } from "execa"
 import { PluginContext } from "../../plugin-context"
-import { getK8sProvider } from "../openfaas/config"
 import { renderTemplates } from "../kubernetes/helm/common"
 import { LogEntry } from "../../logger/log-entry"
+import { getK8sProvider } from "../kubernetes/util"
 
 export interface ConftestProviderConfig extends GenericProviderConfig {
   policyPath: string
@@ -275,6 +275,7 @@ export const gardenPlugin = createGardenPlugin({
       name: "conftest",
       description: "A rego-based configuration validator.",
       type: "binary",
+      prefetch: true,
       builds: [
         {
           platform: "darwin",

@@ -49,7 +49,7 @@ export function hasRemoteSource(module: GardenModule): boolean {
   return !!module.repositoryUrl
 }
 export function getConfigKey(type: ExternalSourceType): string {
-  return type === "project" ? localConfigKeys.linkedProjectSources : localConfigKeys.linkedModuleSources
+  return type === "project" ? localConfigKeys().linkedProjectSources : localConfigKeys().linkedModuleSources
 }
 
 /**

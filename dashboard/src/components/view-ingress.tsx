@@ -13,6 +13,7 @@ import { ServiceIngress } from "@garden-io/core/build/src/types/service"
 import { truncateMiddle, getLinkUrl } from "../util/helpers"
 import { ActionIcon } from "./action-icon"
 import { useUiState } from "../hooks"
+import { Frame } from "./frame"
 
 const ViewIngress = styled.div``
 
@@ -46,12 +47,6 @@ const FrameWrapper = styled.div<FrameWrapperProps>`
   border-radius: 4px;
   min-height: 0;
   overflow: hidden;
-`
-
-const Frame = styled.iframe`
-  flex: 1 1 auto;
-  border: 0;
-  width: 100%;
 `
 
 interface ViewIngressProp {

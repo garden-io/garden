@@ -417,20 +417,6 @@ providerStatuses:
     # Set to true if the environment is fully configured for a provider.
     ready:
 
-    # One or more pages to add to the Garden dashboard.
-    dashboardPages:
-      - # The link title to show in the menu bar (max length 32).
-        title:
-
-        # A description to show when hovering over the link.
-        description:
-
-        # The URL to open in the dashboard pane when clicking the link.
-        url:
-
-        # Set to true if the link should open in a new browser tab/window.
-        newWindow:
-
     # Use this to include additional information that is specific to the provider.
     detail:
 
@@ -1354,20 +1340,6 @@ providers:
   <name>:
     # Set to true if the environment is fully configured for a provider.
     ready:
-
-    # One or more pages to add to the Garden dashboard.
-    dashboardPages:
-      - # The link title to show in the menu bar (max length 32).
-        title:
-
-        # A description to show when hovering over the link.
-        description:
-
-        # The URL to open in the dashboard pane when clicking the link.
-        url:
-
-        # Set to true if the link should open in a new browser tab/window.
-        newWindow:
 
     # Use this to include additional information that is specific to the provider.
     detail:

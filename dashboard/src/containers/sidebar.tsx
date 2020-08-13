@@ -6,59 +6,44 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { kebabCase, flatten, entries } from "lodash"
 import React from "react"
 
 import Sidebar from "../components/sidebar"
 import { useApi } from "../hooks"
-import { DashboardPage } from "@garden-io/core/build/src/config/status"
-
-export interface Page extends DashboardPage {
-  path: string
-}
+import { Page } from "../contexts/api"
 
 const builtinPages: Page[] = [
   {
+    name: "overview",
     title: "Overview",
     description: "Overview",
     path: "/",
     newWindow: false,
-    url: "",
   },
   {
+    name: "stack-graph",
     title: "Stack Graph",
     description: "Stack Graph",
     path: "/graph",
     newWindow: false,
-    url: "",
   },
   {
+    name: "logs",
     title: "Logs",
     description: "Logs",
     path: "/logs",
     newWindow: false,
-    url: "",
   },
 ]
 
 const SidebarContainer = () => {
   const {
     store: {
-      entities: { providers },
+      entities: { providerPages },
     },
   } = useApi()
 
-  const pages = flatten(
-    entries(providers).map(([providerName, providerStatus]) => {
-      return (providerStatus.dashboardPages || []).map((p) => ({
-        ...p,
-        path: `/provider/${providerName}/${kebabCase(p.title)}`,
-        description: p.description + ` (from provider ${providerName})`,
-      }))
-    })
-  )
-
-  return <Sidebar pages={[...builtinPages, ...pages]} />
+  return <Sidebar pages={[...builtinPages, ...providerPages]} />
 }
 
 export default SidebarContainer

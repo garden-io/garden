@@ -54,6 +54,7 @@
   * [`kubernetes`](./reference/providers/kubernetes.md)
   * [`local-kubernetes`](./reference/providers/local-kubernetes.md)
   * [`maven-container`](./reference/providers/maven-container.md)
+  * [`octant`](./reference/providers/octant.md)
   * [`openfaas`](./reference/providers/openfaas.md)
   * [`terraform`](./reference/providers/terraform.md)
 * [Module Types](./reference/module-types/README.md)

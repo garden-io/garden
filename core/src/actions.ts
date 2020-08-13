@@ -105,6 +105,7 @@ import { BuildDependencyConfig } from "./config/module"
 import { Profile } from "./util/profiling"
 import { ConfigGraph } from "./config-graph"
 import { ModuleConfigContext } from "./config/config-context"
+import { GetDashboardPageParams, GetDashboardPageResult } from "./types/plugin/provider/getDashboardPage"
 
 const maxArtifactLogLines = 5 // max number of artifacts to list in console after task+test runs
 
@@ -264,6 +265,13 @@ export class ActionRouter implements TypeGuard {
   async deleteSecret(params: RequirePluginName<ActionRouterParams<DeleteSecretParams>>): Promise<DeleteSecretResult> {
     const { pluginName } = params
     return this.callActionHandler({ actionType: "deleteSecret", pluginName, params: omit(params, ["pluginName"]) })
+  }
+
+  async getDashboardPage(
+    params: RequirePluginName<ActionRouterParams<GetDashboardPageParams>>
+  ): Promise<GetDashboardPageResult> {
+    const { pluginName } = params
+    return this.callActionHandler({ actionType: "getDashboardPage", pluginName, params: omit(params, ["pluginName"]) })
   }
 
   //endregion

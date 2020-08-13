@@ -33,7 +33,7 @@ import { PluginsCommand } from "./plugins"
 import { LoginCommand } from "./login"
 import { LogOutCommand } from "./logout"
 import { ToolsCommand } from "./tools"
-import { UtilCommand } from "./util"
+import { UtilCommand } from "./util/util"
 
 export const coreCommands: (Command | CommandGroup)[] = [
   new BuildCommand(),

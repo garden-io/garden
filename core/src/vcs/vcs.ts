@@ -11,7 +11,6 @@ import Bluebird from "bluebird"
 import normalize = require("normalize-path")
 import { mapValues, keyBy, sortBy, omit } from "lodash"
 import { createHash } from "crypto"
-import { joiArray, joi } from "../config/common"
 import { validateSchema } from "../config/validation"
 import { join, relative, isAbsolute } from "path"
 import { GARDEN_VERSIONFILE_NAME as GARDEN_TREEVERSION_FILENAME } from "../constants"
@@ -20,6 +19,7 @@ import { ConfigurationError } from "../exceptions"
 import { ExternalSourceType, getRemoteSourcesDirname, getRemoteSourceRelPath } from "../util/ext-source-util"
 import { ModuleConfig, serializeConfig } from "../config/module"
 import { LogEntry } from "../logger/log-entry"
+import { treeVersionSchema, moduleVersionSchema } from "../config/common"
 
 export const NEW_MODULE_VERSION = "0000000000"
 
@@ -41,35 +41,6 @@ export interface ModuleVersion {
 interface NamedTreeVersion extends TreeVersion {
   name: string
 }
-
-const versionStringSchema = () =>
-  joi
-    .string()
-    .regex(/^v/)
-    .required()
-    .description("String representation of the module version.")
-
-const fileNamesSchema = () => joiArray(joi.string()).description("List of file paths included in the version.")
-
-export const treeVersionSchema = () =>
-  joi.object().keys({
-    contentHash: joi
-      .string()
-      .required()
-      .description("The hash of all files in the directory, after filtering."),
-    files: fileNamesSchema(),
-  })
-
-export const moduleVersionSchema = () =>
-  joi.object().keys({
-    versionString: versionStringSchema(),
-    dependencyVersions: joi
-      .object()
-      .pattern(/.+/, treeVersionSchema())
-      .default(() => ({}))
-      .description("The version of each of the dependencies of the module."),
-    files: fileNamesSchema(),
-  })
 
 export interface GetFilesParams {
   log: LogEntry

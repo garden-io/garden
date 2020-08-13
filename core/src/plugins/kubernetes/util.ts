@@ -20,13 +20,14 @@ import { gardenAnnotationKey, base64, deline, stableStringify } from "../../util
 import { MAX_CONFIGMAP_DATA_SIZE, dockerAuthSecretName, dockerAuthSecretKey } from "./constants"
 import { ContainerEnvVars } from "../container/config"
 import { ConfigurationError, PluginError } from "../../exceptions"
-import { ServiceResourceSpec } from "./config"
+import { ServiceResourceSpec, KubernetesProvider } from "./config"
 import { LogEntry } from "../../logger/log-entry"
 import { PluginContext } from "../../plugin-context"
 import { HelmModule } from "./helm/config"
 import { KubernetesModule } from "./kubernetes-module/config"
 import { getChartPath, renderHelmTemplateString } from "./helm/common"
 import { HotReloadableResource } from "./hot-reload"
+import { ProviderMap } from "../../config/provider"
 
 export const skopeoImage = "gardendev/skopeo:1.41.0-1"
 
@@ -623,4 +624,24 @@ export function getSkopeoContainer(command: string) {
       },
     ],
   }
+}
+
+/**
+ * Given a map of providers, find the kuberetes provider, or one based on it.
+ */
+export function getK8sProvider(providers: ProviderMap): KubernetesProvider {
+  if (providers.kubernetes) {
+    return providers.kubernetes as KubernetesProvider
+  }
+
+  // TODO: use the plugin inheritance mechanism here instead of the direct name check
+  const provider = Object.values(providers).find((p) => p.name === "kubernetes" || p.name === "local-kubernetes")
+
+  if (!provider) {
+    throw new ConfigurationError(`Could not find a configured kubernetes (or local-kubernetes) provider`, {
+      configuredProviders: Object.keys(providers),
+    })
+  }
+
+  return provider as KubernetesProvider
 }

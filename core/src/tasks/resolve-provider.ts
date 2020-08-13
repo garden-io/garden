@@ -116,7 +116,7 @@ export class ResolveProviderTask extends BaseTask {
     return flatten(
       await Bluebird.map(allDeps, async (depName) => {
         return matchDependencies(depName).map((config) => {
-          const plugin = plugins[depName]
+          const plugin = plugins[config.name]
 
           return new ResolveProviderTask({
             garden: this.garden,
@@ -173,9 +173,21 @@ export class ResolveProviderTask extends BaseTask {
 
     const actions = await this.garden.getActionRouter()
 
+    // Validating the output config against the base plugins. This is important to make sure base handlers are
+    // compatible with the config.
+    const plugins = await this.garden.getPlugins()
+    const pluginsByName = keyBy(plugins, "name")
+    const plugin = pluginsByName[providerName]
+
     const configureOutput = await actions.configureProvider({
       ctx: await this.garden.getPluginContext(
-        providerFromConfig(resolvedConfig, {}, [], { ready: false, outputs: {} })
+        providerFromConfig({
+          plugin,
+          config: resolvedConfig,
+          dependencies: {},
+          moduleConfigs: [],
+          status: { ready: false, outputs: {} },
+        })
       ),
       environmentName: this.garden.environmentName,
       namespace: this.garden.namespace,
@@ -198,8 +210,6 @@ export class ResolveProviderTask extends BaseTask {
 
     // Validating the output config against the base plugins. This is important to make sure base handlers are
     // compatible with the config.
-    const plugins = await this.garden.getPlugins()
-    const pluginsByName = keyBy(plugins, "name")
     const bases = getPluginBases(this.plugin, pluginsByName)
 
     for (const base of bases) {
@@ -221,10 +231,22 @@ export class ResolveProviderTask extends BaseTask {
 
     this.log.silly(`Ensuring ${providerName} provider is ready`)
 
-    const tmpProvider = providerFromConfig(resolvedConfig, resolvedProviders, moduleConfigs, defaultEnvironmentStatus)
+    const tmpProvider = providerFromConfig({
+      plugin: this.plugin,
+      config: resolvedConfig,
+      dependencies: resolvedProviders,
+      moduleConfigs,
+      status: defaultEnvironmentStatus,
+    })
     const status = await this.ensurePrepared(tmpProvider)
 
-    return providerFromConfig(resolvedConfig, resolvedProviders, moduleConfigs, status)
+    return providerFromConfig({
+      plugin: this.plugin,
+      config: resolvedConfig,
+      dependencies: resolvedProviders,
+      moduleConfigs,
+      status,
+    })
   }
 
   private getCachePath() {

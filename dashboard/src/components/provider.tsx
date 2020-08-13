@@ -6,24 +6,55 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { RouteComponentProps } from "react-router-dom"
 import React from "react"
-import H from "history"
+import { Frame } from "./frame"
+import Spinner from "./spinner"
+import styled from "@emotion/styled"
 
-import { Page } from "../containers/sidebar"
-
-interface RoutePropsWithState extends RouteComponentProps {
-  location: H.Location<Page>
+interface ProviderPageProps {
+  url: string
+  active: boolean
 }
 
-const Provider: React.FC<RoutePropsWithState> = (props) => {
-  const page = props.location.state
-  return (
-    <div>
-      <h2>Provider dashboard</h2>
-      <p>{page.description}</p>
-    </div>
-  )
+interface ProviderPageState {
+  loading: boolean
 }
 
-export default Provider
+const ProviderPageWrapper = styled.div`
+  flex: 0 auto;
+  border: 0;
+  width: 100%;
+  height: 100%;
+`
+
+class ProviderPageFrame extends React.Component<ProviderPageProps, ProviderPageState> {
+  constructor(props: ProviderPageProps) {
+    super(props)
+    this.state = {
+      loading: true,
+    }
+  }
+  // componentDidUpdate(prevProps, prevState) {
+  //   this.setState({ ...this.props, loading: this.state.loading })
+  // }
+  hideSpinner = () => {
+    this.setState({
+      loading: false,
+    })
+  }
+  render() {
+    return (
+      <ProviderPageWrapper style={{ display: this.props.active ? "block" : "none" }}>
+        {this.state.loading ? <Spinner /> : null}
+        <Frame
+          src={this.props.url}
+          onLoad={this.hideSpinner}
+          height={"100%"}
+          style={{ display: !this.state.loading ? "block" : "none" }}
+        />
+      </ProviderPageWrapper>
+    )
+  }
+}
+
+export default ProviderPageFrame

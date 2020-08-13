@@ -9,8 +9,8 @@
 import { dedent, deline } from "../../../util/string"
 import { GardenModule } from "../../module"
 import { PluginModuleActionParamsBase, moduleActionParamsSchema, RunResult, runResultSchema } from "../base"
-import { ModuleVersion, moduleVersionSchema } from "../../../vcs/vcs"
-import { joi, joiPrimitive } from "../../../config/common"
+import { ModuleVersion } from "../../../vcs/vcs"
+import { joi, joiPrimitive, moduleVersionSchema } from "../../../config/common"
 
 export interface GetTestResultParams<T extends GardenModule = GardenModule> extends PluginModuleActionParamsBase<T> {
   testName: string

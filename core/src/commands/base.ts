@@ -486,10 +486,12 @@ export function describeParameters(args?: Parameters) {
   if (!args) {
     return
   }
-  return Object.entries(args).map(([argName, arg]) => ({
-    name: argName,
-    usageName: arg.required ? `<${argName}>` : `[${argName}]`,
-    ...arg,
-    help: stripAnsi(arg.help),
-  }))
+  return Object.entries(args)
+    .filter(([_, arg]) => !arg.hidden)
+    .map(([argName, arg]) => ({
+      name: argName,
+      usageName: arg.required ? `<${argName}>` : `[${argName}]`,
+      ...arg,
+      help: stripAnsi(arg.help),
+    }))
 }

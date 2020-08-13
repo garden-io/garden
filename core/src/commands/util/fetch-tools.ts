@@ -6,29 +6,27 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandParams, CommandGroup } from "./base"
-import { RuntimeError } from "../exceptions"
+import { Command, CommandParams } from "../base"
+import { RuntimeError } from "../../exceptions"
 import dedent from "dedent"
-import { GardenPlugin } from "../types/plugin/plugin"
-import { findProjectConfig } from "../config/base"
-import { Garden, DummyGarden } from "../garden"
+import { GardenPlugin } from "../../types/plugin/plugin"
+import { findProjectConfig } from "../../config/base"
+import { Garden, DummyGarden } from "../../garden"
 import Bluebird from "bluebird"
-import { PluginTool } from "../util/ext-tools"
+import { PluginTool } from "../../util/ext-tools"
 import { fromPairs, omit, uniqBy } from "lodash"
-import { printHeader, printFooter } from "../logger/util"
-import { BooleanParameter } from "../cli/params"
-
-export class UtilCommand extends CommandGroup {
-  name = "util"
-  help = "Misc utility commands."
-
-  subCommands = [FetchToolsCommand]
-}
+import { printHeader, printFooter } from "../../logger/util"
+import { BooleanParameter } from "../../cli/params"
 
 const fetchToolsOpts = {
-  all: new BooleanParameter({
+  "all": new BooleanParameter({
     help: "Fetch all tools for registered plugins, instead of just ones in the current env/project.",
     required: false,
+  }),
+  "prefetch-only": new BooleanParameter({
+    help: "(Internal) Fetch only tools marked with prefetch=true.",
+    required: false,
+    hidden: true,
   }),
 }
 
@@ -79,9 +77,14 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
       printHeader(log, "Fetching all tools for the current project and environment", "hammer_and_wrench")
     }
 
-    const tools = plugins.flatMap((plugin) =>
+    let tools = plugins.flatMap((plugin) =>
       (plugin.tools || []).map((spec) => ({ plugin, tool: new PluginTool(spec) }))
     )
+
+    if (opts["prefetch-only"]) {
+      tools = tools.filter((spec) => spec.tool.spec.prefetch)
+    }
+
     // No need to fetch the same tools multiple times, if they're used in multiple providers
     const deduplicated = uniqBy(tools, ({ tool }) => tool["versionPath"])
 

@@ -9,7 +9,7 @@
 import yaml from "js-yaml"
 import { join } from "path"
 import { ensureFile, readFile } from "fs-extra"
-import { get, isPlainObject, unset } from "lodash"
+import { get, isPlainObject, unset, mapValues } from "lodash"
 
 import { Primitive, joiArray, joiPrimitive, joi } from "./config/common"
 import { validateSchema } from "./config/validation"
@@ -185,20 +185,21 @@ const analyticsLocalConfigSchema = () =>
     .meta({ internal: true })
 
 const localConfigSchemaKeys = {
-  linkedModuleSources: joiArray(linkedSourceSchema()),
-  linkedProjectSources: joiArray(linkedSourceSchema()),
-  analytics: analyticsLocalConfigSchema(),
+  linkedModuleSources: () => joiArray(linkedSourceSchema()),
+  linkedProjectSources: () => joiArray(linkedSourceSchema()),
+  analytics: () => analyticsLocalConfigSchema(),
 }
 
-export const localConfigKeys = Object.keys(localConfigSchemaKeys).reduce((acc, key) => {
-  acc[key] = key
-  return acc
-}, {}) as { [K in keyof typeof localConfigSchemaKeys]: K }
+export const localConfigKeys = () =>
+  Object.keys(localConfigSchemaKeys).reduce((acc, key) => {
+    acc[key] = key
+    return acc
+  }, {}) as { [K in keyof typeof localConfigSchemaKeys]: K }
 
 const localConfigSchema = () =>
   joi
     .object()
-    .keys(localConfigSchemaKeys)
+    .keys(mapValues(localConfigSchemaKeys, (schema) => schema()))
     .meta({ internal: true })
 
 // TODO: we should not be passing this to provider actions

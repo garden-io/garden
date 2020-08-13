@@ -37,6 +37,7 @@ import { defaultDotIgnoreFiles } from "../../../src/util/fs"
 import stripAnsi from "strip-ansi"
 import { emptyDir, pathExists, ensureFile, readFile } from "fs-extra"
 import { join } from "path"
+import { DashboardPage } from "../../../src/types/plugin/provider/getDashboardPage"
 
 const now = new Date()
 
@@ -97,7 +98,15 @@ describe("ActionRouter", () => {
       it("should configure the provider", async () => {
         const config = { name: "test-plugin", foo: "bar", dependencies: [] }
         const result = await actions.configureProvider({
-          ctx: await garden.getPluginContext(providerFromConfig(config, {}, [], { ready: false, outputs: {} })),
+          ctx: await garden.getPluginContext(
+            providerFromConfig({
+              plugin: await garden.getPlugin("test-plugin"),
+              config,
+              dependencies: {},
+              moduleConfigs: [],
+              status: { ready: false, outputs: {} },
+            })
+          ),
           environmentName: "default",
           pluginName: "test-plugin",
           log,
@@ -148,13 +157,27 @@ describe("ActionRouter", () => {
       })
     })
 
+    describe("getDashboardPage", () => {
+      it("should resolve the URL for a dashboard page", async () => {
+        const page: DashboardPage = {
+          name: "foo",
+          title: "Foo",
+          description: "foodefoodefoo",
+          newWindow: false,
+        }
+        const result = await actions.getDashboardPage({ log, pluginName: "test-plugin", page })
+        expect(result).to.eql({
+          url: "http://foo",
+        })
+      })
+    })
+
     describe("getEnvironmentStatus", () => {
       it("should return the environment status for a provider", async () => {
         const result = await actions.getEnvironmentStatus({ log, pluginName: "test-plugin" })
         expect(result).to.eql({
           ready: false,
           outputs: {},
-          dashboardPages: [],
         })
       })
     })
@@ -171,7 +194,6 @@ describe("ActionRouter", () => {
           status: {
             ready: true,
             outputs: {},
-            dashboardPages: [],
           },
         })
       })
@@ -1830,6 +1852,11 @@ const testPlugin = createGardenPlugin({
           },
         ],
       }
+    },
+
+    getDashboardPage: async (params) => {
+      validateSchema(params, pluginActionDescriptions.getDashboardPage.paramsSchema)
+      return { url: "http://" + params.page.name }
     },
 
     getDebugInfo: async (params) => {

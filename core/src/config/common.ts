@@ -484,3 +484,32 @@ export const joiSchema = () => joi.object().unknown(true)
 export function isPrimitive(value: any) {
   return typeof value === "string" || typeof value === "number" || typeof value === "boolean" || value === null
 }
+
+const versionStringSchema = () =>
+  joi
+    .string()
+    .regex(/^v/)
+    .required()
+    .description("String representation of the module version.")
+
+const fileNamesSchema = () => joiArray(joi.string()).description("List of file paths included in the version.")
+
+export const treeVersionSchema = () =>
+  joi.object().keys({
+    contentHash: joi
+      .string()
+      .required()
+      .description("The hash of all files in the directory, after filtering."),
+    files: fileNamesSchema(),
+  })
+
+export const moduleVersionSchema = () =>
+  joi.object().keys({
+    versionString: versionStringSchema(),
+    dependencyVersions: joi
+      .object()
+      .pattern(/.+/, treeVersionSchema())
+      .default(() => ({}))
+      .description("The version of each of the dependencies of the module."),
+    files: fileNamesSchema(),
+  })

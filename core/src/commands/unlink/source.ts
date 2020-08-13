@@ -60,7 +60,7 @@ export class UnlinkSourceCommand extends Command<Args, Opts> {
     const { sources = [] } = args
 
     if (opts.all) {
-      await garden.configStore.set([localConfigKeys.linkedProjectSources], [])
+      await garden.configStore.set([localConfigKeys().linkedProjectSources], [])
       log.info("Unlinked all sources")
       return { result: [] }
     }

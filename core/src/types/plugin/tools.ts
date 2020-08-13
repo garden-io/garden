@@ -67,6 +67,7 @@ const toolBuildSchema = () =>
 export interface PluginToolSpec {
   name: string
   description: string
+  prefetch: boolean
   type: "library" | "binary"
   builds: ToolBuildSpec[]
 }
@@ -82,6 +83,11 @@ export const toolSchema = () =>
       .string()
       .required()
       .description("A short description of the tool, used for help texts."),
+    prefetch: joi
+      .boolean()
+      .default(false)
+      .description("Set to true if this tool should be pre-fetched during standard container builds.")
+      .meta({ internal: true }),
     type: joi
       .string()
       .allow("library", "binary")

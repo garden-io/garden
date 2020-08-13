@@ -97,7 +97,6 @@ export async function getEnvironmentStatus({
   const result: KubernetesEnvironmentStatus = {
     ready: true,
     detail,
-    dashboardPages: [],
     outputs: {
       ...namespaces,
       "default-hostname": provider.config.defaultHostname || null,
@@ -176,8 +175,6 @@ export async function getEnvironmentStatus({
     result.ready = false
     detail.systemReady = false
   }
-
-  result.dashboardPages!.push(...systemServiceStatus.dashboardPages)
 
   detail.serviceStatuses = systemServiceStatus.serviceStatuses
   detail.systemServiceState = systemServiceStatus.state

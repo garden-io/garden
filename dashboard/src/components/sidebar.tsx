@@ -11,7 +11,6 @@ import styled from "@emotion/styled"
 import React from "react"
 
 import { NavLink } from "./links"
-import { Page } from "../containers/sidebar"
 
 import logo from "../assets/logo.png"
 import { ReactComponent as OpenSidebarIcon } from "../assets/open-pane.svg"
@@ -19,6 +18,7 @@ import { ReactComponent as CloseSidebarIcon } from "../assets/close-pane.svg"
 
 import { colors, fontRegular } from "../styles/variables"
 import { useUiState } from "../hooks"
+import { Page } from "../contexts/api"
 
 interface Props {
   pages: Page[]
@@ -64,8 +64,8 @@ const SidebarContainer = styled.div<SidebarContainerProps>`
 
 const SidebarToggleButton = styled.div`
   position: absolute;
-  right: -2.3rem;
-  top: 2rem;
+  left: 1.5rem;
+  bottom: 1.5rem;
   width: 1.5rem;
   cursor: pointer;
   font-size: 1.125rem;
@@ -108,7 +108,7 @@ interface SidebarButtonProps {
 
 const SidebarButton: React.FC<SidebarButtonProps> = ({ page }) => {
   let link: React.ReactNode
-  if (page.url) {
+  if (page.newWindow && page.url) {
     link = (
       <A href={page.url} target="_blank" title={page.description}>
         {page.title}

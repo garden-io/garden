@@ -29,7 +29,6 @@ import { ConfigureProviderParams, ConfigureProviderResult } from "../../types/pl
 import { KubernetesDeployment } from "../kubernetes/types"
 import {
   configSchema,
-  getK8sProvider,
   OpenFaasConfig,
   OpenFaasModule,
   OpenFaasProvider,
@@ -49,6 +48,7 @@ import { parse } from "url"
 import { trim } from "lodash"
 import { getModuleTypeUrl, getGitHubUrl } from "../../docs/common"
 import { PluginContext } from "../../plugin-context"
+import { getK8sProvider } from "../kubernetes/util"
 
 const systemDir = join(STATIC_DIR, "openfaas", "system")
 const moduleTypeUrl = getModuleTypeUrl("openfaas")
