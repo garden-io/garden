@@ -171,7 +171,7 @@ export const gardenPlugin = createGardenPlugin({
           const args = prepareArgs(ctx, provider, module)
           args.push(...files)
 
-          const result = await provider.tools.conftest.exec({ log, args, ignoreError: true, cwd: buildPath })
+          const result = await ctx.tools["conftest.conftest"].exec({ log, args, ignoreError: true, cwd: buildPath })
 
           const { success, formattedResult } = parseConftestResult(provider, log, result)
 
@@ -245,7 +245,7 @@ export const gardenPlugin = createGardenPlugin({
           const args = prepareArgs(ctx, provider, module)
           args.push("-")
 
-          const result = await provider.tools.conftest.exec({
+          const result = await ctx.tools["conftest.conftest"].exec({
             log,
             args,
             ignoreError: true,

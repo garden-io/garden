@@ -14,6 +14,7 @@ import { KubernetesConfig, KubernetesProvider } from "../config"
 import { RuntimeError } from "../../../exceptions"
 import { KubeApi } from "../api"
 import { KubernetesResource } from "../types"
+import { PluginContext } from "../../../plugin-context"
 
 export async function loadImageToKind(buildResult: BuildResult, config: KubernetesConfig): Promise<void> {
   try {
@@ -29,8 +30,8 @@ export async function loadImageToKind(buildResult: BuildResult, config: Kubernet
   }
 }
 
-export async function isClusterKind(provider: KubernetesProvider, log: LogEntry): Promise<boolean> {
-  return (await isKindInstalled(log)) && (await isKindContext(log, provider))
+export async function isClusterKind(ctx: PluginContext, provider: KubernetesProvider, log: LogEntry): Promise<boolean> {
+  return (await isKindInstalled(log)) && (await isKindContext(ctx, provider, log))
 }
 
 async function isKindInstalled(log: LogEntry): Promise<boolean> {
@@ -45,8 +46,8 @@ async function isKindInstalled(log: LogEntry): Promise<boolean> {
   return false
 }
 
-async function isKindContext(log: LogEntry, provider: KubernetesProvider): Promise<boolean> {
-  const kubeApi = await KubeApi.factory(log, provider)
+async function isKindContext(ctx: PluginContext, provider: KubernetesProvider, log: LogEntry): Promise<boolean> {
+  const kubeApi = await KubeApi.factory(log, ctx, provider)
   const manifest: KubernetesResource = {
     apiVersion: "apps/v1",
     kind: "DaemonSet",

@@ -42,7 +42,7 @@ export const clusterInit: PluginCommand = {
 
     log.info("Cleaning up old resources...")
 
-    const systemNamespace = await getSystemNamespace(provider, log)
+    const systemNamespace = await getSystemNamespace(ctx, provider, log)
     try {
       await helm({
         ctx: k8sCtx,

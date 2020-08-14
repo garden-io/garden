@@ -12,8 +12,7 @@ import { defaultSystemNamespace } from "../../../../../src/plugins/kubernetes/sy
 import { makeDummyGarden } from "../../../../../src/cli/cli"
 import { expect } from "chai"
 import { TempDirectory, makeTempDir, grouped } from "../../../../helpers"
-import { keyBy } from "lodash"
-import { PluginTool } from "../../../../../src/util/ext-tools"
+import { providerFromConfig } from "../../../../../src/config/provider"
 
 describe("kubernetes configureProvider", () => {
   const basicConfig: KubernetesConfig = {
@@ -52,9 +51,9 @@ describe("kubernetes configureProvider", () => {
         ...basicConfig,
         buildMode: "cluster-docker",
       }
-      const plugin = garden.registeredPlugins.kubernetes
 
       const result = await configureProvider({
+        ctx: await garden.getPluginContext(providerFromConfig(config, {}, [], { ready: false, outputs: {} })),
         environmentName: "default",
         projectName: garden.projectName,
         projectRoot: garden.projectRoot,
@@ -62,10 +61,6 @@ describe("kubernetes configureProvider", () => {
         log: garden.log,
         dependencies: {},
         configStore: garden.configStore,
-        tools: keyBy(
-          plugin.tools?.map((t) => new PluginTool(t)),
-          "name"
-        ),
       })
 
       expect(result.config.deploymentRegistry).to.eql({
@@ -84,9 +79,9 @@ describe("kubernetes configureProvider", () => {
           namespace: "my-namespace",
         },
       }
-      const plugin = garden.registeredPlugins.kubernetes
 
       const result = await configureProvider({
+        ctx: await garden.getPluginContext(providerFromConfig(config, {}, [], { ready: false, outputs: {} })),
         environmentName: "default",
         projectName: garden.projectName,
         projectRoot: garden.projectRoot,
@@ -94,10 +89,6 @@ describe("kubernetes configureProvider", () => {
         log: garden.log,
         dependencies: {},
         configStore: garden.configStore,
-        tools: keyBy(
-          plugin.tools?.map((t) => new PluginTool(t)),
-          "name"
-        ),
       })
 
       expect(result.config.deploymentRegistry).to.eql({

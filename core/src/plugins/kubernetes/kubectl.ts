@@ -15,9 +15,11 @@ import { KubernetesResource } from "./types"
 import { gardenAnnotationKey } from "../../util/string"
 import { hashManifest } from "./util"
 import { PluginToolSpec } from "../../types/plugin/tools"
+import { PluginContext } from "../../plugin-context"
 
 export interface ApplyParams {
   log: LogEntry
+  ctx: PluginContext
   provider: KubernetesProvider
   manifests: KubernetesResource[]
   namespace?: string
@@ -30,6 +32,7 @@ export const KUBECTL_DEFAULT_TIMEOUT = 300
 
 export async function apply({
   log,
+  ctx,
   provider,
   manifests,
   dryRun = false,
@@ -58,7 +61,7 @@ export async function apply({
   args.push("--output=json", "-f", "-")
   !validate && args.push("--validate=false")
 
-  const result = await kubectl(provider).stdout({ log, namespace, args, input })
+  const result = await kubectl(ctx, provider).stdout({ log, namespace, args, input })
 
   try {
     return JSON.parse(result)
@@ -69,12 +72,14 @@ export async function apply({
 
 export async function deleteResources({
   log,
+  ctx,
   provider,
   namespace,
   resources,
   includeUninitialized = false,
 }: {
   log: LogEntry
+  ctx: PluginContext
   provider: KubernetesProvider
   namespace: string
   resources: KubernetesResource[]
@@ -89,11 +94,12 @@ export async function deleteResources({
 
   includeUninitialized && args.push("--include-uninitialized")
 
-  return kubectl(provider).stdout({ namespace, args, log })
+  return kubectl(ctx, provider).stdout({ namespace, args, log })
 }
 
 export async function deleteObjectsBySelector({
   log,
+  ctx,
   provider,
   namespace,
   selector,
@@ -101,6 +107,7 @@ export async function deleteObjectsBySelector({
   includeUninitialized = false,
 }: {
   log: LogEntry
+  ctx: PluginContext
   provider: KubernetesProvider
   namespace: string
   selector: string
@@ -111,7 +118,7 @@ export async function deleteObjectsBySelector({
 
   includeUninitialized && args.push("--include-uninitialized")
 
-  return kubectl(provider).stdout({ namespace, args, log })
+  return kubectl(ctx, provider).stdout({ namespace, args, log })
 }
 
 interface KubectlParams extends ExecParams {
@@ -126,8 +133,8 @@ interface KubectlSpawnParams extends KubectlParams {
   wait?: boolean
 }
 
-export function kubectl(provider: KubernetesProvider) {
-  return new Kubectl(provider.tools.kubectl.spec, provider)
+export function kubectl(ctx: PluginContext, provider: KubernetesProvider) {
+  return new Kubectl(ctx.tools["kubernetes.kubectl"].spec, provider)
 }
 
 class Kubectl extends PluginTool {

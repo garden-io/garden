@@ -96,7 +96,7 @@ describe("configureHotReload", () => {
   before(async () => {
     garden = await getHelmTestGarden()
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-    ctx = garden.getPluginContext(provider)
+    ctx = await garden.getPluginContext(provider)
   })
 
   beforeEach(async () => {

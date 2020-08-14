@@ -77,10 +77,11 @@ export async function runHelmModule({
     ],
   }
 
-  const api = await KubeApi.factory(log, provider)
+  const api = await KubeApi.factory(log, ctx, provider)
   const podName = makePodName("run", module.name)
 
   const runner = new PodRunner({
+    ctx,
     api,
     podName,
     provider,

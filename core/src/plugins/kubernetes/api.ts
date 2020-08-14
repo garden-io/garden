@@ -40,6 +40,7 @@ import { kubectl } from "./kubectl"
 import { urlJoin } from "../../util/string"
 import { KubernetesProvider } from "./config"
 import { StringMap } from "../../config/common"
+import { PluginContext } from "../../plugin-context"
 
 interface ApiGroupMap {
   [groupVersion: string]: V1APIGroup
@@ -154,8 +155,8 @@ export class KubeApi {
     }
   }
 
-  static async factory(log: LogEntry, provider: KubernetesProvider) {
-    const config = await getContextConfig(log, provider)
+  static async factory(log: LogEntry, ctx: PluginContext, provider: KubernetesProvider) {
+    const config = await getContextConfig(log, ctx, provider)
     return new KubeApi(provider.config.context, config)
   }
 
@@ -474,7 +475,7 @@ function getGroupBasePath(apiVersion: string) {
   return apiVersion.includes("/") ? `/apis/${apiVersion}` : `/api/${apiVersion}`
 }
 
-export async function getKubeConfig(log: LogEntry, provider: KubernetesProvider) {
+export async function getKubeConfig(log: LogEntry, ctx: PluginContext, provider: KubernetesProvider) {
   let kubeConfigStr: string
 
   try {
@@ -482,7 +483,7 @@ export async function getKubeConfig(log: LogEntry, provider: KubernetesProvider)
       kubeConfigStr = (await readFile(provider.config.kubeconfig)).toString()
     } else {
       // We use kubectl for this, to support merging multiple paths in the KUBECONFIG env var
-      kubeConfigStr = await kubectl(provider).stdout({ log, args: ["config", "view", "--raw"] })
+      kubeConfigStr = await kubectl(ctx, provider).stdout({ log, args: ["config", "view", "--raw"] })
     }
     return safeLoad(kubeConfigStr)
   } catch (error) {
@@ -492,7 +493,7 @@ export async function getKubeConfig(log: LogEntry, provider: KubernetesProvider)
   }
 }
 
-async function getContextConfig(log: LogEntry, provider: KubernetesProvider): Promise<KubeConfig> {
+async function getContextConfig(log: LogEntry, ctx: PluginContext, provider: KubernetesProvider): Promise<KubeConfig> {
   const kubeconfigPath = provider.config.kubeconfig
   const context = provider.config.context
   const cacheKey = kubeconfigPath ? `${kubeconfigPath}:${context}` : context
@@ -501,7 +502,7 @@ async function getContextConfig(log: LogEntry, provider: KubernetesProvider): Pr
     return cachedConfigs[cacheKey]
   }
 
-  const rawConfig = await getKubeConfig(log, provider)
+  const rawConfig = await getKubeConfig(log, ctx, provider)
   const kc = new KubeConfig()
 
   // There doesn't appear to be a method to just load the parsed config :/

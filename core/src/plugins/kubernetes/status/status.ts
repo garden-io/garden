@@ -163,6 +163,7 @@ export async function checkResourceStatus(
 
 interface WaitParams {
   namespace: string
+  ctx: PluginContext
   provider: KubernetesProvider
   serviceName: string
   resources: KubernetesResource[]
@@ -172,7 +173,7 @@ interface WaitParams {
 /**
  * Wait until the rollout is complete for each of the given Kubernetes objects
  */
-export async function waitForResources({ namespace, provider, serviceName, resources, log }: WaitParams) {
+export async function waitForResources({ namespace, ctx, provider, serviceName, resources, log }: WaitParams) {
   let loops = 0
   let lastMessage: string | undefined
   const startTime = new Date().getTime()
@@ -183,7 +184,7 @@ export async function waitForResources({ namespace, provider, serviceName, resou
     msg: `Waiting for resources to be ready...`,
   })
 
-  const api = await KubeApi.factory(log, provider)
+  const api = await KubeApi.factory(log, ctx, provider)
   let statuses: ResourceStatus[]
 
   while (true) {
@@ -402,7 +403,7 @@ export async function getDeployedResource(
   resource: KubernetesResource,
   log: LogEntry
 ): Promise<KubernetesResource | null> {
-  const api = await KubeApi.factory(log, provider)
+  const api = await KubeApi.factory(log, ctx, provider)
   const namespace = resource.metadata.namespace || (await getAppNamespace(ctx, log, provider))
 
   try {
