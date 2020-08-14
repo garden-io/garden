@@ -20,7 +20,7 @@ export async function getServiceLogs(params: GetServiceLogsParams<ContainerModul
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const namespace = await getAppNamespace(k8sCtx, log, provider)
-  const api = await KubeApi.factory(log, provider)
+  const api = await KubeApi.factory(log, ctx, provider)
 
   const resources = [
     await createWorkloadManifest({
@@ -33,6 +33,7 @@ export async function getServiceLogs(params: GetServiceLogsParams<ContainerModul
       enableHotReload: false,
       production: ctx.production,
       log,
+      blueGreen: provider.config.deploymentStrategy === "blue-green",
     }),
   ]
 

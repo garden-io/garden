@@ -46,6 +46,7 @@ import chalk = require("chalk")
 import { loadImageToMicrok8s, getMicrok8sImageStatus } from "../local/microk8s"
 import { RunResult } from "../../../types/plugin/base"
 import { ContainerProvider } from "../../container/container"
+import { PluginContext } from "../../../plugin-context"
 
 const registryPort = 5000
 
@@ -79,7 +80,6 @@ const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } 
   "local-docker": async (params) => {
     const { ctx, module, log } = params
     const k8sCtx = ctx as KubernetesPluginContext
-    const containerProvider = k8sCtx.provider.dependencies.container as ContainerProvider
     const deploymentRegistry = k8sCtx.provider.config.deploymentRegistry
 
     if (deploymentRegistry) {
@@ -88,7 +88,7 @@ const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } 
         cwd: module.buildPath,
         args,
         log,
-        containerProvider,
+        ctx,
         ignoreError: true,
       })
 
@@ -123,8 +123,9 @@ const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } 
     const args = await getManifestInspectArgs(module, deploymentRegistry)
     const pushArgs = ["/bin/sh", "-c", "DOCKER_CLI_EXPERIMENTAL=enabled docker " + args.join(" ")]
 
-    const podName = await getDeploymentPodName(dockerDaemonDeploymentName, provider, log)
+    const podName = await getDeploymentPodName(dockerDaemonDeploymentName, ctx, provider, log)
     const res = await execInPod({
+      ctx,
       provider,
       log,
       args: pushArgs,
@@ -165,8 +166,9 @@ const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } 
     skopeoCommand.push(`docker://${remoteId}`)
 
     const podCommand = ["sh", "-c", skopeoCommand.join(" ")]
-    const podName = await getDeploymentPodName(gardenUtilDaemonDeploymentName, provider, log)
+    const podName = await getDeploymentPodName(gardenUtilDaemonDeploymentName, ctx, provider, log)
     const res = await execInPod({
+      ctx,
       provider,
       log,
       args: podCommand,
@@ -201,7 +203,7 @@ const localBuild: BuildHandler = async (params) => {
       await loadImageToKind(buildResult, provider.config)
     } else if (provider.config.clusterType === "microk8s") {
       const imageId = await containerHelpers.getLocalImageId(module)
-      await loadImageToMicrok8s({ module, imageId, log, containerProvider })
+      await loadImageToMicrok8s({ module, imageId, log, ctx })
     }
     return buildResult
   }
@@ -215,8 +217,8 @@ const localBuild: BuildHandler = async (params) => {
 
   log.setState({ msg: `Pushing image ${remoteId} to cluster...` })
 
-  await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["tag", localId, remoteId], log, containerProvider })
-  await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["push", remoteId], log, containerProvider })
+  await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["tag", localId, remoteId], log, ctx })
+  await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["push", remoteId], log, ctx })
 
   return buildResult
 }
@@ -225,13 +227,13 @@ const remoteBuild: BuildHandler = async (params) => {
   const { ctx, module, log } = params
   const provider = <KubernetesProvider>ctx.provider
   const namespace = await getAppNamespace(ctx, log, provider)
-  const systemNamespace = await getSystemNamespace(provider, log)
+  const systemNamespace = await getSystemNamespace(ctx, provider, log)
 
   if (!(await containerHelpers.hasDockerfile(module))) {
     return {}
   }
 
-  const buildSyncPod = await getDeploymentPodName(buildSyncDeploymentName, provider, log)
+  const buildSyncPod = await getDeploymentPodName(buildSyncDeploymentName, ctx, provider, log)
   // Sync the build context to the remote sync service
   // -> Get a tunnel to the service
   log.setState("Syncing sources to cluster...")
@@ -308,7 +310,7 @@ const remoteBuild: BuildHandler = async (params) => {
     ]
 
     // Execute the build
-    const podName = await getDeploymentPodName(dockerDaemonDeploymentName, provider, log)
+    const podName = await getDeploymentPodName(dockerDaemonDeploymentName, ctx, provider, log)
     const containerName = dockerDaemonContainerName
     const buildTimeout = module.spec.build.timeout
 
@@ -316,7 +318,16 @@ const remoteBuild: BuildHandler = async (params) => {
       args = ["/bin/sh", "-c", "DOCKER_BUILDKIT=1 " + args.join(" ")]
     }
 
-    const buildRes = await execInPod({ provider, log, args, timeout: buildTimeout, podName, containerName, stdout })
+    const buildRes = await execInPod({
+      ctx,
+      provider,
+      log,
+      args,
+      timeout: buildTimeout,
+      podName,
+      containerName,
+      stdout,
+    })
     buildLog = buildRes.stdout + buildRes.stderr
 
     // Push the image to the registry
@@ -325,7 +336,16 @@ const remoteBuild: BuildHandler = async (params) => {
     const dockerCmd = ["docker", "push", deploymentImageId]
     const pushArgs = ["/bin/sh", "-c", dockerCmd.join(" ")]
 
-    const pushRes = await execInPod({ provider, log, args: pushArgs, timeout: 300, podName, containerName, stdout })
+    const pushRes = await execInPod({
+      ctx,
+      provider,
+      log,
+      args: pushArgs,
+      timeout: 300,
+      podName,
+      containerName,
+      stdout,
+    })
     buildLog += pushRes.stdout + pushRes.stderr
   } else if (provider.config.buildMode === "kaniko") {
     // build with Kaniko
@@ -347,7 +367,7 @@ const remoteBuild: BuildHandler = async (params) => {
     args.push(...getDockerBuildFlags(module))
 
     // Execute the build
-    const buildRes = await runKaniko({ provider, namespace, log, module, args, outputStream: stdout })
+    const buildRes = await runKaniko({ ctx, provider, namespace, log, module, args, outputStream: stdout })
     buildLog = buildRes.log
 
     if (kanikoBuildFailed(buildRes)) {
@@ -368,6 +388,7 @@ const remoteBuild: BuildHandler = async (params) => {
 }
 
 export interface BuilderExecParams {
+  ctx: PluginContext
   provider: KubernetesProvider
   log: LogEntry
   args: string[]
@@ -416,6 +437,7 @@ const buildHandlers: { [mode in ContainerBuildMode]: BuildHandler } = {
 
 // TODO: we should make a simple service around this instead of execing into containers
 export async function execInPod({
+  ctx,
   provider,
   log,
   args,
@@ -427,11 +449,11 @@ export async function execInPod({
   stderr,
 }: BuilderExecParams) {
   const execCmd = ["exec", "-i", podName, "-c", containerName, "--", ...args]
-  const systemNamespace = await getSystemNamespace(provider, log)
+  const systemNamespace = await getSystemNamespace(ctx, provider, log)
 
   log.verbose(`Running: kubectl ${execCmd.join(" ")}`)
 
-  return kubectl(provider).exec({
+  return kubectl(ctx, provider).exec({
     args: execCmd,
     ignoreError,
     log,
@@ -443,6 +465,7 @@ export async function execInPod({
 }
 
 interface RunKanikoParams {
+  ctx: PluginContext
   provider: KubernetesProvider
   namespace: string
   log: LogEntry
@@ -451,9 +474,9 @@ interface RunKanikoParams {
   outputStream: Writable
 }
 
-async function runKaniko({ provider, namespace, log, module, args, outputStream }: RunKanikoParams) {
-  const api = await KubeApi.factory(log, provider)
-  const systemNamespace = await getSystemNamespace(provider, log)
+async function runKaniko({ ctx, provider, namespace, log, module, args, outputStream }: RunKanikoParams) {
+  const api = await KubeApi.factory(log, ctx, provider)
+  const systemNamespace = await getSystemNamespace(ctx, provider, log)
 
   const podName = makePodName("kaniko", namespace, module.name)
   const registryHostname = getRegistryHostname(provider.config)
@@ -579,6 +602,7 @@ async function runKaniko({ provider, namespace, log, module, args, outputStream 
   }
 
   const runner = new PodRunner({
+    ctx,
     api,
     podName,
     provider,

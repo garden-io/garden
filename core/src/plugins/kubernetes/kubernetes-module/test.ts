@@ -27,7 +27,7 @@ export async function testKubernetesModule(params: TestModuleParams<KubernetesMo
     module,
     provider: k8sCtx.provider,
   })
-  const api = await KubeApi.factory(log, k8sCtx.provider)
+  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
 
   // Get the container spec to use for running
   const manifests = await getManifests({ api, log, module, defaultNamespace: namespace })

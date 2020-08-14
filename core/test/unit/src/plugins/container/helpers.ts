@@ -70,7 +70,7 @@ describe("containerHelpers", () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin] })
     log = garden.log
     const provider = await garden.resolveProvider(garden.log, "container")
-    ctx = garden.getPluginContext(provider)
+    ctx = await garden.getPluginContext(provider)
 
     td.replace(garden.buildDir, "syncDependencyProducts", () => null)
 

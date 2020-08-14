@@ -78,7 +78,7 @@ export async function helm({
   const helmHome = join(GARDEN_GLOBAL_PATH, `.helm${version}`)
   await mkdirp(helmHome)
 
-  const cmd = ctx.provider.tools.helm
+  const cmd = ctx.tools["kubernetes.helm"]
 
   const envVars: StringMap = {
     ...process.env,

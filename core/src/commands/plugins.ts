@@ -103,7 +103,7 @@ export class PluginsCommand extends Command<Args> {
     }
 
     const provider = await garden.resolveProvider(log, args.plugin)
-    const ctx = garden.getPluginContext(provider)
+    const ctx = await garden.getPluginContext(provider)
 
     let modules: GardenModule[] = []
 

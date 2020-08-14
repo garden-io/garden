@@ -46,7 +46,7 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
   if (needsInit) {
     // Load the test authentication for private registries
     const localProvider = <KubernetesProvider>await localInstance.resolveProvider(localInstance.log, "local-kubernetes")
-    const api = await KubeApi.factory(garden.log, localProvider)
+    const api = await KubeApi.factory(garden.log, await garden.getPluginContext(localProvider), localProvider)
 
     try {
       const authSecret = JSON.parse(
@@ -88,7 +88,7 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
   }
 
   const provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-  const ctx = garden.getPluginContext(provider)
+  const ctx = await garden.getPluginContext(provider)
 
   if (needsInit) {
     // Run cluster-init
@@ -135,7 +135,7 @@ describe("kubernetes container module handlers", () => {
       const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
 
       const result = await runAndCopy({
-        ctx: garden.getPluginContext(provider),
+        ctx: await garden.getPluginContext(provider),
         log: garden.log,
         command: ["sh", "-c", "echo ok"],
         args: [],
@@ -155,7 +155,7 @@ describe("kubernetes container module handlers", () => {
       const podName = makePodName("test", module.name)
 
       await runAndCopy({
-        ctx: garden.getPluginContext(provider),
+        ctx: await garden.getPluginContext(provider),
         log: garden.log,
         command: ["sh", "-c", "echo ok"],
         args: [],
@@ -167,7 +167,7 @@ describe("kubernetes container module handlers", () => {
         image,
       })
 
-      const api = await KubeApi.factory(garden.log, provider)
+      const api = await KubeApi.factory(garden.log, await garden.getPluginContext(provider), provider)
 
       await expectError(
         () => api.core.readNamespacedPod(podName, namespace),
@@ -181,7 +181,7 @@ describe("kubernetes container module handlers", () => {
       const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
 
       const result = await runAndCopy({
-        ctx: garden.getPluginContext(provider),
+        ctx: await garden.getPluginContext(provider),
         log: garden.log,
         command: ["sh", "-c", "echo banana && sleep 10"],
         args: [],
@@ -205,7 +205,7 @@ describe("kubernetes container module handlers", () => {
         const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
 
         const result = await runAndCopy({
-          ctx: garden.getPluginContext(provider),
+          ctx: await garden.getPluginContext(provider),
           log: garden.log,
           command: task.spec.command,
           args: [],
@@ -230,7 +230,7 @@ describe("kubernetes container module handlers", () => {
         const podName = makePodName("test", module.name)
 
         await runAndCopy({
-          ctx: garden.getPluginContext(provider),
+          ctx: await garden.getPluginContext(provider),
           log: garden.log,
           command: task.spec.command,
           args: [],
@@ -244,7 +244,7 @@ describe("kubernetes container module handlers", () => {
           image,
         })
 
-        const api = await KubeApi.factory(garden.log, provider)
+        const api = await KubeApi.factory(garden.log, await garden.getPluginContext(provider), provider)
 
         await expectError(
           () => api.core.readNamespacedPod(podName, namespace),
@@ -258,7 +258,7 @@ describe("kubernetes container module handlers", () => {
         const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
 
         await runAndCopy({
-          ctx: garden.getPluginContext(provider),
+          ctx: await garden.getPluginContext(provider),
           log: garden.log,
           command: task.spec.command,
           args: [],
@@ -281,7 +281,7 @@ describe("kubernetes container module handlers", () => {
         const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
 
         await runAndCopy({
-          ctx: garden.getPluginContext(provider),
+          ctx: await garden.getPluginContext(provider),
           log: garden.log,
           command: ["sh", "-c", "echo ok"],
           args: [],
@@ -301,7 +301,7 @@ describe("kubernetes container module handlers", () => {
         const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
 
         await runAndCopy({
-          ctx: garden.getPluginContext(provider),
+          ctx: await garden.getPluginContext(provider),
           log: garden.log,
           command: task.spec.command,
           args: [],
@@ -324,7 +324,7 @@ describe("kubernetes container module handlers", () => {
         const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
 
         const result = await runAndCopy({
-          ctx: garden.getPluginContext(provider),
+          ctx: await garden.getPluginContext(provider),
           log: garden.log,
           command: ["sh", "-c", "echo banana && sleep 10"],
           args: [],
@@ -348,7 +348,7 @@ describe("kubernetes container module handlers", () => {
         const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
 
         const result = await runAndCopy({
-          ctx: garden.getPluginContext(provider),
+          ctx: await garden.getPluginContext(provider),
           log: garden.log,
           command: ["sh", "-c", "touch /task.txt && sleep 10"],
           args: [],
@@ -380,9 +380,9 @@ describe("kubernetes container module handlers", () => {
         })
 
         await expectError(
-          () =>
+          async () =>
             runAndCopy({
-              ctx: garden.getPluginContext(provider),
+              ctx: await garden.getPluginContext(provider),
               log: garden.log,
               command: ["sh", "-c", "echo ok"],
               args: [],
@@ -420,9 +420,9 @@ describe("kubernetes container module handlers", () => {
         })
 
         await expectError(
-          () =>
+          async () =>
             runAndCopy({
-              ctx: garden.getPluginContext(provider),
+              ctx: await garden.getPluginContext(provider),
               log: garden.log,
               command: ["sh", "-c", "echo ok"],
               args: [],
@@ -453,9 +453,9 @@ describe("kubernetes container module handlers", () => {
         const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
 
         await expectError(
-          () =>
+          async () =>
             runAndCopy({
-              ctx: garden.getPluginContext(provider),
+              ctx: await garden.getPluginContext(provider),
               log: garden.log,
               args: [],
               interactive: false,
@@ -498,7 +498,7 @@ describe("kubernetes container module handlers", () => {
       })
 
       const result = await runContainerService({
-        ctx: garden.getPluginContext(provider),
+        ctx: await garden.getPluginContext(provider),
         log: garden.log,
         service,
         module: service.module,
@@ -528,7 +528,7 @@ describe("kubernetes container module handlers", () => {
       })
 
       const result = await runContainerService({
-        ctx: garden.getPluginContext(provider),
+        ctx: await garden.getPluginContext(provider),
         log: garden.log,
         service,
         module: service.module,
