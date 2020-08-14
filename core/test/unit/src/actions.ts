@@ -31,7 +31,7 @@ import { joi } from "../../../src/config/common"
 import { validateSchema } from "../../../src/config/validation"
 import { ProjectConfig, defaultNamespace } from "../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../src/constants"
-import { defaultProvider } from "../../../src/config/provider"
+import { defaultProvider, providerFromConfig } from "../../../src/config/provider"
 import { RunTaskResult } from "../../../src/types/plugin/task/runTask"
 import { defaultDotIgnoreFiles } from "../../../src/util/fs"
 import stripAnsi from "strip-ansi"
@@ -97,6 +97,7 @@ describe("ActionRouter", () => {
       it("should configure the provider", async () => {
         const config = { name: "test-plugin", foo: "bar" }
         const result = await actions.configureProvider({
+          ctx: await garden.getPluginContext(providerFromConfig(config, {}, [], { ready: false, outputs: {} })),
           environmentName: "default",
           pluginName: "test-plugin",
           log,
@@ -105,7 +106,6 @@ describe("ActionRouter", () => {
           projectName: garden.projectName,
           projectRoot: garden.projectRoot,
           dependencies: {},
-          tools: {},
         })
         expect(result).to.eql({
           config,

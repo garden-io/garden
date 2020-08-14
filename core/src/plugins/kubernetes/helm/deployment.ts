@@ -97,13 +97,14 @@ export async function deployHelmService({
       containerName: getHotReloadContainerName(module),
     })
 
-    await apply({ log, provider, manifests: [hotReloadTarget], namespace })
+    await apply({ log, ctx, provider, manifests: [hotReloadTarget], namespace })
   }
 
   // FIXME: we should get these objects from the cluster, and not from the local `helm template` command, because
   // they may be legitimately inconsistent.
   const remoteResources = await waitForResources({
     namespace,
+    ctx,
     provider,
     serviceName: service.name,
     resources: manifests,
@@ -142,7 +143,7 @@ export async function deleteService(params: DeleteServiceParams): Promise<HelmSe
   await helm({ ctx: k8sCtx, log, namespace, args: ["uninstall", releaseName] })
 
   // Wait for resources to terminate
-  await deleteResources({ log, provider, resources, namespace })
+  await deleteResources({ log, ctx, provider, resources, namespace })
 
   log.setSuccess("Service deleted")
 

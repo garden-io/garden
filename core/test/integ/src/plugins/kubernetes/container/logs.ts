@@ -29,7 +29,7 @@ describe("kubernetes", () => {
       garden = await makeTestGarden(root)
       graph = await garden.getConfigGraph(garden.log)
       provider = await garden.resolveProvider(garden.log, "local-kubernetes")
-      ctx = garden.getPluginContext(provider)
+      ctx = await garden.getPluginContext(provider)
     })
 
     after(async () => {

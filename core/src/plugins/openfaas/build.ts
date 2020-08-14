@@ -16,6 +16,7 @@ import { k8sBuildContainer, k8sGetContainerBuildStatus } from "../kubernetes/con
 import { GetBuildStatusParams } from "../../types/plugin/module/getBuildStatus"
 import { OpenFaasModule, getK8sProvider, getContainerModule, OpenFaasProvider } from "./config"
 import { LogEntry } from "../../logger/log-entry"
+import { PluginContext } from "../../plugin-context"
 
 export const stackFilename = "stack.yml"
 
@@ -25,7 +26,7 @@ export async function getOpenfaasModuleBuildStatus({ ctx, log, module }: GetBuil
   const k8sCtx = { ...ctx, provider: k8sProvider }
 
   // We need to do an OpenFaas build before getting the container build status
-  await buildOpenfaasFunction(<OpenFaasProvider>ctx.provider, k8sProvider, module, log)
+  await buildOpenfaasFunction(ctx, <OpenFaasProvider>ctx.provider, k8sProvider, module, log)
 
   return k8sGetContainerBuildStatus({
     ctx: k8sCtx,
@@ -37,7 +38,7 @@ export async function getOpenfaasModuleBuildStatus({ ctx, log, module }: GetBuil
 export async function buildOpenfaasModule({ ctx, log, module }: BuildModuleParams<OpenFaasModule>) {
   const k8sProvider = getK8sProvider(ctx.provider.dependencies)
 
-  const buildLog = await buildOpenfaasFunction(<OpenFaasProvider>ctx.provider, k8sProvider, module, log)
+  const buildLog = await buildOpenfaasFunction(ctx, <OpenFaasProvider>ctx.provider, k8sProvider, module, log)
 
   const containerModule = getContainerModule(module)
   const k8sCtx = { ...ctx, provider: k8sProvider }
@@ -81,6 +82,7 @@ export async function writeStackFile(
  * Writes the stack file and builds the OpenFaaS function container with the OpenFaaS CLI
  */
 async function buildOpenfaasFunction(
+  ctx: PluginContext,
   provider: OpenFaasProvider,
   k8sProvider: KubernetesProvider,
   module: OpenFaasModule,
@@ -88,7 +90,7 @@ async function buildOpenfaasFunction(
 ) {
   await writeStackFile(provider, k8sProvider, module, {})
 
-  return await provider.tools["faas-cli"].stdout({
+  return await ctx.tools["openfaas.faas-cli"].stdout({
     log,
     cwd: module.buildPath,
     args: ["build", "--shrinkwrap", "-f", stackFilename],

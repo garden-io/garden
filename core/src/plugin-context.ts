@@ -11,7 +11,8 @@ import { cloneDeep } from "lodash"
 import { projectNameSchema, projectSourcesSchema, environmentNameSchema } from "./config/project"
 import { Provider, providerSchema, GenericProviderConfig } from "./config/provider"
 import { deline } from "./util/string"
-import { joi, joiVariables, PrimitiveMap } from "./config/common"
+import { joi, joiVariables, PrimitiveMap, joiStringMap } from "./config/common"
+import { PluginTool } from "./util/ext-tools"
 
 type WrappedFromGarden = Pick<
   Garden,
@@ -34,6 +35,7 @@ export interface CommandInfo {
 export interface PluginContext<C extends GenericProviderConfig = GenericProviderConfig> extends WrappedFromGarden {
   command?: CommandInfo
   provider: Provider<C>
+  tools: { [key: string]: PluginTool }
 }
 
 // NOTE: this is used more for documentation than validation, outside of internal testing
@@ -75,10 +77,15 @@ export const pluginContextSchema = () =>
       provider: providerSchema()
         .description("The provider being used for this context.")
         .id("ctxProviderSchema"),
+      tools: joiStringMap(joi.object()),
       workingCopyId: joi.string().description("A unique ID assigned to the current project working copy."),
     })
 
-export function createPluginContext(garden: Garden, provider: Provider, command?: CommandInfo): PluginContext {
+export async function createPluginContext(
+  garden: Garden,
+  provider: Provider,
+  command?: CommandInfo
+): Promise<PluginContext> {
   return {
     command,
     environmentName: garden.environmentName,
@@ -89,5 +96,6 @@ export function createPluginContext(garden: Garden, provider: Provider, command?
     provider,
     production: garden.production,
     workingCopyId: garden.workingCopyId,
+    tools: await garden.getTools(),
   }
 }

@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import React, { useState, useContext } from "react"
+import React, { useState } from "react"
 import produce from "immer"
 import { ServiceIngress } from "@garden-io/core/build/src/types/service"
 import { DependencyGraphNodeType } from "@garden-io/core/build/src/config-graph"
@@ -28,6 +28,10 @@ interface UiState {
   }
   selectedGraphNode: string | null
   modal: {
+    visible: boolean
+    content: React.ReactNode
+  }
+  infoBox: {
     visible: boolean
     content: React.ReactNode
   }
@@ -63,6 +67,8 @@ interface UiActions {
   clearGraphNodeSelection: () => void
   showModal: (content: React.ReactNode) => void
   hideModal: () => void
+  showInfoBox: (content: React.ReactNode) => void
+  hideInfoBox: () => void
 }
 
 const INITIAL_UI_STATE: UiState = {
@@ -90,6 +96,10 @@ const INITIAL_UI_STATE: UiState = {
     },
   },
   modal: {
+    visible: false,
+    content: null,
+  },
+  infoBox: {
     visible: false,
     content: null,
   },
@@ -184,6 +194,28 @@ const useUiStateProvider = () => {
     )
   }
 
+  const showInfoBox = (content: React.ReactNode) => {
+    setState(
+      produce(uiState, (draft) => {
+        draft.infoBox = {
+          content,
+          visible: true,
+        }
+      })
+    )
+  }
+
+  const hideInfoBox = () => {
+    setState(
+      produce(uiState, (draft) => {
+        draft.infoBox = {
+          content: null,
+          visible: false,
+        }
+      })
+    )
+  }
+
   return {
     state: uiState,
     actions: {
@@ -196,21 +228,18 @@ const useUiStateProvider = () => {
       selectEntity,
       showModal,
       hideModal,
+      showInfoBox,
+      hideInfoBox,
     },
   }
 }
 
 // Type cast the initial value to avoid having to check whether the context exists in every context consumer.
 // Context is only undefined if the provider is missing which we assume is not the case.
-const Context = React.createContext<UiStateAndActions>({} as UiStateAndActions)
-
-/**
- * Returns the state and UI actions via the Context
- */
-export const useUiState = () => useContext(Context)
+export const UiContext = React.createContext<UiStateAndActions>({} as UiStateAndActions)
 
 export const UiStateProvider: React.FC = ({ children }) => {
   const storeAndActions = useUiStateProvider()
 
-  return <Context.Provider value={storeAndActions}>{children}</Context.Provider>
+  return <UiContext.Provider value={storeAndActions}>{children}</UiContext.Provider>
 }

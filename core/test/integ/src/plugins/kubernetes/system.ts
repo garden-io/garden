@@ -31,7 +31,7 @@ describe("System services", () => {
   })
 
   it("should use conftest to check whether system services have a valid config", async () => {
-    const ctx = <KubernetesPluginContext>garden.getPluginContext(provider)
+    const ctx = <KubernetesPluginContext>await garden.getPluginContext(provider)
     const variables = getKubernetesSystemVariables(provider.config)
     const systemGarden = await getSystemGarden(ctx, variables, garden.log)
     const graph = await systemGarden.getConfigGraph(garden.log)
@@ -50,7 +50,7 @@ describe("System services", () => {
   })
 
   it("should check whether system modules pass the conftest test", async () => {
-    const ctx = <KubernetesPluginContext>garden.getPluginContext(provider)
+    const ctx = <KubernetesPluginContext>await garden.getPluginContext(provider)
     const variables = getKubernetesSystemVariables(provider.config)
     const systemGarden = await getSystemGarden(ctx, variables, garden.log)
     const graph = await systemGarden.getConfigGraph(garden.log)

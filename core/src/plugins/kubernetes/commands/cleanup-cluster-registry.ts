@@ -33,6 +33,7 @@ import { dedent, deline } from "../../../util/string"
 import { execInPod, BuilderExecParams, buildSyncDeploymentName } from "../container/build"
 import { getDeploymentPodName } from "../util"
 import { getSystemNamespace } from "../namespace"
+import { PluginContext } from "../../../plugin-context"
 
 const workspaceSyncDirTtl = 0.5 * 86400 // 2 days
 
@@ -55,7 +56,7 @@ export const cleanupClusterRegistry: PluginCommand = {
     }
 
     // Scan through all Pods in cluster
-    const api = await KubeApi.factory(log, provider)
+    const api = await KubeApi.factory(log, ctx, provider)
     const imagesInUse = await getImagesInUse(api, provider, log)
 
     // Get images in registry
@@ -81,11 +82,11 @@ export const cleanupClusterRegistry: PluginCommand = {
     }
 
     if (provider.config.buildMode === "cluster-docker") {
-      await deleteImagesFromDaemon(provider, log, imagesInUse)
+      await deleteImagesFromDaemon({ ctx, provider, log, imagesInUse })
     }
 
     // Clean old directories from build sync volume
-    await cleanupBuildSyncVolume(provider, log)
+    await cleanupBuildSyncVolume(ctx, provider, log)
 
     log.info({ msg: chalk.green("\nDone!"), status: "success" })
 
@@ -224,7 +225,7 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
   })
 
   const provider = ctx.provider
-  const systemNamespace = await getSystemNamespace(provider, log)
+  const systemNamespace = await getSystemNamespace(ctx, provider, log)
   // Restart the registry in read-only mode
   // -> Get the original deployment
   log.info("Fetching original Deployment")
@@ -249,6 +250,7 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
   delete modifiedDeployment.status
 
   await apply({
+    ctx,
     log,
     provider,
     manifests: [modifiedDeployment],
@@ -258,6 +260,7 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
   // -> Wait for registry to be up again
   await waitForResources({
     namespace: systemNamespace,
+    ctx,
     provider,
     log,
     serviceName: "docker-registry",
@@ -267,6 +270,7 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
   // Run garbage collection
   log.info("Running garbage collection...")
   await execInWorkload({
+    ctx,
     provider,
     log,
     namespace: systemNamespace,
@@ -287,6 +291,7 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
   )
 
   await apply({
+    ctx,
     log,
     provider,
     manifests: [writableRegistry],
@@ -296,6 +301,7 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
   // -> Wait for registry to be up again
   await waitForResources({
     namespace: systemNamespace,
+    ctx,
     provider,
     log,
     serviceName: "docker-registry",
@@ -313,17 +319,28 @@ function sanitizeResource<T extends KubernetesResource>(resource: T): T {
   return output
 }
 
-async function deleteImagesFromDaemon(provider: KubernetesProvider, log: LogEntry, imagesInUse: string[]) {
+async function deleteImagesFromDaemon({
+  ctx,
+  provider,
+  log,
+  imagesInUse,
+}: {
+  ctx: PluginContext
+  provider: KubernetesProvider
+  log: LogEntry
+  imagesInUse: string[]
+}) {
   log = log.info({
     msg: chalk.white(`Cleaning images from Docker daemon...`),
     status: "active",
   })
 
   log.info("Getting list of images from daemon...")
-  const podName = await getDeploymentPodName(dockerDaemonDeploymentName, provider, log)
+  const podName = await getDeploymentPodName(dockerDaemonDeploymentName, ctx, provider, log)
 
   const listArgs = ["docker", "images", "--format", "{{.Repository}}:{{.Tag}}"]
   const res = await execInPod({
+    ctx,
     provider,
     log,
     args: listArgs,
@@ -358,7 +375,7 @@ async function deleteImagesFromDaemon(provider: KubernetesProvider, log: LogEntr
       imagesBatches,
       async (images) => {
         const args = ["docker", "rmi", ...images]
-        await execInPod({ provider, log, args, podName, containerName: dockerDaemonContainerName, timeout: 300 })
+        await execInPod({ ctx, provider, log, args, podName, containerName: dockerDaemonContainerName, timeout: 300 })
         log.setState(deline`
         Deleting images:
          ${pluralize("batch", counter, true)} of ${imagesBatches.length} left...`)
@@ -371,6 +388,7 @@ async function deleteImagesFromDaemon(provider: KubernetesProvider, log: LogEntr
   // Run a prune operation
   log.info(`Pruning with \`docker image prune -f\`...`)
   await execInPod({
+    ctx,
     provider,
     log,
     args: ["docker", "image", "prune", "-f"],
@@ -382,16 +400,17 @@ async function deleteImagesFromDaemon(provider: KubernetesProvider, log: LogEntr
   log.setSuccess()
 }
 
-async function cleanupBuildSyncVolume(provider: KubernetesProvider, log: LogEntry) {
+async function cleanupBuildSyncVolume(ctx: PluginContext, provider: KubernetesProvider, log: LogEntry) {
   log = log.info({
     msg: chalk.white(`Cleaning up old workspaces from build sync volume...`),
     status: "active",
   })
 
-  const podName = await getDeploymentPodName(buildSyncDeploymentName, provider, log)
+  const podName = await getDeploymentPodName(buildSyncDeploymentName, ctx, provider, log)
 
   const statArgs = ["sh", "-c", 'stat /data/* -c "%n %X"']
   const stat = await execInBuildSync({
+    ctx,
     provider,
     log,
     args: statArgs,
@@ -419,6 +438,7 @@ async function cleanupBuildSyncVolume(provider: KubernetesProvider, log: LogEntr
   log.info(`Deleting ${dirsToDelete.length} workspace directories.`)
   const deleteArgs = ["rm", "-rf", ...dirsToDelete]
   await execInBuildSync({
+    ctx,
     provider,
     log,
     args: deleteArgs,
@@ -430,13 +450,13 @@ async function cleanupBuildSyncVolume(provider: KubernetesProvider, log: LogEntr
   log.setSuccess()
 }
 
-async function execInBuildSync({ provider, log, args, timeout, podName }: BuilderExecParams) {
+async function execInBuildSync({ ctx, provider, log, args, timeout, podName }: BuilderExecParams) {
   const execCmd = ["exec", "-i", podName, "--", ...args]
-  const systemNamespace = await getSystemNamespace(provider, log)
+  const systemNamespace = await getSystemNamespace(ctx, provider, log)
 
   log.verbose(`Running: kubectl ${execCmd.join(" ")}`)
 
-  return kubectl(provider).exec({
+  return kubectl(ctx, provider).exec({
     args: execCmd,
     log,
     namespace: systemNamespace,

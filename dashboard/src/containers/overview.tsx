@@ -16,8 +16,8 @@ import PageError from "../components/page-error"
 import { ModuleCard, Props as ModuleProps } from "../components/entity-cards/module"
 import EntityResult from "./entity-result"
 import ViewIngress from "../components/view-ingress"
-import { ServiceEntity, TestEntity, TaskEntity, useApi } from "../contexts/api"
-import { useUiState } from "../contexts/ui"
+import { ServiceEntity, TestEntity, TaskEntity } from "../contexts/api"
+import { useApi, useUiState } from "../hooks"
 
 const Overview = styled.div`
   padding-top: 0.5rem;

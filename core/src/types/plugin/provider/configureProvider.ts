@@ -8,17 +8,16 @@
 
 import { projectNameSchema, projectRootSchema } from "../../../config/project"
 import { GenericProviderConfig, providerConfigBaseSchema, providerSchema, ProviderMap } from "../../../config/provider"
-import { logEntrySchema } from "../base"
+import { logEntrySchema, PluginActionParamsBase, actionParamsSchema } from "../base"
 import { configStoreSchema, ConfigStore } from "../../../config-store"
 import { joiArray, joi, joiIdentifier, joiIdentifierMap } from "../../../config/common"
 import { moduleConfigSchema, ModuleConfig } from "../../../config/module"
 import { deline, dedent } from "../../../util/string"
-import { ActionHandler, ActionHandlerParamsBase } from "../plugin"
+import { ActionHandler } from "../plugin"
 import { LogEntry } from "../../../logger/log-entry"
-import { PluginTools } from "../tools"
 
 // Note: These are the only plugin handler params that don't inherit from PluginActionParamsBase
-export interface ConfigureProviderParams<T extends GenericProviderConfig = any> extends ActionHandlerParamsBase {
+export interface ConfigureProviderParams<T extends GenericProviderConfig = any> extends PluginActionParamsBase {
   config: T
   configStore: ConfigStore
   dependencies: ProviderMap
@@ -27,7 +26,6 @@ export interface ConfigureProviderParams<T extends GenericProviderConfig = any> 
   namespace?: string
   projectName: string
   projectRoot: string
-  tools: PluginTools
   base?: ActionHandler<ConfigureProviderParams<T>, ConfigureProviderResult<T>>
 }
 
@@ -48,7 +46,7 @@ export const configureProvider = () => ({
     Important: This action is called on most executions of Garden commands, so it should return quickly
     and avoid performing expensive processing or network calls.
   `,
-  paramsSchema: joi.object().keys({
+  paramsSchema: actionParamsSchema().keys({
     config: providerConfigBaseSchema().required(),
     environmentName: joiIdentifier(),
     namespace: joiIdentifier(),
@@ -57,7 +55,6 @@ export const configureProvider = () => ({
     projectRoot: projectRootSchema(),
     dependencies: joiIdentifierMap(providerSchema()).description("Map of all providers that this provider depends on."),
     configStore: configStoreSchema(),
-    tools: joiIdentifierMap(joi.object()),
   }),
   resultSchema: joi.object().keys({
     config: providerConfigBaseSchema(),

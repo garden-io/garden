@@ -640,12 +640,12 @@ export const kubernetesTaskSchema = () =>
       cacheResult: cacheResultSchema(),
       command: joi
         .array()
-        .items(joi.string())
+        .items(joi.string().allow(""))
         .description("The command/entrypoint used to run the task inside the container.")
         .example(commandExample),
       args: joi
         .array()
-        .items(joi.string())
+        .items(joi.string().allow(""))
         .description("The arguments to pass to the container used for execution.")
         .example(["rake", "db:migrate"]),
       env: containerEnvVarsSchema(),
@@ -665,12 +665,12 @@ export const kubernetesTestSchema = () =>
       ),
       command: joi
         .array()
-        .items(joi.string())
+        .items(joi.string().allow(""))
         .description("The command/entrypoint used to run the test inside the container.")
         .example(commandExample),
       args: joi
         .array()
-        .items(joi.string())
+        .items(joi.string().allow(""))
         .description("The arguments to pass to the container used for testing.")
         .example(["npm", "test"]),
       env: containerEnvVarsSchema(),

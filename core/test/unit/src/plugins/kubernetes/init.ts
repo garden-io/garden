@@ -25,6 +25,9 @@ import { KubeApi } from "../../../../../src/plugins/kubernetes/api"
 import { dataDir, makeTestGarden, expectError } from "../../../../helpers"
 import { KubernetesResource } from "../../../../../src/plugins/kubernetes/types"
 import { V1Secret } from "@kubernetes/client-node"
+import { PluginContext } from "../../../../../src/plugin-context"
+import { kubectlSpec } from "../../../../../src/plugins/kubernetes/kubectl"
+import { PluginTool } from "../../../../../src/util/ext-tools"
 
 const basicConfig: KubernetesConfig = {
   name: "kubernetes",
@@ -65,7 +68,6 @@ const basicProvider: KubernetesProvider = {
   dependencies: {},
   moduleConfigs: [],
   status: { ready: true, outputs: {} },
-  tools: {},
 }
 
 const dockerSimpleAuthSecret: KubernetesResource<V1Secret> = {
@@ -98,10 +100,13 @@ const dockerCredentialHelperSecret: KubernetesResource<V1Secret> = {
   },
 }
 const kubeConfigEnvVar = process.env.KUBECONFIG
+
 describe("prepareDockerAuth", () => {
   const projectRoot = resolve(dataDir, "test-project-container")
   let garden: Garden
+  let ctx: PluginContext
   let api: KubeApi
+
   before(() => {
     process.env.KUBECONFIG = join(projectRoot, "kubeconfig.yml")
   })
@@ -120,8 +125,11 @@ describe("prepareDockerAuth", () => {
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin] })
-    api = await KubeApi.factory(garden.log, basicProvider)
+    ctx = await garden.getPluginContext(basicProvider)
+    ctx.tools["kubernetes.kubectl"] = new PluginTool(kubectlSpec)
+    api = await KubeApi.factory(garden.log, ctx, basicProvider)
   })
+
   describe("when simple login or cred helpers are present", () => {
     beforeEach(async () => {
       const core = td.replace(api, "core")
@@ -133,7 +141,7 @@ describe("prepareDockerAuth", () => {
       td.replace(api, "upsert")
     })
     it("should merge both", async () => {
-      const res = await prepareDockerAuth(api, basicProvider, garden.log)
+      const res = await prepareDockerAuth(api, ctx, basicProvider, garden.log)
       const dockerAuth = jsonLoadBase64(res.data![dockerAuthSecretKey])
       expect(dockerAuth).to.haveOwnProperty("auths")
       expect(dockerAuth.auths.myDockerRepo).to.equal("simple-auth")
@@ -180,7 +188,7 @@ describe("prepareDockerAuth", () => {
     })
     it("should fail when both are missing", async () => {
       await expectError(
-        () => prepareDockerAuth(api, basicProvider, garden.log),
+        () => prepareDockerAuth(api, ctx, basicProvider, garden.log),
         (e) => expect(e).to.be.instanceof(ConfigurationError)
       )
     })

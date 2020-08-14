@@ -11,12 +11,12 @@ import styled from "@emotion/styled"
 
 import { Omit } from "@garden-io/core/build/src/util/util"
 
-import { useUiState } from "../../contexts/ui"
 import { TestCard, Props as TestCardProps } from "./test"
 import { TaskCard, Props as TaskCardProps } from "./task"
 import { ServiceCard, Props as ServiceCardProps } from "./service"
 import { ModuleEntity } from "../../contexts/api"
 import { Field, Value, FieldWrap, NameField } from "./common"
+import { useUiState } from "../../hooks"
 
 const Wrap = styled.div`
   padding: 1.2rem;

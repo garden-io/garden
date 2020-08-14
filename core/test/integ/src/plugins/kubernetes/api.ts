@@ -26,7 +26,8 @@ describe("KubeApi", () => {
     const root = getDataDir("test-projects", "container")
     garden = await makeTestGarden(root)
     provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as Provider<KubernetesConfig>
-    api = await KubeApi.factory(garden.log, provider)
+    const ctx = await garden.getPluginContext(provider)
+    api = await KubeApi.factory(garden.log, ctx, provider)
   })
 
   after(async () => {
@@ -35,7 +36,7 @@ describe("KubeApi", () => {
 
   describe("replace", () => {
     it("should replace an existing resource in the cluster", async () => {
-      const ctx = garden.getPluginContext(provider)
+      const ctx = await garden.getPluginContext(provider)
       const namespace = await getAppNamespace(ctx, garden.log, provider)
       const name = randomString()
 

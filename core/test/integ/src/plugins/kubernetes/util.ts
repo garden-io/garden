@@ -43,7 +43,7 @@ describe("util", () => {
     helmGarden = await getHelmTestGarden()
     log = helmGarden.log
     const provider = await helmGarden.resolveProvider(log, "local-kubernetes")
-    ctx = helmGarden.getPluginContext(provider)
+    ctx = await helmGarden.getPluginContext(provider)
     helmGraph = await helmGarden.getConfigGraph(log)
     await buildModules()
   })
@@ -78,7 +78,7 @@ describe("util", () => {
       try {
         const graph = await garden.getConfigGraph(garden.log)
         const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as Provider<KubernetesConfig>
-        const api = await KubeApi.factory(garden.log, provider)
+        const api = await KubeApi.factory(garden.log, ctx, provider)
 
         const service = graph.getService("simple-service")
 
@@ -100,6 +100,7 @@ describe("util", () => {
           enableHotReload: false,
           log: garden.log,
           production: false,
+          blueGreen: false,
         })
         await garden.processTasks([deployTask], { throwOnError: true })
 

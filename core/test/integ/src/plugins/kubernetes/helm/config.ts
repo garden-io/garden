@@ -27,7 +27,7 @@ describe("configureHelmModule", () => {
   before(async () => {
     garden = await getHelmTestGarden()
     const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
-    ctx = garden.getPluginContext(provider)
+    ctx = await garden.getPluginContext(provider)
     await garden.resolveModules({ log: garden.log })
     moduleConfigs = cloneDeep((<any>garden).moduleConfigs)
   })

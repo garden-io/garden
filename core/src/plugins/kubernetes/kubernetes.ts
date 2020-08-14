@@ -145,7 +145,7 @@ export async function debugInfo({ ctx, log, includeProject }: GetDebugInfoParams
   const provider = k8sCtx.provider
   const entry = log.info({ section: ctx.provider.name, msg: "collecting provider configuration", status: "active" })
 
-  const systemNamespace = await getSystemNamespace(provider, log)
+  const systemNamespace = await getSystemNamespace(ctx, provider, log)
   const systemMetadataNamespace = getSystemMetadataNamespaceName(provider.config)
 
   const namespacesList = [systemNamespace, systemMetadataNamespace]
@@ -156,7 +156,10 @@ export async function debugInfo({ ctx, log, includeProject }: GetDebugInfoParams
   }
   const namespaces = await Bluebird.map(namespacesList, async (ns) => {
     const nsEntry = entry.info({ section: ns, msg: "collecting namespace configuration", status: "active" })
-    const out = await kubectl(provider).stdout({ log, args: ["get", "all", "--namespace", ns, "--output", "json"] })
+    const out = await kubectl(ctx, provider).stdout({
+      log,
+      args: ["get", "all", "--namespace", ns, "--output", "json"],
+    })
     nsEntry.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
     return {
       namespace: ns,
@@ -165,7 +168,7 @@ export async function debugInfo({ ctx, log, includeProject }: GetDebugInfoParams
   })
   entry.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
 
-  const version = await kubectl(provider).stdout({ log, args: ["version", "--output", "json"] })
+  const version = await kubectl(ctx, provider).stdout({ log, args: ["version", "--output", "json"] })
 
   return {
     info: { version: JSON.parse(version), namespaces },

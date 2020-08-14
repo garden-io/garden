@@ -23,7 +23,7 @@ export async function queryRegistry(ctx: KubernetesPluginContext, log: LogEntry,
 }
 
 export async function getRegistryPortForward(ctx: KubernetesPluginContext, log: LogEntry) {
-  const systemNamespace = await getSystemNamespace(ctx.provider, log)
+  const systemNamespace = await getSystemNamespace(ctx, ctx.provider, log)
 
   return getPortForward({
     ctx,

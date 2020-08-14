@@ -31,7 +31,7 @@ describe("kubernetes task results", () => {
 
   describe("storeTaskResult", () => {
     it("should trim logs when necessary", async () => {
-      const ctx = garden.getPluginContext(provider)
+      const ctx = await garden.getPluginContext(provider)
       const graph = await garden.getConfigGraph(garden.log)
       const task = graph.getTask("echo-task")
 

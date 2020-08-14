@@ -34,7 +34,7 @@ export async function getTaskResult({
   taskVersion,
 }: GetTaskResultParams<ContainerModule | HelmModule | KubernetesModule>): Promise<RunTaskResult | null> {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const api = await KubeApi.factory(log, k8sCtx.provider)
+  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
   const ns = await getMetadataNamespace(k8sCtx, log, k8sCtx.provider)
   const resultKey = getTaskResultKey(ctx, module, task.name, taskVersion)
 
@@ -94,7 +94,7 @@ export async function storeTaskResult({
   result,
 }: StoreTaskResultParams): Promise<RunTaskResult> {
   const provider = <KubernetesProvider>ctx.provider
-  const api = await KubeApi.factory(log, provider)
+  const api = await KubeApi.factory(log, ctx, provider)
   const namespace = await getMetadataNamespace(ctx, log, provider)
 
   // FIXME: We should store the logs separately, because of the 1MB size limit on ConfigMaps.
@@ -135,7 +135,7 @@ export async function clearTaskResult({
   taskVersion,
 }: GetTaskResultParams<ContainerModule | HelmModule | KubernetesModule>) {
   const provider = <KubernetesProvider>ctx.provider
-  const api = await KubeApi.factory(log, provider)
+  const api = await KubeApi.factory(log, ctx, provider)
   const namespace = await getMetadataNamespace(ctx, log, provider)
 
   const key = getTaskResultKey(ctx, module, task.name, taskVersion)

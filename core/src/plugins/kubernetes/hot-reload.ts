@@ -192,7 +192,7 @@ export async function hotReloadContainer({
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
   const namespace = await getAppNamespace(k8sCtx, log, provider)
-  const api = await KubeApi.factory(log, provider)
+  const api = await KubeApi.factory(log, ctx, provider)
 
   // Find the currently deployed workload by labels
   const manifest = await createWorkloadManifest({
@@ -204,12 +204,13 @@ export async function hotReloadContainer({
     enableHotReload: true,
     production: k8sCtx.production,
     log,
+    blueGreen: provider.config.deploymentStrategy === "blue-green",
   })
   const selector = labelSelectorToString({
     [gardenAnnotationKey("service")]: service.name,
   })
   // TODO: make and use a KubeApi method for this
-  const res: KubernetesList<KubernetesWorkload> = await kubectl(provider).json({
+  const res: KubernetesList<KubernetesWorkload> = await kubectl(ctx, provider).json({
     args: ["get", manifest.kind, "-l", selector],
     log,
     namespace,
@@ -343,6 +344,7 @@ export async function syncToService({ ctx, service, hotReloadSpec, namespace, wo
     if (postSyncCommand) {
       // Run post-sync callback inside the pod
       const callbackResult = await execInWorkload({
+        ctx,
         log,
         namespace,
         workload,

@@ -16,6 +16,7 @@ interface Props {
   onClick: (event: React.MouseEvent<HTMLElement>) => void
   inProgress?: boolean
   iconClassName: "redo-alt" | "window-close" | "copy"
+  invert?: boolean
 }
 
 const Button = styled.div`
@@ -29,10 +30,15 @@ const Button = styled.div`
   }
 `
 
-const Icon = styled.i`
-  color: ${colors.gardenGray};
+interface IconProps {
+  color: string
+  hoverColor: string
+}
+
+const Icon = styled.i<IconProps>`
+  color: ${(props) => props.color};
   :hover {
-    color: ${colors.gardenPink};
+    color: ${(props) => props.hoverColor};
   }
   :active {
     opacity: 0.5;
@@ -51,12 +57,14 @@ const IconLoading = styled(Icon)`
   }
 `
 
-export const ActionIcon: React.FC<Props> = ({ inProgress, className, onClick, iconClassName }) => {
+export const ActionIcon: React.FC<Props> = ({ inProgress, onClick, className, iconClassName, invert = false }) => {
+  const iconColor = invert ? colors.gardenWhite : colors.gardenGray
+  const iconHoverColor = invert ? colors.gardenGray : colors.gardenWhite
   const IconComp = inProgress ? IconLoading : Icon
 
   return (
     <Button className={className} onClick={onClick}>
-      <IconComp className={`fas fa-${iconClassName}`} />
+      <IconComp className={`fas fa-${iconClassName}`} color={iconColor} hoverColor={iconHoverColor} />
     </Button>
   )
 }

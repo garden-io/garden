@@ -56,8 +56,8 @@ describe("kubernetes-module handlers", () => {
     moduleConfigBackup = await garden.getRawModuleConfigs()
     log = garden.log
     const provider = <KubernetesProvider>await garden.resolveProvider(log, "local-kubernetes")
-    ctx = <KubernetesPluginContext>garden.getPluginContext(provider)
-    api = await KubeApi.factory(log, ctx.provider)
+    ctx = <KubernetesPluginContext>await garden.getPluginContext(provider)
+    api = await KubeApi.factory(log, ctx, ctx.provider)
     tmpDir = await tmp.dir({ unsafeCleanup: true })
     await execa("git", ["init"], { cwd: tmpDir.path })
     nsModuleConfig = {

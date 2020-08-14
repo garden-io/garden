@@ -32,6 +32,7 @@ import { ArtifactSpec } from "../../config/validation"
 import cpy from "cpy"
 import { prepareImagePullSecrets } from "./secrets"
 import { configureVolumes } from "./container/deployment"
+import { PluginContext } from "../../plugin-context"
 
 const MAX_BUFFER_SIZE = 1024 * 1024
 
@@ -69,7 +70,7 @@ export async function runAndCopy({
   volumes?: ContainerVolumeSpec[]
 }): Promise<RunResult> {
   const provider = <KubernetesProvider>ctx.provider
-  const api = await KubeApi.factory(log, provider)
+  const api = await KubeApi.factory(log, ctx, provider)
 
   // Prepare environment variables
   envVars = { ...runtimeContext.envVars, ...envVars }
@@ -137,6 +138,7 @@ export async function runAndCopy({
   }
 
   const runner = new PodRunner({
+    ctx,
     api,
     podName,
     provider,
@@ -359,6 +361,7 @@ export async function runAndCopy({
 }
 
 class PodRunnerParams {
+  ctx: PluginContext
   annotations?: { [key: string]: string }
   api: KubeApi
   image: string
@@ -446,7 +449,7 @@ export class PodRunner extends PodRunnerParams {
     const startedAt = new Date()
 
     // TODO: use API library
-    const res = await kubectl(this.provider).spawnAndWait({
+    const res = await kubectl(this.ctx, this.provider).spawnAndWait({
       log,
       namespace: this.namespace,
       ignoreError,
@@ -481,7 +484,7 @@ export class PodRunner extends PodRunnerParams {
     log.verbose(`Starting Pod ${this.podName} with command '${command.join(" ")}'`)
 
     // TODO: use API directly
-    this.proc = await kubectl(this.provider).spawn({
+    this.proc = await kubectl(this.ctx, this.provider).spawn({
       log,
       namespace: this.namespace,
       args: kubecmd,
@@ -553,7 +556,7 @@ export class PodRunner extends PodRunnerParams {
 
     const startedAt = new Date()
 
-    const proc = await kubectl(this.provider).spawn({
+    const proc = await kubectl(this.ctx, this.provider).spawn({
       args,
       namespace: this.namespace,
       ignoreError,
@@ -616,7 +619,7 @@ export class PodRunner extends PodRunnerParams {
 
     const startedAt = new Date()
 
-    const res = await kubectl(this.provider).exec({
+    const res = await kubectl(this.ctx, this.provider).exec({
       args,
       namespace: this.namespace,
       ignoreError,
