@@ -80,7 +80,7 @@ export async function prepareEnvironment({ status, log }: PrepareEnvironmentPara
       section: "google-cloud-functions",
       msg: `Initializing SDK...`,
     })
-    await gcloud().call(["init"], { timeout: 600, tty: true })
+    await gcloud().call(["init"], { timeoutSec: 600, tty: true })
   }
 
   return { status: { ready: true, outputs: {} } }

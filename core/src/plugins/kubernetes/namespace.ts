@@ -15,7 +15,7 @@ import { KubernetesProvider, KubernetesPluginContext } from "./config"
 import { DeploymentError, TimeoutError } from "../../exceptions"
 import { getPackageVersion, sleep } from "../../util/util"
 import { GetEnvironmentStatusParams } from "../../types/plugin/provider/getEnvironmentStatus"
-import { kubectl, KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
+import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { LogEntry } from "../../logger/log-entry"
 import { gardenAnnotationKey } from "../../util/string"
 import dedent from "dedent"
@@ -141,8 +141,8 @@ export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams
   const k8sCtx = <KubernetesPluginContext>ctx
 
   try {
-    // TODO: use API instead of kubectl (I just couldn't find which API call to make)
-    await kubectl(k8sCtx, k8sCtx.provider).exec({ log, args: ["version"] })
+    const api = await KubeApi.factory(log, ctx, ctx.provider as KubernetesProvider)
+    await api.request({ path: "/version", log })
   } catch (err) {
     log.setError("Error")
 

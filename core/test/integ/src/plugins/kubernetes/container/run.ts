@@ -161,7 +161,7 @@ describe("runContainerTask", () => {
     })
 
     it("should fail if an error occurs, but copy the artifacts out of the container", async () => {
-      const task = await graph.getTask("artifacts-task-fail")
+      const task = graph.getTask("artifacts-task-fail")
 
       const testTask = new TaskTask({
         garden,

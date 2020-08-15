@@ -36,9 +36,9 @@ export class GCloud {
   }
 
   async call(args: string[], opts: SpawnOpts = {}): Promise<GCloudOutput> {
-    const { data, ignoreError = false, timeout = DEFAULT_TIMEOUT } = opts
+    const { data, ignoreError = false, timeoutSec: timeout = DEFAULT_TIMEOUT } = opts
     const preparedArgs = this.prepareArgs(args)
-    return spawn("gcloud", preparedArgs, { ignoreError, data, timeout })
+    return spawn("gcloud", preparedArgs, { ignoreError, data, timeoutSec: timeout })
   }
 
   async json(args: string[], opts: GCloudParams = {}): Promise<any> {

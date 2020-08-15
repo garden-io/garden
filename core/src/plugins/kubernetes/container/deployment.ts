@@ -362,7 +362,7 @@ export async function createWorkloadManifest({
     },
   }
 
-  workload.spec.template.spec.containers = [container]
+  workload.spec.template.spec!.containers = [container]
 
   if (service.spec.command && service.spec.command.length > 0) {
     container.command = service.spec.command
@@ -377,7 +377,7 @@ export async function createWorkloadManifest({
   }
 
   if (spec.volumes && spec.volumes.length) {
-    configureVolumes(service.module, workload.spec.template.spec, spec.volumes)
+    configureVolumes(service.module, workload.spec.template.spec!, spec.volumes)
   }
 
   const ports = spec.ports
@@ -408,9 +408,11 @@ export async function createWorkloadManifest({
       })
     }
   } else {
-    workload.spec.replicas = configuredReplicas
+    const deployment = <V1Deployment>workload
+    deployment.spec!.replicas = configuredReplicas
 
-    workload.spec.strategy = {
+    // Need the any cast because the library types are busted
+    deployment.spec!.strategy = <any>{
       type: "RollingUpdate",
       rollingUpdate: {
         // This is optimized for fast re-deployment.
@@ -423,7 +425,7 @@ export async function createWorkloadManifest({
 
   if (provider.config.imagePullSecrets.length > 0) {
     // add any configured imagePullSecrets
-    workload.spec.template.spec.imagePullSecrets = await prepareImagePullSecrets({ api, provider, namespace, log })
+    workload.spec.template.spec!.imagePullSecrets = await prepareImagePullSecrets({ api, provider, namespace, log })
   }
 
   // this is important for status checks to work correctly, because how K8s normalizes resources
@@ -465,8 +467,8 @@ export async function createWorkloadManifest({
       fsGroup: 2000,
     }
 
-    workload.spec.template.spec.affinity = affinity
-    workload.spec.template.spec.securityContext = securityContext
+    workload.spec.template.spec!.affinity = affinity
+    workload.spec.template.spec!.securityContext = securityContext
   }
 
   if (enableHotReload) {
@@ -484,9 +486,9 @@ export async function createWorkloadManifest({
     })
   }
 
-  if (!workload.spec.template.spec.volumes.length) {
+  if (!workload.spec.template.spec?.volumes?.length) {
     // this is important for status checks to work correctly
-    delete workload.spec.template.spec.volumes
+    delete workload.spec.template.spec?.volumes
   }
 
   return workload

@@ -17,7 +17,7 @@ import { waitForResources } from "../kubernetes/status/status"
 import { checkWorkloadStatus } from "../kubernetes/status/workload"
 import { createGardenPlugin } from "../../types/plugin/plugin"
 import { faasCliSpec } from "./faas-cli"
-import { getAllLogs } from "../kubernetes/logs"
+import { streamK8sLogs } from "../kubernetes/logs"
 import { DeployServiceParams } from "../../types/plugin/service/deployService"
 import { GetServiceStatusParams } from "../../types/plugin/service/getServiceStatus"
 import { GetServiceLogsParams } from "../../types/plugin/service/getServiceLogs"
@@ -253,7 +253,7 @@ async function getServiceLogs(params: GetServiceLogsParams<OpenFaasModule>) {
   const api = await KubeApi.factory(log, ctx, k8sProvider)
   const resources = await getResources(api, service, namespace)
 
-  return getAllLogs({ ...params, provider: k8sProvider, defaultNamespace: namespace, resources })
+  return streamK8sLogs({ ...params, provider: k8sProvider, defaultNamespace: namespace, resources })
 }
 
 const faasNetesInitTimeout = 10000
@@ -398,8 +398,8 @@ async function getServiceStatus({
     }
   }
 
-  const container: any = findByName(deployment.spec.template.spec.containers, service.name)
-  const envVersion = findByName<any>(container.env, "GARDEN_VERSION")
+  const container = findByName(deployment.spec.template?.spec?.containers || [], service.name)
+  const envVersion = findByName<any>(container?.env || [], "GARDEN_VERSION")
   const version = envVersion ? envVersion.value : undefined
   const resourceVersion = parseInt(deployment.metadata.resourceVersion!, 10)
   const status = await checkWorkloadStatus({

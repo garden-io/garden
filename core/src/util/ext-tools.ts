@@ -190,7 +190,7 @@ export class PluginTool {
     log.debug(`Spawning '${path} ${args.join(" ")}' in ${cwd}`)
     return spawn(path, args || [], {
       cwd,
-      timeout: timeoutSec,
+      timeoutSec,
       ignoreError,
       env,
       rawMode,

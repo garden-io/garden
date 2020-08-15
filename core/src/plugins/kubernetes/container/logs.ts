@@ -9,7 +9,7 @@
 import { GetServiceLogsParams } from "../../../types/plugin/service/getServiceLogs"
 import { ContainerModule } from "../../container/config"
 import { getAppNamespace } from "../namespace"
-import { getAllLogs } from "../logs"
+import { streamK8sLogs } from "../logs"
 import { KubernetesPluginContext } from "../config"
 import { createWorkloadManifest } from "./deployment"
 import { emptyRuntimeContext } from "../../../runtime-context"
@@ -37,5 +37,5 @@ export async function getServiceLogs(params: GetServiceLogsParams<ContainerModul
     }),
   ]
 
-  return getAllLogs({ ...params, provider, defaultNamespace: namespace, resources })
+  return streamK8sLogs({ ...params, provider, defaultNamespace: namespace, resources })
 }

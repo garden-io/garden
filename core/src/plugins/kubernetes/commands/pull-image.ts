@@ -22,9 +22,10 @@ import { RuntimeError } from "../../../exceptions"
 import { PodRunner } from "../run"
 import { inClusterRegistryHostname } from "../constants"
 import { getAppNamespace, getSystemNamespace } from "../namespace"
-import { makePodName, skopeoImage, getSkopeoContainer, getDockerAuthVolume } from "../util"
+import { makePodName, getSkopeoContainer, getDockerAuthVolume } from "../util"
 import { getRegistryPortForward } from "../container/util"
 import { PluginContext } from "../../../plugin-context"
+import { KubernetesPod } from "../types"
 
 export const pullImage: PluginCommand = {
   name: "pull-image",
@@ -160,7 +161,6 @@ async function pullFromExternalRegistry(
     api,
     podName,
     systemNamespace,
-    module,
     log,
   })
 
@@ -199,10 +199,9 @@ async function importImage({
   await tmp.withFile(async ({ path }) => {
     let writeStream = fs.createWriteStream(path)
 
-    await runner.spawn({
+    await runner.exec({
       command: getOutputCommand,
-      container: "skopeo",
-      ignoreError: false,
+      containerName: "skopeo",
       log,
       stdout: writeStream,
     })
@@ -216,10 +215,9 @@ async function pullImageFromRegistry(runner: PodRunner, command: string, log: Lo
   // TODO: make this timeout configurable
   await runner.exec({
     command: ["sh", "-c", command],
-    container: "skopeo",
-    ignoreError: false,
+    containerName: "skopeo",
     log,
-    timeout: 60 * 1000 * 5, // 5 minutes,
+    timeoutSec: 60 * 1000 * 5, // 5 minutes,
   })
 }
 
@@ -229,7 +227,6 @@ async function launchSkopeoContainer({
   api,
   podName,
   systemNamespace,
-  module,
   log,
 }: {
   ctx: PluginContext
@@ -237,18 +234,17 @@ async function launchSkopeoContainer({
   api: KubeApi
   podName: string
   systemNamespace: string
-  module: GardenModule
   log: LogEntry
 }): Promise<PodRunner> {
   const sleepCommand = "sleep 86400"
-  const runner = new PodRunner({
-    ctx,
-    api,
-    podName,
-    provider,
-    image: skopeoImage,
-    module,
-    namespace: systemNamespace,
+
+  const pod: KubernetesPod = {
+    apiVersion: "v1",
+    kind: "Pod",
+    metadata: {
+      name: podName,
+      namespace: systemNamespace,
+    },
     spec: {
       shareProcessNamespace: true,
       volumes: [
@@ -257,18 +253,23 @@ async function launchSkopeoContainer({
       ],
       containers: [getSkopeoContainer(sleepCommand)],
     },
+  }
+
+  const runner = new PodRunner({
+    ctx,
+    api,
+    pod,
+    provider,
+    namespace: systemNamespace,
   })
 
-  const { pod, state, debugLog } = await runner.start({
+  const { status } = await runner.start({
     log,
-    ignoreError: false,
   })
 
-  if (state !== "ready") {
-    throw new RuntimeError("Failed to start skopeo contaer", {
-      pod,
-      state,
-      debugLog,
+  if (status.state !== "ready") {
+    throw new RuntimeError("Failed to start skopeo container", {
+      status,
     })
   }
 

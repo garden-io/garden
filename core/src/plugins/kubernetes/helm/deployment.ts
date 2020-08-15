@@ -102,7 +102,7 @@ export async function deployHelmService({
 
   // FIXME: we should get these objects from the cluster, and not from the local `helm template` command, because
   // they may be legitimately inconsistent.
-  const remoteResources = await waitForResources({
+  const statuses = await waitForResources({
     namespace,
     ctx,
     provider,
@@ -120,7 +120,7 @@ export async function deployHelmService({
     forwardablePorts,
     state: "ready",
     version: module.version.versionString,
-    detail: { remoteResources },
+    detail: { remoteResources: statuses.map((s) => s.resource) },
   }
 }
 
