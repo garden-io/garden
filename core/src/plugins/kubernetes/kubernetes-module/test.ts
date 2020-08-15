@@ -37,7 +37,7 @@ export async function testKubernetesModule(params: TestModuleParams<KubernetesMo
 
   const testName = testConfig.name
   const { command, args } = testConfig.spec
-  const image = container.image
+  const image = container.image!
   const timeout = testConfig.timeout || DEFAULT_TEST_TIMEOUT
 
   const result = await runAndCopy({

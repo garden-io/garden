@@ -178,7 +178,7 @@ describe("kubernetes container deployment handlers", () => {
 
       const copiedSecret = await api.core.readNamespacedSecret(secretName, namespace)
       expect(copiedSecret).to.exist
-      expect(resource.spec.template.spec.imagePullSecrets).to.eql([{ name: secretName }])
+      expect(resource.spec.template?.spec?.imagePullSecrets).to.eql([{ name: secretName }])
     })
 
     it("should copy and reference imagePullSecrets with docker credential helper", async () => {
@@ -217,7 +217,7 @@ describe("kubernetes container deployment handlers", () => {
 
       const copiedSecret = await api.core.readNamespacedSecret(secretName, namespace)
       expect(copiedSecret).to.exist
-      expect(resource.spec.template.spec.imagePullSecrets).to.eql([{ name: secretName }])
+      expect(resource.spec.template?.spec?.imagePullSecrets).to.eql([{ name: secretName }])
     })
 
     it("should correctly mount a referenced PVC module", async () => {
@@ -236,10 +236,10 @@ describe("kubernetes container deployment handlers", () => {
         blueGreen: false,
       })
 
-      expect(resource.spec.template.spec.volumes).to.eql([
+      expect(resource.spec.template?.spec?.volumes).to.eql([
         { name: "test", persistentVolumeClaim: { claimName: "volume-module" } },
       ])
-      expect(resource.spec.template.spec.containers[0].volumeMounts).to.eql([{ name: "test", mountPath: "/volume" }])
+      expect(resource.spec.template?.spec?.containers[0].volumeMounts).to.eql([{ name: "test", mountPath: "/volume" }])
     })
 
     it("should throw if incompatible module is specified as a volume module", async () => {

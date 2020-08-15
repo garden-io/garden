@@ -191,6 +191,9 @@ tests:
     # The command that was run in the module.
     command:
 
+    # The exit code of the run (if applicable).
+    exitCode:
+
     # When the module run was started.
     startedAt:
 
@@ -772,6 +775,9 @@ tests:
 
     # The command that was run in the module.
     command:
+
+    # The exit code of the run (if applicable).
+    exitCode:
 
     # When the module run was started.
     startedAt:
@@ -1575,6 +1581,9 @@ command:
 # Whether the module was successfully run.
 success:
 
+# The exit code of the run (if applicable).
+exitCode:
+
 # When the module run was started.
 startedAt:
 
@@ -1989,6 +1998,9 @@ tests:
     # The command that was run in the module.
     command:
 
+    # The exit code of the run (if applicable).
+    exitCode:
+
     # When the module run was started.
     startedAt:
 
@@ -2239,6 +2251,9 @@ result:
 
   # The command that was run in the module.
   command:
+
+  # The exit code of the run (if applicable).
+  exitCode:
 
   # When the module run was started.
   startedAt:
@@ -2506,6 +2521,9 @@ tests:
 
     # The command that was run in the module.
     command:
+
+    # The exit code of the run (if applicable).
+    exitCode:
 
     # When the module run was started.
     startedAt:

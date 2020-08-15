@@ -124,7 +124,7 @@ describe("configureHotReload", () => {
       hotReloadSpec,
       target: hotReloadTarget,
     })
-    const containers: any[] = hotReloadTarget.spec.template.spec.containers
+    const containers: any[] = hotReloadTarget.spec.template.spec?.containers || []
     // This is a second, non-main/resource container included by the Helm chart, which should not mount the sync volume.
     const secondContainer = containers.find((c) => c.name === "second-container")
 

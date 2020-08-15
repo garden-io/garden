@@ -82,8 +82,8 @@ export async function checkWorkloadStatus({ api, namespace, resource }: StatusHa
     }
 
     // Attach pod logs for debug output
-    const podNames = (await getPods()).map((pod) => pod.metadata.name)
-    const podLogs = (await getFormattedPodLogs(api, namespace, podNames)) || undefined
+    const pods = await getPods()
+    const podLogs = (await getFormattedPodLogs(api, namespace, pods)) || undefined
 
     if (podLogs) {
       logs += chalk.white("\n\n━━━ Pod logs ━━━\n")

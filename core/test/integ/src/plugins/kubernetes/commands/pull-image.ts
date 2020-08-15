@@ -56,7 +56,7 @@ describe("pull-image plugin command", () => {
     before(async () => {
       await init("cluster-docker-remote-registry")
 
-      module = await graph.getModule("remote-registry-test")
+      module = graph.getModule("remote-registry-test")
 
       // build the image
       await garden.buildDir.syncFromSrc(module, garden.log)
@@ -80,7 +80,7 @@ describe("pull-image plugin command", () => {
     before(async () => {
       await init("cluster-docker")
 
-      module = await graph.getModule("simple-service")
+      module = graph.getModule("simple-service")
 
       // build the image
       await garden.buildDir.syncFromSrc(module, garden.log)

@@ -15,7 +15,7 @@ import { containerHelpers } from "../../container/helpers"
 import { buildContainerModule, getContainerBuildStatus, getDockerBuildFlags } from "../../container/build"
 import { GetBuildStatusParams, BuildStatus } from "../../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams, BuildResult } from "../../../types/plugin/module/build"
-import { millicpuToString, megabytesToString, getDeploymentPodName, makePodName } from "../util"
+import { millicpuToString, megabytesToString, getDeploymentPod, makePodName } from "../util"
 import {
   RSYNC_PORT,
   dockerAuthSecretName,
@@ -27,7 +27,6 @@ import {
 } from "../constants"
 import { posix, resolve } from "path"
 import { KubeApi } from "../api"
-import { kubectl } from "../kubectl"
 import { LogEntry } from "../../../logger/log-entry"
 import { getDockerAuthVolume } from "../util"
 import { KubernetesProvider, ContainerBuildMode, KubernetesPluginContext, DEFAULT_KANIKO_IMAGE } from "../config"
@@ -40,13 +39,14 @@ import { Writable } from "stream"
 import { LogLevel } from "../../../logger/log-node"
 import { exec, renderOutputStream } from "../../../util/util"
 import { loadImageToKind } from "../local/kind"
-import { getSystemNamespace, getAppNamespace } from "../namespace"
+import { getSystemNamespace } from "../namespace"
 import { dedent } from "../../../util/string"
 import chalk = require("chalk")
 import { loadImageToMicrok8s, getMicrok8sImageStatus } from "../local/microk8s"
 import { RunResult } from "../../../types/plugin/base"
 import { ContainerProvider } from "../../container/container"
 import { PluginContext } from "../../../plugin-context"
+import { KubernetesPod } from "../types"
 
 const registryPort = 5000
 
@@ -114,6 +114,7 @@ const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } 
     const k8sCtx = ctx as KubernetesPluginContext
     const provider = k8sCtx.provider
     const deploymentRegistry = provider.config.deploymentRegistry
+    const api = await KubeApi.factory(log, ctx, provider)
 
     if (!deploymentRegistry) {
       // This is validated in the provider configure handler, so this is an internal error if it happens
@@ -123,25 +124,28 @@ const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } 
     const args = await getManifestInspectArgs(module, deploymentRegistry)
     const pushArgs = ["/bin/sh", "-c", "DOCKER_CLI_EXPERIMENTAL=enabled docker " + args.join(" ")]
 
-    const podName = await getDeploymentPodName(dockerDaemonDeploymentName, ctx, provider, log)
-    const res = await execInPod({
-      ctx,
-      provider,
-      log,
-      args: pushArgs,
-      timeout: 300,
-      podName,
-      containerName: dockerDaemonContainerName,
-      ignoreError: true,
-    })
+    const systemNamespace = await getSystemNamespace(ctx, provider, log)
+    const runner = await getDockerDaemonPodRunner({ api, systemNamespace, ctx, provider })
 
-    // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
-    if (res.exitCode !== 0 && !res.stderr.includes("no such manifest")) {
-      const detail = res.all || `docker manifest inspect exited with code ${res.exitCode}`
-      log.warn(chalk.yellow(`Unable to query registry for image status: ${detail}`))
+    try {
+      await runner.exec({
+        log,
+        command: pushArgs,
+        timeoutSec: 300,
+        containerName: dockerDaemonContainerName,
+      })
+      return { ready: true }
+    } catch (err) {
+      const res = err.detail.result
+
+      // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
+      if (res.exitCode !== 0 && !res.stderr.includes("no such manifest")) {
+        const detail = res.all || `docker manifest inspect exited with code ${res.exitCode}`
+        log.warn(chalk.yellow(`Unable to query registry for image status: ${detail}`))
+      }
+
+      return { ready: false }
     }
-
-    return { ready: res.exitCode === 0 }
   },
 
   "kaniko": async (params) => {
@@ -166,27 +170,29 @@ const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } 
     skopeoCommand.push(`docker://${remoteId}`)
 
     const podCommand = ["sh", "-c", skopeoCommand.join(" ")]
-    const podName = await getDeploymentPodName(gardenUtilDaemonDeploymentName, ctx, provider, log)
-    const res = await execInPod({
-      ctx,
-      provider,
-      log,
-      args: podCommand,
-      timeout: 300,
-      podName,
-      containerName: skopeoDaemonContainerName,
-      ignoreError: true,
-    })
+    const api = await KubeApi.factory(log, ctx, provider)
+    const systemNamespace = await getSystemNamespace(ctx, provider, log)
+    const runner = await getUtilDaemonPodRunner({ api, systemNamespace, ctx, provider })
 
-    // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
-    if (res.exitCode !== 0 && !res.stderr.includes("manifest unknown")) {
-      throw new RuntimeError(`Unable to query registry for image status: ${res.all}`, {
-        command: skopeoCommand,
-        output: res.all,
+    try {
+      await runner.exec({
+        log,
+        command: podCommand,
+        timeoutSec: 300,
+        containerName: skopeoDaemonContainerName,
       })
+      return { ready: true }
+    } catch (err) {
+      const res = err.detail.result
+      // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
+      if (res.exitCode !== 0 && !res.stderr.includes("manifest unknown")) {
+        throw new RuntimeError(`Unable to query registry for image status: ${res.all}`, {
+          command: skopeoCommand,
+          output: res.all,
+        })
+      }
+      return { ready: false }
     }
-
-    return { ready: res.exitCode === 0 }
   },
 }
 
@@ -226,14 +232,18 @@ const localBuild: BuildHandler = async (params) => {
 const remoteBuild: BuildHandler = async (params) => {
   const { ctx, module, log } = params
   const provider = <KubernetesProvider>ctx.provider
-  const namespace = await getAppNamespace(ctx, log, provider)
   const systemNamespace = await getSystemNamespace(ctx, provider, log)
+  const api = await KubeApi.factory(log, ctx, provider)
 
   if (!(await containerHelpers.hasDockerfile(module))) {
     return {}
   }
 
-  const buildSyncPod = await getDeploymentPodName(buildSyncDeploymentName, ctx, provider, log)
+  const buildSyncPod = await getDeploymentPod({
+    api,
+    deploymentName: buildSyncDeploymentName,
+    namespace: systemNamespace,
+  })
   // Sync the build context to the remote sync service
   // -> Get a tunnel to the service
   log.setState("Syncing sources to cluster...")
@@ -241,7 +251,7 @@ const remoteBuild: BuildHandler = async (params) => {
     ctx,
     log,
     namespace: systemNamespace,
-    targetResource: `Pod/${buildSyncPod}`,
+    targetResource: `Pod/${buildSyncPod.metadata.name}`,
     port: RSYNC_PORT,
   })
 
@@ -310,7 +320,6 @@ const remoteBuild: BuildHandler = async (params) => {
     ]
 
     // Execute the build
-    const podName = await getDeploymentPodName(dockerDaemonDeploymentName, ctx, provider, log)
     const containerName = dockerDaemonContainerName
     const buildTimeout = module.spec.build.timeout
 
@@ -318,17 +327,17 @@ const remoteBuild: BuildHandler = async (params) => {
       args = ["/bin/sh", "-c", "DOCKER_BUILDKIT=1 " + args.join(" ")]
     }
 
-    const buildRes = await execInPod({
-      ctx,
-      provider,
+    const runner = await getDockerDaemonPodRunner({ api, ctx, provider, systemNamespace })
+
+    const buildRes = await runner.exec({
       log,
-      args,
-      timeout: buildTimeout,
-      podName,
+      command: args,
+      timeoutSec: buildTimeout,
       containerName,
       stdout,
     })
-    buildLog = buildRes.stdout + buildRes.stderr
+
+    buildLog = buildRes.log
 
     // Push the image to the registry
     log.setState({ msg: `Pushing image ${localId} to registry...` })
@@ -336,17 +345,15 @@ const remoteBuild: BuildHandler = async (params) => {
     const dockerCmd = ["docker", "push", deploymentImageId]
     const pushArgs = ["/bin/sh", "-c", dockerCmd.join(" ")]
 
-    const pushRes = await execInPod({
-      ctx,
-      provider,
+    const pushRes = await runner.exec({
       log,
-      args: pushArgs,
-      timeout: 300,
-      podName,
+      command: pushArgs,
+      timeoutSec: 300,
       containerName,
       stdout,
     })
-    buildLog += pushRes.stdout + pushRes.stderr
+
+    buildLog += pushRes.log
   } else if (provider.config.buildMode === "kaniko") {
     // build with Kaniko
     const args = [
@@ -367,7 +374,15 @@ const remoteBuild: BuildHandler = async (params) => {
     args.push(...getDockerBuildFlags(module))
 
     // Execute the build
-    const buildRes = await runKaniko({ ctx, provider, namespace, log, module, args, outputStream: stdout })
+    const buildRes = await runKaniko({
+      ctx,
+      provider,
+      log,
+      namespace: systemNamespace,
+      module,
+      args,
+      outputStream: stdout,
+    })
     buildLog = buildRes.log
 
     if (kanikoBuildFailed(buildRes)) {
@@ -387,18 +402,52 @@ const remoteBuild: BuildHandler = async (params) => {
   }
 }
 
-export interface BuilderExecParams {
+export async function getDockerDaemonPodRunner({
+  api,
+  systemNamespace,
+  ctx,
+  provider,
+}: {
+  api: KubeApi
+  systemNamespace: string
   ctx: PluginContext
   provider: KubernetesProvider
-  log: LogEntry
-  args: string[]
-  env?: { [key: string]: string }
-  ignoreError?: boolean
-  timeout: number
-  podName: string
-  containerName: string
-  stdout?: Writable
-  stderr?: Writable
+}) {
+  const pod = await getDeploymentPod({ api, deploymentName: dockerDaemonDeploymentName, namespace: systemNamespace })
+
+  return new PodRunner({
+    api,
+    ctx,
+    provider,
+    namespace: systemNamespace,
+    pod,
+  })
+}
+
+export async function getUtilDaemonPodRunner({
+  api,
+  systemNamespace,
+  ctx,
+  provider,
+}: {
+  api: KubeApi
+  systemNamespace: string
+  ctx: PluginContext
+  provider: KubernetesProvider
+}) {
+  const pod = await getDeploymentPod({
+    api,
+    deploymentName: gardenUtilDaemonDeploymentName,
+    namespace: systemNamespace,
+  })
+
+  return new PodRunner({
+    api,
+    ctx,
+    provider,
+    namespace: systemNamespace,
+    pod,
+  })
 }
 
 export const DEFAULT_KANIKO_FLAGS = ["--cache=true"]
@@ -407,7 +456,7 @@ export const getKanikoFlags = (flags?: string[], topLevelFlags?: string[]): stri
   if (!flags && !topLevelFlags) {
     return DEFAULT_KANIKO_FLAGS
   }
-  const flagToKey = (flag) => {
+  const flagToKey = (flag: string) => {
     const found = flag.match(/--([a-zA-Z]*)/)
     if (found === null) {
       throw new ConfigurationError(`Invalid format for a kaniko flag`, { flag })
@@ -435,35 +484,6 @@ const buildHandlers: { [mode in ContainerBuildMode]: BuildHandler } = {
   "kaniko": remoteBuild,
 }
 
-// TODO: we should make a simple service around this instead of execing into containers
-export async function execInPod({
-  ctx,
-  provider,
-  log,
-  args,
-  ignoreError,
-  timeout,
-  podName,
-  containerName,
-  stdout,
-  stderr,
-}: BuilderExecParams) {
-  const execCmd = ["exec", "-i", podName, "-c", containerName, "--", ...args]
-  const systemNamespace = await getSystemNamespace(ctx, provider, log)
-
-  log.verbose(`Running: kubectl ${execCmd.join(" ")}`)
-
-  return kubectl(ctx, provider).exec({
-    args: execCmd,
-    ignoreError,
-    log,
-    namespace: systemNamespace,
-    timeoutSec: timeout,
-    stdout,
-    stderr,
-  })
-}
-
 interface RunKanikoParams {
   ctx: PluginContext
   provider: KubernetesProvider
@@ -474,9 +494,16 @@ interface RunKanikoParams {
   outputStream: Writable
 }
 
-async function runKaniko({ ctx, provider, namespace, log, module, args, outputStream }: RunKanikoParams) {
+async function runKaniko({
+  ctx,
+  provider,
+  namespace,
+  log,
+  module,
+  args,
+  outputStream,
+}: RunKanikoParams): Promise<RunResult> {
   const api = await KubeApi.factory(log, ctx, provider)
-  const systemNamespace = await getSystemNamespace(ctx, provider, log)
 
   const podName = makePodName("kaniko", namespace, module.name)
   const registryHostname = getRegistryHostname(provider.config)
@@ -601,27 +628,36 @@ async function runKaniko({ ctx, provider, namespace, log, module, args, outputSt
     ])
   }
 
+  const pod: KubernetesPod = {
+    apiVersion: "v1",
+    kind: "Pod",
+    metadata: {
+      name: podName,
+      namespace,
+    },
+    spec,
+  }
+
   const runner = new PodRunner({
     ctx,
     api,
-    podName,
+    pod,
     provider,
-    image: kanikoImage,
-    module,
-    namespace: systemNamespace,
-    spec,
+    namespace,
   })
 
-  try {
-    return runner.startAndWait({
-      ignoreError: true,
-      interactive: false,
-      log,
-      timeout: module.spec.build.timeout,
-      stdout: outputStream,
-    })
-  } finally {
-    await runner.stop()
+  const result = await runner.runAndWait({
+    log,
+    remove: true,
+    timeoutSec: module.spec.build.timeout,
+    stdout: outputStream,
+    tty: false,
+  })
+
+  return {
+    ...result,
+    moduleName: module.name,
+    version: module.version.versionString,
   }
 }
 

@@ -16,7 +16,7 @@ import { ServiceStatus } from "../../../types/service"
 import { compareDeployedResources, waitForResources } from "../status/status"
 import { KubeApi } from "../api"
 import { ModuleAndRuntimeActionHandlers } from "../../../types/plugin/plugin"
-import { getAllLogs } from "../logs"
+import { streamK8sLogs } from "../logs"
 import { deleteObjectsBySelector, apply } from "../kubectl"
 import { BuildModuleParams, BuildResult } from "../../../types/plugin/module/build"
 import { GetServiceStatusParams } from "../../../types/plugin/service/getServiceStatus"
@@ -218,7 +218,7 @@ async function getServiceLogs(params: GetServiceLogsParams<KubernetesModule>) {
   const api = await KubeApi.factory(log, ctx, provider)
   const manifests = await getManifests({ api, log, module, defaultNamespace: namespace })
 
-  return getAllLogs({ ...params, provider, defaultNamespace: namespace, resources: manifests })
+  return streamK8sLogs({ ...params, provider, defaultNamespace: namespace, resources: manifests })
 }
 
 function getSelector(service: KubernetesService) {
