@@ -33,6 +33,7 @@ import { defaultSystemNamespace } from "../../../../../../src/plugins/kubernetes
 import { PluginTools } from "../../../../../../src/types/plugin/tools"
 import { keyBy } from "lodash"
 import { PluginTool } from "../../../../../../src/util/ext-tools"
+import { kubectlSpec } from "../../../../../../src/plugins/kubernetes/kubectl"
 
 const kubeConfigEnvVar = process.env.KUBECONFIG
 const namespace = "my-namespace"
@@ -346,7 +347,6 @@ describe("createIngressResources", () => {
       dependencies: {},
       moduleConfigs: [],
       status: { ready: true, outputs: {} },
-      tools,
     }
 
     multiTlsProvider = {
@@ -355,7 +355,6 @@ describe("createIngressResources", () => {
       dependencies: {},
       moduleConfigs: [],
       status: { ready: true, outputs: {} },
-      tools,
     }
 
     singleTlsProvider = {
@@ -364,7 +363,6 @@ describe("createIngressResources", () => {
       dependencies: {},
       moduleConfigs: [],
       status: { ready: true, outputs: {} },
-      tools,
     }
   })
 
@@ -410,7 +408,8 @@ describe("createIngressResources", () => {
     }
 
     const provider = await garden.resolveProvider(garden.log, "container")
-    const ctx = garden.getPluginContext(provider)
+    const ctx = await garden.getPluginContext(provider)
+    ctx.tools["kubernetes.kubectl"] = new PluginTool(kubectlSpec)
     const parsed = await configure({ ctx, moduleConfig, log: garden.log })
     const module = await moduleFromConfig(garden, parsed.moduleConfig, [])
 
@@ -431,7 +430,7 @@ describe("createIngressResources", () => {
   }
 
   async function getKubeApi(provider: KubernetesProvider) {
-    const api = await KubeApi.factory(garden.log, provider)
+    const api = await KubeApi.factory(garden.log, await garden.getPluginContext(provider), provider)
 
     const core = td.replace(api, "core")
     td.when(core.readNamespacedSecret("somesecret", "somenamespace")).thenResolve(myDomainCertSecret)

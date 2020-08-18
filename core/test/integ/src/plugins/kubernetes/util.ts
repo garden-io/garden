@@ -43,7 +43,7 @@ describe("util", () => {
     helmGarden = await getHelmTestGarden()
     log = helmGarden.log
     const provider = await helmGarden.resolveProvider(log, "local-kubernetes")
-    ctx = helmGarden.getPluginContext(provider)
+    ctx = await helmGarden.getPluginContext(provider)
     helmGraph = await helmGarden.getConfigGraph(log)
     await buildModules()
   })
@@ -78,7 +78,7 @@ describe("util", () => {
       try {
         const graph = await garden.getConfigGraph(garden.log)
         const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as Provider<KubernetesConfig>
-        const api = await KubeApi.factory(garden.log, provider)
+        const api = await KubeApi.factory(garden.log, ctx, provider)
 
         const service = graph.getService("simple-service")
 
@@ -100,6 +100,7 @@ describe("util", () => {
           enableHotReload: false,
           log: garden.log,
           production: false,
+          blueGreen: false,
         })
         await garden.processTasks([deployTask], { throwOnError: true })
 
@@ -285,19 +286,19 @@ describe("util", () => {
 
     it("should get the first container on the resource if no name is specified", async () => {
       const deployment = await getDeployment()
-      const expected = deployment.spec.template.spec.containers[0]
+      const expected = deployment.spec.template.spec!.containers[0]
       expect(getResourceContainer(deployment)).to.equal(expected)
     })
 
     it("should pick the container by name if specified", async () => {
       const deployment = await getDeployment()
-      const expected = deployment.spec.template.spec.containers[0]
+      const expected = deployment.spec.template.spec!.containers[0]
       expect(getResourceContainer(deployment, "api")).to.equal(expected)
     })
 
     it("should throw if no containers are in resource", async () => {
       const deployment = await getDeployment()
-      deployment.spec.template.spec.containers = []
+      deployment.spec.template.spec!.containers = []
       await expectError(
         () => getResourceContainer(deployment),
         (err) => expect(err.message).to.equal("Deployment api-release has no containers configured.")

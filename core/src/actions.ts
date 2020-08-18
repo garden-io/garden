@@ -720,7 +720,7 @@ export class ActionRouter implements TypeGuard {
     const provider = await this.garden.resolveProvider(log, handler.pluginName)
 
     return {
-      ctx: this.garden.getPluginContext(provider),
+      ctx: await this.garden.getPluginContext(provider),
       log,
       base: handler.base,
     }

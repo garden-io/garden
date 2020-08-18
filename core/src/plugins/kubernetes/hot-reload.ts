@@ -23,11 +23,9 @@ import { RSYNC_PORT } from "./constants"
 import { getAppNamespace } from "./namespace"
 import { KubernetesPluginContext } from "./config"
 import { HotReloadServiceParams, HotReloadServiceResult } from "../../types/plugin/service/hotReloadService"
-import { KubernetesResource, KubernetesWorkload, KubernetesList } from "./types"
+import { KubernetesResource, KubernetesWorkload } from "./types"
 import { normalizeLocalRsyncPath, normalizeRelativePath } from "../../util/fs"
 import { createWorkloadManifest } from "./container/deployment"
-import { kubectl } from "./kubectl"
-import { labelSelectorToString } from "./util"
 import { KubeApi } from "./api"
 import { syncWithOptions } from "../../util/sync"
 import { GardenModule } from "../../types/module"
@@ -154,21 +152,21 @@ export function configureHotReload({
   }
 
   // These any casts are necessary because of flaws in the TS definitions in the client library.
-  if (!target.spec.template.spec.volumes) {
-    target.spec.template.spec.volumes = []
+  if (!target.spec.template.spec!.volumes) {
+    target.spec.template.spec!.volumes = []
   }
 
-  target.spec.template.spec.volumes.push(<any>{
+  target.spec.template.spec!.volumes.push(<any>{
     name: syncVolumeName,
     emptyDir: {},
   })
 
-  if (!target.spec.template.spec.initContainers) {
-    target.spec.template.spec.initContainers = []
+  if (!target.spec.template.spec!.initContainers) {
+    target.spec.template.spec!.initContainers = []
   }
-  target.spec.template.spec.initContainers.push(<any>initContainer)
+  target.spec.template.spec!.initContainers.push(<any>initContainer)
 
-  target.spec.template.spec.containers.push(<any>rsyncContainer)
+  target.spec.template.spec!.containers.push(<any>rsyncContainer)
 }
 
 /**
@@ -192,7 +190,7 @@ export async function hotReloadContainer({
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
   const namespace = await getAppNamespace(k8sCtx, log, provider)
-  const api = await KubeApi.factory(log, provider)
+  const api = await KubeApi.factory(log, ctx, provider)
 
   // Find the currently deployed workload by labels
   const manifest = await createWorkloadManifest({
@@ -204,16 +202,19 @@ export async function hotReloadContainer({
     enableHotReload: true,
     production: k8sCtx.production,
     log,
+    blueGreen: provider.config.deploymentStrategy === "blue-green",
   })
-  const selector = labelSelectorToString({
-    [gardenAnnotationKey("service")]: service.name,
-  })
-  // TODO: make and use a KubeApi method for this
-  const res: KubernetesList<KubernetesWorkload> = await kubectl(provider).json({
-    args: ["get", manifest.kind, "-l", selector],
+
+  const res = await api.listResources<KubernetesWorkload>({
     log,
+    apiVersion: manifest.apiVersion,
+    kind: manifest.kind,
     namespace,
+    labelSelector: {
+      [gardenAnnotationKey("service")]: service.name,
+    },
   })
+
   const list = res.items.filter((r) => r.metadata.annotations![gardenAnnotationKey("hot-reload")] === "true")
 
   if (list.length === 0) {
@@ -343,6 +344,7 @@ export async function syncToService({ ctx, service, hotReloadSpec, namespace, wo
     if (postSyncCommand) {
       // Run post-sync callback inside the pod
       const callbackResult = await execInWorkload({
+        ctx,
         log,
         namespace,
         workload,

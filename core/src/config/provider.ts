@@ -15,7 +15,6 @@ import { uniq } from "lodash"
 import { GardenPlugin } from "../types/plugin/plugin"
 import { EnvironmentStatus } from "../types/plugin/provider/getEnvironmentStatus"
 import { environmentStatusSchema } from "./status"
-import { PluginTools } from "../types/plugin/tools"
 
 export interface BaseProviderConfig {
   name: string
@@ -58,10 +57,9 @@ export interface Provider<T extends BaseProviderConfig = BaseProviderConfig> {
   moduleConfigs: ModuleConfig[]
   config: T
   status: EnvironmentStatus
-  tools: PluginTools
 }
 
-export const providerSchemaWithoutTools = () =>
+export const providerSchema = () =>
   providerFixedFieldsSchema().keys({
     dependencies: joiIdentifierMap(joi.link("..."))
       .description("Map of all the providers that this provider depends on.")
@@ -70,15 +68,6 @@ export const providerSchemaWithoutTools = () =>
     moduleConfigs: joiArray(moduleConfigSchema().optional()),
     status: environmentStatusSchema(),
   })
-
-export const providerSchema = () =>
-  providerSchemaWithoutTools()
-    .keys({
-      tools: joiIdentifierMap(joi.object())
-        .required()
-        .description("Map of tools defined by the provider."),
-    })
-    .id("provider")
 
 export interface ProviderMap {
   [name: string]: Provider<GenericProviderConfig>
@@ -93,15 +82,13 @@ export const defaultProvider: Provider = {
   moduleConfigs: [],
   config: { name: "_default" },
   status: { ready: true, outputs: {} },
-  tools: {},
 }
 
 export function providerFromConfig(
   config: GenericProviderConfig,
   dependencies: ProviderMap,
   moduleConfigs: ModuleConfig[],
-  status: EnvironmentStatus,
-  tools: PluginTools
+  status: EnvironmentStatus
 ): Provider {
   return {
     name: config.name,
@@ -109,7 +96,6 @@ export function providerFromConfig(
     moduleConfigs,
     config,
     status,
-    tools,
   }
 }
 

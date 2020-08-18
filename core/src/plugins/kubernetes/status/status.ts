@@ -15,7 +15,7 @@ import { KubeApi } from "../api"
 import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { getAppNamespace } from "../namespace"
 import Bluebird from "bluebird"
-import { KubernetesResource, KubernetesServerResource } from "../types"
+import { KubernetesResource, KubernetesServerResource, BaseResource } from "../types"
 import { zip, isArray, isPlainObject, pickBy, mapValues, flatten, cloneDeep } from "lodash"
 import { KubernetesProvider, KubernetesPluginContext } from "../config"
 import { isSubset } from "../../../util/is-subset"
@@ -33,24 +33,24 @@ import { checkWorkloadStatus } from "./workload"
 import { checkWorkloadPodStatus } from "./pod"
 import { gardenAnnotationKey, stableStringify } from "../../../util/string"
 
-export interface ResourceStatus {
+export interface ResourceStatus<T = BaseResource> {
   state: ServiceState
-  resource: KubernetesServerResource
+  resource: KubernetesServerResource<T>
   lastMessage?: string
   warning?: true
   logs?: string
 }
 
-export interface StatusHandlerParams {
+export interface StatusHandlerParams<T = BaseResource> {
   api: KubeApi
   namespace: string
-  resource: KubernetesServerResource
+  resource: KubernetesServerResource<T>
   log: LogEntry
   resourceVersion?: number
 }
 
-interface ObjHandler {
-  (params: StatusHandlerParams): Promise<ResourceStatus>
+interface StatusHandler<T = BaseResource> {
+  (params: StatusHandlerParams<T>): Promise<ResourceStatus<T>>
 }
 
 const pvcPhaseMap: { [key: string]: ServiceState } = {
@@ -62,36 +62,33 @@ const pvcPhaseMap: { [key: string]: ServiceState } = {
 
 // Handlers to check the rollout status for K8s objects where that applies.
 // Using https://github.com/kubernetes/helm/blob/master/pkg/kube/wait.go as a reference here.
-const objHandlers: { [kind: string]: ObjHandler } = {
+const objHandlers: { [kind: string]: StatusHandler } = {
   DaemonSet: checkWorkloadStatus,
   Deployment: checkWorkloadStatus,
   StatefulSet: checkWorkloadStatus,
 
-  PersistentVolumeClaim: async ({ resource }) => {
+  PersistentVolumeClaim: async ({ resource }: StatusHandlerParams<V1PersistentVolumeClaim>) => {
     const pvc = <KubernetesServerResource<V1PersistentVolumeClaim>>resource
     const state: ServiceState = pvcPhaseMap[pvc.status.phase!] || "unknown"
     return { state, resource }
   },
 
-  Pod: async ({ resource }) => {
+  Pod: async ({ resource }: StatusHandlerParams<V1Pod>) => {
     return checkWorkloadPodStatus(resource, [<KubernetesServerResource<V1Pod>>resource])
   },
 
-  ReplicaSet: async ({ api, namespace, resource }) => {
+  ReplicaSet: async ({ api, namespace, resource }: StatusHandlerParams<V1ReplicaSet>) => {
     return checkWorkloadPodStatus(
       resource,
       await getPods(api, namespace, (<KubernetesServerResource<V1ReplicaSet>>resource).spec.selector!.matchLabels!)
     )
   },
 
-  ReplicationController: async ({ api, namespace, resource }) => {
-    return checkWorkloadPodStatus(
-      resource,
-      await getPods(api, namespace, (<KubernetesServerResource<V1ReplicationController>>resource).spec.selector)
-    )
+  ReplicationController: async ({ api, namespace, resource }: StatusHandlerParams<V1ReplicationController>) => {
+    return checkWorkloadPodStatus(resource, await getPods(api, namespace, resource.spec!.selector!))
   },
 
-  Service: async ({ resource }) => {
+  Service: async ({ resource }: StatusHandlerParams<V1Service>) => {
     if (resource.spec.type === "ExternalName") {
       return { state: "ready", resource }
     }
@@ -163,19 +160,33 @@ export async function checkResourceStatus(
 
 interface WaitParams {
   namespace: string
+  ctx: PluginContext
   provider: KubernetesProvider
-  serviceName: string
+  serviceName?: string
   resources: KubernetesResource[]
   log: LogEntry
+  timeoutSec?: number
 }
 
 /**
  * Wait until the rollout is complete for each of the given Kubernetes objects
  */
-export async function waitForResources({ namespace, provider, serviceName, resources, log }: WaitParams) {
+export async function waitForResources({
+  namespace,
+  ctx,
+  provider,
+  serviceName,
+  resources,
+  log,
+  timeoutSec,
+}: WaitParams) {
   let loops = 0
   let lastMessage: string | undefined
   const startTime = new Date().getTime()
+
+  if (!timeoutSec) {
+    timeoutSec = KUBECTL_DEFAULT_TIMEOUT
+  }
 
   const statusLine = log.info({
     symbol: "info",
@@ -183,7 +194,7 @@ export async function waitForResources({ namespace, provider, serviceName, resou
     msg: `Waiting for resources to be ready...`,
   })
 
-  const api = await KubeApi.factory(log, provider)
+  const api = await KubeApi.factory(log, ctx, provider)
   let statuses: ResourceStatus[]
 
   while (true) {
@@ -194,11 +205,12 @@ export async function waitForResources({ namespace, provider, serviceName, resou
 
     for (const status of statuses) {
       const resource = status.resource
+      const statusMessage = `${resource.kind} ${resource.metadata.name} is "${status.state}"`
 
-      log.debug(`Status of ${resource.kind} ${resource.metadata.name} is "${status.state}"`)
+      log.debug(`Status of ${statusMessage}`)
 
       if (status.state === "unhealthy") {
-        let msg = `Error deploying ${serviceName}: ${status.lastMessage}`
+        let msg = `Error deploying ${serviceName || "resources"}: ${status.lastMessage || statusMessage}`
 
         if (status.logs) {
           msg += "\n\n" + status.logs
@@ -220,20 +232,23 @@ export async function waitForResources({ namespace, provider, serviceName, resou
       }
     }
 
-    if (combineStates(statuses.map((s) => s.state)) === "ready") {
+    const combinedStates = combineStates(statuses.map((s) => s.state))
+
+    // Note: "stopped" is a normal state for Pods, which run to completion
+    if (combinedStates === "ready" || combinedStates === "stopped") {
       break
     }
 
     const now = new Date().getTime()
 
-    if (now - startTime > KUBECTL_DEFAULT_TIMEOUT * 1000) {
-      throw new DeploymentError(`Timed out waiting for ${serviceName} to deploy`, { statuses })
+    if (now - startTime > timeoutSec * 1000) {
+      throw new DeploymentError(`Timed out waiting for ${serviceName || "resources"} to deploy`, { statuses })
     }
   }
 
   statusLine.setState({ symbol: "info", section: serviceName, msg: `Resources ready` })
 
-  return statuses.map((s) => s.resource)
+  return statuses
 }
 
 interface ComparisonResult {
@@ -402,7 +417,7 @@ export async function getDeployedResource(
   resource: KubernetesResource,
   log: LogEntry
 ): Promise<KubernetesResource | null> {
-  const api = await KubeApi.factory(log, provider)
+  const api = await KubeApi.factory(log, ctx, provider)
   const namespace = resource.metadata.namespace || (await getAppNamespace(ctx, log, provider))
 
   try {

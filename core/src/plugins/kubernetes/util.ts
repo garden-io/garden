@@ -20,14 +20,13 @@ import { gardenAnnotationKey, base64, deline, stableStringify } from "../../util
 import { MAX_CONFIGMAP_DATA_SIZE, dockerAuthSecretName, dockerAuthSecretKey } from "./constants"
 import { ContainerEnvVars } from "../container/config"
 import { ConfigurationError, PluginError } from "../../exceptions"
-import { KubernetesProvider, ServiceResourceSpec } from "./config"
+import { ServiceResourceSpec } from "./config"
 import { LogEntry } from "../../logger/log-entry"
 import { PluginContext } from "../../plugin-context"
 import { HelmModule } from "./helm/config"
 import { KubernetesModule } from "./kubernetes-module/config"
 import { getChartPath, renderHelmTemplateString } from "./helm/common"
 import { HotReloadableResource } from "./hot-reload"
-import { getSystemNamespace } from "./namespace"
 
 export const skopeoImage = "gardendev/skopeo:1.41.0-1"
 
@@ -140,7 +139,7 @@ export async function getWorkloadPods(api: KubeApi, namespace: string, resource:
       selectorString // labelSelector
     )
 
-    const replicaSets = replicaSetRes.items.filter((r) => r.spec.replicas > 0)
+    const replicaSets = replicaSetRes.items.filter((r) => (r.spec.replicas || 0) > 0)
 
     if (replicaSets.length === 0) {
       return []
@@ -364,7 +363,7 @@ export function prepareEnvVars(env: ContainerEnvVars): V1EnvVar[] {
  *
  * @param manifest any Kubernetes manifest
  */
-export function convertDeprecatedManifestVersion(manifest: KubernetesResource): KubernetesResource {
+export function convertDeprecatedManifestVersion(manifest: KubernetesWorkload): KubernetesWorkload {
   const { apiVersion, kind } = manifest
 
   if (workloadTypes.includes(kind)) {
@@ -386,7 +385,7 @@ export function convertDeprecatedManifestVersion(manifest: KubernetesResource): 
     if (manifest.spec && !manifest.spec.selector) {
       manifest.spec.selector = {
         // This resolves to an empty object if both of these are (for whatever reason) undefined
-        ...{ matchLabels: manifest.spec.template.metadata.labels || manifest.metadata.labels },
+        ...{ matchLabels: manifest.spec.template?.metadata?.labels || manifest.metadata.labels },
       }
     }
   }
@@ -394,21 +393,26 @@ export function convertDeprecatedManifestVersion(manifest: KubernetesResource): 
   return manifest
 }
 
-export async function getDeploymentPodName(deploymentName: string, provider: KubernetesProvider, log: LogEntry) {
-  const api = await KubeApi.factory(log, provider)
-  const systemNamespace = await getSystemNamespace(provider, log)
-
-  const status = await api.apps.readNamespacedDeployment(deploymentName, systemNamespace)
-  const pods = await getPods(api, systemNamespace, status.spec.selector.matchLabels)
+export async function getDeploymentPod({
+  api,
+  deploymentName,
+  namespace,
+}: {
+  api: KubeApi
+  deploymentName: string
+  namespace: string
+}) {
+  const status = await api.apps.readNamespacedDeployment(deploymentName, namespace)
+  const pods = await getPods(api, namespace, status.spec.selector?.matchLabels || {})
   const pod = sample(pods)
   if (!pod) {
     throw new PluginError(`Could not a running pod in a deployment: ${deploymentName}`, {
       deploymentName,
-      systemNamespace,
+      namespace,
     })
   }
 
-  return pod.metadata.name
+  return pod
 }
 
 export function getStaticLabelsFromPod(pod: KubernetesPod): { [key: string]: string } {
@@ -551,7 +555,7 @@ export function getResourceContainer(resource: HotReloadableResource, containerN
   const kind = resource.kind
   const name = resource.metadata.name
 
-  const containers = resource.spec.template.spec.containers || []
+  const containers = resource.spec.template.spec?.containers || []
 
   if (containers.length === 0) {
     throw new ConfigurationError(`${kind} ${resource.metadata.name} has no containers configured.`, { resource })

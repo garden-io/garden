@@ -80,7 +80,7 @@ describe("plugins.container", () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin] })
     log = garden.log
     containerProvider = await garden.resolveProvider(garden.log, "container")
-    ctx = garden.getPluginContext(containerProvider)
+    ctx = await garden.getPluginContext(containerProvider)
 
     td.replace(garden.buildDir, "syncDependencyProducts", () => null)
 
@@ -782,10 +782,10 @@ describe("plugins.container", () => {
         module.buildPath,
       ]
 
-      td.replace(helpers, "dockerCli", async ({ cwd, args, containerProvider: provider }) => {
+      td.replace(helpers, "dockerCli", async ({ cwd, args, ctx: _ctx }) => {
         expect(cwd).to.equal(module.buildPath)
         expect(args).to.eql(cmdArgs)
-        expect(provider).to.exist
+        expect(_ctx).to.exist
         return { all: "log" }
       })
 
@@ -819,10 +819,10 @@ describe("plugins.container", () => {
         module.buildPath,
       ]
 
-      td.replace(helpers, "dockerCli", async ({ cwd, args, containerProvider: provider }) => {
+      td.replace(helpers, "dockerCli", async ({ cwd, args, ctx: _ctx }) => {
         expect(cwd).to.equal(module.buildPath)
         expect(args).to.eql(cmdArgs)
-        expect(provider).to.exist
+        expect(_ctx).to.exist
         return { all: "log" }
       })
 
@@ -857,10 +857,10 @@ describe("plugins.container", () => {
         module.buildPath,
       ]
 
-      td.replace(helpers, "dockerCli", async ({ cwd, args, containerProvider: provider }) => {
+      td.replace(helpers, "dockerCli", async ({ cwd, args, ctx: _ctx }) => {
         expect(cwd).to.equal(module.buildPath)
         expect(args).to.eql(cmdArgs)
-        expect(provider).to.exist
+        expect(_ctx).to.exist
         return { all: "log" }
       })
 
@@ -895,10 +895,10 @@ describe("plugins.container", () => {
       td.replace(helpers, "getLocalImageId", async () => "some/image:12345")
       td.replace(helpers, "getPublicImageId", async () => "some/image:12345")
 
-      td.replace(helpers, "dockerCli", async ({ cwd, args, containerProvider: provider }) => {
+      td.replace(helpers, "dockerCli", async ({ cwd, args, ctx: _ctx }) => {
         expect(cwd).to.equal(module.buildPath)
         expect(args).to.eql(["push", "some/image:12345"])
-        expect(provider).to.exist
+        expect(_ctx).to.exist
         return { all: "log" }
       })
 
@@ -925,7 +925,7 @@ describe("plugins.container", () => {
           cwd: module.buildPath,
           args: ["tag", "some/image:12345", "some/image:1.1"],
           log: td.matchers.anything(),
-          containerProvider: td.matchers.anything(),
+          ctx: td.matchers.anything(),
         })
       )
 
@@ -934,7 +934,7 @@ describe("plugins.container", () => {
           cwd: module.buildPath,
           args: ["push", "some/image:1.1"],
           log: td.matchers.anything(),
-          containerProvider: td.matchers.anything(),
+          ctx: td.matchers.anything(),
         })
       )
     })

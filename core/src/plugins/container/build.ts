@@ -13,12 +13,10 @@ import { GetBuildStatusParams } from "../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams } from "../../types/plugin/module/build"
 import { LogLevel } from "../../logger/log-node"
 import { createOutputStream } from "../../util/util"
-import { ContainerProvider } from "./container"
 import { PrimitiveMap } from "../../config/common"
 
 export async function getContainerBuildStatus({ ctx, module, log }: GetBuildStatusParams<ContainerModule>) {
-  const containerProvider = ctx.provider as ContainerProvider
-  const identifier = await containerHelpers.imageExistsLocally(module, log, containerProvider)
+  const identifier = await containerHelpers.imageExistsLocally(module, log, ctx)
 
   if (identifier) {
     log.debug({
@@ -34,17 +32,16 @@ export async function getContainerBuildStatus({ ctx, module, log }: GetBuildStat
 export async function buildContainerModule({ ctx, module, log }: BuildModuleParams<ContainerModule>) {
   containerHelpers.checkDockerServerVersion(await containerHelpers.getDockerVersion())
 
-  const containerProvider = ctx.provider as ContainerProvider
   const buildPath = module.buildPath
   const image = module.spec.image
   const hasDockerfile = await containerHelpers.hasDockerfile(module)
 
   if (!!image && !hasDockerfile) {
-    if (await containerHelpers.imageExistsLocally(module, log, containerProvider)) {
+    if (await containerHelpers.imageExistsLocally(module, log, ctx)) {
       return { fresh: false }
     }
     log.setState(`Pulling image ${image}...`)
-    await containerHelpers.pullImage(module, log, containerProvider)
+    await containerHelpers.pullImage(module, log, ctx)
     return { fetched: true }
   }
 
@@ -76,7 +73,7 @@ export async function buildContainerModule({ ctx, module, log }: BuildModulePara
     log,
     outputStream,
     timeout,
-    containerProvider,
+    ctx,
   })
 
   return { fresh: true, buildLog: res.all || "", details: { identifier } }

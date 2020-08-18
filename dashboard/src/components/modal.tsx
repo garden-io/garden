@@ -9,7 +9,7 @@
 import React from "react"
 import Card from "./card"
 import styled from "@emotion/styled"
-import { useUiState } from "../contexts/ui"
+import { useUiState } from "../hooks"
 
 interface WrapperProps {
   onAnimationEnd: () => void

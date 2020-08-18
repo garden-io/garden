@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { useReducer, useEffect, useContext } from "react"
+import { useReducer } from "react"
 import React from "react"
 import produce from "immer"
 import { AxiosError } from "axios"
@@ -24,7 +24,9 @@ import { GetTestResultCommandResult } from "@garden-io/core/build/src/commands/g
 import { TestConfig } from "@garden-io/core/build/src/config/test"
 import { EventName } from "@garden-io/core/build/src/events"
 import { EnvironmentStatusMap } from "@garden-io/core/build/src/types/plugin/provider/getEnvironmentStatus"
-import { initWebSocket } from "../api/ws"
+import { isSupportedEvent, processWebSocketMessage } from "../api/ws"
+import { ServerWebsocketMessage } from "@garden-io/core/build/src/server/server"
+import { useWebsocket, useUiState } from "../hooks"
 
 export type SupportedEventName = PickFromUnion<
   EventName,
@@ -226,12 +228,7 @@ type Context = {
 
 // Type cast the initial value to avoid having to check whether the context exists in every context consumer.
 // Context is only undefined if the provider is missing which we assume is not the case.
-const Context = React.createContext<Context>({} as Context)
-
-/**
- * Returns the store and load actions via the Context
- */
-export const useApi = () => useContext(Context)
+export const ApiContext = React.createContext<Context>({} as Context)
 
 /**
  * A Provider component that holds all data received from the core API and websocket connections.
@@ -239,13 +236,28 @@ export const useApi = () => useContext(Context)
  */
 export const ApiProvider: React.FC = ({ children }) => {
   const [store, dispatch] = useReducer(reducer, initialState)
+  const { actions } = useUiState()
 
-  // Set up the ws connection
-  // TODO: Add websocket state as dependency (second argument) so that the websocket is re-initialised
-  // if the connection breaks.
-  useEffect(() => {
-    return initWebSocket(dispatch)
-  }, [])
+  const handleWsMsg = (wsMsg: MessageEvent) => {
+    const parsedMsg = JSON.parse(wsMsg.data) as ServerWebsocketMessage
 
-  return <Context.Provider value={{ store, dispatch }}>{children}</Context.Provider>
+    if (parsedMsg.type === "error") {
+      console.error(parsedMsg)
+    }
+    if (isSupportedEvent(parsedMsg)) {
+      const processResults = (entities: Entities) => processWebSocketMessage(entities, parsedMsg)
+      dispatch({ type: "wsMessageReceived", processResults })
+    }
+  }
+
+  const handleWsClosed = () => {
+    actions.showInfoBox("Lost connection to server. Attempting to reconnect...")
+  }
+  const handleWsOpened = () => {
+    actions.hideInfoBox()
+  }
+
+  useWebsocket(handleWsMsg, handleWsOpened, handleWsClosed)
+
+  return <ApiContext.Provider value={{ store, dispatch }}>{children}</ApiContext.Provider>
 }

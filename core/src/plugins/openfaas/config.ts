@@ -237,7 +237,7 @@ async function getInternalGatewayUrl(ctx: PluginContext<OpenFaasConfig>, log: Lo
   const k8sProvider = getK8sProvider(ctx.provider.dependencies)
   const namespace = await getNamespace({
     log,
-    projectName: ctx.projectName,
+    ctx,
     provider: k8sProvider,
     skipCreate: true,
   })

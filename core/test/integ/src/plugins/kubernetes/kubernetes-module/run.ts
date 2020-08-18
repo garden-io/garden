@@ -44,7 +44,7 @@ describe("runKubernetesTask", () => {
 
     // Clear any existing task result
     const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
-    const ctx = garden.getPluginContext(provider)
+    const ctx = await garden.getPluginContext(provider)
     await clearTaskResult({ ctx, log: garden.log, module: task.module, task, taskVersion: version })
 
     const key = testTask.getKey()
@@ -84,7 +84,7 @@ describe("runKubernetesTask", () => {
 
     // Clear any existing task result
     const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
-    const ctx = garden.getPluginContext(provider)
+    const ctx = await garden.getPluginContext(provider)
     await clearTaskResult({ ctx, log: garden.log, module: task.module, task, taskVersion: version })
 
     await garden.processTasks([testTask], { throwOnError: true })

@@ -16,10 +16,11 @@ import Card from "./card"
 import { colors, fontMedium } from "../styles/variables"
 import { WarningNotification } from "./notifications"
 import { ActionIcon } from "./action-icon"
-import { EntityResultSupportedTypes, useUiState } from "../contexts/ui"
+import { EntityResultSupportedTypes } from "../contexts/ui"
 import { ExternalLink } from "./links"
 import { truncateMiddle } from "../util/helpers"
 import { CopyActionIcon } from "./copy-action-icon"
+import { useUiState } from "../hooks"
 
 const Term = styled.div`
   background-color: ${colors.gardenBlack};

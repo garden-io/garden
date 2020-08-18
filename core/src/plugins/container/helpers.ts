@@ -29,7 +29,7 @@ import chalk from "chalk"
 import isUrl from "is-url"
 import titleize from "titleize"
 import { stripQuotes } from "../../util/string"
-import { ContainerProvider } from "./container"
+import { PluginContext } from "../../plugin-context"
 
 interface DockerVersion {
   client?: string
@@ -214,18 +214,18 @@ const helpers = {
     }
   },
 
-  async pullImage(module: ContainerModule, log: LogEntry, provider: ContainerProvider) {
+  async pullImage(module: ContainerModule, log: LogEntry, ctx: PluginContext) {
     const identifier = await helpers.getPublicImageId(module)
-    await helpers.dockerCli({ cwd: module.buildPath, args: ["pull", identifier], log, containerProvider: provider })
+    await helpers.dockerCli({ cwd: module.buildPath, args: ["pull", identifier], log, ctx })
   },
 
-  async imageExistsLocally(module: ContainerModule, log: LogEntry, provider: ContainerProvider) {
+  async imageExistsLocally(module: ContainerModule, log: LogEntry, ctx: PluginContext) {
     const identifier = await helpers.getLocalImageId(module)
     const result = await helpers.dockerCli({
       cwd: module.buildPath,
       args: ["images", identifier, "-q"],
       log,
-      containerProvider: provider,
+      ctx,
     })
     const exists = result.stdout!.length > 0
     return exists ? identifier : null
@@ -278,7 +278,7 @@ const helpers = {
     cwd,
     args,
     log,
-    containerProvider,
+    ctx,
     ignoreError = false,
     outputStream,
     timeout,
@@ -286,12 +286,12 @@ const helpers = {
     cwd: string
     args: string[]
     log: LogEntry
-    containerProvider: ContainerProvider
+    ctx: PluginContext
     ignoreError?: boolean
     outputStream?: Writable
     timeout?: number
   }) {
-    const docker = containerProvider.tools.docker
+    const docker = ctx.tools["container.docker"]
 
     try {
       const res = await docker.spawnAndWait({

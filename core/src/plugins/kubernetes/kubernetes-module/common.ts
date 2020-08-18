@@ -40,7 +40,7 @@ export async function getManifests({
   return Bluebird.map(manifests, async (manifest) => {
     // Ensure a namespace is set, if not already set, and if required by the resource type
     if (!manifest.metadata.namespace) {
-      const info = await api.getApiResourceInfo(log, manifest)
+      const info = await api.getApiResourceInfo(log, manifest.apiVersion, manifest.kind)
 
       if (info.namespaced) {
         manifest.metadata.namespace = defaultNamespace

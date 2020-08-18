@@ -18,13 +18,11 @@ import { containerHelpers } from "../../../../../../src/plugins/container/helper
 import { expect } from "chai"
 import { LogEntry } from "../../../../../../src/logger/log-entry"
 import { grouped } from "../../../../../helpers"
-import { ContainerProvider } from "../../../../../../src/plugins/container/container"
 
 describe("pull-image plugin command", () => {
   let garden: Garden
   let graph: ConfigGraph
   let provider: KubernetesProvider
-  let containerProvider: ContainerProvider
   let ctx: PluginContext
 
   after(async () => {
@@ -37,8 +35,7 @@ describe("pull-image plugin command", () => {
     garden = await getContainerTestGarden(environmentName)
     graph = await garden.getConfigGraph(garden.log)
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-    containerProvider = <ContainerProvider>await garden.resolveProvider(garden.log, "container")
-    ctx = garden.getPluginContext(provider)
+    ctx = await garden.getPluginContext(provider)
   }
 
   async function ensureImagePulled(module: GardenModule, log: LogEntry) {
@@ -47,7 +44,7 @@ describe("pull-image plugin command", () => {
       cwd: module.buildPath,
       args: ["images", "-q", imageId],
       log,
-      containerProvider,
+      ctx,
     })
 
     expect(imageHash.stdout.length).to.be.greaterThan(0)
@@ -59,7 +56,7 @@ describe("pull-image plugin command", () => {
     before(async () => {
       await init("cluster-docker-remote-registry")
 
-      module = await graph.getModule("remote-registry-test")
+      module = graph.getModule("remote-registry-test")
 
       // build the image
       await garden.buildDir.syncFromSrc(module, garden.log)
@@ -83,7 +80,7 @@ describe("pull-image plugin command", () => {
     before(async () => {
       await init("cluster-docker")
 
-      module = await graph.getModule("simple-service")
+      module = graph.getModule("simple-service")
 
       // build the image
       await garden.buildDir.syncFromSrc(module, garden.log)

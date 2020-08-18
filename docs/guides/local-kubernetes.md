@@ -48,7 +48,7 @@ microk8s.kubectl config view --raw > $HOME/.kube/microk8s.config
 And then adding this to your `.bashrc`/`.zshrc`:
 
 ```sh
-export KUBECONFIG=${KUBECONFIG:-$HOME/.kube/config}:$HOME/.kube/microk8s.config
+export KUBECONFIG=$HOME/.kube/microk8s.config:${KUBECONFIG:-$HOME/.kube/config}
 ```
 
 ### Minikube
@@ -76,9 +76,10 @@ The `local-kubernetes` plugin attempts to automatically detect which flavor of l
 kind: Project
 environments:
   - name: local
-    providers:
-      - name: local-kubernetes
-        context: minikube
+providers:
+  - name: local-kubernetes
+    environments: [local]
+    context: minikube
 ```
 
 If you happen to have installed both Minikube and a version of Docker for Mac with Kubernetes support enabled,

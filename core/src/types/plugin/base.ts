@@ -77,6 +77,7 @@ export const runBaseParams = {
     .description("If set, how long to run the command before timing out."),
 }
 
+// TODO: update this schema in 0.13
 export interface RunResult {
   // FIXME: this field can always be inferred
   moduleName: string
@@ -85,6 +86,7 @@ export interface RunResult {
   // FIXME: this field can always be inferred
   version: string
   success: boolean
+  exitCode?: number
   // FIXME: we should avoid native Date objects
   startedAt: Date
   completedAt: Date
@@ -107,6 +109,10 @@ export const runResultSchema = () =>
         .boolean()
         .required()
         .description("Whether the module was successfully run."),
+      exitCode: joi
+        .number()
+        .integer()
+        .description("The exit code of the run (if applicable)."),
       startedAt: joi
         .date()
         .required()

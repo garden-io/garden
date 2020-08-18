@@ -11,13 +11,14 @@ import { DeploymentError } from "../../../exceptions"
 import { ContainerModule } from "../../container/config"
 import { KubeApi } from "../api"
 import { getAppNamespace } from "../namespace"
-import { kubectl } from "../kubectl"
 import { getContainerServiceStatus } from "./status"
 import { KubernetesPluginContext, KubernetesProvider } from "../config"
 import { ExecInServiceParams } from "../../../types/plugin/service/execInService"
 import { LogEntry } from "../../../logger/log-entry"
 import { getCurrentWorkloadPods } from "../util"
 import { KubernetesWorkload } from "../types"
+import { PluginContext } from "../../../plugin-context"
+import { PodRunner } from "../run"
 
 export async function execInService(params: ExecInServiceParams<ContainerModule>) {
   const { ctx, log, service, command, interactive } = params
@@ -42,10 +43,11 @@ export async function execInService(params: ExecInServiceParams<ContainerModule>
     })
   }
 
-  return execInWorkload({ provider, log, namespace, workload: status.detail.workload, command, interactive })
+  return execInWorkload({ ctx, provider, log, namespace, workload: status.detail.workload, command, interactive })
 }
 
 export async function execInWorkload({
+  ctx,
   provider,
   log,
   namespace,
@@ -53,6 +55,7 @@ export async function execInWorkload({
   command,
   interactive,
 }: {
+  ctx: PluginContext
   provider: KubernetesProvider
   log: LogEntry
   namespace: string
@@ -60,7 +63,7 @@ export async function execInWorkload({
   command: string[]
   interactive: boolean
 }) {
-  const api = await KubeApi.factory(log, provider)
+  const api = await KubeApi.factory(log, ctx, provider)
   const pods = await getCurrentWorkloadPods(api, namespace, workload)
 
   const pod = pods[0]
@@ -72,22 +75,20 @@ export async function execInWorkload({
     })
   }
 
-  // exec in the pod via kubectl
-  const opts: string[] = []
-
-  if (interactive) {
-    opts.push("-it")
-  }
-
-  const kubecmd = ["exec", ...opts, pod.metadata.name, "--", ...command]
-  const res = await kubectl(provider).spawnAndWait({
-    log,
+  const runner = new PodRunner({
+    api,
+    ctx,
+    provider,
     namespace,
-    args: kubecmd,
-    ignoreError: true,
+    pod,
+  })
+
+  const res = await runner.exec({
+    log,
+    command,
     timeoutSec: 999999,
     tty: interactive,
   })
 
-  return { code: res.code, output: res.all }
+  return { code: res.exitCode, output: res.log }
 }

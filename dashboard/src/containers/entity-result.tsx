@@ -7,7 +7,7 @@
  */
 
 import React, { useEffect } from "react"
-import { useApi, Entities } from "../contexts/api"
+import { Entities } from "../contexts/api"
 import { getDuration, getTestKey } from "../util/helpers"
 import EntityResult from "../components/entity-result"
 import { ErrorNotification } from "../components/notifications"
@@ -15,6 +15,7 @@ import { EntityResultSupportedTypes } from "../contexts/ui"
 import { loadTestResult, loadTaskResult } from "../api/actions"
 import { GetTaskResultCommandResult } from "@garden-io/core/build/src/commands/get/get-task-result"
 import { GetTestResultCommandResult } from "@garden-io/core/build/src/commands/get/get-test-result"
+import { useApi } from "../hooks"
 
 const ErrorMsg = ({ error, type }) => (
   <ErrorNotification>

@@ -18,7 +18,7 @@ import { LogEntry } from "../../logger/log-entry"
 
 export async function getSecret({ ctx, log, key }: GetSecretParams) {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const api = await KubeApi.factory(log, k8sCtx.provider)
+  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
   const ns = await getMetadataNamespace(k8sCtx, log, k8sCtx.provider)
 
   try {
@@ -36,7 +36,7 @@ export async function getSecret({ ctx, log, key }: GetSecretParams) {
 export async function setSecret({ ctx, log, key, value }: SetSecretParams) {
   // we store configuration in a separate metadata namespace, so that configs aren't cleared when wiping the namespace
   const k8sCtx = <KubernetesPluginContext>ctx
-  const api = await KubeApi.factory(log, k8sCtx.provider)
+  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
   const ns = await getMetadataNamespace(k8sCtx, log, k8sCtx.provider)
   const body = {
     body: {
@@ -68,7 +68,7 @@ export async function setSecret({ ctx, log, key, value }: SetSecretParams) {
 
 export async function deleteSecret({ ctx, log, key }: DeleteSecretParams) {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const api = await KubeApi.factory(log, k8sCtx.provider)
+  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
   const ns = await getMetadataNamespace(k8sCtx, log, k8sCtx.provider)
 
   try {

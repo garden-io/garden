@@ -22,7 +22,7 @@ import chalk from "chalk"
 import { safeDump, safeLoad, DumpOptions } from "js-yaml"
 import { createHash } from "crypto"
 import { tailString, dedent } from "./string"
-import { Writable } from "stream"
+import { Writable, Readable } from "stream"
 import { LogEntry } from "../logger/log-entry"
 import execa = require("execa")
 import { v4 } from "uuid"
@@ -191,7 +191,7 @@ export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
 }
 
 export interface SpawnOpts {
-  timeout?: number
+  timeoutSec?: number
   cwd?: string
   data?: Buffer
   ignoreError?: boolean
@@ -213,7 +213,18 @@ export interface SpawnOutput {
 
 // TODO Dump output to a log file if it exceeds the MAX_BUFFER_SIZE
 export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
-  const { timeout = 0, cwd, data, ignoreError = false, env, rawMode = true, stdout, stderr, tty, wait = true } = opts
+  const {
+    timeoutSec: timeout = 0,
+    cwd,
+    data,
+    ignoreError = false,
+    env,
+    rawMode = true,
+    stdout,
+    stderr,
+    tty,
+    wait = true,
+  } = opts
 
   const stdio = tty ? "inherit" : "pipe"
   const proc = _spawn(cmd, args, { cwd, env, stdio })
@@ -641,4 +652,45 @@ export async function runScript(log: LogEntry, cwd: string, script: string) {
   proc.stderr!.pipe(stderr)
 
   await proc
+}
+
+export async function streamToString(stream: Readable) {
+  const chunks: Buffer[] = []
+  return new Promise((resolve, reject) => {
+    stream.on("data", (chunk) => chunks.push(Buffer.from(chunk)))
+    stream.on("error", reject)
+    stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")))
+  })
+}
+
+/**
+ * A writable stream that collects all data written, and features a `getString()` method.
+ */
+export class StringCollector extends Writable {
+  private chunks: Buffer[]
+  private error: Error
+
+  constructor() {
+    super()
+
+    this.chunks = []
+
+    this.on("data", (chunk) => this.chunks.push(Buffer.from(chunk)))
+    this.on("error", (err) => {
+      this.error = err
+    })
+  }
+
+  // tslint:disable-next-line: function-name
+  _write(chunk: Buffer, _: string, callback: () => void) {
+    this.chunks.push(Buffer.from(chunk))
+    callback()
+  }
+
+  getString() {
+    if (this.error) {
+      throw this.error
+    }
+    return Buffer.concat(this.chunks).toString("utf8")
+  }
 }

@@ -9,14 +9,12 @@
 import { ContainerModule } from "./config"
 import { PublishModuleParams } from "../../types/plugin/module/publishModule"
 import { containerHelpers } from "./helpers"
-import { ContainerProvider } from "./container"
 
 export async function publishContainerModule({ ctx, module, log }: PublishModuleParams<ContainerModule>) {
   if (!(await containerHelpers.hasDockerfile(module))) {
     log.setState({ msg: `Nothing to publish` })
     return { published: false }
   }
-  const containerProvider = ctx.provider as ContainerProvider
 
   const localId = await containerHelpers.getLocalImageId(module)
   const remoteId = await containerHelpers.getPublicImageId(module)
@@ -28,12 +26,12 @@ export async function publishContainerModule({ ctx, module, log }: PublishModule
       cwd: module.buildPath,
       args: ["tag", localId, remoteId],
       log,
-      containerProvider,
+      ctx,
     })
   }
 
   // TODO: stream output to log if at debug log level
-  await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["push", remoteId], log, containerProvider })
+  await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["push", remoteId], log, ctx })
 
   return { published: true, message: `Published ${remoteId}` }
 }

@@ -191,6 +191,9 @@ tests:
     # The command that was run in the module.
     command:
 
+    # The exit code of the run (if applicable).
+    exitCode:
+
     # When the module run was started.
     startedAt:
 
@@ -773,6 +776,9 @@ tests:
     # The command that was run in the module.
     command:
 
+    # The exit code of the run (if applicable).
+    exitCode:
+
     # When the module run was started.
     startedAt:
 
@@ -1282,22 +1288,6 @@ projectRoot:
 projectId:
 ```
 
-### garden get eysi
-
-**Meet our CTO.**
-
-Just try it.
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
-#### Usage
-
-    garden get eysi 
-
-
-
 ### garden get linked-repos
 
 **Outputs a list of all linked remote sources and modules for this project.**
@@ -1590,6 +1580,9 @@ command:
 
 # Whether the module was successfully run.
 success:
+
+# The exit code of the run (if applicable).
+exitCode:
 
 # When the module run was started.
 startedAt:
@@ -2005,6 +1998,9 @@ tests:
     # The command that was run in the module.
     command:
 
+    # The exit code of the run (if applicable).
+    exitCode:
+
     # When the module run was started.
     startedAt:
 
@@ -2255,6 +2251,9 @@ result:
 
   # The command that was run in the module.
   command:
+
+  # The exit code of the run (if applicable).
+  exitCode:
 
   # When the module run was started.
   startedAt:
@@ -2522,6 +2521,9 @@ tests:
 
     # The command that was run in the module.
     command:
+
+    # The exit code of the run (if applicable).
+    exitCode:
 
     # When the module run was started.
     startedAt:

@@ -7,7 +7,7 @@
  */
 
 import { GetServiceLogsParams } from "../../../types/plugin/service/getServiceLogs"
-import { getAllLogs } from "../logs"
+import { streamK8sLogs } from "../logs"
 import { HelmModule } from "./config"
 import { KubernetesPluginContext } from "../config"
 import { getChartResources } from "./common"
@@ -26,5 +26,5 @@ export async function getServiceLogs(params: GetServiceLogsParams<HelmModule>) {
 
   const resources = await getChartResources(k8sCtx, module, false, log)
 
-  return getAllLogs({ ...params, provider, defaultNamespace: namespace, resources })
+  return streamK8sLogs({ ...params, provider, defaultNamespace: namespace, resources })
 }

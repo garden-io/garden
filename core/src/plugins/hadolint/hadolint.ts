@@ -186,7 +186,7 @@ export const gardenPlugin = createGardenPlugin({
           }
 
           const args = ["--config", configPath, "--format", "json", dockerfilePath]
-          const result = await ctx.provider.tools.hadolint.exec({ log, args, ignoreError: true })
+          const result = await ctx.tools["hadolint.hadolint"].exec({ log, args, ignoreError: true })
 
           let success = true
 
