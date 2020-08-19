@@ -182,7 +182,7 @@ export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
       cmd,
       args,
       code: error.exitCode,
-      output: error.all || error.stdout,
+      output: error.all || error.stdout || error.stderr || "",
       error: error.stderr,
     })
     error.message = message
@@ -310,7 +310,7 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
           code,
           cmd,
           args,
-          output: result.all,
+          output: result.all || result.stdout || result.stderr || "",
           error: result.stderr || "",
         })
         _reject(new RuntimeError(msg, { cmd, args, opts, result }))
