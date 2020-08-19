@@ -15,7 +15,7 @@ import {
   joi,
   joiModuleIncludeDirective,
 } from "../../../config/common"
-import { Module } from "../../../types/module"
+import { GardenModule } from "../../../types/module"
 import { containsSource, getReleaseName } from "./common"
 import { ConfigurationError } from "../../../exceptions"
 import { deline, dedent } from "../../../util/string"
@@ -39,7 +39,8 @@ export const defaultHelmTimeout = 300
 // A Helm Module always maps to a single Service
 export type HelmModuleSpec = HelmServiceSpec
 
-export interface HelmModule extends Module<HelmModuleSpec, HelmServiceSpec, KubernetesTestSpec, KubernetesTaskSpec> {}
+export interface HelmModule
+  extends GardenModule<HelmModuleSpec, HelmServiceSpec, KubernetesTestSpec, KubernetesTaskSpec> {}
 export type HelmModuleConfig = HelmModule["_config"]
 
 export interface HelmServiceSpec {

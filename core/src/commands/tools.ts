@@ -15,7 +15,7 @@ import { Command, CommandParams } from "./base"
 import { getTerminalWidth } from "../logger/util"
 import { LoggerType } from "../logger/logger"
 import { ParameterError } from "../exceptions"
-import { uniqByName, exec } from "../util/util"
+import { uniqByName, exec, shutdown } from "../util/util"
 import { PluginTool } from "../util/ext-tools"
 import { findProjectConfig } from "../config/base"
 import { StringOption, BooleanParameter } from "../cli/params"
@@ -160,7 +160,9 @@ export class ToolsCommand extends Command<Args, Opts> {
       // We attach stdout and stderr directly, and exit with the same code as we get from the command
       log.stop()
       const result = await exec(path, args._ || [], { reject: false, stdio: "inherit" })
-      process.exit(result.exitCode)
+      await shutdown(result.exitCode)
+      // Note: We never reach this line, just putting it here for the type-checker
+      return { path, stdout: "", stderr: "", exitCode: result.exitCode }
     }
   }
 }

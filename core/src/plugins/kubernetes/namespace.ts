@@ -15,7 +15,7 @@ import { KubernetesProvider, KubernetesPluginContext } from "./config"
 import { DeploymentError, TimeoutError } from "../../exceptions"
 import { getPackageVersion, sleep } from "../../util/util"
 import { GetEnvironmentStatusParams } from "../../types/plugin/provider/getEnvironmentStatus"
-import { kubectl, KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
+import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { LogEntry } from "../../logger/log-entry"
 import { gardenAnnotationKey } from "../../util/string"
 import dedent from "dedent"
@@ -64,7 +64,7 @@ export async function createNamespace(api: KubeApi, namespace: string) {
 interface GetNamespaceParams {
   log: LogEntry
   override?: string
-  projectName: string
+  ctx: PluginContext
   provider: KubernetesProvider
   suffix?: string
   skipCreate?: boolean
@@ -77,30 +77,35 @@ interface GetNamespaceParams {
 // TODO: this feels convoluted (=a lot of parameters per line of function code), so let's consider refactoring
 export async function getNamespace({
   log,
+  ctx,
   override,
-  projectName,
   provider,
   suffix,
   skipCreate,
 }: GetNamespaceParams): Promise<string> {
-  let namespace = override || provider.config.namespace || projectName
+  let namespace = override || provider.config.namespace || ctx.projectName
 
   if (suffix) {
     namespace = `${namespace}--${suffix}`
   }
 
   if (!skipCreate) {
-    const api = await KubeApi.factory(log, provider)
+    const api = await KubeApi.factory(log, ctx, provider)
     await ensureNamespace(api, namespace)
   }
 
   return namespace
 }
 
-export async function getSystemNamespace(provider: KubernetesProvider, log: LogEntry, api?: KubeApi): Promise<string> {
+export async function getSystemNamespace(
+  ctx: PluginContext,
+  provider: KubernetesProvider,
+  log: LogEntry,
+  api?: KubeApi
+): Promise<string> {
   const namespace = provider.config.gardenSystemNamespace
   if (!api) {
-    api = await KubeApi.factory(log, provider)
+    api = await KubeApi.factory(log, ctx, provider)
   }
   await ensureNamespace(api, namespace)
 
@@ -110,7 +115,7 @@ export async function getSystemNamespace(provider: KubernetesProvider, log: LogE
 export async function getAppNamespace(ctx: PluginContext, log: LogEntry, provider: KubernetesProvider) {
   return getNamespace({
     log,
-    projectName: ctx.projectName,
+    ctx,
     provider,
   })
 }
@@ -118,7 +123,7 @@ export async function getAppNamespace(ctx: PluginContext, log: LogEntry, provide
 export function getMetadataNamespace(ctx: PluginContext, log: LogEntry, provider: KubernetesProvider) {
   return getNamespace({
     log,
-    projectName: ctx.projectName,
+    ctx,
     provider,
     suffix: "metadata",
   })
@@ -136,8 +141,8 @@ export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams
   const k8sCtx = <KubernetesPluginContext>ctx
 
   try {
-    // TODO: use API instead of kubectl (I just couldn't find which API call to make)
-    await kubectl(k8sCtx.provider).exec({ log, args: ["version"] })
+    const api = await KubeApi.factory(log, ctx, ctx.provider as KubernetesProvider)
+    await api.request({ path: "/version", log })
   } catch (err) {
     log.setError("Error")
 
@@ -208,8 +213,8 @@ export async function getModuleNamespace({
 }) {
   return getNamespace({
     log,
+    ctx,
     override: module.spec.namespace,
-    projectName: ctx.projectName,
     provider,
     skipCreate,
   })

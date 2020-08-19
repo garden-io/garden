@@ -17,7 +17,7 @@ import {
   processCommandResultSchema,
   resultMetadataKeys,
 } from "./base"
-import { Module } from "../types/module"
+import { GardenModule } from "../types/module"
 import { PublishTask } from "../tasks/publish"
 import { GraphResults } from "../task-graph"
 import { Garden } from "../garden"
@@ -126,7 +126,7 @@ export async function publishModules({
   garden: Garden
   graph: ConfigGraph
   log: LogEntry
-  modules: Module<any>[]
+  modules: GardenModule<any>[]
   forceBuild: boolean
   allowDirty: boolean
 }): Promise<GraphResults> {

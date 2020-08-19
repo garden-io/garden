@@ -8,7 +8,7 @@
 
 import deline = require("deline")
 
-import { Module, FileCopySpec } from "../../types/module"
+import { GardenModule, FileCopySpec } from "../../types/module"
 import {
   joiUserIdentifier,
   joiArray,
@@ -371,12 +371,12 @@ const containerServiceSchema = () =>
     ),
     command: joi
       .array()
-      .items(joi.string())
+      .items(joi.string().allow(""))
       .description("The command/entrypoint to run the container with when starting the service.")
       .example(commandExample),
     args: joi
       .array()
-      .items(joi.string())
+      .items(joi.string().allow(""))
       .description("The arguments to run the container with when starting the service.")
       .example(["npm", "start"]),
     daemon: joi.boolean().default(false).description(deline`
@@ -496,13 +496,13 @@ export const containerTestSchema = () =>
   baseTestSpecSchema().keys({
     args: joi
       .array()
-      .items(joi.string())
+      .items(joi.string().allow(""))
       .description("The arguments used to run the test inside the container.")
       .example(["npm", "test"]),
     artifacts: artifactsSchema(),
     command: joi
       .array()
-      .items(joi.string())
+      .items(joi.string().allow(""))
       .description("The command/entrypoint used to run the test inside the container.")
       .example(commandExample),
     env: containerEnvVarsSchema(),
@@ -523,14 +523,14 @@ export const containerTaskSchema = () =>
     .keys({
       args: joi
         .array()
-        .items(joi.string())
+        .items(joi.string().allow(""))
         .description("The arguments used to run the task inside the container.")
         .example(["rake", "db:migrate"]),
       artifacts: artifactsSchema(),
       cacheResult: cacheResultSchema(),
       command: joi
         .array()
-        .items(joi.string())
+        .items(joi.string().allow(""))
         .description("The command/entrypoint used to run the task inside the container.")
         .example(commandExample),
       env: containerEnvVarsSchema(),
@@ -622,4 +622,4 @@ export interface ContainerModule<
   S extends ContainerServiceSpec = ContainerServiceSpec,
   T extends ContainerTestSpec = ContainerTestSpec,
   W extends ContainerTaskSpec = ContainerTaskSpec
-> extends Module<M, S, T, W> {}
+> extends GardenModule<M, S, T, W> {}

@@ -18,10 +18,10 @@ import { RunResult } from "../../../types/plugin/base"
 import { RunTaskParams, RunTaskResult } from "../../../types/plugin/task/runTask"
 import { uniqByName } from "../../../util/util"
 import { prepareEnvVars } from "../util"
-import { V1PodSpec } from "@kubernetes/client-node"
 import { KubeApi } from "../api"
 import { getModuleNamespace } from "../namespace"
 import { DEFAULT_TASK_TIMEOUT } from "../../../constants"
+import { KubernetesPod } from "../types"
 
 export async function runHelmModule({
   ctx,
@@ -66,35 +66,47 @@ export async function runHelmModule({
   // Apply overrides
   const env = uniqByName([...prepareEnvVars(runtimeContext.envVars), ...(container.env || [])])
 
-  const spec: V1PodSpec = {
-    containers: [
-      {
-        ...container,
-        ...(command && { command }),
-        ...(args && { args }),
-        env,
-      },
-    ],
+  const api = await KubeApi.factory(log, ctx, provider)
+
+  const pod: KubernetesPod = {
+    apiVersion: "v1",
+    kind: "Pod",
+    metadata: {
+      name: makePodName("run", module.name),
+      namespace,
+    },
+    spec: {
+      containers: [
+        {
+          ...container,
+          ...(command && { command }),
+          ...(args && { args }),
+          env,
+        },
+      ],
+    },
   }
 
-  const api = await KubeApi.factory(log, provider)
-  const podName = makePodName("run", module.name)
-
   const runner = new PodRunner({
+    ctx,
     api,
-    podName,
+    pod,
     provider,
-    image: container.image,
-    module,
     namespace,
-    spec,
   })
 
-  return runner.startAndWait({
-    interactive,
+  const result = await runner.runAndWait({
     log,
-    timeout,
+    remove: true,
+    timeoutSec: timeout,
+    tty: !!interactive,
   })
+
+  return {
+    ...result,
+    moduleName: module.name,
+    version: module.version.versionString,
+  }
 }
 
 export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<RunTaskResult> {
@@ -129,7 +141,7 @@ export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<Ru
     args,
     artifacts: task.spec.artifacts,
     envVars: task.spec.env,
-    image: container.image,
+    image: container.image!,
     namespace,
     podName: makePodName("task", module.name, task.name),
     description: `Task '${task.name}' in container module '${module.name}'`,

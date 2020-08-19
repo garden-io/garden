@@ -191,6 +191,9 @@ tests:
     # The command that was run in the module.
     command:
 
+    # The exit code of the run (if applicable).
+    exitCode:
+
     # When the module run was started.
     startedAt:
 
@@ -773,6 +776,9 @@ tests:
     # The command that was run in the module.
     command:
 
+    # The exit code of the run (if applicable).
+    exitCode:
+
     # When the module run was started.
     startedAt:
 
@@ -1282,22 +1288,6 @@ projectRoot:
 projectId:
 ```
 
-### garden get eysi
-
-**Meet our CTO.**
-
-Just try it.
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
-
-#### Usage
-
-    garden get eysi 
-
-
-
 ### garden get linked-repos
 
 **Outputs a list of all linked remote sources and modules for this project.**
@@ -1590,6 +1580,9 @@ command:
 
 # Whether the module was successfully run.
 success:
+
+# The exit code of the run (if applicable).
+exitCode:
 
 # When the module run was started.
 startedAt:
@@ -2005,6 +1998,9 @@ tests:
     # The command that was run in the module.
     command:
 
+    # The exit code of the run (if applicable).
+    exitCode:
+
     # When the module run was started.
     startedAt:
 
@@ -2256,6 +2252,9 @@ result:
   # The command that was run in the module.
   command:
 
+  # The exit code of the run (if applicable).
+  exitCode:
+
   # When the module run was started.
   startedAt:
 
@@ -2333,13 +2332,15 @@ Examples:
 
 
 
-### garden serve
+### garden dashboard
 
-**Starts the Garden HTTP API service - **Experimental****
+**Starts the Garden dashboard for the current project and environment.**
 
-**Experimental**
+Starts the Garden dashboard for the current project, and your selected environment+namespace. The dashboard can be used to monitor your Garden project, look at logs, provider-specific dashboard pages and more.
 
-Starts an HTTP server that exposes Garden commands and events.
+The dashboard will receive and display updates from other Garden processes that you run with the same Garden project, environment and namespace.
+
+Note: You must currently run one dashboard per-environment and namespace.
 
 | Supported in workflows |   |
 | ---------------------- |---|
@@ -2347,13 +2348,13 @@ Starts an HTTP server that exposes Garden commands and events.
 
 #### Usage
 
-    garden serve [options]
+    garden dashboard [options]
 
 #### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--port` |  | number | The port number for the Garden service to listen on.
+  | `--port` |  | number | The port number for the Garden dashboard to listen on.
 
 
 ### garden test
@@ -2520,6 +2521,9 @@ tests:
 
     # The command that was run in the module.
     command:
+
+    # The exit code of the run (if applicable).
+    exitCode:
 
     # When the module run was started.
     startedAt:

@@ -36,7 +36,7 @@ export async function testHelmModule(params: TestModuleParams<HelmModule>): Prom
 
   const testName = testConfig.name
   const { command, args } = testConfig.spec
-  const image = container.image
+  const image = container.image!
   const timeout = testConfig.timeout || DEFAULT_TEST_TIMEOUT
 
   const result = await runAndCopy({

@@ -18,6 +18,7 @@ import { GetTestResultCommand } from "./get-test-result"
 import { GetDebugInfoCommand } from "./get-debug-info"
 import { GetLinkedReposCommand } from "./get-linked-repos"
 import { GetOutputsCommand } from "./get-outputs"
+import { GetDoddiCommand } from "./get-doddi"
 
 export class GetCommand extends CommandGroup {
   name = "get"
@@ -26,6 +27,7 @@ export class GetCommand extends CommandGroup {
   subCommands = [
     GetGraphCommand,
     GetConfigCommand,
+    GetDoddiCommand,
     GetEysiCommand,
     GetLinkedReposCommand,
     GetOutputsCommand,

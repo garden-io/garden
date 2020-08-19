@@ -18,7 +18,7 @@ import { ReactComponent as OpenSidebarIcon } from "../assets/open-pane.svg"
 import { ReactComponent as CloseSidebarIcon } from "../assets/close-pane.svg"
 
 import { colors, fontRegular } from "../styles/variables"
-import { useUiState } from "../contexts/ui"
+import { useUiState } from "../hooks"
 
 interface Props {
   pages: Page[]

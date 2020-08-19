@@ -8,10 +8,10 @@
 
 import { PluginServiceActionParamsBase, serviceActionParamsSchema, runBaseParams, runResultSchema } from "../base"
 import { dedent } from "../../../util/string"
-import { Module } from "../../module"
+import { GardenModule } from "../../module"
 import { RuntimeContext } from "../../../runtime-context"
 
-export interface RunServiceParams<M extends Module = Module, S extends Module = Module>
+export interface RunServiceParams<M extends GardenModule = GardenModule, S extends GardenModule = GardenModule>
   extends PluginServiceActionParamsBase<M, S> {
   interactive: boolean
   runtimeContext: RuntimeContext

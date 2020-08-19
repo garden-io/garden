@@ -9,10 +9,11 @@
 import { ConfigurationError } from "../../exceptions"
 import { PluginToolSpec } from "../../types/plugin/tools"
 import { TerraformProvider } from "./terraform"
+import { PluginContext } from "../../plugin-context"
 
-export function terraform(provider: TerraformProvider) {
+export function terraform(ctx: PluginContext, provider: TerraformProvider) {
   const version = provider.config.version
-  const cli = provider.tools["terraform-" + version.replace(/\./g, "-")]
+  const cli = ctx.tools["terraform.terraform-" + version.replace(/\./g, "-")]
 
   if (!cli) {
     throw new ConfigurationError(`Unsupported Terraform version: ${version}`, {

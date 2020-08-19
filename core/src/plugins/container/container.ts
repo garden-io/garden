@@ -23,9 +23,9 @@ import { SuggestModulesParams, SuggestModulesResult } from "../../types/plugin/m
 import { listDirectory } from "../../util/fs"
 import { dedent } from "../../util/string"
 import { getModuleTypeUrl } from "../../docs/common"
-import { Provider, ProviderConfig } from "../../config/provider"
+import { Provider, GenericProviderConfig } from "../../config/provider"
 
-export interface ContainerProviderConfig extends ProviderConfig {}
+export interface ContainerProviderConfig extends GenericProviderConfig {}
 export type ContainerProvider = Provider<ContainerProviderConfig>
 
 export const containerModuleOutputsSchema = () =>

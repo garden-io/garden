@@ -11,7 +11,7 @@ import { pathExists } from "fs-extra"
 import { joi } from "../../config/common"
 import { dedent, deline } from "../../util/string"
 import { supportedVersions } from "./cli"
-import { Module } from "../../types/module"
+import { GardenModule } from "../../types/module"
 import { ConfigureModuleParams } from "../../types/plugin/module/configure"
 import { ConfigurationError } from "../../exceptions"
 import { dependenciesSchema } from "../../config/service"
@@ -27,7 +27,7 @@ export interface TerraformModuleSpec extends TerraformBaseSpec {
   root: string
 }
 
-export interface TerraformModule extends Module<TerraformModuleSpec> {}
+export interface TerraformModule extends GardenModule<TerraformModuleSpec> {}
 
 export const schema = joi.object().keys({
   build: baseBuildSpecSchema(),
@@ -108,6 +108,7 @@ export async function getTerraformStatus({
   const root = getModuleStackRoot(module)
   const variables = module.spec.variables
   const status = await getStackStatus({
+    ctx,
     log,
     provider,
     root,
@@ -117,7 +118,7 @@ export async function getTerraformStatus({
   return {
     state: status === "up-to-date" ? "ready" : "outdated",
     version: module.version.versionString,
-    outputs: await getTfOutputs(log, provider, root),
+    outputs: await getTfOutputs({ log, ctx, provider, workingDir: root }),
     detail: {},
   }
 }
@@ -131,7 +132,7 @@ export async function deployTerraform({
   const root = getModuleStackRoot(module)
 
   if (module.spec.autoApply) {
-    await applyStack({ log, provider, root, variables: module.spec.variables })
+    await applyStack({ log, ctx, provider, root, variables: module.spec.variables })
   } else {
     const templateKey = `\${runtime.services.${module.name}.outputs.*}`
     log.warn(
@@ -148,7 +149,7 @@ export async function deployTerraform({
   return {
     state: "ready",
     version: module.version.versionString,
-    outputs: await getTfOutputs(log, provider, root),
+    outputs: await getTfOutputs({ log, ctx, provider, workingDir: root }),
     detail: {},
   }
 }

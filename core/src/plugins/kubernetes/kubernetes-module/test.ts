@@ -27,7 +27,7 @@ export async function testKubernetesModule(params: TestModuleParams<KubernetesMo
     module,
     provider: k8sCtx.provider,
   })
-  const api = await KubeApi.factory(log, k8sCtx.provider)
+  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
 
   // Get the container spec to use for running
   const manifests = await getManifests({ api, log, module, defaultNamespace: namespace })
@@ -37,7 +37,7 @@ export async function testKubernetesModule(params: TestModuleParams<KubernetesMo
 
   const testName = testConfig.name
   const { command, args } = testConfig.spec
-  const image = container.image
+  const image = container.image!
   const timeout = testConfig.timeout || DEFAULT_TEST_TIMEOUT
 
   const result = await runAndCopy({

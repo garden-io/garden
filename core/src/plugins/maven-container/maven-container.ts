@@ -17,7 +17,7 @@ import {
   ContainerTaskSpec,
 } from "../container/config"
 import { joiArray, joiProviderName, joi, joiModuleIncludeDirective } from "../../config/common"
-import { Module } from "../../types/module"
+import { GardenModule } from "../../types/module"
 import { resolve } from "path"
 import { RuntimeError, ConfigurationError } from "../../exceptions"
 import { containerHelpers } from "../container/helpers"
@@ -54,7 +54,7 @@ export interface MavenContainerModule<
   S extends ContainerServiceSpec = ContainerServiceSpec,
   T extends ContainerTestSpec = ContainerTestSpec,
   W extends ContainerTaskSpec = ContainerTaskSpec
-> extends Module<M, S, T, W> {}
+> extends GardenModule<M, S, T, W> {}
 
 const mavenKeys = {
   imageVersion: joi
@@ -204,7 +204,7 @@ async function build(params: BuildModuleParams<MavenContainerModule>) {
 
   log.setState(`Creating jar artifact...`)
 
-  const openJdk = ctx.provider.tools["openjdk-" + jdkVersion]
+  const openJdk = ctx.tools["maven-container.openjdk-" + jdkVersion]
   const openJdkPath = await openJdk.getPath(log)
 
   const mvnArgs = ["package", "--batch-mode", "--projects", ":" + artifactId, "--also-make", ...mvnOpts]
@@ -213,7 +213,7 @@ async function build(params: BuildModuleParams<MavenContainerModule>) {
   // Maven has issues when running concurrent processes, so we're working around that with a lock.
   // TODO: http://takari.io/book/30-team-maven.html would be a more robust solution.
   await buildLock.acquire("mvn", async () => {
-    await ctx.provider.tools.maven.exec({
+    await ctx.tools["maven-container.maven"].exec({
       args: mvnArgs,
       cwd: module.path,
       log,

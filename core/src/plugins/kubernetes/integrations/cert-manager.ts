@@ -35,7 +35,7 @@ import chalk from "chalk"
  */
 export async function checkCertificateStatusByName({ ctx, log, provider, resources = [], namespace }: PredicateParams) {
   const ns = namespace || (await getAppNamespace(ctx, log, provider))
-  const existingCertificates = await getAllCertificates(log, provider, ns)
+  const existingCertificates = await getAllCertificates(log, ctx, provider, ns)
   return resources.every((el) =>
     find(existingCertificates.items, (o) => o.metadata.name === el && isCertificateReady(o))
   )
@@ -48,8 +48,8 @@ export async function checkCertificateStatusByName({ ctx, log, provider, resourc
  * @param {PredicateParams} { log, provider }
  * @returns true if the cert-manager is installed and running
  */
-export async function checkForCertManagerPodsReady({ log, provider }: PredicateParams) {
-  return (await checkCertManagerStatus({ provider, log })) === "ready"
+export async function checkForCertManagerPodsReady({ log, ctx, provider }: PredicateParams) {
+  return (await checkCertManagerStatus({ ctx, provider, log })) === "ready"
 }
 
 interface PredicateParams {
@@ -142,9 +142,14 @@ export function isCertificateReady(cert) {
  * @param {string} namespace
  * @returns
  */
-export async function getAllCertificates(log: LogEntry, provider: KubernetesProvider, namespace: string) {
+export async function getAllCertificates(
+  log: LogEntry,
+  ctx: PluginContext,
+  provider: KubernetesProvider,
+  namespace: string
+) {
   const args = ["get", "certificates", "--namespace", namespace]
-  return kubectl(provider).json({ log, args })
+  return kubectl(ctx, provider).json({ log, args })
 }
 
 /**
@@ -159,8 +164,18 @@ export async function getAllCertificates(log: LogEntry, provider: KubernetesProv
  * @param {*} { provider, log, namespace = "cert-manager" }
  * @returns {Promise<ServiceState>}
  */
-export async function checkCertManagerStatus({ provider, log, namespace = "cert-manager" }): Promise<ServiceState> {
-  const api = await KubeApi.factory(log, provider)
+export async function checkCertManagerStatus({
+  ctx,
+  provider,
+  log,
+  namespace = "cert-manager",
+}: {
+  log: LogEntry
+  ctx: PluginContext
+  provider: KubernetesProvider
+  namespace?: string
+}): Promise<ServiceState> {
+  const api = await KubeApi.factory(log, ctx, provider)
   const systemPods = await api.core.listNamespacedPod(namespace)
   const certManagerPods: KubernetesServerResource<V1Pod>[] = []
   systemPods.items
@@ -208,12 +223,12 @@ export async function setupCertManager({ ctx, provider, log, status }: SetupCert
 
     if (!systemCertManagerReady) {
       entry.setState("Installing to cert-manager namespace...")
-      const api = await KubeApi.factory(log, provider)
+      const api = await KubeApi.factory(log, ctx, provider)
       await ensureNamespace(api, "cert-manager")
       const customResourcesPath = join(STATIC_DIR, "kubernetes", "system", "cert-manager", "cert-manager-crd.yaml")
       const crd = await yaml.safeLoadAll((await readFile(customResourcesPath)).toString()).filter((x) => x)
       entry.setState("Installing Custom Resources...")
-      await apply({ log, provider, manifests: crd, validate: false })
+      await apply({ log, ctx, provider, manifests: crd, validate: false })
 
       const waitForCertManagerPods: WaitForResourcesParams = {
         ctx,
@@ -262,10 +277,10 @@ export async function setupCertManager({ ctx, provider, log, status }: SetupCert
 
       if (issuers.length > 0) {
         certsLog.setState("Creating Issuers...")
-        await apply({ log, provider, manifests: issuers })
+        await apply({ log, ctx, provider, manifests: issuers })
         certsLog.setState("Issuers created.")
 
-        await apply({ log, provider, manifests: certificates, namespace })
+        await apply({ log, ctx, provider, manifests: certificates, namespace })
         certsLog.setState("Creating Certificates...")
 
         const certificateNames = certificates.map((cert) => cert.metadata.name)

@@ -12,12 +12,12 @@ import { resolve as urlResolve } from "url"
 import { ConfigurationError } from "../../exceptions"
 import { PluginContext } from "../../plugin-context"
 import { joiArray, joiProviderName, joi, joiEnvVars, DeepPrimitiveMap } from "../../config/common"
-import { Module } from "../../types/module"
+import { GardenModule } from "../../types/module"
 import { Service } from "../../types/service"
 import { ExecModuleSpecBase, ExecTestSpec } from "../exec"
 import { KubernetesProvider } from "../kubernetes/config"
 import { CommonServiceSpec } from "../../config/service"
-import { Provider, providerConfigBaseSchema, ProviderConfig, ProviderMap } from "../../config/provider"
+import { Provider, providerConfigBaseSchema, GenericProviderConfig, ProviderMap } from "../../config/provider"
 import { union } from "lodash"
 import { ContainerModule } from "../container/config"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../types/plugin/module/configure"
@@ -79,11 +79,11 @@ export const openfaasModuleOutputsSchema = () =>
       .description(`The full URL to query this service _from within_ the cluster.`),
   })
 
-export interface OpenFaasModule extends Module<OpenFaasModuleSpec, CommonServiceSpec, ExecTestSpec> {}
+export interface OpenFaasModule extends GardenModule<OpenFaasModuleSpec, CommonServiceSpec, ExecTestSpec> {}
 export type OpenFaasModuleConfig = OpenFaasModule["_config"]
 export interface OpenFaasService extends Service<OpenFaasModule> {}
 
-export interface OpenFaasConfig extends ProviderConfig {
+export interface OpenFaasConfig extends GenericProviderConfig {
   gatewayUrl: string
   hostname: string
   faasNetes: {
@@ -237,7 +237,7 @@ async function getInternalGatewayUrl(ctx: PluginContext<OpenFaasConfig>, log: Lo
   const k8sProvider = getK8sProvider(ctx.provider.dependencies)
   const namespace = await getNamespace({
     log,
-    projectName: ctx.projectName,
+    ctx,
     provider: k8sProvider,
     skipCreate: true,
   })

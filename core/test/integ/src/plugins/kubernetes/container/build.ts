@@ -12,26 +12,23 @@ import { ConfigGraph } from "../../../../../../src/config-graph"
 import {
   k8sBuildContainer,
   k8sGetContainerBuildStatus,
-  execInPod,
+  getDockerDaemonPodRunner,
 } from "../../../../../../src/plugins/kubernetes/container/build"
-import { getDeploymentPodName } from "../../../../../../src/plugins/kubernetes/util"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { expect } from "chai"
 import { getContainerTestGarden } from "./container"
 import { containerHelpers } from "../../../../../../src/plugins/container/helpers"
-import {
-  dockerDaemonDeploymentName,
-  dockerDaemonContainerName,
-} from "../../../../../../src/plugins/kubernetes/constants"
-import { ContainerProvider } from "../../../../../../src/plugins/container/container"
+import { dockerDaemonContainerName } from "../../../../../../src/plugins/kubernetes/constants"
+import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
+import { getSystemNamespace } from "../../../../../../src/plugins/kubernetes/namespace"
 
 describe("kubernetes build flow", () => {
   let garden: Garden
   let graph: ConfigGraph
   let provider: KubernetesProvider
-  let containerProvider: ContainerProvider
   let ctx: PluginContext
+  let systemNamespace: string
 
   after(async () => {
     if (garden) {
@@ -43,8 +40,8 @@ describe("kubernetes build flow", () => {
     garden = await getContainerTestGarden(environmentName)
     graph = await garden.getConfigGraph(garden.log)
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-    containerProvider = <ContainerProvider>await garden.resolveProvider(garden.log, "container")
-    ctx = garden.getPluginContext(provider)
+    ctx = await garden.getPluginContext(provider)
+    systemNamespace = await getSystemNamespace(ctx, provider, garden.log)
   }
 
   context("local mode", () => {
@@ -85,7 +82,7 @@ describe("kubernetes build flow", () => {
         cwd: module.buildPath,
         args: ["manifest", "inspect", remoteId],
         log: garden.log,
-        containerProvider,
+        ctx,
       })
     })
 
@@ -104,7 +101,7 @@ describe("kubernetes build flow", () => {
         cwd: module.buildPath,
         args: ["rmi", remoteId],
         log: garden.log,
-        containerProvider,
+        ctx,
       })
 
       const status = await k8sGetContainerBuildStatus({
@@ -173,10 +170,16 @@ describe("kubernetes build flow", () => {
 
       // Clear the image tag from the in-cluster builder
       const remoteId = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
-      const podName = await getDeploymentPodName(dockerDaemonDeploymentName, provider, garden.log)
-      const containerName = dockerDaemonContainerName
-      const args = ["docker", "rmi", remoteId]
-      await execInPod({ provider, log: garden.log, args, timeout: 300, podName, containerName })
+      const api = await KubeApi.factory(garden.log, ctx, provider)
+
+      const runner = await getDockerDaemonPodRunner({ api, systemNamespace, ctx, provider })
+
+      await runner.exec({
+        log: garden.log,
+        command: ["docker", "rmi", remoteId],
+        timeoutSec: 300,
+        containerName: dockerDaemonContainerName,
+      })
 
       // This should still report the build as ready, because it's in the registry
       const status = await k8sGetContainerBuildStatus({
@@ -232,10 +235,16 @@ describe("kubernetes build flow", () => {
 
       // Clear the image tag from the in-cluster builder
       const remoteId = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
-      const podName = await getDeploymentPodName(dockerDaemonDeploymentName, provider, garden.log)
-      const containerName = dockerDaemonContainerName
-      const args = ["docker", "rmi", remoteId]
-      await execInPod({ provider, log: garden.log, args, timeout: 300, podName, containerName })
+      const api = await KubeApi.factory(garden.log, ctx, provider)
+
+      const runner = await getDockerDaemonPodRunner({ api, systemNamespace, ctx, provider })
+
+      await runner.exec({
+        log: garden.log,
+        command: ["docker", "rmi", remoteId],
+        timeoutSec: 300,
+        containerName: dockerDaemonContainerName,
+      })
 
       // This should still report the build as ready, because it's in the registry
       const status = await k8sGetContainerBuildStatus({

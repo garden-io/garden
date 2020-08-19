@@ -13,8 +13,8 @@ import { testJsonSchema } from "./json-schema"
 import { normalizeJsonSchema } from "../../../../src/docs/json-schema"
 
 describe("normalizeJoiSchemaDescription", () => {
-  it("should correctly handle joi.customObject().jsonSchema() schemas", async () => {
-    const schema = joi.customObject().jsonSchema(testJsonSchema)
+  it("should correctly handle joi.object().jsonSchema() schemas", async () => {
+    const schema = joi.object().jsonSchema(testJsonSchema)
     const result = normalizeJoiSchemaDescription(schema.describe() as JoiDescription)
     expect(result).to.eql(normalizeJsonSchema(testJsonSchema))
   })

@@ -8,11 +8,11 @@
 
 import { resolve, relative } from "path"
 import { createGardenPlugin } from "../../types/plugin/plugin"
-import { providerConfigBaseSchema, ProviderConfig, Provider } from "../../config/provider"
+import { providerConfigBaseSchema, GenericProviderConfig, Provider } from "../../config/provider"
 import { joi, joiIdentifier, joiArray } from "../../config/common"
 import { dedent, naturalList } from "../../util/string"
 import { TestModuleParams } from "../../types/plugin/module/testModule"
-import { Module } from "../../types/module"
+import { GardenModule } from "../../types/module"
 import chalk from "chalk"
 import { baseBuildSpecSchema } from "../../config/module"
 import { matchGlobs, listDirectory } from "../../util/fs"
@@ -25,7 +25,7 @@ import { getK8sProvider } from "../openfaas/config"
 import { renderTemplates } from "../kubernetes/helm/common"
 import { LogEntry } from "../../logger/log-entry"
 
-export interface ConftestProviderConfig extends ProviderConfig {
+export interface ConftestProviderConfig extends GenericProviderConfig {
   policyPath: string
   namespace?: string
   testFailureThreshold: "deny" | "warn" | "none"
@@ -63,7 +63,7 @@ interface ConftestModuleSpec {
   combine?: boolean
 }
 
-type ConftestModule = Module<ConftestModuleSpec>
+type ConftestModule = GardenModule<ConftestModuleSpec>
 
 const moduleTypeUrl = getModuleTypeUrl("conftest")
 const containerProviderUrl = getProviderUrl("conftest-container")
@@ -140,7 +140,7 @@ export const gardenPlugin = createGardenPlugin({
           }
 
           moduleConfig.include = moduleConfig.spec.files
-          moduleConfig.testConfigs = [{ name: "test", dependencies: [], spec: {}, timeout: 10 }]
+          moduleConfig.testConfigs = [{ name: "test", dependencies: [], spec: {}, disabled: false, timeout: 10 }]
           return { moduleConfig }
         },
         testModule: async ({ ctx, log, module, testConfig }: TestModuleParams<ConftestModule>) => {
@@ -171,7 +171,7 @@ export const gardenPlugin = createGardenPlugin({
           const args = prepareArgs(ctx, provider, module)
           args.push(...files)
 
-          const result = await provider.tools.conftest.exec({ log, args, ignoreError: true, cwd: buildPath })
+          const result = await ctx.tools["conftest.conftest"].exec({ log, args, ignoreError: true, cwd: buildPath })
 
           const { success, formattedResult } = parseConftestResult(provider, log, result)
 
@@ -211,7 +211,15 @@ export const gardenPlugin = createGardenPlugin({
         configure: async ({ moduleConfig }) => {
           moduleConfig.build.dependencies.push({ name: moduleConfig.spec.sourceModule, copy: [] })
           moduleConfig.include = []
-          moduleConfig.testConfigs = [{ name: "test", dependencies: moduleConfig.spec.runtimeDependencies, spec: {} }]
+          moduleConfig.testConfigs = [
+            {
+              name: "test",
+              dependencies: moduleConfig.spec.runtimeDependencies,
+              spec: {},
+              disabled: false,
+              timeout: null,
+            },
+          ]
           return { moduleConfig }
         },
         testModule: async ({ ctx, log, module, testConfig }: TestModuleParams<ConftestModule>) => {
@@ -237,7 +245,7 @@ export const gardenPlugin = createGardenPlugin({
           const args = prepareArgs(ctx, provider, module)
           args.push("-")
 
-          const result = await provider.tools.conftest.exec({
+          const result = await ctx.tools["conftest.conftest"].exec({
             log,
             args,
             ignoreError: true,

@@ -41,7 +41,7 @@ describe("kubernetes container deployment handlers", () => {
   const init = async (environmentName: string) => {
     garden = await getContainerTestGarden(environmentName)
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-    api = await KubeApi.factory(garden.log, provider)
+    api = await KubeApi.factory(garden.log, await garden.getPluginContext(provider), provider)
   }
 
   describe("createWorkloadManifest", () => {
@@ -62,6 +62,7 @@ describe("kubernetes container deployment handlers", () => {
         enableHotReload: false,
         log: garden.log,
         production: false,
+        blueGreen: false,
       })
 
       const version = service.module.version.versionString
@@ -70,16 +71,16 @@ describe("kubernetes container deployment handlers", () => {
         kind: "Deployment",
         apiVersion: "apps/v1",
         metadata: {
-          name: "simple-service-" + version,
+          name: "simple-service",
           annotations: { "garden.io/configured.replicas": "1" },
           namespace,
-          labels: { "module": "simple-service", "service": "simple-service", "garden.io/version": version },
+          labels: { module: "simple-service", service: "simple-service" },
         },
         spec: {
-          selector: { matchLabels: { "service": "simple-service", "garden.io/version": version } },
+          selector: { matchLabels: { service: "simple-service" } },
           template: {
             metadata: {
-              labels: { "module": "simple-service", "service": "simple-service", "garden.io/version": version },
+              labels: { module: "simple-service", service: "simple-service" },
             },
             spec: {
               containers: [
@@ -114,6 +115,33 @@ describe("kubernetes container deployment handlers", () => {
       })
     })
 
+    it("should name the Deployment with a version suffix and set a version label if blueGreen=true", async () => {
+      const service = graph.getService("simple-service")
+      const namespace = provider.config.namespace!
+
+      const resource = await createWorkloadManifest({
+        api,
+        provider,
+        service,
+        runtimeContext: emptyRuntimeContext,
+        namespace,
+        enableHotReload: false,
+        log: garden.log,
+        production: false,
+        blueGreen: true,
+      })
+
+      const version = service.module.version.versionString
+
+      expect(resource.metadata.name).to.equal("simple-service-" + version)
+      expect(resource.metadata.labels).to.eql({
+        "module": "simple-service",
+        "service": "simple-service",
+        "garden.io/version": version,
+      })
+      expect(resource.spec.selector.matchLabels).to.eql({ "service": "simple-service", "garden.io/version": version })
+    })
+
     it("should copy and reference imagePullSecrets with docker basic auth", async () => {
       const service = graph.getService("simple-service")
       const secretName = "test-docker-auth"
@@ -145,11 +173,12 @@ describe("kubernetes container deployment handlers", () => {
         enableHotReload: false,
         log: garden.log,
         production: false,
+        blueGreen: false,
       })
 
       const copiedSecret = await api.core.readNamespacedSecret(secretName, namespace)
       expect(copiedSecret).to.exist
-      expect(resource.spec.template.spec.imagePullSecrets).to.eql([{ name: secretName }])
+      expect(resource.spec.template?.spec?.imagePullSecrets).to.eql([{ name: secretName }])
     })
 
     it("should copy and reference imagePullSecrets with docker credential helper", async () => {
@@ -183,11 +212,12 @@ describe("kubernetes container deployment handlers", () => {
         enableHotReload: false,
         log: garden.log,
         production: false,
+        blueGreen: false,
       })
 
       const copiedSecret = await api.core.readNamespacedSecret(secretName, namespace)
       expect(copiedSecret).to.exist
-      expect(resource.spec.template.spec.imagePullSecrets).to.eql([{ name: secretName }])
+      expect(resource.spec.template?.spec?.imagePullSecrets).to.eql([{ name: secretName }])
     })
 
     it("should correctly mount a referenced PVC module", async () => {
@@ -203,12 +233,13 @@ describe("kubernetes container deployment handlers", () => {
         enableHotReload: false,
         log: garden.log,
         production: false,
+        blueGreen: false,
       })
 
-      expect(resource.spec.template.spec.volumes).to.eql([
+      expect(resource.spec.template?.spec?.volumes).to.eql([
         { name: "test", persistentVolumeClaim: { claimName: "volume-module" } },
       ])
-      expect(resource.spec.template.spec.containers[0].volumeMounts).to.eql([{ name: "test", mountPath: "/volume" }])
+      expect(resource.spec.template?.spec?.containers[0].volumeMounts).to.eql([{ name: "test", mountPath: "/volume" }])
     })
 
     it("should throw if incompatible module is specified as a volume module", async () => {
@@ -228,6 +259,7 @@ describe("kubernetes container deployment handlers", () => {
             enableHotReload: false,
             log: garden.log,
             production: false,
+            blueGreen: false,
           }),
         (err) =>
           expect(stripAnsi(err.message)).to.equal(

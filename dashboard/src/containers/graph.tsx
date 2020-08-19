@@ -10,8 +10,8 @@ import React, { useEffect } from "react"
 import styled from "@emotion/styled"
 import Graph from "../components/graph"
 import PageError from "../components/page-error"
-import { TaskState, useApi } from "../contexts/api"
-import { StackGraphSupportedFilterKeys, EntityResultSupportedTypes, useUiState } from "../contexts/ui"
+import { TaskState } from "../contexts/api"
+import { StackGraphSupportedFilterKeys, EntityResultSupportedTypes } from "../contexts/ui"
 import EntityResult from "./entity-result"
 import Spinner from "../components/spinner"
 import { Filters } from "../components/group-filter"
@@ -20,6 +20,7 @@ import { RenderedNode } from "@garden-io/core/build/src/config-graph"
 import { GraphOutput } from "@garden-io/core/build/src/commands/get/get-graph"
 import { loadGraph } from "../api/actions"
 import { getTestKey } from "../util/helpers"
+import { useApi, useUiState } from "../hooks"
 
 const Wrapper = styled.div`
   padding-left: 0.75rem;

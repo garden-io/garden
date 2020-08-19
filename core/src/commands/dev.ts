@@ -19,11 +19,11 @@ import { getModuleWatchTasks } from "../tasks/helpers"
 import { Command, CommandResult, CommandParams, handleProcessResults, PrepareParams } from "./base"
 import { STATIC_DIR } from "../constants"
 import { processModules } from "../process"
-import { Module } from "../types/module"
+import { GardenModule } from "../types/module"
 import { getTestTasks } from "../tasks/test"
 import { ConfigGraph } from "../config-graph"
 import { getHotReloadServiceNames, validateHotReloadServiceNames } from "./helpers"
-import { GardenServer, startServer } from "../server/server"
+import { startServer } from "../server/server"
 import { BuildTask } from "../tasks/build"
 import { DeployTask } from "../tasks/deploy"
 import { Garden } from "../garden"
@@ -83,8 +83,6 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
 
   options = devOpts
 
-  private server: GardenServer
-
   async prepare({ log, footerLog }: PrepareParams<DevCommandArgs, DevCommandOpts>) {
     // print ANSI banner image
     const data = await readFile(ansiBannerPath)
@@ -93,7 +91,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
     log.info(chalk.gray.italic(`Good ${getGreetingTime()}! Let's get your environment wired up...`))
     log.info("")
 
-    this.server = await startServer(footerLog)
+    this.server = await startServer({ log: footerLog })
 
     return { persistent: true }
   }
@@ -104,7 +102,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
     footerLog,
     opts,
   }: CommandParams<DevCommandArgs, DevCommandOpts>): Promise<CommandResult> {
-    this.server.setGarden(garden)
+    this.server?.setGarden(garden)
 
     const graph = await garden.getConfigGraph(log)
     const modules = graph.getModules()
@@ -144,7 +142,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       modules,
       watch: true,
       initialTasks,
-      changeHandler: async (updatedGraph: ConfigGraph, module: Module) => {
+      changeHandler: async (updatedGraph: ConfigGraph, module: GardenModule) => {
         return getDevCommandWatchTasks({
           garden,
           log,
@@ -172,7 +170,7 @@ export async function getDevCommandInitialTasks({
   garden: Garden
   log: LogEntry
   graph: ConfigGraph
-  modules: Module[]
+  modules: GardenModule[]
   hotReloadServiceNames: string[]
   skipTests: boolean
 }) {
@@ -235,7 +233,7 @@ export async function getDevCommandWatchTasks({
   garden: Garden
   log: LogEntry
   updatedGraph: ConfigGraph
-  module: Module
+  module: GardenModule
   hotReloadServiceNames: string[]
   testNames: string[] | undefined
   skipTests: boolean
@@ -249,7 +247,7 @@ export async function getDevCommandWatchTasks({
   })
 
   if (!skipTests) {
-    const testModules: Module[] = await updatedGraph.withDependantModules([module])
+    const testModules: GardenModule[] = await updatedGraph.withDependantModules([module])
     tasks.push(
       ...flatten(
         await Bluebird.map(testModules, (m) =>

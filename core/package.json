@@ -224,7 +224,7 @@
     "tslint-microsoft-contrib": "^6.2.0",
     "tslint-no-unused": "^0.2.0-alpha.1",
     "tslint-plugin-prettier": "^2.3.0",
-    "typescript": "^3.9.3"
+    "typescript": "^3.9.6"
   },
   "scripts": {
     "add-version-files": "node ./build/src/bin/add-version-files.js",

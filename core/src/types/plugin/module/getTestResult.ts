@@ -7,12 +7,12 @@
  */
 
 import { dedent, deline } from "../../../util/string"
-import { Module } from "../../module"
+import { GardenModule } from "../../module"
 import { PluginModuleActionParamsBase, moduleActionParamsSchema, RunResult, runResultSchema } from "../base"
 import { ModuleVersion, moduleVersionSchema } from "../../../vcs/vcs"
 import { joi, joiPrimitive } from "../../../config/common"
 
-export interface GetTestResultParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> {
+export interface GetTestResultParams<T extends GardenModule = GardenModule> extends PluginModuleActionParamsBase<T> {
   testName: string
   testVersion: ModuleVersion
 }

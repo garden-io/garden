@@ -9,7 +9,7 @@
 import dedent = require("dedent")
 
 import { joiArray, joiIdentifier, joiProviderName, joi, joiStringMap } from "../../config/common"
-import { Provider, providerConfigBaseSchema, ProviderConfig } from "../../config/provider"
+import { Provider, providerConfigBaseSchema, GenericProviderConfig } from "../../config/provider"
 import {
   containerRegistryConfigSchema,
   ContainerRegistryConfig,
@@ -87,7 +87,7 @@ export type ContainerBuildMode = "local-docker" | "cluster-docker" | "kaniko"
 export type DefaultDeploymentStrategy = "rolling"
 export type DeploymentStrategy = DefaultDeploymentStrategy | "blue-green"
 
-export interface KubernetesConfig extends ProviderConfig {
+export interface KubernetesConfig extends GenericProviderConfig {
   buildMode: ContainerBuildMode
   clusterDocker?: {
     enableBuildKit?: boolean
@@ -640,12 +640,12 @@ export const kubernetesTaskSchema = () =>
       cacheResult: cacheResultSchema(),
       command: joi
         .array()
-        .items(joi.string())
+        .items(joi.string().allow(""))
         .description("The command/entrypoint used to run the task inside the container.")
         .example(commandExample),
       args: joi
         .array()
-        .items(joi.string())
+        .items(joi.string().allow(""))
         .description("The arguments to pass to the container used for execution.")
         .example(["rake", "db:migrate"]),
       env: containerEnvVarsSchema(),
@@ -665,12 +665,12 @@ export const kubernetesTestSchema = () =>
       ),
       command: joi
         .array()
-        .items(joi.string())
+        .items(joi.string().allow(""))
         .description("The command/entrypoint used to run the test inside the container.")
         .example(commandExample),
       args: joi
         .array()
-        .items(joi.string())
+        .items(joi.string().allow(""))
         .description("The arguments to pass to the container used for testing.")
         .example(["npm", "test"]),
       env: containerEnvVarsSchema(),

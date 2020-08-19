@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import tmp from "tmp-promise"
 import { getDataDir, makeTestGarden, expectError } from "../../../../../helpers"
 import { TestTask } from "../../../../../../src/tasks/test"
 import { emptyDir, pathExists } from "fs-extra"
@@ -16,13 +15,10 @@ import { Garden } from "../../../../../../src/garden"
 import { ConfigGraph } from "../../../../../../src/config-graph"
 import { findByName } from "../../../../../../src/util/util"
 import { deline } from "../../../../../../src/util/string"
-import { runAndCopy } from "../../../../../../src/plugins/kubernetes/run"
-import { containerHelpers } from "../../../../../../src/plugins/container/helpers"
 import { runContainerService } from "../../../../../../src/plugins/kubernetes/container/run"
 import { prepareRuntimeContext } from "../../../../../../src/runtime-context"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
-import { makePodName } from "../../../../../../src/plugins/kubernetes/util"
 import { decryptSecretFile } from "../../../../helpers"
 import { GARDEN_SERVICE_ROOT } from "../../../../../../src/constants"
 import { KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
@@ -46,7 +42,7 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
   if (needsInit) {
     // Load the test authentication for private registries
     const localProvider = <KubernetesProvider>await localInstance.resolveProvider(localInstance.log, "local-kubernetes")
-    const api = await KubeApi.factory(garden.log, localProvider)
+    const api = await KubeApi.factory(garden.log, await garden.getPluginContext(localProvider), localProvider)
 
     try {
       const authSecret = JSON.parse(
@@ -88,7 +84,7 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
   }
 
   const provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-  const ctx = garden.getPluginContext(provider)
+  const ctx = await garden.getPluginContext(provider)
 
   if (needsInit) {
     // Run cluster-init
@@ -103,12 +99,10 @@ describe("kubernetes container module handlers", () => {
   let garden: Garden
   let graph: ConfigGraph
   let provider: KubernetesProvider
-  let namespace: string
 
   before(async () => {
     garden = await makeTestGarden(root)
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-    namespace = provider.config.namespace!
   })
 
   beforeEach(async () => {
@@ -117,366 +111,6 @@ describe("kubernetes container module handlers", () => {
 
   after(async () => {
     await garden.close()
-  })
-
-  describe("runAndCopy", () => {
-    let tmpDir: tmp.DirectoryResult
-
-    beforeEach(async () => {
-      tmpDir = await tmp.dir({ unsafeCleanup: true })
-    })
-
-    afterEach(async () => {
-      await tmpDir.cleanup()
-    })
-
-    it("should run a basic module", async () => {
-      const module = graph.getModule("simple")
-      const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
-
-      const result = await runAndCopy({
-        ctx: garden.getPluginContext(provider),
-        log: garden.log,
-        command: ["sh", "-c", "echo ok"],
-        args: [],
-        interactive: false,
-        module,
-        namespace,
-        runtimeContext: { envVars: {}, dependencies: [] },
-        image,
-      })
-
-      expect(result.log.trim()).to.equal("ok")
-    })
-
-    it("should clean up the created container", async () => {
-      const module = graph.getModule("simple")
-      const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
-      const podName = makePodName("test", module.name)
-
-      await runAndCopy({
-        ctx: garden.getPluginContext(provider),
-        log: garden.log,
-        command: ["sh", "-c", "echo ok"],
-        args: [],
-        interactive: false,
-        module,
-        namespace: provider.config.namespace!,
-        podName,
-        runtimeContext: { envVars: {}, dependencies: [] },
-        image,
-      })
-
-      const api = await KubeApi.factory(garden.log, provider)
-
-      await expectError(
-        () => api.core.readNamespacedPod(podName, namespace),
-        (err) => expect(err.statusCode).to.equal(404)
-      )
-    })
-
-    it("should return with success=false when command exceeds timeout", async () => {
-      const task = graph.getTask("artifacts-task")
-      const module = task.module
-      const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
-
-      const result = await runAndCopy({
-        ctx: garden.getPluginContext(provider),
-        log: garden.log,
-        command: ["sh", "-c", "echo banana && sleep 10"],
-        args: [],
-        interactive: false,
-        module,
-        namespace,
-        runtimeContext: { envVars: {}, dependencies: [] },
-        image,
-        timeout: 4,
-      })
-
-      // Note: Kubernetes doesn't always return the logs when commands time out.
-      expect(result.log.trim()).to.include("Command timed out.")
-      expect(result.success).to.be.false
-    })
-
-    context("artifacts are specified", () => {
-      it("should copy artifacts out of the container", async () => {
-        const task = graph.getTask("artifacts-task")
-        const module = task.module
-        const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
-
-        const result = await runAndCopy({
-          ctx: garden.getPluginContext(provider),
-          log: garden.log,
-          command: task.spec.command,
-          args: [],
-          interactive: false,
-          module,
-          namespace,
-          runtimeContext: { envVars: {}, dependencies: [] },
-          artifacts: task.spec.artifacts,
-          artifactsPath: tmpDir.path,
-          image,
-        })
-
-        expect(result.log.trim()).to.equal("ok")
-        expect(await pathExists(join(tmpDir.path, "task.txt"))).to.be.true
-        expect(await pathExists(join(tmpDir.path, "subdir", "task.txt"))).to.be.true
-      })
-
-      it("should clean up the created Pod", async () => {
-        const task = graph.getTask("artifacts-task")
-        const module = task.module
-        const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
-        const podName = makePodName("test", module.name)
-
-        await runAndCopy({
-          ctx: garden.getPluginContext(provider),
-          log: garden.log,
-          command: task.spec.command,
-          args: [],
-          interactive: false,
-          module,
-          namespace,
-          podName,
-          runtimeContext: { envVars: {}, dependencies: [] },
-          artifacts: task.spec.artifacts,
-          artifactsPath: tmpDir.path,
-          image,
-        })
-
-        const api = await KubeApi.factory(garden.log, provider)
-
-        await expectError(
-          () => api.core.readNamespacedPod(podName, namespace),
-          (err) => expect(err.statusCode).to.equal(404)
-        )
-      })
-
-      it("should handle globs when copying artifacts out of the container", async () => {
-        const task = graph.getTask("globs-task")
-        const module = task.module
-        const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
-
-        await runAndCopy({
-          ctx: garden.getPluginContext(provider),
-          log: garden.log,
-          command: task.spec.command,
-          args: [],
-          interactive: false,
-          module,
-          namespace,
-          runtimeContext: { envVars: {}, dependencies: [] },
-          artifacts: task.spec.artifacts,
-          artifactsPath: tmpDir.path,
-          image,
-        })
-
-        expect(await pathExists(join(tmpDir.path, "subdir", "task.txt"))).to.be.true
-        expect(await pathExists(join(tmpDir.path, "output.txt"))).to.be.true
-      })
-
-      it("should not throw when an artifact is missing", async () => {
-        const task = graph.getTask("artifacts-task")
-        const module = task.module
-        const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
-
-        await runAndCopy({
-          ctx: garden.getPluginContext(provider),
-          log: garden.log,
-          command: ["sh", "-c", "echo ok"],
-          args: [],
-          interactive: false,
-          module,
-          namespace,
-          runtimeContext: { envVars: {}, dependencies: [] },
-          artifacts: task.spec.artifacts,
-          artifactsPath: tmpDir.path,
-          image,
-        })
-      })
-
-      it("should correctly copy a whole directory", async () => {
-        const task = graph.getTask("dir-task")
-        const module = task.module
-        const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
-
-        await runAndCopy({
-          ctx: garden.getPluginContext(provider),
-          log: garden.log,
-          command: task.spec.command,
-          args: [],
-          interactive: false,
-          module,
-          namespace,
-          runtimeContext: { envVars: {}, dependencies: [] },
-          artifacts: task.spec.artifacts,
-          artifactsPath: tmpDir.path,
-          image,
-        })
-
-        expect(await pathExists(join(tmpDir.path, "my-task-report"))).to.be.true
-        expect(await pathExists(join(tmpDir.path, "my-task-report", "output.txt"))).to.be.true
-      })
-
-      it("should return with logs and success=false when command exceeds timeout", async () => {
-        const task = graph.getTask("artifacts-task")
-        const module = task.module
-        const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
-
-        const result = await runAndCopy({
-          ctx: garden.getPluginContext(provider),
-          log: garden.log,
-          command: ["sh", "-c", "echo banana && sleep 10"],
-          args: [],
-          interactive: false,
-          module,
-          namespace,
-          runtimeContext: { envVars: {}, dependencies: [] },
-          artifacts: task.spec.artifacts,
-          artifactsPath: tmpDir.path,
-          image,
-          timeout: 3,
-        })
-
-        expect(result.log.trim()).to.equal("Command timed out. Here are the logs until the timeout occurred:\n\nbanana")
-        expect(result.success).to.be.false
-      })
-
-      it("should copy artifacts out of the container even when task times out", async () => {
-        const task = graph.getTask("artifacts-task")
-        const module = task.module
-        const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
-
-        const result = await runAndCopy({
-          ctx: garden.getPluginContext(provider),
-          log: garden.log,
-          command: ["sh", "-c", "touch /task.txt && sleep 10"],
-          args: [],
-          interactive: false,
-          module,
-          namespace,
-          runtimeContext: { envVars: {}, dependencies: [] },
-          artifacts: task.spec.artifacts,
-          artifactsPath: tmpDir.path,
-          image,
-          timeout: 3,
-        })
-
-        expect(result.log.trim()).to.equal("Command timed out.")
-        expect(await pathExists(join(tmpDir.path, "task.txt"))).to.be.true
-        expect(result.success).to.be.false
-      })
-
-      it("should throw when container doesn't contain sh", async () => {
-        const task = graph.getTask("missing-sh-task")
-        const module = task.module
-        const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
-
-        const actions = await garden.getActionRouter()
-        await garden.buildDir.syncFromSrc(module, garden.log)
-        await actions.build({
-          module,
-          log: garden.log,
-        })
-
-        await expectError(
-          () =>
-            runAndCopy({
-              ctx: garden.getPluginContext(provider),
-              log: garden.log,
-              command: ["sh", "-c", "echo ok"],
-              args: [],
-              interactive: false,
-              module,
-              namespace,
-              runtimeContext: { envVars: {}, dependencies: [] },
-              artifacts: task.spec.artifacts,
-              artifactsPath: tmpDir.path,
-              description: "Foo",
-              image,
-              timeout: 20000,
-              stdout: process.stdout,
-              stderr: process.stderr,
-            }),
-          (err) =>
-            expect(err.message).to.equal(deline`
-              Foo specifies artifacts to export, but the image doesn't
-              contain the sh binary. In order to copy artifacts out of Kubernetes containers, both sh and tar need
-              to be installed in the image.
-            `)
-        )
-      })
-
-      it("should throw when container doesn't contain tar", async () => {
-        const task = graph.getTask("missing-tar-task")
-        const module = task.module
-        const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
-
-        const actions = await garden.getActionRouter()
-        await garden.buildDir.syncFromSrc(module, garden.log)
-        await actions.build({
-          module,
-          log: garden.log,
-        })
-
-        await expectError(
-          () =>
-            runAndCopy({
-              ctx: garden.getPluginContext(provider),
-              log: garden.log,
-              command: ["sh", "-c", "echo ok"],
-              args: [],
-              interactive: false,
-              module,
-              namespace,
-              runtimeContext: { envVars: {}, dependencies: [] },
-              artifacts: task.spec.artifacts,
-              artifactsPath: tmpDir.path,
-              description: "Foo",
-              image,
-              timeout: 20000,
-              stdout: process.stdout,
-              stderr: process.stderr,
-            }),
-          (err) =>
-            expect(err.message).to.equal(deline`
-              Foo specifies artifacts to export, but the image doesn't
-              contain the tar binary. In order to copy artifacts out of Kubernetes containers, both sh and tar need
-              to be installed in the image.
-            `)
-        )
-      })
-
-      it("should throw when no command is specified", async () => {
-        const task = graph.getTask("missing-tar-task")
-        const module = task.module
-        const image = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
-
-        await expectError(
-          () =>
-            runAndCopy({
-              ctx: garden.getPluginContext(provider),
-              log: garden.log,
-              args: [],
-              interactive: false,
-              module,
-              namespace,
-              runtimeContext: { envVars: {}, dependencies: [] },
-              artifacts: task.spec.artifacts,
-              artifactsPath: tmpDir.path,
-              description: "Foo",
-              image,
-            }),
-          (err) =>
-            expect(err.message).to.equal(deline`
-              Foo specifies artifacts to export, but doesn't explicitly set a \`command\`.
-              The kubernetes provider currently requires an explicit command to be set for tests and tasks that
-              export artifacts, because the image's entrypoint cannot be inferred in that execution mode.
-              Please set the \`command\` field and try again.
-            `)
-        )
-      })
-    })
   })
 
   describe("runContainerService", () => {
@@ -498,7 +132,7 @@ describe("kubernetes container module handlers", () => {
       })
 
       const result = await runContainerService({
-        ctx: garden.getPluginContext(provider),
+        ctx: await garden.getPluginContext(provider),
         log: garden.log,
         service,
         module: service.module,
@@ -528,7 +162,7 @@ describe("kubernetes container module handlers", () => {
       })
 
       const result = await runContainerService({
-        ctx: garden.getPluginContext(provider),
+        ctx: await garden.getPluginContext(provider),
         log: garden.log,
         service,
         module: service.module,
@@ -583,7 +217,9 @@ describe("kubernetes container module handlers", () => {
 
       await expectError(
         async () => await garden.processTasks([testTask], { throwOnError: true }),
-        (err) => expect(err.message).to.match(/bork/)
+        (err) => {
+          expect(err.message).to.match(/bork/)
+        }
       )
 
       const actions = await garden.getActionRouter()
@@ -624,7 +260,7 @@ describe("kubernetes container module handlers", () => {
       })
 
       it("should fail if an error occurs, but copy the artifacts out of the container", async () => {
-        const module = await graph.getModule("simple")
+        const module = graph.getModule("simple")
 
         const testTask = new TestTask({
           garden,

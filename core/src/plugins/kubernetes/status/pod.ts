@@ -8,8 +8,8 @@
 
 import { KubeApi, KubernetesError } from "../api"
 import Bluebird from "bluebird"
-import { KubernetesServerResource } from "../types"
-import { V1Pod } from "@kubernetes/client-node"
+import { KubernetesServerResource, KubernetesPod } from "../types"
+import { V1Pod, V1Status } from "@kubernetes/client-node"
 import { ResourceStatus } from "./status"
 import chalk from "chalk"
 import { ServiceState, combineStates } from "../../../types/service"
@@ -25,7 +25,11 @@ export function checkPodStatus(pod: KubernetesServerResource<V1Pod>): ServiceSta
 
     if (containerStatuses) {
       for (const c of containerStatuses) {
-        if (c.state && c.state.waiting && c.state.waiting.reason === "ImageInspectError") {
+        if (
+          c.state &&
+          c.state.waiting &&
+          (c.state.waiting.reason === "ImageInspectError" || c.state.waiting.reason === "ErrImagePull")
+        ) {
           return "unhealthy"
         }
         if (c.state && c.state.terminated) {
@@ -43,7 +47,7 @@ export function checkPodStatus(pod: KubernetesServerResource<V1Pod>): ServiceSta
     return "unhealthy"
   } else if (phase === "Running") {
     return "ready"
-  } else if (phase === "Succeeded") {
+  } else if (phase === "Succeeded" || phase === "Completed") {
     return "stopped"
   } else {
     return "unknown"
@@ -60,31 +64,21 @@ export function checkWorkloadPodStatus(
 export async function getPodLogs({
   api,
   namespace,
-  podName,
+  pod,
   containerNames,
   byteLimit,
   lineLimit,
+  timestamps,
 }: {
   api: KubeApi
   namespace: string
-  podName: string
+  pod: V1Pod
   containerNames?: string[]
   byteLimit?: number
   lineLimit?: number
+  timestamps?: boolean
 }) {
-  let podRes: V1Pod
-
-  try {
-    podRes = await api.core.readNamespacedPod(podName, namespace)
-  } catch (err) {
-    if (err.statusCode === 404) {
-      return []
-    } else {
-      throw err
-    }
-  }
-
-  let podContainers = podRes.spec!.containers.map((c) => c.name).filter((n) => !n.match(/garden-/))
+  let podContainers = pod.spec!.containers.map((c) => c.name).filter((n) => !n.match(/garden-/))
 
   if (containerNames) {
     podContainers = podContainers.filter((name) => containerNames.includes(name))
@@ -93,21 +87,42 @@ export async function getPodLogs({
   return Bluebird.map(podContainers, async (containerName) => {
     let log = ""
 
+    const follow = false
+    const insecureSkipTLSVerify = false
+    const pretty = undefined
+    const sinceSeconds = undefined
+
     try {
       log = await api.core.readNamespacedPodLog(
-        podName,
+        pod.metadata!.name!,
         namespace,
         containerName,
-        false, // follow
-        false, // insecureSkipTLSVerify
+        follow,
+        insecureSkipTLSVerify,
         byteLimit,
-        undefined, // pretty
+        pretty,
         false, // previous
-        undefined, // sinceSeconds
-        lineLimit
+        sinceSeconds,
+        lineLimit,
+        timestamps
       )
     } catch (err) {
-      if (err instanceof KubernetesError && err.message.includes("waiting to start")) {
+      if (err.statusCode === 404) {
+        // Couldn't find pod/container, try requesting a previously terminated one
+        log = await api.core.readNamespacedPodLog(
+          pod.metadata!.name!,
+          namespace,
+          containerName,
+          follow,
+          insecureSkipTLSVerify,
+          byteLimit,
+          pretty,
+          true, // previous
+          sinceSeconds,
+          lineLimit,
+          timestamps
+        )
+      } else if (err instanceof KubernetesError && err.message.includes("waiting to start")) {
         log = ""
       } else {
         throw err
@@ -126,13 +141,13 @@ export async function getPodLogs({
 /**
  * Get a formatted list of log tails for each of the specified pods. Used for debugging and error logs.
  */
-export async function getFormattedPodLogs(api: KubeApi, namespace: string, podNames: string[]): Promise<string> {
-  const allLogs = await Bluebird.map(podNames, async (podName) => {
+export async function getFormattedPodLogs(api: KubeApi, namespace: string, pods: KubernetesPod[]): Promise<string> {
+  const allLogs = await Bluebird.map(pods, async (pod) => {
     return {
-      podName,
+      podName: pod.metadata.name,
       // Putting 5000 bytes as a length limit in addition to the line limit, just as a precaution in case someone
       // accidentally logs a binary file or something.
-      containers: await getPodLogs({ api, namespace, podName, byteLimit: 5000, lineLimit: podLogLines }),
+      containers: await getPodLogs({ api, namespace, pod, byteLimit: 5000, lineLimit: podLogLines }),
     }
   })
 
@@ -146,4 +161,21 @@ export async function getFormattedPodLogs(api: KubeApi, namespace: string, podNa
       )
     })
     .join("\n\n")
+}
+
+export function getExecExitCode(status: V1Status) {
+  let exitCode = 0
+
+  if (status.status !== "Success") {
+    exitCode = 1
+
+    const causes = status.details?.causes || []
+    const exitCodeCause = causes.find((c) => c.reason === "ExitCode")
+
+    if (exitCodeCause && exitCodeCause.message) {
+      exitCode = parseInt(exitCodeCause.message, 10)
+    }
+  }
+
+  return exitCode
 }

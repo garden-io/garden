@@ -19,20 +19,17 @@ import { queryRegistry } from "../container/util"
 import { splitFirst, splitLast } from "../../../util/util"
 import { LogEntry } from "../../../logger/log-entry"
 import Bluebird from "bluebird"
-import {
-  CLUSTER_REGISTRY_DEPLOYMENT_NAME,
-  inClusterRegistryHostname,
-  dockerDaemonDeploymentName,
-  dockerDaemonContainerName,
-} from "../constants"
+import { CLUSTER_REGISTRY_DEPLOYMENT_NAME, inClusterRegistryHostname, dockerDaemonContainerName } from "../constants"
 import { PluginError } from "../../../exceptions"
-import { apply, kubectl } from "../kubectl"
+import { apply } from "../kubectl"
 import { waitForResources } from "../status/status"
 import { execInWorkload } from "../container/exec"
 import { dedent, deline } from "../../../util/string"
-import { execInPod, BuilderExecParams, buildSyncDeploymentName } from "../container/build"
-import { getDeploymentPodName } from "../util"
+import { buildSyncDeploymentName, getDockerDaemonPodRunner } from "../container/build"
+import { getDeploymentPod } from "../util"
 import { getSystemNamespace } from "../namespace"
+import { PluginContext } from "../../../plugin-context"
+import { PodRunner } from "../run"
 
 const workspaceSyncDirTtl = 0.5 * 86400 // 2 days
 
@@ -55,7 +52,9 @@ export const cleanupClusterRegistry: PluginCommand = {
     }
 
     // Scan through all Pods in cluster
-    const api = await KubeApi.factory(log, provider)
+    const api = await KubeApi.factory(log, ctx, provider)
+    const systemNamespace = await getSystemNamespace(ctx, provider, log)
+
     const imagesInUse = await getImagesInUse(api, provider, log)
 
     // Get images in registry
@@ -81,11 +80,11 @@ export const cleanupClusterRegistry: PluginCommand = {
     }
 
     if (provider.config.buildMode === "cluster-docker") {
-      await deleteImagesFromDaemon(provider, log, imagesInUse)
+      await deleteImagesFromDaemon({ api, ctx, provider, log, imagesInUse, systemNamespace })
     }
 
     // Clean old directories from build sync volume
-    await cleanupBuildSyncVolume(provider, log)
+    await cleanupBuildSyncVolume({ api, ctx, provider, log, systemNamespace })
 
     log.info({ msg: chalk.green("\nDone!"), status: "success" })
 
@@ -224,7 +223,7 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
   })
 
   const provider = ctx.provider
-  const systemNamespace = await getSystemNamespace(provider, log)
+  const systemNamespace = await getSystemNamespace(ctx, provider, log)
   // Restart the registry in read-only mode
   // -> Get the original deployment
   log.info("Fetching original Deployment")
@@ -236,7 +235,7 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
 
   const modifiedDeployment: KubernetesDeployment = sanitizeResource(registryDeployment)
 
-  modifiedDeployment.spec.template.spec.containers[0].env.push({
+  modifiedDeployment.spec!.template.spec!.containers[0].env!.push({
     name: "REGISTRY_STORAGE_MAINTENANCE",
     // This needs to be YAML because of issue https://github.com/docker/distribution/issues/1736
     value: dedent`
@@ -249,6 +248,7 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
   delete modifiedDeployment.status
 
   await apply({
+    ctx,
     log,
     provider,
     manifests: [modifiedDeployment],
@@ -258,6 +258,7 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
   // -> Wait for registry to be up again
   await waitForResources({
     namespace: systemNamespace,
+    ctx,
     provider,
     log,
     serviceName: "docker-registry",
@@ -267,6 +268,7 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
   // Run garbage collection
   log.info("Running garbage collection...")
   await execInWorkload({
+    ctx,
     provider,
     log,
     namespace: systemNamespace,
@@ -282,11 +284,12 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
   registryDeployment = await api.apps.readNamespacedDeployment(CLUSTER_REGISTRY_DEPLOYMENT_NAME, systemNamespace)
   const writableRegistry = sanitizeResource(registryDeployment)
   // -> Remove the maintenance flag
-  writableRegistry.spec.template.spec.containers[0].env = writableRegistry.spec.template.spec.containers[0].env.filter(
-    (e) => e.name !== "REGISTRY_STORAGE_MAINTENANCE"
-  )
+  writableRegistry.spec.template.spec!.containers[0].env =
+    writableRegistry.spec?.template.spec?.containers[0].env?.filter((e) => e.name !== "REGISTRY_STORAGE_MAINTENANCE") ||
+    []
 
   await apply({
+    ctx,
     log,
     provider,
     manifests: [writableRegistry],
@@ -296,6 +299,7 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
   // -> Wait for registry to be up again
   await waitForResources({
     namespace: systemNamespace,
+    ctx,
     provider,
     log,
     serviceName: "docker-registry",
@@ -313,25 +317,38 @@ function sanitizeResource<T extends KubernetesResource>(resource: T): T {
   return output
 }
 
-async function deleteImagesFromDaemon(provider: KubernetesProvider, log: LogEntry, imagesInUse: string[]) {
+async function deleteImagesFromDaemon({
+  api,
+  ctx,
+  provider,
+  log,
+  imagesInUse,
+  systemNamespace,
+}: {
+  api: KubeApi
+  ctx: PluginContext
+  provider: KubernetesProvider
+  log: LogEntry
+  imagesInUse: string[]
+  systemNamespace: string
+}) {
   log = log.info({
     msg: chalk.white(`Cleaning images from Docker daemon...`),
     status: "active",
   })
 
   log.info("Getting list of images from daemon...")
-  const podName = await getDeploymentPodName(dockerDaemonDeploymentName, provider, log)
 
-  const listArgs = ["docker", "images", "--format", "{{.Repository}}:{{.Tag}}"]
-  const res = await execInPod({
-    provider,
+  const runner = await getDockerDaemonPodRunner({ api, systemNamespace, ctx, provider })
+
+  const res = await runner.exec({
     log,
-    args: listArgs,
-    podName,
+    command: ["docker", "images", "--format", "{{.Repository}}:{{.Tag}}"],
     containerName: dockerDaemonContainerName,
-    timeout: 300,
+    timeoutSec: 300,
   })
-  const imagesInDaemon = res.stdout
+
+  const imagesInDaemon = res.log
     .split("\n")
     .filter(Boolean)
     // Not sure why we see some of these
@@ -357,8 +374,12 @@ async function deleteImagesFromDaemon(provider: KubernetesProvider, log: LogEntr
     await Bluebird.map(
       imagesBatches,
       async (images) => {
-        const args = ["docker", "rmi", ...images]
-        await execInPod({ provider, log, args, podName, containerName: dockerDaemonContainerName, timeout: 300 })
+        await runner.exec({
+          log,
+          command: ["docker", "rmi", ...images],
+          containerName: dockerDaemonContainerName,
+          timeoutSec: 300,
+        })
         log.setState(deline`
         Deleting images:
          ${pluralize("batch", counter, true)} of ${imagesBatches.length} left...`)
@@ -370,40 +391,54 @@ async function deleteImagesFromDaemon(provider: KubernetesProvider, log: LogEntr
 
   // Run a prune operation
   log.info(`Pruning with \`docker image prune -f\`...`)
-  await execInPod({
-    provider,
+  await runner.exec({
     log,
-    args: ["docker", "image", "prune", "-f"],
-    podName,
+    command: ["docker", "image", "prune", "-f"],
     containerName: dockerDaemonContainerName,
-    timeout: 300,
+    timeoutSec: 300,
   })
 
   log.setSuccess()
 }
 
-async function cleanupBuildSyncVolume(provider: KubernetesProvider, log: LogEntry) {
+async function cleanupBuildSyncVolume({
+  api,
+  ctx,
+  provider,
+  log,
+  systemNamespace,
+}: {
+  api: KubeApi
+  ctx: PluginContext
+  provider: KubernetesProvider
+  log: LogEntry
+  systemNamespace: string
+}) {
   log = log.info({
     msg: chalk.white(`Cleaning up old workspaces from build sync volume...`),
     status: "active",
   })
 
-  const podName = await getDeploymentPodName(buildSyncDeploymentName, provider, log)
+  const pod = await getDeploymentPod({ api, deploymentName: buildSyncDeploymentName, namespace: systemNamespace })
 
-  const statArgs = ["sh", "-c", 'stat /data/* -c "%n %X"']
-  const stat = await execInBuildSync({
+  const runner = new PodRunner({
+    api,
+    ctx,
     provider,
+    namespace: systemNamespace,
+    pod,
+  })
+
+  const stat = await runner.exec({
     log,
-    args: statArgs,
-    timeout: 30,
-    podName,
-    containerName: dockerDaemonContainerName,
+    command: ["sh", "-c", 'stat /data/* -c "%n %X"'],
+    timeoutSec: 30,
   })
 
   // Remove directories last accessed more than workspaceSyncDirTtl ago
   const minTimestamp = new Date().getTime() / 1000 - workspaceSyncDirTtl
 
-  const outdatedDirs = stat.stdout
+  const outdatedDirs = stat.log
     .split("\n")
     .filter(Boolean)
     .map((line) => {
@@ -415,31 +450,14 @@ async function cleanupBuildSyncVolume(provider: KubernetesProvider, log: LogEntr
 
   const dirsToDelete = ["/data/tmp/*", ...outdatedDirs]
 
-  // Delete the director
+  // Delete the directories
   log.info(`Deleting ${dirsToDelete.length} workspace directories.`)
-  const deleteArgs = ["rm", "-rf", ...dirsToDelete]
-  await execInBuildSync({
-    provider,
+
+  await runner.exec({
     log,
-    args: deleteArgs,
-    timeout: 300,
-    podName,
-    containerName: dockerDaemonContainerName,
+    command: ["rm", "-rf", ...dirsToDelete],
+    timeoutSec: 30,
   })
 
   log.setSuccess()
-}
-
-async function execInBuildSync({ provider, log, args, timeout, podName }: BuilderExecParams) {
-  const execCmd = ["exec", "-i", podName, "--", ...args]
-  const systemNamespace = await getSystemNamespace(provider, log)
-
-  log.verbose(`Running: kubectl ${execCmd.join(" ")}`)
-
-  return kubectl(provider).exec({
-    args: execCmd,
-    log,
-    namespace: systemNamespace,
-    timeoutSec: timeout,
-  })
 }

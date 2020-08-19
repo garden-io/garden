@@ -11,7 +11,7 @@ import { terraform } from "./cli"
 import { TerraformProvider } from "./terraform"
 import { ConfigurationError, ParameterError } from "../../exceptions"
 import { prepareVariables, tfValidate } from "./common"
-import { Module } from "../../types/module"
+import { GardenModule } from "../../types/module"
 import { findByName } from "../../util/util"
 import { TerraformModule } from "./module"
 import { PluginCommand, PluginCommandParams } from "../../types/plugin/command"
@@ -53,10 +53,10 @@ function makeRootCommand(commandName: string) {
 
       const root = join(ctx.projectRoot, provider.config.initRoot)
 
-      await tfValidate(log, provider, root, provider.config.variables)
+      await tfValidate({ log, ctx, provider, root, variables: provider.config.variables })
 
       args = [commandName, ...(await prepareVariables(root, provider.config.variables)), ...args]
-      await terraform(provider).spawnAndWait({
+      await terraform(ctx, provider).spawnAndWait({
         log,
         args,
         cwd: root,
@@ -87,10 +87,10 @@ function makeModuleCommand(commandName: string) {
       const root = join(module.path, module.spec.root)
 
       const provider = ctx.provider as TerraformProvider
-      await tfValidate(log, provider, root, provider.config.variables)
+      await tfValidate({ log, ctx, provider, root, variables: provider.config.variables })
 
       args = [commandName, ...(await prepareVariables(root, module.spec.variables)), ...args.slice(1)]
-      await terraform(provider).spawnAndWait({
+      await terraform(ctx, provider).spawnAndWait({
         log,
         args,
         cwd: root,
@@ -104,7 +104,7 @@ function makeModuleCommand(commandName: string) {
   }
 }
 
-function findModule(modules: Module[], name: string): TerraformModule {
+function findModule(modules: GardenModule[], name: string): TerraformModule {
   if (!name) {
     throw new ParameterError(`The first command argument must be a module name.`, { name })
   }

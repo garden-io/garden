@@ -23,6 +23,9 @@ export class GetEysiCommand extends Command {
 
   loggerType: "basic"
 
+  hidden = true
+  noProject = true
+
   async action(): Promise<CommandResult> {
     const eysi = (await readFile(join(STATIC_DIR, "eysi.txt"))).toString()
     // tslint:disable-next-line: no-console

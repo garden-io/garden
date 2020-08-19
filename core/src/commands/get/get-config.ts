@@ -10,7 +10,7 @@ import { Command, CommandResult, CommandParams } from "../base"
 import { ConfigDump } from "../../garden"
 import { environmentNameSchema } from "../../config/project"
 import { joiIdentifier, joiVariables, joiArray, joi } from "../../config/common"
-import { providerSchemaWithoutTools, providerConfigBaseSchema } from "../../config/provider"
+import { providerConfigBaseSchema, providerSchema } from "../../config/provider"
 import { moduleConfigSchema } from "../../config/module"
 import { workflowConfigSchema } from "../../config/workflow"
 import { BooleanParameter, ChoicesParameter } from "../../cli/params"
@@ -41,7 +41,7 @@ export class GetConfigCommand extends Command<{}, Opts> {
       allEnvironmentNames: joiArray(environmentNameSchema()).required(),
       environmentName: environmentNameSchema().required(),
       namespace: joiIdentifier().description("The namespace of the current environment (if applicable)."),
-      providers: joiArray(joi.alternatives(providerSchemaWithoutTools(), providerConfigBaseSchema())).description(
+      providers: joiArray(joi.alternatives(providerSchema(), providerConfigBaseSchema())).description(
         "A list of all configured providers in the environment."
       ),
       variables: joiVariables().description("All configured variables in the environment."),

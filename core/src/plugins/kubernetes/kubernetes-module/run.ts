@@ -26,7 +26,7 @@ export async function runKubernetesTask(params: RunTaskParams<KubernetesModule>)
     module,
     provider: k8sCtx.provider,
   })
-  const api = await KubeApi.factory(log, k8sCtx.provider)
+  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
 
   // Get the container spec to use for running
   const { command, args } = task.spec
@@ -49,7 +49,7 @@ export async function runKubernetesTask(params: RunTaskParams<KubernetesModule>)
     args,
     artifacts: task.spec.artifacts,
     envVars: task.spec.env,
-    image: container.image,
+    image: container.image!,
     namespace,
     podName: makePodName("task", module.name, task.name),
     description: `Task '${task.name}' in container module '${module.name}'`,

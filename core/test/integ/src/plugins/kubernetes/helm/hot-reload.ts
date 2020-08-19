@@ -96,7 +96,7 @@ describe("configureHotReload", () => {
   before(async () => {
     garden = await getHelmTestGarden()
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-    ctx = garden.getPluginContext(provider)
+    ctx = await garden.getPluginContext(provider)
   })
 
   beforeEach(async () => {
@@ -124,7 +124,7 @@ describe("configureHotReload", () => {
       hotReloadSpec,
       target: hotReloadTarget,
     })
-    const containers: any[] = hotReloadTarget.spec.template.spec.containers
+    const containers: any[] = hotReloadTarget.spec.template.spec?.containers || []
     // This is a second, non-main/resource container included by the Helm chart, which should not mount the sync volume.
     const secondContainer = containers.find((c) => c.name === "second-container")
 

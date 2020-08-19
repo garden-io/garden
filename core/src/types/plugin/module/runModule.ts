@@ -7,12 +7,12 @@
  */
 
 import { dedent } from "../../../util/string"
-import { Module } from "../../module"
+import { GardenModule } from "../../module"
 import { PluginModuleActionParamsBase, moduleActionParamsSchema, runBaseParams, runResultSchema } from "../base"
 import { RuntimeContext } from "../../../runtime-context"
 import { joiArray, joi } from "../../../config/common"
 
-export interface RunModuleParams<T extends Module = Module> extends PluginModuleActionParamsBase<T> {
+export interface RunModuleParams<T extends GardenModule = GardenModule> extends PluginModuleActionParamsBase<T> {
   command?: string[]
   args: string[]
   interactive: boolean

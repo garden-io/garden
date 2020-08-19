@@ -52,6 +52,10 @@ interface PluginToolOpts {
   architecture?: string
 }
 
+export interface PluginTools {
+  [key: string]: PluginTool
+}
+
 /**
  * This helper class allows you to declare a tool dependency by providing a URL to a single-file binary,
  * or an archive containing an executable, for each of our supported platforms. When executing the tool,
@@ -186,7 +190,7 @@ export class PluginTool {
     log.debug(`Spawning '${path} ${args.join(" ")}' in ${cwd}`)
     return spawn(path, args || [], {
       cwd,
-      timeout: timeoutSec,
+      timeoutSec,
       ignoreError,
       env,
       rawMode,

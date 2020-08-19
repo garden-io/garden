@@ -22,7 +22,7 @@ import {
 import { gardenPlugin as containerPlugin } from "../../../../../src/plugins/container/container"
 import { PluginContext } from "../../../../../src/plugin-context"
 import { makeTestGarden, dataDir, expectError } from "../../../../helpers"
-import { moduleFromConfig, Module } from "../../../../../src/types/module"
+import { moduleFromConfig, GardenModule } from "../../../../../src/types/module"
 import { ModuleConfig } from "../../../../../src/config/module"
 import { DEFAULT_BUILD_TIMEOUT } from "../../../../../src/plugins/container/helpers"
 import { containerHelpers as helpers } from "../../../../../src/plugins/container/helpers"
@@ -44,11 +44,11 @@ describe("maven-container", () => {
   const build = handlers.build!
   const configure = handlers.configure!
   const configureBase = baseHandlers.configure as WrappedModuleActionHandler<
-    ConfigureModuleParams<Module<any, any, any, any>>,
-    ConfigureModuleResult<Module<any, any, any, any>>
+    ConfigureModuleParams<GardenModule<any, any, any, any>>,
+    ConfigureModuleResult<GardenModule<any, any, any, any>>
   >
   const buildBase = baseHandlers.build! as WrappedModuleActionHandler<
-    BuildModuleParams<Module<any, any, any, any>>,
+    BuildModuleParams<GardenModule<any, any, any, any>>,
     BuildResult
   >
 
@@ -93,7 +93,7 @@ describe("maven-container", () => {
     garden = await makeTestGarden(projectRoot, { plugins: [mavenPlugin] })
     log = garden.log
     const provider = await garden.resolveProvider(garden.log, "maven-container")
-    ctx = garden.getPluginContext(provider)
+    ctx = await garden.getPluginContext(provider)
 
     td.replace(garden.buildDir, "syncDependencyProducts", () => null)
 

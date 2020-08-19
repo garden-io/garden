@@ -8,7 +8,7 @@
 
 import { LogEntry } from "../../logger/log-entry"
 import { PluginContext, pluginContextSchema } from "../../plugin-context"
-import { Module, moduleSchema } from "../module"
+import { GardenModule, moduleSchema } from "../module"
 import { RuntimeContext, runtimeContextSchema } from "../../runtime-context"
 import { Service, serviceSchema } from "../service"
 import { Task } from "../task"
@@ -37,7 +37,7 @@ export const actionParamsSchema = () =>
     log: logEntrySchema(),
   })
 
-export interface PluginModuleActionParamsBase<T extends Module = Module> extends PluginActionParamsBase {
+export interface PluginModuleActionParamsBase<T extends GardenModule = GardenModule> extends PluginActionParamsBase {
   module: T
 }
 export const moduleActionParamsSchema = () =>
@@ -45,8 +45,10 @@ export const moduleActionParamsSchema = () =>
     module: moduleSchema(),
   })
 
-export interface PluginServiceActionParamsBase<M extends Module = Module, S extends Module = Module>
-  extends PluginModuleActionParamsBase<M> {
+export interface PluginServiceActionParamsBase<
+  M extends GardenModule = GardenModule,
+  S extends GardenModule = GardenModule
+> extends PluginModuleActionParamsBase<M> {
   runtimeContext?: RuntimeContext
   service: Service<M, S>
 }
@@ -56,7 +58,8 @@ export const serviceActionParamsSchema = () =>
     service: serviceSchema(),
   })
 
-export interface PluginTaskActionParamsBase<T extends Module = Module> extends PluginModuleActionParamsBase<T> {
+export interface PluginTaskActionParamsBase<T extends GardenModule = GardenModule>
+  extends PluginModuleActionParamsBase<T> {
   task: Task<T>
 }
 export const taskActionParamsSchema = () =>
@@ -74,6 +77,7 @@ export const runBaseParams = {
     .description("If set, how long to run the command before timing out."),
 }
 
+// TODO: update this schema in 0.13
 export interface RunResult {
   // FIXME: this field can always be inferred
   moduleName: string
@@ -82,6 +86,7 @@ export interface RunResult {
   // FIXME: this field can always be inferred
   version: string
   success: boolean
+  exitCode?: number
   // FIXME: we should avoid native Date objects
   startedAt: Date
   completedAt: Date
@@ -96,7 +101,7 @@ export const runResultSchema = () =>
       moduleName: joi.string().description("The name of the module that was run."),
       command: joi
         .array()
-        .items(joi.string())
+        .items(joi.string().allow(""))
         .required()
         .description("The command that was run in the module."),
       version: joi.string().description("The string version of the module."),
@@ -104,6 +109,10 @@ export const runResultSchema = () =>
         .boolean()
         .required()
         .description("Whether the module was successfully run."),
+      exitCode: joi
+        .number()
+        .integer()
+        .description("The exit code of the run (if applicable)."),
       startedAt: joi
         .date()
         .required()

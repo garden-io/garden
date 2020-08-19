@@ -16,7 +16,7 @@ import { ServiceStatus } from "../../../types/service"
 import { compareDeployedResources, waitForResources } from "../status/status"
 import { KubeApi } from "../api"
 import { ModuleAndRuntimeActionHandlers } from "../../../types/plugin/plugin"
-import { getAllLogs } from "../logs"
+import { streamK8sLogs } from "../logs"
 import { deleteObjectsBySelector, apply } from "../kubectl"
 import { BuildModuleParams, BuildResult } from "../../../types/plugin/module/build"
 import { GetServiceStatusParams } from "../../../types/plugin/service/getServiceStatus"
@@ -71,7 +71,7 @@ export async function getKubernetesServiceStatus({
     provider: k8sCtx.provider,
     skipCreate: true,
   })
-  const api = await KubeApi.factory(log, k8sCtx.provider)
+  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
   // FIXME: We're currently reading the manifests from the module source dir (instead of build dir)
   // because the build may not have been staged.
   // This means that manifests added via the `build.dependencies[].copy` field will not be included.
@@ -95,7 +95,7 @@ export async function deployKubernetesService(
   const { ctx, module, service, log } = params
 
   const k8sCtx = <KubernetesPluginContext>ctx
-  const api = await KubeApi.factory(log, k8sCtx.provider)
+  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
 
   const namespace = await getModuleNamespace({
     ctx: k8sCtx,
@@ -114,9 +114,10 @@ export async function deployKubernetesService(
 
   if (namespaceManifests.length > 0) {
     // Don't prune namespaces
-    await apply({ log, provider: k8sCtx.provider, manifests: namespaceManifests })
+    await apply({ log, ctx, provider: k8sCtx.provider, manifests: namespaceManifests })
     await waitForResources({
       namespace,
+      ctx,
       provider: k8sCtx.provider,
       serviceName: service.name,
       resources: namespaceManifests,
@@ -126,9 +127,10 @@ export async function deployKubernetesService(
   const pruneSelector = getSelector(service)
   if (otherManifests.length > 0) {
     // Prune everything else
-    await apply({ log, provider: k8sCtx.provider, manifests: otherManifests, pruneSelector })
+    await apply({ log, ctx, provider: k8sCtx.provider, manifests: otherManifests, pruneSelector })
     await waitForResources({
       namespace,
+      ctx,
       provider: k8sCtx.provider,
       serviceName: service.name,
       resources: otherManifests,
@@ -138,6 +140,7 @@ export async function deployKubernetesService(
 
   await waitForResources({
     namespace,
+    ctx,
     provider: k8sCtx.provider,
     serviceName: service.name,
     resources: manifests,
@@ -162,7 +165,7 @@ async function deleteService(params: DeleteServiceParams): Promise<KubernetesSer
     provider: k8sCtx.provider,
   })
   const provider = k8sCtx.provider
-  const api = await KubeApi.factory(log, provider)
+  const api = await KubeApi.factory(log, ctx, provider)
   const manifests = await getManifests({ api, log, module, defaultNamespace: namespace })
 
   /**
@@ -178,6 +181,7 @@ async function deleteService(params: DeleteServiceParams): Promise<KubernetesSer
       const selector = `${gardenAnnotationKey("service")}=${gardenNamespaceAnnotationValue(ns.metadata.name)}`
       return deleteObjectsBySelector({
         log,
+        ctx,
         provider,
         namespace,
         selector,
@@ -189,6 +193,7 @@ async function deleteService(params: DeleteServiceParams): Promise<KubernetesSer
   if (otherManifests.length > 0) {
     await deleteObjectsBySelector({
       log,
+      ctx,
       provider,
       namespace,
       selector: `${gardenAnnotationKey("service")}=${service.name}`,
@@ -210,10 +215,10 @@ async function getServiceLogs(params: GetServiceLogsParams<KubernetesModule>) {
     module,
     provider: k8sCtx.provider,
   })
-  const api = await KubeApi.factory(log, provider)
+  const api = await KubeApi.factory(log, ctx, provider)
   const manifests = await getManifests({ api, log, module, defaultNamespace: namespace })
 
-  return getAllLogs({ ...params, provider, defaultNamespace: namespace, resources: manifests })
+  return streamK8sLogs({ ...params, provider, defaultNamespace: namespace, resources: manifests })
 }
 
 function getSelector(service: KubernetesService) {

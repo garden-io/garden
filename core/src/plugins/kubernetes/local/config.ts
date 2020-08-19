@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { KubernetesConfig, kubernetesConfigBase, k8sContextSchema } from "../config"
+import { KubernetesConfig, kubernetesConfigBase, k8sContextSchema, KubernetesProvider } from "../config"
 import { ConfigureProviderParams } from "../../../types/plugin/provider/configureProvider"
 import { joiProviderName, joi } from "../../../config/common"
 import { getKubeConfig } from "../api"
@@ -47,21 +47,15 @@ export const configSchema = kubernetesConfigBase
   .description("The provider configuration for the local-kubernetes plugin.")
 
 export async function configureProvider(params: ConfigureProviderParams<LocalKubernetesConfig>) {
-  const { base, log, projectName, tools } = params
+  const { base, log, projectName, ctx } = params
+
   let { config } = await base!(params)
 
+  const provider = ctx.provider as KubernetesProvider
+  provider.config = config
   const _systemServices = config._systemServices
 
-  // create dummy provider with just enough info needed for the getKubeConfig function
-  const provider = {
-    name: config.name,
-    dependencies: {},
-    config,
-    moduleConfigs: [],
-    status: { ready: true, outputs: {} },
-    tools,
-  }
-  const kubeConfig = await getKubeConfig(log, provider)
+  const kubeConfig = await getKubeConfig(log, ctx, provider)
   const currentContext = kubeConfig["current-context"]
 
   if (!config.context) {
@@ -96,7 +90,7 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
     log.debug({ section: config.name, msg: `No kubectl context configured, using default: ${config.context}` })
   }
 
-  if (await isClusterKind(provider, log)) {
+  if (await isClusterKind(ctx, provider, log)) {
     config.clusterType = "kind"
   }
   if (config.context === "minikube") {

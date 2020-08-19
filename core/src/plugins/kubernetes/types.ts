@@ -25,6 +25,7 @@ export interface BaseResource {
   metadata: Partial<V1ObjectMeta> & {
     name: string
   }
+  [key: string]: any
 }
 
 // Because the Kubernetes API library types currently list all keys as optional, we use this type to wrap the
@@ -37,8 +38,6 @@ export type KubernetesResource<T extends BaseResource | KubernetesObject = BaseR
     metadata: Partial<V1ObjectMeta> & {
       name: string
     }
-    // We add this here for convenience because it's so frequently checked on untyped resources
-    spec?: any
   } & Omit<T, "apiVersion" | "kind" | "metadata"> &
     // Make sure these are required if they're on the provided type
     {
@@ -77,8 +76,4 @@ export type KubernetesReplicaSet = KubernetesResource<V1ReplicaSet>
 export type KubernetesStatefulSet = KubernetesResource<V1StatefulSet>
 export type KubernetesPod = KubernetesResource<V1Pod>
 
-export type KubernetesWorkload =
-  | KubernetesResource<V1DaemonSet>
-  | KubernetesResource<V1Deployment>
-  | KubernetesResource<V1ReplicaSet>
-  | KubernetesResource<V1StatefulSet>
+export type KubernetesWorkload = KubernetesResource<V1DaemonSet | V1Deployment | V1ReplicaSet | V1StatefulSet>

@@ -10,20 +10,23 @@ import { resolve } from "path"
 import tar from "tar"
 import tmp from "tmp-promise"
 import { V1PodSpec, V1Pod, V1Container } from "@kubernetes/client-node"
-import { tailString } from "../../util/string"
 import { RunResult } from "../../types/plugin/base"
-import { kubectl } from "./kubectl"
-import { Module } from "../../types/module"
+import { GardenModule } from "../../types/module"
 import { LogEntry } from "../../logger/log-entry"
-import { PluginError, GardenBaseError, TimeoutError, RuntimeError, ConfigurationError } from "../../exceptions"
+import {
+  PluginError,
+  GardenBaseError,
+  TimeoutError,
+  RuntimeError,
+  ConfigurationError,
+  ParameterError,
+} from "../../exceptions"
 import { KubernetesProvider } from "./config"
-import { Writable } from "stream"
-import { ChildProcess } from "child_process"
-import { sleep, uniqByName } from "../../util/util"
+import { Writable, Readable } from "stream"
+import { uniqByName, sleep } from "../../util/util"
 import { KubeApi } from "./api"
-import { checkPodStatus, getPodLogs } from "./status/pod"
-import { KubernetesServerResource } from "./types"
-import { ServiceState } from "../../types/service"
+import { getPodLogs, checkPodStatus } from "./status/pod"
+import { KubernetesResource, KubernetesPod } from "./types"
 import { RunModuleParams } from "../../types/plugin/module/runModule"
 import { ContainerEnvVars, ContainerVolumeSpec } from "../container/config"
 import { prepareEnvVars, makePodName } from "./util"
@@ -32,9 +35,14 @@ import { ArtifactSpec } from "../../config/validation"
 import cpy from "cpy"
 import { prepareImagePullSecrets } from "./secrets"
 import { configureVolumes } from "./container/deployment"
+import { PluginContext } from "../../plugin-context"
+import { waitForResources, ResourceStatus } from "./status/status"
+import { cloneDeep } from "lodash"
 
-const MAX_BUFFER_SIZE = 1024 * 1024
+// Default timeout for individual run/exec operations
+const defaultTimeout = 600
 
+// TODO: break this function up
 export async function runAndCopy({
   ctx,
   log,
@@ -55,7 +63,7 @@ export async function runAndCopy({
   stderr,
   namespace,
   volumes,
-}: RunModuleParams<Module> & {
+}: RunModuleParams<GardenModule> & {
   image: string
   container?: V1Container
   podName?: string
@@ -69,7 +77,7 @@ export async function runAndCopy({
   volumes?: ContainerVolumeSpec[]
 }): Promise<RunResult> {
   const provider = <KubernetesProvider>ctx.provider
-  const api = await KubeApi.factory(log, provider)
+  const api = await KubeApi.factory(log, ctx, provider)
 
   // Prepare environment variables
   envVars = { ...runtimeContext.envVars, ...envVars }
@@ -136,37 +144,32 @@ export async function runAndCopy({
     podName = makePodName("run", module.name)
   }
 
-  const runner = new PodRunner({
-    api,
-    podName,
-    provider,
-    image,
-    module,
-    namespace,
+  const pod: KubernetesResource<V1Pod> = {
+    apiVersion: "v1",
+    kind: "Pod",
+    metadata: {
+      name: podName,
+      namespace,
+    },
     spec,
+  }
+
+  const runner = new PodRunner({
+    ctx,
+    api,
+    pod,
+    provider,
+    namespace,
   })
 
   let result: RunResult
   const startedAt = new Date()
 
-  // Need to retrieve the logs explicitly, because kubectl exec/run sometimes fail to capture them
-  const getLogs = async () => {
-    const containerLogs = await getPodLogs({
-      api,
-      namespace,
-      podName: runner.podName,
-      containerNames: [mainContainerName],
-    })
-    return containerLogs[0]?.log || ""
-  }
-
-  const timedOutResult = async () => {
-    const logs = (await getLogs()).trim()
-
+  const timedOutResult = async (logs: string) => {
     return {
       command: runner.getFullCommand(),
       completedAt: new Date(),
-      log: "Command timed out." + (logs ? ` Here are the logs until the timeout occurred:\n\n${logs.trim()}` : ""),
+      log: "Command timed out." + (logs ? ` Here are the logs until the timeout occurred:\n\n${logs}` : ""),
       moduleName: module.name,
       startedAt,
       success: false,
@@ -174,23 +177,61 @@ export async function runAndCopy({
     }
   }
 
-  if (getArtifacts) {
+  if (!getArtifacts) {
     try {
-      // Start the Pod
-      const { pod, state, debugLog } = await runner.start({
-        ignoreError: true,
+      const res = await runner.runAndWait({
         log,
-        stdout,
-        stderr,
+        remove: true,
+        timeoutSec: timeout || defaultTimeout,
+        tty: !!interactive,
       })
+      result = {
+        ...res,
+        moduleName: module.name,
+        version: module.version.versionString,
+      }
+    } catch (err) {
+      if (err.type === "timeout") {
+        result = await timedOutResult(err.detail.logs)
+      } else if (err.type === "pod-runner") {
+        // Command exited with non-zero code
+        result = {
+          log: err.detail.logs || err.message,
+          moduleName: module.name,
+          version: module.version.versionString,
+          success: false,
+          startedAt,
+          completedAt: new Date(),
+          command: [...(command || []), ...(args || [])],
+        }
+      } else {
+        throw err
+      }
+    }
 
-      errorMetadata.pod = pod
-      errorMetadata.state = state
-      errorMetadata.debugLog = debugLog
+    return result
+  }
 
-      if (state !== "ready") {
-        // Specifically look for error indicating `sh` is missing, and report with helpful message.
-        const containerStatus = pod!.status.containerStatuses![0]
+  const timeoutSec = timeout || defaultTimeout
+
+  try {
+    errorMetadata.pod = pod
+
+    // Start the Pod
+    try {
+      await runner.start({ log, timeoutSec })
+    } catch (err) {
+      if (err.type !== "deployment") {
+        throw err
+      }
+
+      // Specifically look for deployment error indicating `sh` is missing, and report with more helpful message.
+      const status = err.detail.status
+
+      errorMetadata.status = status
+
+      if (status.state !== "ready") {
+        const containerStatus = status.resource.status.containerStatuses![0]
 
         if (containerStatus?.state?.terminated?.message?.includes("not found")) {
           throw new ConfigurationError(
@@ -201,205 +242,216 @@ export async function runAndCopy({
             errorMetadata
           )
         } else {
-          throw new RuntimeError(`Failed to start Pod ${runner.podName}: ${debugLog}`, errorMetadata)
+          throw new RuntimeError(
+            `Failed to start Pod ${runner.podName}: ${JSON.stringify(status.resource.status, null, 2)}`,
+            errorMetadata
+          )
         }
       }
+    }
 
-      try {
-        await runner.exec({
-          command: ["sh", "-c", "tar --help"],
-          container: mainContainerName,
-          ignoreError: false,
-          log,
-          stdout,
-          stderr,
-        })
-      } catch (err) {
-        // TODO: fall back to copying `arc` (https://github.com/mholt/archiver) or similar into the container and
-        // using that (tar is not statically compiled so we can't copy that directly). Keeping this snippet around
-        // for that:
-        // await runner.exec({
-        //   command: ["sh", "-c", `sed -n 'w ${arcPath}'; chmod +x ${arcPath}`],
-        //   container: containerName,
-        //   ignoreError: false,
-        //   input: <binary>,
-        //   log,
-        //   stdout,
-        //   stderr,
-        // })
-        throw new ConfigurationError(
-          deline`
-          ${description} specifies artifacts to export, but the image doesn't
-          contain the tar binary. In order to copy artifacts out of Kubernetes containers, both sh and tar need to
-          be installed in the image.`,
-          errorMetadata
-        )
+    try {
+      await runner.exec({
+        command: ["sh", "-c", "tar --help"],
+        containerName: mainContainerName,
+        log,
+        stdout,
+        stderr,
+        // Anything above two minutes for this would be unusual
+        timeoutSec: 120,
+      })
+    } catch (err) {
+      // TODO: fall back to copying `arc` (https://github.com/mholt/archiver) or similar into the container and
+      // using that (tar is not statically compiled so we can't copy that directly). Keeping this snippet around
+      // for that:
+      // await runner.exec({
+      //   command: ["sh", "-c", `sed -n 'w ${arcPath}'; chmod +x ${arcPath}`],
+      //   container: containerName,
+      //   ignoreError: false,
+      //   input: <binary>,
+      //   log,
+      //   stdout,
+      //   stderr,
+      // })
+      throw new ConfigurationError(
+        deline`
+        ${description} specifies artifacts to export, but the image doesn't
+        contain the tar binary. In order to copy artifacts out of Kubernetes containers, both sh and tar need to
+        be installed in the image.`,
+        errorMetadata
+      )
+    }
+
+    // Escape the command, so that we can safely pass it as a single string
+    const cmd = [...command!, ...(args || [])].map((s) => JSON.stringify(s))
+
+    try {
+      const res = await runner.exec({
+        // Pipe the output from the command to the /tmp/output pipe, including stderr. Some shell voodoo happening
+        // here, but this was the only working approach I could find after a lot of trial and error.
+        command: ["sh", "-c", `exec >/tmp/output; ${cmd.join(" ")}`],
+        containerName: mainContainerName,
+        log,
+        stdout,
+        stderr,
+        timeoutSec,
+      })
+      result = {
+        ...res,
+        log: (await runner.getMainContainerLogs()).trim() || res.log,
+        moduleName: module.name,
+        version: module.version.versionString,
       }
+    } catch (err) {
+      const res = err.detail.result
 
-      // Escape the command, so that we can safely pass it as a single string
-      const cmd = [...command!, ...(args || [])].map((s) => JSON.stringify(s)).join(" ")
-
-      try {
-        result = await runner.exec({
-          // Pipe the output from the command to the /tmp/output pipe, including stderr. Some shell voodoo happening
-          // here, but this was the only working approach I could find after a lot of trial and error.
-          command: ["sh", "-c", `exec >/tmp/output; ${cmd}`],
-          container: mainContainerName,
-          ignoreError: true,
-          log,
-          stdout,
-          stderr,
-          timeout,
-        })
-        result.log = (await getLogs()).trim() || result.log
-      } catch (err) {
-        if (err.type === "timeout") {
-          result = await timedOutResult()
-        } else {
-          throw err
+      if (err.type === "timeout") {
+        // Command timed out
+        result = await timedOutResult((await runner.getMainContainerLogs()).trim())
+      } else if (err.type === "pod-runner" && res && res.exitCode) {
+        // Command exited with non-zero code
+        result = {
+          log: (await runner.getMainContainerLogs()).trim() || err.message,
+          moduleName: module.name,
+          version: module.version.versionString,
+          success: false,
+          startedAt,
+          completedAt: new Date(),
+          command: cmd,
         }
+      } else {
+        throw err
       }
+    }
 
-      // Copy the artifacts
-      await Promise.all(
-        artifacts.map(async (artifact) => {
-          const tmpDir = await tmp.dir({ unsafeCleanup: true })
-          // Remove leading slash (which is required in the schema)
-          const sourcePath = artifact.source.slice(1)
-          const targetPath = resolve(artifactsPath!, artifact.target || ".")
+    // Copy the artifacts
+    await Promise.all(
+      artifacts.map(async (artifact) => {
+        const tmpDir = await tmp.dir({ unsafeCleanup: true })
+        // Remove leading slash (which is required in the schema)
+        const sourcePath = artifact.source.slice(1)
+        const targetPath = resolve(artifactsPath!, artifact.target || ".")
 
-          const tarCmd = [
-            "tar",
-            "-c", // create an archive
-            "-f",
-            "-", // pipe to stdout
-            // Files to match. The .DS_Store file is a trick to avoid errors when no files are matched. The file is
-            // ignored later when copying from the temp directory. See https://github.com/sindresorhus/cpy#ignorejunk
-            `$(ls ${sourcePath} 2>/dev/null) .DS_Store`,
-          ]
+        const tarCmd = [
+          "tar",
+          "-c", // create an archive
+          "-f",
+          "-", // pipe to stdout
+          // Files to match. The .DS_Store file is a trick to avoid errors when no files are matched. The file is
+          // ignored later when copying from the temp directory. See https://github.com/sindresorhus/cpy#ignorejunk
+          `$(ls ${sourcePath} 2>/dev/null) .DS_Store`,
+        ]
 
-          try {
-            await new Promise((_resolve, reject) => {
-              // Create an extractor to receive the tarball we will stream from the container
-              // and extract to the artifacts directory.
-              let done = 0
+        try {
+          await new Promise((_resolve, reject) => {
+            // Create an extractor to receive the tarball we will stream from the container
+            // and extract to the artifacts directory.
+            let done = 0
 
-              const extractor = tar.x({
-                cwd: tmpDir.path,
-                strict: true,
-                onentry: (entry) => log.debug("tar: got file " + entry.path),
+            const extractor = tar.x({
+              cwd: tmpDir.path,
+              strict: true,
+              onentry: (entry) => log.debug("tar: got file " + entry.path),
+            })
+
+            extractor.on("end", () => {
+              // Need to make sure both processes are complete before resolving (may happen in either order)
+              done++
+              done === 2 && _resolve()
+            })
+            extractor.on("error", (err) => {
+              reject(err)
+            })
+
+            // Tarball the requested files and stream to the above extractor.
+            runner
+              .exec({
+                command: ["sh", "-c", "cd / && touch .DS_Store && " + tarCmd.join(" ")],
+                containerName: mainContainerName,
+                log,
+                stdout: extractor,
+                timeoutSec,
               })
-
-              extractor.on("end", () => {
+              .then(() => {
                 // Need to make sure both processes are complete before resolving (may happen in either order)
                 done++
                 done === 2 && _resolve()
               })
-              extractor.on("error", (err) => {
-                reject(err)
-              })
+              .catch(reject)
+          })
 
-              // Tarball the requested files and stream to the above extractor.
-              runner
-                .exec({
-                  command: ["sh", "-c", "cd / && touch .DS_Store && " + tarCmd.join(" ")],
-                  container: mainContainerName,
-                  ignoreError: false,
-                  log,
-                  stdout: extractor,
-                })
-                .then(() => {
-                  // Need to make sure both processes are complete before resolving (may happen in either order)
-                  done++
-                  done === 2 && _resolve()
-                })
-                .catch(reject)
-            })
-
-            // Copy the resulting files to the artifacts directory
-            try {
-              await cpy("**/*", targetPath, { cwd: tmpDir.path, ignoreJunk: true })
-            } catch (err) {
-              // Ignore error thrown when the directory is empty
-              if (err.name !== "CpyError" || !err.message.includes("the file doesn't exist")) {
-                throw err
-              }
+          // Copy the resulting files to the artifacts directory
+          try {
+            await cpy("**/*", targetPath, { cwd: tmpDir.path, ignoreJunk: true })
+          } catch (err) {
+            // Ignore error thrown when the directory is empty
+            if (err.name !== "CpyError" || !err.message.includes("the file doesn't exist")) {
+              throw err
             }
-          } finally {
-            await tmpDir.cleanup()
           }
-        })
-      )
-    } finally {
-      await runner.stop()
-    }
-  } else {
-    try {
-      result = await runner.startAndWait({
-        interactive,
-        ignoreError: true,
-        log,
-        remove: false,
-        timeout,
+        } finally {
+          await tmpDir.cleanup()
+        }
       })
-      result.log = (await getLogs()).trim() || result.log
-    } catch (err) {
-      if (err.type === "timeout") {
-        result = await timedOutResult()
-      } else {
-        throw err
-      }
-    } finally {
-      // Make sure Pod is cleaned up
-      await runner.stop()
-    }
+    )
+  } finally {
+    await runner.stop()
   }
 
   return result
 }
 
 class PodRunnerParams {
+  ctx: PluginContext
   annotations?: { [key: string]: string }
   api: KubeApi
-  image: string
-  module: Module
+  pod: KubernetesPod
   namespace: string
-  podName: string
   provider: KubernetesProvider
-  spec: V1PodSpec
 }
 
 interface StartParams {
-  ignoreError?: boolean
-  input?: Buffer | string
   log: LogEntry
-  stdout?: Writable
-  stderr?: Writable
-  timeout?: number
+  timeoutSec?: number
 }
 
 type ExecParams = StartParams & {
   command: string[]
-  container?: string
-  ignoreError?: boolean
+  containerName?: string
+  stdout?: Writable
+  stderr?: Writable
+  stdin?: Readable
+  tty?: boolean
 }
 
-type StartAndWaitParams = StartParams & {
-  interactive: boolean
-  remove?: boolean
+type RunParams = StartParams & {
+  stdout?: Writable
+  stderr?: Writable
+  stdin?: Readable
+  remove: boolean
+  tty: boolean
 }
 
 class PodRunnerError extends GardenBaseError {
-  type = "PodRunner"
+  type = "pod-runner"
+}
+
+interface RunAndWaitResult {
+  command: string[]
+  startedAt: Date
+  completedAt: Date
+  log: string
+  success: boolean
 }
 
 export class PodRunner extends PodRunnerParams {
-  proc: ChildProcess
+  podName: string
+  running: boolean
 
   constructor(params: PodRunnerParams) {
     super()
 
-    const spec = params.spec
+    const spec = params.pod.spec
 
     if (!spec.containers || spec.containers.length === 0) {
       throw new PluginError(`Pod spec for PodRunner must contain at least one container`, {
@@ -407,63 +459,147 @@ export class PodRunner extends PodRunnerParams {
       })
     }
 
+    params.pod.metadata.annotations = {
+      ...(params.pod.metadata.annotations || {}),
+      // Workaround to make sure sidecars are not injected,
+      // due to https://github.com/kubernetes/kubernetes/issues/25908
+      "sidecar.istio.io/inject": "false",
+    }
+
     Object.assign(this, params)
+
+    this.podName = this.pod.metadata.name
   }
 
   getFullCommand() {
-    return [...(this.spec.containers[0].command || []), ...(this.spec.containers[0].args || [])]
+    return [...(this.pod.spec.containers[0].command || []), ...(this.pod.spec.containers[0].args || [])]
+  }
+
+  getMainContainerName() {
+    return this.pod.spec.containers[0].name
   }
 
   /**
-   * Starts the Pod, attaches to it, and waits for a result. Use this if you just need to start a Pod
-   * and get its output, and for interactive sessions.
+   * Runs the Pod, waits for it to terminate, and returns the result. Throws if the Pod never successfully starts.
+   * Returns the logs for the first container in the Pod. Returns success=false if Pod exited with non-zero code.
+   *
+   * If tty=true, we attach to the process stdio during execution.
    */
-  async startAndWait({
-    log,
-    ignoreError,
-    interactive,
-    stdout,
-    remove = true,
-    timeout,
-  }: StartAndWaitParams): Promise<RunResult> {
-    const { module, spec } = this
-
-    if (interactive) {
-      spec.containers[0].stdin = true
-      spec.containers[0].stdinOnce = true
-      spec.containers[0].tty = true
-    }
-
-    const kubecmd = [...this.getBaseRunArgs(), interactive ? "--tty" : "--quiet"]
-
-    if (remove) {
-      kubecmd.push("--rm")
-    }
-
-    const command = this.getFullCommand()
-    log.verbose(`Running '${command.join(" ")}' in Pod ${this.podName}`)
+  async runAndWait(params: RunParams): Promise<RunAndWaitResult> {
+    const { log, remove, timeoutSec, tty } = params
+    let { stdout, stderr, stdin } = params
+    const { namespace, podName } = this
 
     const startedAt = new Date()
+    let success = true
+    let attached = false
+    let mainContainerLogs = ""
+    const mainContainerName = this.getMainContainerName()
 
-    // TODO: use API library
-    const res = await kubectl(this.provider).spawnAndWait({
-      log,
-      namespace: this.namespace,
-      ignoreError,
-      args: kubecmd,
-      stdout,
-      timeoutSec: timeout,
-      tty: interactive,
-    })
+    if (tty) {
+      if (stdout || stderr || stdin) {
+        throw new ParameterError(`Cannot set both tty and stdout/stderr/stdin streams`, { params })
+      }
+
+      stdout = process.stdout
+      stderr = process.stderr
+      stdin = process.stdin
+    }
+
+    const getDebugLogs = async () => {
+      try {
+        return this.getMainContainerLogs()
+      } catch (err) {
+        return ""
+      }
+    }
+
+    try {
+      await this.createPod({ log, tty })
+
+      // Wait until Pod terminates
+      while (true) {
+        const serverPod = await this.api.core.readNamespacedPodStatus(podName, namespace)
+        const state = checkPodStatus(serverPod)
+
+        const mainContainerStatus = (serverPod.status.containerStatuses || []).find((s) => s.name === mainContainerName)
+        const terminated = mainContainerStatus?.state?.terminated
+        const exitReason = terminated?.reason
+        const exitCode = terminated?.exitCode
+
+        if (state === "unhealthy") {
+          if (
+            exitCode !== undefined &&
+            exitCode < 127 &&
+            exitReason !== "ContainerCannotRun" &&
+            exitReason !== "StartError"
+          ) {
+            // Successfully ran the command in the main container, but returned non-zero exit code
+            success = false
+            break
+          }
+
+          const statusStr = terminated
+            ? `${terminated.reason} - ${terminated.message}`
+            : "Status:\n" + JSON.stringify(serverPod.status, null, 2)
+
+          throw new PodRunnerError(`Failed to start Pod ${podName}. ${statusStr}`, {
+            logs: statusStr,
+            exitCode,
+            pod: serverPod,
+          })
+        }
+
+        if (state === "stopped") {
+          success = exitCode === 0
+          break
+        }
+
+        if (!attached && (tty || stdout || stderr)) {
+          // Try to attach to Pod to stream logs
+          try {
+            await this.api.attachToPod({
+              namespace,
+              podName,
+              containerName: mainContainerName,
+              stdout,
+              stderr,
+              stdin,
+              tty,
+            })
+            attached = true
+          } catch (err) {
+            // Ignore errors when attaching, we'll just keep trying
+          }
+        }
+
+        const elapsed = (new Date().getTime() - startedAt.getTime()) / 1000
+
+        if (timeoutSec && elapsed > timeoutSec) {
+          const msg = `Command timed out after ${timeoutSec} seconds.`
+          throw new TimeoutError(msg, {
+            logs: (await getDebugLogs()) || msg,
+            serverPod,
+          })
+        }
+
+        await sleep(200)
+      }
+
+      // Retrieve logs after run
+      mainContainerLogs = await this.getMainContainerLogs()
+    } finally {
+      if (remove) {
+        await this.stop()
+      }
+    }
 
     return {
-      moduleName: module.name,
-      command,
-      version: module.version.versionString,
+      command: this.getFullCommand(),
       startedAt,
       completedAt: new Date(),
-      log: res.all,
-      success: res.code === 0,
+      log: mainContainerLogs,
+      success,
     }
   }
 
@@ -472,185 +608,92 @@ export class PodRunner extends PodRunnerParams {
    * commands in the same Pod. Note that you *must manually call `stop()`* when you're done. Otherwise the Pod will
    * stay running in the cluster until the process exits.
    */
-  async start({ log, ignoreError, stdout, stderr, timeout }: StartParams) {
-    const { spec } = this
+  async start({ log, timeoutSec }: StartParams) {
+    const { ctx, provider, pod, namespace } = this
 
-    const kubecmd = [...this.getBaseRunArgs(), "--quiet"]
-
-    const command = [...(spec.containers[0].command || []), ...(spec.containers[0].args || [])]
-    log.verbose(`Starting Pod ${this.podName} with command '${command.join(" ")}'`)
-
-    // TODO: use API directly
-    this.proc = await kubectl(this.provider).spawn({
-      log,
-      namespace: this.namespace,
-      args: kubecmd,
-      stdout,
-      stderr,
-    })
-
-    let debugLog = ""
-    this.proc.stdout!.on("data", (data) => (debugLog += data))
-    this.proc.stderr!.on("data", (data) => (debugLog += data))
-
-    const start = new Date().getTime()
-    let pod: KubernetesServerResource<V1Pod> | undefined
-    let state: ServiceState = "missing"
+    await this.createPod({ log, tty: false })
 
     // Wait for Pod to be ready
-    while (true) {
-      await sleep(250)
+    const statuses = await waitForResources({ namespace, ctx, provider, resources: [pod], log, timeoutSec })
 
-      try {
-        pod = await this.api.core.readNamespacedPod(this.podName, this.namespace)
-      } catch (err) {
-        if (err.statusCode === 404) {
-          if (this.proc.killed) {
-            if (ignoreError) {
-              break
-            }
-            throw new RuntimeError(`Failed to start Pod ${this.podName}: ${debugLog}`, {
-              podName: this.podName,
-              log: debugLog,
-            })
-          }
-          // Pod isn't ready
-          continue
-        }
-      }
-
-      state = checkPodStatus(pod!)
-
-      if (state === "ready") {
-        break
-      } else if (state === "unhealthy") {
-        if (ignoreError) {
-          break
-        }
-        throw new RuntimeError(`Failed to start Pod ${this.podName}: ${debugLog}`, { pod })
-      }
-
-      if (timeout && new Date().getTime() - start > timeout) {
-        throw new TimeoutError(`Timed out waiting for Pod ${this.podName} to start: ${debugLog}`, {
-          podName: this.podName,
-          log: debugLog,
-        })
-      }
-    }
-
-    return { proc: this.proc, pod, state, debugLog }
-  }
-
-  async spawn(params: ExecParams) {
-    const { log, command, container, ignoreError, input, stdout, stderr, timeout } = params
-
-    if (!this.proc) {
-      throw new PodRunnerError(`Attempting to spawn a command in Pod before starting it`, { command })
-    }
-
-    // TODO: use API library
-    const args = ["exec", "-i", this.podName, "-c", container || this.spec.containers[0].name, "--", ...command]
-
-    const startedAt = new Date()
-
-    const proc = await kubectl(this.provider).spawn({
-      args,
-      namespace: this.namespace,
-      ignoreError,
-      input,
-      log,
-      stdout,
-      stderr,
-      timeoutSec: timeout,
-    })
-
-    let result: string = ""
-
-    return new Promise((_resolve, reject) => {
-      proc.on("close", (code) => {
-        if (code === 0) {
-          _resolve({
-            moduleName: this.module.name,
-            command,
-            version: this.module.version.versionString,
-            startedAt,
-            completedAt: new Date(),
-            log: result,
-            success: code === 0,
-          })
-        }
-
-        reject(
-          new RuntimeError(`Failed to spawn kubectl process with code ${code}`, {
-            code,
-          })
-        )
-      })
-
-      proc.on("error", (err) => {
-        !proc.killed && proc.kill()
-        throw err
-      })
-
-      proc.stdout!.on("data", (s) => {
-        result = tailString(result + s, MAX_BUFFER_SIZE, true)
-      })
-
-      stdout && proc.stdout?.pipe(stdout)
-      stderr && proc.stderr?.pipe(stderr)
-    })
+    return { status: statuses[0] as ResourceStatus<V1Pod> }
   }
 
   /**
    * Executes a command in the running Pod. Must be called after `start()`.
    */
   async exec(params: ExecParams) {
-    const { log, command, container, ignoreError, input, stdout, stderr, timeout } = params
+    const { command, containerName: container, timeoutSec, tty = false } = params
+    let { stdout, stderr, stdin } = params
 
-    if (!this.proc) {
-      throw new PodRunnerError(`Attempting to exec a command in Pod before starting it`, { command })
+    if (tty) {
+      if (stdout || stderr || stdin) {
+        throw new ParameterError(`Cannot set both tty and stdout/stderr/stdin streams`, { params })
+      }
+
+      stdout = process.stdout
+      stderr = process.stderr
+      stdin = process.stdin
     }
-
-    // TODO: use API library
-    const args = ["exec", "-i", this.podName, "-c", container || this.spec.containers[0].name, "--", ...command]
 
     const startedAt = new Date()
 
-    const res = await kubectl(this.provider).exec({
-      args,
+    const result = await this.api.execInPod({
       namespace: this.namespace,
-      ignoreError,
-      input,
-      log,
+      podName: this.podName,
+      containerName: container || this.pod.spec.containers[0].name,
+      command,
       stdout,
       stderr,
-      timeoutSec: timeout,
+      stdin,
+      tty,
+      timeoutSec,
     })
 
-    if (res.timedOut) {
-      throw new TimeoutError("Command timed out.", { error: res })
+    if (result.timedOut) {
+      throw new TimeoutError(`Command timed out after ${timeoutSec} seconds.`, {
+        result,
+        logs: result.allLogs,
+      })
+    }
+
+    if (result.exitCode !== 0) {
+      throw new PodRunnerError(`Command exited with code ${result.exitCode}:\n${result.allLogs}`, {
+        result,
+        logs: result.allLogs,
+      })
     }
 
     return {
-      moduleName: this.module.name,
       command,
-      version: this.module.version.versionString,
       startedAt,
       completedAt: new Date(),
-      log: res.stdout + res.stderr,
-      success: res.exitCode === 0,
+      log: result.stdout + result.stderr,
+      exitCode: result.exitCode,
+      success: result.exitCode === 0,
     }
   }
 
+  async getLogs() {
+    const { api, namespace, pod } = this
+
+    return getPodLogs({
+      api,
+      namespace,
+      pod,
+    })
+  }
+
+  async getMainContainerLogs() {
+    const allLogs = await this.getLogs()
+    return allLogs.find((l) => l.containerName === this.getMainContainerName())?.log || ""
+  }
+
   /**
-   * Disconnects from a connected Pod (if any) and removes it from the cluster. You can safely call this even
+   * Removes the Pod from the cluster, if it's running. You can safely call this even
    * if the process is no longer active.
    */
   async stop() {
-    if (this.proc) {
-      delete this.proc
-    }
-
     try {
       await this.api.core.deleteNamespacedPod(this.podName, this.namespace, undefined, undefined, 0)
     } catch (err) {
@@ -660,31 +703,26 @@ export class PodRunner extends PodRunnerParams {
     }
   }
 
-  private getBaseRunArgs() {
-    const { spec } = this
+  private async createPod({ log, tty }: { log: LogEntry; tty: boolean }) {
+    const command = this.getFullCommand()
+    log.verbose(`Starting Pod ${this.podName} with command '${command.join(" ")}'`)
 
-    const overrides: any = {
-      metadata: {
-        annotations: {
-          // Workaround to make sure sidecars are not injected,
-          // due to https://github.com/kubernetes/kubernetes/issues/25908
-          "sidecar.istio.io/inject": "false",
-          ...(this.annotations || {}),
-        },
-      },
-      spec,
+    const pod = cloneDeep(this.pod)
+
+    if (tty) {
+      // Need to be sure container is attachable
+      pod.spec.containers[0].stdin = true
+      pod.spec.containers[0].stdinOnce = true
+      pod.spec.containers[0].tty = true
     }
 
-    return [
-      "run",
-      this.podName || makePodName("run", this.module.name),
-      `--image=${this.image}`,
-      "--restart=Never",
-      // Need to attach to get the log output and exit code.
-      "-i",
-      // This is a little messy, but it works...
-      "--overrides",
-      `${JSON.stringify(overrides)}`,
-    ]
+    // We never want to restart containers in these ephemeral pods
+    pod.spec.restartPolicy = "Never"
+
+    try {
+      await this.api.createPod(this.namespace, pod)
+    } catch (error) {
+      throw new PodRunnerError(`Failed to create Pod ${this.podName}: ${error.message}`, { error })
+    }
   }
 }

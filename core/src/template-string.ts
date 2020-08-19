@@ -7,7 +7,6 @@
  */
 
 import lodash from "lodash"
-import { deepMap } from "./util/util"
 import { GardenBaseError, ConfigurationError } from "./exceptions"
 import {
   ConfigContext,
@@ -17,9 +16,10 @@ import {
   ContextKeySegment,
 } from "./config/config-context"
 import { difference, flatten, uniq, isPlainObject, isNumber } from "lodash"
-import { Primitive, StringMap, isPrimitive } from "./config/common"
+import { Primitive, StringMap, isPrimitive, objectSpreadKey } from "./config/common"
 import { profile } from "./util/profiling"
 import { dedent, deline } from "./util/string"
+import { isArray } from "util"
 
 export type StringOrStringPromise = Promise<string> | string
 
@@ -112,12 +112,45 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
 /**
  * Recursively parses and resolves all templated strings in the given object.
  */
-export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T extends object>(
-  obj: T,
+export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T>(
+  value: T,
   context: ConfigContext,
   opts: ContextResolveOpts = {}
 ): T {
-  return deepMap(obj, (v) => (typeof v === "string" ? resolveTemplateString(v, context, opts) : v)) as T
+  if (typeof value === "string") {
+    return <T>resolveTemplateString(value, context, opts)
+  } else if (isArray(value)) {
+    return <T>(<unknown>value.map((v) => resolveTemplateStrings(v, context, opts)))
+  } else if (isPlainObject(value)) {
+    // Resolve $merge keys, depth-first, leaves-first
+    let output = {}
+
+    for (const [k, v] of Object.entries(value)) {
+      const resolved = resolveTemplateStrings(v, context, opts)
+
+      if (k === objectSpreadKey) {
+        if (isPlainObject(resolved)) {
+          output = { ...output, ...resolved }
+        } else if (opts.allowPartial) {
+          output[k] = resolved
+        } else {
+          throw new ConfigurationError(
+            `Value of ${objectSpreadKey} key must be (or resolve to) a mapping object (got ${typeof resolved})`,
+            {
+              value,
+              resolved,
+            }
+          )
+        }
+      } else {
+        output[k] = resolved
+      }
+    }
+
+    return <T>output
+  } else {
+    return <T>value
+  }
 })
 
 /**
@@ -125,7 +158,7 @@ export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T
  */
 export function collectTemplateReferences<T extends object>(obj: T): ContextKeySegment[][] {
   const context = new ScanContext()
-  resolveTemplateStrings(obj, context)
+  resolveTemplateStrings(obj, context, { allowPartial: true, allowUndefined: true })
   return uniq(context.foundKeys.entries()).sort()
 }
 

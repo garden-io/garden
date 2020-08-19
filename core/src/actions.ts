@@ -19,9 +19,9 @@ import { SetSecretParams, SetSecretResult } from "./types/plugin/provider/setSec
 import { validateSchema } from "./config/validation"
 import { defaultProvider } from "./config/provider"
 import { ParameterError, PluginError, InternalError, RuntimeError } from "./exceptions"
-import { Garden } from "./garden"
+import { Garden, ModuleActionMap } from "./garden"
 import { LogEntry } from "./logger/log-entry"
-import { Module } from "./types/module"
+import { GardenModule } from "./types/module"
 import {
   PluginActionContextParams,
   PluginActionParamsBase,
@@ -60,6 +60,8 @@ import {
   getPluginActionDescriptions,
   getModuleActionDescriptions,
   PluginActionDescriptions,
+  ModuleActionHandler,
+  ActionHandler,
 } from "./types/plugin/plugin"
 import { CleanupEnvironmentParams } from "./types/plugin/provider/cleanupEnvironment"
 import { DeleteSecretParams, DeleteSecretResult } from "./types/plugin/provider/deleteSecret"
@@ -128,7 +130,7 @@ export interface DeployServicesParams {
 @Profile()
 export class ActionRouter implements TypeGuard {
   private readonly actionHandlers: WrappedPluginActionMap
-  private readonly moduleActionHandlers: WrappedModuleActionMap
+  private readonly moduleActionHandlers: ModuleActionMap
   private readonly loadedPlugins: PluginMap
   private readonly pluginActionDescriptions: PluginActionDescriptions
   private readonly moduleActionDescriptions: PluginActionDescriptions
@@ -306,7 +308,7 @@ export class ActionRouter implements TypeGuard {
     return result
   }
 
-  async getBuildStatus<T extends Module>(
+  async getBuildStatus<T extends GardenModule>(
     params: ModuleActionRouterParams<GetBuildStatusParams<T>>
   ): Promise<BuildStatus> {
     return this.callModuleHandler({
@@ -316,7 +318,7 @@ export class ActionRouter implements TypeGuard {
     })
   }
 
-  async build<T extends Module>(params: ModuleActionRouterParams<BuildModuleParams<T>>): Promise<BuildResult> {
+  async build<T extends GardenModule>(params: ModuleActionRouterParams<BuildModuleParams<T>>): Promise<BuildResult> {
     return this.callModuleHandler({
       params,
       actionType: "build",
@@ -324,17 +326,17 @@ export class ActionRouter implements TypeGuard {
     })
   }
 
-  async publishModule<T extends Module>(
+  async publishModule<T extends GardenModule>(
     params: ModuleActionRouterParams<PublishModuleParams<T>>
   ): Promise<PublishResult> {
     return this.callModuleHandler({ params, actionType: "publish", defaultHandler: dummyPublishHandler })
   }
 
-  async runModule<T extends Module>(params: ModuleActionRouterParams<RunModuleParams<T>>): Promise<RunResult> {
+  async runModule<T extends GardenModule>(params: ModuleActionRouterParams<RunModuleParams<T>>): Promise<RunResult> {
     return this.callModuleHandler({ params, actionType: "runModule" })
   }
 
-  async testModule<T extends Module>(
+  async testModule<T extends GardenModule>(
     params: ModuleActionRouterParams<Omit<TestModuleParams<T>, "artifactsPath">>
   ): Promise<TestResult> {
     const tmpDir = await tmp.dir({ unsafeCleanup: true })
@@ -362,7 +364,7 @@ export class ActionRouter implements TypeGuard {
     }
   }
 
-  async getTestResult<T extends Module>(
+  async getTestResult<T extends GardenModule>(
     params: ModuleActionRouterParams<GetTestResultParams<T>>
   ): Promise<TestResult | null> {
     const result = await this.callModuleHandler({
@@ -718,7 +720,7 @@ export class ActionRouter implements TypeGuard {
     const provider = await this.garden.resolveProvider(log, handler.pluginName)
 
     return {
-      ctx: this.garden.getPluginContext(provider),
+      ctx: await this.garden.getPluginContext(provider),
       log,
       base: handler.base,
     }
@@ -952,7 +954,7 @@ export class ActionRouter implements TypeGuard {
 
     // Wrap the handler with identifying attributes
     const wrapped = Object.assign(
-      <WrappedModuleActionHandlers[T]>(async (...args: any[]) => {
+      <ModuleActionHandlers[T]>(async (...args: any[]) => {
         const result = await handler.apply(plugin, args)
         if (result === undefined) {
           throw new PluginError(`Got empty response from ${moduleType}.${actionType} handler on ${pluginName}`, {
@@ -987,9 +989,7 @@ export class ActionRouter implements TypeGuard {
    * Recursively wraps the base handler (if any) on an action handler, such that the base handler receives the _next_
    * base handler as the `base` parameter when called from within the handler.
    */
-  private wrapBase<T extends WrappedActionHandler<any, any> | WrappedModuleActionHandler<any, any>>(
-    handler?: T
-  ): T | undefined {
+  private wrapBase<T extends ActionHandler<any, any> | ModuleActionHandler<any, any>>(handler?: T): T | undefined {
     if (!handler) {
       return undefined
     }
@@ -1204,19 +1204,19 @@ export class ActionRouter implements TypeGuard {
 
 type CommonParams = keyof PluginActionContextParams
 
-type WrappedServiceActionHandlers<T extends Module = Module> = {
+type WrappedServiceActionHandlers<T extends GardenModule = GardenModule> = {
   [P in keyof ServiceActionParams<T>]: WrappedModuleActionHandler<ServiceActionParams<T>[P], ServiceActionOutputs[P]>
 }
 
-type WrappedTaskActionHandlers<T extends Module = Module> = {
+type WrappedTaskActionHandlers<T extends GardenModule = GardenModule> = {
   [P in keyof TaskActionParams<T>]: WrappedModuleActionHandler<TaskActionParams<T>[P], TaskActionOutputs[P]>
 }
 
-type WrappedModuleActionHandlers<T extends Module = Module> = {
+type WrappedModuleActionHandlers<T extends GardenModule = GardenModule> = {
   [P in keyof ModuleActionParams<T>]: WrappedModuleActionHandler<ModuleActionParams<T>[P], ModuleActionOutputs[P]>
 }
 
-type WrappedModuleAndRuntimeActionHandlers<T extends Module = Module> = WrappedModuleActionHandlers<T> &
+type WrappedModuleAndRuntimeActionHandlers<T extends GardenModule = GardenModule> = WrappedModuleActionHandlers<T> &
   WrappedServiceActionHandlers<T> &
   WrappedTaskActionHandlers<T>
 

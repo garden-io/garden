@@ -6,9 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import chalk from "chalk"
 import split from "split"
-import { omit } from "lodash"
-import moment = require("moment")
+import { omit, sortBy } from "lodash"
+import moment from "moment"
 
 import { GetServiceLogsResult, ServiceLogEntry } from "../../types/plugin/service/getServiceLogs"
 import { KubernetesResource, KubernetesPod } from "./types"
@@ -19,12 +20,13 @@ import Stream from "ts-stream"
 import { LogEntry } from "../../logger/log-entry"
 import Bluebird from "bluebird"
 import { KubernetesProvider } from "./config"
-import { kubectl } from "./kubectl"
-import { splitFirst } from "../../util/util"
-import { ChildProcess } from "child_process"
 import { PluginToolSpec } from "../../types/plugin/tools"
+import { PluginContext } from "../../plugin-context"
+import { getPodLogs } from "./status/pod"
+import { splitFirst } from "../../util/util"
 
-interface GetLogsBaseParams {
+interface GetAllLogsParams {
+  ctx: PluginContext
   defaultNamespace: string
   log: LogEntry
   provider: KubernetesProvider
@@ -32,18 +34,162 @@ interface GetLogsBaseParams {
   stream: Stream<ServiceLogEntry>
   follow: boolean
   tail: number
-}
-
-interface GetPodLogsParams extends GetLogsBaseParams {
-  pods: KubernetesPod[]
-}
-
-interface GetAllLogsParams extends GetLogsBaseParams {
   resources: KubernetesResource[]
 }
 
-interface GetLogsParams extends GetLogsBaseParams {
+/**
+ * Stream all logs for the given resources and service.
+ */
+export async function streamK8sLogs(params: GetAllLogsParams) {
+  const api = await KubeApi.factory(params.log, params.ctx, params.provider)
+  const pods = await getAllPods(api, params.defaultNamespace, params.resources)
+
+  if (params.follow) {
+    const procs = await Bluebird.map(pods, (pod) => followLogs({ ...omit(params, "pods"), pod })).filter(Boolean)
+
+    return new Promise<GetServiceLogsResult>((resolve, reject) => {
+      // Make sure to resolve if no processes get created
+      if (procs.length === 0) {
+        return resolve({})
+      }
+      for (const proc of procs) {
+        proc.on("error", () => reject)
+
+        proc.on("exit", () => resolve({}))
+      }
+    })
+  } else {
+    await Bluebird.map(pods, (pod) => readLogsFromApi({ ...omit(params, "pods"), pod }))
+    return {}
+  }
+}
+
+async function readLogsFromApi({
+  log,
+  ctx,
+  provider,
+  service,
+  stream,
+  tail,
+  pod,
+  defaultNamespace,
+}: {
+  log: LogEntry
+  ctx: PluginContext
+  provider: KubernetesProvider
+  service: Service
+  stream: Stream<ServiceLogEntry>
+  tail?: number
   pod: KubernetesPod
+  defaultNamespace: string
+}) {
+  const api = await KubeApi.factory(log, ctx, provider)
+
+  const logs = await getPodLogs({
+    api,
+    namespace: pod.metadata.namespace || defaultNamespace,
+    pod,
+    lineLimit: tail === -1 ? undefined : tail,
+    timestamps: true,
+  })
+
+  const serviceName = service.name
+
+  const allLines = logs.flatMap(({ containerName, log: _log }) => {
+    return _log.split("\n").map((line) => {
+      try {
+        const [timestampStr, msg] = splitFirst(line, " ")
+        const timestamp = moment(timestampStr).toDate()
+        return { serviceName, timestamp, msg: formatLine(containerName, msg) }
+      } catch {
+        return { serviceName, msg: formatLine(containerName, line) }
+      }
+    })
+  })
+
+  for (const line of sortBy(allLines, "timestamp")) {
+    void stream.write(line)
+  }
+}
+
+function formatLine(containerName: string, line: string) {
+  return chalk.gray(containerName + " → ") + line.trimEnd()
+}
+
+async function followLogs({
+  ctx,
+  log,
+  provider,
+  service,
+  stream,
+  tail,
+  pod,
+  defaultNamespace,
+}: {
+  ctx: PluginContext
+  log: LogEntry
+  provider: KubernetesProvider
+  service: Service
+  stream: Stream<ServiceLogEntry>
+  tail: number
+  pod: KubernetesPod
+  defaultNamespace: string
+}) {
+  const sternArgs = [
+    `--context=${provider.config.context}`,
+    `--namespace=${pod.metadata.namespace || defaultNamespace}`,
+    `--exclude-container=garden-*`,
+    "--tail",
+    String(tail),
+    "--output=json",
+    "-t",
+  ]
+
+  if (provider.config.kubeconfig) {
+    sternArgs.push(`--kubeconfig=${provider.config.kubeconfig}`)
+  }
+
+  /* Getting labels on the pod with no numbers,
+  The Idea is these labels are less likely to change between different deployments of these pods
+  */
+  const labels = getStaticLabelsFromPod(pod)
+  if (Object.keys(labels).length > 0) {
+    sternArgs.push(`${getSelectorString(labels)}`)
+  } else {
+    sternArgs.push(`${service.name}`)
+  }
+
+  const proc = await ctx.tools["kubernetes.stern"].spawn({
+    args: sternArgs,
+    log,
+  })
+
+  proc.stdout!.pipe(split()).on("data", (s: Buffer) => {
+    if (!s) {
+      return
+    }
+    let timestamp: Date | undefined = undefined
+    let msg: string
+    try {
+      const parsed = JSON.parse(s.toString())
+      let [timestampStr, line] = splitFirst(parsed.message, " ")
+      msg = formatLine(parsed.containerName, line)
+      timestamp = moment(timestampStr).toDate()
+    } catch (err) {
+      /**
+       * If the message was supposed to be JSON but parsing failed, we stream the message unparsed. It may contain
+       * error information useful for debugging.
+       */
+      msg = s.toString()
+    }
+    void stream.write({
+      serviceName: service.name,
+      timestamp,
+      msg,
+    })
+  })
+
+  return proc
 }
 
 export const sternSpec: PluginToolSpec = {
@@ -70,148 +216,4 @@ export const sternSpec: PluginToolSpec = {
       sha256: "75708b9acf6ef0eeffbe1f189402adc0405f1402e6b764f1f5152ca288e3109e",
     },
   ],
-}
-
-/**
- * Stream all logs for the given pod names and service.
- */
-export async function getPodLogs(params: GetPodLogsParams) {
-  const procs = await Bluebird.map(params.pods, (pod) => getLogs({ ...omit(params, "pods"), pod }))
-
-  return new Promise<GetServiceLogsResult>((resolve, reject) => {
-    // Make sure to resolve if no processes get created
-    if (procs.length === 0) {
-      return resolve({})
-    }
-    for (const proc of procs) {
-      proc.on("error", () => reject)
-
-      proc.on("exit", () => resolve({}))
-    }
-  })
-}
-
-/**
- * Stream all logs for the given resources and service.
- */
-export async function getAllLogs(params: GetAllLogsParams) {
-  const api = await KubeApi.factory(params.log, params.provider)
-  const pods = await getAllPods(api, params.defaultNamespace, params.resources)
-  return getPodLogs({ ...params, pods })
-}
-
-async function getLogs({ log, provider, service, stream, tail, follow, pod }: GetLogsParams) {
-  if (follow) {
-    return followLogs(log, provider, service, stream, tail, pod)
-  }
-
-  return readLogs(log, provider, service, stream, tail, pod)
-}
-
-async function readLogs(
-  log: LogEntry,
-  provider: KubernetesProvider,
-  service: Service,
-  stream: Stream<ServiceLogEntry>,
-  tail: number,
-  pod: KubernetesPod
-) {
-  const kubectlArgs = ["logs", "--tail", String(tail), "--timestamps=true", "--all-containers=true"]
-
-  kubectlArgs.push(`pod/${pod.metadata.name}`)
-
-  const proc = await kubectl(provider).spawn({
-    args: kubectlArgs,
-    log,
-    namespace: pod.metadata.namespace,
-  })
-
-  handleLogMessageStreamFromProcess(proc, stream, service)
-  return proc
-}
-async function followLogs(
-  log: LogEntry,
-  provider: KubernetesProvider,
-  service: Service,
-  stream: Stream<ServiceLogEntry>,
-  tail: number,
-  pod: KubernetesPod
-) {
-  const sternArgs = [
-    `--context=${provider.config.context}`,
-    `--namespace=${pod.metadata.namespace}`,
-    `--exclude-container=garden-*`,
-    "--tail",
-    String(tail),
-    "--output=json",
-    "-t",
-  ]
-
-  if (provider.config.kubeconfig) {
-    sternArgs.push(`--kubeconfig=${provider.config.kubeconfig}`)
-  }
-
-  /* Getting labels on the pod with no numbers,
-  The Idea is these labels are less likely to change between different deployments of these pods
-  */
-  const labels = getStaticLabelsFromPod(pod)
-  if (Object.keys(labels).length > 0) {
-    sternArgs.push(`${getSelectorString(labels)}`)
-  } else {
-    sternArgs.push(`${service.name}`)
-  }
-
-  const proc = await provider.tools.stern.spawn({
-    args: sternArgs,
-    log,
-  })
-
-  handleLogMessageStreamFromProcess(proc, stream, service, true)
-  return proc
-}
-
-function handleLogMessageStreamFromProcess(
-  proc: ChildProcess,
-  stream: Stream<ServiceLogEntry>,
-  service: Service,
-  json?: boolean
-) {
-  let timestamp: Date
-
-  proc.stdout!.pipe(split()).on("data", (s) => {
-    if (!s) {
-      return
-    }
-    let timestampStr: string
-    let msg: string
-    try {
-      const parsed = json ? parseSternLogMessage(s) : splitFirst(s, " ")
-      timestampStr = parsed[0]
-      msg = parsed[1]
-      timestamp = moment(timestampStr).toDate()
-    } catch (err) {
-      /**
-       * If the message was supposed to be JSON but parsing failed, we stream the message unparsed. It may contain
-       * error information useful for debugging.
-       */
-      msg = s
-    }
-    void stream.write({
-      serviceName: service.name,
-      timestamp,
-      msg: `${msg}`,
-    })
-  })
-}
-
-function parseSternLogMessage(message: string): string[] {
-  let log = JSON.parse(message)
-  const logMessageChunks = log.message.split(" ")
-  return [
-    logMessageChunks[0],
-    logMessageChunks
-      .slice(1, logMessageChunks.length)
-      .join(" ")
-      .trimEnd(),
-  ]
 }

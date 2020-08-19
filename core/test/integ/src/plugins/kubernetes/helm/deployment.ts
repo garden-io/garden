@@ -25,7 +25,7 @@ describe("deployHelmService", () => {
   before(async () => {
     garden = await getHelmTestGarden()
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-    ctx = <KubernetesPluginContext>garden.getPluginContext(provider)
+    ctx = <KubernetesPluginContext>await garden.getPluginContext(provider)
     const graph = await garden.getConfigGraph(garden.log)
     await buildHelmModules(garden, graph)
   })
@@ -108,7 +108,7 @@ describe("deployHelmService", () => {
 
     expect(status.state).to.equal("ready")
 
-    const api = await KubeApi.factory(garden.log, provider)
+    const api = await KubeApi.factory(garden.log, ctx, provider)
 
     // Namespace should exist
     await api.core.readNamespace(namespace)

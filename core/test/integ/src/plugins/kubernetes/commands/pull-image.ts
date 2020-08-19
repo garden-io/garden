@@ -13,18 +13,16 @@ import { getContainerTestGarden } from "../container/container"
 import { k8sBuildContainer } from "../../../../../../src/plugins/kubernetes/container/build"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { KubernetesProvider, KubernetesPluginContext } from "../../../../../../src/plugins/kubernetes/config"
-import { Module } from "../../../../../../src/types/module"
+import { GardenModule } from "../../../../../../src/types/module"
 import { containerHelpers } from "../../../../../../src/plugins/container/helpers"
 import { expect } from "chai"
 import { LogEntry } from "../../../../../../src/logger/log-entry"
 import { grouped } from "../../../../../helpers"
-import { ContainerProvider } from "../../../../../../src/plugins/container/container"
 
 describe("pull-image plugin command", () => {
   let garden: Garden
   let graph: ConfigGraph
   let provider: KubernetesProvider
-  let containerProvider: ContainerProvider
   let ctx: PluginContext
 
   after(async () => {
@@ -37,29 +35,28 @@ describe("pull-image plugin command", () => {
     garden = await getContainerTestGarden(environmentName)
     graph = await garden.getConfigGraph(garden.log)
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-    containerProvider = <ContainerProvider>await garden.resolveProvider(garden.log, "container")
-    ctx = garden.getPluginContext(provider)
+    ctx = await garden.getPluginContext(provider)
   }
 
-  async function ensureImagePulled(module: Module, log: LogEntry) {
+  async function ensureImagePulled(module: GardenModule, log: LogEntry) {
     const imageId = await containerHelpers.getLocalImageId(module)
     const imageHash = await containerHelpers.dockerCli({
       cwd: module.buildPath,
       args: ["images", "-q", imageId],
       log,
-      containerProvider,
+      ctx,
     })
 
     expect(imageHash.stdout.length).to.be.greaterThan(0)
   }
 
   grouped("cluster-docker", "remote-only").context("using an external cluster registry", () => {
-    let module: Module
+    let module: GardenModule
 
     before(async () => {
       await init("cluster-docker-remote-registry")
 
-      module = await graph.getModule("remote-registry-test")
+      module = graph.getModule("remote-registry-test")
 
       // build the image
       await garden.buildDir.syncFromSrc(module, garden.log)
@@ -78,12 +75,12 @@ describe("pull-image plugin command", () => {
   })
 
   grouped("cluster-docker").context("using the in cluster registry", () => {
-    let module: Module
+    let module: GardenModule
 
     before(async () => {
       await init("cluster-docker")
 
-      module = await graph.getModule("simple-service")
+      module = graph.getModule("simple-service")
 
       // build the image
       await garden.buildDir.syncFromSrc(module, garden.log)

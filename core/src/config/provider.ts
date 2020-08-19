@@ -15,11 +15,13 @@ import { uniq } from "lodash"
 import { GardenPlugin } from "../types/plugin/plugin"
 import { EnvironmentStatus } from "../types/plugin/provider/getEnvironmentStatus"
 import { environmentStatusSchema } from "./status"
-import { PluginTools } from "../types/plugin/tools"
 
-export interface ProviderConfig {
+export interface BaseProviderConfig {
   name: string
   environments?: string[]
+}
+
+export interface GenericProviderConfig extends BaseProviderConfig {
   [key: string]: any
 }
 
@@ -48,17 +50,16 @@ export const providerConfigBaseSchema = () =>
     .meta({ extendable: true })
     .id("providerConfig")
 
-export interface Provider<T extends ProviderConfig = ProviderConfig> {
+export interface Provider<T extends BaseProviderConfig = BaseProviderConfig> {
   name: string
   dependencies: { [name: string]: Provider }
   environments?: string[]
   moduleConfigs: ModuleConfig[]
   config: T
   status: EnvironmentStatus
-  tools: PluginTools
 }
 
-export const providerSchemaWithoutTools = () =>
+export const providerSchema = () =>
   providerFixedFieldsSchema().keys({
     dependencies: joiIdentifierMap(joi.link("..."))
       .description("Map of all the providers that this provider depends on.")
@@ -68,17 +69,8 @@ export const providerSchemaWithoutTools = () =>
     status: environmentStatusSchema(),
   })
 
-export const providerSchema = () =>
-  providerSchemaWithoutTools()
-    .keys({
-      tools: joiIdentifierMap(joi.object())
-        .required()
-        .description("Map of tools defined by the provider."),
-    })
-    .id("provider")
-
 export interface ProviderMap {
-  [name: string]: Provider
+  [name: string]: Provider<GenericProviderConfig>
 }
 
 export const defaultProviders = [{ name: "container" }]
@@ -90,15 +82,13 @@ export const defaultProvider: Provider = {
   moduleConfigs: [],
   config: { name: "_default" },
   status: { ready: true, outputs: {} },
-  tools: {},
 }
 
 export function providerFromConfig(
-  config: ProviderConfig,
+  config: GenericProviderConfig,
   dependencies: ProviderMap,
   moduleConfigs: ModuleConfig[],
-  status: EnvironmentStatus,
-  tools: PluginTools
+  status: EnvironmentStatus
 ): Provider {
   return {
     name: config.name,
@@ -106,7 +96,6 @@ export function providerFromConfig(
     moduleConfigs,
     config,
     status,
-    tools,
   }
 }
 
@@ -114,14 +103,14 @@ export function providerFromConfig(
  * Given a plugin and its provider config, return a list of dependency names based on declared dependencies,
  * as well as implicit dependencies based on template strings.
  */
-export async function getAllProviderDependencyNames(plugin: GardenPlugin, config: ProviderConfig) {
+export async function getAllProviderDependencyNames(plugin: GardenPlugin, config: GenericProviderConfig) {
   return uniq([...(plugin.dependencies || []), ...(await getProviderTemplateReferences(config))]).sort()
 }
 
 /**
  * Given a provider config, return implicit dependencies based on template strings.
  */
-export async function getProviderTemplateReferences(config: ProviderConfig) {
+export async function getProviderTemplateReferences(config: GenericProviderConfig) {
   const references = collectTemplateReferences(config)
   const deps: string[] = []
 

@@ -19,7 +19,7 @@ import { deserializeValues } from "../../util/util"
 import { PluginContext } from "../../plugin-context"
 import { LogEntry } from "../../logger/log-entry"
 import { gardenAnnotationKey, tailString } from "../../util/string"
-import { Module } from "../../types/module"
+import { GardenModule } from "../../types/module"
 import hasha from "hasha"
 import { upsertConfigMap } from "./util"
 import { trimRunOutput } from "./helm/common"
@@ -34,7 +34,7 @@ export async function getTaskResult({
   taskVersion,
 }: GetTaskResultParams<ContainerModule | HelmModule | KubernetesModule>): Promise<RunTaskResult | null> {
   const k8sCtx = <KubernetesPluginContext>ctx
-  const api = await KubeApi.factory(log, k8sCtx.provider)
+  const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
   const ns = await getMetadataNamespace(k8sCtx, log, k8sCtx.provider)
   const resultKey = getTaskResultKey(ctx, module, task.name, taskVersion)
 
@@ -65,7 +65,7 @@ export async function getTaskResult({
   }
 }
 
-export function getTaskResultKey(ctx: PluginContext, module: Module, taskName: string, version: ModuleVersion) {
+export function getTaskResultKey(ctx: PluginContext, module: GardenModule, taskName: string, version: ModuleVersion) {
   const key = `${ctx.projectName}--${module.name}--${taskName}--${version.versionString}`
   const hash = hasha(key, { algorithm: "sha1" })
   return `task-result--${hash.slice(0, 32)}`
@@ -74,7 +74,7 @@ export function getTaskResultKey(ctx: PluginContext, module: Module, taskName: s
 interface StoreTaskResultParams {
   ctx: PluginContext
   log: LogEntry
-  module: Module
+  module: GardenModule
   taskName: string
   taskVersion: ModuleVersion
   result: RunTaskResult
@@ -94,7 +94,7 @@ export async function storeTaskResult({
   result,
 }: StoreTaskResultParams): Promise<RunTaskResult> {
   const provider = <KubernetesProvider>ctx.provider
-  const api = await KubeApi.factory(log, provider)
+  const api = await KubeApi.factory(log, ctx, provider)
   const namespace = await getMetadataNamespace(ctx, log, provider)
 
   // FIXME: We should store the logs separately, because of the 1MB size limit on ConfigMaps.
@@ -135,7 +135,7 @@ export async function clearTaskResult({
   taskVersion,
 }: GetTaskResultParams<ContainerModule | HelmModule | KubernetesModule>) {
   const provider = <KubernetesProvider>ctx.provider
-  const api = await KubeApi.factory(log, provider)
+  const api = await KubeApi.factory(log, ctx, provider)
   const namespace = await getMetadataNamespace(ctx, log, provider)
 
   const key = getTaskResultKey(ctx, module, task.name, taskVersion)
