@@ -94,7 +94,7 @@ class Logs extends Component<Props, State> {
     const { logs } = this.props
     const { loading, selectedService } = this.state
     const serviceNames = Object.keys(logs)
-    const maxServiceName = (max(serviceNames) || []).length
+    const maxServiceName = max(serviceNames.map((s) => s.length)) || 5
     const options = [{ value: "all", label: "All service logs" }].concat(
       serviceNames.map((name) => ({ value: name, label: name }))
     )

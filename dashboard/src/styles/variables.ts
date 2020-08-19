@@ -10,7 +10,7 @@ export const tablet = 768
 export const desktop = 992
 export const big = 1680
 
-export const fontFamily = `font-family: Raleway, Arial, Helvetica, sans-serif`
+export const fontFamily = `font-family: Nunito Sans, Arial, Helvetica, sans-serif`
 export const fontBold = `${fontFamily};font-weight: 700;`
 export const fontRegular = `${fontFamily};font-weight: 400;`
 export const fontMedium = `${fontFamily};font-weight: 500;`

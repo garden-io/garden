@@ -522,7 +522,7 @@ export class Garden {
       const providerNames = Object.keys(providers)
       throw new PluginError(
         `Could not find provider '${name}' in environment '${this.environmentName}' ` +
-          `(configured providers: ${providerNames.join(", ")})`,
+          `(configured providers: ${providerNames.join(", ") || "<none>"})`,
         {
           name,
           providers,

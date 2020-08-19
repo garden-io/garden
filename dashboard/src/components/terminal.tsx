@@ -9,6 +9,7 @@
 import styled from "@emotion/styled"
 import { padEnd } from "lodash"
 import React from "react"
+import { default as AnsiUp } from "ansi_up"
 
 import { colors } from "../styles/variables"
 import { ServiceLogEntry } from "@garden-io/core/build/src/types/plugin/service/getServiceLogs"
@@ -40,6 +41,8 @@ const Timestamp = styled.span`
   color: ${colors.gardenGrayLight};
 `
 
+const ansiUp = new AnsiUp()
+
 const Terminal: React.FC<Props> = ({ entries, sectionPad, showServiceName }) => {
   return (
     <Term className="p-1">
@@ -50,7 +53,7 @@ const Terminal: React.FC<Props> = ({ entries, sectionPad, showServiceName }) => 
             <P key={idx}>
               {service}
               <Timestamp>[{e.timestamp}] </Timestamp>
-              {e.msg}
+              <span dangerouslySetInnerHTML={{ __html: ansiUp.ansi_to_html(e.msg) }} />
             </P>
           )
         })}
