@@ -18,6 +18,7 @@ import { environmentStatusSchema } from "./status"
 
 export interface BaseProviderConfig {
   name: string
+  dependencies?: string[]
   environments?: string[]
 }
 
@@ -31,6 +32,9 @@ const providerFixedFieldsSchema = () =>
       .required()
       .description("The name of the provider plugin to use.")
       .example("local-kubernetes"),
+    dependencies: joiArray(joiIdentifier())
+      .description("List other providers that should be resolved before this one.")
+      .example(["exec"]),
     environments: joi
       .array()
       .items(joiUserIdentifier())
@@ -104,7 +108,11 @@ export function providerFromConfig(
  * as well as implicit dependencies based on template strings.
  */
 export async function getAllProviderDependencyNames(plugin: GardenPlugin, config: GenericProviderConfig) {
-  return uniq([...(plugin.dependencies || []), ...(await getProviderTemplateReferences(config))]).sort()
+  return uniq([
+    ...(plugin.dependencies || []),
+    ...(config.dependencies || []),
+    ...(await getProviderTemplateReferences(config)),
+  ]).sort()
 }
 
 /**
