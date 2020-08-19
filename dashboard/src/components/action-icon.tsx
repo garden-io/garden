@@ -59,7 +59,7 @@ const IconLoading = styled(Icon)`
 
 export const ActionIcon: React.FC<Props> = ({ inProgress, onClick, className, iconClassName, invert = false }) => {
   const iconColor = invert ? colors.gardenWhite : colors.gardenGray
-  const iconHoverColor = invert ? colors.gardenGray : colors.gardenWhite
+  const iconHoverColor = invert ? colors.gardenGray : colors.gardenPink
   const IconComp = inProgress ? IconLoading : Icon
 
   return (
