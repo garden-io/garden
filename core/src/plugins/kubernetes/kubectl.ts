@@ -197,7 +197,7 @@ export const kubectlSpec: PluginToolSpec = {
   name: "kubectl",
   description: "The official Kubernetes CLI.",
   type: "binary",
-  prefetch: true,
+  _includeInGardenImage: true,
   builds: [
     {
       platform: "darwin",

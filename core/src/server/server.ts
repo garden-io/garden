@@ -200,13 +200,8 @@ export class GardenServer {
         return ctx.throw(400, `Could not find page ${pageName} from provider ${pluginName}`)
       }
 
-      try {
-        const { url } = await actions.getDashboardPage({ log: this.log, page, pluginName })
-        ctx.redirect(url)
-      } catch (err) {
-        ctx.status = 500
-        ctx.response.body = err.message
-      }
+      const { url } = await actions.getDashboardPage({ log: this.log, page, pluginName })
+      ctx.redirect(url)
     })
 
     /**

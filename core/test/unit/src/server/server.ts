@@ -67,10 +67,11 @@ describe("GardenServer", () => {
   })
 
   describe("GET /", () => {
-    // await request(server)
-    //     .get("/api")
-    //     .send({ command: "get.config" })
-    //     .expect(200)
+    it("should return the dashboard index page", async () => {
+      await request(server)
+        .get("/")
+        .expect(200)
+    })
   })
 
   describe("POST /api", () => {

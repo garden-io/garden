@@ -29,6 +29,6 @@ RUN ln -s /garden/garden /bin/garden \
   && chmod +x /bin/garden \
   && cd /garden/static \
   && git init \
-  && garden util fetch-tools --all --prefetch-only --logger-type=basic
+  && garden util fetch-tools --all --garden-image-build --logger-type=basic
 
 ENTRYPOINT ["/garden/garden"]

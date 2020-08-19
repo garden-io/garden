@@ -23,8 +23,8 @@ const fetchToolsOpts = {
     help: "Fetch all tools for registered plugins, instead of just ones in the current env/project.",
     required: false,
   }),
-  "prefetch-only": new BooleanParameter({
-    help: "(Internal) Fetch only tools marked with prefetch=true.",
+  "garden-image-build": new BooleanParameter({
+    help: "(Internal) Fetch only tools marked with _includeInGardenImage=true.",
     required: false,
     hidden: true,
   }),
@@ -81,8 +81,8 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
       (plugin.tools || []).map((spec) => ({ plugin, tool: new PluginTool(spec) }))
     )
 
-    if (opts["prefetch-only"]) {
-      tools = tools.filter((spec) => spec.tool.spec.prefetch)
+    if (opts["garden-image-build"]) {
+      tools = tools.filter((spec) => spec.tool.spec._includeInGardenImage)
     }
 
     // No need to fetch the same tools multiple times, if they're used in multiple providers

@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import React from "react"
+import React, { useState } from "react"
 import { Frame } from "./frame"
 import Spinner from "./spinner"
 import styled from "@emotion/styled"
@@ -16,10 +16,6 @@ interface ProviderPageProps {
   active: boolean
 }
 
-interface ProviderPageState {
-  loading: boolean
-}
-
 const ProviderPageWrapper = styled.div`
   flex: 0 auto;
   border: 0;
@@ -27,34 +23,19 @@ const ProviderPageWrapper = styled.div`
   height: 100%;
 `
 
-class ProviderPageFrame extends React.Component<ProviderPageProps, ProviderPageState> {
-  constructor(props: ProviderPageProps) {
-    super(props)
-    this.state = {
-      loading: true,
-    }
+const ProviderPageFrame: React.FC<ProviderPageProps> = ({ url, active }) => {
+  const [loading, setLoading] = useState(true)
+
+  const hideSpinner = () => {
+    setLoading(false)
   }
-  // componentDidUpdate(prevProps, prevState) {
-  //   this.setState({ ...this.props, loading: this.state.loading })
-  // }
-  hideSpinner = () => {
-    this.setState({
-      loading: false,
-    })
-  }
-  render() {
-    return (
-      <ProviderPageWrapper style={{ display: this.props.active ? "block" : "none" }}>
-        {this.state.loading ? <Spinner /> : null}
-        <Frame
-          src={this.props.url}
-          onLoad={this.hideSpinner}
-          height={"100%"}
-          style={{ display: !this.state.loading ? "block" : "none" }}
-        />
-      </ProviderPageWrapper>
-    )
-  }
+
+  return (
+    <ProviderPageWrapper style={{ display: active ? "block" : "none" }}>
+      {loading ? <Spinner /> : null}
+      <Frame src={url} onLoad={hideSpinner} height={"100%"} style={{ display: !loading ? "block" : "none" }} />
+    </ProviderPageWrapper>
+  )
 }
 
 export default ProviderPageFrame

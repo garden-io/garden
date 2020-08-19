@@ -41,7 +41,7 @@ describe("ToolsCommand", () => {
         name: "tool",
         description: "foo",
         type: "binary",
-        prefetch: false,
+        _includeInGardenImage: false,
         builds: [
           {
             platform: getPlatform(),
@@ -55,7 +55,7 @@ describe("ToolsCommand", () => {
         name: "lib",
         description: "foo",
         type: "library",
-        prefetch: false,
+        _includeInGardenImage: false,
         builds: [
           {
             platform: getPlatform(),
@@ -76,7 +76,7 @@ describe("ToolsCommand", () => {
         name: "tool",
         description: "foo",
         type: "binary",
-        prefetch: false,
+        _includeInGardenImage: false,
         builds: [
           {
             platform: getPlatform(),

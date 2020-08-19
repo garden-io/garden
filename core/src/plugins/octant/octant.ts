@@ -84,7 +84,7 @@ export const gardenPlugin = createGardenPlugin({
       name: "octant",
       description: "A web admin UI for Kubernetes.",
       type: "binary",
-      prefetch: false,
+      _includeInGardenImage: false,
       builds: [
         {
           platform: "darwin",

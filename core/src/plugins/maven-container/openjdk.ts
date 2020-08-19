@@ -22,7 +22,7 @@ export const openJdkSpecs: PluginToolSpec[] = [
     name: "openjdk-8",
     description: "The OpenJDK 8 library.",
     type: "library",
-    prefetch: false,
+    _includeInGardenImage: false,
     builds: [
       {
         platform: "darwin",
@@ -60,7 +60,7 @@ export const openJdkSpecs: PluginToolSpec[] = [
     name: "openjdk-11",
     description: "The OpenJDK 11 library.",
     type: "library",
-    prefetch: false,
+    _includeInGardenImage: false,
     builds: [
       {
         platform: "darwin",
@@ -98,7 +98,7 @@ export const openJdkSpecs: PluginToolSpec[] = [
     name: "openjdk-13",
     description: "The OpenJDK 13 library.",
     type: "library",
-    prefetch: false,
+    _includeInGardenImage: false,
     builds: [
       {
         platform: "darwin",

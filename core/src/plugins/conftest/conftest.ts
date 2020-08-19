@@ -275,7 +275,7 @@ export const gardenPlugin = createGardenPlugin({
       name: "conftest",
       description: "A rego-based configuration validator.",
       type: "binary",
-      prefetch: true,
+      _includeInGardenImage: true,
       builds: [
         {
           platform: "darwin",

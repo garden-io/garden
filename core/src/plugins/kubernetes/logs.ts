@@ -196,7 +196,7 @@ export const sternSpec: PluginToolSpec = {
   name: "stern",
   description: "Utility CLI for streaming logs from Kubernetes.",
   type: "binary",
-  prefetch: true,
+  _includeInGardenImage: true,
   builds: [
     {
       platform: "darwin",

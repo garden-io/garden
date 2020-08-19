@@ -30,7 +30,7 @@ export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
     name: "terraform-0-12-26",
     description: "The terraform CLI, v0.12.26",
     type: "binary",
-    prefetch: true,
+    _includeInGardenImage: true,
     builds: [
       {
         platform: "darwin",

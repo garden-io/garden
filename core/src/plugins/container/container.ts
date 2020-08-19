@@ -252,7 +252,7 @@ export const gardenPlugin = createGardenPlugin({
       name: "docker",
       description: "The official Docker CLI.",
       type: "binary",
-      prefetch: true,
+      _includeInGardenImage: true,
       builds: [
         {
           platform: "darwin",

@@ -27,7 +27,7 @@ describe("FetchToolsCommand", () => {
         name: "tool-a",
         description: "foo",
         type: "binary",
-        prefetch: true,
+        _includeInGardenImage: true,
         builds: [
           {
             platform: getPlatform(),
@@ -41,7 +41,7 @@ describe("FetchToolsCommand", () => {
         name: "tool-b",
         description: "foo",
         type: "binary",
-        prefetch: false,
+        _includeInGardenImage: false,
         builds: [
           {
             platform: getPlatform(),
@@ -92,7 +92,7 @@ describe("FetchToolsCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {},
-      opts: withDefaultGlobalOpts({ "all": false, "prefetch-only": false }),
+      opts: withDefaultGlobalOpts({ "all": false, "garden-image-build": false }),
     })
 
     expect(result).to.eql({
@@ -139,7 +139,7 @@ describe("FetchToolsCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {},
-      opts: withDefaultGlobalOpts({ "all": false, "prefetch-only": false }),
+      opts: withDefaultGlobalOpts({ "all": false, "garden-image-build": false }),
     })
 
     expect(result).to.eql({
@@ -177,7 +177,7 @@ describe("FetchToolsCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {},
-      opts: withDefaultGlobalOpts({ "all": true, "prefetch-only": false }),
+      opts: withDefaultGlobalOpts({ "all": true, "garden-image-build": false }),
     })
 
     expect(result).to.eql({
@@ -194,7 +194,7 @@ describe("FetchToolsCommand", () => {
     })
   })
 
-  it("should fetch only tools marked for pre-fetch when --prefetch-only is set", async () => {
+  it("should fetch only tools marked for pre-fetch when --garden-image-build is set", async () => {
     const garden: any = await TestGarden.factory(tmpDir.path, {
       plugins: [plugin],
       config: {
@@ -224,7 +224,7 @@ describe("FetchToolsCommand", () => {
       headerLog: log,
       footerLog: log,
       args: {},
-      opts: withDefaultGlobalOpts({ "all": true, "prefetch-only": true }),
+      opts: withDefaultGlobalOpts({ "all": true, "garden-image-build": true }),
     })
 
     expect(result).to.eql({
