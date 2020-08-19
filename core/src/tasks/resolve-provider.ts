@@ -17,7 +17,7 @@ import {
 } from "../config/provider"
 import { resolveTemplateStrings } from "../template-string"
 import { ConfigurationError, PluginError } from "../exceptions"
-import { keyBy, omit, flatten } from "lodash"
+import { keyBy, omit, flatten, uniq } from "lodash"
 import { GraphResults } from "../task-graph"
 import { ProviderConfigContext } from "../config/config-context"
 import { ModuleConfig } from "../config/module"
@@ -85,16 +85,15 @@ export class ResolveProviderTask extends BaseTask {
   }
 
   async resolveDependencies() {
-    const explicitDeps = this.plugin.dependencies
-    const implicitDeps = (await getProviderTemplateReferences(this.config)).filter(
-      (depName) => !explicitDeps.includes(depName)
-    )
-    const allDeps = [...explicitDeps, ...implicitDeps]
+    const pluginDeps = this.plugin.dependencies
+    const explicitDeps = this.config.dependencies || []
+    const implicitDeps = await getProviderTemplateReferences(this.config)
+    const allDeps = uniq([...pluginDeps, ...explicitDeps, ...implicitDeps])
 
     const rawProviderConfigs = this.garden.getRawProviderConfigs()
     const plugins = keyBy(await this.garden.getPlugins(), "name")
 
-    const matchDependencies = (depName) => {
+    const matchDependencies = (depName: string) => {
       // Match against a provider if its name matches directly, or it inherits from a base named `depName`
       return rawProviderConfigs.filter(
         (c) => c.name === depName || getPluginBaseNames(c.name, plugins).includes(depName)
@@ -102,7 +101,7 @@ export class ResolveProviderTask extends BaseTask {
     }
 
     // Make sure explicit dependencies are configured
-    await Bluebird.map(explicitDeps, async (depName) => {
+    await Bluebird.map(pluginDeps, async (depName) => {
       const matched = matchDependencies(depName)
 
       if (matched.length === 0) {

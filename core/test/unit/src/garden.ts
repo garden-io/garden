@@ -109,6 +109,7 @@ describe("Garden", () => {
         name: "test-plugin",
         config: {
           name: "test-plugin",
+          dependencies: [],
           environments: ["local"],
           path: projectRoot,
         },
@@ -126,11 +127,20 @@ describe("Garden", () => {
       const configs = mapValues(providers, (p) => p.config)
 
       expect(configs).to.eql({
-        "exec": emptyProvider(projectRoot, "exec").config,
-        "container": emptyProvider(projectRoot, "container").config,
+        "exec": {
+          name: "exec",
+          dependencies: [],
+          path: projectRoot,
+        },
+        "container": {
+          name: "container",
+          dependencies: [],
+          path: projectRoot,
+        },
         "test-plugin": testPluginProvider.config,
         "test-plugin-b": {
           name: "test-plugin-b",
+          dependencies: [],
           environments: ["local"],
           path: projectRoot,
         },
@@ -162,10 +172,19 @@ describe("Garden", () => {
       const configs = mapValues(providers, (p) => p.config)
 
       expect(configs).to.eql({
-        "exec": emptyProvider(projectRoot, "exec").config,
-        "container": emptyProvider(projectRoot, "container").config,
+        "exec": {
+          name: "exec",
+          dependencies: [],
+          path: projectRoot,
+        },
+        "container": {
+          name: "container",
+          dependencies: [],
+          path: projectRoot,
+        },
         "test-plugin": {
           name: "test-plugin",
+          dependencies: [],
           path: projectRoot,
         },
       })
@@ -1392,6 +1411,7 @@ describe("Garden", () => {
         name: "test-plugin",
         config: {
           name: "test-plugin",
+          dependencies: [],
           environments: ["local"],
           path: projectRoot,
         },
@@ -1407,11 +1427,20 @@ describe("Garden", () => {
       const configs = mapValues(providers, (p) => p.config)
 
       expect(configs).to.eql({
-        "exec": emptyProvider(projectRoot, "exec").config,
-        "container": emptyProvider(projectRoot, "container").config,
+        "exec": {
+          name: "exec",
+          dependencies: [],
+          path: projectRoot,
+        },
+        "container": {
+          name: "container",
+          dependencies: [],
+          path: projectRoot,
+        },
         "test-plugin": testPluginProvider.config,
         "test-plugin-b": {
           name: "test-plugin-b",
+          dependencies: [],
           environments: ["local"],
           path: projectRoot,
         },
@@ -1437,6 +1466,7 @@ describe("Garden", () => {
           async configureProvider({ config }: ConfigureProviderParams) {
             expect(config).to.eql({
               name: "test",
+              dependencies: [],
               path: projectConfig.path,
               foo: "bar",
             })
@@ -1454,6 +1484,7 @@ describe("Garden", () => {
 
       expect(provider.config).to.eql({
         name: "test",
+        dependencies: [],
         path: projectConfig.path,
         foo: "bla",
       })
@@ -1682,6 +1713,43 @@ describe("Garden", () => {
     })
 
     it("should throw if provider configs have combined implicit and declared circular dependencies", async () => {
+      const testA = createGardenPlugin({
+        name: "test-a",
+      })
+
+      const testB = createGardenPlugin({
+        name: "test-b",
+      })
+
+      const projectConfig: ProjectConfig = {
+        apiVersion: "garden.io/v0",
+        kind: "Project",
+        name: "test",
+        path: projectRootA,
+        defaultEnvironment: "default",
+        dotIgnoreFiles: defaultDotIgnoreFiles,
+        environments: [{ name: "default", defaultNamespace, variables: {} }],
+        providers: [
+          { name: "test-a", foo: "${providers.test-b.outputs.foo}" },
+          { name: "test-b", dependencies: ["test-a"] },
+        ],
+        variables: {},
+      }
+
+      const plugins = [testA, testB]
+      const garden = await TestGarden.factory(projectRootA, { config: projectConfig, plugins })
+
+      await expectError(
+        () => garden.resolveProviders(garden.log),
+        (err) =>
+          expect(err.message).to.equal(deline`
+            One or more circular dependencies found between providers or their
+            configurations:\n\ntest-a <- test-b <- test-a
+          `)
+      )
+    })
+
+    it("should throw if provider configs have combined implicit and plugin circular dependencies", async () => {
       const testA = createGardenPlugin({
         name: "test-a",
       })
@@ -3555,19 +3623,3 @@ describe("Garden", () => {
     })
   })
 })
-
-function emptyProvider(projectRoot: string, name: string) {
-  return {
-    name,
-    config: {
-      name,
-      path: projectRoot,
-    },
-    dependencies: {},
-    moduleConfigs: [],
-    status: {
-      ready: true,
-      outputs: {},
-    },
-  }
-}

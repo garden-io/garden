@@ -27,7 +27,10 @@ The values in the schema below are the default values.
 
 ```yaml
 providers:
-  - # If specified, this provider will only be used in the listed environments. Note that an empty array effectively
+  - # List other providers that should be resolved before this one.
+    dependencies: []
+
+    # If specified, this provider will only be used in the listed environments. Note that an empty array effectively
     # disables the provider. To use a provider in all environments, omit this field.
     environments:
 
@@ -330,6 +333,24 @@ providers:
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
 | `array[object]` | `[]`    | No       |
+
+### `providers[].dependencies[]`
+
+[providers](#providers) > dependencies
+
+List other providers that should be resolved before this one.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[string]` | `[]`    | No       |
+
+Example:
+
+```yaml
+providers:
+  - dependencies:
+      - exec
+```
 
 ### `providers[].environments[]`
 

@@ -22,6 +22,9 @@ providers:
   - # The name of the provider plugin to use.
     name:
 
+    # List other providers that should be resolved before this one.
+    dependencies: []
+
     # If specified, this provider will only be used in the listed environments. Note that an empty array effectively
     # disables the provider. To use a provider in all environments, omit this field.
     environments:
@@ -68,6 +71,24 @@ Example:
 ```yaml
 providers:
   - name: "local-kubernetes"
+```
+
+### `providers[].dependencies[]`
+
+[providers](#providers) > dependencies
+
+List other providers that should be resolved before this one.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[string]` | `[]`    | No       |
+
+Example:
+
+```yaml
+providers:
+  - dependencies:
+      - exec
 ```
 
 ### `providers[].environments[]`

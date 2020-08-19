@@ -95,7 +95,7 @@ describe("ActionRouter", () => {
   describe("environment actions", () => {
     describe("configureProvider", () => {
       it("should configure the provider", async () => {
-        const config = { name: "test-plugin", foo: "bar" }
+        const config = { name: "test-plugin", foo: "bar", dependencies: [] }
         const result = await actions.configureProvider({
           ctx: await garden.getPluginContext(providerFromConfig(config, {}, [], { ready: false, outputs: {} })),
           environmentName: "default",

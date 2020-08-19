@@ -39,7 +39,7 @@ describe("resolveProjectConfig", () => {
       dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       outputs: [],
-      providers: [{ name: "some-provider" }],
+      providers: [{ name: "some-provider", dependencies: [] }],
       variables: {},
     }
 
@@ -67,7 +67,7 @@ describe("resolveProjectConfig", () => {
       dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [],
       outputs: [],
-      providers: [{ name: "some-provider" }],
+      providers: [{ name: "some-provider", dependencies: [] }],
       variables: {},
     }
 
@@ -98,7 +98,7 @@ describe("resolveProjectConfig", () => {
           },
         },
       ],
-      providers: [{ name: "some-provider" }],
+      providers: [{ name: "some-provider", dependencies: [] }],
       sources: [
         {
           name: "${local.env.TEST_ENV_VAR}",
@@ -188,10 +188,12 @@ describe("resolveProjectConfig", () => {
       providers: [
         {
           name: "provider-a",
+          dependencies: [],
           someKey: "${local.env.TEST_ENV_VAR_A}",
         },
         {
           name: "provider-b",
+          dependencies: [],
           environments: ["default"],
           someKey: "${local.env.TEST_ENV_VAR_B}",
         },
@@ -240,7 +242,7 @@ describe("resolveProjectConfig", () => {
       dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [],
       outputs: [],
-      providers: [{ name: "some-provider" }],
+      providers: [{ name: "some-provider", dependencies: [] }],
       variables: {},
     }
 
@@ -263,7 +265,7 @@ describe("resolveProjectConfig", () => {
       dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [],
       outputs: [],
-      providers: [{ name: "some-provider" }],
+      providers: [{ name: "some-provider", dependencies: [] }],
       variables: {},
     }
 
@@ -324,13 +326,16 @@ describe("resolveProjectConfig", () => {
       providers: [
         {
           name: "provider-a",
+          dependencies: [],
         },
         {
           name: "provider-b",
           environments: ["default"],
+          dependencies: [],
         },
         {
           name: "provider-c",
+          dependencies: [],
         },
       ],
       sources: [],
@@ -386,6 +391,7 @@ describe("resolveProjectConfig", () => {
       providers: [
         {
           name: "provider-a",
+          dependencies: [],
         },
         {
           name: "provider-b",
