@@ -7,8 +7,8 @@
  */
 
 import { getEnvVarName } from "./util/util"
-import { PrimitiveMap, joiEnvVars, joiPrimitive, joi, joiIdentifier } from "./config/common"
-import { moduleVersionSchema, ModuleVersion } from "./vcs/vcs"
+import { PrimitiveMap, joiEnvVars, joiPrimitive, joi, joiIdentifier, moduleVersionSchema } from "./config/common"
+import { ModuleVersion } from "./vcs/vcs"
 import { Garden } from "./garden"
 import { ConfigGraph, DependencyRelations } from "./config-graph"
 import { ServiceStatus } from "./types/service"

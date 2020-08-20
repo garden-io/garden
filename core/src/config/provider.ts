@@ -15,6 +15,7 @@ import { uniq } from "lodash"
 import { GardenPlugin } from "../types/plugin/plugin"
 import { EnvironmentStatus } from "../types/plugin/provider/getEnvironmentStatus"
 import { environmentStatusSchema } from "./status"
+import { DashboardPage, dashboardPagesSchema } from "../types/plugin/provider/getDashboardPage"
 
 export interface BaseProviderConfig {
   name: string
@@ -61,6 +62,7 @@ export interface Provider<T extends BaseProviderConfig = BaseProviderConfig> {
   moduleConfigs: ModuleConfig[]
   config: T
   status: EnvironmentStatus
+  dashboardPages: DashboardPage[]
 }
 
 export const providerSchema = () =>
@@ -71,6 +73,7 @@ export const providerSchema = () =>
     config: providerConfigBaseSchema().required(),
     moduleConfigs: joiArray(moduleConfigSchema().optional()),
     status: environmentStatusSchema(),
+    dashboardPages: dashboardPagesSchema(),
   })
 
 export interface ProviderMap {
@@ -86,20 +89,29 @@ export const defaultProvider: Provider = {
   moduleConfigs: [],
   config: { name: "_default" },
   status: { ready: true, outputs: {} },
+  dashboardPages: [],
 }
 
-export function providerFromConfig(
-  config: GenericProviderConfig,
-  dependencies: ProviderMap,
-  moduleConfigs: ModuleConfig[],
+export function providerFromConfig({
+  plugin,
+  config,
+  dependencies,
+  moduleConfigs,
+  status,
+}: {
+  plugin: GardenPlugin
+  config: GenericProviderConfig
+  dependencies: ProviderMap
+  moduleConfigs: ModuleConfig[]
   status: EnvironmentStatus
-): Provider {
+}): Provider {
   return {
     name: config.name,
     dependencies,
     moduleConfigs,
     config,
     status,
+    dashboardPages: plugin.dashboardPages,
   }
 }
 

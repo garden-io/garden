@@ -20,7 +20,6 @@ import { getPackageVersion } from "../../util/util"
 import { deline, gardenAnnotationKey } from "../../util/string"
 import { deleteNamespaces } from "./namespace"
 import { PluginError } from "../../exceptions"
-import { DashboardPage } from "../../config/status"
 import { DeepPrimitiveMap } from "../../config/common"
 import { combineStates } from "../../types/service"
 import { KubernetesResource } from "./types"
@@ -160,8 +159,6 @@ interface GetSystemServicesStatusParams {
 }
 
 export async function getSystemServiceStatus({ sysGarden, log, serviceNames }: GetSystemServicesStatusParams) {
-  let dashboardPages: DashboardPage[] = []
-
   const actions = await sysGarden.getActionRouter()
 
   const serviceStatuses = await actions.getServiceStatuses({
@@ -173,7 +170,6 @@ export async function getSystemServiceStatus({ sysGarden, log, serviceNames }: G
   return {
     state,
     serviceStatuses,
-    dashboardPages,
   }
 }
 

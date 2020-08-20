@@ -18,6 +18,7 @@ export const helm3Spec: PluginToolSpec = {
   name: "helm",
   description: "The Helm CLI (version 3.x).",
   type: "binary",
+  _includeInGardenImage: true,
   builds: [
     {
       platform: "darwin",

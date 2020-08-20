@@ -39,6 +39,7 @@ export interface ParameterConstructor<T> {
   overrides?: string[]
   cliDefault?: T
   cliOnly?: boolean
+  hidden?: boolean
 }
 
 export abstract class Parameter<T> {
@@ -54,6 +55,7 @@ export abstract class Parameter<T> {
   hints?: string
   valueName: string
   overrides: string[]
+  hidden: boolean
 
   readonly cliDefault: T | undefined // Optionally specify a separate default for CLI invocation
   readonly cliOnly: boolean // If true, only expose in the CLI, and not in the HTTP/WS server.
@@ -68,6 +70,7 @@ export abstract class Parameter<T> {
     hints,
     cliDefault,
     cliOnly,
+    hidden,
   }: ParameterConstructor<T>) {
     this.help = help
     this.required = required || false
@@ -78,6 +81,7 @@ export abstract class Parameter<T> {
     this.overrides = overrides || []
     this.cliDefault = cliDefault
     this.cliOnly = cliOnly || false
+    this.hidden = hidden || false
   }
 
   // TODO: merge this and the parseString method?

@@ -258,6 +258,7 @@ export const gardenPlugin = createGardenPlugin({
       name: "hadolint",
       description: "A Dockerfile linter.",
       type: "binary",
+      _includeInGardenImage: false,
       builds: [
         {
           platform: "darwin",

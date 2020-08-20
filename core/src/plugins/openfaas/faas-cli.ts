@@ -12,6 +12,7 @@ export const faasCliSpec: PluginToolSpec = {
   name: "faas-cli",
   description: "The faas-cli command line tool.",
   type: "binary",
+  _includeInGardenImage: false,
   builds: [
     {
       platform: "darwin",

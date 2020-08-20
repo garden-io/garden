@@ -9,8 +9,8 @@
 import { taskActionParamsSchema, PluginTaskActionParamsBase } from "../base"
 import { dedent, deline } from "../../../util/string"
 import { GardenModule } from "../../module"
-import { moduleVersionSchema, ModuleVersion } from "../../../vcs/vcs"
-import { joi, joiPrimitive } from "../../../config/common"
+import { ModuleVersion } from "../../../vcs/vcs"
+import { joi, joiPrimitive, moduleVersionSchema } from "../../../config/common"
 
 export const taskVersionSchema = () =>
   moduleVersionSchema().description(deline`

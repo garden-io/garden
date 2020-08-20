@@ -21,6 +21,7 @@ export const mavenSpec: PluginToolSpec = {
   name: "maven",
   description: "The Maven CLI.",
   type: "binary",
+  _includeInGardenImage: false,
   builds: [
     {
       platform: "darwin",

@@ -248,7 +248,7 @@ async function getEnvironmentStatus(): Promise<EnvironmentStatus> {
 
 async function prepareEnvironment() {
   await getDocker().swarmInit({})
-  return { status: { ready: true, dashboardPages: [], outputs: {} } }
+  return { status: { ready: true, outputs: {} } }
 }
 
 async function getServiceStatus({ ctx, service }: GetServiceStatusParams<ContainerModule>): Promise<ServiceStatus> {

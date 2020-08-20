@@ -44,6 +44,13 @@ import { AugmentGraphResult, AugmentGraphParams, augmentGraph } from "./provider
 import { suggestModules, SuggestModulesParams, SuggestModulesResult } from "./module/suggestModules"
 import { templateStringLiteral } from "../../docs/common"
 import { toolSchema, PluginToolSpec } from "./tools"
+import {
+  GetDashboardPageParams,
+  GetDashboardPageResult,
+  getDashboardPage,
+  DashboardPage,
+  dashboardPagesSchema,
+} from "./provider/getDashboardPage"
 
 export interface ActionHandlerParamsBase {
   base?: ActionHandler<any, any>
@@ -119,6 +126,7 @@ export interface PluginActionParams {
   setSecret: SetSecretParams
   deleteSecret: DeleteSecretParams
 
+  getDashboardPage: GetDashboardPageParams
   getDebugInfo: GetDebugInfoParams
 }
 
@@ -134,6 +142,7 @@ export interface PluginActionOutputs {
   setSecret: SetSecretResult
   deleteSecret: DeleteSecretResult
 
+  getDashboardPage: GetDashboardPageResult
   getDebugInfo: DebugInfo
 }
 
@@ -171,6 +180,7 @@ export function getPluginActionDescriptions(): PluginActionDescriptions {
     setSecret,
     deleteSecret,
 
+    getDashboardPage,
     getDebugInfo,
   }
 
@@ -380,6 +390,7 @@ export interface GardenPluginSpec {
   handlers?: Partial<PluginActionHandlers>
   commands?: PluginCommand[]
   tools?: PluginToolSpec[]
+  dashboardPages?: DashboardPage[]
 
   createModuleTypes?: ModuleTypeDefinition[]
   extendModuleTypes?: ModuleTypeExtension[]
@@ -393,6 +404,8 @@ export interface GardenPlugin extends GardenPluginSpec {
 
   createModuleTypes: ModuleTypeDefinition[]
   extendModuleTypes: ModuleTypeExtension[]
+
+  dashboardPages: DashboardPage[]
 }
 
 export interface PluginMap {
@@ -560,6 +573,8 @@ export const pluginSchema = () =>
         List of module types to extend/override with additional handlers.
       `),
 
+      dashboardPages: dashboardPagesSchema(),
+
       tools: joi
         .array()
         .items(toolSchema())
@@ -593,5 +608,6 @@ export function createGardenPlugin(spec: GardenPluginSpec): GardenPlugin {
     createModuleTypes: spec.createModuleTypes || [],
     extendModuleTypes: spec.extendModuleTypes || [],
     handlers: spec.handlers || {},
+    dashboardPages: spec.dashboardPages || [],
   }
 }

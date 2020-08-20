@@ -183,6 +183,28 @@ export class GardenServer {
     })
 
     /**
+     * Resolves the URL for the given provider dashboard page, and redirects to it.
+     */
+    http.get("/dashboardPages/:pluginName/:pageName", async (ctx) => {
+      if (!this.garden) {
+        return this.notReady(ctx)
+      }
+
+      const { pluginName, pageName } = ctx.params
+
+      const actions = await this.garden.getActionRouter()
+      const plugin = await this.garden.getPlugin(pluginName)
+      const page = plugin.dashboardPages.find((p) => p.name === pageName)
+
+      if (!page) {
+        return ctx.throw(400, `Could not find page ${pageName} from provider ${pluginName}`)
+      }
+
+      const { url } = await actions.getDashboardPage({ log: this.log, page, pluginName })
+      ctx.redirect(url)
+    })
+
+    /**
      * Events endpoint, for ingesting events from other Garden processes, and piping to any open websocket connections.
      * Requires a valid auth token header, matching `this.authKey`.
      *

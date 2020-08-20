@@ -8,13 +8,12 @@
 
 import { PluginActionParamsBase, actionParamsSchema } from "../base"
 import { dedent } from "../../../util/string"
-import { DashboardPage, environmentStatusSchema } from "../../../config/status"
+import { environmentStatusSchema } from "../../../config/status"
 
 export interface GetEnvironmentStatusParams extends PluginActionParamsBase {}
 
 export interface EnvironmentStatus<O extends {} = any, D extends {} = any> {
   ready: boolean
-  dashboardPages?: DashboardPage[]
   detail?: D
   outputs: O
   disableCache?: boolean

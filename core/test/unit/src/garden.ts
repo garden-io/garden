@@ -783,12 +783,14 @@ describe("Garden", () => {
             {
               name: "base-tool",
               type: "binary",
+              _includeInGardenImage: false,
               description: "Test",
               builds: [],
             },
             {
               name: "common-tool",
               type: "binary",
+              _includeInGardenImage: false,
               description: "Base description",
               builds: [],
             },
@@ -801,12 +803,14 @@ describe("Garden", () => {
             {
               name: "common-tool",
               type: "library",
+              _includeInGardenImage: false,
               description: "Different description",
               builds: [],
             },
             {
               name: "different-tool",
               type: "binary",
+              _includeInGardenImage: false,
               description: "Test",
               builds: [],
             },

@@ -9,15 +9,13 @@
 import dedent = require("dedent")
 import { join } from "path"
 import { resolve as urlResolve } from "url"
-import { ConfigurationError } from "../../exceptions"
 import { PluginContext } from "../../plugin-context"
 import { joiArray, joiProviderName, joi, joiEnvVars, DeepPrimitiveMap } from "../../config/common"
 import { GardenModule } from "../../types/module"
 import { Service } from "../../types/service"
 import { ExecModuleSpecBase, ExecTestSpec } from "../exec"
-import { KubernetesProvider } from "../kubernetes/config"
 import { CommonServiceSpec } from "../../config/service"
-import { Provider, providerConfigBaseSchema, GenericProviderConfig, ProviderMap } from "../../config/provider"
+import { Provider, providerConfigBaseSchema, GenericProviderConfig } from "../../config/provider"
 import { union } from "lodash"
 import { ContainerModule } from "../container/config"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../types/plugin/module/configure"
@@ -26,6 +24,7 @@ import { LogEntry } from "../../logger/log-entry"
 import { baseBuildSpecSchema } from "../../config/module"
 import { DEFAULT_BUILD_TIMEOUT } from "../container/helpers"
 import { baseTestSpecSchema } from "../../config/test"
+import { getK8sProvider } from "../kubernetes/util"
 
 export interface OpenFaasModuleSpec extends ExecModuleSpecBase {
   handler: string
@@ -139,19 +138,6 @@ export const configSchema = () =>
 
 export type OpenFaasProvider = Provider<OpenFaasConfig>
 export type OpenFaasPluginContext = PluginContext<OpenFaasConfig>
-
-export function getK8sProvider(providers: ProviderMap): KubernetesProvider {
-  // FIXME: use new plugin inheritance mechanism here, instead of explicitly checking for local-kubernetes
-  const provider = <KubernetesProvider>(providers["local-kubernetes"] || providers.kubernetes)
-
-  if (!provider) {
-    throw new ConfigurationError(`openfaas requires a kubernetes (or local-kubernetes) provider to be configured`, {
-      configuredProviders: Object.keys(providers),
-    })
-  }
-
-  return provider
-}
 
 export function getContainerModule(module: OpenFaasModule): ContainerModule {
   const containerModule = {

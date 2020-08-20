@@ -7,7 +7,7 @@
  */
 
 import produce from "immer"
-import { groupBy } from "lodash"
+import { groupBy, keyBy } from "lodash"
 
 import { ServiceLogEntry } from "@garden-io/core/build/src/types/plugin/service/getServiceLogs"
 import { StatusCommandResult } from "@garden-io/core/build/src/commands/get/get-status"
@@ -37,6 +37,8 @@ import {
   FetchTestResultParams,
 } from "./api"
 import { getTestKey } from "../util/helpers"
+import { ProviderMap } from "@garden-io/core/build/src/config/provider"
+import { DashboardPage } from "@garden-io/core/build/src/types/plugin/provider/getDashboardPage"
 
 // This file contains the API action functions.
 // The actions are responsible for dispatching the appropriate action types and normalising the
@@ -103,6 +105,18 @@ async function loadConfig(dispatch: ApiDispatch) {
  */
 function processConfigInitResult(entities: Entities, config: ConfigDump) {
   return produce(entities, (draft) => {
+    draft.providers = keyBy(config.providers, "name") as ProviderMap
+    draft.providerPages = config.providers.flatMap((provider) => {
+      return (provider.dashboardPages || []).map((page: DashboardPage) => ({
+        ...page,
+        providerName: provider.name,
+        path: `/provider/${provider.name}/${page.name}`,
+        description: page.description + ` (from provider ${provider.name})`,
+        // Use static URL if provided, otherwise we'll request a redirect from this API endpoint
+        url: page.url || `/dashboardPages/${provider.name}/${page.name}`,
+      }))
+    })
+
     for (const cfg of config.moduleConfigs) {
       const module: ModuleEntity = {
         name: cfg.name,
@@ -198,7 +212,7 @@ function processStatusInitResult(entities: Entities, status: StatusCommandResult
       draft.tests[testName] = entities.tests[testName] || {}
       draft.tests[testName].status = testStatus
     }
-    draft.providers = status.providers
+    draft.environmentStatuses = status.providers
   })
 }
 

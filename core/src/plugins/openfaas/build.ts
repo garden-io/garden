@@ -14,9 +14,10 @@ import { BuildModuleParams } from "../../types/plugin/module/build"
 import { containerHelpers } from "../container/helpers"
 import { k8sBuildContainer, k8sGetContainerBuildStatus } from "../kubernetes/container/build"
 import { GetBuildStatusParams } from "../../types/plugin/module/getBuildStatus"
-import { OpenFaasModule, getK8sProvider, getContainerModule, OpenFaasProvider } from "./config"
+import { OpenFaasModule, getContainerModule, OpenFaasProvider } from "./config"
 import { LogEntry } from "../../logger/log-entry"
 import { PluginContext } from "../../plugin-context"
+import { getK8sProvider } from "../kubernetes/util"
 
 export const stackFilename = "stack.yml"
 

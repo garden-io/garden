@@ -6,24 +6,40 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { RouteComponentProps } from "react-router-dom"
-import React from "react"
-import H from "history"
+import React, { useState } from "react"
+import { Frame } from "./frame"
+import Spinner from "./spinner"
+import styled from "@emotion/styled"
 
-import { Page } from "../containers/sidebar"
-
-interface RoutePropsWithState extends RouteComponentProps {
-  location: H.Location<Page>
+interface ProviderPageProps {
+  url: string
+  active: boolean
 }
 
-const Provider: React.FC<RoutePropsWithState> = (props) => {
-  const page = props.location.state
+const ProviderPageWrapper = styled.div`
+  flex: 0 auto;
+  border: 0;
+  width: 100%;
+  height: 100%;
+`
+
+const ProviderPageFrame: React.FC<ProviderPageProps> = ({ url, active }) => {
+  const [loading, setLoading] = useState(true)
+
+  const hideSpinner = () => {
+    setLoading(false)
+  }
+
+  const frame = url && (
+    <Frame src={url} onLoad={hideSpinner} height={"100%"} style={{ display: !loading ? "block" : "none" }} />
+  )
+
   return (
-    <div>
-      <h2>Provider dashboard</h2>
-      <p>{page.description}</p>
-    </div>
+    <ProviderPageWrapper style={{ display: active ? "block" : "none" }}>
+      {loading ? <Spinner /> : null}
+      {frame}
+    </ProviderPageWrapper>
   )
 }
 
-export default Provider
+export default ProviderPageFrame

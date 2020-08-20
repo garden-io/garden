@@ -69,6 +69,7 @@ export interface PluginToolSpec {
   description: string
   type: "library" | "binary"
   builds: ToolBuildSpec[]
+  _includeInGardenImage: boolean
 }
 
 export interface PluginTools {
@@ -95,4 +96,9 @@ export const toolSchema = () =>
         List of platform and architecture builds, with URLs and (if applicable) archive extraction information.
         The list should include at least an amd64 build for each of darwin, linux and windows.
       `),
+    _includeInGardenImage: joi
+      .boolean()
+      .default(false)
+      .description("Set to true if this tool should be pre-fetched during Garden container image builds.")
+      .meta({ internal: true }),
   })

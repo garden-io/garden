@@ -60,6 +60,6 @@ WORKDIR /project
 RUN chmod +x /garden/garden \
   && ln -s /garden/garden /bin/garden \
   && chmod +x /bin/garden \
-  && cd /garden/static && garden util fetch-tools --all --logger-type=basic
+  && cd /garden/static && garden util fetch-tools --all --garden-image-build --logger-type=basic
 
 ENTRYPOINT ["/garden/garden"]

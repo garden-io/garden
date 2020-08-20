@@ -67,7 +67,11 @@ describe("GardenServer", () => {
   })
 
   describe("GET /", () => {
-    // TODO: test dashboard endpoint
+    it("should return the dashboard index page", async () => {
+      await request(server)
+        .get("/")
+        .expect(200)
+    })
   })
 
   describe("POST /api", () => {
@@ -128,6 +132,16 @@ describe("GardenServer", () => {
         },
         "stage-build.module-a": {},
       })
+    })
+  })
+
+  describe("/dashboardPages", () => {
+    it("should resolve the URL for the given dashboard page and redirect", async () => {
+      const res = await request(server)
+        .get("/dashboardPages/test-plugin/test")
+        .expect(302)
+
+      expect(res.header.location).to.equal("http://localhost:12345/test")
     })
   })
 

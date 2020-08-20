@@ -9,10 +9,10 @@
 import { flatten, uniq, cloneDeep, some } from "lodash"
 import { getNames, findByName } from "../util/util"
 import { ModuleConfig, moduleConfigSchema } from "../config/module"
-import { ModuleVersion, moduleVersionSchema } from "../vcs/vcs"
+import { ModuleVersion } from "../vcs/vcs"
 import { pathToCacheContext } from "../cache"
 import { Garden } from "../garden"
-import { joiArray, joiIdentifier, joiIdentifierMap, joi } from "../config/common"
+import { joiArray, joiIdentifier, joiIdentifierMap, joi, moduleVersionSchema } from "../config/common"
 import { getModuleTypeBases } from "../plugins"
 import { ModuleType } from "./plugin/plugin"
 

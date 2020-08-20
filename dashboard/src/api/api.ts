@@ -24,15 +24,15 @@ export interface ApiRequest {
 const MAX_LOG_LINES = 5000
 
 export async function fetchConfig() {
-  return apiPost<ConfigDump>("get.config")
+  return apiCommand<ConfigDump>("get.config")
 }
 
 export async function fetchGraph() {
-  return apiPost<GraphOutput>("get.graph")
+  return apiCommand<GraphOutput>("get.graph")
 }
 
 export async function fetchStatus() {
-  return apiPost<StatusCommandResult>("get.status", { output: "json" })
+  return apiCommand<StatusCommandResult>("get.status", { output: "json" })
 }
 
 export interface FetchLogsParams {
@@ -41,7 +41,7 @@ export interface FetchLogsParams {
 
 export async function fetchLogs({ serviceNames }: FetchLogsParams) {
   const tail = Math.floor(MAX_LOG_LINES / serviceNames.length)
-  return apiPost<ServiceLogEntry[]>("logs", { services: serviceNames, tail })
+  return apiCommand<ServiceLogEntry[]>("logs", { services: serviceNames, tail })
 }
 
 export interface FetchTaskResultParams {
@@ -49,7 +49,7 @@ export interface FetchTaskResultParams {
 }
 
 export async function fetchTaskResult(params: FetchTaskResultParams) {
-  return apiPost<GetTaskResultCommandResult>("get.task-result", params)
+  return apiCommand<GetTaskResultCommandResult>("get.task-result", params)
 }
 
 export interface FetchTestResultParams {
@@ -58,10 +58,10 @@ export interface FetchTestResultParams {
 }
 
 export async function fetchTestResult({ name, moduleName }: FetchTestResultParams) {
-  return apiPost<GetTestResultCommandResult>("get.test-result", { name, module: moduleName })
+  return apiCommand<GetTestResultCommandResult>("get.test-result", { name, module: moduleName })
 }
 
-async function apiPost<T>(command: string, parameters: {} = {}): Promise<T> {
+async function apiCommand<T>(command: string, parameters: {} = {}): Promise<T> {
   const url = "/api"
   const method = "POST"
   const headers = { "Content-Type": "application/json" }

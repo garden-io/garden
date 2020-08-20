@@ -27,6 +27,8 @@ import { EnvironmentStatusMap } from "@garden-io/core/build/src/types/plugin/pro
 import { isSupportedEvent, processWebSocketMessage } from "../api/ws"
 import { ServerWebsocketMessage } from "@garden-io/core/build/src/server/server"
 import { useWebsocket, useUiState } from "../hooks"
+import { ProviderMap } from "@garden-io/core/build/src/config/provider"
+import { DashboardPage } from "@garden-io/core/build/src/types/plugin/provider/getDashboardPage"
 
 export type SupportedEventName = PickFromUnion<
   EventName,
@@ -104,6 +106,14 @@ export interface RequestState {
   error?: AxiosError
 }
 
+export interface Page extends DashboardPage {
+  path: string
+}
+
+export interface ProviderPage extends Page {
+  providerName: string
+}
+
 /**
  * The modules, services, tasks, tests, and tests entities are loaded when the app
  * is initialised and guaranteed to exist when the consumers receive the store.
@@ -121,7 +131,9 @@ export interface Entities {
   tests: { [testKey: string]: TestEntity }
   logs: { [serviceName: string]: ServiceLogEntry[] | undefined }
   graph: GraphOutput
-  providers: EnvironmentStatusMap
+  environmentStatuses: EnvironmentStatusMap
+  providers: ProviderMap
+  providerPages: ProviderPage[]
 }
 
 /**
@@ -189,7 +201,9 @@ const initialState: Store = {
     tests: {},
     logs: {},
     graph: { nodes: [], relationships: [] },
+    environmentStatuses: {},
     providers: {},
+    providerPages: [],
   },
   requestStates: initialRequestState,
 }

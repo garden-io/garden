@@ -347,6 +347,7 @@ describe("createIngressResources", () => {
       dependencies: {},
       moduleConfigs: [],
       status: { ready: true, outputs: {} },
+      dashboardPages: [],
     }
 
     multiTlsProvider = {
@@ -355,6 +356,7 @@ describe("createIngressResources", () => {
       dependencies: {},
       moduleConfigs: [],
       status: { ready: true, outputs: {} },
+      dashboardPages: [],
     }
 
     singleTlsProvider = {
@@ -363,6 +365,7 @@ describe("createIngressResources", () => {
       dependencies: {},
       moduleConfigs: [],
       status: { ready: true, outputs: {} },
+      dashboardPages: [],
     }
   })
 
@@ -687,6 +690,7 @@ describe("createIngressResources", () => {
       dependencies: {},
       moduleConfigs: [],
       status: { ready: true, outputs: {} },
+      dashboardPages: [],
       tools,
     }
 
@@ -721,6 +725,7 @@ describe("createIngressResources", () => {
       dependencies: {},
       moduleConfigs: [],
       status: { ready: true, outputs: {} },
+      dashboardPages: [],
       tools,
     }
 
@@ -757,6 +762,7 @@ describe("createIngressResources", () => {
       dependencies: {},
       moduleConfigs: [],
       status: { ready: true, outputs: {} },
+      dashboardPages: [],
       tools,
     }
 
@@ -853,6 +859,7 @@ describe("createIngressResources", () => {
       dependencies: {},
       moduleConfigs: [],
       status: { ready: true, outputs: {} },
+      dashboardPages: [],
       tools,
     }
 
