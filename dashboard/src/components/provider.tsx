@@ -30,10 +30,14 @@ const ProviderPageFrame: React.FC<ProviderPageProps> = ({ url, active }) => {
     setLoading(false)
   }
 
+  const frame = url && (
+    <Frame src={url} onLoad={hideSpinner} height={"100%"} style={{ display: !loading ? "block" : "none" }} />
+  )
+
   return (
     <ProviderPageWrapper style={{ display: active ? "block" : "none" }}>
       {loading ? <Spinner /> : null}
-      <Frame src={url} onLoad={hideSpinner} height={"100%"} style={{ display: !loading ? "block" : "none" }} />
+      {frame}
     </ProviderPageWrapper>
   )
 }
