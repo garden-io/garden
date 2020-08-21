@@ -305,15 +305,37 @@ describe("ConfigContext", () => {
 describe("ProjectConfigContext", () => {
   it("should resolve local env variables", () => {
     process.env.TEST_VARIABLE = "value"
-    const c = new ProjectConfigContext({ projectName: "some-project", artifactsPath: "/tmp", username: "some-user" })
+    const c = new ProjectConfigContext({
+      projectName: "some-project",
+      artifactsPath: "/tmp",
+      username: "some-user",
+      secrets: {},
+    })
     expect(c.resolve({ key: ["local", "env", "TEST_VARIABLE"], nodePath: [], opts: {} })).to.eql({
       resolved: "value",
     })
     delete process.env.TEST_VARIABLE
   })
 
+  it("should resolve secrets", () => {
+    const c = new ProjectConfigContext({
+      projectName: "some-project",
+      artifactsPath: "/tmp",
+      username: "some-user",
+      secrets: { foo: "banana" },
+    })
+    expect(c.resolve({ key: ["secrets", "foo"], nodePath: [], opts: {} })).to.eql({
+      resolved: "banana",
+    })
+  })
+
   it("should throw helpful error when resolving missing env variable", () => {
-    const c = new ProjectConfigContext({ projectName: "some-project", artifactsPath: "/tmp", username: "some-user" })
+    const c = new ProjectConfigContext({
+      projectName: "some-project",
+      artifactsPath: "/tmp",
+      username: "some-user",
+      secrets: {},
+    })
     const key = "fiaogsyecgbsjyawecygaewbxrbxajyrgew"
 
     expectError(
@@ -326,7 +348,12 @@ describe("ProjectConfigContext", () => {
   })
 
   it("should resolve the local platform", () => {
-    const c = new ProjectConfigContext({ projectName: "some-project", artifactsPath: "/tmp", username: "some-user" })
+    const c = new ProjectConfigContext({
+      projectName: "some-project",
+      artifactsPath: "/tmp",
+      username: "some-user",
+      secrets: {},
+    })
     expect(c.resolve({ key: ["local", "platform"], nodePath: [], opts: {} })).to.eql({
       resolved: process.platform,
     })

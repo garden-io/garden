@@ -280,9 +280,9 @@ class ProjectContext extends ConfigContext {
 }
 
 /**
- * This context is available for template strings for all Project config fields (except name)
+ * This context is available for template strings in the `defaultEnvironment` field in project configs.
  */
-export class ProjectConfigContext extends ConfigContext {
+export class DefaultEnvironmentContext extends ConfigContext {
   @schema(
     LocalContext.getSchema().description(
       "Context variables that are specific to the currently running environment/machine."
@@ -305,6 +305,50 @@ export class ProjectConfigContext extends ConfigContext {
     super()
     this.local = new LocalContext(this, artifactsPath, username)
     this.project = new ProjectContext(this, projectName)
+  }
+}
+
+/**
+ * This context is available for template strings for all Project config fields (except `name`, `id` and
+ * `domain`).
+ *
+ * Template strings in `defaultEnvironmentName` have access to all fields in this context, except for
+ * `secrets`.
+ */
+export class ProjectConfigContext extends DefaultEnvironmentContext {
+  @schema(
+    LocalContext.getSchema().description(
+      "Context variables that are specific to the currently running environment/machine."
+    )
+  )
+  public local: LocalContext
+
+  @schema(ProjectContext.getSchema().description("Information about the Garden project."))
+  public project: ProjectContext
+
+  @schema(
+    joiStringMap(joi.string().description("The secret's value."))
+      .description("A map of all secrets for this project in the current environment.")
+      .meta({
+        internal: true,
+        keyPlaceholder: "<secret-name>",
+      })
+  )
+  public secrets: PrimitiveMap
+
+  constructor({
+    projectName,
+    artifactsPath,
+    username,
+    secrets,
+  }: {
+    projectName: string
+    artifactsPath: string
+    username?: string
+    secrets: PrimitiveMap
+  }) {
+    super({ projectName, artifactsPath, username })
+    this.secrets = secrets
   }
 }
 
@@ -332,18 +376,30 @@ export class EnvironmentConfigContext extends ProjectConfigContext {
   @schema(joiIdentifierMap(joiPrimitive()).description("Alias for the variables field."))
   public var: DeepPrimitiveMap
 
+  @schema(
+    joiStringMap(joi.string().description("The secret's value."))
+      .description("A map of all secrets for this project in the current environment.")
+      .meta({
+        internal: true,
+        keyPlaceholder: "<secret-name>",
+      })
+  )
+  public secrets: PrimitiveMap
+
   constructor({
     projectName,
     artifactsPath,
     username,
     variables,
+    secrets,
   }: {
     projectName: string
     artifactsPath: string
     username?: string
     variables: DeepPrimitiveMap
+    secrets: PrimitiveMap
   }) {
-    super({ projectName, artifactsPath, username })
+    super({ projectName, artifactsPath, username, secrets })
     this.variables = this.var = variables
   }
 }
@@ -418,15 +474,12 @@ export class WorkflowConfigContext extends EnvironmentConfigContext {
       artifactsPath: garden.artifactsPath,
       username: garden.username,
       variables: garden.variables,
+      secrets: garden.secrets,
     })
 
     const fullEnvName = garden.namespace ? `${garden.namespace}.${garden.environmentName}` : garden.environmentName
     this.environment = new EnvironmentContext(this, garden.environmentName, fullEnvName, garden.namespace)
-
     this.project = new ProjectContext(this, garden.projectName)
-
-    this.secrets = garden.secrets
-
     this.steps = new PassthroughContext()
   }
 }

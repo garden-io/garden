@@ -417,6 +417,26 @@ export const projectSchema = () =>
     environments: environmentsSchema(),
   })
 
+export function getDefaultEnvironmentName(config: ProjectConfig): string {
+  const { defaultEnvironment } = config
+
+  // TODO: get rid of the default environment config
+  const environments = (config.environments || []).length === 0 ? cloneDeep(defaultEnvironments) : config.environments
+
+  // the default environment is the first specified environment in the config, unless specified
+  if (!defaultEnvironment) {
+    return environments[0].name
+  } else {
+    if (!findByName(environments, defaultEnvironment)) {
+      throw new ConfigurationError(`The specified default environment ${defaultEnvironment} is not defined`, {
+        defaultEnvironment,
+        availableEnvironments: getNames(environments),
+      })
+    }
+    return defaultEnvironment
+  }
+}
+
 /**
  * Resolves and validates the given raw project configuration, and returns it in a canonical form.
  *
@@ -424,7 +444,17 @@ export const projectSchema = () =>
  *
  * @param config raw project configuration
  */
-export function resolveProjectConfig(config: ProjectConfig, artifactsPath: string, username: string): ProjectConfig {
+export function resolveProjectConfig({
+  config,
+  artifactsPath,
+  username,
+  secrets,
+}: {
+  config: ProjectConfig
+  artifactsPath: string
+  username: string
+  secrets: PrimitiveMap
+}): ProjectConfig {
   // Resolve template strings for non-environment-specific fields
   const { environments = [], name } = config
 
@@ -437,7 +467,7 @@ export function resolveProjectConfig(config: ProjectConfig, artifactsPath: strin
       variables: config.variables,
       environments: [],
     },
-    new ProjectConfigContext({ projectName: name, artifactsPath, username })
+    new ProjectConfigContext({ projectName: name, artifactsPath, username, secrets })
   )
 
   // Validate after resolving global fields
@@ -453,8 +483,6 @@ export function resolveProjectConfig(config: ProjectConfig, artifactsPath: strin
     path: config.path,
     projectRoot: config.path,
   })
-
-  const { defaultEnvironment } = config
 
   const providers = config.providers
 
@@ -478,21 +506,11 @@ export function resolveProjectConfig(config: ProjectConfig, artifactsPath: strin
     providers,
   }
 
-  // TODO: get rid of the default environment config
+  config.defaultEnvironment = getDefaultEnvironmentName(config)
+
+  // // TODO: get rid of the default environment config
   if (config.environments.length === 0) {
     config.environments = cloneDeep(defaultEnvironments)
-  }
-
-  // the default environment is the first specified environment in the config, unless specified
-  if (defaultEnvironment === "") {
-    config.defaultEnvironment = config.environments[0].name
-  } else {
-    if (!findByName(config.environments, defaultEnvironment)) {
-      throw new ConfigurationError(`The specified default environment ${defaultEnvironment} is not defined`, {
-        defaultEnvironment,
-        availableEnvironments: getNames(config.environments),
-      })
-    }
   }
 
   return config
@@ -525,11 +543,13 @@ export async function pickEnvironment({
   envString,
   artifactsPath,
   username,
+  secrets,
 }: {
   projectConfig: ProjectConfig
   envString: string
   artifactsPath: string
   username: string
+  secrets: PrimitiveMap
 }) {
   const { environments, name: projectName } = projectConfig
 
@@ -554,7 +574,7 @@ export async function pickEnvironment({
   // Resolve template strings in the environment config, except providers
   environmentConfig = resolveTemplateStrings(
     { ...environmentConfig, providers: [] },
-    new EnvironmentConfigContext({ projectName, artifactsPath, username, variables: projectVariables })
+    new EnvironmentConfigContext({ projectName, artifactsPath, username, variables: projectVariables, secrets })
   )
 
   environmentConfig = validateWithPath({
