@@ -43,7 +43,7 @@ describe("resolveProjectConfig", () => {
       variables: {},
     }
 
-    expect(resolveProjectConfig(config, "/tmp", "some-user")).to.eql({
+    expect(resolveProjectConfig({ config, artifactsPath: "/tmp", username: "some-user", secrets: {} })).to.eql({
       ...config,
       environments: [
         {
@@ -71,7 +71,7 @@ describe("resolveProjectConfig", () => {
       variables: {},
     }
 
-    expect(resolveProjectConfig(config, "/tmp", "some-user")).to.eql({
+    expect(resolveProjectConfig({ config, artifactsPath: "/tmp", username: "some-user", secrets: {} })).to.eql({
       ...config,
       sources: [],
       environments: defaultEnvironments,
@@ -95,6 +95,7 @@ describe("resolveProjectConfig", () => {
           defaultNamespace,
           variables: {
             envVar: "${local.env.TEST_ENV_VAR}",
+            secretVar: "${secrets.foo}",
           },
         },
       ],
@@ -107,12 +108,15 @@ describe("resolveProjectConfig", () => {
       ],
       variables: {
         platform: "${local.platform}",
+        secret: "${secrets.foo}",
       },
     }
 
     process.env.TEST_ENV_VAR = "foo"
 
-    expect(resolveProjectConfig(config, "/tmp", "some-user")).to.eql({
+    expect(
+      resolveProjectConfig({ config, artifactsPath: "/tmp", username: "some-user", secrets: { foo: "banana" } })
+    ).to.eql({
       ...config,
       environments: [
         {
@@ -120,6 +124,7 @@ describe("resolveProjectConfig", () => {
           defaultNamespace,
           variables: {
             envVar: "${local.env.TEST_ENV_VAR}",
+            secretVar: "${secrets.foo}",
           },
         },
       ],
@@ -133,6 +138,7 @@ describe("resolveProjectConfig", () => {
       varfile: defaultVarfilePath,
       variables: {
         platform: platform(),
+        secret: "banana",
       },
     })
 
@@ -173,7 +179,7 @@ describe("resolveProjectConfig", () => {
     process.env.TEST_ENV_VAR_A = "foo"
     process.env.TEST_ENV_VAR_B = "boo"
 
-    expect(resolveProjectConfig(config, "/tmp", "some-user")).to.eql({
+    expect(resolveProjectConfig({ config, artifactsPath: "/tmp", username: "some-user", secrets: {} })).to.eql({
       ...config,
       environments: [
         {
@@ -227,7 +233,7 @@ describe("resolveProjectConfig", () => {
       variables: {},
     }
 
-    const result = resolveProjectConfig(config, "/tmp", "some-user")
+    const result = resolveProjectConfig({ config, artifactsPath: "/tmp", username: "some-user", secrets: {} })
 
     expect(result.environments[0].variables).to.eql(config.environments[0].variables)
   })
@@ -246,7 +252,7 @@ describe("resolveProjectConfig", () => {
       variables: {},
     }
 
-    expect(resolveProjectConfig(config, "/tmp", "some-user")).to.eql({
+    expect(resolveProjectConfig({ config, artifactsPath: "/tmp", username: "some-user", secrets: {} })).to.eql({
       ...config,
       defaultEnvironment: "local",
       environments: defaultEnvironments,
@@ -269,7 +275,7 @@ describe("resolveProjectConfig", () => {
       variables: {},
     }
 
-    expect(resolveProjectConfig(config, "/tmp", "some-user")).to.eql({
+    expect(resolveProjectConfig({ config, artifactsPath: "/tmp", username: "some-user", secrets: {} })).to.eql({
       ...config,
       defaultEnvironment: "local",
       environments: defaultEnvironments,
@@ -311,7 +317,7 @@ describe("resolveProjectConfig", () => {
       variables: {},
     }
 
-    expect(resolveProjectConfig(config, "/tmp", "some-user")).to.eql({
+    expect(resolveProjectConfig({ config, artifactsPath: "/tmp", username: "some-user", secrets: {} })).to.eql({
       ...config,
       environments: [
         {
@@ -376,7 +382,7 @@ describe("resolveProjectConfig", () => {
       },
     }
 
-    expect(resolveProjectConfig(config, "/tmp", "some-user")).to.eql({
+    expect(resolveProjectConfig({ config, artifactsPath: "/tmp", username: "some-user", secrets: {} })).to.eql({
       ...config,
       environments: [
         {
@@ -437,7 +443,7 @@ describe("pickEnvironment", () => {
     }
 
     await expectError(
-      () => pickEnvironment({ projectConfig: config, envString: "foo", artifactsPath, username }),
+      () => pickEnvironment({ projectConfig: config, envString: "foo", artifactsPath, username, secrets: {} }),
       "parameter"
     )
   })
@@ -455,7 +461,9 @@ describe("pickEnvironment", () => {
       variables: {},
     }
 
-    expect(await pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username })).to.eql({
+    expect(
+      await pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username, secrets: {} })
+    ).to.eql({
       environmentName: "default",
       namespace: "default",
       providers: [{ name: "exec" }, { name: "container" }],
@@ -489,7 +497,9 @@ describe("pickEnvironment", () => {
       variables: {},
     }
 
-    expect(await pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username })).to.eql({
+    expect(
+      await pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username, secrets: {} })
+    ).to.eql({
       environmentName: "default",
       namespace: "default",
       providers: [
@@ -521,7 +531,9 @@ describe("pickEnvironment", () => {
       variables: {},
     }
 
-    expect(await pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username })).to.eql({
+    expect(
+      await pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username, secrets: {} })
+    ).to.eql({
       environmentName: "default",
       namespace: "default",
       providers: [{ name: "exec" }, { name: "container", newKey: "foo" }, { name: "my-provider", b: "b" }],
@@ -565,7 +577,13 @@ describe("pickEnvironment", () => {
       },
     }
 
-    const result = await pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username })
+    const result = await pickEnvironment({
+      projectConfig: config,
+      envString: "default",
+      artifactsPath,
+      username,
+      secrets: {},
+    })
 
     expect(result.variables).to.eql({
       a: "project value A",
@@ -611,7 +629,13 @@ describe("pickEnvironment", () => {
       variables: {},
     }
 
-    const result = await pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username })
+    const result = await pickEnvironment({
+      projectConfig: config,
+      envString: "default",
+      artifactsPath,
+      username,
+      secrets: {},
+    })
 
     expect(result.variables).to.eql({
       a: "a",
@@ -651,7 +675,13 @@ describe("pickEnvironment", () => {
       },
     }
 
-    const result = await pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username })
+    const result = await pickEnvironment({
+      projectConfig: config,
+      envString: "default",
+      artifactsPath,
+      username,
+      secrets: {},
+    })
 
     expect(result.variables).to.eql({
       a: "a",
@@ -692,7 +722,13 @@ describe("pickEnvironment", () => {
       variables: {},
     }
 
-    const result = await pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username })
+    const result = await pickEnvironment({
+      projectConfig: config,
+      envString: "default",
+      artifactsPath,
+      username,
+      secrets: {},
+    })
 
     expect(result.variables).to.eql({
       a: "a",
@@ -733,7 +769,13 @@ describe("pickEnvironment", () => {
       },
     }
 
-    const result = await pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username })
+    const result = await pickEnvironment({
+      projectConfig: config,
+      envString: "default",
+      artifactsPath,
+      username,
+      secrets: {},
+    })
 
     expect(result.variables).to.eql({
       a: "a",
@@ -785,7 +827,13 @@ describe("pickEnvironment", () => {
       variables: {},
     }
 
-    const result = await pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username })
+    const result = await pickEnvironment({
+      projectConfig: config,
+      envString: "default",
+      artifactsPath,
+      username,
+      secrets: {},
+    })
 
     expect(result.variables).to.eql({
       a: "new-value",
@@ -838,7 +886,13 @@ describe("pickEnvironment", () => {
       variables: {},
     }
 
-    const result = await pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username })
+    const result = await pickEnvironment({
+      projectConfig: config,
+      envString: "default",
+      artifactsPath,
+      username,
+      secrets: {},
+    })
 
     expect(result.variables).to.eql({
       a: "new-value",
@@ -856,15 +910,24 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
-      environments: [{ name: "default", defaultNamespace, variables: { foo: "${local.username}" } }],
+      environments: [
+        { name: "default", defaultNamespace, variables: { local: "${local.username}", secret: "${secrets.foo}" } },
+      ],
       providers: [],
       variables: {},
     }
 
-    const result = await pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username })
+    const result = await pickEnvironment({
+      projectConfig: config,
+      envString: "default",
+      artifactsPath,
+      username,
+      secrets: { foo: "banana" },
+    })
 
     expect(result.variables).to.eql({
-      foo: username,
+      local: username,
+      secret: "banana",
     })
   })
 
@@ -878,13 +941,13 @@ describe("pickEnvironment", () => {
       dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [
         { name: "default", defaultNamespace, variables: {} },
-        { name: "other", defaultNamespace, variables: { foo: "${var.missing}" } },
+        { name: "other", defaultNamespace, variables: { foo: "${var.missing}", secret: "${secrets.missing}" } },
       ],
       providers: [],
       variables: {},
     }
 
-    await pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username })
+    await pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username, secrets: {} })
   })
 
   it("should pass through template strings in the providers field on environments", async () => {
@@ -896,13 +959,24 @@ describe("pickEnvironment", () => {
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [
-        { name: "default", defaultNamespace, variables: {}, providers: [{ name: "my-provider", a: "${var.missing}" }] },
+        {
+          name: "default",
+          defaultNamespace,
+          variables: {},
+          providers: [{ name: "my-provider", a: "${var.missing}", b: "${secrets.missing}" }],
+        },
       ],
       providers: [],
       variables: {},
     }
 
-    const result = await pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username })
+    const result = await pickEnvironment({
+      projectConfig: config,
+      envString: "default",
+      artifactsPath,
+      username,
+      secrets: {},
+    })
 
     expect(keyBy(result.providers, "name")["my-provider"].a).to.equal("${var.missing}")
   })
@@ -920,7 +994,13 @@ describe("pickEnvironment", () => {
       variables: { foo: "value" },
     }
 
-    const result = await pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username })
+    const result = await pickEnvironment({
+      projectConfig: config,
+      envString: "default",
+      artifactsPath,
+      username,
+      secrets: {},
+    })
 
     expect(result.variables).to.eql({
       foo: "value",
@@ -972,7 +1052,13 @@ describe("pickEnvironment", () => {
       },
     }
 
-    const result = await pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username })
+    const result = await pickEnvironment({
+      projectConfig: config,
+      envString: "default",
+      artifactsPath,
+      username,
+      secrets: {},
+    })
 
     expect(result.variables).to.eql({
       a: "a",
@@ -1005,7 +1091,7 @@ describe("pickEnvironment", () => {
     }
 
     await expectError(
-      () => pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username }),
+      () => pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username, secrets: {} }),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(
           "Error validating environment default (/garden.yml): key .defaultNamespace must be a string"
@@ -1034,7 +1120,7 @@ describe("pickEnvironment", () => {
     }
 
     await expectError(
-      () => pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username }),
+      () => pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username, secrets: {} }),
       (err) => expect(err.message).to.equal("Could not find varfile at path 'foo.env'")
     )
   })
@@ -1060,7 +1146,7 @@ describe("pickEnvironment", () => {
     }
 
     await expectError(
-      () => pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username }),
+      () => pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username, secrets: {} }),
       (err) => expect(err.message).to.equal("Could not find varfile at path 'foo.env'")
     )
   })
@@ -1078,7 +1164,9 @@ describe("pickEnvironment", () => {
       variables: {},
     }
 
-    expect(await pickEnvironment({ projectConfig: config, envString: "foo.default", artifactsPath, username })).to.eql({
+    expect(
+      await pickEnvironment({ projectConfig: config, envString: "foo.default", artifactsPath, username, secrets: {} })
+    ).to.eql({
       environmentName: "default",
       namespace: "foo",
       providers: [{ name: "exec" }, { name: "container" }],
@@ -1100,7 +1188,9 @@ describe("pickEnvironment", () => {
       variables: {},
     }
 
-    expect(await pickEnvironment({ projectConfig: config, envString: "foo.default", artifactsPath, username })).to.eql({
+    expect(
+      await pickEnvironment({ projectConfig: config, envString: "foo.default", artifactsPath, username, secrets: {} })
+    ).to.eql({
       environmentName: "default",
       namespace: "foo",
       providers: [{ name: "exec" }, { name: "container" }],
@@ -1122,7 +1212,9 @@ describe("pickEnvironment", () => {
       variables: {},
     }
 
-    expect(await pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username })).to.eql({
+    expect(
+      await pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username, secrets: {} })
+    ).to.eql({
       environmentName: "default",
       namespace: "default",
       providers: [{ name: "exec" }, { name: "container" }],
@@ -1145,7 +1237,7 @@ describe("pickEnvironment", () => {
     }
 
     await expectError(
-      () => pickEnvironment({ projectConfig: config, envString: "$.%", artifactsPath, username }),
+      () => pickEnvironment({ projectConfig: config, envString: "$.%", artifactsPath, username, secrets: {} }),
       (err) =>
         expect(err.message).to.equal(
           "Invalid environment specified ($.%): must be a valid environment name or <namespace>.<environment>"
@@ -1167,7 +1259,7 @@ describe("pickEnvironment", () => {
     }
 
     await expectError(
-      () => pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username }),
+      () => pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username, secrets: {} }),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(
           "Environment default has defaultNamespace set to null, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. --env=some-namespace.default)."

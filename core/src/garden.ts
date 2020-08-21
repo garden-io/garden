@@ -26,6 +26,8 @@ import {
   pickEnvironment,
   OutputSpec,
   EnvironmentConfig,
+  parseEnvironment,
+  getDefaultEnvironmentName,
 } from "./config/project"
 import { findByName, pickKeys, getPackageVersion, getNames, findByNames } from "./util/util"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
@@ -44,7 +46,7 @@ import { LocalConfigStore, ConfigStore, GlobalConfigStore } from "./config-store
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
 import { BuildDependencyConfig, ModuleConfig, ModuleResource } from "./config/module"
 import { resolveModuleConfig } from "./resolve-module"
-import { ModuleConfigContext, OutputConfigContext } from "./config/config-context"
+import { ModuleConfigContext, OutputConfigContext, DefaultEnvironmentContext } from "./config/config-context"
 import { createPluginContext, CommandInfo } from "./plugin-context"
 import { ModuleAndRuntimeActionHandlers, RegisterPluginParam } from "./types/plugin/plugin"
 import { SUPPORTED_PLATFORMS, SupportedPlatform, DEFAULT_GARDEN_DIR_NAME } from "./constants"
@@ -76,7 +78,7 @@ import { DependencyValidationGraph } from "./util/validate-dependencies"
 import { Profile } from "./util/profiling"
 import { ResolveModuleTask, getResolvedModules, moduleResolutionConcurrencyLimit } from "./tasks/resolve-module"
 import username from "username"
-import { throwOnMissingSecretKeys } from "./template-string"
+import { throwOnMissingSecretKeys, resolveTemplateString } from "./template-string"
 import { WorkflowConfig, WorkflowResource, WorkflowConfigMap, resolveWorkflowConfig } from "./config/workflow"
 import { enterpriseInit } from "./enterprise/init"
 import { PluginTool, PluginTools } from "./util/ext-tools"
@@ -294,19 +296,44 @@ export class Garden {
     await ensureDir(artifactsPath)
 
     const _username = (await username()) || ""
-    config = resolveProjectConfig(config, artifactsPath, _username)
+    const projectName = config.name
+    const log = opts.log || getLogger().placeholder()
 
-    const { defaultEnvironment, name: projectName, sources: projectSources, path: projectRoot } = config
+    // Connect to the state storage
+    await ensureConnected()
+
+    const defaultEnvironment = resolveTemplateString(
+      getDefaultEnvironmentName(config),
+      new DefaultEnvironmentContext({ projectName, artifactsPath, username: _username })
+    ) as string
 
     if (!environmentStr) {
       environmentStr = defaultEnvironment
     }
 
-    let { environmentName, namespace, providers, variables, production } = await pickEnvironment({
+    const { environment: environmentName } = parseEnvironment(environmentStr)
+
+    const sessionId = opts.sessionId || null
+    const projectId = config.id || null
+    let secrets: StringMap = {}
+    let clientAuthToken: string | null = null
+    const enterpriseDomain = config.domain || null
+    if (!opts.noEnterprise) {
+      const enterpriseInitResult = await enterpriseInit({ log, projectId, enterpriseDomain, environmentName })
+      secrets = enterpriseInitResult.secrets
+      clientAuthToken = enterpriseInitResult.clientAuthToken
+    }
+
+    config = resolveProjectConfig({ config, artifactsPath, username: _username, secrets })
+
+    const { sources: projectSources, path: projectRoot } = config
+
+    let { namespace, providers, variables, production } = await pickEnvironment({
       projectConfig: config,
       envString: environmentStr,
       artifactsPath,
       username: _username,
+      secrets,
     })
 
     // Allow overriding variables
@@ -314,7 +341,6 @@ export class Garden {
 
     const buildDir = await BuildDir.factory(projectRoot, gardenDirPath)
     const workingCopyId = await getWorkingCopyId(gardenDirPath)
-    const log = opts.log || getLogger().placeholder()
 
     // We always exclude the garden dir
     const gardenDirExcludePattern = `${relative(projectRoot, gardenDirPath)}/**/*`
@@ -323,20 +349,6 @@ export class Garden {
     // Ensure the project root is in a git repo
     const vcs = new GitHandler(gardenDirPath, config.dotIgnoreFiles)
     await vcs.getRepoRoot(log, projectRoot)
-
-    // Connect to the state storage
-    await ensureConnected()
-
-    const sessionId = opts.sessionId || null
-    const projectId = config.id || null
-    let secrets: StringMap = {}
-    let clientAuthToken: string | null = null
-    const enterpriseDomain = config.domain || null
-    if (!opts.noEnterprise) {
-      const enterpriseInitResult = await enterpriseInit({ log, projectConfig: config, environmentName })
-      secrets = enterpriseInitResult.secrets
-      clientAuthToken = enterpriseInitResult.clientAuthToken
-    }
 
     const garden = new this({
       artifactsPath,
