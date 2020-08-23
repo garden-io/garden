@@ -47,7 +47,7 @@ To later upgrade to the newest version, simply run `brew update` and then `brew 
 
 #### Installation script (macOS)
 
-Fisrt make sure the [requirements](#requirements) listed above are installed. Then run our automated installation script:
+First make sure the [requirements](#requirements) listed above are installed. Then run our automated installation script:
 
 ```sh
 curl -sL https://get.garden.io/install.sh | bash
