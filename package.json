@@ -48,7 +48,7 @@
   },
   "scripts": {
     "add-licenses": "copyright-header --license-file support/license-header.txt --syntax support/license-syntax.yaml --add-path dashboard/src:core/src:core/test --output-dir .",
-    "bootstrap": "lerna bootstrap",
+    "bootstrap": "lerna bootstrap --force-local",
     "build": "npm run clean && lerna bootstrap && lerna run build",
     "build-containers": "npm run dist && ./scripts/build-containers.sh",
     "check-all": "npm run check-docs && npm run check-package-lock && npm run check-licenses && npm run lint",
@@ -56,6 +56,7 @@
     "check-licenses": "gulp check-licenses",
     "check-package-lock": "git diff --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
     "clean": "lerna run clean && git clean -X -f && find . -name \".garden\" -type d -prune -exec rm -rf '{}' '+'",
+    "clean-node-modules": "find . -name \"node_modules\" -type d -prune -exec rm -rf '{}' '+'",
     "dev": "lerna run dev --parallel",
     "dist": "lerna run dist && npm run pkg",
     "fix-format": "lerna run fix-format --no-bail",

@@ -6,4 +6,4 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-export { runCli } from "./cli/cli"
+export { Garden } from "./garden"

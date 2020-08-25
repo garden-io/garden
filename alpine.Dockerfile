@@ -30,6 +30,7 @@ RUN npm install \
 ADD cli/package.json /tmp/package.json
 ADD cli/bin/garden /tmp/bin/garden
 ADD cli/bin/garden-debug /tmp/bin/garden-debug
+ADD cli/build /tmp/build
 
 ADD core/package.json /tmp/node_modules/@garden-io/core/package.json
 ADD core/build /tmp/node_modules/@garden-io/core/build
