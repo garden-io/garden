@@ -21,6 +21,7 @@
     "noImplicitAny": false,
     "noImplicitReturns": true,
     "noImplicitThis": true,
+    "preserveWatchOutput": true,
     "strictFunctionTypes": true,
     "strictNullChecks": true,
     "sourceMap": true,

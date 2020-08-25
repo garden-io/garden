@@ -56,6 +56,7 @@
     "check-licenses": "gulp check-licenses",
     "check-package-lock": "git diff --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
     "clean": "lerna run clean && git clean -X -f && find . -name \".garden\" -type d -prune -exec rm -rf '{}' '+'",
+    "dev": "lerna run dev --parallel",
     "dist": "lerna run dist && npm run pkg",
     "fix-format": "lerna run fix-format --no-bail",
     "generate-docs": "lerna run generate-docs",

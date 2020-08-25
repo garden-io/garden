@@ -67,7 +67,6 @@ from the root directory. This ensures that the dashboard is built and ready to s
 
 To develop the CLI, run the `dev` command in your console:
 
-    cd core
     npm run dev
 
 This will `npm link` it to your global npm folder, and then watch for
