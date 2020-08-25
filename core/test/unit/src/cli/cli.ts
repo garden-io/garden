@@ -8,9 +8,9 @@
 
 import { expect } from "chai"
 import nock from "nock"
-import { isEqual, find } from "lodash"
+import { isEqual } from "lodash"
 
-import { makeDummyGarden, GardenCli, runCli } from "../../../../src/cli/cli"
+import { makeDummyGarden, GardenCli } from "../../../../src/cli/cli"
 import { getDataDir, TestGarden, makeTestGardenA, enableAnalytics, projectRootA, TestEventBus } from "../../../helpers"
 import { GARDEN_CORE_ROOT } from "../../../../src/constants"
 import { join, resolve } from "path"
@@ -25,7 +25,6 @@ import { safeLoad } from "js-yaml"
 import { GardenProcess } from "../../../../src/db/entities/garden-process"
 import { ensureConnected } from "../../../../src/db/connection"
 import { startServer, GardenServer } from "../../../../src/server/server"
-import { randomString } from "../../../../src/util/string"
 
 describe("cli", () => {
   before(async () => {
@@ -799,56 +798,6 @@ describe("cli", () => {
 
         expect(scope.done()).to.not.throw
       })
-    })
-  })
-
-  describe("runCli", () => {
-    it("should register a GardenProcess entry and pass to cli.run()", (done) => {
-      class TestCommand extends Command {
-        name = randomString(10)
-        help = "halp!"
-
-        async action({}: CommandParams) {
-          const allProcesses = await GardenProcess.getActiveProcesses()
-          const record = find(allProcesses, (p) => p.command)
-
-          if (record) {
-            done()
-          } else {
-            done("Couldn't find process record")
-          }
-
-          return { result: {} }
-        }
-      }
-
-      const cli = new GardenCli()
-      const cmd = new TestCommand()
-      cli.addCommand(cmd)
-
-      runCli({ args: [cmd.name, "--root", projectRootA], cli }).catch(done)
-    })
-
-    it("should clean up the GardenProcess entry on exit", async () => {
-      class TestCommand extends Command {
-        name = randomString(10)
-        help = "halp!"
-
-        async action({}: CommandParams) {
-          return { result: {} }
-        }
-      }
-
-      const cli = new GardenCli()
-      const cmd = new TestCommand()
-      cli.addCommand(cmd)
-
-      await runCli({ args: [cmd.name, "--root", projectRootA], cli })
-
-      const allProcesses = await GardenProcess.getActiveProcesses()
-      const record = find(allProcesses, (p) => p.command)
-
-      expect(record).to.be.undefined
     })
   })
 

@@ -2,7 +2,7 @@
 
 require("source-map-support").install()
 
-const core = require("@garden-io/core")
+const cli = require("../build/src/cli")
 
 // tslint:disable-next-line: no-floating-promises
-core.runCli()
+cli.runCli()

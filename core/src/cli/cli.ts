@@ -30,23 +30,15 @@ import {
 } from "./helpers"
 import { Parameters, globalOptions, OUTPUT_RENDERERS, GlobalOptions, ParameterValues } from "./params"
 import { defaultEnvironments, ProjectConfig, defaultNamespace } from "../config/project"
-import {
-  ERROR_LOG_FILENAME,
-  DEFAULT_API_VERSION,
-  DEFAULT_GARDEN_DIR_NAME,
-  LOGS_DIR_NAME,
-  gardenEnv,
-} from "../constants"
+import { ERROR_LOG_FILENAME, DEFAULT_API_VERSION, DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME } from "../constants"
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 import { AnalyticsHandler } from "../analytics/analytics"
 import { defaultDotIgnoreFiles } from "../util/fs"
 import { renderError } from "../logger/renderers"
-import { getDefaultProfiler } from "../util/profiling"
 import { BufferedEventStream } from "../enterprise/buffered-event-stream"
 import { makeEnterpriseContext } from "../enterprise/init"
 import { GardenProcess } from "../db/entities/garden-process"
 import { DashboardEventStream } from "../server/dashboard-event-stream"
-import { ensureConnected } from "../db/connection"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts = {}) {
   const environments = gardenOpts.environmentName
@@ -479,38 +471,5 @@ ${renderCommands(commands)}
     }
 
     return { argv, code, errors, result: commandResult?.result }
-  }
-}
-
-export async function runCli({ args, cli }: { args?: string[]; cli?: GardenCli } = {}): Promise<void> {
-  let code = 0
-
-  if (!args) {
-    args = process.argv.slice(2)
-  }
-
-  await ensureConnected()
-  const processRecord = await GardenProcess.register(args)
-
-  try {
-    if (!cli) {
-      cli = new GardenCli()
-    }
-    // Note: We slice off the binary/script name from argv.
-    const result = await cli.run({ args, exitOnError: true, processRecord })
-    code = result.code
-  } catch (err) {
-    // tslint:disable-next-line: no-console
-    console.log(err.message)
-    code = 1
-  } finally {
-    await processRecord.remove()
-
-    if (gardenEnv.GARDEN_ENABLE_PROFILING) {
-      // tslint:disable-next-line: no-console
-      console.log(getDefaultProfiler().report())
-    }
-
-    await shutdown(code)
   }
 }
