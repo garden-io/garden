@@ -12,8 +12,10 @@ RUN apk add --no-cache \
 
 WORKDIR /tmp
 
-RUN npm install pkg@4.4.8 && node_modules/.bin/pkg-fetch node12 alpine x64
+# Pre-fetch the node12 binary for pkg
+RUN npm install pkg@4.4.9 && node_modules/.bin/pkg-fetch node12 alpine x64
 
+# Install the dependencies for core
 ADD core/package.json /tmp/
 ADD core/package-lock.json /tmp/
 
@@ -24,13 +26,17 @@ RUN npm install \
   /usr/lib/node_modules/npm/html/* \
   /usr/lib/node_modules/npm/scripts/*
 
-ADD core/bin/garden /tmp/bin/garden
-ADD core/bin/garden-debug /tmp/bin/garden-debug
-ADD core/build /tmp/build
+# Replace the package.json with the CLI one, and add the built core package
+ADD cli/package.json /tmp/package.json
+ADD cli/bin/garden /tmp/bin/garden
+ADD cli/bin/garden-debug /tmp/bin/garden-debug
 
-RUN node_modules/.bin/pkg --target node12-alpine-x64 . \
-  && mkdir -p /garden \
-  && mv core /garden/garden \
+ADD core/package.json /tmp/node_modules/@garden-io/core/package.json
+ADD core/build /tmp/node_modules/@garden-io/core/build
+
+# Create the binary
+RUN mkdir -p /garden \
+  && node_modules/.bin/pkg --target node12-alpine-x64 . --output /garden/garden \
   && cp node_modules/sqlite3/lib/binding/node-v72-linux-x64/node_sqlite3.node /garden
 
 #### Main container ####

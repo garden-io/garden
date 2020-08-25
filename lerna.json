@@ -1,7 +1,8 @@
 {
   "packages": [
-    "dashboard/",
-    "core/"
+    "cli/",
+    "core/",
+    "dashboard/"
   ],
   "stream": true,
   "version": "independent"

@@ -21,6 +21,7 @@ RUN set -ex; \
   apt-get install docker-ce-cli; \
   rm -rf /var/lib/apt/lists/*;
 
+# Note: This Dockerfile is run with dist/linux-amd64 as the context root
 ADD . /garden
 
 WORKDIR /project

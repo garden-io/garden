@@ -1,0 +1,64 @@
+{
+  "name": "@garden-io/cli",
+  "version": "0.12.2",
+  "description": "Cloud native testing platform for testing and developing container applications on Kubernetes",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/garden-io/garden.git"
+  },
+  "author": "Garden Technologies, Inc. <info@garden.io>",
+  "license": "MPL-2.0",
+  "homepage": "https://github.com/garden-io/garden",
+  "engines": {
+    "node": ">=8.0.0",
+    "npm": ">=5.0.0"
+  },
+  "preferGlobal": true,
+  "private": true,
+  "files": [
+    "build"
+  ],
+  "bin": {
+    "garden": "bin/garden"
+  },
+  "dependencies": {
+    "@garden-io/core": "0.12.2"
+  },
+  "devDependencies": {
+    "bluebird": "^3.7.2",
+    "chalk": "^4.1.0",
+    "execa": "^4.0.3",
+    "lodash": "^4.17.20",
+    "minimist": "^1.2.5",
+    "mocha": "^8.1.1",
+    "mocha-logger": "^1.0.6",
+    "pkg": "4.4.9",
+    "prettier": "^2.1.0",
+    "split2": "^3.2.2",
+    "tslint": "^5.20.1",
+    "tslint-config-prettier": "^1.18.0",
+    "tslint-microsoft-contrib": "^6.2.0",
+    "tslint-no-unused": "^0.2.0-alpha.1",
+    "tslint-plugin-prettier": "^2.3.0",
+    "typescript": "^3.9.6",
+    "username": "^5.1.0"
+  },
+  "scripts": {
+    "add-version-files": "node build/add-version-files.js",
+    "build": "npm run tsc && npm run add-version-files && npm run generate-docs",
+    "check-package-lock": "git diff-index --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
+    "clean": "shx rm -rf build dist",
+    "dev": "npm run watch",
+    "fix-format": "prettier --write \"{src,test}/**/*.ts\"",
+    "generate-docs": "node ./build/generate-docs.js",
+    "lint": "tslint -p .",
+    "tsc": "tsc -p .",
+    "watch": "npm run tsc -- -w"
+  },
+  "pkg": {
+    "scripts": [
+      "package.json",
+      "node_modules/@garden-io/core/build/src/**/*.js"
+    ]
+  }
+}

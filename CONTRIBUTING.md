@@ -87,7 +87,7 @@ We use [Prettier](https://prettier.io) for automated formatting. We highly recom
 
 ### Debugging
 
-To enable setting a breakpoint in the code, run the CLI with the `core/bin/garden-debug` binary, which adds the `--inspect` flag. Developers might find it useful to alias this:
+To enable setting a breakpoint in the code, run the CLI with the `bin/garden-debug` binary, which adds the `--inspect` flag. Developers might find it useful to alias this:
 
 ```sh
 alias gd='/path/to/garden/bin/garden-debug'

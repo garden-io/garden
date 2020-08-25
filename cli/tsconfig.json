@@ -1,14 +1,10 @@
 {
   "extends": "../tsconfig.base.json",
   "include": [
-    "src/**/*.ts",
+    "bin/*.ts",
     "test/*.ts",
     "test/e2e/*.ts",
     "test/e2e/**/*.ts",
-    "test/integ/*.ts",
-    "test/integ/src/**/*.ts",
-    "test/unit/*.ts",
-    "test/unit/src/**/*.ts"
   ],
   "compilerOptions": {
     "outDir": "build"

@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { generateDocs } from "../docs/generate"
+import { generateDocs } from "@garden-io/core/build/src/docs/generate"
 import { resolve } from "path"
-import { Logger } from "../logger/logger"
-import { LogLevel } from "../logger/log-node"
-import { GARDEN_CORE_ROOT } from "../constants"
+import { Logger } from "@garden-io/core/build/src/logger/logger"
+import { LogLevel } from "@garden-io/core/build/src/logger/log-node"
+import { GARDEN_CLI_ROOT } from "@garden-io/core/build/src/constants"
 
 require("source-map-support").install()
 
@@ -23,7 +23,7 @@ try {
   })
 } catch (_) {}
 
-generateDocs(resolve(GARDEN_CORE_ROOT, "..", "docs"))
+generateDocs(resolve(GARDEN_CLI_ROOT, "..", "docs"))
   .then(() => {
     // tslint:disable-next-line: no-console
     console.log("Done!")

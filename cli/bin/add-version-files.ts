@@ -6,14 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GitHandler } from "../vcs/git"
-import { Garden } from "../garden"
-import { Logger } from "../logger/logger"
-import { LogLevel } from "../logger/log-node"
+import { GitHandler } from "@garden-io/core/build/src/vcs/git"
+import { Garden } from "@garden-io/core/build/src/garden"
+import { Logger } from "@garden-io/core/build/src/logger/logger"
+import { LogLevel } from "@garden-io/core/build/src/logger/log-node"
 import { resolve, relative } from "path"
 import Bluebird from "bluebird"
-import { STATIC_DIR, GARDEN_VERSIONFILE_NAME } from "../constants"
-import { writeTreeVersionFile } from "../vcs/vcs"
+import { STATIC_DIR, GARDEN_VERSIONFILE_NAME } from "@garden-io/core/build/src/constants"
+import { writeTreeVersionFile } from "@garden-io/core/build/src/vcs/vcs"
 
 require("source-map-support").install()
 
