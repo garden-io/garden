@@ -50,7 +50,7 @@ RUN apk add --no-cache \
 
 COPY --from=builder /garden /garden
 
-ADD core/static /garden/static
+ADD static /garden/static
 # Need to make the static directory a git root, and replace the symlinked dashboard directory with the full build
 RUN cd /garden/static && git init && rm -rf /garden/static/dashboard
 ADD dashboard/build /garden/static/dashboard

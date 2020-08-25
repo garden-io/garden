@@ -10,7 +10,7 @@ import { generateDocs } from "../docs/generate"
 import { resolve } from "path"
 import { Logger } from "../logger/logger"
 import { LogLevel } from "../logger/log-node"
-import { GARDEN_SERVICE_ROOT } from "../constants"
+import { GARDEN_CORE_ROOT } from "../constants"
 
 require("source-map-support").install()
 
@@ -23,7 +23,7 @@ try {
   })
 } catch (_) {}
 
-generateDocs(resolve(GARDEN_SERVICE_ROOT, "..", "docs"))
+generateDocs(resolve(GARDEN_CORE_ROOT, "..", "docs"))
   .then(() => {
     // tslint:disable-next-line: no-console
     console.log("Done!")

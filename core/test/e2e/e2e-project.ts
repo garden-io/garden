@@ -13,7 +13,7 @@ import { examplesDir } from "../helpers"
 import { dedent } from "../../src/util/string"
 import chalk from "chalk"
 import { InternalError } from "../../src/exceptions"
-import { GARDEN_SERVICE_ROOT } from "../../src/constants"
+import { GARDEN_CORE_ROOT } from "../../src/constants"
 
 export const parsedArgs = parseArgs(process.argv.slice(2))
 
@@ -68,9 +68,9 @@ async function run() {
     }
   }
 
-  const mochaBinPath = resolve(GARDEN_SERVICE_ROOT, "node_modules/.bin/mocha")
+  const mochaBinPath = resolve(GARDEN_CORE_ROOT, "node_modules/.bin/mocha")
   await execa(mochaBinPath, mochaOpts, {
-    cwd: GARDEN_SERVICE_ROOT,
+    cwd: GARDEN_CORE_ROOT,
     stdio: "inherit",
   })
   console.log("Done.")

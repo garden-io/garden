@@ -15,7 +15,7 @@ import { parseLogEntries, searchLog, findTasks, touchFile, parsedArgs, stringify
 import { JsonLogEntry } from "../src/logger/writers/json-terminal-writer"
 import { ParameterError, TimeoutError } from "../src/exceptions"
 import { dedent, deline } from "../src/util/string"
-import { GARDEN_SERVICE_ROOT } from "../src/constants"
+import { GARDEN_CORE_ROOT } from "../src/constants"
 import { UpdateLogEntryParams } from "../src/logger/log-entry"
 import chalk from "chalk"
 import split2 = require("split2")
@@ -23,7 +23,7 @@ import split2 = require("split2")
 export const DEFAULT_CHECK_INTERVAL_MS = 500
 export const DEFAULT_RUN_TIMEOUT_SECS = 240
 
-export const gardenBinPath = parsedArgs.binPath || resolve(GARDEN_SERVICE_ROOT, "bin", "garden")
+export const gardenBinPath = parsedArgs.binPath || resolve(GARDEN_CORE_ROOT, "bin", "garden")
 export const showLog = !!parsedArgs.showlog
 
 const DEFAULT_ARGS = ["--logger-type", "json", "--log-level", "silly"]

@@ -11,7 +11,7 @@ import { pickCommand, processCliArgs } from "../../../../src/cli/helpers"
 import { Parameters } from "../../../../src/cli/params"
 import { expectError } from "../../../helpers"
 import { getPackageVersion } from "../../../../src/util/util"
-import { GARDEN_SERVICE_ROOT } from "../../../../src/constants"
+import { GARDEN_CORE_ROOT } from "../../../../src/constants"
 import { join } from "path"
 import { TestGarden, makeTestGardenA, withDefaultGlobalOpts } from "../../../helpers"
 import { DeployCommand } from "../../../../src/commands/deploy"
@@ -35,7 +35,7 @@ const validLogLevels = ["error", "warn", "info", "verbose", "debug", "silly", "0
 
 describe("getPackageVersion", () => {
   it("should return the version in package.json", async () => {
-    const version = require(join(GARDEN_SERVICE_ROOT, "package.json")).version
+    const version = require(join(GARDEN_CORE_ROOT, "package.json")).version
     expect(getPackageVersion()).to.eq(version)
   })
 })

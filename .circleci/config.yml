@@ -196,7 +196,7 @@ jobs:
             # Save the built output for future
             - dashboard/build/
             - core/build/
-            - core/static/
+            - static/
   build-dist:
     <<: *node-config
     steps:

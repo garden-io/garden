@@ -20,7 +20,7 @@ import { prepareRuntimeContext } from "../../../../../../src/runtime-context"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { decryptSecretFile } from "../../../../helpers"
-import { GARDEN_SERVICE_ROOT } from "../../../../../../src/constants"
+import { GARDEN_CORE_ROOT } from "../../../../../../src/constants"
 import { KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
 import { V1Secret } from "@kubernetes/client-node"
 import { clusterInit } from "../../../../../../src/plugins/kubernetes/commands/cluster-init"
@@ -46,7 +46,7 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
 
     try {
       const authSecret = JSON.parse(
-        (await decryptSecretFile(resolve(GARDEN_SERVICE_ROOT, "..", "secrets", "test-docker-auth.json"))).toString()
+        (await decryptSecretFile(resolve(GARDEN_CORE_ROOT, "..", "secrets", "test-docker-auth.json"))).toString()
       )
       await api.upsert({ kind: "Secret", namespace: "default", obj: authSecret, log: garden.log })
     } catch (err) {
