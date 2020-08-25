@@ -1,4 +1,4 @@
-FROM node:12.16.1-buster
+FROM node:12.18.3-buster
 
 # system dependencies
 RUN set -ex; \
