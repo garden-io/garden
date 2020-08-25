@@ -12,7 +12,7 @@ import { isEqual, find } from "lodash"
 
 import { makeDummyGarden, GardenCli, runCli } from "../../../../src/cli/cli"
 import { getDataDir, TestGarden, makeTestGardenA, enableAnalytics, projectRootA, TestEventBus } from "../../../helpers"
-import { GARDEN_SERVICE_ROOT } from "../../../../src/constants"
+import { GARDEN_CORE_ROOT } from "../../../../src/constants"
 import { join, resolve } from "path"
 import { Command, CommandGroup, CommandParams, PrepareParams } from "../../../../src/commands/base"
 import { getPackageVersion } from "../../../../src/util/util"
@@ -854,7 +854,7 @@ describe("cli", () => {
 
   describe("makeDummyGarden", () => {
     it("should initialise and resolve config graph in a directory with no project", async () => {
-      const garden = await makeDummyGarden(join(GARDEN_SERVICE_ROOT, "tmp", "foobarbas"), {})
+      const garden = await makeDummyGarden(join(GARDEN_CORE_ROOT, "tmp", "foobarbas"), {})
       const dg = await garden.getConfigGraph(garden.log)
       expect(garden).to.be.ok
       expect(dg.getModules()).to.not.throw

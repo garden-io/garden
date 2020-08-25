@@ -14,7 +14,7 @@ import { makeTestGardenA, makeTestGarden, dataDir, expectError, makeTestModule }
 import { getNames } from "../../../src/util/util"
 import { ConfigGraph, DependencyGraphNode } from "../../../src/config-graph"
 import { Garden } from "../../../src/garden"
-import { DEFAULT_API_VERSION, GARDEN_SERVICE_ROOT } from "../../../src/constants"
+import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT } from "../../../src/constants"
 
 describe("ConfigGraph", () => {
   let gardenA: Garden
@@ -24,7 +24,7 @@ describe("ConfigGraph", () => {
   before(async () => {
     gardenA = await makeTestGardenA()
     graphA = await gardenA.getConfigGraph(gardenA.log)
-    tmpPath = join(GARDEN_SERVICE_ROOT, "tmp")
+    tmpPath = join(GARDEN_CORE_ROOT, "tmp")
     await ensureDir(tmpPath)
   })
 

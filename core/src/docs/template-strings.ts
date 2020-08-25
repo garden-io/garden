@@ -18,7 +18,7 @@ import {
 } from "../config/config-context"
 import { readFileSync, writeFileSync } from "fs"
 import handlebars from "handlebars"
-import { GARDEN_SERVICE_ROOT } from "../constants"
+import { GARDEN_CORE_ROOT } from "../constants"
 
 export function writeTemplateStringReferenceDocs(docsRoot: string) {
   const referenceDir = resolve(docsRoot, "reference")
@@ -63,5 +63,5 @@ export function writeTemplateStringReferenceDocs(docsRoot: string) {
 }
 
 if (require.main === module) {
-  writeTemplateStringReferenceDocs(resolve(GARDEN_SERVICE_ROOT, "..", "docs"))
+  writeTemplateStringReferenceDocs(resolve(GARDEN_CORE_ROOT, "..", "docs"))
 }

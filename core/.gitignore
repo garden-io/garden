@@ -4,7 +4,6 @@ dist/
 src/**/*.js
 src/**/*.map
 src/**/*.d.ts
-static/**/.garden-version
 support/**/*.js
 support/**/*.map
 support/**/*.d.ts

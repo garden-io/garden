@@ -229,7 +229,7 @@
   "scripts": {
     "add-version-files": "node ./build/src/bin/add-version-files.js",
     "build": "npm run tsc && gulp pegjs && npm run add-version-files && npm run generate-docs",
-    "create-migration": "typeorm migration:create --config static/ormconfig.json -n",
+    "create-migration": "typeorm migration:create --config ../static/ormconfig.json -n",
     "check-package-lock": "git diff-index --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
     "clean": "shx rm -rf build",
     "dev": "npm link && npm run watch",

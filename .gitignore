@@ -42,7 +42,8 @@ gulpfile.js
 *.tgz
 build/
 dist/
-core/static/dashboard/
+static/dashboard/
+static/**/.garden-version
 
 #debug files
 debug-info-*

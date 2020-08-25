@@ -50,7 +50,7 @@
     "add-licenses": "copyright-header --license-file support/license-header.txt --syntax support/license-syntax.yaml --add-path dashboard/src:core/src:core/test --output-dir .",
     "bootstrap": "lerna bootstrap",
     "build": "npm run clean && lerna bootstrap && lerna run build",
-    "build-containers": "npm run dist && ./script/build-containers.sh",
+    "build-containers": "npm run dist && ./scripts/build-containers.sh",
     "check-all": "npm run check-docs && npm run check-package-lock && npm run check-licenses && npm run lint",
     "check-docs": "./scripts/check-docs.sh",
     "check-licenses": "gulp check-licenses",

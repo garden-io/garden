@@ -27,7 +27,7 @@ import { Garden, GardenParams, GardenOpts } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { mapValues, fromPairs } from "lodash"
 import { ModuleVersion } from "../src/vcs/vcs"
-import { GARDEN_SERVICE_ROOT, LOCAL_CONFIG_FILENAME, DEFAULT_API_VERSION, gardenEnv } from "../src/constants"
+import { GARDEN_CORE_ROOT, LOCAL_CONFIG_FILENAME, DEFAULT_API_VERSION, gardenEnv } from "../src/constants"
 import { EventBus, Events } from "../src/events"
 import { ValueOf, exec, findByName, getNames, isPromise, uuidv4 } from "../src/util/util"
 import { LogEntry } from "../src/logger/log-entry"
@@ -51,8 +51,8 @@ import { WorkflowConfig } from "../src/config/workflow"
 import { AssertionError } from "chai"
 import { dedent } from "../src/util/string"
 
-export const dataDir = resolve(GARDEN_SERVICE_ROOT, "test", "data")
-export const examplesDir = resolve(GARDEN_SERVICE_ROOT, "..", "examples")
+export const dataDir = resolve(GARDEN_CORE_ROOT, "test", "data")
+export const examplesDir = resolve(GARDEN_CORE_ROOT, "..", "examples")
 export const testNow = new Date()
 export const testModuleVersionString = "v-1234512345"
 export const testModuleVersion: ModuleVersion = {

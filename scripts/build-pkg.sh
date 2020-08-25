@@ -13,7 +13,7 @@ repo_root=$(cd `dirname $0` && cd .. && pwd)
 core_root=${repo_root}/core
 dist_path=${repo_root}/dist
 tmp_dist_path=${repo_root}/tmp/dist
-static_path=${core_root}/static
+static_path=${repo_root}/static
 tmp_static_path=${tmp_dist_path}/static
 
 cd ${core_root}
@@ -37,7 +37,7 @@ mkdir -p ${dist_path}
 rm -rf ${tmp_dist_path}
 mkdir -p ${tmp_dist_path}
 
-rsync -r -L --exclude=.garden --exclude=.git ${core_root}/static ${tmp_dist_path}
+rsync -r -L --exclude=.garden --exclude=.git ${static_path} ${tmp_dist_path}
 
 # IMPORTANT: We 'git init' the static dir. This is because in general, Garden only works
 # with projects that are inside git repos. However, the modules for the garden-system project reside

@@ -87,7 +87,7 @@ We use [Prettier](https://prettier.io) for automated formatting. We highly recom
 
 ### Debugging
 
-To enable setting a breakpoint in the code, run the CLI with the `core/bin/static/garden-debug` binary, which adds the `--inspect` flag. Developers might find it useful to alias this:
+To enable setting a breakpoint in the code, run the CLI with the `core/bin/garden-debug` binary, which adds the `--inspect` flag. Developers might find it useful to alias this:
 
 ```sh
 alias gd='/path/to/garden/bin/garden-debug'
@@ -200,7 +200,7 @@ We use [Circle CI](https://circleci.com) for integration and end to end testing.
 
 ## License/copyright headers
 
-Every source file must include the contents of `static/license-header.txt` at the top. This is
+Every source file must include the contents of `support/license-header.txt` at the top. This is
 automatically checked during CI. You can run the check with `npm run check-licenses`.
 
 ## Release process
