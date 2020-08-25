@@ -5,6 +5,7 @@
 .github
 .history
 bin/
+cli/
 dashboard/public/
 dashboard/src/
 dist/

@@ -10,6 +10,7 @@
 
 repo_root=$(cd `dirname $0` && cd .. && pwd)
 
+cli_root=${repo_root}/cli
 core_root=${repo_root}/core
 dist_path=${repo_root}/dist
 tmp_dist_path=${repo_root}/tmp/dist
@@ -57,7 +58,7 @@ target_path=${dist_path}/macos-amd64
 rm -rf ${target_path}
 mkdir ${target_path}
 
-pkg --target node12-macos-x64 ${core_root} --output ${target_path}/garden
+pkg --target node12-macos-x64 ${cli_root} --output ${target_path}/garden
 
 cp -r ${tmp_static_path} ${target_path}
 
@@ -83,7 +84,7 @@ target_path=${dist_path}/linux-amd64
 rm -rf ${target_path}
 mkdir -p ${target_path}
 
-pkg --target node12-linux-x64 ${core_root} --output ${target_path}/garden
+pkg --target node12-linux-x64 ${cli_root} --output ${target_path}/garden
 
 cp -r ${tmp_static_path} ${target_path}
 
@@ -107,7 +108,7 @@ target_path=${dist_path}/windows-amd64
 rm -rf ${target_path}
 mkdir ${target_path}
 
-pkg --target node12-win-x64 ${core_root} --output ${target_path}/garden.exe
+pkg --target node12-win-x64 ${cli_root} --output ${target_path}/garden.exe
 
 cp -r ${tmp_static_path} ${target_path}
 

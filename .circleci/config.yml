@@ -69,6 +69,9 @@ commands:
           - root-v4-{{ checksum "package-lock.json" }}
       - restore_cache:
           keys:
+          - cli-v4-{{ checksum "cli/package-lock.json" }}
+      - restore_cache:
+          keys:
           - core-v4-{{ checksum "core/package-lock.json" }}
       - restore_cache:
           keys:
@@ -82,6 +85,9 @@ commands:
       - save_cache:
           paths: [node_modules]
           key: root-v4-{{ checksum "package-lock.json" }}
+      - save_cache:
+          paths: [cli/node_modules]
+          key: cli-v4-{{ checksum "cli/package-lock.json" }}
       - save_cache:
           paths: [core/node_modules]
           key: core-v4-{{ checksum "core/package-lock.json" }}
@@ -145,7 +151,7 @@ commands:
             gcloud --quiet container clusters get-credentials $GOOGLE_CLUSTER_ID --zone $GOOGLE_COMPUTE_ZONE
             gcloud --quiet auth configure-docker
 
-  build_service_dist:
+  build_dist:
     description: Package built code into executables and persist to dist directory
     parameters:
       version:
@@ -194,17 +200,18 @@ jobs:
           # Must be relative path from root
           paths:
             # Save the built output for future
-            - dashboard/build/
+            - cli/build/
             - core/build/
+            - dashboard/build/
             - static/
   build-dist:
     <<: *node-config
     steps:
-      - build_service_dist
+      - build_dist
   build-dist-edge:
     <<: *node-config
     steps:
-      - build_service_dist:
+      - build_dist:
           version: edge
   lint:
     <<: *node-config
