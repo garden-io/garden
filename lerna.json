@@ -3,5 +3,6 @@
     "dashboard/",
     "core/"
   ],
+  "stream": true,
   "version": "independent"
 }
