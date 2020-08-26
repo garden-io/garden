@@ -55,8 +55,9 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
   provider.config = config
   const _systemServices = config._systemServices
 
-  const kubeConfig = await getKubeConfig(log, ctx, provider)
-  const currentContext = kubeConfig["current-context"]
+  const kubeConfig: any = await getKubeConfig(log, ctx, provider)
+
+  const currentContext = kubeConfig["current-context"]!
 
   if (!config.context) {
     // automatically detect supported kubectl context if not explicitly configured
@@ -65,7 +66,7 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
       config.context = currentContext
       log.debug({ section: config.name, msg: `Using current context: ${config.context}` })
     } else {
-      const availableContexts = kubeConfig.contexts.map((c: any) => c.name)
+      const availableContexts = kubeConfig.contexts?.map((c: any) => c.name) || []
 
       for (const supportedContext of supportedContexts) {
         if (availableContexts.includes(supportedContext)) {
@@ -76,8 +77,8 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
       }
     }
 
-    if (!config.context && kubeConfig.contexts.length > 0) {
-      config.context = kubeConfig.contexts[0].name
+    if (!config.context && kubeConfig.contexts?.length > 0) {
+      config.context = kubeConfig.contexts[0]!.name
       log.debug({
         section: config.name,
         msg: `No kubectl context auto-detected, using first available: ${config.context}`,

@@ -64,23 +64,18 @@ commands:
     description: |
       Installs npm packages for root, core, and dashboard and loads and saves the caches as appropriate
     steps:
-      # See https://github.com/circleci/circleci-docs/issues/3933
-      - run:
-          name: Combine package-lock.json files to single file
-          command: lerna list -p -a | awk -F packages '{printf "\"packages%s/package-lock.json\" ", $2}' | xargs cat > combined-package-lock.json
       - restore_cache:
           keys:
-          - npm-v4-{{ checksum "package-lock.json" }}-{{ checksum "combined-package-lock.json" }}
-          - npm-v4-{{ checksum "package-lock.json" }}
-          - npm-v4
+          - yarn-v3-{{ checksum "yarn.lock" }}
+          - yarn-v3
 
-      - run: npm install
-      - run: npm run bootstrap
+      - run: yarn set version 1.21.1
+      - run: yarn run bootstrap
 
       - save_cache:
-          key: root-v4-{{ checksum "package-lock.json" }}-{{ checksum "combined-package-lock.json" }}
+          key: yarn-v3-{{ checksum "yarn.lock" }}
           paths:
-            - ~/.npm
+            - ~/.cache/yarn
 
   install_kubectl:
     description: Install kubectl
@@ -111,6 +106,7 @@ commands:
             # ...and finally symlink for when calling Garden with sudo below
             sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/node" "/usr/local/bin/node"
             sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/npm" "/usr/local/bin/npm"
+            sudo npm install -g yarn
 
   install_gcloud:
     description: Install the gcloud SDK
@@ -157,7 +153,7 @@ commands:
       - *attach-workspace
       - run:
           name: Run dist command with the appropriate argument
-          command: npm run dist -- -- <<parameters.version>>
+          command: yarn run dist <<parameters.version>>
       - persist_to_workspace:
           root: ./
           paths:
@@ -178,7 +174,7 @@ jobs:
       - run:
           name: build
           command: |
-            npm run build
+            yarn run build
       # Save the built output to be used for the docker image and for the release steps
       - persist_to_workspace:
           # Must be an absolute path, or relative path from working_directory. This is a directory on the container which is
@@ -212,10 +208,10 @@ jobs:
       - *attach-workspace
       - run:
           name: Make sure generated docs are up-to-date
-          command: npm run check-docs
+          command: yarn run check-docs
       - run:
           name: lint
-          command: npm run lint
+          command: yarn run lint
   test-framework:
     <<: *node-config
     steps:
@@ -232,7 +228,7 @@ jobs:
       - run:
           name: Unit test framework components
           command: |
-            npm test:framework:unit
+            yarn run test:framework:unit
           environment:
             CHOKIDAR_USEPOLLING: "1"
   # (not used atm)
@@ -279,7 +275,7 @@ jobs:
           name: Run e2e test
           command: |
             cd core
-            npm run e2e-project -- --project=<<parameters.project>> --showlog=true --env=<<parameters.environment>>
+            yarn run e2e-project --project=<<parameters.project>> --showlog=true --env=<<parameters.environment>>
       - run:
           name: Cleanup
           command: kubectl delete --wait=false $(kubectl get ns -o name | grep testing-$CIRCLE_BUILD_NUM) || true
@@ -516,9 +512,9 @@ jobs:
             echo "********* env prepped! *********"
       - update_nodejs
       # Note: We can't use npm_install here because the cache conflicts
-      - run: npm ci
-      - run: npm run bootstrap
-      - run: npm run build
+      - run: yarn
+      - run: yarn run bootstrap
+      - run: yarn run build
       - run:
           name: Integ tests
           command: |
@@ -528,10 +524,10 @@ jobs:
             # - Need to run with sudo to work with microk8s, because CircleCI doesn't allow us to log out
             #   and back in to add the circleci user to the microk8s group.
             # - We currently don't support in-cluster building on microk8s.
-            GARDEN_SKIP_TESTS="cluster-docker kaniko remote-only" sudo -E npm run integ -- -b
+            GARDEN_SKIP_TESTS="cluster-docker kaniko remote-only" sudo -E npm run integ -b
       - run:
           name: Plugin tests
-          command: npm run test:plugins
+          command: sudo -E npm run test:plugins
       - run:
           name: Deploy demo-project
           command: sudo -E ./bin/garden deploy --root examples/demo-project --logger-type basic
@@ -563,9 +559,8 @@ jobs:
             sudo apt install nfs-common
       - update_nodejs
       # Note: We can't use npm_install here because the cache conflicts
-      - run: npm ci
-      - run: npm run bootstrap
-      - run: npm run build
+      - run: yarn run bootstrap
+      - run: yarn run build
       - run:
           name: Install Minikube Executable
           command: |
@@ -580,10 +575,10 @@ jobs:
       - run:
           name: Integ tests
           # Note: We skip tests that only work for remote environments
-          command: cd core && npm run integ-local -- -b
+          command: cd core && yarn run integ-local -b
       - run:
           name: Plugin tests
-          command: npm run test:plugins
+          command: yarn run test:plugins
       - run:
           name: Deploy demo-project
           command: sudo -E ./bin/garden deploy --root examples/demo-project

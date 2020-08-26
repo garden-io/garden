@@ -5,7 +5,7 @@
   "devDependencies": {
     "@types/d3": "^5.7.2",
     "@types/dagre-d3": "^0.4.39",
-    "@types/jest": "^25.2.3",
+    "@types/eslint": "^6",
     "@types/lodash": "^4.14.153",
     "@types/node": "^12.12.16",
     "@types/react": "^16.9.35",
@@ -13,6 +13,7 @@
     "@types/react-router-dom": "^5.1.5",
     "@types/react-select": "^3.0.13",
     "@typescript-eslint/eslint-plugin-tslint": "^2.23.0",
+    "eslint": "^6.6.0",
     "eslint-plugin-only-warn": "^1.0.2",
     "prettier": "^1.19.1",
     "react-scripts": "3.4.1",
@@ -52,7 +53,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "dev": "BROWSER=none EXTEND_ESLINT=true npm run start",
+    "dev": "BROWSER=none EXTEND_ESLINT=true yarn run start",
     "fix-format": "prettier --write \"{src,test}/**/*.{ts,tsx}\"",
     "lint": "eslint \"{src,test}/**/*.{ts,tsx}\"",
     "test-watch": "react-scripts test",

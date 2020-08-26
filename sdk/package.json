@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/sdk",
-  "version": "0.12.2",
+  "version": "0.12.3",
   "description": "TypeScript plugin SDK for Garden",
   "repository": {
     "type": "git",
@@ -20,7 +20,7 @@
   ],
   "main": "index.js",
   "dependencies": {
-    "@garden-io/core": "0.12.2"
+    "@garden-io/core": "0.12.3"
   },
   "devDependencies": {
     "@types/node": "^12.12.29",
@@ -33,13 +33,12 @@
     "typescript": "^3.9.6"
   },
   "scripts": {
-    "build": "npm run tsc",
-    "check-package-lock": "git diff-index --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
+    "build": "tsc -p .",
+    "check-package-lock": "git diff-index --quiet HEAD -- yarn.lock || (echo 'yarn.lock is dirty!' && exit 1)",
     "clean": "shx rm -rf build",
-    "dev": "npm run watch",
+    "dev": "yarn run watch",
     "fix-format": "prettier --write \"{src,test}/**/*.ts\"",
     "lint": "tslint -p .",
-    "tsc": "tsc -p .",
-    "watch": "npm run tsc -- -w"
+    "watch": "yarn run build -w"
   }
 }

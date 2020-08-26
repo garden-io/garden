@@ -6,6 +6,8 @@
     "sdk/",
     "plugins/**"
   ],
+  "npmClient": "yarn",
   "stream": true,
+  "useWorkspaces": true,
   "version": "independent"
 }

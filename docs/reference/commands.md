@@ -2058,7 +2058,7 @@ Examples:
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
   | `module` | Yes | The name of the module to run.
-  | `arguments` | No | The arguments to run the module with. Example: &#x27;npm run my-script&#x27;.
+  | `arguments` | No | The arguments to run the module with. Example: &#x27;yarn run my-script&#x27;.
 
 #### Options
 

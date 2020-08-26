@@ -25,7 +25,7 @@ const runModuleArgs = {
   }),
   // TODO: make this a variadic arg
   arguments: new StringsParameter({
-    help: "The arguments to run the module with. Example: 'npm run my-script'.",
+    help: "The arguments to run the module with. Example: 'yarn run my-script'.",
     delimiter: " ",
   }),
 }

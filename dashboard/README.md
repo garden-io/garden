@@ -35,7 +35,7 @@ to start the `core` API server. Then run:
 
 ```sh
 cd dashboard
-npm run dev
+yarn run dev
 ```
 
 to start the dashboard development server. The `start` command returns a link to the development version of the dashboard. The default is `http://localhost:3000`.
@@ -74,7 +74,7 @@ See also `src/setupProxy.js` and [Adding Custom Environment Variables](https://f
 
 ## Linking `garden-cli`
 
-To be able to import type definitions from the `garden-cli` package, we first link it to the `dashboard` package with the `npm link` command. This step happens automatically when running `npm run dev`.
+To be able to import type definitions from the `garden-cli` package, we first link it to the `dashboard` package with the `npm link` command. This step happens automatically when running `yarn run dev`.
 
 ## Build
 
@@ -82,7 +82,7 @@ To build the dashboard, run:
 
 ```sh
 cd dashboard
-npm run build
+yarn run build
 ```
 
 This builds the dashboard into the `core/static/dashboard` directory, from where the `core` API server serves it.

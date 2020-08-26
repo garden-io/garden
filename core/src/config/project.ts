@@ -700,7 +700,7 @@ async function loadVarfile(projectRoot: string, path: string | undefined, defaul
           parsed,
         })
       }
-      return parsed
+      return parsed as PrimitiveMap
     } else {
       // Note: For backwards-compatibility we fall back on using .env as a default format, and don't specifically
       // validate the extension for that.

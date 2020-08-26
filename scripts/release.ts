@@ -18,9 +18,9 @@ const gardenRoot = resolve(__dirname, "..")
 /**
  * Performs the following steps to prepare for a release:
  * 1. Check out to a branch named release-${version}
- * 2. Bump the version in core/package.json and core/package-lock.json.
+ * 2. Bump the version in core/package.json and core/yarn.lock.
  * 5. Update the changelog.
- * 6. Add and commit CHANGELOG.md, core/package.json and core/package-lock.json
+ * 6. Add and commit CHANGELOG.md, core/package.json and core/yarn.lock
  * 7. Tag the commit.
  * 8. Push the tag. This triggers a CircleCI job that creates the release artifacts and publishes them to Github.
  * 9. If we're making a minor release, update links to examples and re-push the tag.
@@ -91,9 +91,9 @@ async function release() {
     return
   }
 
-  // Lerna doesn't update package-lock.json so we need the following workaround.
+  // Lerna doesn't update yarn.lock so we need the following workaround.
   // See this issue for details: https://github.com/lerna/lerna/issues/1415
-  console.log("Updating package-lock.json for all packages...")
+  console.log("Updating yarn.lock for all packages...")
   await execa("node_modules/.bin/lerna", ["clean", "--yes"], { cwd: gardenRoot })
   await execa("node_modules/.bin/lerna", [
     "bootstrap",
@@ -130,8 +130,8 @@ async function release() {
   await execa("git", [
     "add",
     "CHANGELOG.md",
-    "core/package.json", "core/package-lock.json",
-    "dashboard/package.json", "dashboard/package-lock.json",
+    "core/package.json", "core/yarn.lock",
+    "dashboard/package.json", "dashboard/yarn.lock",
   ], { cwd: gardenRoot })
   await execa("git", [
     "commit",

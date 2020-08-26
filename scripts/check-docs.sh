@@ -37,5 +37,5 @@ if !([ -z "$modified_docs" ] && [ -z "$modified_examples" ]); then
 fi
 
 # Needs to generate clean docs before we can validate they are up to date
-npm run generate-docs
-git diff --quiet HEAD -- docs/ || (echo 'generated docs are not up-to-date! run \"npm run generate-docs\" and commit the changes\n' && exit 1)
+yarn run generate-docs
+git diff --quiet HEAD -- docs/ || (echo 'generated docs are not up-to-date! run \"yarn run generate-docs\" and commit the changes\n' && exit 1)
