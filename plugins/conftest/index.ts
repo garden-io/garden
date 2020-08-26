@@ -7,23 +7,23 @@
  */
 
 import { resolve, relative } from "path"
-import { createGardenPlugin } from "../../types/plugin/plugin"
-import { providerConfigBaseSchema, GenericProviderConfig, Provider } from "../../config/provider"
-import { joi, joiIdentifier, joiArray } from "../../config/common"
-import { dedent, naturalList } from "../../util/string"
-import { TestModuleParams } from "../../types/plugin/module/testModule"
-import { GardenModule } from "../../types/module"
 import chalk from "chalk"
-import { baseBuildSpecSchema } from "../../config/module"
-import { matchGlobs, listDirectory } from "../../util/fs"
-import { PluginError, ConfigurationError } from "../../exceptions"
-import { getModuleTypeUrl, getGitHubUrl, getProviderUrl } from "../../docs/common"
 import slash from "slash"
 import { ExecaReturnValue } from "execa"
-import { PluginContext } from "../../plugin-context"
-import { renderTemplates } from "../kubernetes/helm/common"
-import { LogEntry } from "../../logger/log-entry"
-import { getK8sProvider } from "../kubernetes/util"
+import { createGardenPlugin } from "@garden-io/sdk"
+import { PluginContext, GardenModule, LogEntry } from "@garden-io/sdk/types"
+import { dedent, naturalList } from "@garden-io/sdk/util/string"
+import { matchGlobs, listDirectory } from "@garden-io/sdk/util/fs"
+
+// TODO: gradually get rid of these core dependencies, move some to SDK etc.
+import { providerConfigBaseSchema, GenericProviderConfig, Provider } from "@garden-io/core/build/src/config/provider"
+import { joi, joiIdentifier, joiArray } from "@garden-io/core/build/src/config/common"
+import { TestModuleParams } from "@garden-io/core/build/src/types/plugin/module/testModule"
+import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
+import { PluginError, ConfigurationError } from "@garden-io/core/build/src/exceptions"
+import { getModuleTypeUrl, getGitHubUrl, getProviderUrl } from "@garden-io/core/build/src/docs/common"
+import { renderTemplates } from "@garden-io/core/build/src/plugins/kubernetes/helm/common"
+import { getK8sProvider } from "@garden-io/core/build/src/plugins/kubernetes/util"
 
 export interface ConftestProviderConfig extends GenericProviderConfig {
   policyPath: string

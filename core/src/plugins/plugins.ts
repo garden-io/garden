@@ -8,9 +8,6 @@
 
 // These plugins are always registered
 export const supportedPlugins = [
-  require("./conftest/conftest"),
-  require("./conftest/conftest-container"),
-  require("./conftest/conftest-kubernetes"),
   require("./container/container"),
   require("./exec"),
   require("./hadolint/hadolint"),

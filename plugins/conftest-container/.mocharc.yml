@@ -1,0 +1,6 @@
+reporter: spec
+spec: test/**/*.js
+timeout: 10000
+watch-files:
+  - "*.js"
+  - "test/*.js"

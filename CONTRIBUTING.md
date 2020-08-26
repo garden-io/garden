@@ -7,6 +7,26 @@ discussion, pull requests and any type of feedback. We request that all contribu
 adhere to the [Contributor Covenant](CODE_OF_CONDUCT.md) and work with us to make the collaboration and
 community productive and fun for everyone :)
 
+## Project structure
+
+The project code is composed of several components, most of which are written in TypeScript. There's also a number of supporting scripts, documents, examples etc. Here is an overview of the top-level project folders:
+
+| Name | Description |
+| ---- | ----------- |
+| `bin` | Executable commands, to use for development. _Note that you need to build the project before these work._ |
+| `cli` | The Garden CLI package, which composes code from different packages into the final CLI executable. |
+| `core` | The bulk of the Garden code and tests live here. |
+| `dashboard` | The Garden web dashboard, which is bundled with the CLI. |
+| `docs` | Markdown documentation, which is used to generate [docs.garden.io](https://docs.garden.io). _Note that the reference docs are auto-generated, and should not be edited by hand!._ |
+| `examples` | Various Garden example projects. |
+| `images` | Supporting container images, used by e.g. the `kubernetes` provider. |
+| `plugins` | Plugins that are bundled with Garden. We are in the process of moving plugins out of `core` and into separate packages here. |
+| `scripts` | Various scripts for builds, releases and development. |
+| `sdk` | The `@garden-io/sdk` package, used for Garden plugin development. |
+| `secrets` | Encrypted files, used for integ/e2e testing. Only accessible to Garden maintainers. |
+| `static` | Static files that are bundled with the CLI. |
+| `support` | Supporting files for development, builds, releases etc. |
+
 ## Setting up your development environment
 
 ### Step 1: Install Docker and Kubernetes

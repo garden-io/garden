@@ -243,12 +243,13 @@ describe("CreateModuleCommand", () => {
       await writeFile(join(tmp.path, "foo.tf"), "")
 
       const moduleTypes = getModuleTypes(supportedPlugins)
-      const result = await getModuleTypeSuggestions(garden.log, moduleTypes, tmp.path, "test")
+      const result = <any>await getModuleTypeSuggestions(garden.log, moduleTypes, tmp.path, "test")
 
-      expect(result).to.eql([
+      const stripped = result.map((r) => (r instanceof inquirer.Separator ? r : { ...r, name: stripAnsi(r.name) }))
+
+      expect(stripped).to.eql([
         {
-          name:
-            "container \u001b[90m(based on found \u001b[37mDockerfile\u001b[39m\u001b[90m, suggested by \u001b[37mcontainer\u001b[39m\u001b[90m)\u001b[39m",
+          name: "container (based on found Dockerfile, suggested by container)",
           short: "container",
           value: {
             kind: "Module",
@@ -258,14 +259,12 @@ describe("CreateModuleCommand", () => {
           },
         },
         {
-          name:
-            "helm \u001b[90m(based on found \u001b[37mChart.yaml\u001b[39m\u001b[90m, suggested by \u001b[37mkubernetes\u001b[39m\u001b[90m)\u001b[39m",
+          name: "helm (based on found Chart.yaml, suggested by kubernetes)",
           short: "helm",
           value: { type: "helm", name: "test", chartPath: "." },
         },
         {
-          name:
-            "terraform \u001b[90m(based on found .tf files, suggested by \u001b[37mterraform\u001b[39m\u001b[90m)\u001b[39m",
+          name: "terraform (based on found .tf files, suggested by terraform)",
           short: "terraform",
           value: { type: "terraform", name: "test", autoApply: false },
         },

@@ -77,11 +77,16 @@ export class ToolsCommand extends Command<Args, Opts> {
 
   async prepare({ log }) {
     // Override the logger output, to output to stderr instead of stdout, to avoid contaminating command output
-    log.root.writers.find((w) => w.type === "basic")!.output = process.stderr
+    const basicWriter = log.root.writers.find((w) => w.type === "basic")
+    if (basicWriter) {
+      basicWriter.output = process.stderr
+    }
     return { persistent: false }
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args>) {
+    const tools = getTools(garden)
+
     if (!args.tool) {
       // We're listing tools, not executing one
       return printTools(garden, log)
@@ -148,26 +153,34 @@ export class ToolsCommand extends Command<Args, Opts> {
     // We just output the path if --get-path is set, or if the tool is a library
     if (opts["get-path"] || toolCls.type === "library") {
       process.stdout.write(path + "\n")
-      return { path }
+      return { result: { tools, path, exitCode: undefined, stdout: undefined, stderr: undefined } }
     }
 
     // We're running a binary
     if (opts.output) {
       // We collect the output and return
       const result = await exec(path, args._ || [], { reject: false })
-      return { path, stdout: result.stdout, stderr: result.stderr, exitCode: result.exitCode }
+      return { result: { tools, path, stdout: result.stdout, stderr: result.stderr, exitCode: result.exitCode } }
     } else {
       // We attach stdout and stderr directly, and exit with the same code as we get from the command
       log.stop()
       const result = await exec(path, args._ || [], { reject: false, stdio: "inherit" })
       await shutdown(result.exitCode)
       // Note: We never reach this line, just putting it here for the type-checker
-      return { path, stdout: "", stderr: "", exitCode: result.exitCode }
+      return { result: { tools, path, stdout: "", stderr: "", exitCode: result.exitCode } }
     }
   }
 }
 
-async function printTools(garden: Garden, log: LogEntry) {
+function getTools(garden: Garden) {
+  const registeredPlugins = Object.values(garden["registeredPlugins"])
+
+  return sortBy(registeredPlugins, "name").flatMap((plugin) =>
+    (plugin.tools || []).map((tool) => ({ ...omit(tool, "_includeInGardenImage"), pluginName: plugin.name }))
+  )
+}
+
+function printTools(garden: Garden, log: LogEntry) {
   log.info(dedent`
   ${chalk.white.bold("USAGE")}
 
@@ -177,15 +190,11 @@ async function printTools(garden: Garden, log: LogEntry) {
   ${chalk.white.bold("PLUGIN TOOLS")}
   `)
 
-  const registeredPlugins = Object.values(garden["registeredPlugins"])
+  const tools = getTools(garden)
 
-  const allTools = sortBy(registeredPlugins, "name").flatMap((plugin) =>
-    (plugin.tools || []).map((tool) => ({ plugin, tool }))
-  )
-
-  const rows = allTools.map(({ plugin, tool }) => {
+  const rows = tools.map((tool) => {
     return [
-      ` ${chalk.cyan(plugin.name + ".")}${chalk.cyan.bold(tool.name)}`,
+      ` ${chalk.cyan(tool.pluginName + ".")}${chalk.cyan.bold(tool.name)}`,
       chalk.gray(`[${tool.type}]`),
       tool.description,
     ]
@@ -202,5 +211,5 @@ async function printTools(garden: Garden, log: LogEntry) {
 
   log.info("")
 
-  return {}
+  return { result: { tools, exitCode: undefined, stdout: undefined, stderr: undefined, path: undefined } }
 }

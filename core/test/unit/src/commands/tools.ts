@@ -118,7 +118,7 @@ describe("ToolsCommand", () => {
   })
 
   it("should list tools with no name specified", async () => {
-    const result = await command.action({
+    const { result } = await command.action({
       garden,
       log,
       headerLog: log,
@@ -146,11 +146,33 @@ describe("ToolsCommand", () => {
       test-b.tool  [binary]   foo
     `)
 
-    expect(result).to.eql({})
+    expect(result.tools).to.eql([
+      {
+        name: "tool",
+        description: "foo",
+        type: "binary",
+        builds: pluginA.tools![0].builds,
+        pluginName: "test-a",
+      },
+      {
+        name: "lib",
+        description: "foo",
+        type: "library",
+        builds: pluginA.tools![0].builds,
+        pluginName: "test-a",
+      },
+      {
+        name: "tool",
+        description: "foo",
+        type: "binary",
+        builds: pluginB.tools![0].builds,
+        pluginName: "test-b",
+      },
+    ])
   })
 
   it("should run a configured provider's tool when using name only", async () => {
-    const result: any = await command.action({
+    const { result } = await command.action({
       garden,
       log,
       headerLog: log,
@@ -216,7 +238,7 @@ describe("ToolsCommand", () => {
     const _garden: any = await makeDummyGarden(tmpDir.path, { noEnterprise: true })
     _garden.registeredPlugins = pick(garden["registeredPlugins"], ["test-a", "test-b"])
 
-    const result: any = await command.action({
+    const { result } = await command.action({
       garden: _garden,
       log,
       headerLog: log,
@@ -231,7 +253,7 @@ describe("ToolsCommand", () => {
   })
 
   it("should run a tool by plugin name and tool name", async () => {
-    const result: any = await command.action({
+    const { result } = await command.action({
       garden,
       log,
       headerLog: log,
@@ -246,7 +268,7 @@ describe("ToolsCommand", () => {
   })
 
   it("should show the path of a library", async () => {
-    const result: any = await command.action({
+    const { result } = await command.action({
       garden,
       log,
       headerLog: log,
@@ -255,14 +277,14 @@ describe("ToolsCommand", () => {
       opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
     })
 
-    expect(result.path.endsWith("tool-a.sh")).to.be.true
+    expect(result.path?.endsWith("tool-a.sh")).to.be.true
     expect(result.exitCode).to.not.exist
     expect(result.stdout).to.not.exist
     expect(result.stderr).to.not.exist
   })
 
   it("should show the path of a binary with --get-path", async () => {
-    const result: any = await command.action({
+    const { result } = await command.action({
       garden,
       log,
       headerLog: log,
@@ -271,14 +293,14 @@ describe("ToolsCommand", () => {
       opts: withDefaultGlobalOpts({ "get-path": true, "output": "json" }),
     })
 
-    expect(result.path.endsWith("tool-a.sh")).to.be.true
+    expect(result.path?.endsWith("tool-a.sh")).to.be.true
     expect(result.exitCode).to.not.exist
     expect(result.stdout).to.not.exist
     expect(result.stderr).to.not.exist
   })
 
   it("should return the exit code from a command", async () => {
-    const result: any = await command.action({
+    const { result } = await command.action({
       garden,
       log,
       headerLog: log,

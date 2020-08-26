@@ -6,4 +6,5 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-export * from "@garden-io/core/build/src/sdk"
+// Borrow the basic test setup from core
+require("@garden-io/core/build/test/setup")

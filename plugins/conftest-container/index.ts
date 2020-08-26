@@ -8,11 +8,13 @@
 
 import Bluebird from "bluebird"
 import { relative, resolve } from "path"
-import { createGardenPlugin } from "../../types/plugin/plugin"
-import { containerHelpers } from "../container/helpers"
-import { ConftestProvider } from "./conftest"
-import { dedent } from "../../util/string"
-import { getModuleTypeUrl } from "../../docs/common"
+import { createGardenPlugin } from "@garden-io/sdk"
+import { ConftestProvider } from "@garden-io/garden-conftest"
+import { dedent } from "@garden-io/sdk/util/string"
+
+// TODO: remove direct references to @garden-io/core
+import { containerHelpers } from "@garden-io/core/build/src/plugins/container/helpers"
+import { getModuleTypeUrl } from "@garden-io/core/build/src/docs/common"
 
 const moduleTypeUrl = getModuleTypeUrl("conftest")
 

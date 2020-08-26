@@ -64,36 +64,23 @@ commands:
     description: |
       Installs npm packages for root, core, and dashboard and loads and saves the caches as appropriate
     steps:
+      # See https://github.com/circleci/circleci-docs/issues/3933
+      - run:
+          name: Combine package-lock.json files to single file
+          command: lerna list -p -a | awk -F packages '{printf "\"packages%s/package-lock.json\" ", $2}' | xargs cat > combined-package-lock.json
       - restore_cache:
           keys:
-          - root-v4-{{ checksum "package-lock.json" }}
-      - restore_cache:
-          keys:
-          - cli-v4-{{ checksum "cli/package-lock.json" }}
-      - restore_cache:
-          keys:
-          - core-v4-{{ checksum "core/package-lock.json" }}
-      - restore_cache:
-          keys:
-          - dashboard-v4-{{ checksum "dashboard/package-lock.json" }}
+          - npm-v4-{{ checksum "package-lock.json" }}-{{ checksum "combined-package-lock.json" }}
+          - npm-v4-{{ checksum "package-lock.json" }}
+          - npm-v4
 
-      # only install root dependencies if node_modules wasn't cached
-      - run: if [ ! -d "node_modules" ]; then npm ci; fi
-
+      - run: npm install
       - run: npm run bootstrap
 
       - save_cache:
-          paths: [node_modules]
-          key: root-v4-{{ checksum "package-lock.json" }}
-      - save_cache:
-          paths: [cli/node_modules]
-          key: cli-v4-{{ checksum "cli/package-lock.json" }}
-      - save_cache:
-          paths: [core/node_modules]
-          key: core-v4-{{ checksum "core/package-lock.json" }}
-      - save_cache:
-          paths: [dashboard/node_modules]
-          key: dashboard-v4-{{ checksum "dashboard/package-lock.json" }}
+          key: root-v4-{{ checksum "package-lock.json" }}-{{ checksum "combined-package-lock.json" }}
+          paths:
+            - ~/.npm
 
   install_kubectl:
     description: Install kubectl
@@ -204,6 +191,9 @@ jobs:
             - core/build/
             - dashboard/build/
             - static/
+            # TODO: see if we can make this somewhat more specific
+            - sdk/
+            - plugins/
   build-dist:
     <<: *node-config
     steps:
@@ -226,7 +216,7 @@ jobs:
       - run:
           name: lint
           command: npm run lint
-  test-service:
+  test-framework:
     <<: *node-config
     steps:
       - checkout
@@ -240,10 +230,9 @@ jobs:
             git config --global user.name "Garden CI"
             git config --global user.email "admin@garden.io"
       - run:
-          name: test
+          name: Unit test framework components
           command: |
-            cd core
-            npm test
+            npm test:framework:unit
           environment:
             CHOKIDAR_USEPOLLING: "1"
   # (not used atm)
@@ -295,17 +284,6 @@ jobs:
           name: Cleanup
           command: kubectl delete --wait=false $(kubectl get ns -o name | grep testing-$CIRCLE_BUILD_NUM) || true
           when: always
-  test-dashboard:
-    <<: *node-config
-    steps:
-      - checkout
-      - npm_install
-      - *attach-workspace
-      - run:
-          name: Test dashboard
-          command: |
-            cd dashboard
-            npm test
   build-docker:
     <<: *node-config
     steps:
@@ -416,7 +394,7 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: true
       - checkout
-      # This is to copy the pre-build build output from test-service (this should be a different step)
+      # This is to copy the pre-built code from a previous step
       - *attach-workspace
       # TODO: use garden publish here
       - deploy:
@@ -552,6 +530,9 @@ jobs:
             # - We currently don't support in-cluster building on microk8s.
             GARDEN_SKIP_TESTS="cluster-docker kaniko remote-only" sudo -E npm run integ -- -b
       - run:
+          name: Plugin tests
+          command: npm run test:plugins
+      - run:
           name: Deploy demo-project
           command: sudo -E ./bin/garden deploy --root examples/demo-project --logger-type basic
       - run:
@@ -600,6 +581,9 @@ jobs:
           name: Integ tests
           # Note: We skip tests that only work for remote environments
           command: cd core && npm run integ-local -- -b
+      - run:
+          name: Plugin tests
+          command: npm run test:plugins
       - run:
           name: Deploy demo-project
           command: sudo -E ./bin/garden deploy --root examples/demo-project
@@ -714,14 +698,12 @@ workflows:
           <<: *only-internal-prs
           context: docker
           requires: [build-docker-gcloud]
-      - test-service:
+      - test-framework:
           requires: [build]
       - test-dist:
           # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
           <<: *only-internal-prs
           requires: [build-dist]
-      - test-dashboard:
-          requires: [build]
       - test-windows:
           # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
           <<: *only-internal-prs

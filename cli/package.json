@@ -22,7 +22,10 @@
     "garden": "bin/garden"
   },
   "dependencies": {
-    "@garden-io/core": "0.12.2"
+    "@garden-io/core": "*",
+    "@garden-io/garden-conftest": "*",
+    "@garden-io/garden-conftest-container": "*",
+    "@garden-io/garden-conftest-kubernetes": "*"
   },
   "devDependencies": {
     "@types/chai": "^4.2.12",
@@ -55,6 +58,7 @@
     "fix-format": "prettier --write \"{src,test}/**/*.ts\"",
     "generate-docs": "node ./build/src/generate-docs.js",
     "lint": "tslint -p .",
+    "test": "mocha",
     "tsc": "tsc -p .",
     "watch": "npm run tsc -- -w"
   },

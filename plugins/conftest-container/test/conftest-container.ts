@@ -6,17 +6,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ProjectConfig, defaultNamespace } from "../../../../../src/config/project"
-import { DEFAULT_API_VERSION } from "../../../../../src/constants"
-import { Garden } from "../../../../../src/garden"
-import { getDataDir } from "../../../../helpers"
 import { expect } from "chai"
-import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
+import { join } from "path"
+
+import { createGardenPlugin } from "@garden-io/sdk"
+import { defaultApiVersion } from "@garden-io/sdk/constants"
+import { makeTestGarden } from "@garden-io/sdk/testing"
+import { gardenPlugin } from ".."
+import { gardenPlugin as conftestPlugin } from "@garden-io/garden-conftest"
+
+import { ProjectConfig, defaultNamespace } from "@garden-io/core/build/src/config/project"
 
 describe("conftest-container provider", () => {
-  const projectRoot = getDataDir("test-projects", "conftest-container")
+  const projectRoot = join(__dirname, "test-project")
+
   const projectConfig: ProjectConfig = {
-    apiVersion: DEFAULT_API_VERSION,
+    apiVersion: defaultApiVersion,
     kind: "Project",
     name: "test",
     path: projectRoot,
@@ -28,8 +33,8 @@ describe("conftest-container provider", () => {
   }
 
   it("should add a conftest module for each container module with a Dockerfile", async () => {
-    const garden = await Garden.factory(projectRoot, {
-      plugins: [],
+    const garden = await makeTestGarden(projectRoot, {
+      plugins: [gardenPlugin, conftestPlugin],
       config: projectConfig,
     })
 
@@ -61,8 +66,8 @@ describe("conftest-container provider", () => {
       ],
     })
 
-    const garden = await Garden.factory(projectRoot, {
-      plugins: [foo],
+    const garden = await makeTestGarden(projectRoot, {
+      plugins: [gardenPlugin, conftestPlugin, foo],
       config: {
         ...projectConfig,
         providers: [...projectConfig.providers, { name: "foo" }],
@@ -74,7 +79,7 @@ describe("conftest-container provider", () => {
 
     garden["moduleConfigs"] = {
       foo: {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: defaultApiVersion,
         name: "foo",
         type: "foo",
         allowPublish: false,

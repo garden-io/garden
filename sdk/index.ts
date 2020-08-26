@@ -6,6 +6,5 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-export { createGardenPlugin } from "../types/plugin/plugin"
-export { GardenModule } from "../types/module"
-export { GenericProviderConfig, Provider } from "../config/provider"
+export { createGardenPlugin } from "@garden-io/core/build/src/types/plugin/plugin"
+export { gardenEnv } from "@garden-io/core/build/src/constants"

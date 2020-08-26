@@ -14,11 +14,13 @@ import { join } from "path"
 import { dedent } from "../../../../src/util/string"
 import { LogLevel } from "../../../../src/logger/log-node"
 import { expect } from "chai"
+import chalk from "chalk"
 const _loggerUtil = require("../../../../src/logger/util")
 
 describe("PluginsCommand", () => {
   let tmpDir: TempDirectory
   const command = new PluginsCommand()
+  const chalkLevel = chalk.level
 
   const testPluginA = createGardenPlugin({
     name: "test-plugin-a",
@@ -66,11 +68,13 @@ describe("PluginsCommand", () => {
     )
 
     _loggerUtil.overrideTerminalWidth = 100
+    chalk.level = 0
   })
 
   after(async () => {
     await tmpDir.cleanup()
     _loggerUtil.overrideTerminalWidth = undefined
+    chalk.level = chalkLevel
   })
 
   it(`should print a nice help text`, async () => {
@@ -102,9 +106,9 @@ describe("PluginsCommand", () => {
       test-plugin-a command-a    Description for command A
       test-plugin-a command-a-2  Description for command A-2
 
-      test-plugin-b command-b  Description for command B. After quite a bit of thinking, I've
-                               decided to make it really very long and unnecessarily verbose to
-                               properly test the table justification.
+      test-plugin-b command-b  Description for command B. After quite a bit of thinking, I've decided to
+                               make it really very long and unnecessarily verbose to properly test the
+                               table justification.
     `)
   })
 

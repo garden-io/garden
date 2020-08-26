@@ -65,7 +65,8 @@
     "lint": "lerna run lint --no-bail && gulp check-licenses",
     "pkg": "./scripts/build-pkg.sh",
     "push-containers": "npm run dist && ./script/push-containers.sh",
-    "test": "lerna run test --no-bail"
+    "test:plugins": "lerna run test --no-bail --scope @garden-io/garden-*",
+    "test:framework:unit": "lerna run test --no-bail --ignore @garden-io/garden-*"
   },
   "husky": {
     "hooks": {

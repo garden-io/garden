@@ -11,10 +11,23 @@ import { gardenEnv } from "@garden-io/core/build/src/constants"
 import { getDefaultProfiler } from "@garden-io/core/build/src/util/profiling"
 import { GardenProcess } from "@garden-io/core/build/src/db/entities/garden-process"
 import { ensureConnected } from "@garden-io/core/build/src/db/connection"
-import { GardenCli } from "@garden-io/core/build/src/cli/cli"
+import { GardenCli, RunOutput } from "@garden-io/core/build/src/cli/cli"
+import { GardenPlugin } from "@garden-io/core/build/src/types/plugin/plugin"
 
-export async function runCli({ args, cli }: { args?: string[]; cli?: GardenCli } = {}): Promise<void> {
+// These plugins are always registered
+export const bundledPlugins = [
+  require("@garden-io/garden-conftest"),
+  require("@garden-io/garden-conftest-container"),
+  require("@garden-io/garden-conftest-kubernetes"),
+].map((m) => m.gardenPlugin as GardenPlugin)
+
+export async function runCli({
+  args,
+  cli,
+  exitOnError = true,
+}: { args?: string[]; cli?: GardenCli; exitOnError?: boolean } = {}) {
   let code = 0
+  let result: RunOutput | undefined = undefined
 
   if (!args) {
     args = process.argv.slice(2)
@@ -25,10 +38,10 @@ export async function runCli({ args, cli }: { args?: string[]; cli?: GardenCli }
 
   try {
     if (!cli) {
-      cli = new GardenCli()
+      cli = new GardenCli({ plugins: bundledPlugins })
     }
     // Note: We slice off the binary/script name from argv.
-    const result = await cli.run({ args, exitOnError: true, processRecord })
+    result = await cli.run({ args, exitOnError, processRecord })
     code = result.code
   } catch (err) {
     // tslint:disable-next-line: no-console
@@ -44,4 +57,6 @@ export async function runCli({ args, cli }: { args?: string[]; cli?: GardenCli }
 
     await shutdown(code)
   }
+
+  return { cli, result }
 }

@@ -8,13 +8,15 @@
 
 import Bluebird from "bluebird"
 import slash from "slash"
-import { createGardenPlugin } from "../../types/plugin/plugin"
-import { ConftestProvider } from "./conftest"
 import { relative, resolve } from "path"
-import { dedent } from "../../util/string"
-import { getModuleTypeUrl, getGitHubUrl } from "../../docs/common"
-import { collectTemplateReferences } from "../../template-string"
 import { uniq } from "lodash"
+import { createGardenPlugin } from "@garden-io/sdk"
+import { ConftestProvider } from "@garden-io/garden-conftest"
+
+// TODO: remove direct references to @garden-io/core
+import { dedent } from "@garden-io/core/build/src/util/string"
+import { getModuleTypeUrl, getGitHubUrl } from "@garden-io/core/build/src/docs/common"
+import { collectTemplateReferences } from "@garden-io/core/build/src/template-string"
 
 const moduleTypeUrl = getModuleTypeUrl("conftest")
 const gitHubUrl = getGitHubUrl("examples/conftest")
