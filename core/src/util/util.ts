@@ -25,7 +25,7 @@ import { tailString, dedent } from "./string"
 import { Writable, Readable } from "stream"
 import { LogEntry } from "../logger/log-entry"
 import execa = require("execa")
-import { v4 } from "uuid"
+export { v4 as uuidv4 } from "uuid"
 
 export type HookCallback = (callback?: () => void) => void
 
@@ -78,11 +78,9 @@ export function getPackageVersion(): string {
   return version
 }
 
-export async function sleep(msec) {
+export async function sleep(msec: number) {
   return new Promise((resolve) => setTimeout(resolve, msec))
 }
-
-export const uuidv4 = v4
 
 /**
  * Returns a promise that can be resolved/rejected by calling resolver/rejecter.

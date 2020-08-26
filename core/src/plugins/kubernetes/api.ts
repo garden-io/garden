@@ -702,7 +702,7 @@ export async function getKubeConfig(log: LogEntry, ctx: PluginContext, provider:
       // We use kubectl for this, to support merging multiple paths in the KUBECONFIG env var
       kubeConfigStr = await kubectl(ctx, provider).stdout({ log, args: ["config", "view", "--raw"] })
     }
-    return safeLoad(kubeConfigStr)
+    return safeLoad(kubeConfigStr)!
   } catch (error) {
     throw new RuntimeError(`Unable to load kubeconfig: ${error}`, {
       error,

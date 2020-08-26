@@ -8,6 +8,7 @@ npm-debug.log*
 # vendor dependencies
 node_modules
 /vendor/
+.pnp.js
 
 # IDEs
 .idea

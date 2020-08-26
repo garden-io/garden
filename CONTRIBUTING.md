@@ -59,7 +59,7 @@ Install Node modules for the root package, and the `dashboard` and `core` packag
 
 ```sh
 npm install # To install root dependencies
-npm run bootstrap # To bootstrap packages
+yarn run bootstrap # To bootstrap packages
 ```
 
 from the root directory
@@ -78,7 +78,7 @@ npm install
 Before running Garden for the first time, you need to do an initial build by running
 
 ```sh
-npm run build
+yarn run build
 ```
 
 from the root directory. This ensures that the dashboard is built and ready to serve and that version files are in place.
@@ -87,7 +87,7 @@ from the root directory. This ensures that the dashboard is built and ready to s
 
 To develop the CLI, run the `dev` command in your console:
 
-    npm run dev
+    yarn run dev
 
 This will `npm link` it to your global npm folder, and then watch for
 changes and auto-rebuild as you code. You can then run the `garden` command as normal.
@@ -103,7 +103,7 @@ For developing the dashboard, please refer to the [dashboard docs](./dashboard/R
 
 ### Formatting
 
-We use [Prettier](https://prettier.io) for automated formatting. We highly recommend installing the appropriate plugin for your editor to automate formatting as you work on your code. You can also run `npm run fix-format` to fix formatting across the codebase.
+We use [Prettier](https://prettier.io) for automated formatting. We highly recommend installing the appropriate plugin for your editor to automate formatting as you work on your code. You can also run `yarn run fix-format` to fix formatting across the codebase.
 
 ### Debugging
 
@@ -139,19 +139,19 @@ npm test -- -g "taskGraph"  # run only tests with descriptions matching "taskGra
 Integration tests are run with:
 
 ```sh
-npm run integ
+yarn run integ
 ```
 
 End-to-end tests are run with:
 
 ```sh
-npm run e2e
+yarn run e2e
 ```
 
 You can also run the end-to-end tests for a specific example project using:
 
 ```sh
-npm run e2e-project -- --project=<example project name>
+yarn run e2e-project -- --project=<example project name>
 ```
 
 End to end tests are run in CI by using Garden itself to test the project defined in `./core/test/e2e/garden.yml`. Cf. the appropriate job in `circleci/config.yml` for details.
@@ -181,19 +181,19 @@ When generating the changelog, we only include the following types: **feat**, **
 We have scripts for checking licenses, docs, linting and more. These can all be run with a single command:
 
 ```sh
-npm run check-all
+yarn run check-all
 ```
 
 If the checks fail because of bad formatting, run:
 
 ```sh
-npm run fix-format
+yarn run fix-format
 ```
 
 If the checks fail because of missing docs, run:
 
 ```sh
-npm run generate-docs
+yarn run generate-docs
 ```
 
 ### Pre-push hook
@@ -221,7 +221,7 @@ We use [Circle CI](https://circleci.com) for integration and end to end testing.
 ## License/copyright headers
 
 Every source file must include the contents of `support/license-header.txt` at the top. This is
-automatically checked during CI. You can run the check with `npm run check-licenses`.
+automatically checked during CI. You can run the check with `yarn run check-licenses`.
 
 ## Release process
 
@@ -249,7 +249,7 @@ The [release script](https://github.com/garden-io/garden/blob/master/scripts/rel
 and does the following:
 
 * Checks out a branch named `release-<version>`.
-* Updates `core/package.json`, `core/package-lock.json` and `CHANGELOG.md`.
+* Updates `core/package.json`, `core/yarn.lock` and `CHANGELOG.md`.
 * Commits the changes, tags the commit, and pushes the tag and branch.
 * Pushing the tag triggers a CI process that creates the release artifacts and publishes them to Github. If the the release is not a pre-release, we create a draft instead of actually publishing.
 

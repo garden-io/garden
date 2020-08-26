@@ -19,7 +19,7 @@
   },
   "scripts": {
     "build": "tsc -p .",
-    "dev": "npm run build -- -w",
+    "dev": "yarn run build -w",
     "test": "mocha"
   },
   "author": "Garden Technologies, Inc. <info@garden.io>",

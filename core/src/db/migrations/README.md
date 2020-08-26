@@ -3,7 +3,7 @@
 A migration needs to be created every time an entity is updated (columns added or modified). Do this by running the `create-migration` script with the name of the entity in question as a parameter:
 
 ```console
-npm run create-migration -- SomeEntity
+yarn run create-migration -- SomeEntity
 ```
 
 You then need to explicitly import the migration and reference in the `migrations` array in `src/db/connection.ts`.

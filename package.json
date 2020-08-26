@@ -11,17 +11,20 @@
   "engines": {
     "npm": ">=5.0.0"
   },
+  "private": true,
   "devDependencies": {
     "@commitlint/cli": "^8.3.5",
     "@commitlint/config-conventional": "^8.3.4",
     "@google-cloud/kms": "^1.6.3",
-    "@lerna/version": "^3.22.0",
+    "@lerna/version": "^3.22.1",
     "@types/bluebird": "^3.5.32",
     "@types/fs-extra": "^9.0.1",
     "@types/google-cloud__kms": "^1.5.1",
     "@types/lodash": "^4.14.153",
     "@types/node": "^12.12.14",
+    "@types/prettier": "^2",
     "@types/semver": "^7.2.0",
+    "@yarnpkg/pnpify": "^2.1.0",
     "axios": "^0.19.2",
     "deline": "^1.0.4",
     "execa": "^4.0.2",
@@ -30,49 +33,55 @@
     "gulp-license-check": "^1.2.1",
     "handlebars": "^4.7.6",
     "husky": "^4.2.5",
-    "lerna": "^3.22.0",
+    "lerna": "^3.22.1",
     "lodash": "^4.17.15",
     "markdown-link-check": "^3.8.1",
+    "prettier": "^2.1.1",
     "remark-cli": "^8.0.0",
     "remark-validate-links": "^10.0.0",
     "replace-in-file": "^6.0.0",
     "semver": "^7.3.2",
     "shx": "^0.3.2",
     "ts-node": "^8.10.1",
-    "tslint": "^5.20.1",
+    "tslint": "^6.1.3",
     "tslint-microsoft-contrib": "^6.2.0",
     "tslint-no-focused-test": "^0.5.0",
     "tslint-no-unused": "^0.2.0-alpha.1",
-    "typescript": "^3.9.6",
+    "typescript": "^3.9.7",
     "typescript-formatter": "^7.2.2"
   },
   "scripts": {
     "add-licenses": "copyright-header --license-file support/license-header.txt --syntax support/license-syntax.yaml --add-path dashboard/src:core/src:core/test --output-dir .",
-    "bootstrap": "lerna bootstrap --force-local",
-    "build": "npm run clean && lerna bootstrap && lerna run build",
-    "build-containers": "npm run dist && ./scripts/build-containers.sh",
-    "check-all": "npm run check-docs && npm run check-package-lock && npm run check-licenses && npm run lint",
+    "bootstrap": "yarn",
+    "build": "yarn run clean && yarn run bootstrap && lerna run build",
+    "build-containers": "yarn run dist && ./scripts/build-containers.sh",
+    "check-all": "yarn run check-docs && yarn run check-package-lock && yarn run check-licenses && yarn run lint",
     "check-docs": "./scripts/check-docs.sh",
     "check-licenses": "gulp check-licenses",
-    "check-package-lock": "git diff --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
-    "clean": "lerna run clean && git clean -X -f && find . -name \".garden\" -type d -prune -exec rm -rf '{}' '+'",
-    "clean-node-modules": "find . -name \"node_modules\" -type d -prune -exec rm -rf '{}' '+'",
+    "check-package-lock": "git diff --quiet HEAD -- yarn.lock || (echo 'yarn.lock is dirty!' && exit 1)",
+    "clean": "lerna run clean && find . -name \".garden\" -type d -prune -exec rm -rf '{}' '+'",
     "dev": "lerna run dev --parallel",
-    "dist": "lerna run dist && npm run pkg",
+    "dist": "lerna run dist && yarn run pkg",
     "fix-format": "lerna run fix-format --no-bail",
     "generate-docs": "lerna run generate-docs",
     "integ": "lerna run integ",
     "lint": "lerna run lint --no-bail && gulp check-licenses",
     "pkg": "./scripts/build-pkg.sh",
-    "push-containers": "npm run dist && ./script/push-containers.sh",
+    "push-containers": "yarn run dist && ./script/push-containers.sh",
     "test:plugins": "lerna run test --no-bail --scope @garden-io/garden-*",
     "test:framework:unit": "lerna run test --no-bail --ignore @garden-io/garden-*"
   },
   "husky": {
     "hooks": {
       "commit-msg": "commitlint -E HUSKY_GIT_PARAMS",
-      "pre-push": "npm run check-all && npm test"
+      "pre-push": "yarn run check-all && npm test"
     }
   },
-  "dependencies": {}
+  "workspaces": [
+    "cli",
+    "core",
+    "dashboard",
+    "plugins/*",
+    "sdk"
+  ]
 }

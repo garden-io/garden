@@ -1,6 +1,6 @@
 ## End to end Tests
 
-To run the end to end test suite (currently consisting only of the pre-release tests), use `npm run e2e-project` from within the `core` folder. This runs `core/bin/e2e-project.ts`.
+To run the end to end test suite (currently consisting only of the pre-release tests), use `yarn run e2e-project` from within the `core` folder. This runs `core/bin/e2e-project.ts`.
 
 The script performs the following cleanup operations before running the tests:
 
@@ -15,5 +15,5 @@ The `e2e-project` script supports the following options:
 
 For example:
 ```
-npm run e2e-project -- --binPath=/some/path/garden-bin --project=tasks
+yarn run e2e-project -- --binPath=/some/path/garden-bin --project=tasks
 ```

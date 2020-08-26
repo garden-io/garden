@@ -100,10 +100,9 @@ function drawChart(graph: Graph, width: number, height: number, onGraphNodeSelec
     // Round the corners of the nodes
     node.rx = node.ry = 4
     // Remove node padding
-    node.paddingBottom = 0
-    node.paddingTop = 0
-    node.paddingLeft = 0
-    node.paddingRight = 0
+    node.padding = 0
+    node.paddingX = 0
+    node.paddingY = 0
   })
 
   // Set up edges, no special attributes.

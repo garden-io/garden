@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/cli",
-  "version": "0.12.2",
+  "version": "0.12.3",
   "description": "Cloud native testing platform for testing and developing container applications on Kubernetes",
   "repository": {
     "type": "git",
@@ -51,16 +51,15 @@
   },
   "scripts": {
     "add-version-files": "node build/src/add-version-files.js",
-    "build": "npm run tsc && npm run add-version-files && npm run generate-docs",
-    "check-package-lock": "git diff-index --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
+    "build": "tsc -p . && yarn run add-version-files && yarn run generate-docs",
+    "check-package-lock": "git diff-index --quiet HEAD -- yarn.lock || (echo 'yarn.lock is dirty!' && exit 1)",
     "clean": "shx rm -rf build dist",
-    "dev": "npm run watch",
+    "dev": "yarn run watch",
     "fix-format": "prettier --write \"{src,test}/**/*.ts\"",
     "generate-docs": "node ./build/src/generate-docs.js",
     "lint": "tslint -p .",
     "test": "mocha",
-    "tsc": "tsc -p .",
-    "watch": "npm run tsc -- -w"
+    "watch": "tsc -p . -w"
   },
   "pkg": {
     "scripts": [
