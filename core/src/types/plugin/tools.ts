@@ -69,7 +69,7 @@ export interface PluginToolSpec {
   description: string
   type: "library" | "binary"
   builds: ToolBuildSpec[]
-  _includeInGardenImage: boolean
+  _includeInGardenImage?: boolean
 }
 
 export interface PluginTools {
@@ -98,7 +98,6 @@ export const toolSchema = () =>
       `),
     _includeInGardenImage: joi
       .boolean()
-      .default(false)
       .description("Set to true if this tool should be pre-fetched during Garden container image builds.")
       .meta({ internal: true }),
   })

@@ -18,22 +18,23 @@ import { writeFileSync } from "fs-extra"
 import { renderModuleTypeReference, moduleTypes } from "./module-type"
 import { renderProviderReference } from "./provider"
 import { defaultNamespace } from "../config/project"
+import { GardenPlugin } from "../types/plugin/plugin"
 
-export async function generateDocs(targetDir: string) {
+export async function generateDocs(targetDir: string, plugins: GardenPlugin[]) {
   // tslint:disable: no-console
   const docsRoot = resolve(process.cwd(), targetDir)
 
   console.log("Updating command references...")
   writeCommandReferenceDocs(docsRoot)
   console.log("Updating config references...")
-  await writeConfigReferenceDocs(docsRoot)
+  await writeConfigReferenceDocs(docsRoot, plugins)
   console.log("Updating template string reference...")
   writeTemplateStringReferenceDocs(docsRoot)
   console.log("Generating table of contents...")
   await writeTableOfContents(docsRoot, "README.md")
 }
 
-export async function writeConfigReferenceDocs(docsRoot: string) {
+export async function writeConfigReferenceDocs(docsRoot: string, plugins: GardenPlugin[]) {
   // tslint:disable: no-console
   const referenceDir = resolve(docsRoot, "reference")
   const configPath = resolve(referenceDir, "config.md")
@@ -69,11 +70,12 @@ export async function writeConfigReferenceDocs(docsRoot: string) {
         { name: "terraform" },
       ],
     },
+    plugins,
   })
 
   const providerDir = resolve(docsRoot, "reference", "providers")
-  const plugins = await garden.getPlugins()
-  const pluginsByName = keyBy(plugins, "name")
+  const allPlugins = await garden.getPlugins()
+  const pluginsByName = keyBy(allPlugins, "name")
   const providersReadme = ["---", "order: 1", "title: Providers", "---", "", "# Providers", ""]
 
   for (const plugin of plugins) {

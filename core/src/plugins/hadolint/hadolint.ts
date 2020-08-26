@@ -9,7 +9,6 @@
 import Bluebird from "bluebird"
 import { join, relative, resolve } from "path"
 import { pathExists, readFile } from "fs-extra"
-import { createGardenPlugin, GardenModule } from "../../sdk"
 import { providerConfigBaseSchema, GenericProviderConfig, Provider } from "../../config/provider"
 import { joi } from "../../config/common"
 import { dedent, splitLines, naturalList } from "../../util/string"
@@ -21,6 +20,8 @@ import { containerHelpers } from "../container/helpers"
 import { baseBuildSpecSchema } from "../../config/module"
 import { getProviderUrl, getModuleTypeUrl, getGitHubUrl } from "../../docs/common"
 import { TestModuleParams } from "../../types/plugin/module/testModule"
+import { GardenModule } from "../../types/module"
+import { createGardenPlugin } from "../../types/plugin/plugin"
 
 const defaultConfigPath = join(STATIC_DIR, "hadolint", "default.hadolint.yaml")
 const configFilename = ".hadolint.yaml"

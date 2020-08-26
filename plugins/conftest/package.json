@@ -1,0 +1,28 @@
+{
+  "name": "@garden-io/garden-conftest",
+  "version": "0.0.0",
+  "description": "conftest plugin for Garden",
+  "main": "index.js",
+  "dependencies": {
+    "@garden-io/core": "*",
+    "@garden-io/sdk": "*",
+    "chalk": "^4.1.0",
+    "execa": "^4.0.3",
+    "slash": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.2.12",
+    "@types/node": "^14.6.0",
+    "chai": "^4.2.0",
+    "mocha": "^8.1.2",
+    "strip-ansi": "^6.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "dev": "npm run build -- -w",
+    "test": "mocha"
+  },
+  "author": "Garden Technologies, Inc. <info@garden.io>",
+  "license": "MPL-2.0",
+  "homepage": "https://github.com/garden-io/garden"
+}

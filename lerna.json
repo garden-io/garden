@@ -3,7 +3,8 @@
     "cli/",
     "core/",
     "dashboard/",
-    "sdk/"
+    "sdk/",
+    "plugins/**"
   ],
   "stream": true,
   "version": "independent"

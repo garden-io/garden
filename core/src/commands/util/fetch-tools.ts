@@ -82,7 +82,7 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
     )
 
     if (opts["garden-image-build"]) {
-      tools = tools.filter((spec) => spec.tool.spec._includeInGardenImage)
+      tools = tools.filter((spec) => !!spec.tool.spec._includeInGardenImage)
     }
 
     // No need to fetch the same tools multiple times, if they're used in multiple providers

@@ -39,6 +39,7 @@ import { BufferedEventStream } from "../enterprise/buffered-event-stream"
 import { makeEnterpriseContext } from "../enterprise/init"
 import { GardenProcess } from "../db/entities/garden-process"
 import { DashboardEventStream } from "../server/dashboard-event-stream"
+import { GardenPlugin } from "../types/plugin/plugin"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts = {}) {
   const environments = gardenOpts.environmentName
@@ -79,8 +80,11 @@ export interface RunOutput {
 export class GardenCli {
   private commands: { [key: string]: Command } = {}
   private fileWritersInitialized: boolean = false
+  private plugins: GardenPlugin[]
 
-  constructor() {
+  constructor({ plugins }: { plugins?: GardenPlugin[] } = {}) {
+    this.plugins = plugins || []
+
     const commands = sortBy(getAllCommands(), (c) => c.name)
     commands.forEach((command) => this.addCommand(command))
   }
@@ -204,6 +208,7 @@ ${renderCommands(commands)}
       sessionId,
       forceRefresh,
       variables: parsedCliVars,
+      plugins: this.plugins,
     }
 
     let garden: Garden

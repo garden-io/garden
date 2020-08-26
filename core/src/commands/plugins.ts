@@ -19,6 +19,7 @@ import { printHeader, getTerminalWidth } from "../logger/util"
 import { LoggerType } from "../logger/logger"
 import { StringOption } from "../cli/params"
 import { GardenModule } from "../types/module"
+import stripAnsi from "strip-ansi"
 
 const pluginArgs = {
   plugin: new StringOption({
@@ -145,12 +146,12 @@ async function listPlugins(garden: Garden, log: LogEntry, pluginsToList: string[
       return [` ${chalk.cyan(pluginName + " " + command.name)}`, command.description]
     })
 
-    const maxCommandLength = max(rows.map((r) => r[0].length))!
+    const maxCommandLengthAnsi = max(rows.map((r) => r[0].length))!
 
     log.info(
       renderTable(rows, {
         ...tablePresets["no-borders"],
-        colWidths: [null, getTerminalWidth() - maxCommandLength],
+        colWidths: [null, getTerminalWidth() - maxCommandLengthAnsi],
       })
     )
 

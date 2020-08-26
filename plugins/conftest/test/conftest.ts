@@ -6,19 +6,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ProjectConfig, defaultNamespace } from "../../../../../src/config/project"
-import { DEFAULT_API_VERSION } from "../../../../../src/constants"
-import { Garden } from "../../../../../src/garden"
-import { getDataDir } from "../../../../helpers"
 import { expect } from "chai"
 import stripAnsi from "strip-ansi"
-import { dedent } from "../../../../../src/util/string"
-import { TestTask } from "../../../../../src/tasks/test"
+import { join } from "path"
+
+import { dedent } from "@garden-io/sdk/util/string"
+import { defaultApiVersion, defaultNamespace } from "@garden-io/sdk/constants"
+import { gardenPlugin } from ".."
+import { ProjectConfig } from "@garden-io/sdk/types"
+import { makeTestGarden } from "@garden-io/sdk/testing"
+
+import { TestTask } from "@garden-io/core/build/src/tasks/test"
 
 describe("conftest provider", () => {
-  const projectRoot = getDataDir("test-projects", "conftest")
+  const projectRoot = join(__dirname, "test-project")
+
   const projectConfig: ProjectConfig = {
-    apiVersion: DEFAULT_API_VERSION,
+    apiVersion: defaultApiVersion,
     kind: "Project",
     name: "test",
     path: projectRoot,
@@ -31,8 +35,8 @@ describe("conftest provider", () => {
 
   describe("testModule", () => {
     it("should format warnings and errors nicely", async () => {
-      const garden = await Garden.factory(projectRoot, {
-        plugins: [],
+      const garden = await makeTestGarden(projectRoot, {
+        plugins: [gardenPlugin],
         config: projectConfig,
       })
 
@@ -65,8 +69,8 @@ describe("conftest provider", () => {
     })
 
     it("should set success=false with a linting warning if testFailureThreshold=warn", async () => {
-      const garden = await Garden.factory(projectRoot, {
-        plugins: [],
+      const garden = await makeTestGarden(projectRoot, {
+        plugins: [gardenPlugin],
         config: {
           ...projectConfig,
           providers: [{ name: "conftest", policyPath: "policy.rego", testFailureThreshold: "warn" }],
@@ -96,8 +100,8 @@ describe("conftest provider", () => {
     })
 
     it("should set success=true with a linting warning if testFailureThreshold=error", async () => {
-      const garden = await Garden.factory(projectRoot, {
-        plugins: [],
+      const garden = await makeTestGarden(projectRoot, {
+        plugins: [gardenPlugin],
         config: projectConfig,
       })
 
@@ -124,8 +128,8 @@ describe("conftest provider", () => {
     })
 
     it("should set success=true with warnings and errors if testFailureThreshold=none", async () => {
-      const garden = await Garden.factory(projectRoot, {
-        plugins: [],
+      const garden = await makeTestGarden(projectRoot, {
+        plugins: [gardenPlugin],
         config: {
           ...projectConfig,
           providers: [{ name: "conftest", policyPath: "policy.rego", testFailureThreshold: "none" }],

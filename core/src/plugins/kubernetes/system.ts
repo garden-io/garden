@@ -25,7 +25,6 @@ import { combineStates } from "../../types/service"
 import { KubernetesResource } from "./types"
 import { defaultDotIgnoreFiles } from "../../util/fs"
 import { LogLevel } from "../../logger/log-node"
-import { ConftestProviderConfig } from "../conftest/conftest"
 import { defaultNamespace } from "../../config/project"
 
 const GARDEN_VERSION = getPackageVersion()
@@ -52,12 +51,14 @@ export async function getSystemGarden(
 ): Promise<Garden> {
   const systemNamespace = await getSystemNamespace(ctx, ctx.provider, log)
 
-  const conftest: ConftestProviderConfig = {
-    environments: ["default"],
-    name: "conftest-kubernetes",
-    policyPath: "policy",
-    testFailureThreshold: "warn",
-  }
+  // TODO: Find a better way to apply this. As it was, it was basically a circular dependency between these
+  //       two providers.
+  // const conftestConfig = {
+  //   environments: ["default"],
+  //   name: "conftest-kubernetes",
+  //   policyPath: "policy",
+  //   testFailureThreshold: "warn",
+  // }
 
   const sysProvider: KubernetesConfig = {
     ...ctx.provider.config,
@@ -80,7 +81,7 @@ export async function getSystemGarden(
       defaultEnvironment: "default",
       dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [{ name: "default", defaultNamespace, variables: {} }],
-      providers: [sysProvider, conftest],
+      providers: [sysProvider],
       variables,
     },
     commandInfo: ctx.command,

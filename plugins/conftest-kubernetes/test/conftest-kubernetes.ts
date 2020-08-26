@@ -6,18 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Garden } from "../../../../../src/garden"
-import { getDataDir } from "../../../../helpers"
 import { expect } from "chai"
-import stripAnsi = require("strip-ansi")
-import { dedent } from "../../../../../src/util/string"
-import { TestTask } from "../../../../../src/tasks/test"
+import stripAnsi from "strip-ansi"
+import { join } from "path"
+
+import { gardenPlugin } from ".."
+import { gardenPlugin as conftestPlugin } from "@garden-io/garden-conftest"
+import { dedent } from "@garden-io/sdk/util/string"
+import { makeTestGarden } from "@garden-io/sdk/testing"
+
+import { TestTask } from "@garden-io/core/build/src/tasks/test"
 
 describe("conftest-kubernetes provider", () => {
-  const projectRoot = getDataDir("test-projects", "conftest-kubernetes")
+  const projectRoot = join(__dirname, "test-project")
 
   it("should add a conftest module for each helm module, and add runtime dependencies as necessary", async () => {
-    const garden = await Garden.factory(projectRoot)
+    const garden = await makeTestGarden(projectRoot, {
+      plugins: [gardenPlugin, conftestPlugin],
+    })
 
     const graph = await garden.getConfigGraph(garden.log)
     const helmModule = graph.getModule("helm")
@@ -36,7 +42,9 @@ describe("conftest-kubernetes provider", () => {
   })
 
   it("should add a conftest module for each kubernetes module", async () => {
-    const garden = await Garden.factory(projectRoot)
+    const garden = await makeTestGarden(projectRoot, {
+      plugins: [gardenPlugin, conftestPlugin],
+    })
 
     const graph = await garden.getConfigGraph(garden.log)
     const kubernetesModule = graph.getModule("kubernetes")
@@ -55,7 +63,9 @@ describe("conftest-kubernetes provider", () => {
 
   describe("conftest-helm module", () => {
     it("should be able to test files in a remote Helm chart", async () => {
-      const garden = await Garden.factory(projectRoot)
+      const garden = await makeTestGarden(projectRoot, {
+        plugins: [gardenPlugin, conftestPlugin],
+      })
 
       const graph = await garden.getConfigGraph(garden.log)
       const module = graph.getModule("conftest-helm")

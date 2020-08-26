@@ -8,6 +8,10 @@
 
 import { expect } from "chai"
 import { find } from "lodash"
+import { resolve } from "path"
+
+import { runCli, bundledPlugins } from "../../../src/cli"
+import { testRoot } from "../../helpers"
 
 import { GardenCli } from "@garden-io/core/build/src/cli/cli"
 import { projectRootA } from "@garden-io/core/build/test/helpers"
@@ -15,11 +19,20 @@ import { Command, CommandParams } from "@garden-io/core/build/src/commands/base"
 import { GardenProcess } from "@garden-io/core/build/src/db/entities/garden-process"
 import { ensureConnected } from "@garden-io/core/build/src/db/connection"
 import { randomString } from "@garden-io/core/build/src/util/string"
-import { runCli } from "../../../src/cli"
 
 describe("runCli", () => {
   before(async () => {
     await ensureConnected()
+  })
+
+  it("should add bundled plugins", async () => {
+    const projectRoot = resolve(testRoot, "test-projects", "bundled-projects")
+    const { cli, result } = await runCli({ args: ["tools", "--root", projectRoot], exitOnError: false })
+
+    expect(cli!["plugins"]).to.eql(bundledPlugins)
+
+    const conftestTool = result?.result?.tools?.find((t) => t.pluginName === "conftest")
+    expect(conftestTool).to.exist
   })
 
   it("should register a GardenProcess entry and pass to cli.run()", (done) => {
