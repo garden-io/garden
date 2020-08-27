@@ -18,7 +18,6 @@ orbs:
       - image: circleci/node:12
         environment:
           <<: *shared-env-config
-          GARDEN_TASK_CONCURRENCY_LIMIT: "10"
     resource_class: medium
 
   # Configuration for release jobs
@@ -69,7 +68,6 @@ commands:
           - yarn-v3-{{ checksum "yarn.lock" }}
           - yarn-v3
 
-      - run: yarn set version 1.21.1
       - run: yarn run bootstrap
 
       - save_cache:
@@ -158,6 +156,8 @@ commands:
           root: ./
           paths:
             - dist/
+            # Needed for the alpine docker build
+            - tmp/pkg/
       - store_artifacts:
           path: dist
           destination: dist
@@ -199,6 +199,7 @@ jobs:
     steps:
       - build_dist:
           version: edge
+
   lint:
     <<: *node-config
     steps:
@@ -231,25 +232,7 @@ jobs:
             yarn run test:framework:unit
           environment:
             CHOKIDAR_USEPOLLING: "1"
-  # (not used atm)
-  e2e-all:
-    <<: *node-config
-    steps:
-      - checkout
-      - run: sudo apt-get update && sudo apt-get install rsync
-      - npm_install
-      - install_kubectl
-      - install_gcloud
-      - configure_kubectl_context
-      - *attach-workspace
-      - run:
-          name: Run e2e tests
-          # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
-          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-e2e ./bin/garden test e2e-tests --root core/test/e2e --logger-type basic
-      - run:
-          name: Cleanup
-          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-e2e kubectl delete --wait=false $(kubectl get ns -o name | grep testing-$CIRCLE_BUILD_NUM) || true
-          when: always
+
   e2e-project:
     <<: *node-config
     parameters:
@@ -280,7 +263,8 @@ jobs:
           name: Cleanup
           command: kubectl delete --wait=false $(kubectl get ns -o name | grep testing-$CIRCLE_BUILD_NUM) || true
           when: always
-  build-docker:
+
+  build-docker-alpine:
     <<: *node-config
     steps:
       - setup_remote_docker:
@@ -292,7 +276,7 @@ jobs:
           command: |
             docker login -u $DOCKER_USER -p $DOCKER_PASS
             TAG=gardendev/garden:${CIRCLE_SHA1}
-            docker build -t ${TAG} -f alpine.Dockerfile .
+            docker build -t ${TAG} -f support/alpine.Dockerfile dist/alpine-amd64
             docker push ${TAG}
   build-docker-aws:
     <<: *node-config
@@ -306,7 +290,7 @@ jobs:
           command: |
             docker login -u $DOCKER_USER -p $DOCKER_PASS
             TAG=gardendev/garden-aws:${CIRCLE_SHA1}
-            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f aws.Dockerfile .
+            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/aws.Dockerfile dist/alpine-amd64
             docker push ${TAG}
   build-docker-azure:
     <<: *node-config
@@ -320,7 +304,7 @@ jobs:
           command: |
             docker login -u $DOCKER_USER -p $DOCKER_PASS
             TAG=gardendev/garden-azure:${CIRCLE_SHA1}
-            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f azure.Dockerfile .
+            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/azure.Dockerfile dist/alpine-amd64
             docker push ${TAG}
   build-docker-gcloud:
     <<: *node-config
@@ -334,7 +318,7 @@ jobs:
           command: |
             docker login -u $DOCKER_USER -p $DOCKER_PASS
             TAG=gardendev/garden-gcloud:${CIRCLE_SHA1}
-            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f gcloud.Dockerfile .
+            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/gcloud.Dockerfile dist/alpine-amd64
             docker push ${TAG}
   build-docker-aws-gcloud:
     <<: *node-config
@@ -348,9 +332,8 @@ jobs:
           command: |
             docker login -u $DOCKER_USER -p $DOCKER_PASS
             TAG=gardendev/garden-aws-gcloud:${CIRCLE_SHA1}
-            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f aws-gcloud.Dockerfile .
+            docker build -t ${TAG} --build-arg TAG=${CIRCLE_SHA1} -f support/aws-gcloud.Dockerfile dist/alpine-amd64
             docker push ${TAG}
-
   build-docker-buster:
     <<: *node-config
     steps:
@@ -363,8 +346,9 @@ jobs:
           command: |
             docker login -u $DOCKER_USER -p $DOCKER_PASS
             TAG=gardendev/garden:${CIRCLE_SHA1}-buster
-            docker build -t ${TAG} -f buster.Dockerfile dist/linux-amd64
+            docker build -t ${TAG} -f support/buster.Dockerfile dist/linux-amd64
             docker push ${TAG}
+
   test-docker-gcloud:
     docker:
       - image: gardendev/garden-gcloud:${CIRCLE_SHA1}
@@ -384,6 +368,7 @@ jobs:
           name: Cleanup
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-docker kubectl delete --wait=false $(kubectl get ns -o name | grep testing-$CIRCLE_BUILD_NUM) || true
           when: always
+
   release-service-docker:
     <<: *node-config
     steps:
@@ -665,26 +650,26 @@ workflows:
           requires: [build]
       - lint:
           requires: [build]
-      - build-docker:
+      - build-docker-alpine:
           <<: *only-internal-prs
           context: docker
-          requires: [build]
+          requires: [build-dist]
       - build-docker-aws:
           <<: *only-internal-prs
           context: docker
-          requires: [build-docker]
+          requires: [build-docker-alpine]
       - build-docker-azure:
           <<: *only-internal-prs
           context: docker
-          requires: [build-docker]
+          requires: [build-docker-alpine]
       - build-docker-gcloud:
           <<: *only-internal-prs
           context: docker
-          requires: [build-docker]
+          requires: [build-docker-alpine]
       - build-docker-aws-gcloud:
           <<: *only-internal-prs
           context: docker
-          requires: [build-docker]
+          requires: [build-docker-alpine]
       - build-docker-buster:
           <<: *only-internal-prs
           context: docker

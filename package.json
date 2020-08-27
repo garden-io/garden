@@ -61,12 +61,11 @@
     "check-package-lock": "git diff --quiet HEAD -- yarn.lock || (echo 'yarn.lock is dirty!' && exit 1)",
     "clean": "lerna run clean && find . -name \".garden\" -type d -prune -exec rm -rf '{}' '+'",
     "dev": "lerna run dev --parallel",
-    "dist": "lerna run dist && yarn run pkg",
+    "dist": "lerna run dist",
     "fix-format": "lerna run fix-format --no-bail",
     "generate-docs": "lerna run generate-docs",
     "integ": "lerna run integ",
     "lint": "lerna run lint --no-bail && gulp check-licenses",
-    "pkg": "./scripts/build-pkg.sh",
     "push-containers": "yarn run dist && ./script/push-containers.sh",
     "test:plugins": "lerna run test --no-bail --scope @garden-io/garden-*",
     "test:framework:unit": "lerna run test --no-bail --ignore @garden-io/garden-*"

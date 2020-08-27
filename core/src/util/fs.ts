@@ -9,8 +9,9 @@
 import unixify = require("unixify")
 import klaw = require("klaw")
 import glob from "glob"
+import tmp from "tmp-promise"
 import _spawn from "cross-spawn"
-import { pathExists, readFile, writeFile, lstat } from "fs-extra"
+import { pathExists, readFile, writeFile, lstat, realpath } from "fs-extra"
 import minimatch = require("minimatch")
 import { some } from "lodash"
 import { join, basename, win32, posix } from "path"
@@ -21,7 +22,7 @@ import { VcsHandler } from "../vcs/vcs"
 import { LogEntry } from "../logger/log-entry"
 import { ModuleConfig } from "../config/module"
 import pathIsInside from "path-is-inside"
-import { uuidv4 } from "./util"
+import { uuidv4, exec } from "./util"
 
 export const defaultConfigFilename = "garden.yml"
 const metadataFilename = "metadata.json"
@@ -241,4 +242,21 @@ export async function isDirectory(path: string) {
   const stat = await lstat(path)
 
   return stat.isDirectory()
+}
+
+export type TempDirectory = tmp.DirectoryResult
+
+/**
+ * Create a temp directory. Make sure to clean it up after use using the `cleanup()` method on the returned object.
+ */
+export async function makeTempDir({ git = false }: { git?: boolean } = {}): Promise<TempDirectory> {
+  const tmpDir = await tmp.dir({ unsafeCleanup: true })
+  // Fully resolve path so that we don't get path mismatches in tests
+  tmpDir.path = await realpath(tmpDir.path)
+
+  if (git) {
+    await exec("git", ["init"], { cwd: tmpDir.path })
+  }
+
+  return tmpDir
 }
