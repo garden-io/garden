@@ -47,7 +47,7 @@ async function release() {
   }
   // Update package.json versions
   await execa("node_modules/.bin/lerna", [
-    "version", "--no-git-tag-version", "--yes", releaseType,
+    "version", "--no-git-tag-version", "--force-publish", "--yes", releaseType,
   ], { cwd: gardenRoot })
 
   // Read the version from core/package.json after setting it (rather than parsing the lerna output)

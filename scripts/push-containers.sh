@@ -7,7 +7,7 @@ cd ${repo_root}
 args=( $@ )
 version=${args[0]:-$(git rev-parse --short HEAD)}
 
-./bin/build-containers.sh "$@"
+./scripts/build-containers.sh "$@"
 
 echo "Pushing images"
 
