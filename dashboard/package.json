@@ -28,7 +28,7 @@
   "dependencies": {
     "@emotion/core": "^10.0.28",
     "@emotion/styled": "^10.0.27",
-    "@garden-io/core": "^0.12.3",
+    "@garden-io/core": "*",
     "ansi_up": "^4.0.4",
     "axios": "^0.19.2",
     "classnames": "^2.2.6",
