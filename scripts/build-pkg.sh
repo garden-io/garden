@@ -15,11 +15,11 @@ cd ${core_root}
 
 commit_hash=$(git rev-parse --short HEAD)
 
-# Use version argument if provided, otherwise read version from core/package.json
+# Use version argument if provided, otherwise read version from package.json
 if [ -n "$1" ]; then
   version=$1
 else
-  version="v$(cat core/package.json | jq -r .version)"
+  version="v$(cat package.json | jq -r .version)"
 fi
 
 shopt -s expand_aliases
