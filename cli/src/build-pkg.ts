@@ -22,6 +22,7 @@ const repoRoot = resolve(GARDEN_CLI_ROOT, "..")
 const tmpDir = resolve(repoRoot, "tmp", "pkg")
 const tmpStaticDir = resolve(tmpDir, "static")
 const pkgPath = resolve(repoRoot, "node_modules", ".bin", "pkg")
+const pkgFetchPath = resolve(repoRoot, "node_modules", ".bin", "pkg-fetch")
 const preGypPath = resolve(repoRoot, "node_modules", ".bin", "node-pre-gyp")
 const sqlitePath = resolve(repoRoot, "node_modules", "sqlite3")
 const distPath = resolve(repoRoot, "dist")
@@ -30,11 +31,16 @@ const version = getPackageVersion()
 
 // tslint:disable: no-console
 
-const targets: { [name: string]: (targetName: string, sourcePath: string) => Promise<void> } = {
-  "macos-amd64": pkgMacos,
-  "linux-amd64": pkgLinux,
-  "windows-amd64": pkgWindows,
-  "alpine-amd64": pkgAlpine,
+interface TargetSpec {
+  pkgType: string
+  handler: (targetName: string, sourcePath: string, pkgType: string) => Promise<void>
+}
+
+const targets: { [name: string]: TargetSpec } = {
+  "macos-amd64": { pkgType: "node12-macos-x64", handler: pkgMacos },
+  "linux-amd64": { pkgType: "node12-linux-x64", handler: pkgLinux },
+  "windows-amd64": { pkgType: "node12-win-x64", handler: pkgWindows },
+  "alpine-amd64": { pkgType: "node12-alpine-x64", handler: pkgAlpine },
 }
 
 async function buildBinaries(args: string[]) {
@@ -100,22 +106,30 @@ async function buildBinaries(args: string[]) {
   const cliPath = resolve(tmpDir, workspaces["@garden-io/cli"].location)
   await exec("yarn", ["--production"], { cwd: cliPath })
 
-  // Run pkg and pack up each platform binary
-  console.log(chalk.cyan("Packaging binaries with pkg"))
+  console.log(chalk.cyan("Fetching pkg base binaries"))
 
-  await Bluebird.map(Object.entries(selected), async ([targetName, handler]) => {
-    await handler(targetName, cliPath)
+  // Work around concurrency bug in pkg...
+  for (const [targetName, spec] of Object.entries(selected)) {
+    await exec(pkgFetchPath, spec.pkgType.split("-"))
+    console.log(chalk.green(" ✓ " + targetName))
+  }
+
+  // Run pkg and pack up each platform binary
+  console.log(chalk.cyan("Packaging garden binaries"))
+
+  await Bluebird.map(Object.entries(selected), async ([targetName, spec]) => {
+    await spec.handler(targetName, cliPath, spec.pkgType)
     console.log(chalk.green(" ✓ " + targetName))
   })
 
   console.log(chalk.green.bold("Done!"))
 }
 
-async function pkgMacos(targetName: string, sourcePath: string) {
+async function pkgMacos(targetName: string, sourcePath: string, pkgType: string) {
   await pkgCommon({
     sourcePath,
     targetName,
-    pkgType: "node12-macos-x64",
+    pkgType,
     binFilename: "garden",
     arch: "x64",
     platform: "darwin",
@@ -127,11 +141,11 @@ async function pkgMacos(targetName: string, sourcePath: string) {
   await tarball(targetName)
 }
 
-async function pkgLinux(targetName: string, sourcePath: string) {
+async function pkgLinux(targetName: string, sourcePath: string, pkgType: string) {
   await pkgCommon({
     sourcePath,
     targetName,
-    pkgType: "node12-linux-x64",
+    pkgType,
     binFilename: "garden",
     arch: "x64",
     platform: "linux",
@@ -139,11 +153,11 @@ async function pkgLinux(targetName: string, sourcePath: string) {
   await tarball(targetName)
 }
 
-async function pkgWindows(targetName: string, sourcePath: string) {
+async function pkgWindows(targetName: string, sourcePath: string, pkgType: string) {
   await pkgCommon({
     sourcePath,
     targetName,
-    pkgType: "node12-win-x64",
+    pkgType,
     binFilename: "garden.exe",
     arch: "x64",
     platform: "win32",
@@ -153,7 +167,7 @@ async function pkgWindows(targetName: string, sourcePath: string) {
   await exec("zip", ["-q", "-r", `garden-${version}-${targetName}.zip`, targetName], { cwd: distPath })
 }
 
-async function pkgAlpine(targetName: string, _: string) {
+async function pkgAlpine(targetName: string, _sourcePath: string, _pkgType: string) {
   const targetPath = resolve(distPath, targetName)
   await remove(targetPath)
   await mkdirp(targetPath)
