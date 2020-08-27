@@ -60,7 +60,7 @@ export class GitHandler extends VcsHandler {
   name = "git"
   repoRoots = new Map()
 
-  private gitCli(log: LogEntry, cwd: string): GitCli {
+  gitCli(log: LogEntry, cwd: string): GitCli {
     return async (...args: string[]) => {
       log.silly(`Calling git in ${cwd} with args '${args.join(" ")}'`)
       const { stdout } = await exec("git", args, { cwd, maxBuffer: 10 * 1024 * 1024 })

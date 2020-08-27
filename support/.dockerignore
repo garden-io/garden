@@ -1,0 +1,11 @@
+# Note: This is just used for the alpine-builder image
+.dockerignore
+**/.garden
+**/node_modules
+cli/test/
+cli/src/
+core/lib/
+core/src/
+core/test/
+core/tmp/
+core/gulpfile.js

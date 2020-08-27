@@ -7,29 +7,27 @@
  */
 
 import td from "testdouble"
-import tmp from "tmp-promise"
 import Bluebird = require("bluebird")
 import { resolve, join } from "path"
-import { extend, keyBy, intersection, pick, isEqual } from "lodash"
-import { remove, readdirSync, existsSync, copy, mkdirp, pathExists, truncate, realpath } from "fs-extra"
+import { extend, intersection, pick } from "lodash"
+import { remove, readdirSync, existsSync, copy, mkdirp, pathExists, truncate } from "fs-extra"
 import execa = require("execa")
 
 import { containerModuleSpecSchema, containerTestSchema, containerTaskSchema } from "../src/plugins/container/config"
 import { testExecModule, buildExecModule, execBuildSpecSchema } from "../src/plugins/exec"
-import { joiArray, joi, StringMap, DeepPrimitiveMap } from "../src/config/common"
+import { joiArray, joi } from "../src/config/common"
 import {
   PluginActionHandlers,
   createGardenPlugin,
   RegisterPluginParam,
   ModuleAndRuntimeActionHandlers,
 } from "../src/types/plugin/plugin"
-import { Garden, GardenParams, GardenOpts } from "../src/garden"
+import { Garden, GardenOpts } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { mapValues, fromPairs } from "lodash"
 import { ModuleVersion } from "../src/vcs/vcs"
 import { GARDEN_CORE_ROOT, LOCAL_CONFIG_FILENAME, DEFAULT_API_VERSION, gardenEnv } from "../src/constants"
-import { EventBus, Events } from "../src/events"
-import { ValueOf, exec, findByName, getNames, isPromise, uuidv4 } from "../src/util/util"
+import { isPromise, uuidv4 } from "../src/util/util"
 import { LogEntry } from "../src/logger/log-entry"
 import timekeeper = require("timekeeper")
 import { ParameterValues, globalOptions, GlobalOptions } from "../src/cli/params"
@@ -43,13 +41,12 @@ import { ProcessCommandResult } from "../src/commands/base"
 import stripAnsi from "strip-ansi"
 import { RunTaskParams, RunTaskResult } from "../src/types/plugin/task/runTask"
 import { SuiteFunction, TestFunction } from "mocha"
-import { GardenBaseError, GardenError } from "../src/exceptions"
-import { RuntimeContext } from "../src/runtime-context"
-import { GardenModule } from "../src/types/module"
+import { GardenError } from "../src/exceptions"
 import { AnalyticsGlobalConfig } from "../src/config-store"
-import { WorkflowConfig } from "../src/config/workflow"
-import { AssertionError } from "chai"
-import { dedent } from "../src/util/string"
+import { TestGarden, EventLogEntry } from "../src/util/testing"
+
+export { TempDirectory, makeTempDir } from "../src/util/fs"
+export { TestGarden, TestError, TestEventBus } from "../src/util/testing"
 
 export const dataDir = resolve(GARDEN_CORE_ROOT, "test", "data")
 export const examplesDir = resolve(GARDEN_CORE_ROOT, "..", "examples")
@@ -64,10 +61,6 @@ export const testModuleVersion: ModuleVersion = {
 // All test projects use this git URL
 export const testGitUrl = "https://my-git-server.com/my-repo.git#master"
 export const testGitUrlHash = hashRepoUrl(testGitUrl)
-
-export class TestError extends GardenBaseError {
-  type = "_test"
-}
 
 export function getDataDir(...names: string[]) {
   return resolve(dataDir, ...names)
@@ -318,103 +311,9 @@ export const makeTestModule = (params: Partial<ModuleConfig> = {}) => {
   return { ...defaultModuleConfig, ...params }
 }
 
-interface EventLogEntry {
-  name: string
-  payload: ValueOf<Events>
-}
-
-/**
- * Used for test Garden instances, to log emitted events.
- */
-export class TestEventBus extends EventBus {
-  public eventLog: EventLogEntry[]
-
-  constructor() {
-    super()
-    this.eventLog = []
-  }
-
-  emit<T extends keyof Events>(name: T, payload: Events[T]) {
-    this.eventLog.push({ name, payload })
-    return super.emit(name, payload)
-  }
-
-  clearLog() {
-    this.eventLog = []
-  }
-
-  expectEvent<T extends keyof Events>(name: T, payload: Events[T]) {
-    for (const event of this.eventLog) {
-      if (event.name === name && isEqual(event.payload, payload)) {
-        return
-      }
-    }
-
-    throw new AssertionError(dedent`
-      Expected event in log with name '${name}' and payload ${JSON.stringify(payload)}.
-      Logged events:
-      ${this.eventLog.map((e) => JSON.stringify(e)).join("\n")}
-    `)
-  }
-}
-
 export const testPlugins = [testPlugin, testPluginB, testPluginC]
 
-export class TestGarden extends Garden {
-  events: TestEventBus
-  public secrets: StringMap // Not readonly, to allow setting secrets in tests
-  public variables: DeepPrimitiveMap // Not readonly, to allow setting variables in tests
-
-  constructor(params: GardenParams) {
-    super(params)
-    this.events = new TestEventBus()
-  }
-
-  setModuleConfigs(moduleConfigs: ModuleConfig[]) {
-    this.configsScanned = true
-    this.moduleConfigs = keyBy(moduleConfigs, "name")
-  }
-
-  setWorkflowConfigs(workflowConfigs: WorkflowConfig[]) {
-    this.workflowConfigs = keyBy(workflowConfigs, "name")
-  }
-
-  /**
-   * Returns modules that are registered in this context, fully resolved and configured. Optionally includes
-   * disabled modules.
-   *
-   * Scans for modules in the project root and remote/linked sources if it hasn't already been done.
-   */
-  async resolveModules({
-    log,
-    runtimeContext,
-    includeDisabled = false,
-  }: {
-    log: LogEntry
-    runtimeContext?: RuntimeContext
-    includeDisabled?: boolean
-  }): Promise<GardenModule[]> {
-    const graph = await this.getConfigGraph(log, runtimeContext)
-    return graph.getModules({ includeDisabled })
-  }
-
-  /**
-   * Helper to get a single module. We don't put this on the Garden class because it is highly inefficient
-   * and not advisable except for testing.
-   */
-  async resolveModule(name: string) {
-    const modules = await this.resolveModules({ log: this.log })
-    const config = findByName(modules, name)
-
-    if (!config) {
-      throw new TestError(`Could not find module config ${name}`, { name, available: getNames(modules) })
-    }
-
-    return config
-  }
-}
-
-export const makeTestGarden = async (projectRoot: string, opts: GardenOpts = {}): Promise<TestGarden> => {
+export const makeTestGarden = async (projectRoot: string, opts: GardenOpts = {}) => {
   opts = { sessionId: uuidv4(), ...opts }
   const plugins = [...testPlugins, ...(opts.plugins || [])]
   return TestGarden.factory(projectRoot, { ...opts, plugins })
@@ -596,23 +495,6 @@ async function prepareRemoteGarden({
   })
 
   return garden
-}
-
-export type TempDirectory = tmp.DirectoryResult
-
-/**
- * Create a temp directory. Make sure to clean it up after use using the `cleanup()` method on the returned object.
- */
-export async function makeTempDir({ git = false }: { git?: boolean } = {}): Promise<TempDirectory> {
-  const tmpDir = await tmp.dir({ unsafeCleanup: true })
-  // Fully resolve path so that we don't get path mismatches in tests
-  tmpDir.path = await realpath(tmpDir.path)
-
-  if (git) {
-    await exec("git", ["init"], { cwd: tmpDir.path })
-  }
-
-  return tmpDir
 }
 
 /**

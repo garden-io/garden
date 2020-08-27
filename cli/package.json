@@ -55,6 +55,7 @@
     "check-package-lock": "git diff-index --quiet HEAD -- yarn.lock || (echo 'yarn.lock is dirty!' && exit 1)",
     "clean": "shx rm -rf build dist",
     "dev": "yarn run watch",
+    "dist": "node build/src/build-pkg.js",
     "fix-format": "prettier --write \"{src,test}/**/*.ts\"",
     "generate-docs": "node ./build/src/generate-docs.js",
     "lint": "tslint -p .",
@@ -64,7 +65,9 @@
   "pkg": {
     "scripts": [
       "package.json",
-      "node_modules/@garden-io/core/build/src/**/*.js"
+      "build/src/cli.js",
+      "node_modules/@garden-io/**/*.js",
+      "node_modules/es-get-iterator/**/*.js"
     ]
   }
 }
