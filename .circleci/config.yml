@@ -164,7 +164,7 @@ commands:
       - *attach-workspace
       - run:
           name: Run dist command with the appropriate argument
-          command: npm run dist -- -- garden_version=<<parameters.version>>
+          command: npm run dist -- -- <<parameters.version>>
       - persist_to_workspace:
           root: ./
           paths:
