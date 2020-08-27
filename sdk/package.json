@@ -20,7 +20,7 @@
   ],
   "main": "index.js",
   "dependencies": {
-    "@garden-io/core": "0.12.3"
+    "@garden-io/core": "*"
   },
   "devDependencies": {
     "@types/node": "^12.12.29",
