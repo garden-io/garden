@@ -46,22 +46,13 @@ const kubernetesResourceSchema = () =>
   joi
     .object()
     .keys({
-      apiVersion: joi
-        .string()
-        .required()
-        .description("The API version of the resource."),
-      kind: joi
-        .string()
-        .required()
-        .description("The kind of the resource."),
+      apiVersion: joi.string().required().description("The API version of the resource."),
+      kind: joi.string().required().description("The kind of the resource."),
       metadata: joi
         .object()
         .required()
         .keys({
-          name: joi
-            .string()
-            .required()
-            .description("The name of the resource."),
+          name: joi.string().required().description("The name of the resource."),
         })
         .unknown(true),
     })

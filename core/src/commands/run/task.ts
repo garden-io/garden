@@ -70,9 +70,7 @@ export class RunTaskCommand extends Command<Args, Opts> {
 
   outputsSchema = () =>
     joi.object().keys({
-      result: taskResultSchema()
-        .keys(resultMetadataKeys())
-        .description("The result of the task."),
+      result: taskResultSchema().keys(resultMetadataKeys()).description("The result of the task."),
       graphResults: graphResultsSchema(),
     })
 

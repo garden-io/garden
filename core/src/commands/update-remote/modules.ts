@@ -83,10 +83,7 @@ export async function updateRemoteModules({
 
   const diff = difference(moduleNames, names)
   if (diff.length > 0) {
-    const modulesWithRemoteSource = graph
-      .getModules()
-      .filter(hasRemoteSource)
-      .sort()
+    const modulesWithRemoteSource = graph.getModules().filter(hasRemoteSource).sort()
 
     throw new ParameterError(`Expected module(s) ${chalk.underline(diff.join(","))} to have a remote source.`, {
       modulesWithRemoteSource,

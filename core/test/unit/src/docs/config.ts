@@ -29,14 +29,8 @@ describe("docs config module", () => {
   const testObject = joi
     .object()
     .keys({
-      testKeyA: joi
-        .number()
-        .required()
-        .description("key a"),
-      testKeyB: joi
-        .string()
-        .valid("b")
-        .description("key b"),
+      testKeyA: joi.number().required().description("key a"),
+      testKeyB: joi.string().valid("b").description("key b"),
     })
     .description("test object")
 
@@ -46,10 +40,7 @@ describe("docs config module", () => {
     joi
       .object()
       .keys({
-        containerPort: joi
-          .number()
-          .required()
-          .description("description"),
+        containerPort: joi.number().required().description("description"),
         servicePort: servicePortSchema,
         testObject,
         testArray,

@@ -47,6 +47,7 @@
     "tslint-microsoft-contrib": "^6.2.0",
     "tslint-no-focused-test": "^0.5.0",
     "tslint-no-unused": "^0.2.0-alpha.1",
+    "tslint-plugin-prettier": "^2.3.0",
     "typescript": "^3.9.7",
     "typescript-formatter": "^7.2.2"
   },

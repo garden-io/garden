@@ -74,10 +74,7 @@ const parameterValueSchema = () =>
 
 export const helmModuleOutputsSchema = () =>
   joi.object().keys({
-    "release-name": joi
-      .string()
-      .required()
-      .description("The Helm release name of the service."),
+    "release-name": joi.string().required().description("The Helm release name of the service."),
   })
 
 const helmServiceResourceSchema = () =>

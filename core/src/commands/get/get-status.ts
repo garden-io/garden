@@ -32,10 +32,7 @@ export interface TaskStatuses {
 
 const runStatusSchema = () =>
   joi.object().keys({
-    state: joi
-      .string()
-      .allow("outdated", "succeeded", "failed", "not-implemented")
-      .required(),
+    state: joi.string().allow("outdated", "succeeded", "failed", "not-implemented").required(),
     startedAt: joi.date().description("When the last run was started (if applicable)."),
     completedAt: joi.date().description("When the last run completed (if applicable)."),
   })

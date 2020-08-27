@@ -68,47 +68,30 @@ describe("GardenServer", () => {
 
   describe("GET /", () => {
     it("should return the dashboard index page", async () => {
-      await request(server)
-        .get("/")
-        .expect(200)
+      await request(server).get("/").expect(200)
     })
   })
 
   describe("POST /api", () => {
     it("should 400 on non-JSON body", async () => {
-      await request(server)
-        .post("/api")
-        .send("foo")
-        .expect(400)
+      await request(server).post("/api").send("foo").expect(400)
     })
 
     it("should 400 on invalid payload", async () => {
-      await request(server)
-        .post("/api")
-        .send({ foo: "bar" })
-        .expect(400)
+      await request(server).post("/api").send({ foo: "bar" }).expect(400)
     })
 
     it("should 404 on invalid command", async () => {
-      await request(server)
-        .post("/api")
-        .send({ command: "foo" })
-        .expect(404)
+      await request(server).post("/api").send({ command: "foo" }).expect(404)
     })
 
     it("should 503 when Garden instance is not set", async () => {
       gardenServer["garden"] = undefined
-      await request(server)
-        .post("/api")
-        .send({ command: "get.config" })
-        .expect(503)
+      await request(server).post("/api").send({ command: "get.config" }).expect(503)
     })
 
     it("should execute a command and return its results", async () => {
-      const res = await request(server)
-        .post("/api")
-        .send({ command: "get.config" })
-        .expect(200)
+      const res = await request(server).post("/api").send({ command: "get.config" }).expect(200)
       const config = await garden.dumpConfig({ log: garden.log })
       expect(res.body.result).to.eql(deepOmitUndefined(config))
     })
@@ -137,9 +120,7 @@ describe("GardenServer", () => {
 
   describe("/dashboardPages", () => {
     it("should resolve the URL for the given dashboard page and redirect", async () => {
-      const res = await request(server)
-        .get("/dashboardPages/test-plugin/test")
-        .expect(302)
+      const res = await request(server).get("/dashboardPages/test-plugin/test").expect(302)
 
       expect(res.header.location).to.equal("http://localhost:12345/test")
     })
@@ -147,10 +128,7 @@ describe("GardenServer", () => {
 
   describe("/events", () => {
     it("returns 401 if missing auth header", async () => {
-      await request(server)
-        .post("/events")
-        .send({})
-        .expect(401)
+      await request(server).post("/events").send({}).expect(401)
     })
 
     it("returns 401 if auth header doesn't match auth key", async () => {

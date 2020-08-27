@@ -66,10 +66,7 @@ export abstract class ConfigContext {
 
   static getSchema() {
     const schemas = (<any>this)._schemas
-    return joi
-      .object()
-      .keys(schemas)
-      .required()
+    return joi.object().keys(schemas).required()
   }
 
   resolve({ key, nodePath, opts }: ContextResolveParams): ContextResolveOutput {
@@ -265,12 +262,7 @@ class LocalContext extends ConfigContext {
 }
 
 class ProjectContext extends ConfigContext {
-  @schema(
-    joi
-      .string()
-      .description("The name of the Garden project.")
-      .example("my-project")
-  )
+  @schema(joi.string().description("The name of the Garden project.").example("my-project"))
   public name: string
 
   constructor(root: ConfigContext, name: string) {
@@ -423,12 +415,7 @@ class EnvironmentContext extends ConfigContext {
   )
   public fullName: string
 
-  @schema(
-    joi
-      .string()
-      .description("The currently active namespace (if any).")
-      .example("my-namespace")
-  )
+  @schema(joi.string().description("The currently active namespace (if any).").example("my-namespace"))
   public namespace: string
 
   constructor(root: ConfigContext, name: string, fullName: string, namespace?: string) {
@@ -651,21 +638,11 @@ export class ModuleContext extends ConfigContext {
   public outputs: PrimitiveMap
 
   @schema(
-    joi
-      .string()
-      .required()
-      .description("The local path of the module.")
-      .example("/home/me/code/my-project/my-module")
+    joi.string().required().description("The local path of the module.").example("/home/me/code/my-project/my-module")
   )
   public path: string
 
-  @schema(
-    joi
-      .string()
-      .required()
-      .description("The current version of the module.")
-      .example(exampleVersion)
-  )
+  @schema(joi.string().required().description("The current version of the module.").example(exampleVersion))
   public version: string | undefined
 
   constructor(root: ConfigContext, config: ModuleConfig, version?: ModuleVersion) {

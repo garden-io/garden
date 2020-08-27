@@ -26,10 +26,7 @@ const gcfModuleSpecSchema = () =>
     .keys({
       entrypoint: joi.string().description("The entrypoint for the function (exported name in the function's module)"),
       hostname: ingressHostnameSchema(),
-      path: joi
-        .string()
-        .default(".")
-        .description("The path of the module that contains the function."),
+      path: joi.string().default(".").description("The path of the module that contains the function."),
       project: joi.string().description("The Google Cloud project name of the function."),
       tests: joiArray(execTestSchema()),
     })

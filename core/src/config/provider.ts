@@ -29,10 +29,7 @@ export interface GenericProviderConfig extends BaseProviderConfig {
 
 const providerFixedFieldsSchema = () =>
   joi.object().keys({
-    name: joiIdentifier()
-      .required()
-      .description("The name of the provider plugin to use.")
-      .example("local-kubernetes"),
+    name: joiIdentifier().required().description("The name of the provider plugin to use.").example("local-kubernetes"),
     dependencies: joiArray(joiIdentifier())
       .description("List other providers that should be resolved before this one.")
       .example(["exec"]),
@@ -50,10 +47,7 @@ const providerFixedFieldsSchema = () =>
   })
 
 export const providerConfigBaseSchema = () =>
-  providerFixedFieldsSchema()
-    .unknown(true)
-    .meta({ extendable: true })
-    .id("providerConfig")
+  providerFixedFieldsSchema().unknown(true).meta({ extendable: true }).id("providerConfig")
 
 export interface Provider<T extends BaseProviderConfig = BaseProviderConfig> {
   name: string

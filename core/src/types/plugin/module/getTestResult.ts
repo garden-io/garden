@@ -23,14 +23,8 @@ export interface TestResult extends RunResult {
 
 export const testResultSchema = () =>
   runResultSchema().keys({
-    outputs: joi
-      .object()
-      .pattern(/.+/, joiPrimitive())
-      .description("A map of primitive values, output from the test."),
-    testName: joi
-      .string()
-      .required()
-      .description("The name of the test that was run."),
+    outputs: joi.object().pattern(/.+/, joiPrimitive()).description("A map of primitive values, output from the test."),
+    testName: joi.string().required().description("The name of the test that was run."),
     version: joi.string().description(deline`
         The test run's version, as a string. In addition to the parent module's version, this also
         factors in the module versions of the test's runtime dependencies (if any).`),

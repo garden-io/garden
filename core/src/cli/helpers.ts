@@ -80,10 +80,7 @@ export async function checkForUpdates(config: GlobalConfigStore, logger: LogEntr
     const res = await got(`${VERSION_CHECK_URL}?${qs.stringify(query)}`, { headers }).json<GotResponse<any>>()
     const configObj = await config.get()
     const showMessage =
-      configObj.lastVersionCheck &&
-      moment()
-        .subtract(1, "days")
-        .isAfter(moment(configObj.lastVersionCheck.lastRun))
+      configObj.lastVersionCheck && moment().subtract(1, "days").isAfter(moment(configObj.lastVersionCheck.lastRun))
 
     // we check again for lastVersionCheck because in the first run it doesn't exist
     if (showMessage || !configObj.lastVersionCheck) {

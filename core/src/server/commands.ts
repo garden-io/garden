@@ -27,11 +27,7 @@ export interface CommandMap {
 
 const baseRequestSchema = () =>
   joi.object().keys({
-    command: joi
-      .string()
-      .required()
-      .description("The command name to run.")
-      .example("get.status"),
+    command: joi.string().required().description("The command name to run.").example("get.status"),
     parameters: joi
       .object()
       .keys({})

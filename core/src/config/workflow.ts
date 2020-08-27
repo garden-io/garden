@@ -58,14 +58,8 @@ export const workflowConfigSchema = () =>
         .default(DEFAULT_API_VERSION)
         .valid(DEFAULT_API_VERSION)
         .description("The schema version of this workflow's config (currently not used)."),
-      kind: joi
-        .string()
-        .default("Workflow")
-        .valid("Workflow"),
-      name: joiUserIdentifier()
-        .required()
-        .description("The name of this workflow.")
-        .example("my-workflow"),
+      kind: joi.string().default("Workflow").valid("Workflow"),
+      name: joiUserIdentifier().required().description("The name of this workflow.").example("my-workflow"),
       description: joi.string().description("A description of the workflow."),
       files: joi.array().items(workflowFileSchema()).description(dedent`
           A list of files to write before starting the workflow.
@@ -93,11 +87,7 @@ export const workflowConfigSchema = () =>
             .description("The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB)"),
         })
         .default(defaultContainerLimits),
-      steps: joi
-        .array()
-        .items(workflowStepSchema())
-        .required()
-        .min(1).description(deline`
+      steps: joi.array().items(workflowStepSchema()).required().min(1).description(deline`
           The steps the workflow should run. At least one step is required. Steps are run sequentially.
           If a step fails, subsequent steps are skipped.
         `),

@@ -169,10 +169,7 @@ const secretRefSchema = () =>
     .object()
     .keys({
       secretRef: joi.object().keys({
-        name: joi
-          .string()
-          .required()
-          .description("The name of the secret to refer to."),
+        name: joi.string().required().description("The name of the secret to refer to."),
         key: joi
           .string()
           .description("The key to read from in the referenced secret. May be required for some providers."),
@@ -212,10 +209,7 @@ const ingressSchema = () =>
     ),
     hostname: ingressHostnameSchema(),
     linkUrl: linkUrlSchema(),
-    path: joi
-      .string()
-      .default("/")
-      .description("The path which should be routed to the service."),
+    path: joi.string().default("/").description("The path which should be routed to the service."),
     port: joi
       .string()
       .required()
@@ -238,10 +232,7 @@ const healthCheckSchema = () =>
             .string()
             .required()
             .description("The name of the port where the service's health check endpoint should be available."),
-          scheme: joi
-            .string()
-            .allow("HTTP", "HTTPS")
-            .default("HTTP"),
+          scheme: joi.string().allow("HTTP", "HTTPS").default("HTTP"),
         })
         .description("Set this to check the service's health by making an HTTP request."),
       command: joi
@@ -273,15 +264,8 @@ export const portSchema = () =>
     name: joiUserIdentifier()
       .required()
       .description("The name of the port (used when referencing the port elsewhere in the service configuration)."),
-    protocol: joi
-      .string()
-      .allow("TCP", "UDP")
-      .default(DEFAULT_PORT_PROTOCOL)
-      .description("The protocol of the port."),
-    containerPort: joi
-      .number()
-      .required()
-      .example(8080).description(deline`
+    protocol: joi.string().allow("TCP", "UDP").default(DEFAULT_PORT_PROTOCOL).description("The protocol of the port."),
+    containerPort: joi.number().required().example(8080).description(deline`
         The port exposed on the container by the running process. This will also be the default value
         for \`servicePort\`.
 
@@ -325,9 +309,7 @@ const volumeSchema = () =>
   joi
     .object()
     .keys({
-      name: joiUserIdentifier()
-        .required()
-        .description("The name of the allocated volume."),
+      name: joiUserIdentifier().required().description("The name of the allocated volume."),
       containerPath: joi
         .posixPath()
         .required()
@@ -406,12 +388,8 @@ const containerServiceSchema = () =>
         these arguments when the service is deployed with hot reloading enabled.`
       )
       .example(["npm", "run", "dev"]),
-    limits: limitsSchema()
-      .description("Specify resource limits for the service.")
-      .default(defaultContainerLimits),
-    ports: joiArray(portSchema())
-      .unique("name")
-      .description("List of ports that the service container exposes."),
+    limits: limitsSchema().description("Specify resource limits for the service.").default(defaultContainerLimits),
+    ports: joiArray(portSchema()).unique("name").description("List of ports that the service container exposes."),
     replicas: joi.number().integer().description(deline`
       The number of instances of the service to deploy.
       Defaults to 3 for environments configured with \`production: true\`, otherwise 1.
@@ -435,10 +413,7 @@ export const containerRegistryConfigSchema = () =>
       .required()
       .description("The hostname (and optionally port, if not the default port) of the registry.")
       .example("gcr.io"),
-    port: joi
-      .number()
-      .integer()
-      .description("The port where the registry listens on, if not the default."),
+    port: joi.number().integer().description("The port where the registry listens on, if not the default."),
     namespace: joi
       .string()
       .default("_")
@@ -601,10 +576,7 @@ export const containerModuleSpecSchema = () =>
       specifies a remote image, Garden automatically sets \`include\` to \`[]\`.
     `),
       hotReload: hotReloadConfigSchema(),
-      dockerfile: joi
-        .posixPath()
-        .subPathOnly()
-        .description("POSIX-style name of Dockerfile, relative to module root."),
+      dockerfile: joi.posixPath().subPathOnly().description("POSIX-style name of Dockerfile, relative to module root."),
       services: joiArray(containerServiceSchema())
         .unique("name")
         .description("A list of services to deploy from this container module."),

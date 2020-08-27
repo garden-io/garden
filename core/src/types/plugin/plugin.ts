@@ -422,9 +422,7 @@ const moduleHandlersSchema = () =>
 
 const extendModuleTypeSchema = () =>
   joi.object().keys({
-    name: joiIdentifier()
-      .required()
-      .description("The name of module type."),
+    name: joiIdentifier().required().description("The name of module type."),
     handlers: moduleHandlersSchema(),
   })
 
@@ -494,9 +492,7 @@ export const pluginSchema = () =>
   joi
     .object()
     .keys({
-      name: joiIdentifier()
-        .required()
-        .description("The name of the plugin."),
+      name: joiIdentifier().required().description("The name of the plugin."),
       base: joiIdentifier().description(dedent`
         Name of a plugin to use as a base for this plugin. If you specify this, your provider will inherit all of the
         schema and functionality from the base plugin. Please review other fields for information on how individual
@@ -545,10 +541,7 @@ export const pluginSchema = () =>
         can optionally call the original handler from the base plugin.
       `),
 
-      commands: joi
-        .array()
-        .items(pluginCommandSchema())
-        .unique("name").description(dedent`
+      commands: joi.array().items(pluginCommandSchema()).unique("name").description(dedent`
         List of commands that this plugin exposes (via \`garden plugins <plugin name>\`.
 
         If you specify a \`base\`, new commands are added in addition to the commands of the base plugin, and if you
@@ -557,28 +550,19 @@ export const pluginSchema = () =>
         optionally call the original command from the base plugin.
       `),
 
-      createModuleTypes: joi
-        .array()
-        .items(createModuleTypeSchema())
-        .unique("name").description(dedent`
+      createModuleTypes: joi.array().items(createModuleTypeSchema()).unique("name").description(dedent`
         List of module types to create.
 
         If you specify a \`base\`, these module types are added in addition to the module types created by the base
         plugin. To augment the base plugin's module types, use the \`extendModuleTypes\` field.
       `),
-      extendModuleTypes: joi
-        .array()
-        .items(extendModuleTypeSchema())
-        .unique("name").description(dedent`
+      extendModuleTypes: joi.array().items(extendModuleTypeSchema()).unique("name").description(dedent`
         List of module types to extend/override with additional handlers.
       `),
 
       dashboardPages: dashboardPagesSchema(),
 
-      tools: joi
-        .array()
-        .items(toolSchema())
-        .unique("name").description(dedent`
+      tools: joi.array().items(toolSchema()).unique("name").description(dedent`
         List of tools that this plugin exposes via \`garden tools <name>\`, and within its own plugin handlers and commands.
 
         The tools are downloaded automatically on first use, and cached under the user's global \`~/.garden\` directory.

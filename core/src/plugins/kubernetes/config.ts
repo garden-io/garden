@@ -218,11 +218,7 @@ const storageSchema = (defaults: KubernetesStorageSpec) =>
   joi
     .object()
     .keys({
-      size: joi
-        .number()
-        .integer()
-        .default(defaults.size)
-        .description("Volume size in megabytes."),
+      size: joi.number().integer().default(defaults.size).description("Volume size in megabytes."),
       storageClass: joi
         .string()
         .allow(null)
@@ -241,10 +237,7 @@ export const k8sContextSchema = () =>
 const secretRef = joi
   .object()
   .keys({
-    name: joiIdentifier()
-      .required()
-      .description("The name of the Kubernetes secret.")
-      .example("my-secret"),
+    name: joiIdentifier().required().description("The name of the Kubernetes secret.").example("my-secret"),
     namespace: joiIdentifier()
       .default("default")
       .description(
@@ -524,10 +517,7 @@ export const kubernetesConfigBase = providerConfigBaseSchema().keys({
           "Key" is the taint key that the toleration applies to. Empty means match all taint keys.
           If the key is empty, operator must be "Exists"; this combination means to match all values and all keys.
         `),
-      operator: joi
-        .string()
-        .allow("Exists", "Equal")
-        .default("Equal").description(dedent`
+      operator: joi.string().allow("Exists", "Equal").default("Equal").description(dedent`
           "Operator" represents a key's relationship to the value. Valid operators are "Exists" and "Equal". Defaults to
           "Equal". "Exists" is equivalent to wildcard for value, so that a pod can tolerate all taints of a
           particular category.

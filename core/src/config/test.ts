@@ -18,9 +18,7 @@ export interface BaseTestSpec {
 
 export const baseTestSpecSchema = () =>
   joi.object().keys({
-    name: joiUserIdentifier()
-      .required()
-      .description("The name of the test."),
+    name: joiUserIdentifier().required().description("The name of the test."),
     dependencies: joiArray(joi.string()).description(deline`
         The names of any services that must be running, and the names of any
         tasks that must be executed, before the test is run.
@@ -36,11 +34,7 @@ export const baseTestSpecSchema = () =>
         specific environments, e.g. only during CI.
       `
       ),
-    timeout: joi
-      .number()
-      .allow(null)
-      .default(null)
-      .description("Maximum duration (in seconds) of the test run."),
+    timeout: joi.number().allow(null).default(null).description("Maximum duration (in seconds) of the test run."),
   })
 
 export interface TestConfig<T extends {} = {}> extends BaseTestSpec {

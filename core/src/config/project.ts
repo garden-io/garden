@@ -71,10 +71,7 @@ _NOTE: The default varfile format will change to YAML in Garden v0.13, since YAM
 `.trim()
 
 export const environmentNameSchema = () =>
-  joiUserIdentifier()
-    .required()
-    .description("The name of the environment.")
-    .example("dev")
+  joiUserIdentifier().required().description("The name of the environment.").example("dev")
 
 export const environmentSchema = () =>
   joi.object().keys({
@@ -107,9 +104,7 @@ export const environmentSchema = () =>
       `
       )
       .example(true),
-    providers: joiArray(providerConfigBaseSchema())
-      .unique("name")
-      .meta({ deprecated: true }).description(deline`
+    providers: joiArray(providerConfigBaseSchema()).unique("name").meta({ deprecated: true }).description(deline`
           DEPRECATED - Please use the top-level \`providers\` field instead, and if needed use the \`environments\` key
           on the provider configurations to limit them to specific environments.
         `),
@@ -137,10 +132,7 @@ export const environmentSchema = () =>
 export const environmentsSchema = () =>
   joi
     .alternatives(
-      joi
-        .array()
-        .items(environmentSchema())
-        .unique("name"),
+      joi.array().items(environmentSchema()).unique("name"),
       // Allow a string as a shorthand for { name: foo }
       joi.array().items(joiUserIdentifier())
     )
@@ -153,26 +145,18 @@ export interface SourceConfig {
 
 export const moduleSourceSchema = () =>
   joi.object().keys({
-    name: joiUserIdentifier()
-      .required()
-      .description("The name of the module.")
-      .example("my-external-module"),
+    name: joiUserIdentifier().required().description("The name of the module.").example("my-external-module"),
     repositoryUrl: joiRepositoryUrl().required(),
   })
 
 export const projectSourceSchema = () =>
   joi.object().keys({
-    name: joiUserIdentifier()
-      .required()
-      .description("The name of the source to import")
-      .example("my-external-repo"),
+    name: joiUserIdentifier().required().description("The name of the source to import").example("my-external-repo"),
     repositoryUrl: joiRepositoryUrl().required(),
   })
 
 export const projectSourcesSchema = () =>
-  joiArray(projectSourceSchema())
-    .unique("name")
-    .description("A list of remote sources to import into project.")
+  joiArray(projectSourceSchema()).unique("name").description("A list of remote sources to import into project.")
 
 export const linkedSourceSchema = () =>
   joi.object().keys({
@@ -233,10 +217,7 @@ export const defaultEnvironments: EnvironmentConfig[] = [
 ]
 
 export const projectNameSchema = () =>
-  joiIdentifier()
-    .required()
-    .description("The name of the project.")
-    .example("my-sweet-project")
+  joiIdentifier().required().description("The name of the project.").example("my-sweet-project")
 
 export const projectRootSchema = () => joi.string().description("The path to the project root.")
 
@@ -244,12 +225,7 @@ const projectModulesSchema = () =>
   joi.object().keys({
     include: joi
       .array()
-      .items(
-        joi
-          .posixPath()
-          .allowGlobs()
-          .subPathOnly()
-      )
+      .items(joi.posixPath().allowGlobs().subPathOnly())
       .description(
         dedent`
         Specify a list of POSIX-style paths or globs that should be scanned for Garden modules.
@@ -263,12 +239,7 @@ const projectModulesSchema = () =>
       .example(["modules/**/*"]),
     exclude: joi
       .array()
-      .items(
-        joi
-          .posixPath()
-          .allowGlobs()
-          .subPathOnly()
-      )
+      .items(joi.posixPath().allowGlobs().subPathOnly())
       .description(
         dedent`
         Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for modules.
@@ -289,12 +260,7 @@ const projectModulesSchema = () =>
 
 const projectOutputSchema = () =>
   joi.object().keys({
-    name: joi
-      .string()
-      .max(255)
-      .required()
-      .description("The name of the output value.")
-      .example("my-output-key"),
+    name: joi.string().max(255).required().description("The name of the output value.").example("my-output-key"),
     value: joiPrimitive()
       .required()
       .description(
@@ -314,22 +280,12 @@ export const projectDocsSchema = () =>
         .default(DEFAULT_API_VERSION)
         .valid(DEFAULT_API_VERSION)
         .description("The schema version of this project's config (currently not used)."),
-      kind: joi
-        .string()
-        .default("Project")
-        .valid("Project")
-        .description("Indicate what kind of config this is."),
+      kind: joi.string().default("Project").valid("Project").description("Indicate what kind of config this is."),
       path: projectRootSchema().meta({ internal: true }),
-      configPath: joi
-        .string()
-        .meta({ internal: true })
-        .description("The path to the project config file."),
+      configPath: joi.string().meta({ internal: true }).description("The path to the project config file."),
       name: projectNameSchema(),
       // TODO: Refer to enterprise documentation for more details.
-      id: joi
-        .string()
-        .meta({ internal: true })
-        .description("The project's ID in Garden Enterprise."),
+      id: joi.string().meta({ internal: true }).description("The project's ID in Garden Enterprise."),
       // TODO: Refer to enterprise documentation for more details.
       domain: joi
         .string()

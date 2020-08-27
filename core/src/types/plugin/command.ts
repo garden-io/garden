@@ -39,10 +39,7 @@ export interface PluginCommandResult<T extends object = object> {
 
 export const pluginCommandResultSchema = () =>
   joi.object().keys({
-    result: joi
-      .object()
-      .options({ allowUnknown: true })
-      .required(),
+    result: joi.object().options({ allowUnknown: true }).required(),
     errors: joiArray(joi.any()),
   })
 
@@ -64,10 +61,7 @@ export const pluginCommandSchema = () =>
     name: joiIdentifier()
       .required()
       .description("The name of the command. Must be " + joiIdentifierDescription),
-    description: joi
-      .string()
-      .required()
-      .description("A short description of the command."),
+    description: joi.string().required().description("A short description of the command."),
     resolveModules: joi
       .boolean()
       .default(false)

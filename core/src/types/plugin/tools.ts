@@ -29,12 +29,7 @@ const toolBuildSchema = () =>
       .required()
       .example("linux")
       .description("The platform this build is for."),
-    architecture: joi
-      .string()
-      .allow("amd64")
-      .required()
-      .example("amd64")
-      .description("The architecture of the build."),
+    architecture: joi.string().allow("amd64").required().example("amd64").description("The architecture of the build."),
     url: joi
       .string()
       .uri({ allowRelative: false })
@@ -49,12 +44,7 @@ const toolBuildSchema = () =>
     extract: joi
       .object()
       .keys({
-        format: joi
-          .string()
-          .allow("tar", "zip")
-          .required()
-          .example("tar")
-          .description("The archive format."),
+        format: joi.string().allow("tar", "zip").required().example("tar").description("The archive format."),
         targetPath: joi
           .posixPath()
           .relativeOnly()
@@ -79,20 +69,14 @@ export interface PluginTools {
 export const toolSchema = () =>
   joi.object().keys({
     name: joiIdentifier().description("The name of the tool. This must be unique within the provider."),
-    description: joi
-      .string()
-      .required()
-      .description("A short description of the tool, used for help texts."),
+    description: joi.string().required().description("A short description of the tool, used for help texts."),
     type: joi
       .string()
       .allow("library", "binary")
       .description(
         `Set this to "library" if the tool is not an executable. Set to "binary" if it should be exposed as a command.`
       ),
-    builds: joi
-      .array()
-      .items(toolBuildSchema())
-      .required().description(deline`
+    builds: joi.array().items(toolBuildSchema()).required().description(deline`
         List of platform and architecture builds, with URLs and (if applicable) archive extraction information.
         The list should include at least an amd64 build for each of darwin, linux and windows.
       `),

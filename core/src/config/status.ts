@@ -12,10 +12,7 @@ export const environmentStatusSchema = () =>
   joi
     .object()
     .keys({
-      ready: joi
-        .boolean()
-        .required()
-        .description("Set to true if the environment is fully configured for a provider."),
+      ready: joi.boolean().required().description("Set to true if the environment is fully configured for a provider."),
       detail: joi
         .object()
         .optional()
@@ -24,10 +21,7 @@ export const environmentStatusSchema = () =>
       outputs: joiVariables()
         .meta({ extendable: true })
         .description("Output variables that modules and other variables can reference."),
-      disableCache: joi
-        .boolean()
-        .optional()
-        .description("Set to true to disable caching of the status."),
+      disableCache: joi.boolean().optional().description("Set to true to disable caching of the status."),
       cached: joi
         .boolean()
         .optional()

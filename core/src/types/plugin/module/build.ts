@@ -23,10 +23,7 @@ export interface BuildResult {
 
 export const buildResultSchema = () =>
   joi.object().keys({
-    buildLog: joi
-      .string()
-      .allow("")
-      .description("The full log from the build."),
+    buildLog: joi.string().allow("").description("The full log from the build."),
     fetched: joi.boolean().description("Set to true if the build was fetched from a remote registry."),
     fresh: joi
       .boolean()

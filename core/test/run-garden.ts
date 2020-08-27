@@ -222,10 +222,7 @@ export class GardenWatch {
     this.running = true
 
     stream.on("data", (data: Buffer) => {
-      const lines = data
-        .toString()
-        .trim()
-        .split("\n")
+      const lines = data.toString().trim().split("\n")
       const entries = parseLogEntries(lines)
       this.logEntries.push(...entries)
       if (showLog) {

@@ -148,11 +148,7 @@ export async function readAuthToken(log: LogEntry): Promise<string | null> {
  * If a persisted client auth token exists, deletes it.
  */
 export async function clearAuthToken(log: LogEntry) {
-  await ClientAuthToken.getConnection()
-    .createQueryBuilder()
-    .delete()
-    .from(ClientAuthToken)
-    .execute()
+  await ClientAuthToken.getConnection().createQueryBuilder().delete().from(ClientAuthToken).execute()
   log.debug("Cleared persisted auth token (if any)")
 }
 

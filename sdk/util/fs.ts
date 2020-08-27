@@ -6,7 +6,4 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-export {
-  matchGlobs,
-  listDirectory
-} from "@garden-io/core/build/src/util/fs"
+export { matchGlobs, listDirectory } from "@garden-io/core/build/src/util/fs"

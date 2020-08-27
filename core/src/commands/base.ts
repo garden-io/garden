@@ -381,14 +381,8 @@ export interface ProcessCommandResult {
 
 export const resultMetadataKeys = () => ({
   aborted: joi.boolean().description("Set to true if the build was not attempted, e.g. if a dependency build failed."),
-  durationMsec: joi
-    .number()
-    .integer()
-    .description("The duration of the build in msec, if applicable."),
-  success: joi
-    .boolean()
-    .required()
-    .description("Whether the build was succeessful."),
+  durationMsec: joi.number().integer().description("The duration of the build in msec, if applicable."),
+  success: joi.boolean().required().description("Whether the build was succeessful."),
   error: joi.string().description("An error message, if the build failed."),
   version: joi.string().description("The version of the module, service, task or test."),
 })

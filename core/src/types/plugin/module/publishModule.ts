@@ -20,10 +20,7 @@ export interface PublishResult {
 
 export const publishResultSchema = () =>
   joi.object().keys({
-    published: joi
-      .boolean()
-      .required()
-      .description("Set to true if the module was published."),
+    published: joi.boolean().required().description("Set to true if the module was published."),
     message: joi.string().description("Optional result message from the provider."),
   })
 

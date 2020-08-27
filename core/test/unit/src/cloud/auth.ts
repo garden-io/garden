@@ -15,9 +15,7 @@ import { getLogger } from "../../../../src/logger/logger"
 import { gardenEnv } from "../../../../src/constants"
 
 async function cleanupAuthTokens() {
-  await ClientAuthToken.createQueryBuilder()
-    .delete()
-    .execute()
+  await ClientAuthToken.createQueryBuilder().delete().execute()
 }
 
 /**
@@ -81,10 +79,7 @@ describe("cloud", () => {
       it("should clean up duplicate auth tokens in the erroneous case when several exist", async () => {
         const garden = await makeTestGardenA()
         await Bluebird.map(["token-1", "token-2", "token-3"], async (token) => {
-          await ClientAuthToken.createQueryBuilder()
-            .insert()
-            .values({ token })
-            .execute()
+          await ClientAuthToken.createQueryBuilder().insert().values({ token }).execute()
         })
         await readAuthToken(garden.log)
         const count = await ClientAuthToken.count()

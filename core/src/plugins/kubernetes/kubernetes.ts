@@ -176,13 +176,9 @@ export async function debugInfo({ ctx, log, includeProject }: GetDebugInfoParams
 }
 
 const outputsSchema = joi.object().keys({
-  "app-namespace": joiIdentifier()
-    .required()
-    .description("The primary namespace used for resource deployments."),
+  "app-namespace": joiIdentifier().required().description("The primary namespace used for resource deployments."),
   "default-hostname": joi.string().description("The default hostname configured on the provider."),
-  "metadata-namespace": joiIdentifier()
-    .required()
-    .description("The namespace used for Garden metadata."),
+  "metadata-namespace": joiIdentifier().required().description("The namespace used for Garden metadata."),
 })
 
 const localKubernetesUrl = getProviderUrl("local-kubernetes")

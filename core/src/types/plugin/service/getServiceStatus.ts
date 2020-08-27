@@ -33,10 +33,7 @@ export const getServiceStatus = () => ({
   `,
   paramsSchema: serviceActionParamsSchema().keys({
     runtimeContext: runtimeContextSchema(),
-    hotReload: joi
-      .boolean()
-      .default(false)
-      .description("Whether the service should be configured for hot-reloading."),
+    hotReload: joi.boolean().default(false).description("Whether the service should be configured for hot-reloading."),
   }),
   resultSchema: serviceStatusSchema(),
 })
