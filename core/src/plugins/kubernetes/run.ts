@@ -232,8 +232,9 @@ export async function runAndCopy({
 
       if (status.state !== "ready") {
         const containerStatus = status.resource.status.containerStatuses![0]
+        const message = containerStatus?.state?.terminated?.message || containerStatus?.state?.waiting?.message
 
-        if (containerStatus?.state?.terminated?.message?.includes("not found")) {
+        if (message?.includes("not found")) {
           throw new ConfigurationError(
             deline`
               ${description} specifies artifacts to export, but the image doesn't
