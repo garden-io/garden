@@ -60,10 +60,7 @@ export const openfaasModuleSpecSchema = () =>
       image: joi
         .string()
         .description("The image name to use for the built OpenFaaS container (defaults to the module name)"),
-      lang: joi
-        .string()
-        .required()
-        .description("The OpenFaaS language template to use to build this function."),
+      lang: joi.string().required().description("The OpenFaaS language template to use to build this function."),
       tests: joiArray(openfaasTestSchema()).description("A list of tests to run in the module."),
     })
     .unknown(false)

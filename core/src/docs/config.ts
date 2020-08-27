@@ -63,10 +63,7 @@ function makeMarkdownDescription(description: NormalizedSchemaDescription, { sho
   const parentDescriptions = getParentDescriptions(description)
   const breadCrumbs =
     parentDescriptions.length > 0
-      ? parentDescriptions
-          .map(renderMarkdownLink)
-          .concat(description.name)
-          .join(" > ")
+      ? parentDescriptions.map(renderMarkdownLink).concat(description.name).join(" > ")
       : null
 
   let formattedExample: string | undefined
@@ -255,12 +252,7 @@ export function renderSchemaDescriptionYaml(
       } else if (isPrimitive || exceptionallyTreatAsPrimitive) {
         formattedValue = safeDumpYaml(value)
       } else {
-        formattedValue = indent(
-          safeDumpYaml(value)
-            .trim()
-            .split("\n"),
-          1
-        )
+        formattedValue = indent(safeDumpYaml(value).trim().split("\n"), 1)
       }
     }
 

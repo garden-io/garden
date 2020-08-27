@@ -26,10 +26,7 @@ export interface PluginActionParamsBase extends PluginActionContextParams {
 
 // Note: not specifying this further because we will later remove it from the API
 export const logEntrySchema = () =>
-  joi
-    .object()
-    .description("Logging context handler that the handler can use to log messages and progress.")
-    .required()
+  joi.object().description("Logging context handler that the handler can use to log messages and progress.").required()
 
 export const actionParamsSchema = () =>
   joi.object().keys({
@@ -71,10 +68,7 @@ export const runBaseParams = {
   interactive: joi.boolean().description("Whether to run the module interactively (i.e. attach to the terminal)."),
   runtimeContext: runtimeContextSchema(),
   silent: joi.boolean().description("Set to false if the output should not be logged to the console."),
-  timeout: joi
-    .number()
-    .optional()
-    .description("If set, how long to run the command before timing out."),
+  timeout: joi.number().optional().description("If set, how long to run the command before timing out."),
 }
 
 // TODO: update this schema in 0.13
@@ -105,34 +99,15 @@ export const runResultSchema = () =>
         .required()
         .description("The command that was run in the module."),
       version: joi.string().description("The string version of the module."),
-      success: joi
-        .boolean()
-        .required()
-        .description("Whether the module was successfully run."),
-      exitCode: joi
-        .number()
-        .integer()
-        .description("The exit code of the run (if applicable)."),
-      startedAt: joi
-        .date()
-        .required()
-        .description("When the module run was started."),
-      completedAt: joi
-        .date()
-        .required()
-        .description("When the module run was completed."),
-      log: joi
-        .string()
-        .allow("")
-        .default("")
-        .description("The output log from the run."),
+      success: joi.boolean().required().description("Whether the module was successfully run."),
+      exitCode: joi.number().integer().description("The exit code of the run (if applicable)."),
+      startedAt: joi.date().required().description("When the module run was started."),
+      completedAt: joi.date().required().description("When the module run was completed."),
+      log: joi.string().allow("").default("").description("The output log from the run."),
     })
 
 export const artifactsPathSchema = () =>
-  joi
-    .string()
-    .required()
-    .description("A directory path where the handler should write any exported artifacts to.")
+  joi.string().required().description("A directory path where the handler should write any exported artifacts to.")
 
 export type RunState = "outdated" | "succeeded" | "failed" | "not-implemented"
 

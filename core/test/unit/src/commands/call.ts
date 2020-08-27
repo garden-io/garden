@@ -116,9 +116,7 @@ describe("commands.call", () => {
     const log = garden.log
     const command = new CallCommand()
 
-    nock("http://service-a.test-project-b.local.app.garden:32000")
-      .get("/path-a")
-      .reply(200, "bla")
+    nock("http://service-a.test-project-b.local.app.garden:32000").get("/path-a").reply(200, "bla")
 
     const { result } = await command.action({
       garden,
@@ -141,9 +139,7 @@ describe("commands.call", () => {
     const log = garden.log
     const command = new CallCommand()
 
-    nock("http://service-a.test-project-b.local.app.garden:32000")
-      .get("/path-a")
-      .reply(200, "bla")
+    nock("http://service-a.test-project-b.local.app.garden:32000").get("/path-a").reply(200, "bla")
 
     const { result } = await command.action({
       garden,
@@ -166,9 +162,7 @@ describe("commands.call", () => {
     const log = garden.log
     const command = new CallCommand()
 
-    nock("http://service-b.test-project-b.local.app.garden:32000")
-      .get("/")
-      .reply(200, "bla")
+    nock("http://service-b.test-project-b.local.app.garden:32000").get("/").reply(200, "bla")
 
     const { result } = await command.action({
       garden,
@@ -191,9 +185,7 @@ describe("commands.call", () => {
     const log = garden.log
     const command = new CallCommand()
 
-    nock("https://www.example.com")
-      .get("/")
-      .reply(200, "bla")
+    nock("https://www.example.com").get("/").reply(200, "bla")
 
     const { result } = await command.action({
       garden,
@@ -216,9 +208,7 @@ describe("commands.call", () => {
     const log = garden.log
     const command = new CallCommand()
 
-    nock("https://www.example.com")
-      .get("/hello")
-      .reply(200, "bla")
+    nock("https://www.example.com").get("/hello").reply(200, "bla")
 
     const { result } = await command.action({
       garden,

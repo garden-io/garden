@@ -46,14 +46,8 @@ export interface GardenModule<M extends {} = any, S extends {} = any, T extends 
 
 export const moduleSchema = () =>
   moduleConfigSchema().keys({
-    buildPath: joi
-      .string()
-      .required()
-      .description("The path to the build staging directory for the module."),
-    buildMetadataPath: joi
-      .string()
-      .required()
-      .description("The path to the build metadata directory for the module."),
+    buildPath: joi.string().required().description("The path to the build staging directory for the module."),
+    buildMetadataPath: joi.string().required().description("The path to the build metadata directory for the module."),
     compatibleTypes: joiArray(joiIdentifier())
       .required()
       .description("A list of types that this module is compatible with (i.e. the module type itself + all bases)."),
@@ -74,9 +68,7 @@ export const moduleSchema = () =>
     serviceDependencyNames: joiArray(joiIdentifier())
       .required()
       .description("The names of all the services and tasks that the services in this module depend on."),
-    taskNames: joiArray(joiIdentifier())
-      .required()
-      .description("The names of the tasks that the module provides."),
+    taskNames: joiArray(joiIdentifier()).required().description("The names of the tasks that the module provides."),
     taskDependencyNames: joiArray(joiIdentifier())
       .required()
       .description("The names of all the tasks and services that the tasks in this module depend on."),

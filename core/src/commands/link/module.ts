@@ -69,10 +69,7 @@ export class LinkModuleCommand extends Command<Args> {
 
     const isRemote = [moduleToLink].filter(hasRemoteSource)[0]
     if (!isRemote) {
-      const modulesWithRemoteSource = graph
-        .getModules()
-        .filter(hasRemoteSource)
-        .sort()
+      const modulesWithRemoteSource = graph.getModules().filter(hasRemoteSource).sort()
 
       throw new ParameterError(
         `Expected module(s) ${chalk.underline(moduleName)} to have a remote source.` +

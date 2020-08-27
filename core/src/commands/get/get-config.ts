@@ -46,16 +46,10 @@ export class GetConfigCommand extends Command<{}, Opts> {
       ),
       variables: joiVariables().description("All configured variables in the environment."),
       moduleConfigs: joiArray(moduleConfigSchema()).description("All module configs in the project."),
-      workflowConfigs: joi
-        .array()
-        .items(workflowConfigSchema())
-        .description("All workflow configs in the project."),
+      workflowConfigs: joi.array().items(workflowConfigSchema()).description("All workflow configs in the project."),
       projectName: joi.string().description("The name of the project."),
       projectRoot: joi.string().description("The local path to the project root."),
-      projectId: joi
-        .string()
-        .optional()
-        .description("The project ID (Garden Enterprise only)."),
+      projectId: joi.string().optional().description("The project ID (Garden Enterprise only)."),
     })
 
   options = getConfigOptions

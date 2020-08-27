@@ -356,14 +356,7 @@ joi = joi.extend({
 export const joiPrimitive = () =>
   joi
     .alternatives()
-    .try(
-      joi.number(),
-      joi
-        .string()
-        .allow("")
-        .allow(null),
-      joi.boolean()
-    )
+    .try(joi.number(), joi.string().allow("").allow(null), joi.boolean())
     .description("Number, string or boolean")
 
 export const absolutePathRegex = /^\/.*/ // Note: Only checks for the leading slash
@@ -393,15 +386,7 @@ const moduleIncludeDescription = (extraDescription?: string) => {
 }
 
 export const joiModuleIncludeDirective = (extraDescription?: string) =>
-  joi
-    .array()
-    .items(
-      joi
-        .posixPath()
-        .allowGlobs()
-        .subPathOnly()
-    )
-    .description(moduleIncludeDescription(extraDescription))
+  joi.array().items(joi.posixPath().allowGlobs().subPathOnly()).description(moduleIncludeDescription(extraDescription))
 
 export const joiIdentifier = () =>
   joi
@@ -410,11 +395,7 @@ export const joiIdentifier = () =>
     .description(joiIdentifierDescription[0].toUpperCase() + joiIdentifierDescription.slice(1))
 
 export const joiProviderName = (name: string) =>
-  joiIdentifier()
-    .required()
-    .description("The name of the provider plugin to use.")
-    .default(name)
-    .example(name)
+  joiIdentifier().required().description("The name of the provider plugin to use.").default(name).example(name)
 
 export const joiStringMap = (valueSchema: Joi.Schema) => joi.object().pattern(/.+/, valueSchema)
 
@@ -459,11 +440,7 @@ export const joiEnvVars = () =>
         "(must not start with `GARDEN`) and values must be primitives."
     )
 
-export const joiArray = (schema: Joi.Schema) =>
-  joi
-    .array()
-    .items(schema)
-    .default([])
+export const joiArray = (schema: Joi.Schema) => joi.array().items(schema).default([])
 
 export const joiRepositoryUrl = () =>
   joi
@@ -486,20 +463,13 @@ export function isPrimitive(value: any) {
 }
 
 const versionStringSchema = () =>
-  joi
-    .string()
-    .regex(/^v/)
-    .required()
-    .description("String representation of the module version.")
+  joi.string().regex(/^v/).required().description("String representation of the module version.")
 
 const fileNamesSchema = () => joiArray(joi.string()).description("List of file paths included in the version.")
 
 export const treeVersionSchema = () =>
   joi.object().keys({
-    contentHash: joi
-      .string()
-      .required()
-      .description("The hash of all files in the directory, after filtering."),
+    contentHash: joi.string().required().description("The hash of all files in the directory, after filtering."),
     files: fileNamesSchema(),
   })
 

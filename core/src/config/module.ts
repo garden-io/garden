@@ -40,10 +40,7 @@ const copySchema = () =>
       .subPathOnly()
       .required()
       .description("POSIX-style path or filename of the directory or file(s) to copy to the target."),
-    target: joi
-      .posixPath()
-      .subPathOnly()
-      .default("").description(dedent`
+    target: joi.posixPath().subPathOnly().default("").description(dedent`
         POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
         Defaults to to same as source path.
       `),
@@ -59,9 +56,7 @@ export interface BuildDependencyConfig {
 
 export const buildDependencySchema = () =>
   joi.object().keys({
-    name: joiIdentifier()
-      .required()
-      .description("Module name to build ahead of this module."),
+    name: joiIdentifier().required().description("Module name to build ahead of this module."),
     plugin: joiIdentifier()
       .meta({ internal: true })
       .description("The name of plugin that provides the build dependency."),
@@ -118,18 +113,9 @@ export const coreModuleSpecSchema = () =>
         .default(DEFAULT_API_VERSION)
         .valid(DEFAULT_API_VERSION)
         .description("The schema version of this module's config (currently not used)."),
-      kind: joi
-        .string()
-        .default("Module")
-        .valid("Module"),
-      type: joiIdentifier()
-        .required()
-        .description("The type of this module.")
-        .example("container"),
-      name: joiUserIdentifier()
-        .required()
-        .description("The name of this module.")
-        .example("my-sweet-module"),
+      kind: joi.string().default("Module").valid("Module"),
+      type: joiIdentifier().required().description("The type of this module.").example("container"),
+      name: joiUserIdentifier().required().description("The name of this module.").example("my-sweet-module"),
     })
     .required()
     .unknown(true)
@@ -154,12 +140,7 @@ export const baseModuleSpecSchema = () =>
       ),
     include: joi
       .array()
-      .items(
-        joi
-          .posixPath()
-          .allowGlobs()
-          .subPathOnly()
-      )
+      .items(joi.posixPath().allowGlobs().subPathOnly())
       .description(
         dedent`
         Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that do *not* match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
@@ -171,12 +152,7 @@ export const baseModuleSpecSchema = () =>
       .example(["Dockerfile", "my-app.js"]),
     exclude: joi
       .array()
-      .items(
-        joi
-          .posixPath()
-          .allowGlobs()
-          .subPathOnly()
-      )
+      .items(joi.posixPath().allowGlobs().subPathOnly())
       .description(
         dedent`
         Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
@@ -228,10 +204,7 @@ export const moduleConfigSchema = () =>
       serviceConfigs: joiArray(serviceConfigSchema()).description("List of services configured by this module."),
       taskConfigs: joiArray(taskConfigSchema()).description("List of tasks configured by this module."),
       testConfigs: joiArray(testConfigSchema()).description("List of tests configured by this module."),
-      spec: joi
-        .object()
-        .meta({ extendable: true })
-        .description("The module spec, as defined by the provider plugin."),
+      spec: joi.object().meta({ extendable: true }).description("The module spec, as defined by the provider plugin."),
       _config: joi.object().meta({ internal: true }),
     })
     .description("The configuration for a module.")

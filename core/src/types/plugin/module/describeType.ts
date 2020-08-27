@@ -43,10 +43,7 @@ export const describeType = () => ({
   paramsSchema: joi.object().keys({}),
 
   resultSchema: joi.object().keys({
-    docs: joi
-      .string()
-      .required()
-      .description("Documentation for the module type, in markdown format."),
+    docs: joi.string().required().description("Documentation for the module type, in markdown format."),
     // TODO: specify the schemas using primitives and not Joi objects
     moduleOutputsSchema: joi.object().default(() => joi.object().keys({})).description(dedent`
           A valid Joi schema describing the keys that each module outputs at config time, for use in template strings

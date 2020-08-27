@@ -82,7 +82,7 @@ function getNodeClass(node: Node) {
 
 function drawChart(graph: Graph, width: number, height: number, onGraphNodeSelected: (string) => void) {
   // Create the input graph
-  const g = new dagreD3.graphlib.Graph().setGraph({}).setDefaultEdgeLabel(function() {
+  const g = new dagreD3.graphlib.Graph().setGraph({}).setDefaultEdgeLabel(function () {
     return {}
   })
 
@@ -95,7 +95,7 @@ function drawChart(graph: Graph, width: number, height: number, onGraphNodeSelec
     })
   }
 
-  g.nodes().forEach(function(v) {
+  g.nodes().forEach(function (v) {
     const node = g.node(v)
     // Round the corners of the nodes
     node.rx = node.ry = 4
@@ -120,10 +120,7 @@ function drawChart(graph: Graph, width: number, height: number, onGraphNodeSelec
   width = Math.max(width, MIN_CHART_WIDTH)
   height = Math.max(height, MIN_CHART_HEIGHT)
 
-  const svg = select("#chart")
-    .append("svg")
-    .attr("width", width)
-    .attr("height", height)
+  const svg = select("#chart").append("svg").attr("width", width).attr("height", height)
 
   // Set up an SVG group so that we can translate the final graph.
   const svgGroup = svg.append("g")
@@ -152,7 +149,7 @@ function drawChart(graph: Graph, width: number, height: number, onGraphNodeSelec
   svg.call(zoomHandler.transform, zoomTranslate)
 
   const selections = svg.select("g").selectAll("g.node")
-  selections.on("click", function(nodeName) {
+  selections.on("click", function (nodeName) {
     // tslint:disable-next-line: no-invalid-this
     const element = this as HTMLElement
     if (element.classList.contains("disabled")) {

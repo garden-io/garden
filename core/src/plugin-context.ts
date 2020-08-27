@@ -49,16 +49,9 @@ export const pluginContextSchema = () =>
         .object()
         .optional()
         .keys({
-          name: joi
-            .string()
-            .required()
-            .description("The command name currently being executed."),
-          args: joiVariables()
-            .required()
-            .description("The positional arguments passed to the command."),
-          opts: joiVariables()
-            .required()
-            .description("The optional flags passed to the command."),
+          name: joi.string().required().description("The command name currently being executed."),
+          args: joiVariables().required().description("The positional arguments passed to the command."),
+          opts: joiVariables().required().description("The optional flags passed to the command."),
         })
         .description("Information about the command being executed, if applicable."),
       environmentName: environmentNameSchema(),
@@ -74,9 +67,7 @@ export const pluginContextSchema = () =>
       projectName: projectNameSchema(),
       projectRoot: joi.string().description("The absolute path of the project root."),
       projectSources: projectSourcesSchema(),
-      provider: providerSchema()
-        .description("The provider being used for this context.")
-        .id("ctxProviderSchema"),
+      provider: providerSchema().description("The provider being used for this context.").id("ctxProviderSchema"),
       tools: joiStringMap(joi.object()),
       workingCopyId: joi.string().description("A unique ID assigned to the current project working copy."),
     })

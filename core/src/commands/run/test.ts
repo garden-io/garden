@@ -87,9 +87,7 @@ export class RunTestCommand extends Command<Args, Opts> {
 
   outputsSchema = () =>
     joi.object().keys({
-      result: testResultSchema()
-        .keys(resultMetadataKeys())
-        .description("The result of the test."),
+      result: testResultSchema().keys(resultMetadataKeys()).description("The result of the test."),
       graphResults: graphResultsSchema(),
     })
 

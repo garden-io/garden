@@ -42,10 +42,7 @@ export const schema = joi.object().keys({
   allowDestroy: joi.boolean().default(false).description(dedent`
     If set to true, Garden will run \`terraform destroy\` on the stack when calling \`garden delete env\` or \`garden delete service <module name>\`.
   `),
-  autoApply: joi
-    .boolean()
-    .allow(null)
-    .default(null).description(dedent`
+  autoApply: joi.boolean().allow(null).default(null).description(dedent`
         If set to true, Garden will automatically run \`terraform apply -auto-approve\` when the stack is not
         up-to-date. Otherwise, a warning is logged if the stack is out-of-date, and an error thrown if it is missing
         entirely.
@@ -55,10 +52,7 @@ export const schema = joi.object().keys({
         Defaults to the value set in the provider config.
       `),
   dependencies: dependenciesSchema(),
-  root: joi
-    .posixPath()
-    .subPathOnly()
-    .default(".").description(dedent`
+  root: joi.posixPath().subPathOnly().default(".").description(dedent`
         Specify the path to the working directory root—i.e. where your Terraform files are—relative to the module root.
       `),
   variables: variablesSchema().description(dedent`

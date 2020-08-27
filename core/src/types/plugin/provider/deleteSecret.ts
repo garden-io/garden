@@ -25,9 +25,6 @@ export const deleteSecret = () => ({
   `,
   paramsSchema: getSecretParamsSchema(),
   resultSchema: joi.object().keys({
-    found: joi
-      .boolean()
-      .required()
-      .description("Set to true if the key was deleted, false if it was not found."),
+    found: joi.boolean().required().description("Set to true if the key was deleted, false if it was not found."),
   }),
 })

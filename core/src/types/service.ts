@@ -32,10 +32,7 @@ export const serviceSchema = () =>
       name: joiUserIdentifier().description("The name of the service."),
       module: joi.object().unknown(true), // This causes a stack overflow: joi.lazy(() => moduleSchema()),
       sourceModule: joi.object().unknown(true), // This causes a stack overflow: joi.lazy(() => moduleSchema()),
-      disabled: joi
-        .boolean()
-        .default(false)
-        .description("Set to true if the service or its module is disabled."),
+      disabled: joi.boolean().default(false).description("Set to true if the service or its module is disabled."),
       config: serviceConfigSchema(),
       spec: joi.object().description("The raw configuration of the service (specific to each plugin)."),
     })
@@ -130,24 +127,14 @@ export const serviceIngressSpecSchema = () =>
   joi.object().keys({
     hostname: ingressHostnameSchema(),
     port: portSchema(),
-    path: joi
-      .string()
-      .default("/")
-      .description("The ingress path that should be matched to route to this service."),
-    protocol: joi
-      .string()
-      .valid("http", "https")
-      .required()
-      .description("The protocol to use for the ingress."),
+    path: joi.string().default("/").description("The ingress path that should be matched to route to this service."),
+    protocol: joi.string().valid("http", "https").required().description("The protocol to use for the ingress."),
   })
 
 export const serviceIngressSchema = () =>
   serviceIngressSpecSchema()
     .keys({
-      hostname: joi
-        .string()
-        .required()
-        .description("The hostname where the service can be accessed."),
+      hostname: joi.string().required().description("The hostname where the service can be accessed."),
       port: portSchema().required(),
     })
     .unknown(true)
@@ -166,17 +153,9 @@ export const forwardablePortKeys = {
   name: joiIdentifier().description(
     "A descriptive name for the port. Should correspond to user-configured ports where applicable."
   ),
-  protocol: joi
-    .string()
-    .allow("TCP")
-    .default("TCP")
-    .description("The protocol of the port."),
+  protocol: joi.string().allow("TCP").default("TCP").description("The protocol of the port."),
   targetName: joi.string().description("The target name/hostname to forward to (defaults to the service name)."),
-  targetPort: joi
-    .number()
-    .integer()
-    .required()
-    .description("The target port on the service."),
+  targetPort: joi.number().integer().required().description("The target port on the service."),
   urlProtocol: joi
     .string()
     .description("The protocol to use for URLs pointing at the port. This can be any valid URI protocol."),
@@ -207,10 +186,7 @@ export interface ServiceStatusMap {
 export const serviceStatusSchema = () =>
   joi.object().keys({
     createdAt: joi.string().description("When the service was first deployed by the provider."),
-    detail: joi
-      .object()
-      .meta({ extendable: true })
-      .description("Additional detail, specific to the provider."),
+    detail: joi.object().meta({ extendable: true }).description("Additional detail, specific to the provider."),
     externalId: joi
       .string()
       .description("The ID used for the service by the provider (if not the same as the service name)."),
@@ -224,10 +200,7 @@ export const serviceStatusSchema = () =>
       .array()
       .items(serviceIngressSchema())
       .description("List of currently deployed ingress endpoints for the service."),
-    lastMessage: joi
-      .string()
-      .allow("")
-      .description("Latest status message of the service (if any)."),
+    lastMessage: joi.string().allow("").description("Latest status message of the service (if any)."),
     lastError: joi.string().description("Latest error status message of the service (if any)."),
     outputs: joiVariables().description("A map of values output from the service."),
     runningReplicas: joi.number().description("How many replicas of the service are currently running."),

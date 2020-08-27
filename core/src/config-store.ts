@@ -247,9 +247,7 @@ const analyticsGlobalConfigSchema = () =>
   joi
     .object()
     .keys({
-      userId: joiPrimitive()
-        .allow("")
-        .optional(),
+      userId: joiPrimitive().allow("").optional(),
       optedIn: joi.boolean().optional(),
       firstRun: joi.boolean().optional(),
       showOptInMessage: joi.boolean().optional(),
@@ -284,11 +282,7 @@ export const globalConfigKeys = Object.keys(globalConfigSchemaKeys).reduce((acc,
   return acc
 }, {}) as { [K in keyof typeof globalConfigSchemaKeys]: K }
 
-const globalConfigSchema = () =>
-  joi
-    .object()
-    .keys(globalConfigSchemaKeys)
-    .meta({ internal: true })
+const globalConfigSchema = () => joi.object().keys(globalConfigSchemaKeys).meta({ internal: true })
 
 export class GlobalConfigStore extends ConfigStore<GlobalConfig> {
   constructor() {

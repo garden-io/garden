@@ -6,9 +6,4 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-export {
-  base64,
-  dedent,
-  deline,
-  naturalList,
-} from "@garden-io/core/build/src/util/string"
+export { base64, dedent, deline, naturalList } from "@garden-io/core/build/src/util/string"

@@ -104,7 +104,7 @@ describe("util", () => {
     })
   })
   describe("exec", () => {
-    before(function() {
+    before(function () {
       // These tests depend the underlying OS and are only executed on macOS and linux
       if (!isLinuxOrDarwin()) {
         // tslint:disable-next-line: no-invalid-this
@@ -159,7 +159,7 @@ describe("util", () => {
   })
 
   describe("spawn", () => {
-    before(function() {
+    before(function () {
       // These tests depend on the underlying OS and are only executed on macOS and linux
       if (!isLinuxOrDarwin()) {
         // tslint:disable-next-line: no-invalid-this

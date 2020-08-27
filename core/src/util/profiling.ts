@@ -117,7 +117,7 @@ export function Profile(profiler?: Profiler) {
     profiler = getDefaultProfiler()
   }
 
-  return function(target: Function) {
+  return function (target: Function) {
     for (const propertyName of Object.getOwnPropertyNames(target.prototype)) {
       const propertyValue = target.prototype[propertyName]
       const isMethod = propertyValue instanceof Function
@@ -130,7 +130,7 @@ export function Profile(profiler?: Profiler) {
 
       const timingKey = `${target.name}#${propertyName}`
 
-      descriptor.value = function(...args: any[]) {
+      descriptor.value = function (...args: any[]) {
         const start = performance.now()
         // tslint:disable-next-line: no-invalid-this
         const result = originalMethod.apply(this, args)

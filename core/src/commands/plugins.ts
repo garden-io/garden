@@ -19,7 +19,6 @@ import { printHeader, getTerminalWidth } from "../logger/util"
 import { LoggerType } from "../logger/logger"
 import { StringOption } from "../cli/params"
 import { GardenModule } from "../types/module"
-import stripAnsi from "strip-ansi"
 
 const pluginArgs = {
   plugin: new StringOption({

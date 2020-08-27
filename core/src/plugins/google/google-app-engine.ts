@@ -20,10 +20,7 @@ import { DeployServiceParams } from "../../types/plugin/service/deployService"
 import { joi } from "../../config/common"
 
 const configSchema = providerConfigBaseSchema().keys({
-  project: joi
-    .string()
-    .required()
-    .description("The GCP project to deploy containers to."),
+  project: joi.string().required().description("The GCP project to deploy containers to."),
 })
 
 export const gardenPlugin = createGardenPlugin({

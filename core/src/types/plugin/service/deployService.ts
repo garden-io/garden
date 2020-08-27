@@ -30,10 +30,7 @@ export const deployService = () => ({
   paramsSchema: serviceActionParamsSchema().keys({
     force: joi.boolean().description("Whether to force a re-deploy, even if the service is already deployed."),
     runtimeContext: runtimeContextSchema(),
-    hotReload: joi
-      .boolean()
-      .default(false)
-      .description("Whether to configure the service for hot-reloading."),
+    hotReload: joi.boolean().default(false).description("Whether to configure the service for hot-reloading."),
   }),
   resultSchema: serviceStatusSchema(),
 })

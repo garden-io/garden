@@ -54,10 +54,7 @@ export const suggestModules = () => ({
   `,
 
   paramsSchema: joi.object().keys({
-    path: joi
-      .string()
-      .required()
-      .description("The absolute path to the directory where the module is being created."),
+    path: joi.string().required().description("The absolute path to the directory where the module is being created."),
   }),
 
   resultSchema: joi.object().keys({

@@ -32,9 +32,6 @@ export const getDebugInfo = () => ({
       .description("If set, include project-specific information from configured providers."),
   }),
   resultSchema: joi.object().keys({
-    info: joi
-      .any()
-      .required()
-      .description("An object representing the debug info for the project."),
+    info: joi.any().required().description("An object representing the debug info for the project."),
   }),
 })

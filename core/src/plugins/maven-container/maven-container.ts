@@ -73,12 +73,7 @@ const mavenKeys = {
     .required()
     .description("POSIX-style path to the packaged JAR artifact, relative to the module directory.")
     .example("target/my-module.jar"),
-  jdkVersion: joi
-    .number()
-    .integer()
-    .allow(8, 11, 13)
-    .default(8)
-    .description("The JDK version to use."),
+  jdkVersion: joi.number().integer().allow(8, 11, 13).default(8).description("The JDK version to use."),
   mvnOpts: joiArray(joi.string()).description("Options to add to the `mvn package` command when building."),
   useDefaultDockerfile: joi
     .boolean()

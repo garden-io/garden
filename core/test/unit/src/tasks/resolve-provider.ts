@@ -119,9 +119,7 @@ describe("ResolveProviderTask", () => {
     const cachedStatus = await task["getCachedStatus"](provider.config)
 
     // Just over one hour, which is the default TTL
-    const resolvedAt = moment()
-      .subtract(3500, "seconds")
-      .toDate()
+    const resolvedAt = moment().subtract(3500, "seconds").toDate()
 
     const configHash = task["hashConfig"](provider.config)
 
@@ -138,9 +136,7 @@ describe("ResolveProviderTask", () => {
     const cachedStatus = await task["getCachedStatus"](provider.config)
 
     // Just over one hour, which is the default TTL
-    const resolvedAt = moment()
-      .subtract(3601, "seconds")
-      .toDate()
+    const resolvedAt = moment().subtract(3601, "seconds").toDate()
 
     const configHash = task["hashConfig"](provider.config)
 

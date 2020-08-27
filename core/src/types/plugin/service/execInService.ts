@@ -26,23 +26,10 @@ export interface ExecInServiceResult {
 
 export const execInServiceResultSchema = () =>
   joi.object().keys({
-    code: joi
-      .number()
-      .required()
-      .description("The exit code of the command executed in the service container."),
-    output: joi
-      .string()
-      .allow("")
-      .required()
-      .description("The output of the executed command."),
-    stdout: joi
-      .string()
-      .allow("")
-      .description("The stdout output of the executed command (if available)."),
-    stderr: joi
-      .string()
-      .allow("")
-      .description("The stderr output of the executed command (if available)."),
+    code: joi.number().required().description("The exit code of the command executed in the service container."),
+    output: joi.string().allow("").required().description("The output of the executed command."),
+    stdout: joi.string().allow("").description("The stdout output of the executed command (if available)."),
+    stderr: joi.string().allow("").description("The stderr output of the executed command (if available)."),
   })
 
 export const execInService = () => ({

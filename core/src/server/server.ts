@@ -307,13 +307,7 @@ export class GardenServer {
         const requestId = request.id
 
         try {
-          joi.attempt(
-            requestId,
-            joi
-              .string()
-              .uuid()
-              .required()
-          )
+          joi.attempt(requestId, joi.string().uuid().required())
         } catch {
           return send("error", {
             message: "Message should contain an `id` field with a UUID value",

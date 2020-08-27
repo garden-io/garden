@@ -24,9 +24,7 @@ export const runModuleBaseSchema = () => moduleActionParamsSchema().keys(runBase
 
 export const runModuleParamsSchema = () =>
   runModuleBaseSchema().keys({
-    command: joiArray(joi.string())
-      .optional()
-      .description("The command/entrypoint to run in the module."),
+    command: joiArray(joi.string()).optional().description("The command/entrypoint to run in the module."),
     args: joiArray(joi.string()).description("The arguments passed to the command/entrypoint to run in the module."),
   })
 

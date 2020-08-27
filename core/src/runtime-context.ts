@@ -38,10 +38,7 @@ const runtimeDependencySchema = () =>
   joi.object().keys({
     name: joiIdentifier().description("The name of the service or task."),
     outputs: joiEnvVars().description("The outputs provided by the service (e.g. ingress URLs etc.)."),
-    type: joi
-      .string()
-      .valid("service", "task")
-      .description("The type of the dependency."),
+    type: joi.string().valid("service", "task").description("The type of the dependency."),
     version: moduleVersionSchema(),
   })
 

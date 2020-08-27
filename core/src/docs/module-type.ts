@@ -40,10 +40,7 @@ export function renderModuleTypeReference(name: string, definitions: { [name: st
   let { schema, docs } = desc
 
   if (!schema) {
-    schema = joi
-      .object()
-      .keys({})
-      .unknown(false)
+    schema = joi.object().keys({}).unknown(false)
   }
 
   const moduleTemplatePath = resolve(TEMPLATES_DIR, "module-type.hbs")

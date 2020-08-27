@@ -22,18 +22,9 @@ export interface DashboardPage {
 
 export const dashboardPageSchema = () =>
   joi.object().keys({
-    name: joiIdentifier()
-      .required()
-      .description("A unique identifier for the page."),
-    title: joi
-      .string()
-      .max(32)
-      .required()
-      .description("The link title to show in the menu bar (max length 32)."),
-    description: joi
-      .string()
-      .required()
-      .description("A description to show when hovering over the link."),
+    name: joiIdentifier().required().description("A unique identifier for the page."),
+    title: joi.string().max(32).required().description("The link title to show in the menu bar (max length 32)."),
+    description: joi.string().required().description("A description to show when hovering over the link."),
     url: joi
       .string()
       .uri()
@@ -70,10 +61,6 @@ export const getDashboardPage = () => ({
     page: dashboardPageSchema(),
   }),
   resultSchema: joi.object().keys({
-    url: joi
-      .string()
-      .uri()
-      .required()
-      .description("The URL where the dashboard page is accessible."),
+    url: joi.string().uri().required().description("The URL where the dashboard page is accessible."),
   }),
 })
