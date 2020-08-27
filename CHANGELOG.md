@@ -1,4 +1,49 @@
 
+<a name="v0.12.3"></a>
+## [v0.12.3](https://github.com/garden-io/garden/compare/v0.12.2...v0.12.3) (2020-08-27)
+
+### Bug Fixes
+
+* reference error in error handling clause ([4c849bee](https://github.com/garden-io/garden/commit/4c849bee))
+* review comments (TBS) ([5b89c8cc](https://github.com/garden-io/garden/commit/5b89c8cc))
+* **config:** allow empty strings in commands and args ([5a9228b2](https://github.com/garden-io/garden/commit/5a9228b2))
+* **config:** incorrect handling of bracketed template keys with dots ([f1cdfeee](https://github.com/garden-io/garden/commit/f1cdfeee))
+* **container:** don't append version to Deployment name for rolling upd. ([00cf3bde](https://github.com/garden-io/garden/commit/00cf3bde))
+* **core:** undefined tool error in container module derivatives ([03f6fccf](https://github.com/garden-io/garden/commit/03f6fccf))
+* **core:** error with rsync v3.2.3 and later on certain OSes ([3cb4da64](https://github.com/garden-io/garden/commit/3cb4da64))
+* **dashboard:** set correct icon hover color ([d6aee9f8](https://github.com/garden-io/garden/commit/d6aee9f8))
+* **dashboard:** attempt to reconnect when ws connection is lost ([15fc73be](https://github.com/garden-io/garden/commit/15fc73be))
+* **dashboard:** incorrect padding on service name in logs ([eb2cd07f](https://github.com/garden-io/garden/commit/eb2cd07f))
+* **enterprise:** fix login flow ([36865bc4](https://github.com/garden-io/garden/commit/36865bc4))
+* **enterprise:** validate domain as URI ([85ae9ee7](https://github.com/garden-io/garden/commit/85ae9ee7))
+* **enterprise:** include workflow run config ([8dd08744](https://github.com/garden-io/garden/commit/8dd08744))
+
+### Code Refactoring
+
+* rename Module to GardenModule for clarity ([d4b99e43](https://github.com/garden-io/garden/commit/d4b99e43))
+* improve type-safety on plugin module handler definitions ([9bb9d42c](https://github.com/garden-io/garden/commit/9bb9d42c))
+* **cli:** get rid of sywac dependency and improve CLI-code tests ([bd291d0d](https://github.com/garden-io/garden/commit/bd291d0d))
+* **core:** start collecting SDK types and functions in one place ([5477e2f9](https://github.com/garden-io/garden/commit/5477e2f9))
+* **core:** make Provider type slightly more explicit ([a49faf65](https://github.com/garden-io/garden/commit/a49faf65))
+
+### Features
+
+* add garden get doddi command ([9d1a6180](https://github.com/garden-io/garden/commit/9d1a6180))
+* **config:** support YAML and JSON varfiles ([34cfd8ed](https://github.com/garden-io/garden/commit/34cfd8ed))
+* **config:** allow explicitly declaring provider dependencies ([79f38268](https://github.com/garden-io/garden/commit/79f38268))
+* **config:** add $merge key for merging maps together in configs ([921bb6fd](https://github.com/garden-io/garden/commit/921bb6fd))
+* **dashboard:** add octant provider and dashboard integration ([#2006](https://github.com/garden-io/garden/issues/2006)) ([5c6273c1](https://github.com/garden-io/garden/commit/5c6273c1))
+* **dashboard:** new garden dashboard command ([a5ad44ad](https://github.com/garden-io/garden/commit/a5ad44ad))
+* **terraform:** add allowDestroy flags to automatically destroy stacks ([7d39ff2d](https://github.com/garden-io/garden/commit/7d39ff2d))
+* **workflows:** add skip option for workflow steps ([d23ddbc0](https://github.com/garden-io/garden/commit/d23ddbc0))
+
+### Improvements
+
+* **dashboard:** render ANSI color in log views ([d8aaa606](https://github.com/garden-io/garden/commit/d8aaa606))
+* **dashboard:** change font to Nunito Sans ([03381459](https://github.com/garden-io/garden/commit/03381459))
+* **dashboard:** better error message handling for server errors ([e96ad4c4](https://github.com/garden-io/garden/commit/e96ad4c4))
+* **k8s:** reduce usage of kubectl, use APIs directly ([5cdbcea2](https://github.com/garden-io/garden/commit/5cdbcea2))
+
 <a name="v0.12.2"></a>
 ## [v0.12.2](https://github.com/garden-io/garden/compare/v0.12.1...v0.12.2) (2020-08-03)
 
