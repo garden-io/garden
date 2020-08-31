@@ -58,7 +58,7 @@ Other platforms need to roll their own for now (contributions welcome!). Please 
 Install Node modules for the root package, and the `dashboard` and `core` packages:
 
 ```sh
-npm install # To install root dependencies
+yarn install # To install root dependencies
 yarn run bootstrap # To bootstrap packages
 ```
 
@@ -68,7 +68,7 @@ You may need to install the Node modules in the core package manually due to [le
 
 ```sh
 cd core
-npm install
+yarn install
 ```
 
 ## Developing Garden
@@ -89,7 +89,7 @@ To develop the CLI, run the `dev` command in your console:
 
     yarn run dev
 
-This will `npm link` it to your global npm folder, and then watch for
+This will link it to your global `node_modules` folder, and then watch for
 changes and auto-rebuild as you code. You can then run the `garden` command as normal.
 
 Also, you might like to add a couple of shorthands:
@@ -128,12 +128,12 @@ You should now be able to inspect the code at run time in the **Console** tab of
 
 ### Tests
 
-Unit tests are run using `mocha` via `npm test` from the directory of the package you want to test. To run a specific test, you can grep the test description with the `-g` flag.:
+Unit tests are run using `mocha` via `yarn test` from the directory of the package you want to test. To run a specific test, you can grep the test description with the `-g` flag.:
 
 ```sh
 cd core
-npm test                    # run all unit tests
-npm test -- -g "taskGraph"  # run only tests with descriptions matching "taskGraph"
+yarn test                    # run all unit tests
+yarn test -- -g "taskGraph"  # run only tests with descriptions matching "taskGraph"
 ```
 
 Integration tests are run with:
