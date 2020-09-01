@@ -46,7 +46,7 @@ describe("FetchToolsCommand", () => {
           {
             platform: getPlatform(),
             architecture: getArchitecture(),
-            url: "https://raw.githubusercontent.com/garden-io/garden/master/.dockerignore",
+            url: "https://raw.githubusercontent.com/garden-io/garden/v0.12.3/.dockerignore",
             sha256: "39d86a6cd966898b56f9ac5c701055287433db6418694fc2d95f04ac05817881",
           },
         ],
@@ -55,7 +55,7 @@ describe("FetchToolsCommand", () => {
   })
 
   const expectedPathA = join(GARDEN_GLOBAL_PATH, "tools", "tool-a", "058921ab05f721bb", ".editorconfig")
-  const expectedPathB = join(GARDEN_GLOBAL_PATH, "tools", "tool-b", "d6920a9696efd755", ".dockerignore")
+  const expectedPathB = join(GARDEN_GLOBAL_PATH, "tools", "tool-b", "a8601675b580d777", ".dockerignore")
 
   before(async () => {
     tmpDir = await makeTempDir()
