@@ -33,7 +33,7 @@ describe("conftest-kubernetes provider", () => {
     expect(module.type).to.equal("conftest-helm")
     expect(module.path).to.equal(helmModule.path)
     expect(module.spec).to.eql({
-      build: { dependencies: [] },
+      build: { dependencies: [], timeout: 1200 },
       namespace: "main",
       policyPath: "../custom-policy",
       sourceModule: "helm",
@@ -53,7 +53,7 @@ describe("conftest-kubernetes provider", () => {
 
     expect(module.path).to.equal(kubernetesModule.path)
     expect(module.spec).to.eql({
-      build: { dependencies: [] },
+      build: { dependencies: [], timeout: 1200 },
       files: kubernetesModule.spec.files,
       namespace: "main",
       policyPath: "../custom-policy",

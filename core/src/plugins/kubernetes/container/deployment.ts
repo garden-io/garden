@@ -22,7 +22,6 @@ import { KubernetesProvider, KubernetesPluginContext } from "../config"
 import { KubernetesWorkload, KubernetesResource } from "../types"
 import { ConfigurationError } from "../../../exceptions"
 import { getContainerServiceStatus, ContainerServiceStatus } from "./status"
-import { containerHelpers } from "../../container/helpers"
 import { LogEntry } from "../../../logger/log-entry"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
@@ -390,8 +389,7 @@ export async function createWorkloadManifest({
     valueFrom: { fieldRef: { fieldPath: "metadata.uid" } },
   })
 
-  const registryConfig = provider.config.deploymentRegistry
-  const imageId = containerHelpers.getDeploymentImageId(service.module, service.module.version, registryConfig)
+  const imageId = service.module.outputs["deployment-image-id"]
 
   const { cpu, memory, limits } = spec
 

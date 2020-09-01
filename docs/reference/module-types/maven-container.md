@@ -7,6 +7,8 @@ tocTitle: "`maven-container`"
 
 ## Description
 
+**DEPRECATED**. Please use the [jib-container module type](https://docs.garden.io/reference/module-types/jib-container) instead.
+
 A specialized version of the [container](https://docs.garden.io/reference/module-types/container) module type
 that has special semantics for JAR files built with Maven.
 
@@ -59,12 +61,12 @@ build:
           # Defaults to to same as source path.
           target: ''
 
+  # Maximum time in seconds to wait for build to finish.
+  timeout: 1200
+
   # For multi-stage Dockerfiles, specify which image to build (see
   # https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for details).
   targetImage:
-
-  # Maximum time in seconds to wait for build to finish.
-  timeout: 1200
 
 # A description of the module.
 description:
@@ -744,16 +746,6 @@ Defaults to to same as source path.
 | ----------- | ------- | -------- |
 | `posixPath` | `""`    | No       |
 
-### `build.targetImage`
-
-[build](#build) > targetImage
-
-For multi-stage Dockerfiles, specify which image to build (see https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for details).
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
 ### `build.timeout`
 
 [build](#build) > timeout
@@ -763,6 +755,16 @@ Maximum time in seconds to wait for build to finish.
 | Type     | Default | Required |
 | -------- | ------- | -------- |
 | `number` | `1200`  | No       |
+
+### `build.targetImage`
+
+[build](#build) > targetImage
+
+For multi-stage Dockerfiles, specify which image to build (see https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for details).
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `description`
 

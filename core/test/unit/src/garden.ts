@@ -31,10 +31,10 @@ import { getNames, findByName, omitUndefined, exec } from "../../../src/util/uti
 import { LinkedSource } from "../../../src/config-store"
 import { ModuleVersion } from "../../../src/vcs/vcs"
 import { getModuleCacheContext } from "../../../src/types/module"
-import { createGardenPlugin } from "../../../src/types/plugin/plugin"
+import { createGardenPlugin, PluginDependency } from "../../../src/types/plugin/plugin"
 import { ConfigureProviderParams } from "../../../src/types/plugin/provider/configureProvider"
 import { ProjectConfig, defaultNamespace } from "../../../src/config/project"
-import { ModuleConfig, baseModuleSpecSchema, baseBuildSpecSchema } from "../../../src/config/module"
+import { ModuleConfig, baseModuleSpecSchema, baseBuildSpecSchema, defaultBuildTimeout } from "../../../src/config/module"
 import { DEFAULT_API_VERSION } from "../../../src/constants"
 import { providerConfigBaseSchema } from "../../../src/config/provider"
 import { keyBy, set, mapValues } from "lodash"
@@ -364,7 +364,7 @@ describe("Garden", () => {
       })
       const foo = createGardenPlugin({
         name: "foo",
-        dependencies: ["base"],
+        dependencies: [{ name: "base" }],
         extendModuleTypes: [
           {
             name: "foo",
@@ -442,33 +442,6 @@ describe("Garden", () => {
       )
     })
 
-    it("should throw if a plugin extends a module type that hasn't been declared elsewhere", async () => {
-      const foo = createGardenPlugin({
-        name: "foo",
-        extendModuleTypes: [
-          {
-            name: "bar",
-            handlers: {},
-          },
-        ],
-      })
-
-      const garden = await TestGarden.factory(pathFoo, {
-        plugins: [foo],
-        config: projectConfigFoo,
-      })
-
-      await expectError(
-        () => garden.getAllPlugins(),
-        (err) =>
-          expect(err.message).to.equal(deline`
-          Plugin 'foo' extends module type 'bar' but the module type has not been declared.
-          The 'foo' plugin is likely missing a dependency declaration.
-          Please report an issue with the author.
-        `)
-      )
-    })
-
     context("module type declaration has a base", () => {
       it("should allow recursive inheritance when defining module types", async () => {
         const baseA = createGardenPlugin({
@@ -489,7 +462,7 @@ describe("Garden", () => {
         })
         const baseB = createGardenPlugin({
           name: "base-b",
-          dependencies: ["base-a"],
+          dependencies: [{ name: "base-a" }],
           createModuleTypes: [
             {
               name: "foo-b",
@@ -505,7 +478,7 @@ describe("Garden", () => {
         })
         const foo = createGardenPlugin({
           name: "foo",
-          dependencies: ["base-b"],
+          dependencies: [{ name: "base-b" }],
           createModuleTypes: [
             {
               name: "foo-c",
@@ -686,11 +659,11 @@ describe("Garden", () => {
         })
         const base = createGardenPlugin({
           name: "base",
-          dependencies: ["test-plugin", "test-plugin-b"],
+          dependencies: [{ name: "test-plugin" }, { name: "test-plugin-b" }],
         })
         const foo = createGardenPlugin({
           name: "foo",
-          dependencies: ["test-plugin-b", "test-plugin-c"],
+          dependencies: [{ name: "test-plugin-b" }, { name: "test-plugin-c" }],
           base: "base",
         })
 
@@ -701,7 +674,7 @@ describe("Garden", () => {
 
         const parsed = await garden.getPlugin("foo")
 
-        expect(parsed.dependencies).to.eql(["test-plugin", "test-plugin-b", "test-plugin-c"])
+        expect(parsed.dependencies.map((d) => d.name)).to.eql(["test-plugin", "test-plugin-b", "test-plugin-c"])
       })
 
       it("should combine handlers from both plugins and attach base to the handler when overriding", async () => {
@@ -1062,16 +1035,16 @@ describe("Garden", () => {
           })
           const baseA = createGardenPlugin({
             name: "base-a",
-            dependencies: ["test-plugin"],
+            dependencies: [{ name: "test-plugin" }],
           })
           const b = createGardenPlugin({
             name: "b",
-            dependencies: ["test-plugin", "test-plugin-b"],
+            dependencies: [{ name: "test-plugin" }, { name: "test-plugin-b" }],
             base: "base-a",
           })
           const foo = createGardenPlugin({
             name: "foo",
-            dependencies: ["test-plugin-c"],
+            dependencies: [{ name: "test-plugin-c" }],
             base: "b",
           })
 
@@ -1082,7 +1055,7 @@ describe("Garden", () => {
 
           const parsed = await garden.getPlugin("foo")
 
-          expect(parsed.dependencies).to.eql(["test-plugin", "test-plugin-b", "test-plugin-c"])
+          expect(parsed.dependencies.map((d) => d.name)).to.eql(["test-plugin", "test-plugin-b", "test-plugin-c"])
         })
 
         it("should combine handlers from both plugins and recursively attach base handlers", async () => {
@@ -1342,7 +1315,7 @@ describe("Garden", () => {
           const baseB = createGardenPlugin({
             name: "base-b",
             base: "base-a",
-            dependencies: ["base-a"],
+            dependencies: [{ name: "base-a" }],
             extendModuleTypes: [
               {
                 name: "foo",
@@ -1355,7 +1328,7 @@ describe("Garden", () => {
           const baseC = createGardenPlugin({
             name: "base-c",
             base: "base-b",
-            dependencies: ["base-a"],
+            dependencies: [{ name: "base-a" }],
             extendModuleTypes: [
               {
                 name: "foo",
@@ -1609,12 +1582,12 @@ describe("Garden", () => {
     it("should throw if plugins have declared circular dependencies", async () => {
       const testA = createGardenPlugin({
         name: "test-a",
-        dependencies: ["test-b"],
+        dependencies: [{ name: "test-b" }],
       })
 
       const testB = createGardenPlugin({
         name: "test-b",
-        dependencies: ["test-a"],
+        dependencies: [{ name: "test-a" }],
       })
 
       const projectConfig: ProjectConfig = {
@@ -1644,7 +1617,7 @@ describe("Garden", () => {
     it("should throw if plugins reference themselves as dependencies", async () => {
       const testA = createGardenPlugin({
         name: "test-a",
-        dependencies: ["test-a"],
+        dependencies: [{ name: "test-a" }],
       })
 
       const projectConfig: ProjectConfig = {
@@ -1747,7 +1720,7 @@ describe("Garden", () => {
 
       const testB = createGardenPlugin({
         name: "test-b",
-        dependencies: ["test-a"],
+        dependencies: [{ name: "test-a" }],
       })
 
       const projectConfig: ProjectConfig = {
@@ -1998,7 +1971,7 @@ describe("Garden", () => {
 
       const testB = createGardenPlugin({
         name: "test-b",
-        dependencies: ["base-a"],
+        dependencies: [{ name: "base-a" }],
       })
 
       const projectConfig: ProjectConfig = {
@@ -2048,7 +2021,7 @@ describe("Garden", () => {
 
       const testC = createGardenPlugin({
         name: "test-c",
-        dependencies: ["base-a"],
+        dependencies: [{ name: "base-a" }],
       })
 
       const projectConfig: ProjectConfig = {
@@ -3596,7 +3569,7 @@ describe("Garden", () => {
       })
       const foo = createGardenPlugin({
         name: "foo",
-        dependencies: ["base"],
+        dependencies: [{ name: "base" }],
         createModuleTypes: [
           {
             name: "foo",
@@ -3667,7 +3640,7 @@ describe("Garden", () => {
       })
       const foo = createGardenPlugin({
         name: "foo",
-        dependencies: ["base"],
+        dependencies: [{ name: "base" }],
         createModuleTypes: [
           {
             name: "foo",
@@ -3732,7 +3705,7 @@ describe("Garden", () => {
         })
         const baseB = createGardenPlugin({
           name: "base-b",
-          dependencies: ["base-a"],
+          dependencies: [{ name: "base-a" }],
           createModuleTypes: [
             {
               name: "base-b",
@@ -3745,7 +3718,7 @@ describe("Garden", () => {
         })
         const foo = createGardenPlugin({
           name: "foo",
-          dependencies: ["base-b"],
+          dependencies: [{ name: "base-b" }],
           createModuleTypes: [
             {
               name: "foo",
@@ -3816,7 +3789,7 @@ describe("Garden", () => {
         })
         const baseB = createGardenPlugin({
           name: "base-b",
-          dependencies: ["base-a"],
+          dependencies: [{ name: "base-a" }],
           createModuleTypes: [
             {
               name: "base-b",
@@ -3828,7 +3801,7 @@ describe("Garden", () => {
         })
         const foo = createGardenPlugin({
           name: "foo",
-          dependencies: ["base-b"],
+          dependencies: [{ name: "base-b" }],
           createModuleTypes: [
             {
               name: "foo",
@@ -3987,7 +3960,7 @@ describe("Garden", () => {
         const module = findByName(await garden.resolveModules({ log: garden.log }), "foo")!
 
         expect(module).to.exist
-        expect(module.build).to.eql({ dependencies: [{ name: "bar", copy: [] }] })
+        expect(module.build.dependencies).to.eql([{ name: "bar", copy: [] }])
       })
 
       it("should add modules before applying dependencies", async () => {
@@ -4050,7 +4023,7 @@ describe("Garden", () => {
         const module = findByName(await garden.resolveModules({ log: garden.log }), "foo")!
 
         expect(module).to.exist
-        expect(module.build).to.eql({ dependencies: [{ name: "bar", copy: [] }] })
+        expect(module.build.dependencies).to.eql([{ name: "bar", copy: [] }])
         expect(module.serviceConfigs).to.eql([
           {
             name: "foo",
@@ -4060,7 +4033,7 @@ describe("Garden", () => {
             spec: {},
           },
         ])
-        expect(module.spec).to.eql({ foo: "bar", build: { dependencies: [] } })
+        expect(module.spec).to.eql({ foo: "bar", build: { dependencies: [], timeout: defaultBuildTimeout } })
       })
 
       it("should throw if a build dependency's `by` reference can't be resolved", async () => {
@@ -4251,7 +4224,7 @@ describe("Garden", () => {
         // Ensure modules added by the dependency are in place before adding dependencies in dependant.
         const foo = createGardenPlugin({
           name: "foo",
-          dependencies: <string[]>[],
+          dependencies: <PluginDependency[]>[],
           createModuleTypes: [
             {
               name: "foo",
@@ -4289,7 +4262,7 @@ describe("Garden", () => {
 
         const bar = createGardenPlugin({
           name: "bar",
-          dependencies: ["foo"],
+          dependencies: [{ name: "foo" }],
           handlers: {
             augmentGraph: async () => {
               return {
@@ -4314,10 +4287,10 @@ describe("Garden", () => {
         const fooModule = findByName(await garden.resolveModules({ log: garden.log }), "foo")!
 
         expect(fooModule).to.exist
-        expect(fooModule.build).to.eql({ dependencies: [{ name: "bar", copy: [] }] })
+        expect(fooModule.build.dependencies).to.eql([{ name: "bar", copy: [] }])
 
         // Then test wrong order and make sure it throws
-        foo.dependencies = ["bar"]
+        foo.dependencies = [{ name: "bar" }]
         bar.dependencies = []
 
         garden = await TestGarden.factory(pathFoo, {
@@ -4391,9 +4364,9 @@ describe("Garden", () => {
     })
 
     context("test against fixed version hashes", async () => {
-      const moduleAVersionString = "v-0e0d9afd11"
-      const moduleBVersionString = "v-8ad15ac4ea"
-      const moduleCVersionString = "v-37a858e2ee"
+      const moduleAVersionString = "v-02baf73977"
+      const moduleBVersionString = "v-2ef2ef79d3"
+      const moduleCVersionString = "v-dc9d7af247"
 
       it("should return the same module versions between runtimes", async () => {
         const projectRoot = getDataDir("test-projects", "fixed-version-hashes-1")

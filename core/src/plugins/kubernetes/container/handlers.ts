@@ -13,7 +13,6 @@ import { runContainerModule, runContainerService, runContainerTask } from "./run
 import { execInService } from "./exec"
 import { testContainerModule } from "./test"
 import { ConfigurationError } from "../../../exceptions"
-import { configureContainerModule } from "../../container/container"
 import { KubernetesProvider } from "../config"
 import { ConfigureModuleParams } from "../../../types/plugin/module/configure"
 import { getContainerServiceStatus } from "./status"
@@ -25,16 +24,17 @@ import { k8sPublishContainerModule } from "./publish"
 import { getPortForwardHandler } from "../port-forward"
 import { GetModuleOutputsParams } from "../../../types/plugin/module/getModuleOutputs"
 import { containerHelpers } from "../../container/helpers"
+import { getContainerModuleOutputs } from "../../container/container"
 
 async function configure(params: ConfigureModuleParams<ContainerModule>) {
-  let { moduleConfig } = await configureContainerModule(params)
+  let { moduleConfig } = await params.base!(params)
   params.moduleConfig = moduleConfig
   return validateConfig(params)
 }
 
 export const containerHandlers = {
   configure,
-  getModuleOutputs,
+  getModuleOutputs: k8sGetContainerModuleOutputs,
   build: k8sBuildContainer,
   deployService: deployContainerService,
   deleteService,
@@ -53,9 +53,10 @@ export const containerHandlers = {
   testModule: testContainerModule,
 }
 
-async function getModuleOutputs(params: GetModuleOutputsParams) {
-  const { ctx, moduleConfig, version, base } = params
-  const { outputs } = await base!(params)
+export async function k8sGetContainerModuleOutputs(params: GetModuleOutputsParams) {
+  const { ctx, moduleConfig, version } = params
+  const base = params.base || getContainerModuleOutputs
+  const { outputs } = await base(params)
 
   const provider = <KubernetesProvider>ctx.provider
   outputs["deployment-image-name"] = containerHelpers.getDeploymentImageName(

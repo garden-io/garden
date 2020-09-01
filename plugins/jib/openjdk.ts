@@ -6,7 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginToolSpec } from "../../types/plugin/tools"
+// FIXME: figure out why the hell this causes builds to fail
+// import { PluginToolSpec } from "@garden-io/sdk/types"
 import { posix } from "path"
 
 const jdk8Version = "jdk8u202-b08"
@@ -17,12 +18,11 @@ const jdk8Base = `https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/dow
 const jdk11Base = "https://github.com/AdoptOpenJDK/openjdk11-binaries/releases/download/jdk-11.0.2%2B9/"
 const jdk13Base = "https://github.com/AdoptOpenJDK/openjdk13-binaries/releases/download/jdk-13%2B33/"
 
-export const openJdkSpecs: PluginToolSpec[] = [
+export const openJdkSpecs: any = [
   {
     name: "openjdk-8",
     description: "The OpenJDK 8 library.",
     type: "library",
-    _includeInGardenImage: false,
     builds: [
       {
         platform: "darwin",
@@ -60,7 +60,6 @@ export const openJdkSpecs: PluginToolSpec[] = [
     name: "openjdk-11",
     description: "The OpenJDK 11 library.",
     type: "library",
-    _includeInGardenImage: false,
     builds: [
       {
         platform: "darwin",
@@ -98,7 +97,6 @@ export const openJdkSpecs: PluginToolSpec[] = [
     name: "openjdk-13",
     description: "The OpenJDK 13 library.",
     type: "library",
-    _includeInGardenImage: false,
     builds: [
       {
         platform: "darwin",

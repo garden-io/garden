@@ -33,27 +33,28 @@ export interface ConftestProviderConfig extends GenericProviderConfig {
 
 export interface ConftestProvider extends Provider<ConftestProviderConfig> {}
 
-export const configSchema = () => providerConfigBaseSchema()
-  .keys({
-    policyPath: joi
-      .posixPath()
-      .relativeOnly()
-      .subPathOnly()
-      .default("./policy")
-      .description("Path to the default policy directory or rego file to use for `conftest` modules."),
-    namespace: joi.string().description("Default policy namespace to use for `conftest` modules."),
-    testFailureThreshold: joi
-      .string()
-      .allow("deny", "warn", "none")
-      .default("error")
-      .description(
-        dedent`
+export const configSchema = () =>
+  providerConfigBaseSchema()
+    .keys({
+      policyPath: joi
+        .posixPath()
+        .relativeOnly()
+        .subPathOnly()
+        .default("./policy")
+        .description("Path to the default policy directory or rego file to use for `conftest` modules."),
+      namespace: joi.string().description("Default policy namespace to use for `conftest` modules."),
+      testFailureThreshold: joi
+        .string()
+        .allow("deny", "warn", "none")
+        .default("error")
+        .description(
+          dedent`
           Set this to \`"warn"\` if you'd like tests to be marked as failed if one or more _warn_ rules are matched.
           Set to \`"none"\` to always mark the tests as successful.
         `
-      ),
-  })
-  .unknown(false)
+        ),
+    })
+    .unknown(false)
 
 interface ConftestModuleSpec {
   policyPath: string
@@ -84,31 +85,26 @@ const commonModuleSchema = joi.object().keys({
         Defaults to the \`policyPath\` set in the provider config.
       `
     ),
-  namespace: joi
-    .string()
-    .default("main")
-    .description("The policy namespace in which to find _deny_ and _warn_ rules."),
-  combine: joi
-    .boolean()
-    .default(false)
-    .description("Set to true to use the conftest --combine flag"),
+  namespace: joi.string().default("main").description("The policy namespace in which to find _deny_ and _warn_ rules."),
+  combine: joi.boolean().default(false).description("Set to true to use the conftest --combine flag"),
 })
 
-export const gardenPlugin = () => createGardenPlugin({
-  name: "conftest",
-  docs: dedent`
+export const gardenPlugin = () =>
+  createGardenPlugin({
+    name: "conftest",
+    docs: dedent`
     This provider allows you to validate your configuration files against policies that you specify, using the [conftest tool](https://github.com/instrumenta/conftest) and Open Policy Agent rego query files. The provider creates a module type of the same name, which allows you to specify files to validate. Each module then creates a Garden test that becomes part of your Stack Graph.
 
     Note that, in many cases, you'll actually want to use more specific providers that can automatically configure your \`conftest\` modules, e.g. the [\`conftest-container\`](${containerProviderUrl}) and/or [\`conftest-kubernetes\`](${kubernetesProviderUrl}) providers. See the [conftest example project](${gitHubUrl}) for a simple usage example of the latter.
 
     If those don't match your needs, you can use this provider directly and manually configure your \`conftest\` modules. Simply add this provider to your project configuration, and see the [conftest module documentation](${moduleTypeUrl}) for a detailed reference. Also, check out the below reference for how to configure default policies, default namespaces, and test failure thresholds for all \`conftest\` modules.
   `,
-  dependencies: [],
-  configSchema: configSchema(),
-  createModuleTypes: [
-    {
-      name: "conftest",
-      docs: dedent`
+    dependencies: [],
+    configSchema: configSchema(),
+    createModuleTypes: [
+      {
+        name: "conftest",
+        docs: dedent`
         Creates a test that runs \`conftest\` on the specified files, with the specified (or default) policy and
         namespace.
 
@@ -116,81 +112,75 @@ export const gardenPlugin = () => createGardenPlugin({
 
         See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
       `,
-      schema: commonModuleSchema.keys({
-        files: joi
-          .array()
-          .items(
-            joi
-              .posixPath()
-              .subPathOnly()
-              .relativeOnly()
-              .allowGlobs()
-          )
-          .required()
-          .description(
-            dedent`
+        schema: commonModuleSchema.keys({
+          files: joi
+            .array()
+            .items(joi.posixPath().subPathOnly().relativeOnly().allowGlobs())
+            .required()
+            .description(
+              dedent`
               A list of files to test with the given policy. Must be POSIX-style paths, and may include wildcards.
             `
-          ),
-      }),
-      handlers: {
-        configure: async ({ moduleConfig }) => {
-          if (moduleConfig.spec.sourceModule) {
-            moduleConfig.build.dependencies.push({ name: moduleConfig.spec.sourceModule, copy: [] })
-          }
+            ),
+        }),
+        handlers: {
+          configure: async ({ moduleConfig }) => {
+            if (moduleConfig.spec.sourceModule) {
+              moduleConfig.build.dependencies.push({ name: moduleConfig.spec.sourceModule, copy: [] })
+            }
 
-          moduleConfig.include = moduleConfig.spec.files
-          moduleConfig.testConfigs = [{ name: "test", dependencies: [], spec: {}, disabled: false, timeout: 10 }]
-          return { moduleConfig }
-        },
-        testModule: async ({ ctx, log, module, test }: TestModuleParams<ConftestModule>) => {
-          const startedAt = new Date()
-          const provider = ctx.provider as ConftestProvider
+            moduleConfig.include = moduleConfig.spec.files
+            moduleConfig.testConfigs = [{ name: "test", dependencies: [], spec: {}, disabled: false, timeout: 10 }]
+            return { moduleConfig }
+          },
+          testModule: async ({ ctx, log, module, test }: TestModuleParams<ConftestModule>) => {
+            const startedAt = new Date()
+            const provider = ctx.provider as ConftestProvider
 
-          const buildPath = module.spec.sourceModule
-            ? module.buildDependencies[module.spec.sourceModule].buildPath
-            : module.buildPath
-          const buildPathFiles = await listDirectory(buildPath)
+            const buildPath = module.spec.sourceModule
+              ? module.buildDependencies[module.spec.sourceModule].buildPath
+              : module.buildPath
+            const buildPathFiles = await listDirectory(buildPath)
 
-          // TODO: throw if a specific file is listed under `module.spec.files` but isn't found?
-          const files = matchGlobs(buildPathFiles, module.spec.files)
+            // TODO: throw if a specific file is listed under `module.spec.files` but isn't found?
+            const files = matchGlobs(buildPathFiles, module.spec.files)
 
-          if (files.length === 0) {
+            if (files.length === 0) {
+              return {
+                testName: test.name,
+                moduleName: module.name,
+                command: [],
+                version: test.version,
+                success: true,
+                startedAt,
+                completedAt: new Date(),
+                log: "No files to test",
+              }
+            }
+
+            const args = prepareArgs(ctx, provider, module)
+            args.push(...files)
+
+            const result = await ctx.tools["conftest.conftest"].exec({ log, args, ignoreError: true, cwd: buildPath })
+
+            const { success, formattedResult } = parseConftestResult(provider, log, result)
+
             return {
               testName: test.name,
               moduleName: module.name,
-              command: [],
+              command: ["conftest", ...args],
               version: test.version,
-              success: true,
+              success,
               startedAt,
               completedAt: new Date(),
-              log: "No files to test",
+              log: formattedResult,
             }
-          }
-
-          const args = prepareArgs(ctx, provider, module)
-          args.push(...files)
-
-          const result = await ctx.tools["conftest.conftest"].exec({ log, args, ignoreError: true, cwd: buildPath })
-
-          const { success, formattedResult } = parseConftestResult(provider, log, result)
-
-          return {
-            testName: test.name,
-            moduleName: module.name,
-            command: ["conftest", ...args],
-            version: test.version,
-            success,
-            startedAt,
-            completedAt: new Date(),
-            log: formattedResult,
-          }
+          },
         },
       },
-    },
-    {
-      name: "conftest-helm",
-      docs: dedent`
+      {
+        name: "conftest-helm",
+        docs: dedent`
         Special module type for validating helm modules with conftest. This is necessary in addition to the \`conftest\` module type in order to be able to properly render the Helm chart ahead of validation, including all runtime values.
 
         If the helm module requires runtime outputs from other modules, you must list the corresponding dependencies with the \`runtimeDependencies\` field.
@@ -199,129 +189,127 @@ export const gardenPlugin = () => createGardenPlugin({
 
         See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
       `,
-      schema: commonModuleSchema.keys({
-        sourceModule: joiIdentifier()
-          .required()
-          .description("Specify a helm module whose chart we want to test."),
-        runtimeDependencies: joiSparseArray(joiIdentifier()).description(
-          "A list of runtime dependencies that need to be resolved before rendering the Helm chart."
-        ),
-      }),
-      handlers: {
-        configure: async ({ moduleConfig }) => {
-          moduleConfig.build.dependencies.push({ name: moduleConfig.spec.sourceModule, copy: [] })
-          moduleConfig.include = []
-          moduleConfig.testConfigs = [
-            {
-              name: "test",
-              dependencies: moduleConfig.spec.runtimeDependencies,
-              spec: {},
-              disabled: false,
-              timeout: null,
-            },
-          ]
-          return { moduleConfig }
-        },
-        testModule: async ({ ctx, log, module, test }: TestModuleParams<ConftestModule>) => {
-          const startedAt = new Date()
-          const provider = ctx.provider as ConftestProvider
+        schema: commonModuleSchema.keys({
+          sourceModule: joiIdentifier().required().description("Specify a helm module whose chart we want to test."),
+          runtimeDependencies: joiSparseArray(joiIdentifier()).description(
+            "A list of runtime dependencies that need to be resolved before rendering the Helm chart."
+          ),
+        }),
+        handlers: {
+          configure: async ({ moduleConfig }) => {
+            moduleConfig.build.dependencies.push({ name: moduleConfig.spec.sourceModule, copy: [] })
+            moduleConfig.include = []
+            moduleConfig.testConfigs = [
+              {
+                name: "test",
+                dependencies: moduleConfig.spec.runtimeDependencies,
+                spec: {},
+                disabled: false,
+                timeout: null,
+              },
+            ]
+            return { moduleConfig }
+          },
+          testModule: async ({ ctx, log, module, test }: TestModuleParams<ConftestModule>) => {
+            const startedAt = new Date()
+            const provider = ctx.provider as ConftestProvider
 
-          // Render the Helm chart
-          // TODO: find a way to avoid these direct code dependencies
-          const k8sProvider = getK8sProvider(ctx.provider.dependencies)
-          const k8sCtx = { ...ctx, provider: k8sProvider }
-          const sourceModule = module.buildDependencies[module.spec.sourceModule]
+            // Render the Helm chart
+            // TODO: find a way to avoid these direct code dependencies
+            const k8sProvider = getK8sProvider(ctx.provider.dependencies)
+            const k8sCtx = { ...ctx, provider: k8sProvider }
+            const sourceModule = module.buildDependencies[module.spec.sourceModule]
 
-          if (sourceModule?.type !== "helm") {
-            throw new ConfigurationError(`Must specify a helm module as a sourceModule`, {
-              sourceModuleName: sourceModule?.name,
-              sourceModuleType: sourceModule?.type,
+            if (sourceModule?.type !== "helm") {
+              throw new ConfigurationError(`Must specify a helm module as a sourceModule`, {
+                sourceModuleName: sourceModule?.name,
+                sourceModuleType: sourceModule?.type,
+              })
+            }
+
+            const templates = await renderTemplates({
+              ctx: k8sCtx,
+              module: sourceModule,
+              devMode: false,
+              hotReload: false,
+              log,
+              version: sourceModule.version.versionString,
             })
-          }
 
-          const templates = await renderTemplates({
-            ctx: k8sCtx,
-            module: sourceModule,
-            devMode: false,
-            hotReload: false,
-            log,
-            version: sourceModule.version.versionString,
-          })
+            // Run conftest, piping the rendered chart to stdin
+            const args = prepareArgs(ctx, provider, module)
+            args.push("-")
 
-          // Run conftest, piping the rendered chart to stdin
-          const args = prepareArgs(ctx, provider, module)
-          args.push("-")
+            const result = await ctx.tools["conftest.conftest"].exec({
+              log,
+              args,
+              ignoreError: true,
+              cwd: sourceModule.buildPath,
+              input: templates,
+            })
 
-          const result = await ctx.tools["conftest.conftest"].exec({
-            log,
-            args,
-            ignoreError: true,
-            cwd: sourceModule.buildPath,
-            input: templates,
-          })
+            // Parse and return the results
+            const { success, formattedResult } = parseConftestResult(provider, log, result)
 
-          // Parse and return the results
-          const { success, formattedResult } = parseConftestResult(provider, log, result)
-
-          return {
-            testName: test.name,
-            moduleName: module.name,
-            command: ["conftest", ...args],
-            version: test.version,
-            success,
-            startedAt,
-            completedAt: new Date(),
-            log: formattedResult,
-          }
+            return {
+              testName: test.name,
+              moduleName: module.name,
+              command: ["conftest", ...args],
+              version: test.version,
+              success,
+              startedAt,
+              completedAt: new Date(),
+              log: formattedResult,
+            }
+          },
         },
       },
-    },
-  ],
-  tools: [
-    {
-      name: "conftest",
-      description: "A rego-based configuration validator.",
-      type: "binary",
-      _includeInGardenImage: true,
-      builds: [
-        {
-          platform: "darwin",
-          architecture: "amd64",
-          url:
-            "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/conftest_0.17.1_Darwin_x86_64.tar.gz",
-          sha256: "1c97f0e43fab99c94593696d362fc1e00e8e80bd0321729412de51d83ecbfb73",
-          extract: {
-            format: "tar",
-            targetPath: "conftest",
+    ],
+    tools: [
+      {
+        name: "conftest",
+        description: "A rego-based configuration validator.",
+        type: "binary",
+        _includeInGardenImage: true,
+        builds: [
+          {
+            platform: "darwin",
+            architecture: "amd64",
+            url:
+              "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/conftest_0.17.1_Darwin_x86_64.tar.gz",
+            sha256: "1c97f0e43fab99c94593696d362fc1e00e8e80bd0321729412de51d83ecbfb73",
+            extract: {
+              format: "tar",
+              targetPath: "conftest",
+            },
           },
-        },
-        {
-          platform: "linux",
-          architecture: "amd64",
-          url:
-            "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/conftest_0.17.1_Linux_x86_64.tar.gz",
-          sha256: "d18c95a4b04e87bfd59e06cc980801d2df5dabb371b495506ef03f70a0a40624",
-          extract: {
-            format: "tar",
-            targetPath: "conftest",
+          {
+            platform: "linux",
+            architecture: "amd64",
+            url:
+              "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/conftest_0.17.1_Linux_x86_64.tar.gz",
+            sha256: "d18c95a4b04e87bfd59e06cc980801d2df5dabb371b495506ef03f70a0a40624",
+            extract: {
+              format: "tar",
+              targetPath: "conftest",
+            },
           },
-        },
-        {
-          platform: "windows",
-          architecture: "amd64",
-          url:
-            "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/" +
-            "conftest_0.17.1_Windows_x86_64.zip",
-          sha256: "4c2df80420f2f148ec085bb75a8c5b92e1c665c6a041768a79924c81082527c3",
-          extract: {
-            format: "zip",
-            targetPath: "conftest.exe",
+          {
+            platform: "windows",
+            architecture: "amd64",
+            url:
+              "https://github.com/open-policy-agent/conftest/releases/download/v0.17.1/" +
+              "conftest_0.17.1_Windows_x86_64.zip",
+            sha256: "4c2df80420f2f148ec085bb75a8c5b92e1c665c6a041768a79924c81082527c3",
+            extract: {
+              format: "zip",
+              targetPath: "conftest.exe",
+            },
           },
-        },
-      ],
-    },
-  ],
-})
+        ],
+      },
+    ],
+  })
 
 function prepareArgs(ctx: PluginContext, provider: ConftestProvider, module: ConftestModule) {
   const defaultPolicyPath = relative(module.path, resolve(ctx.projectRoot, provider.config.policyPath))

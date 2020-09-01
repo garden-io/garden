@@ -1,0 +1,23 @@
+kind: Project
+name: jib-container
+environments:
+  - name: local
+  - name: remote
+providers:
+  - name: jib # <----
+  - name: local-kubernetes
+    environments: [local]
+  - name: kubernetes
+    environments: [remote]
+    # Replace these values as appropriate
+    context: gke_garden-ci_europe-west1-b_core-ci
+    namespace: ${project.name}-testing-${local.username}
+    defaultHostname: ${local.username}-${project.name}.dev-1.sys.garden
+    buildMode: kaniko
+    # deploymentRegistry:
+    #   hostname: eu.gcr.io
+    #   namespace: garden-dev-200012
+    # imagePullSecrets:
+    #   # These should have push permissions to the deploymentRegistry above
+    #   - name: gcr-config
+    #     namespace: default

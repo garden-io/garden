@@ -16,7 +16,6 @@ import { Garden } from "../../../../../src/garden"
 import { ConfigGraph } from "../../../../../src/config-graph"
 import { deline, randomString, dedent } from "../../../../../src/util/string"
 import { runAndCopy, PodRunner, prepareRunPodSpec } from "../../../../../src/plugins/kubernetes/run"
-import { containerHelpers } from "../../../../../src/plugins/container/helpers"
 import { KubeApi } from "../../../../../src/plugins/kubernetes/api"
 import {
   KubernetesPluginContext,
@@ -1018,7 +1017,6 @@ describe("kubernetes Pod runner functions", () => {
       it("should clean up the created Pod", async () => {
         const task = graph.getTask("artifacts-task")
         const module = task.module
-
         const podName = makePodName("test", module.name)
 
         await runAndCopy({
@@ -1191,7 +1189,7 @@ describe("kubernetes Pod runner functions", () => {
       it("should throw when container doesn't contain sh", async () => {
         const task = graph.getTask("missing-sh-task")
         const module = task.module
-        const _image = containerHelpers.getDeploymentImageId(module, module.version, provider.config.deploymentRegistry)
+        const _image = module.outputs["deployment-image-id"]
 
         const actions = await garden.getActionRouter()
         await garden.buildStaging.syncFromSrc(module, garden.log)
@@ -1231,7 +1229,7 @@ describe("kubernetes Pod runner functions", () => {
       it("should throw when container doesn't contain tar", async () => {
         const task = graph.getTask("missing-tar-task")
         const module = task.module
-        const _image = containerHelpers.getDeploymentImageId(module, module.version, provider.config.deploymentRegistry)
+        const _image = module.outputs["deployment-image-id"]
 
         const actions = await garden.getActionRouter()
         await garden.buildStaging.syncFromSrc(module, garden.log)

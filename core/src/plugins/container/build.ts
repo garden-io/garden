@@ -54,7 +54,7 @@ export async function buildContainerModule({ ctx, module, log }: BuildModulePara
     )
   }
 
-  const identifier = containerHelpers.getLocalImageId(module, module.version)
+  const identifier = module.outputs["local-image-id"]
 
   // build doesn't exist, so we create it
   log.setState(`Building ${identifier}...`)

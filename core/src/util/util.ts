@@ -765,3 +765,7 @@ export function duplicatesByKey(items: any[], key: string) {
     .map(([value, duplicateItems]) => ({ value, duplicateItems }))
     .filter(({ duplicateItems }) => duplicateItems.length > 1)
 }
+
+export function isNotNull<T>(v: T | null): v is T {
+  return v !== null
+}

@@ -15,8 +15,8 @@ import { WorkflowConfig } from "../config/workflow"
 import { LogEntry } from "../logger/log-entry"
 import { RuntimeContext } from "../runtime-context"
 import { GardenModule } from "../types/module"
-import { findByName, getNames, ValueOf } from "./util"
-import { GardenBaseError } from "../exceptions"
+import { findByName, getNames, ValueOf, isPromise } from "./util"
+import { GardenBaseError, GardenError } from "../exceptions"
 import { EventBus, Events } from "../events"
 import { dedent } from "./string"
 
@@ -135,4 +135,52 @@ export class TestGarden extends Garden {
 
     return config
   }
+}
+
+export function expectError(fn: Function, typeOrCallback?: string | ((err: any) => void)) {
+  const handleError = (err: GardenError) => {
+    if (typeOrCallback === undefined) {
+      return true
+    } else if (typeof typeOrCallback === "function") {
+      typeOrCallback(err)
+      return true
+    } else {
+      if (!err.type) {
+        const newError = Error(`Expected GardenError with type ${typeOrCallback}, got: ${err}`)
+        newError.stack = err.stack
+        throw newError
+      }
+      if (err.type !== typeOrCallback) {
+        const newError = Error(`Expected ${typeOrCallback} error, got: ${err.type} error`)
+        newError.stack = err.stack
+        throw newError
+      }
+      return true
+    }
+  }
+
+  const handleNonError = (caught: boolean) => {
+    if (caught) {
+      return
+    } else if (typeof typeOrCallback === "string") {
+      throw new Error(`Expected ${typeOrCallback} error (got no error)`)
+    } else {
+      throw new Error(`Expected error (got no error)`)
+    }
+  }
+
+  try {
+    const res = fn()
+    if (isPromise(res)) {
+      return res
+        .then(() => false)
+        .catch(handleError)
+        .then((caught) => handleNonError(caught))
+    }
+  } catch (err) {
+    handleError(err)
+    return
+  }
+
+  return handleNonError(false)
 }

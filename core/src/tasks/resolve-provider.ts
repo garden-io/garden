@@ -86,8 +86,8 @@ export class ResolveProviderTask extends BaseTask {
 
   async resolveDependencies() {
     const pluginDeps = this.plugin.dependencies
-    const explicitDeps = this.config.dependencies || []
-    const implicitDeps = await getProviderTemplateReferences(this.config)
+    const explicitDeps = (this.config.dependencies || []).map((name) => ({ name }))
+    const implicitDeps = (await getProviderTemplateReferences(this.config)).map((name) => ({ name }))
     const allDeps = uniq([...pluginDeps, ...explicitDeps, ...implicitDeps])
 
     const rawProviderConfigs = this.garden.getRawProviderConfigs()
@@ -101,21 +101,21 @@ export class ResolveProviderTask extends BaseTask {
     }
 
     // Make sure explicit dependencies are configured
-    await Bluebird.map(pluginDeps, async (depName) => {
-      const matched = matchDependencies(depName)
+    await Bluebird.map(pluginDeps, async (dep) => {
+      const matched = matchDependencies(dep.name)
 
-      if (matched.length === 0) {
+      if (matched.length === 0 && !dep.optional) {
         throw new ConfigurationError(
-          `Provider '${this.config.name}' depends on provider '${depName}', which is not configured. ` +
-            `You need to add '${depName}' to your project configuration for the '${this.config.name}' to work.`,
-          { config: this.config, missingProviderName: depName }
+          `Provider '${this.config.name}' depends on provider '${dep.name}', which is not configured. ` +
+            `You need to add '${dep.name}' to your project configuration for the '${this.config.name}' to work.`,
+          { config: this.config, missingProviderName: dep.name }
         )
       }
     })
 
     return flatten(
-      await Bluebird.map(allDeps, async (depName) => {
-        return matchDependencies(depName).map((config) => {
+      await Bluebird.map(allDeps, async (dep) => {
+        return matchDependencies(dep.name).map((config) => {
           const plugin = plugins[config.name]
 
           return new ResolveProviderTask({

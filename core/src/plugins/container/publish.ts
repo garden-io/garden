@@ -16,7 +16,7 @@ export async function publishContainerModule({ ctx, module, log, tag }: PublishM
     return { published: false }
   }
 
-  const localId = containerHelpers.getLocalImageId(module, module.version)
+  const localId = module.outputs["local-image-id"]
   const remoteId = containerHelpers.getPublicImageId(module, tag)
 
   log.setState({ msg: `Publishing image ${remoteId}...` })

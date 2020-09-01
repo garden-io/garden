@@ -381,6 +381,21 @@ export interface ModuleTypeMap {
   [name: string]: ModuleType
 }
 
+export interface PluginDependency {
+  name: string
+  optional?: boolean
+}
+
+const pluginDependencySchema = () =>
+  joi.object().keys({
+    name: joi.string().required().description("The name of the plugin."),
+    optional: joi
+      .boolean()
+      .description(
+        "If set to true, the dependency is optional, meaning that if it is configured it should be loaded ahead of this plugin, but otherwise it is ignored. This is handy if plugins e.g. need to extend module types from other plugins but otherwise don't require the plugin to function."
+      ),
+  })
+
 export interface GardenPluginSpec {
   name: string
   base?: string
@@ -389,7 +404,7 @@ export interface GardenPluginSpec {
   configSchema?: Joi.ObjectSchema
   outputsSchema?: Joi.ObjectSchema
 
-  dependencies?: string[]
+  dependencies?: PluginDependency[]
 
   handlers?: Partial<PluginActionHandlers>
   commands?: PluginCommand[]
@@ -401,7 +416,7 @@ export interface GardenPluginSpec {
 }
 
 export interface GardenPlugin extends GardenPluginSpec {
-  dependencies: string[]
+  dependencies: PluginDependency[]
 
   handlers: Partial<PluginActionHandlers>
   commands: PluginCommand[]
@@ -504,7 +519,7 @@ export const pluginSchema = () =>
         schema and functionality from the base plugin. Please review other fields for information on how individual
         fields can be overridden or extended.
       `),
-      dependencies: joiArray(joi.string()).description(dedent`
+      dependencies: joiArray(pluginDependencySchema()).description(dedent`
         Names of plugins that need to be configured prior to this plugin. This plugin will be able to reference the
         configuration from the listed plugins. Note that the dependencies will not be implicitly configured—the user
         will need to explicitly configure them in their project configuration.

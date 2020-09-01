@@ -11,6 +11,7 @@ title: Providers
 * [`container`](./container.md)
 * [`exec`](./exec.md)
 * [`hadolint`](./hadolint.md)
+* [`jib`](./jib.md)
 * [`kubernetes`](./kubernetes.md)
 * [`local-kubernetes`](./local-kubernetes.md)
 * [`maven-container`](./maven-container.md)
