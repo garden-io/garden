@@ -38,11 +38,12 @@ export class LocalAddress extends GardenEntity {
   }
 
   static async resolve(values: { projectName: string; moduleName: string; serviceName: string; hostname: string }) {
-    await this.createQueryBuilder()
-      .insert()
-      .values({ ...values })
-      .onConflict("DO NOTHING")
-      .execute()
+    try {
+      await this.createQueryBuilder()
+        .insert()
+        .values({ ...values })
+        .execute()
+    } catch {}
 
     return this.findOneOrFail({ where: values })
   }

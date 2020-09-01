@@ -20,13 +20,15 @@ export function getConnection(): Connection {
     const { LocalAddress } = require("./entities/local-address")
     const { ClientAuthToken } = require("./entities/client-auth-token")
     const { GardenProcess } = require("./entities/garden-process")
+    const { Warning } = require("./entities/warning")
+
     // Prepare the connection (the ormconfig.json in the static dir is only used for the typeorm CLI during dev)
     const options: ConnectionOptions = {
       type: "sqlite",
       database: databasePath,
       // IMPORTANT: All entities and migrations need to be manually referenced here because of how we
       // package the garden binary
-      entities: [LocalAddress, ClientAuthToken, GardenProcess],
+      entities: [LocalAddress, ClientAuthToken, GardenProcess, Warning],
       migrations: [],
       // Auto-create new tables on init
       synchronize: true,

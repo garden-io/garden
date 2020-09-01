@@ -8,10 +8,11 @@
 
 import { CommandGroup } from "../base"
 import { FetchToolsCommand } from "./fetch-tools"
+import { HideWarningCommand } from "./hide-warning"
 
 export class UtilCommand extends CommandGroup {
   name = "util"
   help = "Misc utility commands."
 
-  subCommands = [FetchToolsCommand]
+  subCommands = [FetchToolsCommand, HideWarningCommand]
 }

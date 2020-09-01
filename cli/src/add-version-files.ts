@@ -35,7 +35,7 @@ async function addVersionFiles() {
     const versionFilePath = resolve(path, GARDEN_VERSIONFILE_NAME)
 
     const vcsHandler = new GitHandler(garden.gardenDirPath, garden.dotIgnoreFiles)
-    const treeVersion = await vcsHandler.getTreeVersion(garden.log, config)
+    const treeVersion = await vcsHandler.getTreeVersion(garden.log, garden.projectName, config)
 
     // tslint:disable-next-line: no-console
     console.log(`${config.name} -> ${relative(STATIC_DIR, versionFilePath)}`)
