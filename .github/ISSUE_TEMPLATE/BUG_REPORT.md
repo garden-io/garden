@@ -1,6 +1,10 @@
 ---
-name: "Bug report"
+name: Bug report
 about: Create a report to help make garden better
+title: ''
+labels: ''
+assignees: ''
+
 ---
 
 ## Bug
@@ -33,10 +37,8 @@ about: Create a report to help make garden better
 ### Your environment
 
 <!-- PLEASE FILL THIS OUT -->
+* **OS:** <!-- which macOS, linux distro, Windows, etc. -->
+* **How I'm running Kubernetes:** <!-- e.g. minikube, GKE, EKS, other --> 
 
 <!-- Please run and copy and paste the results  -->
 `garden version`
-
-`kubectl version`
-
-`docker version`

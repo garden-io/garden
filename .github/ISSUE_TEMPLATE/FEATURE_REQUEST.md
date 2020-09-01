@@ -1,8 +1,11 @@
 ---
-name: "Feature Request"
-about: For feature requests. Please search for existing requests first (https://github.com/garden-io/garden/labels/feature%20request). Also see CONTRIBUTING.
+name: Feature Request
+about: For feature requests. Please search for existing requests first (https://github.com/garden-io/garden/labels/feature%20request).
+  Also see CONTRIBUTING.
 title: "[FEATURE]: "
 labels: feature request
+assignees: ''
+
 ---
 
 ## Feature Request
