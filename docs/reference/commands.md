@@ -2792,6 +2792,28 @@ Examples:
   | `--all` |  | boolean | Fetch all tools for registered plugins, instead of just ones in the current env/project.
 
 
+### garden util hide-warning
+
+**Hide a specific warning message.**
+
+Hides the specified warning message. The command and key is generally provided along with displayed warning messages.
+
+| Supported in workflows |   |
+| ---------------------- |---|
+| No |                                                  |
+
+#### Usage
+
+    garden util hide-warning <key> 
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `key` | Yes | The key of the warning to hide (this will be shown along with relevant warning messages).
+
+
+
 ### garden validate
 
 **Check your garden configuration for errors.**

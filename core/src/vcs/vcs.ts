@@ -20,8 +20,11 @@ import { ExternalSourceType, getRemoteSourcesDirname, getRemoteSourceRelPath } f
 import { ModuleConfig, serializeConfig } from "../config/module"
 import { LogEntry } from "../logger/log-entry"
 import { treeVersionSchema, moduleVersionSchema } from "../config/common"
+import { Warning } from "../db/entities/warning"
+import { dedent } from "../util/string"
 
 export const NEW_MODULE_VERSION = "0000000000"
+const fileCountWarningThreshold = 10000
 
 export interface TreeVersion {
   contentHash: string
@@ -72,7 +75,7 @@ export abstract class VcsHandler {
   abstract async updateRemoteSource(params: RemoteSourceParams): Promise<void>
   abstract async getOriginName(log: LogEntry): Promise<string | undefined>
 
-  async getTreeVersion(log: LogEntry, moduleConfig: ModuleConfig): Promise<TreeVersion> {
+  async getTreeVersion(log: LogEntry, projectName: string, moduleConfig: ModuleConfig): Promise<TreeVersion> {
     const configPath = moduleConfig.configPath
 
     let files = await this.getFiles({
@@ -83,6 +86,17 @@ export abstract class VcsHandler {
       exclude: moduleConfig.exclude,
     })
 
+    if (files.length > fileCountWarningThreshold) {
+      await Warning.emit({
+        key: `${projectName}-filecount-${moduleConfig.name}`,
+        log,
+        message: dedent`
+          Large number of files (${files.length}) found in module ${moduleConfig.name}. You may need to configure file exclusions.
+          See https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories for details.
+        `,
+      })
+    }
+
     files = sortBy(files, "path")
       // Don't include the config file in the file list
       .filter((f) => !configPath || f.path !== configPath)
@@ -92,19 +106,20 @@ export abstract class VcsHandler {
     return { contentHash, files: files.map((f) => f.path) }
   }
 
-  async resolveTreeVersion(log: LogEntry, moduleConfig: ModuleConfig): Promise<TreeVersion> {
+  async resolveTreeVersion(log: LogEntry, projectName: string, moduleConfig: ModuleConfig): Promise<TreeVersion> {
     // the version file is used internally to specify versions outside of source control
     const versionFilePath = join(moduleConfig.path, GARDEN_TREEVERSION_FILENAME)
     const fileVersion = await readTreeVersionFile(versionFilePath)
-    return fileVersion || (await this.getTreeVersion(log, moduleConfig))
+    return fileVersion || (await this.getTreeVersion(log, projectName, moduleConfig))
   }
 
   async resolveVersion(
     log: LogEntry,
+    projectName: string,
     moduleConfig: ModuleConfig,
     dependencies: ModuleConfig[]
   ): Promise<ModuleVersion> {
-    const treeVersion = await this.resolveTreeVersion(log, moduleConfig)
+    const treeVersion = await this.resolveTreeVersion(log, projectName, moduleConfig)
 
     validateSchema(treeVersion, treeVersionSchema(), {
       context: `${this.name} tree version for module at ${moduleConfig.path}`,
@@ -121,7 +136,7 @@ export abstract class VcsHandler {
 
     const namedDependencyVersions = await Bluebird.map(dependencies, async (m: ModuleConfig) => ({
       name: m.name,
-      ...(await this.resolveTreeVersion(log, m)),
+      ...(await this.resolveTreeVersion(log, projectName, m)),
     }))
     const dependencyVersions = mapValues(keyBy(namedDependencyVersions, "name"), (v) => omit(v, "name"))
 

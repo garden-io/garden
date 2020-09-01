@@ -960,7 +960,7 @@ export class Garden {
     const dependencies = await this.getRawModuleConfigs(dependencyKeys)
     const cacheContexts = dependencies.concat([moduleConfig]).map((c) => getModuleCacheContext(c))
 
-    const version = await this.vcs.resolveVersion(this.log, moduleConfig, dependencies)
+    const version = await this.vcs.resolveVersion(this.log, this.projectName, moduleConfig, dependencies)
 
     this.cache.set(cacheKey, version, ...cacheContexts)
     return version
