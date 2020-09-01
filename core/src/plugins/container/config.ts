@@ -28,6 +28,7 @@ import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
 import { joiStringMap } from "../../config/common"
 import { dedent, deline } from "../../util/string"
 import { getModuleTypeUrl } from "../../docs/common"
+import { ContainerModuleOutputs } from "./container"
 
 export const defaultContainerLimits: ServiceLimitSpec = {
   cpu: 1000, // = 1000 millicpu = 1 CPU
@@ -718,22 +719,20 @@ export interface ContainerModuleConfig extends ModuleConfig<ContainerModuleSpec>
 export const defaultImageNamespace = "_"
 export const defaultTag = "latest"
 
+export const containerBuildSpecSchema = () =>
+  baseBuildSpecSchema().keys({
+    targetImage: joi.string().description(deline`
+        For multi-stage Dockerfiles, specify which image to build (see
+        https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for
+        details).
+      `),
+  })
+
 export const containerModuleSpecSchema = () =>
   joi
     .object()
     .keys({
-      build: baseBuildSpecSchema().keys({
-        targetImage: joi.string().description(deline`
-            For multi-stage Dockerfiles, specify which image to build (see
-            https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for
-            details).
-          `),
-        timeout: joi
-          .number()
-          .integer()
-          .default(1200)
-          .description("Maximum time in seconds to wait for build to finish."),
-      }),
+      build: containerBuildSpecSchema(),
       buildArgs: joi
         .object()
         .pattern(/.+/, joiPrimitive())
@@ -751,13 +750,13 @@ export const containerModuleSpecSchema = () =>
         the module does not contain a Dockerfile, this image will be used to deploy services for this module.
         If specified and the module does contain a Dockerfile, this identifier is used when pushing the built image.`),
       include: joiModuleIncludeDirective(dedent`
-      If neither \`include\` nor \`exclude\` is set, and the module has a Dockerfile, Garden
-      will parse the Dockerfile and automatically set \`include\` to match the files and
-      folders added to the Docker image (via the \`COPY\` and \`ADD\` directives in the Dockerfile).
+        If neither \`include\` nor \`exclude\` is set, and the module has a Dockerfile, Garden
+        will parse the Dockerfile and automatically set \`include\` to match the files and
+        folders added to the Docker image (via the \`COPY\` and \`ADD\` directives in the Dockerfile).
 
-      If neither \`include\` nor \`exclude\` is set, and the module
-      specifies a remote image, Garden automatically sets \`include\` to \`[]\`.
-    `),
+        If neither \`include\` nor \`exclude\` is set, and the module
+        specifies a remote image, Garden automatically sets \`include\` to \`[]\`.
+      `),
       hotReload: hotReloadConfigSchema(),
       dockerfile: joi.posixPath().subPathOnly().description("POSIX-style name of Dockerfile, relative to module root."),
       services: joiSparseArray(containerServiceSchema())
@@ -776,5 +775,6 @@ export interface ContainerModule<
   M extends ContainerModuleSpec = ContainerModuleSpec,
   S extends ContainerServiceSpec = ContainerServiceSpec,
   T extends ContainerTestSpec = ContainerTestSpec,
-  W extends ContainerTaskSpec = ContainerTaskSpec
-> extends GardenModule<M, S, T, W> {}
+  W extends ContainerTaskSpec = ContainerTaskSpec,
+  O extends ContainerModuleOutputs = ContainerModuleOutputs
+> extends GardenModule<M, S, T, W, O> {}

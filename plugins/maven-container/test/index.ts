@@ -11,30 +11,30 @@ import { resolve, join } from "path"
 import { cloneDeep } from "lodash"
 import td from "testdouble"
 import tmp from "tmp-promise"
+import { pathExists, realpath } from "fs-extra"
 
-import { Garden } from "../../../../../src/garden"
+import { dedent } from "@garden-io/sdk/util/string"
+import { makeTestGarden, expectError } from "@garden-io/sdk/testing"
+import { LogEntry, ModuleConfig, GardenModule } from "@garden-io/sdk/types"
 import {
   gardenPlugin as mavenPlugin,
   MavenContainerModuleSpec,
   MavenContainerModuleConfig,
   prepareBuild,
-} from "../../../../../src/plugins/maven-container/maven-container"
-import { gardenPlugin as containerPlugin } from "../../../../../src/plugins/container/container"
-import { PluginContext } from "../../../../../src/plugin-context"
-import { makeTestGarden, dataDir, expectError } from "../../../../helpers"
-import { moduleFromConfig, GardenModule } from "../../../../../src/types/module"
-import { ModuleConfig } from "../../../../../src/config/module"
-import { DEFAULT_BUILD_TIMEOUT } from "../../../../../src/plugins/container/helpers"
-import { containerHelpers as helpers } from "../../../../../src/plugins/container/helpers"
-import { LogEntry } from "../../../../../src/logger/log-entry"
-import { WrappedModuleActionHandler } from "../../../../../src/types/plugin/plugin"
-import { ConfigureModuleParams, ConfigureModuleResult } from "../../../../../src/types/plugin/module/configure"
-import { BuildModuleParams, BuildResult } from "../../../../../src/types/plugin/module/build"
-import { dedent } from "../../../../../src/util/string"
-import { pathExists, realpath } from "fs-extra"
+} from ".."
+
+import { Garden } from "@garden-io/core/build/src/garden"
+import { gardenPlugin as containerPlugin } from "@garden-io/core/build/src/plugins/container/container"
+import { PluginContext } from "@garden-io/core/build/src/plugin-context"
+import { moduleFromConfig } from "@garden-io/core/build/src/types/module"
+import { DEFAULT_BUILD_TIMEOUT } from "@garden-io/core/build/src/plugins/container/helpers"
+import { containerHelpers as helpers } from "@garden-io/core/build/src/plugins/container/helpers"
+import { WrappedModuleActionHandler } from "@garden-io/core/build/src/types/plugin/plugin"
+import { ConfigureModuleParams, ConfigureModuleResult } from "@garden-io/core/build/src/types/plugin/module/configure"
+import { BuildModuleParams, BuildResult } from "@garden-io/core/build/src/types/plugin/module/build"
 
 describe("maven-container", () => {
-  const projectRoot = resolve(dataDir, "test-projects", "maven-container")
+  const projectRoot = join(__dirname, "test-project")
   const modulePath = projectRoot
 
   const plugin = mavenPlugin()
@@ -103,6 +103,10 @@ describe("maven-container", () => {
     }))
 
     td.replace(helpers, "checkDockerServerVersion", () => null)
+  })
+
+  afterEach(() => {
+    td.reset()
   })
 
   async function getTestModule(moduleConfig: MavenContainerModuleConfig) {
@@ -189,7 +193,7 @@ describe("maven-container", () => {
       await tmpDir.cleanup()
     })
 
-    it("should copy the default Dockerfile to the build dir if user Docerkfile not provided", async () => {
+    it("should copy the default Dockerfile to the build dir if user Dockerfile not provided", async () => {
       const config = cloneDeep(baseConfig)
       const module = td.object(await getTestModule(config))
       module.buildPath = tmpPath

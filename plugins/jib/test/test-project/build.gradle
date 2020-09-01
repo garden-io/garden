@@ -1,0 +1,18 @@
+plugins {
+  id 'java'
+  id 'com.google.cloud.tools.jib' version '3.1.2'
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  compile 'com.google.guava:guava:23.6-jre'
+}
+
+// Note: Garden sets this automatically.
+// jib.to.image = 'gcr.io/REPLACE-WITH-YOUR-GCP-PROJECT/image-built-with-jib'

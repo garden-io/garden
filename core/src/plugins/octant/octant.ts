@@ -19,7 +19,7 @@ let octantPort: number
 export const gardenPlugin = () =>
   createGardenPlugin({
     name: "octant",
-    dependencies: ["kubernetes"],
+    dependencies: [{ name: "kubernetes" }],
     docs: dedent`
     Adds [Octant](https://github.com/vmware-tanzu/octant) to the Garden dashboard, as well as a \`garden tools octant\` command.
   `,

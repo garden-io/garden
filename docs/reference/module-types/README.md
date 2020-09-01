@@ -11,6 +11,7 @@ title: Module Types
 * [`conftest`](./conftest.md)
 * [`hadolint`](./hadolint.md)
 * [`helm`](./helm.md)
+* [`jib-container`](./jib-container.md)
 * [`kubernetes`](./kubernetes.md)
 * [`maven-container`](./maven-container.md)
 * [`openfaas`](./openfaas.md)

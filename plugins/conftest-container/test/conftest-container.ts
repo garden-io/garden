@@ -44,7 +44,7 @@ describe("conftest-container provider", () => {
 
     expect(module.path).to.equal(containerModule.path)
     expect(module.spec).to.eql({
-      build: { dependencies: [] },
+      build: { dependencies: [], timeout: 1200 },
       files: ["Dockerfile"],
       namespace: "main",
       combine: false,
@@ -55,7 +55,7 @@ describe("conftest-container provider", () => {
   it("should add a conftest module for module types inheriting from container", async () => {
     const foo = createGardenPlugin({
       name: "foo",
-      dependencies: ["container"],
+      dependencies: [{ name: "container" }],
       createModuleTypes: [
         {
           name: "foo",
@@ -85,7 +85,7 @@ describe("conftest-container provider", () => {
         allowPublish: false,
         build: { dependencies: [] },
         disabled: false,
-                path: containerModule.path,
+        path: containerModule.path,
         serviceConfigs: [],
         taskConfigs: [],
         testConfigs: [],
@@ -98,7 +98,7 @@ describe("conftest-container provider", () => {
 
     expect(module.path).to.equal(projectRoot)
     expect(module.spec).to.eql({
-      build: { dependencies: [] },
+      build: { dependencies: [], timeout: 1200 },
       files: ["Dockerfile"],
       namespace: "main",
       combine: false,

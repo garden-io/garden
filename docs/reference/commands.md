@@ -1288,6 +1288,9 @@ providers:
                   # Defaults to to same as source path.
                   target:
 
+          # Maximum time in seconds to wait for build to finish.
+          timeout:
+
         # A description of the module.
         description:
 
@@ -1560,6 +1563,9 @@ moduleConfigs:
               # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
               # Defaults to to same as source path.
               target:
+
+      # Maximum time in seconds to wait for build to finish.
+      timeout:
 
     # A description of the module.
     description:
@@ -2064,6 +2070,9 @@ modules:
               # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
               # Defaults to to same as source path.
               target:
+
+      # Maximum time in seconds to wait for build to finish.
+      timeout:
 
     # A description of the module.
     description:

@@ -19,6 +19,12 @@
     },
     {
       "path": "../plugins/conftest-kubernetes"
+    },
+    {
+      "path": "../plugins/jib"
+    },
+    {
+      "path": "../plugins/maven-container"
     }
   ]
 }

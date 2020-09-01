@@ -73,6 +73,9 @@ modules:
               # Defaults to to same as source path.
               target: ''
 
+      # Maximum time in seconds to wait for build to finish.
+      timeout: 1200
+
     # A description of the module.
     description:
 
@@ -324,6 +327,16 @@ Defaults to to same as source path.
 | Type        | Default | Required |
 | ----------- | ------- | -------- |
 | `posixPath` | `""`    | No       |
+
+### `modules[].build.timeout`
+
+[modules](#modules) > [build](#modulesbuild) > timeout
+
+Maximum time in seconds to wait for build to finish.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `1200`  | No       |
 
 ### `modules[].description`
 

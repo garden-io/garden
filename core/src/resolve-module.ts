@@ -23,6 +23,7 @@ import { getModuleTypeBases } from "./plugins"
 import { ModuleConfig, moduleConfigSchema } from "./config/module"
 import { Profile } from "./util/profiling"
 import { getLinkedSources } from "./util/ext-source-util"
+import { allowUnknown } from "./config/common"
 import { ProviderMap } from "./config/provider"
 import { RuntimeContext } from "./runtime-context"
 import chalk from "chalk"
@@ -176,10 +177,15 @@ export class ModuleResolver {
         const errorStr = Object.entries(errors)
           .map(([name, err]) => `${chalk.white.bold(name)}: ${err.message}`)
           .join("\n")
+        const errorStack = Object.entries(errors)
+          .map(([name, err]) => `${chalk.white.bold(name)}: ${err.stack || err.message}`)
+          .join("\n\n")
 
-        throw new ConfigurationError(chalk.red(`Failed resolving one or more modules:\n\n${errorStr}`), {
-          errors,
-        })
+        const msg = `Failed resolving one or more modules:\n\n${errorStr}`
+
+        const combined = new ConfigurationError(chalk.red(msg), { ...errors })
+        combined.stack = errorStack
+        throw combined
       }
     }
 
@@ -377,7 +383,7 @@ export class ModuleResolver {
 
         config.spec = <ModuleConfig>validateWithPath({
           config: config.spec,
-          schema: base.schema.unknown(true),
+          schema: allowUnknown(base.schema),
           path: garden.projectRoot,
           projectRoot: garden.projectRoot,
           configType: `configuration for module '${config.name}' (base schema from '${base.name}' plugin)`,

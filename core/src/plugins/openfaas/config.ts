@@ -18,6 +18,7 @@ import { CommonServiceSpec } from "../../config/service"
 import { Provider, providerConfigBaseSchema, GenericProviderConfig } from "../../config/provider"
 import { union } from "lodash"
 import { ContainerModule } from "../container/config"
+import { k8sGetContainerModuleOutputs } from "../kubernetes/container/handlers"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../types/plugin/module/configure"
 import { getNamespaceStatus } from "../kubernetes/namespace"
 import { LogEntry } from "../../logger/log-entry"
@@ -26,6 +27,7 @@ import { DEFAULT_BUILD_TIMEOUT } from "../container/helpers"
 import { baseTestSpecSchema } from "../../config/test"
 import { getK8sProvider } from "../kubernetes/util"
 import { GetModuleOutputsParams } from "../../types/plugin/module/getModuleOutputs"
+import { KubernetesPluginContext } from "../kubernetes/config"
 
 export interface OpenFaasModuleSpec extends ExecModuleSpecBase {
   handler: string
@@ -137,7 +139,11 @@ export const configSchema = () =>
 export type OpenFaasProvider = Provider<OpenFaasConfig>
 export type OpenFaasPluginContext = PluginContext<OpenFaasConfig>
 
-export function getContainerModule(module: OpenFaasModule): ContainerModule {
+export async function getContainerModule(
+  ctx: KubernetesPluginContext,
+  log: LogEntry,
+  module: OpenFaasModule
+): Promise<ContainerModule> {
   const containerModule = {
     ...module,
     spec: {
@@ -155,8 +161,16 @@ export function getContainerModule(module: OpenFaasModule): ContainerModule {
     },
   }
 
+  const { outputs } = await k8sGetContainerModuleOutputs({
+    moduleConfig: containerModule,
+    log,
+    ctx,
+    version: module.version,
+  })
+
   return {
     ...containerModule,
+    outputs,
     buildPath: join(module.buildPath, "build", module.name),
     _config: {
       ...containerModule,

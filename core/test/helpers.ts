@@ -27,7 +27,7 @@ import { ModuleConfig } from "../src/config/module"
 import { mapValues, fromPairs } from "lodash"
 import { ModuleVersion } from "../src/vcs/vcs"
 import { GARDEN_CORE_ROOT, LOCAL_CONFIG_FILENAME, DEFAULT_API_VERSION, gardenEnv } from "../src/constants"
-import { isPromise, uuidv4 } from "../src/util/util"
+import { uuidv4 } from "../src/util/util"
 import { LogEntry } from "../src/logger/log-entry"
 import timekeeper = require("timekeeper")
 import { ParameterValues, globalOptions, GlobalOptions, Parameters } from "../src/cli/params"
@@ -41,7 +41,6 @@ import { CommandParams, ProcessCommandResult } from "../src/commands/base"
 import stripAnsi from "strip-ansi"
 import { RunTaskParams, RunTaskResult } from "../src/types/plugin/task/runTask"
 import { SuiteFunction, TestFunction } from "mocha"
-import { GardenError } from "../src/exceptions"
 import { AnalyticsGlobalConfig } from "../src/config-store"
 import { TestGarden, EventLogEntry, TestGardenOpts } from "../src/util/testing"
 import { Logger, LogLevel } from "../src/logger/logger"
@@ -49,7 +48,7 @@ import { ExecInServiceParams, ExecInServiceResult } from "../src/types/plugin/se
 import { ClientAuthToken } from "../src/db/entities/client-auth-token"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
-export { TestGarden, TestError, TestEventBus } from "../src/util/testing"
+export { TestGarden, TestError, TestEventBus, expectError } from "../src/util/testing"
 
 export const dataDir = resolve(GARDEN_CORE_ROOT, "test", "data")
 export const examplesDir = resolve(GARDEN_CORE_ROOT, "..", "examples")
@@ -269,7 +268,7 @@ export const testPluginB = () => {
   return createGardenPlugin({
     ...base,
     name: "test-plugin-b",
-    dependencies: ["test-plugin"],
+    dependencies: [{ name: "test-plugin" }],
     createModuleTypes: [],
     // This doesn't actually change any behavior, except to use this provider instead of test-plugin
     extendModuleTypes: [
@@ -371,54 +370,6 @@ export function stubModuleAction<T extends keyof ModuleAndRuntimeActionHandlers<
   handler["pluginName"] = pluginName
   handler["moduleType"] = moduleType
   return td.replace(actions["moduleActionHandlers"][actionType][moduleType], pluginName, handler)
-}
-
-export function expectError(fn: Function, typeOrCallback?: string | ((err: any) => void)) {
-  const handleError = (err: GardenError) => {
-    if (typeOrCallback === undefined) {
-      return true
-    } else if (typeof typeOrCallback === "function") {
-      typeOrCallback(err)
-      return true
-    } else {
-      if (!err.type) {
-        const newError = Error(`Expected GardenError with type ${typeOrCallback}, got: ${err}`)
-        newError.stack = err.stack
-        throw newError
-      }
-      if (err.type !== typeOrCallback) {
-        const newError = Error(`Expected ${typeOrCallback} error, got: ${err.type} error`)
-        newError.stack = err.stack
-        throw newError
-      }
-      return true
-    }
-  }
-
-  const handleNonError = (caught: boolean) => {
-    if (caught) {
-      return
-    } else if (typeof typeOrCallback === "string") {
-      throw new Error(`Expected ${typeOrCallback} error (got no error)`)
-    } else {
-      throw new Error(`Expected error (got no error)`)
-    }
-  }
-
-  try {
-    const res = fn()
-    if (isPromise(res)) {
-      return res
-        .then(() => false)
-        .catch(handleError)
-        .then((caught) => handleNonError(caught))
-    }
-  } catch (err) {
-    handleError(err)
-    return
-  }
-
-  return handleNonError(false)
 }
 
 export function taskResultOutputs(results: ProcessCommandResult) {

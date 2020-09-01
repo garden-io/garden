@@ -51,6 +51,7 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
     { name: "container" },
     { name: "exec" },
     { name: "hadolint" },
+    { name: "jib" },
     { name: "kubernetes" },
     { name: "local-kubernetes" },
     { name: "maven-container" },

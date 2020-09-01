@@ -19,6 +19,7 @@ import { writeFile, remove, pathExists } from "fs-extra"
 import { join } from "path"
 import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
 import { testFromConfig } from "../../../../../src/types/test"
+import { defaultBuildTimeout } from "../../../../../src/config/module"
 
 describe("hadolint provider", () => {
   let tmpDir: tmp.DirectoryResult
@@ -101,7 +102,7 @@ describe("hadolint provider", () => {
 
     expect(module.path).to.equal(tmpPath)
     expect(module.spec).to.eql({
-      build: { dependencies: [] },
+      build: { dependencies: [], timeout: defaultBuildTimeout },
       dockerfilePath: "foo.Dockerfile",
     })
   })
@@ -109,7 +110,7 @@ describe("hadolint provider", () => {
   it("should add a hadolint module for module types inheriting from container", async () => {
     const foo = createGardenPlugin({
       name: "foo",
-      dependencies: ["container"],
+      dependencies: [{ name: "container" }],
       createModuleTypes: [
         {
           name: "foo",
@@ -149,7 +150,7 @@ describe("hadolint provider", () => {
 
     expect(module.path).to.equal(tmpPath)
     expect(module.spec).to.eql({
-      build: { dependencies: [] },
+      build: { dependencies: [], timeout: defaultBuildTimeout },
       dockerfilePath: "foo.Dockerfile",
     })
   })

@@ -1,0 +1,15 @@
+kind: Module
+type: jib-container
+name: spring-boot
+build:
+  # The example provides both gradle and maven configuration, you can switch to gradle here.
+  projectType: maven
+services:
+  - name: spring-boot
+    ports:
+      - name: http
+        containerPort: 8080
+    healthCheck:
+      httpGet:
+        path: /
+        port: http
