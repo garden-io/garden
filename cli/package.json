@@ -25,14 +25,14 @@
     "@garden-io/core": "*",
     "@garden-io/garden-conftest": "*",
     "@garden-io/garden-conftest-container": "*",
-    "@garden-io/garden-conftest-kubernetes": "*"
+    "@garden-io/garden-conftest-kubernetes": "*",
+    "chalk": "^4.1.0"
   },
   "devDependencies": {
     "@types/chai": "^4.2.12",
     "@types/mocha": "^8.0.3",
     "bluebird": "^3.7.2",
     "chai": "^4.2.0",
-    "chalk": "^4.1.0",
     "execa": "^4.0.3",
     "lodash": "^4.17.20",
     "minimist": "^1.2.5",

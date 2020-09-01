@@ -1,8 +1,41 @@
 #!/usr/bin/env node
 
+const cluster = require("cluster")
+const v8 = require("v8")
 require("source-map-support").install()
 
 const cli = require("../build/src/cli")
+const chalk = require("chalk")
 
-// tslint:disable-next-line: no-floating-promises
-cli.runCli()
+// Wrapping and forking, to catch OOM errors and print helpful message
+// See https://medium.com/@evgeni.leonti/detect-heap-overflow-on-node-js-javascript-heap-out-of-memory-41cb649c6b33
+if (cluster.isMaster) {
+  cluster.fork()
+  cluster.on("exit", (_, workerExitCode) => {
+    process.exit(workerExitCode)
+  })
+} else {
+  // Worker process
+  const totalHeapSizeThreshold = (v8.getHeapStatistics().heap_size_limit * 85) / 100
+
+  let detectHeapOverflow = () => {
+    let stats = v8.getHeapStatistics()
+
+    if (stats.total_heap_size > totalHeapSizeThreshold) {
+      // tslint:disable-next-line: no-console
+      console.error(
+        chalk.red.bold(`
+Process memory threshold reached. This most likely means there are too many files in the project, and that you need to exclude large dependency directories. Please see https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories for information on how to do that.
+
+If this keeps occurring after configuring exclusions, please file an issue at https://github.com/garden-io/garden/issues.
+        `)
+      )
+
+      process.exit(137)
+    }
+  }
+  setInterval(detectHeapOverflow, 1000)
+
+  // tslint:disable-next-line: no-floating-promises
+  cli.runCli()
+}
