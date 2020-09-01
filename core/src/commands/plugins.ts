@@ -36,6 +36,7 @@ type Args = typeof pluginArgs
 export class PluginsCommand extends Command<Args> {
   name = "plugins"
   help = "Plugin-specific commands."
+  alias = "plugin"
 
   // FIXME: We need this while we're still resolving providers in the AnalyticsHandler
   noProject = true
