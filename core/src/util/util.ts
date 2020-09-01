@@ -142,7 +142,7 @@ export function makeErrorMsg({
 
     ${trimEnd(error, "\n")}
   `
-  if (output !== error) {
+  if (output && output !== error) {
     msg +=
       lines.length > nLinesToShow
         ? `\n\nHere are the last ${nLinesToShow} lines of the output:`
@@ -175,11 +175,24 @@ export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
     const res = await proc
     return res
   } catch (err) {
+    if (err.code === "EMFILE" || err.errno === "EMFILE") {
+      throw new RuntimeError(
+        dedent`
+        Received EMFILE (Too many open files) error when running ${cmd}.
+
+        This may mean there are too many files in the project, and that you need to exclude large dependency directories. Please see https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories for information on how to do that.
+
+        This can also be due to limits on open file descriptors being too low. Here is one guide on how to configure those limits for different platforms: https://docs.riak.com/riak/kv/latest/using/performance/open-files-limit/index.html
+        `,
+        { error: err }
+      )
+    }
+
     const error = <execa.ExecaError>err
     const message = makeErrorMsg({
       cmd,
       args,
-      code: error.exitCode,
+      code: error.exitCode || err.code || err.errno,
       output: error.all || error.stdout || error.stderr || "",
       error: error.stderr,
     })
