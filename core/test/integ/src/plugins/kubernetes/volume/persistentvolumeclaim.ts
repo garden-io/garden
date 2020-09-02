@@ -65,7 +65,6 @@ describe("persistentvolumeclaim", () => {
         allowPublish: false,
         build: { dependencies: [] },
         disabled: false,
-        outputs: {},
         path: tmpDir.path,
         serviceConfigs: [],
         taskConfigs: [],

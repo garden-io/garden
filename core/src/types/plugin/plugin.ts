@@ -51,6 +51,7 @@ import {
   DashboardPage,
   dashboardPagesSchema,
 } from "./provider/getDashboardPage"
+import { getModuleOutputs, GetModuleOutputsParams, GetModuleOutputsResult } from "./module/getModuleOutputs"
 
 export interface ActionHandlerParamsBase {
   base?: ActionHandler<any, any>
@@ -272,6 +273,7 @@ interface _ModuleActionParams<T extends GardenModule = GardenModule> {
   runModule: RunModuleParams<T>
   testModule: TestModuleParams<T>
   getTestResult: GetTestResultParams<T>
+  getModuleOutputs: GetModuleOutputsParams<T>
 }
 
 // Specify base parameter more precisely than the base schema
@@ -296,6 +298,7 @@ export interface ModuleActionOutputs extends ServiceActionOutputs {
   runModule: RunResult
   testModule: TestResult
   getTestResult: TestResult | null
+  getModuleOutputs: GetModuleOutputsResult
 }
 
 // It takes a short while to resolve all these scemas, so we cache the result
@@ -308,6 +311,7 @@ export function getModuleActionDescriptions(): PluginActionDescriptions {
 
   const descriptions = {
     configure,
+    getModuleOutputs,
     suggestModules,
     getBuildStatus,
     build,

@@ -273,7 +273,7 @@ The format of the files is determined by the configured file extension:
 {% hint style="info" }
 The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested objects and arrays.
 
-In the meantime, to use YAML or JSON files, you must explicitly set the varfile name(s) in your project configuration, via the [`varfile`](../reference/config.md#varfile) and/or [`environments[].varfile`]((../reference/config.md#environmentvarfile)) fields.
+In the meantime, to use YAML or JSON files, you must explicitly set the varfile name(s) in your project configuration, via the [`varfile`](../reference/config.md#varfile) and/or [`environments[].varfile`]((../reference/config.md#environmentsvarfile)) fields.
 {% endhint %}
 
 You can also set variables on the command line, with `--var` flags. Note that while this is handy for ad-hoc invocations, we don't generally recommend relying on this for normal operations, since you lose a bit of visibility within your configuration. But here's one practical example:
@@ -367,7 +367,7 @@ type: helm
 ...
 values:
   # Resolves to the image name of the module, with the module version as the tag (e.g. "my-image:abcdef12345")
-  image: `${modules.my-image.outputs.deployment-image-name}:${modules.my-image.version}`
+  image: `${modules.my-image.outputs.deployment-image-id}`
 ```
 
 Check out the individual [module type reference](../reference/module-types/README.md) guides for details on what outputs each module type exposes.

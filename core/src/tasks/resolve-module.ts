@@ -13,14 +13,16 @@ import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { ModuleConfig } from "../config/module"
 import { GraphResults } from "../task-graph"
-import { keyBy, fromPairs } from "lodash"
-import { ConfigurationError } from "../exceptions"
+import { keyBy } from "lodash"
+import { ConfigurationError, PluginError } from "../exceptions"
 import { RuntimeContext } from "../runtime-context"
 import { ModuleConfigContext } from "../config/config-context"
 import { ProviderMap } from "../config/provider"
 import { resolveModuleConfig } from "../resolve-module"
 import { getModuleTemplateReferences } from "../template-string"
 import { Profile } from "../util/profiling"
+import { validateWithPath } from "../config/validation"
+import { getModuleTypeBases } from "../plugins"
 
 interface ResolveModuleConfigTaskParams {
   garden: Garden
@@ -57,7 +59,6 @@ export class ResolveModuleConfigTask extends BaseTask {
 
     return deps.map((d) => {
       const name = d[1]
-      const contextKey = d[2] // The template key being referenced on the module
       const moduleConfig = rawConfigs[name]
 
       if (!moduleConfig) {
@@ -71,25 +72,13 @@ export class ResolveModuleConfigTask extends BaseTask {
         )
       }
 
-      if (contextKey === "version") {
-        // Need the full module resolved to get the version
-        return new ResolveModuleTask({
-          garden: this.garden,
-          log: this.log,
-          moduleConfig,
-          resolvedProviders: this.resolvedProviders,
-          runtimeContext: this.runtimeContext,
-        })
-      } else {
-        // Otherwise we just need to resolve the config
-        return new ResolveModuleConfigTask({
-          garden: this.garden,
-          log: this.log,
-          moduleConfig,
-          resolvedProviders: this.resolvedProviders,
-          runtimeContext: this.runtimeContext,
-        })
-      }
+      return new ResolveModuleTask({
+        garden: this.garden,
+        log: this.log,
+        moduleConfig,
+        resolvedProviders: this.resolvedProviders,
+        runtimeContext: this.runtimeContext,
+      })
     })
   }
 
@@ -102,15 +91,13 @@ export class ResolveModuleConfigTask extends BaseTask {
   }
 
   async process(dependencyResults: GraphResults): Promise<ModuleConfig> {
-    const dependencyConfigs = getResolvedModuleConfigs(dependencyResults)
-    const dependencyModules = getResolvedModules(dependencyResults)
+    const dependencies = getResolvedModules(dependencyResults)
 
     const configContext = new ModuleConfigContext({
       garden: this.garden,
       resolvedProviders: this.resolvedProviders,
       moduleName: this.moduleConfig.name,
-      dependencyConfigs: [...dependencyConfigs, ...dependencyModules],
-      dependencyVersions: fromPairs(dependencyModules.map((m) => [m.name, m.version])),
+      dependencies,
       runtimeContext: this.runtimeContext,
     })
 
@@ -207,14 +194,44 @@ export class ResolveModuleTask extends BaseTask {
     const resolvedConfig = dependencyResults["resolve-module-config." + this.getName()]!.output as ModuleConfig
     const dependencyModules = getResolvedModules(dependencyResults)
 
-    return moduleFromConfig(this.garden, resolvedConfig, dependencyModules)
-  }
-}
+    const module = await moduleFromConfig(this.garden, this.log, resolvedConfig, dependencyModules)
 
-function getResolvedModuleConfigs(dependencyResults: GraphResults): ModuleConfig[] {
-  return Object.values(dependencyResults)
-    .filter((r) => r && r.type === "resolve-module-config")
-    .map((r) => r!.output) as ModuleConfig[]
+    const moduleTypeDefinitions = await this.garden.getModuleTypes()
+    const description = moduleTypeDefinitions[module.type]!
+
+    // Validate the module outputs against the outputs schema
+    if (description.moduleOutputsSchema) {
+      module.outputs = validateWithPath({
+        config: module.outputs,
+        schema: description.moduleOutputsSchema,
+        configType: `outputs for module`,
+        name: module.name,
+        path: module.path,
+        projectRoot: this.garden.projectRoot,
+        ErrorClass: PluginError,
+      })
+    }
+
+    // Validate the module outputs against the module type's bases
+    const bases = getModuleTypeBases(moduleTypeDefinitions[module.type], moduleTypeDefinitions)
+
+    for (const base of bases) {
+      if (base.moduleOutputsSchema) {
+        this.log.silly(`Validating '${module.name}' module outputs against '${base.name}' schema`)
+
+        module.outputs = validateWithPath({
+          config: module.outputs,
+          schema: base.moduleOutputsSchema.unknown(true),
+          path: module.path,
+          projectRoot: this.garden.projectRoot,
+          configType: `outputs for module '${module.name}' (base schema from '${base.name}' plugin)`,
+          ErrorClass: PluginError,
+        })
+      }
+    }
+
+    return module
+  }
 }
 
 export function getResolvedModules(dependencyResults: GraphResults): GardenModule[] {

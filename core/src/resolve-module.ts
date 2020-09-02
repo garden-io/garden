@@ -12,7 +12,7 @@ import { resolveTemplateStrings } from "./template-string"
 import { ContextResolveOpts, ModuleConfigContext } from "./config/config-context"
 import { relative } from "path"
 import { Garden } from "./garden"
-import { ConfigurationError, PluginError } from "./exceptions"
+import { ConfigurationError } from "./exceptions"
 import { deline } from "./util/string"
 import { getModuleKey } from "./types/module"
 import { getModuleTypeBases } from "./plugins"
@@ -96,20 +96,7 @@ export const resolveModuleConfig = profileAsync(async function $resolveModuleCon
 
   config = configureResult.moduleConfig
 
-  // Validate the module outputs against the outputs schema
-  if (description.moduleOutputsSchema) {
-    config.outputs = validateWithPath({
-      config: config.outputs,
-      schema: description.moduleOutputsSchema,
-      configType: `outputs for module`,
-      name: config.name,
-      path: config.path,
-      projectRoot: garden.projectRoot,
-      ErrorClass: PluginError,
-    })
-  }
-
-  // Validate the configure handler output (incl. module outputs) against the module type's bases
+  // Validate the configure handler output against the module type's bases
   const bases = getModuleTypeBases(moduleTypeDefinitions[config.type], moduleTypeDefinitions)
 
   for (const base of bases) {
@@ -123,19 +110,6 @@ export const resolveModuleConfig = profileAsync(async function $resolveModuleCon
         projectRoot: garden.projectRoot,
         configType: `configuration for module '${config.name}' (base schema from '${base.name}' plugin)`,
         ErrorClass: ConfigurationError,
-      })
-    }
-
-    if (base.moduleOutputsSchema) {
-      garden.log.silly(`Validating '${config.name}' module outputs against '${base.name}' schema`)
-
-      config.outputs = validateWithPath({
-        config: config.outputs,
-        schema: base.moduleOutputsSchema.unknown(true),
-        path: garden.projectRoot,
-        projectRoot: garden.projectRoot,
-        configType: `outputs for module '${config.name}' (base schema from '${base.name}' plugin)`,
-        ErrorClass: PluginError,
       })
     }
   }

@@ -24,7 +24,7 @@ export async function testContainerModule(params: TestModuleParams<ContainerModu
   const timeout = testConfig.timeout || DEFAULT_TEST_TIMEOUT
   const k8sCtx = ctx as KubernetesPluginContext
 
-  const image = await containerHelpers.getDeploymentImageId(module, ctx.provider.config.deploymentRegistry)
+  const image = containerHelpers.getDeploymentImageId(module, module.version, ctx.provider.config.deploymentRegistry)
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
   const result = await runAndCopy({

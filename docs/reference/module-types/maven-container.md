@@ -1949,3 +1949,59 @@ Example:
 my-variable: ${modules.my-module.version}
 ```
 
+### `${modules.<module-name>.outputs.local-image-name}`
+
+The name of the image (without tag/version) that the module uses for local builds and deployments.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${modules.my-module.outputs.local-image-name}
+```
+
+### `${modules.<module-name>.outputs.local-image-id}`
+
+The full ID of the image (incl. tag/version) that the module uses for local builds and deployments.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${modules.my-module.outputs.local-image-id}
+```
+
+### `${modules.<module-name>.outputs.deployment-image-name}`
+
+The name of the image (without tag/version) that the module will use during deployment.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${modules.my-module.outputs.deployment-image-name}
+```
+
+### `${modules.<module-name>.outputs.deployment-image-id}`
+
+The full ID of the image (incl. tag/version) that the module will use during deployment.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${modules.my-module.outputs.deployment-image-id}
+```
+

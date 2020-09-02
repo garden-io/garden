@@ -14,7 +14,6 @@ import { createGardenPlugin } from "../../types/plugin/plugin"
 import { containerHelpers } from "./helpers"
 import { ContainerModule, containerModuleSpecSchema } from "./config"
 import { buildContainerModule, getContainerBuildStatus } from "./build"
-import { KubernetesProvider } from "../kubernetes/config"
 import { ConfigureModuleParams } from "../../types/plugin/module/configure"
 import { HotReloadServiceParams } from "../../types/plugin/service/hotReloadService"
 import { joi } from "../../config/common"
@@ -35,11 +34,23 @@ export const containerModuleOutputsSchema = () =>
       .required()
       .description("The name of the image (without tag/version) that the module uses for local builds and deployments.")
       .example("my-module"),
+    "local-image-id": joi
+      .string()
+      .required()
+      .description(
+        "The full ID of the image (incl. tag/version) that the module uses for local builds and deployments."
+      )
+      .example("my-module:v-abf3f8dca"),
     "deployment-image-name": joi
       .string()
       .required()
       .description("The name of the image (without tag/version) that the module will use during deployment.")
       .example("my-deployment-registry.io/my-org/my-module"),
+    "deployment-image-id": joi
+      .string()
+      .required()
+      .description("The full ID of the image (incl. tag/version) that the module will use during deployment.")
+      .example("my-deployment-registry.io/my-org/my-module:v-abf3f8dca"),
   })
 
 const taskOutputsSchema = joi.object().keys({
@@ -53,7 +64,7 @@ const taskOutputsSchema = joi.object().keys({
     ),
 })
 
-export async function configureContainerModule({ ctx, log, moduleConfig }: ConfigureModuleParams<ContainerModule>) {
+export async function configureContainerModule({ log, moduleConfig }: ConfigureModuleParams<ContainerModule>) {
   // validate hot reload configuration
   // TODO: validate this when validating this action's output
   const hotReloadConfig = moduleConfig.spec.hotReload
@@ -177,17 +188,6 @@ export async function configureContainerModule({ ctx, log, moduleConfig }: Confi
     }
   })
 
-  const provider = <KubernetesProvider>ctx.provider
-  const deploymentImageName = await containerHelpers.getDeploymentImageName(
-    moduleConfig,
-    provider.config.deploymentRegistry
-  )
-
-  moduleConfig.outputs = {
-    "local-image-name": await containerHelpers.getLocalImageName(moduleConfig),
-    "deployment-image-name": deploymentImageName,
-  }
-
   // Automatically set the include field based on the Dockerfile and config, if not explicitly set
   if (!(moduleConfig.include || moduleConfig.exclude)) {
     moduleConfig.include = await containerHelpers.autoResolveIncludes(moduleConfig, log)
@@ -243,6 +243,20 @@ export const gardenPlugin = createGardenPlugin({
         getBuildStatus: getContainerBuildStatus,
         build: buildContainerModule,
         publish: publishContainerModule,
+
+        async getModuleOutputs({ moduleConfig, version }) {
+          const deploymentImageName = containerHelpers.getDeploymentImageName(moduleConfig, undefined)
+          const deploymentImageId = containerHelpers.getDeploymentImageId(moduleConfig, version, undefined)
+
+          return {
+            outputs: {
+              "local-image-name": containerHelpers.getLocalImageName(moduleConfig),
+              "local-image-id": containerHelpers.getLocalImageId(moduleConfig, version),
+              "deployment-image-name": deploymentImageName,
+              "deployment-image-id": deploymentImageId,
+            },
+          }
+        },
 
         async hotReloadService(_: HotReloadServiceParams) {
           return {}

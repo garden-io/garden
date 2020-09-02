@@ -106,6 +106,7 @@ import { Profile } from "./util/profiling"
 import { ConfigGraph } from "./config-graph"
 import { ModuleConfigContext } from "./config/config-context"
 import { GetDashboardPageParams, GetDashboardPageResult } from "./types/plugin/provider/getDashboardPage"
+import { GetModuleOutputsParams, GetModuleOutputsResult } from "./types/plugin/module/getModuleOutputs"
 
 const maxArtifactLogLines = 5 // max number of artifacts to list in console after task+test runs
 
@@ -280,7 +281,9 @@ export class ActionRouter implements TypeGuard {
   //region Module Actions
   //===========================================================================
 
-  async configureModule(params: Omit<ConfigureModuleParams, "ctx">): Promise<ConfigureModuleResult> {
+  async configureModule<T extends GardenModule>(
+    params: Omit<ConfigureModuleParams<T>, "ctx">
+  ): Promise<ConfigureModuleResult> {
     const { log, moduleConfig: config } = params
     const moduleType = config.type
 
@@ -314,6 +317,26 @@ export class ActionRouter implements TypeGuard {
     this.garden.log.silly(`Called 'configure' handler for '${moduleType}'`)
 
     return result
+  }
+
+  async getModuleOutputs<T extends GardenModule>(
+    params: Omit<GetModuleOutputsParams<T>, "ctx">
+  ): Promise<GetModuleOutputsResult> {
+    const { log, moduleConfig: config } = params
+    const moduleType = config.type
+
+    const handler = await this.getModuleActionHandler({
+      actionType: "getModuleOutputs",
+      moduleType,
+      defaultHandler: async () => ({ outputs: {} }),
+    })
+
+    const handlerParams = {
+      ...(await this.commonParams(handler, log)),
+      ...params,
+    }
+
+    return handler(<any>handlerParams)
   }
 
   async getBuildStatus<T extends GardenModule>(
@@ -766,7 +789,9 @@ export class ActionRouter implements TypeGuard {
     return result
   }
 
-  private async callModuleHandler<T extends keyof Omit<ModuleActionHandlers, "configure" | "suggestModules">>({
+  private async callModuleHandler<
+    T extends keyof Omit<ModuleActionHandlers, "configure" | "getModuleOutputs" | "suggestModules">
+  >({
     params,
     actionType,
     defaultHandler,
@@ -836,8 +861,7 @@ export class ActionRouter implements TypeGuard {
       const configContext = new ModuleConfigContext({
         garden: this.garden,
         resolvedProviders: providers,
-        dependencyConfigs: modules,
-        dependencyVersions: fromPairs(modules.map((m) => [m.name, m.version])),
+        dependencies: modules,
         runtimeContext,
       })
 
@@ -896,8 +920,7 @@ export class ActionRouter implements TypeGuard {
       const configContext = new ModuleConfigContext({
         garden: this.garden,
         resolvedProviders: providers,
-        dependencyConfigs: modules,
-        dependencyVersions: fromPairs(modules.map((m) => [m.name, m.version])),
+        dependencies: modules,
         runtimeContext,
       })
 

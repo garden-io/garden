@@ -81,7 +81,6 @@ describe("AnalyticsHandler", () => {
           allowPublish: false,
           build: { dependencies: [] },
           disabled: false,
-          outputs: {},
           path: "",
           serviceConfigs: [],
           taskConfigs: [],

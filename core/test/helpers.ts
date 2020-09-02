@@ -105,8 +105,6 @@ export const testModuleSpecSchema = () =>
   })
 
 export async function configureTestModule({ moduleConfig }: ConfigureModuleParams) {
-  moduleConfig.outputs = { foo: "bar" }
-
   // validate services
   moduleConfig.serviceConfigs = moduleConfig.spec.services.map((spec) => ({
     name: spec.name,
@@ -200,6 +198,9 @@ export const testPlugin = createGardenPlugin({
         build: buildExecModule,
         runModule,
 
+        async getModuleOutputs() {
+          return { outputs: { foo: "bar" } }
+        },
         async getServiceStatus() {
           return { state: "ready", detail: {} }
         },
@@ -285,7 +286,6 @@ const defaultModuleConfig: ModuleConfig = {
   allowPublish: false,
   build: { dependencies: [] },
   disabled: false,
-  outputs: {},
   spec: {
     services: [
       {

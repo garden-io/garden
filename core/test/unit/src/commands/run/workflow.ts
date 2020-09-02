@@ -273,7 +273,6 @@ describe("RunWorkflowCommand", () => {
         allowPublish: false,
         disabled: false,
         build: { dependencies: [] },
-        outputs: {},
         path: tmpDir.path,
         serviceConfigs: [],
         taskConfigs: [

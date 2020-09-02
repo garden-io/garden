@@ -56,7 +56,7 @@ export async function k8sGetContainerBuildStatus(params: GetBuildStatusParams<Co
   const { ctx, module } = params
   const provider = <KubernetesProvider>ctx.provider
 
-  const hasDockerfile = await containerHelpers.hasDockerfile(module)
+  const hasDockerfile = containerHelpers.hasDockerfile(module, module.version)
 
   if (!hasDockerfile) {
     // Nothing to build
@@ -100,7 +100,7 @@ const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } 
 
       return { ready: res.code === 0 }
     } else if (k8sCtx.provider.config.clusterType === "microk8s") {
-      const localId = await containerHelpers.getLocalImageId(module)
+      const localId = containerHelpers.getLocalImageId(module, module.version)
       return getMicrok8sImageStatus(localId)
     } else {
       return getContainerBuildStatus({ ...params, ctx: { ...ctx, provider: ctx.provider.dependencies.container } })
@@ -159,7 +159,7 @@ const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } 
       throw new InternalError(`Expected configured deploymentRegistry for remote build`, { config: provider.config })
     }
 
-    const remoteId = await containerHelpers.getDeploymentImageId(module, deploymentRegistry)
+    const remoteId = containerHelpers.getDeploymentImageId(module, module.version, deploymentRegistry)
     const inClusterRegistry = deploymentRegistry?.hostname === inClusterRegistryHostname
     const skopeoCommand = ["skopeo", "--command-timeout=30s", "inspect", "--raw"]
     if (inClusterRegistry) {
@@ -208,18 +208,18 @@ const localBuild: BuildHandler = async (params) => {
     if (provider.config.clusterType === "kind") {
       await loadImageToKind(buildResult, provider.config)
     } else if (provider.config.clusterType === "microk8s") {
-      const imageId = await containerHelpers.getLocalImageId(module)
+      const imageId = containerHelpers.getLocalImageId(module, module.version)
       await loadImageToMicrok8s({ module, imageId, log, ctx })
     }
     return buildResult
   }
 
-  if (!(await containerHelpers.hasDockerfile(module))) {
+  if (!containerHelpers.hasDockerfile(module, module.version)) {
     return buildResult
   }
 
-  const localId = await containerHelpers.getLocalImageId(module)
-  const remoteId = await containerHelpers.getDeploymentImageId(module, ctx.provider.config.deploymentRegistry)
+  const localId = containerHelpers.getLocalImageId(module, module.version)
+  const remoteId = containerHelpers.getDeploymentImageId(module, module.version, ctx.provider.config.deploymentRegistry)
 
   log.setState({ msg: `Pushing image ${remoteId} to cluster...` })
 
@@ -235,7 +235,7 @@ const remoteBuild: BuildHandler = async (params) => {
   const systemNamespace = await getSystemNamespace(ctx, provider, log)
   const api = await KubeApi.factory(log, ctx, provider)
 
-  if (!(await containerHelpers.hasDockerfile(module))) {
+  if (!containerHelpers.hasDockerfile(module, module.version)) {
     return {}
   }
 
@@ -285,8 +285,12 @@ const remoteBuild: BuildHandler = async (params) => {
     minTimeout: 500,
   })
 
-  const localId = await containerHelpers.getLocalImageId(module)
-  const deploymentImageId = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
+  const localId = containerHelpers.getLocalImageId(module, module.version)
+  const deploymentImageId = containerHelpers.getDeploymentImageId(
+    module,
+    module.version,
+    provider.config.deploymentRegistry
+  )
   const dockerfile = module.spec.dockerfile || "Dockerfile"
 
   // Because we're syncing to a shared volume, we need to scope by a unique ID
@@ -662,7 +666,7 @@ async function runKaniko({
 }
 
 async function getManifestInspectArgs(module: ContainerModule, deploymentRegistry: ContainerRegistryConfig) {
-  const remoteId = await containerHelpers.getDeploymentImageId(module, deploymentRegistry)
+  const remoteId = containerHelpers.getDeploymentImageId(module, module.version, deploymentRegistry)
 
   const dockerArgs = ["manifest", "inspect", remoteId]
   if (isLocalHostname(deploymentRegistry.hostname)) {

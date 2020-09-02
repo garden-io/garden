@@ -6,6 +6,7 @@ name: container-module
 include: ["*"]
 type: container
 allowPublish: false
+image: foo
 ---
 kind: Module
 type: exec

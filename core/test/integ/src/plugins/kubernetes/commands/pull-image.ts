@@ -39,7 +39,7 @@ describe("pull-image plugin command", () => {
   }
 
   async function ensureImagePulled(module: GardenModule, log: LogEntry) {
-    const imageId = await containerHelpers.getLocalImageId(module)
+    const imageId = containerHelpers.getLocalImageId(module, module.version)
     const imageHash = await containerHelpers.dockerCli({
       cwd: module.buildPath,
       args: ["images", "-q", imageId],

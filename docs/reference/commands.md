@@ -1022,10 +1022,6 @@ moduleConfigs:
               # Defaults to to same as source path.
               target:
 
-    # The outputs defined by the module (referenceable in other module configs).
-    outputs:
-      <name>:
-
     # The filesystem path of the module.
     path:
 

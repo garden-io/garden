@@ -8,7 +8,7 @@
 
 import Joi from "@hapi/joi"
 import chalk from "chalk"
-import { isString, fromPairs, mapValues } from "lodash"
+import { isString, mapValues } from "lodash"
 import { PrimitiveMap, joiIdentifierMap, joiStringMap, joiPrimitive, DeepPrimitiveMap, joiVariables } from "./common"
 import { Provider, GenericProviderConfig, ProviderMap } from "./provider"
 import { ConfigurationError } from "../exceptions"
@@ -20,8 +20,6 @@ import { RuntimeContext } from "../runtime-context"
 import { deline, dedent, naturalList } from "../util/string"
 import { getProviderUrl, getModuleTypeUrl } from "../docs/common"
 import { GardenModule } from "../types/module"
-import { ModuleConfig } from "./module"
-import { ModuleVersion } from "../vcs/vcs"
 import { isPrimitive } from "util"
 
 export type ContextKeySegment = string | number
@@ -643,16 +641,14 @@ export class ModuleContext extends ConfigContext {
   public path: string
 
   @schema(joi.string().required().description("The current version of the module.").example(exampleVersion))
-  public version: string | undefined
+  public version: string
 
-  constructor(root: ConfigContext, config: ModuleConfig, version?: ModuleVersion) {
+  constructor(root: ConfigContext, module: GardenModule) {
     super(root)
-    this.buildPath = config.buildPath
-    this.outputs = config.outputs
-    this.path = config.path
-    // This may be undefined, if determined (by ResolveModuleConfigTask) not to be required for the resolution of
-    // the templates.
-    this.version = version?.versionString
+    this.buildPath = module.buildPath
+    this.outputs = module.outputs
+    this.path = module.path
+    this.version = module.version.versionString
   }
 }
 
@@ -798,15 +794,13 @@ export class ModuleConfigContext extends ProviderConfigContext {
     garden,
     resolvedProviders,
     moduleName,
-    dependencyConfigs,
-    dependencyVersions,
+    dependencies,
     runtimeContext,
   }: {
     garden: Garden
     resolvedProviders: ProviderMap
     moduleName?: string
-    dependencyConfigs: ModuleConfig[]
-    dependencyVersions: { [name: string]: ModuleVersion }
+    dependencies: GardenModule[]
     // We only supply this when resolving configuration in dependency order.
     // Otherwise we pass `${runtime.*} template strings through for later resolution.
     runtimeContext?: RuntimeContext
@@ -814,10 +808,7 @@ export class ModuleConfigContext extends ProviderConfigContext {
     super(garden, resolvedProviders)
 
     this.modules = new Map(
-      dependencyConfigs.map(
-        (config) =>
-          <[string, ModuleContext]>[config.name, new ModuleContext(this, config, dependencyVersions[config.name])]
-      )
+      dependencies.map((config) => <[string, ModuleContext]>[config.name, new ModuleContext(this, config)])
     )
 
     if (moduleName) {
@@ -844,12 +835,10 @@ export class OutputConfigContext extends ModuleConfigContext {
     modules: GardenModule[]
     runtimeContext: RuntimeContext
   }) {
-    const versions = fromPairs(modules.map((m) => [m.name, m.version]))
     super({
       garden,
       resolvedProviders,
-      dependencyConfigs: modules,
-      dependencyVersions: versions,
+      dependencies: modules,
       runtimeContext,
     })
   }

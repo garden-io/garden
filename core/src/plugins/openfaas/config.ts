@@ -25,6 +25,7 @@ import { baseBuildSpecSchema } from "../../config/module"
 import { DEFAULT_BUILD_TIMEOUT } from "../container/helpers"
 import { baseTestSpecSchema } from "../../config/test"
 import { getK8sProvider } from "../kubernetes/util"
+import { GetModuleOutputsParams } from "../../types/plugin/module/getModuleOutputs"
 
 export interface OpenFaasModuleSpec extends ExecModuleSpecBase {
   handler: string
@@ -171,7 +172,6 @@ export function getContainerModule(module: OpenFaasModule): ContainerModule {
 
 export async function configureModule({
   ctx,
-  log,
   moduleConfig,
 }: ConfigureModuleParams<OpenFaasModule>): Promise<ConfigureModuleResult> {
   moduleConfig.build.dependencies.push({
@@ -209,11 +209,15 @@ export async function configureModule({
     timeout: t.timeout,
   }))
 
-  moduleConfig.outputs = {
-    endpoint: await getInternalServiceUrl(<OpenFaasPluginContext>ctx, log, moduleConfig),
-  }
-
   return { moduleConfig }
+}
+
+export async function getOpenfaasModuleOutputs({ ctx, log, moduleConfig }: GetModuleOutputsParams) {
+  return {
+    outputs: {
+      endpoint: await getInternalServiceUrl(<OpenFaasPluginContext>ctx, log, moduleConfig),
+    },
+  }
 }
 
 async function getInternalGatewayUrl(ctx: PluginContext<OpenFaasConfig>, log: LogEntry) {

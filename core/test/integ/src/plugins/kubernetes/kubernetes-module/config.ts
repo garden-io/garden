@@ -83,7 +83,6 @@ describe("validateKubernetesModule", () => {
       include: [],
       kind: "Module",
       name: "module-simple",
-      outputs: {},
       path: resolve(ctx.projectRoot, "module-simple"),
       repositoryUrl: undefined,
       serviceConfigs: [

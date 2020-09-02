@@ -16,7 +16,7 @@ import {
   joiModuleIncludeDirective,
 } from "../../../config/common"
 import { GardenModule } from "../../../types/module"
-import { containsSource, getReleaseName } from "./common"
+import { containsSource } from "./common"
 import { ConfigurationError } from "../../../exceptions"
 import { deline, dedent } from "../../../util/string"
 import { Service } from "../../../types/service"
@@ -283,10 +283,6 @@ export async function configureHelmModule({
       spec,
     }
   })
-
-  moduleConfig.outputs = {
-    "release-name": getReleaseName(moduleConfig),
-  }
 
   const valueFiles = moduleConfig.spec.valueFiles
 

@@ -29,7 +29,6 @@ describe("validate-dependencies", () => {
           allowPublish: false,
           build: { dependencies: [{ name: "missing", copy: [] }] },
           disabled: false,
-          outputs: {},
           path: "/tmp",
           serviceConfigs: [],
           taskConfigs: [],
@@ -49,7 +48,6 @@ describe("validate-dependencies", () => {
           allowPublish: false,
           build: { dependencies: [] },
           disabled: false,
-          outputs: {},
           path: "/tmp",
           serviceConfigs: [
             {
@@ -77,7 +75,6 @@ describe("validate-dependencies", () => {
           allowPublish: false,
           build: { dependencies: [] },
           disabled: false,
-          outputs: {},
           path: "/tmp",
           serviceConfigs: [],
           taskConfigs: [
@@ -106,7 +103,6 @@ describe("validate-dependencies", () => {
           allowPublish: false,
           build: { dependencies: [] },
           disabled: false,
-          outputs: {},
           path: "/tmp",
           serviceConfigs: [],
           taskConfigs: [],
@@ -134,7 +130,6 @@ describe("validate-dependencies", () => {
           allowPublish: false,
           build: { dependencies: [] },
           disabled: false,
-          outputs: {},
           path: "/tmp",
           serviceConfigs: [],
           taskConfigs: [],

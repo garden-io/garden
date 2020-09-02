@@ -338,7 +338,7 @@ export async function createWorkloadManifest({
   })
 
   const registryConfig = provider.config.deploymentRegistry
-  const imageId = await containerHelpers.getDeploymentImageId(service.module, registryConfig)
+  const imageId = containerHelpers.getDeploymentImageId(service.module, service.module.version, registryConfig)
 
   const container: V1Container = {
     name: service.name,

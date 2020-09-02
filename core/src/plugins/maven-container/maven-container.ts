@@ -33,6 +33,7 @@ import { ConfigureModuleParams } from "../../types/plugin/module/configure"
 import { GetBuildStatusParams } from "../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams } from "../../types/plugin/module/build"
 import { getModuleTypeUrl } from "../../docs/common"
+import { containerModuleOutputsSchema } from "../container/container"
 
 const defaultDockerfileName = "maven-container.Dockerfile"
 const defaultDockerfilePath = resolve(STATIC_DIR, "maven-container", defaultDockerfileName)
@@ -122,6 +123,7 @@ export const gardenPlugin = createGardenPlugin({
       The provider will automatically fetch and cache Maven and the appropriate OpenJDK version ahead of building.
     `,
       schema: mavenContainerModuleSpecSchema(),
+      moduleOutputsSchema: containerModuleOutputsSchema(),
       handlers: {
         configure: configureMavenContainerModule,
         getBuildStatus,
@@ -178,7 +180,7 @@ async function build(params: BuildModuleParams<MavenContainerModule>) {
   let { jarPath, jdkVersion, mvnOpts, useDefaultDockerfile, image } = module.spec
 
   // Fall back to using the image field
-  if (!useDefaultDockerfile && !(await containerHelpers.hasDockerfile(module))) {
+  if (!useDefaultDockerfile && !containerHelpers.hasDockerfile(module, module.version)) {
     if (!image) {
       throw new ConfigurationError(
         dedent`
@@ -243,7 +245,7 @@ export async function prepareBuild(module: MavenContainerModule, log: LogEntry) 
   if (!module.spec.useDefaultDockerfile) {
     return
   }
-  if (module.spec.dockerfile === defaultDockerfileName || !(await containerHelpers.hasDockerfile(module))) {
+  if (module.spec.dockerfile === defaultDockerfileName || !containerHelpers.hasDockerfile(module, module.version)) {
     log.debug(`Using default Dockerfile`)
     await copy(defaultDockerfilePath, resolve(module.buildPath, defaultDockerfileName))
   }
