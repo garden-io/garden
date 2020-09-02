@@ -50,7 +50,6 @@ describe("plugins.container", () => {
     disabled: false,
     apiVersion: "garden.io/v0",
     name: "test",
-    outputs: {},
     path: modulePath,
     type: "container",
 
@@ -93,7 +92,7 @@ describe("plugins.container", () => {
 
   async function getTestModule(moduleConfig: ContainerModuleConfig) {
     const parsed = await configure({ ctx, moduleConfig, log })
-    return moduleFromConfig(garden, parsed.moduleConfig, [])
+    return moduleFromConfig(garden, log, parsed.moduleConfig, [])
   }
 
   describe("configureContainerModule", () => {
@@ -106,7 +105,6 @@ describe("plugins.container", () => {
         disabled: false,
         apiVersion: "garden.io/v0",
         name: "module-a",
-        outputs: {},
         path: modulePath,
         type: "container",
 
@@ -203,10 +201,6 @@ describe("plugins.container", () => {
           apiVersion: "garden.io/v0",
           name: "module-a",
           include: ["Dockerfile"],
-          outputs: {
-            "local-image-name": "module-a",
-            "deployment-image-name": "module-a",
-          },
           path: modulePath,
           type: "container",
           spec: {
@@ -363,7 +357,6 @@ describe("plugins.container", () => {
         disabled: false,
         apiVersion: "garden.io/v0",
         name: "module-a",
-        outputs: {},
         path: modulePath,
         type: "container",
 
@@ -424,7 +417,6 @@ describe("plugins.container", () => {
         disabled: false,
         apiVersion: "garden.io/v0",
         name: "module-a",
-        outputs: {},
         path: modulePath,
         type: "container",
 
@@ -478,7 +470,6 @@ describe("plugins.container", () => {
         disabled: false,
         apiVersion: "garden.io/v0",
         name: "module-a",
-        outputs: {},
         path: modulePath,
         type: "container",
 
@@ -531,7 +522,6 @@ describe("plugins.container", () => {
         disabled: false,
         apiVersion: "garden.io/v0",
         name: "module-a",
-        outputs: {},
         path: modulePath,
         type: "test",
 
@@ -608,7 +598,6 @@ describe("plugins.container", () => {
         disabled: false,
         apiVersion: "garden.io/v0",
         name: "module-a",
-        outputs: {},
         path: modulePath,
         type: "test",
 
@@ -674,7 +663,6 @@ describe("plugins.container", () => {
         disabled: false,
         apiVersion: "garden.io/v0",
         name: "module-a",
-        outputs: {},
         path: modulePath,
         type: "test",
 
@@ -731,6 +719,8 @@ describe("plugins.container", () => {
 
   describe("getBuildStatus", () => {
     it("should return ready:true if build exists locally", async () => {
+      td.replace(helpers, "hasDockerfile", () => true)
+
       const module = td.object(await getTestModule(baseConfig))
 
       td.replace(helpers, "imageExistsLocally", async () => true)
@@ -740,6 +730,8 @@ describe("plugins.container", () => {
     })
 
     it("should return ready:false if build does not exist locally", async () => {
+      td.replace(helpers, "hasDockerfile", () => true)
+
       const module = td.object(await getTestModule(baseConfig))
 
       td.replace(helpers, "imageExistsLocally", async () => false)
@@ -755,7 +747,7 @@ describe("plugins.container", () => {
       config.spec.image = "some/image"
       const module = td.object(await getTestModule(config))
 
-      td.replace(helpers, "hasDockerfile", async () => false)
+      td.replace(helpers, "hasDockerfile", () => false)
       td.replace(helpers, "pullImage", async () => null)
       td.replace(helpers, "imageExistsLocally", async () => false)
 
@@ -769,9 +761,9 @@ describe("plugins.container", () => {
       config.spec.image = "some/image"
       const module = td.object(await getTestModule(config))
 
-      td.replace(helpers, "hasDockerfile", async () => true)
+      td.replace(helpers, "hasDockerfile", () => true)
       td.replace(helpers, "imageExistsLocally", async () => false)
-      td.replace(helpers, "getLocalImageId", async () => "some/image")
+      td.replace(helpers, "getLocalImageId", () => "some/image")
 
       const cmdArgs = [
         "build",
@@ -804,9 +796,9 @@ describe("plugins.container", () => {
       config.spec.build.targetImage = "foo"
       const module = td.object(await getTestModule(config))
 
-      td.replace(helpers, "hasDockerfile", async () => true)
+      td.replace(helpers, "hasDockerfile", () => true)
       td.replace(helpers, "imageExistsLocally", async () => false)
-      td.replace(helpers, "getLocalImageId", async () => "some/image")
+      td.replace(helpers, "getLocalImageId", () => "some/image")
 
       const cmdArgs = [
         "build",
@@ -839,12 +831,12 @@ describe("plugins.container", () => {
       const config = cloneDeep(baseConfig)
       config.spec.dockerfile = relDockerfilePath
 
-      td.replace(helpers, "hasDockerfile", async () => true)
+      td.replace(helpers, "hasDockerfile", () => true)
 
       const module = td.object(await getTestModule(config))
 
       td.replace(helpers, "imageExistsLocally", async () => false)
-      td.replace(helpers, "getLocalImageId", async () => "some/image")
+      td.replace(helpers, "getLocalImageId", () => "some/image")
 
       const cmdArgs = [
         "build",
@@ -880,7 +872,7 @@ describe("plugins.container", () => {
       config.spec.image = "some/image"
       const module = td.object(await getTestModule(config))
 
-      td.replace(helpers, "hasDockerfile", async () => false)
+      td.replace(helpers, "hasDockerfile", () => false)
 
       const result = await publishModule({ ctx, log, module })
       expect(result).to.eql({ published: false })
@@ -891,9 +883,9 @@ describe("plugins.container", () => {
       config.spec.image = "some/image:1.1"
       const module = td.object(await getTestModule(config))
 
-      td.replace(helpers, "hasDockerfile", async () => true)
-      td.replace(helpers, "getLocalImageId", async () => "some/image:12345")
-      td.replace(helpers, "getPublicImageId", async () => "some/image:12345")
+      td.replace(helpers, "hasDockerfile", () => true)
+      td.replace(helpers, "getLocalImageId", () => "some/image:12345")
+      td.replace(helpers, "getPublicImageId", () => "some/image:12345")
 
       td.replace(helpers, "dockerCli", async ({ cwd, args, ctx: _ctx }) => {
         expect(cwd).to.equal(module.buildPath)
@@ -911,7 +903,7 @@ describe("plugins.container", () => {
       config.spec.image = "some/image:1.1"
       const module = td.object(await getTestModule(config))
 
-      td.replace(helpers, "hasDockerfile", async () => true)
+      td.replace(helpers, "hasDockerfile", () => true)
       td.replace(helpers, "getLocalImageId", () => "some/image:12345")
       td.replace(helpers, "getPublicImageId", () => "some/image:1.1")
 
@@ -985,6 +977,8 @@ describe("plugins.container", () => {
 
   describe("getDockerBuildFlags", () => {
     it("should include extraFlags", async () => {
+      td.replace(helpers, "hasDockerfile", () => true)
+
       const module = await getTestModule({
         allowPublish: false,
         build: {
@@ -993,7 +987,6 @@ describe("plugins.container", () => {
         disabled: false,
         apiVersion: "garden.io/v0",
         name: "module-a",
-        outputs: {},
         path: modulePath,
         type: "container",
 
@@ -1020,6 +1013,8 @@ describe("plugins.container", () => {
     })
 
     it("should set GARDEN_MODULE_VERSION", async () => {
+      td.replace(helpers, "hasDockerfile", () => true)
+
       const module = await getTestModule({
         allowPublish: false,
         build: {
@@ -1028,7 +1023,6 @@ describe("plugins.container", () => {
         disabled: false,
         apiVersion: "garden.io/v0",
         name: "module-a",
-        outputs: {},
         path: modulePath,
         type: "container",
 

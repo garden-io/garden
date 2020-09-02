@@ -7,21 +7,10 @@
  */
 
 import { ServiceConfig, serviceConfigSchema } from "./service"
-import {
-  joiArray,
-  joiIdentifier,
-  joiRepositoryUrl,
-  joiUserIdentifier,
-  PrimitiveMap,
-  joiIdentifierMap,
-  joiPrimitive,
-  joi,
-  includeGuideLink,
-} from "./common"
+import { joiArray, joiIdentifier, joiRepositoryUrl, joiUserIdentifier, joi, includeGuideLink } from "./common"
 import { TestConfig, testConfigSchema } from "./test"
 import { TaskConfig, taskConfigSchema } from "./task"
 import { DEFAULT_API_VERSION } from "../constants"
-import { joiVariables } from "./common"
 import { dedent, stableStringify } from "../util/string"
 
 export interface BuildCopySpec {
@@ -46,8 +35,6 @@ const copySchema = () =>
       `),
   })
 
-export const moduleOutputsSchema = joiIdentifierMap(joiPrimitive())
-
 export interface BuildDependencyConfig {
   name: string
   plugin?: string
@@ -71,22 +58,27 @@ export interface BaseBuildSpec {
 
 export interface ModuleSpec {}
 
-export interface AddModuleSpec {
+interface ModuleSpecCommon {
   apiVersion?: string
   allowPublish?: boolean
   build?: BaseBuildSpec
   description?: string
+  disabled?: boolean
   exclude?: string[]
   include?: string[]
   name: string
   path?: string
   repositoryUrl?: string
   type: string
+}
+
+export interface AddModuleSpec extends ModuleSpecCommon {
   [key: string]: any
 }
 
-export interface BaseModuleSpec extends AddModuleSpec {
+export interface BaseModuleSpec extends ModuleSpecCommon {
   apiVersion: string
+  kind?: "Module"
   allowPublish: boolean
   build: BaseBuildSpec
   disabled: boolean
@@ -178,7 +170,6 @@ export const baseModuleSpecSchema = () =>
 
 export interface ModuleConfig<M extends {} = any, S extends {} = any, T extends {} = any, W extends {} = any>
   extends BaseModuleSpec {
-  outputs: PrimitiveMap
   path: string
   configPath?: string
   plugin?: string // used to identify modules that are bundled as part of a plugin
@@ -195,7 +186,6 @@ export const modulePathSchema = () => joi.string().description("The filesystem p
 export const moduleConfigSchema = () =>
   baseModuleSpecSchema()
     .keys({
-      outputs: joiVariables().description("The outputs defined by the module (referenceable in other module configs)."),
       path: modulePathSchema(),
       configPath: joi.string().description("The filesystem path of the module config file."),
       plugin: joiIdentifier()

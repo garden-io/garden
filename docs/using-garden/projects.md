@@ -112,7 +112,7 @@ kind: Project
 name: my-project
 ...
 outputs:
-  my-module-image: ${modules.my-module.outputs.deployment-image-name}:${modules.my-module.version}
+  my-module-image: ${modules.my-module.outputs.deployment-image-id}
 ```
 
 You can then retrieve this value by running e.g. `garden get outputs -o json` and parsing the output with `jq`.

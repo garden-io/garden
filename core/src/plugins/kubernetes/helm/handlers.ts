@@ -25,10 +25,18 @@ import { join } from "path"
 import { pathExists } from "fs-extra"
 import chalk = require("chalk")
 import { SuggestModulesParams, SuggestModulesResult } from "../../../types/plugin/module/suggestModules"
+import { getReleaseName } from "./common"
 
 export const helmHandlers: Partial<ModuleAndRuntimeActionHandlers<HelmModule>> = {
   build: buildHelmModule,
   configure: configureHelmModule,
+  getModuleOutputs: async ({ moduleConfig }) => {
+    return {
+      outputs: {
+        "release-name": getReleaseName(moduleConfig),
+      },
+    }
+  },
   // TODO: add execInService handler
   deleteService,
   deployService: deployHelmService,

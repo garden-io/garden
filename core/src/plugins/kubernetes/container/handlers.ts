@@ -23,6 +23,8 @@ import { getTaskResult } from "../task-results"
 import { k8sBuildContainer, k8sGetContainerBuildStatus } from "./build"
 import { k8sPublishContainerModule } from "./publish"
 import { getPortForwardHandler } from "../port-forward"
+import { GetModuleOutputsParams } from "../../../types/plugin/module/getModuleOutputs"
+import { containerHelpers } from "../../container/helpers"
 
 async function configure(params: ConfigureModuleParams<ContainerModule>) {
   let { moduleConfig } = await configureContainerModule(params)
@@ -32,6 +34,7 @@ async function configure(params: ConfigureModuleParams<ContainerModule>) {
 
 export const containerHandlers = {
   configure,
+  getModuleOutputs,
   build: k8sBuildContainer,
   deployService: deployContainerService,
   deleteService,
@@ -48,6 +51,24 @@ export const containerHandlers = {
   runTask: runContainerTask,
   getTaskResult,
   testModule: testContainerModule,
+}
+
+async function getModuleOutputs(params: GetModuleOutputsParams) {
+  const { ctx, moduleConfig, version, base } = params
+  const { outputs } = await base!(params)
+
+  const provider = <KubernetesProvider>ctx.provider
+  outputs["deployment-image-name"] = containerHelpers.getDeploymentImageName(
+    moduleConfig,
+    provider.config.deploymentRegistry
+  )
+  outputs["deployment-image-id"] = containerHelpers.getDeploymentImageId(
+    moduleConfig,
+    version,
+    provider.config.deploymentRegistry
+  )
+
+  return { outputs }
 }
 
 async function validateConfig<T extends ContainerModule>(params: ConfigureModuleParams<T>) {

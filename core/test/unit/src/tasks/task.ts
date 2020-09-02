@@ -103,7 +103,6 @@ describe("TaskTask", () => {
           allowPublish: false,
           disabled: false,
           build: { dependencies: [] },
-          outputs: {},
           path: tmpDir.path,
           serviceConfigs: [],
           taskConfigs: [
@@ -154,7 +153,6 @@ describe("TaskTask", () => {
           allowPublish: false,
           disabled: false,
           build: { dependencies: [] },
-          outputs: {},
           path: tmpDir.path,
           serviceConfigs: [],
           taskConfigs: [

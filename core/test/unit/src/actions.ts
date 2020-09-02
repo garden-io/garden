@@ -1930,6 +1930,11 @@ const testPlugin = createGardenPlugin({
           }
         },
 
+        getModuleOutputs: async (params) => {
+          validateSchema(params, moduleActionDescriptions.getModuleOutputs.paramsSchema)
+          return { outputs: { foo: "bar" } }
+        },
+
         suggestModules: async () => {
           return { suggestions: [] }
         },

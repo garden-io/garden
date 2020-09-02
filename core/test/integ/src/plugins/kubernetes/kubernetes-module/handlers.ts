@@ -68,7 +68,6 @@ describe("kubernetes-module handlers", () => {
       build: { dependencies: [] },
       description: "Kubernetes module that includes a Namespace resource",
       name: "namespace-resource",
-      outputs: {},
       path: tmpDir.path,
       serviceConfigs: [],
       spec: {

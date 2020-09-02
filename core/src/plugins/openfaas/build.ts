@@ -59,7 +59,11 @@ export async function writeStackFile(
   envVars: PrimitiveMap
 ) {
   const containerModule = getContainerModule(module)
-  const image = await containerHelpers.getDeploymentImageId(containerModule, k8sProvider.config.deploymentRegistry)
+  const image = containerHelpers.getDeploymentImageId(
+    containerModule,
+    module.version,
+    k8sProvider.config.deploymentRegistry
+  )
 
   const stackPath = join(module.buildPath, stackFilename)
 

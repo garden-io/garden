@@ -85,7 +85,11 @@ describe("resolveProjectOutputs", () => {
         {
           name: "test",
           docs: "test",
-          handlers: {},
+          handlers: {
+            async getModuleOutputs({ moduleConfig }) {
+              return { outputs: moduleConfig.spec.outputs }
+            },
+          },
         },
       ],
     })
@@ -104,13 +108,14 @@ describe("resolveProjectOutputs", () => {
         build: { dependencies: [] },
         disabled: false,
         name: "test",
-        outputs: {
-          test: "test-value",
-        },
         path: tmpPath,
         serviceConfigs: [],
         taskConfigs: [],
-        spec: {},
+        spec: {
+          outputs: {
+            test: "test-value",
+          },
+        },
         testConfigs: [],
         type: "test",
       },
@@ -130,6 +135,9 @@ describe("resolveProjectOutputs", () => {
           name: "test",
           docs: "test",
           handlers: {
+            async getModuleOutputs({ moduleConfig }) {
+              return { outputs: moduleConfig.spec.outputs }
+            },
             async getServiceStatus() {
               return status
             },
@@ -155,9 +163,6 @@ describe("resolveProjectOutputs", () => {
         build: { dependencies: [] },
         disabled: false,
         name: "test",
-        outputs: {
-          test: "test-value",
-        },
         path: tmpPath,
         serviceConfigs: [
           {
@@ -169,7 +174,11 @@ describe("resolveProjectOutputs", () => {
           },
         ],
         taskConfigs: [],
-        spec: {},
+        spec: {
+          outputs: {
+            test: "test-value",
+          },
+        },
         testConfigs: [],
         type: "test",
       },
@@ -200,6 +209,9 @@ describe("resolveProjectOutputs", () => {
           name: "test",
           docs: "test",
           handlers: {
+            async getModuleOutputs({ moduleConfig }) {
+              return { outputs: moduleConfig.spec.outputs }
+            },
             async getTaskResult() {
               return result
             },
@@ -225,9 +237,6 @@ describe("resolveProjectOutputs", () => {
         build: { dependencies: [] },
         disabled: false,
         name: "test",
-        outputs: {
-          test: "test-value",
-        },
         path: tmpPath,
         serviceConfigs: [],
         taskConfigs: [
@@ -240,7 +249,11 @@ describe("resolveProjectOutputs", () => {
             timeout: null,
           },
         ],
-        spec: {},
+        spec: {
+          outputs: {
+            test: "test-value",
+          },
+        },
         testConfigs: [],
         type: "test",
       },

@@ -131,7 +131,6 @@ describe("loadConfigResources", () => {
         repositoryUrl: undefined,
         allowPublish: undefined,
         build: { dependencies: [] },
-        outputs: {},
         path: modulePathA,
 
         spec: {
@@ -204,7 +203,6 @@ describe("loadConfigResources", () => {
         repositoryUrl: undefined,
         allowPublish: undefined,
         build: { dependencies: [] },
-        outputs: {},
         path: projectPathMultipleModules,
         serviceConfigs: [],
         spec: {
@@ -239,7 +237,6 @@ describe("loadConfigResources", () => {
         build: {
           dependencies: [{ name: "module-from-project-config", copy: [] }],
         },
-        outputs: {},
         path: modulePathAMultiple,
         serviceConfigs: [],
         spec: {
@@ -267,7 +264,6 @@ describe("loadConfigResources", () => {
         exclude: undefined,
         repositoryUrl: undefined,
         build: { dependencies: [] },
-        outputs: {},
         path: modulePathAMultiple,
         serviceConfigs: [],
         spec: {

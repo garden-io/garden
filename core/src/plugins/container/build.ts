@@ -34,7 +34,7 @@ export async function buildContainerModule({ ctx, module, log }: BuildModulePara
 
   const buildPath = module.buildPath
   const image = module.spec.image
-  const hasDockerfile = await containerHelpers.hasDockerfile(module)
+  const hasDockerfile = containerHelpers.hasDockerfile(module, module.version)
 
   if (!!image && !hasDockerfile) {
     if (await containerHelpers.imageExistsLocally(module, log, ctx)) {
@@ -53,7 +53,7 @@ export async function buildContainerModule({ ctx, module, log }: BuildModulePara
     )
   }
 
-  const identifier = await containerHelpers.getLocalImageId(module)
+  const identifier = containerHelpers.getLocalImageId(module, module.version)
 
   // build doesn't exist, so we create it
   log.setState(`Building ${identifier}...`)

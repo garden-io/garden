@@ -76,7 +76,7 @@ describe("kubernetes build flow", () => {
         module,
       })
 
-      const remoteId = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
+      const remoteId = containerHelpers.getDeploymentImageId(module, module.version, provider.config.deploymentRegistry)
       // This throws if the image doesn't exist
       await containerHelpers.dockerCli({
         cwd: module.buildPath,
@@ -96,7 +96,7 @@ describe("kubernetes build flow", () => {
         module,
       })
 
-      const remoteId = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
+      const remoteId = containerHelpers.getDeploymentImageId(module, module.version, provider.config.deploymentRegistry)
       await containerHelpers.dockerCli({
         cwd: module.buildPath,
         args: ["rmi", remoteId],
@@ -169,7 +169,7 @@ describe("kubernetes build flow", () => {
       })
 
       // Clear the image tag from the in-cluster builder
-      const remoteId = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
+      const remoteId = containerHelpers.getDeploymentImageId(module, module.version, provider.config.deploymentRegistry)
       const api = await KubeApi.factory(garden.log, ctx, provider)
 
       const runner = await getDockerDaemonPodRunner({ api, systemNamespace, ctx, provider })
@@ -234,7 +234,7 @@ describe("kubernetes build flow", () => {
       })
 
       // Clear the image tag from the in-cluster builder
-      const remoteId = await containerHelpers.getDeploymentImageId(module, provider.config.deploymentRegistry)
+      const remoteId = containerHelpers.getDeploymentImageId(module, module.version, provider.config.deploymentRegistry)
       const api = await KubeApi.factory(garden.log, ctx, provider)
 
       const runner = await getDockerDaemonPodRunner({ api, systemNamespace, ctx, provider })

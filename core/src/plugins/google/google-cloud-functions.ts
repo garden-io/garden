@@ -51,16 +51,10 @@ function getGcfProject<T extends GcfModule>(service: Service<T>, provider: Provi
 }
 
 export async function configureGcfModule({
-  ctx,
   moduleConfig,
 }: ConfigureModuleParams<GcfModule>): Promise<ConfigureModuleResult<GcfModule>> {
   // TODO: we may want to pull this from the service status instead, along with other outputs
   const { name, spec } = moduleConfig
-  const project = spec.project || ctx.provider.config.defaultProject
-
-  moduleConfig.outputs = {
-    endpoint: `https://${GOOGLE_CLOUD_DEFAULT_REGION}-${project}.cloudfunctions.net/${name}`,
-  }
 
   moduleConfig.serviceConfigs = [
     {
@@ -104,6 +98,16 @@ export const gardenPlugin = createGardenPlugin({
       schema: gcfModuleSpecSchema(),
       handlers: {
         configure: configureGcfModule,
+
+        async getModuleOutputs({ ctx, moduleConfig }) {
+          const project = moduleConfig.spec.project || ctx.provider.config.defaultProject
+
+          return {
+            outputs: {
+              endpoint: `https://${GOOGLE_CLOUD_DEFAULT_REGION}-${project}.cloudfunctions.net/${name}`,
+            },
+          }
+        },
 
         async deployService(params: DeployServiceParams<GcfModule>) {
           const { ctx, service } = params

@@ -102,7 +102,7 @@ export const gardenPlugin = createGardenPlugin({
             // Make sure we don't step on an existing custom hadolint module
             !existingHadolintModuleDockerfiles.includes(dockerfilePath) &&
             // Only create for modules with Dockerfiles
-            (await containerHelpers.hasDockerfile(module))
+            containerHelpers.hasDockerfile(module, module.version)
           )
         }).map((module) => {
           const baseName = "hadolint-" + module.name

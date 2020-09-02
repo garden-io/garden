@@ -38,7 +38,6 @@ export const gardenPlugin = createGardenPlugin({
         disabled: false,
         name: "local-gcf-container",
         path: emulatorBaseModulePath,
-        outputs: {},
         serviceConfigs: [],
         spec: {
           build: {
@@ -118,36 +117,40 @@ export const gardenPlugin = createGardenPlugin({
             }
           })
 
-          const moduleConfig = {
+          const build = {
+            dependencies: parsed.build.dependencies.concat([
+              {
+                name: emulatorModuleName,
+                plugin: pluginName,
+                copy: [
+                  {
+                    source: "child/Dockerfile",
+                    target: "Dockerfile",
+                  },
+                ],
+              },
+            ]),
+            timeout: DEFAULT_BUILD_TIMEOUT,
+          }
+
+          const moduleConfig: ContainerModuleConfig = {
             apiVersion: DEFAULT_API_VERSION,
             allowPublish: true,
-            build: {
-              command: [],
-              dependencies: parsed.build.dependencies.concat([
-                {
-                  name: emulatorModuleName,
-                  plugin: pluginName,
-                  copy: [
-                    {
-                      source: "child/Dockerfile",
-                      target: "Dockerfile",
-                    },
-                  ],
-                },
-              ]),
-            },
+            build,
             disabled: parsed.disabled,
             name: parsed.name,
-            outputs: {},
             path: parsed.path,
             type: "container",
 
             spec: {
+              build,
               buildArgs: {
                 baseImageName: `${baseContainerName}:\${modules.${baseContainerName}.version}`,
               },
+              extraFlags: [],
               image: `${parsed.name}:\${modules.${parsed.name}.version}`,
               services: serviceConfigs.map((s) => <ContainerServiceSpec>s.spec),
+              tasks: [],
               tests: [],
             },
 

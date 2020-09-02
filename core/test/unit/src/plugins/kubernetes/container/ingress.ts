@@ -393,7 +393,6 @@ describe("createIngressResources", () => {
       },
       apiVersion: "garden.io/v0",
       name: "test",
-      outputs: {},
       path: "/tmp",
       type: "container",
 
@@ -414,7 +413,7 @@ describe("createIngressResources", () => {
     const ctx = await garden.getPluginContext(provider)
     ctx.tools["kubernetes.kubectl"] = new PluginTool(kubectlSpec)
     const parsed = await configure({ ctx, moduleConfig, log: garden.log })
-    const module = await moduleFromConfig(garden, parsed.moduleConfig, [])
+    const module = await moduleFromConfig(garden, garden.log, parsed.moduleConfig, [])
 
     return {
       name: spec.name,

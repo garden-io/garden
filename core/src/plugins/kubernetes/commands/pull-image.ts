@@ -71,7 +71,7 @@ function findModules(modules: GardenModule[], names: string[]): GardenModule[] {
 
 function ensureAllModulesValid(modules: GardenModule[]) {
   const invalidModules = filter(modules, (module) => {
-    return !module.compatibleTypes.includes("container") || !containerHelpers.hasDockerfile(module)
+    return !module.compatibleTypes.includes("container") || !containerHelpers.hasDockerfile(module, module.version)
   })
 
   if (invalidModules.length > 0) {
@@ -89,8 +89,8 @@ function ensureAllModulesValid(modules: GardenModule[]) {
 async function pullModules(ctx: KubernetesPluginContext, modules: GardenModule[], log: LogEntry) {
   await Promise.all(
     modules.map(async (module) => {
-      const remoteId = await containerHelpers.getPublicImageId(module)
-      const localId = await containerHelpers.getLocalImageId(module)
+      const remoteId = containerHelpers.getPublicImageId(module)
+      const localId = containerHelpers.getLocalImageId(module, module.version)
       log.info({ msg: chalk.cyan(`Pulling image ${remoteId} to ${localId}`) })
       await pullModule(ctx, module, log)
       log.info({ msg: chalk.green(`\nPulled image: ${remoteId} -> ${localId}`) })
@@ -99,7 +99,7 @@ async function pullModules(ctx: KubernetesPluginContext, modules: GardenModule[]
 }
 
 export async function pullModule(ctx: KubernetesPluginContext, module: GardenModule, log: LogEntry) {
-  const localId = await containerHelpers.getLocalImageId(module)
+  const localId = containerHelpers.getLocalImageId(module, module.version)
 
   if (ctx.provider.config.deploymentRegistry?.hostname === inClusterRegistryHostname) {
     await pullFromInClusterRegistry(ctx, module, log, localId)
@@ -115,7 +115,7 @@ async function pullFromInClusterRegistry(
   localId: string
 ) {
   const fwd = await getRegistryPortForward(ctx, log)
-  const imageId = await containerHelpers.getDeploymentImageId(module, ctx.provider.config.deploymentRegistry)
+  const imageId = containerHelpers.getDeploymentImageId(module, module.version, ctx.provider.config.deploymentRegistry)
   const pullImageId = containerHelpers.unparseImageId({
     ...containerHelpers.parseImageId(imageId),
     // Note: using localhost directly here has issues with Docker for Mac.
@@ -143,7 +143,7 @@ async function pullFromExternalRegistry(
   const namespace = await getAppNamespace(ctx, log, ctx.provider)
   const podName = makePodName("skopeo", namespace, module.name)
   const systemNamespace = await getSystemNamespace(ctx, ctx.provider, log)
-  const imageId = await containerHelpers.getDeploymentImageId(module, ctx.provider.config.deploymentRegistry)
+  const imageId = containerHelpers.getDeploymentImageId(module, module.version, ctx.provider.config.deploymentRegistry)
   const tarName = `${module.name}-${module.version.versionString}`
 
   const skopeoCommand = [

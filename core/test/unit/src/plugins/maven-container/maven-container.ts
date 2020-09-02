@@ -60,7 +60,6 @@ describe("maven-container", () => {
     disabled: false,
     apiVersion: "garden.io/v0",
     name: "test",
-    outputs: {},
     path: modulePath,
     type: "maven-container",
 
@@ -106,7 +105,7 @@ describe("maven-container", () => {
 
   async function getTestModule(moduleConfig: MavenContainerModuleConfig) {
     const parsed = await configure({ ctx, moduleConfig, log, base: configureBase })
-    return moduleFromConfig(garden, parsed.moduleConfig, [])
+    return moduleFromConfig(garden, log, parsed.moduleConfig, [])
   }
 
   describe("configure", () => {
@@ -146,7 +145,7 @@ describe("maven-container", () => {
         config.spec.image = "some/image"
         const module = td.object(await getTestModule(config))
 
-        td.replace(helpers, "hasDockerfile", async () => false)
+        td.replace(helpers, "hasDockerfile", () => false)
         td.replace(helpers, "pullImage", async () => null)
         td.replace(helpers, "imageExistsLocally", async () => false)
 
@@ -155,9 +154,14 @@ describe("maven-container", () => {
         expect(result).to.eql({ fetched: true })
       })
       it("should throw if image tag is not set and the module doesn't contain a Dockerfile", async () => {
+        td.replace(helpers, "hasDockerfile", () => true)
+
         const config = cloneDeep(baseConfig)
-        config.spec.useDefaultDockerfile = false
-        const module = td.object(await getTestModule(config))
+        const module = await getTestModule(config)
+
+        module.spec.useDefaultDockerfile = false
+        td.reset()
+        td.replace(helpers, "hasDockerfile", () => false)
 
         await expectError(
           () => build({ ctx, log, module, base: buildBase }),
@@ -192,6 +196,7 @@ describe("maven-container", () => {
       expect(await pathExists(join(module.buildPath, "maven-container.Dockerfile"))).to.be.true
     })
     it("should not copy the default Dockerfile to the build dir if user Docerkfile provided", async () => {
+      td.replace(helpers, "hasDockerfile", () => true)
       const config = cloneDeep(baseConfig)
       config.spec.dockerfile = "Dockerfile"
       const module = td.object(await getTestModule(config))
@@ -202,6 +207,7 @@ describe("maven-container", () => {
     })
     context("useDefaultDockerfile is false", () => {
       it("should not copy the default Dockerfile to the build dir", async () => {
+        td.replace(helpers, "hasDockerfile", () => true)
         const config = cloneDeep(baseConfig)
         config.spec.useDefaultDockerfile = false
         const module = td.object(await getTestModule(config))

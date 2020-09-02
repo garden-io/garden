@@ -12,10 +12,8 @@ import { gcloud } from "./common"
 import { getEnvironmentStatus, GOOGLE_CLOUD_DEFAULT_REGION, prepareEnvironment } from "./common"
 import { dumpYaml } from "../../util/util"
 import { createGardenPlugin } from "../../types/plugin/plugin"
-import { configureContainerModule } from "../container/container"
 import { ContainerModule } from "../container/config"
 import { providerConfigBaseSchema } from "../../config/provider"
-import { ConfigureModuleParams } from "../../types/plugin/module/configure"
 import { DeployServiceParams } from "../../types/plugin/service/deployService"
 import { joi } from "../../config/common"
 
@@ -35,19 +33,16 @@ export const gardenPlugin = createGardenPlugin({
     {
       name: "container",
       handlers: {
-        async configure(params: ConfigureModuleParams<ContainerModule>) {
-          const { moduleConfig } = await configureContainerModule(params)
-
+        async getModuleOutputs({ ctx, moduleConfig }) {
           // TODO: we may want to pull this from the service status instead, along with other outputs
-          const project = params.ctx.provider.config.project
+          const project = ctx.provider.config.project
           const endpoint = `https://${GOOGLE_CLOUD_DEFAULT_REGION}-${project}.cloudfunctions.net/${moduleConfig.name}`
 
-          moduleConfig.outputs = {
-            ...(moduleConfig.outputs || {}),
-            endpoint,
+          return {
+            outputs: {
+              endpoint,
+            },
           }
-
-          return { moduleConfig }
         },
 
         async getServiceStatus(): Promise<ServiceStatus> {

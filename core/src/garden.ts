@@ -821,8 +821,7 @@ export class Garden {
       const configContext = new ModuleConfigContext({
         garden: this,
         resolvedProviders: keyBy(providers, "name"),
-        dependencyConfigs: resolvedModules,
-        dependencyVersions: fromPairs(resolvedModules.map((m) => [m.name, m.version])),
+        dependencies: resolvedModules,
         runtimeContext,
       })
 
@@ -835,7 +834,7 @@ export class Garden {
         delete moduleConfig.configPath
 
         const resolvedConfig = await resolveModuleConfig(this, moduleConfig, { configContext })
-        resolvedModules.push(await moduleFromConfig(this, resolvedConfig, resolvedModules))
+        resolvedModules.push(await moduleFromConfig(this, log, resolvedConfig, resolvedModules))
         graph = undefined
       })
 

@@ -39,6 +39,7 @@ import {
   openfaasModuleOutputsSchema,
   openfaasModuleSpecSchema,
   getExternalGatewayUrl,
+  getOpenfaasModuleOutputs,
 } from "./config"
 import { getOpenfaasModuleBuildStatus, buildOpenfaasModule, writeStackFile, stackFilename } from "./build"
 import { dedent } from "../../util/string"
@@ -79,6 +80,7 @@ export const gardenPlugin = createGardenPlugin({
       schema: openfaasModuleSpecSchema(),
       handlers: {
         configure: configureModule,
+        getModuleOutputs: getOpenfaasModuleOutputs,
         getBuildStatus: getOpenfaasModuleBuildStatus,
         build: buildOpenfaasModule,
         // TODO: design and implement a proper test flow for openfaas functions
@@ -104,7 +106,6 @@ const templateModuleConfig: ExecModuleConfig = {
   name: "templates",
   path: join(systemDir, "openfaas-templates"),
   repositoryUrl: "https://github.com/openfaas/templates.git#1.2",
-  outputs: {},
   serviceConfigs: [],
   spec: {
     build: {
@@ -194,7 +195,6 @@ async function configureProvider({
     description: "OpenFaaS runtime",
     disabled: false,
     name: "system",
-    outputs: {},
     path: join(systemDir, "openfaas-system"),
     serviceConfigs: [],
     taskConfigs: [],

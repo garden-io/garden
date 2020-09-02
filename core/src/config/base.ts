@@ -163,7 +163,6 @@ export function prepareModuleResource(spec: any, configPath: string, projectRoot
     include: spec.include,
     exclude: spec.exclude,
     name: spec.name,
-    outputs: {},
     path: dirname(configPath),
     repositoryUrl: spec.repositoryUrl,
     serviceConfigs: [],

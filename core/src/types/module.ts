@@ -12,9 +12,11 @@ import { ModuleConfig, moduleConfigSchema } from "../config/module"
 import { ModuleVersion } from "../vcs/vcs"
 import { pathToCacheContext } from "../cache"
 import { Garden } from "../garden"
-import { joiArray, joiIdentifier, joiIdentifierMap, joi, moduleVersionSchema } from "../config/common"
+import { joiArray, joiIdentifier, joiIdentifierMap, joi, moduleVersionSchema, PrimitiveMap } from "../config/common"
 import { getModuleTypeBases } from "../plugins"
 import { ModuleType } from "./plugin/plugin"
+import { moduleOutputsSchema } from "./plugin/module/getModuleOutputs"
+import { LogEntry } from "../logger/log-entry"
 
 export interface FileCopySpec {
   source: string
@@ -33,6 +35,7 @@ export interface GardenModule<M extends {} = any, S extends {} = any, T extends 
   version: ModuleVersion
 
   buildDependencies: ModuleMap
+  outputs: PrimitiveMap
 
   serviceNames: string[]
   serviceDependencyNames: string[]
@@ -62,6 +65,7 @@ export const moduleSchema = () =>
       .description(
         "Indicate whether the module needs to be built (i.e. has a build handler or needs to copy dependencies)."
       ),
+    outputs: moduleOutputsSchema(),
     serviceNames: joiArray(joiIdentifier())
       .required()
       .description("The names of the services that the module provides."),
@@ -84,10 +88,13 @@ export interface ModuleConfigMap<T extends ModuleConfig = ModuleConfig> {
 
 export async function moduleFromConfig(
   garden: Garden,
+  log: LogEntry,
   config: ModuleConfig,
   buildDependencies: GardenModule[]
 ): Promise<GardenModule> {
   const version = await garden.resolveVersion(config, config.build.dependencies)
+  const actions = await garden.getActionRouter()
+  const { outputs } = await actions.getModuleOutputs({ log, moduleConfig: config, version })
   const moduleTypes = await garden.getModuleTypes()
   const compatibleTypes = [config.type, ...getModuleTypeBases(moduleTypes[config.type], moduleTypes).map((t) => t.name)]
 
@@ -101,6 +108,7 @@ export async function moduleFromConfig(
     needsBuild: moduleNeedsBuild(config, moduleTypes[config.type]),
 
     buildDependencies: {},
+    outputs,
 
     serviceNames: getNames(config.serviceConfigs),
     serviceDependencyNames: uniq(
