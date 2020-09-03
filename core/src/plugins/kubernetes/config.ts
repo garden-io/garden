@@ -17,6 +17,7 @@ import {
   containerEnvVarsSchema,
   containerArtifactSchema,
   ContainerEnvVars,
+  artifactsDescription,
 } from "../container/config"
 import { PluginContext } from "../../plugin-context"
 import { deline } from "../../util/string"
@@ -639,9 +640,7 @@ export const kubernetesTaskSchema = () =>
         .description("The arguments to pass to the container used for execution.")
         .example(["rake", "db:migrate"]),
       env: containerEnvVarsSchema(),
-      artifacts: joiArray(containerArtifactSchema()).description(
-        "Specify artifacts to copy out of the container after the task is complete."
-      ),
+      artifacts: joiArray(containerArtifactSchema()).description(artifactsDescription),
     })
     .description("The task definitions for this module.")
 
@@ -664,9 +663,7 @@ export const kubernetesTestSchema = () =>
         .description("The arguments to pass to the container used for testing.")
         .example(["npm", "test"]),
       env: containerEnvVarsSchema(),
-      artifacts: joiArray(containerArtifactSchema()).description(
-        "Specify artifacts to copy out of the container after the test is complete."
-      ),
+      artifacts: joiArray(containerArtifactSchema()).description(artifactsDescription),
     })
     .description("The test suite definitions for this module.")
 

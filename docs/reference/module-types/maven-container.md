@@ -344,14 +344,17 @@ tests:
     # The arguments used to run the test inside the container.
     args:
 
-    # Specify artifacts to copy out of the container after the run.
+    # Specify artifacts to copy out of the container after the run. The artifacts are stored locally under the
+    # `.garden/artifacts` directory.
+    #
     # Note: Depending on the provider, this may require the container image to include `sh` `tar`, in order to enable
     # the file transfer.
     artifacts:
       - # A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
         source:
 
-        # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
+        # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at
+        # `.garden/artifacts`.
         target: .
 
     # The command/entrypoint used to run the test inside the container.
@@ -423,14 +426,17 @@ tasks:
     # The arguments used to run the task inside the container.
     args:
 
-    # Specify artifacts to copy out of the container after the run.
+    # Specify artifacts to copy out of the container after the run. The artifacts are stored locally under the
+    # `.garden/artifacts` directory.
+    #
     # Note: Depending on the provider, this may require the container image to include `sh` `tar`, in order to enable
     # the file transfer.
     artifacts:
       - # A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
         source:
 
-        # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
+        # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at
+        # `.garden/artifacts`.
         target: .
 
     # Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time
@@ -1417,7 +1423,8 @@ tests:
 
 [tests](#tests) > artifacts
 
-Specify artifacts to copy out of the container after the run.
+Specify artifacts to copy out of the container after the run. The artifacts are stored locally under the `.garden/artifacts` directory.
+
 Note: Depending on the provider, this may require the container image to include `sh` `tar`, in order to enable the file transfer.
 
 | Type            | Required |
@@ -1455,7 +1462,7 @@ tests:
 
 [tests](#tests) > [artifacts](#testsartifacts) > target
 
-A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
+A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at `.garden/artifacts`.
 
 | Type        | Default | Required |
 | ----------- | ------- | -------- |
@@ -1665,7 +1672,8 @@ tasks:
 
 [tasks](#tasks) > artifacts
 
-Specify artifacts to copy out of the container after the run.
+Specify artifacts to copy out of the container after the run. The artifacts are stored locally under the `.garden/artifacts` directory.
+
 Note: Depending on the provider, this may require the container image to include `sh` `tar`, in order to enable the file transfer.
 
 | Type            | Required |
@@ -1703,7 +1711,7 @@ tasks:
 
 [tasks](#tasks) > [artifacts](#tasksartifacts) > target
 
-A POSIX-style path to copy the artifacts to, relative to the project artifacts directory.
+A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at `.garden/artifacts`.
 
 | Type        | Default | Required |
 | ----------- | ------- | -------- |

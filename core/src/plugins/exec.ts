@@ -31,6 +31,7 @@ import { ConfigurationError, RuntimeError } from "../exceptions"
 import { LogEntry } from "../logger/log-entry"
 import { providerConfigBaseSchema } from "../config/provider"
 import { ExecaError } from "execa"
+import { artifactsTargetDescription } from "./container/config"
 
 const execPathDoc = dedent`
   By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
@@ -46,12 +47,7 @@ const artifactSchema = () =>
       .subPathOnly()
       .required()
       .description("A POSIX-style path or glob to copy, relative to the build root."),
-    target: joi
-      .posixPath()
-      .relativeOnly()
-      .subPathOnly()
-      .default(".")
-      .description("A POSIX-style path to copy the artifact to, relative to the project artifacts directory."),
+    target: joi.posixPath().relativeOnly().subPathOnly().default(".").description(artifactsTargetDescription),
   })
 
 const artifactsSchema = () => joi.array().items(artifactSchema())
