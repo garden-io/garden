@@ -7,7 +7,9 @@ import chalk from "chalk"
 import parseArgs = require("minimist")
 import deline = require("deline")
 import { resolve } from "path"
-import { readFile, createWriteStream } from "fs-extra"
+import { readFile, createWriteStream, writeFile } from "fs-extra"
+import { getPackages } from "./run-script"
+import Bluebird = require("bluebird")
 const replace = require("replace-in-file")
 
 type ReleaseType = "minor" | "patch" | "preminor" | "prepatch" | "prerelease"
@@ -45,13 +47,22 @@ async function release() {
   if (!RELEASE_TYPES.includes(releaseType)) {
     throw new Error(`Invalid release type ${releaseType}, available types are: ${RELEASE_TYPES.join(", ")}`)
   }
-  // Update package.json versions
-  await execa("node_modules/.bin/lerna", [
-    "version", "--no-git-tag-version", "--force-publish", "--yes", releaseType,
-  ], { cwd: gardenRoot })
 
-  // Read the version from core/package.json after setting it (rather than parsing the lerna output)
-  const version = "v" + require("../core/package.json").version
+  // Update package.json versions
+  const prevVersion = require("../package.json").version
+  const version = semver.inc(prevVersion, releaseType)!
+
+  console.log(`Bumping version from ${prevVersion} to ${version}...`)
+
+  const packages = await getPackages()
+
+  await Bluebird.map(Object.values(packages), async (p) => {
+    const packageJsonPath = resolve(p.location, "package.json")
+    const packageJson = require(packageJsonPath)
+    packageJson.version = version
+    await writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2))
+  })
+
   const branchName = `release-${version}`
 
   // Check if branch already exists locally
@@ -90,18 +101,6 @@ async function release() {
     await rollBack()
     return
   }
-
-  // Lerna doesn't update yarn.lock so we need the following workaround.
-  // See this issue for details: https://github.com/lerna/lerna/issues/1415
-  console.log("Updating yarn.lock for all packages...")
-  await execa("node_modules/.bin/lerna", ["clean", "--yes"], { cwd: gardenRoot })
-  await execa("node_modules/.bin/lerna", [
-    "bootstrap",
-    "--ignore-scripts",
-    "--",
-    "--package-lock-only",
-    "--no-audit",
-  ], { cwd: gardenRoot })
 
   // Pull remote tags
   console.log("Pulling remote tags...")

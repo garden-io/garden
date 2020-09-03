@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "description": "Auto-generator for the conftest plugin and Garden kubernetes/helm modules",
   "main": "index.js",
+  "private": true,
   "dependencies": {
     "@garden-io/core": "*",
     "@garden-io/garden-conftest": "*",
