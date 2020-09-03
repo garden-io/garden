@@ -160,7 +160,8 @@ tasks:
       - # A POSIX-style path or glob to copy, relative to the build root.
         source:
 
-        # A POSIX-style path to copy the artifact to, relative to the project artifacts directory.
+        # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at
+        # `.garden/artifacts`.
         target: .
 
     # The command to run.
@@ -206,7 +207,8 @@ tests:
       - # A POSIX-style path or glob to copy, relative to the build root.
         source:
 
-        # A POSIX-style path to copy the artifact to, relative to the project artifacts directory.
+        # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at
+        # `.garden/artifacts`.
         target: .
 ```
 
@@ -536,7 +538,7 @@ A POSIX-style path or glob to copy, relative to the build root.
 
 [tasks](#tasks) > [artifacts](#tasksartifacts) > target
 
-A POSIX-style path to copy the artifact to, relative to the project artifacts directory.
+A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at `.garden/artifacts`.
 
 | Type        | Default | Required |
 | ----------- | ------- | -------- |
@@ -663,7 +665,7 @@ A POSIX-style path or glob to copy, relative to the build root.
 
 [tests](#tests) > [artifacts](#testsartifacts) > target
 
-A POSIX-style path to copy the artifact to, relative to the project artifacts directory.
+A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at `.garden/artifacts`.
 
 | Type        | Default | Required |
 | ----------- | ------- | -------- |
