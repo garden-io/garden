@@ -333,29 +333,31 @@ export function flattenResources(resources: KubernetesResource[]) {
  * Maps an array of env vars, as specified on a container module, to a list of Kubernetes `V1EnvVar`s.
  */
 export function prepareEnvVars(env: ContainerEnvVars): V1EnvVar[] {
-  return Object.entries(env).map(([name, value]) => {
-    if (value === null) {
-      return { name, value: "null" }
-    } else if (typeof value === "object") {
-      if (!value.secretRef.key) {
-        throw new ConfigurationError(`kubernetes: Must specify \`key\` on secretRef for env variable ${name}`, {
+  return Object.entries(env)
+    .filter(([_, value]) => value !== undefined)
+    .map(([name, value]) => {
+      if (value === null) {
+        return { name, value: "null" }
+      } else if (typeof value === "object") {
+        if (!value.secretRef.key) {
+          throw new ConfigurationError(`kubernetes: Must specify \`key\` on secretRef for env variable ${name}`, {
+            name,
+            value,
+          })
+        }
+        return {
           name,
-          value,
-        })
-      }
-      return {
-        name,
-        valueFrom: {
-          secretKeyRef: {
-            name: value.secretRef.name,
-            key: value.secretRef.key!,
+          valueFrom: {
+            secretKeyRef: {
+              name: value.secretRef.name,
+              key: value.secretRef.key!,
+            },
           },
-        },
+        }
+      } else {
+        return { name, value: value.toString() }
       }
-    } else {
-      return { name, value: value.toString() }
-    }
-  })
+    })
 }
 
 /**
