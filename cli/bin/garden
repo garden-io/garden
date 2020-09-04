@@ -1,11 +1,6 @@
 #!/usr/bin/env node
 
 const cluster = require("cluster")
-const v8 = require("v8")
-require("source-map-support").install()
-
-const cli = require("../build/src/cli")
-const chalk = require("chalk")
 
 // Wrapping and forking, to catch OOM errors and print helpful message
 // See https://medium.com/@evgeni.leonti/detect-heap-overflow-on-node-js-javascript-heap-out-of-memory-41cb649c6b33
@@ -15,6 +10,12 @@ if (cluster.isMaster) {
     process.exit(workerExitCode)
   })
 } else {
+  const v8 = require("v8")
+  require("source-map-support").install()
+
+  const cli = require("../build/src/cli")
+  const chalk = require("chalk")
+
   // Worker process
   const totalHeapSizeThreshold = (v8.getHeapStatistics().heap_size_limit * 85) / 100
 
