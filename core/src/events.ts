@@ -7,11 +7,11 @@
  */
 
 import { EventEmitter2 } from "eventemitter2"
-import { ModuleVersion } from "./vcs/vcs"
 import { GraphResult } from "./task-graph"
 import { LogEntryEvent } from "./enterprise/buffered-event-stream"
 import { ServiceStatus } from "./types/service"
 import { RunStatus } from "./types/plugin/base"
+import { Omit } from "./util/util"
 
 export type GardenEventListener<T extends EventName> = (payload: Events[T]) => void
 
@@ -112,9 +112,9 @@ export interface Events extends LoggerEvents {
     key: string
     type: string
     name: string
-    version: ModuleVersion
+    versionString: string
   }
-  taskComplete: GraphResult
+  taskComplete: GraphResult // TODO: Omit dependencyResults in this payload type?
   taskError: GraphResult
   taskCancelled: {
     cancelledAt: Date
@@ -143,7 +143,7 @@ export interface Events extends LoggerEvents {
   }
   serviceStatus: {
     serviceName: string
-    status: ServiceStatus
+    status: Omit<ServiceStatus, "detail">
   }
 
   // Workflow events

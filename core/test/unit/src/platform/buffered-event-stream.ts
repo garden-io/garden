@@ -47,7 +47,7 @@ describe("BufferedEventStream", () => {
     garden.events.emit("_test", "event")
     log.root.events.emit("_test", "log")
 
-    await bufferedEventStream.flushBuffered({ flushAll: true })
+    await bufferedEventStream.flushAll()
 
     expect(find(flushedEvents, (e) => isMatch(e, { name: "_test", payload: "event" }))).to.exist
     expect(flushedLogEntries).to.include("log")
@@ -79,13 +79,13 @@ describe("BufferedEventStream", () => {
     log.root.events.emit("_test", "log")
     gardenA.events.emit("_test", "event")
 
-    await bufferedEventStream.flushBuffered({ flushAll: true })
+    await bufferedEventStream.flushAll()
 
     expect(flushedEvents.length).to.eql(0)
     expect(flushedLogEntries).to.include("log")
 
     gardenB.events.emit("_test", "event")
-    await bufferedEventStream.flushBuffered({ flushAll: true })
+    await bufferedEventStream.flushAll()
 
     expect(find(flushedEvents, (e) => isMatch(e, { name: "_test", payload: "event" }))).to.exist
   })

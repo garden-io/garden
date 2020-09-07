@@ -421,7 +421,7 @@ export class ActionRouter implements TypeGuard {
     const { result } = await this.callServiceHandler({ params, actionType: "getServiceStatus" })
     this.garden.events.emit("serviceStatus", {
       serviceName: params.service.name,
-      status: result,
+      status: omit(result, "detail"),
     })
     this.validateServiceOutputs(params.service, result)
     return result
@@ -431,7 +431,7 @@ export class ActionRouter implements TypeGuard {
     const { result } = await this.callServiceHandler({ params, actionType: "deployService" })
     this.garden.events.emit("serviceStatus", {
       serviceName: params.service.name,
-      status: result,
+      status: omit(result, "detail"),
     })
     this.validateServiceOutputs(params.service, result)
     return result
