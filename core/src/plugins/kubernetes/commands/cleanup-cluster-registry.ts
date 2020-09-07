@@ -187,28 +187,32 @@ async function deleteImagesFromRegistry(ctx: KubernetesPluginContext, log: LogEn
     status: "active",
   })
 
-  await Bluebird.map(images, async (image) => {
-    try {
-      // Get the digest for the image
-      const [name, tag] = splitLast(image, ":")
-      const res = await queryRegistry(ctx, log, `${name}/manifests/${tag}`, {
-        method: "HEAD",
-        headers: {
-          Accept: "application/vnd.docker.distribution.manifest.v2+json",
-        },
-      })
-      const digest = res.headers["docker-content-digest"]
+  await Bluebird.map(
+    images,
+    async (image) => {
+      try {
+        // Get the digest for the image
+        const [name, tag] = splitLast(image, ":")
+        const res = await queryRegistry(ctx, log, `${name}/manifests/${tag}`, {
+          method: "HEAD",
+          headers: {
+            Accept: "application/vnd.docker.distribution.manifest.v2+json",
+          },
+        })
+        const digest = res.headers["docker-content-digest"]
 
-      // Issue the delete request
-      await queryRegistry(ctx, log, `${name}/manifests/${digest}`, {
-        method: "DELETE",
-      })
-    } catch (err) {
-      if (err.response?.statusCode !== 404) {
-        throw err
+        // Issue the delete request
+        await queryRegistry(ctx, log, `${name}/manifests/${digest}`, {
+          method: "DELETE",
+        })
+      } catch (err) {
+        if (err.response?.statusCode !== 404) {
+          throw err
+        }
       }
-    }
-  })
+    },
+    { concurrency: 100 }
+  )
 
   log.info(`Flagged ${images.length} images as deleted in the registry.`)
   log.setSuccess()
@@ -247,64 +251,67 @@ async function runRegistryGarbageCollection(ctx: KubernetesPluginContext, api: K
   })
   delete modifiedDeployment.status
 
-  await apply({
-    ctx,
-    log,
-    provider,
-    manifests: [modifiedDeployment],
-    namespace: systemNamespace,
-  })
+  try {
+    await apply({
+      ctx,
+      log,
+      provider,
+      manifests: [modifiedDeployment],
+      namespace: systemNamespace,
+    })
 
-  // -> Wait for registry to be up again
-  await waitForResources({
-    namespace: systemNamespace,
-    ctx,
-    provider,
-    log,
-    serviceName: "docker-registry",
-    resources: [modifiedDeployment],
-  })
+    // -> Wait for registry to be up again
+    await waitForResources({
+      namespace: systemNamespace,
+      ctx,
+      provider,
+      log,
+      serviceName: "docker-registry",
+      resources: [modifiedDeployment],
+    })
 
-  // Run garbage collection
-  log.info("Running garbage collection...")
-  await execInWorkload({
-    ctx,
-    provider,
-    log,
-    namespace: systemNamespace,
-    workload: modifiedDeployment,
-    command: ["/bin/registry", "garbage-collect", "/etc/docker/registry/config.yml"],
-    interactive: false,
-  })
+    // Run garbage collection
+    log.info("Running garbage collection...")
+    await execInWorkload({
+      ctx,
+      provider,
+      log,
+      namespace: systemNamespace,
+      workload: modifiedDeployment,
+      command: ["/bin/registry", "garbage-collect", "/etc/docker/registry/config.yml"],
+      interactive: false,
+    })
+  } finally {
+    // Restart the registry again as normal
+    log.info("Restarting without read-only mode...")
 
-  // Restart the registry again as normal
-  log.info("Restarting without read-only mode...")
+    // -> Re-apply the original deployment
+    registryDeployment = await api.apps.readNamespacedDeployment(CLUSTER_REGISTRY_DEPLOYMENT_NAME, systemNamespace)
+    const writableRegistry = sanitizeResource(registryDeployment)
+    // -> Remove the maintenance flag
+    writableRegistry.spec.template.spec!.containers[0].env =
+      writableRegistry.spec?.template.spec?.containers[0].env?.filter(
+        (e) => e.name !== "REGISTRY_STORAGE_MAINTENANCE"
+      ) || []
 
-  // -> Re-apply the original deployment
-  registryDeployment = await api.apps.readNamespacedDeployment(CLUSTER_REGISTRY_DEPLOYMENT_NAME, systemNamespace)
-  const writableRegistry = sanitizeResource(registryDeployment)
-  // -> Remove the maintenance flag
-  writableRegistry.spec.template.spec!.containers[0].env =
-    writableRegistry.spec?.template.spec?.containers[0].env?.filter((e) => e.name !== "REGISTRY_STORAGE_MAINTENANCE") ||
-    []
+    await apply({
+      ctx,
+      log,
+      provider,
+      manifests: [writableRegistry],
+      namespace: systemNamespace,
+    })
 
-  await apply({
-    ctx,
-    log,
-    provider,
-    manifests: [writableRegistry],
-    namespace: systemNamespace,
-  })
-
-  // -> Wait for registry to be up again
-  await waitForResources({
-    namespace: systemNamespace,
-    ctx,
-    provider,
-    log,
-    serviceName: "docker-registry",
-    resources: [modifiedDeployment],
-  })
+    // -> Wait for registry to be up again
+    await waitForResources({
+      namespace: systemNamespace,
+      ctx,
+      provider,
+      log,
+      serviceName: "docker-registry",
+      resources: [modifiedDeployment],
+    })
+  }
 
   log.info(`Completed registry garbage collection.`)
   log.setSuccess()
@@ -378,7 +385,7 @@ async function deleteImagesFromDaemon({
           log,
           command: ["docker", "rmi", ...images],
           containerName: dockerDaemonContainerName,
-          timeoutSec: 300,
+          timeoutSec: 600,
         })
         log.setState(deline`
         Deleting images:
@@ -395,7 +402,7 @@ async function deleteImagesFromDaemon({
     log,
     command: ["docker", "image", "prune", "-f"],
     containerName: dockerDaemonContainerName,
-    timeoutSec: 300,
+    timeoutSec: 1000,
   })
 
   log.setSuccess()
@@ -432,7 +439,7 @@ async function cleanupBuildSyncVolume({
   const stat = await runner.exec({
     log,
     command: ["sh", "-c", 'stat /data/* -c "%n %X"'],
-    timeoutSec: 30,
+    timeoutSec: 300,
   })
 
   // Remove directories last accessed more than workspaceSyncDirTtl ago
@@ -453,11 +460,16 @@ async function cleanupBuildSyncVolume({
   // Delete the directories
   log.info(`Deleting ${dirsToDelete.length} workspace directories.`)
 
-  await runner.exec({
-    log,
-    command: ["rm", "-rf", ...dirsToDelete],
-    timeoutSec: 30,
-  })
+  await Bluebird.map(
+    chunk(dirsToDelete, 100),
+    () =>
+      runner.exec({
+        log,
+        command: ["rm", "-rf", ...dirsToDelete],
+        timeoutSec: 300,
+      }),
+    { concurrency: 20 }
+  )
 
   log.setSuccess()
 }
