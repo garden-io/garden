@@ -367,10 +367,11 @@ ${renderCommands(commands)}
       return done(0, getPackageVersion())
     }
 
-    const { command } = pickCommand(Object.values(this.commands), args)
+    const { command } = pickCommand(Object.values(this.commands), argv._)
 
     if (!command) {
-      return done(0, this.renderHelp())
+      const exitCode = argv.h || argv.help ? 0 : 1
+      return done(exitCode, this.renderHelp())
     }
 
     if (command instanceof CommandGroup) {
