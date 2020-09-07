@@ -7,7 +7,7 @@
  */
 
 import { join } from "path"
-import { Connection, getConnectionManager, ConnectionOptions } from "typeorm"
+import { Connection, getConnectionManager, ConnectionOptions } from "typeorm-with-better-sqlite3"
 import { gardenEnv } from "../constants"
 
 let connection: Connection
@@ -24,7 +24,7 @@ export function getConnection(): Connection {
 
     // Prepare the connection (the ormconfig.json in the static dir is only used for the typeorm CLI during dev)
     const options: ConnectionOptions = {
-      type: "sqlite",
+      type: "better-sqlite3",
       database: databasePath,
       // IMPORTANT: All entities and migrations need to be manually referenced here because of how we
       // package the garden binary
