@@ -36,7 +36,7 @@ describe("cli", () => {
       const cli = new GardenCli()
       const { code, consoleOutput } = await cli.run({ args: [], exitOnError: false })
 
-      expect(code).to.equal(0)
+      expect(code).to.equal(1)
       expect(consoleOutput).to.equal(cli.renderHelp())
     })
 
@@ -126,6 +126,27 @@ describe("cli", () => {
       cli.addCommand(cmd)
 
       const { code, result } = await cli.run({ args: ["test-command"], exitOnError: false })
+
+      expect(code).to.equal(0)
+      expect(result).to.eql({ something: "important" })
+    })
+
+    it("handles params specified before the command", async () => {
+      class TestCommand extends Command {
+        name = "test-command"
+        help = "halp!"
+        noProject = true
+
+        async action({}) {
+          return { result: { something: "important" } }
+        }
+      }
+
+      const cli = new GardenCli()
+      const cmd = new TestCommand()
+      cli.addCommand(cmd)
+
+      const { code, result } = await cli.run({ args: ["--logger-type=basic", "test-command"], exitOnError: false })
 
       expect(code).to.equal(0)
       expect(result).to.eql({ something: "important" })
