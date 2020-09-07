@@ -73,6 +73,13 @@ export interface ApiLogBatch extends ApiBatchBase {
 export const controlEventNames: Set<EventName> = new Set(["_workflowRunRegistered"])
 
 /**
+ * We use 600 kilobytes as the maximum combined size of the events / log entries in a given batch. This number
+ * was chosen to fit comfortably below e.g. nginx' default max request size, while still being able to carry a decent
+ * number of records.
+ */
+export const MAX_BATCH_BYTES = 600 * 1000 // 600 kilobytes
+
+/**
  * Buffers events and log entries and periodically POSTs them to Garden Enterprise or another Garden service.
  *
  * Subscribes to logger events once, in the constructor.
@@ -99,9 +106,7 @@ export class BufferedEventStream {
   private intervalId: NodeJS.Timer | null
   private bufferedEvents: StreamEvent[]
   private bufferedLogEntries: LogEntryEvent[]
-
   protected intervalMsec = 1000
-  protected maxBatchSize = 100
 
   constructor(log: LogEntry, sessionId: string) {
     this.sessionId = sessionId
@@ -155,7 +160,7 @@ export class BufferedEventStream {
 
   startInterval() {
     this.intervalId = setInterval(() => {
-      this.flushBuffered({ flushAll: false }).catch((err) => {
+      this.flushBuffered().catch((err) => {
         this.log.error(err)
       })
     }, this.intervalMsec)
@@ -167,7 +172,7 @@ export class BufferedEventStream {
       this.intervalId = null
     }
     try {
-      await this.flushBuffered({ flushAll: true })
+      await this.flushAll()
     } catch (err) {
       /**
        * We don't throw an exception here, since a failure to stream events and log entries doesn't mean that the
@@ -230,7 +235,7 @@ export class BufferedEventStream {
     await this.postToTargets(`${logEntries.length} log entries`, "log-entries", data)
   }
 
-  private async postToTargets(description: string, path: string, data: any) {
+  private async postToTargets(description: string, path: string, data: ApiEventBatch | ApiLogBatch) {
     if (this.targets.length === 0) {
       this.log.silly("No targets to send events to. Dropping them.")
     }
@@ -241,25 +246,74 @@ export class BufferedEventStream {
     this.log.silly(`data: ${JSON.stringify(data)}`)
     this.log.silly(`--------`)
 
-    await Bluebird.map(this.targets, (target) => {
-      const headers = this.getHeaders(target)
-      return got.post(`${target.host}/${path}`, { json: data, headers })
-    })
+    try {
+      await Bluebird.map(this.targets, (target) => {
+        const headers = this.getHeaders(target)
+        return got.post(`${target.host}/${path}`, { json: data, headers })
+      })
+    } catch (err) {
+      /**
+       * We don't throw an exception here, since a failure to stream events and log entries doesn't mean that the
+       * command failed.
+       */
+      this.log.error(`Error while flushing events and log entries: ${err.message}`)
+    }
   }
 
-  async flushBuffered({ flushAll = false }) {
+  /**
+   * Flushes all events and log entries until none remain, and returns a promise that resolves when all of them
+   * have been posted to their targets.
+   */
+  async flushAll() {
     if (!this.garden || this.targets.length === 0) {
       return
     }
 
-    const eventsToFlush = this.bufferedEvents.splice(0, flushAll ? this.bufferedEvents.length : this.maxBatchSize)
+    this.log.silly(`Flushing all remaining events and log entries`)
+    const flushPromises: Promise<any>[] = []
+    try {
+      while (this.bufferedEvents.length > 0 || this.bufferedLogEntries.length > 0) {
+        this.log.silly(`remaining: ${this.bufferedEvents.length} events, ${this.bufferedLogEntries.length} log entries`)
+        // while (this.bufferedEvents.length > 0 || this.bufferedLogEntries.length > 0) {
+        flushPromises.push(this.flushBuffered())
+      }
+    } catch (err) {
+      throw err
+    }
+    return Bluebird.all(flushPromises)
+  }
 
-    const logEntryFlushCount = flushAll
-      ? this.bufferedLogEntries.length
-      : this.maxBatchSize - this.bufferedLogEntries.length
-    const logEntriesToFlush = this.bufferedLogEntries.splice(0, logEntryFlushCount)
+  async flushBuffered() {
+    if (!this.garden || this.targets.length === 0) {
+      return
+    }
+
+    const eventsToFlush = this.makeBatch(this.bufferedEvents)
+    const logEntriesToFlush = this.makeBatch(this.bufferedLogEntries)
 
     return Bluebird.all([this.flushEvents(eventsToFlush), this.flushLogEntries(logEntriesToFlush)])
+  }
+
+  /**
+   * Adds buffered records (events or log entries) to a batch until none remain or until their combined size
+   * exceeds `MAX_MATCH_BYTES`, and returns the batch.
+   */
+  makeBatch<B>(buffered: B[]): B[] {
+    const batch: B[] = []
+    let batchBytes = 0
+    while (batchBytes < MAX_BATCH_BYTES && buffered.length > 0) {
+      const nextRecordBytes = Buffer.from(JSON.stringify(buffered[0])).length
+      if (batchBytes + nextRecordBytes > MAX_BATCH_BYTES) {
+        break
+      }
+      if (nextRecordBytes > MAX_BATCH_BYTES) {
+        this.log.error(`Event or log entry too large to flush, dropping it.`)
+        this.log.debug(JSON.stringify(buffered[0]))
+      }
+      batch.push(buffered.shift() as B)
+      batchBytes += nextRecordBytes
+    }
+    return batch
   }
 
   getWorkflowRunUid(): string | undefined {

@@ -402,7 +402,7 @@ export class TaskGraph extends EventEmitter2 {
           key,
           batchId,
           startedAt: new Date(),
-          version: task.version,
+          versionString: task.version.versionString,
         })
         result = await node.process(dependencyResults)
         result.startedAt = startedAt

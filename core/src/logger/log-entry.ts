@@ -39,7 +39,7 @@ export interface WorkflowStepMetadata {
   index: number
 }
 
-export const EVENT_LOG_LEVEL = LogLevel.debug
+export const EVENT_LOG_LEVEL = LogLevel.info
 
 interface MessageBase {
   msg?: string

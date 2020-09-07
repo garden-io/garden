@@ -161,7 +161,7 @@ describe("task-graph", () => {
             key: task.getKey(),
             name: task.name,
             type: task.type,
-            version: task.version,
+            versionString: task.version.versionString,
           },
         },
         { name: "taskComplete", payload: result["a"] },
@@ -250,7 +250,7 @@ describe("task-graph", () => {
             key: task.getKey(),
             name: task.name,
             type: task.type,
-            version: task.version,
+            versionString: task.version.versionString,
           },
         },
         { name: "taskError", payload: result["a"] },
@@ -740,6 +740,7 @@ describe("task-graph", () => {
 
       const filteredKeys: Set<string | number> = new Set([
         "version",
+        "versionString",
         "error",
         "addedAt",
         "startedAt",
