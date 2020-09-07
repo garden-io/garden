@@ -23,10 +23,8 @@ const tmpDir = resolve(repoRoot, "tmp", "pkg")
 const tmpStaticDir = resolve(tmpDir, "static")
 const pkgPath = resolve(repoRoot, "node_modules", ".bin", "pkg")
 const pkgFetchPath = resolve(repoRoot, "node_modules", ".bin", "pkg-fetch")
-const preGypPath = resolve(repoRoot, "node_modules", ".bin", "node-pre-gyp")
-const sqlitePath = resolve(repoRoot, "node_modules", "sqlite3")
 const distPath = resolve(repoRoot, "dist")
-const sqliteBinFilename = "node_sqlite3.node"
+const sqliteBinFilename = "better_sqlite3.node"
 const version = getPackageVersion()
 
 // tslint:disable: no-console
@@ -131,8 +129,6 @@ async function pkgMacos(targetName: string, sourcePath: string, pkgType: string)
     targetName,
     pkgType,
     binFilename: "garden",
-    arch: "x64",
-    platform: "darwin",
   })
 
   console.log(` - ${targetName} -> fsevents.node`)
@@ -147,8 +143,6 @@ async function pkgLinux(targetName: string, sourcePath: string, pkgType: string)
     targetName,
     pkgType,
     binFilename: "garden",
-    arch: "x64",
-    platform: "linux",
   })
   await tarball(targetName)
 }
@@ -159,8 +153,6 @@ async function pkgWindows(targetName: string, sourcePath: string, pkgType: strin
     targetName,
     pkgType,
     binFilename: "garden.exe",
-    arch: "x64",
-    platform: "win32",
   })
 
   console.log(` - ${targetName} -> zip`)
@@ -206,15 +198,11 @@ async function pkgCommon({
   targetName,
   pkgType,
   binFilename,
-  arch,
-  platform,
 }: {
   sourcePath: string
   targetName: string
   pkgType: string
   binFilename: string
-  arch: string
-  platform: string
 }) {
   const targetPath = resolve(distPath, targetName)
   await remove(targetPath)
@@ -224,9 +212,8 @@ async function pkgCommon({
   await exec(pkgPath, ["--target", pkgType, sourcePath, "--output", resolve(targetPath, binFilename)])
 
   console.log(` - ${targetName} -> ${sqliteBinFilename}`)
-  await exec(preGypPath, ["install", `--target_arch=${arch}`, `--target_platform=${platform}`], { cwd: sqlitePath })
   await copy(
-    resolve(sqlitePath, "lib", "binding", `node-v72-${platform}-${arch}`, sqliteBinFilename),
+    resolve(GARDEN_CORE_ROOT, "lib", "better-sqlite3", `${targetName}-node-v68`, sqliteBinFilename),
     resolve(targetPath, sqliteBinFilename)
   )
 

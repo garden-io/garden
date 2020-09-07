@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Entity, Column, Index } from "typeorm"
+import { Entity, Column, Index } from "typeorm-with-better-sqlite3"
 import { GardenEntity } from "../base-entity"
 
 @Entity()

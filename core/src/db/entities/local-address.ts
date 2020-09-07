@@ -7,7 +7,7 @@
  */
 
 import { toLong, fromLong } from "ip"
-import { Entity, Column, Index } from "typeorm"
+import { Entity, Column, Index } from "typeorm-with-better-sqlite3"
 import { GardenEntity } from "../base-entity"
 
 const ipRangeStart = "127.10.0.1"

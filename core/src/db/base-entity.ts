@@ -14,7 +14,7 @@ import {
   UpdateDateColumn,
   VersionColumn,
   PrimaryGeneratedColumn,
-} from "typeorm"
+} from "typeorm-with-better-sqlite3"
 
 import { getConnection } from "./connection"
 

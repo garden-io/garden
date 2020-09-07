@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Entity, Column } from "typeorm"
+import { Entity, Column } from "typeorm-with-better-sqlite3"
 import { GardenEntity } from "../base-entity"
 import { partition, find, isMatch } from "lodash"
 
