@@ -65,6 +65,7 @@
     "check-licenses": "gulp check-licenses",
     "check-package-lock": "git diff --quiet HEAD -- yarn.lock || (echo 'yarn.lock is dirty!' && exit 1)",
     "clean": "./scripts/run-script.ts clean && find . -name \".garden\" -type d -prune -exec rm -rf '{}' '+'",
+    "clean-node-modules": "find . -name \"node_modules\" -type d -prune -exec rm -rf '{}' '+'",
     "dev": "./scripts/run-script.ts dev --parallel",
     "dist": "./scripts/run-script.ts dist",
     "fix-format": "./scripts/run-script.ts fix-format --no-bail --parallel",

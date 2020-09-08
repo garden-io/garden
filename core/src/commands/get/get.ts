@@ -19,6 +19,7 @@ import { GetDebugInfoCommand } from "./get-debug-info"
 import { GetLinkedReposCommand } from "./get-linked-repos"
 import { GetOutputsCommand } from "./get-outputs"
 import { GetDoddiCommand } from "./get-doddi"
+import { GetModulesCommand } from "./get-modules"
 
 export class GetCommand extends CommandGroup {
   name = "get"
@@ -31,6 +32,7 @@ export class GetCommand extends CommandGroup {
     GetEysiCommand,
     GetLinkedReposCommand,
     GetOutputsCommand,
+    GetModulesCommand,
     GetSecretCommand,
     GetStatusCommand,
     GetTasksCommand,
