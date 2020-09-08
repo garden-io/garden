@@ -72,6 +72,9 @@ async function runInPackages(args: string[]) {
     )
   )
 
+  // Make sure subprocesses inherit color support level
+  process.env.FORCE_COLOR = chalk.supportsColor.level.toString()
+
   const maxNameLength = max(packageList.map((p) => p.shortName.length)) as number
   let lastPackage: string = ""
   let failed: string[] = []
@@ -87,16 +90,22 @@ async function runInPackages(args: string[]) {
 
     const stream = split2()
     stream.on("data", (data) => {
+      const width = process.stdout.columns
       const line = data.toString()
-      if (line.trim().length > 0) {
-        const width = process.stdout.columns
 
-        if (lastPackage !== packageName) {
-          console.log(chalk.gray(padEnd("", width, "┄")))
-        }
-        lastPackage = packageName
+      if (line.trim().length <= 0) {
+        return
+      }
 
-        const prefix = padEnd(shortName + " ", maxNameLength + 1, lineChar) + "  "
+      if (lastPackage !== packageName) {
+        console.log(chalk.gray(padEnd("", width || 80, "┄")))
+      }
+      lastPackage = packageName
+
+      const prefix = padEnd(shortName + " ", maxNameLength + 1, lineChar) + "  "
+
+      // Only wrap and suffix if the terminal doesn't have a set width or is reasonably wider than the prefix length
+      if (process.stdout.columns > maxNameLength + 30) {
         const suffix = "  " + lineChar + lineChar
         const lineWidth = width - prefix.length - suffix.length
 
@@ -109,6 +118,8 @@ async function runInPackages(args: string[]) {
         for (const nextLine of justified.slice(1)) {
           console.log(`${padStart(nextLine, prefix.length + lineWidth, " ")}${color.bold(suffix)}`)
         }
+      } else {
+        console.log(color.bold(prefix) + line)
       }
     })
 
@@ -155,7 +166,7 @@ async function runInPackages(args: string[]) {
     }
   }
 
-  console.log(chalk.gray(padEnd("", process.stdout.columns, "┄")))
+  console.log(chalk.gray(padEnd("", process.stdout.columns || 80, "┄")))
 
   if (failed.length > 0) {
     console.log(chalk.redBright(`${script} script failed in ${failed.length} packages(s): ${failed.join(", ")}\n`))
