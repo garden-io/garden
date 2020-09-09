@@ -226,12 +226,12 @@
   },
   "scripts": {
     "build": "tsc -p . && gulp pegjs",
-    "create-migration": "typeorm migration:create --config ../static/ormconfig.json -n",
     "check-package-lock": "git diff-index --quiet HEAD -- yarn.lock || (echo 'yarn.lock is dirty!' && exit 1)",
     "clean": "shx rm -rf build",
     "dev": "yarn run watch",
     "fix-format": "prettier --write \"{src,test}/**/*.ts\"",
     "lint": "tslint -p .",
+    "migration:generate": "typeorm migration:generate --config ormconfig.js -n",
     "integ": "mocha --opts test/mocha.integ.opts",
     "integ-local": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=remote-only mocha --opts test/mocha.integ.opts",
     "integ-remote": "GARDEN_INTEG_TEST_MODE=remote GARDEN_SKIP_TESTS=local-only mocha --opts test/mocha.integ.opts",

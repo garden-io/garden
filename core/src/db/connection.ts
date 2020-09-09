@@ -21,6 +21,7 @@ export function getConnection(): Connection {
     const { ClientAuthToken } = require("./entities/client-auth-token")
     const { GardenProcess } = require("./entities/garden-process")
     const { Warning } = require("./entities/warning")
+    const { Init1599658427984 } = require("./migrations/1599658427984-Init")
 
     // Prepare the connection (the ormconfig.json in the static dir is only used for the typeorm CLI during dev)
     const options: ConnectionOptions = {
@@ -29,9 +30,7 @@ export function getConnection(): Connection {
       // IMPORTANT: All entities and migrations need to be manually referenced here because of how we
       // package the garden binary
       entities: [LocalAddress, ClientAuthToken, GardenProcess, Warning],
-      migrations: [],
-      // Auto-create new tables on init
-      synchronize: true,
+      migrations: [Init1599658427984],
       // Auto-run migrations on init
       migrationsRun: true,
     }
