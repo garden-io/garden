@@ -16,8 +16,6 @@ import {
   PrimaryGeneratedColumn,
 } from "typeorm-with-better-sqlite3"
 
-import { getConnection } from "./connection"
-
 export class GardenEntity extends BaseEntity {
   // Add these auto-populated columns on every entity
   @PrimaryGeneratedColumn()
@@ -38,14 +36,16 @@ export class GardenEntity extends BaseEntity {
    * Overriding this to make sure our connection parameters are correctly set.
    */
   static getRepository<T extends BaseEntity>(this: ObjectType<T>): Repository<T> {
+    const { getConnection } = require("./connection")
     const connection = getConnection()
-    return connection.getRepository<T>(this)
+    return connection.getRepository(this)
   }
 
   /**
    * Helper method to avoid circular import issues.
    */
   static getConnection() {
+    const { getConnection } = require("./connection")
     return getConnection()
   }
 }
