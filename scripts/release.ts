@@ -6,7 +6,7 @@ import inquirer from "inquirer"
 import chalk from "chalk"
 import parseArgs = require("minimist")
 import deline = require("deline")
-import { resolve } from "path"
+import { resolve, relative } from "path"
 import { readFile, createWriteStream, writeFile } from "fs-extra"
 import { getPackages } from "./run-script"
 import Bluebird = require("bluebird")
@@ -48,20 +48,27 @@ async function release() {
     throw new Error(`Invalid release type ${releaseType}, available types are: ${RELEASE_TYPES.join(", ")}`)
   }
 
-  // Update package.json versions
   const prevVersion = require("../package.json").version
   const version = semver.inc(prevVersion, releaseType)!
 
+  // Update package.json versions
+
+  /**
+   * For prereleases, we include the prerelease suffix for all package.json-s except the top-level one (since we use
+   * the version in the top level package.json in our release-service-dist CircleCI job, which needs to be the same
+   * as the prerelease tag name on GitHub).
+   */
+  const packageReleaseTypeMap = { preminor: "minor", prepatch: "patch" }
+  const packageVersion = semver.inc(prevVersion, packageReleaseTypeMap[releaseType] || releaseType)
+
   console.log(`Bumping version from ${prevVersion} to ${version}...`)
 
-  const packages = await getPackages()
+  const rootPackageJsonPath = resolve(__dirname, "..", "package.json")
+  await updatePackageJsonVersion(rootPackageJsonPath, version)
 
-  await Bluebird.map(Object.values(packages), async (p) => {
-    const packageJsonPath = resolve(p.location, "package.json")
-    const packageJson = require(packageJsonPath)
-    packageJson.version = version
-    await writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2))
-  })
+  const packages = await getPackages()
+  const packageJsonPaths = Object.values(packages).map((p) => resolve(p.location, "package.json"))
+  await Bluebird.map(packageJsonPaths, async (p) => await updatePackageJsonVersion(p, packageVersion!))
 
   const branchName = `release-${version}`
 
@@ -129,9 +136,10 @@ async function release() {
   await execa("git", [
     "add",
     "CHANGELOG.md",
-    "core/package.json", "core/yarn.lock",
-    "dashboard/package.json", "dashboard/yarn.lock",
+    rootPackageJsonPath,
+    ...packageJsonPaths.map((p) => relative(gardenRoot, p)),
   ], { cwd: gardenRoot })
+
   await execa("git", [
     "commit",
     "-m", `chore(release): bump version to ${version}`,
@@ -211,6 +219,12 @@ async function release() {
     https://github.com/garden-io/garden/blob/master/CONTRIBUTING.md
   `);
   }
+}
+
+async function updatePackageJsonVersion(packageJsonPath: string, newVersion: string) {
+  const packageJson = require(packageJsonPath)
+  packageJson.version = newVersion
+  await writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2))
 }
 
 async function createTag(version: string, force: boolean) {

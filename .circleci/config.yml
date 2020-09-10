@@ -45,8 +45,7 @@ orbs:
       branches:
         ignore: /.*/
       tags:
-        # Technically could be a better regex but for now just starting with v feels good enough
-        only: /v.*/
+        only: /\d+\.\d+\.\d+(-\d+)?/
 
   # Only run for PRs from core team
   only-internal-prs: &only-internal-prs
@@ -400,7 +399,7 @@ jobs:
       - run:
           name: Create a release on GitHub. If the release is a pre-release we publish it right away, otherwise we make a draft.
           command: |
-            VERSION="v$(cat core/package.json | jq -r .version)"
+            VERSION="$(cat package.json | jq -r .version)"
             PRERELEASE=""
             DRAFT=-draft
             # If pre-release, we flag it as pre-release and not as a draft
