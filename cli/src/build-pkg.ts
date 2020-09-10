@@ -124,6 +124,10 @@ async function buildBinaries(args: string[]) {
 }
 
 async function pkgMacos(targetName: string, sourcePath: string, pkgType: string) {
+  console.log(` - ${targetName} -> fsevents`)
+  // Copy fsevents from lib to node_modules
+  await copy(resolve(GARDEN_CORE_ROOT, "lib", "fsevents"), resolve(tmpDir, "cli", "node_modules", "fsevents"))
+
   await pkgCommon({
     sourcePath,
     targetName,
@@ -132,7 +136,10 @@ async function pkgMacos(targetName: string, sourcePath: string, pkgType: string)
   })
 
   console.log(` - ${targetName} -> fsevents.node`)
-  await copy(resolve(GARDEN_CORE_ROOT, "lib", "fsevents.node"), resolve(distPath, targetName, "fsevents.node"))
+  await copy(
+    resolve(GARDEN_CORE_ROOT, "lib", "fsevents", "fsevents.node"),
+    resolve(distPath, targetName, "fsevents.node")
+  )
 
   await tarball(targetName)
 }
