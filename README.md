@@ -38,11 +38,11 @@ Users typically implement Garden for one or more of the following:
 
 ## Features: Why Use Garden?
 
-- **Production-like testing environments:** A testing environment in Garden captures the full configuration of an application, [including all adjacent services and dependencies](https://docs.garden.io/guides/development-workflows#tests-and-dependencies). Garden testing environments provide consistency across your entire org–no more, “Well, it works fine on my laptop.”
+- **Production-like testing environments:** A testing environment in Garden captures the full configuration of an application, [including all adjacent services and dependencies](https://docs.garden.io/using-garden/tests). Garden testing environments provide consistency across your entire org–no more, “Well, it works fine on my laptop.”
 - **Namespaced environments on demand:** Any developer can spin up (and tear down) a namespaced environment in a shared cluster without help from DevOps, or an environment can be created by CI on every pull request.
 - **Stack-aware builds and testing with result caching:** Garden is aware of the relationships between the services in your stack, and so instead of building an entire application or running a full suite of integration tests every time, Garden will only build or test what’s necessary based on what’s been changed. These build and test results are cached and can be shared across developers on a team. The result: much faster builds and test runs, which means faster feedback loops for developers.
 - **Shared development clusters with fast in-cluster building:** Build images in your Kubernetes development cluster, thus eliminating the need for local Kubernetes clusters (in other words, no Docker or Kubernetes on your local machine).
-- **Define [tasks](https://github.com/garden-io/garden/tree/0.12.4/examples/tasks)** that run as part of your deployment process—e.g. database migrations or scaffolding.
+- **Define [tasks](https://github.com/garden-io/garden/tree/0.12.5/examples/tasks)** that run as part of your deployment process—e.g. database migrations or scaffolding.
 - **[Remote sources (multi-repository) support:](https://docs.garden.io/advanced/using-remote-sources)** Garden allows your project to automatically pull code from different repositories.
 - **Hardware and platform flexibility:** Run Garden on-prem or in one of several supported cloud providers. Build, test, and deploy Docker containers, [Helm charts](https://docs.garden.io/guides/using-helm-charts), and more. Choose from a variety of Kubernetes platforms and CI tools.
 - **Terraform integration:** Garden includes a [Terraform provider](https://docs.garden.io/advanced/terraform) that you can use to automatically validate and provision infrastructure as part of your project.
@@ -86,7 +86,7 @@ We also strongly feel that testing and development tools should be adaptable acr
 
 **Is Garden a CI platform/tool?**
 
-Not exactly, but you can certainly use Garden to make your CI faster and easier to work with. We highly recommend [running Garden from your CI](https://docs.garden.io/example-projects/using-garden-in-ci) setup, so that you can re-use the same structure and config, as well as your build and test result caches (if you’re using shared dev clusters).
+Not exactly, but you can certainly use Garden to make your CI faster and easier to work with. We highly recommend [running Garden from your CI](https://docs.garden.io/guides/using-garden-in-ci) setup, so that you can re-use the same structure and config, as well as your build and test result caches (if you’re using shared dev clusters).
 
 **Does Garden work with Nomad/Fargate/Lambda/<other platform>?**
 

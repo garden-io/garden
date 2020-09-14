@@ -1993,13 +1993,13 @@ Examples:
 
 ### garden migrate
 
-**Migrate `garden.yml` configuration files to version v0.11.x**
+**Migrate `garden.yml` configuration files to version 0.12**
 
-Scans the project for `garden.yml` configuration files and updates those that are not compatible with version v0.11.
+Scans the project for `garden.yml` configuration files and updates those that are not compatible with version 0.12.
 By default the command prints the updated versions to the terminal. You can optionally update the files in place with the `write` flag.
 
 Note: This command does not validate the configs per se. It will simply try to convert a given configuration file so that
-it is compatible with version v0.11 or greater, regardless of whether that file was ever a valid Garden config. It is therefore
+it is compatible with version 0.12 or greater, regardless of whether that file was ever a valid Garden config. It is therefore
 recommended that this is used on existing `garden.yml` files that were valid in version v0.10.x.
 
 Examples:
