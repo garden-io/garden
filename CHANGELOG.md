@@ -1,4 +1,37 @@
 
+<a name="0.12.4"></a>
+## [0.12.4](https://github.com/garden-io/garden/compare/v0.12.3...0.12.4) (2020-09-10)
+
+### Bug Fixes
+
+* **cli:** fix startup time regression after added OOM handling ([fb5f2127](https://github.com/garden-io/garden/commit/fb5f2127))
+* **cli:** handle option flags in any order ([3b24339e](https://github.com/garden-io/garden/commit/3b24339e))
+* **enterprise:** enforce stream batch size ([90ab9d08](https://github.com/garden-io/garden/commit/90ab9d08))
+* **k8s:** fix some issues with the cleanup-cluster-registry command ([56d1a2f3](https://github.com/garden-io/garden/commit/56d1a2f3))
+* **k8s:** filter out undefined environment variable values ([852b85c6](https://github.com/garden-io/garden/commit/852b85c6))
+* **k8s:** error with basic auth on WebSocket connections ([07488d47](https://github.com/garden-io/garden/commit/07488d47))
+* **k8s:** handle yet another Pod failure mode (fixes flaky test) ([09334832](https://github.com/garden-io/garden/commit/09334832))
+
+### Code Refactoring
+
+* pull conftest plugins out of core package ([6f4814e4](https://github.com/garden-io/garden/commit/6f4814e4))
+* move a bit of code from core to cli package ([469ca7d1](https://github.com/garden-io/garden/commit/469ca7d1))
+
+### Features
+
+* **cli:** add `get module(s)` command ([854509c5](https://github.com/garden-io/garden/commit/854509c5))
+* **container:** add deployment-image-id module output key ([e2f0d8df](https://github.com/garden-io/garden/commit/e2f0d8df))
+* **enterprise:** enable secrets in more contexts ([6e92c38d](https://github.com/garden-io/garden/commit/6e92c38d))
+
+### Improvements
+
+* explicitly catch EMFILE errors with better error message ([37975c86](https://github.com/garden-io/garden/commit/37975c86))
+* add plugin alias for plugins command ([dde8409e](https://github.com/garden-io/garden/commit/dde8409e))
+* **cli:** catch OOM errors and exit with helpful error message ([d7ad8d85](https://github.com/garden-io/garden/commit/d7ad8d85))
+* **core:** use typeorm migrations instead of auto-synchronize ([b771949c](https://github.com/garden-io/garden/commit/b771949c))
+* **core:** switch to better-sqlite3 driver ([c41d1d96](https://github.com/garden-io/garden/commit/c41d1d96))
+* **core:** warn on large file count in modules ([3ee20dcb](https://github.com/garden-io/garden/commit/3ee20dcb))
+
 <a name="v0.12.3"></a>
 ## [v0.12.3](https://github.com/garden-io/garden/compare/v0.12.2...v0.12.3) (2020-08-27)
 

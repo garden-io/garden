@@ -51,6 +51,7 @@ export async function getPackages({ scope, ignore }: { scope?: string; ignore?: 
 async function runInPackages(args: string[]) {
   const argv = minimist(args, { boolean: ["bail", "parallel"], default: { bail: true } })
   const script = argv._[0]
+  const rest = argv._.slice(1)
   const { scope, ignore, bail, parallel } = argv
   const repoRoot = resolve(__dirname, "..")
 
@@ -86,7 +87,7 @@ async function runInPackages(args: string[]) {
       return
     }
 
-    const proc = execa(yarnPath, ["run", script], { cwd: resolve(repoRoot, location), reject: false })
+    const proc = execa(yarnPath, ["run", script, ...rest], { cwd: resolve(repoRoot, location), reject: false })
 
     const stream = split2()
     stream.on("data", (data) => {
