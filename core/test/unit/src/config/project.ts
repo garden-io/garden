@@ -30,12 +30,13 @@ import { keyBy } from "lodash"
 
 describe("resolveProjectConfig", () => {
   it("should pass through a canonical project config", async () => {
+    const defaultEnvironment = "default"
     const config: ProjectConfig = {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Project",
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment: "default",
+      defaultEnvironment,
       dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [{ name: "default", defaultNamespace, variables: {} }],
       outputs: [],
@@ -43,7 +44,15 @@ describe("resolveProjectConfig", () => {
       variables: {},
     }
 
-    expect(resolveProjectConfig({ config, artifactsPath: "/tmp", username: "some-user", secrets: {} })).to.eql({
+    expect(
+      resolveProjectConfig({
+        defaultEnvironment,
+        config,
+        artifactsPath: "/tmp",
+        username: "some-user",
+        secrets: {},
+      })
+    ).to.eql({
       ...config,
       environments: [
         {
@@ -58,12 +67,13 @@ describe("resolveProjectConfig", () => {
   })
 
   it("should inject a default environment if none is specified", async () => {
+    const defaultEnvironment = "local"
     const config: ProjectConfig = {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Project",
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment: "local",
+      defaultEnvironment,
       dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [],
       outputs: [],
@@ -71,7 +81,15 @@ describe("resolveProjectConfig", () => {
       variables: {},
     }
 
-    expect(resolveProjectConfig({ config, artifactsPath: "/tmp", username: "some-user", secrets: {} })).to.eql({
+    expect(
+      resolveProjectConfig({
+        defaultEnvironment,
+        config,
+        artifactsPath: "/tmp",
+        username: "some-user",
+        secrets: {},
+      })
+    ).to.eql({
       ...config,
       sources: [],
       environments: defaultEnvironments,
@@ -81,13 +99,14 @@ describe("resolveProjectConfig", () => {
 
   it("should resolve template strings on fields other than environment and provider configs", async () => {
     const repositoryUrl = "git://github.com/foo/bar.git#boo"
+    const defaultEnvironment = "default"
 
     const config: ProjectConfig = {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Project",
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment: "default",
+      defaultEnvironment,
       dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [
         {
@@ -115,7 +134,13 @@ describe("resolveProjectConfig", () => {
     process.env.TEST_ENV_VAR = "foo"
 
     expect(
-      resolveProjectConfig({ config, artifactsPath: "/tmp", username: "some-user", secrets: { foo: "banana" } })
+      resolveProjectConfig({
+        defaultEnvironment,
+        config,
+        artifactsPath: "/tmp",
+        username: "some-user",
+        secrets: { foo: "banana" },
+      })
     ).to.eql({
       ...config,
       environments: [
@@ -146,12 +171,13 @@ describe("resolveProjectConfig", () => {
   })
 
   it("should pass through templated fields on provider configs", async () => {
+    const defaultEnvironment = "default"
     const config: ProjectConfig = {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Project",
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment: "default",
+      defaultEnvironment,
       dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [
         {
@@ -179,7 +205,9 @@ describe("resolveProjectConfig", () => {
     process.env.TEST_ENV_VAR_A = "foo"
     process.env.TEST_ENV_VAR_B = "boo"
 
-    expect(resolveProjectConfig({ config, artifactsPath: "/tmp", username: "some-user", secrets: {} })).to.eql({
+    expect(
+      resolveProjectConfig({ defaultEnvironment, config, artifactsPath: "/tmp", username: "some-user", secrets: {} })
+    ).to.eql({
       ...config,
       environments: [
         {
@@ -213,12 +241,13 @@ describe("resolveProjectConfig", () => {
   })
 
   it("should pass through templated fields on environment configs", async () => {
+    const defaultEnvironment = "default"
     const config: ProjectConfig = {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Project",
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment: "default",
+      defaultEnvironment,
       dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [
         {
@@ -233,18 +262,25 @@ describe("resolveProjectConfig", () => {
       variables: {},
     }
 
-    const result = resolveProjectConfig({ config, artifactsPath: "/tmp", username: "some-user", secrets: {} })
+    const result = resolveProjectConfig({
+      defaultEnvironment,
+      config,
+      artifactsPath: "/tmp",
+      username: "some-user",
+      secrets: {},
+    })
 
     expect(result.environments[0].variables).to.eql(config.environments[0].variables)
   })
 
   it("should set defaultEnvironment to first environment if not configured", async () => {
+    const defaultEnvironment = ""
     const config: ProjectConfig = {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Project",
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment: "",
+      defaultEnvironment,
       dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [],
       outputs: [],
@@ -252,7 +288,9 @@ describe("resolveProjectConfig", () => {
       variables: {},
     }
 
-    expect(resolveProjectConfig({ config, artifactsPath: "/tmp", username: "some-user", secrets: {} })).to.eql({
+    expect(
+      resolveProjectConfig({ defaultEnvironment, config, artifactsPath: "/tmp", username: "some-user", secrets: {} })
+    ).to.eql({
       ...config,
       defaultEnvironment: "local",
       environments: defaultEnvironments,
@@ -262,12 +300,13 @@ describe("resolveProjectConfig", () => {
   })
 
   it("should populate default values in the schema", async () => {
+    const defaultEnvironment = ""
     const config: ProjectConfig = {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Project",
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment: "",
+      defaultEnvironment,
       dotIgnoreFiles: defaultDotIgnoreFiles,
       environments: [],
       outputs: [],
@@ -275,7 +314,9 @@ describe("resolveProjectConfig", () => {
       variables: {},
     }
 
-    expect(resolveProjectConfig({ config, artifactsPath: "/tmp", username: "some-user", secrets: {} })).to.eql({
+    expect(
+      resolveProjectConfig({ defaultEnvironment, config, artifactsPath: "/tmp", username: "some-user", secrets: {} })
+    ).to.eql({
       ...config,
       defaultEnvironment: "local",
       environments: defaultEnvironments,
@@ -285,6 +326,7 @@ describe("resolveProjectConfig", () => {
   })
 
   it("should include providers in correct precedence order from all possible config keys", async () => {
+    const defaultEnvironment = "default"
     const config: ProjectConfig = {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Project",
@@ -317,7 +359,9 @@ describe("resolveProjectConfig", () => {
       variables: {},
     }
 
-    expect(resolveProjectConfig({ config, artifactsPath: "/tmp", username: "some-user", secrets: {} })).to.eql({
+    expect(
+      resolveProjectConfig({ defaultEnvironment, config, artifactsPath: "/tmp", username: "some-user", secrets: {} })
+    ).to.eql({
       ...config,
       environments: [
         {
@@ -350,6 +394,7 @@ describe("resolveProjectConfig", () => {
   })
 
   it("should convert old-style environment/provider config to the new canonical form", async () => {
+    const defaultEnvironment = "default"
     const config: ProjectConfig = {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Project",
@@ -382,7 +427,9 @@ describe("resolveProjectConfig", () => {
       },
     }
 
-    expect(resolveProjectConfig({ config, artifactsPath: "/tmp", username: "some-user", secrets: {} })).to.eql({
+    expect(
+      resolveProjectConfig({ defaultEnvironment, config, artifactsPath: "/tmp", username: "some-user", secrets: {} })
+    ).to.eql({
       ...config,
       environments: [
         {

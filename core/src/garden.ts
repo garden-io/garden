@@ -302,10 +302,12 @@ export class Garden {
     // Connect to the state storage
     await ensureConnected()
 
-    const defaultEnvironment = resolveTemplateString(
-      getDefaultEnvironmentName(config),
+    const defaultEnvironmentName = resolveTemplateString(
+      config.defaultEnvironment,
       new DefaultEnvironmentContext({ projectName, artifactsPath, username: _username })
     ) as string
+
+    const defaultEnvironment = getDefaultEnvironmentName(defaultEnvironmentName, config)
 
     if (!environmentStr) {
       environmentStr = defaultEnvironment
@@ -324,7 +326,13 @@ export class Garden {
       clientAuthToken = enterpriseInitResult.clientAuthToken
     }
 
-    config = resolveProjectConfig({ config, artifactsPath, username: _username, secrets })
+    config = resolveProjectConfig({
+      defaultEnvironment: defaultEnvironmentName,
+      config,
+      artifactsPath,
+      username: _username,
+      secrets,
+    })
 
     const { sources: projectSources, path: projectRoot } = config
 
