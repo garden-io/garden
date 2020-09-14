@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/dashboard",
-  "version": "0.12.4",
+  "version": "0.12.5",
   "private": true,
   "devDependencies": {
     "@types/d3": "^5.7.2",

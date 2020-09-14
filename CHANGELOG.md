@@ -1,4 +1,11 @@
 
+<a name="0.12.5"></a>
+## [0.12.5](https://github.com/garden-io/garden/compare/0.12.4...0.12.5) (2020-09-14)
+
+### Bug Fixes
+
+* **core:** fix default environment resolution ([19e5f551](https://github.com/garden-io/garden/commit/19e5f551))
+
 <a name="0.12.4"></a>
 ## [0.12.4](https://github.com/garden-io/garden/compare/v0.12.3...0.12.4) (2020-09-10)
 
