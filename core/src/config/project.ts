@@ -373,9 +373,7 @@ export const projectSchema = () =>
     environments: environmentsSchema(),
   })
 
-export function getDefaultEnvironmentName(config: ProjectConfig): string {
-  const { defaultEnvironment } = config
-
+export function getDefaultEnvironmentName(defaultEnvironment: string, config: ProjectConfig): string {
   // TODO: get rid of the default environment config
   const environments = (config.environments || []).length === 0 ? cloneDeep(defaultEnvironments) : config.environments
 
@@ -401,11 +399,13 @@ export function getDefaultEnvironmentName(config: ProjectConfig): string {
  * @param config raw project configuration
  */
 export function resolveProjectConfig({
+  defaultEnvironment,
   config,
   artifactsPath,
   username,
   secrets,
 }: {
+  defaultEnvironment: string
   config: ProjectConfig
   artifactsPath: string
   username: string
@@ -417,7 +417,6 @@ export function resolveProjectConfig({
   const globalConfig = resolveTemplateStrings(
     {
       apiVersion: config.apiVersion,
-      defaultEnvironment: config.defaultEnvironment,
       sources: config.sources,
       varfile: config.varfile,
       variables: config.variables,
@@ -432,6 +431,7 @@ export function resolveProjectConfig({
       ...config,
       ...globalConfig,
       name,
+      defaultEnvironment,
       environments: [],
     },
     schema: projectSchema(),
@@ -462,7 +462,7 @@ export function resolveProjectConfig({
     providers,
   }
 
-  config.defaultEnvironment = getDefaultEnvironmentName(config)
+  config.defaultEnvironment = getDefaultEnvironmentName(defaultEnvironment, config)
 
   // // TODO: get rid of the default environment config
   if (config.environments.length === 0) {

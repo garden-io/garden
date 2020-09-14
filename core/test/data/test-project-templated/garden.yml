@@ -1,5 +1,6 @@
 kind: Project
 name: test-project-templated
+defaultEnvironment: "${local.env.TEST_VARIABLE == 'banana' ? 'local' : 'local'}"
 environments:
   - name: local
 providers:
