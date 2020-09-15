@@ -75,7 +75,7 @@ export function getProviderUrl(type?: string) {
  * Returns a versioned link to the source code on GitHub using the path provided.
  */
 export function getGitHubUrl(path: string) {
-  const version = "v" + getPackageVersion()
+  const version = getPackageVersion()
   if (path.startsWith("/")) {
     path = path.substring(1)
   }
