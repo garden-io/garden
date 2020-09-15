@@ -206,6 +206,8 @@ export const triggerEvents = [
   "pull-request",
   "pull-request-created",
   "pull-request-updated",
+  "pull-request-opened",
+  "pull-request-closed",
   "release",
   "release-published",
   "release-unpublished",

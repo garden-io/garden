@@ -1065,8 +1065,9 @@ triggers:
     #
     # Supported events:
     #
-    # `create`, `pull-request`, `pull-request-created`, `pull-request-updated`, `push`, `release`, `release-created`,
-    # `release-deleted`, `release-edited`, `release-prereleased`, `release-published`, `release-unpublished`
+    # `create`, `pull-request`, `pull-request-closed`, `pull-request-created`, `pull-request-opened`,
+    # `pull-request-updated`, `push`, `release`, `release-created`, `release-deleted`, `release-edited`,
+    # `release-prereleased`, `release-published`, `release-unpublished`
     #
     #
     events:
@@ -1355,7 +1356,7 @@ A list of [GitHub events](https://docs.github.com/en/developers/webhooks-and-eve
 
 Supported events:
 
-`create`, `pull-request`, `pull-request-created`, `pull-request-updated`, `push`, `release`, `release-created`, `release-deleted`, `release-edited`, `release-prereleased`, `release-published`, `release-unpublished`
+`create`, `pull-request`, `pull-request-closed`, `pull-request-created`, `pull-request-opened`, `pull-request-updated`, `push`, `release`, `release-created`, `release-deleted`, `release-edited`, `release-prereleased`, `release-published`, `release-unpublished`
 
 
 

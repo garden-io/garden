@@ -1241,9 +1241,9 @@ workflowConfigs:
         #
         # Supported events:
         #
-        # `create`, `pull-request`, `pull-request-created`, `pull-request-updated`, `push`, `release`,
-        # `release-created`, `release-deleted`, `release-edited`, `release-prereleased`, `release-published`,
-        # `release-unpublished`
+        # `create`, `pull-request`, `pull-request-closed`, `pull-request-created`, `pull-request-opened`,
+        # `pull-request-updated`, `push`, `release`, `release-created`, `release-deleted`, `release-edited`,
+        # `release-prereleased`, `release-published`, `release-unpublished`
         #
         #
         events:
