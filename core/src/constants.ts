@@ -59,7 +59,7 @@ export const gardenEnv = {
   GARDEN_ENABLE_PROFILING: env.get("GARDEN_ENABLE_PROFILING").required(false).asBool(),
   GARDEN_LOG_LEVEL: env.get("GARDEN_LOG_LEVEL").required(false).asString(),
   GARDEN_LOGGER_TYPE: env.get("GARDEN_LOGGER_TYPE").required(false).asString(),
-  GARDEN_PLATFORM_SCHEDULED: env.get("GARDEN_PLATFORM_SCHEDULED").required(false).asBool(),
+  GARDEN_GE_SCHEDULED: env.get("GARDEN_GE_SCHEDULED").required(false).asBool(),
   GARDEN_SERVER_PORT: env.get("GARDEN_SERVER_PORT").required(false).asPortNumber(),
   GARDEN_SKIP_TESTS: env.get("GARDEN_SKIP_TESTS").required(false).default("").asString(),
   GARDEN_HARD_CONCURRENCY_LIMIT: env.get("GARDEN_HARD_CONCURRENCY_LIMIT").required(false).default(50).asInt(),
