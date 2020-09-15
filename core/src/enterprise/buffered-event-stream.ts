@@ -13,7 +13,6 @@ import { chainMessages } from "../logger/renderers"
 import { got } from "../util/http"
 import { makeAuthHeader } from "./auth"
 import { LogLevel } from "../logger/log-node"
-import { gardenEnv } from "../constants"
 import { Garden } from "../garden"
 
 export type StreamEvent = {
@@ -210,7 +209,7 @@ export class BufferedEventStream {
 
     const data: ApiEventBatch = {
       events,
-      workflowRunUid: this.getWorkflowRunUid(),
+      workflowRunUid: this.workflowRunUid,
       sessionId: this.sessionId,
       projectUid: this.garden.projectId || undefined,
       environment: this.garden.environmentName,
@@ -227,7 +226,7 @@ export class BufferedEventStream {
 
     const data: ApiLogBatch = {
       logEntries,
-      workflowRunUid: this.getWorkflowRunUid(),
+      workflowRunUid: this.workflowRunUid,
       sessionId: this.sessionId,
       projectUid: this.garden.projectId || undefined,
     }
@@ -314,10 +313,6 @@ export class BufferedEventStream {
       batchBytes += nextRecordBytes
     }
     return batch
-  }
-
-  getWorkflowRunUid(): string | undefined {
-    return gardenEnv.GARDEN_WORKFLOW_RUN_UID || this.workflowRunUid
   }
 
   handleControlEvent<T extends EventName>(name: T, payload: Events[T]) {

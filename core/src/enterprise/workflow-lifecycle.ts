@@ -12,6 +12,7 @@ import { WorkflowConfig, makeRunConfig } from "../config/workflow"
 import { LogEntry } from "../logger/log-entry"
 import { PlatformError } from "../exceptions"
 import { GardenEnterpriseContext } from "./init"
+import { gardenEnv } from "../constants"
 
 export interface RegisterWorkflowRunParams {
   workflowConfig: WorkflowConfig
@@ -35,7 +36,13 @@ export async function registerWorkflowRun({
   log.debug(`Registering workflow run for ${workflowConfig.name}...`)
   const headers = makeAuthHeader(clientAuthToken)
   const workflowRunConfig = makeRunConfig(workflowConfig, environment, namespace)
-  const requestData = { projectUid: projectId, workflowRunConfig }
+  const requestData = {
+    projectUid: projectId,
+    workflowRunConfig,
+  }
+  if (gardenEnv.GARDEN_GE_SCHEDULED) {
+    requestData["workflowRunUid"] = gardenEnv.GARDEN_WORKFLOW_RUN_UID
+  }
   let res
   try {
     res = await got.post(`${enterpriseDomain}/workflow-runs`, { json: requestData, headers }).json<GotResponse<any>>()
