@@ -61,7 +61,7 @@ test_release() {
 
   echo $release_version
 
-  if [ "$version" != "v$release_version" ]; then
+  if [ "$version" != "$release_version" ]; then
     echo "Versions don't match, ${version} and ${release_version}"
     return 1
   fi
