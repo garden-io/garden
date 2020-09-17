@@ -349,7 +349,7 @@ export function logErrors(
 
 async function registerAndSetUid(garden: Garden, log: LogEntry, config: WorkflowConfig) {
   const enterpriseContext = makeEnterpriseContext(garden)
-  if (enterpriseContext && !gardenEnv.GARDEN_GE_SCHEDULED) {
+  if (enterpriseContext) {
     const workflowRunUid = await registerWorkflowRun({
       enterpriseContext,
       workflowConfig: config,
