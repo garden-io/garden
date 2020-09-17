@@ -20,7 +20,10 @@ import { got } from "../util/http"
 import { RuntimeError, InternalError } from "../exceptions"
 import { gardenEnv } from "../constants"
 
-export const authTokenHeader = "x-access-auth-token"
+// If a GARDEN_AUTH_TOKEN is present and Garden is NOT running from a workflow runner pod,
+// switch to ci-token authentication method.
+export const authTokenHeader =
+  gardenEnv.GARDEN_AUTH_TOKEN && !gardenEnv.GARDEN_GE_SCHEDULED ? "x-ci-token" : "x-access-auth-token"
 export const makeAuthHeader = (clientAuthToken: string) => ({ [authTokenHeader]: clientAuthToken })
 
 // TODO: Add error handling and tests for all of this

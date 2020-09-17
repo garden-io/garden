@@ -9,6 +9,7 @@
 import { got, GotResponse } from "../../../util/http"
 import { GetSecretsParams } from ".."
 import { StringMap } from "../../../config/common"
+import { authTokenHeader } from "../../auth"
 
 export async function getSecretsFromGardenCloud({
   log,
@@ -19,7 +20,7 @@ export async function getSecretsFromGardenCloud({
 }: GetSecretsParams): Promise<StringMap> {
   try {
     const url = `${enterpriseDomain}/secrets/projectUid/${projectId}/env/${environmentName}`
-    const headers = { "x-access-auth-token": clientAuthToken }
+    const headers = { [authTokenHeader]: clientAuthToken }
     const res = await got(url, { headers }).json<GotResponse<any>>()
     if (res && res["status"] === "success") {
       return res["data"]
