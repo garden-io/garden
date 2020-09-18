@@ -99,7 +99,7 @@
     "nan": "^2.14.1",
     "neo-blessed": "git+https://github.com/garden-io/neo-blessed.git#garden",
     "node-emoji": "^1.10.0",
-    "node-forge": "^0.9.1",
+    "node-forge": "^0.10.0",
     "nopt": "^5.0.0",
     "normalize-path": "^3.0.0",
     "normalize-url": "^5.0.0",
