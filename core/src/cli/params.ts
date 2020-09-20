@@ -312,6 +312,10 @@ export const globalOptions = {
     help: "Enable emoji in output (defaults to true if the environment supports it).",
     defaultValue: envSupportsEmoji(),
   }),
+  "show-timestamps": new BooleanParameter({
+    help: "Show timestamps with log output.",
+    defaultValue: false,
+  }),
   "yes": new BooleanParameter({
     alias: "y",
     help: "Automatically approve any yes/no prompts during execution.",

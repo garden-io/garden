@@ -12,7 +12,7 @@ import elegantSpinner from "elegant-spinner"
 import wrapAnsi from "wrap-ansi"
 import chalk from "chalk"
 
-import { formatForTerminal, leftPad, renderMsg, basicRender } from "../renderers"
+import { formatForTerminal, renderMsg, basicRender, getLeftOffset } from "../renderers"
 import { LogEntry } from "../log-entry"
 import { Logger } from "../logger"
 import { LogLevel } from "../log-node"
@@ -178,11 +178,11 @@ export class FancyTerminalWriter extends Writer {
       .filter((entry) => logger.level >= entry.level)
       .reduce((acc: TerminalEntry[], entry: LogEntry): TerminalEntry[] => {
         let spinnerFrame = ""
-        let spinnerX
+        let spinnerX: number
         let spinnerCoords: Coords | undefined
 
         if (entry.getMessageState().status === "active") {
-          spinnerX = leftPad(entry).length
+          spinnerX = getLeftOffset(entry)
           spinnerFrame = this.tickSpinner(entry.key)
           spinnerCoords = [spinnerX, currentLineNumber]
         } else {

@@ -52,6 +52,13 @@ export function combineRenders(entry: LogEntry, renderers: RenderFn[]): string {
 }
 
 /**
+ * Returns a log entries' left margin/offset. Used for determining the spinner's x coordinate.
+ */
+export function getLeftOffset(entry: LogEntry) {
+  return entry.root.showTimestamps ? leftPad(entry).length + renderTimestamp(entry).length : leftPad(entry).length
+}
+
+/**
  * Returns the most recent message's `msg` field if it has `append` set to `false`.
  * Otherwise returns longest chain of messages with `append: true` (starting from the most recent message).
  */
@@ -114,6 +121,15 @@ export function renderSymbol(entry: LogEntry): string {
   return symbol ? `${logSymbols[symbol]} ` : ""
 }
 
+export function renderTimestamp(entry: LogEntry): string {
+  if (!entry.root.showTimestamps) {
+    return ""
+  }
+
+  const timestamp = new Date(entry.timestamp).toISOString()
+  return `[${timestamp}] `
+}
+
 export function renderMsg(entry: LogEntry): string {
   const { fromStdStream } = entry
   const { status } = entry.getMessageState()
@@ -166,7 +182,16 @@ export function formatForTerminal(entry: LogEntry, type: PickFromUnion<LoggerTyp
 
   const symbolRenderFn = type === "basic" ? renderSymbolBasic : renderSymbol
 
-  return combineRenders(entry, [leftPad, symbolRenderFn, renderSection, renderEmoji, renderMsg, renderData, () => "\n"])
+  return combineRenders(entry, [
+    renderTimestamp,
+    leftPad,
+    symbolRenderFn,
+    renderSection,
+    renderEmoji,
+    renderMsg,
+    renderData,
+    () => "\n",
+  ])
 }
 
 export function cleanForJSON(input?: string | string[]): string {

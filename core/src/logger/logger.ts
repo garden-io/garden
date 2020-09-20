@@ -73,6 +73,7 @@ export function getWriterInstance(loggerType: LoggerType, level: LogLevel) {
 
 export interface LoggerConfig {
   level: LogLevel
+  showTimestamps?: boolean
   writers?: Writer[]
   useEmoji?: boolean
 }
@@ -81,6 +82,7 @@ export class Logger extends LogNode {
   public writers: Writer[]
   public events: EventBus
   public useEmoji: boolean
+  public showTimestamps: boolean
 
   private static instance: Logger
 
@@ -138,6 +140,7 @@ export class Logger extends LogNode {
     super(config.level)
     this.writers = config.writers || []
     this.useEmoji = config.useEmoji === false ? false : true
+    this.showTimestamps = !!config.showTimestamps
     this.events = new EventBus()
   }
 
