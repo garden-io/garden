@@ -10,6 +10,7 @@ import { Command, CommandParams, CommandResult } from "./base"
 import { printHeader } from "../logger/util"
 import dedent = require("dedent")
 
+// asdf
 export class ValidateCommand extends Command {
   name = "validate"
   help = "Check your garden configuration for errors."
