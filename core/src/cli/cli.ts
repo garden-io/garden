@@ -62,10 +62,20 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts = {})
   return DummyGarden.factory(root, { ...gardenOpts, noEnterprise: true })
 }
 
-function initLogger({ level, loggerType, emoji }: { level: LogLevel; loggerType: LoggerType; emoji: boolean }) {
+function initLogger({
+  level,
+  loggerType,
+  emoji,
+  showTimestamps,
+}: {
+  level: LogLevel
+  loggerType: LoggerType
+  emoji: boolean
+  showTimestamps: boolean
+}) {
   const writer = getWriterInstance(loggerType, level)
   const writers = writer ? [writer] : undefined
-  return Logger.initialize({ level, writers, useEmoji: emoji })
+  return Logger.initialize({ level, writers, showTimestamps, useEmoji: emoji })
 }
 
 export interface RunOutput {
@@ -164,6 +174,7 @@ ${renderCommands(commands)}
     const {
       "logger-type": loggerTypeOpt,
       "log-level": logLevel,
+      "show-timestamps": showTimestamps,
       emoji,
       "env": environmentName,
       silent,
@@ -183,7 +194,7 @@ ${renderCommands(commands)}
 
     // Init logger
     const level = parseLogLevel(logLevel)
-    const logger = initLogger({ level, loggerType, emoji })
+    const logger = initLogger({ level, loggerType, emoji, showTimestamps })
 
     // Currently we initialise empty placeholder entries and pass those to the
     // framework as opposed to the logger itself. This is to give better control over where on
