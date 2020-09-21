@@ -1901,7 +1901,7 @@ Examples:
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
   | `source` | Yes | Name of the source to link as declared in the project config.
-  | `path` | Yes | Path to the local directory that containes the source.
+  | `path` | Yes | Path to the local directory that contains the source.
 
 
 #### Outputs
@@ -1941,7 +1941,7 @@ Examples:
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
   | `module` | Yes | Name of the module to link.
-  | `path` | Yes | Path to the local directory that containes the module.
+  | `path` | Yes | Path to the local directory that contains the module.
 
 
 #### Outputs

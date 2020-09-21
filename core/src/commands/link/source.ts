@@ -26,7 +26,7 @@ const linkSourceArguments = {
     required: true,
   }),
   path: new PathParameter({
-    help: "Path to the local directory that containes the source.",
+    help: "Path to the local directory that contains the source.",
     required: true,
   }),
 }
