@@ -25,7 +25,7 @@ const linkModuleArguments = {
     required: true,
   }),
   path: new PathParameter({
-    help: "Path to the local directory that containes the module.",
+    help: "Path to the local directory that contains the module.",
     required: true,
   }),
 }
