@@ -26,7 +26,7 @@ orbs:
       # Image that contains ghr for publishing releases to Github
       - image: cibuilds/github:0.12.2
 
-  # Attach's the current saved workspace
+  # Attaches the current saved workspace
   attach-workspace: &attach-workspace
     attach_workspace:
           at: ./
@@ -739,14 +739,14 @@ workflows:
       ### MASTER ONLY ###
 
       - build-dist-edge:
-          <<: *only-master
+          # <<: *only-master
           requires: [build]
       - release-service-docker:
           <<: *only-master
           context: docker
           requires: [build-dist-edge]
       - release-service-dist-edge:
-          <<: *only-master
+          # <<: *only-master
           requires: [build-dist-edge]
 
   tags:
