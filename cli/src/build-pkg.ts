@@ -14,7 +14,7 @@ import { remove, mkdirp, copy, writeFile } from "fs-extra"
 import { exec, getPackageVersion } from "@garden-io/core/build/src/util/util"
 import { randomString } from "@garden-io/core/build/src/util/string"
 import { pick } from "lodash"
-import { argv } from "process"
+import minimist from "minimist"
 
 require("source-map-support").install()
 
@@ -25,13 +25,19 @@ const pkgPath = resolve(repoRoot, "node_modules", ".bin", "pkg")
 const pkgFetchPath = resolve(repoRoot, "node_modules", ".bin", "pkg-fetch")
 const distPath = resolve(repoRoot, "dist")
 const sqliteBinFilename = "better_sqlite3.node"
-const version = getPackageVersion()
 
 // tslint:disable: no-console
 
+interface TargetHandlerParams {
+  targetName: string
+  sourcePath: string
+  pkgType: string
+  version: string
+}
+
 interface TargetSpec {
   pkgType: string
-  handler: (targetName: string, sourcePath: string, pkgType: string) => Promise<void>
+  handler: (params: TargetHandlerParams) => Promise<void>
 }
 
 const targets: { [name: string]: TargetSpec } = {
@@ -42,7 +48,9 @@ const targets: { [name: string]: TargetSpec } = {
 }
 
 async function buildBinaries(args: string[]) {
-  const selected = args.length > 0 ? pick(targets, args) : targets
+  const argv = minimist(args)
+  const version = argv.version || getPackageVersion()
+  const selected = argv._.length > 0 ? pick(targets, argv._) : targets
 
   console.log(chalk.cyan("Building targets: ") + Object.keys(selected).join(", "))
 
@@ -116,14 +124,14 @@ async function buildBinaries(args: string[]) {
   console.log(chalk.cyan("Packaging garden binaries"))
 
   await Bluebird.map(Object.entries(selected), async ([targetName, spec]) => {
-    await spec.handler(targetName, cliPath, spec.pkgType)
+    await spec.handler({ targetName, sourcePath: cliPath, pkgType: spec.pkgType, version })
     console.log(chalk.green(" ✓ " + targetName))
   })
 
   console.log(chalk.green.bold("Done!"))
 }
 
-async function pkgMacos(targetName: string, sourcePath: string, pkgType: string) {
+async function pkgMacos({ targetName, sourcePath, pkgType, version }: TargetHandlerParams) {
   console.log(` - ${targetName} -> fsevents`)
   // Copy fsevents from lib to node_modules
   await copy(resolve(GARDEN_CORE_ROOT, "lib", "fsevents"), resolve(tmpDir, "cli", "node_modules", "fsevents"))
@@ -141,20 +149,20 @@ async function pkgMacos(targetName: string, sourcePath: string, pkgType: string)
     resolve(distPath, targetName, "fsevents.node")
   )
 
-  await tarball(targetName)
+  await tarball(targetName, version)
 }
 
-async function pkgLinux(targetName: string, sourcePath: string, pkgType: string) {
+async function pkgLinux({ targetName, sourcePath, pkgType, version }: TargetHandlerParams) {
   await pkgCommon({
     sourcePath,
     targetName,
     pkgType,
     binFilename: "garden",
   })
-  await tarball(targetName)
+  await tarball(targetName, version)
 }
 
-async function pkgWindows(targetName: string, sourcePath: string, pkgType: string) {
+async function pkgWindows({ targetName, sourcePath, pkgType, version }: TargetHandlerParams) {
   await pkgCommon({
     sourcePath,
     targetName,
@@ -166,7 +174,7 @@ async function pkgWindows(targetName: string, sourcePath: string, pkgType: strin
   await exec("zip", ["-q", "-r", `garden-${version}-${targetName}.zip`, targetName], { cwd: distPath })
 }
 
-async function pkgAlpine(targetName: string, _sourcePath: string, _pkgType: string) {
+async function pkgAlpine({ targetName, version }: TargetHandlerParams) {
   const targetPath = resolve(distPath, targetName)
   await remove(targetPath)
   await mkdirp(targetPath)
@@ -197,7 +205,7 @@ async function pkgAlpine(targetName: string, _sourcePath: string, _pkgType: stri
     await exec("docker", ["rm", "-f", containerName])
   }
 
-  await tarball(targetName)
+  await tarball(targetName, version)
 }
 
 async function pkgCommon({
@@ -233,12 +241,12 @@ async function copyStatic(targetName: string) {
   await copy(tmpStaticDir, resolve(targetPath, "static"))
 }
 
-async function tarball(targetName: string) {
+async function tarball(targetName: string, version: string) {
   console.log(` - ${targetName} -> tar`)
   await exec("tar", ["-czf", `garden-${version}-${targetName}.tar.gz`, targetName], { cwd: distPath })
 }
 
-buildBinaries(argv.slice(2)).catch((err) => {
+buildBinaries(process.argv.slice(2)).catch((err) => {
   console.error(chalk.red(err.message))
   process.exit(1)
 })
