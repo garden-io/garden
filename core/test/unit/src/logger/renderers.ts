@@ -196,6 +196,21 @@ describe("renderers", () => {
         expect(formatForTerminal(entry, "fancy")).to.eql("\n")
       })
     })
+    context("logger.showTimestamps is set to true", () => {
+      before(() => {
+        logger.showTimestamps = true
+      })
+      it("should include timestamp with formatted string", () => {
+        // Any cast so we can overwrite read only property
+        const entry = logger.info("hello world") as any
+        entry.timestamp = 1600555650583
+
+        expect(formatForTerminal(entry, "fancy")).to.equal(`[2020-09-19T22:47:30.583Z] ${msgStyle("hello world")}\n`)
+      })
+      after(() => {
+        logger.showTimestamps = false
+      })
+    })
   })
   describe("formatForJson", () => {
     it("should return a JSON representation of a log entry", () => {
