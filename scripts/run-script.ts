@@ -129,7 +129,7 @@ async function runInPackages(args: string[]) {
 
     const result = await proc
 
-    if (result.exitCode !== 0) {
+    if (result.exitCode && result.exitCode !== 0) {
       if (bail) {
         console.log(
           chalk.redBright(`\n${script} script in package ${packageName} failed with code ${result.exitCode}`)
