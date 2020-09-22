@@ -35,15 +35,13 @@ export async function tfValidate({
   ctx,
   provider,
   root,
-  variables,
 }: {
   log: LogEntry
   ctx: PluginContext
   provider: TerraformProvider
   root: string
-  variables: object
 }) {
-  const args = ["validate", "-json", ...(await prepareVariables(root, variables))]
+  const args = ["validate", "-json"]
 
   const res = await terraform(ctx, provider).json({
     log,
@@ -55,7 +53,11 @@ export async function tfValidate({
   if (res.valid === false) {
     const reasons = res.diagnostics.map((d: any) => d.summary)
 
-    if (reasons.includes("Could not satisfy plugin requirements") || reasons.includes("Module not installed")) {
+    if (
+      reasons.includes("Could not satisfy plugin requirements") ||
+      reasons.includes("Module not installed") ||
+      reasons.includes("Could not load plugin")
+    ) {
       // We need to run `terraform init` and retry validation
       log.debug("Initializing Terraform")
       await terraform(ctx, provider).exec({ log, args: ["init"], cwd: root, timeoutSec: 300 })
@@ -130,7 +132,7 @@ export async function getStackStatus({
   root,
   variables,
 }: GetTerraformStackStatusParams): Promise<StackStatus> {
-  await tfValidate({ log, ctx, provider, root, variables })
+  await tfValidate({ log, ctx, provider, root })
 
   const logEntry = log.verbose({ section: "terraform", msg: "Running plan...", status: "active" })
 
