@@ -54,9 +54,9 @@ const configSchema = providerConfigBaseSchema()
     // May be overridden by individual \`terraform\` modules.
     version: joi
       .string()
-      .allow(...supportedVersions)
+      .allow(...supportedVersions, null)
       .default(defaultTerraformVersion).description(dedent`
-        The version of Terraform to use.
+        The version of Terraform to use. Set to \`null\` to use whichever version of \`terraform\` that is on your PATH.
       `),
   })
   .unknown(false)

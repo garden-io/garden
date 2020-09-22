@@ -27,7 +27,7 @@ export interface TerraformBaseSpec {
   autoApply: boolean
   dependencies: string[]
   variables: PrimitiveMap
-  version: string
+  version: string | null
 }
 
 export async function tfValidate({

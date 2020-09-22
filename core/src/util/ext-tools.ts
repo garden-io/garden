@@ -47,79 +47,17 @@ export interface SpawnParams extends ExecParams {
   rawMode?: boolean // Only used if tty = true. See also: https://nodejs.org/api/tty.html#tty_readstream_setrawmode_mode
 }
 
-interface PluginToolOpts {
-  platform?: string
-  architecture?: string
-}
-
-export interface PluginTools {
-  [key: string]: PluginTool
-}
-
-/**
- * This helper class allows you to declare a tool dependency by providing a URL to a single-file binary,
- * or an archive containing an executable, for each of our supported platforms. When executing the tool,
- * the appropriate URL for the current platform will be downloaded and cached in the user's home directory
- * (under .garden/tools/<name>/<url-hash>).
- *
- * Note: The binary or archive currently needs to be self-contained and work without further installation steps.
- */
-export class PluginTool {
+export class CliWrapper {
   name: string
-  type: string
-  spec: PluginToolSpec
-  buildSpec: ToolBuildSpec
+  protected toolPath: string
 
-  private lock: any
-  private toolPath: string
-  private versionDirname: string
-  protected versionPath: string
-  protected targetSubpath: string
-  private chmodDone: boolean
-
-  constructor(spec: PluginToolSpec, opts: PluginToolOpts = {}) {
-    const _platform = opts.platform || getPlatform()
-    const architecture = opts.architecture || getArchitecture()
-
-    this.buildSpec = spec.builds.find((build) => build.platform === _platform && build.architecture === architecture)!
-
-    if (!this.buildSpec) {
-      throw new ConfigurationError(
-        `Command ${spec.name} doesn't have a spec for this platform/architecture (${platform}-${architecture})`,
-        {
-          spec,
-          platform,
-          architecture,
-        }
-      )
-    }
-
-    this.lock = new AsyncLock()
-
-    this.name = spec.name
-    this.type = spec.type
-    this.spec = spec
-    this.toolPath = join(toolsPath, this.name)
-    this.versionDirname = hashString(this.buildSpec.url, 16)
-    this.versionPath = join(this.toolPath, this.versionDirname)
-
-    this.targetSubpath = this.buildSpec.extract ? this.buildSpec.extract.targetPath : basename(this.buildSpec.url)
-    this.chmodDone = false
+  constructor(name: string, path: string) {
+    this.name = name
+    this.toolPath = path
   }
 
-  async getPath(log: LogEntry) {
-    await this.download(log)
-    const path = join(this.versionPath, ...this.targetSubpath.split(posix.sep))
-
-    if (this.spec.type === "binary") {
-      // Make sure the target path is executable
-      if (!this.chmodDone) {
-        await chmod(path, 0o755)
-        this.chmodDone = true
-      }
-    }
-
-    return path
+  async getPath(_: LogEntry) {
+    return this.toolPath
   }
 
   async exec({ args, cwd, env, log, timeoutSec, input, ignoreError, stdout, stderr }: ExecParams) {
@@ -198,6 +136,82 @@ export class PluginTool {
       stderr,
       tty,
     })
+  }
+}
+
+interface PluginToolOpts {
+  platform?: string
+  architecture?: string
+}
+
+export interface PluginTools {
+  [key: string]: PluginTool
+}
+
+/**
+ * This helper class allows you to declare a tool dependency by providing a URL to a single-file binary,
+ * or an archive containing an executable, for each of our supported platforms. When executing the tool,
+ * the appropriate URL for the current platform will be downloaded and cached in the user's home directory
+ * (under .garden/tools/<name>/<url-hash>).
+ *
+ * Note: The binary or archive currently needs to be self-contained and work without further installation steps.
+ */
+export class PluginTool extends CliWrapper {
+  type: string
+  spec: PluginToolSpec
+  buildSpec: ToolBuildSpec
+
+  private lock: any
+  private versionDirname: string
+  protected versionPath: string
+  protected targetSubpath: string
+  private chmodDone: boolean
+
+  constructor(spec: PluginToolSpec, opts: PluginToolOpts = {}) {
+    super(spec.name, "")
+
+    const _platform = opts.platform || getPlatform()
+    const architecture = opts.architecture || getArchitecture()
+
+    this.buildSpec = spec.builds.find((build) => build.platform === _platform && build.architecture === architecture)!
+
+    if (!this.buildSpec) {
+      throw new ConfigurationError(
+        `Command ${spec.name} doesn't have a spec for this platform/architecture (${platform}-${architecture})`,
+        {
+          spec,
+          platform,
+          architecture,
+        }
+      )
+    }
+
+    this.lock = new AsyncLock()
+
+    this.name = spec.name
+    this.type = spec.type
+    this.spec = spec
+    this.toolPath = join(toolsPath, this.name)
+    this.versionDirname = hashString(this.buildSpec.url, 16)
+    this.versionPath = join(this.toolPath, this.versionDirname)
+
+    this.targetSubpath = this.buildSpec.extract ? this.buildSpec.extract.targetPath : basename(this.buildSpec.url)
+    this.chmodDone = false
+  }
+
+  async getPath(log: LogEntry) {
+    await this.download(log)
+    const path = join(this.versionPath, ...this.targetSubpath.split(posix.sep))
+
+    if (this.spec.type === "binary") {
+      // Make sure the target path is executable
+      if (!this.chmodDone) {
+        await chmod(path, 0o755)
+        this.chmodDone = true
+      }
+    }
+
+    return path
   }
 
   protected async download(log: LogEntry) {
