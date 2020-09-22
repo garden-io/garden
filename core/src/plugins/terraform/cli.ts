@@ -64,6 +64,43 @@ export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
       },
     ],
   },
+  "0.13.3": {
+    name: "terraform-0-13-3",
+    description: "The terraform CLI, v0.13.3",
+    type: "binary",
+    builds: [
+      {
+        platform: "darwin",
+        architecture: "amd64",
+        url: "https://releases.hashicorp.com/terraform/0.13.3/terraform_0.13.3_darwin_amd64.zip",
+        sha256: "ccbfd3af8732a47b6bd32c419e1a52e41eb8a39ff7437afffbef438b5c0f92c3",
+        extract: {
+          format: "zip",
+          targetPath: "terraform",
+        },
+      },
+      {
+        platform: "linux",
+        architecture: "amd64",
+        url: "https://releases.hashicorp.com/terraform/0.13.3/terraform_0.13.3_linux_amd64.zip",
+        sha256: "35c662be9d32d38815cde5fa4c9fa61a3b7f39952ecd50ebf92fd1b2ddd6109b",
+        extract: {
+          format: "zip",
+          targetPath: "terraform",
+        },
+      },
+      {
+        platform: "windows",
+        architecture: "amd64",
+        url: "https://releases.hashicorp.com/terraform/0.13.3/terraform_0.13.3_windows_amd64.zip",
+        sha256: "e4aba639b2fb946c5c17b982c22c8ff3a7a3c07725978284ffc1cc651961da2c",
+        extract: {
+          format: "zip",
+          targetPath: "terraform.exe",
+        },
+      },
+    ],
+  },
 }
 
 export const supportedVersions = Object.keys(terraformCliSpecs)
