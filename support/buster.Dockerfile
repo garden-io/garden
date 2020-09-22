@@ -26,6 +26,9 @@ ADD . /garden
 
 WORKDIR /project
 
+ENV GARDEN_DISABLE_ANALYTICS=true
+ENV GARDEN_DISABLE_VERSION_CHECK=true
+
 RUN ln -s /garden/garden /bin/garden \
   && chmod +x /bin/garden \
   && cd /garden/static \
