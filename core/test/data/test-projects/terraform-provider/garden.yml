@@ -8,6 +8,7 @@ providers:
     allowDestroy: ${environment.name != 'prod'}
     autoApply: ${environment.name != 'prod'}
     initRoot: tf
+    version: "0.13.3"
     variables:
       my-variable: foo
       env: ${environment.name}

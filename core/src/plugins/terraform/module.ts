@@ -62,8 +62,9 @@ export const schema = joi.object().keys({
         If you specified \`variables\` in the \`terraform\` provider config, those will be included but the variables
         specified here take precedence.
       `),
-  version: joi.string().allow(...supportedVersions).description(dedent`
+  version: joi.string().allow(...supportedVersions, null).description(dedent`
       The version of Terraform to use. Defaults to the version set in the provider config.
+      Set to \`null\` to use whichever version of \`terraform\` that is on your PATH.
     `),
 })
 

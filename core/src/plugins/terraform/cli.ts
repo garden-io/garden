@@ -6,23 +6,45 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ConfigurationError } from "../../exceptions"
+import { ConfigurationError, RuntimeError } from "../../exceptions"
 import { PluginToolSpec } from "../../types/plugin/tools"
 import { TerraformProvider } from "./terraform"
 import { PluginContext } from "../../plugin-context"
+import which from "which"
+import { CliWrapper } from "../../util/ext-tools"
+import { LogEntry } from "../../logger/log-entry"
 
 export function terraform(ctx: PluginContext, provider: TerraformProvider) {
   const version = provider.config.version
-  const cli = ctx.tools["terraform.terraform-" + version.replace(/\./g, "-")]
 
-  if (!cli) {
-    throw new ConfigurationError(`Unsupported Terraform version: ${version}`, {
-      version,
-      supportedVersions,
-    })
+  if (version === null) {
+    return new GlobalTerraform()
+  } else {
+    const cli = ctx.tools["terraform.terraform-" + version.replace(/\./g, "-")]
+
+    if (!cli) {
+      throw new ConfigurationError(`Unsupported Terraform version: ${version}`, {
+        version,
+        supportedVersions,
+      })
+    }
+
+    return cli
+  }
+}
+
+export class GlobalTerraform extends CliWrapper {
+  constructor() {
+    super("terraform", "terraform")
   }
 
-  return cli
+  async getPath(_: LogEntry) {
+    try {
+      return await which("terraform")
+    } catch (err) {
+      throw new RuntimeError(`Terraform version is set to null, and terraform CLI could not be found on PATH`, {})
+    }
+  }
 }
 
 export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {

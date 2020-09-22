@@ -53,7 +53,7 @@ function makeRootCommand(commandName: string) {
 
       const root = join(ctx.projectRoot, provider.config.initRoot)
 
-      await tfValidate({ log, ctx, provider, root, variables: provider.config.variables })
+      await tfValidate({ log, ctx, provider, root })
 
       args = [commandName, ...(await prepareVariables(root, provider.config.variables)), ...args]
       await terraform(ctx, provider).spawnAndWait({
@@ -87,7 +87,7 @@ function makeModuleCommand(commandName: string) {
       const root = join(module.path, module.spec.root)
 
       const provider = ctx.provider as TerraformProvider
-      await tfValidate({ log, ctx, provider, root, variables: provider.config.variables })
+      await tfValidate({ log, ctx, provider, root })
 
       args = [commandName, ...(await prepareVariables(root, module.spec.variables)), ...args.slice(1)]
       await terraform(ctx, provider).spawnAndWait({
