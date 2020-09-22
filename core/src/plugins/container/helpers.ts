@@ -386,8 +386,9 @@ const helpers = {
       } else if (path.match(/(?<!\\)(?:\\\\)*\$[{\w]/)) {
         // If the path contains a template string we can't currently reason about it
         // TODO: interpolate args into paths
-        log.warn(chalk.yellow(deline`
-          Resolving include paths from Dockerfile ARG and ENV variables is not supported yet. Please specify 
+        log.warn(
+          chalk.yellow(deline`
+          Resolving include paths from Dockerfile ARG and ENV variables is not supported yet. Please specify
           required path in Dockerfile explicitly or use ${chalk.bold("include")} for path assigned to ARG or ENV.
           `)
         )
