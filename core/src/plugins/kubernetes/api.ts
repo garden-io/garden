@@ -9,6 +9,7 @@
 // No idea why tslint complains over this line
 // tslint:disable-next-line:no-unused
 import { IncomingMessage } from "http"
+import { ReadStream } from "tty"
 import {
   KubeConfig,
   V1Secret,
@@ -574,9 +575,29 @@ export class KubeApi {
     let _stdout: Writable = stdoutCollector
     let _stderr: Writable = stderrCollector
 
-    // Unless we're attaching a TTY to the output streams, we multiplex the outputs to both a StringCollector,
-    // and whatever stream the caller provided.
-    if (!tty) {
+    if (tty) {
+      // We connect stdout and stderr directly.
+      if (stdout) {
+        _stdout = stdout
+      }
+      if (stderr) {
+        _stderr = stderr
+      }
+      if (stdin) {
+        /**
+         * We use raw mode for stdin to ensure that control characters aren't intercepted by the terminal and that
+         * input isn't echoed back (among other things).
+         *
+         * See https://nodejs.org/api/tty.html#tty_readstream_setrawmode_mode for more.
+         */
+        const ttyStdin = stdin as ReadStream
+        ttyStdin.setRawMode && ttyStdin.setRawMode(true)
+      }
+    } else {
+      /**
+       * Unless we're attaching a TTY to the output streams, we multiplex the outputs to both a StringCollector,
+       * and whatever stream the caller provided.
+       */
       _stdout = new PassThrough()
       _stdout.pipe(stdoutCollector)
       _stdout.pipe(combinedCollector)
