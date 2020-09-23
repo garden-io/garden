@@ -77,6 +77,11 @@ test_release() {
   ${garden_release} deploy
   echo ""
   echo ""
+  echo "→ Running 'garden exec backend /bin/sh' in demo project"
+  echo "→ Run a command in the prompt (ls, for example) and see if the TTY behaves as expected."
+  echo ""
+  ${garden_release} exec backend /bin/sh
+  echo ""
   echo "→ Running 'garden create module' in demo project"
   echo "→ Respond to the prompts to see if the create command works"
   echo ""
