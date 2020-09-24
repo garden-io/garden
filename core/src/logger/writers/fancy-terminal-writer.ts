@@ -12,7 +12,7 @@ import elegantSpinner from "elegant-spinner"
 import wrapAnsi from "wrap-ansi"
 import chalk from "chalk"
 
-import { formatForTerminal, renderMsg, basicRender, getLeftOffset } from "../renderers"
+import { formatForTerminal, renderMsg, getLeftOffset } from "../renderers"
 import { LogEntry } from "../log-entry"
 import { Logger } from "../logger"
 import { LogLevel } from "../log-node"
@@ -225,15 +225,6 @@ export class FancyTerminalWriter extends Writer {
   }
 
   public onGraphChange(entry: LogEntry, logger: Logger): void {
-    // The fancy stuff doesn't play well with log levels above "info" so we just render that normally
-    if (logger.level > LogLevel.info) {
-      const out = basicRender(entry, logger)
-      if (out) {
-        process.stdout.write(out)
-      }
-      return
-    }
-
     if (!this.stream) {
       this.stream = this.initStream(logger)
     }

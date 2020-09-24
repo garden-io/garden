@@ -27,7 +27,7 @@ The following option flags can be used with any of the CLI commands:
   | `--log-level` | `-l` | `error` `warn` `info` `verbose` `debug` `silly` `0` `1` `2` `3` `4` `5`  | Set logger level. Values can be either string or numeric and are prioritized from 0 to 5 (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5.
   | `--output` | `-o` | `json` `yaml`  | Output command result in specified format (note: disables progress logging and interactive functionality).
   | `--emoji` |  | boolean | Enable emoji in output (defaults to true if the environment supports it).
-  | `--show-timestamps` |  | boolean | Show timestamps with log output.
+  | `--show-timestamps` |  | boolean | Show timestamps with log output. When enabled, Garden will use the basic logger. I.e., log status changes are rendered as new lines instead of being updated in-place.
   | `--yes` | `-y` | boolean | Automatically approve any yes/no prompts during execution.
   | `--force-refresh` |  | boolean | Force refresh of any caches, e.g. cached provider statuses.
   | `--var` |  | array:string | Set a specific variable value, using the format &lt;key&gt;&#x3D;&lt;value&gt;, e.g. &#x60;--var some-key&#x3D;custom-value&#x60;. This will override any value set in your project configuration. You can specify multiple variables by separating with a comma, e.g. &#x60;--var key-a&#x3D;foo,key-b&#x3D;&quot;value with quotes&quot;&#x60;.

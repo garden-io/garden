@@ -8,22 +8,13 @@
 
 import td from "testdouble"
 import timekeeper from "timekeeper"
-import { Logger } from "../src/logger/logger"
-import { LogLevel } from "../src/logger/log-node"
 import { getDefaultProfiler } from "../src/util/profiling"
 import { gardenEnv } from "../src/constants"
 import { testFlags } from "../src/util/util"
 import { ensureConnected } from "../src/db/connection"
-// import { BasicTerminalWriter } from "../src/logger/writers/basic-terminal-writer"
+import { initTestLogger } from "./helpers"
 
-// make sure logger is initialized
-try {
-  Logger.initialize({
-    level: LogLevel.info,
-    // level: LogLevel.debug,
-    // writers: [new BasicTerminalWriter()],
-  })
-} catch (_) {}
+initTestLogger()
 
 // Global hooks
 before(async () => {

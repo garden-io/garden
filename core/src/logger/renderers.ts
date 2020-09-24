@@ -55,7 +55,7 @@ export function combineRenders(entry: LogEntry, renderers: RenderFn[]): string {
  * Returns a log entries' left margin/offset. Used for determining the spinner's x coordinate.
  */
 export function getLeftOffset(entry: LogEntry) {
-  return entry.root.showTimestamps ? leftPad(entry).length + renderTimestamp(entry).length : leftPad(entry).length
+  return leftPad(entry).length
 }
 
 /**
@@ -126,8 +126,13 @@ export function renderTimestamp(entry: LogEntry): string {
     return ""
   }
 
-  const timestamp = new Date(entry.timestamp).toISOString()
-  return `[${timestamp}] `
+  const { timestamp } = entry.getMessageState()
+  let formatted = ""
+  try {
+    formatted = new Date(timestamp).toISOString()
+  } catch (_err) {}
+
+  return `[${formatted}] `
 }
 
 export function renderMsg(entry: LogEntry): string {
@@ -176,22 +181,25 @@ export function renderSection(entry: LogEntry): string {
 export function formatForTerminal(entry: LogEntry, type: PickFromUnion<LoggerType, "fancy" | "basic">): string {
   const { msg, emoji, section, symbol, data } = entry.getMessageState()
   const empty = [msg, section, emoji, symbol, data].every((val) => val === undefined)
+
   if (empty) {
     return ""
   }
 
-  const symbolRenderFn = type === "basic" ? renderSymbolBasic : renderSymbol
+  if (type === "basic") {
+    return combineRenders(entry, [
+      renderTimestamp,
+      leftPad,
+      renderSymbolBasic,
+      renderSection,
+      renderEmoji,
+      renderMsg,
+      renderData,
+      () => "\n",
+    ])
+  }
 
-  return combineRenders(entry, [
-    renderTimestamp,
-    leftPad,
-    symbolRenderFn,
-    renderSection,
-    renderEmoji,
-    renderMsg,
-    renderData,
-    () => "\n",
-  ])
+  return combineRenders(entry, [leftPad, renderSymbol, renderSection, renderEmoji, renderMsg, renderData, () => "\n"])
 }
 
 export function cleanForJSON(input?: string | string[]): string {

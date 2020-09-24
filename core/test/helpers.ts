@@ -44,6 +44,8 @@ import { SuiteFunction, TestFunction } from "mocha"
 import { GardenError } from "../src/exceptions"
 import { AnalyticsGlobalConfig } from "../src/config-store"
 import { TestGarden, EventLogEntry } from "../src/util/testing"
+import { Logger } from "../src/logger/logger"
+import { LogLevel } from "../src/logger/log-node"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus } from "../src/util/testing"
@@ -606,4 +608,18 @@ export function getRuntimeStatusEvents(eventLog: EventLogEntry[]) {
       cloned.payload.status = pick(cloned.payload.status, ["state"])
       return cloned
     })
+}
+
+/**
+ * Initialise test logger.
+ *
+ * It doesn't register any writers so it only collects logs but doesn't write them.
+ */
+export function initTestLogger() {
+  // make sure logger is initialized
+  try {
+    Logger.initialize({
+      level: LogLevel.info,
+    })
+  } catch (_) {}
 }
