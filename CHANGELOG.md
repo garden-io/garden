@@ -1,4 +1,26 @@
 
+<a name="0.12.6"></a>
+## [0.12.6](https://github.com/garden-io/garden/compare/0.12.5...0.12.6) (2020-09-24)
+
+### Bug Fixes
+
+* **enterprise:** fix workflow registration ([83c8c0a1](https://github.com/garden-io/garden/commit/83c8c0a1))
+* **enterprise:** add pull-request-closed as trigger event ([b1ef26b2](https://github.com/garden-io/garden/commit/b1ef26b2))
+* **k8s:** fix IO handling for exec command ([e06b08d4](https://github.com/garden-io/garden/commit/e06b08d4))
+* **logger:** always use latest timestamp ([c071acd4](https://github.com/garden-io/garden/commit/c071acd4))
+
+### Features
+
+* **cli:** add --show-timestamps flag to CLI commands ([f09deae1](https://github.com/garden-io/garden/commit/f09deae1))
+* **enterprise:** enable authentication via ci-tokens ([afe80dd6](https://github.com/garden-io/garden/commit/afe80dd6))
+* **enterprise:** register internal workflows ([a4d5c234](https://github.com/garden-io/garden/commit/a4d5c234))
+* **terraform:** allow setting version to null to use terraform on PATH ([3b5a0f18](https://github.com/garden-io/garden/commit/3b5a0f18))
+* **terraform:** add v0.13.3 as a supported version ([18db4ef8](https://github.com/garden-io/garden/commit/18db4ef8))
+
+### Improvements
+
+* add explicit warn message ([fc590e14](https://github.com/garden-io/garden/commit/fc590e14))
+
 <a name="0.12.5"></a>
 ## [0.12.5](https://github.com/garden-io/garden/compare/0.12.4...0.12.5) (2020-09-14)
 
