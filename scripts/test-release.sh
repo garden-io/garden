@@ -5,6 +5,9 @@
 garden_root=$(cd `dirname $0` && cd .. && pwd)
 version=$1
 
+# For pre-releases, trim the -N suffix for use in the downloaded file name and for version comparisons.
+base_version=$(echo ${version} | sed -e "s/-.*//")
+
 if [ ! "$version" ]; then
   echo "Version is missing"
   exit 1
@@ -18,7 +21,7 @@ download_release() {
   fi
 
   platform=${os}-amd64
-  filename="garden-${version}-${platform}.tar.gz"
+  filename="garden-${base_version}-${platform}.tar.gz"
   url="https://github.com/garden-io/garden/releases/download/${version}/${filename}"
   dir=${HOME}/.garden-release
   target_path=${dir}/bin
@@ -61,7 +64,7 @@ test_release() {
 
   echo $release_version
 
-  if [ "$version" != "$release_version" ]; then
+  if [ "$base_version" != "$release_version" ]; then
     echo "Versions don't match, ${version} and ${release_version}"
     return 1
   fi
