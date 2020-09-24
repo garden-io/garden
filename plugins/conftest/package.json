@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/garden-conftest",
-  "version": "0.12.5",
+  "version": "0.12.6",
   "description": "conftest plugin for Garden",
   "main": "index.js",
   "private": true,
