@@ -1,0 +1,39 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${parent.name}
+  labels:
+    service: ${parent.name}
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: ${inputs.servicePort}
+      targetPort: http
+  selector:
+    service: ${parent.name}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${parent.name}
+  labels:
+    service: ${parent.name}
+spec:
+  replicas: ${inputs.replicas || 3}
+  selector:
+    matchLabels:
+      service: ${parent.name}
+  template:
+    metadata:
+      labels:
+        service: ${parent.name}
+    spec:
+      containers:
+        - name: main
+          image: ${modules["${parent.name}-image"].outputs.deployment-image-id}
+          imagePullPolicy: "Always"
+          ports:
+            - name: http
+              containerPort: ${inputs.containerPort}

@@ -19,13 +19,17 @@ import { validateWithPath } from "./validation"
 import { WorkflowResource } from "./workflow"
 import { listDirectory } from "../util/fs"
 import { isConfigFilename } from "../util/fs"
+import { TemplateKind, templateKind, ModuleTemplateResource } from "./module-template"
 
 export interface GardenResource {
   apiVersion: string
   kind: string
   name: string
   path: string
+  configPath?: string
 }
+
+export type ConfigKind = "Module" | "Workflow" | "Project" | TemplateKind
 
 /**
  * Attempts to parse content as YAML, and applies a linter to produce more informative error messages when
@@ -77,8 +81,6 @@ export async function loadConfigResources(
   return resources
 }
 
-export type ConfigKind = "Module" | "Workflow" | "Project"
-
 /**
  * Each YAML document in a garden.yml file defines a project, a module or a workflow.
  */
@@ -109,6 +111,8 @@ function prepareResource({
     return prepareModuleResource(spec, configPath, projectRoot)
   } else if (kind === "Workflow") {
     return prepareWorkflowResource(spec, configPath)
+  } else if (kind === templateKind) {
+    return prepareTemplateResource(spec, configPath)
   } else if (allowInvalid) {
     return spec
   } else if (!kind) {
@@ -160,6 +164,7 @@ export function prepareModuleResource(spec: any, configPath: string, projectRoot
     configPath,
     description: spec.description,
     disabled: spec.disabled,
+    generateFiles: spec.generateFiles,
     include: spec.include,
     exclude: spec.exclude,
     name: spec.name,
@@ -178,7 +183,7 @@ export function prepareModuleResource(spec: any, configPath: string, projectRoot
   validateWithPath({
     config,
     schema: coreModuleSpecSchema(),
-    path: dirname(configPath),
+    path: configPath,
     projectRoot,
     configType: "module",
     ErrorClass: ConfigurationError,
@@ -193,6 +198,18 @@ export function prepareWorkflowResource(spec: any, configPath: string): Workflow
   }
 
   spec.kind = "Workflow"
+  spec.path = dirname(configPath)
+  spec.configPath = configPath
+
+  return spec
+}
+
+export function prepareTemplateResource(spec: any, configPath: string): ModuleTemplateResource {
+  if (!spec.apiVersion) {
+    spec.apiVersion = DEFAULT_API_VERSION
+  }
+
+  spec.kind = templateKind
   spec.path = dirname(configPath)
   spec.configPath = configPath
 

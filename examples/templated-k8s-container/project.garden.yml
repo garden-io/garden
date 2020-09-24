@@ -1,0 +1,15 @@
+kind: Project
+name: templated-k8s-container
+environments:
+  - name: local
+  - name: testing
+providers:
+  - name: local-kubernetes
+    environments: [local]
+  - name: kubernetes
+    environments: [testing]
+    # Replace these values as appropriate
+    context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
+    namespace: templated-k8s-container-testing-${local.username}
+    defaultHostname: ${local.username}-templated-k8s-container.dev-1.sys.garden
+    buildMode: cluster-docker

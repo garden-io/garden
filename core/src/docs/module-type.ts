@@ -28,6 +28,7 @@ export const moduleTypes = [
   { name: "maven-container" },
   { name: "openfaas" },
   { name: "persistentvolumeclaim", pluginName: "local-kubernetes" },
+  { name: "templated" },
   { name: "terraform" },
 ]
 

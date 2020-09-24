@@ -1,0 +1,6 @@
+kind: Module
+type: templated
+template: combo
+name: foo
+inputs:
+  foo: bar

@@ -60,7 +60,7 @@ Another option there would be to set `defaultNamespace: null` and require users 
 
 For the other environments we leave `defaultNamespace` set to the default, which is simply `default`. So when you run Garden with `--env=staging`, that automatically expands to `--env=default.staging`.
 
-The `staging` and `prod` environments have an additional flag set, the `production` flag. This flag changes some default behavior and turns on protection for certain Garden commands that might be destructive, e.g. `garden deploy`, requiring you to explicitly confirm that you want to execute them. See more details on that in [the reference](../reference/config.md#environmentsproduction).
+The `staging` and `prod` environments have an additional flag set, the `production` flag. This flag changes some default behavior and turns on protection for certain Garden commands that might be destructive, e.g. `garden deploy`, requiring you to explicitly confirm that you want to execute them. See more details on that in [the reference](../reference/project-config.md#environmentsproduction).
 
 The current environment and namespace are frequently used in template strings. `${environment.name}` resolves to the environment name (in the above example, `local`, `dev`, `staging` or `prod`), `${environment.namespace}` resolves to the namespace, and `${environment.fullName}` resolves to the two combined with a DNS-style notation, e.g. `my-namespace.dev`.
 
@@ -160,7 +160,7 @@ services:
 
 ## Further Reading
 
-* [Full project config reference](../reference/config.md).
+* [Full project config reference](../reference/project-config.md).
 * [A guide on template strings and setting project wide variables](../using-garden/variables-and-templating.md).
 * [Template string reference](../reference/template-strings.md).
 

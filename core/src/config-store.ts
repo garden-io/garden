@@ -135,7 +135,7 @@ export abstract class ConfigStore<T extends object = any> {
 
   private async loadConfig() {
     await this.ensureConfigFile()
-    const config = (await yaml.safeLoad((await readFile(this.configPath)).toString())) || {}
+    const config = yaml.safeLoad((await readFile(this.configPath)).toString()) || {}
 
     this.config = this.validate(config)
   }

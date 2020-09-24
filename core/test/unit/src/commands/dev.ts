@@ -102,6 +102,7 @@ describe("DevCommand", () => {
       "resolve-module-config.module-c",
       "resolve-provider.container",
       "resolve-provider.exec",
+      "resolve-provider.templated",
       "resolve-provider.test-plugin",
       "resolve-provider.test-plugin-b",
       "stage-build.module-a",

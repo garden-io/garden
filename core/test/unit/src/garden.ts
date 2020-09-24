@@ -27,7 +27,7 @@ import {
   resetLocalConfig,
   testGitUrl,
 } from "../../helpers"
-import { getNames, findByName } from "../../../src/util/util"
+import { getNames, findByName, omitUndefined } from "../../../src/util/util"
 import { LinkedSource } from "../../../src/config-store"
 import { ModuleVersion } from "../../../src/vcs/vcs"
 import { getModuleCacheContext } from "../../../src/types/module"
@@ -41,7 +41,7 @@ import { keyBy, set, mapValues } from "lodash"
 import stripAnsi from "strip-ansi"
 import { joi } from "../../../src/config/common"
 import { defaultDotIgnoreFiles } from "../../../src/util/fs"
-import { realpath, writeFile } from "fs-extra"
+import { realpath, writeFile, readFile, remove } from "fs-extra"
 import { dedent, deline } from "../../../src/util/string"
 import { ServiceState } from "../../../src/types/service"
 import execa from "execa"
@@ -138,6 +138,10 @@ describe("Garden", () => {
           dependencies: [],
           path: projectRoot,
         },
+        "templated": {
+          name: "templated",
+          path: projectRoot,
+        },
         "test-plugin": testPluginProvider.config,
         "test-plugin-b": {
           name: "test-plugin-b",
@@ -181,6 +185,10 @@ describe("Garden", () => {
         "container": {
           name: "container",
           dependencies: [],
+          path: projectRoot,
+        },
+        "templated": {
+          name: "templated",
           path: projectRoot,
         },
         "test-plugin": {
@@ -867,7 +875,7 @@ describe("Garden", () => {
 
         const moduleTypes = await garden.getModuleTypes()
 
-        expect(Object.keys(moduleTypes).sort()).to.eql(["bar", "container", "exec", "foo"])
+        expect(Object.keys(moduleTypes).sort()).to.eql(["bar", "container", "exec", "foo", "templated"])
       })
 
       it("should throw if attempting to redefine a module type defined in the base", async () => {
@@ -1213,7 +1221,7 @@ describe("Garden", () => {
 
           const moduleTypes = await garden.getModuleTypes()
 
-          expect(Object.keys(moduleTypes).sort()).to.eql(["a", "b", "c", "container", "exec"])
+          expect(Object.keys(moduleTypes).sort()).to.eql(["a", "b", "c", "container", "exec", "templated"])
         })
 
         it("should throw if attempting to redefine a module type defined in the base's base", async () => {
@@ -1431,24 +1439,12 @@ describe("Garden", () => {
       const providers = await garden.resolveProviders(garden.log)
       const configs = mapValues(providers, (p) => p.config)
 
-      expect(configs).to.eql({
-        "exec": {
-          name: "exec",
-          dependencies: [],
-          path: projectRoot,
-        },
-        "container": {
-          name: "container",
-          dependencies: [],
-          path: projectRoot,
-        },
-        "test-plugin": testPluginProvider.config,
-        "test-plugin-b": {
-          name: "test-plugin-b",
-          dependencies: [],
-          environments: ["local"],
-          path: projectRoot,
-        },
+      expect(configs["test-plugin"]).to.eql(testPluginProvider.config)
+      expect(configs["test-plugin-b"]).to.eql({
+        name: "test-plugin-b",
+        dependencies: [],
+        environments: ["local"],
+        path: projectRoot,
       })
     })
 
@@ -1842,7 +1838,7 @@ describe("Garden", () => {
         (err) => {
           expect(err.message).to.equal("Failed resolving one or more providers:\n" + "- test")
           expect(stripAnsi(err.detail.messages[0])).to.equal(
-            "- test: Error validating provider configuration (/garden.yml): key .foo must be a string"
+            "- test: Error validating provider configuration: key .foo must be a string"
           )
         }
       )
@@ -1880,7 +1876,7 @@ describe("Garden", () => {
         (err) => {
           expect(err.message).to.equal("Failed resolving one or more providers:\n" + "- test")
           expect(stripAnsi(err.detail.messages[0])).to.equal(
-            "- test: Error validating provider configuration (/garden.yml): key .foo must be a string"
+            "- test: Error validating provider configuration: key .foo must be a string"
           )
         }
       )
@@ -2119,7 +2115,7 @@ describe("Garden", () => {
           (err) => {
             expect(err.message).to.equal("Failed resolving one or more providers:\n" + "- test")
             expect(stripAnsi(err.detail.messages[0])).to.equal(
-              "- test: Error validating provider configuration (/garden.yml): key .foo must be a string"
+              "- test: Error validating provider configuration: key .foo must be a string"
             )
           }
         )
@@ -2163,8 +2159,7 @@ describe("Garden", () => {
           (err) => {
             expect(err.message).to.equal("Failed resolving one or more providers:\n" + "- test")
             expect(stripAnsi(err.detail.messages[0])).to.equal(
-              "- test: Error validating provider configuration (base schema from 'base' plugin) " +
-                "(/garden.yml): key .foo must be a string"
+              "- test: Error validating provider configuration (base schema from 'base' plugin): key .foo must be a string"
             )
           }
         )
@@ -2261,6 +2256,94 @@ describe("Garden", () => {
 
       const modules = await garden.resolveModules({ log: garden.log })
       expect(getNames(modules).sort()).to.eql(["module-a", "module-b", "module-c"])
+    })
+
+    it("should resolve module templates and any modules referencing them", async () => {
+      const root = resolve(dataDir, "test-projects", "module-templates")
+      const garden = await makeTestGarden(root)
+      await garden.scanAndAddConfigs()
+
+      const configA = (await garden.getRawModuleConfigs(["foo-bar-test-a"]))[0]
+      const configB = (await garden.getRawModuleConfigs(["foo-bar-test-b"]))[0]
+
+      expect(omitUndefined(configA)).to.eql({
+        apiVersion: "garden.io/v0",
+        kind: "Module",
+        build: {
+          dependencies: [],
+        },
+        include: [],
+        configPath: resolve(root, "modules.garden.yml"),
+        name: "foo-bar-test-a",
+        path: root,
+        serviceConfigs: [],
+        spec: {
+          build: {
+            dependencies: [],
+          },
+        },
+        testConfigs: [],
+        type: "test",
+        taskConfigs: [],
+        generateFiles: [
+          {
+            sourcePath: undefined,
+            targetPath: "module-a.log",
+            value: "hellow",
+          },
+        ],
+        parentName: "foo",
+        templateName: "combo",
+        inputs: {
+          foo: "bar",
+        },
+      })
+      expect(omitUndefined(configB)).to.eql({
+        apiVersion: "garden.io/v0",
+        kind: "Module",
+        build: {
+          dependencies: [{ name: "foo-bar-test-a", copy: [] }],
+        },
+        include: [],
+        configPath: resolve(root, "modules.garden.yml"),
+        name: "foo-bar-test-b",
+        path: root,
+        serviceConfigs: [],
+        spec: {
+          build: {
+            dependencies: [{ name: "foo-bar-test-a", copy: [] }],
+          },
+        },
+        testConfigs: [],
+        type: "test",
+        taskConfigs: [],
+        generateFiles: [
+          {
+            targetPath: "module-b.log",
+            sourcePath: resolve(root, "source.txt"),
+          },
+        ],
+        parentName: "foo",
+        templateName: "combo",
+        inputs: {
+          foo: "bar",
+        },
+      })
+    })
+
+    it("should throw on duplicate module template names", async () => {
+      const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-module-templates"))
+
+      await expectError(
+        () => garden.scanAndAddConfigs(),
+        (err) =>
+          expect(err.message).to.equal(
+            dedent`
+            Found duplicate names of ModuleTemplates:
+            Name combo is used at templates.garden.yml and templates.garden.yml
+            `
+          )
+      )
     })
 
     it("should throw when two modules have the same name", async () => {
@@ -2539,6 +2622,56 @@ describe("Garden", () => {
       await garden.resolveModules({ log: garden.log })
     })
 
+    it("resolves and writes a module file with a string value", async () => {
+      const projectRoot = getDataDir("test-projects", "module-templates")
+      const filePath = resolve(projectRoot, "module-a.log")
+
+      await remove(filePath)
+
+      const garden = await makeTestGarden(projectRoot)
+      await garden.resolveModules({ log: garden.log })
+
+      const fileContents = await readFile(filePath)
+
+      expect(fileContents.toString()).to.equal("hellow")
+    })
+
+    it("resolves and writes a module file with a source file", async () => {
+      const projectRoot = getDataDir("test-projects", "module-templates")
+      const filePath = resolve(projectRoot, "module-b.log")
+
+      await remove(filePath)
+
+      const garden = await makeTestGarden(projectRoot)
+      await garden.resolveModules({ log: garden.log })
+
+      const fileContents = await readFile(filePath)
+
+      expect(fileContents.toString().trim()).to.equal(dedent`
+        Hello I am file!
+        input: bar
+        module reference: ${projectRoot}
+      `)
+    })
+
+    it("resolves and writes a module file to a subdirectory and creates the directory", async () => {
+      const projectRoot = getDataDir("test-projects", "module-templates")
+      const filePath = resolve(projectRoot, ".garden", "subdir", "module-c.log")
+
+      await remove(filePath)
+
+      const garden = await makeTestGarden(projectRoot)
+      await garden.resolveModules({ log: garden.log })
+
+      const fileContents = await readFile(filePath)
+
+      expect(fileContents.toString().trim()).to.equal(dedent`
+        Hello I am string!
+        input: bar
+        module reference: ${projectRoot}
+      `)
+    })
+
     it("should throw if a module type is not recognized", async () => {
       const garden = await makeTestGardenA()
       const config = (await garden.getRawModuleConfigs(["module-a"]))[0]
@@ -2596,7 +2729,7 @@ describe("Garden", () => {
           expect(stripAnsi(err.message)).to.equal(dedent`
             Failed resolving one or more modules:
 
-            foo: Error validating module 'foo' (/garden.yml): key "bla" is not allowed at path [bla]
+            foo: Error validating Module 'foo': key "bla" is not allowed at path [bla]
           `)
       )
     })
@@ -2645,7 +2778,7 @@ describe("Garden", () => {
           expect(stripAnsi(err.message)).to.equal(dedent`
             Failed resolving one or more modules:
 
-            foo: Error validating outputs for module 'foo' (/garden.yml): key .foo must be a string
+            foo: Error validating outputs for module 'foo': key .foo must be a string
           `)
       )
     })
@@ -2718,7 +2851,7 @@ describe("Garden", () => {
           expect(stripAnsi(err.message)).to.equal(dedent`
             Failed resolving one or more modules:
 
-            foo: Error validating configuration for module 'foo' (base schema from 'base' plugin) (/garden.yml): key .base is required
+            foo: Error validating configuration for module 'foo' (base schema from 'base' plugin): key .base is required
           `)
       )
     })
@@ -2782,7 +2915,7 @@ describe("Garden", () => {
           expect(stripAnsi(err.message)).to.equal(dedent`
             Failed resolving one or more modules:
 
-            foo: Error validating outputs for module 'foo' (base schema from 'base' plugin) (/garden.yml): key .foo must be a string
+            foo: Error validating outputs for module 'foo' (base schema from 'base' plugin): key .foo must be a string
           `)
       )
     })
@@ -2867,7 +3000,7 @@ describe("Garden", () => {
             expect(stripAnsi(err.message)).to.equal(dedent`
               Failed resolving one or more modules:
 
-              foo: Error validating configuration for module 'foo' (base schema from 'base-a' plugin) (/garden.yml): key .base is required
+              foo: Error validating configuration for module 'foo' (base schema from 'base-a' plugin): key .base is required
             `)
         )
       })
@@ -2943,7 +3076,7 @@ describe("Garden", () => {
             expect(stripAnsi(err.message)).to.equal(dedent`
               Failed resolving one or more modules:
 
-              foo: Error validating outputs for module 'foo' (base schema from 'base-a' plugin) (/garden.yml): key .foo must be a string
+              foo: Error validating outputs for module 'foo' (base schema from 'base-a' plugin): key .foo must be a string
             `)
         )
       })
@@ -3461,9 +3594,9 @@ describe("Garden", () => {
     })
 
     context("test against fixed version hashes", async () => {
-      const moduleAVersionString = "v-4b68c1fda7"
-      const moduleBVersionString = "v-e145423c6c"
-      const moduleCVersionString = "v-73c52d0676"
+      const moduleAVersionString = "v-6aec27c89f"
+      const moduleBVersionString = "v-b201651929"
+      const moduleCVersionString = "v-878395c3ad"
 
       it("should return the same module versions between runtimes", async () => {
         const projectRoot = getDataDir("test-projects", "fixed-version-hashes-1")

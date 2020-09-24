@@ -849,7 +849,7 @@ export class ActionRouter implements TypeGuard {
       ? Object.keys(runtimeContext.envVars).length === 0 && runtimeContext.dependencies.length === 0
       : true
 
-    if (!runtimeContextIsEmpty && (await getRuntimeTemplateReferences(module)).length > 0) {
+    if (!runtimeContextIsEmpty && getRuntimeTemplateReferences(module).length > 0) {
       log.silly(`Resolving runtime template strings for service '${service.name}'`)
 
       const providers = await this.garden.resolveProviders(log)
@@ -863,6 +863,9 @@ export class ActionRouter implements TypeGuard {
         resolvedProviders: providers,
         dependencies: modules,
         runtimeContext,
+        parentName: module.parentName,
+        templateName: module.templateName,
+        inputs: module.inputs,
       })
 
       // Set allowPartial=false to ensure all required strings are resolved.
@@ -908,7 +911,7 @@ export class ActionRouter implements TypeGuard {
     })
 
     // Resolve ${runtime.*} template strings if needed.
-    if (runtimeContext && (await getRuntimeTemplateReferences(module)).length > 0) {
+    if (runtimeContext && getRuntimeTemplateReferences(module).length > 0) {
       log.silly(`Resolving runtime template strings for task '${task.name}'`)
 
       const providers = await this.garden.resolveProviders(log)
@@ -922,6 +925,9 @@ export class ActionRouter implements TypeGuard {
         resolvedProviders: providers,
         dependencies: modules,
         runtimeContext,
+        parentName: module.parentName,
+        templateName: module.templateName,
+        inputs: module.inputs,
       })
 
       // Set allowPartial=false to ensure all required strings are resolved.

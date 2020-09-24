@@ -12,6 +12,7 @@ import { splitLast } from "../util/util"
 import { deline, dedent } from "../util/string"
 import { cloneDeep } from "lodash"
 import { joiPathPlaceholder } from "./validation"
+import { DEFAULT_API_VERSION } from "../constants"
 
 export const objectSpreadKey = "$merge"
 
@@ -483,3 +484,10 @@ export const moduleVersionSchema = () =>
       .description("The version of each of the dependencies of the module."),
     files: fileNamesSchema(),
   })
+
+export const apiVersionSchema = () =>
+  joi
+    .string()
+    .default(DEFAULT_API_VERSION)
+    .valid(DEFAULT_API_VERSION)
+    .description("The schema version of this config (currently not used).")

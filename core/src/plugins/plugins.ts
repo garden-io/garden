@@ -6,6 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { InternalError } from "../exceptions"
+
 // These plugins are always registered
 export const supportedPlugins = [
   require("./container/container"),
@@ -17,7 +19,8 @@ export const supportedPlugins = [
   require("./octant/octant"),
   require("./openfaas/openfaas"),
   require("./terraform/terraform"),
-].map((m) => m.gardenPlugin)
+  require("./templated"),
+].map(resolvePluginFromModule)
 
 // These plugins are always registered
 export const builtinPlugins = supportedPlugins.concat(
@@ -26,5 +29,20 @@ export const builtinPlugins = supportedPlugins.concat(
     require("./google/google-cloud-functions"),
     require("./local/local-google-cloud-functions"),
     require("./npm-package"),
-  ].map((m) => m.gardenPlugin)
+  ].map(resolvePluginFromModule)
 )
+
+function resolvePluginFromModule(module: NodeModule) {
+  const filename = module.filename
+  const gardenPlugin = module["gardenPlugin"]
+
+  if (!gardenPlugin) {
+    throw new InternalError(`Module ${filename} does not define a gardenPlugin`, { filename })
+  }
+
+  if (typeof gardenPlugin === "function") {
+    return gardenPlugin()
+  }
+
+  return gardenPlugin
+}

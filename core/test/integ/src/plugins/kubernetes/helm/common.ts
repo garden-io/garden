@@ -100,6 +100,7 @@ describe("Helm common functions", () => {
   describe("renderTemplates", () => {
     it("should render and return the manifests for a local template", async () => {
       const module = graph.getModule("api")
+      const imageModule = graph.getModule("api-image")
       const templates = await renderTemplates(<KubernetesPluginContext>ctx, module, false, log)
 
       expect(templates).to.eql(dedent`
@@ -149,7 +150,7 @@ describe("Helm common functions", () => {
           spec:
             containers:
               - name: api
-                image: "api-image:v-74e9653167"
+                image: "api-image:${imageModule.version.versionString}"
                 imagePullPolicy: IfNotPresent
                 args: [python, app.py]
                 ports:

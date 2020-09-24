@@ -179,7 +179,7 @@ environments:
 
 ## Deploying to production
 
-Depending on your setup and requirements, you may or may not want to use Garden to deploy to your production environment. In either case, if you do configure your production environment in your Garden project configuration, we highly recommend that you set the [production flag](../reference/config.md#environmentsproduction) on it.
+Depending on your setup and requirements, you may or may not want to use Garden to deploy to your production environment. In either case, if you do configure your production environment in your Garden project configuration, we highly recommend that you set the [production flag](../reference/project-config.md#environmentsproduction) on it.
 
 This will protect against accidentally messing with your production environments, by prompting for confirmation before e.g. deploying or running tests in the environment.
 

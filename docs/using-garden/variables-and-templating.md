@@ -206,7 +206,7 @@ This is useful when you don't want to provide _any_ value unless one is explicit
 
 A common use case for templating is to define variables in the project/environment configuration, and to use template strings to propagate values to modules in the project.
 
-You can define them in your project configuration using the [`variables` key](../reference/config.md#variables), as well as the [`environment[].variables` key](../reference/config.md#environmentsvariables) for environment-specific values.
+You can define them in your project configuration using the [`variables` key](../reference/project-config.md#variables), as well as the [`environment[].variables` key](../reference/project-config.md#environmentsvariables) for environment-specific values.
 
 You might, for example, define project defaults using the `variables` key, and then provide environment-specific overrides in the `environment[].variables` key for each environment. When merging the environment-specific variables and project-wide variables, we use a [JSON Merge Patch](https://tools.ietf.org/html/rfc7396).
 
@@ -270,10 +270,10 @@ The format of the files is determined by the configured file extension:
 * `.yaml`/`.yml` - YAML. Must be a single document in the file, and must be a key/value map (but keys may contain any value types).
 * `.json` - JSON. Must contain a single JSON _object_ (not an array).
 
-{% hint style="info" }
+{% hint style="info" %}
 The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested objects and arrays.
 
-In the meantime, to use YAML or JSON files, you must explicitly set the varfile name(s) in your project configuration, via the [`varfile`](../reference/config.md#varfile) and/or [`environments[].varfile`](../reference/config.md#environmentsvarfile)) fields.
+In the meantime, to use YAML or JSON files, you must explicitly set the varfile name(s) in your project configuration, via the [`varfile`](../reference/project-config.md#varfile) and/or [`environments[].varfile`](../reference/project-config.md#environmentsvarfile)) fields.
 {% endhint %}
 
 You can also set variables on the command line, with `--var` flags. Note that while this is handy for ad-hoc invocations, we don't generally recommend relying on this for normal operations, since you lose a bit of visibility within your configuration. But here's one practical example:

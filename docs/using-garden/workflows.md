@@ -125,7 +125,7 @@ triggers:
     branches: [feature/*]
 ```
 
-For a full description of how to configure triggers, check out the [workflows reference](../reference/config.md#triggers).
+For a full description of how to configure triggers, check out the [workflows reference](../reference/workflow-config.md#triggers).
 
 ## Workflows and the Stack Graph
 

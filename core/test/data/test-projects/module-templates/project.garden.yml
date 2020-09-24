@@ -1,0 +1,6 @@
+kind: Project
+name: module-templates
+environments:
+  - name: local
+providers:
+  - name: test-plugin

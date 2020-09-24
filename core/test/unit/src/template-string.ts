@@ -923,29 +923,32 @@ describe("collectTemplateReferences", () => {
 
 describe("throwOnMissingSecretKeys", () => {
   it("should not throw an error if no secrets are referenced", () => {
-    const configs = {
-      foo: {
+    const configs = [
+      {
+        name: "foo",
         foo: "${banana.llama}",
         nested: { boo: "${moo}" },
       },
-    }
+    ]
 
     throwOnMissingSecretKeys(configs, {}, "Module")
     throwOnMissingSecretKeys(configs, { someSecret: "123" }, "Module")
   })
 
   it("should throw an error if one or more secrets is missing", async () => {
-    const configs = {
-      moduleA: {
+    const configs = [
+      {
+        name: "moduleA",
         foo: "${secrets.a}",
         nested: { boo: "${secrets.b}" },
       },
-      moduleB: {
+      {
+        name: "moduleB",
         bar: "${secrets.a}",
         nested: { boo: "${secrets.b}" },
         baz: "${secrets.c}",
       },
-    }
+    ]
 
     await expectError(
       () => throwOnMissingSecretKeys(configs, { b: "123" }, "Module"),

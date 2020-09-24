@@ -173,4 +173,4 @@ For full task configuration by module type, please take a look at our [reference
 
 ## Next Steps
 
-Take a look at our [Guides section](../guides/README.md) for more of an in-depth discussion on Garden concepts and capabilities.
+Take a look at our [Workflows section](./workflows.md) to learn how to define sequences of Garden commands and custom scripts.

@@ -9,7 +9,15 @@
 import Joi from "@hapi/joi"
 import chalk from "chalk"
 import { isString, mapValues } from "lodash"
-import { PrimitiveMap, joiIdentifierMap, joiStringMap, joiPrimitive, DeepPrimitiveMap, joiVariables } from "./common"
+import {
+  PrimitiveMap,
+  joiIdentifierMap,
+  joiStringMap,
+  joiPrimitive,
+  DeepPrimitiveMap,
+  joiVariables,
+  joiIdentifier,
+} from "./common"
 import { Provider, GenericProviderConfig, ProviderMap } from "./provider"
 import { ConfigurationError } from "../exceptions"
 import { resolveTemplateString, TemplateStringMissingKeyError } from "../template-string"
@@ -21,6 +29,7 @@ import { deline, dedent, naturalList } from "../util/string"
 import { getProviderUrl, getModuleTypeUrl } from "../docs/common"
 import { GardenModule } from "../types/module"
 import { isPrimitive } from "util"
+import { templateKind } from "./module-template"
 
 export type ContextKeySegment = string | number
 export type ContextKey = ContextKeySegment[]
@@ -300,6 +309,13 @@ export class DefaultEnvironmentContext extends ConfigContext {
   }
 }
 
+export interface ProjectConfigContextParams {
+  projectName: string
+  artifactsPath: string
+  username?: string
+  secrets: PrimitiveMap
+}
+
 /**
  * This context is available for template strings for all Project config fields (except `name`, `id` and
  * `domain`).
@@ -328,17 +344,7 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
   )
   public secrets: PrimitiveMap
 
-  constructor({
-    projectName,
-    artifactsPath,
-    username,
-    secrets,
-  }: {
-    projectName: string
-    artifactsPath: string
-    username?: string
-    secrets: PrimitiveMap
-  }) {
+  constructor({ projectName, artifactsPath, username, secrets }: ProjectConfigContextParams) {
     super({ projectName, artifactsPath, username })
     this.secrets = secrets
   }
@@ -741,6 +747,52 @@ class ErrorContext extends ConfigContext {
   }
 }
 
+export class ParentContext extends ConfigContext {
+  @schema(joiIdentifier().description(`The name of the parent module.`))
+  public name: string
+
+  constructor(root: ConfigContext, name: string) {
+    super(root)
+    this.name = name
+  }
+}
+
+export class ModuleTemplateContext extends ConfigContext {
+  @schema(joiIdentifier().description(`The name of the ${templateKind} being resolved.`))
+  public name: string
+
+  constructor(root: ConfigContext, name: string) {
+    super(root)
+    this.name = name
+  }
+}
+
+export class ModuleTemplateConfigContext extends ProjectConfigContext {
+  @schema(ParentContext.getSchema().description(`Information about the templated module being resolved.`))
+  public parent: ParentContext
+
+  @schema(
+    ModuleTemplateContext.getSchema().description(`Information about the template used when generating the module.`)
+  )
+  public template: ModuleTemplateContext
+
+  @schema(
+    joiVariables().description(`The inputs provided when resolving the ${templateKind}.`).meta({
+      keyPlaceholder: "<input-key>",
+    })
+  )
+  public inputs: DeepPrimitiveMap
+
+  constructor(
+    params: { parentName: string; templateName: string; inputs: DeepPrimitiveMap } & ProjectConfigContextParams
+  ) {
+    super(params)
+    this.parent = new ParentContext(this, params.parentName)
+    this.template = new ModuleTemplateContext(this, params.templateName)
+    this.inputs = params.inputs
+  }
+}
+
 /**
  * This context is available for template strings under the `module` key in configuration files.
  * It is a superset of the context available under the `project` key.
@@ -761,12 +813,36 @@ export class ModuleConfigContext extends ProviderConfigContext {
   )
   public runtime: RuntimeConfigContext
 
+  @schema(
+    ParentContext.getSchema().description(
+      `Information about the parent module (if the module is a submodule, e.g. generated in a templated module).`
+    )
+  )
+  public parent?: ParentContext
+
+  @schema(
+    ModuleTemplateContext.getSchema().description(
+      `Information about the ${templateKind} used when generating the module.`
+    )
+  )
+  public template?: ModuleTemplateContext
+
+  @schema(
+    joiVariables().description(`The inputs provided to the module through a ${templateKind}, if applicable.`).meta({
+      keyPlaceholder: "<input-key>",
+    })
+  )
+  public inputs: DeepPrimitiveMap
+
   constructor({
     garden,
     resolvedProviders,
     moduleName,
     dependencies,
     runtimeContext,
+    parentName,
+    templateName,
+    inputs,
   }: {
     garden: Garden
     resolvedProviders: ProviderMap
@@ -775,6 +851,9 @@ export class ModuleConfigContext extends ProviderConfigContext {
     // We only supply this when resolving configuration in dependency order.
     // Otherwise we pass `${runtime.*} template strings through for later resolution.
     runtimeContext?: RuntimeContext
+    parentName: string | undefined
+    templateName: string | undefined
+    inputs: DeepPrimitiveMap | undefined
   }) {
     super(garden, resolvedProviders)
 
@@ -788,6 +867,11 @@ export class ModuleConfigContext extends ProviderConfigContext {
     }
 
     this.runtime = new RuntimeConfigContext(this, runtimeContext)
+    if (parentName && templateName) {
+      this.parent = new ParentContext(this, parentName)
+      this.template = new ModuleTemplateContext(this, templateName)
+    }
+    this.inputs = inputs || {}
   }
 }
 
@@ -811,6 +895,9 @@ export class OutputConfigContext extends ModuleConfigContext {
       resolvedProviders,
       dependencies: modules,
       runtimeContext,
+      parentName: undefined,
+      templateName: undefined,
+      inputs: {},
     })
   }
 }

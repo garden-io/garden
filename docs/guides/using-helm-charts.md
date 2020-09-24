@@ -304,7 +304,7 @@ a lot of flexibility in how you organize your charts.
 
 ## Production environments
 
-You can define a remote environment as a `production` environment by setting the [production flag](../reference/config.md#environmentsproduction) to `true`. This affects some default behavior when deploying `helm`  modules. See the [Deploying to production](./remote-kubernetes.md#deploying-to-production) section in the [Remote Kubernetes](./remote-kubernetes.md) guide for details.
+You can define a remote environment as a `production` environment by setting the [production flag](../reference/project-config.md#environmentsproduction) to `true`. This affects some default behavior when deploying `helm`  modules. See the [Deploying to production](./remote-kubernetes.md#deploying-to-production) section in the [Remote Kubernetes](./remote-kubernetes.md) guide for details.
 
 ## Next steps
 

@@ -24,6 +24,7 @@
 * [Tasks](./using-garden/tasks.md)
 * [Workflows](./using-garden/workflows.md)
 * [Variables and templating](./using-garden/variables-and-templating.md)
+* [Module Templates](./using-garden/module-templates.md)
 * [Using the CLI](./using-garden/using-the-cli.md)
 
 ## 🌿 Guides
@@ -68,11 +69,15 @@
   * [`maven-container`](./reference/module-types/maven-container.md)
   * [`openfaas`](./reference/module-types/openfaas.md)
   * [`persistentvolumeclaim`](./reference/module-types/persistentvolumeclaim.md)
+  * [`templated`](./reference/module-types/templated.md)
   * [`terraform`](./reference/module-types/terraform.md)
-* [Commands](./reference/commands.md)
 * [Config Files](./reference/config.md)
-* [Template Strings](./reference/template-strings.md)
 * [Glossary](./reference/glossary.md)
+* [Commands](./reference/commands.md)
+* [Project Configuration](./reference/project-config.md)
+* [Module Template Configuration](./reference/module-template-config.md)
+* [Workflow Configuration](./reference/workflow-config.md)
+* [Template Strings](./reference/template-strings.md)
 
 ## 🌹 Misc
 

@@ -25,3 +25,6 @@ _testmain.go
 
 .vscode/settings.json
 webserver/*server*
+
+# Generated files
+.*.yml
