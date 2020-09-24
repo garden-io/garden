@@ -262,12 +262,12 @@ To make a new release, set your current working directory to the garden root dir
     * If you're making the first pre-release:
         1. Reset `latest-release` to `master` with `git reset --hard origin/master`.
         2. Run `./scripts/release.ts preminor|prepatch`.
-    * If you’ve already created a pre-release, e.g. `v1.2.3-0`, and want to create a new pre-release `v1.2.3-1` which includes fixes merged to master since `v1.2.3-0` was created, do the following:
-        1. Checkout to the most recent pre-release branch, in this case `v1.2.3-0`, and cherry-pick the appropriate commits from `master`.
+    * If you’ve already created a pre-release, e.g. `1.2.3-0`, and want to create a new pre-release `1.2.3-1` which includes fixes merged to master since `1.2.3-0` was created, do the following:
+        1. Checkout to the most recent pre-release branch, in this case `1.2.3-0`, and cherry-pick the appropriate commits from `master`.
         2. Run `./scripts/release.ts prerelease`.
     * If you’re ready to make a proper release, do the following:
-        1. Checkout to the most recent pre-release branch, e.g. `v1.2.3-1`.
-        2. Remove all the `bump version...` commits. E.g. by using `git rebase -i <hash-before-first-version-bump>` and `drop`-ing the commits. In this case we drop `chore(release): bump version to v1.2.3-0` and `chore(release): bump version to v.1.2.3-1`.
+        1. Checkout to the most recent pre-release branch, e.g. `1.2.3-1`.
+        2. Remove all the `bump version...` commits. E.g. by using `git rebase -i <hash-before-first-version-bump>` and `drop`-ing the commits. In this case we drop `chore(release): bump version to 1.2.3-0` and `chore(release): bump version to v.1.2.3-1`.
         3. Run `./scripts/release.ts minor | patch`. This way, the version bump commits and changelog entries created by the pre-releases are omitted from the final history.
 3. If you're making a pre-release you're done, and you can now start testing the binaries that were just published to our Github [Releases page](https://github.com/garden-io/garden/releases) (**step 4**). Otherwise go to **step 5**.
 4. Manual testing (using the pre-release/release binary)
@@ -290,4 +290,4 @@ To make a new release, set your current working directory to the garden root dir
 
 ## Changelog
 
-We keep a changelog under `CHANGELOG.md` that get's updated on every release. For pre-releases, we include every pre-release tag in that release cycle in the changelog. So if we're releasing, say, `v0.9.1-3`, the changelog will include entries for `v0.9.1-0`, `v0.9.1-1`, `v0.9.1-2`, assuming those tags exist. Once we make a proper release, we remove the pre-release tags so that the changelog only shows changes between `v0.9.0` and `v0.9.1`. A changelog with the pre-releases is of course always available in our Git history.
+We keep a changelog under `CHANGELOG.md` that get's updated on every release. For pre-releases, we include every pre-release tag in that release cycle in the changelog. So if we're releasing, say, `0.12.6-3`, the changelog will include entries for `0.12.6-0`, `0.12.6-1`, `0.12.6-2`, assuming those tags exist. Once we make a proper release, we remove the pre-release tags so that the changelog only shows changes between `0.12.5` and `0.12.6`. A changelog with the pre-releases is of course always available in our Git history.
