@@ -11,7 +11,15 @@ import nock from "nock"
 import { isEqual } from "lodash"
 
 import { makeDummyGarden, GardenCli } from "../../../../src/cli/cli"
-import { getDataDir, TestGarden, makeTestGardenA, enableAnalytics, projectRootA, TestEventBus } from "../../../helpers"
+import {
+  getDataDir,
+  TestGarden,
+  makeTestGardenA,
+  enableAnalytics,
+  projectRootA,
+  TestEventBus,
+  initTestLogger,
+} from "../../../helpers"
 import { GARDEN_CORE_ROOT } from "../../../../src/constants"
 import { join, resolve } from "path"
 import { Command, CommandGroup, CommandParams, PrepareParams } from "../../../../src/commands/base"
@@ -20,11 +28,13 @@ import { UtilCommand } from "../../../../src/commands/util/util"
 import { StringParameter } from "../../../../src/cli/params"
 import stripAnsi from "strip-ansi"
 import { ToolsCommand } from "../../../../src/commands/tools"
-import { envSupportsEmoji } from "../../../../src/logger/logger"
+import { envSupportsEmoji, Logger, getLogger } from "../../../../src/logger/logger"
 import { safeLoad } from "js-yaml"
 import { GardenProcess } from "../../../../src/db/entities/garden-process"
 import { ensureConnected } from "../../../../src/db/connection"
 import { startServer, GardenServer } from "../../../../src/server/server"
+import { FancyTerminalWriter } from "../../../../src/logger/writers/fancy-terminal-writer"
+import { BasicTerminalWriter } from "../../../../src/logger/writers/basic-terminal-writer"
 
 describe("cli", () => {
   before(async () => {
@@ -101,6 +111,81 @@ describe("cli", () => {
       expect(consoleOutput).to.equal(getPackageVersion())
     })
 
+    context("test logger initialization", () => {
+      // Logger is a singleton and we need to reset it between these tests as we're testing
+      // that it's initialised correctly in this block.
+      beforeEach(() => {
+        Logger.clearInstance()
+      })
+      // Re-initialise the test logger
+      after(() => {
+        Logger.clearInstance()
+        initTestLogger()
+      })
+      it("uses the fancy logger by default", async () => {
+        class TestCommand extends Command {
+          name = "test-command"
+          help = "halp!"
+          noProject = true
+
+          async action({}) {
+            return { result: { something: "important" } }
+          }
+        }
+
+        const cli = new GardenCli()
+        const cmd = new TestCommand()
+        cli.addCommand(cmd)
+
+        await cli.run({ args: ["test-command"], exitOnError: false })
+
+        const logger = getLogger()
+        expect(logger.writers[0]).to.be.instanceOf(FancyTerminalWriter)
+      })
+      it("uses the basic logger if log level > info", async () => {
+        class TestCommand extends Command {
+          name = "test-command"
+          help = "halp!"
+          noProject = true
+
+          async action({}) {
+            return { result: { something: "important" } }
+          }
+        }
+
+        const cli = new GardenCli()
+        const cmd = new TestCommand()
+        cli.addCommand(cmd)
+
+        await cli.run({
+          args: ["--logger-type=fancy", "--log-level=3", "test-command"],
+          exitOnError: false,
+        })
+
+        const logger = getLogger()
+        expect(logger.writers[0]).to.be.instanceOf(BasicTerminalWriter)
+      })
+      it("uses the basic logger if --show-timestamps flag is set to true", async () => {
+        class TestCommand extends Command {
+          name = "test-command"
+          help = "halp!"
+          noProject = true
+
+          async action({}) {
+            return { result: { something: "important" } }
+          }
+        }
+
+        const cli = new GardenCli()
+        const cmd = new TestCommand()
+        cli.addCommand(cmd)
+
+        await cli.run({ args: ["--logger-type=fancy", "--show-timestamps", "test-command"], exitOnError: false })
+
+        const logger = getLogger()
+        expect(logger.writers[0]).to.be.instanceOf(BasicTerminalWriter)
+      })
+    })
     it("shows group help text if specified command is a group", async () => {
       const cli = new GardenCli()
       const cmd = new UtilCommand()

@@ -84,7 +84,7 @@ export class Logger extends LogNode {
   public useEmoji: boolean
   public showTimestamps: boolean
 
-  private static instance: Logger
+  private static instance?: Logger
 
   static getInstance() {
     if (!Logger.instance) {
@@ -134,6 +134,13 @@ export class Logger extends LogNode {
 
     Logger.instance = instance
     return instance
+  }
+
+  /**
+   * Clears the singleton instance. Use this if you need to re-initialise the global logger singleton.
+   */
+  static clearInstance() {
+    Logger.instance = undefined
   }
 
   constructor(config: LoggerConfig) {

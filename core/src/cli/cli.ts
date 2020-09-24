@@ -186,14 +186,16 @@ ${renderCommands(commands)}
     // Parse command line --var input
     const parsedCliVars = cliVars ? dotenv.parse(cliVars.join("\n")) : {}
 
+    // Init logger
+    const level = parseLogLevel(logLevel)
     let loggerType = <LoggerType>loggerTypeOpt || command.getLoggerType({ opts: parsedOpts, args: parsedArgs })
 
     if (silent || output) {
       loggerType = "quiet"
+    } else if (loggerType === "fancy" && (level > LogLevel.info || showTimestamps)) {
+      loggerType = "basic"
     }
 
-    // Init logger
-    const level = parseLogLevel(logLevel)
     const logger = initLogger({ level, loggerType, emoji, showTimestamps })
 
     // Currently we initialise empty placeholder entries and pass those to the

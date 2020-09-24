@@ -27,6 +27,7 @@ import { TaskMetadata } from "../../../../src/logger/log-entry"
 import logSymbols = require("log-symbols")
 import stripAnsi = require("strip-ansi")
 import { highlightYaml, safeDumpYaml } from "../../../../src/util/util"
+import { freezeTime } from "../../../helpers"
 
 const logger: any = getLogger()
 
@@ -196,16 +197,38 @@ describe("renderers", () => {
         expect(formatForTerminal(entry, "fancy")).to.eql("\n")
       })
     })
+    context("basic", () => {
+      it("should render an info symbol for active log entries", () => {
+        const entry = logger.info({ msg: "hello world", status: "active" })
+
+        expect(formatForTerminal(entry, "basic")).to.equal(`${logSymbols["info"]} ${msgStyle("hello world")}\n`)
+      })
+    })
     context("logger.showTimestamps is set to true", () => {
       before(() => {
         logger.showTimestamps = true
       })
-      it("should include timestamp with formatted string", () => {
-        // Any cast so we can overwrite read only property
-        const entry = logger.info("hello world") as any
-        entry.timestamp = 1600555650583
+      context("basic", () => {
+        it("should include timestamp with formatted string", () => {
+          const now = freezeTime()
+          const entry = logger.info("hello world")
 
-        expect(formatForTerminal(entry, "fancy")).to.equal(`[2020-09-19T22:47:30.583Z] ${msgStyle("hello world")}\n`)
+          expect(formatForTerminal(entry, "basic")).to.equal(`[${now.toISOString()}] ${msgStyle("hello world")}\n`)
+        })
+        it("should show the timestamp for the most recent message state", () => {
+          const entry = logger.info("hello world")
+          entry.setState("update entry")
+          entry.messageStates[1].timestamp = 1600555650583
+
+          expect(formatForTerminal(entry, "basic")).to.equal(`[2020-09-19T22:47:30.583Z] ${msgStyle("update entry")}\n`)
+        })
+      })
+      context("fancy", () => {
+        it("should not include timestamp with formatted string", () => {
+          const entry = logger.info("hello world")
+
+          expect(formatForTerminal(entry, "fancy")).to.equal(`${msgStyle("hello world")}\n`)
+        })
       })
       after(() => {
         logger.showTimestamps = false

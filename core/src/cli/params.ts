@@ -313,7 +313,10 @@ export const globalOptions = {
     defaultValue: envSupportsEmoji(),
   }),
   "show-timestamps": new BooleanParameter({
-    help: "Show timestamps with log output.",
+    help: deline`
+      Show timestamps with log output. When enabled, Garden will use the ${chalk.bold(
+        "basic"
+      )} logger. I.e., log status changes are rendered as new lines instead of being updated in-place.`,
     defaultValue: false,
   }),
   "yes": new BooleanParameter({
