@@ -6,19 +6,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import handlebars = require("handlebars")
 import { resolve } from "path"
 import { writeCommandReferenceDocs } from "./commands"
-import { renderBaseConfigReference } from "./config"
+import { TEMPLATES_DIR, renderProjectConfigReference, renderConfigReference } from "./config"
 import { writeTemplateStringReferenceDocs } from "./template-strings"
 import { writeTableOfContents } from "./table-of-contents"
 import { Garden } from "../garden"
 import { defaultDotIgnoreFiles } from "../util/fs"
 import { keyBy } from "lodash"
-import { writeFileSync } from "fs-extra"
+import { writeFileSync, readFile, writeFile } from "fs-extra"
 import { renderModuleTypeReference, moduleTypes } from "./module-type"
 import { renderProviderReference } from "./provider"
 import { defaultNamespace } from "../config/project"
 import { GardenPlugin } from "../types/plugin/plugin"
+import { workflowConfigSchema } from "../config/workflow"
+import { moduleTemplateSchema } from "../config/module-template"
 
 export async function generateDocs(targetDir: string, plugins: GardenPlugin[]) {
   // tslint:disable: no-console
@@ -37,7 +40,6 @@ export async function generateDocs(targetDir: string, plugins: GardenPlugin[]) {
 export async function writeConfigReferenceDocs(docsRoot: string, plugins: GardenPlugin[]) {
   // tslint:disable: no-console
   const referenceDir = resolve(docsRoot, "reference")
-  const configPath = resolve(referenceDir, "config.md")
 
   const garden = await Garden.factory(__dirname, {
     config: {
@@ -105,7 +107,17 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
 
   writeFileSync(resolve(moduleTypeDir, `README.md`), readme.join("\n"))
 
-  // Render base config docs
-  console.log("->", configPath)
-  writeFileSync(configPath, renderBaseConfigReference())
+  // Render other config file references
+  async function renderConfigTemplate(configType: string, context: any) {
+    const templateData = await readFile(resolve(TEMPLATES_DIR, configType + "-config.hbs"))
+    const template = handlebars.compile(templateData.toString())
+
+    const targetPath = resolve(referenceDir, configType + "-config.md")
+    console.log("->", targetPath)
+    await writeFile(targetPath, template(context))
+  }
+
+  await renderConfigTemplate("project", renderProjectConfigReference())
+  await renderConfigTemplate("workflow", renderConfigReference(workflowConfigSchema()))
+  await renderConfigTemplate("module-template", renderConfigReference(moduleTemplateSchema()))
 }

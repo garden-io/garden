@@ -13,7 +13,7 @@ Several named environment configurations may be defined (e.g. _dev_, _testing_, 
 `garden.yml`](../using-garden/projects.md).
 
 #### Module
-The unit of building in Garden. A module is defined by its [`garden.yml` configuration file](./config.md),
+The unit of building in Garden. A module is defined by its [`garden.yml` configuration file](../using-garden/configuration-overview.md),
 located in the module's top-level directory.
 
 Each module has a plugin type, and may define one or more [services](#service).
@@ -24,7 +24,7 @@ first, and their build output made available to the requiring module's build ste
 
 #### Project
 The top-level unit of organization in Garden. A project consists of one or more [modules](#module), along with a
-project-level [`garden.yml` configuration file](./config.md).
+project-level [`garden.yml` configuration file](./project-config.md).
 
 Garden CLI commands are run in the context of a project, and are aware of all its configuration, modules and services.
 

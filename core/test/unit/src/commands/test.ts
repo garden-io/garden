@@ -10,6 +10,7 @@ import { expect } from "chai"
 import { TestCommand } from "../../../../src/commands/test"
 import isSubset = require("is-subset")
 import { makeTestGardenA, taskResultOutputs, withDefaultGlobalOpts } from "../../../helpers"
+import { keyBy } from "lodash"
 
 describe("TestCommand", () => {
   const command = new TestCommand()
@@ -17,6 +18,8 @@ describe("TestCommand", () => {
   it("should run all tests in a simple project", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
+    const graph = await garden.getConfigGraph(log)
+    const modules = keyBy(graph.getModules(), "name")
 
     const { result } = await command.action({
       garden,
@@ -80,7 +83,7 @@ describe("TestCommand", () => {
         moduleName: "module-a",
         command: ["echo", "OK"],
         testName: "unit",
-        version: "v-9b30bc93e5",
+        version: modules["module-a"].version.versionString,
         success: true,
         startedAt: dummyDate,
         completedAt: dummyDate,
@@ -93,7 +96,7 @@ describe("TestCommand", () => {
         moduleName: "module-a",
         command: ["echo", "OK"],
         testName: "integration",
-        version: "v-9b30bc93e5",
+        version: modules["module-a"].version.versionString,
         success: true,
         startedAt: dummyDate,
         completedAt: dummyDate,
@@ -106,7 +109,7 @@ describe("TestCommand", () => {
         moduleName: "module-b",
         command: ["echo", "OK"],
         testName: "unit",
-        version: "v-4ce023171a",
+        version: modules["module-b"].version.versionString,
         success: true,
         startedAt: dummyDate,
         completedAt: dummyDate,
@@ -119,7 +122,7 @@ describe("TestCommand", () => {
         moduleName: "module-c",
         command: ["echo", "OK"],
         testName: "unit",
-        version: "v-f4716c5e03",
+        version: modules["module-c"].version.versionString,
         success: true,
         startedAt: dummyDate,
         completedAt: dummyDate,
@@ -132,7 +135,7 @@ describe("TestCommand", () => {
         moduleName: "module-c",
         command: ["echo", "OK"],
         testName: "integ",
-        version: "v-f4716c5e03",
+        version: modules["module-c"].version.versionString,
         success: true,
         startedAt: dummyDate,
         completedAt: dummyDate,

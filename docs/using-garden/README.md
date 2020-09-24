@@ -37,6 +37,10 @@ This guide shows you how Garden can run your tests for you.
 
 This guide shows you how Garden can run tasks for you, for example database migrations.
 
+## [Module Templates](./module-templates.md)
+
+This guide shows you how to create custom templates and define templated modules.
+
 ## [Workflows](./workflows.md)
 
 This guide introduces _workflows_, which are simple sequences of Garden commands and/or custom scripts. You can use workflows in CI, as well as

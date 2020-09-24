@@ -405,6 +405,9 @@ describe("ModuleConfigContext", () => {
       garden,
       resolvedProviders: keyBy(await garden.resolveProviders(garden.log), "name"),
       dependencies: modules,
+      parentName: undefined,
+      templateName: undefined,
+      inputs: {},
     })
   })
 
@@ -511,6 +514,9 @@ describe("ModuleConfigContext", () => {
         resolvedProviders: keyBy(await garden.resolveProviders(garden.log), "name"),
         dependencies: modules,
         runtimeContext,
+        parentName: undefined,
+        templateName: undefined,
+        inputs: {},
       })
     })
 

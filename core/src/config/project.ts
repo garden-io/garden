@@ -21,6 +21,7 @@ import {
   joiPrimitive,
   DeepPrimitiveMap,
   joiVariablesDescription,
+  apiVersionSchema,
 } from "./common"
 import { validateWithPath } from "./validation"
 import { resolveTemplateStrings } from "../template-string"
@@ -30,7 +31,7 @@ import { ConfigurationError, ParameterError, ValidationError } from "../exceptio
 import { PrimitiveMap } from "./common"
 import { cloneDeep, omit, isPlainObject } from "lodash"
 import { providerConfigBaseSchema, GenericProviderConfig } from "./provider"
-import { DEFAULT_API_VERSION, DOCS_BASE_URL } from "../constants"
+import { DOCS_BASE_URL } from "../constants"
 import { defaultDotIgnoreFiles } from "../util/fs"
 import { pathExists, readFile } from "fs-extra"
 import { resolve, basename, relative } from "path"
@@ -42,7 +43,7 @@ export const defaultEnvVarfilePath = (environmentName: string) => `garden.${envi
 
 // These plugins are always loaded
 export const defaultNamespace = "default"
-export const fixedPlugins = ["exec", "container"]
+export const fixedPlugins = ["exec", "container", "templated"]
 
 export type EnvironmentNamespacing = "disabled" | "optional" | "required"
 
@@ -275,11 +276,7 @@ export const projectDocsSchema = () =>
   joi
     .object()
     .keys({
-      apiVersion: joi
-        .string()
-        .default(DEFAULT_API_VERSION)
-        .valid(DEFAULT_API_VERSION)
-        .description("The schema version of this project's config (currently not used)."),
+      apiVersion: apiVersionSchema(),
       kind: joi.string().default("Project").valid("Project").description("Indicate what kind of config this is."),
       path: projectRootSchema().meta({ internal: true }),
       configPath: joi.string().meta({ internal: true }).description("The path to the project config file."),

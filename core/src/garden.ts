@@ -12,7 +12,7 @@ import { ensureDir } from "fs-extra"
 import dedent from "dedent"
 import { platform, arch } from "os"
 import { parse, relative, resolve, join } from "path"
-import { flatten, isString, sortBy, fromPairs, keyBy, mapValues, cloneDeep } from "lodash"
+import { flatten, isString, sortBy, fromPairs, keyBy, mapValues, cloneDeep, groupBy } from "lodash"
 const AsyncLock = require("async-lock")
 
 import { TreeCache } from "./cache"
@@ -29,7 +29,7 @@ import {
   parseEnvironment,
   getDefaultEnvironmentName,
 } from "./config/project"
-import { findByName, pickKeys, getPackageVersion, getNames, findByNames } from "./util/util"
+import { findByName, pickKeys, getPackageVersion, getNames, findByNames, duplicatesByKey } from "./util/util"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
 import { VcsHandler, ModuleVersion } from "./vcs/vcs"
 import { GitHandler } from "./vcs/git"
@@ -38,13 +38,13 @@ import { ConfigGraph } from "./config-graph"
 import { TaskGraph, GraphResults, ProcessTasksOpts } from "./task-graph"
 import { getLogger } from "./logger/logger"
 import { PluginActionHandlers, GardenPlugin } from "./types/plugin/plugin"
-import { loadConfigResources, findProjectConfig, prepareModuleResource } from "./config/base"
+import { loadConfigResources, findProjectConfig, prepareModuleResource, GardenResource } from "./config/base"
 import { DeepPrimitiveMap, StringMap, PrimitiveMap } from "./config/common"
 import { validateSchema } from "./config/validation"
 import { BaseTask } from "./tasks/base"
 import { LocalConfigStore, ConfigStore, GlobalConfigStore } from "./config-store"
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
-import { BuildDependencyConfig, ModuleConfig, ModuleResource } from "./config/module"
+import { BuildDependencyConfig, ModuleConfig } from "./config/module"
 import { resolveModuleConfig } from "./resolve-module"
 import { ModuleConfigContext, OutputConfigContext, DefaultEnvironmentContext } from "./config/config-context"
 import { createPluginContext, CommandInfo } from "./plugin-context"
@@ -79,9 +79,16 @@ import { Profile } from "./util/profiling"
 import { ResolveModuleTask, getResolvedModules, moduleResolutionConcurrencyLimit } from "./tasks/resolve-module"
 import username from "username"
 import { throwOnMissingSecretKeys, resolveTemplateString } from "./template-string"
-import { WorkflowConfig, WorkflowResource, WorkflowConfigMap, resolveWorkflowConfig } from "./config/workflow"
+import { WorkflowConfig, WorkflowConfigMap, resolveWorkflowConfig } from "./config/workflow"
 import { enterpriseInit } from "./enterprise/init"
 import { PluginTool, PluginTools } from "./util/ext-tools"
+import {
+  ModuleTemplateResource,
+  resolveModuleTemplate,
+  resolveTemplatedModule,
+  templateKind,
+} from "./config/module-template"
+import { TemplatedModuleConfig } from "./plugins/templated"
 
 export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
   [actionName: string]: PluginActionHandlers[T]
@@ -563,7 +570,7 @@ export class Garden {
         names = getNames(rawConfigs)
       }
 
-      throwOnMissingSecretKeys(Object.fromEntries(rawConfigs.map((c) => [c.name, c])), this.secrets, "Provider")
+      throwOnMissingSecretKeys(rawConfigs, this.secrets, "Provider")
 
       // As an optimization, we return immediately if all requested providers are already resolved
       const alreadyResolvedProviders = names.map((name) => this.resolvedProviders[name]).filter(Boolean)
@@ -831,6 +838,9 @@ export class Garden {
         resolvedProviders: keyBy(providers, "name"),
         dependencies: resolvedModules,
         runtimeContext,
+        parentName: undefined,
+        templateName: undefined,
+        inputs: {},
       })
 
       // Resolve modules from specs and add to the list
@@ -997,7 +1007,7 @@ export class Garden {
         return
       }
 
-      this.log.silly(`Scanning for modules and workflows`)
+      this.log.silly(`Scanning for configs`)
 
       let extSourcePaths: string[] = []
 
@@ -1015,22 +1025,44 @@ export class Garden {
       const dirsToScan = [this.projectRoot, ...extSourcePaths]
       const configPaths = flatten(await Bluebird.map(dirsToScan, (path) => this.scanForConfigs(path)))
 
-      const rawModuleConfigs: ModuleConfig[] = [...this.pluginModuleConfigs]
-      const rawWorkflowConfigs: WorkflowConfig[] = []
+      const allResources = flatten(
+        await Bluebird.map(configPaths, async (path) => (await this.loadResources(path)) || [])
+      )
+      const groupedResources = groupBy(allResources, "kind")
 
-      await Bluebird.map(configPaths, async (path) => {
-        const configs = await this.loadResources(path)
-        if (configs) {
-          const moduleConfigs = <ModuleResource[]>configs.filter((c) => c.kind === "Module")
-          const workflowConfigs = <WorkflowResource[]>configs.filter((c) => c.kind === "Workflow")
-          rawModuleConfigs.push(...moduleConfigs)
-          rawWorkflowConfigs.push(...workflowConfigs)
-        }
-      })
+      for (const [kind, configs] of Object.entries(groupedResources)) {
+        throwOnMissingSecretKeys(configs, this.secrets, kind)
+      }
 
-      throwOnMissingSecretKeys(Object.fromEntries(rawModuleConfigs.map((c) => [c.name, c])), this.secrets, "Module")
-      throwOnMissingSecretKeys(Object.fromEntries(rawWorkflowConfigs.map((c) => [c.name, c])), this.secrets, "Workflow")
+      let rawModuleConfigs = [...this.pluginModuleConfigs, ...((groupedResources.Module as ModuleConfig[]) || [])]
+      const rawWorkflowConfigs = (groupedResources.Workflow as WorkflowConfig[]) || []
+      const rawModuleTemplateResources = (groupedResources[templateKind] as ModuleTemplateResource[]) || []
 
+      // Resolve module templates
+      const moduleTemplates = await Bluebird.map(rawModuleTemplateResources, (r) => resolveModuleTemplate(this, r))
+      // -> detect duplicate templates
+      const duplicateTemplates = duplicatesByKey(moduleTemplates, "name")
+
+      if (duplicateTemplates.length > 0) {
+        const messages = duplicateTemplates
+          .map(
+            (d) =>
+              `Name ${d.value} is used at ${naturalList(
+                d.duplicateItems.map((i) => relative(this.projectRoot, i.configPath || i.path))
+              )}`
+          )
+          .join("\n")
+        throw new ConfigurationError(`Found duplicate names of ${templateKind}s:\n${messages}`, { duplicateTemplates })
+      }
+
+      // Resolve templated modules
+      const templatesByKey = keyBy(moduleTemplates, "name")
+      const rawTemplated = rawModuleConfigs.filter((m) => m.type === "templated") as TemplatedModuleConfig[]
+      const resolvedTemplated = await Bluebird.map(rawTemplated, (r) => resolveTemplatedModule(this, r, templatesByKey))
+
+      rawModuleConfigs.push(...resolvedTemplated.flatMap((c) => c.modules))
+
+      // Add all the module and workflow configs
       await Bluebird.all([
         Bluebird.map(rawModuleConfigs, async (config) => this.addModuleConfig(config)),
         Bluebird.map(rawWorkflowConfigs, async (config) => this.addWorkflow(config)),
@@ -1095,17 +1127,16 @@ export class Garden {
   }
 
   /**
-   * Load a module and/or a workflow from the specified config file path and return the configs,
-   * or null if no module or workflow is found.
+   * Load any non-Project resources from the specified config file path.
    *
    * @param configPath Path to a garden config file
    */
-  private async loadResources(configPath: string): Promise<(ModuleResource | WorkflowResource)[]> {
+  private async loadResources(configPath: string): Promise<GardenResource[]> {
     configPath = resolve(this.projectRoot, configPath)
     this.log.silly(`Load module and workflow configs from ${configPath}`)
     const resources = await loadConfigResources(this.projectRoot, configPath)
     this.log.silly(`Loaded module and workflow configs from ${configPath}`)
-    return <(ModuleResource | WorkflowResource)[]>resources.filter((r) => r.kind === "Module" || r.kind === "Workflow")
+    return <GardenResource[]>resources.filter((r) => r.kind && r.kind !== "Project")
   }
 
   //===========================================================================

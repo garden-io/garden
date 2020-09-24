@@ -727,6 +727,11 @@ workflows:
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
+          name: e2e-templated-k8s-container
+          project: templated-k8s-container
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
           name: e2e-vote
           project: vote
           requires: [build]

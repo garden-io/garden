@@ -1,0 +1,29 @@
+kind: ModuleTemplate
+name: combo
+inputsSchemaPath: "module-templates.json"
+modules:
+  - type: test
+    name: ${parent.name}-${inputs.foo}-test-a
+    include: []
+    generateFiles:
+      - targetPath: module-a.log
+        value: "hellow"
+  - type: test
+    name: ${parent.name}-${inputs.foo}-test-b
+    build:
+      dependencies: ["${parent.name}-${inputs.foo}-test-a"]
+    include: []
+    generateFiles:
+      - targetPath: module-b.log
+        sourcePath: source.txt
+  - type: test
+    name: ${parent.name}-${inputs.foo}-test-c
+    build:
+      dependencies: ["${parent.name}-${inputs.foo}-test-a"]
+    include: []
+    generateFiles:
+      - targetPath: .garden/subdir/module-c.log
+        value: |
+          Hello I am string!
+          input: ${inputs.foo}
+          module reference: ${modules["${parent.name}-${inputs.foo}-test-a"].path}

@@ -14,4 +14,5 @@ title: Module Types
 * [`maven-container`](./maven-container.md)
 * [`openfaas`](./openfaas.md)
 * [`persistentvolumeclaim`](./persistentvolumeclaim.md)
+* [`templated`](./templated.md)
 * [`terraform`](./terraform.md)

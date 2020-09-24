@@ -12,7 +12,6 @@ import linewrap from "linewrap"
 import { resolve } from "path"
 import { projectDocsSchema } from "../config/project"
 import { get, isFunction } from "lodash"
-import { baseModuleSpecSchema } from "../config/module"
 import handlebars = require("handlebars")
 import { joi } from "../config/common"
 import { STATIC_DIR } from "../constants"
@@ -25,7 +24,6 @@ import {
 } from "./common"
 import { normalizeJoiSchemaDescription, JoiDescription } from "./joi-schema"
 import { safeDumpYaml } from "../util/util"
-import { workflowConfigSchema } from "../config/workflow"
 
 export const TEMPLATES_DIR = resolve(STATIC_DIR, "docs", "templates")
 const partialTemplatePath = resolve(TEMPLATES_DIR, "config-partial.hbs")
@@ -410,28 +408,4 @@ export function renderProjectConfigReference(opts: RenderConfigOpts = {}) {
     }),
     opts
   )
-}
-
-/**
- * Generates the base project and module level config references from the base-config.hbs template.
- * The reference includes the rendered output from the config-partial.hbs template for
- * the base project and base module schemas.
- */
-export function renderBaseConfigReference() {
-  const baseTemplatePath = resolve(TEMPLATES_DIR, "base-config.hbs")
-  const { markdownReference: projectMarkdownReference, yaml: projectYaml } = renderProjectConfigReference()
-  const { markdownReference: moduleMarkdownReference, yaml: moduleYaml } = renderConfigReference(baseModuleSpecSchema())
-  const { markdownReference: workflowMarkdownReference, yaml: workflowYaml } = renderConfigReference(
-    workflowConfigSchema()
-  )
-
-  const template = handlebars.compile(readFileSync(baseTemplatePath).toString())
-  return template({
-    projectMarkdownReference,
-    projectYaml,
-    moduleMarkdownReference,
-    moduleYaml,
-    workflowMarkdownReference,
-    workflowYaml,
-  })
 }

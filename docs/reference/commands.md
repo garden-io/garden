@@ -1,5 +1,5 @@
 ---
-order: 3
+order: 30
 title: Commands
 ---
 
@@ -941,7 +941,7 @@ variables:
 
 # All module configs in the project.
 moduleConfigs:
-  - # The schema version of this module's config (currently not used).
+  - # The schema version of this config (currently not used).
     apiVersion:
 
     kind:
@@ -951,6 +951,22 @@ moduleConfigs:
 
     # The name of this module.
     name:
+
+    # Specify how to build the module. Note that plugins may define additional keys on this object.
+    build:
+      # A list of modules that must be built before this module is built.
+      dependencies:
+        - # Module name to build ahead of this module.
+          name:
+
+          # Specify one or more files or directories to copy from the built dependency to this module.
+          copy:
+            - # POSIX-style path or filename of the directory or file(s) to copy to the target.
+              source:
+
+              # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
+              # Defaults to to same as source path.
+              target:
 
     # A description of the module.
     description:
@@ -1006,22 +1022,6 @@ moduleConfigs:
 
     # When false, disables pushing this module to remote registries.
     allowPublish:
-
-    # Specify how to build the module. Note that plugins may define additional keys on this object.
-    build:
-      # A list of modules that must be built before this module is built.
-      dependencies:
-        - # Module name to build ahead of this module.
-          name:
-
-          # Specify one or more files or directories to copy from the built dependency to this module.
-          copy:
-            - # POSIX-style path or filename of the directory or file(s) to copy to the target.
-              source:
-
-              # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-              # Defaults to to same as source path.
-              target:
 
     # The filesystem path of the module.
     path:
@@ -1124,6 +1124,16 @@ moduleConfigs:
 
     # The module spec, as defined by the provider plugin.
     spec:
+
+    # The name of the parent module (e.g. a templated module that generated this module), if applicable.
+    parentName:
+
+    # The module template that generated the module, if applicable.
+    templateName:
+
+    # Inputs provided when rendering the module from a module template, if applicable.
+    inputs:
+      <name>:
 
 # All workflow configs in the project.
 workflowConfigs:
@@ -1353,7 +1363,7 @@ Examples:
 modules:
   # The configuration for a module.
   <name>:
-    # The schema version of this module's config (currently not used).
+    # The schema version of this config (currently not used).
     apiVersion:
 
     kind:
@@ -1363,6 +1373,22 @@ modules:
 
     # The name of this module.
     name:
+
+    # Specify how to build the module. Note that plugins may define additional keys on this object.
+    build:
+      # A list of modules that must be built before this module is built.
+      dependencies:
+        - # Module name to build ahead of this module.
+          name:
+
+          # Specify one or more files or directories to copy from the built dependency to this module.
+          copy:
+            - # POSIX-style path or filename of the directory or file(s) to copy to the target.
+              source:
+
+              # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
+              # Defaults to to same as source path.
+              target:
 
     # A description of the module.
     description:
@@ -1418,22 +1444,6 @@ modules:
 
     # When false, disables pushing this module to remote registries.
     allowPublish:
-
-    # Specify how to build the module. Note that plugins may define additional keys on this object.
-    build:
-      # A list of modules that must be built before this module is built.
-      dependencies:
-        - # Module name to build ahead of this module.
-          name:
-
-          # Specify one or more files or directories to copy from the built dependency to this module.
-          copy:
-            - # POSIX-style path or filename of the directory or file(s) to copy to the target.
-              source:
-
-              # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-              # Defaults to to same as source path.
-              target:
 
     # The filesystem path of the module.
     path:
@@ -1533,6 +1543,16 @@ modules:
 
     # The module spec, as defined by the provider plugin.
     spec:
+
+    # The name of the parent module (e.g. a templated module that generated this module), if applicable.
+    parentName:
+
+    # The module template that generated the module, if applicable.
+    templateName:
+
+    # Inputs provided when rendering the module from a module template, if applicable.
+    inputs:
+      <name>:
 
     # The path to the build staging directory for the module.
     buildPath:

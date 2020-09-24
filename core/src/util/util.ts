@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { trimEnd, omit } from "lodash"
+import { trimEnd, omit, groupBy } from "lodash"
 import split2 = require("split2")
 import Bluebird = require("bluebird")
 import { ResolvableProps } from "bluebird"
@@ -704,4 +704,24 @@ export class StringCollector extends Writable {
     }
     return Buffer.concat(this.chunks).toString("utf8")
   }
+}
+
+/**
+ * Given a list of `items`, group them by `key` and return a list of `{ value, duplicateItems }` objects, where
+ * `value` is the value of item[key] and `duplicateItems` are the items that share the value. If the list is empty,
+ * no items have a duplicate value for the `key`.
+ *
+ * @example
+ * const items = [{ a: 1, b: 1 }, { a: 1, b: 2 }, { a: 2, b: 2 }]
+ * // returns [{ value: 1, duplicateItems: [{ a: 1, b: 1 }, { a: 1, b: 2 }] }]
+ * duplicateKeys(items, "a")
+ * // returns [{ value: 2, duplicateItems: [{ a: 1, b: 2 }, { a: 2, b: 2 }] }]
+ * duplicateKeys(items, "b")
+ */
+export function duplicatesByKey(items: any[], key: string) {
+  const grouped = groupBy(items, key)
+
+  return Object.entries(grouped)
+    .map(([value, duplicateItems]) => ({ value, duplicateItems }))
+    .filter(({ duplicateItems }) => duplicateItems.length > 1)
 }

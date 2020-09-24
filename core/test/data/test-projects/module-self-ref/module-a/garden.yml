@@ -2,4 +2,4 @@ kind: Module
 name: module-a
 type: test
 build:
-  args: ["${modules.module-a.version}"]
+  command: ["${modules.module-a.version}"]

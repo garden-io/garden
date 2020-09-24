@@ -50,6 +50,7 @@ export const resolveModuleConfig = profileAsync(async function $resolveModuleCon
   if (description.schema) {
     config.spec = validateWithPath({
       config: config.spec,
+      configType: "Module",
       schema: description.schema,
       name: config.name,
       path: config.path,

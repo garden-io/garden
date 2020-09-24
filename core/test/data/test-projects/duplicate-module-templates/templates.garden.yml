@@ -1,0 +1,10 @@
+kind: ModuleTemplate
+name: combo
+modules:
+  - type: test
+    name: ${component-name}-${inputs.key}-test-a
+  - type: test
+    name: ${component-name}-${inputs.key}-test-b
+---
+kind: ModuleTemplate
+name: combo

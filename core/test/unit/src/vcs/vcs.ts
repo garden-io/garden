@@ -268,7 +268,7 @@ describe("VcsHandler", () => {
         const garden = await makeTestGarden(projectRoot)
         const module = await garden.resolveModule("module-a")
 
-        const fixedVersionString = "v-4b68c1fda7"
+        const fixedVersionString = "v-6aec27c89f"
         expect(module.version.versionString).to.eql(fixedVersionString)
 
         delete process.env.TEST_ENV_VAR

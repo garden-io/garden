@@ -18,6 +18,7 @@ import {
   defaultEnvVarfilePath,
   parseEnvironment,
   defaultNamespace,
+  fixedPlugins,
 } from "../../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { expectError } from "../../../helpers"
@@ -513,7 +514,7 @@ describe("pickEnvironment", () => {
     ).to.eql({
       environmentName: "default",
       namespace: "default",
-      providers: [{ name: "exec" }, { name: "container" }],
+      providers: fixedPlugins.map((name) => ({ name })),
       production: false,
       variables: {},
     })
@@ -552,6 +553,7 @@ describe("pickEnvironment", () => {
       providers: [
         { name: "exec" },
         { name: "container", newKey: "foo" },
+        { name: "templated" },
         { name: "my-provider", a: "c", b: "d" },
         { name: "env-provider" },
       ],
@@ -583,7 +585,12 @@ describe("pickEnvironment", () => {
     ).to.eql({
       environmentName: "default",
       namespace: "default",
-      providers: [{ name: "exec" }, { name: "container", newKey: "foo" }, { name: "my-provider", b: "b" }],
+      providers: [
+        { name: "exec" },
+        { name: "container", newKey: "foo" },
+        { name: "templated" },
+        { name: "my-provider", b: "b" },
+      ],
       production: false,
       variables: {},
     })
@@ -1141,7 +1148,7 @@ describe("pickEnvironment", () => {
       () => pickEnvironment({ projectConfig: config, envString: "default", artifactsPath, username, secrets: {} }),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(
-          "Error validating environment default (/garden.yml): key .defaultNamespace must be a string"
+          "Error validating environment default: key .defaultNamespace must be a string"
         )
     )
   })
@@ -1216,7 +1223,7 @@ describe("pickEnvironment", () => {
     ).to.eql({
       environmentName: "default",
       namespace: "foo",
-      providers: [{ name: "exec" }, { name: "container" }],
+      providers: fixedPlugins.map((name) => ({ name })),
       production: false,
       variables: {},
     })
@@ -1240,7 +1247,7 @@ describe("pickEnvironment", () => {
     ).to.eql({
       environmentName: "default",
       namespace: "foo",
-      providers: [{ name: "exec" }, { name: "container" }],
+      providers: fixedPlugins.map((name) => ({ name })),
       production: false,
       variables: {},
     })
@@ -1264,7 +1271,7 @@ describe("pickEnvironment", () => {
     ).to.eql({
       environmentName: "default",
       namespace: "default",
-      providers: [{ name: "exec" }, { name: "container" }],
+      providers: fixedPlugins.map((name) => ({ name })),
       production: false,
       variables: {},
     })

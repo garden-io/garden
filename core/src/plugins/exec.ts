@@ -183,6 +183,7 @@ export async function configureExecModule({
 
   moduleConfig.spec = validateWithPath({
     config: moduleConfig.spec,
+    configType: "Module",
     schema: execModuleSpecSchema(),
     name: moduleConfig.name,
     path: moduleConfig.path,

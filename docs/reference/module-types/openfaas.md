@@ -22,7 +22,7 @@ The [first section](#complete-yaml-schema) contains the complete YAML schema, an
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this module's config (currently not used).
+# The schema version of this config (currently not used).
 apiVersion: garden.io/v0
 
 kind: Module
@@ -32,6 +32,22 @@ type:
 
 # The name of this module.
 name:
+
+# Specify how to build the module. Note that plugins may define additional keys on this object.
+build:
+  # A list of modules that must be built before this module is built.
+  dependencies:
+    - # Module name to build ahead of this module.
+      name:
+
+      # Specify one or more files or directories to copy from the built dependency to this module.
+      copy:
+        - # POSIX-style path or filename of the directory or file(s) to copy to the target.
+          source:
+
+          # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
+          # Defaults to to same as source path.
+          target: ''
 
 # A description of the module.
 description:
@@ -86,21 +102,22 @@ repositoryUrl:
 # When false, disables pushing this module to remote registries.
 allowPublish: true
 
-# Specify how to build the module. Note that plugins may define additional keys on this object.
-build:
-  # A list of modules that must be built before this module is built.
-  dependencies:
-    - # Module name to build ahead of this module.
-      name:
+# A list of files to write to the module directory when resolving this module. This is useful to automatically
+# generate (and template) any supporting files needed for the module.
+generateFiles:
+  - # POSIX-style filename to read the source file contents from, relative to the path of the module (or the
+    # ModuleTemplate configuration file if one is being applied).
+    # This file may contain template strings, much like any other field in the configuration.
+    sourcePath:
 
-      # Specify one or more files or directories to copy from the built dependency to this module.
-      copy:
-        - # POSIX-style path or filename of the directory or file(s) to copy to the target.
-          source:
+    # POSIX-style filename to write the resolved file contents to, relative to the path of the module.
+    #
+    # Note that any existing file with the same name will be overwritten. If the path contains one or more
+    # directories, they will be automatically created if missing.
+    targetPath:
 
-          # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-          # Defaults to to same as source path.
-          target: ''
+    # The desired file contents as a string.
+    value:
 
 # The names of services/functions that this function depends on at runtime.
 dependencies: []
@@ -148,7 +165,7 @@ tests:
 
 ### `apiVersion`
 
-The schema version of this module's config (currently not used).
+The schema version of this config (currently not used).
 
 | Type     | Allowed Values | Default          | Required |
 | -------- | -------------- | ---------------- | -------- |
@@ -187,6 +204,74 @@ Example:
 ```yaml
 name: "my-sweet-module"
 ```
+
+### `build`
+
+Specify how to build the module. Note that plugins may define additional keys on this object.
+
+| Type     | Default               | Required |
+| -------- | --------------------- | -------- |
+| `object` | `{"dependencies":[]}` | No       |
+
+### `build.dependencies[]`
+
+[build](#build) > dependencies
+
+A list of modules that must be built before this module is built.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+Example:
+
+```yaml
+build:
+  ...
+  dependencies:
+    - name: some-other-module-name
+```
+
+### `build.dependencies[].name`
+
+[build](#build) > [dependencies](#builddependencies) > name
+
+Module name to build ahead of this module.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `build.dependencies[].copy[]`
+
+[build](#build) > [dependencies](#builddependencies) > copy
+
+Specify one or more files or directories to copy from the built dependency to this module.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+### `build.dependencies[].copy[].source`
+
+[build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > source
+
+POSIX-style path or filename of the directory or file(s) to copy to the target.
+
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
+
+### `build.dependencies[].copy[].target`
+
+[build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > target
+
+POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
+Defaults to to same as source path.
+
+| Type        | Default | Required |
+| ----------- | ------- | -------- |
+| `posixPath` | `""`    | No       |
 
 ### `description`
 
@@ -272,73 +357,46 @@ When false, disables pushing this module to remote registries.
 | --------- | ------- | -------- |
 | `boolean` | `true`  | No       |
 
-### `build`
+### `generateFiles[]`
 
-Specify how to build the module. Note that plugins may define additional keys on this object.
+A list of files to write to the module directory when resolving this module. This is useful to automatically generate (and template) any supporting files needed for the module.
 
-| Type     | Default               | Required |
-| -------- | --------------------- | -------- |
-| `object` | `{"dependencies":[]}` | No       |
+| Type            | Required |
+| --------------- | -------- |
+| `array[object]` | No       |
 
-### `build.dependencies[]`
+### `generateFiles[].sourcePath`
 
-[build](#build) > dependencies
+[generateFiles](#generatefiles) > sourcePath
 
-A list of modules that must be built before this module is built.
+POSIX-style filename to read the source file contents from, relative to the path of the module (or the ModuleTemplate configuration file if one is being applied).
+This file may contain template strings, much like any other field in the configuration.
 
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[object]` | `[]`    | No       |
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | No       |
 
-Example:
+### `generateFiles[].targetPath`
 
-```yaml
-build:
-  ...
-  dependencies:
-    - name: some-other-module-name
-```
+[generateFiles](#generatefiles) > targetPath
 
-### `build.dependencies[].name`
+POSIX-style filename to write the resolved file contents to, relative to the path of the module.
 
-[build](#build) > [dependencies](#builddependencies) > name
-
-Module name to build ahead of this module.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-### `build.dependencies[].copy[]`
-
-[build](#build) > [dependencies](#builddependencies) > copy
-
-Specify one or more files or directories to copy from the built dependency to this module.
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[object]` | `[]`    | No       |
-
-### `build.dependencies[].copy[].source`
-
-[build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > source
-
-POSIX-style path or filename of the directory or file(s) to copy to the target.
+Note that any existing file with the same name will be overwritten. If the path contains one or more directories, they will be automatically created if missing.
 
 | Type        | Required |
 | ----------- | -------- |
 | `posixPath` | Yes      |
 
-### `build.dependencies[].copy[].target`
+### `generateFiles[].value`
 
-[build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > target
+[generateFiles](#generatefiles) > value
 
-POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-Defaults to to same as source path.
+The desired file contents as a string.
 
-| Type        | Default | Required |
-| ----------- | ------- | -------- |
-| `posixPath` | `""`    | No       |
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `dependencies[]`
 

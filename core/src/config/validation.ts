@@ -46,7 +46,7 @@ export interface ValidateWithPathParams<T> {
   path: string // Absolute path to the config file, including filename
   projectRoot: string
   name?: string // Name of the top-level entity that the config belongs to, e.g. "some-module" or "some-project"
-  configType?: string // The type of top-level entity that the config belongs to, e.g. "module" or "project"
+  configType: string // The type of top-level entity that the config belongs to, e.g. "module" or "project"
   ErrorClass?: typeof ConfigurationError | typeof LocalConfigError
 }
 
@@ -62,11 +62,15 @@ export function validateWithPath<T>({
   path,
   projectRoot,
   name,
-  configType = "module",
+  configType,
   ErrorClass,
 }: ValidateWithPathParams<T>) {
+  const context =
+    `${configType} ${name ? `'${name}' ` : ""}` +
+    `${path && projectRoot !== path ? "(" + relative(projectRoot, path) + ")" : ""}`
+
   const validateOpts = {
-    context: `${configType} ${name ? `'${name}' ` : ""}(${relative(projectRoot, path)}/garden.yml)`,
+    context: context.trim(),
   }
 
   if (ErrorClass) {

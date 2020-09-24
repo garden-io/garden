@@ -1,5 +1,5 @@
 ---
-order: 5
+order: 50
 title: Template Strings
 ---
 
@@ -783,6 +783,52 @@ The task output value. Refer to individual [module type references](https://docs
 | --------------------------- |
 | `number | string | boolean` |
 
+### `${parent.*}`
+
+Information about the parent module (if the module is a submodule, e.g. generated in a templated module).
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${parent.name}`
+
+The name of the parent module.
+
+| Type     |
+| -------- |
+| `string` |
+
+### `${template.*}`
+
+Information about the ModuleTemplate used when generating the module.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${template.name}`
+
+The name of the ModuleTemplate being resolved.
+
+| Type     |
+| -------- |
+| `string` |
+
+### `${inputs.*}`
+
+The inputs provided to the module through a ModuleTemplate, if applicable.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${inputs.<input-key>}`
+
+| Type                                             |
+| ------------------------------------------------ |
+| `number | string | boolean | link | array[link]` |
+
 
 ## Output configuration context
 
@@ -1123,6 +1169,52 @@ The task output value. Refer to individual [module type references](https://docs
 | Type                        |
 | --------------------------- |
 | `number | string | boolean` |
+
+### `${parent.*}`
+
+Information about the parent module (if the module is a submodule, e.g. generated in a templated module).
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${parent.name}`
+
+The name of the parent module.
+
+| Type     |
+| -------- |
+| `string` |
+
+### `${template.*}`
+
+Information about the ModuleTemplate used when generating the module.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${template.name}`
+
+The name of the ModuleTemplate being resolved.
+
+| Type     |
+| -------- |
+| `string` |
+
+### `${inputs.*}`
+
+The inputs provided to the module through a ModuleTemplate, if applicable.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${inputs.<input-key>}`
+
+| Type                                             |
+| ------------------------------------------------ |
+| `number | string | boolean | link | array[link]` |
 
 
 ## Workflow configuration context

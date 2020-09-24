@@ -13,12 +13,14 @@ import {
   ScanContext,
   ContextResolveOutput,
   ContextKeySegment,
+  ModuleConfigContext,
 } from "./config/config-context"
 import { difference, flatten, uniq, isPlainObject, isNumber } from "lodash"
 import { Primitive, StringMap, isPrimitive, objectSpreadKey } from "./config/common"
 import { profile } from "./util/profiling"
 import { dedent, deline } from "./util/string"
 import { isArray } from "util"
+import { ObjectWithName } from "./util/util"
 
 export type StringOrStringPromise = Promise<string> | string
 
@@ -172,9 +174,12 @@ export function getRuntimeTemplateReferences<T extends object>(obj: T) {
   return refs.filter((ref) => ref[0] === "runtime")
 }
 
-export function getModuleTemplateReferences<T extends object>(obj: T) {
+export function getModuleTemplateReferences<T extends object>(obj: T, context: ModuleConfigContext) {
   const refs = collectTemplateReferences(obj)
-  return refs.filter((ref) => ref[0] === "modules" && ref.length > 1)
+  const moduleNames = refs.filter((ref) => ref[0] === "modules" && ref.length > 1)
+  // Resolve template strings in name refs. This would ideally be done ahead of this function, but is currently
+  // necessary to resolve templated module name references in ModuleTemplates.
+  return resolveTemplateStrings(moduleNames, context)
 }
 
 /**
@@ -183,16 +188,12 @@ export function getModuleTemplateReferences<T extends object>(obj: T) {
  *
  * Prefix should be e.g. "Module" or "Provider" (used when generating error messages).
  */
-export function throwOnMissingSecretKeys<T extends Object>(
-  configs: { [key: string]: T },
-  secrets: StringMap,
-  prefix: string
-) {
+export function throwOnMissingSecretKeys(configs: ObjectWithName[], secrets: StringMap, prefix: string) {
   const allMissing: [string, ContextKeySegment[]][] = [] // [[key, missing keys]]
-  for (const [key, config] of Object.entries(configs)) {
+  for (const config of configs) {
     const missing = detectMissingSecretKeys(config, secrets)
     if (missing.length > 0) {
-      allMissing.push([key, missing])
+      allMissing.push([config.name, missing])
     }
   }
 
@@ -208,7 +209,7 @@ export function throwOnMissingSecretKeys<T extends Object>(
   const loadedKeys = Object.entries(secrets)
     .filter(([_key, value]) => value)
     .map(([key, _value]) => key)
-  let footer
+  let footer: string
   if (loadedKeys.length === 0) {
     footer = deline`
       Note: No secrets have been loaded. If you have defined secrets for the current project and environment in Garden
