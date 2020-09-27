@@ -1,6 +1,7 @@
 ---
 title: Remote Kubernetes
 ---
+
 # Using Garden with a remote Kubernetes cluster
 
 Below are some notes on the steps you need to take before deploying Garden projects to a remote Kubernetes cluster,
@@ -67,7 +68,7 @@ garden --env=<environment-name> plugins kubernetes cluster-init
 To later uninstall the installed services, you can run:
 
 ```sh
-garden --env=<environment-name> plugins kubernetes uninstall-cores
+garden --env=<environment-name> plugins kubernetes uninstall-garden-services
 ```
 
 This will remove all services from the `garden-system` namespace, as well as any installed cluster-scoped resources.
@@ -130,7 +131,7 @@ to your registry's documentation on how to do that (for Docker Hub you simply ru
 
 ### Ingress, TLS and DNS
 
-By default, Garden will not install an ingress controller for remote environments. This can be toggled by setting the [`setupIngressController` flag](../reference/providers/kubernetes.md#providerssetupingresscontroller) to `nginx`. Alternatively, you can set up your own ingress controller, e.g. using [Traefik](https://traefik.io/), [Ambassador](https://www.getambassador.io/) or [Istio](https://istio.io/).  You can find examples for [using Garden with Ambassador](https://github.com/garden-io/garden/tree/0.12.6/examples/ambassador) and [with Istio](https://github.com/garden-io/garden/tree/0.12.6/examples/istio) in our [examples directory](https://github.com/garden-io/garden/tree/0.12.6/examples).
+By default, Garden will not install an ingress controller for remote environments. This can be toggled by setting the [`setupIngressController` flag](../reference/providers/kubernetes.md#providerssetupingresscontroller) to `nginx`. Alternatively, you can set up your own ingress controller, e.g. using [Traefik](https://traefik.io/), [Ambassador](https://www.getambassador.io/) or [Istio](https://istio.io/). You can find examples for [using Garden with Ambassador](https://github.com/garden-io/garden/tree/0.12.6/examples/ambassador) and [with Istio](https://github.com/garden-io/garden/tree/0.12.6/examples/istio) in our [examples directory](https://github.com/garden-io/garden/tree/0.12.6/examples).
 
 You'll also need to point one or more DNS entries to your cluster, and configure a TLS certificate for the hostnames
 you will expose for ingress.
