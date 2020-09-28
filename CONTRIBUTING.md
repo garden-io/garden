@@ -198,7 +198,8 @@ yarn run generate-docs
 
 ### Pre-push hook
 
-Before pushing, we automatically run the `check-all` script from above, as well as unit tests. To skip these, run push with the `--no-verify` flag:
+Before pushing, we automatically run the `check-pre-push` script (which runs the scripts in `check-all`, except for
+`check-docs`), as well as unit tests. To skip these, run push with the `--no-verify` flag:
 
 ```sh
 git push origin <my-branch> --no-verify

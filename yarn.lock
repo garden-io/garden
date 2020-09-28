@@ -5356,10 +5356,10 @@ commander@^4.1.1:
   resolved "https://registry.yarnpkg.com/commander/-/commander-4.1.1.tgz#9fd602bd936294e9e9ef46a3f4d6964044b18068"
   integrity sha512-NOKm8xhkzAjzFx8B2v5OAHT+u5pRQc2UCa2Vq9jYL/31o2wi9mxBA7LIFs3sV5VSC49z6pEhfbMULvShKj26WA==
 
-commander@^5.0.0:
-  version "5.1.0"
-  resolved "https://registry.yarnpkg.com/commander/-/commander-5.1.0.tgz#46abbd1652f8e059bddaef99bbdcb2ad9cf179ae"
-  integrity sha512-P0CysNDQ7rtVw4QIQtm+MRxV66vKFSvlsQvGYXZWR3qFU0jlMKHZZZgw8e+8DSah4UDKMqnknRDQz+xuQXQ/Zg==
+commander@^6.1.0:
+  version "6.1.0"
+  resolved "https://registry.yarnpkg.com/commander/-/commander-6.1.0.tgz#f8d722b78103141006b66f4c7ba1e97315ba75bc"
+  integrity sha512-wl7PNrYWd2y5mp1OK/LhTlv8Ff4kQJQRXXAvF+uU/TPNiVJUxZLRYGj/B0y/lPGAVcSbJqH2Za/cvHmrPMC8mA==
 
 commandpost@^1.0.0:
   version "1.4.0"
@@ -11396,10 +11396,10 @@ linewrap@^0.2.1:
   resolved "https://registry.yarnpkg.com/linewrap/-/linewrap-0.2.1.tgz#5caef1579383b9b5fcb682b2d498dc9d74c545cf"
   integrity sha1-XK7xV5ODubX8toKy1JjcnXTFRc8=
 
-link-check@^4.5.0:
-  version "4.5.0"
-  resolved "https://registry.yarnpkg.com/link-check/-/link-check-4.5.0.tgz#d0755fb50a86f889c19544acde40a306171c306d"
-  integrity sha512-7PWHakA/+O5uaZ9yD290fiG2PUK9weoHAMgtoH3VPllL8ukYHe1YEbwgK9jjnUSE7Xa3zgT41mg+7TnZAPLxkQ==
+link-check@^4.5.1:
+  version "4.5.1"
+  resolved "https://registry.yarnpkg.com/link-check/-/link-check-4.5.1.tgz#cae016487c6759cdc90275ae950f87920b4b51ae"
+  integrity sha512-g0tu3Nkj/rpl1b6rQHRlaaSZ16iRqRDNP30jLUfRK0uNN98H56YVZlJXLjWcyjsj4f2+xZdxqeV398dx38MzfQ==
   dependencies:
     is-relative-url "^3.0.0"
     isemail "^3.2.0"
@@ -11921,26 +11921,26 @@ markdown-extensions@^1.1.0:
   resolved "https://registry.yarnpkg.com/markdown-extensions/-/markdown-extensions-1.1.1.tgz#fea03b539faeaee9b4ef02a3769b455b189f7fc3"
   integrity sha512-WWC0ZuMzCyDHYCasEGs4IPvLyTGftYwh6wIEOULOF0HXcqZlhwRzrK0w2VUlxWA98xnvb/jszw4ZSkJ6ADpM6Q==
 
-markdown-link-check@^3.8.1:
-  version "3.8.1"
-  resolved "https://registry.yarnpkg.com/markdown-link-check/-/markdown-link-check-3.8.1.tgz#526cdf27fdac2c88fc98687bbc0ebb0928452a14"
-  integrity sha512-R6k8ytdJZePDAdb8NT0NvrNvu6n25IwLPIoJ4guHWC5yqyTlnUpRT7j3XE4ioBXwqOhG/LlUcuckD621kZkl4w==
+markdown-link-check@^3.8.3:
+  version "3.8.3"
+  resolved "https://registry.yarnpkg.com/markdown-link-check/-/markdown-link-check-3.8.3.tgz#b0a93237770f5ab8fe3d15fc61a5ce12a31a5bc8"
+  integrity sha512-Q9LTCwBjWcQR9dd6LNMXg9GFewkRiVEaU/+Y2ZcCbOb0lVqIfeJworWYGakG7bFj8HJQILBTRnAnEK9DDKfdPA==
   dependencies:
     async "^3.2.0"
-    chalk "^4.0.0"
-    commander "^5.0.0"
-    link-check "^4.5.0"
-    lodash "^4.17.15"
-    markdown-link-extractor "^1.2.3"
+    chalk "^4.1.0"
+    commander "^6.1.0"
+    link-check "^4.5.1"
+    lodash "^4.17.20"
+    markdown-link-extractor "^1.2.6"
     progress "^2.0.3"
     request "^2.88.2"
 
-markdown-link-extractor@^1.2.3:
-  version "1.2.3"
-  resolved "https://registry.yarnpkg.com/markdown-link-extractor/-/markdown-link-extractor-1.2.3.tgz#926b9b4cf5ea2a0ce1328603fe676c4e602e7679"
-  integrity sha512-BGgBPPNjRpwKzkMxuY5YG2ntPmSL8UMnGiYxRR/9etK3ABLv9SsKHt70PUxv6MaBSC3TnpRsvcIOmnCFWvjcRA==
+markdown-link-extractor@^1.2.6:
+  version "1.2.6"
+  resolved "https://registry.yarnpkg.com/markdown-link-extractor/-/markdown-link-extractor-1.2.6.tgz#7b0c769694cf173f5ee898d4de06dc0ecaff4c01"
+  integrity sha512-WDiwWTzR/zk0n0As7q1KCB1Jd/T7nJ7IEr6E1QKZR1Agd/xRmB0FjM2IrtC7IZ1ZwxflBE0aLe4pkX8d+rzV8w==
   dependencies:
-    marked "^0.8.2"
+    marked "^1.1.1"
 
 markdown-table@^2.0.0:
   version "2.0.0"
@@ -11949,10 +11949,10 @@ markdown-table@^2.0.0:
   dependencies:
     repeat-string "^1.0.0"
 
-marked@^0.8.2:
-  version "0.8.2"
-  resolved "https://registry.yarnpkg.com/marked/-/marked-0.8.2.tgz#4faad28d26ede351a7a1aaa5fec67915c869e355"
-  integrity sha512-EGwzEeCcLniFX51DhTpmTom+dSA/MG/OBUDjnWtHbEnjAH180VzUeAw+oE4+Zv+CoYBWyRlYOTR0N8SO9R1PVw==
+marked@^1.1.1:
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/marked/-/marked-1.2.0.tgz#7221ce2395fa6cf6d722e6f2871a32d3513c85ca"
+  integrity sha512-tiRxakgbNPBr301ihe/785NntvYyhxlqcL3YaC8CaxJQh7kiaEtrN9B/eK2I2943Yjkh5gw25chYFDQhOMCwMA==
 
 matchdep@^2.0.0:
   version "2.0.0"
@@ -12673,12 +12673,17 @@ node-forge@0.9.0:
   resolved "https://registry.yarnpkg.com/node-forge/-/node-forge-0.9.0.tgz#d624050edbb44874adca12bb9a52ec63cb782579"
   integrity sha512-7ASaDa3pD+lJ3WvXFsxekJQelBKRpne+GOVbLbtHYdd7pFspyeuJHnWfLplGf3SwKGbfs/aYl5V/JCIaHVUKKQ==
 
+node-forge@^0.10.0:
+  version "0.10.0"
+  resolved "https://registry.yarnpkg.com/node-forge/-/node-forge-0.10.0.tgz#32dea2afb3e9926f02ee5ce8794902691a676bf3"
+  integrity sha512-PPmu8eEeG9saEUvI97fm4OYxXVB6bFvyNTyiUOBichBpFG8A1Ljw3bY62+5oOjDEMHRnd0Y7HQ+x7uzxOzC6JA==
+
 node-forge@^0.8.5:
   version "0.8.5"
   resolved "https://registry.yarnpkg.com/node-forge/-/node-forge-0.8.5.tgz#57906f07614dc72762c84cef442f427c0e1b86ee"
   integrity sha512-vFMQIWt+J/7FLNyKouZ9TazT74PRV3wgv9UT4cRjC8BffxFbKXkgIWR42URCPSnHm/QDz6BOlb2Q0U4+VQT67Q==
 
-node-forge@^0.9.0, node-forge@^0.9.1:
+node-forge@^0.9.0:
   version "0.9.1"
   resolved "https://registry.yarnpkg.com/node-forge/-/node-forge-0.9.1.tgz#775368e6846558ab6676858a4d8c6e8d16c677b5"
   integrity sha512-G6RlQt5Sb4GMBzXvhfkeFmbqR6MzhtnT7VTHuLadjkii3rdYHNdw0m8zA4BTxVIh68FicCQ2NSUANpsqkr9jvQ==

@@ -1,4 +1,5 @@
 {
+  "retryOn429":true,
   "ignorePatterns": [
     {
       "pattern": "local.app.garden",

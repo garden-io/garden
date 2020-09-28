@@ -9,9 +9,12 @@ check_relative_links() {
   ./node_modules/.bin/remark --use validate-links --frail --quiet --no-stdout "$@"
 }
 
+error_in_external_links=false
 check_external_links() {
-  # markdown-link-check is configured to ignore relative links
-  echo "$@" | tr ' ' '\n' | parallel -n 1 ./node_modules/.bin/markdown-link-check --config markdown-link-check-config.json
+  for file in $@; do
+    # markdown-link-check is configured to ignore relative links
+    ./node_modules/.bin/markdown-link-check --config markdown-link-check-config.json $file || error_in_external_links=true
+  done
 }
 
 export -f check_relative_links
@@ -24,16 +27,20 @@ if !([ -z "$modified_docs" ] && [ -z "$modified_examples" ]); then
   examples=$(find examples -name 'README.md' -type f -not -path "*/.garden/*" -not -path "*/node_modules/*" | xargs)
   readme="./README.md"
 
-  commands=(
-    "check_external_links $docs"
-    "check_relative_links $docs"
-    "check_external_links $examples"
-    "check_relative_links $examples"
-    "check_external_links $readme"
-    "check_relative_links $readme"
-  )
+  check_relative_links $docs
+  check_relative_links $examples
+  check_relative_links $readme
 
-  echo "$(IFS=$'\n'; echo "${commands[*]}")" | parallel --halt now,fail=1
+  check_external_links $docs
+  check_external_links $examples
+  check_external_links $readme
+
+  if $error_in_external_links; then
+    echo ""
+    echo "Error: Dead links found. See the output above for details."
+    echo ""
+    exit 1
+  fi
 fi
 
 # Needs to generate clean docs before we can validate they are up to date
