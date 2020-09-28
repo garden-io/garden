@@ -117,10 +117,22 @@ export type ParamSpec = {
 /**
  * Parses the given CLI arguments using minimist. The result should be fed to `processCliArgs()`
  *
- * @param stringArgs Raw string arguments
- * @param command    The Command that the arguments are for, if any
+ * @param stringArgs  Raw string arguments
+ * @param command     The Command that the arguments are for, if any
+ * @param cli         If true, prefer `param.cliDefault` to `param.defaultValue`
+ * @param skipDefault Defaults to `false`. If `true`, don't populate default values.
  */
-export function parseCliArgs({ stringArgs, command, cli }: { stringArgs: string[]; command?: Command; cli: boolean }) {
+export function parseCliArgs({
+  stringArgs,
+  command,
+  cli,
+  skipDefault = false,
+}: {
+  stringArgs: string[]
+  command?: Command
+  cli: boolean
+  skipDefault?: boolean
+}) {
   // Tell minimist which flags are to be treated explicitly as booleans and strings
   const allOptions = { ...globalOptions, ...(command?.options || {}) }
   const booleanKeys = Object.keys(pickBy(allOptions, (spec) => spec.type === "boolean"))
@@ -131,11 +143,15 @@ export function parseCliArgs({ stringArgs, command, cli }: { stringArgs: string[
   const defaultValues = {}
 
   for (const [name, spec] of Object.entries(allOptions)) {
-    defaultValues[name] = spec.getDefaultValue(cli)
+    if (!skipDefault) {
+      defaultValues[name] = spec.getDefaultValue(cli)
+    }
 
     if (spec.alias) {
       aliases[name] = spec.alias
-      defaultValues[spec.alias] = defaultValues[name]
+      if (!skipDefault) {
+        defaultValues[spec.alias] = defaultValues[name]
+      }
     }
   }
 
