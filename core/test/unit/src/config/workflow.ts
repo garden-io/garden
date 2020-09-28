@@ -133,6 +133,33 @@ describe("resolveWorkflowConfig", () => {
     )
   })
 
+  it("should throw if a step command uses a global option", async () => {
+    const config: WorkflowConfig = {
+      ...defaults,
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Workflow",
+      name: "workflow-a",
+      path: "/tmp/foo",
+      description: "Sample workflow",
+      steps: [{ command: ["test", "--env=foo", "-l", "4"] }, { command: ["test", "--silent"] }],
+      triggers: [
+        {
+          environment: "local",
+          events: ["pull-request"],
+          branches: ["feature*"],
+          ignoreBranches: ["feature-ignored*"],
+          tags: ["v1*"],
+          ignoreTags: ["v1-ignored*"],
+        },
+      ],
+    }
+
+    await expectError(
+      () => resolveWorkflowConfig(garden, config),
+      (err) => expect(err.message).to.match(/Invalid step command options for workflow workflow-a/)
+    )
+  })
+
   it("should throw if a trigger uses an environment that isn't defined in the project", async () => {
     const config: WorkflowConfig = {
       ...defaults,
