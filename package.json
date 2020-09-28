@@ -35,7 +35,7 @@
     "handlebars": "^4.7.6",
     "husky": "^4.2.5",
     "lodash": "^4.17.15",
-    "markdown-link-check": "^3.8.1",
+    "markdown-link-check": "^3.8.3",
     "minimatch": "^3.0.4",
     "minimist": "^1.2.5",
     "prettier": "^2.1.1",
@@ -60,10 +60,11 @@
     "bootstrap": "yarn",
     "build": "yarn run clean && yarn run bootstrap && ./scripts/run-script.ts build",
     "build-containers": "yarn run dist && ./scripts/build-containers.sh",
-    "check-all": "yarn run check-docs && yarn run check-package-lock && yarn run check-licenses && yarn run lint",
+    "check-all": "yarn run check-package-lock && yarn run check-licenses && yarn run lint && yarn run check-docs",
     "check-docs": "./scripts/check-docs.sh",
     "check-licenses": "gulp check-licenses",
     "check-package-lock": "git diff --quiet HEAD -- yarn.lock || (echo 'yarn.lock is dirty!' && exit 1)",
+    "check-pre-push": "yarn run check-package-lock && yarn run check-licenses && yarn run lint",
     "clean": "./scripts/run-script.ts clean && find . -name \".garden\" -type d -prune -exec rm -rf '{}' '+'",
     "clean-node-modules": "find . -name \"node_modules\" -type d -prune -exec rm -rf '{}' '+'",
     "dev": "./scripts/run-script.ts dev --parallel",
@@ -79,7 +80,7 @@
   "husky": {
     "hooks": {
       "commit-msg": "commitlint -E HUSKY_GIT_PARAMS",
-      "pre-push": "yarn run check-all && npm test"
+      "pre-push": "yarn run check-pre-push && npm test"
     }
   },
   "workspaces": [
