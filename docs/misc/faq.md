@@ -261,7 +261,7 @@ Garden also optionally installs Nginx. The `local-kubernetes` provider defaults 
 
 Furthermore, the `openfaas` provider installs some components necessary for OpenFaas to work.
 
-Of course, we use Garden to install these components, and you’ll find the Garden modules for them in [in our source code](https://github.com/garden-io/garden/tree/master/core/static) under `kubernetes/system` and `openfaas/system`.
+Of course, we use Garden to install these components, and you’ll find the Garden modules for them in [in our source code](https://github.com/garden-io/garden/tree/master/static) under `kubernetes/system` and `openfaas/system`.
 
 ### How does Garden resolve the `*.local.app.garden` domain?
 

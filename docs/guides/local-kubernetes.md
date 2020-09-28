@@ -56,10 +56,10 @@ export KUBECONFIG=$HOME/.kube/microk8s.config:${KUBECONFIG:-$HOME/.kube/config}
 For Minikube installation instructions, please see the [official guide](https://github.com/kubernetes/minikube#installation).
 
 You may also want to install a driver to run the Minikube VM. Please follow the
-[instructions here](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md)
+[instructions here](https://minikube.sigs.k8s.io/docs/drivers/)
 and note the name of the driver you use. The driver you choose will likely vary depending on your
-OS/platform. We recommend [hyperkit](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md#hyperkit-driver)
-for macOS and [kvm2](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md#kvm2-driver) on most Linux
+OS/platform. We recommend [hyperkit](https://minikube.sigs.k8s.io/docs/drivers/hyperkit/)
+for macOS and [kvm2](https://minikube.sigs.k8s.io/docs/drivers/kvm2/) on most Linux
 distributions.
 
 Once Minikube and the appropriate driver for your OS are installed, you can start Minikube by running:
