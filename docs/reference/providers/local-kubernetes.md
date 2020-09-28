@@ -9,7 +9,7 @@ tocTitle: "`local-kubernetes`"
 
 The `local-kubernetes` provider is a specialized version of the [`kubernetes` provider](https://docs.garden.io/reference/providers/kubernetes) that automates and simplifies working with local Kubernetes clusters.
 
-For general Kubernetes usage information, please refer to the [guides section](https://docs.garden.io/guides). For local clusters a good place to start is the [Local Kubernetes guide](https://docs.garden.io/guides/local-kubernetes) guide. The [demo-project](https://docs.garden.io/example-projects/demo-project) example project and guide are also helpful as an introduction.
+For general Kubernetes usage information, please refer to the [guides section](https://docs.garden.io/guides). For local clusters a good place to start is the [Local Kubernetes guide](https://docs.garden.io/guides/local-kubernetes) guide. The [demo-project](https://docs.garden.io/getting-started/2-initialize-a-project) example project and guide are also helpful as an introduction.
 
 If you're working with a remote Kubernetes cluster, please refer to the [`kubernetes` provider](https://docs.garden.io/reference/providers/kubernetes) docs, and the [Remote Kubernetes guide](https://docs.garden.io/guides/remote-kubernetes) guide.
 
