@@ -54,7 +54,7 @@ export class ResolveModuleConfigTask extends BaseTask {
   async resolveDependencies() {
     const rawConfigs = keyBy(await this.garden.getRawModuleConfigs(), "name")
 
-    const templateRefs = await getModuleTemplateReferences(this.moduleConfig)
+    const templateRefs = getModuleTemplateReferences(this.moduleConfig)
     const deps = templateRefs.filter((d) => d[1] !== this.moduleConfig.name)
 
     return deps.map((d) => {

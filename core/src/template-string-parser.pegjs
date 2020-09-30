@@ -6,6 +6,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+{
+  const {
+    buildBinaryExpression,
+    buildLogicalExpression,
+    getKey,
+    getValue,
+    isArray,
+    isPrimitive,
+    optionalSuffix,
+    missingKeyErrorType,
+    resolveNested,
+    TemplateStringError,
+  } = options
+}
+
 TemplateString
   = a:(FormatString)+ b:TemplateString? { return [...a, ...(b || [])] }
   / a:Prefix b:(FormatString)+ c:TemplateString? { return [a, ...b, ...(c || [])] }
@@ -14,25 +29,37 @@ TemplateString
 
 FormatString
   = FormatStart e:Expression end:FormatEnd {
-      if (e && e._error) {
+      if (e && e._error && e._error.type !== missingKeyErrorType) {
         return e
       }
 
       // Need to provide the optional suffix as a variable because of a parsing bug in pegjs
-      const allowUndefined = options.allowUndefined || end[1] === options.optionalSuffix
+      const allowUndefined = end[1] === optionalSuffix
 
-      if (options.getValue(e) === undefined && !allowUndefined) {
-        const _error = new options.TemplateStringError(e.message || "Unable to resolve one or more keys.", {
-          text: text(),
-        })
-        return { _error }
+      if (getValue(e) === undefined) {
+        if (allowUndefined) {
+          if (e && e._error) {
+            return { ...e, _error: undefined }
+          } else {
+            return e
+          }
+        } else if (options.allowPartial) {
+          return text()
+        } else if (e && e._error) {
+          return e
+        } else {
+          const _error = new TemplateStringError(e.message || "Unable to resolve one or more keys.", {
+            text: text(),
+          })
+          return { _error }
+        }
       }
       return e
   }
 
 InvalidFormatString
   = Prefix? FormatStart .* {
-  	throw new options.TemplateStringError("Unable to parse as valid template string.")
+  	throw new TemplateStringError("Unable to parse as valid template string.")
   }
 
 FormatStart
@@ -54,8 +81,8 @@ MemberExpression
   = head:Identifier
     tail:(
         "[" __ e:PrimaryExpression __ "]" {
-          if (e.resolved && !options.isPrimitive(e.resolved)) {
-            const _error = new options.TemplateStringError(
+          if (e.resolved && !isPrimitive(e.resolved)) {
+            const _error = new TemplateStringError(
               `Expression in bracket must resolve to a primitive (got ${typeof e}).`,
               { text: e.resolved }
             )
@@ -77,7 +104,7 @@ PrimaryExpression
   }
   / v:StringLiteral {
     // Allow nested template strings in literals
-    return options.resolveNested(v)
+    return resolveNested(v)
   }
   / key:MemberExpression {
     for (const part of key) {
@@ -86,7 +113,11 @@ PrimaryExpression
       }
     }
     key = key.map((part) => part.resolved || part)
-    return options.getKey(key, { allowUndefined: true })
+    try {
+      return getKey(key, { allowPartial: options.allowPartial })
+    } catch (err) {
+      return { _error: err }
+    }
   }
   / "(" __ e:Expression __ ")" {
     return e
@@ -102,9 +133,9 @@ UnaryExpression
       }
 
       if (operator === "typeof") {
-        return typeof options.getValue(v)
+        return typeof getValue(v)
       } else if (operator === "!") {
-        return !options.getValue(v)
+        return !getValue(v)
       }
     }
 
@@ -121,12 +152,12 @@ ContainsExpression
         return tail
       }
 
-      head = options.getValue(head)
-      tail = options.getValue(tail)
+      head = getValue(head)
+      tail = getValue(tail)
 
-      if (!options.isPrimitive(tail)) {
+      if (!isPrimitive(tail)) {
         return {
-          _error: new options.TemplateStringError(
+          _error: new TemplateStringError(
             `The right-hand side of a 'contains' operator must be a string, number, boolean or null (got ${typeof tail}).`
           )
         }
@@ -135,7 +166,7 @@ ContainsExpression
       const headType = head === null ? "null" : typeof head
 
       if (headType === "object") {
-        if (options.lodash.isArray(head)) {
+        if (isArray(head)) {
           return head.includes(tail)
         } else {
           return head.hasOwnProperty(tail)
@@ -144,7 +175,7 @@ ContainsExpression
         return head.includes(tail.toString())
       } else {
         return {
-          _error: new options.TemplateStringError(
+          _error: new TemplateStringError(
             `The left-hand side of a 'contains' operator must be a string, array or object (got ${headType}).`
           )
         }
@@ -158,7 +189,7 @@ ContainsOperator
 MultiplicativeExpression
   = head:ContainsExpression
     tail:(__ MultiplicativeOperator __ ContainsExpression)*
-    { return options.buildBinaryExpression(head, tail); }
+    { return buildBinaryExpression(head, tail); }
 
 MultiplicativeOperator
   = $("*" !"=")
@@ -169,7 +200,7 @@ AdditiveExpression
   = head:MultiplicativeExpression
     // Note: We require a whitespace around these operators to disambiguate from identifiers with dashes
     tail:(WhiteSpace+ AdditiveOperator WhiteSpace+ MultiplicativeExpression)*
-    { return options.buildBinaryExpression(head, tail); }
+    { return buildBinaryExpression(head, tail); }
 
 AdditiveOperator
   = $("+" ![+=])
@@ -178,7 +209,7 @@ AdditiveOperator
 RelationalExpression
   = head:AdditiveExpression
     tail:(__ RelationalOperator __ AdditiveExpression)*
-    { return options.buildBinaryExpression(head, tail); }
+    { return buildBinaryExpression(head, tail); }
 
 RelationalOperator
   = "<="
@@ -189,7 +220,7 @@ RelationalOperator
 EqualityExpression
   = head:RelationalExpression
     tail:(__ EqualityOperator __ RelationalExpression)*
-    { return options.buildBinaryExpression(head, tail); }
+    { return buildBinaryExpression(head, tail); }
 
 EqualityOperator
   = "=="
@@ -198,7 +229,7 @@ EqualityOperator
 LogicalANDExpression
   = head:EqualityExpression
     tail:(__ LogicalANDOperator __ EqualityExpression)*
-    { return options.buildLogicalExpression(head, tail); }
+    { return buildLogicalExpression(head, tail); }
 
 LogicalANDOperator
   = "&&"
@@ -206,7 +237,7 @@ LogicalANDOperator
 LogicalORExpression
   = head:LogicalANDExpression
     tail:(__ LogicalOROperator __ LogicalANDExpression)*
-    { return options.buildLogicalExpression(head, tail); }
+    { return buildLogicalExpression(head, tail); }
 
 LogicalOROperator
   = "||"
@@ -226,7 +257,7 @@ ConditionalExpression
         return alternate
       }
 
-      return options.getValue(test) ? consequent : alternate
+      return getValue(test) ? consequent : alternate
     }
   / LogicalORExpression
 

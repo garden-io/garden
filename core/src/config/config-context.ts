@@ -12,7 +12,7 @@ import { isString, mapValues } from "lodash"
 import { PrimitiveMap, joiIdentifierMap, joiStringMap, joiPrimitive, DeepPrimitiveMap, joiVariables } from "./common"
 import { Provider, GenericProviderConfig, ProviderMap } from "./provider"
 import { ConfigurationError } from "../exceptions"
-import { resolveTemplateString } from "../template-string"
+import { resolveTemplateString, TemplateStringMissingKeyError } from "../template-string"
 import { Garden } from "../garden"
 import { joi } from "../config/common"
 import { KeyedSet } from "../util/keyed-set"
@@ -28,8 +28,6 @@ export type ContextKey = ContextKeySegment[]
 export interface ContextResolveOpts {
   // Allow templates to be partially resolved (used to defer runtime template resolution, for example)
   allowPartial?: boolean
-  // Allow undefined values to be returned without throwing an error
-  allowUndefined?: boolean
   // a list of previously resolved paths, used to detect circular references
   stack?: string[]
 }
@@ -178,14 +176,18 @@ export abstract class ConfigContext {
         }
       }
 
-      if (opts.allowUndefined) {
-        return { resolved: undefined, message }
-      } else {
-        throw new ConfigurationError(message, {
+      if (opts.allowPartial) {
+        // If we're allowing partial strings, we throw the error immediately to end the resolution flow. The error
+        // is caught in the surrounding template resolution code.
+        throw new TemplateStringMissingKeyError(message, {
           nodePath,
           fullPath,
           opts,
         })
+      } else {
+        // Otherwise we return the undefined value, so that any logical expressions can be evaluated appropriately.
+        // The template resolver will throw the error later if appropriate.
+        return { resolved: undefined, message }
       }
     }
 
@@ -450,9 +452,6 @@ export class WorkflowConfigContext extends EnvironmentConfigContext {
   )
   public secrets: PrimitiveMap
 
-  // We ignore step references here, and keep for later resolution
-  public steps: Map<string, WorkflowStepContext | ErrorContext> | PassthroughContext
-
   constructor(garden: Garden) {
     super({
       projectName: garden.projectName,
@@ -465,7 +464,6 @@ export class WorkflowConfigContext extends EnvironmentConfigContext {
     const fullEnvName = garden.namespace ? `${garden.namespace}.${garden.environmentName}` : garden.environmentName
     this.environment = new EnvironmentContext(this, garden.environmentName, fullEnvName, garden.namespace)
     this.project = new ProjectContext(this, garden.projectName)
-    this.steps = new PassthroughContext()
   }
 }
 
@@ -695,34 +693,7 @@ export class TaskRuntimeContext extends ServiceRuntimeContext {
   public outputs: PrimitiveMap
 }
 
-/**
- * Used to defer and return the template string back, when allowPartial=true.
- */
-export class PassthroughContext extends ConfigContext {
-  resolve(params: ContextResolveParams): ContextResolveOutput {
-    const opts = { ...(params.opts || {}), allowUndefined: params.opts.allowPartial || params.opts.allowUndefined }
-    const res = super.resolve({ ...params, opts })
-
-    if (res.resolved === undefined) {
-      if (params.opts.allowPartial) {
-        // If value can't be resolved and allowPartial is set, we defer the resolution by returning another template
-        // string, that can be resolved later.
-        const { key, nodePath } = params
-        const fullKey = nodePath.concat(key)
-        return { resolved: renderTemplateString(fullKey), partial: true }
-      } else {
-        // If undefined values are allowed, we simply return undefined (We know allowUndefined is set here, because
-        // otherwise an error would have been thrown by `super.resolve()` above).
-        return res
-      }
-    } else {
-      // Value successfully resolved
-      return res
-    }
-  }
-}
-
-class RuntimeConfigContext extends PassthroughContext {
+class RuntimeConfigContext extends ConfigContext {
   @schema(
     joiIdentifierMap(ServiceRuntimeContext.getSchema())
       .required()
