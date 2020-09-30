@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import lodash from "lodash"
 import { GardenBaseError, ConfigurationError } from "./exceptions"
 import {
   ConfigContext,
@@ -23,8 +22,14 @@ import { isArray } from "util"
 
 export type StringOrStringPromise = Promise<string> | string
 
+const missingKeyErrorType = "template-string-missing-key"
+
 class TemplateStringError extends GardenBaseError {
   type = "template-string"
+}
+
+export class TemplateStringMissingKeyError extends GardenBaseError {
+  type = missingKeyErrorType
 }
 
 let _parser: any
@@ -64,13 +69,13 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
       },
       getValue,
       resolveNested: (nested: string) => resolveTemplateString(nested, context, opts),
-      // Some utilities to pass to the parser
       buildBinaryExpression,
       buildLogicalExpression,
-      lodash,
+      isArray,
       ConfigurationError,
       TemplateStringError,
-      allowUndefined: opts.allowUndefined,
+      missingKeyErrorType,
+      allowPartial: !!opts.allowPartial,
       optionalSuffix: "}?",
       isPrimitive,
     })
@@ -158,7 +163,7 @@ export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T
  */
 export function collectTemplateReferences<T extends object>(obj: T): ContextKeySegment[][] {
   const context = new ScanContext()
-  resolveTemplateStrings(obj, context, { allowPartial: true, allowUndefined: true })
+  resolveTemplateStrings(obj, context, { allowPartial: true })
   return uniq(context.foundKeys.entries()).sort()
 }
 

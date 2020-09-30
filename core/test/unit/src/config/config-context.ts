@@ -18,7 +18,6 @@ import {
   WorkflowConfigContext,
   WorkflowStepConfigContext,
   ScanContext,
-  PassthroughContext,
 } from "../../../../src/config/config-context"
 import { expectError, makeTestGardenA, TestGarden, projectRootA, makeTestGarden } from "../../../helpers"
 import { join } from "path"
@@ -49,8 +48,8 @@ describe("ConfigContext", () => {
 
   describe("resolve", () => {
     // just a shorthand to aid in testing
-    function resolveKey(c: ConfigContext, key: ContextKey) {
-      return c.resolve({ key, nodePath: [], opts: {} })
+    function resolveKey(c: ConfigContext, key: ContextKey, opts = {}) {
+      return c.resolve({ key, nodePath: [], opts })
     }
 
     it("should resolve simple keys", async () => {
@@ -58,14 +57,36 @@ describe("ConfigContext", () => {
       expect(resolveKey(c, ["basic"])).to.eql({ resolved: "value" })
     })
 
-    it("should throw on missing key", async () => {
+    it("should return undefined for missing key", async () => {
       const c = new TestContext({})
-      await expectError(() => resolveKey(c, ["basic"]), "configuration")
+      const { resolved, message } = resolveKey(c, ["basic"])
+      expect(resolved).to.be.undefined
+      expect(stripAnsi(message!)).to.equal("Could not find key basic.")
+    })
+
+    context("allowPartial=true", () => {
+      it("should throw on missing key when allowPartial=true", async () => {
+        const c = new TestContext({})
+        expectError(
+          () => resolveKey(c, ["basic"], { allowPartial: true }),
+          (err) => expect(stripAnsi(err.message)).to.equal("Could not find key basic.")
+        )
+      })
+
+      it("should throw on missing key on nested context", async () => {
+        const c = new TestContext({
+          nested: new TestContext({ key: "value" }),
+        })
+        expectError(
+          () => resolveKey(c, ["nested", "bla"], { allowPartial: true }),
+          (err) => expect(stripAnsi(err.message)).to.equal("Could not find key bla under nested. Available keys: key.")
+        )
+      })
     })
 
     it("should throw when looking for nested value on primitive", async () => {
       const c = new TestContext({ basic: "value" })
-      await expectError(() => resolveKey(c, ["basic", "nested"]), "configuration")
+      expectError(() => resolveKey(c, ["basic", "nested"]), "configuration")
     })
 
     it("should resolve nested keys", async () => {
@@ -80,11 +101,13 @@ describe("ConfigContext", () => {
       expect(resolveKey(c, ["nested", "key"])).eql({ resolved: "value" })
     })
 
-    it("should throw on missing key on nested context", async () => {
+    it("should return undefined for missing keys on nested context", async () => {
       const c = new TestContext({
         nested: new TestContext({ key: "value" }),
       })
-      await expectError(() => resolveKey(c, ["nested", "bla"]), "configuration")
+      const { resolved, message } = resolveKey(c, ["basic", "bla"])
+      expect(resolved).to.be.undefined
+      expect(stripAnsi(message!)).to.equal("Could not find key basic. Available keys: nested.")
     })
 
     it("should resolve keys with value behind callable", async () => {
@@ -117,12 +140,12 @@ describe("ConfigContext", () => {
       })
       const key = ["nested", "key"]
       const stack = [key.join(".")]
-      await expectError(() => c.resolve({ key, nodePath: [], opts: { stack } }), "configuration")
+      expectError(() => c.resolve({ key, nodePath: [], opts: { stack } }), "configuration")
     })
 
     it("should detect a circular reference from a nested context", async () => {
       class NestedContext extends ConfigContext {
-        async resolve({ key, nodePath, opts }: ContextResolveParams) {
+        resolve({ key, nodePath, opts }: ContextResolveParams) {
           const circularKey = nodePath.concat(key)
           opts.stack!.push(circularKey.join("."))
           return c.resolve({ key: circularKey, nodePath: [], opts })
@@ -131,10 +154,10 @@ describe("ConfigContext", () => {
       const c = new TestContext({
         nested: new NestedContext(),
       })
-      await expectError(async () => resolveKey(c, ["nested", "bla"]), "configuration")
+      expectError(() => resolveKey(c, ["nested", "bla"]), "configuration")
     })
 
-    it("should show helpful error when unable to resolve nested key in map", async () => {
+    it("should return helpful message when unable to resolve nested key in map", async () => {
       class Context extends ConfigContext {
         nested: Map<string, string>
 
@@ -144,10 +167,8 @@ describe("ConfigContext", () => {
         }
       }
       const c = new Context()
-      await expectError(
-        () => resolveKey(c, ["nested", "bla"]),
-        (err) => expect(stripAnsi(err.message)).to.equal("Could not find key bla under nested.")
-      )
+      const { message } = resolveKey(c, ["nested", "bla"])
+      expect(stripAnsi(message!)).to.equal("Could not find key bla under nested.")
     })
 
     it("should show helpful error when unable to resolve nested key in object", async () => {
@@ -160,10 +181,8 @@ describe("ConfigContext", () => {
         }
       }
       const c = new Context()
-      await expectError(
-        () => resolveKey(c, ["nested", "bla"]),
-        (err) => expect(stripAnsi(err.message)).to.equal("Could not find key bla under nested.")
-      )
+      const { message } = resolveKey(c, ["nested", "bla"])
+      expect(stripAnsi(message!)).to.equal("Could not find key bla under nested.")
     })
 
     it("should show helpful error when unable to resolve two-level nested key in object", async () => {
@@ -176,10 +195,8 @@ describe("ConfigContext", () => {
         }
       }
       const c = new Context()
-      await expectError(
-        () => resolveKey(c, ["nested", "deeper", "bla"]),
-        (err) => expect(stripAnsi(err.message)).to.equal("Could not find key bla under nested.deeper.")
-      )
+      const { message } = resolveKey(c, ["nested", "deeper", "bla"])
+      expect(stripAnsi(message!)).to.equal("Could not find key bla under nested.deeper.")
     })
 
     it("should show helpful error when unable to resolve in nested context", async () => {
@@ -193,10 +210,8 @@ describe("ConfigContext", () => {
         }
       }
       const c = new Context()
-      await expectError(
-        () => resolveKey(c, ["nested", "bla"]),
-        (err) => expect(stripAnsi(err.message)).to.equal("Could not find key bla under nested.")
-      )
+      const { message } = resolveKey(c, ["nested", "bla"])
+      expect(stripAnsi(message!)).to.equal("Could not find key bla under nested.")
     })
 
     it("should resolve template strings", async () => {
@@ -219,7 +234,7 @@ describe("ConfigContext", () => {
 
     it("should detect a self-reference when resolving a template string", async () => {
       const c = new TestContext({ key: "${key}" })
-      await expectError(() => resolveKey(c, ["key"]), "template-string")
+      expectError(() => resolveKey(c, ["key"]), "template-string")
     })
 
     it("should detect a nested self-reference when resolving a template string", async () => {
@@ -228,7 +243,7 @@ describe("ConfigContext", () => {
       })
       const nested = new TestContext({ key: "${nested.key}" }, c)
       c.addValues({ nested })
-      await expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
+      expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
     })
 
     it("should detect a circular reference when resolving a template string", async () => {
@@ -237,7 +252,7 @@ describe("ConfigContext", () => {
       })
       const nested: any = new TestContext({ key: "${nested.foo}", foo: "${nested.key}" }, c)
       c.addValues({ nested })
-      await expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
+      expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
     })
 
     it("should detect a circular reference when resolving a nested template string", async () => {
@@ -246,7 +261,7 @@ describe("ConfigContext", () => {
       })
       const nested: any = new TestContext({ key: "${nested.foo}", foo: "${'${nested.key}'}" }, c)
       c.addValues({ nested })
-      await expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
+      expectError(() => resolveKey(c, ["nested", "key"]), "template-string")
     })
 
     it("should detect a circular reference when nested template string resolves to self", async () => {
@@ -255,7 +270,7 @@ describe("ConfigContext", () => {
       })
       const nested: any = new TestContext({ key: "${'${nested.key}'}" }, c)
       c.addValues({ nested })
-      await expectError(
+      expectError(
         () => resolveKey(c, ["nested", "key"]),
         (err) =>
           expect(err.message).to.equal(
@@ -329,7 +344,7 @@ describe("ProjectConfigContext", () => {
     })
   })
 
-  it("should throw helpful error when resolving missing env variable", () => {
+  it("should return helpful message when resolving missing env variable", () => {
     const c = new ProjectConfigContext({
       projectName: "some-project",
       artifactsPath: "/tmp",
@@ -338,12 +353,10 @@ describe("ProjectConfigContext", () => {
     })
     const key = "fiaogsyecgbsjyawecygaewbxrbxajyrgew"
 
-    expectError(
-      () => c.resolve({ key: ["local", "env", key], nodePath: [], opts: {} }),
-      (err) =>
-        expect(stripAnsi(err.message)).to.match(
-          /Could not find key fiaogsyecgbsjyawecygaewbxrbxajyrgew under local.env. Available keys: /
-        )
+    const { message } = c.resolve({ key: ["local", "env", key], nodePath: [], opts: {} })
+
+    expect(stripAnsi(message!)).to.match(
+      /Could not find key fiaogsyecgbsjyawecygaewbxrbxajyrgew under local.env. Available keys: /
     )
   })
 
@@ -448,46 +461,6 @@ describe("ModuleConfigContext", () => {
         resolved: "someSecretValue",
       })
     })
-
-    it("should throw when resolving a secret with a missing key", async () => {
-      await expectError(
-        () => c.resolve({ key: ["secrets", "missingSecret"], nodePath: [], opts: {} }),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            "Could not find key missingSecret under secrets. Available keys: someSecret."
-          )
-      )
-    })
-  })
-
-  context("runtimeContext is not set", () => {
-    it("should return runtime template strings unchanged if allowPartial=true", async () => {
-      expect(
-        c.resolve({ key: ["runtime", "some", "key.with.dots"], nodePath: [], opts: { allowPartial: true } })
-      ).to.eql({
-        resolved: '${runtime.some["key.with.dots"]}',
-      })
-    })
-
-    it("should throw if resolving missing runtime key with allowPartial=false", async () => {
-      await expectError(
-        () => c.resolve({ key: ["runtime", "some", "key"], nodePath: [], opts: {} }),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            "Could not find key some under runtime. Available keys: services and tasks."
-          )
-      )
-    })
-
-    it("should allow using a missing runtime key as a test in a conditional", async () => {
-      const result = resolveTemplateString("${runtime.foo || 'default'}", c)
-      expect(result).to.equal("default")
-    })
-
-    it("should allow using a missing runtime key as a test in a ternary (negative)", async () => {
-      const result = resolveTemplateString("${runtime.foo ? runtime.foo.bar : 'default'}", c)
-      expect(result).to.equal("default")
-    })
   })
 
   context("runtimeContext is set", () => {
@@ -559,36 +532,12 @@ describe("ModuleConfigContext", () => {
       expect(result).to.eql({ resolved: "boo" })
     })
 
-    it("should return the template string back if allowPartial=true and outputs haven't been resolved ", async () => {
-      const result = withRuntime.resolve({
-        key: ["runtime", "services", "not-ready", "outputs", "foo"],
-        nodePath: [],
-        opts: { allowPartial: true },
-      })
-      expect(result).to.eql({ resolved: "${runtime.services.not-ready.outputs.foo}" })
-    })
-
     it("should allow using a runtime key as a test in a ternary (positive)", async () => {
       const result = resolveTemplateString(
         "${runtime.tasks.task-b ? runtime.tasks.task-b.outputs.moo : 'default'}",
         withRuntime
       )
       expect(result).to.equal("boo")
-    })
-
-    it("should throw when a service's outputs have been resolved but an output key is not found", async () => {
-      await expectError(
-        () =>
-          withRuntime.resolve({
-            key: ["runtime", "services", "service-b", "outputs", "boo"],
-            nodePath: [],
-            opts: {},
-          }),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            "Could not find key boo under runtime.services.service-b.outputs. Available keys: foo."
-          )
-      )
     })
   })
 })
@@ -631,27 +580,11 @@ describe("WorkflowConfigContext", () => {
     expect(c.resolve({ key: ["var", "some"], nodePath: [], opts: {} })).to.eql({ resolved: "variable" })
   })
 
-  it("should return a step reference back with allowPartial=true", async () => {
-    expect(c.resolve({ key: ["steps", "step-1", "foo"], nodePath: [], opts: { allowPartial: true } })).to.eql({
-      resolved: "${steps.step-1.foo}",
-    })
-  })
-
   context("secrets", () => {
     it("should resolve a secret", async () => {
       expect(c.resolve({ key: ["secrets", "someSecret"], nodePath: [], opts: {} })).to.eql({
         resolved: "someSecretValue",
       })
-    })
-
-    it("should throw when resolving a secret with a missing key", async () => {
-      await expectError(
-        () => c.resolve({ key: ["secrets", "missingSecret"], nodePath: [], opts: {} }),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            "Could not find key missingSecret under secrets. Available keys: someSecret."
-          )
-      )
     })
   })
 })
@@ -713,22 +646,6 @@ describe("WorkflowStepConfigContext", () => {
     )
   })
 
-  it("should throw error when attempting to reference a missing step", () => {
-    const c = new WorkflowStepConfigContext({
-      garden,
-      allStepNames: ["step-1", "step-2"],
-      resolvedSteps: {},
-      stepName: "step-1",
-    })
-    expectError(
-      () => c.resolve({ key: ["steps", "step-foo", "log"], nodePath: [], opts: {} }),
-      (err) =>
-        expect(stripAnsi(err.message)).to.equal(
-          "Could not find key step-foo under steps. Available keys: step-1 and step-2."
-        )
-    )
-  })
-
   it("should throw error when attempting to reference current step", () => {
     const c = new WorkflowStepConfigContext({
       garden,
@@ -771,43 +688,5 @@ describe("ScanContext", () => {
       ["templated", "key.with.dots"],
       ["more", "stuff"],
     ])
-  })
-})
-
-describe("PassthroughContext", () => {
-  it("should return the template key back unresolved when allowPartial=true", () => {
-    const context = new PassthroughContext()
-    const obj = {
-      a: "some ${templated.string}",
-      b: "${more.stuff}",
-    }
-    const result = resolveTemplateStrings(obj, context, { allowPartial: true })
-    expect(result).to.eql(obj)
-  })
-
-  it("should handle keys with dots correctly", () => {
-    const context = new PassthroughContext()
-    const obj = {
-      a: "some ${templated['key.with.dots']}",
-      b: "${more.stuff}",
-    }
-    const result = resolveTemplateStrings(obj, context, { allowPartial: true })
-    expect(result).to.eql({
-      a: 'some ${templated["key.with.dots"]}',
-      b: "${more.stuff}",
-    })
-  })
-
-  it("should handle nested template keys correctly", () => {
-    const context = new PassthroughContext()
-    const obj = {
-      a: "some ${templated['${nested.key}']}",
-      b: "${more.stuff}",
-    }
-    const result = resolveTemplateStrings(obj, context, { allowPartial: true })
-    expect(result).to.eql({
-      a: 'some ${templated["${nested.key}"]}',
-      b: "${more.stuff}",
-    })
   })
 })

@@ -42,11 +42,6 @@ describe("resolveTemplateString", async () => {
     expect(res).to.equal("value")
   })
 
-  it("should optionally allow undefined values", async () => {
-    const res = resolveTemplateString("${some}", new TestContext({}), { allowUndefined: true })
-    expect(res).to.equal(undefined)
-  })
-
   it("should allow undefined values if ? suffix is present", async () => {
     const res = resolveTemplateString("${foo}?", new TestContext({}))
     expect(res).to.equal(undefined)
@@ -627,6 +622,23 @@ describe("resolveTemplateString", async () => {
     )
   })
 
+  context("allowPartial=true", () => {
+    it("passes through template strings with missing key", () => {
+      const res = resolveTemplateString("${a}", new TestContext({}), { allowPartial: true })
+      expect(res).to.equal("${a}")
+    })
+
+    it("passes through a template string with a missing key in an optional clause", () => {
+      const res = resolveTemplateString("${a || b}", new TestContext({ b: 123 }), { allowPartial: true })
+      expect(res).to.equal("${a || b}")
+    })
+
+    it("passes through a template string with a missing key in a ternary", () => {
+      const res = resolveTemplateString("${a ? b : 123}", new TestContext({ b: 123 }), { allowPartial: true })
+      expect(res).to.equal("${a ? b : 123}")
+    })
+  })
+
   context("when the template string is the full input string", () => {
     it("should return a resolved number directly", async () => {
       const res = resolveTemplateString("${a}", new TestContext({ a: 100 }))
@@ -678,6 +690,20 @@ describe("resolveTemplateString", async () => {
     it("should format a resolved null into the string", async () => {
       const res = resolveTemplateString("foo-${a}", new TestContext({ a: null }))
       expect(res).to.equal("foo-null")
+    })
+
+    context("allowPartial=true", () => {
+      it("passes through template strings with missing key", () => {
+        const res = resolveTemplateString("${a}-${b}", new TestContext({ b: "foo" }), { allowPartial: true })
+        expect(res).to.equal("${a}-foo")
+      })
+
+      it("passes through a template string with a missing key in an optional clause", () => {
+        const res = resolveTemplateString("${a || b}-${c}", new TestContext({ b: 123, c: "foo" }), {
+          allowPartial: true,
+        })
+        expect(res).to.equal("${a || b}-foo")
+      })
     })
   })
 
