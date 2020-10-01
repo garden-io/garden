@@ -23,7 +23,7 @@ export async function configureMicrok8sAddons(log: LogEntry, addons: string[]) {
   let status = ""
 
   try {
-    statusCommandResult = await exec("microk8s.status", [])
+    statusCommandResult = await exec("microk8s", ["status"])
     status = statusCommandResult.stdout
   } catch (err) {
     if (err.all?.includes("permission denied") || err.all?.includes("Insufficient permissions")) {
@@ -50,7 +50,7 @@ export async function configureMicrok8sAddons(log: LogEntry, addons: string[]) {
 
   if (missingAddons.length > 0) {
     log.info({ section: "microk8s", msg: `enabling required addons (${missingAddons.join(", ")})` })
-    await exec("microk8s.enable", missingAddons)
+    await exec("microk8s", ["enable"].concat(missingAddons))
   }
 }
 
@@ -62,7 +62,7 @@ export async function getMicrok8sImageStatus(imageId: string): Promise<BuildStat
     namespace: parsedId.namespace || "library",
   })
 
-  const res = await exec("microk8s.ctr", ["images", "ls", "-q"])
+  const res = await exec("microk8s", ["ctr", "images", "ls", "-q"])
   return { ready: res.stdout.split("\n").includes(clusterId) }
 }
 
@@ -86,7 +86,7 @@ export async function loadImageToMicrok8s({
         log,
         ctx,
       })
-      await exec("microk8s.ctr", ["image", "import", file.path])
+      await exec("microk8s", ["ctr", "image", "import", file.path])
     })
   } catch (err) {
     throw new RuntimeError(`An attempt to load image ${imageId} into the microk8s cluster failed: ${err.message}`, {
