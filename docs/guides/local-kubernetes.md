@@ -42,7 +42,7 @@ To install it, please follow [their instructions](https://microk8s.io/docs/).
 Once installed, you need to add the `microk8s` configuration to your `~/.kube/config` so that Garden knows how to access your cluster. We recommend exporting the config like this:
 
 ```sh
-microk8s.kubectl config view --raw > $HOME/.kube/microk8s.config
+microk8s config > $HOME/.kube/microk8s.config
 ```
 
 And then adding this to your `.bashrc`/`.zshrc`:
