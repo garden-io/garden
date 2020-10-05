@@ -15,6 +15,7 @@ import { makeTestGarden, freezeTime, dataDir, expectError, TestGarden } from "..
 import { Garden } from "../../../src/garden"
 import { deepFilter, defer, sleep, uuidv4 } from "../../../src/util/util"
 import { range } from "lodash"
+import { toGraphResultEventPayload } from "../../../src/events"
 
 const projectRoot = join(dataDir, "test-project-empty")
 
@@ -164,7 +165,7 @@ describe("task-graph", () => {
             versionString: task.version.versionString,
           },
         },
-        { name: "taskComplete", payload: result["a"] },
+        { name: "taskComplete", payload: toGraphResultEventPayload(result["a"]!) },
         { name: "taskGraphComplete", payload: { completedAt: now } },
       ])
     })
@@ -206,14 +207,13 @@ describe("task-graph", () => {
           payload: {
             startedAt: now,
             completedAt: now,
-            dependencyResults: {},
             batchId: generatedBatchId,
             description: "a",
             key: task.getKey(),
             type: "test",
             name: "a",
-            output: { dependencyResults: {}, result: "result-a" },
             version: task.version.versionString,
+            output: { result: "result-a" },
           },
         },
         { name: "taskGraphComplete", payload: { completedAt: now } },
@@ -765,13 +765,12 @@ describe("task-graph", () => {
         {
           name: "taskComplete",
           payload: {
-            dependencyResults: {},
             description: "a",
             key: "a",
             name: "a",
-            output: { dependencyResults: {}, result: "result-a" },
             type: "test",
             batchId: generatedBatchId,
+            output: { result: "result-a" },
           },
         },
         { name: "taskProcessing", payload: { key: "b", name: "b", type: "test", batchId: generatedBatchId } },

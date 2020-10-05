@@ -21,6 +21,7 @@ import { cyclesToString } from "./util/validate-dependencies"
 import { Profile } from "./util/profiling"
 import { renderMessageWithDivider } from "./logger/util"
 import { EventEmitter2 } from "eventemitter2"
+import { toGraphResultEventPayload } from "./events"
 
 class TaskGraphError extends GardenBaseError {
   type = "task-graph"
@@ -237,7 +238,7 @@ export class TaskGraph extends EventEmitter2 {
     } else {
       const result = this.resultCache.get(node.key, node.getVersion())
       if (result) {
-        this.garden.events.emit(result.error ? "taskError" : "taskComplete", result)
+        this.garden.events.emit(result.error ? "taskError" : "taskComplete", toGraphResultEventPayload(result))
       }
     }
   }
@@ -406,11 +407,11 @@ export class TaskGraph extends EventEmitter2 {
         })
         result = await node.process(dependencyResults)
         result.startedAt = startedAt
-        this.garden.events.emit("taskComplete", result)
+        this.garden.events.emit("taskComplete", toGraphResultEventPayload(result))
       } catch (error) {
         success = false
         result = { type, description, key, name, error, startedAt, completedAt: new Date(), batchId, version }
-        this.garden.events.emit("taskError", result)
+        this.garden.events.emit("taskError", toGraphResultEventPayload(result))
         this.logTaskError(node, error)
         this.cancelDependants(node)
       } finally {
