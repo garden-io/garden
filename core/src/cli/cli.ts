@@ -29,7 +29,7 @@ import {
   parseCliArgs,
 } from "./helpers"
 import { Parameters, globalOptions, OUTPUT_RENDERERS, GlobalOptions, ParameterValues } from "./params"
-import { defaultEnvironments, ProjectConfig, defaultNamespace } from "../config/project"
+import { defaultEnvironments, ProjectConfig, defaultNamespace, parseEnvironment } from "../config/project"
 import { ERROR_LOG_FILENAME, DEFAULT_API_VERSION, DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME } from "../constants"
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 import { AnalyticsHandler } from "../analytics/analytics"
@@ -43,7 +43,7 @@ import { GardenPlugin } from "../types/plugin/plugin"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts = {}) {
   const environments = gardenOpts.environmentName
-    ? [{ name: gardenOpts.environmentName, defaultNamespace, variables: {} }]
+    ? [{ name: parseEnvironment(gardenOpts.environmentName).environment, defaultNamespace, variables: {} }]
     : defaultEnvironments
 
   const config: ProjectConfig = {
