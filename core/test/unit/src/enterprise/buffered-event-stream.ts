@@ -11,7 +11,11 @@ import { StreamEvent, LogEntryEvent, BufferedEventStream } from "../../../../src
 import { getLogger } from "../../../../src/logger/logger"
 import { Garden } from "../../../../src/garden"
 import { makeTestGardenA } from "../../../helpers"
-import { find, isMatch } from "lodash"
+import { find, isMatch, range, repeat } from "lodash"
+
+function makeDummyRecord(sizeKb: number) {
+  return { someKey: repeat("a", sizeKb * 1024) }
+}
 
 describe("BufferedEventStream", () => {
   const getConnectionParams = (garden: Garden) => ({
@@ -88,5 +92,43 @@ describe("BufferedEventStream", () => {
     await bufferedEventStream.flushAll()
 
     expect(find(flushedEvents, (e) => isMatch(e, { name: "_test", payload: "event" }))).to.exist
+  })
+
+  describe("makeBatch", () => {
+    const maxBatchBytes = 3 * 1024 // Set this to a low value (3 Kb) to keep the memory use of the test suite low.
+    it("should pick records until the batch size reaches MAX_BATCH_BYTES", async () => {
+      const recordSizeKb = 0.5
+      const log = getLogger().placeholder()
+      const bufferedEventStream = new BufferedEventStream(log, "dummy-session-id")
+      bufferedEventStream["maxBatchBytes"] = maxBatchBytes
+      // Total size is ~3MB, which exceeds MAX_BATCH_BYTES
+      const records = range(100).map((_) => makeDummyRecord(recordSizeKb))
+      const batch = bufferedEventStream.makeBatch(records)
+      const batchSize = Buffer.from(JSON.stringify(batch)).length
+      expect(batch.length).to.be.lte(records.length)
+      expect(batch.length).to.be.lte(maxBatchBytes / (recordSizeKb * 1024))
+      expect(batchSize).to.be.lte(maxBatchBytes)
+    })
+
+    it("should drop individual records whose payload size exceeds MAX_BATCH_BYTES", async () => {
+      const recordSizeKb = 0.5
+      const log = getLogger().placeholder()
+      const bufferedEventStream = new BufferedEventStream(log, "dummy-session-id")
+      bufferedEventStream["maxBatchBytes"] = maxBatchBytes
+      // This record's size, exceeds MAX_BATCH_BYTES, so it should be dropped by `makeBatch`.
+      const tooLarge = {
+        ...makeDummyRecord(maxBatchBytes / 1024 + 3),
+        tag: "tooLarge",
+      }
+      const records = [tooLarge, ...range(100).map((_) => makeDummyRecord(recordSizeKb))]
+      const batch = bufferedEventStream.makeBatch(records)
+      const batchSize = Buffer.from(JSON.stringify(batch)).length
+
+      expect(batch.find((r) => r["tag"] === "tooLarge")).to.be.undefined // We expect `tooLarge` to have been dropped.
+      expect(batch.length).to.be.gte(3)
+      expect(batch.length).to.be.lte(records.length)
+      expect(batch.length).to.be.lte(maxBatchBytes / (recordSizeKb * 1024))
+      expect(batchSize).to.be.lte(maxBatchBytes)
+    })
   })
 })

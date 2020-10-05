@@ -72,13 +72,6 @@ export interface ApiLogBatch extends ApiBatchBase {
 export const controlEventNames: Set<EventName> = new Set(["_workflowRunRegistered"])
 
 /**
- * We use 600 kilobytes as the maximum combined size of the events / log entries in a given batch. This number
- * was chosen to fit comfortably below e.g. nginx' default max request size, while still being able to carry a decent
- * number of records.
- */
-export const MAX_BATCH_BYTES = 600 * 1000 // 600 kilobytes
-
-/**
  * Buffers events and log entries and periodically POSTs them to Garden Enterprise or another Garden service.
  *
  * Subscribes to logger events once, in the constructor.
@@ -106,6 +99,13 @@ export class BufferedEventStream {
   private bufferedEvents: StreamEvent[]
   private bufferedLogEntries: LogEntryEvent[]
   protected intervalMsec = 1000
+
+  /**
+   * We use 600 kilobytes as the maximum combined size of the events / log entries in a given batch. This number
+   * was chosen to fit comfortably below e.g. nginx' default max request size, while still being able to carry a decent
+   * number of records.
+   */
+  private maxBatchBytes = 600 * 1024 // 600 kilobytes
 
   constructor(log: LogEntry, sessionId: string) {
     this.sessionId = sessionId
@@ -255,7 +255,7 @@ export class BufferedEventStream {
        * We don't throw an exception here, since a failure to stream events and log entries doesn't mean that the
        * command failed.
        */
-      this.log.error(`Error while flushing events and log entries: ${err.message}`)
+      this.log.debug(`Error while flushing events and log entries: ${err.message}`)
     }
   }
 
@@ -300,14 +300,16 @@ export class BufferedEventStream {
   makeBatch<B>(buffered: B[]): B[] {
     const batch: B[] = []
     let batchBytes = 0
-    while (batchBytes < MAX_BATCH_BYTES && buffered.length > 0) {
-      const nextRecordBytes = Buffer.from(JSON.stringify(buffered[0])).length
-      if (batchBytes + nextRecordBytes > MAX_BATCH_BYTES) {
-        break
-      }
-      if (nextRecordBytes > MAX_BATCH_BYTES) {
+    while (batchBytes < this.maxBatchBytes && buffered.length > 0) {
+      let nextRecordBytes = Buffer.from(JSON.stringify(buffered[0])).length
+      if (nextRecordBytes > this.maxBatchBytes) {
         this.log.error(`Event or log entry too large to flush, dropping it.`)
         this.log.debug(JSON.stringify(buffered[0]))
+        buffered.shift() // Drop first record.
+        nextRecordBytes = Buffer.from(JSON.stringify(buffered[0])).length
+      }
+      if (batchBytes + nextRecordBytes > this.maxBatchBytes) {
+        break
       }
       batch.push(buffered.shift() as B)
       batchBytes += nextRecordBytes
