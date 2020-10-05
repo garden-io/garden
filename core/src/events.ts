@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { omit } from "lodash"
 import { EventEmitter2 } from "eventemitter2"
 import { GraphResult } from "./task-graph"
 import { LogEntryEvent } from "./enterprise/buffered-event-stream"
@@ -58,6 +59,16 @@ export interface LoggerEvents {
 }
 
 export type LoggerEventName = keyof LoggerEvents
+
+export type GraphResultEventPayload = Omit<GraphResult, "dependencyResults">
+
+export function toGraphResultEventPayload(result: GraphResult): GraphResultEventPayload {
+  const payload = omit(result, "dependencyResults")
+  if (result.output) {
+    payload.output = omit(result.output, "dependencyResults", "log", "buildLog")
+  }
+  return payload
+}
 
 /**
  * Supported Garden events and their interfaces.
@@ -114,8 +125,8 @@ export interface Events extends LoggerEvents {
     name: string
     versionString: string
   }
-  taskComplete: GraphResult // TODO: Omit dependencyResults in this payload type?
-  taskError: GraphResult
+  taskComplete: GraphResultEventPayload
+  taskError: GraphResultEventPayload
   taskCancelled: {
     cancelledAt: Date
     batchId: string
