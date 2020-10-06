@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { max, fromPairs, zip, omit } from "lodash"
+import { max, fromPairs, zip } from "lodash"
 import { findByName } from "../util/util"
 import { dedent, renderTable, tablePresets } from "../util/string"
 import { ParameterError, toGardenError } from "../exceptions"
@@ -38,9 +38,6 @@ export class PluginsCommand extends Command<Args> {
   help = "Plugin-specific commands."
   alias = "plugin"
 
-  // FIXME: We need this while we're still resolving providers in the AnalyticsHandler
-  noProject = true
-
   description = dedent`
     Execute a command defined by a plugin in your project.
     Run without arguments to get a list of all plugin commands available.
@@ -64,10 +61,7 @@ export class PluginsCommand extends Command<Args> {
     return "basic"
   }
 
-  async action({ garden: dummyGarden, log, args }: CommandParams<Args>): Promise<CommandResult> {
-    // FIXME: We need this while we're still resolving providers in the AnalyticsHandler
-    const garden = await Garden.factory(dummyGarden.projectRoot, { ...omit(dummyGarden.opts, "config"), log })
-
+  async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult> {
     const providerConfigs = garden.getRawProviderConfigs()
     const configuredPlugins = providerConfigs.map((p) => p.name)
 
