@@ -126,7 +126,12 @@ export class ToolsCommand extends Command<Args, Opts> {
       if (projectRoot) {
         // This will normally be the case, but we're checking explictly to accommodate testing
         if (garden instanceof DummyGarden) {
-          garden = await Garden.factory(garden.projectRoot, { ...omit(garden.opts, "config"), log })
+          try {
+            garden = await Garden.factory(garden.projectRoot, { ...omit(garden.opts, "config"), log })
+          } catch (err) {
+            // We don't want to fail here due to incorrect parameters etc.
+            log.debug(`Unable to resolve project config: ${err.message}`)
+          }
         }
         const configuredPlugins = await garden.getPlugins()
         plugins = uniqByName([...configuredPlugins, ...availablePlugins])
