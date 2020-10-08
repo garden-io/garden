@@ -3553,11 +3553,10 @@ describe("Garden", () => {
             path: linkedSourcePath,
           },
         ]
-        await garden.configStore.set(["linkedProjectSources"], linked)
 
         const path = await garden.loadExtSourcePath({
           name: "source-a",
-          linkedSources,
+          linkedSources: linked,
           repositoryUrl: testGitUrl,
           sourceType: "project",
         })
@@ -3593,11 +3592,10 @@ describe("Garden", () => {
             path: linkedModulePath,
           },
         ]
-        await garden.configStore.set(["linkedModuleSources"], linked)
 
         const path = await garden.loadExtSourcePath({
           name: "module-a",
-          linkedSources,
+          linkedSources: linked,
           repositoryUrl: testGitUrl,
           sourceType: "module",
         })
