@@ -42,7 +42,7 @@ import { loadConfigResources, findProjectConfig, prepareModuleResource, GardenRe
 import { DeepPrimitiveMap, StringMap, PrimitiveMap } from "./config/common"
 import { validateSchema } from "./config/validation"
 import { BaseTask } from "./tasks/base"
-import { LocalConfigStore, ConfigStore, GlobalConfigStore } from "./config-store"
+import { LocalConfigStore, ConfigStore, GlobalConfigStore, LinkedSource } from "./config-store"
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
 import { BuildDependencyConfig, ModuleConfig } from "./config/module"
 import { resolveModuleConfig } from "./resolve-module"
@@ -1009,18 +1009,17 @@ export class Garden {
 
       this.log.silly(`Scanning for configs`)
 
-      let extSourcePaths: string[] = []
-
       // Add external sources that are defined at the project level. External sources are either kept in
       // the .garden/sources dir (and cloned there if needed), or they're linked to a local path via the link command.
-      for (const { name, repositoryUrl } of this.projectSources) {
-        const path = await this.loadExtSourcePath({
+      const linkedSources = await getLinkedSources(this, "project")
+      const extSourcePaths = await Bluebird.map(this.projectSources, ({ name, repositoryUrl }) => {
+        return this.loadExtSourcePath({
           name,
+          linkedSources,
           repositoryUrl,
           sourceType: "project",
         })
-        extSourcePaths.push(path)
-      }
+      })
 
       const dirsToScan = [this.projectRoot, ...extSourcePaths]
       const configPaths = flatten(await Bluebird.map(dirsToScan, (path) => this.scanForConfigs(path)))
@@ -1148,15 +1147,15 @@ export class Garden {
    */
   public async loadExtSourcePath({
     name,
+    linkedSources,
     repositoryUrl,
     sourceType,
   }: {
     name: string
+    linkedSources: LinkedSource[]
     repositoryUrl: string
     sourceType: ExternalSourceType
   }): Promise<string> {
-    const linkedSources = await getLinkedSources(this, sourceType)
-
     const linked = findByName(linkedSources, name)
 
     if (linked) {

@@ -45,6 +45,7 @@ import { realpath, writeFile, readFile, remove } from "fs-extra"
 import { dedent, deline } from "../../../src/util/string"
 import { ServiceState } from "../../../src/types/service"
 import execa from "execa"
+import { getLinkedSources } from "../../../src/util/ext-source-util"
 
 describe("Garden", () => {
   let tmpDir: tmp.DirectoryResult
@@ -3652,19 +3653,22 @@ describe("Garden", () => {
 
   describe("loadExtSourcePath", () => {
     let garden: TestGarden
+    let linkedSources: LinkedSource[]
+
+    afterEach(async () => {
+      await resetLocalConfig(garden.gardenDirPath)
+    })
 
     context("external project sources", () => {
       before(async () => {
         garden = await makeExtProjectSourcesGarden()
-      })
-
-      afterEach(async () => {
-        await resetLocalConfig(garden.gardenDirPath)
+        linkedSources = await getLinkedSources(garden, "module")
       })
 
       it("should return the path to the project source if source type is project", async () => {
         const projectRoot = getDataDir("test-project-ext-project-sources")
         const path = await garden.loadExtSourcePath({
+          linkedSources,
           repositoryUrl: testGitUrl,
           name: "source-a",
           sourceType: "project",
@@ -3682,10 +3686,10 @@ describe("Garden", () => {
             path: linkedSourcePath,
           },
         ]
-        await garden.configStore.set(["linkedProjectSources"], linked)
 
         const path = await garden.loadExtSourcePath({
           name: "source-a",
+          linkedSources: linked,
           repositoryUrl: testGitUrl,
           sourceType: "project",
         })
@@ -3697,15 +3701,13 @@ describe("Garden", () => {
     context("external module sources", () => {
       before(async () => {
         garden = await makeExtModuleSourcesGarden()
-      })
-
-      afterEach(async () => {
-        await resetLocalConfig(garden.gardenDirPath)
+        linkedSources = await getLinkedSources(garden, "module")
       })
 
       it("should return the path to the module source if source type is module", async () => {
         const projectRoot = getDataDir("test-project-ext-module-sources")
         const path = await garden.loadExtSourcePath({
+          linkedSources,
           repositoryUrl: testGitUrl,
           name: "module-a",
           sourceType: "module",
@@ -3723,10 +3725,10 @@ describe("Garden", () => {
             path: linkedModulePath,
           },
         ]
-        await garden.configStore.set(["linkedModuleSources"], linked)
 
         const path = await garden.loadExtSourcePath({
           name: "module-a",
+          linkedSources: linked,
           repositoryUrl: testGitUrl,
           sourceType: "module",
         })
