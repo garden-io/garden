@@ -18,6 +18,7 @@ import { getModuleKey } from "./types/module"
 import { getModuleTypeBases } from "./plugins"
 import { ModuleConfig, moduleConfigSchema } from "./config/module"
 import { profileAsync } from "./util/profiling"
+import { getLinkedSources } from "./util/ext-source-util"
 
 export interface ModuleConfigResolveOpts extends ContextResolveOpts {
   configContext: ModuleConfigContext
@@ -81,8 +82,10 @@ export const resolveModuleConfig = profileAsync(async function $resolveModuleCon
   })
 
   if (config.repositoryUrl) {
+    const linkedSources = await getLinkedSources(garden, "module")
     config.path = await garden.loadExtSourcePath({
       name: config.name,
+      linkedSources,
       repositoryUrl: config.repositoryUrl,
       sourceType: "module",
     })
