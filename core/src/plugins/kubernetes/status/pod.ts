@@ -14,7 +14,7 @@ import { ResourceStatus } from "./status"
 import chalk from "chalk"
 import { ServiceState, combineStates } from "../../../types/service"
 
-export const podLogLines = 20
+export const POD_LOG_LINES = 30
 
 export function checkPodStatus(pod: KubernetesServerResource<V1Pod>): ServiceState {
   const phase = pod.status!.phase
@@ -147,7 +147,7 @@ export async function getFormattedPodLogs(api: KubeApi, namespace: string, pods:
       podName: pod.metadata.name,
       // Putting 5000 bytes as a length limit in addition to the line limit, just as a precaution in case someone
       // accidentally logs a binary file or something.
-      containers: await getPodLogs({ api, namespace, pod, byteLimit: 5000, lineLimit: podLogLines }),
+      containers: await getPodLogs({ api, namespace, pod, byteLimit: 5000, lineLimit: POD_LOG_LINES }),
     }
   })
 
