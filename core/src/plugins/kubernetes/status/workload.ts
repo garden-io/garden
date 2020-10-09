@@ -21,7 +21,7 @@ import {
 } from "@kubernetes/client-node"
 import dedent = require("dedent")
 import { getCurrentWorkloadPods } from "../util"
-import { getFormattedPodLogs, podLogLines } from "./pod"
+import { getFormattedPodLogs, POD_LOG_LINES } from "./pod"
 import { ResourceStatus, StatusHandlerParams } from "./status"
 import { getResourceEvents } from "./events"
 
@@ -89,7 +89,9 @@ export async function checkWorkloadStatus({ api, namespace, resource }: StatusHa
       logs += chalk.white("\n\n━━━ Pod logs ━━━\n")
       logs +=
         chalk.gray(dedent`
-      <Showing last ${podLogLines} lines per pod in this ${workload.kind}. Run the following command for complete logs>
+      <Showing last ${POD_LOG_LINES} lines per pod in this ${
+          workload.kind
+        }. Run the following command for complete logs>
       $ kubectl -n ${namespace} --context=${api.context} logs ${workload.kind.toLowerCase()}/${workload.metadata.name}
       `) +
         "\n" +
