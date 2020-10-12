@@ -125,14 +125,17 @@ export function renderTimestamp(entry: LogEntry): string {
   if (!entry.root.showTimestamps) {
     return ""
   }
+  return `[${getTimestamp(entry)}] `
+}
 
+export function getTimestamp(entry: LogEntry): string {
   const { timestamp } = entry.getMessageState()
   let formatted = ""
   try {
     formatted = new Date(timestamp).toISOString()
   } catch (_err) {}
 
-  return `[${formatted}] `
+  return formatted
 }
 
 export function renderMsg(entry: LogEntry): string {
@@ -232,5 +235,6 @@ export function formatForJson(entry: LogEntry): JsonLogEntry {
     data,
     metadata,
     section: cleanForJSON(section),
+    timestamp: getTimestamp(entry),
   }
 }

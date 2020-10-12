@@ -13,6 +13,7 @@ import { formatForJson } from "../renderers"
 
 export interface JsonLogEntry {
   msg: string
+  timestamp: string
   data?: any
   section?: string
   metadata?: LogEntryMetadata
