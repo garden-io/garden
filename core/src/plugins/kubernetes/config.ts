@@ -28,7 +28,7 @@ import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
 import { ArtifactSpec } from "../../config/validation"
 import { V1Toleration } from "@kubernetes/client-node"
 
-export const DEFAULT_KANIKO_IMAGE = "gcr.io/kaniko-project/executor:debug-v0.23.0"
+export const DEFAULT_KANIKO_IMAGE = "gcr.io/kaniko-project/executor:debug-v1.2.0"
 export interface ProviderSecretRef {
   name: string
   namespace: string
