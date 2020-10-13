@@ -340,7 +340,7 @@ export async function runAndCopy({
           "-", // pipe to stdout
           // Files to match. The .DS_Store file is a trick to avoid errors when no files are matched. The file is
           // ignored later when copying from the temp directory. See https://github.com/sindresorhus/cpy#ignorejunk
-          `$(ls ${sourcePath} 2>/dev/null) .DS_Store`,
+          `$(ls ${sourcePath} 2>/dev/null) /tmp/.DS_Store`,
         ]
 
         try {
@@ -367,7 +367,7 @@ export async function runAndCopy({
             // Tarball the requested files and stream to the above extractor.
             runner
               .exec({
-                command: ["sh", "-c", "cd / && touch .DS_Store && " + tarCmd.join(" ")],
+                command: ["sh", "-c", "cd /tmp && touch .DS_Store && " + tarCmd.join(" ")],
                 containerName: mainContainerName,
                 log,
                 stdout: extractor,
