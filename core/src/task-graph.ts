@@ -608,9 +608,7 @@ export class TaskGraph extends EventEmitter2 {
   private logError(err: Error, errMessagePrefix: string) {
     const error = toGardenError(err)
     const errorMessage = error.message.trim()
-
     const msg = renderMessageWithDivider(errMessagePrefix, errorMessage, true)
-
     const entry = this.log.error({ msg, error })
     this.log.silly({ msg: renderError(entry) })
   }

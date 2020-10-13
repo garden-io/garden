@@ -34,12 +34,12 @@ import { ERROR_LOG_FILENAME, DEFAULT_API_VERSION, DEFAULT_GARDEN_DIR_NAME, LOGS_
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 import { AnalyticsHandler } from "../analytics/analytics"
 import { defaultDotIgnoreFiles } from "../util/fs"
-import { renderError } from "../logger/renderers"
 import { BufferedEventStream } from "../enterprise/buffered-event-stream"
 import { makeEnterpriseContext } from "../enterprise/init"
 import { GardenProcess } from "../db/entities/garden-process"
 import { DashboardEventStream } from "../server/dashboard-event-stream"
 import { GardenPlugin } from "../types/plugin/plugin"
+import { formatGardenError } from "../logger/util"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts = {}) {
   const environments = gardenOpts.environmentName
@@ -466,13 +466,9 @@ ${renderCommands(commands)}
 
     if (gardenErrors.length > 0) {
       for (const error of gardenErrors) {
-        const entry = logger.error({
-          msg: error.message,
-          error,
-        })
         // Output error details to console when log level is silly
         logger.silly({
-          msg: renderError(entry),
+          msg: formatGardenError(error),
         })
       }
 

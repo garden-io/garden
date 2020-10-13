@@ -86,7 +86,9 @@ describe("renderers", () => {
       const entry = logger.info({ msg: "foo", error })
       expect(renderError(entry)).to.equal(dedent`
           hello error
+
           Error Details:
+
           foo: bar\n
         `)
     })
