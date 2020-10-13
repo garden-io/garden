@@ -11,7 +11,7 @@ import chalk from "chalk"
 import dedent = require("dedent")
 import inquirer = require("inquirer")
 import stripAnsi from "strip-ansi"
-import { fromPairs } from "lodash"
+import { fromPairs, pickBy, size } from "lodash"
 
 import { joi, joiIdentifierMap, joiStringMap } from "../config/common"
 import { InternalError, RuntimeError, GardenBaseError } from "../exceptions"
@@ -431,12 +431,11 @@ export async function handleProcessResults(
     graphResults,
   }
 
-  const failed = Object.values(results.taskResults).filter((r) => r && r.error).length
+  const failed = pickBy(results.taskResults, (r) => r && r.error)
+  const failedCount = size(failed)
 
-  if (failed) {
-    const error = new RuntimeError(`${failed} ${taskType} task(s) failed!`, {
-      results,
-    })
+  if (failedCount > 0) {
+    const error = new RuntimeError(`${failedCount} ${taskType} task(s) failed!`, { results: failed })
     return { result, errors: [error], restartRequired: false }
   }
 
