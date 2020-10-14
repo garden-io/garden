@@ -80,6 +80,8 @@ details.
 
 This mode works _mostly_ the same way as Cluster Docker, but replaces the Docker daemon with [Kaniko](https://github.com/GoogleContainerTools/kaniko). Enable this by setting `buildMode: kaniko` in your `kubernetes` provider configuration, and running `garden plugins kubernetes cluster-init --env=<env-name>` to install required cluster-wide service.
 
+You can provide extra arguments to Kaniko via the [`extraFlags`](../reference/providers/kubernetes.md#providerskanikoextraFlags) field. Users with projects with a large number of files should take a look at the `--snapshoteMode=redo` and `--use-new-run` options as these can provide [significant performance improvements](https://github.com/GoogleContainerTools/kaniko/releases/tag/v1.0.0). Please refer to the [official docs](https://github.com/GoogleContainerTools/kaniko#additional-flags) for the full list of available flags.
+
 The Kaniko project is still improving, but it provides a
 compelling alternative to the standard Docker daemon because it can run without special privileges on the cluster,
 and is thus more secure. It may also scale better because it doesn't rely on a single daemon shared across users, so
