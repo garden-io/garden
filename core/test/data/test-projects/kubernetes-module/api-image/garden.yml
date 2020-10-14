@@ -1,0 +1,8 @@
+kind: Module
+description: Image for the API backend for the voting UI
+type: container
+name: api-image
+hotReload:
+  sync:
+  - source: "*"
+    target: /app

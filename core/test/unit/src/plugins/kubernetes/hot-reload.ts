@@ -9,21 +9,18 @@
 import { platform } from "os"
 import { expect } from "chai"
 import td from "testdouble"
-import {
-  HotReloadableResource,
-  rsyncSourcePath,
-  filesForSync,
-  RSYNC_PORT_NAME,
-} from "../../../../../src/plugins/kubernetes/hot-reload"
+import { HotReloadableResource, RSYNC_PORT_NAME } from "../../../../../src/plugins/kubernetes/hot-reload/hot-reload"
 
-import {
-  removeTrailingSlashes,
-  makeCopyCommand,
-  configureHotReload,
-} from "../../../../../src/plugins/kubernetes/hot-reload"
 import { setPlatform, makeTestGarden, TestGarden, getDataDir } from "../../../../helpers"
 import { ConfigGraph } from "../../../../../src/config-graph"
 import { cloneDeep } from "lodash"
+import {
+  configureHotReload,
+  removeTrailingSlashes,
+  rsyncSourcePath,
+  makeCopyCommand,
+  filesForSync,
+} from "../../../../../src/plugins/kubernetes/hot-reload/helpers"
 
 describe("configureHotReload", () => {
   it("should correctly augment a resource manifest with containers and volume for hot reloading", async () => {

@@ -2,7 +2,7 @@
 
 This example showcases Garden's hot-reloading functionality.
 
-When using the `local-kuberbetes` or `kubernetes` providers, container modules can be configured to hot-reload their running services when the module's source files change without redeploying. In essence, hot-reloading copies source files into the appropriate running containers (local or remote) when code is changed by the user.
+When using the `local-kubernetes` or `kubernetes` providers, container modules can be configured to hot-reload their running services when the module's source files change without redeploying. In essence, hot-reloading copies source files into the appropriate running containers (local or remote) when code is changed by the user.
 
 For example, services that can be run with a file system watcher that automatically update the running application process when sources change (e.g. nodemon, Django, Ruby on Rails, and most popular web app frameworks) are a natural fit for this feature.
 
@@ -13,25 +13,24 @@ This project contains a single service called `node-service`. When running, the 
 In the `garden.yml` file of the `node-service` module we first enable hot-reloading and specify the target directory it should hot-reload changed sourcefiles into:
 
 ```yaml
-...
+# ...
 hotReload:
   sync:
     - target: /app/
-
-...
-
+# ...
 ```
+
 We also tell the module which command should be run if hot-reloading is enabled to start the service:
 
 ```yaml
-...
-    hotReloadArgs: [npm, run, dev]
-...
+# ...
+hotReloadArgs: [npm, run, dev]
+# ...
 ```
 
 ## Usage
 
-Hot-reloading is *not* enabled by default. To spin up your Garden project with hot-reloading enabled for a particular module, use the `--hot` switch when invoking `garden dev` (or `garden deploy`):
+Hot-reloading is _not_ enabled by default. To spin up your Garden project with hot-reloading enabled for a particular module, use the `--hot` switch when invoking `garden dev` (or `garden deploy`):
 
 ```sh
 garden dev --hot=node-service

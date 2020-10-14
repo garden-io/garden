@@ -92,6 +92,7 @@ describe("validateKubernetesModule", () => {
           dependencies: [],
           disabled: false,
           hotReloadable: false,
+          sourceModuleName: undefined,
           name: "module-simple",
           spec: {
             build: {
@@ -208,6 +209,195 @@ describe("validateKubernetesModule", () => {
       testConfigs: [
         {
           name: "echo-test",
+          dependencies: [],
+          disabled: false,
+          spec: testSpecs[0],
+          timeout: null,
+        },
+      ],
+      type: "kubernetes",
+    })
+  })
+
+  it("should validate a Kubernetes module that has a source module", async () => {
+    const module = await garden.resolveModule("with-source-module")
+    const graph = await garden.getConfigGraph(garden.log)
+    const imageModule = graph.getModule("api-image")
+    const { versionString } = imageModule.version
+
+    const serviceResource = {
+      kind: "Deployment",
+      name: "api-deployment",
+      containerModule: "api-image",
+      containerName: "api",
+    }
+
+    const taskSpecs = [
+      {
+        name: "with-source-module-task",
+        command: ["sh", "-c", "echo ok"],
+        cacheResult: true,
+        dependencies: [],
+        disabled: false,
+        timeout: null,
+        env: {},
+        artifacts: [],
+      },
+    ]
+
+    const testSpecs = [
+      {
+        name: "with-source-module-test",
+        command: ["sh", "-c", "echo ok"],
+        dependencies: [],
+        disabled: false,
+        timeout: null,
+        env: {},
+        artifacts: [],
+      },
+    ]
+
+    expect(module._config).to.eql({
+      allowPublish: true,
+      apiVersion: "garden.io/v0",
+      build: {
+        dependencies: [],
+      },
+      configPath: resolve(ctx.projectRoot, "with-source-module", "garden.yml"),
+      description: "Simple Kubernetes module with minimum config that has a container source module",
+      disabled: false,
+      exclude: undefined,
+      generateFiles: undefined,
+      inputs: {},
+      include: [],
+      kind: "Module",
+      name: "with-source-module",
+      path: resolve(ctx.projectRoot, "with-source-module"),
+      repositoryUrl: undefined,
+      serviceConfigs: [
+        {
+          dependencies: [],
+          disabled: false,
+          hotReloadable: true,
+          sourceModuleName: "api-image",
+          name: "with-source-module",
+          spec: {
+            build: {
+              dependencies: [],
+            },
+            dependencies: [],
+            files: [],
+            manifests: [
+              {
+                apiVersion: "apps/v1",
+                kind: "Deployment",
+                metadata: {
+                  labels: {
+                    app: "api",
+                  },
+                  name: "api-deployment",
+                },
+                spec: {
+                  replicas: 1,
+                  selector: {
+                    matchLabels: {
+                      app: "api",
+                    },
+                  },
+                  template: {
+                    metadata: {
+                      labels: {
+                        app: "api",
+                      },
+                    },
+                    spec: {
+                      containers: [
+                        {
+                          image: `api-image:${versionString}`,
+                          args: ["python", "app.py"],
+                          name: "api",
+                          ports: [
+                            {
+                              containerPort: 80,
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            ],
+            serviceResource,
+            tasks: taskSpecs,
+            tests: testSpecs,
+          },
+        },
+      ],
+      spec: {
+        build: {
+          dependencies: [],
+        },
+        dependencies: [],
+        files: [],
+        manifests: [
+          {
+            apiVersion: "apps/v1",
+            kind: "Deployment",
+            metadata: {
+              labels: {
+                app: "api",
+              },
+              name: "api-deployment",
+            },
+            spec: {
+              replicas: 1,
+              selector: {
+                matchLabels: {
+                  app: "api",
+                },
+              },
+              template: {
+                metadata: {
+                  labels: {
+                    app: "api",
+                  },
+                },
+                spec: {
+                  containers: [
+                    {
+                      image: `api-image:${versionString}`,
+                      args: ["python", "app.py"],
+                      name: "api",
+                      ports: [
+                        {
+                          containerPort: 80,
+                        },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        ],
+        serviceResource,
+        tasks: taskSpecs,
+        tests: testSpecs,
+      },
+      taskConfigs: [
+        {
+          name: "with-source-module-task",
+          cacheResult: true,
+          dependencies: [],
+          disabled: false,
+          spec: taskSpecs[0],
+          timeout: null,
+        },
+      ],
+      testConfigs: [
+        {
+          name: "with-source-module-test",
           dependencies: [],
           disabled: false,
           spec: testSpecs[0],

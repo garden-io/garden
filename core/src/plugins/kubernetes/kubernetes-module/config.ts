@@ -22,12 +22,16 @@ import {
   KubernetesTestSpec,
   KubernetesTaskSpec,
   namespaceSchema,
+  containerModuleSchema,
+  hotReloadArgsSchema,
 } from "../config"
+import { ContainerModule } from "../../container/config"
 
 // A Kubernetes Module always maps to a single Service
 export type KubernetesModuleSpec = KubernetesServiceSpec
 
-export interface KubernetesModule extends GardenModule<KubernetesModuleSpec, KubernetesServiceSpec> {}
+export interface KubernetesModule
+  extends GardenModule<KubernetesModuleSpec, KubernetesServiceSpec, KubernetesTestSpec, KubernetesTaskSpec> {}
 export type KubernetesModuleConfig = KubernetesModule["_config"]
 
 export interface KubernetesServiceSpec {
@@ -40,7 +44,7 @@ export interface KubernetesServiceSpec {
   tests: KubernetesTestSpec[]
 }
 
-export type KubernetesService = Service<KubernetesModule, KubernetesModule>
+export type KubernetesService = Service<KubernetesModule, ContainerModule>
 
 const kubernetesResourceSchema = () =>
   joi
@@ -75,12 +79,17 @@ export const kubernetesModuleSpecSchema = () =>
     \`files\` directive so that only the Kubernetes manifests get included.
   `),
     namespace: namespaceSchema(),
-    serviceResource: serviceResourceSchema().description(
-      deline`The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module
-      (not to be confused with Kubernetes Service resources).
-      Because a \`kubernetes\` can contain any number of Kubernetes resources, this needs to be specified for certain
-      Garden features and commands to work.`
-    ),
+    serviceResource: serviceResourceSchema()
+      .description(
+        deline`The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module
+        (not to be confused with Kubernetes Service resources).
+        Because a \`kubernetes-module\` can contain any number of Kubernetes resources, this needs to be specified for certain
+        Garden features and commands to work.`
+      )
+      .keys({
+        containerModule: containerModuleSchema(),
+        hotReloadArgs: hotReloadArgsSchema(),
+      }),
     tasks: joiArray(kubernetesTaskSchema()),
     tests: joiArray(kubernetesTestSchema()),
   })
@@ -88,16 +97,21 @@ export const kubernetesModuleSpecSchema = () =>
 export async function configureKubernetesModule({
   moduleConfig,
 }: ConfigureModuleParams<KubernetesModule>): Promise<ConfigureModuleResult<KubernetesModule>> {
+  const { serviceResource } = moduleConfig.spec
+  const sourceModuleName = serviceResource ? serviceResource.containerModule : undefined
+
   moduleConfig.serviceConfigs = [
     {
       name: moduleConfig.name,
       dependencies: moduleConfig.spec.dependencies,
       disabled: moduleConfig.disabled,
-      hotReloadable: false,
+      // Note: We can't tell here if the source module supports hot-reloading,
+      // so we catch it in the handler if need be.
+      hotReloadable: !!sourceModuleName,
+      sourceModuleName,
       spec: moduleConfig.spec,
     },
   ]
-
   // Unless include is explicitly specified, we should just have it equal the `files` field
   if (!(moduleConfig.include || moduleConfig.exclude)) {
     moduleConfig.include = moduleConfig.spec.files

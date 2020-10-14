@@ -18,11 +18,12 @@ import { baseBuildSpecSchema } from "../../../config/module"
 import { ConfigureModuleParams } from "../../../types/plugin/module/configure"
 import { GetServiceStatusParams } from "../../../types/plugin/service/getServiceStatus"
 import { GardenModule } from "../../../types/module"
-import { KubernetesModule, KubernetesModuleConfig, KubernetesService } from "../kubernetes-module/config"
+import { KubernetesModule, KubernetesModuleConfig } from "../kubernetes-module/config"
 import { KubernetesResource } from "../types"
 import { getKubernetesServiceStatus, deployKubernetesService } from "../kubernetes-module/handlers"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
 import { getModuleTypeUrl } from "../../../docs/common"
+import { Service } from "../../../types/service"
 
 export interface PersistentVolumeClaimSpec extends BaseVolumeSpec {
   dependencies: string[]
@@ -101,7 +102,7 @@ export const pvcModuleDefinition: ModuleTypeDefinition = {
 /**
  * Maps a `persistentvolumeclaim` module to a `kubernetes` module (so we can re-use those handlers).
  */
-function getKubernetesService(pvcModule: PersistentVolumeClaimModule): KubernetesService {
+function getKubernetesService(pvcModule: PersistentVolumeClaimModule): Service<KubernetesModule, KubernetesModule> {
   const pvcManifest: KubernetesResource<V1PersistentVolumeClaim> = {
     apiVersion: "v1",
     kind: "PersistentVolumeClaim",

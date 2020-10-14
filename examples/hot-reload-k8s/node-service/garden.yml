@@ -1,0 +1,90 @@
+kind: Module
+description: Node hot reload image
+name: node-image
+type: container
+include: ["*"]
+hotReload:
+  sync:
+    - target: /app/
+
+---
+
+kind: Module
+description: K8s Module
+name: node-service
+include: []
+type: kubernetes
+serviceResource:
+  kind: Deployment
+  containerModule: node-image
+  name: node-service
+  containerName: node-service
+  hotReloadArgs: [npm, run, dev]
+manifests:
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        service: node-service
+      name: node-service
+    spec:
+      progressDeadlineSeconds: 600
+      replicas: 1
+      revisionHistoryLimit: 3
+      selector:
+        matchLabels:
+          service: node-service
+      template:
+        metadata:
+          labels:
+            service: node-service
+        spec:
+          containers:
+            - image: ${modules.node-image.outputs.deployment-image-id}
+              imagePullPolicy: IfNotPresent
+              name: node-service
+              ports:
+              - containerPort: 8080
+                name: http
+                protocol: TCP
+              resources:
+                limits:
+                  cpu: "1"
+                  memory: 1Gi
+                requests:
+                  cpu: 10m
+                  memory: 64Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+          dnsPolicy: ClusterFirst
+          restartPolicy: Always
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        service: node-service
+      name: node-service
+    spec:
+      selector:
+        service: node-service
+      ports:
+      - name: http
+        port: 8080
+        protocol: TCP
+        targetPort: 8080
+      type: ClusterIP
+  - apiVersion: extensions/v1beta1
+    kind: Ingress
+    metadata:
+      labels:
+        service: node-service
+      name: node-service
+    spec:
+      rules:
+      - host: ${var.default-hostname}
+        http:
+          paths:
+          - backend:
+              serviceName: node-service
+              servicePort: 8080
+            path: /hello

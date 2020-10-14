@@ -6,35 +6,29 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
-import normalizePath = require("normalize-path")
-import { V1Deployment, V1DaemonSet, V1StatefulSet, V1Container } from "@kubernetes/client-node"
-import { ContainerModule, ContainerHotReloadSpec } from "../container/config"
-import { RuntimeError, ConfigurationError } from "../../exceptions"
+import { V1Container } from "@kubernetes/client-node"
+import { ContainerHotReloadSpec } from "../../container/config"
+import { RuntimeError, ConfigurationError } from "../../../exceptions"
 import { resolve as resolvePath, dirname, posix } from "path"
-import { deline, gardenAnnotationKey } from "../../util/string"
-import { set, sortBy, flatten } from "lodash"
-import { Service } from "../../types/service"
-import { LogEntry } from "../../logger/log-entry"
-import { getResourceContainer } from "./util"
-import { execInWorkload } from "./container/exec"
-import { getPortForward, killPortForward } from "./port-forward"
-import { RSYNC_PORT } from "./constants"
-import { getAppNamespace } from "./namespace"
-import { KubernetesPluginContext } from "./config"
-import { HotReloadServiceParams, HotReloadServiceResult } from "../../types/plugin/service/hotReloadService"
-import { KubernetesResource, KubernetesWorkload } from "./types"
-import { normalizeLocalRsyncPath, normalizeRelativePath } from "../../util/fs"
-import { createWorkloadManifest } from "./container/deployment"
-import { KubeApi } from "./api"
-import { syncWithOptions } from "../../util/sync"
-import { GardenModule } from "../../types/module"
-
-export type HotReloadableResource = KubernetesResource<V1Deployment | V1DaemonSet | V1StatefulSet>
-export type HotReloadableKind = "Deployment" | "DaemonSet" | "StatefulSet"
-
-export const RSYNC_PORT_NAME = "garden-rsync"
-export const hotReloadableKinds: HotReloadableKind[] = ["Deployment", "DaemonSet", "StatefulSet"]
+import { deline, gardenAnnotationKey } from "../../../util/string"
+import { set, flatten } from "lodash"
+import { Service } from "../../../types/service"
+import { LogEntry } from "../../../logger/log-entry"
+import { getResourceContainer, getServiceResourceSpec } from "../util"
+import { execInWorkload } from "../container/exec"
+import { getPortForward, killPortForward } from "../port-forward"
+import { RSYNC_PORT } from "../constants"
+import { KubernetesPluginContext } from "../config"
+import { KubernetesWorkload } from "../types"
+import { normalizeLocalRsyncPath, normalizeRelativePath } from "../../../util/fs"
+import { syncWithOptions } from "../../../util/sync"
+import { GardenModule } from "../../../types/module"
+import { getBaseModule } from "../helm/common"
+import { HelmModule, HelmService } from "../helm/config"
+import { KubernetesModule, KubernetesService } from "../kubernetes-module/config"
+import { HotReloadableKind, HotReloadableResource, RSYNC_PORT_NAME } from "./hot-reload"
+import Bluebird from "bluebird"
+import normalizePath from "normalize-path"
 
 interface ConfigureHotReloadParams {
   target: HotReloadableResource
@@ -169,73 +163,60 @@ export function configureHotReload({
   target.spec.template.spec!.containers.push(<any>rsyncContainer)
 }
 
-/**
- * The hot reload action handler for containers.
- */
-export async function hotReloadContainer({
-  ctx,
-  log,
-  service,
-  module,
-}: HotReloadServiceParams<ContainerModule>): Promise<HotReloadServiceResult> {
-  const hotReloadSpec = module.spec.hotReload
+export function getHotReloadSpec(service: KubernetesService | HelmService) {
+  const module = service.module
 
-  if (!hotReloadSpec) {
+  let baseModule: GardenModule | undefined = undefined
+  if (module.type === "helm") {
+    baseModule = getBaseModule(<HelmModule>module)
+  }
+
+  const resourceSpec = getServiceResourceSpec(module, baseModule)
+
+  if (!resourceSpec || !resourceSpec.containerModule) {
     throw new ConfigurationError(
-      `Module ${module.name} must specify the \`hotReload\` key for service ${service.name} to be hot-reloadable.`,
-      { moduleName: module.name, serviceName: service.name }
+      `Module '${module.name}' must specify \`serviceResource.containerModule\` in order to enable hot-reloading.`,
+      { moduleName: module.name, resourceSpec }
     )
   }
 
-  const k8sCtx = ctx as KubernetesPluginContext
-  const provider = k8sCtx.provider
-  const namespace = await getAppNamespace(k8sCtx, log, provider)
-  const api = await KubeApi.factory(log, ctx, provider)
-
-  // Find the currently deployed workload by labels
-  const manifest = await createWorkloadManifest({
-    api,
-    provider,
-    service,
-    runtimeContext: { envVars: {}, dependencies: [] },
-    namespace,
-    enableHotReload: true,
-    production: k8sCtx.production,
-    log,
-    blueGreen: provider.config.deploymentStrategy === "blue-green",
-  })
-
-  const res = await api.listResources<KubernetesWorkload>({
-    log,
-    apiVersion: manifest.apiVersion,
-    kind: manifest.kind,
-    namespace,
-    labelSelector: {
-      [gardenAnnotationKey("service")]: service.name,
-    },
-  })
-
-  const list = res.items.filter((r) => r.metadata.annotations![gardenAnnotationKey("hot-reload")] === "true")
-
-  if (list.length === 0) {
-    throw new RuntimeError(`Unable to find deployed instance of service ${service.name} with hot-reloading enabled`, {
-      service,
-      listResult: res,
-    })
+  if (service.sourceModule.type !== "container") {
+    throw new ConfigurationError(
+      deline`
+      Module '${resourceSpec.containerModule}', referenced on module '${module.name}' under
+      \`serviceResource.containerModule\`, is not a container module.
+      Please specify the appropriate container module that contains the sources for the resource.`,
+      { moduleName: module.name, sourceModuleType: service.sourceModule.type, resourceSpec }
+    )
   }
 
-  const workload = sortBy(list, (r) => r.metadata.creationTimestamp)[list.length - 1]
+  // The sourceModule property is assigned in the Kubernetes module validate action
+  const hotReloadSpec = service.sourceModule.spec.hotReload
 
-  await syncToService({
-    log,
-    ctx: k8sCtx,
-    service,
-    workload,
-    hotReloadSpec,
-    namespace,
-  })
+  if (!hotReloadSpec) {
+    throw new ConfigurationError(
+      deline`
+      Module '${resourceSpec.containerModule}', referenced on module '${module.name}' under
+      \`serviceResource.containerModule\`, is not configured for hot-reloading.
+      Please specify \`hotReload\` on the '${resourceSpec.containerModule}' module in order to enable hot-reloading.`,
+      { moduleName: module.name, resourceSpec }
+    )
+  }
 
-  return {}
+  return hotReloadSpec
+}
+
+/**
+ * Used to determine which container in the target resource to attach the hot reload sync volume to.
+ */
+export function getHotReloadContainerName(module: KubernetesModule | HelmModule) {
+  let baseModule: GardenModule | undefined = undefined
+  if (module.type === "helm") {
+    baseModule = getBaseModule(<HelmModule>module)
+  }
+
+  const resourceSpec = getServiceResourceSpec(module, baseModule)
+  return resourceSpec.containerName || module.name
 }
 
 /**
