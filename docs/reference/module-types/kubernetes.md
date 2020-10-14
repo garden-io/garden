@@ -153,8 +153,8 @@ files: []
 namespace:
 
 # The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module (not to be
-# confused with Kubernetes Service resources). Because a `kubernetes` can contain any number of Kubernetes resources,
-# this needs to be specified for certain Garden features and commands to work.
+# confused with Kubernetes Service resources). Because a `kubernetes-module` can contain any number of Kubernetes
+# resources, this needs to be specified for certain Garden features and commands to work.
 serviceResource:
   # The type of Kubernetes resource to sync files to.
   kind: Deployment
@@ -166,6 +166,16 @@ serviceResource:
   # The name of a container in the target. Specify this if the target contains more than one container and the main
   # container is not the first container in the spec.
   containerName:
+
+  # The Garden module that contains the sources for the container. This needs to be specified under `serviceResource`
+  # in order to enable hot-reloading, but is not necessary for tasks and tests.
+  # Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the
+  # container module.
+  # Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
+  containerModule:
+
+  # If specified, overrides the arguments for the main container when running in hot-reload mode.
+  hotReloadArgs:
 
 tasks:
   - # The name of the task.
@@ -597,7 +607,7 @@ Deploy to a different namespace than the default one configured in the provider.
 
 ### `serviceResource`
 
-The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module (not to be confused with Kubernetes Service resources). Because a `kubernetes` can contain any number of Kubernetes resources, this needs to be specified for certain Garden features and commands to work.
+The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module (not to be confused with Kubernetes Service resources). Because a `kubernetes-module` can contain any number of Kubernetes resources, this needs to be specified for certain Garden features and commands to work.
 
 | Type     | Required |
 | -------- | -------- |
@@ -632,6 +642,46 @@ The name of a container in the target. Specify this if the target contains more 
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `serviceResource.containerModule`
+
+[serviceResource](#serviceresource) > containerModule
+
+The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading, but is not necessary for tasks and tests.
+Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the container module.
+Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+Example:
+
+```yaml
+serviceResource:
+  ...
+  containerModule: "my-container-module"
+```
+
+### `serviceResource.hotReloadArgs[]`
+
+[serviceResource](#serviceresource) > hotReloadArgs
+
+If specified, overrides the arguments for the main container when running in hot-reload mode.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+Example:
+
+```yaml
+serviceResource:
+  ...
+  hotReloadArgs:
+    - nodemon
+    - my-server.js
+```
 
 ### `tasks[]`
 

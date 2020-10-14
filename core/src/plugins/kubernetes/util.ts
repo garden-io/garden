@@ -26,7 +26,7 @@ import { PluginContext } from "../../plugin-context"
 import { HelmModule } from "./helm/config"
 import { KubernetesModule } from "./kubernetes-module/config"
 import { getChartPath, renderHelmTemplateString } from "./helm/common"
-import { HotReloadableResource } from "./hot-reload"
+import { HotReloadableResource } from "./hot-reload/hot-reload"
 import { ProviderMap } from "../../config/provider"
 
 export const skopeoImage = "gardendev/skopeo:1.41.0-1"

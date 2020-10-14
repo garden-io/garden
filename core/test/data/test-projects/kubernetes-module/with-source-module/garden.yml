@@ -1,0 +1,38 @@
+kind: Module
+type: kubernetes
+name: with-source-module
+description: Simple Kubernetes module with minimum config that has a container source module
+manifests:
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: api-deployment
+      labels:
+        app: api
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: api
+      template:
+        metadata:
+          labels:
+            app: api
+        spec:
+          containers:
+            - name: api
+              image: ${modules.api-image.outputs.deployment-image-id}
+              args: [python, app.py]
+              ports:
+                - containerPort: 80
+serviceResource:
+  kind: Deployment
+  name: api-deployment
+  containerModule: api-image
+  containerName: api
+tests:
+  - name: with-source-module-test
+    command: [sh, -c, "echo ok"]
+tasks:
+  - name: with-source-module-task
+    command: [sh, -c, "echo ok"]

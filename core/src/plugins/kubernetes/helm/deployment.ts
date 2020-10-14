@@ -11,16 +11,16 @@ import { helm } from "./helm-cli"
 import { HelmModule } from "./config"
 import { getChartPath, getReleaseName, getChartResources, getValueArgs, getBaseModule } from "./common"
 import { getReleaseStatus, HelmServiceStatus, getDeployedResources } from "./status"
-import { configureHotReload, HotReloadableResource } from "../hot-reload"
+import { HotReloadableResource } from "../hot-reload/hot-reload"
 import { apply, deleteResources } from "../kubectl"
 import { KubernetesPluginContext } from "../config"
 import { ContainerHotReloadSpec } from "../../container/config"
-import { getHotReloadSpec, getHotReloadContainerName } from "./hot-reload"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
 import { getForwardablePorts, killPortForwards } from "../port-forward"
 import { findServiceResource, getServiceResourceSpec } from "../util"
 import { getModuleNamespace } from "../namespace"
+import { getHotReloadSpec, configureHotReload, getHotReloadContainerName } from "../hot-reload/helpers"
 
 export async function deployHelmService({
   ctx,

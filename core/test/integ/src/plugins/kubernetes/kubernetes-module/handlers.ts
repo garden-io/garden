@@ -23,6 +23,11 @@ import { getDeployedResource } from "../../../../../../src/plugins/kubernetes/st
 import { ModuleConfig } from "../../../../../../src/config/module"
 import { KubernetesResource, BaseResource } from "../../../../../../src/plugins/kubernetes/types"
 import { DeleteServiceTask } from "../../../../../../src/tasks/delete-service"
+import { deployKubernetesService } from "../../../../../../src/plugins/kubernetes/kubernetes-module/handlers"
+import { emptyRuntimeContext } from "../../../../../../src/runtime-context"
+import Bluebird from "bluebird"
+import { buildHelmModules } from "../helm/common"
+import { gardenAnnotationKey } from "../../../../../../src/util/string"
 
 describe("kubernetes-module handlers", () => {
   let tmpDir: tmp.DirectoryResult
@@ -49,6 +54,13 @@ describe("kubernetes-module handlers", () => {
     cloned.spec.manifests[0].metadata.name = nsName
     cloned.spec.manifests[0].metadata.labels.name = nsName
     return cloned
+  }
+
+  const findDeployedResources = async (manifests: KubernetesResource<BaseResource>[], logEntry: LogEntry) => {
+    const maybeDeployedObjects = await Bluebird.map(manifests, (resource) =>
+      getDeployedResource(ctx, ctx.provider, resource, logEntry)
+    )
+    return <KubernetesResource[]>maybeDeployedObjects.filter((o) => o !== null)
   }
 
   before(async () => {
@@ -91,6 +103,9 @@ describe("kubernetes-module handlers", () => {
       type: "kubernetes",
       taskConfigs: [],
     }
+
+    const graph = await garden.getConfigGraph(garden.log)
+    await buildHelmModules(garden, graph)
   })
 
   after(async () => {
@@ -99,6 +114,50 @@ describe("kubernetes-module handlers", () => {
   })
 
   describe("deployKubernetesService", () => {
+    it("should toggle hot reload", async () => {
+      const graph = await garden.getConfigGraph(garden.log)
+      const service = graph.getService("with-source-module")
+      const namespace = await getModuleNamespace({
+        ctx,
+        log,
+        module: service.module,
+        provider: ctx.provider,
+        skipCreate: true,
+      })
+      const deployParams = {
+        ctx,
+        log: garden.log,
+        module: service.module,
+        service,
+        force: false,
+        hotReload: false,
+        runtimeContext: emptyRuntimeContext,
+      }
+      const manifests = await getManifests({
+        api,
+        log,
+        module: service.module,
+        defaultNamespace: namespace,
+        readFromSrcDir: true,
+      })
+
+      // Deploy without hot reload
+      await deployKubernetesService(deployParams)
+      const res1 = await findDeployedResources(manifests, log)
+
+      // Deploy with hot reload
+      await deployKubernetesService({ ...deployParams, hotReload: true })
+      const res2 = await findDeployedResources(manifests, log)
+
+      // // Deploy without hot reload again
+      await deployKubernetesService(deployParams)
+      const res3 = await findDeployedResources(manifests, log)
+
+      expect(res1[0].metadata.annotations![gardenAnnotationKey("hot-reload")]).to.equal("false")
+      expect(res2[0].metadata.annotations![gardenAnnotationKey("hot-reload")]).to.equal("true")
+      expect(res3[0].metadata.annotations![gardenAnnotationKey("hot-reload")]).to.equal("false")
+    })
+
     it("should not delete previously deployed namespace resources", async () => {
       garden.setModuleConfigs([withNamespace(nsModuleConfig, "kubernetes-module-ns-1")])
       let graph = await garden.getConfigGraph(log)
