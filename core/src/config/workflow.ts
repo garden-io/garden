@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { cloneDeep, isEqual, omit, take } from "lodash"
+import { cloneDeep, isEqual, merge, omit, take } from "lodash"
 import { joi, joiUserIdentifier, joiVariableName, joiIdentifier } from "./common"
 import { DEFAULT_API_VERSION } from "../constants"
 import { deline, dedent } from "../util/string"
@@ -19,6 +19,9 @@ import { ConfigurationError } from "../exceptions"
 import { coreCommands } from "../commands/commands"
 import { CommandGroup } from "../commands/base"
 import { EnvironmentConfig, getNamespace } from "./project"
+import { globalOptions } from "../cli/params"
+import { isTruthy } from "../util/util"
+import { parseCliArgs, pickCommand } from "../cli/helpers"
 
 export interface WorkflowConfig {
   apiVersion: string
@@ -319,34 +322,95 @@ function getStepCommands() {
     .filter((cmd) => cmd.workflows)
 }
 
+const globalOptionNames = Object.keys(globalOptions).sort()
+
 /**
- * Throws if one or more steps refers to a command that is not supported in workflows.
+ * Throws if one or more steps refers to a command that is not supported in workflows, or one that uses CLI options
+ * that are not supported for step commands.
  */
 function validateSteps(config: WorkflowConfig) {
-  const validStepCommandPrefixes = getStepCommands().map((c) => c.getPath())
+  const prefixErrors = validateStepCommandPrefixes(config)
+  const argumentErrors = validateStepCommandOptions(config)
+  const errors = [prefixErrors, argumentErrors].filter(isTruthy)
+  let errorMsg = errors.map(({ msg }) => msg).join("\n\n")
+  let errorDetail = merge({}, ...errors.map(({ detail }) => detail))
 
-  const invalidSteps: WorkflowStepSpec[] = config.steps.filter(
+  if (errorMsg) {
+    throw new ConfigurationError(errorMsg, errorDetail)
+  }
+}
+
+function validateStepCommandPrefixes(config: WorkflowConfig) {
+  const validStepCommandPrefixes = getStepCommands().map((c) => c.getPath())
+  const stepsWithInvalidPrefix: WorkflowStepSpec[] = config.steps.filter(
     (step) =>
       !!step.command && !validStepCommandPrefixes.find((valid) => isEqual(valid, take(step.command, valid.length)))
   )
 
-  if (invalidSteps.length > 0) {
-    const msgPrefix =
-      invalidSteps.length === 1
-        ? `Invalid step command for workflow ${config.name}:`
-        : `Invalid step commands for workflow ${config.name}:`
-    const descriptions = invalidSteps.map((step) => `[${step.command!.join(", ")}]`)
+  if (stepsWithInvalidPrefix.length > 0) {
+    const cmdString = stepsWithInvalidPrefix.length === 1 ? "command" : "commands"
+    const descriptions = stepsWithInvalidPrefix.map((step) => `[${step.command!.join(", ")}]`)
     const validDescriptions = validStepCommandPrefixes.map((cmd) => `[${cmd.join(", ")}]`)
     const msg = dedent`
-      ${msgPrefix}
+      Invalid step ${cmdString} for workflow ${config.name}:
 
       ${descriptions.join("\n")}
 
-      Valid step command prefixes:
+      Valid step commands:
 
       ${validDescriptions.join("\n")}
     `
-    throw new ConfigurationError(msg, { invalidSteps })
+    return { msg, detail: { stepsWithInvalidPrefix } }
+  } else {
+    return null
+  }
+}
+
+/**
+ * Finds usages of global CLI options in `step.commandSpec` (if present).
+ *
+ * These will be ignored when the step command is run, so we warn the user not to use them.
+ *
+ * TODO: Also detect invalid command args at validation time (these will result in exceptions when the workflow is run).
+ */
+function findInvalidOptions(step: WorkflowStepSpec) {
+  if (!step.command) {
+    return null
+  }
+  const { command, rest } = pickCommand(getStepCommands(), step.command!)
+  const parsedArgs = parseCliArgs({ stringArgs: rest, command, cli: false, skipDefault: true })
+  const usedGlobalOptions = Object.entries(parsedArgs)
+    .filter(([name, value]) => globalOptionNames.find((optName) => optName === name) && !!value)
+    .map(([name, _]) => `--${name}`)
+  if (usedGlobalOptions.length > 0) {
+    const availableOptions = Object.keys(command!.options || {})
+    const availableDescription =
+      availableOptions.length > 0 ? `(available options: ${availableOptions.map((opt) => `--${opt}`).join(", ")})` : ""
+    const errorMsg = dedent`
+      Invalid options in step command [${step.command!.join(", ")}]: ${usedGlobalOptions.join(", ")}
+      ${availableDescription}
+    `
+    return { step, errorMsg }
+  } else {
+    return null
+  }
+}
+
+function validateStepCommandOptions(config: WorkflowConfig) {
+  const invalidSteps = config.steps.map((step) => findInvalidOptions(step)).filter(isTruthy)
+
+  if (invalidSteps.length > 0) {
+    const msgPrefix = `Invalid step command options for workflow ${config.name}:`
+    const msg = dedent`
+      ${msgPrefix}
+
+      ${invalidSteps.map((s) => s.errorMsg).join("\n\n")}
+
+      Global options (such as --env or --log-level) are not available in workflow step commands
+    `
+    return { msg, detail: { invalidStepCommands: invalidSteps.map((e) => e.step.command) } }
+  } else {
+    return null
   }
 }
 

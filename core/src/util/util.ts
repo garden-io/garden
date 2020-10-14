@@ -607,6 +607,13 @@ export function isPromise(obj: any): obj is Promise<any> {
   return !!obj && (typeof obj === "object" || typeof obj === "function") && typeof obj.then === "function"
 }
 
+/**
+ * A type guard that's useful e.g. when filtering an array which may have blank entries.
+ */
+export function isTruthy<T>(value: T | undefined | null | false | 0 | ""): value is T {
+  return !!value
+}
+
 // Used to make the platforms more consistent with other tools
 const platformMap = {
   win32: "windows",
