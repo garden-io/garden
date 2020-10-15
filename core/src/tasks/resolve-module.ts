@@ -66,6 +66,7 @@ export class ResolveModuleConfigTask extends BaseTask {
       parentName: this.moduleConfig.parentName,
       templateName: this.moduleConfig.templateName,
       inputs: this.moduleConfig.inputs,
+      partialRuntimeResolution: true,
     })
 
     const templateRefs = getModuleTemplateReferences(this.moduleConfig, configContext)
@@ -116,10 +117,11 @@ export class ResolveModuleConfigTask extends BaseTask {
       parentName: this.moduleConfig.parentName,
       templateName: this.moduleConfig.templateName,
       inputs: this.moduleConfig.inputs,
+      partialRuntimeResolution: true,
     })
 
     return resolveModuleConfig(this.garden, this.moduleConfig, {
-      allowPartial: true,
+      allowPartial: false,
       configContext,
     })
   }
@@ -221,6 +223,7 @@ export class ResolveModuleTask extends BaseTask {
       parentName: this.moduleConfig.parentName,
       templateName: this.moduleConfig.templateName,
       inputs: this.moduleConfig.inputs,
+      partialRuntimeResolution: true,
     })
 
     await Bluebird.map(resolvedConfig.generateFiles || [], async (fileSpec) => {

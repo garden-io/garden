@@ -67,7 +67,7 @@ export class DeployTask extends BaseTask {
     const dg = this.graph
 
     // We filter out service dependencies on services configured for hot reloading (if any)
-    const deps = await dg.getDependencies({
+    const deps = dg.getDependencies({
       nodeType: "deploy",
       name: this.getName(),
       recursive: false,

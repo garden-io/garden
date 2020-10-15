@@ -15,7 +15,8 @@
     isArray,
     isPrimitive,
     optionalSuffix,
-    missingKeyErrorType,
+    missingKeyExceptionType,
+    passthroughExceptionType,
     resolveNested,
     TemplateStringError,
   } = options
@@ -29,7 +30,8 @@ TemplateString
 
 FormatString
   = FormatStart e:Expression end:FormatEnd {
-      if (e && e._error && e._error.type !== missingKeyErrorType) {
+      // Any unexpected error is returned immediately. Certain exceptions have special semantics that are caught below.
+      if (e && e._error && e._error.type !== missingKeyExceptionType && e._error.type !== passthroughExceptionType) {
         return e
       }
 
@@ -37,7 +39,11 @@ FormatString
       const allowUndefined = end[1] === optionalSuffix
 
       if (getValue(e) === undefined) {
-        if (allowUndefined) {
+        if (e && e._error && e._error.type === passthroughExceptionType) {
+          // We allow certain configuration contexts (e.g. placeholders for runtime.*) to indicate that a template
+          // string should be returned partially resolved even if allowPartial=false.
+          return text()
+        } else if (allowUndefined) {
           if (e && e._error) {
             return { ...e, _error: undefined }
           } else {
