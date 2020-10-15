@@ -39,7 +39,7 @@ import { makeEnterpriseContext } from "../enterprise/init"
 import { GardenProcess } from "../db/entities/garden-process"
 import { DashboardEventStream } from "../server/dashboard-event-stream"
 import { GardenPlugin } from "../types/plugin/plugin"
-import { formatGardenError } from "../logger/util"
+import { renderError } from "../logger/renderers"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts = {}) {
   const environments = gardenOpts.environmentName
@@ -466,9 +466,13 @@ ${renderCommands(commands)}
 
     if (gardenErrors.length > 0) {
       for (const error of gardenErrors) {
+        const entry = logger.error({
+          msg: error.message,
+          error,
+        })
         // Output error details to console when log level is silly
         logger.silly({
-          msg: formatGardenError(error),
+          msg: renderError(entry),
         })
       }
 
