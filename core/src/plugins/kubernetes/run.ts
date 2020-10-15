@@ -367,7 +367,7 @@ export async function runAndCopy({
             // Tarball the requested files and stream to the above extractor.
             runner
               .exec({
-                command: ["sh", "-c", "cd /tmp && touch .DS_Store && " + tarCmd.join(" ")],
+                command: ["sh", "-c", "cd / && touch /tmp/.DS_Store && " + tarCmd.join(" ")],
                 containerName: mainContainerName,
                 log,
                 stdout: extractor,
