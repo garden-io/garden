@@ -7,12 +7,12 @@
  */
 
 import Bluebird from "bluebird"
-import { partition, uniq } from "lodash"
+import { cloneDeep, partition, set, uniq } from "lodash"
 
 import { KubernetesModule, configureKubernetesModule, KubernetesService } from "./config"
 import { KubernetesPluginContext } from "../config"
-import { KubernetesServerResource } from "../types"
-import { ServiceStatus } from "../../../types/service"
+import { BaseResource, KubernetesResource, KubernetesServerResource } from "../types"
+import { Service, ServiceStatus } from "../../../types/service"
 import { compareDeployedResources, waitForResources } from "../status/status"
 import { KubeApi } from "../api"
 import { ModuleAndRuntimeActionHandlers } from "../../../types/plugin/plugin"
@@ -31,6 +31,12 @@ import { runKubernetesTask } from "./run"
 import { getTestResult } from "../test-results"
 import { getTaskResult } from "../task-results"
 import { getModuleNamespace } from "../namespace"
+import { hotReloadK8s } from "../hot-reload/hot-reload"
+import { findServiceResource, getServiceResourceSpec } from "../util"
+import { getHotReloadSpec, configureHotReload, getHotReloadContainerName } from "../hot-reload/helpers"
+import { LogEntry } from "../../../logger/log-entry"
+import { PluginContext } from "../../../plugin-context"
+import { V1Deployment, V1DaemonSet, V1StatefulSet } from "@kubernetes/client-node"
 
 export const kubernetesHandlers: Partial<ModuleAndRuntimeActionHandlers<KubernetesModule>> = {
   build,
@@ -40,6 +46,7 @@ export const kubernetesHandlers: Partial<ModuleAndRuntimeActionHandlers<Kubernet
   getPortForward: getPortForwardHandler,
   getServiceLogs,
   getServiceStatus: getKubernetesServiceStatus,
+  hotReloadService: hotReloadK8s,
   getTaskResult,
   getTestResult,
   runTask: runKubernetesTask,
@@ -62,6 +69,8 @@ export async function getKubernetesServiceStatus({
   ctx,
   module,
   log,
+  service,
+  hotReload,
 }: GetServiceStatusParams<KubernetesModule>): Promise<KubernetesServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespace = await getModuleNamespace({
@@ -76,8 +85,16 @@ export async function getKubernetesServiceStatus({
   // because the build may not have been staged.
   // This means that manifests added via the `build.dependencies[].copy` field will not be included.
   const manifests = await getManifests({ api, log, module, defaultNamespace: namespace, readFromSrcDir: true })
+  const preparedForHotReload = await prepareManifestsForHotReload({
+    ctx,
+    log,
+    module,
+    service,
+    hotReload,
+    manifests,
+  })
 
-  const { state, remoteResources } = await compareDeployedResources(k8sCtx, api, namespace, manifests, log)
+  const { state, remoteResources } = await compareDeployedResources(k8sCtx, api, namespace, preparedForHotReload, log)
 
   const forwardablePorts = getForwardablePorts(remoteResources)
 
@@ -92,7 +109,7 @@ export async function getKubernetesServiceStatus({
 export async function deployKubernetesService(
   params: DeployServiceParams<KubernetesModule>
 ): Promise<KubernetesServiceStatus> {
-  const { ctx, module, service, log } = params
+  const { ctx, module, service, log, hotReload } = params
 
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, ctx, k8sCtx.provider)
@@ -106,10 +123,8 @@ export async function deployKubernetesService(
 
   const manifests = await getManifests({ api, log, module, defaultNamespace: namespace })
 
-  /**
-   * We separate out manifests for namespace resources, since we don't want to apply a prune selector
-   * when applying them.
-   */
+  // We separate out manifests for namespace resources, since we don't want to apply a prune selector
+  // when applying them.
   const [namespaceManifests, otherManifests] = partition(manifests, (m) => m.kind === "Namespace")
 
   if (namespaceManifests.length > 0) {
@@ -124,28 +139,28 @@ export async function deployKubernetesService(
       log,
     })
   }
+
   const pruneSelector = getSelector(service)
   if (otherManifests.length > 0) {
-    // Prune everything else
-    await apply({ log, ctx, provider: k8sCtx.provider, manifests: otherManifests, pruneSelector })
+    const preparedForHotReload = await prepareManifestsForHotReload({
+      ctx,
+      log,
+      module,
+      service,
+      hotReload,
+      manifests,
+    })
+
+    await apply({ log, ctx, provider: k8sCtx.provider, manifests: preparedForHotReload, pruneSelector })
     await waitForResources({
       namespace,
       ctx,
       provider: k8sCtx.provider,
       serviceName: service.name,
-      resources: otherManifests,
+      resources: preparedForHotReload,
       log,
     })
   }
-
-  await waitForResources({
-    namespace,
-    ctx,
-    provider: k8sCtx.provider,
-    serviceName: service.name,
-    resources: manifests,
-    log,
-  })
 
   const status = await getKubernetesServiceStatus(params)
 
@@ -223,4 +238,71 @@ async function getServiceLogs(params: GetServiceLogsParams<KubernetesModule>) {
 
 function getSelector(service: KubernetesService) {
   return `${gardenAnnotationKey("service")}=${service.name}`
+}
+
+/**
+ * Looks for a hot reload target in a list of manifests. If found, the target is either
+ * configured for hot reloading or annotated with `hot-reload: false`.
+ *
+ * Returns the manifests with the original hot reload resource replaced by the modified spec
+ *
+ * No-op if no hot reload target found and hot reloading is not enabled.
+ */
+async function prepareManifestsForHotReload({
+  ctx,
+  log,
+  module,
+  service,
+  hotReload,
+  manifests,
+}: {
+  ctx: PluginContext
+  service: Service
+  log: LogEntry
+  module: KubernetesModule
+  hotReload: boolean
+  manifests: KubernetesResource<BaseResource>[]
+}) {
+  let hotReloadTarget: KubernetesResource<V1Deployment | V1DaemonSet | V1StatefulSet>
+
+  try {
+    hotReloadTarget = cloneDeep(
+      await findServiceResource({
+        ctx,
+        log,
+        module,
+        baseModule: undefined,
+        manifests,
+        resourceSpec: service.spec.serviceResource,
+      })
+    )
+  } catch (err) {
+    // This is only an error if we're actually trying to hot reload.
+    if (hotReload) {
+      throw err
+    } else {
+      // Nothing to do, so we return the original manifests
+      return manifests
+    }
+  }
+
+  const hotReloadSpec = getHotReloadSpec(service)
+
+  if (hotReload && hotReloadSpec) {
+    const resourceSpec = getServiceResourceSpec(module, undefined)
+    configureHotReload({
+      target: hotReloadTarget,
+      hotReloadSpec,
+      hotReloadArgs: resourceSpec.hotReloadArgs,
+      containerName: getHotReloadContainerName(module),
+    })
+    set(hotReloadTarget, ["metadata", "annotations", gardenAnnotationKey("hot-reload")], "true")
+  } else {
+    set(hotReloadTarget, ["metadata", "annotations", gardenAnnotationKey("hot-reload")], "false")
+  }
+
+  // Replace the original hot reload resource with the modified spec
+  return manifests
+    .filter((m) => !(m.kind === hotReloadTarget!.kind && hotReloadTarget?.metadata.name === m.metadata.name))
+    .concat(<KubernetesResource<BaseResource>>hotReloadTarget)
 }

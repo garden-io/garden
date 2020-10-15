@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { cloneDeep, merge, repeat } from "lodash"
-import { printHeader, getTerminalWidth, formatGardenError } from "../../logger/util"
+import { printHeader, getTerminalWidth, formatGardenError, renderMessageWithDivider } from "../../logger/util"
 import { Command, CommandParams, CommandResult } from "../base"
 import { dedent, wordWrap, deline } from "../../util/string"
 import { Garden } from "../../garden"
@@ -332,17 +332,26 @@ export function logErrors(
 ) {
   const description = formattedStepDescription(stepIndex, stepCount, stepDescription)
   const errMsg = dedent`
-    An error occurred while running step ${chalk.white(description)}.
-
-    Aborting all subsequent steps.
+    An error occurred while running step ${chalk.white(description)}. Aborting all subsequent steps.
 
     See the log output below for additional details.
   `
-  log.error("")
   log.error(chalk.red(errMsg))
+  log.debug("")
   for (const error of errors) {
-    log.error("")
-    log.error(formatGardenError(error))
+    if (error.type === "workflow-script") {
+      const scriptErrMsg = renderMessageWithDivider(
+        `Script exited with code ${error.detail.exitCode}`,
+        error.detail.stderr,
+        true
+      )
+      log.error(scriptErrMsg)
+    } else {
+      // Error comes from a command step. We only log the detail here (and only for log.debug or higher), since
+      // the task graph's error logging takes care of the rest.
+      const taskDetailErrMsg = formatGardenError(error)
+      log.debug(chalk.red(taskDetailErrMsg))
+    }
   }
 }
 
@@ -408,11 +417,19 @@ export async function runStepScript({ garden, log, step }: RunStepParams): Promi
       throw error
     }
 
-    throw new WorkflowScriptError(`Script exited with code ${error.exitCode}`, {
+    const scriptError = new WorkflowScriptError(`Script exited with code ${error.exitCode}`, {
+      message: error.stderr,
       exitCode: error.exitCode,
       stdout: error.stdout,
       stderr: error.stderr,
     })
+
+    log.error("")
+    log.error({ msg: `Script failed with the following error:`, error: scriptError })
+    log.error("")
+    log.error(error.stderr)
+
+    throw scriptError
   }
 }
 

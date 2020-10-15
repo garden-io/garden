@@ -86,7 +86,9 @@ describe("renderers", () => {
       const entry = logger.info({ msg: "foo", error })
       expect(renderError(entry)).to.equal(dedent`
           hello error
+
           Error Details:
+
           foo: bar\n
         `)
     })
@@ -237,6 +239,7 @@ describe("renderers", () => {
   })
   describe("formatForJson", () => {
     it("should return a JSON representation of a log entry", () => {
+      const now = freezeTime()
       const taskMetadata: TaskMetadata = {
         type: "a",
         key: "a",
@@ -255,18 +258,21 @@ describe("renderers", () => {
       })
       expect(formatForJson(entry)).to.eql({
         msg: "hello",
+        timestamp: now.toISOString(),
         section: "c",
         data: { foo: "bar" },
         metadata: { task: taskMetadata },
       })
     })
     it("should append messages if applicable", () => {
+      const now = freezeTime()
       const entry = logger.info({
         msg: "hello",
       })
       entry.setState({ msg: "world", append: true })
       expect(formatForJson(entry)).to.eql({
         msg: "hello - world",
+        timestamp: now.toISOString(),
         section: "",
         data: undefined,
         metadata: undefined,
@@ -279,6 +285,7 @@ describe("renderers", () => {
         section: "",
         data: undefined,
         metadata: undefined,
+        timestamp: "",
       })
     })
   })

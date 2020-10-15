@@ -8,16 +8,19 @@
 
 import { expect } from "chai"
 
-import { TestGarden, expectError } from "../../../../../helpers"
-import { getHotReloadSpec, getHotReloadContainerName } from "../../../../../../src/plugins/kubernetes/helm/hot-reload"
-import { deline } from "../../../../../../src/util/string"
-import { ConfigGraph } from "../../../../../../src/config-graph"
-import { getHelmTestGarden, buildHelmModules } from "./common"
-import { getChartResources } from "../../../../../../src/plugins/kubernetes/helm/common"
-import { PluginContext } from "../../../../../../src/plugin-context"
-import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
-import { configureHotReload } from "../../../../../../src/plugins/kubernetes/hot-reload"
-import { findServiceResource, getServiceResourceSpec } from "../../../../../../src/plugins/kubernetes/util"
+import { TestGarden, expectError } from "../../../../helpers"
+import { deline } from "../../../../../src/util/string"
+import { ConfigGraph } from "../../../../../src/config-graph"
+import { getHelmTestGarden, buildHelmModules } from "./helm/common"
+import { getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
+import { PluginContext } from "../../../../../src/plugin-context"
+import { KubernetesProvider } from "../../../../../src/plugins/kubernetes/config"
+import { findServiceResource, getServiceResourceSpec } from "../../../../../src/plugins/kubernetes/util"
+import {
+  getHotReloadSpec,
+  getHotReloadContainerName,
+  configureHotReload,
+} from "../../../../../src/plugins/kubernetes/hot-reload/helpers"
 
 describe("getHotReloadSpec", () => {
   let garden: TestGarden

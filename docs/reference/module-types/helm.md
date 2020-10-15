@@ -174,7 +174,7 @@ serviceResource:
   name:
 
   # The Garden module that contains the sources for the container. This needs to be specified under `serviceResource`
-  # in order to enable hot-reloading for the chart, but is not necessary for tasks and tests.
+  # in order to enable hot-reloading, but is not necessary for tasks and tests.
   # Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the
   # container module.
   # Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
@@ -259,7 +259,7 @@ tasks:
       name:
 
       # The Garden module that contains the sources for the container. This needs to be specified under
-      # `serviceResource` in order to enable hot-reloading for the chart, but is not necessary for tasks and tests.
+      # `serviceResource` in order to enable hot-reloading, but is not necessary for tasks and tests.
       # Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the
       # container module.
       # Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
@@ -325,7 +325,7 @@ tests:
       name:
 
       # The Garden module that contains the sources for the container. This needs to be specified under
-      # `serviceResource` in order to enable hot-reloading for the chart, but is not necessary for tasks and tests.
+      # `serviceResource` in order to enable hot-reloading, but is not necessary for tasks and tests.
       # Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the
       # container module.
       # Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
@@ -713,7 +713,7 @@ This can include a Helm template string, e.g. '{{ template "my-chart.fullname" .
 
 [serviceResource](#serviceresource) > containerModule
 
-The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading for the chart, but is not necessary for tasks and tests.
+The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading, but is not necessary for tasks and tests.
 Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the container module.
 Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
 
@@ -982,7 +982,7 @@ This can include a Helm template string, e.g. '{{ template "my-chart.fullname" .
 
 [tasks](#tasks) > [resource](#tasksresource) > containerModule
 
-The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading for the chart, but is not necessary for tasks and tests.
+The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading, but is not necessary for tasks and tests.
 Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the container module.
 Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
 
@@ -1224,7 +1224,7 @@ This can include a Helm template string, e.g. '{{ template "my-chart.fullname" .
 
 [tests](#tests) > [resource](#testsresource) > containerModule
 
-The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading for the chart, but is not necessary for tasks and tests.
+The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable hot-reloading, but is not necessary for tasks and tests.
 Must be a `container` module, and for hot-reloading to work you must specify the `hotReload` field on the container module.
 Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`
 

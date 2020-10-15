@@ -22,13 +22,13 @@ import {
 import { PluginContext } from "../../plugin-context"
 import { deline } from "../../util/string"
 import { defaultSystemNamespace } from "./system"
-import { hotReloadableKinds, HotReloadableKind } from "./hot-reload"
+import { hotReloadableKinds, HotReloadableKind } from "./hot-reload/hot-reload"
 import { baseTaskSpecSchema, BaseTaskSpec, cacheResultSchema } from "../../config/task"
 import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
 import { ArtifactSpec } from "../../config/validation"
 import { V1Toleration } from "@kubernetes/client-node"
 
-export const DEFAULT_KANIKO_IMAGE = "gcr.io/kaniko-project/executor:debug-v0.23.0"
+export const DEFAULT_KANIKO_IMAGE = "gcr.io/kaniko-project/executor:debug-v1.2.0"
 export interface ProviderSecretRef {
   name: string
   namespace: string
@@ -619,6 +619,26 @@ export const serviceResourceSchema = () =>
         and the main container is not the first container in the spec.`
     ),
   })
+
+export const containerModuleSchema = () =>
+  joiIdentifier()
+    .description(
+      deline`The Garden module that contains the sources for the container. This needs to be specified under
+    \`serviceResource\` in order to enable hot-reloading, but is not necessary for tasks and tests.
+
+    Must be a \`container\` module, and for hot-reloading to work you must specify the \`hotReload\` field
+    on the container module.
+
+    Note: If you specify a module here, you don't need to specify it additionally under \`build.dependencies\``
+    )
+    .example("my-container-module")
+
+export const hotReloadArgsSchema = () =>
+  joi
+    .array()
+    .items(joi.string())
+    .description("If specified, overrides the arguments for the main container when running in hot-reload mode.")
+    .example(["nodemon", "my-server.js"])
 
 export const kubernetesTaskSchema = () =>
   baseTaskSpecSchema()

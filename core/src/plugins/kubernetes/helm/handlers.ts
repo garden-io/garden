@@ -13,7 +13,6 @@ import { getServiceStatus } from "./status"
 import { deployHelmService, deleteService } from "./deployment"
 import { getTestResult } from "../test-results"
 import { runHelmTask, runHelmModule } from "./run"
-import { hotReloadHelmChart } from "./hot-reload"
 import { getServiceLogs } from "./logs"
 import { testHelmModule } from "./test"
 import { getPortForwardHandler } from "../port-forward"
@@ -26,6 +25,7 @@ import { pathExists } from "fs-extra"
 import chalk = require("chalk")
 import { SuggestModulesParams, SuggestModulesResult } from "../../../types/plugin/module/suggestModules"
 import { getReleaseName } from "./common"
+import { hotReloadK8s } from "../hot-reload/hot-reload"
 
 export const helmHandlers: Partial<ModuleAndRuntimeActionHandlers<HelmModule>> = {
   build: buildHelmModule,
@@ -57,7 +57,7 @@ export const helmHandlers: Partial<ModuleAndRuntimeActionHandlers<HelmModule>> =
   getServiceStatus,
   getTaskResult,
   getTestResult,
-  hotReloadService: hotReloadHelmChart,
+  hotReloadService: hotReloadK8s,
   // TODO: add publishModule handler
   runModule: runHelmModule,
   runTask: runHelmTask,

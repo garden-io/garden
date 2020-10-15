@@ -74,7 +74,7 @@ import { RuntimeContext } from "./runtime-context"
 import { loadPlugins, getDependencyOrder, getModuleTypes } from "./plugins"
 import { deline, naturalList } from "./util/string"
 import { ensureConnected } from "./db/connection"
-import { DependencyValidationGraph } from "./util/validate-dependencies"
+import { cyclesToString, DependencyValidationGraph } from "./util/validate-dependencies"
 import { Profile } from "./util/profiling"
 import { ResolveModuleTask, getResolvedModules, moduleResolutionConcurrencyLimit } from "./tasks/resolve-module"
 import username from "username"
@@ -768,13 +768,15 @@ export class Garden {
     } catch (err) {
       // Wrap the circular dependency error to print a more specific message
       if (err.type === "circular-dependencies") {
-        const cycles = err.cycles.map((c: string[][]) => {
-          // Get the module name of the the cycle (anything else is internal detail as far as users are concerned)
-          return c.map((cycle) => cycle.map((key) => key.split(".")[1]))
-        })
+        // Get the module names from the cycle keys (anything else is internal detail as far as users are concerned)
+        const cycleDescription = cyclesToString([err.detail.cycle.map((key: string) => key.split(".")[1])])
         throw new ConfigurationError(
-          `Detected one or more circular dependencies between module configurations:\n\n${cycles.join("\n")}`,
-          { cycles }
+          dedent`
+            Detected circular dependencies between module configurations:
+
+            ${cycleDescription}
+          `,
+          { cycle: err.detail.cycle }
         )
       } else {
         throw err

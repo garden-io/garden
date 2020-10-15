@@ -1,4 +1,25 @@
 
+<a name="0.12.7"></a>
+## [0.12.7](https://github.com/garden-io/garden/compare/0.12.6...0.12.7) (2020-09-24)
+
+### Bug Fixes
+
+* **cli:** error in tools command when defaultNamespace=null on an env ([27af1fdd](https://github.com/garden-io/garden/commit/27af1fdd))
+* **cli:** bad error message when --env namespace is set on some commands ([cd41a1f5](https://github.com/garden-io/garden/commit/cd41a1f5))
+* **cli:** update docs for microk8s commands ([7249ab69](https://github.com/garden-io/garden/commit/7249ab69))
+* **cli:** update microk8s commands ([6b5cff6c](https://github.com/garden-io/garden/commit/6b5cff6c))
+* **core:** omit dependencyResults from events ([a0d38339](https://github.com/garden-io/garden/commit/a0d38339))
+* **enterprise:** fix batch sizing logic ([da367308](https://github.com/garden-io/garden/commit/da367308))
+
+### Features
+
+* **core:** add ModuleTemplates and templated modules ([3c60e61a](https://github.com/garden-io/garden/commit/3c60e61a))
+
+### Improvements
+
+* **core:** resolve remote sources in parallel ([#2097](https://github.com/garden-io/garden/issues/2097)) ([1e3dce0f](https://github.com/garden-io/garden/commit/1e3dce0f))
+* **template:** return partially resolved conditionals unchanged ([d30b8567](https://github.com/garden-io/garden/commit/d30b8567))
+
 <a name="0.12.6"></a>
 ## [0.12.6](https://github.com/garden-io/garden/compare/0.12.5...0.12.6) (2020-09-24)
 

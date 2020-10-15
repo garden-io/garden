@@ -2784,6 +2784,63 @@ describe("Garden", () => {
     })
   })
 
+  describe("getConfigGraph", () => {
+    it("should throw an error if modules have circular build dependencies", async () => {
+      const garden = await TestGarden.factory(pathFoo, {
+        config: {
+          apiVersion: DEFAULT_API_VERSION,
+          kind: "Project",
+          name: "test",
+          path: pathFoo,
+          defaultEnvironment: "default",
+          dotIgnoreFiles: [],
+          environments: [{ name: "default", defaultNamespace, variables: {} }],
+          providers: [],
+          variables: {},
+        },
+      })
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          name: "module-a",
+          type: "exec",
+          allowPublish: false,
+          build: { dependencies: [{ name: "module-b", copy: [] }] }, // <----
+          disabled: false,
+          path: pathFoo,
+          serviceConfigs: [],
+          taskConfigs: [],
+          testConfigs: [],
+          spec: {},
+        },
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          name: "module-b",
+          type: "exec",
+          allowPublish: false,
+          build: { dependencies: [{ name: "module-a", copy: [] }] }, // <----
+          disabled: false,
+          path: pathFoo,
+          serviceConfigs: [],
+          taskConfigs: [],
+          testConfigs: [],
+          spec: {},
+        },
+      ])
+
+      await expectError(
+        () => garden.getConfigGraph(garden.log),
+        (err) =>
+          expect(err.message).to.equal(dedent`
+          Detected circular dependencies between module configurations:
+
+          module-a <- module-b <- module-a
+        `)
+      )
+    })
+  })
+
   context("module type has a base", () => {
     it("should throw if the configure handler output doesn't match the module type's base schema", async () => {
       const base = createGardenPlugin({
