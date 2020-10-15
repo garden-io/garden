@@ -109,8 +109,8 @@ export class TestGarden extends Garden {
    * Helper to get a single module. We don't put this on the Garden class because it is highly inefficient
    * and not advisable except for testing.
    */
-  async resolveModule(name: string) {
-    const modules = await this.resolveModules({ log: this.log })
+  async resolveModule(name: string, runtimeContext?: RuntimeContext) {
+    const modules = await this.resolveModules({ log: this.log, runtimeContext })
     const config = findByName(modules, name)
 
     if (!config) {

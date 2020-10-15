@@ -2560,6 +2560,104 @@ describe("Garden", () => {
       expect(module.spec.bla).to.eql({ nested: { key: "my value" } })
     })
 
+    it("should pass through runtime template strings when no runtimeContext is provider", async () => {
+      const test = createGardenPlugin({
+        name: "test",
+        createModuleTypes: [
+          {
+            name: "test",
+            docs: "test",
+            schema: joi.object().keys({ bla: joi.string() }),
+            handlers: {},
+          },
+        ],
+      })
+
+      const garden = await TestGarden.factory(pathFoo, {
+        plugins: [test],
+        config: {
+          apiVersion: DEFAULT_API_VERSION,
+          kind: "Project",
+          name: "test",
+          path: pathFoo,
+          defaultEnvironment: "default",
+          dotIgnoreFiles: [],
+          environments: [{ name: "default", defaultNamespace, variables: {} }],
+          providers: [{ name: "test" }],
+          variables: {},
+        },
+      })
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          name: "module-a",
+          type: "test",
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          path: pathFoo,
+          serviceConfigs: [],
+          taskConfigs: [],
+          testConfigs: [],
+          spec: { bla: "${runtime.services.foo.bar || 'default'}" },
+        },
+      ])
+
+      const module = await garden.resolveModule("module-a")
+
+      expect(module.spec.bla).to.equal("${runtime.services.foo.bar || 'default'}")
+    })
+
+    it("should resolve conditional strings with missing variables", async () => {
+      const test = createGardenPlugin({
+        name: "test",
+        createModuleTypes: [
+          {
+            name: "test",
+            docs: "test",
+            schema: joi.object().keys({ bla: joi.string() }),
+            handlers: {},
+          },
+        ],
+      })
+
+      const garden = await TestGarden.factory(pathFoo, {
+        plugins: [test],
+        config: {
+          apiVersion: DEFAULT_API_VERSION,
+          kind: "Project",
+          name: "test",
+          path: pathFoo,
+          defaultEnvironment: "default",
+          dotIgnoreFiles: [],
+          environments: [{ name: "default", defaultNamespace, variables: {} }],
+          providers: [{ name: "test" }],
+          variables: {},
+        },
+      })
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          name: "module-a",
+          type: "test",
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          path: pathFoo,
+          serviceConfigs: [],
+          taskConfigs: [],
+          testConfigs: [],
+          spec: { bla: "${var.foo || 'default'}" },
+        },
+      ])
+
+      const module = await garden.resolveModule("module-a")
+
+      expect(module.spec.bla).to.equal("default")
+    })
+
     it("should correctly resolve template strings with $merge keys", async () => {
       const test = createGardenPlugin({
         name: "test",

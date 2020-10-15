@@ -866,6 +866,7 @@ export class ActionRouter implements TypeGuard {
         parentName: module.parentName,
         templateName: module.templateName,
         inputs: module.inputs,
+        partialRuntimeResolution: false,
       })
 
       // Set allowPartial=false to ensure all required strings are resolved.
@@ -928,6 +929,7 @@ export class ActionRouter implements TypeGuard {
         parentName: module.parentName,
         templateName: module.templateName,
         inputs: module.inputs,
+        partialRuntimeResolution: false,
       })
 
       // Set allowPartial=false to ensure all required strings are resolved.

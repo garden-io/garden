@@ -20,7 +20,11 @@ import {
 } from "./common"
 import { Provider, GenericProviderConfig, ProviderMap } from "./provider"
 import { ConfigurationError } from "../exceptions"
-import { resolveTemplateString, TemplateStringMissingKeyError } from "../template-string"
+import {
+  resolveTemplateString,
+  TemplateStringMissingKeyException,
+  TemplateStringPassthroughException,
+} from "../template-string"
 import { Garden } from "../garden"
 import { joi } from "../config/common"
 import { KeyedSet } from "../util/keyed-set"
@@ -64,9 +68,13 @@ export abstract class ConfigContext {
   private readonly _rootContext: ConfigContext
   private readonly _resolvedValues: { [path: string]: string }
 
+  // This is used for special-casing e.g. runtime.* resolution
+  protected _alwaysAllowPartial: boolean
+
   constructor(rootContext?: ConfigContext) {
     this._rootContext = rootContext || this
     this._resolvedValues = {}
+    this._alwaysAllowPartial = false
   }
 
   static getSchema() {
@@ -185,10 +193,18 @@ export abstract class ConfigContext {
         }
       }
 
-      if (opts.allowPartial) {
-        // If we're allowing partial strings, we throw the error immediately to end the resolution flow. The error
-        // is caught in the surrounding template resolution code.
-        throw new TemplateStringMissingKeyError(message, {
+      // If we're allowing partial strings, we throw the error immediately to end the resolution flow. The error
+      // is caught in the surrounding template resolution code.
+      if (this._alwaysAllowPartial) {
+        // We use a separate exception type when contexts are specifically indicating that unresolvable keys should
+        // be passed through. This is caught in the template parser code.
+        throw new TemplateStringPassthroughException(message, {
+          nodePath,
+          fullPath,
+          opts,
+        })
+      } else if (opts.allowPartial) {
+        throw new TemplateStringMissingKeyException(message, {
           nodePath,
           fullPath,
           opts,
@@ -716,21 +732,25 @@ class RuntimeConfigContext extends ConfigContext {
   )
   public tasks: Map<string, TaskRuntimeContext>
 
-  constructor(root: ConfigContext, runtimeContext?: RuntimeContext) {
+  constructor(root: ConfigContext, allowPartial: boolean, runtimeContext?: RuntimeContext) {
     super(root)
 
     this.services = new Map()
     this.tasks = new Map()
 
-    const dependencies = runtimeContext ? runtimeContext.dependencies : []
-
-    for (const dep of dependencies) {
-      if (dep.type === "service") {
-        this.services.set(dep.name, new ServiceRuntimeContext(this, dep.outputs))
-      } else if (dep.type === "task") {
-        this.tasks.set(dep.name, new TaskRuntimeContext(this, dep.outputs))
+    if (runtimeContext) {
+      for (const dep of runtimeContext.dependencies) {
+        if (dep.type === "service") {
+          this.services.set(dep.name, new ServiceRuntimeContext(this, dep.outputs))
+        } else if (dep.type === "task") {
+          this.tasks.set(dep.name, new TaskRuntimeContext(this, dep.outputs))
+        }
       }
     }
+
+    // This ensures that any template string containing runtime.* references is returned unchanged when
+    // there is no or limited runtimeContext available.
+    this._alwaysAllowPartial = allowPartial
   }
 }
 
@@ -843,6 +863,7 @@ export class ModuleConfigContext extends ProviderConfigContext {
     parentName,
     templateName,
     inputs,
+    partialRuntimeResolution,
   }: {
     garden: Garden
     resolvedProviders: ProviderMap
@@ -854,6 +875,7 @@ export class ModuleConfigContext extends ProviderConfigContext {
     parentName: string | undefined
     templateName: string | undefined
     inputs: DeepPrimitiveMap | undefined
+    partialRuntimeResolution: boolean
   }) {
     super(garden, resolvedProviders)
 
@@ -866,7 +888,7 @@ export class ModuleConfigContext extends ProviderConfigContext {
       this.modules.set(moduleName, new ErrorContext(`Module ${chalk.white.bold(moduleName)} cannot reference itself.`))
     }
 
-    this.runtime = new RuntimeConfigContext(this, runtimeContext)
+    this.runtime = new RuntimeConfigContext(this, partialRuntimeResolution, runtimeContext)
     if (parentName && templateName) {
       this.parent = new ParentContext(this, parentName)
       this.template = new ModuleTemplateContext(this, templateName)
@@ -898,6 +920,7 @@ export class OutputConfigContext extends ModuleConfigContext {
       parentName: undefined,
       templateName: undefined,
       inputs: {},
+      partialRuntimeResolution: false,
     })
   }
 }
