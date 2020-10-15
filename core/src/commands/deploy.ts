@@ -118,7 +118,7 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const initGraph = await garden.getConfigGraph(log)
-    let services = await initGraph.getServices({ names: args.services, includeDisabled: true })
+    let services = initGraph.getServices({ names: args.services, includeDisabled: true })
 
     const disabled = services.filter((s) => s.disabled).map((s) => s.name)
 

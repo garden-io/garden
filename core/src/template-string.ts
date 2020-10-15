@@ -24,14 +24,19 @@ import { ObjectWithName } from "./util/util"
 
 export type StringOrStringPromise = Promise<string> | string
 
-const missingKeyErrorType = "template-string-missing-key"
+const missingKeyExceptionType = "template-string-missing-key"
+const passthroughExceptionType = "template-string-passthrough"
 
 class TemplateStringError extends GardenBaseError {
   type = "template-string"
 }
 
-export class TemplateStringMissingKeyError extends GardenBaseError {
-  type = missingKeyErrorType
+export class TemplateStringMissingKeyException extends GardenBaseError {
+  type = missingKeyExceptionType
+}
+
+export class TemplateStringPassthroughException extends GardenBaseError {
+  type = passthroughExceptionType
 }
 
 let _parser: any
@@ -76,7 +81,8 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
       isArray,
       ConfigurationError,
       TemplateStringError,
-      missingKeyErrorType,
+      missingKeyExceptionType,
+      passthroughExceptionType,
       allowPartial: !!opts.allowPartial,
       optionalSuffix: "}?",
       isPrimitive,

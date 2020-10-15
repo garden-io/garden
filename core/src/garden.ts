@@ -843,6 +843,7 @@ export class Garden {
         parentName: undefined,
         templateName: undefined,
         inputs: {},
+        partialRuntimeResolution: true,
       })
 
       // Resolve modules from specs and add to the list

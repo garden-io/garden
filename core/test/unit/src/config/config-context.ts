@@ -408,6 +408,7 @@ describe("ModuleConfigContext", () => {
       parentName: undefined,
       templateName: undefined,
       inputs: {},
+      partialRuntimeResolution: false,
     })
   })
 
@@ -517,6 +518,7 @@ describe("ModuleConfigContext", () => {
         parentName: undefined,
         templateName: undefined,
         inputs: {},
+        partialRuntimeResolution: false,
       })
     })
 
