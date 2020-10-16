@@ -1,4 +1,25 @@
 
+<a name="0.12.8-0"></a>
+## [0.12.8-0](https://github.com/garden-io/garden/compare/0.12.7...0.12.8-0) (2020-10-15)
+
+### Bug Fixes
+
+* **cli:** fix regression in error logging ([6ef165af](https://github.com/garden-io/garden/commit/6ef165af))
+* **cli:** less noisy error rendering for workflows ([45f1f917](https://github.com/garden-io/garden/commit/45f1f917))
+* **cli:** fix error rendering for yaml output ([37d21cf7](https://github.com/garden-io/garden/commit/37d21cf7))
+* **core:** some conditional template strings were not resolved correctly ([8d66c36c](https://github.com/garden-io/garden/commit/8d66c36c))
+* **core:** fix circular dependency detection ([802f118e](https://github.com/garden-io/garden/commit/802f118e))
+* **workflows:** forbid use of global options ([34d980f7](https://github.com/garden-io/garden/commit/34d980f7))
+
+### Features
+
+* **k8s:** enable hot reloading for kubernetes modules ([878b50eb](https://github.com/garden-io/garden/commit/878b50eb))
+
+### Improvements
+
+* include timestamps in JSON logger ([85e32f65](https://github.com/garden-io/garden/commit/85e32f65))
+* **k8s:** show more pod log lines by default ([91a6976f](https://github.com/garden-io/garden/commit/91a6976f))
+
 <a name="0.12.7"></a>
 ## [0.12.7](https://github.com/garden-io/garden/compare/0.12.6...0.12.7) (2020-09-24)
 
