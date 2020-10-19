@@ -122,7 +122,7 @@ describe("RunWorkflowCommand", () => {
         name: "workflow-a",
         kind: "Workflow",
         path: garden.projectRoot,
-        steps: [{ command: ["deploy"] }, { command: ["test"] }],
+        steps: [{ command: ["deploy"] }, { command: ["build"], skip: true }, { command: ["test"] }],
       },
     ])
 
@@ -137,13 +137,15 @@ describe("RunWorkflowCommand", () => {
     expect(we[2].payload.index).to.eql(0)
     expect(we[2].payload.durationMsec).to.gte(0)
 
-    expect(we[3]).to.eql({ name: "workflowStepProcessing", payload: { index: 1 } })
+    expect(we[3]).to.eql({ name: "workflowStepSkipped", payload: { index: 1 } })
 
-    expect(we[4].name).to.eql("workflowStepComplete")
-    expect(we[4].payload.index).to.eql(1)
-    expect(we[4].payload.durationMsec).to.gte(0)
+    expect(we[4]).to.eql({ name: "workflowStepProcessing", payload: { index: 2 } })
 
-    expect(we[5]).to.eql({ name: "workflowComplete", payload: {} })
+    expect(we[5].name).to.eql("workflowStepComplete")
+    expect(we[5].payload.index).to.eql(2)
+    expect(we[5].payload.durationMsec).to.gte(0)
+
+    expect(we[6]).to.eql({ name: "workflowComplete", payload: {} })
   })
 
   function filterLogEntries(entries: LogEntry[], msgRegex: RegExp): LogEntry[] {
@@ -663,6 +665,7 @@ function getWorkflowEvents(garden: TestGarden) {
     "workflowRunning",
     "workflowComplete",
     "workflowStepProcessing",
+    "workflowStepSkipped",
     "workflowStepError",
     "workflowStepComplete",
   ]
