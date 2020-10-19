@@ -107,6 +107,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
           outputs: {},
           log: "",
         }
+        garden.events.emit("workflowStepSkipped", { index })
         continue
       }
 

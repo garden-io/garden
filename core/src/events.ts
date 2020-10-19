@@ -163,6 +163,9 @@ export interface Events extends LoggerEvents {
   workflowStepProcessing: {
     index: number
   }
+  workflowStepSkipped: {
+    index: number
+  }
   workflowStepComplete: {
     index: number
     durationMsec: number
@@ -202,6 +205,7 @@ export const eventNames: EventName[] = [
   "workflowRunning",
   "workflowComplete",
   "workflowStepProcessing",
+  "workflowStepSkipped",
   "workflowStepError",
   "workflowStepComplete",
 ]
