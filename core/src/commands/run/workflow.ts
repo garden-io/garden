@@ -7,14 +7,14 @@
  */
 
 import chalk from "chalk"
-import { cloneDeep, merge, repeat } from "lodash"
+import { cloneDeep, flatten, last, merge, repeat, size } from "lodash"
 import { printHeader, getTerminalWidth, formatGardenError, renderMessageWithDivider } from "../../logger/util"
 import { Command, CommandParams, CommandResult } from "../base"
 import { dedent, wordWrap, deline } from "../../util/string"
 import { Garden } from "../../garden"
 import { WorkflowStepSpec, WorkflowConfig, WorkflowFileSpec } from "../../config/workflow"
 import { LogEntry } from "../../logger/log-entry"
-import { GardenError, GardenBaseError } from "../../exceptions"
+import { GardenError, WorkflowScriptError } from "../../exceptions"
 import { WorkflowConfigContext, WorkflowStepConfigContext, WorkflowStepResult } from "../../config/config-context"
 import { resolveTemplateStrings, resolveTemplateString } from "../../template-string"
 import { ConfigurationError, FilesystemError } from "../../exceptions"
@@ -87,7 +87,12 @@ export class RunWorkflowCommand extends Command<Args, {}> {
       steps: {},
     }
 
+    let stepErrors: StepErrors = {}
+
     for (const [index, step] of steps.entries()) {
+      if (shouldBeDropped(index, steps, stepErrors)) {
+        continue
+      }
       printStepHeader(outerLog, index, steps.length, step.description)
 
       const stepName = getStepName(index, step.name)
@@ -101,18 +106,31 @@ export class RunWorkflowCommand extends Command<Args, {}> {
       garden.log.setState({ metadata })
 
       if (step.skip) {
-        stepBodyLog.setState(chalk.yellow(`Skipping`))
+        stepBodyLog.setState(chalk.yellow(`Skipping step ${chalk.white(index + 1)}/${chalk.white(steps.length)}`))
         result.steps[stepName] = {
           number: index + 1,
           outputs: {},
           log: "",
         }
         garden.events.emit("workflowStepSkipped", { index })
+        outerLog.info(`\n`)
         continue
       }
 
-      let stepResult: CommandResult
       const inheritedOpts = cloneDeep(opts)
+      const stepParams: RunStepParams = {
+        garden,
+        step,
+        stepIndex: index,
+        stepCount: steps.length,
+        inheritedOpts,
+        outerLog,
+        headerLog: stepHeaderLog,
+        bodyLog: stepBodyLog,
+        footerLog: stepFooterLog,
+      }
+
+      let stepResult: CommandResult
 
       garden.events.emit("workflowStepProcessing", { index })
       const stepTemplateContext = new WorkflowStepConfigContext({
@@ -127,43 +145,22 @@ export class RunWorkflowCommand extends Command<Args, {}> {
       try {
         if (step.command) {
           step.command = resolveTemplateStrings(step.command, stepTemplateContext)
-
-          stepResult = await runStepCommand({
-            step,
-            inheritedOpts,
-            garden,
-            headerLog: stepHeaderLog,
-            log: stepBodyLog,
-            footerLog: stepFooterLog,
-          })
+          stepResult = await runStepCommand(stepParams)
         } else if (step.script) {
           step.script = resolveTemplateString(step.script, stepTemplateContext)
-
-          stepResult = await runStepScript({
-            step,
-            inheritedOpts,
-            garden,
-            headerLog: stepHeaderLog,
-            log: stepBodyLog,
-            footerLog: stepFooterLog,
-          })
+          stepResult = await runStepScript(stepParams)
         } else {
           garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
           throw new ConfigurationError(`Workflow steps must specify either a command or a script.`, { step })
         }
       } catch (err) {
         garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
-        printStepDuration({
-          log: outerLog,
-          stepIndex: index,
-          stepCount: steps.length,
-          durationSecs: stepBodyLog.getDuration(),
-          success: false,
-        })
+        stepErrors[index] = [err]
+        printStepDuration({ ...stepParams, success: false })
         printResult({ startedAt, log: outerLog, workflow, success: false })
-
         logErrors(outerLog, [err], index, steps.length, step.description)
-        return { result, errors: [err] }
+        // There may be succeeding steps with `when: onError` or `when: always`, so we continue.
+        continue
       }
 
       // Extract the text from the body log entry, info-level and higher
@@ -178,17 +175,18 @@ export class RunWorkflowCommand extends Command<Args, {}> {
       if (stepResult.errors) {
         garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
         logErrors(outerLog, stepResult.errors, index, steps.length, step.description)
-        return { result, errors: stepResult.errors }
+        stepErrors[index] = stepResult.errors
+        // There may be succeeding steps with `when: onError` or `when: always`, so we continue.
+        continue
       }
 
       garden.events.emit("workflowStepComplete", getStepEndEvent(index, stepStartedAt))
-      printStepDuration({
-        log: outerLog,
-        stepIndex: index,
-        stepCount: steps.length,
-        durationSecs: stepBodyLog.getDuration(),
-        success: true,
-      })
+      printStepDuration({ ...stepParams, success: true })
+    }
+
+    if (size(stepErrors) > 0) {
+      printResult({ startedAt, log: outerLog, workflow, success: false })
+      return { result, errors: flatten(Object.values(stepErrors)) }
     }
 
     printResult({ startedAt, log: outerLog, workflow, success: true })
@@ -200,25 +198,38 @@ export class RunWorkflowCommand extends Command<Args, {}> {
 
 export interface RunStepParams {
   garden: Garden
-  log: LogEntry
+  outerLog: LogEntry
   headerLog: LogEntry
+  bodyLog: LogEntry
   footerLog: LogEntry
   inheritedOpts: any
   step: WorkflowStepSpec
+  stepIndex: number
+  stepCount: number
+}
+
+export interface RunStepLogParams extends RunStepParams {
+  success: boolean
 }
 
 export interface RunStepCommandParams extends RunStepParams {}
+
+interface StepErrors {
+  [index: number]: any[]
+}
 
 function getStepName(index: number, name?: string) {
   return name || `step-${index + 1}`
 }
 
+const minWidth = 120
+
 export function printStepHeader(log: LogEntry, stepIndex: number, stepCount: number, stepDescription?: string) {
-  const maxWidth = Math.min(getTerminalWidth(), 120)
+  const maxWidth = Math.min(getTerminalWidth(), minWidth)
   let text = `Running step ${formattedStepDescription(stepIndex, stepCount, stepDescription)}`
   const header = dedent`
     ${chalk.cyan.bold(wordWrap(text, maxWidth))}
-    ${getSeparatorBar(maxWidth)}
+    ${getStepSeparatorBar()}
   `
   log.info(header)
 }
@@ -227,28 +238,20 @@ function getSeparatorBar(width: number) {
   return chalk.white(repeat("═", width))
 }
 
-export function printStepDuration({
-  log,
-  stepIndex,
-  stepCount,
-  durationSecs,
-  success,
-}: {
-  log: LogEntry
-  stepIndex: number
-  stepCount: number
-  durationSecs: number
-  success: boolean
-}) {
+export function printStepDuration({ outerLog, stepIndex, bodyLog, stepCount, success }: RunStepLogParams) {
+  const durationSecs = bodyLog.getDuration()
   const result = success ? chalk.green("completed") : chalk.red("failed")
 
   const text = deline`
     Step ${formattedStepNumber(stepIndex, stepCount)} ${chalk.bold(result)} in
     ${chalk.white(durationSecs)} Sec
   `
-  const maxWidth = Math.min(getTerminalWidth(), 120)
+  outerLog.info(`${getStepSeparatorBar()}\n${chalk.cyan.bold(text)}\n`)
+}
 
-  log.info(`${getSeparatorBar(maxWidth)}\n${chalk.cyan.bold(text)}\n\n`)
+function getStepSeparatorBar() {
+  const maxWidth = Math.min(getTerminalWidth(), minWidth)
+  return getSeparatorBar(maxWidth)
 }
 
 export function formattedStepDescription(stepIndex: number, stepCount: number, stepDescription?: string) {
@@ -284,12 +287,11 @@ function printResult({
     resultColor(`Workflow ${chalk.white.bold(workflow.name)} ${resultMessage}. `) +
       chalk.magenta(`Total time elapsed: ${chalk.white.bold(totalDuration)} Sec.`)
   )
-  log.info("")
 }
 
 export async function runStepCommand({
   garden,
-  log,
+  bodyLog,
   footerLog,
   headerLog,
   inheritedOpts,
@@ -315,13 +317,86 @@ export async function runStepCommand({
 
   const result = await command.action({
     garden,
-    log,
     footerLog,
+    log: bodyLog,
     headerLog,
     args,
     opts: merge(inheritedOpts, opts),
   })
   return result
+}
+
+export async function runStepScript({ garden, bodyLog, step }: RunStepParams): Promise<CommandResult<any>> {
+  try {
+    await runScript(bodyLog, garden.projectRoot, step.script!)
+    return { result: {} }
+  } catch (_err) {
+    const error = _err as ExecaError
+
+    // Unexpected error (failed to execute script, as opposed to script returning an error code)
+    if (!error.exitCode) {
+      throw error
+    }
+
+    const scriptError = new WorkflowScriptError(`Script exited with code ${error.exitCode}`, {
+      message: error.stderr,
+      exitCode: error.exitCode,
+      stdout: error.stdout,
+      stderr: error.stderr,
+    })
+
+    bodyLog.error("")
+    bodyLog.error({ msg: `Script failed with the following error:`, error: scriptError })
+    bodyLog.error("")
+    bodyLog.error(error.stderr)
+
+    throw scriptError
+  }
+}
+
+export function shouldBeDropped(stepIndex: number, steps: WorkflowStepSpec[], stepErrors: StepErrors): boolean {
+  const step = steps[stepIndex]
+  if (step.when === "always") {
+    return false
+  }
+  if (step.when === "never") {
+    return true
+  }
+  const lastErrorIndex = last(
+    steps.filter((s, index) => s.when !== "onError" && !!stepErrors[index]).map((_, index) => index)
+  )
+  if (step.when === "onError") {
+    if (lastErrorIndex === undefined) {
+      // No error has been thrown yet, so there's no need to run this `onError` step.
+      return true
+    }
+
+    let previousOnErrorStepIndexes: number[] = []
+    for (const [index, s] of steps.entries()) {
+      if (s.when === "onError" && lastErrorIndex < index && index < stepIndex) {
+        previousOnErrorStepIndexes.push(index)
+      }
+    }
+    /**
+     * If true, then there is one or more `onError` step between this step and the step that threw the error,  and
+     * there's also a non-`onError`/`never` step in between. That means that it's not up to this sequence of `onError`
+     * steps to "handle" that error.
+     *
+     * Example: Here, steps a, b and c don't have a `when` modifier, and e1, e2 and e3 have `when: onError`.
+     *   [a, b, e1, e2, c, e3]
+     * If a throws an error, we run e1 and e2, but drop c and e3.
+     */
+    const errorBelongsToPreviousSequence =
+      previousOnErrorStepIndexes.find((prevOnErrorIdx) => {
+        return steps.find(
+          (s, idx) => !["never", "onError"].includes(s.when || "") && prevOnErrorIdx < idx && idx < stepIndex
+        )
+      }) !== undefined
+    return errorBelongsToPreviousSequence
+  }
+
+  // This step has no `when` modifier, so we drop it if an error has been thrown by a previous step.
+  return lastErrorIndex !== undefined
 }
 
 export function logErrors(
@@ -333,9 +408,9 @@ export function logErrors(
 ) {
   const description = formattedStepDescription(stepIndex, stepCount, stepDescription)
   const errMsg = dedent`
-    An error occurred while running step ${chalk.white(description)}. Aborting all subsequent steps.
+    An error occurred while running step ${chalk.white(description)}.
 
-    See the log output below for additional details.
+    See the log output below for additional details.\n
   `
   log.error(chalk.red(errMsg))
   log.debug("")
@@ -399,38 +474,6 @@ async function writeWorkflowFile(garden: Garden, file: WorkflowFileSpec) {
     await writeFile(fullPath, data)
   } catch (error) {
     throw new FilesystemError(`Unable to write file '${file.path}': ${error.message}`, { error, file })
-  }
-}
-
-class WorkflowScriptError extends GardenBaseError {
-  type = "workflow-script"
-}
-
-export async function runStepScript({ garden, log, step }: RunStepParams): Promise<CommandResult<any>> {
-  try {
-    await runScript(log, garden.projectRoot, step.script!)
-    return { result: {} }
-  } catch (_err) {
-    const error = _err as ExecaError
-
-    // Unexpected error (failed to execute script, as opposed to script returning an error code)
-    if (!error.exitCode) {
-      throw error
-    }
-
-    const scriptError = new WorkflowScriptError(`Script exited with code ${error.exitCode}`, {
-      message: error.stderr,
-      exitCode: error.exitCode,
-      stdout: error.stdout,
-      stderr: error.stderr,
-    })
-
-    log.error("")
-    log.error({ msg: `Script failed with the following error:`, error: scriptError })
-    log.error("")
-    log.error(error.stderr)
-
-    throw scriptError
   }
 }
 

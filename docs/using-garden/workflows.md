@@ -77,6 +77,90 @@ steps:
       echo "Hello ${project.name}!"
 ```
 
+### The `skip` and `when` options
+
+[link](#the-skip-and-when-options)
+
+By default, a workflow step is run if all previous steps have been run without errors. Sometimes, it can be useful to override this default behavior with the `skip` and `when` fields on workflow steps.
+
+The `skip` field is a boolean. If its value is `true`, the step will be skipped, and the next step will be run as if the skipped step succeeded.
+
+Note that skipped steps don't produce any outputs (see the [step outputs](#step-outputs) section below for more). However, skipped steps are shown in the command log.
+
+The `when` field can be used with the following values:
+* `onSuccess` (default): This step will be run if all preceding steps succeeded or were skipped.
+* `onError`: This step will be run if a preceding step failed, or if its preceding step has `when: onError`. If the next step has `when: onError`, it will also be run. Otherwise, all subsequent steps are ignored. See below for more.
+* `always`: The step will always be run, regardless of whether any previous steps have failed.
+* `never`: The step will always be ignored, even if all previous steps succeeded. Note: Ignored steps don't show up in the command logs.
+
+The simplest usage pattern for `onError` steps is to place them at the end of your workflow (which ensures that they're run if any step in your workflow fails):
+
+```yaml
+kind: Workflow
+name: my-workflow
+steps:
+  - command: [run, task, my-task]
+  - command: [deploy]
+  - command: [test]
+  - script: |
+      echo "Run if any of the previous steps failed"
+    when: onError
+  - script:
+      echo "This task is always run, regardless of whether any previous steps failed."
+    when: always
+```
+
+A more advanced use case is to use `onError` steps to set up "error handling checkpoints" in your workflow.
+
+For example, if the first step (`run task my-task`) fails in this workflow:
+```yaml
+kind: Workflow
+name: my-workflow
+steps:
+  - command: [run, task, my-task]
+  - script: |
+      echo "Run if my-task step failed"
+    when: onError
+  - script: |
+      echo "Also run if my-task step failed"
+    when: onError
+  - command: [deploy]
+  - command: [test]
+  - script: |
+      echo "Run if the deploy or test steps failed"
+    when: onError
+  - script: | # Finally, an `always` step (for example, to clean up the staging environment)
+      echo "This task is always run, regardless of whether any previous steps failed."
+    when: always
+```
+then the first two `onError` steps will be run, and all other steps will be skipped (except for the last one, since it has `when: always`). This can be useful for rollback operations that are relevant only at certain points in the workflow.
+
+ You can also template the values of `skip` and `when` for even more flexibility. For example:
+```yaml
+kind: Workflow
+name: my-workflow
+steps:
+  - script: |
+      echo "Fetching credentials for staging environment"
+    skip: ${environment.name != "staging"} # This step is only run in the staging environment
+  - command: [deploy]
+  - script: |
+      echo "Run if deploy step failed"
+    when: onError
+  - script: |
+      echo "Also run if deploy step failed"
+    when: onError
+  - command: [build]
+    when: never # This is never run
+  - command: [test]
+  - script: |
+      echo "Run if test step failed, but not if the deploy step failed"
+    when: onError
+  - script: | # Finally, an `always` step (for example, to clean up the staging environment)
+      echo "Clean up staging environment, regardless of whether the workflow succeeded or failed."
+    when: "${environment.name == 'staging' ? 'always' : 'never'}"
+```
+
 ### Step outputs
 
 Workflow steps can reference outputs from previous steps, using template strings. This is particularly useful when feeding command outputs to custom scripts, e.g. for custom publishing flows, handling artifacts and whatever else you can think of.

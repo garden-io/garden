@@ -97,6 +97,10 @@ export class NotFoundError extends GardenBaseError {
   type = "not-found"
 }
 
-export class PlatformError extends GardenBaseError {
-  type = "platform"
+export class WorkflowScriptError extends GardenBaseError {
+  type = "workflow-script"
+}
+
+export class EnterpriseApiError extends GardenBaseError {
+  type = "enterprise-api"
 }

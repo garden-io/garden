@@ -10,7 +10,7 @@ import { got, GotResponse } from "../util/http"
 import { makeAuthHeader } from "./auth"
 import { WorkflowConfig, makeRunConfig } from "../config/workflow"
 import { LogEntry } from "../logger/log-entry"
-import { PlatformError } from "../exceptions"
+import { EnterpriseApiError } from "../exceptions"
 import { GardenEnterpriseContext } from "./init"
 import { gardenEnv } from "../constants"
 
@@ -54,7 +54,7 @@ export async function registerWorkflowRun({
   if (res && res["workflowRunUid"] && res["status"] === "success") {
     return res["workflowRunUid"]
   } else {
-    throw new PlatformError(`Error while registering workflow run: Request failed with status ${res["status"]}`, {
+    throw new EnterpriseApiError(`Error while registering workflow run: Request failed with status ${res["status"]}`, {
       status: res["status"],
       workflowRunUid: res["workflowRunUid"],
     })
