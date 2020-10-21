@@ -22,6 +22,7 @@ manifests:
           containers:
             - name: busybox
               image: busybox:1.31.1
+              args: [sleep, "100"]
               ports:
                 - containerPort: 80
 serviceResource:
