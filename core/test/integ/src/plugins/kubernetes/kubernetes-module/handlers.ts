@@ -114,6 +114,21 @@ describe("kubernetes-module handlers", () => {
   })
 
   describe("deployKubernetesService", () => {
+    it("should successfully deploy when serviceResource doesn't have a containerModule", async () => {
+      const graph = await garden.getConfigGraph(garden.log)
+      const service = graph.getService("module-simple")
+      const deployParams = {
+        ctx,
+        log: garden.log,
+        module: service.module,
+        service,
+        force: false,
+        hotReload: false,
+        runtimeContext: emptyRuntimeContext,
+      }
+      await deployKubernetesService(deployParams)
+    })
+
     it("should toggle hot reload", async () => {
       const graph = await garden.getConfigGraph(garden.log)
       const service = graph.getService("with-source-module")

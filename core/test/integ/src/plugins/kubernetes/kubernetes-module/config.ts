@@ -128,6 +128,7 @@ describe("validateKubernetesModule", () => {
                         {
                           image: "busybox:1.31.1",
                           name: "busybox",
+                          args: ["sleep", "100"],
                           ports: [
                             {
                               containerPort: 80,
@@ -180,6 +181,7 @@ describe("validateKubernetesModule", () => {
                     {
                       image: "busybox:1.31.1",
                       name: "busybox",
+                      args: ["sleep", "100"],
                       ports: [
                         {
                           containerPort: 80,

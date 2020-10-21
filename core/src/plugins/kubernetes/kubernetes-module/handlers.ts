@@ -286,8 +286,7 @@ async function prepareManifestsForHotReload({
     }
   }
 
-  const hotReloadSpec = getHotReloadSpec(service)
-
+  const hotReloadSpec = hotReload ? getHotReloadSpec(service) : null
   if (hotReload && hotReloadSpec) {
     const resourceSpec = getServiceResourceSpec(module, undefined)
     configureHotReload({
