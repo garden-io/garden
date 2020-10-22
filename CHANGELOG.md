@@ -1,4 +1,13 @@
 
+<a name="0.12.9"></a>
+## [0.12.9](https://github.com/garden-io/garden/compare/0.12.8...0.12.9) (2020-10-21)
+
+### Bug Fixes
+
+* **core:** stay in filesystem root so source paths make sense ([4b43703c](https://github.com/garden-io/garden/commit/4b43703c))
+* **core:** create artifact placeholder in a world-readable place ([3daaffa6](https://github.com/garden-io/garden/commit/3daaffa6))
+* **kubernetes-module:** fix regression ([f1c521f2](https://github.com/garden-io/garden/commit/f1c521f2))
+
 <a name="0.12.8"></a>
 ## [0.12.8](https://github.com/garden-io/garden/compare/0.12.7...0.12.8) (2020-10-15)
 
