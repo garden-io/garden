@@ -41,6 +41,20 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
   // tslint:disable: no-console
   const referenceDir = resolve(docsRoot, "reference")
 
+  const providers = [
+    { name: "conftest" },
+    { name: "conftest-container" },
+    { name: "conftest-kubernetes" },
+    { name: "container" },
+    { name: "exec" },
+    { name: "hadolint" },
+    { name: "kubernetes" },
+    { name: "local-kubernetes" },
+    { name: "maven-container" },
+    { name: "octant" },
+    { name: "openfaas" },
+    { name: "terraform" },
+  ]
   const garden = await Garden.factory(__dirname, {
     config: {
       path: __dirname,
@@ -57,20 +71,7 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
           variables: {},
         },
       ],
-      providers: [
-        { name: "conftest" },
-        { name: "conftest-container" },
-        { name: "conftest-kubernetes" },
-        { name: "container" },
-        { name: "exec" },
-        { name: "hadolint" },
-        { name: "kubernetes" },
-        { name: "local-kubernetes" },
-        { name: "maven-container" },
-        { name: "octant" },
-        { name: "openfaas" },
-        { name: "terraform" },
-      ],
+      providers,
     },
     plugins,
   })
@@ -86,9 +87,12 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
     const path = resolve(providerDir, `${name}.md`)
     console.log("->", path)
     writeFileSync(path, renderProviderReference(name, plugin, pluginsByName))
-
-    providersReadme.push(`* [\`${name}\`](./${name}.md)`)
   }
+
+  for (const provider of providers) {
+    providersReadme.push(`* [\`${provider.name}\`](./${provider.name}.md)`)
+  }
+
   writeFileSync(resolve(providerDir, `README.md`), providersReadme.join("\n"))
 
   // Render module types
