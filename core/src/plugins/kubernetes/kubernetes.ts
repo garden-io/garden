@@ -191,7 +191,7 @@ export const gardenPlugin = createGardenPlugin({
     Kubernetes clusters, and adds the [\`helm\`](${getModuleTypeUrl("helm")}) and
     [\`kubernetes\`](${getModuleTypeUrl("kubernetes")}) module types.
 
-    For usage information, please refer to the [guides section]${DOCS_BASE_URL}/guides). A good place to start is
+    For usage information, please refer to the [guides section](${DOCS_BASE_URL}/guides). A good place to start is
     the [Remote Kubernetes guide](${DOCS_BASE_URL}/guides/remote-kubernetes) guide if you're connecting to remote clusters.
     The [demo-project](${DOCS_BASE_URL}/example-projects/getting-started/2-initialize-a-project) example project and guide are also helpful as an introduction.
 
