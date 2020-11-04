@@ -10,10 +10,13 @@ import { expect } from "chai"
 import td from "testdouble"
 import { withDefaultGlobalOpts, expectError, getDataDir } from "../../../helpers"
 const Auth = require("../../../../src/enterprise/auth")
+
 import { LoginCommand } from "../../../../src/commands/login"
 import stripAnsi from "strip-ansi"
 import { makeDummyGarden } from "../../../../src/cli/cli"
 import { Garden } from "../../../../src"
+import { EnterpriseApi } from "../../../../src/enterprise/api"
+import { getLogger } from "../../../../src/logger/logger"
 
 function makeCommandParams(garden: Garden) {
   const log = garden.log
@@ -33,15 +36,29 @@ describe("LoginCommand", () => {
   })
 
   it("should log in if the project has a domain and an id", async () => {
-    const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain-and-id"))
     const command = new LoginCommand()
+    const enterpriseApi = new EnterpriseApi(getLogger().placeholder())
+    await enterpriseApi.init(getDataDir("test-projects", "login", "has-domain-and-id"), command)
+    const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
+      noEnterprise: false,
+      enterpriseApi,
+    })
+
     await command.action(makeCommandParams(garden))
+    await enterpriseApi.close()
   })
 
   it("should log in if the project has a domain but no id", async () => {
-    const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain"))
     const command = new LoginCommand()
+    const enterpriseApi = new EnterpriseApi(getLogger().placeholder())
+    await enterpriseApi.init(getDataDir("test-projects", "login", "has-domain"), command)
+    const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain"), {
+      noEnterprise: false,
+      enterpriseApi,
+    })
+
     await command.action(makeCommandParams(garden))
+    await enterpriseApi.close()
   })
 
   it("should throw if the project doesn't have a domain", async () => {
@@ -54,8 +71,15 @@ describe("LoginCommand", () => {
   })
 
   it("should log in if the project config uses secrets in project variables", async () => {
-    const garden = await makeDummyGarden(getDataDir("test-projects", "login", "secret-in-project-variables"))
     const command = new LoginCommand()
+    const enterpriseApi = new EnterpriseApi(getLogger().placeholder())
+    await enterpriseApi.init(getDataDir("test-projects", "login", "secret-in-project-variables"), command)
+    const garden = await makeDummyGarden(getDataDir("test-projects", "login", "secret-in-project-variables"), {
+      noEnterprise: false,
+      enterpriseApi,
+    })
+
     await command.action(makeCommandParams(garden))
+    await enterpriseApi.close()
   })
 })

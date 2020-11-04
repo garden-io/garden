@@ -29,7 +29,7 @@ import { ValueOf } from "../util/util"
 import { AnalyticsHandler } from "../analytics/analytics"
 import { joi } from "../config/common"
 import { randomString } from "../util/string"
-import { authTokenHeader } from "../enterprise/auth"
+import { authTokenHeader } from "../enterprise/api"
 import { ApiEventBatch } from "../enterprise/buffered-event-stream"
 import { LogLevel } from "../logger/log-node"
 

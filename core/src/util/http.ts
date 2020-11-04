@@ -8,7 +8,7 @@
 
 import _got, { Response } from "got"
 import { bootstrap } from "global-agent"
-import { OptionsOfTextResponseBody } from "got"
+import { OptionsOfTextResponseBody, Headers } from "got"
 
 // Handle proxy environment settings
 // (see https://github.com/gajus/global-agent#what-is-the-reason-global-agentbootstrap-does-not-use-http_proxy)
@@ -21,3 +21,4 @@ bootstrap({
 export const got = _got
 export type GotOptions = OptionsOfTextResponseBody
 export type GotResponse<T = unknown> = Response<T>
+export type GotHeaders = Headers
