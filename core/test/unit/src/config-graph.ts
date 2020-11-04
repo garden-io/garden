@@ -125,7 +125,7 @@ describe("ConfigGraph", () => {
 
     it("should throw if named module is missing", async () => {
       try {
-        await graphA.getModules({ names: ["bla"] })
+        graphA.getModules({ names: ["bla"] })
       } catch (err) {
         expect(err.type).to.equal("parameter")
         return

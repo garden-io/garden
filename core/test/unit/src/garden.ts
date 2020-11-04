@@ -2713,6 +2713,77 @@ describe("Garden", () => {
       expect(module.spec.bla).to.eql({ a: "a", b: "B", c: "c" })
     })
 
+    it("should correctly handle build dependencies added by module configure handlers", async () => {
+      const test = createGardenPlugin({
+        name: "test",
+        createModuleTypes: [
+          {
+            name: "test",
+            docs: "test",
+            schema: joi.object(),
+            handlers: {
+              async configure({ moduleConfig }) {
+                if (moduleConfig.name === "module-b") {
+                  moduleConfig.build.dependencies = [{ name: "module-a", copy: [] }]
+                }
+                return { moduleConfig }
+              },
+            },
+          },
+        ],
+      })
+
+      const garden = await TestGarden.factory(pathFoo, {
+        plugins: [test],
+        config: {
+          apiVersion: DEFAULT_API_VERSION,
+          kind: "Project",
+          name: "test",
+          path: pathFoo,
+          defaultEnvironment: "default",
+          dotIgnoreFiles: [],
+          environments: [{ name: "default", defaultNamespace, variables: {} }],
+          providers: [{ name: "test" }],
+          variables: {},
+        },
+      })
+
+      garden.setModuleConfigs([
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          name: "module-a",
+          type: "test",
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          include: [],
+          path: pathFoo,
+          serviceConfigs: [],
+          taskConfigs: [],
+          testConfigs: [],
+          spec: {},
+        },
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          name: "module-b",
+          type: "test",
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          include: [],
+          path: pathFoo,
+          serviceConfigs: [],
+          taskConfigs: [],
+          testConfigs: [],
+          spec: {},
+        },
+      ])
+
+      const module = await garden.resolveModule("module-b")
+
+      expect(module.buildDependencies["module-a"]?.name).to.equal("module-a")
+    })
+
     it("should handle module references within single file", async () => {
       const projectRoot = getDataDir("test-projects", "1067-module-ref-within-file")
       const garden = await makeTestGarden(projectRoot)

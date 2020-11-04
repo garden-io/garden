@@ -11,7 +11,7 @@ import { flatten, uniq } from "lodash"
 import indentString from "indent-string"
 import { get, isEqual, join, set, uniqWith } from "lodash"
 import { getModuleKey } from "../types/module"
-import { ConfigurationError, ParameterError } from "../exceptions"
+import { ConfigurationError } from "../exceptions"
 import { ModuleConfig } from "../config/module"
 import { deline } from "./string"
 import { DependencyGraph, DependencyGraphNode, nodeKey as configGraphNodeKey } from "../config-graph"
@@ -72,14 +72,11 @@ export type DependencyValidationGraphNode = {
   description?: string // used instead of key when rendering node in circular dependency error messages
 }
 
+/**
+ * Extends the dependency-graph module to improve circular dependency detection (see below).
+ */
 @Profile()
-export class DependencyValidationGraph {
-  graph: { [nodeKey: string]: DependencyValidationGraphNode }
-
-  constructor(nodes?: DependencyValidationGraphNode[]) {
-    this.graph = Object.fromEntries((nodes || []).map((n) => [n.key, n]))
-  }
-
+export class DependencyValidationGraph extends DepGraph<string> {
   static fromDependencyGraph(dependencyGraph: DependencyGraph) {
     const withDeps = (node: DependencyGraphNode): DependencyValidationGraphNode => {
       return {
@@ -87,68 +84,31 @@ export class DependencyValidationGraph {
         dependencies: node.dependencies.map((d) => configGraphNodeKey(d.type, d.name)),
       }
     }
+
+    const graph = new DependencyValidationGraph()
     const nodes = Object.values(dependencyGraph).map((n) => withDeps(n))
-    return new DependencyValidationGraph(nodes)
+
+    for (const node of nodes || []) {
+      graph.addNode(node.key, node.description)
+    }
+    for (const node of nodes || []) {
+      for (const dep of node.dependencies) {
+        graph.addDependency(node.key, dep)
+      }
+    }
+
+    return graph
   }
 
-  overallOrder(): string[] {
+  overallOrder(leavesOnly?: boolean): string[] {
     const cycles = this.detectCircularDependencies()
     if (cycles.length > 0) {
       const description = cyclesToString(cycles)
       const errMsg = `\nCircular dependencies detected: \n\n${description}\n`
-      throw new ConfigurationError(errMsg, { "circular-dependencies": description })
+      throw new ConfigurationError(errMsg, { "circular-dependencies": description, cycles })
     }
 
-    const depGraph = new DepGraph()
-    for (const node of Object.values(this.graph)) {
-      depGraph.addNode(node.key)
-      for (const dep of node.dependencies) {
-        depGraph.addNode(dep)
-        depGraph.addDependency(node.key, dep)
-      }
-    }
-    return depGraph.overallOrder()
-  }
-
-  /**
-   * Idempotent.
-   *
-   * If provided, description will be used instead of key when rendering the node in
-   * circular dependency error messages.
-   */
-  addNode(key: string, description?: string) {
-    if (!this.graph[key]) {
-      this.graph[key] = { key, dependencies: [], description }
-    }
-  }
-
-  /**
-   * Idempotent.
-   *
-   * Throws an error if a node doesn't exist for either dependantKey or dependencyKey.
-   */
-  addDependency(dependantKey: string, dependencyKey: string) {
-    if (!this.graph[dependantKey]) {
-      throw new ParameterError(`addDependency: no node exists for dependantKey ${dependantKey}`, {
-        dependantKey,
-        dependencyKey,
-        graph: this.graph,
-      })
-    }
-
-    if (!this.graph[dependencyKey]) {
-      throw new ParameterError(`addDependency: no node exists for dependencyKey ${dependencyKey}`, {
-        dependantKey,
-        dependencyKey,
-        graph: this.graph,
-      })
-    }
-
-    const dependant = this.graph[dependantKey]
-    if (!dependant.dependencies.find((d) => d === dependencyKey)) {
-      const dependency = this.graph[dependencyKey]
-      dependant.dependencies.push(dependency.key)
-    }
+    return super.overallOrder(leavesOnly)
   }
 
   /**
@@ -157,9 +117,9 @@ export class DependencyValidationGraph {
   detectCircularDependencies(): Cycle[] {
     const edges: DependencyEdge[] = []
 
-    for (const node of Object.values(this.graph)) {
-      for (const dep of node.dependencies) {
-        edges.push({ from: node.key, to: dep })
+    for (const [node, deps] of Object.entries(this["outgoingEdges"])) {
+      for (const dep of <any>deps) {
+        edges.push({ from: node, to: dep })
       }
     }
 
@@ -168,7 +128,7 @@ export class DependencyValidationGraph {
 
   cyclesToString(cycles: Cycle[]) {
     const cycleDescriptions = cycles.map((c) => {
-      const nodeDescriptions = c.map((key) => this.graph[key].description || key)
+      const nodeDescriptions = c.map((key) => this["nodes"][key] || key)
       return join(nodeDescriptions.concat([nodeDescriptions[0]]), " <- ")
     })
     return cycleDescriptions.length === 1 ? cycleDescriptions[0] : cycleDescriptions.join("\n\n")

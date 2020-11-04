@@ -6,131 +6,421 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { cloneDeep } from "lodash"
+import { cloneDeep, keyBy } from "lodash"
 import { validateWithPath } from "./config/validation"
-import { resolveTemplateStrings } from "./template-string"
+import { resolveTemplateStrings, getModuleTemplateReferences, resolveTemplateString } from "./template-string"
 import { ContextResolveOpts, ModuleConfigContext } from "./config/config-context"
-import { relative } from "path"
+import { relative, resolve, posix } from "path"
 import { Garden } from "./garden"
-import { ConfigurationError } from "./exceptions"
-import { deline } from "./util/string"
-import { getModuleKey } from "./types/module"
+import { ConfigurationError, FilesystemError, PluginError } from "./exceptions"
+import { deline, dedent } from "./util/string"
+import { getModuleKey, ModuleConfigMap, GardenModule, ModuleMap, moduleFromConfig } from "./types/module"
 import { getModuleTypeBases } from "./plugins"
 import { ModuleConfig, moduleConfigSchema } from "./config/module"
-import { profileAsync } from "./util/profiling"
+import { Profile } from "./util/profiling"
 import { getLinkedSources } from "./util/ext-source-util"
+import { ProviderMap } from "./config/provider"
+import { RuntimeContext } from "./runtime-context"
+import chalk from "chalk"
+import { DependencyValidationGraph } from "./util/validate-dependencies"
+import Bluebird from "bluebird"
+import { readFile, mkdirp, writeFile } from "fs-extra"
+import { LogEntry } from "./logger/log-entry"
 
-export interface ModuleConfigResolveOpts extends ContextResolveOpts {
-  configContext: ModuleConfigContext
-}
+// This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
+export const moduleResolutionConcurrencyLimit = 40
 
-export const resolveModuleConfig = profileAsync(async function $resolveModuleConfig(
-  garden: Garden,
-  config: ModuleConfig,
-  opts: ModuleConfigResolveOpts
-): Promise<ModuleConfig> {
-  config = resolveTemplateStrings(cloneDeep(config), opts.configContext, opts)
+/**
+ * Resolves a set of module configurations in dependency order.
+ *
+ * This operates differently than the TaskGraph in that it can add dependency links as it proceeds through the modules,
+ * which is important because dependencies can be discovered mid-stream, and the TaskGraph currently needs to
+ * statically resolve all dependencies before processing tasks.
+ */
+@Profile()
+export class ModuleResolver {
+  private garden: Garden
+  private log: LogEntry
+  private rawConfigs: ModuleConfig[]
+  private rawConfigsByName: ModuleConfigMap
+  private resolvedProviders: ProviderMap
+  private runtimeContext?: RuntimeContext
 
-  const moduleTypeDefinitions = await garden.getModuleTypes()
-  const description = moduleTypeDefinitions[config.type]
+  constructor({
+    garden,
+    log,
+    rawConfigs,
+    resolvedProviders,
+    runtimeContext,
+  }: {
+    garden: Garden
+    log: LogEntry
+    rawConfigs: ModuleConfig[]
+    resolvedProviders: ProviderMap
+    runtimeContext?: RuntimeContext
+  }) {
+    this.garden = garden
+    this.log = log
+    this.rawConfigs = rawConfigs
+    this.rawConfigsByName = keyBy(rawConfigs, "name")
+    this.resolvedProviders = resolvedProviders
+    this.runtimeContext = runtimeContext
+  }
 
-  if (!description) {
-    const configPath = relative(garden.projectRoot, config.configPath || config.path)
+  async resolveAll() {
+    // Collect template references for every raw config and work out module references in templates and explicit
+    // dependency references. We use two graphs, one will be fully populated as we progress, the other we gradually
+    // remove nodes from as we complete the processing.
+    const fullGraph = new DependencyValidationGraph()
+    const processingGraph = new DependencyValidationGraph()
 
+    for (const rawConfig of this.rawConfigs) {
+      for (const graph of [fullGraph, processingGraph]) {
+        graph.addNode(rawConfig.name)
+      }
+    }
+    for (const rawConfig of this.rawConfigs) {
+      const deps = this.getModuleTemplateDependencies(rawConfig)
+      for (const graph of [fullGraph, processingGraph]) {
+        for (const dep of deps) {
+          graph.addNode(dep.name)
+          graph.addDependency(rawConfig.name, dep.name)
+        }
+      }
+    }
+
+    const resolvedConfigs: ModuleConfigMap = {}
+    const resolvedModules: ModuleMap = {}
+    const errors: { [moduleName: string]: Error } = {}
+
+    // Iterate through dependency graph, a batch of leaves at a time. While there are items remaining:
+    while (processingGraph.size() > 0) {
+      // Get batch of leaf nodes (ones with no unresolved dependencies). Implicitly checks for circular dependencies.
+      let batch: string[]
+
+      try {
+        batch = processingGraph.overallOrder(true)
+      } catch (err) {
+        throw new ConfigurationError(
+          dedent`
+            Detected circular dependencies between module configurations:
+
+            ${err.detail?.["circular-dependencies"] || err.message}
+          `,
+          { cycles: err.detail?.cycles }
+        )
+      }
+
+      // Process each of the leaf node module configs.
+      await Bluebird.map(
+        batch,
+        async (moduleName) => {
+          // Resolve configuration, unless previously resolved.
+          let resolvedConfig = resolvedConfigs[moduleName]
+          let foundNewDependency = false
+
+          const dependencyNames = fullGraph.dependenciesOf(moduleName)
+          const resolvedDependencies = dependencyNames.map((n) => resolvedModules[n])
+
+          try {
+            if (!resolvedConfig) {
+              const rawConfig = this.rawConfigsByName[moduleName]
+
+              resolvedConfig = resolvedConfigs[moduleName] = await this.resolveModuleConfig(
+                rawConfig,
+                resolvedDependencies
+              )
+
+              // Check if any new build dependencies were added by the configure handler
+              for (const dep of resolvedConfig.build.dependencies) {
+                if (!dependencyNames.includes(dep.name)) {
+                  foundNewDependency = true
+
+                  // We throw if the build dependency can't be found at all
+                  if (!fullGraph.hasNode(dep.name)) {
+                    this.missingBuildDependency(moduleName, dep.name)
+                  }
+                  fullGraph.addDependency(moduleName, dep.name)
+
+                  // The dependency may already have been processed, we don't want to add it to the graph in that case
+                  if (processingGraph.hasNode(dep.name)) {
+                    processingGraph.addDependency(moduleName, dep.name)
+                  }
+                }
+              }
+            }
+
+            // If no build dependency was added, fully resolve the module and remove from graph, otherwise keep it
+            // in the graph and move on to make sure we fully resolve the dependencies and don't run into circular
+            // dependencies.
+            if (!foundNewDependency) {
+              resolvedModules[moduleName] = await this.resolveModule(resolvedConfig, resolvedDependencies)
+              processingGraph.removeNode(moduleName)
+            }
+          } catch (err) {
+            errors[moduleName] = err
+          }
+        },
+        { concurrency: moduleResolutionConcurrencyLimit }
+      )
+
+      if (Object.keys(errors).length > 0) {
+        const errorStr = Object.entries(errors)
+          .map(([name, err]) => `${chalk.white.bold(name)}: ${err.message}`)
+          .join("\n")
+
+        throw new ConfigurationError(chalk.red(`Failed resolving one or more modules:\n\n${errorStr}`), {
+          errors,
+        })
+      }
+    }
+
+    return Object.values(resolvedModules)
+  }
+
+  private getModuleTemplateDependencies(rawConfig: ModuleConfig) {
+    const configContext = new ModuleConfigContext({
+      garden: this.garden,
+      resolvedProviders: this.resolvedProviders,
+      moduleName: rawConfig.name,
+      dependencies: [],
+      runtimeContext: this.runtimeContext,
+      parentName: rawConfig.parentName,
+      templateName: rawConfig.templateName,
+      inputs: rawConfig.inputs,
+      partialRuntimeResolution: true,
+    })
+
+    const templateRefs = getModuleTemplateReferences(rawConfig, configContext)
+    const deps = templateRefs.filter((d) => d[1] !== rawConfig.name)
+
+    return deps.map((d) => {
+      const name = d[1]
+      const moduleConfig = this.rawConfigsByName[name]
+
+      if (!moduleConfig) {
+        this.missingBuildDependency(rawConfig.name, name as string)
+      }
+
+      return moduleConfig
+    })
+  }
+
+  private missingBuildDependency(moduleName: string, dependencyName: string) {
     throw new ConfigurationError(
-      deline`
-      Unrecognized module type '${config.type}' (defined at ${configPath}).
-      Are you missing a provider configuration?
-      `,
-      { config, configuredModuleTypes: Object.keys(moduleTypeDefinitions) }
+      chalk.red(
+        `Could not find build dependency ${chalk.white(dependencyName)}, ` +
+          `configured in module ${chalk.white(moduleName)}`
+      ),
+      { moduleName, dependencyName }
     )
   }
 
-  // Validate the module-type specific spec
-  if (description.schema) {
-    config.spec = validateWithPath({
-      config: config.spec,
-      configType: "Module",
-      schema: description.schema,
+  /**
+   * Resolves and validates a single module configuration.
+   */
+  async resolveModuleConfig(config: ModuleConfig, dependencies: GardenModule[]): Promise<ModuleConfig> {
+    const garden = this.garden
+    const configContext = new ModuleConfigContext({
+      garden: this.garden,
+      resolvedProviders: this.resolvedProviders,
+      moduleName: config.name,
+      dependencies,
+      runtimeContext: this.runtimeContext,
+      parentName: config.parentName,
+      templateName: config.templateName,
+      inputs: config.inputs,
+      partialRuntimeResolution: true,
+    })
+
+    config = resolveTemplateStrings(cloneDeep(config), configContext, {
+      allowPartial: false,
+    })
+
+    const moduleTypeDefinitions = await this.garden.getModuleTypes()
+    const description = moduleTypeDefinitions[config.type]
+
+    if (!description) {
+      const configPath = relative(garden.projectRoot, config.configPath || config.path)
+
+      throw new ConfigurationError(
+        deline`
+        Unrecognized module type '${config.type}' (defined at ${configPath}).
+        Are you missing a provider configuration?
+        `,
+        { config, configuredModuleTypes: Object.keys(moduleTypeDefinitions) }
+      )
+    }
+
+    // Validate the module-type specific spec
+    if (description.schema) {
+      config.spec = validateWithPath({
+        config: config.spec,
+        configType: "Module",
+        schema: description.schema,
+        name: config.name,
+        path: config.path,
+        projectRoot: garden.projectRoot,
+      })
+    }
+
+    /*
+      We allow specifying modules by name only as a shorthand:
+
+      dependencies:
+        - foo-module
+        - name: foo-module // same as the above
+    */
+    if (config.build && config.build.dependencies) {
+      config.build.dependencies = config.build.dependencies.map((dep) =>
+        typeof dep === "string" ? { name: dep, copy: [] } : dep
+      )
+    }
+
+    // Validate the base config schema
+    config = validateWithPath({
+      config,
+      schema: moduleConfigSchema(),
+      configType: "module",
       name: config.name,
       path: config.path,
       projectRoot: garden.projectRoot,
     })
-  }
 
-  /*
-    We allow specifying modules by name only as a shorthand:
-
-    dependencies:
-      - foo-module
-      - name: foo-module // same as the above
-  */
-  if (config.build && config.build.dependencies) {
-    config.build.dependencies = config.build.dependencies.map((dep) =>
-      typeof dep === "string" ? { name: dep, copy: [] } : dep
-    )
-  }
-
-  // Validate the base config schema
-  config = validateWithPath({
-    config,
-    schema: moduleConfigSchema(),
-    configType: "module",
-    name: config.name,
-    path: config.path,
-    projectRoot: garden.projectRoot,
-  })
-
-  if (config.repositoryUrl) {
-    const linkedSources = await getLinkedSources(garden, "module")
-    config.path = await garden.loadExtSourcePath({
-      name: config.name,
-      linkedSources,
-      repositoryUrl: config.repositoryUrl,
-      sourceType: "module",
-    })
-  }
-
-  const actions = await garden.getActionRouter()
-  const configureResult = await actions.configureModule({
-    moduleConfig: config,
-    log: garden.log,
-  })
-
-  config = configureResult.moduleConfig
-
-  // Validate the configure handler output against the module type's bases
-  const bases = getModuleTypeBases(moduleTypeDefinitions[config.type], moduleTypeDefinitions)
-
-  for (const base of bases) {
-    if (base.schema) {
-      garden.log.silly(`Validating '${config.name}' config against '${base.name}' schema`)
-
-      config.spec = <ModuleConfig>validateWithPath({
-        config: config.spec,
-        schema: base.schema.unknown(true),
-        path: garden.projectRoot,
-        projectRoot: garden.projectRoot,
-        configType: `configuration for module '${config.name}' (base schema from '${base.name}' plugin)`,
-        ErrorClass: ConfigurationError,
+    if (config.repositoryUrl) {
+      const linkedSources = await getLinkedSources(garden, "module")
+      config.path = await garden.loadExtSourcePath({
+        name: config.name,
+        linkedSources,
+        repositoryUrl: config.repositoryUrl,
+        sourceType: "module",
       })
     }
+
+    const actions = await garden.getActionRouter()
+    const configureResult = await actions.configureModule({
+      moduleConfig: config,
+      log: garden.log,
+    })
+
+    config = configureResult.moduleConfig
+
+    // Validate the configure handler output against the module type's bases
+    const bases = getModuleTypeBases(moduleTypeDefinitions[config.type], moduleTypeDefinitions)
+
+    for (const base of bases) {
+      if (base.schema) {
+        garden.log.silly(`Validating '${config.name}' config against '${base.name}' schema`)
+
+        config.spec = <ModuleConfig>validateWithPath({
+          config: config.spec,
+          schema: base.schema.unknown(true),
+          path: garden.projectRoot,
+          projectRoot: garden.projectRoot,
+          configType: `configuration for module '${config.name}' (base schema from '${base.name}' plugin)`,
+          ErrorClass: ConfigurationError,
+        })
+      }
+    }
+
+    // FIXME: We should be able to avoid this
+    config.name = getModuleKey(config.name, config.plugin)
+
+    if (config.plugin) {
+      for (const serviceConfig of config.serviceConfigs) {
+        serviceConfig.name = getModuleKey(serviceConfig.name, config.plugin)
+      }
+      for (const taskConfig of config.taskConfigs) {
+        taskConfig.name = getModuleKey(taskConfig.name, config.plugin)
+      }
+      for (const testConfig of config.testConfigs) {
+        testConfig.name = getModuleKey(testConfig.name, config.plugin)
+      }
+    }
+
+    return config
   }
 
-  // FIXME: We should be able to avoid this
-  config.name = getModuleKey(config.name, config.plugin)
+  private async resolveModule(resolvedConfig: ModuleConfig, dependencies: GardenModule[]) {
+    // Write module files
+    const configContext = new ModuleConfigContext({
+      garden: this.garden,
+      resolvedProviders: this.resolvedProviders,
+      moduleName: resolvedConfig.name,
+      dependencies,
+      runtimeContext: this.runtimeContext,
+      parentName: resolvedConfig.parentName,
+      templateName: resolvedConfig.templateName,
+      inputs: resolvedConfig.inputs,
+      partialRuntimeResolution: true,
+    })
 
-  if (config.plugin) {
-    for (const serviceConfig of config.serviceConfigs) {
-      serviceConfig.name = getModuleKey(serviceConfig.name, config.plugin)
+    await Bluebird.map(resolvedConfig.generateFiles || [], async (fileSpec) => {
+      let contents = fileSpec.value || ""
+
+      if (fileSpec.sourcePath) {
+        contents = (await readFile(fileSpec.sourcePath)).toString()
+        contents = await resolveTemplateString(contents, configContext)
+      }
+
+      const resolvedContents = resolveTemplateString(contents, configContext)
+      const targetDir = resolve(resolvedConfig.path, ...posix.dirname(fileSpec.targetPath).split(posix.sep))
+      const targetPath = resolve(resolvedConfig.path, ...fileSpec.targetPath.split(posix.sep))
+
+      try {
+        await mkdirp(targetDir)
+        await writeFile(targetPath, resolvedContents)
+      } catch (error) {
+        throw new FilesystemError(
+          `Unable to write templated file ${fileSpec.targetPath} from ${resolvedConfig.name}: ${error.message}`,
+          {
+            fileSpec,
+            error,
+          }
+        )
+      }
+    })
+
+    const module = await moduleFromConfig(this.garden, this.log, resolvedConfig, dependencies)
+
+    const moduleTypeDefinitions = await this.garden.getModuleTypes()
+    const description = moduleTypeDefinitions[module.type]!
+
+    // Validate the module outputs against the outputs schema
+    if (description.moduleOutputsSchema) {
+      module.outputs = validateWithPath({
+        config: module.outputs,
+        schema: description.moduleOutputsSchema,
+        configType: `outputs for module`,
+        name: module.name,
+        path: module.configPath || module.path,
+        projectRoot: this.garden.projectRoot,
+        ErrorClass: PluginError,
+      })
     }
-    for (const taskConfig of config.taskConfigs) {
-      taskConfig.name = getModuleKey(taskConfig.name, config.plugin)
+
+    // Validate the module outputs against the module type's bases
+    const bases = getModuleTypeBases(moduleTypeDefinitions[module.type], moduleTypeDefinitions)
+
+    for (const base of bases) {
+      if (base.moduleOutputsSchema) {
+        this.log.silly(`Validating '${module.name}' module outputs against '${base.name}' schema`)
+
+        module.outputs = validateWithPath({
+          config: module.outputs,
+          schema: base.moduleOutputsSchema.unknown(true),
+          path: module.configPath || module.path,
+          projectRoot: this.garden.projectRoot,
+          configType: `outputs for module '${module.name}' (base schema from '${base.name}' plugin)`,
+          ErrorClass: PluginError,
+        })
+      }
     }
-    for (const testConfig of config.testConfigs) {
-      testConfig.name = getModuleKey(testConfig.name, config.plugin)
-    }
+
+    return module
   }
+}
 
-  return config
-})
+export interface ModuleConfigResolveOpts extends ContextResolveOpts {
+  configContext: ModuleConfigContext
+}
