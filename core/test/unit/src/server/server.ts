@@ -16,7 +16,7 @@ import request = require("supertest")
 import getPort = require("get-port")
 import WebSocket = require("ws")
 import stripAnsi = require("strip-ansi")
-import { authTokenHeader } from "../../../../src/enterprise/auth"
+import { authTokenHeader } from "../../../../src/enterprise/api"
 
 describe("GardenServer", () => {
   let garden: Garden

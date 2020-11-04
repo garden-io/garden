@@ -42,11 +42,18 @@ export class LoginCommand extends Command {
         currentDirectory,
       })
     }
-    const enterpriseDomain = projectConfig.domain
-    if (!enterpriseDomain) {
-      throw new ConfigurationError(`Error: Your project configuration does not specify a domain.`, {})
+
+    if (!garden.enterpriseApi?.getDomain()) {
+      throw new ConfigurationError(`Error: Your project configuration does not specify a domain.`, {
+        enteprise: garden.enterpriseApi,
+      })
     }
-    await login(enterpriseDomain, log)
+    log.info({ msg: `Project domain detected: Opening ${garden.enterpriseApi?.getDomain()}.` })
+
+    await login(garden.enterpriseApi, log)
+
+    log.info({ msg: `Successfully logged in to Garden Enteprise.` })
+
     return {}
   }
 }

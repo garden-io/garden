@@ -12,9 +12,10 @@ import { omit } from "lodash"
 import { Events, EventName, EventBus, eventNames } from "../events"
 import { LogEntryMetadata, LogEntry, LogEntryMessage } from "../logger/log-entry"
 import { got } from "../util/http"
-import { makeAuthHeader } from "./auth"
+
 import { LogLevel } from "../logger/log-node"
 import { Garden } from "../garden"
+import { EnterpriseApi, makeAuthHeader } from "./api"
 
 export type StreamEvent = {
   name: EventName
@@ -50,8 +51,9 @@ export function formatLogEntryForEventStream(entry: LogEntry): LogEntryEventPayl
 }
 
 interface StreamTarget {
-  host: string
-  clientAuthToken: string
+  host?: string
+  enterprise: boolean
+  clientAuthToken?: string
 }
 
 export type StreamRecordType = "event" | "logEntry"
@@ -92,6 +94,7 @@ export const controlEventNames: Set<EventName> = new Set(["_workflowRunRegistere
  */
 export class BufferedEventStream {
   protected log: LogEntry
+  protected enterpriseApi?: EnterpriseApi
   public sessionId: string
 
   protected targets: StreamTarget[]
@@ -119,9 +122,10 @@ export class BufferedEventStream {
    */
   private maxBatchBytes = 600 * 1024 // 600 kilobytes
 
-  constructor(log: LogEntry, sessionId: string) {
+  constructor({ log, enterpriseApi, sessionId }: { log: LogEntry; enterpriseApi?: EnterpriseApi; sessionId: string }) {
     this.sessionId = sessionId
     this.log = log
+    this.enterpriseApi = enterpriseApi
     this.log.root.events.onAny((_name: string, payload: LogEntryEventPayload) => {
       this.streamLogEntry(payload)
     })
@@ -217,10 +221,6 @@ export class BufferedEventStream {
     }
   }
 
-  private getHeaders(target: StreamTarget) {
-    return makeAuthHeader(target.clientAuthToken)
-  }
-
   async flushEvents(events: StreamEvent[]) {
     if (events.length === 0) {
       return
@@ -258,16 +258,20 @@ export class BufferedEventStream {
       this.log.silly("No targets to send events to. Dropping them.")
     }
 
-    const targetUrls = this.targets.map((target) => `${target.host}/${path}`)
-    this.log.silly(`Flushing ${description} to ${targetUrls.join(", ")}`)
-    this.log.silly(`--------`)
-    this.log.silly(`data: ${JSON.stringify(data)}`)
-    this.log.silly(`--------`)
-
     try {
       await Bluebird.map(this.targets, (target) => {
-        const headers = this.getHeaders(target)
-        return got.post(`${target.host}/${path}`, { json: data, headers })
+        if (target.enterprise && this.enterpriseApi?.getDomain()) {
+          this.log.silly(`Flushing ${description} to GE /${path}`)
+          return this.enterpriseApi.post(this.log, `${path}`, { body: data })
+        }
+        const targetUrl = `${target.host}/${path}`
+        this.log.silly(`Flushing ${description} to ${targetUrl}`)
+        this.log.silly(`--------`)
+        this.log.silly(`data: ${JSON.stringify(data)}`)
+        this.log.silly(`--------`)
+
+        const headers = makeAuthHeader(target.clientAuthToken || "")
+        return got.post(`${targetUrl}`, { json: data, headers })
       })
     } catch (err) {
       /**
