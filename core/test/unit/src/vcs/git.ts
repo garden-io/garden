@@ -97,6 +97,31 @@ describe("GitHandler", () => {
     })
   })
 
+  describe("getBranchName", () => {
+    it("should return undefined with no commits in repo", async () => {
+      const path = tmpPath
+      expect(await handler.getBranchName(log, path)).to.equal(undefined)
+    })
+
+    it("should return the current branch name when there are commits in the repo", async () => {
+      const path = tmpPath
+      await commit("init", tmpPath)
+      expect(await handler.getBranchName(log, path)).to.equal("master")
+    })
+
+    it("should throw a nice error when given a path outside of a repo", async () => {
+      await expectError(
+        () => handler.getBranchName(log, "/tmp"),
+        (err) =>
+          expect(err.message).to.equal(deline`
+          Path /tmp is not in a git repository root. Garden must be run from within a git repo.
+          Please run \`git init\` if you're starting a new project and repository, or move the project to
+          an existing repository, and try again.
+        `)
+      )
+    })
+  })
+
   describe("getFiles", () => {
     it("should work with no commits in repo", async () => {
       expect(await handler.getFiles({ path: tmpPath, log })).to.eql([])

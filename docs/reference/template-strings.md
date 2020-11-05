@@ -102,6 +102,36 @@ Example:
 my-variable: ${project.name}
 ```
 
+### `${git.*}`
+
+Information about the current state of the project's local git repository.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${git.branch}`
+
+The current Git branch, if available. Resolves to an empty string if HEAD is in a detached state
+(e.g. when rebasing), or if the repository has no commits.
+
+When using remote sources, the branch used is that of the project/top-level repository (the one that contains
+the project configuration).
+
+The branch is computed at the start of the Garden command's execution, and is not updated if the current
+branch changes during the command's execution (which could happen, for example, when using watch-mode
+commands).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${git.branch}
+```
+
 
 ## Environment configuration context
 
@@ -194,6 +224,36 @@ Example:
 
 ```yaml
 my-variable: ${project.name}
+```
+
+### `${git.*}`
+
+Information about the current state of the project's local git repository.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${git.branch}`
+
+The current Git branch, if available. Resolves to an empty string if HEAD is in a detached state
+(e.g. when rebasing), or if the repository has no commits.
+
+When using remote sources, the branch used is that of the project/top-level repository (the one that contains
+the project configuration).
+
+The branch is computed at the start of the Garden command's execution, and is not updated if the current
+branch changes during the command's execution (which could happen, for example, when using watch-mode
+commands).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${git.branch}
 ```
 
 ### `${variables.*}`
@@ -320,6 +380,36 @@ Example:
 
 ```yaml
 my-variable: ${project.name}
+```
+
+### `${git.*}`
+
+Information about the current state of the project's local git repository.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${git.branch}`
+
+The current Git branch, if available. Resolves to an empty string if HEAD is in a detached state
+(e.g. when rebasing), or if the repository has no commits.
+
+When using remote sources, the branch used is that of the project/top-level repository (the one that contains
+the project configuration).
+
+The branch is computed at the start of the Garden command's execution, and is not updated if the current
+branch changes during the command's execution (which could happen, for example, when using watch-mode
+commands).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${git.branch}
 ```
 
 ### `${variables.*}`
@@ -539,6 +629,36 @@ Example:
 
 ```yaml
 my-variable: ${project.name}
+```
+
+### `${git.*}`
+
+Information about the current state of the project's local git repository.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${git.branch}`
+
+The current Git branch, if available. Resolves to an empty string if HEAD is in a detached state
+(e.g. when rebasing), or if the repository has no commits.
+
+When using remote sources, the branch used is that of the project/top-level repository (the one that contains
+the project configuration).
+
+The branch is computed at the start of the Garden command's execution, and is not updated if the current
+branch changes during the command's execution (which could happen, for example, when using watch-mode
+commands).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${git.branch}
 ```
 
 ### `${variables.*}`
@@ -928,6 +1048,36 @@ Example:
 my-variable: ${project.name}
 ```
 
+### `${git.*}`
+
+Information about the current state of the project's local git repository.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${git.branch}`
+
+The current Git branch, if available. Resolves to an empty string if HEAD is in a detached state
+(e.g. when rebasing), or if the repository has no commits.
+
+When using remote sources, the branch used is that of the project/top-level repository (the one that contains
+the project configuration).
+
+The branch is computed at the start of the Garden command's execution, and is not updated if the current
+branch changes during the command's execution (which could happen, for example, when using watch-mode
+commands).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${git.branch}
+```
+
 ### `${variables.*}`
 
 A map of all variables defined in the project configuration, including environment-specific variables.
@@ -1310,6 +1460,36 @@ Example:
 
 ```yaml
 my-variable: ${project.name}
+```
+
+### `${git.*}`
+
+Information about the current state of the project's local git repository.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${git.branch}`
+
+The current Git branch, if available. Resolves to an empty string if HEAD is in a detached state
+(e.g. when rebasing), or if the repository has no commits.
+
+When using remote sources, the branch used is that of the project/top-level repository (the one that contains
+the project configuration).
+
+The branch is computed at the start of the Garden command's execution, and is not updated if the current
+branch changes during the command's execution (which could happen, for example, when using watch-mode
+commands).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${git.branch}
 ```
 
 ### `${variables.*}`

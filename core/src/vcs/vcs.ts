@@ -75,6 +75,7 @@ export abstract class VcsHandler {
   abstract async ensureRemoteSource(params: RemoteSourceParams): Promise<string>
   abstract async updateRemoteSource(params: RemoteSourceParams): Promise<void>
   abstract async getOriginName(log: LogEntry): Promise<string | undefined>
+  abstract async getBranchName(log: LogEntry, path: string): Promise<string | undefined>
 
   async getTreeVersion(log: LogEntry, projectName: string, moduleConfig: ModuleConfig): Promise<TreeVersion> {
     const configPath = moduleConfig.configPath

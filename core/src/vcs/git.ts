@@ -85,7 +85,6 @@ export class GitHandler extends VcsHandler {
     if (this.repoRoots.has(path)) {
       return this.repoRoots.get(path)
     }
-
     const git = this.gitCli(log, path)
 
     try {
@@ -95,14 +94,7 @@ export class GitHandler extends VcsHandler {
     } catch (err) {
       if (err.exitCode === 128) {
         // Throw nice error when we detect that we're not in a repo root
-        throw new RuntimeError(
-          deline`
-          Path ${path} is not in a git repository root. Garden must be run from within a git repo.
-          Please run \`git init\` if you're starting a new project and repository, or move the project to an
-          existing repository, and try again.
-        `,
-          { path }
-        )
+        throw new RuntimeError(notInRepoRootErrorMessage(path), { path })
       } else {
         throw err
       }
@@ -417,4 +409,30 @@ export class GitHandler extends VcsHandler {
     }
     return undefined
   }
+
+  async getBranchName(log: LogEntry, path: string): Promise<string | undefined> {
+    const git = this.gitCli(log, path)
+    try {
+      return (await git("rev-parse", "--abbrev-ref", "HEAD"))[0]
+    } catch (err) {
+      if (err.exitCode === 128) {
+        try {
+          // If this doesn't throw, then we're in a repo with no commits, or with a detached HEAD.
+          await git("rev-parse", "--show-toplevel")
+          return undefined
+        } catch (notInRepoError) {
+          // Throw nice error when we detect that we're not in a repo root
+          throw new RuntimeError(notInRepoRootErrorMessage(path), { path })
+        }
+      } else {
+        throw err
+      }
+    }
+  }
 }
+
+const notInRepoRootErrorMessage = (path: string) => deline`
+    Path ${path} is not in a git repository root. Garden must be run from within a git repo.
+    Please run \`git init\` if you're starting a new project and repository, or move the project to an
+    existing repository, and try again.
+  `
