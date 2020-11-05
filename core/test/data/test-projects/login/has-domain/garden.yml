@@ -1,0 +1,5 @@
+kind: Project
+name: login
+domain: http://dummy-domain.com
+environments:
+  - test

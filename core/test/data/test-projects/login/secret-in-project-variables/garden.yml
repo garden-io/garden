@@ -1,0 +1,8 @@
+kind: Project
+name: login
+domain: http://dummy-domain.com
+id: dummy-id
+environments:
+  - test
+variables:
+  foo: ${secrets.foo}
