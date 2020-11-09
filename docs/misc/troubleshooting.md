@@ -78,7 +78,7 @@ This can occur if nginx is not able to bind to its default port which is port `8
 
 You can also skip the nginx installation if you already have a separate ingress controller installed, by setting `setupIngressController: null` in your `local-kubernetes` provider configuration.
 
-## On Mac: "garden" cannot be opened because the developer cannot be verified.
+### On Mac: "garden" cannot be opened because the developer cannot be verified.
 
 If this error came up when running the `garden` binary from inside your `~/Downloads` directory, try moving it outside
 the `~/Downloads` directory before running it again.
@@ -87,3 +87,7 @@ If you're still getting this error, a workaround is to find the `garden` binary 
 _Open_. This should prevent this error message from coming up again.
 
 See also: https://support.apple.com/en-gb/guide/mac-help/mh40616/mac
+
+### `Error response from daemon: experimental session with v1 builder is no longer supported, use builder version v2 (BuildKit) instead`
+
+This is a bug in Docker CE (i.e. Docker for Desktop), version `2.4.x.y`. See this [GitHub issue comment](https://github.com/garden-io/garden/issues/2123#issuecomment-723780468) for a fix and more details.
