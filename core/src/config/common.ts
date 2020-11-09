@@ -357,7 +357,7 @@ joi = joi.extend({
 export const joiPrimitive = () =>
   joi
     .alternatives()
-    .try(joi.number(), joi.string().allow("").allow(null), joi.boolean())
+    .try(joi.string().allow("").allow(null), joi.number(), joi.boolean())
     .description("Number, string or boolean")
 
 export const absolutePathRegex = /^\/.*/ // Note: Only checks for the leading slash

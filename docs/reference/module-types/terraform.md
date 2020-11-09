@@ -522,5 +522,5 @@ A map of all the outputs defined in the Terraform stack.
 
 | Type                                             |
 | ------------------------------------------------ |
-| `number | string | boolean | link | array[link]` |
+| `string | number | boolean | link | array[link]` |
 
