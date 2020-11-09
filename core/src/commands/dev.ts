@@ -66,6 +66,9 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
   // Currently it doesn't make sense to do file watching except in the CLI
   cliOnly = true
 
+  streamEvents = true
+  streamLogEntries = true
+
   description = dedent`
     The Garden dev console is a combination of the \`build\`, \`deploy\` and \`test\` commands.
     It builds, deploys and tests all your modules and services, and re-builds, re-deploys and re-tests

@@ -82,6 +82,7 @@ export class DeleteEnvironmentCommand extends Command {
 
   protected = true
   workflows = true
+  streamEvents = true
 
   description = dedent`
     This will delete all services in the specified environment, and trigger providers to clear up any other resources
@@ -132,6 +133,7 @@ export class DeleteServiceCommand extends Command {
 
   protected = true
   workflows = true
+  streamEvents = true
 
   description = dedent`
     Deletes (i.e. un-deploys) the specified services. Note that this command does not take into account any
