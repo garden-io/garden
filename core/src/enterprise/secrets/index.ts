@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { getSecretsFromGardenCloud } from "./garden/get-secret"
+import { getSecretsFromGardenEnterprise } from "./garden/get-secrets"
 import { LogEntry } from "../../logger/log-entry"
 import { StringMap } from "../../config/common"
 
@@ -20,7 +20,7 @@ export interface GetSecretsParams {
 
 export async function getSecrets(params: GetSecretsParams): Promise<StringMap> {
   const { log } = params
-  const secrets = await getSecretsFromGardenCloud(params)
+  const secrets = await getSecretsFromGardenEnterprise(params)
   const emptyKeys = Object.keys(secrets).filter((key) => !secrets[key])
   if (emptyKeys.length > 0) {
     const prefix =
