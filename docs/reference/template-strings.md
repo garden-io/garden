@@ -208,7 +208,7 @@ A map of all variables defined in the project configuration.
 
 | Type                                             |
 | ------------------------------------------------ |
-| `number | string | boolean | link | array[link]` |
+| `string | number | boolean | link | array[link]` |
 
 ### `${var.*}`
 
@@ -224,7 +224,7 @@ Number, string or boolean
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 
 ## Provider configuration context
@@ -334,7 +334,7 @@ A map of all variables defined in the project configuration, including environme
 
 | Type                                             |
 | ------------------------------------------------ |
-| `number | string | boolean | link | array[link]` |
+| `string | number | boolean | link | array[link]` |
 
 ### `${var.*}`
 
@@ -350,7 +350,7 @@ Number, string or boolean
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${environment.*}`
 
@@ -424,7 +424,7 @@ The provider config key value. Refer to individual [provider references](https:/
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${providers.<provider-name>.outputs.*}`
 
@@ -440,7 +440,7 @@ The provider output value. Refer to individual [provider references](https://doc
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 
 ## Module configuration context
@@ -553,7 +553,7 @@ A map of all variables defined in the project configuration, including environme
 
 | Type                                             |
 | ------------------------------------------------ |
-| `number | string | boolean | link | array[link]` |
+| `string | number | boolean | link | array[link]` |
 
 ### `${var.*}`
 
@@ -569,7 +569,7 @@ Number, string or boolean
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${environment.*}`
 
@@ -643,7 +643,7 @@ The provider config key value. Refer to individual [provider references](https:/
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${providers.<provider-name>.outputs.*}`
 
@@ -659,7 +659,7 @@ The provider output value. Refer to individual [provider references](https://doc
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${modules.*}`
 
@@ -697,7 +697,7 @@ The module output value. Refer to individual [module type references](https://do
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${modules.<module-name>.path}`
 
@@ -757,7 +757,7 @@ The service output value. Refer to individual [module type references](https://d
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${runtime.tasks.*}`
 
@@ -781,7 +781,7 @@ The task output value. Refer to individual [module type references](https://docs
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${parent.*}`
 
@@ -827,7 +827,7 @@ The inputs provided to the module through a ModuleTemplate, if applicable.
 
 | Type                                             |
 | ------------------------------------------------ |
-| `number | string | boolean | link | array[link]` |
+| `string | number | boolean | link | array[link]` |
 
 
 ## Output configuration context
@@ -940,7 +940,7 @@ A map of all variables defined in the project configuration, including environme
 
 | Type                                             |
 | ------------------------------------------------ |
-| `number | string | boolean | link | array[link]` |
+| `string | number | boolean | link | array[link]` |
 
 ### `${var.*}`
 
@@ -956,7 +956,7 @@ Number, string or boolean
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${environment.*}`
 
@@ -1030,7 +1030,7 @@ The provider config key value. Refer to individual [provider references](https:/
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${providers.<provider-name>.outputs.*}`
 
@@ -1046,7 +1046,7 @@ The provider output value. Refer to individual [provider references](https://doc
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${modules.*}`
 
@@ -1084,7 +1084,7 @@ The module output value. Refer to individual [module type references](https://do
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${modules.<module-name>.path}`
 
@@ -1144,7 +1144,7 @@ The service output value. Refer to individual [module type references](https://d
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${runtime.tasks.*}`
 
@@ -1168,7 +1168,7 @@ The task output value. Refer to individual [module type references](https://docs
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${parent.*}`
 
@@ -1214,7 +1214,7 @@ The inputs provided to the module through a ModuleTemplate, if applicable.
 
 | Type                                             |
 | ------------------------------------------------ |
-| `number | string | boolean | link | array[link]` |
+| `string | number | boolean | link | array[link]` |
 
 
 ## Workflow configuration context
@@ -1324,7 +1324,7 @@ A map of all variables defined in the project configuration, including environme
 
 | Type                                             |
 | ------------------------------------------------ |
-| `number | string | boolean | link | array[link]` |
+| `string | number | boolean | link | array[link]` |
 
 ### `${var.*}`
 
@@ -1340,7 +1340,7 @@ Number, string or boolean
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${environment.*}`
 
@@ -1424,5 +1424,5 @@ for its output schema.
 
 | Type                                             |
 | ------------------------------------------------ |
-| `number | string | boolean | link | array[link]` |
+| `string | number | boolean | link | array[link]` |
 
