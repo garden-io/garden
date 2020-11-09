@@ -48,8 +48,12 @@ interface StreamTarget {
   clientAuthToken: string
 }
 
+export type StreamRecordType = "event" | "logEntry"
+
 export interface ConnectBufferedEventStreamParams {
   targets?: StreamTarget[]
+  streamEvents: boolean
+  streamLogEntries: boolean
   garden: Garden
 }
 
@@ -85,6 +89,8 @@ export class BufferedEventStream {
   public sessionId: string
 
   protected targets: StreamTarget[]
+  protected streamEvents: boolean
+  protected streamLogEntries: boolean
 
   protected garden: Garden
   private workflowRunUid: string | undefined
@@ -118,7 +124,7 @@ export class BufferedEventStream {
     this.targets = []
   }
 
-  connect({ garden, targets }: ConnectBufferedEventStreamParams) {
+  connect({ garden, targets, streamEvents, streamLogEntries }: ConnectBufferedEventStreamParams) {
     if (this.intervalId) {
       clearInterval(this.intervalId)
     }
@@ -126,6 +132,9 @@ export class BufferedEventStream {
     if (targets) {
       this.targets = targets
     }
+
+    this.streamEvents = streamEvents
+    this.streamLogEntries = streamLogEntries
 
     if (this.garden) {
       // We unsubscribe from the old event bus' events.
@@ -187,15 +196,19 @@ export class BufferedEventStream {
       return
     }
 
-    this.bufferedEvents.push({
-      name,
-      payload,
-      timestamp: new Date(),
-    })
+    if (this.streamEvents) {
+      this.bufferedEvents.push({
+        name,
+        payload,
+        timestamp: new Date(),
+      })
+    }
   }
 
   streamLogEntry(logEntry: LogEntryEvent) {
-    this.bufferedLogEntries.push(logEntry)
+    if (this.streamLogEntries) {
+      this.bufferedLogEntries.push(logEntry)
+    }
   }
 
   private getHeaders(target: StreamTarget) {

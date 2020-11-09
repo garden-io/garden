@@ -50,6 +50,7 @@ export class GetStatusCommand extends Command {
   help = "Outputs the full status of your environment."
 
   workflows = true
+  streamEvents = true
 
   outputsSchema = () =>
     joi.object().keys({

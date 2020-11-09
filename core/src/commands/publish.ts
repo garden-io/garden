@@ -58,6 +58,8 @@ export class PublishCommand extends Command<Args, Opts> {
   help = "Build and publish module(s) to a remote registry."
 
   workflows = true
+  streamEvents = true
+  streamLogEntries = true
 
   description = dedent`
     Publishes built module artifacts for all or specified modules.
