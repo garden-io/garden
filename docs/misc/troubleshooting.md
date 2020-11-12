@@ -72,6 +72,12 @@ On AKS, you can use `azurefile`.
 
 You'll need to install the provisioners yourself and override the [`storage.sync.storageClass`](https://docs.garden.io/reference/providers/kubernetes#providers-storage-sync) field in the `kubernetes` provider config.
 
+### Release `garden-nginx` times out when using the `local-kubernetes` provider.
+
+This can occur if nginx is not able to bind to its default port which is port `80`. Stopping the process that occupies the port should solve the issue.
+
+You can also skip the nginx installation if you already have a separate ingress controller installed, by setting `setupIngressController: null` in your `local-kubernetes` provider configuration.
+
 ## On Mac: "garden" cannot be opened because the developer cannot be verified.
 
 If this error came up when running the `garden` binary from inside your `~/Downloads` directory, try moving it outside
