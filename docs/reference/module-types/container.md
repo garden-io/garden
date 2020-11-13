@@ -1030,9 +1030,9 @@ The hostname that should route to this service. Defaults to the default hostname
 
 Note that if you're developing locally you may need to add this hostname to your hosts file.
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
+| Type       | Required |
+| ---------- | -------- |
+| `hostname` | No       |
 
 ### `services[].ingresses[].linkUrl`
 

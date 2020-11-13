@@ -118,6 +118,7 @@ export interface Schema extends Joi.Root {
   environment: () => Joi.StringSchema
   gitUrl: () => GitUrlSchema
   posixPath: () => PosixPathSchema
+  hostname: () => Joi.StringSchema
 }
 
 export let joi: Schema = Joi.extend({
@@ -351,6 +352,44 @@ joi = joi.extend({
         }
       },
     },
+  },
+})
+
+/**
+ * Add a joi.hostname() type. Like joi.string().hostname() with the exception that it allows
+ * wildcards in the first DNS label and returns a custom error if it finds wildcards in labels
+ * other than the first.
+ */
+joi = joi.extend({
+  base: Joi.string(),
+  type: "hostname",
+  messages: {
+    base: "{{#label}} must be a valid hostname.",
+    wildcardLabel: "{{#label}} only first DNS label my contain a wildcard.",
+  },
+  validate(value: string, { error }) {
+    const baseSchema = joi.string().hostname()
+    const wildcardLabel = "*."
+    let result: Joi.ValidationResult
+
+    const labels = value.split(".")
+    // Hostname includes a wildcard label that is not the first label
+    if (!value.startsWith(wildcardLabel) && labels.includes("*")) {
+      return { value, errors: error("wildcardLabel") }
+    }
+
+    if (value.startsWith(wildcardLabel)) {
+      const restLabels = value.slice(wildcardLabel.length)
+      result = baseSchema.validate(restLabels)
+    } else {
+      result = baseSchema.validate(value)
+    }
+
+    if (result.error) {
+      return { value, errors: error("base") }
+    }
+
+    return { value }
   },
 })
 

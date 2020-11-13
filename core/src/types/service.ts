@@ -102,7 +102,7 @@ export interface ServiceIngress extends ServiceIngressSpec {
 }
 
 export const ingressHostnameSchema = () =>
-  joi.string().hostname().description(dedent`
+  joi.hostname().description(dedent`
     The hostname that should route to this service. Defaults to the default hostname configured in the provider configuration.
 
     Note that if you're developing locally you may need to add this hostname to your hosts file.
