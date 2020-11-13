@@ -264,7 +264,7 @@ const tlsCertificateSchema = () =>
       .example("wildcard"),
     hostnames: joi
       .array()
-      .items(joi.string().hostname())
+      .items(joi.hostname())
       .description(
         "A list of hostnames that this certificate should be used for. " +
           "If you don't specify these, they will be automatically read from the certificate."

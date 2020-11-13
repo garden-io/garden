@@ -276,6 +276,24 @@ describe("joi.posixPath", () => {
   })
 })
 
+describe("joi.hostname", () => {
+  const schema = joi.hostname()
+
+  it("should accept valid hostnames", () => {
+    const result = schema.validate("foo.bar.bas")
+    expect(result.error).to.be.undefined
+  })
+  it("should accept hostnames with a wildcard in the first DNS label", () => {
+    const result = schema.validate("*.bar.bas")
+    expect(result.error).to.be.undefined
+  })
+  it("should reject hostnames with wildcard DNS labels that are not the first label", () => {
+    const result = schema.validate("foo.*.bas")
+    expect(result.error).to.exist
+    expect(result!.error!.message).to.eql(`"value" only first DNS label my contain a wildcard.`)
+  })
+})
+
 describe("joi.environment", () => {
   const schema = joi.environment()
 
