@@ -270,9 +270,10 @@ const tlsCertificateSchema = () =>
           "If you don't specify these, they will be automatically read from the certificate."
       )
       .example(["www.mydomain.com"]),
-    secretRef: secretRef
+    secretRef: joiIdentifier()
+      .required()
       .description("A reference to the Kubernetes secret that contains the TLS certificate and key for the domain.")
-      .example({ name: "my-tls-secret", namespace: "default" }),
+      .example("my-tls-secret"),
     managedBy: joi
       .string()
       .description(

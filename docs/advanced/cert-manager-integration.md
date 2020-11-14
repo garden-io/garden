@@ -48,6 +48,7 @@ To enable cert-manager, you'll need to configure it in the `kubernetes` provider
 ```
 
 Unless you want to use your own installation of cert-manager, you will need to set the option `install: true`. Garden will then install cert-manager for you under the `cert-manager` namespace.
+
 > Note: Garden will wait until all the pods required by cert-manager will be up and running. This might take more than 2 minutes depending on the cluster.
 
 If nothing is specified or `install: false`, Garden will assume you already have a valid and running cert-manager installation in the `cert-manager` namespace.
@@ -85,7 +86,6 @@ When you set `managedBy: cert-manager` on a certificate specified in the `tlsCer
               - your-domain-name.com # the domain name(s) to be covered by the certificate
             secretRef:
               name: tls-secret-for-certificate # the secret where cert-manager will store the TLS certificate once it's generated
-              namespace: cert-manager-example
 ```
 
 The above configuration will trigger the following workflow:
@@ -93,7 +93,7 @@ The above configuration will trigger the following workflow:
 1. cert-manager will create a ClusterIssuer in your cluster which will generate your certificate. Each certificate gets an associated ClusterIssuer, which will take care of performing the issue challenge.
 2. Garden will then create a Certificate resource to request the TLS certificate.
 3. cert-manager will then automatically create an Ingress to solve the HTTP-01 ACME challenge.
-4. Once the challenge is solved the TLS certificate will be stored as a Secret using the name/namespace specified above (e.g. `cert-manager-example/tls-secret-for-certificate`).
+4. Once the challenge is solved the TLS certificate will be stored as a Secret using the name/namespace specified above (e.g. `<your-app-namespace>/tls-secret-for-certificate`).
 
 All the steps above will happen at system startup/init. All your services will be built/tested/deployed after all the secrets have been populated.
 
@@ -122,4 +122,5 @@ $: kubectl describe Certificate certificate-name -n your-namespace
 Please find more info in the ["Issuing an ACME certificate using HTTP validation"](https://docs.cert-manager.io/en/release-0.11/tutorials/acme/http-validation.html#issuing-an-acme-certificate-using-http-validation) guide in the official cert-manager documentation.
 
 ---
+
 If have any issue, find a bug, or something is not clear from the documentation, please don't hesitate opening a new [GitHub issue](https://github.com/garden-io/garden/issues/new?template=BUG_REPORT.md) or ask us questions in our [Slack channel](https://chat.garden.io/).
