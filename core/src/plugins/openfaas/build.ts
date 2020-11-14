@@ -18,6 +18,7 @@ import { OpenFaasModule, getContainerModule, OpenFaasProvider } from "./config"
 import { LogEntry } from "../../logger/log-entry"
 import { PluginContext } from "../../plugin-context"
 import { getK8sProvider } from "../kubernetes/util"
+import { ensureDir, copy } from "fs-extra"
 
 export const stackFilename = "stack.yml"
 
@@ -52,7 +53,7 @@ export async function buildOpenfaasModule({ ctx, log, module }: BuildModuleParam
   return { fresh: true, buildLog: buildLog + "\n" + result.buildLog }
 }
 
-export async function writeStackFile(
+export async function prepare(
   provider: OpenFaasProvider,
   k8sProvider: KubernetesProvider,
   module: OpenFaasModule,
@@ -64,6 +65,15 @@ export async function writeStackFile(
     module.version,
     k8sProvider.config.deploymentRegistry
   )
+
+  const templateSourcePath = join(
+    module.buildDependencies["openfaas--templates"].buildPath,
+    "template",
+    module.spec.lang
+  )
+  const templatePath = join(module.buildPath, "template")
+  await ensureDir(templatePath)
+  await copy(templateSourcePath, join(templatePath, module.spec.lang))
 
   const stackPath = join(module.buildPath, stackFilename)
 
@@ -93,12 +103,12 @@ async function buildOpenfaasFunction(
   module: OpenFaasModule,
   log: LogEntry
 ) {
-  await writeStackFile(provider, k8sProvider, module, {})
+  await prepare(provider, k8sProvider, module, {})
 
   return await ctx.tools["openfaas.faas-cli"].stdout({
     log,
     cwd: module.buildPath,
-    args: ["build", "--shrinkwrap", "-f", stackFilename],
+    args: ["build", "--shrinkwrap", "-f", join(module.buildPath, stackFilename), "--handler", module.buildPath],
   })
 }
 

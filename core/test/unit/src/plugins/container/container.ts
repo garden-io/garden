@@ -81,7 +81,7 @@ describe("plugins.container", () => {
     containerProvider = await garden.resolveProvider(garden.log, "container")
     ctx = await garden.getPluginContext(containerProvider)
 
-    td.replace(garden.buildDir, "syncDependencyProducts", () => null)
+    td.replace(garden.buildStaging, "syncDependencyProducts", () => null)
 
     td.replace(Garden.prototype, "resolveVersion", async () => ({
       versionString: "1234",

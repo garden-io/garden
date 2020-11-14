@@ -177,12 +177,7 @@ export async function configureModule({
   moduleConfig.build.dependencies.push({
     name: "templates",
     plugin: ctx.provider.name,
-    copy: [
-      {
-        source: "template",
-        target: ".",
-      },
-    ],
+    copy: [],
   })
 
   const dependencies = [`${ctx.provider.name}--system`]

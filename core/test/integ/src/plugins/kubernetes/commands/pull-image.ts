@@ -59,7 +59,7 @@ describe("pull-image plugin command", () => {
       module = graph.getModule("remote-registry-test")
 
       // build the image
-      await garden.buildDir.syncFromSrc(module, garden.log)
+      await garden.buildStaging.syncFromSrc(module, garden.log)
 
       await k8sBuildContainer({
         ctx,
@@ -83,7 +83,7 @@ describe("pull-image plugin command", () => {
       module = graph.getModule("simple-service")
 
       // build the image
-      await garden.buildDir.syncFromSrc(module, garden.log)
+      await garden.buildStaging.syncFromSrc(module, garden.log)
 
       await k8sBuildContainer({
         ctx,

@@ -303,7 +303,7 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
     }
 
     proc.on("error", (err) => {
-      let msg = `An error occurred while trying to run '${cmd}'.`
+      let msg = `An error occurred while trying to run '${cmd}' (${err.message}).`
       if ((<any>err).code === "ENOENT") {
         msg = `${msg} Please make sure '${cmd}' is installed and in the $PATH.`
       }
