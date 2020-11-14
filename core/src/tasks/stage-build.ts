@@ -77,7 +77,7 @@ export class StageBuildTask extends BaseTask {
       })
     }
 
-    await this.garden.buildDir.syncFromSrc(this.module, log || this.log)
+    await this.garden.buildStaging.syncFromSrc(this.module, log || this.log)
 
     if (log) {
       log.setSuccess({

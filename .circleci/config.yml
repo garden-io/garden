@@ -242,6 +242,8 @@ jobs:
         description: The project environment to use
         type: string
         default: testing
+    environment:
+      GARDEN_EXPERIMENTAL_BUILD_STAGE: "true"
     steps:
       - checkout
       - run: sudo apt-get update && sudo apt-get install rsync

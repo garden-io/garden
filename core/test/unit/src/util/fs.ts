@@ -17,6 +17,7 @@ import {
   getWorkingCopyId,
   findConfigPathsInPath,
   detectModuleOverlap,
+  joinWithPosix,
 } from "../../../../src/util/fs"
 import { withDir } from "tmp-promise"
 import { ModuleConfig } from "../../../../src/config/module"
@@ -346,6 +347,12 @@ describe("util", () => {
         join(garden.projectRoot, "module-b", "garden.yml"),
         join(garden.projectRoot, "module-c", "garden.yml"),
       ])
+    })
+  })
+
+  describe("joinWithPosix", () => {
+    it("should join a POSIX path to another path", () => {
+      expect(joinWithPosix("/tmp", "a/b")).to.equal("/tmp/a/b")
     })
   })
 })

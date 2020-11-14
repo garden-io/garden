@@ -33,7 +33,7 @@ import { findByName, pickKeys, getPackageVersion, getNames, findByNames, duplica
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
 import { VcsHandler, ModuleVersion } from "./vcs/vcs"
 import { GitHandler } from "./vcs/git"
-import { BuildDir } from "./build-dir"
+import { BuildStaging } from "./build-staging/build-staging"
 import { ConfigGraph } from "./config-graph"
 import { TaskGraph, GraphResults, ProcessTasksOpts } from "./task-graph"
 import { getLogger } from "./logger/logger"
@@ -49,7 +49,7 @@ import { ModuleResolver, moduleResolutionConcurrencyLimit } from "./resolve-modu
 import { OutputConfigContext, DefaultEnvironmentContext } from "./config/config-context"
 import { createPluginContext, CommandInfo } from "./plugin-context"
 import { ModuleAndRuntimeActionHandlers, RegisterPluginParam } from "./types/plugin/plugin"
-import { SUPPORTED_PLATFORMS, SupportedPlatform, DEFAULT_GARDEN_DIR_NAME } from "./constants"
+import { SUPPORTED_PLATFORMS, SupportedPlatform, DEFAULT_GARDEN_DIR_NAME, gardenEnv } from "./constants"
 import { LogEntry } from "./logger/log-entry"
 import { EventBus } from "./events"
 import { Watcher } from "./watch"
@@ -88,6 +88,7 @@ import {
   templateKind,
 } from "./config/module-template"
 import { TemplatedModuleConfig } from "./plugins/templated"
+import { BuildDirRsync } from "./build-staging/rsync"
 
 export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
   [actionName: string]: PluginActionHandlers[T]
@@ -112,23 +113,24 @@ export type ModuleActionMap = {
 }
 
 export interface GardenOpts {
-  config?: ProjectConfig
+  experimentalBuildSync?: boolean
   commandInfo?: CommandInfo
-  gardenDirPath?: string
+  config?: ProjectConfig
   environmentName?: string
   forceRefresh?: boolean
-  persistent?: boolean
+  gardenDirPath?: string
   log?: LogEntry
+  noEnterprise?: boolean
+  persistent?: boolean
   plugins?: RegisterPluginParam[]
   sessionId?: string
-  noEnterprise?: boolean
   variables?: PrimitiveMap
 }
 
 export interface GardenParams {
   artifactsPath: string
   vcsBranch: string
-  buildDir: BuildDir
+  buildStaging: BuildStaging
   clientAuthToken: string | null
   enterpriseDomain: string | null
   projectId: string | null
@@ -191,7 +193,7 @@ export class Garden {
   public readonly variables: DeepPrimitiveMap
   public readonly secrets: StringMap
   public readonly projectSources: SourceConfig[]
-  public readonly buildDir: BuildDir
+  public readonly buildStaging: BuildStaging
   public readonly gardenDirPath: string
   public readonly artifactsPath: string
   public readonly vcsBranch: string
@@ -209,7 +211,7 @@ export class Garden {
   private readonly forceRefresh: boolean
 
   constructor(params: GardenParams) {
-    this.buildDir = params.buildDir
+    this.buildStaging = params.buildStaging
     this.clientAuthToken = params.clientAuthToken
     this.enterpriseDomain = params.enterpriseDomain
     this.projectId = params.projectId
@@ -362,7 +364,10 @@ export class Garden {
     // Allow overriding variables
     variables = { ...variables, ...(opts.variables || {}) }
 
-    const buildDir = await BuildDir.factory(projectRoot, gardenDirPath)
+    const experimentalBuildSync =
+      opts.experimentalBuildSync === undefined ? gardenEnv.GARDEN_EXPERIMENTAL_BUILD_STAGE : opts.experimentalBuildSync
+    const buildDirCls = experimentalBuildSync ? BuildStaging : BuildDirRsync
+    const buildDir = await buildDirCls.factory(projectRoot, gardenDirPath)
     const workingCopyId = await getWorkingCopyId(gardenDirPath)
 
     // We always exclude the garden dir
@@ -388,7 +393,7 @@ export class Garden {
       variables,
       secrets,
       projectSources,
-      buildDir,
+      buildStaging: buildDir,
       production,
       gardenDirPath,
       opts,
@@ -421,7 +426,7 @@ export class Garden {
   }
 
   async clearBuilds() {
-    return this.buildDir.clear()
+    return this.buildStaging.clear()
   }
 
   async processTasks(tasks: BaseTask[], opts?: ProcessTasksOpts): Promise<GraphResults> {

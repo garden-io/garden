@@ -327,7 +327,7 @@ describe("exec plugin", () => {
       const buildMetadataPath = module.buildMetadataPath
       const versionFilePath = join(buildMetadataPath, GARDEN_BUILD_VERSION_FILENAME)
 
-      await garden.buildDir.syncFromSrc(module, log)
+      await garden.buildStaging.syncFromSrc(module, log)
       const actions = await garden.getActionRouter()
       await actions.build({ log, module })
 

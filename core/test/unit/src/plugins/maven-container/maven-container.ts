@@ -94,7 +94,7 @@ describe("maven-container", () => {
     const provider = await garden.resolveProvider(garden.log, "maven-container")
     ctx = await garden.getPluginContext(provider)
 
-    td.replace(garden.buildDir, "syncDependencyProducts", () => null)
+    td.replace(garden.buildStaging, "syncDependencyProducts", () => null)
 
     td.replace(Garden.prototype, "resolveVersion", async () => ({
       versionString: "1234",

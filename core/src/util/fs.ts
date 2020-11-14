@@ -169,6 +169,13 @@ export function normalizeRelativePath(root: string, path: string) {
 }
 
 /**
+ * Joins a POSIX-formatted path with a `basePath` of any format/platform.
+ */
+export function joinWithPosix(basePath: string, posixRelPath: string = "") {
+  return join(basePath, ...posixRelPath.split("/"))
+}
+
+/**
  * Return a list of all files in directory at `path`
  */
 export async function listDirectory(path: string, { recursive = true } = {}): Promise<string[]> {

@@ -19,4 +19,4 @@ build:
         - source: build/b1.txt
           target: b/build/
         - source: build/build_subdir/
-          target: b/build_subdir
+          target: b/build_subdir/

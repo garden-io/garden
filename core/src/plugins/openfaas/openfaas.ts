@@ -41,7 +41,7 @@ import {
   getExternalGatewayUrl,
   getOpenfaasModuleOutputs,
 } from "./config"
-import { getOpenfaasModuleBuildStatus, buildOpenfaasModule, writeStackFile, stackFilename } from "./build"
+import { getOpenfaasModuleBuildStatus, buildOpenfaasModule, prepare, stackFilename } from "./build"
 import { dedent } from "../../util/string"
 import { LogEntry } from "../../logger/log-entry"
 import { ProviderMap } from "../../config/provider"
@@ -265,7 +265,7 @@ async function deployService(params: DeployServiceParams<OpenFaasModule>): Promi
 
   // write the stack file again with environment variables
   const envVars = { ...runtimeContext.envVars, ...module.spec.env }
-  await writeStackFile(<OpenFaasProvider>ctx.provider, k8sProvider, module, envVars)
+  await prepare(<OpenFaasProvider>ctx.provider, k8sProvider, module, envVars)
 
   // use faas-cli to do the deployment
   const start = new Date().getTime()
@@ -274,8 +274,8 @@ async function deployService(params: DeployServiceParams<OpenFaasModule>): Promi
     try {
       await ctx.tools["openfaas.faas-cli"].stdout({
         log,
-        cwd: module.buildPath,
-        args: ["deploy", "-f", stackFilename],
+        cwd: module.buildDependencies["openfaas--templates"].buildPath,
+        args: ["deploy", "-f", join(module.buildPath, stackFilename), "--handler", module.buildPath],
       })
       break
     } catch (err) {
@@ -334,10 +334,15 @@ async function deleteService(params: DeleteServiceParams<OpenFaasModule>): Promi
 
     found = !!status.state
 
+    const k8sProvider = getK8sProvider(ctx.provider.dependencies)
+    await prepare(<OpenFaasProvider>ctx.provider, k8sProvider, service.module, {})
+
+    const module = service.module
+
     await ctx.tools["openfaas.faas-cli"].stdout({
       log,
-      cwd: service.module.buildPath,
-      args: ["remove", "-f", stackFilename],
+      cwd: module.buildDependencies["openfaas--templates"].buildPath,
+      args: ["remove", "-f", join(module.buildPath, stackFilename), "--handler", module.buildPath],
     })
   } catch (err) {
     found = false

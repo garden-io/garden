@@ -1692,6 +1692,20 @@
     "@types/istanbul-reports" "^1.1.1"
     "@types/yargs" "^13.0.0"
 
+"@jsdevtools/file-path-filter@^3.0.2":
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/@jsdevtools/file-path-filter/-/file-path-filter-3.0.2.tgz#22a0b544b8471fafd8da87c471a92bc778ab75f1"
+  integrity sha512-+SbZG6stIE/nRF2PpRnubtuzhh4pouDsk/hEWwM5mKsSKlFfr4ziAE5VMogGG/K++i9NHbUTxxW0y4vdM678ew==
+  dependencies:
+    glob-to-regexp "^0.4.1"
+
+"@jsdevtools/readdir-enhanced@6.0.4":
+  version "6.0.4"
+  resolved "https://registry.yarnpkg.com/@jsdevtools/readdir-enhanced/-/readdir-enhanced-6.0.4.tgz#077749dac62cefd01453cd5af1084586c635a358"
+  integrity sha512-I6D6Omu6C7XWHzvlVbXeCS0FSxYYQ13XzdrFuo1K30unnRSpdt9AxY2KyJZbYJyfI2uNNidqDkG9/K/y699AjA==
+  dependencies:
+    "@jsdevtools/file-path-filter" "^3.0.2"
+
 "@kubernetes/client-node@git+https://github.com/garden-io/javascript.git#fix-websocket-basic-auth-yarn":
   version "0.12.1"
   resolved "git+https://github.com/garden-io/javascript.git#501d427c5d9464e59946ddaa2af9382c32c12e2e"
@@ -1958,6 +1972,11 @@
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/@types/async-lock/-/async-lock-1.1.2.tgz#cbc26a34b11b83b28f7783a843c393b443ef8bef"
   integrity sha512-j9n4bb6RhgFIydBe0+kpjnBPYumDaDyU8zvbWykyVMkku+c2CSu31MZkLeaBfqIwU+XCxlDpYDfyMQRkM0AkeQ==
+
+"@types/async@^3.2.4":
+  version "3.2.4"
+  resolved "https://registry.yarnpkg.com/@types/async/-/async-3.2.4.tgz#706101f4d1f66c1a8dcbcedb05528ad73b08230e"
+  integrity sha512-2c14HTaCn6tlb7bnqJGeH5JJGHZmyrkDD3EYe1NYBYjuY4+2EmMg8pjau2HvVz8+ANmO+DieV95H8PlzbK383g==
 
 "@types/babel__core@^7.1.0":
   version "7.1.9"
@@ -8492,6 +8511,11 @@ glob-to-regexp@^0.3.0:
   version "0.3.0"
   resolved "https://registry.yarnpkg.com/glob-to-regexp/-/glob-to-regexp-0.3.0.tgz#8c5a1494d2066c570cc3bfe4496175acc4d502ab"
   integrity sha1-jFoUlNIGbFcMw7/kSWF1rMTVAqs=
+
+glob-to-regexp@^0.4.1:
+  version "0.4.1"
+  resolved "https://registry.yarnpkg.com/glob-to-regexp/-/glob-to-regexp-0.4.1.tgz#c75297087c851b9a578bd217dd59a92f59fe546e"
+  integrity sha512-lkX1HJXwyMcprw/5YUZc2s7DrpAiHB21/V+E1rHUrVNokkvB6bqMzT0VfV6/86ZNabt1k14YOIaT7nDvOX3Iiw==
 
 glob-watcher@^5.0.3:
   version "5.0.5"
@@ -15389,6 +15413,13 @@ readable-stream@~1.1.9:
     inherits "~2.0.1"
     isarray "0.0.1"
     string_decoder "~0.10.x"
+
+readdir-enhanced@^6.0.4:
+  version "6.0.4"
+  resolved "https://registry.yarnpkg.com/readdir-enhanced/-/readdir-enhanced-6.0.4.tgz#71186776390bd1cf33b7c1451924ffaced7db184"
+  integrity sha512-MWY048D/nEpHwqdnsBiUxpqjJPkEw2i2RmY5gM2Gadn0rkHS/DhUBqrYTkOqKHF4RoUlYZZ8GnP4ymlRGuo30A==
+  dependencies:
+    "@jsdevtools/readdir-enhanced" "6.0.4"
 
 readdirp@^2.2.1:
   version "2.2.1"
