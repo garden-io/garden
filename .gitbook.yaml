@@ -3,15 +3,17 @@ structure:
   summary: docs/README.md
 
 redirects:
-  installation: ./docs/basics/installation.md
-  quick-start: ./docs/basics/quick-start.md
+  installation: ./docs/getting-started/1-installation.md
+  quick-start: ./docs/getting-started/0-introduction.md
+  basics/installation: ./docs/getting-started/1-installation.md
   stack-graph: ./docs/basics/stack-graph.md
   troubleshooting: ./docs/misc/troubleshooting.md
   examples/demo-project: ./docs/example-projects/demo-project.md
   examples/tls-project: ./docs/example-projects/tls-project.md
-  examples/using-garden-in-ci: ./docs/example-projects/using-garden-in-ci.md
+  examples/using-garden-in-ci: ./docs/guides/using-garden-in-ci.md
   guides/using-remote-sources: ./docs/advanced/using-remote-sources.md
   guides/cert-manager-integration: ./docs/advanced/cert-manager-integration.md
+  guides/terraform: ./docs/advanced/terraform.md
   providers/conftest-container: ./docs/reference/providers/conftest-container.md
   providers/conftest-kubernetes: ./docs/reference/providers/conftest-kubernetes.md
   providers/conftest: ./docs/reference/providers/conftest.md
