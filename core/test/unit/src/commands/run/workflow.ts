@@ -323,6 +323,7 @@ describe("RunWorkflowCommand", () => {
     expect(we[2].name).to.eql("workflowStepError")
     expect(we[2].payload.index).to.eql(0)
     expect(we[2].payload.durationMsec).to.gte(0)
+    expect(we[3].name).to.eql("workflowError")
   })
 
   it("should write a file with string data ahead of the run, before resolving providers", async () => {
@@ -713,6 +714,7 @@ function getWorkflowEvents(garden: TestGarden) {
   const eventNames = [
     "workflowRunning",
     "workflowComplete",
+    "workflowError",
     "workflowStepProcessing",
     "workflowStepSkipped",
     "workflowStepError",
