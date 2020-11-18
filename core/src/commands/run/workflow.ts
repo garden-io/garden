@@ -189,6 +189,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
 
     if (size(stepErrors) > 0) {
       printResult({ startedAt, log: outerLog, workflow, success: false })
+      garden.events.emit("workflowError", {})
       return { result, errors: flatten(Object.values(stepErrors)) }
     }
 
