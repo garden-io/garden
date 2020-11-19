@@ -7,7 +7,7 @@
  */
 
 import nodeEmoji from "node-emoji"
-import chalk from "chalk"
+import chalk, { Chalk } from "chalk"
 import CircularJSON from "circular-json"
 import { LogNode, LogLevel } from "./log-node"
 import { LogEntry, LogEntryParams, EmojiName } from "./log-entry"
@@ -211,13 +211,14 @@ export function renderDivider() {
   return padEnd("", 80, "━")
 }
 
-export function renderMessageWithDivider(prefix: string, msg: string, isError: boolean) {
-  const color = isError ? chalk.red : chalk.white
+export function renderMessageWithDivider(prefix: string, msg: string, isError: boolean, color?: Chalk) {
+  // Allow overwriting color as an escape hatch. Otherwise defaults to white or red in case of errors.
+  const msgColor = color || (isError ? chalk.red : chalk.white)
   return dedent`
-  \n${color.bold(prefix)}
-  ${color.bold(renderDivider())}
-  ${hasAnsi(msg) ? msg : color(msg)}
-  ${color.bold(renderDivider())}
+  \n${msgColor.bold(prefix)}
+  ${msgColor.bold(renderDivider())}
+  ${hasAnsi(msg) ? msg : msgColor(msg)}
+  ${msgColor.bold(renderDivider())}
   `
 }
 
