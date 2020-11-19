@@ -84,7 +84,7 @@ Every developer, in turn, has a private namespace in the cluster. With one comma
 
 And whenever you open a PR or merge a branch, your CI processes can also spin up a testing environment in a namespace on the same Kubernetes cluster.
 
-See our [documentation](https://garden.io) for more details.
+See our [documentation](https://docs.garden.io) for more details.
 
 ## FAQs
 
@@ -128,7 +128,7 @@ We feel it’s a nice and welcoming name :) And we like the notion that your sof
 
 Garden is in active use by a number of teams. Until Garden reaches 1.0, APIs may still change between minor releases (0.x). Patch releases (0.x.y) are guaranteed not to include any breaking changes. We detail all breaking changes in our release notes.
 
-To learn about Garden Enterprise (generally available from November 2020), [please visit the Garden website](https://garden.io/product).
+To learn about Garden Enterprise (generally available from November 2020), [please visit the Garden website](https://garden.io/product?utm_source=github#enterprise).
 
 ## Stay in Touch
 
