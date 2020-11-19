@@ -32,6 +32,8 @@ import { LogEntry } from "../logger/log-entry"
 import { providerConfigBaseSchema } from "../config/provider"
 import { ExecaError } from "execa"
 import { artifactsTargetDescription } from "./container/config"
+import chalk = require("chalk")
+import { renderMessageWithDivider } from "../logger/util"
 
 const execPathDoc = dedent`
   By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
@@ -218,7 +220,7 @@ function getDefaultEnvVars(module: ExecModule) {
   }
 }
 
-export async function buildExecModule({ module }: BuildModuleParams<ExecModule>): Promise<BuildResult> {
+export async function buildExecModule({ module, log }: BuildModuleParams<ExecModule>): Promise<BuildResult> {
   const output: BuildResult = {}
   const { command } = module.spec.build
 
@@ -233,6 +235,10 @@ export async function buildExecModule({ module }: BuildModuleParams<ExecModule>)
     output.buildLog = result.stdout + result.stderr
   }
 
+  if (output.buildLog) {
+    const prefix = `Finished building module ${chalk.white(module.name)}. Here is the output:`
+    log.verbose(renderMessageWithDivider(prefix, output.buildLog, false, chalk.gray))
+  }
   // keep track of which version has been built
   const buildVersionFilePath = join(module.buildMetadataPath, GARDEN_BUILD_VERSION_FILENAME)
   await writeModuleVersionFile(buildVersionFilePath, module.version)
