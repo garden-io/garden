@@ -64,7 +64,7 @@ describe("GitHandler", () => {
     log = garden.log
     tmpDir = await makeTempGitRepo()
     tmpPath = await realpath(tmpDir.path)
-    handler = new GitHandler(tmpPath, [defaultIgnoreFilename])
+    handler = new GitHandler(tmpPath, join(tmpPath, ".garden"), [defaultIgnoreFilename])
     git = (<any>handler).gitCli(log, tmpPath)
   })
 
@@ -305,7 +305,7 @@ describe("GitHandler", () => {
 
       const hash = "6e1ab2d7d26c1c66f27fea8c136e13c914e3f137"
 
-      const _handler = new GitHandler(tmpPath, [])
+      const _handler = new GitHandler(tmpPath, join(tmpPath, ".garden"), [])
 
       expect(await _handler.getFiles({ path: tmpPath, log })).to.eql([{ path, hash }])
     })
@@ -325,7 +325,7 @@ describe("GitHandler", () => {
       await git("add", pathA)
       await git("commit", "-m", "foo")
 
-      const _handler = new GitHandler(tmpPath, [defaultIgnoreFilename, ".testignore2"])
+      const _handler = new GitHandler(tmpPath, join(tmpPath, ".garden"), [defaultIgnoreFilename, ".testignore2"])
 
       const files = (await _handler.getFiles({ path: tmpPath, exclude: [], log })).filter(
         (f) => !f.path.includes(defaultIgnoreFilename)
@@ -545,7 +545,7 @@ describe("GitHandler", () => {
       await commit("test commit B", tmpRepoPathB)
 
       const hash = hashRepoUrl(repositoryUrlA)
-      clonePath = join(tmpPath, "sources", "module", `foo--${hash}`)
+      clonePath = join(tmpPath, ".garden", "sources", "module", `foo--${hash}`)
     })
 
     afterEach(async () => {
@@ -583,7 +583,7 @@ describe("GitHandler", () => {
         })
 
         const hash = hashRepoUrl(repositoryUrlA)
-        expect(res).to.eql(join(tmpPath, "sources", "project", `foo--${hash}`))
+        expect(res).to.eql(join(tmpPath, ".garden", "sources", "project", `foo--${hash}`))
       })
       it("should not error if source already cloned", async () => {
         await handler.ensureRemoteSource({
@@ -642,7 +642,7 @@ describe("GitHandler", () => {
         })
 
         const hash = hashRepoUrl(repositoryUrlA)
-        clonePath = join(tmpPath, "sources", "project", `foo--${hash}`)
+        clonePath = join(tmpPath, ".garden", "sources", "project", `foo--${hash}`)
 
         expect(await getCommitMsg(clonePath)).to.eql("test commit A")
       })

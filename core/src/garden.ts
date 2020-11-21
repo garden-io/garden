@@ -56,7 +56,7 @@ import { Watcher } from "./watch"
 import {
   findConfigPathsInPath,
   getWorkingCopyId,
-  fixedExcludes,
+  fixedProjectExcludes,
   detectModuleOverlap,
   ModuleOverlap,
   defaultConfigFilename,
@@ -358,10 +358,14 @@ export class Garden {
 
     // We always exclude the garden dir
     const gardenDirExcludePattern = `${relative(projectRoot, gardenDirPath)}/**/*`
-    const moduleExcludePatterns = [...((config.modules || {}).exclude || []), gardenDirExcludePattern, ...fixedExcludes]
+    const moduleExcludePatterns = [
+      ...((config.modules || {}).exclude || []),
+      gardenDirExcludePattern,
+      ...fixedProjectExcludes,
+    ]
 
     // Ensure the project root is in a git repo
-    const vcs = new GitHandler(gardenDirPath, config.dotIgnoreFiles)
+    const vcs = new GitHandler(projectRoot, gardenDirPath, config.dotIgnoreFiles)
     await vcs.getRepoRoot(log, projectRoot)
 
     const garden = new this({

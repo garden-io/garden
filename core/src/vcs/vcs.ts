@@ -22,6 +22,7 @@ import { LogEntry } from "../logger/log-entry"
 import { treeVersionSchema, moduleVersionSchema } from "../config/common"
 import { Warning } from "../db/entities/warning"
 import { dedent } from "../util/string"
+import { fixedProjectExcludes } from "../util/fs"
 
 export const NEW_MODULE_VERSION = "0000000000"
 const fileCountWarningThreshold = 10000
@@ -66,7 +67,7 @@ export interface VcsFile {
 }
 
 export abstract class VcsHandler {
-  constructor(protected gardenDirPath: string, protected ignoreFiles: string[]) {}
+  constructor(protected projectRoot: string, protected gardenDirPath: string, protected ignoreFiles: string[]) {}
 
   abstract name: string
   abstract async getRepoRoot(log: LogEntry, path: string): Promise<string>
@@ -78,12 +79,18 @@ export abstract class VcsHandler {
   async getTreeVersion(log: LogEntry, projectName: string, moduleConfig: ModuleConfig): Promise<TreeVersion> {
     const configPath = moduleConfig.configPath
 
+    // Apply project root excludes if the module config is in the project root and `include` isn't set
+    const exclude =
+      moduleConfig.path === this.projectRoot && !moduleConfig.include
+        ? [...(moduleConfig.exclude || []), ...fixedProjectExcludes]
+        : moduleConfig.exclude
+
     let files = await this.getFiles({
       log,
       path: moduleConfig.path,
       pathDescription: "module root",
       include: moduleConfig.include,
-      exclude: moduleConfig.exclude,
+      exclude,
     })
 
     if (files.length > fileCountWarningThreshold) {
