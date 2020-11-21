@@ -88,7 +88,7 @@ export class MigrateCommand extends Command<Args, Opts> {
     if (args.configPaths && args.configPaths.length > 0) {
       configPaths = args.configPaths.map((path) => resolve(root, path))
     } else {
-      const vcs = new GitHandler(resolve(root, DEFAULT_GARDEN_DIR_NAME), [])
+      const vcs = new GitHandler(root, resolve(root, DEFAULT_GARDEN_DIR_NAME), [])
       configPaths = await findConfigPathsInPath({
         dir: root,
         vcs,

@@ -27,7 +27,7 @@ import { uuidv4, exec } from "./util"
 export const defaultConfigFilename = "garden.yml"
 const metadataFilename = "metadata.json"
 export const defaultDotIgnoreFiles = [".gardenignore"]
-export const fixedExcludes = [".git", ".gitmodules", ".garden/**/*", "debug-info*/**"]
+export const fixedProjectExcludes = [".git", ".gitmodules", ".garden/**/*", "debug-info*/**"]
 
 /*
   Warning: Don't make any async calls in the loop body when using this function, since this may cause
