@@ -574,7 +574,7 @@ string.
 
 | Type                        | Required |
 | --------------------------- | -------- |
-| `number | string | boolean` | Yes      |
+| `string | number | boolean` | Yes      |
 
 Example:
 

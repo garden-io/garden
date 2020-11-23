@@ -66,6 +66,9 @@ export function toGraphResultEventPayload(result: GraphResult): GraphResultEvent
   const payload = omit(result, "dependencyResults")
   if (result.output) {
     payload.output = omit(result.output, "dependencyResults", "log", "buildLog")
+    if (result.output.version) {
+      payload.output.version = result.output.version.versionString || null
+    }
   }
   return payload
 }
@@ -160,7 +163,11 @@ export interface Events extends LoggerEvents {
   // Workflow events
   workflowRunning: {}
   workflowComplete: {}
+  workflowError: {}
   workflowStepProcessing: {
+    index: number
+  }
+  workflowStepSkipped: {
     index: number
   }
   workflowStepComplete: {
@@ -201,7 +208,9 @@ export const eventNames: EventName[] = [
   "serviceStatus",
   "workflowRunning",
   "workflowComplete",
+  "workflowError",
   "workflowStepProcessing",
+  "workflowStepSkipped",
   "workflowStepError",
   "workflowStepComplete",
 ]

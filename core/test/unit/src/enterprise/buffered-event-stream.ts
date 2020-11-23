@@ -20,6 +20,8 @@ function makeDummyRecord(sizeKb: number) {
 describe("BufferedEventStream", () => {
   const getConnectionParams = (garden: Garden) => ({
     garden,
+    streamEvents: true,
+    streamLogEntries: true,
     targets: [
       {
         host: "dummy-platform_url",

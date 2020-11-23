@@ -64,6 +64,8 @@ describe("DashboardEventStream", () => {
     streamer = new DashboardEventStream(garden.log, garden.sessionId!)
     streamer.connect({
       garden,
+      streamEvents: true,
+      streamLogEntries: true,
       targets: [
         { host: serverA.getUrl(), clientAuthToken: serverA.authKey },
         { host: serverB.getUrl(), clientAuthToken: serverB.authKey },
@@ -111,6 +113,8 @@ describe("DashboardEventStream", () => {
       streamer = new DashboardEventStream(garden.log, garden.sessionId!)
       streamer.connect({
         garden,
+        streamEvents: true,
+        streamLogEntries: true,
         targets: [],
       })
 
@@ -139,6 +143,8 @@ describe("DashboardEventStream", () => {
       streamer = new DashboardEventStream(garden.log, garden.sessionId!)
       streamer.connect({
         garden,
+        streamEvents: true,
+        streamLogEntries: true,
         targets: [],
       })
 
@@ -166,6 +172,8 @@ describe("DashboardEventStream", () => {
       streamer = new DashboardEventStream(garden.log, garden.sessionId!)
       streamer.connect({
         garden,
+        streamEvents: true,
+        streamLogEntries: true,
         targets: [],
       })
 
@@ -194,6 +202,8 @@ describe("DashboardEventStream", () => {
       streamer.connect({
         garden,
         targets: [],
+        streamEvents: true,
+        streamLogEntries: true,
         ignoreHost: values.serverHost,
       })
 
@@ -215,6 +225,8 @@ describe("DashboardEventStream", () => {
     streamer = new DashboardEventStream(garden.log, garden.sessionId!)
     streamer.connect({
       garden,
+      streamEvents: true,
+      streamLogEntries: true,
       targets: [],
     })
 

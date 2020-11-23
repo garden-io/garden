@@ -46,6 +46,8 @@ export class CallCommand extends Command<Args> {
   name = "call"
   help = "Call a service ingress endpoint."
 
+  streamEvents = true
+
   description = dedent`
     Resolves the deployed ingress endpoint for the given service and path, calls the given endpoint and
     outputs the result.

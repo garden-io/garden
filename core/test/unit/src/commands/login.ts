@@ -8,16 +8,14 @@
 
 import { expect } from "chai"
 import td from "testdouble"
-import tmp from "tmp-promise"
-import { ProjectConfig, defaultNamespace } from "../../../../src/config/project"
-import { exec } from "../../../../src/util/util"
-import { DEFAULT_API_VERSION } from "../../../../src/constants"
-import { TestGarden, withDefaultGlobalOpts, expectError } from "../../../helpers"
+import { withDefaultGlobalOpts, expectError, getDataDir } from "../../../helpers"
 const Auth = require("../../../../src/enterprise/auth")
 import { LoginCommand } from "../../../../src/commands/login"
 import stripAnsi from "strip-ansi"
+import { makeDummyGarden } from "../../../../src/cli/cli"
+import { Garden } from "../../../../src"
 
-function makeCommandParams(garden: TestGarden) {
+function makeCommandParams(garden: Garden) {
   const log = garden.log
   return {
     garden,
@@ -30,55 +28,34 @@ function makeCommandParams(garden: TestGarden) {
 }
 
 describe("LoginCommand", () => {
-  let tmpDir: tmp.DirectoryResult
-  let projectConfig: ProjectConfig
-  const dummyDomain = "http://dummy-domain.com"
-
-  before(async () => {
-    tmpDir = await tmp.dir({ unsafeCleanup: true })
-    await exec("git", ["init"], { cwd: tmpDir.path })
-
-    projectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
-      name: "test",
-      path: tmpDir.path,
-      defaultEnvironment: "default",
-      dotIgnoreFiles: [],
-      environments: [{ name: "default", defaultNamespace, variables: {} }],
-      providers: [{ name: "test" }],
-      variables: {},
-    }
-  })
-
   beforeEach(async () => {
     td.replace(Auth, "login", async () => "dummy-auth-token")
   })
 
-  after(async () => {
-    await tmpDir.cleanup()
-  })
-
   it("should log in if the project has a domain and an id", async () => {
-    const config = { ...projectConfig, domain: dummyDomain, id: "dummy-id" }
-    const garden = await TestGarden.factory(tmpDir.path, { config })
+    const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain-and-id"))
     const command = new LoginCommand()
     await command.action(makeCommandParams(garden))
   })
 
   it("should log in if the project has a domain but no id", async () => {
-    const config = { ...projectConfig, domain: dummyDomain }
-    const garden = await TestGarden.factory(tmpDir.path, { config })
+    const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain"))
     const command = new LoginCommand()
     await command.action(makeCommandParams(garden))
   })
 
   it("should throw if the project doesn't have a domain", async () => {
-    const garden = await TestGarden.factory(tmpDir.path, { config: projectConfig })
+    const garden = await makeDummyGarden(getDataDir("test-projects", "login", "missing-domain"))
     const command = new LoginCommand()
     await expectError(
       () => command.action(makeCommandParams(garden)),
       (err) => expect(stripAnsi(err.message)).to.match(/Your project configuration does not specify a domain/)
     )
+  })
+
+  it("should log in if the project config uses secrets in project variables", async () => {
+    const garden = await makeDummyGarden(getDataDir("test-projects", "login", "secret-in-project-variables"))
+    const command = new LoginCommand()
+    await command.action(makeCommandParams(garden))
   })
 })

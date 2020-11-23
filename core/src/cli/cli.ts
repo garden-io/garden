@@ -237,6 +237,7 @@ ${renderCommands(commands)}
     })
 
     contextOpts.persistent = persistent
+    const { streamEvents, streamLogEntries } = command
 
     do {
       try {
@@ -262,7 +263,7 @@ ${renderCommands(commands)}
 
           // Connect the dashboard event streamer (making sure it doesn't stream to the local server)
           const commandServerUrl = command.server?.getUrl() || undefined
-          dashboardEventStream.connect({ garden, ignoreHost: commandServerUrl })
+          dashboardEventStream.connect({ garden, ignoreHost: commandServerUrl, streamEvents, streamLogEntries })
           const runningServers = await dashboardEventStream.updateTargets()
 
           if (persistent && command.server) {
@@ -284,6 +285,8 @@ ${renderCommands(commands)}
           log.silly(`Connecting Garden instance to GE BufferedEventStream`)
           bufferedEventStream.connect({
             garden,
+            streamEvents,
+            streamLogEntries,
             targets: [
               {
                 host: enterpriseContext.enterpriseDomain,
@@ -291,8 +294,6 @@ ${renderCommands(commands)}
               },
             ],
           })
-        } else {
-          log.silly(`Skip connecting Garden instance to GE BufferedEventStream`)
         }
 
         // Register log file writers. We need to do this after the Garden class is initialised because

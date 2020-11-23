@@ -8,7 +8,14 @@
 
 import { expect } from "chai"
 const stripAnsi = require("strip-ansi")
-import { identifierRegex, envVarRegex, userIdentifierRegex, joi, joiRepositoryUrl } from "../../../../src/config/common"
+import {
+  identifierRegex,
+  envVarRegex,
+  userIdentifierRegex,
+  joi,
+  joiRepositoryUrl,
+  joiPrimitive,
+} from "../../../../src/config/common"
 import { validateSchema } from "../../../../src/config/validation"
 import { expectError } from "../../../helpers"
 
@@ -269,6 +276,24 @@ describe("joi.posixPath", () => {
   })
 })
 
+describe("joi.hostname", () => {
+  const schema = joi.hostname()
+
+  it("should accept valid hostnames", () => {
+    const result = schema.validate("foo.bar.bas")
+    expect(result.error).to.be.undefined
+  })
+  it("should accept hostnames with a wildcard in the first DNS label", () => {
+    const result = schema.validate("*.bar.bas")
+    expect(result.error).to.be.undefined
+  })
+  it("should reject hostnames with wildcard DNS labels that are not the first label", () => {
+    const result = schema.validate("foo.*.bas")
+    expect(result.error).to.exist
+    expect(result!.error!.message).to.eql(`"value" only first DNS label my contain a wildcard.`)
+  })
+})
+
 describe("joi.environment", () => {
   const schema = joi.environment()
 
@@ -374,6 +399,26 @@ describe("joiRepositoryUrl", () => {
     const schema = joiRepositoryUrl()
     const result = schema.validate(url)
     expect(result.error).to.exist
+  })
+})
+
+describe("joiPrimitive", () => {
+  it("should validate primitives without casting values", () => {
+    const schema = joiPrimitive()
+    const resStrNum = schema.validate("12345")
+    const resStrBool = schema.validate("true")
+    const resNum = schema.validate(12345)
+    const resBool = schema.validate(true)
+    const resArr = schema.validate([1, 2, 3, 4, 5])
+    const resObj = schema.validate({ hello: "world" })
+    const resFun = schema.validate(() => {})
+    expect(resStrNum.value).to.equal("12345")
+    expect(resStrBool.value).to.equal("true")
+    expect(resNum.value).to.equal(12345)
+    expect(resBool.value).to.equal(true)
+    expect(resArr.error).to.exist
+    expect(resObj.error).to.exist
+    expect(resFun.error).to.exist
   })
 })
 

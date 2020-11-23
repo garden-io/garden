@@ -11,7 +11,7 @@ The `kubernetes` provider allows you to deploy [`container` modules](https://doc
 Kubernetes clusters, and adds the [`helm`](https://docs.garden.io/reference/module-types/helm) and
 [`kubernetes`](https://docs.garden.io/reference/module-types/kubernetes) module types.
 
-For usage information, please refer to the [guides section]https://docs.garden.io/guides). A good place to start is
+For usage information, please refer to the [guides section](https://docs.garden.io/guides). A good place to start is
 the [Remote Kubernetes guide](https://docs.garden.io/guides/remote-kubernetes) guide if you're connecting to remote clusters.
 The [demo-project](https://docs.garden.io/getting-started/2-initialize-a-project) example project and guide are also helpful as an introduction.
 

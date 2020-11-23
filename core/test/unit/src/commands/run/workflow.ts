@@ -11,7 +11,7 @@ import tmp from "tmp-promise"
 import { expect } from "chai"
 import { TestGarden, makeTestGardenA, withDefaultGlobalOpts, expectError } from "../../../../helpers"
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
-import { RunWorkflowCommand } from "../../../../../src/commands/run/workflow"
+import { RunWorkflowCommand, shouldBeDropped } from "../../../../../src/commands/run/workflow"
 import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
 import { joi } from "../../../../../src/config/common"
 import { RunTaskParams } from "../../../../../src/types/plugin/task/runTask"
@@ -22,6 +22,7 @@ import { defaultDotIgnoreFiles } from "../../../../../src/util/fs"
 import { dedent } from "../../../../../src/util/string"
 import stripAnsi from "strip-ansi"
 import { LogEntry } from "../../../../../src/logger/log-entry"
+import { WorkflowStepSpec } from "../../../../../src/config/workflow"
 
 describe("RunWorkflowCommand", () => {
   const cmd = new RunWorkflowCommand()
@@ -122,7 +123,7 @@ describe("RunWorkflowCommand", () => {
         name: "workflow-a",
         kind: "Workflow",
         path: garden.projectRoot,
-        steps: [{ command: ["deploy"] }, { command: ["test"] }],
+        steps: [{ command: ["deploy"] }, { command: ["build"], skip: true }, { command: ["test"] }],
       },
     ])
 
@@ -137,13 +138,15 @@ describe("RunWorkflowCommand", () => {
     expect(we[2].payload.index).to.eql(0)
     expect(we[2].payload.durationMsec).to.gte(0)
 
-    expect(we[3]).to.eql({ name: "workflowStepProcessing", payload: { index: 1 } })
+    expect(we[3]).to.eql({ name: "workflowStepSkipped", payload: { index: 1 } })
 
-    expect(we[4].name).to.eql("workflowStepComplete")
-    expect(we[4].payload.index).to.eql(1)
-    expect(we[4].payload.durationMsec).to.gte(0)
+    expect(we[4]).to.eql({ name: "workflowStepProcessing", payload: { index: 2 } })
 
-    expect(we[5]).to.eql({ name: "workflowComplete", payload: {} })
+    expect(we[5].name).to.eql("workflowStepComplete")
+    expect(we[5].payload.index).to.eql(2)
+    expect(we[5].payload.durationMsec).to.gte(0)
+
+    expect(we[6]).to.eql({ name: "workflowComplete", payload: {} })
   })
 
   function filterLogEntries(entries: LogEntry[], msgRegex: RegExp): LogEntry[] {
@@ -158,11 +161,7 @@ describe("RunWorkflowCommand", () => {
         kind: "Workflow",
         path: garden.projectRoot,
         files: [],
-        steps: [
-          {
-            command: ["run", "task", "task-a"],
-          },
-        ],
+        steps: [{ command: ["run", "task", "task-a"] }],
       },
     ])
 
@@ -224,7 +223,7 @@ describe("RunWorkflowCommand", () => {
               return result
             },
             testModule: async ({}) => {
-              testModuleLog.push("tests have been run") // <--------
+              testModuleLog.push("tests have been run")
               const now = new Date()
               return {
                 moduleName: "",
@@ -324,6 +323,7 @@ describe("RunWorkflowCommand", () => {
     expect(we[2].name).to.eql("workflowStepError")
     expect(we[2].payload.index).to.eql(0)
     expect(we[2].payload.durationMsec).to.gte(0)
+    expect(we[3].name).to.eql("workflowError")
   })
 
   it("should write a file with string data ahead of the run, before resolving providers", async () => {
@@ -494,6 +494,84 @@ describe("RunWorkflowCommand", () => {
     expect(result?.steps["step-2"].log).to.equal("")
   })
 
+  describe("shouldBeDropped", () => {
+    context("step has no when modifier", () => {
+      it("should include the step if no error has been thrown by previous steps", () => {
+        const steps: WorkflowStepSpec[] = [
+          { command: ["deploy"] },
+          { command: ["test"], when: "onError" },
+          { command: ["build"] }, // <-- checking this step
+        ]
+        expect(shouldBeDropped(2, steps, {})).to.be.false
+      })
+
+      it("should drop the step when errors have been thrown by previous steps", () => {
+        const steps: WorkflowStepSpec[] = [
+          { command: ["deploy"] }, // <-- error thrown here
+          { command: ["test"], when: "onError" },
+          { command: ["build"] }, // <-- checking this step
+        ]
+        expect(shouldBeDropped(2, steps, { 0: [new Error()] })).to.be.true
+      })
+    })
+
+    context("step has when = always", () => {
+      it("should include the step even when errors have been thrown by previous steps", () => {
+        const steps: WorkflowStepSpec[] = [
+          { command: ["deploy"] }, // <-- error thrown here
+          { command: ["test"] },
+          { command: ["build"], when: "always" }, // <-- checking this step
+        ]
+        expect(shouldBeDropped(2, steps, { 0: [new Error()] })).to.be.false
+      })
+    })
+
+    context("step has when = never", () => {
+      it("should drop the step even if no error has been thrown by previous steps", () => {
+        const steps: WorkflowStepSpec[] = [
+          { command: ["deploy"] },
+          { command: ["test"] },
+          { command: ["build"], when: "never" },
+        ]
+        expect(shouldBeDropped(2, steps, {})).to.be.true
+      })
+    })
+
+    context("step has when = onError", () => {
+      it("should be dropped if no previous steps have failed", () => {
+        const steps: WorkflowStepSpec[] = [
+          { command: ["deploy"] },
+          { command: ["test"] },
+          { command: ["build"], when: "onError" },
+        ]
+        expect(shouldBeDropped(2, steps, {})).to.be.true
+      })
+
+      it("should be included if a step in the current sequence failed", () => {
+        const steps: WorkflowStepSpec[] = [
+          { command: ["deploy"] }, // <-- error thrown here
+          { command: ["test"] },
+          { command: ["build"], when: "onError" }, // <-- checking this step
+          { command: ["test"], when: "onError" }, // <-- checking this step
+        ]
+        expect(shouldBeDropped(2, steps, { 0: [new Error()] })).to.be.false
+        expect(shouldBeDropped(3, steps, { 0: [new Error()] })).to.be.false
+      })
+
+      it("should be dropped if a step in a preceding sequence failed", () => {
+        const steps: WorkflowStepSpec[] = [
+          { command: ["deploy"] }, // <-- error thrown here
+          { command: ["test"] },
+          { command: ["build"], when: "onError" },
+          { command: ["test"], when: "onError" },
+          { command: ["test"] },
+          { command: ["test"], when: "onError" }, // <-- checking this step
+        ]
+        expect(shouldBeDropped(5, steps, { 0: [new Error()] })).to.be.true
+      })
+    })
+  })
+
   it("should collect log outputs, including stderr, from a script step", async () => {
     garden.setWorkflowConfigs([
       {
@@ -546,14 +624,7 @@ describe("RunWorkflowCommand", () => {
         kind: "Workflow",
         path: garden.projectRoot,
         files: [],
-        steps: [
-          {
-            command: ["get", "config"],
-          },
-          {
-            command: ["run", "task", "task-a"],
-          },
-        ],
+        steps: [{ command: ["get", "config"] }, { command: ["run", "task", "task-a"] }],
       },
     ])
 
@@ -579,12 +650,7 @@ describe("RunWorkflowCommand", () => {
         kind: "Workflow",
         path: garden.projectRoot,
         files: [],
-        steps: [
-          {
-            name: "test",
-            command: ["run", "task", "task-a"],
-          },
-        ],
+        steps: [{ name: "test", command: ["run", "task", "task-a"] }],
       },
     ])
 
@@ -607,14 +673,7 @@ describe("RunWorkflowCommand", () => {
         kind: "Workflow",
         path: garden.projectRoot,
         files: [],
-        steps: [
-          {
-            command: ["get", "outputs"],
-          },
-          {
-            command: ["run", "task", "${steps.step-1.outputs.taskName}"],
-          },
-        ],
+        steps: [{ command: ["get", "outputs"] }, { command: ["run", "task", "${steps.step-1.outputs.taskName}"] }],
       },
     ])
 
@@ -636,14 +695,7 @@ describe("RunWorkflowCommand", () => {
         kind: "Workflow",
         path: garden.projectRoot,
         files: [],
-        steps: [
-          {
-            command: ["get", "outputs"],
-          },
-          {
-            script: "echo ${steps.step-1.outputs.taskName}",
-          },
-        ],
+        steps: [{ command: ["get", "outputs"] }, { script: "echo ${steps.step-1.outputs.taskName}" }],
       },
     ])
 
@@ -662,7 +714,9 @@ function getWorkflowEvents(garden: TestGarden) {
   const eventNames = [
     "workflowRunning",
     "workflowComplete",
+    "workflowError",
     "workflowStepProcessing",
+    "workflowStepSkipped",
     "workflowStepError",
     "workflowStepComplete",
   ]

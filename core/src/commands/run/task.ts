@@ -56,6 +56,8 @@ export class RunTaskCommand extends Command<Args, Opts> {
   help = "Run a task (in the context of its parent module)."
 
   workflows = true
+  streamEvents = true
+  streamLogEntries = true
 
   description = dedent`
     This is useful for re-running tasks ad-hoc, for example after writing/modifying database migrations.

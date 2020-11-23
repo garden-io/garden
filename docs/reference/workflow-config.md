@@ -40,8 +40,8 @@ files:
     # or more directories, they are created automatically if necessary.
     # If any of those directories conflict with existing file paths, or if the file path conflicts with an existing
     # directory path, an error will be thrown.
-    # **Any existing file with the same path will be overwritten, so be careful not to accidentally accidentally
-    # overwrite files unrelated to your workflow.**
+    # **Any existing file with the same path will be overwritten, so be careful not to accidentally overwrite files
+    # unrelated to your workflow.**
     path:
 
     # The file data as a string.
@@ -113,6 +113,21 @@ steps:
     # Set to true to skip this step. Use this with template conditionals to skip steps for certain environments or
     # scenarios.
     skip: false
+
+    # If used, this step will be run under the following conditions (may use template strings):
+    #
+    # `onSuccess` (default): This step will be run if all preceding steps succeeded or were skipped.
+    #
+    # `onError`: This step will be run if a preceding step failed, or if its preceding step has `when: onError`.
+    # If the next step has `when: onError`, it will also be run. Otherwise, all subsequent steps are ignored.
+    #
+    # `always`: This step will always be run, regardless of whether any preceding steps have failed.
+    #
+    # `never`: This step will always be ignored.
+    #
+    # See the [workflows guide](https://docs.garden.io/using-garden/workflows#the-skip-and-when-options) for details
+    # and examples.
+    when: onSuccess
 
 # A list of triggers that determine when the workflow should be run, and which environment should be used (Garden
 # Enterprise only).
@@ -207,7 +222,7 @@ Note that you cannot reference provider configuration in template strings within
 POSIX-style path to write the file to, relative to the project root (or absolute). If the path contains one
 or more directories, they are created automatically if necessary.
 If any of those directories conflict with existing file paths, or if the file path conflicts with an existing directory path, an error will be thrown.
-**Any existing file with the same path will be overwritten, so be careful not to accidentally accidentally overwrite files unrelated to your workflow.**
+**Any existing file with the same path will be overwritten, so be careful not to accidentally overwrite files unrelated to your workflow.**
 
 | Type        | Required |
 | ----------- | -------- |
@@ -383,6 +398,28 @@ Example:
 steps:
   - skip: "${environment.name != 'prod'}"
 ```
+
+### `steps[].when`
+
+[steps](#steps) > when
+
+If used, this step will be run under the following conditions (may use template strings):
+
+`onSuccess` (default): This step will be run if all preceding steps succeeded or were skipped.
+
+`onError`: This step will be run if a preceding step failed, or if its preceding step has `when: onError`.
+If the next step has `when: onError`, it will also be run. Otherwise, all subsequent steps are ignored.
+
+`always`: This step will always be run, regardless of whether any preceding steps have failed.
+
+`never`: This step will always be ignored.
+
+See the [workflows guide](https://docs.garden.io/using-garden/workflows#the-skip-and-when-options) for details
+and examples.
+
+| Type     | Default       | Required |
+| -------- | ------------- | -------- |
+| `string` | `"onSuccess"` | No       |
 
 ### `triggers[]`
 
