@@ -156,6 +156,9 @@ variables:
 # The version of Terraform to use. Defaults to the version set in the provider config.
 # Set to `null` to use whichever version of `terraform` that is on your PATH.
 version:
+
+# Use the specified Terraform workspace.
+workspace:
 ```
 
 ## Configuration Keys
@@ -449,6 +452,14 @@ specified here take precedence.
 
 The version of Terraform to use. Defaults to the version set in the provider config.
 Set to `null` to use whichever version of `terraform` that is on your PATH.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `workspace`
+
+Use the specified Terraform workspace.
 
 | Type     | Required |
 | -------- | -------- |

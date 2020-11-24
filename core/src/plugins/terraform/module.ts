@@ -24,6 +24,7 @@ import {
   TerraformBaseSpec,
   getTfOutputs,
   prepareVariables,
+  setWorkspace,
 } from "./common"
 import { TerraformProvider } from "./terraform"
 import { ServiceStatus } from "../../types/service"
@@ -66,6 +67,7 @@ export const schema = joi.object().keys({
       The version of Terraform to use. Defaults to the version set in the provider config.
       Set to \`null\` to use whichever version of \`terraform\` that is on your PATH.
     `),
+  workspace: joi.string().allow(null).description("Use the specified Terraform workspace."),
 })
 
 export async function configureTerraformModule({ ctx, moduleConfig }: ConfigureModuleParams<TerraformModule>) {
@@ -113,18 +115,21 @@ export async function getTerraformStatus({
   const provider = ctx.provider as TerraformProvider
   const root = getModuleStackRoot(module)
   const variables = module.spec.variables
+  const workspace = module.spec.workspace || null
+
   const status = await getStackStatus({
     ctx,
     log,
     provider,
     root,
     variables,
+    workspace,
   })
 
   return {
     state: status === "up-to-date" ? "ready" : "outdated",
     version: module.version.versionString,
-    outputs: await getTfOutputs({ log, ctx, provider, workingDir: root }),
+    outputs: await getTfOutputs({ log, ctx, provider, root }),
     detail: {},
   }
 }
@@ -135,10 +140,11 @@ export async function deployTerraform({
   module,
 }: DeployServiceParams<TerraformModule>): Promise<ServiceStatus> {
   const provider = ctx.provider as TerraformProvider
+  const workspace = module.spec.workspace || null
   const root = getModuleStackRoot(module)
 
   if (module.spec.autoApply) {
-    await applyStack({ log, ctx, provider, root, variables: module.spec.variables })
+    await applyStack({ log, ctx, provider, root, variables: module.spec.variables, workspace })
   } else {
     const templateKey = `\${runtime.services.${module.name}.outputs.*}`
     log.warn(
@@ -150,12 +156,13 @@ export async function deployTerraform({
         `
       )
     )
+    await setWorkspace({ log, ctx, provider, root, workspace })
   }
 
   return {
     state: "ready",
     version: module.version.versionString,
-    outputs: await getTfOutputs({ log, ctx, provider, workingDir: root }),
+    outputs: await getTfOutputs({ log, ctx, provider, root }),
     detail: {},
   }
 }
@@ -177,6 +184,9 @@ export async function deleteTerraformModule({
 
   const root = getModuleStackRoot(module)
   const variables = module.spec.variables
+  const workspace = module.spec.workspace || null
+
+  await setWorkspace({ ctx, provider, root, log, workspace })
 
   const args = ["destroy", "-auto-approve", "-input=false", ...(await prepareVariables(root, variables))]
   await terraform(ctx, provider).exec({ log, args, cwd: root })

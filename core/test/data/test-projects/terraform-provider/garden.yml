@@ -1,5 +1,7 @@
 kind: Project
 name: terraform-provider
+variables:
+  workspace: default
 environments:
   - name: local
   - name: prod
@@ -9,6 +11,7 @@ providers:
     autoApply: ${environment.name != 'prod'}
     initRoot: tf
     version: "0.13.3"
+    workspace: ${var.workspace}
     variables:
       my-variable: foo
       env: ${environment.name}

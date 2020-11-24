@@ -553,7 +553,7 @@ export class Garden {
     }
 
     if (this.resolvedProviders[name]) {
-      return this.resolvedProviders[name]
+      return cloneDeep(this.resolvedProviders[name])
     }
 
     const providers = await this.resolveProviders(log, false, [name])
