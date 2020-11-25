@@ -74,13 +74,28 @@ export interface ModuleOverlap {
   overlaps: ModuleConfig[]
 }
 
-export function detectModuleOverlap(moduleConfigs: ModuleConfig[]): ModuleOverlap[] {
+export function detectModuleOverlap({
+  projectRoot,
+  gardenDirPath,
+  moduleConfigs,
+}: {
+  projectRoot: string
+  gardenDirPath: string
+  moduleConfigs: ModuleConfig[]
+}): ModuleOverlap[] {
   let overlaps: ModuleOverlap[] = []
   for (const config of moduleConfigs) {
-    const setsBuildCtx = !!config.include || !!config.exclude
+    if (!!config.include || !!config.exclude) {
+      continue
+    }
     const matches = moduleConfigs
-      .filter((compare) => config.name !== compare.name)
-      .filter((compare) => !setsBuildCtx && pathIsInside(compare.path, config.path))
+      .filter(
+        (compare) =>
+          config.name !== compare.name &&
+          pathIsInside(compare.path, config.path) &&
+          // Don't consider overlap between modules in root and those in the .garden directory
+          !(config.path === projectRoot && pathIsInside(compare.path, gardenDirPath))
+      )
       .sort((a, b) => (a.name > b.name ? 1 : -1))
 
     if (matches.length > 0) {
