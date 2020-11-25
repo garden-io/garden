@@ -788,7 +788,11 @@ export class Garden {
     let graph: ConfigGraph | undefined = undefined
 
     // Require include/exclude on modules if their paths overlap
-    const overlaps = detectModuleOverlap(resolvedModules)
+    const overlaps = detectModuleOverlap({
+      projectRoot: this.projectRoot,
+      gardenDirPath: this.gardenDirPath,
+      moduleConfigs: resolvedModules,
+    })
     if (overlaps.length > 0) {
       const { message, detail } = this.makeOverlapError(overlaps)
       throw new ConfigurationError(message, detail)
