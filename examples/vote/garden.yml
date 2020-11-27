@@ -1,5 +1,9 @@
 kind: Project
 name: vote
+dotIgnoreFiles:
+  - .gitignore
+  - .gardenignore
+  - .fooignore
 environments:
   - name: local
   - name: remote
