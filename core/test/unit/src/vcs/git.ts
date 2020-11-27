@@ -336,27 +336,43 @@ describe("GitHandler", () => {
     })
 
     it("should correctly handle multiple ignore files", async () => {
-      const nameA = "foo.txt"
-      const nameB = "boo.txt"
+      const nameA = "excluded-a.txt"
+      const nameB = "excluded-b.txt"
+      const nameC = "excluded-c.txt"
+      const nameD = "committed.txt"
+      const nameE = "untracked.txt"
       const pathA = resolve(tmpPath, nameA)
       const pathB = resolve(tmpPath, nameB)
+      const pathC = resolve(tmpPath, nameC)
+      const pathD = resolve(tmpPath, nameD)
+      const pathE = resolve(tmpPath, nameE)
       await createFile(pathA)
       await createFile(pathB)
+      await createFile(pathC)
+      await createFile(pathD)
+      await createFile(pathE)
 
       await addToIgnore(tmpPath, nameA)
       await addToIgnore(tmpPath, nameB, ".testignore2")
+      await addToIgnore(tmpPath, nameC, ".testignore3")
 
-      // We only add path A, to check if untracked files work okay
-      await git("add", pathA)
+      // We skip paths A and E, to make sure untracked files work as expected
+      await git("add", pathB)
+      await git("add", pathC)
+      await git("add", pathD)
       await git("commit", "-m", "foo")
 
-      const _handler = new GitHandler(tmpPath, join(tmpPath, ".garden"), [defaultIgnoreFilename, ".testignore2"])
+      const _handler = new GitHandler(tmpPath, join(tmpPath, ".garden"), [
+        defaultIgnoreFilename,
+        ".testignore2",
+        ".testignore3",
+      ])
 
       const files = (await _handler.getFiles({ path: tmpPath, exclude: [], log })).filter(
         (f) => !f.path.includes(defaultIgnoreFilename)
       )
 
-      expect(files).to.eql([])
+      expect(files.map((f) => f.path)).to.eql([pathE, pathD])
     })
 
     it("should include a relative symlink within the path", async () => {
