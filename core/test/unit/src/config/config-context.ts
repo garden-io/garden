@@ -281,7 +281,7 @@ describe("ConfigContext", () => {
         () => resolveKey(c, ["nested", "key"]),
         (err) =>
           expect(err.message).to.equal(
-            "Invalid template string ${'${nested.key}'}: Invalid template string ${nested.key}: Circular reference detected when resolving key nested.key (nested -> nested.key)"
+            "Invalid template string (${'${nested.key}'}): Invalid template string (${nested.key}): Circular reference detected when resolving key nested.key (nested -> nested.key)"
           )
       )
     })

@@ -108,6 +108,31 @@ services:
   ...
 ```
 
+### Multi-line if/else statements
+
+In addition to the conditionals described above, you can use if/else blocks. These are particularly handy when templating multi-line strings and generated files in [module templates](./module-templates.md).
+
+The syntax is `${if <expression>}<content>[${else}]<alternative content>${endif}`, where `<expression>` is any expression you'd put in a normal template string.
+
+Here's a basic example:
+
+```yaml
+variables:
+  some-script: |
+    #!/bin/sh
+    echo "Hello, I'm a bash script!"
+
+    ${if environment.name == "dev"}
+    echo "-> debug mode"
+    DEBUG=true
+    ${else}
+    DEBUG=false
+    ${endif}
+    ...
+```
+
+You can also nest if-blocks, should you need to.
+
 ### Nested lookups and maps
 
 In addition to dot-notation for key lookups, we also support bracketed lookups, e.g. `${some["key"]}` and `${some-array[0]}`.

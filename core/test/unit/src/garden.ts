@@ -1514,7 +1514,7 @@ describe("Garden", () => {
         (err) => {
           expect(err.message).to.equal("Failed resolving one or more providers:\n" + "- test")
           expect(stripAnsi(err.detail.messages[0])).to.equal(
-            "- test: Invalid template string ${bla.ble}: Could not find key bla. Available keys: environment, git, local, project, providers, secrets, var and variables."
+            "- test: Invalid template string (${bla.ble}): Could not find key bla. Available keys: environment, git, local, project, providers, secrets, var and variables."
           )
         }
       )
@@ -2438,7 +2438,7 @@ describe("Garden", () => {
           expect(stripAnsi(err.message)).to.equal(dedent`
             Failed resolving one or more modules:
 
-            module-a: Invalid template string ${key}: Module module-a cannot reference itself.
+            module-a: Invalid template string (${key}): Module module-a cannot reference itself.
           `)
       )
     })

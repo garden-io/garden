@@ -18,7 +18,7 @@ import {
 import { difference, flatten, uniq, isPlainObject, isNumber } from "lodash"
 import { Primitive, StringMap, isPrimitive, objectSpreadKey } from "./config/common"
 import { profile } from "./util/profiling"
-import { dedent, deline } from "./util/string"
+import { dedent, deline, truncate } from "./util/string"
 import { isArray } from "util"
 import { ObjectWithName } from "./util/util"
 
@@ -49,7 +49,17 @@ function getParser() {
   return _parser
 }
 
-type ResolvedClause = ContextResolveOutput | { resolved: undefined; _error: Error }
+interface ResolvedClause extends ContextResolveOutput {
+  block?: "if" | "else" | "else if" | "endif"
+  _error?: Error
+}
+
+interface ConditionalTree {
+  type: "root" | "if" | "if" | "else" | "value"
+  value?: any
+  children: ConditionalTree[]
+  parent?: ConditionalTree
+}
 
 function getValue(v: Primitive | undefined | ResolvedClause) {
   return isPlainObject(v) ? (<ResolvedClause>v).resolved : v
@@ -85,6 +95,7 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
       passthroughExceptionType,
       allowPartial: !!opts.allowPartial,
       optionalSuffix: "}?",
+      isPlainObject,
       isPrimitive,
     })
 
@@ -103,17 +114,75 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
     let resolved: any = outputs[0]?.resolved
 
     if (outputs.length > 1) {
-      resolved = outputs
-        .map((output) => {
-          const v = getValue(output)
-          return v === null ? "null" : v
-        })
-        .join("")
+      // Assemble the parts into a conditional tree
+      const tree: ConditionalTree = {
+        type: "root",
+        children: [],
+      }
+      let currentNode = tree
+
+      for (const part of outputs) {
+        if (part.block === "if") {
+          const node: ConditionalTree = {
+            type: "if",
+            value: !!part.resolved,
+            children: [],
+            parent: currentNode,
+          }
+          currentNode.children.push(node)
+          currentNode = node
+        } else if (part.block === "else") {
+          if (currentNode.type !== "if") {
+            throw new TemplateStringError("Found ${else} block without a preceding ${if...} block.", {})
+          }
+          const node: ConditionalTree = {
+            type: "else",
+            value: !currentNode.value,
+            children: [],
+            parent: currentNode.parent,
+          }
+          currentNode.parent!.children.push(node)
+          currentNode = node
+        } else if (part.block === "endif") {
+          if (currentNode.type === "if" || currentNode.type === "else") {
+            currentNode = currentNode.parent!
+          } else {
+            throw new TemplateStringError("Found ${endif} block without a preceding ${if...} block.", {})
+          }
+        } else {
+          const v = getValue(part)
+
+          currentNode.children.push({
+            type: "value",
+            value: v === null ? "null" : v,
+            children: [],
+          })
+        }
+      }
+
+      if (currentNode.type === "if" || currentNode.type === "else") {
+        throw new TemplateStringError("Missing ${endif} after ${if ...} block.", {})
+      }
+
+      // Walk down tree and resolve the output string
+      resolved = ""
+
+      function resolveTree(node: ConditionalTree) {
+        if (node.type === "value" && node.value !== undefined) {
+          resolved += node.value
+        } else if (node.type === "root" || ((node.type === "if" || node.type === "else") && !!node.value)) {
+          for (const child of node.children) {
+            resolveTree(child)
+          }
+        }
+      }
+
+      resolveTree(tree)
     }
 
     return resolved
   } catch (err) {
-    const prefix = `Invalid template string ${string}: `
+    const prefix = `Invalid template string (${truncate(string, 35).replace(/\n/g, "\\n")}): `
     const message = err.message.startsWith(prefix) ? err.message : prefix + err.message
 
     throw new TemplateStringError(message, {
