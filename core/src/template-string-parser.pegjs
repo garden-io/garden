@@ -13,6 +13,7 @@
     getKey,
     getValue,
     isArray,
+    isPlainObject,
     isPrimitive,
     optionalSuffix,
     missingKeyExceptionType,
@@ -29,7 +30,10 @@ TemplateString
   / $(.*) { return text() === "" ? [] : [{ resolved: text() }] }
 
 FormatString
-  = FormatStart e:Expression end:FormatEnd {
+  = FormatStart op:BlockOperator FormatEnd {
+    return { block: op }
+  }
+  / FormatStart blockOperator:(ExpressionBlockOperator __)* e:Expression end:FormatEndWithOptional {
       // Any unexpected error is returned immediately. Certain exceptions have special semantics that are caught below.
       if (e && e._error && e._error.type !== missingKeyExceptionType && e._error.type !== passthroughExceptionType) {
         return e
@@ -37,6 +41,21 @@ FormatString
 
       // Need to provide the optional suffix as a variable because of a parsing bug in pegjs
       const allowUndefined = end[1] === optionalSuffix
+
+      if (!isPlainObject(e)) {
+        e = { resolved: e }
+      }
+
+      if (e && blockOperator[0] && blockOperator[0][0]) {
+        e.block = blockOperator[0][0]
+      }
+
+      if (e && e.block && allowUndefined) {
+        const _error = new TemplateStringError("Cannot specify optional suffix in if-block.", {
+          text: text(),
+        })
+        return { _error }
+      }
 
       if (getValue(e) === undefined) {
         if (e && e._error && e._error.type === passthroughExceptionType) {
@@ -72,8 +91,21 @@ FormatStart
   = "${" __
 
 FormatEnd
+  = __ "}"
+
+OptionalFormatEnd
   = __ "}?"
-  / __ "}"
+
+FormatEndWithOptional
+  = OptionalFormatEnd
+  / FormatEnd
+
+BlockOperator
+  = "else"
+  / "endif"
+
+ExpressionBlockOperator
+  = "if"
 
 Prefix
   = !FormatStart (. ! FormatStart)* . { return text() }
