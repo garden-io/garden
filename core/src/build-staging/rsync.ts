@@ -105,16 +105,16 @@ export class BuildDirRsync extends BuildStaging {
     await ensureDir(targetDir)
     await ensureDir(tmpDir)
 
+    // this is so that the cygwin-based rsync client can deal with the paths
+    sourcePath = normalizeLocalRsyncPath(sourcePath)
+    targetPath = normalizeLocalRsyncPath(targetPath)
+
     if (sourceShouldBeDirectory) {
       sourcePath += "/"
     }
     if (targetShouldBeDirectory) {
       targetPath += "/"
     }
-
-    // this is so that the cygwin-based rsync client can deal with the paths
-    sourcePath = normalizeLocalRsyncPath(sourcePath)
-    targetPath = normalizeLocalRsyncPath(targetPath)
 
     // the correct way to copy all contents of a folder is using a trailing slash and not a wildcard
     sourcePath = stripWildcard(sourcePath)
