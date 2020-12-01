@@ -20,7 +20,7 @@ export interface RunModuleParams<T extends GardenModule = GardenModule> extends 
   timeout?: number
 }
 
-export const runModuleBaseSchema = () => moduleActionParamsSchema().keys(runBaseParams)
+export const runModuleBaseSchema = () => moduleActionParamsSchema().keys(runBaseParams())
 
 export const runModuleParamsSchema = () =>
   runModuleBaseSchema().keys({

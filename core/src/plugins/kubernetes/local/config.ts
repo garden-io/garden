@@ -29,23 +29,24 @@ export interface LocalKubernetesConfig extends KubernetesConfig {
   setupIngressController: string | null
 }
 
-export const configSchema = kubernetesConfigBase
-  .keys({
-    name: joiProviderName("local-kubernetes"),
-    context: k8sContextSchema().optional(),
-    namespace: joi
-      .string()
-      .description(
-        "Specify which namespace to deploy services to (defaults to the project name). " +
-          "Note that the framework generates other namespaces as well with this name as a prefix."
-      ),
-    setupIngressController: joi
-      .string()
-      .allow("nginx", false, null)
-      .default("nginx")
-      .description("Set this to null or false to skip installing/enabling the `nginx` ingress controller."),
-  })
-  .description("The provider configuration for the local-kubernetes plugin.")
+export const configSchema = () =>
+  kubernetesConfigBase()
+    .keys({
+      name: joiProviderName("local-kubernetes"),
+      context: k8sContextSchema().optional(),
+      namespace: joi
+        .string()
+        .description(
+          "Specify which namespace to deploy services to (defaults to the project name). " +
+            "Note that the framework generates other namespaces as well with this name as a prefix."
+        ),
+      setupIngressController: joi
+        .string()
+        .allow("nginx", false, null)
+        .default("nginx")
+        .description("Set this to null or false to skip installing/enabling the `nginx` ingress controller."),
+    })
+    .description("The provider configuration for the local-kubernetes plugin.")
 
 export async function configureProvider(params: ConfigureProviderParams<LocalKubernetesConfig>) {
   const { base, log, projectName, ctx } = params

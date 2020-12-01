@@ -94,21 +94,22 @@ export const mavenContainerConfigSchema = () =>
 
 const moduleTypeUrl = getModuleTypeUrl("maven-container")
 
-export const gardenPlugin = createGardenPlugin({
-  name: "maven-container",
-  dependencies: ["container"],
+export const gardenPlugin = () =>
+  createGardenPlugin({
+    name: "maven-container",
+    dependencies: ["container"],
 
-  docs: dedent`
+    docs: dedent`
     Adds the [maven-container module type](${moduleTypeUrl}), which is a specialized version of the \`container\` module type that has special semantics for building JAR files using Maven.
 
     To use it, simply add the provider to your provider configuration, and refer to the [maven-container module docs](${moduleTypeUrl}) for details on how to configure the modules.
   `,
 
-  createModuleTypes: [
-    {
-      name: "maven-container",
-      base: "container",
-      docs: dedent`
+    createModuleTypes: [
+      {
+        name: "maven-container",
+        base: "container",
+        docs: dedent`
       A specialized version of the [container](https://docs.garden.io/reference/module-types/container) module type
       that has special semantics for JAR files built with Maven.
 
@@ -122,16 +123,16 @@ export const gardenPlugin = createGardenPlugin({
       To use it, make sure to add the \`maven-container\` provider to your project configuration.
       The provider will automatically fetch and cache Maven and the appropriate OpenJDK version ahead of building.
     `,
-      schema: mavenContainerModuleSpecSchema(),
-      moduleOutputsSchema: containerModuleOutputsSchema(),
-      handlers: {
-        configure: configureMavenContainerModule,
-        getBuildStatus,
-        build,
+        schema: mavenContainerModuleSpecSchema(),
+        moduleOutputsSchema: containerModuleOutputsSchema(),
+        handlers: {
+          configure: configureMavenContainerModule,
+          getBuildStatus,
+          build,
+        },
       },
-    },
-  ],
-})
+    ],
+  })
 
 export async function configureMavenContainerModule(params: ConfigureModuleParams<MavenContainerModule>) {
   const { base, moduleConfig } = params

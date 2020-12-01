@@ -31,7 +31,7 @@ describe("containerHelpers", () => {
   const modulePath = resolve(dataDir, "test-project-container", "module-a")
   const relDockerfilePath = "docker-dir/Dockerfile"
 
-  const plugin = gardenPlugin
+  const plugin = gardenPlugin()
   const configure = plugin.createModuleTypes![0].handlers.configure!
 
   const baseConfig: ModuleConfig<ContainerModuleSpec, any, any> = {

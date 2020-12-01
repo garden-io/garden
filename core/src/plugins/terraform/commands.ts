@@ -22,10 +22,8 @@ import { getProviderStatusCachePath } from "../../tasks/resolve-provider"
 const commandsToWrap = ["apply", "plan", "destroy"]
 const initCommand = chalk.bold("terraform init")
 
-export const terraformCommands: PluginCommand[] = commandsToWrap.flatMap((commandName) => [
-  makeRootCommand(commandName),
-  makeModuleCommand(commandName),
-])
+export const getTerraformCommands = (): PluginCommand[] =>
+  commandsToWrap.flatMap((commandName) => [makeRootCommand(commandName), makeModuleCommand(commandName)])
 
 function makeRootCommand(commandName: string) {
   const terraformCommand = chalk.bold("terraform " + commandName)

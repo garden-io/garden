@@ -286,13 +286,14 @@ const tlsCertificateSchema = () =>
       .example("cert-manager"),
   })
 
-export const kubernetesConfigBase = providerConfigBaseSchema().keys({
-  buildMode: joi
-    .string()
-    .allow("local-docker", "cluster-docker", "kaniko")
-    .default("local-docker")
-    .description(
-      dedent`
+export const kubernetesConfigBase = () =>
+  providerConfigBaseSchema().keys({
+    buildMode: joi
+      .string()
+      .allow("local-docker", "cluster-docker", "kaniko")
+      .default("local-docker")
+      .description(
+        dedent`
         Choose the mechanism for building container images before deploying. By default it uses the local Docker
         daemon, but you can set it to \`cluster-docker\` or \`kaniko\` to sync files to a remote Docker daemon,
         installed in the cluster, and build container images there. This removes the need to run Docker or
@@ -309,80 +310,80 @@ export const kubernetesConfigBase = providerConfigBaseSchema().keys({
         this is less secure than Kaniko, but in turn it is generally faster. See the
         [Kaniko docs](https://github.com/GoogleContainerTools/kaniko) for more information on Kaniko.
       `
-    ),
-  clusterDocker: joi
-    .object()
-    .keys({
-      enableBuildKit: joi
-        .boolean()
-        .default(false)
-        .description(
-          deline`
+      ),
+    clusterDocker: joi
+      .object()
+      .keys({
+        enableBuildKit: joi
+          .boolean()
+          .default(false)
+          .description(
+            deline`
             Enable [BuildKit](https://github.com/moby/buildkit) support. This should in most cases work well and be
             more performant, but we're opting to keep it optional until it's enabled by default in Docker.
           `
-        ),
-    })
-    .default(() => {})
-    .description("Configuration options for the `cluster-docker` build mode."),
-  kaniko: joi
-    .object()
-    .keys({
-      image: joi
-        .string()
-        .default(DEFAULT_KANIKO_IMAGE)
-        .description(
-          deline`
+          ),
+      })
+      .default(() => {})
+      .description("Configuration options for the `cluster-docker` build mode."),
+    kaniko: joi
+      .object()
+      .keys({
+        image: joi
+          .string()
+          .default(DEFAULT_KANIKO_IMAGE)
+          .description(
+            deline`
             Change the kaniko image (repository/image:tag) to use when building in kaniko mode.
           `
-        ),
-      extraFlags: joi.array().items(joi.string()).description(deline`
+          ),
+        extraFlags: joi.array().items(joi.string()).description(deline`
         Specify extra flags to use when building the container image with kaniko.
         Flags set on container module take precedence over these.`),
-    })
-    .default(() => {})
-    .description("Configuration options for the `kaniko` build mode."),
-  defaultHostname: joi
-    .string()
-    .description("A default hostname to use when no hostname is explicitly configured for a service.")
-    .example("api.mydomain.com"),
-  deploymentStrategy: joi
-    .string()
-    .default("rolling")
-    .allow("rolling", "blue-green")
-    .description(
-      dedent`
+      })
+      .default(() => {})
+      .description("Configuration options for the `kaniko` build mode."),
+    defaultHostname: joi
+      .string()
+      .description("A default hostname to use when no hostname is explicitly configured for a service.")
+      .example("api.mydomain.com"),
+    deploymentStrategy: joi
+      .string()
+      .default("rolling")
+      .allow("rolling", "blue-green")
+      .description(
+        dedent`
         Defines the strategy for deploying the project services.
         Default is "rolling update" and there is experimental support for "blue/green" deployment.
         The feature only supports modules of type \`container\`: other types will just deploy using the default strategy.
       `
-    )
-    .meta({
-      experimental: true,
-    }),
-  forceSsl: joi
-    .boolean()
-    .default(false)
-    .description(
-      "Require SSL on all `container` module services. If set to true, an error is raised when no certificate " +
-        "is available for a configured hostname on a `container` module."
-    ),
-  gardenSystemNamespace: joi
-    .string()
-    .default(defaultSystemNamespace)
-    .description(
-      dedent`
+      )
+      .meta({
+        experimental: true,
+      }),
+    forceSsl: joi
+      .boolean()
+      .default(false)
+      .description(
+        "Require SSL on all `container` module services. If set to true, an error is raised when no certificate " +
+          "is available for a configured hostname on a `container` module."
+      ),
+    gardenSystemNamespace: joi
+      .string()
+      .default(defaultSystemNamespace)
+      .description(
+        dedent`
       Override the garden-system namespace name. This option is mainly used for testing.
       In most cases you should leave the default value.
       `
-    )
-    .meta({ internal: true }),
-  imagePullSecrets: imagePullSecretsSchema(),
-  // TODO: invert the resources and storage config schemas
-  resources: joi
-    .object()
-    .keys({
-      builder: resourceSchema(defaultResources.builder).description(dedent`
+      )
+      .meta({ internal: true }),
+    imagePullSecrets: imagePullSecretsSchema(),
+    // TODO: invert the resources and storage config schemas
+    resources: joi
+      .object()
+      .keys({
+        builder: resourceSchema(defaultResources.builder).description(dedent`
             Resource requests and limits for the in-cluster builder.
 
             When \`buildMode\` is \`cluster-docker\`, this refers to the Docker Daemon that is installed and run
@@ -392,53 +393,53 @@ export const kubernetesConfigBase = providerConfigBaseSchema().keys({
             When \`buildMode\` is \`kaniko\`, this refers to _each instance_ of Kaniko, so you'd generally use lower
             limits/requests, but you should evaluate based on your needs.
           `),
-      registry: resourceSchema(defaultResources.registry).description(dedent`
+        registry: resourceSchema(defaultResources.registry).description(dedent`
             Resource requests and limits for the in-cluster image registry. Built images are pushed to this registry,
             so that they are available to all the nodes in your cluster.
 
             This is shared across all users and builds, so it should be resourced accordingly, factoring
             in how many concurrent builds you expect and how large your images tend to be.
           `),
-      sync: resourceSchema(defaultResources.sync).description(dedent`
+        sync: resourceSchema(defaultResources.sync).description(dedent`
             Resource requests and limits for the code sync service, which we use to sync build contexts to the cluster
             ahead of building images. This generally is not resource intensive, but you might want to adjust the
             defaults if you have many concurrent users.
           `),
-    })
-    .default(defaultResources).description(deline`
+      })
+      .default(defaultResources).description(deline`
         Resource requests and limits for the in-cluster builder, container registry and code sync service.
         (which are automatically installed and used when \`buildMode\` is \`cluster-docker\` or \`kaniko\`).
       `),
-  storage: joi
-    .object()
-    .keys({
-      builder: storageSchema(defaultStorage.builder).description(dedent`
+    storage: joi
+      .object()
+      .keys({
+        builder: storageSchema(defaultStorage.builder).description(dedent`
             Storage parameters for the data volume for the in-cluster Docker Daemon.
 
             Only applies when \`buildMode\` is set to \`cluster-docker\`, ignored otherwise.
           `),
-      nfs: joi
-        .object()
-        .keys({
-          storageClass: joi
-            .string()
-            .allow(null)
-            .default(null)
-            .description("Storage class to use as backing storage for NFS ."),
-        })
-        .default({ storageClass: null }).description(dedent`
+        nfs: joi
+          .object()
+          .keys({
+            storageClass: joi
+              .string()
+              .allow(null)
+              .default(null)
+              .description("Storage class to use as backing storage for NFS ."),
+          })
+          .default({ storageClass: null }).description(dedent`
             Storage parameters for the NFS provisioner, which we automatically create for the sync volume, _unless_
             you specify a \`storageClass\` for the sync volume. See the below \`sync\` parameter for more.
 
             Only applies when \`buildMode\` is set to \`cluster-docker\` or \`kaniko\`, ignored otherwise.
           `),
-      registry: storageSchema(defaultStorage.registry).description(dedent`
+        registry: storageSchema(defaultStorage.registry).description(dedent`
             Storage parameters for the in-cluster Docker registry volume. Built images are stored here, so that they
             are available to all the nodes in your cluster.
 
             Only applies when \`buildMode\` is set to \`cluster-docker\` or \`kaniko\`, ignored otherwise.
           `),
-      sync: storageSchema(defaultStorage.sync).description(dedent`
+        sync: storageSchema(defaultStorage.sync).description(dedent`
             Storage parameters for the code sync volume, which build contexts are synced to ahead of running
             in-cluster builds.
 
@@ -448,133 +449,134 @@ export const kubernetesConfigBase = providerConfigBaseSchema().keys({
 
             Only applies when \`buildMode\` is set to \`cluster-docker\` or \`kaniko\`, ignored otherwise.
           `),
-    })
-    .default(defaultStorage).description(dedent`
+      })
+      .default(defaultStorage).description(dedent`
         Storage parameters to set for the in-cluster builder, container registry and code sync persistent volumes
         (which are automatically installed and used when \`buildMode\` is \`cluster-docker\` or \`kaniko\`).
 
         These are all shared cluster-wide across all users and builds, so they should be resourced accordingly,
         factoring in how many concurrent builds you expect and how large your images and build contexts tend to be.
       `),
-  tlsCertificates: joiArray(tlsCertificateSchema())
-    .unique("name")
-    .description("One or more certificates to use for ingress."),
-  certManager: joi
-    .object()
-    .optional()
-    .keys({
-      install: joi.bool().default(false).description(dedent`
+    tlsCertificates: joiArray(tlsCertificateSchema())
+      .unique("name")
+      .description("One or more certificates to use for ingress."),
+    certManager: joi
+      .object()
+      .optional()
+      .keys({
+        install: joi.bool().default(false).description(dedent`
           Automatically install \`cert-manager\` on initialization. See the
           [cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
         `),
-      email: joi
-        .string()
-        .required()
-        .description("The email to use when requesting Let's Encrypt certificates.")
-        .example("yourname@example.com"),
-      issuer: joi
-        .string()
-        .allow("acme")
-        .default("acme")
-        .description("The type of issuer for the certificate (only ACME is supported for now).")
-        .example("acme"),
-      acmeServer: joi
-        .string()
-        .allow("letsencrypt-staging", "letsencrypt-prod")
-        .default("letsencrypt-staging")
-        .description(
-          deline`Specify which ACME server to request certificates from. Currently Let's Encrypt staging and prod
+        email: joi
+          .string()
+          .required()
+          .description("The email to use when requesting Let's Encrypt certificates.")
+          .example("yourname@example.com"),
+        issuer: joi
+          .string()
+          .allow("acme")
+          .default("acme")
+          .description("The type of issuer for the certificate (only ACME is supported for now).")
+          .example("acme"),
+        acmeServer: joi
+          .string()
+          .allow("letsencrypt-staging", "letsencrypt-prod")
+          .default("letsencrypt-staging")
+          .description(
+            deline`Specify which ACME server to request certificates from. Currently Let's Encrypt staging and prod
           servers are supported.`
-        )
-        .example("letsencrypt-staging"),
-      acmeChallengeType: joi
-        .string()
-        .allow("HTTP-01")
-        .default("HTTP-01")
-        .description(
-          deline`The type of ACME challenge used to validate hostnames and generate the certificates
+          )
+          .example("letsencrypt-staging"),
+        acmeChallengeType: joi
+          .string()
+          .allow("HTTP-01")
+          .default("HTTP-01")
+          .description(
+            deline`The type of ACME challenge used to validate hostnames and generate the certificates
           (only HTTP-01 is supported for now).`
-        )
-        .example("HTTP-01"),
-    }).description(dedent`cert-manager configuration, for creating and managing TLS certificates. See the
+          )
+          .example("HTTP-01"),
+      }).description(dedent`cert-manager configuration, for creating and managing TLS certificates. See the
         [cert-manager guide](https://docs.garden.io/advanced/cert-manager-integration) for details.`),
-  _systemServices: joiArray(joiIdentifier()).meta({ internal: true }),
-  systemNodeSelector: joiStringMap(joi.string())
-    .description(
-      dedent`
+    _systemServices: joiArray(joiIdentifier()).meta({ internal: true }),
+    systemNodeSelector: joiStringMap(joi.string())
+      .description(
+        dedent`
       Exposes the \`nodeSelector\` field on the PodSpec of system services. This allows you to constrain
       the system services to only run on particular nodes. [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.
     `
-    )
-    .example({ disktype: "ssd" })
-    .default(() => ({})),
-  registryProxyTolerations: joiArray(
-    joi.object().keys({
-      effect: joi.string().allow("NoSchedule", "PreferNoSchedule", "NoExecute").description(dedent`
+      )
+      .example({ disktype: "ssd" })
+      .default(() => ({})),
+    registryProxyTolerations: joiArray(
+      joi.object().keys({
+        effect: joi.string().allow("NoSchedule", "PreferNoSchedule", "NoExecute").description(dedent`
           "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
           allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
         `),
-      key: joi.string().description(dedent`
+        key: joi.string().description(dedent`
           "Key" is the taint key that the toleration applies to. Empty means match all taint keys.
           If the key is empty, operator must be "Exists"; this combination means to match all values and all keys.
         `),
-      operator: joi.string().allow("Exists", "Equal").default("Equal").description(dedent`
+        operator: joi.string().allow("Exists", "Equal").default("Equal").description(dedent`
           "Operator" represents a key's relationship to the value. Valid operators are "Exists" and "Equal". Defaults to
           "Equal". "Exists" is equivalent to wildcard for value, so that a pod can tolerate all taints of a
           particular category.
         `),
-      tolerationSeconds: joi.string().description(dedent`
+        tolerationSeconds: joi.string().description(dedent`
           "TolerationSeconds" represents the period of time the toleration (which must be of effect "NoExecute",
           otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate
           the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately)
           by the system.
         `),
-      value: joi.string().description(dedent`
+        value: joi.string().description(dedent`
           "Value" is the taint value the toleration matches to. If the operator is "Exists", the value should be empty,
           otherwise just a regular string.
         `),
-    })
-  ).description(dedent`
+      })
+    ).description(dedent`
         For setting tolerations on the registry-proxy when using in-cluster building.
         The registry-proxy is a DaemonSet that proxies connections to the docker registry service on each node.
 
         Use this only if you're doing in-cluster building and the nodes in your cluster
         have [taints](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/).
       `),
-})
+  })
 
-export const configSchema = kubernetesConfigBase
-  .keys({
-    name: joiProviderName("kubernetes"),
-    context: k8sContextSchema().required(),
-    deploymentRegistry: containerRegistryConfigSchema(),
-    ingressClass: joi.string().description(dedent`
+export const configSchema = () =>
+  kubernetesConfigBase()
+    .keys({
+      name: joiProviderName("kubernetes"),
+      context: k8sContextSchema().required(),
+      deploymentRegistry: containerRegistryConfigSchema(),
+      ingressClass: joi.string().description(dedent`
         The ingress class to use on configured Ingresses (via the \`kubernetes.io/ingress.class\` annotation)
         when deploying \`container\` services. Use this if you have multiple ingress controllers in your cluster.
       `),
-    ingressHttpPort: joi
-      .number()
-      .default(80)
-      .description("The external HTTP port of the cluster's ingress controller."),
-    ingressHttpsPort: joi
-      .number()
-      .default(443)
-      .description("The external HTTPS port of the cluster's ingress controller."),
-    kubeconfig: joi
-      .posixPath()
-      .description("Path to kubeconfig file to use instead of the system default. Must be a POSIX-style path."),
-    namespace: joi.string().description(dedent`
+      ingressHttpPort: joi
+        .number()
+        .default(80)
+        .description("The external HTTP port of the cluster's ingress controller."),
+      ingressHttpsPort: joi
+        .number()
+        .default(443)
+        .description("The external HTTPS port of the cluster's ingress controller."),
+      kubeconfig: joi
+        .posixPath()
+        .description("Path to kubeconfig file to use instead of the system default. Must be a POSIX-style path."),
+      namespace: joi.string().description(dedent`
       Specify which namespace to deploy services to. Defaults to \`<project name>-<environment namespace>\`.
 
       Note that the framework may generate other namespaces as well with this name as a prefix.
       `),
-    setupIngressController: joi
-      .string()
-      .allow("nginx", false, null)
-      .default(false)
-      .description("Set this to `nginx` to install/enable the NGINX ingress controller."),
-  })
-  .unknown(false)
+      setupIngressController: joi
+        .string()
+        .allow("nginx", false, null)
+        .default(false)
+        .description("Set this to `nginx` to install/enable the NGINX ingress controller."),
+    })
+    .unknown(false)
 
 export interface ServiceResourceSpec {
   kind: HotReloadableKind

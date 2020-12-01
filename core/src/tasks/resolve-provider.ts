@@ -91,7 +91,7 @@ export class ResolveProviderTask extends BaseTask {
     const allDeps = uniq([...pluginDeps, ...explicitDeps, ...implicitDeps])
 
     const rawProviderConfigs = this.garden.getRawProviderConfigs()
-    const plugins = keyBy(await this.garden.getPlugins(), "name")
+    const plugins = keyBy(await this.garden.getAllPlugins(), "name")
 
     const matchDependencies = (depName: string) => {
       // Match against a provider if its name matches directly, or it inherits from a base named `depName`
@@ -175,7 +175,7 @@ export class ResolveProviderTask extends BaseTask {
 
     // Validating the output config against the base plugins. This is important to make sure base handlers are
     // compatible with the config.
-    const plugins = await this.garden.getPlugins()
+    const plugins = await this.garden.getAllPlugins()
     const pluginsByName = keyBy(plugins, "name")
     const plugin = pluginsByName[providerName]
 

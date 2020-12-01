@@ -304,7 +304,7 @@ const wildcardDomainCertSecret = {
 
 describe("createIngressResources", () => {
   const projectRoot = resolve(dataDir, "test-project-container")
-  const plugin = gardenPlugin
+  const plugin = gardenPlugin()
   const configure = plugin.createModuleTypes![0].handlers.configure!
 
   let garden: Garden
@@ -327,7 +327,7 @@ describe("createIngressResources", () => {
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin] })
-    const k8sPlugin = garden.registeredPlugins.kubernetes
+    const k8sPlugin = await garden.getPlugin("kubernetes")
     tools = keyBy(
       (k8sPlugin.tools || []).map((t) => new PluginTool(t)),
       "name"
