@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { cloneDeep, isEqual, merge, omit, take } from "lodash"
+import { isEqual, merge, omit, take } from "lodash"
 import { joi, joiUserIdentifier, joiVariableName, joiIdentifier } from "./common"
 import { DEFAULT_API_VERSION } from "../constants"
 import { deline, dedent } from "../util/string"
@@ -307,7 +307,13 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
   const log = garden.log
   const context = new WorkflowConfigContext(garden)
   log.silly(`Resolving template strings for workflow ${config.name}`)
-  let resolvedConfig = resolveTemplateStrings(cloneDeep(config), context, { allowPartial: true })
+  let resolvedConfig = {
+    ...resolveTemplateStrings(omit(config, "name", "triggers"), context, { allowPartial: true }),
+    name: config.name,
+  }
+  if (config.triggers) {
+    resolvedConfig["triggers"] = config.triggers
+  }
   log.silly(`Validating config for workflow ${config.name}`)
 
   resolvedConfig = <WorkflowConfig>validateWithPath({

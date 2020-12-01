@@ -466,6 +466,9 @@ class EnvironmentContext extends ConfigContext {
   }
 }
 
+/**
+ * This context is available for template strings in all workflow config fields except `name` and `triggers[]`.
+ */
 export class WorkflowConfigContext extends EnvironmentConfigContext {
   @schema(
     EnvironmentContext.getSchema().description("Information about the environment that Garden is running against.")

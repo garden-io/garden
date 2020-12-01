@@ -29,7 +29,7 @@ describe("resolveWorkflowConfig", () => {
 
   before(async () => {
     garden = await makeTestGardenA()
-    garden["secrets"] = { foo: "bar" }
+    garden["secrets"] = { foo: "bar", bar: "baz", baz: "banana" }
     garden["variables"] = { foo: "baz" }
   })
 
@@ -81,6 +81,50 @@ describe("resolveWorkflowConfig", () => {
       ...config,
       description: `Secret: bar, var: baz`,
     })
+  })
+
+  it("should not resolve template strings in trigger specs or in the workflow name", async () => {
+    const configWithTemplateStringInName: WorkflowConfig = {
+      ...defaults,
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Workflow",
+      name: "workflow-${secrets.foo}", // <--- should not be resolved, resulting in an error
+      path: "/tmp/foo",
+      steps: [
+        { description: "Deploy the stack", command: ["deploy"], skip: false, when: "onSuccess" },
+        { command: ["test"], skip: false, when: "onSuccess" },
+      ],
+    }
+
+    expectError(
+      () => resolveWorkflowConfig(garden, configWithTemplateStringInName),
+      (err) =>
+        expect(stripAnsi(err.message)).to.include(
+          'key .name with value "workflow-${secrets.foo}" fails to match the required pattern'
+        )
+    )
+
+    const configWithTemplateStringInTrigger: WorkflowConfig = {
+      ...defaults,
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Workflow",
+      name: "workflow-a",
+      path: "/tmp/foo",
+      steps: [
+        { description: "Deploy the stack", command: ["deploy"], skip: false, when: "onSuccess" },
+        { command: ["test"], skip: false, when: "onSuccess" },
+      ],
+      triggers: [
+        {
+          environment: "${secrets.bar}", // <--- should not be resolved, resulting in an error
+        },
+      ],
+    }
+
+    expectError(
+      () => resolveWorkflowConfig(garden, configWithTemplateStringInTrigger),
+      (err) => expect(err.message).to.include("Invalid environment in trigger for workflow")
+    )
   })
 
   it("should populate default values in the schema", async () => {
