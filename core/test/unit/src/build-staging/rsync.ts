@@ -25,7 +25,7 @@ import { commonSyncTests } from "./build-staging"
 
 const projectRoot = join(dataDir, "test-projects", "build-dir")
 
-describe("BuildDirRsync", () => {
+describe("BuildStagingRsync", () => {
   let garden: TestGarden
 
   before(async () => {
