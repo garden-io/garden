@@ -216,16 +216,17 @@ async function suggestModules({ name, path }: SuggestModulesParams): Promise<Sug
   }
 }
 
-export const gardenPlugin = createGardenPlugin({
-  name: "container",
-  docs: dedent`
+export const gardenPlugin = () =>
+  createGardenPlugin({
+    name: "container",
+    docs: dedent`
     Provides the [container](${getModuleTypeUrl("container")}) module type.
     _Note that this provider is currently automatically included, and you do not need to configure it in your project configuration._
   `,
-  createModuleTypes: [
-    {
-      name: "container",
-      docs: dedent`
+    createModuleTypes: [
+      {
+        name: "container",
+        docs: dedent`
         Specify a container image to build or pull from a remote registry.
         You may also optionally specify services to deploy, tasks or tests to run inside the container.
 
@@ -234,76 +235,76 @@ export const gardenPlugin = createGardenPlugin({
         other module types like [helm](${getModuleTypeUrl("helm")}) or
         [kubernetes](${getModuleTypeUrl("kubernetes")}).
       `,
-      moduleOutputsSchema: containerModuleOutputsSchema(),
-      schema: containerModuleSpecSchema(),
-      taskOutputsSchema,
-      handlers: {
-        configure: configureContainerModule,
-        suggestModules,
-        getBuildStatus: getContainerBuildStatus,
-        build: buildContainerModule,
-        publish: publishContainerModule,
+        moduleOutputsSchema: containerModuleOutputsSchema(),
+        schema: containerModuleSpecSchema(),
+        taskOutputsSchema,
+        handlers: {
+          configure: configureContainerModule,
+          suggestModules,
+          getBuildStatus: getContainerBuildStatus,
+          build: buildContainerModule,
+          publish: publishContainerModule,
 
-        async getModuleOutputs({ moduleConfig, version }) {
-          const deploymentImageName = containerHelpers.getDeploymentImageName(moduleConfig, undefined)
-          const deploymentImageId = containerHelpers.getDeploymentImageId(moduleConfig, version, undefined)
+          async getModuleOutputs({ moduleConfig, version }) {
+            const deploymentImageName = containerHelpers.getDeploymentImageName(moduleConfig, undefined)
+            const deploymentImageId = containerHelpers.getDeploymentImageId(moduleConfig, version, undefined)
 
-          return {
-            outputs: {
-              "local-image-name": containerHelpers.getLocalImageName(moduleConfig),
-              "local-image-id": containerHelpers.getLocalImageId(moduleConfig, version),
-              "deployment-image-name": deploymentImageName,
-              "deployment-image-id": deploymentImageId,
-            },
-          }
-        },
+            return {
+              outputs: {
+                "local-image-name": containerHelpers.getLocalImageName(moduleConfig),
+                "local-image-id": containerHelpers.getLocalImageId(moduleConfig, version),
+                "deployment-image-name": deploymentImageName,
+                "deployment-image-id": deploymentImageId,
+              },
+            }
+          },
 
-        async hotReloadService(_: HotReloadServiceParams) {
-          return {}
+          async hotReloadService(_: HotReloadServiceParams) {
+            return {}
+          },
         },
       },
-    },
-  ],
-  configSchema: providerConfigBaseSchema(),
-  tools: [
-    {
-      name: "docker",
-      description: "The official Docker CLI.",
-      type: "binary",
-      _includeInGardenImage: true,
-      builds: [
-        {
-          platform: "darwin",
-          architecture: "amd64",
-          url: "https://download.docker.com/mac/static/stable/x86_64/docker-19.03.6.tgz",
-          sha256: "82d279c6a2df05c2bb628607f4c3eacb5a7447be6d5f2a2f65643fbb6ed2f9af",
-          extract: {
-            format: "tar",
-            targetPath: "docker/docker",
+    ],
+    configSchema: providerConfigBaseSchema(),
+    tools: [
+      {
+        name: "docker",
+        description: "The official Docker CLI.",
+        type: "binary",
+        _includeInGardenImage: true,
+        builds: [
+          {
+            platform: "darwin",
+            architecture: "amd64",
+            url: "https://download.docker.com/mac/static/stable/x86_64/docker-19.03.6.tgz",
+            sha256: "82d279c6a2df05c2bb628607f4c3eacb5a7447be6d5f2a2f65643fbb6ed2f9af",
+            extract: {
+              format: "tar",
+              targetPath: "docker/docker",
+            },
           },
-        },
-        {
-          platform: "linux",
-          architecture: "amd64",
-          url: "https://download.docker.com/linux/static/stable/x86_64/docker-19.03.6.tgz",
-          sha256: "34ff89ce917796594cd81149b1777d07786d297ffd0fef37a796b5897052f7cc",
-          extract: {
-            format: "tar",
-            targetPath: "docker/docker",
+          {
+            platform: "linux",
+            architecture: "amd64",
+            url: "https://download.docker.com/linux/static/stable/x86_64/docker-19.03.6.tgz",
+            sha256: "34ff89ce917796594cd81149b1777d07786d297ffd0fef37a796b5897052f7cc",
+            extract: {
+              format: "tar",
+              targetPath: "docker/docker",
+            },
           },
-        },
-        {
-          platform: "windows",
-          architecture: "amd64",
-          url:
-            "https://github.com/rgl/docker-ce-windows-binaries-vagrant/releases/download/v19.03.6/docker-19.03.6.zip",
-          sha256: "b4591baa2b7016af9ff3328a26146e4db3e6ce3fbe0503a7fd87363f29d63f5c",
-          extract: {
-            format: "zip",
-            targetPath: "docker/docker.exe",
+          {
+            platform: "windows",
+            architecture: "amd64",
+            url:
+              "https://github.com/rgl/docker-ce-windows-binaries-vagrant/releases/download/v19.03.6/docker-19.03.6.zip",
+            sha256: "b4591baa2b7016af9ff3328a26146e4db3e6ce3fbe0503a7fd87363f29d63f5c",
+            extract: {
+              format: "zip",
+              targetPath: "docker/docker.exe",
+            },
           },
-        },
-      ],
-    },
-  ],
-})
+        ],
+      },
+    ],
+  })

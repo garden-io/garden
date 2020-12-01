@@ -35,7 +35,7 @@ import { LogOutCommand } from "./logout"
 import { ToolsCommand } from "./tools"
 import { UtilCommand } from "./util/util"
 
-export const coreCommands: (Command | CommandGroup)[] = [
+export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new BuildCommand(),
   new CallCommand(),
   new ConfigCommand(),
@@ -66,5 +66,5 @@ export const coreCommands: (Command | CommandGroup)[] = [
 ]
 
 export function getAllCommands() {
-  return coreCommands.flatMap((cmd) => (cmd instanceof CommandGroup ? [cmd, ...cmd.getSubCommands()] : [cmd]))
+  return getCoreCommands().flatMap((cmd) => (cmd instanceof CommandGroup ? [cmd, ...cmd.getSubCommands()] : [cmd]))
 }

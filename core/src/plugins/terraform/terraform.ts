@@ -17,11 +17,17 @@ import { supportedVersions, defaultTerraformVersion, terraformCliSpecs } from ".
 import { ConfigureProviderParams, ConfigureProviderResult } from "../../types/plugin/provider/configureProvider"
 import { ConfigurationError } from "../../exceptions"
 import { variablesSchema, TerraformBaseSpec } from "./common"
-import { schema, configureTerraformModule, getTerraformStatus, deployTerraform, deleteTerraformModule } from "./module"
+import {
+  terraformModuleSchema,
+  configureTerraformModule,
+  getTerraformStatus,
+  deployTerraform,
+  deleteTerraformModule,
+} from "./module"
 import { DOCS_BASE_URL } from "../../constants"
 import { SuggestModulesParams, SuggestModulesResult } from "../../types/plugin/module/suggestModules"
 import { listDirectory } from "../../util/fs"
-import { terraformCommands } from "./commands"
+import { getTerraformCommands } from "./commands"
 
 type TerraformProviderConfig = GenericProviderConfig &
   TerraformBaseSpec & {
@@ -66,23 +72,24 @@ const configSchema = providerConfigBaseSchema()
 const serviceOutputsTemplateString = "${runtime.services.<module-name>.outputs.<key>}"
 const providerOutputsTemplateString = "${providers.terraform.outputs.<key>}"
 
-export const gardenPlugin = createGardenPlugin({
-  name: "terraform",
-  docs: dedent`
+export const gardenPlugin = () =>
+  createGardenPlugin({
+    name: "terraform",
+    docs: dedent`
     This provider allows you to integrate Terraform stacks into your Garden project. See the [Terraform guide](${DOCS_BASE_URL}/advanced/terraform) for details and usage information.
   `,
-  configSchema,
-  handlers: {
-    configureProvider,
-    getEnvironmentStatus,
-    prepareEnvironment,
-    cleanupEnvironment,
-  },
-  commands: terraformCommands,
-  createModuleTypes: [
-    {
-      name: "terraform",
-      docs: dedent`
+    configSchema,
+    handlers: {
+      configureProvider,
+      getEnvironmentStatus,
+      prepareEnvironment,
+      cleanupEnvironment,
+    },
+    commands: getTerraformCommands(),
+    createModuleTypes: [
+      {
+        name: "terraform",
+        docs: dedent`
       Resolves a Terraform stack and either applies it automatically (if \`autoApply: true\`) or warns when the stack resources are not up-to-date.
 
       **Note: It is not recommended to set \`autoApply\` to \`true\` for any production or shared environments, since this may result in accidental or conflicting changes to the stack.** Instead, it is recommended to manually plan and apply using the provided plugin commands. Run \`garden plugins terraform\` for details.
@@ -93,38 +100,38 @@ export const gardenPlugin = createGardenPlugin({
 
       See the [Terraform guide](${DOCS_BASE_URL}/advanced/terraform) for a high-level introduction to the \`terraform\` provider.
     `,
-      serviceOutputsSchema: joiVariables().description("A map of all the outputs defined in the Terraform stack."),
-      schema,
-      handlers: {
-        suggestModules: async ({ name, path }: SuggestModulesParams): Promise<SuggestModulesResult> => {
-          const files = await listDirectory(path, { recursive: false })
+        serviceOutputsSchema: joiVariables().description("A map of all the outputs defined in the Terraform stack."),
+        schema: terraformModuleSchema(),
+        handlers: {
+          suggestModules: async ({ name, path }: SuggestModulesParams): Promise<SuggestModulesResult> => {
+            const files = await listDirectory(path, { recursive: false })
 
-          if (files.filter((f) => f.endsWith(".tf")).length > 0) {
-            return {
-              suggestions: [
-                {
-                  description: `based on found .tf files`,
-                  module: {
-                    type: "terraform",
-                    name,
-                    autoApply: false,
+            if (files.filter((f) => f.endsWith(".tf")).length > 0) {
+              return {
+                suggestions: [
+                  {
+                    description: `based on found .tf files`,
+                    module: {
+                      type: "terraform",
+                      name,
+                      autoApply: false,
+                    },
                   },
-                },
-              ],
+                ],
+              }
+            } else {
+              return { suggestions: [] }
             }
-          } else {
-            return { suggestions: [] }
-          }
+          },
+          configure: configureTerraformModule,
+          getServiceStatus: getTerraformStatus,
+          deployService: deployTerraform,
+          deleteService: deleteTerraformModule,
         },
-        configure: configureTerraformModule,
-        getServiceStatus: getTerraformStatus,
-        deployService: deployTerraform,
-        deleteService: deleteTerraformModule,
       },
-    },
-  ],
-  tools: Object.values(terraformCliSpecs),
-})
+    ],
+    tools: Object.values(terraformCliSpecs),
+  })
 
 async function configureProvider({
   config,

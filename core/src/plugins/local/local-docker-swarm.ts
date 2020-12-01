@@ -27,201 +27,202 @@ const DEPLOY_TIMEOUT = 30
 
 const pluginName = "local-docker-swarm"
 
-export const gardenPlugin = createGardenPlugin({
-  name: pluginName,
-  docs: "EXPERIMENTAL",
-  handlers: {
-    getEnvironmentStatus,
-    prepareEnvironment,
-  },
-  extendModuleTypes: [
-    {
-      name: "container",
-      handlers: {
-        getServiceStatus,
+export const gardenPlugin = () =>
+  createGardenPlugin({
+    name: pluginName,
+    docs: "EXPERIMENTAL",
+    handlers: {
+      getEnvironmentStatus,
+      prepareEnvironment,
+    },
+    extendModuleTypes: [
+      {
+        name: "container",
+        handlers: {
+          getServiceStatus,
 
-        async deployService({ ctx, module, service, runtimeContext, log }: DeployServiceParams<ContainerModule>) {
-          // TODO: split this method up and test
-          const { versionString } = service.module.version
+          async deployService({ ctx, module, service, runtimeContext, log }: DeployServiceParams<ContainerModule>) {
+            // TODO: split this method up and test
+            const { versionString } = service.module.version
 
-          log.info({ section: service.name, msg: `Deploying version ${versionString}` })
+            log.info({ section: service.name, msg: `Deploying version ${versionString}` })
 
-          const identifier = containerHelpers.getLocalImageId(module, module.version)
-          const ports = service.spec.ports.map((p) => {
-            const port: any = {
-              Protocol: p.protocol ? p.protocol.toLowerCase() : "tcp",
-              TargetPort: p.containerPort,
-            }
-
-            if (p.hostPort) {
-              port.PublishedPort = p.servicePort
-            }
-          })
-
-          const envVars = map({ ...runtimeContext.envVars, ...service.spec.env }, (v, k) => `${k}=${v}`)
-
-          const volumeMounts = service.spec.volumes.map((v) => {
-            // TODO-LOW: Support named volumes
-            if (v.hostPath) {
-              return {
-                Type: "bind",
-                Source: resolve(module.path, v.hostPath),
-                Target: v.containerPath,
+            const identifier = containerHelpers.getLocalImageId(module, module.version)
+            const ports = service.spec.ports.map((p) => {
+              const port: any = {
+                Protocol: p.protocol ? p.protocol.toLowerCase() : "tcp",
+                TargetPort: p.containerPort,
               }
+
+              if (p.hostPort) {
+                port.PublishedPort = p.servicePort
+              }
+            })
+
+            const envVars = map({ ...runtimeContext.envVars, ...service.spec.env }, (v, k) => `${k}=${v}`)
+
+            const volumeMounts = service.spec.volumes.map((v) => {
+              // TODO-LOW: Support named volumes
+              if (v.hostPath) {
+                return {
+                  Type: "bind",
+                  Source: resolve(module.path, v.hostPath),
+                  Target: v.containerPath,
+                }
+              } else {
+                return {
+                  Type: "tmpfs",
+                  Target: v.containerPath,
+                }
+              }
+            })
+
+            const opts: any = {
+              Name: getSwarmServiceName(ctx, service.name),
+              Labels: {
+                environment: ctx.environmentName,
+                provider: pluginName,
+              },
+              TaskTemplate: {
+                ContainerSpec: {
+                  Image: identifier,
+                  Command: service.spec.args,
+                  Env: envVars,
+                  Mounts: volumeMounts,
+                },
+                Resources: {
+                  Limits: {},
+                  Reservations: {},
+                },
+                RestartPolicy: {},
+                Placement: {},
+              },
+              Mode: {
+                Replicated: {
+                  Replicas: 1,
+                },
+              },
+              UpdateConfig: {
+                Parallelism: 1,
+              },
+              IngressSpec: {
+                Ports: ports,
+              },
+            }
+
+            const docker = getDocker()
+            const serviceStatus = await getServiceStatus({
+              ctx,
+              service,
+              module,
+              runtimeContext,
+              log,
+              hotReload: false,
+            })
+            let swarmServiceStatus
+            let serviceId
+
+            if (serviceStatus.externalId) {
+              const swarmService = await docker.getService(serviceStatus.externalId)
+              swarmServiceStatus = await swarmService.inspect()
+              opts.version = parseInt(swarmServiceStatus.Version.Index, 10)
+              log.verbose({
+                section: service.name,
+                msg: `Updating existing Swarm service (version ${opts.version})`,
+              })
+              await swarmService.update(opts)
+              serviceId = serviceStatus.externalId
             } else {
-              return {
-                Type: "tmpfs",
-                Target: v.containerPath,
+              log.verbose({
+                section: service.name,
+                msg: `Creating new Swarm service`,
+              })
+              const swarmService = await docker.createService(opts)
+              serviceId = swarmService.ID
+            }
+
+            // Wait for service to be ready
+            const start = new Date().getTime()
+
+            while (true) {
+              await sleep(1000)
+
+              const { lastState, lastError } = await getServiceState(serviceId)
+
+              if (lastError) {
+                throw new DeploymentError(`Service ${service.name} ${lastState}: ${lastError}`, {
+                  service,
+                  state: lastState,
+                  error: lastError,
+                })
+              }
+
+              if (mapContainerState(lastState) === "ready") {
+                break
+              }
+
+              if (new Date().getTime() - start > DEPLOY_TIMEOUT * 1000) {
+                throw new DeploymentError(`Timed out deploying ${service.name} (status: ${lastState}`, {
+                  service,
+                  state: lastState,
+                })
               }
             }
-          })
 
-          const opts: any = {
-            Name: getSwarmServiceName(ctx, service.name),
-            Labels: {
-              environment: ctx.environmentName,
-              provider: pluginName,
-            },
-            TaskTemplate: {
-              ContainerSpec: {
-                Image: identifier,
-                Command: service.spec.args,
-                Env: envVars,
-                Mounts: volumeMounts,
-              },
-              Resources: {
-                Limits: {},
-                Reservations: {},
-              },
-              RestartPolicy: {},
-              Placement: {},
-            },
-            Mode: {
-              Replicated: {
-                Replicas: 1,
-              },
-            },
-            UpdateConfig: {
-              Parallelism: 1,
-            },
-            IngressSpec: {
-              Ports: ports,
-            },
-          }
-
-          const docker = getDocker()
-          const serviceStatus = await getServiceStatus({
-            ctx,
-            service,
-            module,
-            runtimeContext,
-            log,
-            hotReload: false,
-          })
-          let swarmServiceStatus
-          let serviceId
-
-          if (serviceStatus.externalId) {
-            const swarmService = await docker.getService(serviceStatus.externalId)
-            swarmServiceStatus = await swarmService.inspect()
-            opts.version = parseInt(swarmServiceStatus.Version.Index, 10)
-            log.verbose({
+            log.info({
               section: service.name,
-              msg: `Updating existing Swarm service (version ${opts.version})`,
+              msg: `Ready`,
             })
-            await swarmService.update(opts)
-            serviceId = serviceStatus.externalId
-          } else {
-            log.verbose({
-              section: service.name,
-              msg: `Creating new Swarm service`,
+
+            return getServiceStatus({ ctx, module, service, runtimeContext, log, hotReload: false })
+          },
+
+          async execInService({ ctx, service, command, log }: ExecInServiceParams<ContainerModule>) {
+            const status = await getServiceStatus({
+              ctx,
+              service,
+              module: service.module,
+              // The runtime context doesn't matter here, we're just checking if the service is running.
+              runtimeContext: {
+                envVars: {},
+                dependencies: [],
+              },
+              log,
+              hotReload: false,
             })
-            const swarmService = await docker.createService(opts)
-            serviceId = swarmService.ID
-          }
 
-          // Wait for service to be ready
-          const start = new Date().getTime()
-
-          while (true) {
-            await sleep(1000)
-
-            const { lastState, lastError } = await getServiceState(serviceId)
-
-            if (lastError) {
-              throw new DeploymentError(`Service ${service.name} ${lastState}: ${lastError}`, {
-                service,
-                state: lastState,
-                error: lastError,
+            if (!status.state || (status.state !== "ready" && status.state !== "outdated")) {
+              throw new DeploymentError(`Service ${service.name} is not running`, {
+                name: service.name,
+                state: status.state,
               })
             }
 
-            if (mapContainerState(lastState) === "ready") {
-              break
-            }
+            // This is ugly, but dockerode doesn't have this, or at least it's too cumbersome to implement.
+            const swarmServiceName = getSwarmServiceName(ctx, service.name)
+            const servicePsCommand = [
+              "docker",
+              "service",
+              "ps",
+              "-f",
+              `'name=${swarmServiceName}.1'`,
+              "-f",
+              `'desired-state=running'`,
+              swarmServiceName,
+              "-q",
+            ]
+            let res = await exec(servicePsCommand.join(" "))
+            const serviceContainerId = `${swarmServiceName}.1.${res.stdout.trim()}`
 
-            if (new Date().getTime() - start > DEPLOY_TIMEOUT * 1000) {
-              throw new DeploymentError(`Timed out deploying ${service.name} (status: ${lastState}`, {
-                service,
-                state: lastState,
-              })
-            }
-          }
+            const execCommand = ["docker", "exec", serviceContainerId, ...command]
+            res = await exec(execCommand.join(" "))
 
-          log.info({
-            section: service.name,
-            msg: `Ready`,
-          })
-
-          return getServiceStatus({ ctx, module, service, runtimeContext, log, hotReload: false })
-        },
-
-        async execInService({ ctx, service, command, log }: ExecInServiceParams<ContainerModule>) {
-          const status = await getServiceStatus({
-            ctx,
-            service,
-            module: service.module,
-            // The runtime context doesn't matter here, we're just checking if the service is running.
-            runtimeContext: {
-              envVars: {},
-              dependencies: [],
-            },
-            log,
-            hotReload: false,
-          })
-
-          if (!status.state || (status.state !== "ready" && status.state !== "outdated")) {
-            throw new DeploymentError(`Service ${service.name} is not running`, {
-              name: service.name,
-              state: status.state,
-            })
-          }
-
-          // This is ugly, but dockerode doesn't have this, or at least it's too cumbersome to implement.
-          const swarmServiceName = getSwarmServiceName(ctx, service.name)
-          const servicePsCommand = [
-            "docker",
-            "service",
-            "ps",
-            "-f",
-            `'name=${swarmServiceName}.1'`,
-            "-f",
-            `'desired-state=running'`,
-            swarmServiceName,
-            "-q",
-          ]
-          let res = await exec(servicePsCommand.join(" "))
-          const serviceContainerId = `${swarmServiceName}.1.${res.stdout.trim()}`
-
-          const execCommand = ["docker", "exec", serviceContainerId, ...command]
-          res = await exec(execCommand.join(" "))
-
-          return { code: 0, output: "", stdout: res.stdout, stderr: res.stderr }
+            return { code: 0, output: "", stdout: res.stdout, stderr: res.stderr }
+          },
         },
       },
-    },
-  ],
-})
+    ],
+  })
 
 async function getEnvironmentStatus(): Promise<EnvironmentStatus> {
   const docker = getDocker()

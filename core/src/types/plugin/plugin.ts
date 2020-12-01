@@ -412,11 +412,13 @@ export interface GardenPlugin extends GardenPluginSpec {
   dashboardPages: DashboardPage[]
 }
 
+export type GardenPluginCallback = () => GardenPlugin
+
 export interface PluginMap {
   [name: string]: GardenPlugin
 }
 
-export type RegisterPluginParam = string | GardenPlugin
+export type RegisterPluginParam = string | GardenPlugin | GardenPluginCallback
 
 const moduleHandlersSchema = () =>
   joi

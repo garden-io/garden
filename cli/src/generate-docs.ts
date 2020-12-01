@@ -11,7 +11,7 @@ import { resolve } from "path"
 import { Logger } from "@garden-io/core/build/src/logger/logger"
 import { LogLevel } from "@garden-io/core/build/src/logger/log-node"
 import { GARDEN_CLI_ROOT } from "@garden-io/core/build/src/constants"
-import { bundledPlugins } from "./cli"
+import { getBundledPlugins } from "./cli"
 
 require("source-map-support").install()
 
@@ -24,7 +24,7 @@ try {
   })
 } catch (_) {}
 
-generateDocs(resolve(GARDEN_CLI_ROOT, "..", "docs"), bundledPlugins)
+generateDocs(resolve(GARDEN_CLI_ROOT, "..", "docs"), getBundledPlugins())
   .then(() => {
     // tslint:disable-next-line: no-console
     console.log("Done!")

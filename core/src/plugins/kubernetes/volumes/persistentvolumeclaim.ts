@@ -39,7 +39,7 @@ type PersistentVolumeClaimModule = GardenModule<PersistentVolumeClaimSpec, Persi
 const jsonSchema = JSON.parse(readFileSync(join(STATIC_DIR, "kubernetes", "persistentvolumeclaim.json")).toString())
 const containerTypeUrl = getModuleTypeUrl("container")
 
-export const pvcModuleDefinition: ModuleTypeDefinition = {
+export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
   name: "persistentvolumeclaim",
   docs: dedent`
     Creates a [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) in your namespace, that can be referenced and mounted by other resources and [container modules](${containerTypeUrl}).
@@ -97,7 +97,7 @@ export const pvcModuleDefinition: ModuleTypeDefinition = {
       return deployKubernetesService(params)
     },
   },
-}
+})
 
 /**
  * Maps a `persistentvolumeclaim` module to a `kubernetes` module (so we can re-use those handlers).

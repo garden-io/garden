@@ -26,37 +26,40 @@ import { dedent } from "../../../../../src/util/string"
 import { runExecTask } from "../../../../../src/plugins/exec"
 import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
 
-// Use the runExecTask handler
-const testExecPlugin = createGardenPlugin({
-  ...testPlugin,
-  createModuleTypes: [
-    {
-      ...testPlugin.createModuleTypes![0],
-      handlers: {
-        ...testPlugin.createModuleTypes![0].handlers,
-        runTask: runExecTask,
-      },
-    },
-  ],
-})
-const testExecPluginB = createGardenPlugin({
-  ...testPluginB,
-  extendModuleTypes: [
-    {
-      name: "test",
-      handlers: testExecPlugin.createModuleTypes![0].handlers,
-    },
-  ],
-})
-
-async function makeExecTestGarden(projectRoot: string = projectRootA) {
-  return TestGarden.factory(projectRoot, {
-    plugins: [testExecPlugin, testExecPluginB],
-  })
-}
-
 describe("RunTaskCommand", () => {
   const cmd = new RunTaskCommand()
+
+  const basePlugin = testPlugin()
+
+  // Use the runExecTask handler
+  const testExecPlugin = createGardenPlugin({
+    ...basePlugin,
+    createModuleTypes: [
+      {
+        ...basePlugin.createModuleTypes![0],
+        handlers: {
+          ...basePlugin.createModuleTypes![0].handlers,
+          runTask: runExecTask,
+        },
+      },
+    ],
+  })
+
+  const testExecPluginB = createGardenPlugin({
+    ...testPluginB(),
+    extendModuleTypes: [
+      {
+        name: "test",
+        handlers: testExecPlugin.createModuleTypes![0].handlers,
+      },
+    ],
+  })
+
+  async function makeExecTestGarden(projectRoot: string = projectRootA) {
+    return TestGarden.factory(projectRoot, {
+      plugins: [testExecPlugin, testExecPluginB],
+    })
+  }
 
   it("should run a task", async () => {
     const garden = await makeExecTestGarden()

@@ -15,7 +15,7 @@ import { getDataDir, makeTestGarden, getLogMessages } from "../../../../helpers"
 import { findByName } from "../../../../../src/util/util"
 import { Garden } from "../../../../../src/garden"
 import { TaskTask } from "../../../../../src/tasks/task"
-import { terraformCommands } from "../../../../../src/plugins/terraform/commands"
+import { getTerraformCommands } from "../../../../../src/plugins/terraform/commands"
 import { LogLevel } from "../../../../../src/logger/log-node"
 import { ConfigGraph } from "../../../../../src/config-graph"
 import { TerraformProvider } from "../../../../../src/plugins/terraform/terraform"
@@ -66,7 +66,7 @@ describe("Terraform provider", () => {
     it("should expose outputs to template contexts after applying", async () => {
       const provider = await garden.resolveProvider(garden.log, "terraform")
       const ctx = await garden.getPluginContext(provider)
-      const applyRootCommand = findByName(terraformCommands, "apply-root")!
+      const applyRootCommand = findByName(getTerraformCommands(), "apply-root")!
       await applyRootCommand.handler({
         ctx,
         args: ["-auto-approve", "-input=false"],
@@ -88,7 +88,7 @@ describe("Terraform provider", () => {
         const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
         const ctx = await garden.getPluginContext(provider)
 
-        const command = findByName(terraformCommands, "apply-root")!
+        const command = findByName(getTerraformCommands(), "apply-root")!
         await command.handler({
           ctx,
           args: ["-auto-approve", "-input=false"],
@@ -103,7 +103,7 @@ describe("Terraform provider", () => {
 
         const ctx = await garden.getPluginContext(provider)
 
-        const command = findByName(terraformCommands, "apply-root")!
+        const command = findByName(getTerraformCommands(), "apply-root")!
         await command.handler({
           ctx,
           args: ["-auto-approve", "-input=false"],
@@ -121,7 +121,7 @@ describe("Terraform provider", () => {
         const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
         const ctx = await garden.getPluginContext(provider)
 
-        const command = findByName(terraformCommands, "plan-root")!
+        const command = findByName(getTerraformCommands(), "plan-root")!
         await command.handler({
           ctx,
           args: ["-input=false"],
@@ -136,7 +136,7 @@ describe("Terraform provider", () => {
 
         const ctx = await garden.getPluginContext(provider)
 
-        const command = findByName(terraformCommands, "plan-root")!
+        const command = findByName(getTerraformCommands(), "plan-root")!
         await command.handler({
           ctx,
           args: ["-input=false"],
@@ -154,7 +154,7 @@ describe("Terraform provider", () => {
         const provider = (await garden.resolveProvider(garden.log, "terraform")) as TerraformProvider
         const ctx = await garden.getPluginContext(provider)
 
-        const command = findByName(terraformCommands, "destroy-root")!
+        const command = findByName(getTerraformCommands(), "destroy-root")!
         await command.handler({
           ctx,
           args: ["-input=false", "-auto-approve"],
@@ -169,7 +169,7 @@ describe("Terraform provider", () => {
 
         const ctx = await garden.getPluginContext(provider)
 
-        const command = findByName(terraformCommands, "destroy-root")!
+        const command = findByName(getTerraformCommands(), "destroy-root")!
         await command.handler({
           ctx,
           args: ["-input=false", "-auto-approve"],
@@ -188,7 +188,7 @@ describe("Terraform provider", () => {
         const ctx = await garden.getPluginContext(provider)
 
         // This creates the test file
-        const command = findByName(terraformCommands, "apply-root")!
+        const command = findByName(getTerraformCommands(), "apply-root")!
         await command.handler({
           ctx,
           args: ["-auto-approve", "-input=false"],
@@ -332,7 +332,7 @@ describe("Terraform module type", () => {
       const ctx = await garden.getPluginContext(provider)
       graph = await garden.getConfigGraph(garden.log)
 
-      const command = findByName(terraformCommands, "apply-module")!
+      const command = findByName(getTerraformCommands(), "apply-module")!
       await command.handler({
         ctx,
         args: ["tf", "-auto-approve", "-input=false"],
@@ -355,7 +355,7 @@ describe("Terraform module type", () => {
 
       graph = await _garden.getConfigGraph(_garden.log)
 
-      const command = findByName(terraformCommands, "apply-module")!
+      const command = findByName(getTerraformCommands(), "apply-module")!
       await command.handler({
         ctx,
         args: ["tf", "-auto-approve", "-input=false"],
@@ -374,7 +374,7 @@ describe("Terraform module type", () => {
       const ctx = await garden.getPluginContext(provider)
       graph = await garden.getConfigGraph(garden.log)
 
-      const command = findByName(terraformCommands, "plan-module")!
+      const command = findByName(getTerraformCommands(), "plan-module")!
       await command.handler({
         ctx,
         args: ["tf", "-input=false"],
@@ -397,7 +397,7 @@ describe("Terraform module type", () => {
 
       graph = await _garden.getConfigGraph(_garden.log)
 
-      const command = findByName(terraformCommands, "plan-module")!
+      const command = findByName(getTerraformCommands(), "plan-module")!
       await command.handler({
         ctx,
         args: ["tf", "-input=false"],
@@ -416,7 +416,7 @@ describe("Terraform module type", () => {
       const ctx = await garden.getPluginContext(provider)
       graph = await garden.getConfigGraph(garden.log)
 
-      const command = findByName(terraformCommands, "destroy-module")!
+      const command = findByName(getTerraformCommands(), "destroy-module")!
       await command.handler({
         ctx,
         args: ["tf", "-input=false", "-auto-approve"],
@@ -439,7 +439,7 @@ describe("Terraform module type", () => {
 
       graph = await _garden.getConfigGraph(_garden.log)
 
-      const command = findByName(terraformCommands, "destroy-module")!
+      const command = findByName(getTerraformCommands(), "destroy-module")!
       await command.handler({
         ctx,
         args: ["tf", "-input=false", "-auto-approve"],
@@ -464,7 +464,7 @@ describe("Terraform module type", () => {
     it("should expose runtime outputs to template contexts if stack had already been applied", async () => {
       const provider = await garden.resolveProvider(garden.log, "terraform")
       const ctx = await garden.getPluginContext(provider)
-      const applyCommand = findByName(terraformCommands, "apply-module")!
+      const applyCommand = findByName(getTerraformCommands(), "apply-module")!
       await applyCommand.handler({
         ctx,
         args: ["tf", "-auto-approve", "-input=false"],
@@ -481,7 +481,7 @@ describe("Terraform module type", () => {
     it("should return outputs with the service status", async () => {
       const provider = await garden.resolveProvider(garden.log, "terraform")
       const ctx = await garden.getPluginContext(provider)
-      const applyCommand = findByName(terraformCommands, "apply-module")!
+      const applyCommand = findByName(getTerraformCommands(), "apply-module")!
       await applyCommand.handler({
         ctx,
         args: ["tf", "-auto-approve", "-input=false"],
@@ -515,7 +515,7 @@ describe("Terraform module type", () => {
 
       const provider = await _garden.resolveProvider(_garden.log, "terraform")
       const ctx = await _garden.getPluginContext(provider)
-      const applyCommand = findByName(terraformCommands, "apply-module")!
+      const applyCommand = findByName(getTerraformCommands(), "apply-module")!
       await applyCommand.handler({
         ctx,
         args: ["tf", "-auto-approve", "-input=false"],

@@ -38,12 +38,13 @@ export interface TerraformModuleSpec extends TerraformBaseSpec {
 
 export interface TerraformModule extends GardenModule<TerraformModuleSpec> {}
 
-export const schema = joi.object().keys({
-  build: baseBuildSpecSchema(),
-  allowDestroy: joi.boolean().default(false).description(dedent`
+export const terraformModuleSchema = () =>
+  joi.object().keys({
+    build: baseBuildSpecSchema(),
+    allowDestroy: joi.boolean().default(false).description(dedent`
     If set to true, Garden will run \`terraform destroy\` on the stack when calling \`garden delete env\` or \`garden delete service <module name>\`.
   `),
-  autoApply: joi.boolean().allow(null).default(null).description(dedent`
+    autoApply: joi.boolean().allow(null).default(null).description(dedent`
         If set to true, Garden will automatically run \`terraform apply -auto-approve\` when the stack is not
         up-to-date. Otherwise, a warning is logged if the stack is out-of-date, and an error thrown if it is missing
         entirely.
@@ -52,23 +53,23 @@ export const schema = joi.object().keys({
 
         Defaults to the value set in the provider config.
       `),
-  dependencies: dependenciesSchema(),
-  root: joi.posixPath().subPathOnly().default(".").description(dedent`
+    dependencies: dependenciesSchema(),
+    root: joi.posixPath().subPathOnly().default(".").description(dedent`
         Specify the path to the working directory root—i.e. where your Terraform files are—relative to the module root.
       `),
-  variables: variablesSchema().description(dedent`
+    variables: variablesSchema().description(dedent`
         A map of variables to use when applying the stack. You can define these here or you can place a
         \`terraform.tfvars\` file in the working directory root.
 
         If you specified \`variables\` in the \`terraform\` provider config, those will be included but the variables
         specified here take precedence.
       `),
-  version: joi.string().allow(...supportedVersions, null).description(dedent`
+    version: joi.string().allow(...supportedVersions, null).description(dedent`
       The version of Terraform to use. Defaults to the version set in the provider config.
       Set to \`null\` to use whichever version of \`terraform\` that is on your PATH.
     `),
-  workspace: joi.string().allow(null).description("Use the specified Terraform workspace."),
-})
+    workspace: joi.string().allow(null).description("Use the specified Terraform workspace."),
+  })
 
 export async function configureTerraformModule({ ctx, moduleConfig }: ConfigureModuleParams<TerraformModule>) {
   // Make sure the configured root path exists

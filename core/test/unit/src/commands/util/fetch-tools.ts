@@ -12,7 +12,6 @@ import { FetchToolsCommand } from "../../../../../src/commands/util/fetch-tools"
 import { expect } from "chai"
 import { DEFAULT_API_VERSION, GARDEN_GLOBAL_PATH } from "../../../../../src/constants"
 import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
-import { pick } from "lodash"
 import { join } from "path"
 import { defaultNamespace } from "../../../../../src/config/project"
 
@@ -79,7 +78,7 @@ describe("FetchToolsCommand", () => {
     })
 
     garden.providerConfigs = [{ name: "test" }]
-    garden.registeredPlugins = pick(garden["registeredPlugins"], "test")
+    garden.registeredPlugins = [plugin]
 
     await garden.resolveProviders(garden.log)
 
@@ -126,7 +125,7 @@ describe("FetchToolsCommand", () => {
     })
 
     garden.providerConfigs = []
-    garden.registeredPlugins = pick(garden["registeredPlugins"], "test")
+    garden.registeredPlugins = [plugin]
 
     await garden.resolveProviders(garden.log)
 
@@ -164,7 +163,7 @@ describe("FetchToolsCommand", () => {
     })
 
     garden.providerConfigs = []
-    garden.registeredPlugins = pick(garden["registeredPlugins"], "test")
+    garden.registeredPlugins = [plugin]
 
     await garden.resolveProviders(garden.log)
 
@@ -211,7 +210,7 @@ describe("FetchToolsCommand", () => {
     })
 
     garden.providerConfigs = []
-    garden.registeredPlugins = pick(garden["registeredPlugins"], "test")
+    garden.registeredPlugins = [plugin]
 
     await garden.resolveProviders(garden.log)
 

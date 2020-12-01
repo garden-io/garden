@@ -88,7 +88,7 @@ export class ToolsCommand extends Command<Args, Opts> {
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args>) {
-    const tools = getTools(garden)
+    const tools = await getTools(garden)
 
     if (!args.tool) {
       // We're listing tools, not executing one
@@ -113,7 +113,7 @@ export class ToolsCommand extends Command<Args, Opts> {
     }
 
     // We're executing a tool
-    const availablePlugins = Object.values(garden["registeredPlugins"])
+    const availablePlugins = await garden.getAllPlugins()
     let plugins = availablePlugins
 
     if (pluginName) {
@@ -136,7 +136,7 @@ export class ToolsCommand extends Command<Args, Opts> {
             log.debug(`Unable to resolve project config: ${err.message}`)
           }
         }
-        const configuredPlugins = await garden.getPlugins()
+        const configuredPlugins = await garden.getAllPlugins()
         plugins = uniqByName([...configuredPlugins, ...availablePlugins])
       }
     }
@@ -180,15 +180,15 @@ export class ToolsCommand extends Command<Args, Opts> {
   }
 }
 
-function getTools(garden: Garden) {
-  const registeredPlugins = Object.values(garden["registeredPlugins"])
+async function getTools(garden: Garden) {
+  const registeredPlugins = await garden.getAllPlugins()
 
   return sortBy(registeredPlugins, "name").flatMap((plugin) =>
     (plugin.tools || []).map((tool) => ({ ...omit(tool, "_includeInGardenImage"), pluginName: plugin.name }))
   )
 }
 
-function printTools(garden: Garden, log: LogEntry) {
+async function printTools(garden: Garden, log: LogEntry) {
   log.info(dedent`
   ${chalk.white.bold("USAGE")}
 
@@ -198,7 +198,7 @@ function printTools(garden: Garden, log: LogEntry) {
   ${chalk.white.bold("PLUGIN TOOLS")}
   `)
 
-  const tools = getTools(garden)
+  const tools = await getTools(garden)
 
   const rows = tools.map((tool) => {
     return [

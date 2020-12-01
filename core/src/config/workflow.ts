@@ -16,7 +16,7 @@ import { WorkflowConfigContext } from "./config-context"
 import { resolveTemplateStrings } from "../template-string"
 import { validateWithPath } from "./validation"
 import { ConfigurationError } from "../exceptions"
-import { coreCommands } from "../commands/commands"
+import { getCoreCommands } from "../commands/commands"
 import { CommandGroup } from "../commands/base"
 import { EnvironmentConfig, getNamespace } from "./project"
 import { globalOptions } from "../cli/params"
@@ -335,7 +335,7 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
  * Get all commands whitelisted for workflows
  */
 function getStepCommands() {
-  return coreCommands
+  return getCoreCommands()
     .flatMap((cmd) => {
       if (cmd instanceof CommandGroup) {
         return cmd.getSubCommands()

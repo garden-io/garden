@@ -8,14 +8,16 @@
 
 import { createGardenPlugin } from "../types/plugin/plugin"
 
-export const gardenPlugin = createGardenPlugin({
-  name: "npm-package",
-  createModuleTypes: [
-    {
-      name: "npm-package",
-      base: "exec",
-      docs: "[DEPRECATED]",
-      handlers: {},
-    },
-  ],
-})
+export const gardenPlugin = () =>
+  createGardenPlugin({
+    name: "npm-package",
+    dependencies: ["exec"],
+    createModuleTypes: [
+      {
+        name: "npm-package",
+        base: "exec",
+        docs: "[DEPRECATED]",
+        handlers: {},
+      },
+    ],
+  })

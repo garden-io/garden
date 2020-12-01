@@ -137,152 +137,161 @@ export async function configureTestModule({ moduleConfig }: ConfigureModuleParam
 
 const testPluginSecrets: { [key: string]: string } = {}
 
-export const testPlugin = createGardenPlugin({
-  name: "test-plugin",
-  dashboardPages: [
-    {
-      name: "test",
-      description: "Test dashboard page",
-      title: "Test",
-      newWindow: false,
-    },
-  ],
-  handlers: {
-    async configureProvider({ config }) {
-      for (let member in testPluginSecrets) {
-        delete testPluginSecrets[member]
-      }
-      return { config }
-    },
+export const testPlugin = () =>
+  createGardenPlugin({
+    name: "test-plugin",
+    dashboardPages: [
+      {
+        name: "test",
+        description: "Test dashboard page",
+        title: "Test",
+        newWindow: false,
+      },
+    ],
+    handlers: {
+      async configureProvider({ config }) {
+        for (let member in testPluginSecrets) {
+          delete testPluginSecrets[member]
+        }
+        return { config }
+      },
 
-    async getDashboardPage({ page }) {
-      return { url: `http://localhost:12345/${page.name}` }
-    },
+      async getDashboardPage({ page }) {
+        return { url: `http://localhost:12345/${page.name}` }
+      },
 
-    async getEnvironmentStatus() {
-      return { ready: true, outputs: { testKey: "testValue" } }
-    },
+      async getEnvironmentStatus() {
+        return { ready: true, outputs: { testKey: "testValue" } }
+      },
 
-    async prepareEnvironment() {
-      return { status: { ready: true, outputs: { testKey: "testValue" } } }
-    },
+      async prepareEnvironment() {
+        return { status: { ready: true, outputs: { testKey: "testValue" } } }
+      },
 
-    async setSecret({ key, value }) {
-      testPluginSecrets[key] = "" + value
-      return {}
-    },
+      async setSecret({ key, value }) {
+        testPluginSecrets[key] = "" + value
+        return {}
+      },
 
-    async getSecret({ key }) {
-      return { value: testPluginSecrets[key] || null }
-    },
+      async getSecret({ key }) {
+        return { value: testPluginSecrets[key] || null }
+      },
 
-    async deleteSecret({ key }) {
-      if (testPluginSecrets[key]) {
-        delete testPluginSecrets[key]
-        return { found: true }
-      } else {
-        return { found: false }
-      }
+      async deleteSecret({ key }) {
+        if (testPluginSecrets[key]) {
+          delete testPluginSecrets[key]
+          return { found: true }
+        } else {
+          return { found: false }
+        }
+      },
+      async getDebugInfo() {
+        return {
+          info: {
+            exampleData: "data",
+            exampleData2: "data2",
+          },
+        }
+      },
     },
-    async getDebugInfo() {
-      return {
-        info: {
-          exampleData: "data",
-          exampleData2: "data2",
-        },
-      }
-    },
-  },
-  createModuleTypes: [
-    {
-      name: "test",
-      docs: "Test module type",
-      schema: testModuleSpecSchema(),
-      handlers: {
-        testModule: testExecModule,
-        configure: configureTestModule,
-        build: buildExecModule,
-        runModule,
+    createModuleTypes: [
+      {
+        name: "test",
+        docs: "Test module type",
+        schema: testModuleSpecSchema(),
+        handlers: {
+          testModule: testExecModule,
+          configure: configureTestModule,
+          build: buildExecModule,
+          runModule,
 
-        async getModuleOutputs() {
-          return { outputs: { foo: "bar" } }
-        },
-        async getServiceStatus() {
-          return { state: "ready", detail: {} }
-        },
-        async deployService() {
-          return { state: "ready", detail: {} }
-        },
+          async getModuleOutputs() {
+            return { outputs: { foo: "bar" } }
+          },
+          async getServiceStatus() {
+            return { state: "ready", detail: {} }
+          },
+          async deployService() {
+            return { state: "ready", detail: {} }
+          },
 
-        async runService({
-          ctx,
-          service,
-          interactive,
-          runtimeContext,
-          timeout,
-          log,
-        }: RunServiceParams): Promise<RunResult> {
-          return runModule({
+          async runService({
             ctx,
-            log,
-            module: service.module,
-            args: [service.name],
+            service,
             interactive,
             runtimeContext,
             timeout,
-          })
-        },
-
-        async runTask({ ctx, task, interactive, runtimeContext, log }: RunTaskParams): Promise<RunTaskResult> {
-          const result = await runModule({
-            ctx,
-            interactive,
             log,
-            runtimeContext,
-            module: task.module,
-            args: task.spec.command,
-            timeout: task.spec.timeout || 9999,
-          })
+          }: RunServiceParams): Promise<RunResult> {
+            return runModule({
+              ctx,
+              log,
+              module: service.module,
+              args: [service.name],
+              interactive,
+              runtimeContext,
+              timeout,
+            })
+          },
 
-          return {
-            ...result,
-            taskName: task.name,
-            outputs: {
-              log: result.log,
-            },
-          }
+          async runTask({ ctx, task, interactive, runtimeContext, log }: RunTaskParams): Promise<RunTaskResult> {
+            const result = await runModule({
+              ctx,
+              interactive,
+              log,
+              runtimeContext,
+              module: task.module,
+              args: task.spec.command,
+              timeout: task.spec.timeout || 9999,
+            })
+
+            return {
+              ...result,
+              taskName: task.name,
+              outputs: {
+                log: result.log,
+              },
+            }
+          },
         },
       },
-    },
-  ],
-})
+    ],
+  })
 
-export const testPluginB = createGardenPlugin({
-  ...testPlugin,
-  name: "test-plugin-b",
-  dependencies: ["test-plugin"],
-  createModuleTypes: [],
-  // This doesn't actually change any behavior, except to use this provider instead of test-plugin
-  extendModuleTypes: [
-    {
-      name: "test",
-      handlers: testPlugin.createModuleTypes![0].handlers,
-    },
-  ],
-})
+export const testPluginB = () => {
+  const base = testPlugin()
 
-export const testPluginC = createGardenPlugin({
-  ...testPlugin,
-  name: "test-plugin-c",
-  createModuleTypes: [
-    {
-      name: "test-c",
-      docs: "Test module type C",
-      schema: testModuleSpecSchema(),
-      handlers: testPlugin.createModuleTypes![0].handlers,
-    },
-  ],
-})
+  return createGardenPlugin({
+    ...base,
+    name: "test-plugin-b",
+    dependencies: ["test-plugin"],
+    createModuleTypes: [],
+    // This doesn't actually change any behavior, except to use this provider instead of test-plugin
+    extendModuleTypes: [
+      {
+        name: "test",
+        handlers: base.createModuleTypes![0].handlers,
+      },
+    ],
+  })
+}
+
+export const testPluginC = () => {
+  const base = testPlugin()
+
+  return createGardenPlugin({
+    ...base,
+    name: "test-plugin-c",
+    createModuleTypes: [
+      {
+        name: "test-c",
+        docs: "Test module type C",
+        schema: testModuleSpecSchema(),
+        handlers: base.createModuleTypes![0].handlers,
+      },
+    ],
+  })
+}
 
 const defaultModuleConfig: ModuleConfig = {
   apiVersion: DEFAULT_API_VERSION,
@@ -317,11 +326,11 @@ export const makeTestModule = (params: Partial<ModuleConfig> = {}) => {
   return { ...defaultModuleConfig, ...params }
 }
 
-export const testPlugins = [testPlugin, testPluginB, testPluginC]
+export const testPlugins = () => [testPlugin(), testPluginB(), testPluginC()]
 
 export const makeTestGarden = async (projectRoot: string, opts: GardenOpts = {}) => {
   opts = { sessionId: uuidv4(), ...opts }
-  const plugins = [...testPlugins, ...(opts.plugins || [])]
+  const plugins = [...testPlugins(), ...(opts.plugins || [])]
   return TestGarden.factory(projectRoot, { ...opts, plugins })
 }
 
