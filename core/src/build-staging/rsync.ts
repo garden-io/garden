@@ -15,7 +15,6 @@ import { exec } from "../util/util"
 import { deline } from "../util/string"
 import { syncWithOptions } from "../util/sync"
 import { BuildStaging, SyncParams } from "./build-staging"
-import { FileStatsHelper } from "./helpers"
 
 const minRsyncVersion = "3.1.0"
 const versionRegex = /rsync  version [v]*([\d\.]+)  /
@@ -90,17 +89,8 @@ export class BuildDirRsync extends BuildStaging {
     let sourcePath = joinWithPosix(sourceRoot, sourceRelPath)
     let targetPath = joinWithPosix(targetRoot, targetRelPath)
 
-    const statsHelpers = new FileStatsHelper()
-    const targetStat = await statsHelpers.extendedStat({ path: targetPath })
-    let targetDir: string
-
-    if (targetStat && !targetStat.isDirectory()) {
-      targetDir = parse(targetPath).dir
-    } else {
-      targetDir = targetPath
-    }
-
-    const tmpDir = targetDir + ".tmp"
+    const targetDir = parse(targetPath).dir
+    const tmpDir = targetRoot + ".tmp"
 
     await ensureDir(targetDir)
     await ensureDir(tmpDir)

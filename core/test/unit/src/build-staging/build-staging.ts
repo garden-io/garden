@@ -35,6 +35,32 @@ const makeGarden = async (opts: GardenOpts = {}) => {
   return await makeTestGarden(projectRoot, opts)
 }
 
+async function populateDirectory(root: string, posixPaths: string[]) {
+  await Bluebird.map(posixPaths, async (path) => {
+    const absPath = joinWithPosix(root, path)
+    await ensureFile(absPath)
+    await writeFile(absPath, basename(path))
+  })
+}
+
+async function listFiles(path: string) {
+  return (await readdir(path, { deep: true, filter: (stats) => stats.isFile() })).sort()
+}
+
+async function assertIdentical(sourceRoot: string, targetRoot: string, posixPaths?: string[]) {
+  if (!posixPaths) {
+    posixPaths = await listFiles(sourceRoot)
+  }
+
+  await Bluebird.map(posixPaths, async (path) => {
+    const sourcePath = joinWithPosix(sourceRoot, path)
+    const targetPath = joinWithPosix(targetRoot, path)
+    const sourceData = (await readFile(sourcePath)).toString()
+    const targetData = (await readFile(targetPath)).toString()
+    expect(sourceData).to.equal(targetData)
+  })
+}
+
 describe("BuildStaging", () => {
   let garden: TestGarden
   let log: LogEntry
@@ -54,32 +80,6 @@ describe("BuildStaging", () => {
     return buildStaging["sync"](params)
   }
 
-  async function populateDirectory(root: string, posixPaths: string[]) {
-    await Bluebird.map(posixPaths, async (path) => {
-      const absPath = joinWithPosix(root, path)
-      await ensureFile(absPath)
-      await writeFile(absPath, basename(path))
-    })
-  }
-
-  async function listFiles(path: string) {
-    return (await readdir(path, { deep: true, filter: (stats) => stats.isFile() })).sort()
-  }
-
-  async function assertIdentical(sourceRoot: string, targetRoot: string, posixPaths?: string[]) {
-    if (!posixPaths) {
-      posixPaths = await listFiles(sourceRoot)
-    }
-
-    await Bluebird.map(posixPaths, async (path) => {
-      const sourcePath = joinWithPosix(sourceRoot, path)
-      const targetPath = joinWithPosix(targetRoot, path)
-      const sourceData = (await readFile(sourcePath)).toString()
-      const targetData = (await readFile(targetPath)).toString()
-      expect(sourceData).to.equal(targetData)
-    })
-  }
-
   describe("(common)", () => commonSyncTests(true))
 
   describe("sync", () => {
@@ -95,64 +95,6 @@ describe("BuildStaging", () => {
       await tmpDir?.cleanup()
     })
 
-    it("syncs source directory to empty target directory with no file list", async () => {
-      const sourceRoot = join(tmpPath, "source")
-      const targetRoot = join(tmpPath, "target")
-
-      await ensureDir(sourceRoot)
-      await ensureDir(targetRoot)
-      await populateDirectory(sourceRoot, ["a", "b", "subdir/c", "subdir/subsubdir/d"])
-
-      await sync({ log, sourceRoot, targetRoot, withDelete: false })
-
-      await assertIdentical(sourceRoot, targetRoot)
-    })
-
-    it("syncs source directory to empty target directory with file list", async () => {
-      const sourceRoot = join(tmpPath, "source")
-      const targetRoot = join(tmpPath, "target")
-
-      await ensureDir(sourceRoot)
-      await ensureDir(targetRoot)
-      await populateDirectory(sourceRoot, ["a", "b", "subdir/c", "subdir/subsubdir/d"])
-
-      const files = ["a", "subdir/subsubdir/d"]
-      await sync({ log, sourceRoot, targetRoot, withDelete: false, files })
-
-      await assertIdentical(sourceRoot, targetRoot, files)
-      expect(await listFiles(targetRoot)).to.eql(files)
-    })
-
-    it("syncs source directory to populated target directory with no file list", async () => {
-      const sourceRoot = join(tmpPath, "source")
-      const targetRoot = join(tmpPath, "target")
-
-      await ensureDir(sourceRoot)
-      await ensureDir(targetRoot)
-      await populateDirectory(sourceRoot, ["a", "subdir/c"])
-      await populateDirectory(targetRoot, ["b", "subdir/subsubdir/d"])
-
-      await sync({ log, sourceRoot, targetRoot, withDelete: false })
-
-      await assertIdentical(sourceRoot, targetRoot, ["a", "subdir/c"])
-      expect(await listFiles(targetRoot)).to.eql(["a", "b", "subdir/c", "subdir/subsubdir/d"])
-    })
-
-    it("syncs source directory to populated target directory with file list", async () => {
-      const sourceRoot = join(tmpPath, "source")
-      const targetRoot = join(tmpPath, "target")
-
-      await ensureDir(sourceRoot)
-      await ensureDir(targetRoot)
-      await populateDirectory(sourceRoot, ["a", "subdir/c"])
-      await populateDirectory(targetRoot, ["b", "subdir/subsubdir/d"])
-
-      await sync({ log, sourceRoot, targetRoot, withDelete: false, files: ["a"] })
-
-      await assertIdentical(sourceRoot, targetRoot, ["a"])
-      expect(await listFiles(targetRoot)).to.eql(["a", "b", "subdir/subsubdir/d"])
-    })
-
     it("syncs source directory to populated target directory and deletes extraneous files", async () => {
       const sourceRoot = join(tmpPath, "source")
       const targetRoot = join(tmpPath, "target")
@@ -166,19 +108,6 @@ describe("BuildStaging", () => {
 
       await assertIdentical(sourceRoot, targetRoot, ["a", "subdir/c"])
       expect(await listFiles(targetRoot)).to.eql(["a", "subdir/c"])
-    })
-
-    it("correctly handles '.' as the targetRelPath", async () => {
-      const sourceRoot = join(tmpPath, "source")
-      const targetRoot = join(tmpPath, "target")
-
-      await ensureDir(sourceRoot)
-      await ensureDir(targetRoot)
-      await populateDirectory(sourceRoot, ["subdir/a"])
-
-      await sync({ log, sourceRoot, sourceRelPath: "subdir", targetRoot, targetRelPath: ".", withDelete: false })
-
-      expect(await listFiles(targetRoot)).to.eql(["subdir/a"])
     })
 
     it("throws if source relative path is absolute", async () => {
@@ -266,48 +195,6 @@ describe("BuildStaging", () => {
       )
     })
 
-    it("syncs directly if source path is a file and target doesn't exist", async () => {
-      const a = join(tmpPath, "a")
-      await writeFile(a, "foo")
-      await sync({
-        log,
-        sourceRoot: tmpPath,
-        sourceRelPath: "a",
-        targetRoot: tmpPath,
-        targetRelPath: "b",
-        withDelete: false,
-      })
-      const data = (await readFile(join(tmpPath, "b"))).toString()
-      expect(data).to.equal("foo")
-    })
-
-    it("syncs directly into target directory if source path is a file and target is a directory", async () => {
-      const a = join(tmpPath, "a")
-      const b = join(tmpPath, "b")
-      await writeFile(a, "foo")
-      await ensureDir(b)
-      await sync({ log, sourceRoot: tmpPath, sourceRelPath: "a", targetRoot: b, withDelete: false })
-      const data = (await readFile(join(b, "a"))).toString()
-      expect(data).to.equal("foo")
-    })
-
-    it("syncs directly into target directory if source path is a file and targetRelPath ends with slash", async () => {
-      const a = join(tmpPath, "a")
-      const b = join(tmpPath, "b")
-      await writeFile(a, "foo")
-      await ensureDir(b)
-      await sync({
-        log,
-        sourceRoot: tmpPath,
-        sourceRelPath: "a",
-        targetRoot: tmpPath,
-        targetRelPath: "b/",
-        withDelete: false,
-      })
-      const data = (await readFile(join(b, "a"))).toString()
-      expect(data).to.equal("foo")
-    })
-
     it("throws if source relative path has wildcard and target path points to an existing file", async () => {
       await ensureFile(join(tmpPath, "a"))
 
@@ -351,6 +238,8 @@ export function commonSyncTests(experimentalBuildSync: boolean) {
   let garden: TestGarden
   let log: LogEntry
   let buildStaging: BuildStaging
+  let tmpDir: TempDirectory
+  let tmpPath: string
 
   before(async () => {
     garden = await makeGarden({ experimentalBuildSync })
@@ -358,9 +247,19 @@ export function commonSyncTests(experimentalBuildSync: boolean) {
     buildStaging = garden.buildStaging
   })
 
+  beforeEach(async () => {
+    tmpDir = await makeTempDir()
+    tmpPath = await realpath(tmpDir.path)
+  })
+
   afterEach(async () => {
     await buildStaging.clear()
+    await tmpDir?.cleanup()
   })
+
+  async function sync(params: SyncParams) {
+    return buildStaging["sync"](params)
+  }
 
   it("should sync dependency products to their specified destinations", async () => {
     try {
@@ -527,6 +426,119 @@ export function commonSyncTests(experimentalBuildSync: boolean) {
 
       const buildDir = await buildStaging.buildPath(module)
       expect(await pathExists(join(buildDir, "symlink.txt"))).to.be.false
+    })
+
+    it("syncs source directory to empty target directory with no file list", async () => {
+      const sourceRoot = join(tmpPath, "source")
+      const targetRoot = join(tmpPath, "target")
+
+      await ensureDir(sourceRoot)
+      await ensureDir(targetRoot)
+      await populateDirectory(sourceRoot, ["a", "b", "subdir/c", "subdir/subsubdir/d"])
+
+      await sync({ log, sourceRoot, targetRoot, withDelete: false })
+
+      await assertIdentical(sourceRoot, targetRoot)
+    })
+
+    it("syncs source directory to empty target directory with file list", async () => {
+      const sourceRoot = join(tmpPath, "source")
+      const targetRoot = join(tmpPath, "target")
+
+      await ensureDir(sourceRoot)
+      await ensureDir(targetRoot)
+      await populateDirectory(sourceRoot, ["a", "b", "subdir/c", "subdir/subsubdir/d"])
+
+      const files = ["a", "subdir/subsubdir/d"]
+      await sync({ log, sourceRoot, targetRoot, withDelete: false, files })
+
+      await assertIdentical(sourceRoot, targetRoot, files)
+      expect(await listFiles(targetRoot)).to.eql(files)
+    })
+
+    it("syncs source directory to populated target directory with no file list", async () => {
+      const sourceRoot = join(tmpPath, "source")
+      const targetRoot = join(tmpPath, "target")
+
+      await ensureDir(sourceRoot)
+      await ensureDir(targetRoot)
+      await populateDirectory(sourceRoot, ["a", "subdir/c"])
+      await populateDirectory(targetRoot, ["b", "subdir/subsubdir/d"])
+
+      await sync({ log, sourceRoot, targetRoot, withDelete: false })
+
+      await assertIdentical(sourceRoot, targetRoot, ["a", "subdir/c"])
+      expect(await listFiles(targetRoot)).to.eql(["a", "b", "subdir/c", "subdir/subsubdir/d"])
+    })
+
+    it("syncs source directory to populated target directory with file list", async () => {
+      const sourceRoot = join(tmpPath, "source")
+      const targetRoot = join(tmpPath, "target")
+
+      await ensureDir(sourceRoot)
+      await ensureDir(targetRoot)
+      await populateDirectory(sourceRoot, ["a", "subdir/c"])
+      await populateDirectory(targetRoot, ["b", "subdir/subsubdir/d"])
+
+      await sync({ log, sourceRoot, targetRoot, withDelete: false, files: ["a"] })
+
+      await assertIdentical(sourceRoot, targetRoot, ["a"])
+      expect(await listFiles(targetRoot)).to.eql(["a", "b", "subdir/subsubdir/d"])
+    })
+
+    it("syncs directly if source path is a file and target doesn't exist", async () => {
+      const a = join(tmpPath, "a")
+      await writeFile(a, "foo")
+      await sync({
+        log,
+        sourceRoot: tmpPath,
+        sourceRelPath: "a",
+        targetRoot: tmpPath,
+        targetRelPath: "b",
+        withDelete: false,
+      })
+      const data = (await readFile(join(tmpPath, "b"))).toString()
+      expect(data).to.equal("foo")
+    })
+
+    it("syncs directly into target directory if source path is a file and target is a directory", async () => {
+      const a = join(tmpPath, "a")
+      const b = join(tmpPath, "b")
+      await writeFile(a, "foo")
+      await ensureDir(b)
+      await sync({ log, sourceRoot: tmpPath, sourceRelPath: "a", targetRoot: b, withDelete: false })
+      const data = (await readFile(join(b, "a"))).toString()
+      expect(data).to.equal("foo")
+    })
+
+    it("syncs directly into target directory if source path is a file and targetRelPath ends with slash", async () => {
+      const a = join(tmpPath, "a")
+      const b = join(tmpPath, "b")
+      await writeFile(a, "foo")
+      await ensureDir(b)
+      await sync({
+        log,
+        sourceRoot: tmpPath,
+        sourceRelPath: "a",
+        targetRoot: tmpPath,
+        targetRelPath: "b/",
+        withDelete: false,
+      })
+      const data = (await readFile(join(b, "a"))).toString()
+      expect(data).to.equal("foo")
+    })
+
+    it("correctly handles '.' as the targetRelPath", async () => {
+      const sourceRoot = join(tmpPath, "source")
+      const targetRoot = join(tmpPath, "target")
+
+      await ensureDir(sourceRoot)
+      await ensureDir(targetRoot)
+      await populateDirectory(sourceRoot, ["subdir/a"])
+
+      await sync({ log, sourceRoot, sourceRelPath: "subdir", targetRoot, targetRelPath: ".", withDelete: false })
+
+      expect(await listFiles(targetRoot)).to.eql(["subdir/a"])
     })
   })
 }
