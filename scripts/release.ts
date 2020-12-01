@@ -54,18 +54,23 @@ async function release() {
   // Update package.json versions
 
   /**
-   * For prereleases, we include the prerelease suffix for all package.json-s except the top-level one (since we use
-   * the version in the top level package.json in our release-service-dist CircleCI job, which needs to be the same
-   * as the prerelease tag name on GitHub).
+   * For prereleases, we omit the prerelease suffix for all package.json-s except the top-level one.
+   *
+   * This is to make references to internal packages (e.g. "@garden-io/core@*") work during the build process in CI.
    */
   const packageReleaseTypeMap = { preminor: "minor", prepatch: "patch" }
-  const packageVersion = semver.inc(prevVersion, packageReleaseTypeMap[releaseType] || releaseType)
+  const incrementedPackageVersion = semver.inc(prevVersion, packageReleaseTypeMap[releaseType] || releaseType)
+  const parsed = semver.parse(incrementedPackageVersion)
+
+  // We omit the prerelease suffix from `incrementedPackageVersion` (if there is one).
+  const packageVersion = `${parsed?.major}.${parsed?.minor}.${parsed?.patch}`
 
   console.log(`Bumping version from ${prevVersion} to ${version}...`)
 
   const rootPackageJsonPath = resolve(__dirname, "..", "package.json")
   await updatePackageJsonVersion(rootPackageJsonPath, version)
 
+  console.log(`Setting package versions to ${packageVersion}...`)
   const packages = await getPackages()
   const packageJsonPaths = Object.values(packages).map((p) => resolve(p.location, "package.json"))
   await Bluebird.map(packageJsonPaths, async (p) => await updatePackageJsonVersion(p, packageVersion!))
