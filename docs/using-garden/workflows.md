@@ -79,8 +79,6 @@ steps:
 
 ### The `skip` and `when` options
 
-[link](#the-skip-and-when-options)
-
 By default, a workflow step is run if all previous steps have been run without errors. Sometimes, it can be useful to override this default behavior with the `skip` and `when` fields on workflow steps.
 
 The `skip` field is a boolean. If its value is `true`, the step will be skipped, and the next step will be run as if the skipped step succeeded.
