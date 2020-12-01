@@ -82,6 +82,16 @@ This mode works _mostly_ the same way as Cluster Docker, but replaces the Docker
 
 You can provide extra arguments to Kaniko via the [`extraFlags`](../reference/providers/kubernetes.md#providerskanikoextraFlags) field. Users with projects with a large number of files should take a look at the `--snapshoteMode=redo` and `--use-new-run` options as these can provide [significant performance improvements](https://github.com/GoogleContainerTools/kaniko/releases/tag/v1.0.0). Please refer to the [official docs](https://github.com/GoogleContainerTools/kaniko#additional-flags) for the full list of available flags.
 
+{% hint style="info" %}
+If you're using ECR on AWS, you may need to create the cache repository manually.
+
+That is, if you have a repository like, `my-org/my-image`, you need to manually create a repository next to it called `my-org/my-image/cache`.
+
+You can also select a different name for the cache repository and pass the path to Kaniko via the `--cache-repo` flag, which you can set on the [`extraFlags`](../reference/providers/kubernetes.md#providerskanikoextraFlags) field. See [this GitHub comment](https://github.com/GoogleContainerTools/kaniko/issues/410#issuecomment-433229841) in the Kaniko repo for more details.
+
+This did not appear to be the case for GCR on GCP. We haven't tested this on other container repositories.
+{% endhint %}
+
 The Kaniko project is still improving, but it provides a
 compelling alternative to the standard Docker daemon because it can run without special privileges on the cluster,
 and is thus more secure. It may also scale better because it doesn't rely on a single daemon shared across users, so
