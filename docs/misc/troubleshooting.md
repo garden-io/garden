@@ -91,3 +91,9 @@ See also: https://support.apple.com/en-gb/guide/mac-help/mh40616/mac
 ### `Error response from daemon: experimental session with v1 builder is no longer supported, use builder version v2 (BuildKit) instead`
 
 This is a bug in Docker CE (i.e. Docker for Desktop), version `2.4.x.y`. See this [GitHub issue comment](https://github.com/garden-io/garden/issues/2123#issuecomment-723780468) for a fix and more details.
+
+### Kaniko is not using image layer caches
+
+In some container repositories, you may need to create the cache repo manually.
+
+See [this section](https://docs.garden.io/guides/in-cluster-building#kaniko) of our docs and this [GitHub comment](https://github.com/GoogleContainerTools/kaniko/issues/410#issuecomment-433229841) for more details.
