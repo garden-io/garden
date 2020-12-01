@@ -1,4 +1,11 @@
 
+<a name="0.12.11"></a>
+## [0.12.11](https://github.com/garden-io/garden/compare/0.12.10...0.12.11) (2020-12-01)
+
+### Bug Fixes
+
+* **core:** regression when copying single files in build dependencies ([af61bde2](https://github.com/garden-io/garden/commit/af61bde2))
+
 <a name="0.12.10"></a>
 ## [0.12.10](https://github.com/garden-io/garden/compare/0.12.9...0.12.10) (2020-11-30)
 
