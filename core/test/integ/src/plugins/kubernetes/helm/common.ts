@@ -28,6 +28,7 @@ import { deline, dedent } from "../../../../../../src/util/string"
 import { ConfigGraph } from "../../../../../../src/config-graph"
 import { KubernetesPluginContext } from "../../../../../../src/plugins/kubernetes/config"
 import { safeLoadAll } from "js-yaml"
+import { Garden } from "../../../../../../src"
 
 let helmTestGarden: TestGarden
 
@@ -44,7 +45,7 @@ export async function getHelmTestGarden() {
   return garden
 }
 
-export async function buildHelmModules(garden: TestGarden, graph: ConfigGraph) {
+export async function buildHelmModules(garden: Garden | TestGarden, graph: ConfigGraph) {
   const modules = graph.getModules()
   const tasks = modules.map(
     (module) =>

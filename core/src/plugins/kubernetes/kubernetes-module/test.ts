@@ -16,7 +16,13 @@ import { TestResult } from "../../../types/plugin/module/getTestResult"
 import { getModuleNamespace } from "../namespace"
 import { KubeApi } from "../api"
 import { getManifests } from "./common"
-import { getServiceResourceSpec, findServiceResource, getResourceContainer, makePodName } from "../util"
+import {
+  getServiceResourceSpec,
+  findServiceResource,
+  getResourceContainer,
+  makePodName,
+  getResourcePodSpec,
+} from "../util"
 
 export async function testKubernetesModule(params: TestModuleParams<KubernetesModule>): Promise<TestResult> {
   const { ctx, log, module, testConfig, testVersion } = params
@@ -43,6 +49,7 @@ export async function testKubernetesModule(params: TestModuleParams<KubernetesMo
   const result = await runAndCopy({
     ...params,
     container,
+    podSpec: getResourcePodSpec(target),
     command,
     args,
     artifacts: testConfig.spec.artifacts,

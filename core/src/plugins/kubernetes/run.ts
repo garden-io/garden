@@ -37,10 +37,54 @@ import { prepareImagePullSecrets } from "./secrets"
 import { configureVolumes } from "./container/deployment"
 import { PluginContext } from "../../plugin-context"
 import { waitForResources, ResourceStatus } from "./status/status"
-import { cloneDeep } from "lodash"
+import { cloneDeep, pick } from "lodash"
+import { RuntimeContext } from "../../runtime-context"
 
 // Default timeout for individual run/exec operations
 const defaultTimeout = 600
+
+/**
+ * When a `podSpec` is passed to `runAndCopy`, only these fields will be used for the runner's pod spec
+ * (and, in some cases, overridden/populated in `runAndCopy`).
+ *
+ * See: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#podspec-v1-core
+ */
+export const runPodSpecWhitelist: (keyof V1PodSpec)[] = [
+  // "activeDeadlineSeconds", // <-- for clarity, we leave the non-whitelisted fields here commented out.
+  "affinity",
+  "automountServiceAccountToken",
+  "containers",
+  "dnsConfig",
+  "dnsPolicy",
+  "enableServiceLinks",
+  // "ephemeralContainers",
+  "hostAliases",
+  "hostIPC",
+  "hostNetwork",
+  "hostPID",
+  "hostname",
+  "imagePullSecrets",
+  // "initContainers",
+  "nodeName",
+  "nodeSelector",
+  "overhead",
+  "preemptionPolicy",
+  "priority",
+  "priorityClassName",
+  // "readinessGates",
+  // "restartPolicy",
+  "runtimeClassName",
+  "schedulerName",
+  "securityContext",
+  "serviceAccount",
+  "serviceAccountName",
+  "shareProcessNamespace",
+  "subdomain",
+  // "terminationGracePeriodSeconds",
+  "tolerations",
+  "topologySpreadConstraints",
+  "volumes",
+]
 
 export async function runAndCopy({
   ctx,
@@ -54,6 +98,7 @@ export async function runAndCopy({
   image,
   container,
   podName,
+  podSpec,
   artifacts = [],
   artifactsPath,
   envVars = {},
@@ -66,6 +111,7 @@ export async function runAndCopy({
   image: string
   container?: V1Container
   podName?: string
+  podSpec?: V1PodSpec
   artifacts?: ArtifactSpec[]
   artifactsPath?: string
   envVars?: ContainerEnvVars
@@ -78,41 +124,34 @@ export async function runAndCopy({
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
 
-  // Prepare environment variables
-  envVars = { ...runtimeContext.envVars, ...envVars }
-  const env = uniqByName([
-    ...prepareEnvVars(envVars),
-    // If `container` is specified, include its variables as well
-    ...(container && container.env ? container.env : []),
-  ])
-
-  const getArtifacts = !interactive && artifacts && artifacts.length > 0 && artifactsPath
+  const getArtifacts = !!(!interactive && artifacts && artifacts.length > 0 && artifactsPath)
   const mainContainerName = "main"
-
-  const podSpec: V1PodSpec = {
-    containers: [
-      {
-        ...(container || {}),
-        // We always override the following attributes
-        name: mainContainerName,
-        image,
-        env,
-        // TODO: consider supporting volume mounts in ad-hoc runs (would need specific logic and testing)
-        volumeMounts: [],
-      },
-    ],
-    imagePullSecrets: await prepareImagePullSecrets({ api, provider, namespace, log }),
-  }
-
-  if (volumes) {
-    configureVolumes(module, podSpec, volumes)
-  }
 
   if (!description) {
     description = `Container module '${module.name}'`
   }
 
   const errorMetadata: any = { moduleName: module.name, description, args, artifacts }
+
+  podSpec = await prepareRunPodSpec({
+    podSpec,
+    getArtifacts,
+    log,
+    module,
+    args,
+    command,
+    api,
+    provider,
+    runtimeContext,
+    envVars,
+    description,
+    errorMetadata,
+    mainContainerName,
+    image,
+    container,
+    namespace,
+    volumes,
+  })
 
   if (!podName) {
     podName = makePodName("run", module.name)
@@ -150,6 +189,104 @@ export async function runAndCopy({
   }
 }
 
+// This helper was created to facilitate testing the pod spec generation in `runAndCopy`.
+export async function prepareRunPodSpec({
+  podSpec,
+  getArtifacts,
+  api,
+  provider,
+  log,
+  module,
+  args,
+  command,
+  runtimeContext,
+  envVars,
+  description,
+  errorMetadata,
+  mainContainerName,
+  image,
+  container,
+  namespace,
+  volumes,
+}: {
+  podSpec?: V1PodSpec
+  getArtifacts: boolean
+  log: LogEntry
+  module: GardenModule
+  args: string[]
+  command: string[] | undefined
+  api: KubeApi
+  provider: KubernetesProvider
+  runtimeContext: RuntimeContext
+  envVars: ContainerEnvVars
+  description: string
+  errorMetadata: any
+  mainContainerName: string
+  image: string
+  container?: V1Container
+  namespace: string
+  volumes?: ContainerVolumeSpec[]
+}): Promise<V1PodSpec> {
+  // Prepare environment variables
+  envVars = { ...runtimeContext.envVars, ...envVars }
+  const env = uniqByName([
+    ...prepareEnvVars(envVars),
+    // If `container` is specified, include its variables as well
+    ...(container && container.env ? container.env : []),
+  ])
+
+  const containers: V1Container[] = [
+    {
+      ...(container || {}),
+      // We always override the following attributes
+      name: mainContainerName,
+      image,
+      env,
+      // TODO: consider supporting volume mounts in ad-hoc runs (would need specific logic and testing)
+      volumeMounts: [],
+    },
+  ]
+
+  const imagePullSecrets = await prepareImagePullSecrets({ api, provider, namespace, log })
+
+  podSpec = {
+    ...pick(podSpec || {}, runPodSpecWhitelist),
+    containers,
+    imagePullSecrets,
+  }
+
+  if (volumes) {
+    configureVolumes(module, podSpec, volumes)
+  }
+
+  if (getArtifacts) {
+    if (!command) {
+      throw new ConfigurationError(
+        deline`
+        ${description} specifies artifacts to export, but doesn't
+        explicitly set a \`command\`. The kubernetes provider currently requires an explicit command to be set for
+        tests and tasks that export artifacts, because the image's entrypoint cannot be inferred in that execution
+        mode. Please set the \`command\` field and try again.
+        `,
+        errorMetadata
+      )
+    }
+
+    // We start the container with a named pipe and tail that, to get the logs from the actual command
+    // we plan on running. Then we sleep, so that we can copy files out of the container.
+    podSpec.containers[0].command = ["sh", "-c", "mkfifo /tmp/output && cat /tmp/output && sleep 86400"]
+  } else {
+    if (args) {
+      podSpec.containers[0].args = args
+    }
+    if (command) {
+      podSpec.containers[0].command = command
+    }
+  }
+
+  return podSpec
+}
+
 async function runWithoutArtifacts({
   ctx,
   api,
@@ -170,13 +307,6 @@ async function runWithoutArtifacts({
   podName: string
   namespace: string
 }): Promise<RunResult> {
-  if (args) {
-    podSpec.containers[0].args = args
-  }
-  if (command) {
-    podSpec.containers[0].command = command
-  }
-
   const pod: KubernetesResource<V1Pod> = {
     apiVersion: "v1",
     kind: "Pod",
@@ -277,22 +407,6 @@ async function runWithArtifacts({
   stderr?: Writable
   namespace: string
 }): Promise<RunResult> {
-  if (!command) {
-    throw new ConfigurationError(
-      deline`
-      ${description} specifies artifacts to export, but doesn't
-      explicitly set a \`command\`. The kubernetes provider currently requires an explicit command to be set for
-      tests and tasks that export artifacts, because the image's entrypoint cannot be inferred in that execution
-      mode. Please set the \`command\` field and try again.
-      `,
-      errorMetadata
-    )
-  }
-
-  // We start the container with a named pipe and tail that, to get the logs from the actual command
-  // we plan on running. Then we sleep, so that we can copy files out of the container.
-  podSpec.containers[0].command = ["sh", "-c", "mkfifo /tmp/output && cat /tmp/output && sleep 86400"]
-
   const pod: KubernetesResource<V1Pod> = {
     apiVersion: "v1",
     kind: "Pod",
