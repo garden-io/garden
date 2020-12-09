@@ -42,7 +42,6 @@ import { cloneDeep } from "lodash"
 // Default timeout for individual run/exec operations
 const defaultTimeout = 600
 
-// TODO: break this function up
 export async function runAndCopy({
   ctx,
   log,
@@ -90,7 +89,7 @@ export async function runAndCopy({
   const getArtifacts = !interactive && artifacts && artifacts.length > 0 && artifactsPath
   const mainContainerName = "main"
 
-  const spec: V1PodSpec = {
+  const podSpec: V1PodSpec = {
     containers: [
       {
         ...(container || {}),
@@ -106,7 +105,7 @@ export async function runAndCopy({
   }
 
   if (volumes) {
-    configureVolumes(module, spec, volumes)
+    configureVolumes(module, podSpec, volumes)
   }
 
   if (!description) {
@@ -115,33 +114,67 @@ export async function runAndCopy({
 
   const errorMetadata: any = { moduleName: module.name, description, args, artifacts }
 
-  if (getArtifacts) {
-    if (!command) {
-      throw new ConfigurationError(
-        deline`
-        ${description} specifies artifacts to export, but doesn't
-        explicitly set a \`command\`. The kubernetes provider currently requires an explicit command to be set for
-        tests and tasks that export artifacts, because the image's entrypoint cannot be inferred in that execution
-        mode. Please set the \`command\` field and try again.
-        `,
-        errorMetadata
-      )
-    }
-
-    // We start the container with a named pipe and tail that, to get the logs from the actual command
-    // we plan on running. Then we sleep, so that we can copy files out of the container.
-    spec.containers[0].command = ["sh", "-c", "mkfifo /tmp/output && cat /tmp/output && sleep 86400"]
-  } else {
-    if (args) {
-      spec.containers[0].args = args
-    }
-    if (command) {
-      spec.containers[0].command = command
-    }
-  }
-
   if (!podName) {
     podName = makePodName("run", module.name)
+  }
+
+  const runParams = {
+    ctx,
+    api,
+    provider,
+    log,
+    module,
+    args,
+    command,
+    interactive,
+    runtimeContext,
+    timeout,
+    podSpec,
+    podName,
+    namespace,
+  }
+
+  if (getArtifacts) {
+    return runWithArtifacts({
+      ...runParams,
+      mainContainerName,
+      artifacts,
+      artifactsPath: artifactsPath!,
+      description,
+      errorMetadata,
+      stdout,
+      stderr,
+    })
+  } else {
+    return runWithoutArtifacts(runParams)
+  }
+}
+
+async function runWithoutArtifacts({
+  ctx,
+  api,
+  provider,
+  log,
+  module,
+  args,
+  command,
+  timeout,
+  podSpec,
+  podName,
+  namespace,
+  interactive,
+}: RunModuleParams<GardenModule> & {
+  api: KubeApi
+  provider: KubernetesProvider
+  podSpec: V1PodSpec
+  podName: string
+  namespace: string
+}): Promise<RunResult> {
+  if (args) {
+    podSpec.containers[0].args = args
+  }
+  if (command) {
+    podSpec.containers[0].command = command
   }
 
   const pod: KubernetesResource<V1Pod> = {
@@ -151,7 +184,7 @@ export async function runAndCopy({
       name: podName,
       namespace,
     },
-    spec,
+    spec: podSpec,
   }
 
   const runner = new PodRunner({
@@ -165,7 +198,7 @@ export async function runAndCopy({
   let result: RunResult
   const startedAt = new Date()
 
-  const timedOutResult = async (logs: string) => {
+  const timedOutResult = (logs: string) => {
     return {
       command: runner.getFullCommand(),
       completedAt: new Date(),
@@ -177,39 +210,120 @@ export async function runAndCopy({
     }
   }
 
-  if (!getArtifacts) {
-    try {
-      const res = await runner.runAndWait({
-        log,
-        remove: true,
-        timeoutSec: timeout || defaultTimeout,
-        tty: !!interactive,
-      })
+  try {
+    const res = await runner.runAndWait({
+      log,
+      remove: true,
+      timeoutSec: timeout || defaultTimeout,
+      tty: !!interactive,
+    })
+    result = {
+      ...res,
+      moduleName: module.name,
+      version: module.version.versionString,
+    }
+  } catch (err) {
+    if (err.type === "timeout") {
+      result = timedOutResult(err.detail.logs)
+    } else if (err.type === "pod-runner") {
+      // Command exited with non-zero code
       result = {
-        ...res,
+        log: err.detail.logs || err.message,
         moduleName: module.name,
         version: module.version.versionString,
+        success: false,
+        startedAt,
+        completedAt: new Date(),
+        command: [...(command || []), ...(args || [])],
       }
-    } catch (err) {
-      if (err.type === "timeout") {
-        result = await timedOutResult(err.detail.logs)
-      } else if (err.type === "pod-runner") {
-        // Command exited with non-zero code
-        result = {
-          log: err.detail.logs || err.message,
-          moduleName: module.name,
-          version: module.version.versionString,
-          success: false,
-          startedAt,
-          completedAt: new Date(),
-          command: [...(command || []), ...(args || [])],
-        }
-      } else {
-        throw err
-      }
+    } else {
+      throw err
     }
+  }
 
-    return result
+  return result
+}
+
+async function runWithArtifacts({
+  ctx,
+  api,
+  provider,
+  log,
+  module,
+  args,
+  command,
+  timeout,
+  podSpec,
+  podName,
+  mainContainerName,
+  artifacts,
+  artifactsPath,
+  description,
+  errorMetadata,
+  stdout,
+  stderr,
+  namespace,
+}: RunModuleParams<GardenModule> & {
+  podSpec: V1PodSpec
+  podName: string
+  mainContainerName: string
+  api: KubeApi
+  provider: KubernetesProvider
+  artifacts: ArtifactSpec[]
+  artifactsPath: string
+  description?: string
+  errorMetadata: any
+  stdout?: Writable
+  stderr?: Writable
+  namespace: string
+}): Promise<RunResult> {
+  if (!command) {
+    throw new ConfigurationError(
+      deline`
+      ${description} specifies artifacts to export, but doesn't
+      explicitly set a \`command\`. The kubernetes provider currently requires an explicit command to be set for
+      tests and tasks that export artifacts, because the image's entrypoint cannot be inferred in that execution
+      mode. Please set the \`command\` field and try again.
+      `,
+      errorMetadata
+    )
+  }
+
+  // We start the container with a named pipe and tail that, to get the logs from the actual command
+  // we plan on running. Then we sleep, so that we can copy files out of the container.
+  podSpec.containers[0].command = ["sh", "-c", "mkfifo /tmp/output && cat /tmp/output && sleep 86400"]
+
+  const pod: KubernetesResource<V1Pod> = {
+    apiVersion: "v1",
+    kind: "Pod",
+    metadata: {
+      name: podName,
+      namespace,
+    },
+    spec: podSpec,
+  }
+
+  const runner = new PodRunner({
+    ctx,
+    api,
+    pod,
+    provider,
+    namespace,
+  })
+
+  let result: RunResult
+  const startedAt = new Date()
+
+  const timedOutResult = (logs: string) => {
+    return {
+      command: runner.getFullCommand(),
+      completedAt: new Date(),
+      log: "Command timed out." + (logs ? ` Here are the logs until the timeout occurred:\n\n${logs}` : ""),
+      moduleName: module.name,
+      startedAt,
+      success: false,
+      version: module.version.versionString,
+    }
   }
 
   const timeoutSec = timeout || defaultTimeout
@@ -308,7 +422,7 @@ export async function runAndCopy({
 
       if (err.type === "timeout") {
         // Command timed out
-        result = await timedOutResult((await runner.getMainContainerLogs()).trim())
+        result = timedOutResult((await runner.getMainContainerLogs()).trim())
       } else if (err.type === "pod-runner" && res && res.exitCode) {
         // Command exited with non-zero code
         result = {
@@ -331,7 +445,7 @@ export async function runAndCopy({
         const tmpDir = await tmp.dir({ unsafeCleanup: true })
         // Remove leading slash (which is required in the schema)
         const sourcePath = artifact.source.slice(1)
-        const targetPath = resolve(artifactsPath!, artifact.target || ".")
+        const targetPath = resolve(artifactsPath, artifact.target || ".")
 
         const tarCmd = [
           "tar",
