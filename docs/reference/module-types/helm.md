@@ -165,12 +165,13 @@ serviceResource:
   # container is not the first container in the spec.
   containerName:
 
-  # The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can be
-  # omitted.
-  # This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'. This allows you to easily
-  # match the dynamic names given by Helm. In most cases you should copy this directly from the template in question
-  # in order to match it. Note that you may need to add single quotes around the string for the YAML to be parsed
-  # correctly.
+  # The name of the resource to sync to. If the chart contains a single resource of the specified Kind,
+  # this can be omitted.
+  #
+  # This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'.
+  # This allows you to easily match the dynamic names given by Helm. In most cases you should copy this
+  # directly from the template in question in order to match it. Note that you may need to add single quotes around
+  # the string for the YAML to be parsed correctly.
   name:
 
   # The Garden module that contains the sources for the container. This needs to be specified under `serviceResource`
@@ -240,8 +241,39 @@ tasks:
         # `.garden/artifacts`.
         target: .
 
-    # The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task. If not specified, the
-    # `serviceResource` configured on the module will be used. If neither is specified, an error will be thrown.
+    # The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task.
+    # If not specified, the `serviceResource` configured on the module will be used. If neither is specified,
+    # an error will be thrown.
+    #
+    # The following pod spec fields from the service resource will be used (if present) when executing the task:
+    # * `affinity`
+    # * `automountServiceAccountToken`
+    # * `containers`
+    # * `dnsConfig`
+    # * `dnsPolicy`
+    # * `enableServiceLinks`
+    # * `hostAliases`
+    # * `hostIPC`
+    # * `hostNetwork`
+    # * `hostPID`
+    # * `hostname`
+    # * `imagePullSecrets`
+    # * `nodeName`
+    # * `nodeSelector`
+    # * `overhead`
+    # * `preemptionPolicy`
+    # * `priority`
+    # * `priorityClassName`
+    # * `runtimeClassName`
+    # * `schedulerName`
+    # * `securityContext`
+    # * `serviceAccount`
+    # * `serviceAccountName`
+    # * `shareProcessNamespace`
+    # * `subdomain`
+    # * `tolerations`
+    # * `topologySpreadConstraints`
+    # * `volumes`
     resource:
       # The type of Kubernetes resource to sync files to.
       kind: Deployment
@@ -250,12 +282,14 @@ tasks:
       # main container is not the first container in the spec.
       containerName:
 
-      # The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can
-      # be omitted.
-      # This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'. This allows you to
-      # easily match the dynamic names given by Helm. In most cases you should copy this directly from the template in
-      # question in order to match it. Note that you may need to add single quotes around the string for the YAML to
-      # be parsed correctly.
+      # The name of the resource to sync to. If the chart contains a single resource of the specified Kind,
+      # this can be omitted.
+      #
+      # This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'.
+      # This allows you to easily match the dynamic names given by Helm. In most cases you should copy this
+      # directly from the template in question in order to match it. Note that you may need to add single quotes
+      # around
+      # the string for the YAML to be parsed correctly.
       name:
 
       # The Garden module that contains the sources for the container. This needs to be specified under
@@ -306,8 +340,39 @@ tests:
         # `.garden/artifacts`.
         target: .
 
-    # The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite. If not specified,
-    # the `serviceResource` configured on the module will be used. If neither is specified, an error will be thrown.
+    # The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite.
+    # If not specified, the `serviceResource` configured on the module will be used. If neither is specified,
+    # an error will be thrown.
+    #
+    # The following pod spec fields from the service resource will be used (if present) when executing the test suite:
+    # * `affinity`
+    # * `automountServiceAccountToken`
+    # * `containers`
+    # * `dnsConfig`
+    # * `dnsPolicy`
+    # * `enableServiceLinks`
+    # * `hostAliases`
+    # * `hostIPC`
+    # * `hostNetwork`
+    # * `hostPID`
+    # * `hostname`
+    # * `imagePullSecrets`
+    # * `nodeName`
+    # * `nodeSelector`
+    # * `overhead`
+    # * `preemptionPolicy`
+    # * `priority`
+    # * `priorityClassName`
+    # * `runtimeClassName`
+    # * `schedulerName`
+    # * `securityContext`
+    # * `serviceAccount`
+    # * `serviceAccountName`
+    # * `shareProcessNamespace`
+    # * `subdomain`
+    # * `tolerations`
+    # * `topologySpreadConstraints`
+    # * `volumes`
     resource:
       # The type of Kubernetes resource to sync files to.
       kind: Deployment
@@ -316,12 +381,14 @@ tests:
       # main container is not the first container in the spec.
       containerName:
 
-      # The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can
-      # be omitted.
-      # This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'. This allows you to
-      # easily match the dynamic names given by Helm. In most cases you should copy this directly from the template in
-      # question in order to match it. Note that you may need to add single quotes around the string for the YAML to
-      # be parsed correctly.
+      # The name of the resource to sync to. If the chart contains a single resource of the specified Kind,
+      # this can be omitted.
+      #
+      # This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'.
+      # This allows you to easily match the dynamic names given by Helm. In most cases you should copy this
+      # directly from the template in question in order to match it. Note that you may need to add single quotes
+      # around
+      # the string for the YAML to be parsed correctly.
       name:
 
       # The Garden module that contains the sources for the container. This needs to be specified under
@@ -702,8 +769,13 @@ The name of a container in the target. Specify this if the target contains more 
 
 [serviceResource](#serviceresource) > name
 
-The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can be omitted.
-This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'. This allows you to easily match the dynamic names given by Helm. In most cases you should copy this directly from the template in question in order to match it. Note that you may need to add single quotes around the string for the YAML to be parsed correctly.
+The name of the resource to sync to. If the chart contains a single resource of the specified Kind,
+this can be omitted.
+
+This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'.
+This allows you to easily match the dynamic names given by Helm. In most cases you should copy this
+directly from the template in question in order to match it. Note that you may need to add single quotes around
+the string for the YAML to be parsed correctly.
 
 | Type     | Required |
 | -------- | -------- |
@@ -941,7 +1013,39 @@ tasks:
 
 [tasks](#tasks) > resource
 
-The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task. If not specified, the `serviceResource` configured on the module will be used. If neither is specified, an error will be thrown.
+The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task.
+If not specified, the `serviceResource` configured on the module will be used. If neither is specified,
+an error will be thrown.
+
+The following pod spec fields from the service resource will be used (if present) when executing the task:
+* `affinity`
+* `automountServiceAccountToken`
+* `containers`
+* `dnsConfig`
+* `dnsPolicy`
+* `enableServiceLinks`
+* `hostAliases`
+* `hostIPC`
+* `hostNetwork`
+* `hostPID`
+* `hostname`
+* `imagePullSecrets`
+* `nodeName`
+* `nodeSelector`
+* `overhead`
+* `preemptionPolicy`
+* `priority`
+* `priorityClassName`
+* `runtimeClassName`
+* `schedulerName`
+* `securityContext`
+* `serviceAccount`
+* `serviceAccountName`
+* `shareProcessNamespace`
+* `subdomain`
+* `tolerations`
+* `topologySpreadConstraints`
+* `volumes`
 
 | Type     | Required |
 | -------- | -------- |
@@ -971,8 +1075,13 @@ The name of a container in the target. Specify this if the target contains more 
 
 [tasks](#tasks) > [resource](#tasksresource) > name
 
-The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can be omitted.
-This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'. This allows you to easily match the dynamic names given by Helm. In most cases you should copy this directly from the template in question in order to match it. Note that you may need to add single quotes around the string for the YAML to be parsed correctly.
+The name of the resource to sync to. If the chart contains a single resource of the specified Kind,
+this can be omitted.
+
+This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'.
+This allows you to easily match the dynamic names given by Helm. In most cases you should copy this
+directly from the template in question in order to match it. Note that you may need to add single quotes around
+the string for the YAML to be parsed correctly.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1183,7 +1292,39 @@ tests:
 
 [tests](#tests) > resource
 
-The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite. If not specified, the `serviceResource` configured on the module will be used. If neither is specified, an error will be thrown.
+The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite.
+If not specified, the `serviceResource` configured on the module will be used. If neither is specified,
+an error will be thrown.
+
+The following pod spec fields from the service resource will be used (if present) when executing the test suite:
+* `affinity`
+* `automountServiceAccountToken`
+* `containers`
+* `dnsConfig`
+* `dnsPolicy`
+* `enableServiceLinks`
+* `hostAliases`
+* `hostIPC`
+* `hostNetwork`
+* `hostPID`
+* `hostname`
+* `imagePullSecrets`
+* `nodeName`
+* `nodeSelector`
+* `overhead`
+* `preemptionPolicy`
+* `priority`
+* `priorityClassName`
+* `runtimeClassName`
+* `schedulerName`
+* `securityContext`
+* `serviceAccount`
+* `serviceAccountName`
+* `shareProcessNamespace`
+* `subdomain`
+* `tolerations`
+* `topologySpreadConstraints`
+* `volumes`
 
 | Type     | Required |
 | -------- | -------- |
@@ -1213,8 +1354,13 @@ The name of a container in the target. Specify this if the target contains more 
 
 [tests](#tests) > [resource](#testsresource) > name
 
-The name of the resource to sync to. If the chart contains a single resource of the specified Kind, this can be omitted.
-This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'. This allows you to easily match the dynamic names given by Helm. In most cases you should copy this directly from the template in question in order to match it. Note that you may need to add single quotes around the string for the YAML to be parsed correctly.
+The name of the resource to sync to. If the chart contains a single resource of the specified Kind,
+this can be omitted.
+
+This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'.
+This allows you to easily match the dynamic names given by Helm. In most cases you should copy this
+directly from the template in question in order to match it. Note that you may need to add single quotes around
+the string for the YAML to be parsed correctly.
 
 | Type     | Required |
 | -------- | -------- |

@@ -41,7 +41,8 @@ resources: {}
   #  cpu: 100m
   #  memory: 128Mi
 
-nodeSelector: {}
+# This field is whitelisted in `runPodSpecWhitelist`, so it should be included when running tests/tasks
+shareProcessNamespace: true
 
 tolerations: []
 
