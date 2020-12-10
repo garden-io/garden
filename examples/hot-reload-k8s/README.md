@@ -19,7 +19,7 @@ hotReload:
     - target: /app/
 ```
 
-In the `kubernetes` module, we then reference the image module in the `serviceResource.containerModule` field and reference the image ID in the container spec of the Pod template:
+In the `kubernetes` module, we then reference the image module in the `serviceResource.imageModule` field and reference the image ID in the container spec of the Pod template:
 
 ```yaml
 kind: Module
@@ -28,7 +28,7 @@ type: kubernetes
 serviceResource:
   kind: Deployment # <--- The kind of the K8s resource that should be considered the service resource
   name: node-service # <--- The name of the K8s resource that should be considered the service resource
-  containerModule: node-image # <--- The container module that contains the source code that should be hot reloaded
+  imageModule: node-image # <--- The container module that contains the source code that should be hot reloaded
   containerName: node-service # <--- The name of the container in the K8s spec that we're syncing to
   hotReloadArgs: [npm, run, dev] # <--- This is optional and allows you to override the hot reload args of the container module
 manifests:

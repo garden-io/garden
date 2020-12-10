@@ -583,9 +583,9 @@ export interface ServiceResourceSpec {
   kind: HotReloadableKind
   name?: string
   containerName?: string
-  containerModule?: string
   hotReloadCommand?: string[]
   hotReloadArgs?: string[]
+  imageModule?: string
 }
 
 export interface KubernetesTaskSpec extends BaseTaskSpec {
@@ -623,16 +623,18 @@ export const serviceResourceSchema = () =>
     ),
   })
 
-export const containerModuleSchema = () =>
+export const imageModuleSchema = () =>
   joiIdentifier()
     .description(
-      deline`The Garden module that contains the sources for the container. This needs to be specified under
-    \`serviceResource\` in order to enable hot-reloading, but is not necessary for tasks and tests.
+      deline`
+      The Garden module that contains the sources for the container. This needs to be specified under
+      \`serviceResource\` in order to enable hot-reloading, but is not necessary for tasks and tests.
 
-    Must be a \`container\` module, and for hot-reloading to work you must specify the \`hotReload\` field
-    on the container module.
+      Must be a \`container\` module, and for hot-reloading to work you must specify the \`hotReload\` field
+      on the container module.
 
-    Note: If you specify a module here, you don't need to specify it additionally under \`build.dependencies\``
+      Note: If you specify a module here, you don't need to specify it additionally under \`build.dependencies\`
+      `
     )
     .example("my-container-module")
 

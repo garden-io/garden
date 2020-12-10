@@ -4,7 +4,7 @@ type: helm
 name: api
 base: base-chart
 serviceResource:
-  containerModule: api-image
+  imageModule: api-image
 dependencies:
   - redis
 values:

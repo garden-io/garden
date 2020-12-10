@@ -144,7 +144,7 @@ describe("kubernetes-module handlers", () => {
   })
 
   describe("deployKubernetesService", () => {
-    it("should successfully deploy when serviceResource doesn't have a containerModule", async () => {
+    it("should successfully deploy when serviceResource doesn't have a imageModule", async () => {
       const graph = await garden.getConfigGraph(garden.log)
       const service = graph.getService("module-simple")
       const deployParams = {

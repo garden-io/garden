@@ -230,7 +230,7 @@ describe("validateKubernetesModule", () => {
     const serviceResource = {
       kind: "Deployment",
       name: "api-deployment",
-      containerModule: "api-image",
+      imageModule: "api-image",
       containerName: "api",
     }
 

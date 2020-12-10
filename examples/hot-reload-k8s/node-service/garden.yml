@@ -16,7 +16,7 @@ include: []
 type: kubernetes
 serviceResource:
   kind: Deployment
-  containerModule: node-image
+  imageModule: node-image
   name: node-service
   containerName: node-service
   hotReloadArgs: [npm, run, dev]

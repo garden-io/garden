@@ -4,7 +4,7 @@ type: helm
 name: result
 base: base-chart
 serviceResource:
-  containerModule: result-image
+  imageModule: result-image
   hotReloadArgs: [nodemon, server.js]
 dependencies:
   - db-init

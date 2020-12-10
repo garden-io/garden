@@ -28,7 +28,7 @@ manifests:
 serviceResource:
   kind: Deployment
   name: api-deployment
-  containerModule: api-image
+  imageModule: api-image
   containerName: api
 tests:
   - name: with-source-module-test
