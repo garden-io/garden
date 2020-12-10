@@ -32,11 +32,7 @@ export async function k8sPublishContainerModule(params: PublishModuleParams<Cont
 
     const fwd = await getRegistryPortForward(k8sCtx, log)
 
-    const imageId = containerHelpers.getDeploymentImageId(
-      module,
-      module.version,
-      ctx.provider.config.deploymentRegistry
-    )
+    const imageId = module.outputs["deployment-image-id"]
     const pullImageName = containerHelpers.unparseImageId({
       ...containerHelpers.parseImageId(imageId),
       // Note: using localhost directly here has issues with Docker for Mac.
@@ -52,7 +48,7 @@ export async function k8sPublishContainerModule(params: PublishModuleParams<Cont
     })
 
     // We need to tag the remote image with the local ID before we publish it
-    const localId = containerHelpers.getLocalImageId(module, module.version)
+    const localId = module.outputs["local-image-id"]
     await containerHelpers.dockerCli({
       cwd: module.buildPath,
       args: ["tag", pullImageName, localId],

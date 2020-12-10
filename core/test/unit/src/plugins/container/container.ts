@@ -879,13 +879,13 @@ describe("plugins.container", () => {
     })
 
     it("should publish image if module contains a Dockerfile", async () => {
+      td.replace(helpers, "hasDockerfile", () => true)
+
       const config = cloneDeep(baseConfig)
-      config.spec.image = "some/image:1.1"
       const module = td.object(await getTestModule(config))
 
-      td.replace(helpers, "hasDockerfile", () => true)
-      td.replace(helpers, "getLocalImageId", () => "some/image:12345")
-      td.replace(helpers, "getPublicImageId", () => "some/image:12345")
+      config.spec.image = "some/image:12345"
+      module.outputs["local-image-id"] = "some/image:12345"
 
       td.replace(helpers, "dockerCli", async ({ cwd, args, ctx: _ctx }) => {
         expect(cwd).to.equal(module.buildPath)
@@ -899,13 +899,13 @@ describe("plugins.container", () => {
     })
 
     it("should tag image if remote id differs from local id", async () => {
+      td.replace(helpers, "hasDockerfile", () => true)
+
       const config = cloneDeep(baseConfig)
       config.spec.image = "some/image:1.1"
       const module = td.object(await getTestModule(config))
 
-      td.replace(helpers, "hasDockerfile", () => true)
-      td.replace(helpers, "getLocalImageId", () => "some/image:12345")
-      td.replace(helpers, "getPublicImageId", () => "some/image:1.1")
+      module.outputs["local-image-id"] = "some/image:12345"
 
       const dockerCli = td.replace(helpers, "dockerCli")
 

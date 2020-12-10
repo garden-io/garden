@@ -26,6 +26,7 @@ import { makePodName, getSkopeoContainer, getDockerAuthVolume } from "../util"
 import { getRegistryPortForward } from "../container/util"
 import { PluginContext } from "../../../plugin-context"
 import { KubernetesPod } from "../types"
+import { ContainerModule } from "../../container/config"
 
 export const pullImage: PluginCommand = {
   name: "pull-image",
@@ -86,11 +87,11 @@ function ensureAllModulesValid(modules: GardenModule[]) {
   }
 }
 
-async function pullModules(ctx: KubernetesPluginContext, modules: GardenModule[], log: LogEntry) {
+async function pullModules(ctx: KubernetesPluginContext, modules: ContainerModule[], log: LogEntry) {
   await Promise.all(
     modules.map(async (module) => {
       const remoteId = containerHelpers.getPublicImageId(module)
-      const localId = containerHelpers.getLocalImageId(module, module.version)
+      const localId = module.outputs["local-image-id"]
       log.info({ msg: chalk.cyan(`Pulling image ${remoteId} to ${localId}`) })
       await pullModule(ctx, module, log)
       log.info({ msg: chalk.green(`\nPulled image: ${remoteId} -> ${localId}`) })
@@ -98,8 +99,8 @@ async function pullModules(ctx: KubernetesPluginContext, modules: GardenModule[]
   )
 }
 
-export async function pullModule(ctx: KubernetesPluginContext, module: GardenModule, log: LogEntry) {
-  const localId = containerHelpers.getLocalImageId(module, module.version)
+export async function pullModule(ctx: KubernetesPluginContext, module: ContainerModule, log: LogEntry) {
+  const localId = module.outputs["local-image-id"]
 
   if (ctx.provider.config.deploymentRegistry?.hostname === inClusterRegistryHostname) {
     await pullFromInClusterRegistry(ctx, module, log, localId)
@@ -110,12 +111,12 @@ export async function pullModule(ctx: KubernetesPluginContext, module: GardenMod
 
 async function pullFromInClusterRegistry(
   ctx: KubernetesPluginContext,
-  module: GardenModule,
+  module: ContainerModule,
   log: LogEntry,
   localId: string
 ) {
   const fwd = await getRegistryPortForward(ctx, log)
-  const imageId = containerHelpers.getDeploymentImageId(module, module.version, ctx.provider.config.deploymentRegistry)
+  const imageId = module.outputs["deployment-image-id"]
   const pullImageId = containerHelpers.unparseImageId({
     ...containerHelpers.parseImageId(imageId),
     // Note: using localhost directly here has issues with Docker for Mac.
@@ -135,7 +136,7 @@ async function pullFromInClusterRegistry(
 
 async function pullFromExternalRegistry(
   ctx: KubernetesPluginContext,
-  module: GardenModule,
+  module: ContainerModule,
   log: LogEntry,
   localId: string
 ) {
@@ -143,7 +144,7 @@ async function pullFromExternalRegistry(
   const namespace = await getAppNamespace(ctx, log, ctx.provider)
   const podName = makePodName("skopeo", namespace, module.name)
   const systemNamespace = await getSystemNamespace(ctx, ctx.provider, log)
-  const imageId = containerHelpers.getDeploymentImageId(module, module.version, ctx.provider.config.deploymentRegistry)
+  const imageId = module.outputs["deployment-image-id"]
   const tarName = `${module.name}-${module.version.versionString}`
 
   const skopeoCommand = [

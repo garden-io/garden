@@ -337,8 +337,7 @@ export async function createWorkloadManifest({
     valueFrom: { fieldRef: { fieldPath: "metadata.uid" } },
   })
 
-  const registryConfig = provider.config.deploymentRegistry
-  const imageId = containerHelpers.getDeploymentImageId(service.module, service.module.version, registryConfig)
+  const imageId = service.module.outputs["deployment-image-id"]
 
   const container: V1Container = {
     name: service.name,

@@ -104,7 +104,7 @@ const helpers = {
         return `${imageName}:${versionString}`
       }
     } else {
-      return helpers.getLocalImageId(module, module.version)
+      return module.outputs["local-image-id"]
     }
   },
 
@@ -225,7 +225,7 @@ const helpers = {
   },
 
   async imageExistsLocally(module: ContainerModule, log: LogEntry, ctx: PluginContext) {
-    const identifier = helpers.getLocalImageId(module, module.version)
+    const identifier = module.outputs["local-image-id"]
     const result = await helpers.dockerCli({
       cwd: module.path,
       args: ["images", identifier, "-q"],

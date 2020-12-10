@@ -12,7 +12,6 @@ import { storeTestResult } from "../test-results"
 import { TestModuleParams } from "../../../types/plugin/module/testModule"
 import { TestResult } from "../../../types/plugin/module/getTestResult"
 import { runAndCopy } from "../run"
-import { containerHelpers } from "../../container/helpers"
 import { makePodName } from "../util"
 import { getAppNamespace } from "../namespace"
 import { KubernetesPluginContext } from "../config"
@@ -24,7 +23,7 @@ export async function testContainerModule(params: TestModuleParams<ContainerModu
   const timeout = testConfig.timeout || DEFAULT_TEST_TIMEOUT
   const k8sCtx = ctx as KubernetesPluginContext
 
-  const image = containerHelpers.getDeploymentImageId(module, module.version, ctx.provider.config.deploymentRegistry)
+  const image = module.outputs["deployment-image-id"]
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
   const result = await runAndCopy({

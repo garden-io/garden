@@ -22,7 +22,7 @@ export async function runContainerModule(params: RunModuleParams<ContainerModule
   const { module, ctx, log } = params
   const provider = <KubernetesProvider>ctx.provider
 
-  const image = containerHelpers.getDeploymentImageId(module, module.version, provider.config.deploymentRegistry)
+  const image = module.outputs["deployment-image-id"]
   const namespace = await getAppNamespace(ctx, log, provider)
 
   return runAndCopy({
@@ -60,7 +60,7 @@ export async function runContainerTask(params: RunTaskParams<ContainerModule>): 
   const { ctx, log, module, task, taskVersion } = params
   const { args, command } = task.spec
 
-  const image = containerHelpers.getDeploymentImageId(module, module.version, ctx.provider.config.deploymentRegistry)
+  const image = module.outputs["deployment-image-id"]
   const k8sCtx = ctx as KubernetesPluginContext
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
