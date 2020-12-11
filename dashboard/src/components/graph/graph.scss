@@ -7,83 +7,113 @@
  */
 
 #chart {
-  g.taskPending > rect {
-    stroke: #f17fcd;
+  height: calc(100vh - 2rem);
+  width: 98%;
+  margin: auto;
+
+  /* Hide scrollbar (but keep scrolling functionality) */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+
+  g > path {
+    cursor: default !important;
   }
 
-  g.taskProcessing > rect {
-    stroke: #f17fcd;
-    stroke-dasharray: 8;
-    animation: dash 15s linear infinite;
-  }
-
-  @keyframes dash {
-    to {
-      stroke-dashoffset: 1000;
-    }
-  }
-
-  g.taskComplete > rect {
-    stroke: #02f2b4;
-  }
-
-  g.taskCancelled > rect {
-    stroke: #BBB;
-  }
-
-  g.taskError > rect {
-    stroke: red;
-  }
-
-  g.disabled > rect {
-    stroke: #C2CFE0;
-  }
-
-  .node rect {
-    fill: #fff;
-    stroke: #02f2b4;
-    stroke-width: 2.5px;
-  }
-
-  .node {
-    cursor: pointer;
-  }
-
-  .node:hover:not(.disabled) rect, .node.selected rect {
-    stroke-width: 4.5px;
-  }
-
-  .node.disabled {
-    cursor: default;
-  }
-
-  .edgePath path {
-    stroke: rgba(0, 0, 0, 0.32);
-    stroke-width: 1.5px;
-  }
-
-  .label-container {
-    cursor: pointer;
+  foreignObject {
+    pointer-events: auto;
   }
 
   div.node-container {
+    $base-padding: 10px;
+
+    cursor: pointer;
     text-align: center;
-    padding: 1rem;
+    font-size: 15px;
+    padding: $base-padding+1 $base-padding+1 $base-padding $base-padding+1;
     background-repeat: no-repeat;
     background-position: left;
     background-position-x: -0.5rem;
     background-size: 4rem;
     border-radius: 4px;
-    border:none;
+    border-width: 2px;
+    border-color: #02f2b4;
+    border-style: solid;
+    box-sizing: content-box;
+    text-overflow: clip;
+    white-space: nowrap;
+    line-height: 15px;
 
     .type {
       color: gray;
-      padding-bottom: 0.2rem;
+      padding-bottom: 6px;
+
+      i {
+        font-size: 0.9em;
+        margin-left: 0.4em;
+        color: #C2CFE0;
+      }
     }
 
     .module-name {
       color: #343434;
       font-weight: bold;
+    }
+
+    &.taskProcessing {
+      $width: 2px;
+      $dashColor: #f17fcd;
+      $dashLength: 70%;
+      $dash: $dashColor $dashLength, transparent 100% - $dashLength;
+
+      border: none;
+      // Need to correct for the removed border
+      padding: $base-padding+3 $base-padding+2 $base-padding+1 $base-padding+2;
+      background-image:
+        linear-gradient(90deg, $dash),
+        linear-gradient(90deg, $dash),
+        linear-gradient(0deg, $dash),
+        linear-gradient(0deg, $dash);
+      background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+      background-size: 15px $width, 15px $width, $width 15px, $width 15px;
+      background-position: left top, right bottom, left bottom, right top;
+      animation: border-dance 0.25s infinite linear;
+    }
+    @keyframes border-dance {
+      0% {
+        background-position: left top, right bottom, left bottom, right top;
+      }
+      100% {
+        background-position: left 15px top, right 15px bottom, left bottom 15px, right top 15px;
+      }
+    }
+
+    &.disabled {
+      cursor: default;
+      border-color: #C2CFE0 !important;
+    }
+
+    &.taskPending {
+      border-color: #f17fcd;
+    }
+
+    &.taskComplete {
+      border-color: #02f2b4;
+    }
+
+    &.taskCancelled {
+      border-color: #bbb;
+    }
+
+    &.taskError {
+      border-color: red;
+    }
+
+    &:hover:not(.disabled), &.selected {
+      padding: $base-padding - 1;
+      border-width: 4px;
     }
   }
 }
