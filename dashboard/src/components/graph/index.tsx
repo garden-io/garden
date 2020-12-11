@@ -8,35 +8,32 @@
 
 import cls from "classnames"
 import { css } from "emotion"
-import React, { Component } from "react"
+import { Canvas, Node, Edge, MarkerArrow, NodeChildProps } from "reaflow"
+import React, { useState } from "react"
 import styled from "@emotion/styled"
 import { capitalize } from "lodash"
-import { event, select, selectAll } from "d3-selection"
-import { zoom, zoomIdentity } from "d3-zoom"
-import dagreD3 from "dagre-d3"
-import { PickFromUnion } from "@garden-io/core/build/src/util/util"
 import Card from "../card"
 import "./graph.scss"
 import { colors, fontMedium } from "../../styles/variables"
 import Spinner, { SpinnerProps } from "../spinner"
 import { SelectGraphNode, StackGraphSupportedFilterKeys } from "../../contexts/ui"
-import { SupportedEventName } from "../../contexts/api"
 import { FiltersButton, Filters } from "../group-filter"
-import { GraphOutputWithNodeStatus } from "../../containers/graph"
+import { GraphOutputWithNodeStatus, StackGraphNode } from "../../containers/graph"
+import { getTextWidth } from "../../util/helpers"
 
 interface Node {
-  name: string
-  label: string
   id: string
-  status?: string
-  disabled: boolean
+  height: number
+  width: number
+  data: StackGraphNode
 }
 
 interface Edge {
-  source: string
-  target: string
+  id: string
+  from: string
+  to: string
   type: string
-  since?: number
+  // since?: number
 }
 
 export interface Graph {
@@ -44,148 +41,7 @@ export interface Graph {
   edges: Edge[]
 }
 
-// FIXME: We shouldn't repeat the keys for both the type and the set below
-type TaskNodeEventName = PickFromUnion<
-  SupportedEventName,
-  "taskPending" | "taskProcessing" | "taskComplete" | "taskError"
->
-
-const taskNodeEventNames: Set<TaskNodeEventName> = new Set([
-  "taskPending",
-  "taskProcessing",
-  "taskComplete",
-  "taskError",
-])
-
 const selectedClassName = "selected"
-let selectedNodeId: string | null = null
-function clearGraphNodeSelection() {
-  const selectedNode = selectedNodeId && document.getElementById(selectedNodeId)
-  selectedNode && selectedNode.classList.remove(selectedClassName)
-}
-
-const MIN_CHART_WIDTH = 200
-const MIN_CHART_HEIGHT = 200
-
-function getNodeClass(node: Node) {
-  let className = ""
-  if (selectedNodeId === node.id) {
-    className += selectedClassName
-  }
-  if (node.disabled) {
-    className += " disabled"
-  }
-
-  className += (node.status && ` ${node.status}`) || ""
-  return className
-}
-
-function drawChart(graph: Graph, width: number, height: number, onGraphNodeSelected: (string) => void) {
-  // Create the input graph
-  const g = new dagreD3.graphlib.Graph().setGraph({}).setDefaultEdgeLabel(function () {
-    return {}
-  })
-
-  for (const node of graph.nodes) {
-    g.setNode(node.id, {
-      label: node.label,
-      class: getNodeClass(node),
-      id: node.id,
-      labelType: "html",
-    })
-  }
-
-  g.nodes().forEach(function (v) {
-    const node = g.node(v)
-    // Round the corners of the nodes
-    node.rx = node.ry = 4
-    // Remove node padding
-    node.padding = 0
-    node.paddingX = 0
-    node.paddingY = 0
-  })
-
-  // Set up edges, no special attributes.
-  for (const edge of graph.edges) {
-    g.setEdge(edge.source, edge.target)
-  }
-
-  // Create the renderer
-  const render = new dagreD3.render()
-
-  // Clear previous content if any (for updating)
-  selectAll("#chart svg").remove()
-
-  // Set width and height. Height gets updated once graph is rendered
-  width = Math.max(width, MIN_CHART_WIDTH)
-  height = Math.max(height, MIN_CHART_HEIGHT)
-
-  const svg = select("#chart").append("svg").attr("width", width).attr("height", height)
-
-  // Set up an SVG group so that we can translate the final graph.
-  const svgGroup = svg.append("g")
-
-  // Set up zoom support
-  const zoomHandler = zoom<SVGSVGElement, any>().on("zoom", () => {
-    svgGroup.attr("transform", event.transform)
-  })
-  svg.call(zoomHandler)
-
-  // Run the renderer. This is what draws the final graph.
-  // FIXME: ts-ignore
-  // @ts-ignore
-  render(svgGroup, g)
-
-  const initialScale = 0.75
-
-  // Re-set svg frame height after graph has been been drawn
-  // const graphHeight = g.graph().height * initialScale + 40
-  // svg.attr("height", Math.max(graphHeight, MIN_CHART_HEIGHT))
-
-  // Center the graph
-  const xCenterOffset = (parseInt(svg.attr("width"), 10) - g.graph().width * initialScale) / 2
-  const yCenterOffset = (parseInt(svg.attr("height"), 10) - g.graph().height * initialScale) / 2
-  const zoomTranslate = zoomIdentity.translate(xCenterOffset, yCenterOffset).scale(initialScale)
-  svg.call(zoomHandler.transform, zoomTranslate)
-
-  const selections = svg.select("g").selectAll("g.node")
-  selections.on("click", function (nodeName) {
-    // tslint:disable-next-line: no-invalid-this
-    const element = this as HTMLElement
-    if (element.classList.contains("disabled")) {
-      return
-    }
-    if (element) {
-      clearGraphNodeSelection()
-
-      // remove selected class from old node and set in new
-      element.classList.add(selectedClassName)
-      selectedNodeId = element.id
-    }
-    onGraphNodeSelected(nodeName)
-  })
-}
-
-// Renders as HTML
-const makeLabel = (name: string, type: string, moduleName: string, disabled: boolean) => {
-  let typeEl: string
-  if (disabled) {
-    typeEl = `<div class="type">${capitalize(type)} <i class="fas fa-ban"></i></div>`
-  } else {
-    typeEl = `<div class='type'>${capitalize(type)}</div>`
-  }
-  let nameEl: string = ""
-  if (moduleName !== name) {
-    nameEl = `<span> / ${name}</span>`
-  }
-  return `
-    <div class='node-container node-container--${type}'>
-      ${typeEl}
-      <span class='module-name'>${moduleName}</span>
-      ${nameEl}
-    </div>
-  `
-}
 
 const Span = styled.span`
   margin-left: 1rem;
@@ -200,241 +56,213 @@ const ProcessSpinner = styled<any, SpinnerProps>(Spinner)`
   margin: 16px 0 0 20px;
 `
 
-type ChartState = {
-  nodes: Node[]
-  edges: Edge[]
+const defaultTaskIndicator = "—"
+const nodeMinWidth = 90
+// Note: These values are needed to compute the desired dimensions of each node
+const nodeTextSizePx = 15
+const nodeTextSpacingPx = 6
+const nodePaddingPx = 11
+const nodeBorderWidthPx = 2
+const nodeFont = "Nunito Sans, Arial, Helvetica, sans-serif"
+const subNameFont = `${nodeTextSizePx}px ${nodeFont}`
+const moduleNameFont = `bold ${subNameFont}`
+
+interface TaskState {
+  indicator?: string
+}
+
+const taskStates: { [name: string]: TaskState } = {
+  ready: {},
+  pending: {},
+  processing: { indicator: "--" },
+  cancelled: {},
+  error: {},
+  disabled: {},
 }
 
 interface Props {
   graph: GraphOutputWithNodeStatus
   onGraphNodeSelected: SelectGraphNode
   selectedGraphNode: string | null
-  layoutChanged: boolean // set whenever user toggles sidebar
   isProcessing: boolean // set whenever wsMessages are received
   filters: Filters<StackGraphSupportedFilterKeys>
   onFilter: (filterKey: StackGraphSupportedFilterKeys) => void
 }
 
-class Chart extends Component<Props, ChartState> {
-  _nodes: Node[]
-  _edges: Edge[]
-  _chartRef: React.RefObject<any>
-
-  state: ChartState = {
-    nodes: [],
-    edges: [],
+export const StackGraph: React.FC<Props> = ({
+  graph,
+  onGraphNodeSelected,
+  selectedGraphNode,
+  isProcessing,
+  filters,
+  onFilter,
+}) => {
+  let spinner: React.ReactNode = null
+  let graphStatus = ""
+  if (isProcessing) {
+    graphStatus = "Processing..."
+    spinner = <ProcessSpinner background={colors.gardenWhite} size="2rem" />
   }
 
-  constructor(props) {
-    super(props)
+  const [selections, setSelections] = useState<string[]>(selectedGraphNode ? [selectedGraphNode] : [])
 
-    this._chartRef = React.createRef()
-    this._nodes = []
-    this._edges = []
-  }
+  const nodes = graph.nodes
+    .filter((n) => filters[n.type].selected)
+    .map((n) => {
+      const { key, name, moduleName } = n
 
-  componentDidMount() {
-    this.drawChart()
+      let textWidth = getTextWidth(moduleName, moduleNameFont)
+      let subName = moduleName !== name ? ` / ${name}` : ""
 
-    // Re-draw graph on **end** of window resize event (hence the timer)
-    let resizeTimer: NodeJS.Timeout
-    window.onresize = () => {
-      clearTimeout(resizeTimer)
-      resizeTimer = setTimeout(() => {
-        this.drawChart()
-      }, 250)
+      if (subName) {
+        textWidth += getTextWidth(subName, subNameFont)
+      }
+
+      const borderSize = nodeBorderWidthPx * 2
+      const height = nodePaddingPx * 2 + nodeTextSizePx * 2 + nodeTextSpacingPx + borderSize * 2
+      let width = Math.ceil(textWidth) + nodePaddingPx * 2 + borderSize * 2
+
+      if (width < nodeMinWidth) {
+        width = nodeMinWidth
+      }
+
+      return {
+        id: key,
+        height,
+        width,
+        data: n,
+      }
+    })
+
+  const edges = graph.relationships
+    .filter((n) => filters[n.dependant.type].selected && filters[n.dependency.type].selected)
+    .map((r) => {
+      const source = r.dependency
+      const target = r.dependant
+      return {
+        id: `${source.key}-${target.key}`,
+        from: source.key,
+        to: target.key,
+        type: source.type,
+      }
+    })
+
+  function renderNode(event: NodeChildProps) {
+    const { key, name, type, status, disabled, moduleName } = event.node.data
+
+    const classes = ["node-container", `node-container--${type}`]
+
+    if (status) {
+      classes.push(status)
     }
-  }
-
-  componentWillUnmount() {
-    window.onresize = () => {}
-  }
-
-  drawChart() {
-    const graph = this.makeGraph()
-    this._nodes = graph.nodes
-    this._edges = graph.edges
-    const width = this._chartRef.current.offsetWidth
-    const height = this._chartRef.current.offsetHeight
-    drawChart(graph, width, height, this.props.onGraphNodeSelected)
-  }
-
-  makeGraph() {
-    const nodes: Node[] = this.props.graph.nodes
-      .filter((n) => this.props.filters[n.type].selected)
-      .map((n) => {
-        return {
-          id: n.key,
-          name: n.name,
-          label: makeLabel(n.name, n.type, n.moduleName, n.disabled),
-          status: n.status,
-          disabled: n.disabled,
-        }
-      })
-    const edges: Edge[] = this.props.graph.relationships
-      .filter((n) => this.props.filters[n.dependant.type].selected && this.props.filters[n.dependency.type].selected)
-      .map((r) => {
-        const source = r.dependency
-        const target = r.dependant
-        return {
-          source: source.key,
-          target: target.key,
-          type: source.type,
-        }
-      })
-
-    return { edges, nodes }
-  }
-
-  // FIXME: Refactor!
-  componentDidUpdate(prevProps: Props, prevState: ChartState) {
-    if (
-      prevState !== this.state ||
-      prevProps.graph !== this.props.graph ||
-      (!prevProps.selectedGraphNode && this.props.selectedGraphNode) ||
-      (prevProps.selectedGraphNode && !this.props.selectedGraphNode) ||
-      prevProps.filters !== this.props.filters ||
-      prevProps.layoutChanged !== this.props.layoutChanged
-    ) {
-      this.drawChart()
+    if (selections.includes(key)) {
+      classes.push(selectedClassName)
+    }
+    if (disabled) {
+      classes.push("disabled")
     }
 
-    if (!this.props.selectedGraphNode) {
-      clearGraphNodeSelection()
-    }
-  }
+    const subName = moduleName !== name ? ` / ${name}` : ""
 
-  clearClasses(el: HTMLElement) {
-    // we use the event name as the class name
-    for (const name of taskNodeEventNames) {
-      el.classList.remove(name)
-    }
-  }
-
-  render() {
-    const chartHeightEstimate = `100vh - 2rem`
-
-    let spinner: React.ReactNode = null
-    let status = ""
-    if (this.props.isProcessing) {
-      status = "Processing..."
-      spinner = <ProcessSpinner background={colors.gardenWhite} size="2rem" />
+    const onClick = () => {
+      setSelections([key])
+      onGraphNodeSelected(key)
     }
 
     return (
-      <Card>
+      <div
+        className={classes.join(" ")}
+        // tslint:disable-next-line: jsx-no-lambda
+        onClick={onClick}
+      >
+        <div className="type">
+          {capitalize(type)}
+          {disabled ? <i className="fas fa-ban" /> : ""}
+        </div>
+        <span className="module-name">{moduleName}</span>
+        {subName}
+      </div>
+    )
+  }
+
+  return (
+    <Card>
+      <div
+        className={cls(
+          css`
+            position: relative;
+          `
+        )}
+      >
         <div
           className={cls(
             css`
-              position: relative;
+              position: absolute;
+              top: 1rem;
+              display: flex;
             `
           )}
         >
-          <div
-            className={cls(
-              css`
-                position: absolute;
-                top: 1rem;
+          <div className="ml-1">
+            <FiltersButton filters={filters} onFilter={onFilter} />
+            <div
+              className={css`
                 display: flex;
-              `
-            )}
-          >
-            <div className="ml-1">
-              <FiltersButton filters={this.props.filters} onFilter={this.props.onFilter} />
-              <div
-                className={css`
-                  display: flex;
-                `}
-              >
-                <Status>{status}</Status>
-                {spinner}
-              </div>
+              `}
+            >
+              <Status>{graphStatus}</Status>
+              {spinner}
             </div>
           </div>
-          <div
-            className={css`
-              height: calc(${chartHeightEstimate});
-            `}
-            ref={this._chartRef}
-            id="chart"
-          />
-          <div
-            className={cls(
-              css`
-                position: absolute;
-                right: 1rem;
-                bottom: 1rem;
-                display: flex;
-                justify-content: flex-end;
-              `,
-              "mr-1"
-            )}
-          >
-            <Span>
-              <span
-                className={css`
-                  color: ${colors.taskState.ready};
-                `}
-              >
-                —{" "}
-              </span>
-              Ready
-            </Span>
-            <Span>
-              <span
-                className={css`
-                  color: ${colors.taskState.pending};
-                `}
-              >
-                —{" "}
-              </span>
-              Pending
-            </Span>
-            <Span>
-              <span
-                className={css`
-                  color: ${colors.taskState.processing};
-                `}
-              >
-                --{" "}
-              </span>
-              Processing
-            </Span>
-            <Span>
-              <span
-                className={css`
-                  color: ${colors.taskState.cancelled};
-                `}
-              >
-                —{" "}
-              </span>
-              Canceled
-            </Span>
-            <Span>
-              <span
-                className={css`
-                  color: ${colors.taskState.error};
-                `}
-              >
-                —{" "}
-              </span>
-              Error
-            </Span>
-            <Span>
-              <span
-                className={css`
-                  color: ${colors.taskState.disabled};
-                `}
-              >
-                —{" "}
-              </span>
-              Disabled
-            </Span>
-          </div>
         </div>
-      </Card>
-    )
-  }
-}
 
-export default Chart
+        <div id="chart">
+          <Canvas
+            readonly
+            fit
+            direction="RIGHT"
+            maxHeight={5000}
+            maxWidth={5000}
+            layoutOptions={{ "algorithm": "layered", "org.eclipse.elk.partitioning.activate": true }}
+            nodes={nodes}
+            edges={edges}
+            selections={selections}
+            node={<Node style={{ fill: "white", strokeWidth: 0 }}>{renderNode}</Node>}
+            edge={<Edge disabled style={{ stroke: "rgba(0, 0, 0, 0.2)", strokeWidth: "1.5px" }} />}
+            arrow={<MarkerArrow style={{ fill: "rgba(140, 140, 140)", strokeWidth: "5px" }} />}
+          />
+        </div>
+
+        <div
+          className={cls(
+            css`
+              position: absolute;
+              right: 1rem;
+              bottom: 1rem;
+              display: flex;
+              justify-content: flex-end;
+              font-size: 0.8em;
+            `,
+            "mr-1"
+          )}
+        >
+          {Object.entries(taskStates).map(([state, props]) => {
+            return (
+              <Span key={state}>
+                <span
+                  className={css`
+                    color: ${colors.taskState[state]};
+                    font-weight: bold;
+                  `}
+                >
+                  {props.indicator || defaultTaskIndicator}{" "}
+                </span>
+                {capitalize(state)}
+              </Span>
+            )
+          })}
+        </div>
+      </div>
+    </Card>
+  )
+}

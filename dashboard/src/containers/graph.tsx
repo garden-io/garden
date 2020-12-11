@@ -8,7 +8,7 @@
 
 import React, { useEffect } from "react"
 import styled from "@emotion/styled"
-import Graph from "../components/graph"
+import { StackGraph } from "../components/graph"
 import PageError from "../components/page-error"
 import { TaskState } from "../contexts/api"
 import { StackGraphSupportedFilterKeys, EntityResultSupportedTypes } from "../contexts/ui"
@@ -46,7 +46,6 @@ export default () => {
     actions: { selectGraphNode, stackGraphToggleItemsView, clearGraphNodeSelection },
     state: {
       selectedGraphNode,
-      isSidebarOpen,
       stackGraph: { filters },
     },
   } = useUiState()
@@ -125,10 +124,9 @@ export default () => {
   return (
     <Wrapper className="row">
       <div className={moreInfoPane ? "col-xs-7 col-sm-7 col-md-8 col-lg-8 col-xl-8" : "col-xs"}>
-        <Graph
+        <StackGraph
           onGraphNodeSelected={selectGraphNode}
           selectedGraphNode={selectedGraphNode}
-          layoutChanged={isSidebarOpen}
           graph={graphWithStatus}
           filters={graphFilters}
           onFilter={stackGraphToggleItemsView}
