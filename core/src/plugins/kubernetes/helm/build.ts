@@ -40,7 +40,7 @@ export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<He
       await helm({
         ctx: k8sCtx,
         log,
-        args: ["repo", "add", "stable", "https://kubernetes-charts.storage.googleapis.com/"],
+        args: ["repo", "add", "stable", "https://charts.helm.sh/stable", "--force-update"],
       })
       await helm({ ctx: k8sCtx, log, args: ["repo", "update"] })
       log.debug("Fetching chart (after updating)...")
