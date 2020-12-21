@@ -42,6 +42,12 @@ export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<He
         log,
         args: ["repo", "add", "stable", "https://kubernetes-charts.storage.googleapis.com/"],
       })
+      // nginx-ingress has moved from the stable repo into ingress-nginx
+      await helm({
+        ctx: k8sCtx,
+        log,
+        args: ["repo", "add", "ingress-nginx", "https://kubernetes.github.io/ingress-nginx"],
+      })
       await helm({ ctx: k8sCtx, log, args: ["repo", "update"] })
       log.debug("Fetching chart (after updating)...")
       await pullChart(k8sCtx, log, module)

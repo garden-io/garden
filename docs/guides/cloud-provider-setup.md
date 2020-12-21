@@ -52,7 +52,7 @@ Run `garden --env=remote plugins kubernetes cluster-init`, then `garden dev --en
 
 ### Optional: Configure DNS
 
-First, get the public IP address of the ingress controller you set up in the previous step. If you configured Garden to set up _nginx_, run: `kubectl describe service --namespace=garden-system garden-nginx-nginx-ingress-controller | grep 'LoadBalancer Ingress'` and make note of returned IP address.
+First, get the public IP address of the ingress controller you set up in the previous step. If you configured Garden to set up _nginx_, run: `kubectl describe service --namespace=garden-system garden-nginx-ingress-nginx-controller | grep 'LoadBalancer Ingress'` and make note of returned IP address.
 
 Then, create a DNS record with your provider of choice, pointing at the IP address you wrote down in the previous step (e.g. an `A` record pointing your-project.your-domain.com at that IP). We recommend setting up a wildcard record as well (e.g *.your-project.your-domain.com).
 
