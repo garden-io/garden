@@ -7,6 +7,9 @@
  */
 
 import { expect } from "chai"
+import { join } from "path"
+import stripAnsi = require("strip-ansi")
+import { keyBy } from "lodash"
 import {
   ConfigContext,
   ContextKey,
@@ -20,13 +23,11 @@ import {
   ScanContext,
 } from "../../../../src/config/config-context"
 import { expectError, makeTestGardenA, TestGarden, projectRootA, makeTestGarden } from "../../../helpers"
-import { join } from "path"
 import { joi } from "../../../../src/config/common"
 import { prepareRuntimeContext } from "../../../../src/runtime-context"
 import { Service } from "../../../../src/types/service"
-import stripAnsi = require("strip-ansi")
 import { resolveTemplateString, resolveTemplateStrings } from "../../../../src/template-string"
-import { keyBy } from "lodash"
+import { exec } from "../../../../src/util/util"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>
@@ -34,7 +35,13 @@ interface TestValues {
   [key: string]: TestValue
 }
 
+let currentBranch
+
 describe("ConfigContext", () => {
+  before(async () => {
+    currentBranch = (await exec("git", ["rev-parse", "--abbrev-ref", "HEAD"])).stdout
+  })
+
   class TestContext extends ConfigContext {
     constructor(obj: TestValues, root?: ConfigContext) {
       super(root)
@@ -274,7 +281,7 @@ describe("ConfigContext", () => {
         () => resolveKey(c, ["nested", "key"]),
         (err) =>
           expect(err.message).to.equal(
-            "Invalid template string ${'${nested.key}'}: Invalid template string ${nested.key}: Circular reference detected when resolving key nested.key (nested -> nested.key)"
+            "Invalid template string (${'${nested.key}'}): Invalid template string (${nested.key}): Circular reference detected when resolving key nested.key (nested -> nested.key)"
           )
       )
     })
@@ -323,6 +330,7 @@ describe("ProjectConfigContext", () => {
     const c = new ProjectConfigContext({
       projectName: "some-project",
       artifactsPath: "/tmp",
+      branch: "main",
       username: "some-user",
       secrets: {},
     })
@@ -332,10 +340,24 @@ describe("ProjectConfigContext", () => {
     delete process.env.TEST_VARIABLE
   })
 
+  it("should resolve the current git branch", () => {
+    const c = new ProjectConfigContext({
+      projectName: "some-project",
+      artifactsPath: "/tmp",
+      branch: "main",
+      username: "some-user",
+      secrets: {},
+    })
+    expect(c.resolve({ key: ["git", "branch"], nodePath: [], opts: {} })).to.eql({
+      resolved: "main",
+    })
+  })
+
   it("should resolve secrets", () => {
     const c = new ProjectConfigContext({
       projectName: "some-project",
       artifactsPath: "/tmp",
+      branch: "main",
       username: "some-user",
       secrets: { foo: "banana" },
     })
@@ -348,6 +370,7 @@ describe("ProjectConfigContext", () => {
     const c = new ProjectConfigContext({
       projectName: "some-project",
       artifactsPath: "/tmp",
+      branch: "main",
       username: "some-user",
       secrets: {},
     })
@@ -364,6 +387,7 @@ describe("ProjectConfigContext", () => {
     const c = new ProjectConfigContext({
       projectName: "some-project",
       artifactsPath: "/tmp",
+      branch: "main",
       username: "some-user",
       secrets: {},
     })
@@ -429,6 +453,12 @@ describe("ModuleConfigContext", () => {
   it("should resolve the environment config", async () => {
     expect(c.resolve({ key: ["environment", "name"], nodePath: [], opts: {} })).to.eql({
       resolved: garden.environmentName,
+    })
+  })
+
+  it("should resolve the current git branch", () => {
+    expect(c.resolve({ key: ["git", "branch"], nodePath: [], opts: {} })).to.eql({
+      resolved: currentBranch,
     })
   })
 
@@ -571,6 +601,12 @@ describe("WorkflowConfigContext", () => {
   it("should resolve the local platform", async () => {
     expect(c.resolve({ key: ["local", "platform"], nodePath: [], opts: {} })).to.eql({
       resolved: process.platform,
+    })
+  })
+
+  it("should resolve the current git branch", () => {
+    expect(c.resolve({ key: ["git", "branch"], nodePath: [], opts: {} })).to.eql({
+      resolved: currentBranch,
     })
   })
 

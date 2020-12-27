@@ -17,30 +17,36 @@ import {
   getWorkingCopyId,
   findConfigPathsInPath,
   detectModuleOverlap,
+  joinWithPosix,
 } from "../../../../src/util/fs"
 import { withDir } from "tmp-promise"
 import { ModuleConfig } from "../../../../src/config/module"
 
 describe("util", () => {
   describe("detectModuleOverlap", () => {
+    const projectRoot = join("/", "user", "code")
+    const gardenDirPath = join(projectRoot, ".garden")
+
     it("should detect if modules have the same root", () => {
       const moduleA = {
         name: "module-a",
-        path: join("/", "user", "code", "foo"),
+        path: join(projectRoot, "foo"),
       } as ModuleConfig
       const moduleB = {
         name: "module-b",
-        path: join("/", "user", "code", "foo"),
+        path: join(projectRoot, "foo"),
       } as ModuleConfig
       const moduleC = {
         name: "module-c",
-        path: join("/", "user", "code", "foo"),
+        path: join(projectRoot, "foo"),
       } as ModuleConfig
       const moduleD = {
         name: "module-d",
-        path: join("/", "user", "code", "bas"),
+        path: join(projectRoot, "bas"),
       } as ModuleConfig
-      expect(detectModuleOverlap([moduleA, moduleB, moduleC, moduleD])).to.eql([
+      expect(
+        detectModuleOverlap({ projectRoot, gardenDirPath, moduleConfigs: [moduleA, moduleB, moduleC, moduleD] })
+      ).to.eql([
         {
           module: moduleA,
           overlaps: [moduleB, moduleC],
@@ -58,21 +64,23 @@ describe("util", () => {
     it("should detect if a module has another module in its path", () => {
       const moduleA = {
         name: "module-a",
-        path: join("/", "user", "code", "foo"),
+        path: join(projectRoot, "foo"),
       } as ModuleConfig
       const moduleB = {
         name: "module-b",
-        path: join("/", "user", "code", "foo", "bar"),
+        path: join(projectRoot, "foo", "bar"),
       } as ModuleConfig
       const moduleC = {
         name: "module-c",
-        path: join("/", "user", "code", "foo", "bar", "bas"),
+        path: join(projectRoot, "foo", "bar", "bas"),
       } as ModuleConfig
       const moduleD = {
         name: "module-d",
-        path: join("/", "user", "code", "bas", "bar", "bas"),
+        path: join(projectRoot, "bas", "bar", "bas"),
       } as ModuleConfig
-      expect(detectModuleOverlap([moduleA, moduleB, moduleC, moduleD])).to.eql([
+      expect(
+        detectModuleOverlap({ projectRoot, gardenDirPath, moduleConfigs: [moduleA, moduleB, moduleC, moduleD] })
+      ).to.eql([
         {
           module: moduleA,
           overlaps: [moduleB, moduleC],
@@ -88,14 +96,14 @@ describe("util", () => {
       it("should ignore modules that set includes", () => {
         const moduleA = {
           name: "module-a",
-          path: join("/", "user", "code", "foo"),
+          path: join(projectRoot, "foo"),
           include: [""],
         } as ModuleConfig
         const moduleB = {
           name: "module-b",
-          path: join("/", "user", "code", "foo"),
+          path: join(projectRoot, "foo"),
         } as ModuleConfig
-        expect(detectModuleOverlap([moduleA, moduleB])).to.eql([
+        expect(detectModuleOverlap({ projectRoot, gardenDirPath, moduleConfigs: [moduleA, moduleB] })).to.eql([
           {
             module: moduleB,
             overlaps: [moduleA],
@@ -105,14 +113,14 @@ describe("util", () => {
       it("should ignore modules that set excludes", () => {
         const moduleA = {
           name: "module-a",
-          path: join("/", "user", "code", "foo"),
+          path: join(projectRoot, "foo"),
           exclude: [""],
         } as ModuleConfig
         const moduleB = {
           name: "module-b",
-          path: join("/", "user", "code", "foo"),
+          path: join(projectRoot, "foo"),
         } as ModuleConfig
-        expect(detectModuleOverlap([moduleA, moduleB])).to.eql([
+        expect(detectModuleOverlap({ projectRoot, gardenDirPath, moduleConfigs: [moduleA, moduleB] })).to.eql([
           {
             module: moduleB,
             overlaps: [moduleA],
@@ -125,58 +133,75 @@ describe("util", () => {
       it("should ignore modules that set includes", () => {
         const moduleA = {
           name: "module-a",
-          path: join("/", "user", "code", "foo"),
+          path: join(projectRoot, "foo"),
           include: [""],
         } as ModuleConfig
         const moduleB = {
           name: "module-b",
-          path: join("/", "user", "code", "foo", "bar"),
+          path: join(projectRoot, "foo", "bar"),
         } as ModuleConfig
-        expect(detectModuleOverlap([moduleA, moduleB])).to.be.empty
+        expect(detectModuleOverlap({ projectRoot, gardenDirPath, moduleConfigs: [moduleA, moduleB] })).to.be.empty
       })
+
       it("should ignore modules that set excludes", () => {
         const moduleA = {
           name: "module-a",
-          path: join("/", "user", "code", "foo"),
+          path: join(projectRoot, "foo"),
           exclude: [""],
         } as ModuleConfig
         const moduleB = {
           name: "module-b",
-          path: join("/", "user", "code", "foo", "bar"),
+          path: join(projectRoot, "foo", "bar"),
         } as ModuleConfig
-        expect(detectModuleOverlap([moduleA, moduleB])).to.be.empty
+        expect(detectModuleOverlap({ projectRoot, gardenDirPath, moduleConfigs: [moduleA, moduleB] })).to.be.empty
       })
+
       it("should detect overlaps if only nested module has includes/excludes", () => {
         const moduleA1 = {
           name: "module-a",
-          path: join("/", "user", "code", "foo"),
+          path: join(projectRoot, "foo"),
         } as ModuleConfig
         const moduleB1 = {
           name: "module-b",
-          path: join("/", "user", "code", "foo", "bar"),
+          path: join(projectRoot, "foo", "bar"),
           include: [""],
         } as ModuleConfig
         const moduleA2 = {
           name: "module-a",
-          path: join("/", "user", "code", "foo"),
+          path: join(projectRoot, "foo"),
         } as ModuleConfig
         const moduleB2 = {
           name: "module-b",
-          path: join("/", "user", "code", "foo", "bar"),
+          path: join(projectRoot, "foo", "bar"),
           exclude: [""],
         } as ModuleConfig
-        expect(detectModuleOverlap([moduleA1, moduleB1])).to.eql([
+        expect(detectModuleOverlap({ projectRoot, gardenDirPath, moduleConfigs: [moduleA1, moduleB1] })).to.eql([
           {
             module: moduleA1,
             overlaps: [moduleB1],
           },
         ])
-        expect(detectModuleOverlap([moduleA2, moduleB2])).to.eql([
+        expect(detectModuleOverlap({ projectRoot, gardenDirPath, moduleConfigs: [moduleA2, moduleB2] })).to.eql([
           {
             module: moduleA2,
             overlaps: [moduleB2],
           },
         ])
+      })
+
+      it("should not consider remote source modules to overlap with module in project root", () => {
+        const remoteModule = {
+          name: "remote-module",
+          path: join(gardenDirPath, "sources", "foo", "bar"),
+        } as ModuleConfig
+
+        const moduleFoo = {
+          name: "module-foo",
+          path: join(projectRoot, "foo"),
+          include: [""],
+        } as ModuleConfig
+
+        expect(detectModuleOverlap({ projectRoot, gardenDirPath, moduleConfigs: [moduleFoo, remoteModule] })).to.eql([])
       })
     })
   })
@@ -346,6 +371,12 @@ describe("util", () => {
         join(garden.projectRoot, "module-b", "garden.yml"),
         join(garden.projectRoot, "module-c", "garden.yml"),
       ])
+    })
+  })
+
+  describe("joinWithPosix", () => {
+    it("should join a POSIX path to another path", () => {
+      expect(joinWithPosix("/tmp", "a/b")).to.equal("/tmp/a/b")
     })
   })
 })

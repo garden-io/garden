@@ -6,13 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import FilterStream from "streamfilter"
 import { join, resolve, relative, isAbsolute } from "path"
 import { flatten } from "lodash"
 import { ensureDir, pathExists, createReadStream, Stats, realpath, readlink, lstat } from "fs-extra"
-import { PassThrough } from "stream"
+import { PassThrough, Transform } from "stream"
 import hasha from "hasha"
 import split2 = require("split2")
-
 import { VcsHandler, RemoteSourceParams, VcsFile, GetFilesParams } from "./vcs"
 import { ConfigurationError, RuntimeError } from "../exceptions"
 import Bluebird from "bluebird"
@@ -22,6 +22,8 @@ import { splitLast, exec } from "../util/util"
 import { LogEntry } from "../logger/log-entry"
 import parseGitConfig from "parse-git-config"
 import { Profile } from "../util/profiling"
+import { SortedStreamIntersection } from "../util/streams"
+import execa = require("execa")
 
 export function getCommitIdFromRefList(refList: string[]): string {
   try {
@@ -85,7 +87,6 @@ export class GitHandler extends VcsHandler {
     if (this.repoRoots.has(path)) {
       return this.repoRoots.get(path)
     }
-
     const git = this.gitCli(log, path)
 
     try {
@@ -95,14 +96,7 @@ export class GitHandler extends VcsHandler {
     } catch (err) {
       if (err.exitCode === 128) {
         // Throw nice error when we detect that we're not in a repo root
-        throw new RuntimeError(
-          deline`
-          Path ${path} is not in a git repository root. Garden must be run from within a git repo.
-          Please run \`git init\` if you're starting a new project and repository, or move the project to an
-          existing repository, and try again.
-        `,
-          { path }
-        )
+        throw new RuntimeError(notInRepoRootErrorMessage(path), { path })
       } else {
         throw err
       }
@@ -136,17 +130,12 @@ export class GitHandler extends VcsHandler {
     // List all submodule paths in the current repo
     const submodulePaths = (await this.getSubmodules(gitRoot)).map((s) => join(gitRoot, s.path))
 
-    // We run ls-files for each ignoreFile and do a manual set-intersection (by counting elements in an object)
-    // in order to optimize the flow.
-    const paths: { [path: string]: number } = {}
     const files: VcsFile[] = []
 
-    // This function is called for each line output from the ls-files commands that we run, and populates the
-    // `files` array.
-    const handleLine = (data: Buffer) => {
+    const parseLine = (data: Buffer): VcsFile | undefined => {
       const line = data.toString().trim()
       if (!line) {
-        return
+        return undefined
       }
 
       let filePath: string
@@ -162,6 +151,18 @@ export class GitHandler extends VcsHandler {
         hash = split[0].split(" ")[1]
       }
 
+      return { path: filePath, hash }
+    }
+
+    // This function is called for each line output from the ls-files commands that we run, and populates the
+    // `files` array.
+    const handleEntry = (entry: VcsFile | undefined) => {
+      if (!entry) {
+        return
+      }
+
+      let { path: filePath, hash } = entry
+
       // Ignore files that are tracked but still specified in ignore files
       if (trackedButIgnored.has(filePath)) {
         return
@@ -169,50 +170,89 @@ export class GitHandler extends VcsHandler {
 
       const resolvedPath = resolve(path, filePath)
 
-      // Add the path to `paths` or increment the counter to indicate how many of the ls-files outputs
-      // contain the path.
-      if (paths[resolvedPath]) {
-        paths[resolvedPath] += 1
-      } else {
-        paths[resolvedPath] = 1
-      }
-
-      // We push to the output array when all ls-files commands "agree" that it should be included,
-      // and it passes through the include/exclude filters.
-      if (
-        paths[resolvedPath] >= this.ignoreFiles.length &&
-        (matchPath(filePath, include, exclude) || submodulePaths.includes(resolvedPath))
-      ) {
+      // We push to the output array if it passes through the include/exclude filters.
+      if (matchPath(filePath, include, exclude) || submodulePaths.includes(resolvedPath)) {
         files.push({ path: resolvedPath, hash })
       }
     }
 
-    const lsFiles = async (ignoreFile?: string) => {
+    const lsFiles = (ignoreFile?: string) => {
       const args = ["ls-files", "-s", "--others", "--exclude", this.gardenDirPath]
       if (ignoreFile) {
         args.push("--exclude-per-directory", ignoreFile)
       }
       args.push(path)
 
-      // Split the command output by line
-      const splitStream = split2()
-      splitStream.on("data", handleLine)
-
-      try {
-        await exec("git", args, { cwd: path, stdout: splitStream })
-      } catch (err) {
-        // if we get 128 we're not in a repo root, so we just get no files. Otherwise we throw.
-        if (err.exitCode !== 128) {
-          throw err
-        }
-      }
+      return execa("git", args, { cwd: path, buffer: false })
     }
 
-    if (this.ignoreFiles.length === 0) {
-      await lsFiles()
+    if (this.ignoreFiles.length > 1) {
+      // We run ls-files for each ignore file and do a streaming set-intersection (i.e. every ls-files call
+      // needs to "agree" that a file should be included). Then `handleLine()` is called for each resulting entry.
+      const streams = this.ignoreFiles.map(() => {
+        const input = split2()
+        const output = input.pipe(
+          new FilterStream((line: Buffer, _, cb) => {
+            cb(!!line)
+          }).pipe(
+            new Transform({
+              objectMode: true,
+              transform(line: Buffer, _, cb: Function) {
+                this.push(parseLine(line))
+                cb()
+              },
+            })
+          )
+        )
+        return { input, output }
+      })
+
+      await new Promise((_resolve, _reject) => {
+        // Note: The comparison function needs to account for git first returning untracked files, so we prefix with
+        // a zero or one to indicate whether it's a tracked file or not, and then do a simple string comparison
+        const intersection = new SortedStreamIntersection(
+          streams.map(({ output }) => output),
+          (a: VcsFile, b: VcsFile) => {
+            const cmpA = (a.hash ? "1" : "0") + a.path
+            const cmpB = (b.hash ? "1" : "0") + b.path
+            return <any>(cmpA > cmpB) - <any>(cmpA < cmpB)
+          }
+        )
+
+        this.ignoreFiles.map((ignoreFile, i) => {
+          const proc = lsFiles(ignoreFile)
+
+          proc.on("error", (err) => {
+            if (err["exitCode"] !== 128) {
+              _reject(err)
+            }
+          })
+
+          proc.stdout!.pipe(streams[i].input)
+        })
+
+        intersection.on("data", handleEntry)
+        intersection.on("error", (err) => {
+          _reject(err)
+        })
+        intersection.on("end", () => {
+          _resolve()
+        })
+      })
     } else {
-      // We run ls-files for each ignore file and collect each return result line with `handleLine`
-      await Bluebird.map(this.ignoreFiles, lsFiles)
+      const splitStream = split2()
+      splitStream.on("data", (line) => handleEntry(parseLine(line)))
+
+      await new Promise((_resolve, _reject) => {
+        const proc = lsFiles(this.ignoreFiles[0])
+        proc.on("error", (err: execa.ExecaError) => {
+          if (err.exitCode !== 128) {
+            _reject(err)
+          }
+        })
+        proc.stdout?.pipe(splitStream)
+        splitStream.on("end", () => _resolve())
+      })
     }
 
     // Resolve submodules
@@ -249,8 +289,7 @@ export class GitHandler extends VcsHandler {
       }
 
       // We need to special-case handling of symlinks. We disallow any "unsafe" symlinks, i.e. any ones that may
-      // link outside of `path` (which is usually a project or module root). The `hashObject` method also special-cases
-      // symlinks, to match git's hashing behavior (which is to hash the link itself, and not what the link points to).
+      // link outside of `gitRoot`.
       if (stats.isSymbolicLink()) {
         const target = await readlink(resolvedPath)
 
@@ -371,6 +410,8 @@ export class GitHandler extends VcsHandler {
 
   /**
    * Replicates the `git hash-object` behavior. See https://stackoverflow.com/a/5290484/3290965
+   * We deviate from git's behavior when dealing with symlinks, by hashing the target of the symlink and not the
+   * symlink itself. If the symlink cannot be read, we hash the link contents like git normally does.
    */
   async hashObject(stats: Stats, path: string) {
     const stream = new PassThrough()
@@ -417,4 +458,30 @@ export class GitHandler extends VcsHandler {
     }
     return undefined
   }
+
+  async getBranchName(log: LogEntry, path: string): Promise<string | undefined> {
+    const git = this.gitCli(log, path)
+    try {
+      return (await git("rev-parse", "--abbrev-ref", "HEAD"))[0]
+    } catch (err) {
+      if (err.exitCode === 128) {
+        try {
+          // If this doesn't throw, then we're in a repo with no commits, or with a detached HEAD.
+          await git("rev-parse", "--show-toplevel")
+          return undefined
+        } catch (notInRepoError) {
+          // Throw nice error when we detect that we're not in a repo root
+          throw new RuntimeError(notInRepoRootErrorMessage(path), { path })
+        }
+      } else {
+        throw err
+      }
+    }
+  }
 }
+
+const notInRepoRootErrorMessage = (path: string) => deline`
+    Path ${path} is not in a git repository root. Garden must be run from within a git repo.
+    Please run \`git init\` if you're starting a new project and repository, or move the project to an
+    existing repository, and try again.
+  `

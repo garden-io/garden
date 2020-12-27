@@ -33,7 +33,7 @@ import { findByName, pickKeys, getPackageVersion, getNames, findByNames, duplica
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
 import { VcsHandler, ModuleVersion } from "./vcs/vcs"
 import { GitHandler } from "./vcs/git"
-import { BuildDir } from "./build-dir"
+import { BuildStaging } from "./build-staging/build-staging"
 import { ConfigGraph } from "./config-graph"
 import { TaskGraph, GraphResults, ProcessTasksOpts } from "./task-graph"
 import { getLogger } from "./logger/logger"
@@ -45,18 +45,18 @@ import { BaseTask } from "./tasks/base"
 import { LocalConfigStore, ConfigStore, GlobalConfigStore, LinkedSource } from "./config-store"
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
 import { BuildDependencyConfig, ModuleConfig } from "./config/module"
-import { resolveModuleConfig } from "./resolve-module"
-import { ModuleConfigContext, OutputConfigContext, DefaultEnvironmentContext } from "./config/config-context"
+import { ModuleResolver, moduleResolutionConcurrencyLimit } from "./resolve-module"
+import { OutputConfigContext, DefaultEnvironmentContext } from "./config/config-context"
 import { createPluginContext, CommandInfo } from "./plugin-context"
 import { ModuleAndRuntimeActionHandlers, RegisterPluginParam } from "./types/plugin/plugin"
-import { SUPPORTED_PLATFORMS, SupportedPlatform, DEFAULT_GARDEN_DIR_NAME } from "./constants"
+import { SUPPORTED_PLATFORMS, SupportedPlatform, DEFAULT_GARDEN_DIR_NAME, gardenEnv } from "./constants"
 import { LogEntry } from "./logger/log-entry"
 import { EventBus } from "./events"
 import { Watcher } from "./watch"
 import {
   findConfigPathsInPath,
   getWorkingCopyId,
-  fixedExcludes,
+  fixedProjectExcludes,
   detectModuleOverlap,
   ModuleOverlap,
   defaultConfigFilename,
@@ -74,9 +74,8 @@ import { RuntimeContext } from "./runtime-context"
 import { loadPlugins, getDependencyOrder, getModuleTypes } from "./plugins"
 import { deline, naturalList } from "./util/string"
 import { ensureConnected } from "./db/connection"
-import { cyclesToString, DependencyValidationGraph } from "./util/validate-dependencies"
+import { DependencyValidationGraph } from "./util/validate-dependencies"
 import { Profile } from "./util/profiling"
-import { ResolveModuleTask, getResolvedModules, moduleResolutionConcurrencyLimit } from "./tasks/resolve-module"
 import username from "username"
 import { throwOnMissingSecretKeys, resolveTemplateString } from "./template-string"
 import { WorkflowConfig, WorkflowConfigMap, resolveWorkflowConfig } from "./config/workflow"
@@ -89,6 +88,7 @@ import {
   templateKind,
 } from "./config/module-template"
 import { TemplatedModuleConfig } from "./plugins/templated"
+import { BuildDirRsync } from "./build-staging/rsync"
 
 export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
   [actionName: string]: PluginActionHandlers[T]
@@ -113,22 +113,24 @@ export type ModuleActionMap = {
 }
 
 export interface GardenOpts {
-  config?: ProjectConfig
+  experimentalBuildSync?: boolean
   commandInfo?: CommandInfo
-  gardenDirPath?: string
+  config?: ProjectConfig
   environmentName?: string
   forceRefresh?: boolean
-  persistent?: boolean
+  gardenDirPath?: string
   log?: LogEntry
+  noEnterprise?: boolean
+  persistent?: boolean
   plugins?: RegisterPluginParam[]
   sessionId?: string
-  noEnterprise?: boolean
   variables?: PrimitiveMap
 }
 
 export interface GardenParams {
   artifactsPath: string
-  buildDir: BuildDir
+  vcsBranch: string
+  buildStaging: BuildStaging
   clientAuthToken: string | null
   enterpriseDomain: string | null
   projectId: string | null
@@ -191,9 +193,10 @@ export class Garden {
   public readonly variables: DeepPrimitiveMap
   public readonly secrets: StringMap
   public readonly projectSources: SourceConfig[]
-  public readonly buildDir: BuildDir
+  public readonly buildStaging: BuildStaging
   public readonly gardenDirPath: string
   public readonly artifactsPath: string
+  public readonly vcsBranch: string
   public readonly opts: GardenOpts
   private readonly providerConfigs: GenericProviderConfig[]
   public readonly workingCopyId: string
@@ -208,7 +211,7 @@ export class Garden {
   private readonly forceRefresh: boolean
 
   constructor(params: GardenParams) {
-    this.buildDir = params.buildDir
+    this.buildStaging = params.buildStaging
     this.clientAuthToken = params.clientAuthToken
     this.enterpriseDomain = params.enterpriseDomain
     this.projectId = params.projectId
@@ -219,6 +222,7 @@ export class Garden {
     this.gardenDirPath = params.gardenDirPath
     this.log = params.log
     this.artifactsPath = params.artifactsPath
+    this.vcsBranch = params.vcsBranch
     this.opts = params.opts
     this.rawOutputs = params.outputs
     this.production = params.production
@@ -309,9 +313,13 @@ export class Garden {
     // Connect to the state storage
     await ensureConnected()
 
+    const { sources: projectSources, path: projectRoot } = config
+
+    const vcsBranch = (await new GitHandler(projectRoot, gardenDirPath, []).getBranchName(log, projectRoot)) || ""
+
     const defaultEnvironmentName = resolveTemplateString(
       config.defaultEnvironment,
-      new DefaultEnvironmentContext({ projectName, artifactsPath, username: _username })
+      new DefaultEnvironmentContext({ projectName, artifactsPath, branch: vcsBranch, username: _username })
     ) as string
 
     const defaultEnvironment = getDefaultEnvironmentName(defaultEnvironmentName, config)
@@ -337,16 +345,18 @@ export class Garden {
       defaultEnvironment: defaultEnvironmentName,
       config,
       artifactsPath,
+      branch: vcsBranch,
       username: _username,
       secrets,
     })
 
-    const { sources: projectSources, path: projectRoot } = config
+    const vcs = new GitHandler(projectRoot, gardenDirPath, config.dotIgnoreFiles)
 
     let { namespace, providers, variables, production } = await pickEnvironment({
       projectConfig: config,
       envString: environmentStr,
       artifactsPath,
+      branch: vcsBranch,
       username: _username,
       secrets,
     })
@@ -354,19 +364,23 @@ export class Garden {
     // Allow overriding variables
     variables = { ...variables, ...(opts.variables || {}) }
 
-    const buildDir = await BuildDir.factory(projectRoot, gardenDirPath)
+    const experimentalBuildSync =
+      opts.experimentalBuildSync === undefined ? gardenEnv.GARDEN_EXPERIMENTAL_BUILD_STAGE : opts.experimentalBuildSync
+    const buildDirCls = experimentalBuildSync ? BuildStaging : BuildDirRsync
+    const buildDir = await buildDirCls.factory(projectRoot, gardenDirPath)
     const workingCopyId = await getWorkingCopyId(gardenDirPath)
 
     // We always exclude the garden dir
     const gardenDirExcludePattern = `${relative(projectRoot, gardenDirPath)}/**/*`
-    const moduleExcludePatterns = [...((config.modules || {}).exclude || []), gardenDirExcludePattern, ...fixedExcludes]
-
-    // Ensure the project root is in a git repo
-    const vcs = new GitHandler(gardenDirPath, config.dotIgnoreFiles)
-    await vcs.getRepoRoot(log, projectRoot)
+    const moduleExcludePatterns = [
+      ...((config.modules || {}).exclude || []),
+      gardenDirExcludePattern,
+      ...fixedProjectExcludes,
+    ]
 
     const garden = new this({
       artifactsPath,
+      vcsBranch,
       sessionId,
       clientAuthToken,
       enterpriseDomain,
@@ -379,7 +393,7 @@ export class Garden {
       variables,
       secrets,
       projectSources,
-      buildDir,
+      buildStaging: buildDir,
       production,
       gardenDirPath,
       opts,
@@ -412,7 +426,7 @@ export class Garden {
   }
 
   async clearBuilds() {
-    return this.buildDir.clear()
+    return this.buildStaging.clear()
   }
 
   async processTasks(tasks: BaseTask[], opts?: ProcessTasksOpts): Promise<GraphResults> {
@@ -539,7 +553,7 @@ export class Garden {
     }
 
     if (this.resolvedProviders[name]) {
-      return this.resolvedProviders[name]
+      return cloneDeep(this.resolvedProviders[name])
     }
 
     const providers = await this.resolveProviders(log, false, [name])
@@ -752,48 +766,21 @@ export class Garden {
    * For long-running processes, you need to call this again when any module or configuration has been updated.
    */
   async getConfigGraph(log: LogEntry, runtimeContext?: RuntimeContext) {
-    const providers = await this.resolveProviders(log)
-    const configs = await this.getRawModuleConfigs()
+    const resolvedProviders = await this.resolveProviders(log)
+    const rawConfigs = await this.getRawModuleConfigs()
+
     log.silly(`Resolving module configs`)
+
     // Resolve the project module configs
-    const tasks = configs.map(
-      (moduleConfig) =>
-        new ResolveModuleTask({ garden: this, log, moduleConfig, resolvedProviders: providers, runtimeContext })
-    )
+    const resolver = new ModuleResolver({
+      garden: this,
+      log,
+      rawConfigs,
+      resolvedProviders,
+      runtimeContext,
+    })
 
-    let results: GraphResults
-
-    try {
-      results = await this.processTasks(tasks)
-    } catch (err) {
-      // Wrap the circular dependency error to print a more specific message
-      if (err.type === "circular-dependencies") {
-        // Get the module names from the cycle keys (anything else is internal detail as far as users are concerned)
-        const cycleDescription = cyclesToString([err.detail.cycle.map((key: string) => key.split(".")[1])])
-        throw new ConfigurationError(
-          dedent`
-            Detected circular dependencies between module configurations:
-
-            ${cycleDescription}
-          `,
-          { cycle: err.detail.cycle }
-        )
-      } else {
-        throw err
-      }
-    }
-
-    const failed = Object.values(results).filter((r) => r?.error)
-
-    if (failed.length > 0) {
-      const errors = failed.map((r) => `${chalk.white.bold(r!.name)}: ${r?.error?.message}`)
-
-      throw new ConfigurationError(chalk.red(`Failed resolving one or more modules:\n\n${errors.join("\n")}`), {
-        results,
-        errors,
-      })
-    }
-    const resolvedModules = getResolvedModules(results)
+    const resolvedModules = await resolver.resolveAll()
 
     const actions = await this.getActionRouter()
     const moduleTypes = await this.getModuleTypes()
@@ -801,14 +788,18 @@ export class Garden {
     let graph: ConfigGraph | undefined = undefined
 
     // Require include/exclude on modules if their paths overlap
-    const overlaps = detectModuleOverlap(resolvedModules)
+    const overlaps = detectModuleOverlap({
+      projectRoot: this.projectRoot,
+      gardenDirPath: this.gardenDirPath,
+      moduleConfigs: resolvedModules,
+    })
     if (overlaps.length > 0) {
       const { message, detail } = this.makeOverlapError(overlaps)
       throw new ConfigurationError(message, detail)
     }
 
     // Walk through all plugins in dependency order, and allow them to augment the graph
-    const providerConfigs = Object.values(providers).map((p) => p.config)
+    const providerConfigs = Object.values(resolvedProviders).map((p) => p.config)
 
     for (const provider of getDependencyOrder(providerConfigs, this.registeredPlugins)) {
       // Skip the routine if the provider doesn't have the handler
@@ -831,19 +822,8 @@ export class Garden {
       const { addBuildDependencies, addRuntimeDependencies, addModules } = await actions.augmentGraph({
         pluginName: provider.name,
         log,
-        providers,
+        providers: resolvedProviders,
         modules: resolvedModules,
-      })
-
-      const configContext = new ModuleConfigContext({
-        garden: this,
-        resolvedProviders: keyBy(providers, "name"),
-        dependencies: resolvedModules,
-        runtimeContext,
-        parentName: undefined,
-        templateName: undefined,
-        inputs: {},
-        partialRuntimeResolution: true,
       })
 
       // Resolve modules from specs and add to the list
@@ -854,7 +834,7 @@ export class Garden {
         // There is no actual config file for plugin modules (which the prepare function assumes)
         delete moduleConfig.configPath
 
-        const resolvedConfig = await resolveModuleConfig(this, moduleConfig, { configContext })
+        const resolvedConfig = await resolver.resolveModuleConfig(moduleConfig, resolvedModules)
         resolvedModules.push(await moduleFromConfig(this, log, resolvedConfig, resolvedModules))
         graph = undefined
       })
@@ -1176,7 +1156,7 @@ export class Garden {
   }
 
   public makeOverlapError(moduleOverlaps: ModuleOverlap[]) {
-    const overlapList = moduleOverlaps
+    const overlapList = sortBy(moduleOverlaps, (o) => o.module.name)
       .map(({ module, overlaps }) => {
         const formatted = overlaps.map((o) => {
           const detail = o.path === module.path ? "same path" : "nested"

@@ -1,4 +1,39 @@
 
+<a name="0.12.11"></a>
+## [0.12.11](https://github.com/garden-io/garden/compare/0.12.10...0.12.11) (2020-12-01)
+
+### Bug Fixes
+
+* **core:** regression when copying single files in build dependencies ([af61bde2](https://github.com/garden-io/garden/commit/af61bde2))
+
+<a name="0.12.10"></a>
+## [0.12.10](https://github.com/garden-io/garden/compare/0.12.9...0.12.10) (2020-11-30)
+
+### Bug Fixes
+
+* **core:** fix failing port forwards on Windows in certain scenarios ([358efa33](https://github.com/garden-io/garden/commit/358efa33))
+* **core:** incorrect paths in build staging rsync command ([f38d4293](https://github.com/garden-io/garden/commit/f38d4293))
+* **core:** don't flag remote modules as overlapping with modules in root ([8059741b](https://github.com/garden-io/garden/commit/8059741b))
+* **core:** auto-exclude git and .garden dirs for modules in project root ([bf854a5a](https://github.com/garden-io/garden/commit/bf854a5a))
+* **core:** ensure primitive values are not cast on schema validation ([58946c69](https://github.com/garden-io/garden/commit/58946c69))
+* **enterprise:** add workflowError event ([2709fab5](https://github.com/garden-io/garden/commit/2709fab5))
+* **enterprise:** whitelist commands for streaming ([f7497888](https://github.com/garden-io/garden/commit/f7497888))
+* **enterprise:** add step skipped event ([f644cdb8](https://github.com/garden-io/garden/commit/f644cdb8))
+* **enterprise:** don't resolve config on login ([ba93b23d](https://github.com/garden-io/garden/commit/ba93b23d))
+* **k8s:** containerModule refs in helm modules not creating build deps ([3fdd0e5a](https://github.com/garden-io/garden/commit/3fdd0e5a))
+
+### Features
+
+* **core:** provide git branch to template strings ([5d79d978](https://github.com/garden-io/garden/commit/5d79d978))
+* **terraform:** add support for workspaces ([23975f46](https://github.com/garden-io/garden/commit/23975f46))
+* **workflows:** implemented when modifier ([d2104612](https://github.com/garden-io/garden/commit/d2104612))
+
+### Improvements
+
+* **core:** experimental build stage implementation without rsync ([dcd8be7f](https://github.com/garden-io/garden/commit/dcd8be7f))
+* **core:** allow wildcard in first label in hostname ([2a5f304e](https://github.com/garden-io/garden/commit/2a5f304e))
+* **exec:** log build output with verbose logger ([bd7c81ae](https://github.com/garden-io/garden/commit/bd7c81ae))
+
 <a name="0.12.9"></a>
 ## [0.12.9](https://github.com/garden-io/garden/compare/0.12.8...0.12.9) (2020-10-21)
 

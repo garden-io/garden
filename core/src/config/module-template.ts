@@ -53,7 +53,7 @@ export async function resolveModuleTemplate(
     ...resource,
     modules: [],
   }
-  const context = new ProjectConfigContext(garden)
+  const context = new ProjectConfigContext({ ...garden, branch: garden.vcsBranch })
   const resolved = resolveTemplateStrings(partial, context)
 
   // Validate the partial config
@@ -109,7 +109,7 @@ export async function resolveTemplatedModule(
   templates: { [name: string]: ModuleTemplateConfig }
 ) {
   // Resolve template strings for fields
-  const resolved = resolveTemplateStrings(config, new ProjectConfigContext(garden))
+  const resolved = resolveTemplateStrings(config, new ProjectConfigContext({ ...garden, branch: garden.vcsBranch }))
   const configType = "templated module " + resolved.name
 
   let resolvedSpec = omit(resolved.spec, "build")
@@ -155,6 +155,7 @@ export async function resolveTemplatedModule(
   // Prepare modules and resolve templated names
   const context = new ModuleTemplateConfigContext({
     ...garden,
+    branch: garden.vcsBranch,
     parentName: resolved.name,
     templateName: template.name,
     inputs,

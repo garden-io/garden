@@ -27,7 +27,7 @@ import { uuidv4, exec } from "./util"
 export const defaultConfigFilename = "garden.yml"
 const metadataFilename = "metadata.json"
 export const defaultDotIgnoreFiles = [".gardenignore"]
-export const fixedExcludes = [".git", ".gitmodules", ".garden/**/*", "debug-info*/**"]
+export const fixedProjectExcludes = [".git", ".gitmodules", ".garden/**/*", "debug-info*/**"]
 
 /*
   Warning: Don't make any async calls in the loop body when using this function, since this may cause
@@ -74,13 +74,28 @@ export interface ModuleOverlap {
   overlaps: ModuleConfig[]
 }
 
-export function detectModuleOverlap(moduleConfigs: ModuleConfig[]): ModuleOverlap[] {
+export function detectModuleOverlap({
+  projectRoot,
+  gardenDirPath,
+  moduleConfigs,
+}: {
+  projectRoot: string
+  gardenDirPath: string
+  moduleConfigs: ModuleConfig[]
+}): ModuleOverlap[] {
   let overlaps: ModuleOverlap[] = []
   for (const config of moduleConfigs) {
-    const setsBuildCtx = !!config.include || !!config.exclude
+    if (!!config.include || !!config.exclude) {
+      continue
+    }
     const matches = moduleConfigs
-      .filter((compare) => config.name !== compare.name)
-      .filter((compare) => !setsBuildCtx && pathIsInside(compare.path, config.path))
+      .filter(
+        (compare) =>
+          config.name !== compare.name &&
+          pathIsInside(compare.path, config.path) &&
+          // Don't consider overlap between modules in root and those in the .garden directory
+          !(config.path === projectRoot && pathIsInside(compare.path, gardenDirPath))
+      )
       .sort((a, b) => (a.name > b.name ? 1 : -1))
 
     if (matches.length > 0) {
@@ -166,6 +181,13 @@ export function normalizeRelativePath(root: string, path: string) {
   root = unixify(root)
   path = unixify(path)
   return posix.isAbsolute(path) ? posix.relative(root, path) : path
+}
+
+/**
+ * Joins a POSIX-formatted path with a `basePath` of any format/platform.
+ */
+export function joinWithPosix(basePath: string, posixRelPath: string = "") {
+  return join(basePath, ...posixRelPath.split("/"))
 }
 
 /**

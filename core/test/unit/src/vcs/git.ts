@@ -64,7 +64,7 @@ describe("GitHandler", () => {
     log = garden.log
     tmpDir = await makeTempGitRepo()
     tmpPath = await realpath(tmpDir.path)
-    handler = new GitHandler(tmpPath, [defaultIgnoreFilename])
+    handler = new GitHandler(tmpPath, join(tmpPath, ".garden"), [defaultIgnoreFilename])
     git = (<any>handler).gitCli(log, tmpPath)
   })
 
@@ -87,6 +87,31 @@ describe("GitHandler", () => {
     it("should throw a nice error when given a path outside of a repo", async () => {
       await expectError(
         () => handler.getRepoRoot(log, "/tmp"),
+        (err) =>
+          expect(err.message).to.equal(deline`
+          Path /tmp is not in a git repository root. Garden must be run from within a git repo.
+          Please run \`git init\` if you're starting a new project and repository, or move the project to
+          an existing repository, and try again.
+        `)
+      )
+    })
+  })
+
+  describe("getBranchName", () => {
+    it("should return undefined with no commits in repo", async () => {
+      const path = tmpPath
+      expect(await handler.getBranchName(log, path)).to.equal(undefined)
+    })
+
+    it("should return the current branch name when there are commits in the repo", async () => {
+      const path = tmpPath
+      await commit("init", tmpPath)
+      expect(await handler.getBranchName(log, path)).to.equal("master")
+    })
+
+    it("should throw a nice error when given a path outside of a repo", async () => {
+      await expectError(
+        () => handler.getBranchName(log, "/tmp"),
         (err) =>
           expect(err.message).to.equal(deline`
           Path /tmp is not in a git repository root. Garden must be run from within a git repo.
@@ -305,33 +330,49 @@ describe("GitHandler", () => {
 
       const hash = "6e1ab2d7d26c1c66f27fea8c136e13c914e3f137"
 
-      const _handler = new GitHandler(tmpPath, [])
+      const _handler = new GitHandler(tmpPath, join(tmpPath, ".garden"), [])
 
       expect(await _handler.getFiles({ path: tmpPath, log })).to.eql([{ path, hash }])
     })
 
     it("should correctly handle multiple ignore files", async () => {
-      const nameA = "foo.txt"
-      const nameB = "boo.txt"
+      const nameA = "excluded-a.txt"
+      const nameB = "excluded-b.txt"
+      const nameC = "excluded-c.txt"
+      const nameD = "committed.txt"
+      const nameE = "untracked.txt"
       const pathA = resolve(tmpPath, nameA)
       const pathB = resolve(tmpPath, nameB)
+      const pathC = resolve(tmpPath, nameC)
+      const pathD = resolve(tmpPath, nameD)
+      const pathE = resolve(tmpPath, nameE)
       await createFile(pathA)
       await createFile(pathB)
+      await createFile(pathC)
+      await createFile(pathD)
+      await createFile(pathE)
 
       await addToIgnore(tmpPath, nameA)
       await addToIgnore(tmpPath, nameB, ".testignore2")
+      await addToIgnore(tmpPath, nameC, ".testignore3")
 
-      // We only add path A, to check if untracked files work okay
-      await git("add", pathA)
+      // We skip paths A and E, to make sure untracked files work as expected
+      await git("add", pathB)
+      await git("add", pathC)
+      await git("add", pathD)
       await git("commit", "-m", "foo")
 
-      const _handler = new GitHandler(tmpPath, [defaultIgnoreFilename, ".testignore2"])
+      const _handler = new GitHandler(tmpPath, join(tmpPath, ".garden"), [
+        defaultIgnoreFilename,
+        ".testignore2",
+        ".testignore3",
+      ])
 
       const files = (await _handler.getFiles({ path: tmpPath, exclude: [], log })).filter(
         (f) => !f.path.includes(defaultIgnoreFilename)
       )
 
-      expect(files).to.eql([])
+      expect(files.map((f) => f.path)).to.eql([pathE, pathD])
     })
 
     it("should include a relative symlink within the path", async () => {
@@ -545,7 +586,7 @@ describe("GitHandler", () => {
       await commit("test commit B", tmpRepoPathB)
 
       const hash = hashRepoUrl(repositoryUrlA)
-      clonePath = join(tmpPath, "sources", "module", `foo--${hash}`)
+      clonePath = join(tmpPath, ".garden", "sources", "module", `foo--${hash}`)
     })
 
     afterEach(async () => {
@@ -583,7 +624,7 @@ describe("GitHandler", () => {
         })
 
         const hash = hashRepoUrl(repositoryUrlA)
-        expect(res).to.eql(join(tmpPath, "sources", "project", `foo--${hash}`))
+        expect(res).to.eql(join(tmpPath, ".garden", "sources", "project", `foo--${hash}`))
       })
       it("should not error if source already cloned", async () => {
         await handler.ensureRemoteSource({
@@ -642,7 +683,7 @@ describe("GitHandler", () => {
         })
 
         const hash = hashRepoUrl(repositoryUrlA)
-        clonePath = join(tmpPath, "sources", "project", `foo--${hash}`)
+        clonePath = join(tmpPath, ".garden", "sources", "project", `foo--${hash}`)
 
         expect(await getCommitMsg(clonePath)).to.eql("test commit A")
       })

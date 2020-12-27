@@ -18,8 +18,6 @@ allowPublish: false
 include: ["*"]
 name: exec-module
 build:
-  dependencies:
-    - name: container-module
   command:
     - echo
     - "${modules.container-module.path}"

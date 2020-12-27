@@ -3,7 +3,7 @@ variable "my-variable" {
 }
 
 resource "local_file" "test-file" {
-  content  = var.my-variable
+  content  = terraform.workspace
   filename = "${path.module}/test.log" # using .log extension so that it's ignored by git
 }
 
@@ -12,7 +12,7 @@ output "test-file-path" {
 }
 
 output "my-output" {
-  value = "input: ${var.my-variable}"
+  value = "workspace: ${terraform.workspace}, input: ${var.my-variable}"
 }
 
 output "map-output" {

@@ -13,6 +13,8 @@ import {
   getVersionString,
   writeTreeVersionFile,
   readTreeVersionFile,
+  GetFilesParams,
+  VcsFile,
 } from "../../../../src/vcs/vcs"
 import { projectRootA, makeTestGardenA, makeTestGarden, getDataDir, TestGarden } from "../../../helpers"
 import { expect } from "chai"
@@ -24,7 +26,7 @@ import td from "testdouble"
 import tmp from "tmp-promise"
 import { realpath, readFile, writeFile } from "fs-extra"
 import { GARDEN_VERSIONFILE_NAME } from "../../../../src/constants"
-import { defaultDotIgnoreFiles } from "../../../../src/util/fs"
+import { defaultDotIgnoreFiles, fixedProjectExcludes } from "../../../../src/util/fs"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { findByName } from "../../../../src/util/util"
 
@@ -36,12 +38,16 @@ class TestVcsHandler extends VcsHandler {
     return "/foo"
   }
 
-  async getFiles() {
+  async getFiles(_: GetFilesParams): Promise<VcsFile[]> {
     return []
   }
 
   async getOriginName() {
     return undefined
+  }
+
+  async getBranchName() {
+    return "main"
   }
 
   async getTreeVersion(log: LogEntry, projectName: string, moduleConfig: ModuleConfig) {
@@ -72,7 +78,7 @@ describe("VcsHandler", () => {
   }
 
   beforeEach(async () => {
-    handlerA = new TestVcsHandler(projectRootA, defaultDotIgnoreFiles)
+    handlerA = new TestVcsHandler(projectRootA, join(projectRootA, ".garden"), defaultDotIgnoreFiles)
     gardenA = await makeTestGardenA()
   })
 
@@ -121,7 +127,7 @@ describe("VcsHandler", () => {
       const projectRoot = getDataDir("test-projects", "include-exclude")
       const garden = await makeTestGarden(projectRoot)
       const moduleConfig = await garden.resolveModule("module-a")
-      const handler = new GitHandler(garden.gardenDirPath, garden.dotIgnoreFiles)
+      const handler = new GitHandler(garden.projectRoot, garden.gardenDirPath, garden.dotIgnoreFiles)
 
       const version = await handler.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
 
@@ -135,7 +141,7 @@ describe("VcsHandler", () => {
       const projectRoot = getDataDir("test-projects", "include-exclude")
       const garden = await makeTestGarden(projectRoot)
       const moduleConfig = await garden.resolveModule("module-b")
-      const handler = new GitHandler(garden.gardenDirPath, garden.dotIgnoreFiles)
+      const handler = new GitHandler(garden.projectRoot, garden.gardenDirPath, garden.dotIgnoreFiles)
 
       const version = await handler.getTreeVersion(garden.log, garden.projectName, moduleConfig)
 
@@ -146,7 +152,7 @@ describe("VcsHandler", () => {
       const projectRoot = getDataDir("test-projects", "include-exclude")
       const garden = await makeTestGarden(projectRoot)
       const moduleConfig = await garden.resolveModule("module-c")
-      const handler = new GitHandler(garden.gardenDirPath, garden.dotIgnoreFiles)
+      const handler = new GitHandler(garden.projectRoot, garden.gardenDirPath, garden.dotIgnoreFiles)
 
       const version = await handler.getTreeVersion(garden.log, garden.projectName, moduleConfig)
 
@@ -168,6 +174,27 @@ describe("VcsHandler", () => {
       } finally {
         await writeFile(configPath, orgConfig)
       }
+    })
+
+    it("should apply project-level excludes if module's path is same as root and no include is set", async () => {
+      td.replace(handlerA, "getFiles", async ({ exclude }: GetFilesParams) => {
+        expect(exclude).to.eql(fixedProjectExcludes)
+        return []
+      })
+      const moduleConfig = await gardenA.resolveModule("module-a")
+      moduleConfig.path = gardenA.projectRoot
+      await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
+    })
+
+    it("should not apply project-level excludes if module's path is same as root but include is set", async () => {
+      td.replace(handlerA, "getFiles", async ({ exclude }: GetFilesParams) => {
+        expect(exclude).to.be.undefined
+        return []
+      })
+      const moduleConfig = await gardenA.resolveModule("module-a")
+      moduleConfig.path = gardenA.projectRoot
+      moduleConfig.include = []
+      await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
     })
   })
 

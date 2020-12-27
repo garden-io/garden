@@ -149,7 +149,7 @@ export class BuildTask extends BaseTask {
       log.setState(`Building version ${module.version.versionString}...`)
     }
 
-    await this.garden.buildDir.syncDependencyProducts(this.module, this.graph, log)
+    await this.garden.buildStaging.syncDependencyProducts(this.module, this.graph, log)
 
     let result: BuildResult
     try {

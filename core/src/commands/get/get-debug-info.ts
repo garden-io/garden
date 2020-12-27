@@ -64,7 +64,7 @@ export async function collectBasicDebugInfo(root: string, gardenDirPath: string,
   }
 
   // Find all services paths
-  const vcs = new GitHandler(root, projectConfig.dotIgnoreFiles || defaultDotIgnoreFiles)
+  const vcs = new GitHandler(root, gardenDirPath, projectConfig.dotIgnoreFiles || defaultDotIgnoreFiles)
   const include = projectConfig.modules && projectConfig.modules.include
   const exclude = projectConfig.modules && projectConfig.modules.exclude
   const paths = await findConfigPathsInPath({ vcs, dir: root, include, exclude, log })

@@ -303,7 +303,7 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
     }
 
     proc.on("error", (err) => {
-      let msg = `An error occurred while trying to run '${cmd}'.`
+      let msg = `An error occurred while trying to run '${cmd}' (${err.message}).`
       if ((<any>err).code === "ENOENT") {
         msg = `${msg} Please make sure '${cmd}' is installed and in the $PATH.`
       }
@@ -633,10 +633,6 @@ export function getArchitecture() {
   return archMap[arch] || arch
 }
 
-// Wrapping split2 (which splits Buffer streams, by default by newline) for convenience
-// TODO: make type-safe
-export const splitStream = require("split2")
-
 export function getDurationMsec(start: Date, end: Date): number {
   return Math.round(end.getTime() - start.getTime())
 }
@@ -654,8 +650,8 @@ export async function runScript(log: LogEntry, cwd: string, script: string) {
   })
 
   // Stream output to `log`, splitting by line
-  const stdout = splitStream()
-  const stderr = splitStream()
+  const stdout = split2()
+  const stderr = split2()
 
   stdout.on("error", () => {})
   stdout.on("data", (line: Buffer) => {

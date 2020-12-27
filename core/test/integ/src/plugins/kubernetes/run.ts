@@ -646,7 +646,7 @@ describe("kubernetes Pod runner functions", () => {
         const image = containerHelpers.getDeploymentImageId(module, module.version, provider.config.deploymentRegistry)
 
         const actions = await garden.getActionRouter()
-        await garden.buildDir.syncFromSrc(module, garden.log)
+        await garden.buildStaging.syncFromSrc(module, garden.log)
         await actions.build({
           module,
           log: garden.log,
@@ -686,7 +686,7 @@ describe("kubernetes Pod runner functions", () => {
         const image = containerHelpers.getDeploymentImageId(module, module.version, provider.config.deploymentRegistry)
 
         const actions = await garden.getActionRouter()
-        await garden.buildDir.syncFromSrc(module, garden.log)
+        await garden.buildStaging.syncFromSrc(module, garden.log)
         await actions.build({
           module,
           log: garden.log,

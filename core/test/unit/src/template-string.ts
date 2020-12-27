@@ -16,6 +16,7 @@ import {
 import { ConfigContext } from "../../../src/config/config-context"
 import { expectError } from "../../helpers"
 import stripAnsi = require("strip-ansi")
+import { dedent } from "../../../src/util/string"
 
 /* tslint:disable:no-invalid-template-strings */
 
@@ -101,11 +102,35 @@ describe("resolveTemplateString", async () => {
     try {
       resolveTemplateString("${some}", new TestContext({}))
     } catch (err) {
-      expect(stripAnsi(err.message)).to.equal("Invalid template string ${some}: Could not find key some.")
+      expect(stripAnsi(err.message)).to.equal("Invalid template string (${some}): Could not find key some.")
       return
     }
 
     throw new Error("Expected error")
+  })
+
+  it("should trim long template string in error messages", async () => {
+    expectError(
+      () =>
+        resolveTemplateString(
+          "${some} very very very very very long long long long long template string",
+          new TestContext({})
+        ),
+      (err) =>
+        expect(stripAnsi(err.message)).to.equal(
+          "Invalid template string (${some} very very very very very l…): Could not find key some."
+        )
+    )
+  })
+
+  it("should replace line breaks in template strings in error messages", async () => {
+    expectError(
+      () => resolveTemplateString("${some}\nmulti\nline\nstring", new TestContext({})),
+      (err) =>
+        expect(stripAnsi(err.message)).to.equal(
+          "Invalid template string (${some}\\nmulti\\nline\\nstring): Could not find key some."
+        )
+    )
   })
 
   it("should throw when a nested key is not found", async () => {
@@ -113,7 +138,7 @@ describe("resolveTemplateString", async () => {
       resolveTemplateString("${some.other}", new TestContext({ some: {} }))
     } catch (err) {
       expect(stripAnsi(err.message)).to.equal(
-        "Invalid template string ${some.other}: Could not find key other under some."
+        "Invalid template string (${some.other}): Could not find key other under some."
       )
       return
     }
@@ -125,7 +150,7 @@ describe("resolveTemplateString", async () => {
     try {
       resolveTemplateString("${some", new TestContext({ some: {} }))
     } catch (err) {
-      expect(err.message).to.equal("Invalid template string ${some: Unable to parse as valid template string.")
+      expect(err.message).to.equal("Invalid template string (${some): Unable to parse as valid template string.")
       return
     }
 
@@ -137,7 +162,7 @@ describe("resolveTemplateString", async () => {
       () => resolveTemplateString("${resol${part}ed}", new TestContext({})),
       (err) =>
         expect(err.message).to.equal(
-          "Invalid template string ${resol${part}ed}: Unable to parse as valid template string."
+          "Invalid template string (${resol${part}ed}): Unable to parse as valid template string."
         )
     )
   })
@@ -196,7 +221,7 @@ describe("resolveTemplateString", async () => {
     return expectError(
       () => resolveTemplateString("${'foo}", new TestContext({})),
       (err) =>
-        expect(err.message).to.equal("Invalid template string ${'foo}: Unable to parse as valid template string.")
+        expect(err.message).to.equal("Invalid template string (${'foo}): Unable to parse as valid template string.")
     )
   })
 
@@ -204,7 +229,7 @@ describe("resolveTemplateString", async () => {
     return expectError(
       () => resolveTemplateString('${"foo}', new TestContext({})),
       (err) =>
-        expect(err.message).to.equal('Invalid template string ${"foo}: Unable to parse as valid template string.')
+        expect(err.message).to.equal('Invalid template string (${"foo}): Unable to parse as valid template string.')
     )
   })
 
@@ -263,7 +288,7 @@ describe("resolveTemplateString", async () => {
   it("should throw if neither key in logical OR is valid", async () => {
     return expectError(
       () => resolveTemplateString("${a || b}", new TestContext({})),
-      (err) => expect(stripAnsi(err.message)).to.equal("Invalid template string ${a || b}: Could not find key b.")
+      (err) => expect(stripAnsi(err.message)).to.equal("Invalid template string (${a || b}): Could not find key b.")
     )
   })
 
@@ -271,7 +296,7 @@ describe("resolveTemplateString", async () => {
     return expectError(
       () => resolveTemplateString("${a || 'b}", new TestContext({})),
       (err) =>
-        expect(err.message).to.equal("Invalid template string ${a || 'b}: Unable to parse as valid template string.")
+        expect(err.message).to.equal("Invalid template string (${a || 'b}): Unable to parse as valid template string.")
     )
   })
 
@@ -430,7 +455,7 @@ describe("resolveTemplateString", async () => {
       () => resolveTemplateString("${a >= b}", new TestContext({ a: 123 })),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(
-          "Invalid template string ${a >= b}: Could not find key b. Available keys: a."
+          "Invalid template string (${a >= b}): Could not find key b. Available keys: a."
         )
     )
   })
@@ -508,7 +533,7 @@ describe("resolveTemplateString", async () => {
       () => resolveTemplateString("${foo[bar]}", new TestContext({ foo: {}, bar: {} })),
       (err) =>
         expect(err.message).to.equal(
-          "Invalid template string ${foo[bar]}: Expression in bracket must resolve to a primitive (got object)."
+          "Invalid template string (${foo[bar]}): Expression in bracket must resolve to a primitive (got object)."
         )
     )
   })
@@ -517,7 +542,9 @@ describe("resolveTemplateString", async () => {
     return expectError(
       () => resolveTemplateString("${foo[bar]}", new TestContext({ foo: 123, bar: "baz" })),
       (err) =>
-        expect(err.message).to.equal('Invalid template string ${foo[bar]}: Attempted to look up key "baz" on a number.')
+        expect(err.message).to.equal(
+          'Invalid template string (${foo[bar]}): Attempted to look up key "baz" on a number.'
+        )
     )
   })
 
@@ -526,7 +553,7 @@ describe("resolveTemplateString", async () => {
       () => resolveTemplateString("${a >= b}", new TestContext({ a: 123, b: "foo" })),
       (err) =>
         expect(err.message).to.equal(
-          "Invalid template string ${a >= b}: Both terms need to be numbers for >= operator (got number and string)."
+          "Invalid template string (${a >= b}): Both terms need to be numbers for >= operator (got number and string)."
         )
     )
   })
@@ -583,7 +610,7 @@ describe("resolveTemplateString", async () => {
         ),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(
-          "Invalid template string ${nested.missing}: Could not find key missing under nested. Available keys: bar, baz and foo."
+          "Invalid template string (${nested.missing}): Could not find key missing under nested. Available keys: bar, baz and foo."
         )
     )
   })
@@ -593,7 +620,7 @@ describe("resolveTemplateString", async () => {
       () => resolveTemplateString("${nested.missing}", new TestContext({ nested: { foo: 123, bar: 456 } })),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(
-          "Invalid template string ${nested.missing}: Could not find key missing under nested. Available keys: bar and foo."
+          "Invalid template string (${nested.missing}): Could not find key missing under nested. Available keys: bar and foo."
         )
     )
   })
@@ -605,7 +632,7 @@ describe("resolveTemplateString", async () => {
       () => resolveTemplateString("${nested.deeper.missing}", c),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(
-          "Invalid template string ${nested.deeper.missing}: Could not find key missing under nested.deeper."
+          "Invalid template string (${nested.deeper.missing}): Could not find key missing under nested.deeper."
         )
     )
   })
@@ -617,7 +644,7 @@ describe("resolveTemplateString", async () => {
       () => resolveTemplateString("${nested.deeper.missing}", c),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(
-          "Invalid template string ${nested.deeper.missing}: Could not find key missing under nested.deeper."
+          "Invalid template string (${nested.deeper.missing}): Could not find key missing under nested.deeper."
         )
     )
   })
@@ -715,7 +742,7 @@ describe("resolveTemplateString", async () => {
         () => resolveTemplateString("${a contains b}", c),
         (err) =>
           expect(stripAnsi(err.message)).to.equal(
-            "Invalid template string ${a contains b}: The right-hand side of a 'contains' operator must be a string, number, boolean or null (got object)."
+            "Invalid template string (${a contains b}): The right-hand side of a 'contains' operator must be a string, number, boolean or null (got object)."
           )
       )
     })
@@ -727,7 +754,7 @@ describe("resolveTemplateString", async () => {
         () => resolveTemplateString("${b contains a}", c),
         (err) =>
           expect(stripAnsi(err.message)).to.equal(
-            "Invalid template string ${b contains a}: The left-hand side of a 'contains' operator must be a string, array or object (got null)."
+            "Invalid template string (${b contains a}): The left-hand side of a 'contains' operator must be a string, array or object (got null)."
           )
       )
     })
@@ -805,6 +832,145 @@ describe("resolveTemplateString", async () => {
     it("array contains numeric index (negative)", () => {
       const res = resolveTemplateString("${a contains 1}", new TestContext({ a: [0] }))
       expect(res).to.equal(false)
+    })
+  })
+
+  context("conditional blocks", () => {
+    it("single-line if block (positive)", () => {
+      const res = resolveTemplateString("prefix ${if a}content ${endif}suffix", new TestContext({ a: true }))
+      expect(res).to.equal("prefix content suffix")
+    })
+
+    it("single-line if block (negative)", () => {
+      const res = resolveTemplateString("prefix ${if a}content ${endif}suffix", new TestContext({ a: false }))
+      expect(res).to.equal("prefix suffix")
+    })
+
+    it("single-line if/else statement (positive)", () => {
+      const res = resolveTemplateString(
+        "prefix ${if a == 123}content ${else}other ${endif}suffix",
+        new TestContext({ a: 123 })
+      )
+      expect(res).to.equal("prefix content suffix")
+    })
+
+    it("single-line if/else statement (negative)", () => {
+      const res = resolveTemplateString(
+        "prefix ${if a}content ${else}other ${endif}suffix",
+        new TestContext({ a: false })
+      )
+      expect(res).to.equal("prefix other suffix")
+    })
+
+    it("multi-line if block (positive)", () => {
+      const res = resolveTemplateString("prefix\n${if a}content\n${endif}suffix", new TestContext({ a: true }))
+      expect(res).to.equal(dedent`
+        prefix
+        content
+        suffix
+      `)
+    })
+
+    it("template string within if block", () => {
+      const res = resolveTemplateString(
+        "prefix\n${if a}templated: ${b}\n${endif}suffix",
+        new TestContext({ a: true, b: "content" })
+      )
+      expect(res).to.equal(dedent`
+        prefix
+        templated: content
+        suffix
+      `)
+    })
+
+    it("nested if block (both positive)", () => {
+      const res = resolveTemplateString(
+        "prefix\n${if a}some ${if b}content\n${endif}${endif}suffix",
+        new TestContext({ a: true, b: true })
+      )
+      expect(res).to.equal(dedent`
+        prefix
+        some content
+        suffix
+      `)
+    })
+
+    it("nested if block (outer negative)", () => {
+      const res = resolveTemplateString(
+        "prefix\n${if a}some ${if b}content\n${endif}${endif}suffix",
+        new TestContext({ a: false, b: true })
+      )
+      expect(res).to.equal(dedent`
+        prefix
+        suffix
+      `)
+    })
+
+    it("nested if block (inner negative)", () => {
+      const res = resolveTemplateString(
+        "prefix\n${if a}some\n${if b}content\n${endif}${endif}suffix",
+        new TestContext({ a: true, b: false })
+      )
+      expect(res).to.equal(dedent`
+        prefix
+        some
+        suffix
+      `)
+    })
+
+    it("if/else statement inside if block", () => {
+      const res = resolveTemplateString(
+        "prefix\n${if a}some\n${if b}nope${else}content\n${endif}${endif}suffix",
+        new TestContext({ a: true, b: false })
+      )
+      expect(res).to.equal(dedent`
+        prefix
+        some
+        content
+        suffix
+      `)
+    })
+
+    it("if block inside if/else statement", () => {
+      const res = resolveTemplateString(
+        "prefix\n${if a}some\n${if b}content\n${endif}${else}nope ${endif}suffix",
+        new TestContext({ a: true, b: false })
+      )
+      expect(res).to.equal(dedent`
+        prefix
+        some
+        suffix
+      `)
+    })
+
+    it("throws if an if block has an optional suffix", () => {
+      expectError(
+        () => resolveTemplateString("prefix ${if a}?content ${endif}", new TestContext({ a: true })),
+        (err) =>
+          expect(stripAnsi(err.message)).to.equal(
+            "Invalid template string (prefix ${if a}?content ${endif}): Cannot specify optional suffix in if-block."
+          )
+      )
+    })
+
+    it("throws if an if block doesn't have a matching endif", () => {
+      expectError(
+        () => resolveTemplateString("prefix ${if a}content", new TestContext({ a: true })),
+        (err) =>
+          expect(stripAnsi(err.message)).to.equal(
+            "Invalid template string (prefix ${if a}content): Missing ${endif} after ${if ...} block."
+          )
+      )
+    })
+
+    it("throws if an endif block doesn't have a matching if", () => {
+      expectError(
+        () => resolveTemplateString("prefix content ${endif}", new TestContext({ a: true })),
+        (err) =>
+          expect(stripAnsi(err.message)).to.equal(
+            "Invalid template string (prefix content ${endif}): Found ${endif} block without a preceding ${if...} block."
+          )
+      )
     })
   })
 })

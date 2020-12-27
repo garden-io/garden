@@ -78,6 +78,8 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   noProject: boolean = false
   protected: boolean = false
   workflows: boolean = false // Set to true to whitelist for executing in workflow steps
+  streamEvents: boolean = false // Set to true to whitelist for streaming events
+  streamLogEntries: boolean = false // Set to true to whitelist for streaming log entries
   server: GardenServer | undefined = undefined
 
   constructor(private parent?: CommandGroup) {

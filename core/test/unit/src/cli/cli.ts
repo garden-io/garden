@@ -336,6 +336,8 @@ describe("cli", () => {
       class TestCommand extends Command {
         name = "test-command"
         help = "halp!"
+        streamEvents = true
+        streamLogEntries = true
 
         async action({ garden }: CommandParams) {
           garden.events.emit("_test", "funky functional test")

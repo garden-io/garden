@@ -10,7 +10,7 @@ import chalk from "chalk"
 import { terraform } from "./cli"
 import { TerraformProvider } from "./terraform"
 import { ConfigurationError, ParameterError } from "../../exceptions"
-import { prepareVariables, tfValidate } from "./common"
+import { prepareVariables, tfValidate, setWorkspace } from "./common"
 import { GardenModule } from "../../types/module"
 import { findByName } from "../../util/util"
 import { TerraformModule } from "./module"
@@ -52,10 +52,13 @@ function makeRootCommand(commandName: string) {
       await remove(cachePath)
 
       const root = join(ctx.projectRoot, provider.config.initRoot)
+      const workspace = provider.config.workspace || null
 
-      await tfValidate({ log, ctx, provider, root })
+      await setWorkspace({ ctx, provider, root, log, workspace })
+      await tfValidate({ ctx, provider, root, log })
 
       args = [commandName, ...(await prepareVariables(root, provider.config.variables)), ...args]
+
       await terraform(ctx, provider).spawnAndWait({
         log,
         args,
@@ -87,7 +90,10 @@ function makeModuleCommand(commandName: string) {
       const root = join(module.path, module.spec.root)
 
       const provider = ctx.provider as TerraformProvider
-      await tfValidate({ log, ctx, provider, root })
+      const workspace = module.spec.workspace || null
+
+      await setWorkspace({ ctx, provider, root, log, workspace })
+      await tfValidate({ ctx, provider, root, log })
 
       args = [commandName, ...(await prepareVariables(root, module.spec.variables)), ...args.slice(1)]
       await terraform(ctx, provider).spawnAndWait({

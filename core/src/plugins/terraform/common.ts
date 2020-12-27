@@ -28,21 +28,29 @@ export interface TerraformBaseSpec {
   dependencies: string[]
   variables: PrimitiveMap
   version: string | null
+  workspace?: string
 }
 
-export async function tfValidate({
-  log,
-  ctx,
-  provider,
-  root,
-}: {
-  log: LogEntry
+interface TerraformParams {
   ctx: PluginContext
+  log: LogEntry
   provider: TerraformProvider
   root: string
-}) {
-  const args = ["validate", "-json"]
+}
 
+interface TerraformParamsWithWorkspace extends TerraformParams {
+  workspace: string | null
+}
+
+/**
+ * Validates the stack at the given root.
+ *
+ * Note that this does not set the workspace, so it must be set ahead of calling the function.
+ */
+export async function tfValidate(params: TerraformParams) {
+  const { log, ctx, provider, root } = params
+
+  const args = ["validate", "-json"]
   const res = await terraform(ctx, provider).json({
     log,
     args,
@@ -77,21 +85,18 @@ export async function tfValidate({
   }
 }
 
-export async function getTfOutputs({
-  log,
-  ctx,
-  provider,
-  workingDir,
-}: {
-  log: LogEntry
-  ctx: PluginContext
-  provider: TerraformProvider
-  workingDir: string
-}) {
+/**
+ * Returns the output from the Terraform stack.
+ *
+ * Note that this does not set the workspace, so it must be set ahead of calling the function.
+ */
+export async function getTfOutputs(params: TerraformParams) {
+  const { log, ctx, provider, root } = params
+
   const res = await terraform(ctx, provider).json({
     log,
     args: ["output", "-json"],
-    cwd: workingDir,
+    cwd: root,
   })
 
   return mapValues(res, (v: any) => v.value)
@@ -108,11 +113,7 @@ export function tfValidationError(result: any) {
   })
 }
 
-interface GetTerraformStackStatusParams {
-  ctx: PluginContext
-  log: LogEntry
-  provider: TerraformProvider
-  root: string
+interface TerraformParamsWithVariables extends TerraformParamsWithWorkspace {
   variables: object
 }
 
@@ -125,14 +126,11 @@ type StackStatus = "up-to-date" | "outdated" | "error"
  * since the user may want to manually update their stacks. The `autoApply` flag is only for information, and setting
  * it to `true` does _not_ mean this method will apply the change.
  */
-export async function getStackStatus({
-  ctx,
-  log,
-  provider,
-  root,
-  variables,
-}: GetTerraformStackStatusParams): Promise<StackStatus> {
-  await tfValidate({ log, ctx, provider, root })
+export async function getStackStatus(params: TerraformParamsWithVariables): Promise<StackStatus> {
+  const { ctx, log, provider, root, variables } = params
+
+  await setWorkspace(params)
+  await tfValidate(params)
 
   const logEntry = log.verbose({ section: "terraform", msg: "Running plan...", status: "active" })
 
@@ -175,20 +173,11 @@ export async function getStackStatus({
   }
 }
 
-export async function applyStack({
-  ctx,
-  log,
-  provider,
-  root,
-  variables,
-}: {
-  ctx: PluginContext
-  log: LogEntry
-  provider: TerraformProvider
-  root: string
-  variables: object
-}) {
+export async function applyStack(params: TerraformParamsWithVariables) {
+  const { ctx, log, provider, root, variables } = params
   const args = ["apply", "-auto-approve", "-input=false", ...(await prepareVariables(root, variables))]
+
+  await setWorkspace(params)
 
   const proc = await terraform(ctx, provider).spawn({ log, args, cwd: root })
 
@@ -247,4 +236,54 @@ export async function prepareVariables(targetDir: string, variables?: object): P
   await writeFile(path, JSON.stringify(variables))
 
   return ["-var-file", path]
+}
+
+/**
+ * Lists the created workspaces for the given Terraform `root`, and returns which one is selected.
+ */
+export async function getWorkspaces({ ctx, log, provider, root }: TerraformParams) {
+  const res = await terraform(ctx, provider).stdout({ args: ["workspace", "list"], cwd: root, log })
+  let selected = "default"
+
+  const workspaces = res
+    .trim()
+    .split("\n")
+    .map((line) => {
+      let name: string
+
+      if (line.startsWith("*")) {
+        name = line.trim().slice(2)
+        selected = name
+      } else {
+        name = line.trim()
+      }
+
+      return name
+    })
+
+  return { workspaces, selected }
+}
+
+/**
+ * Sets the workspace to use in the Terraform `root`, creating it if it doesn't already exist. Does nothing if
+ * no `workspace` is set.
+ */
+export async function setWorkspace(params: TerraformParamsWithWorkspace) {
+  const { ctx, provider, root, log, workspace } = params
+
+  if (!workspace) {
+    return
+  }
+
+  const { workspaces, selected } = await getWorkspaces(params)
+
+  if (selected === workspace) {
+    return
+  }
+
+  if (workspaces.includes(workspace)) {
+    await terraform(ctx, provider).stdout({ args: ["workspace", "select", workspace], cwd: root, log })
+  } else {
+    await terraform(ctx, provider).stdout({ args: ["workspace", "new", workspace], cwd: root, log })
+  }
 }

@@ -156,6 +156,9 @@ variables:
 # The version of Terraform to use. Defaults to the version set in the provider config.
 # Set to `null` to use whichever version of `terraform` that is on your PATH.
 version:
+
+# Use the specified Terraform workspace.
+workspace:
 ```
 
 ## Configuration Keys
@@ -454,6 +457,14 @@ Set to `null` to use whichever version of `terraform` that is on your PATH.
 | -------- | -------- |
 | `string` | No       |
 
+### `workspace`
+
+Use the specified Terraform workspace.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
 
 ## Outputs
 
@@ -522,5 +533,5 @@ A map of all the outputs defined in the Terraform stack.
 
 | Type                                             |
 | ------------------------------------------------ |
-| `number | string | boolean | link | array[link]` |
+| `string | number | boolean | link | array[link]` |
 

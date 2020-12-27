@@ -48,6 +48,9 @@ export class RunWorkflowCommand extends Command<Args, {}> {
   name = "workflow"
   help = "Run a workflow."
 
+  streamEvents = true
+  streamLogEntries = true
+
   description = dedent`
     Runs the commands and/or scripts defined in the workflow's steps, in sequence.
 
@@ -186,6 +189,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
 
     if (size(stepErrors) > 0) {
       printResult({ startedAt, log: outerLog, workflow, success: false })
+      garden.events.emit("workflowError", {})
       return { result, errors: flatten(Object.values(stepErrors)) }
     }
 

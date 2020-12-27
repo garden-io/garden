@@ -102,6 +102,36 @@ Example:
 my-variable: ${project.name}
 ```
 
+### `${git.*}`
+
+Information about the current state of the project's local git repository.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${git.branch}`
+
+The current Git branch, if available. Resolves to an empty string if HEAD is in a detached state
+(e.g. when rebasing), or if the repository has no commits.
+
+When using remote sources, the branch used is that of the project/top-level repository (the one that contains
+the project configuration).
+
+The branch is computed at the start of the Garden command's execution, and is not updated if the current
+branch changes during the command's execution (which could happen, for example, when using watch-mode
+commands).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${git.branch}
+```
+
 
 ## Environment configuration context
 
@@ -196,6 +226,36 @@ Example:
 my-variable: ${project.name}
 ```
 
+### `${git.*}`
+
+Information about the current state of the project's local git repository.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${git.branch}`
+
+The current Git branch, if available. Resolves to an empty string if HEAD is in a detached state
+(e.g. when rebasing), or if the repository has no commits.
+
+When using remote sources, the branch used is that of the project/top-level repository (the one that contains
+the project configuration).
+
+The branch is computed at the start of the Garden command's execution, and is not updated if the current
+branch changes during the command's execution (which could happen, for example, when using watch-mode
+commands).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${git.branch}
+```
+
 ### `${variables.*}`
 
 A map of all variables defined in the project configuration.
@@ -208,7 +268,7 @@ A map of all variables defined in the project configuration.
 
 | Type                                             |
 | ------------------------------------------------ |
-| `number | string | boolean | link | array[link]` |
+| `string | number | boolean | link | array[link]` |
 
 ### `${var.*}`
 
@@ -224,7 +284,7 @@ Number, string or boolean
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 
 ## Provider configuration context
@@ -322,6 +382,36 @@ Example:
 my-variable: ${project.name}
 ```
 
+### `${git.*}`
+
+Information about the current state of the project's local git repository.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${git.branch}`
+
+The current Git branch, if available. Resolves to an empty string if HEAD is in a detached state
+(e.g. when rebasing), or if the repository has no commits.
+
+When using remote sources, the branch used is that of the project/top-level repository (the one that contains
+the project configuration).
+
+The branch is computed at the start of the Garden command's execution, and is not updated if the current
+branch changes during the command's execution (which could happen, for example, when using watch-mode
+commands).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${git.branch}
+```
+
 ### `${variables.*}`
 
 A map of all variables defined in the project configuration, including environment-specific variables.
@@ -334,7 +424,7 @@ A map of all variables defined in the project configuration, including environme
 
 | Type                                             |
 | ------------------------------------------------ |
-| `number | string | boolean | link | array[link]` |
+| `string | number | boolean | link | array[link]` |
 
 ### `${var.*}`
 
@@ -350,7 +440,7 @@ Number, string or boolean
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${environment.*}`
 
@@ -424,7 +514,7 @@ The provider config key value. Refer to individual [provider references](https:/
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${providers.<provider-name>.outputs.*}`
 
@@ -440,7 +530,7 @@ The provider output value. Refer to individual [provider references](https://doc
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 
 ## Module configuration context
@@ -541,6 +631,36 @@ Example:
 my-variable: ${project.name}
 ```
 
+### `${git.*}`
+
+Information about the current state of the project's local git repository.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${git.branch}`
+
+The current Git branch, if available. Resolves to an empty string if HEAD is in a detached state
+(e.g. when rebasing), or if the repository has no commits.
+
+When using remote sources, the branch used is that of the project/top-level repository (the one that contains
+the project configuration).
+
+The branch is computed at the start of the Garden command's execution, and is not updated if the current
+branch changes during the command's execution (which could happen, for example, when using watch-mode
+commands).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${git.branch}
+```
+
 ### `${variables.*}`
 
 A map of all variables defined in the project configuration, including environment-specific variables.
@@ -553,7 +673,7 @@ A map of all variables defined in the project configuration, including environme
 
 | Type                                             |
 | ------------------------------------------------ |
-| `number | string | boolean | link | array[link]` |
+| `string | number | boolean | link | array[link]` |
 
 ### `${var.*}`
 
@@ -569,7 +689,7 @@ Number, string or boolean
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${environment.*}`
 
@@ -643,7 +763,7 @@ The provider config key value. Refer to individual [provider references](https:/
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${providers.<provider-name>.outputs.*}`
 
@@ -659,7 +779,7 @@ The provider output value. Refer to individual [provider references](https://doc
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${modules.*}`
 
@@ -697,7 +817,7 @@ The module output value. Refer to individual [module type references](https://do
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${modules.<module-name>.path}`
 
@@ -757,7 +877,7 @@ The service output value. Refer to individual [module type references](https://d
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${runtime.tasks.*}`
 
@@ -781,7 +901,7 @@ The task output value. Refer to individual [module type references](https://docs
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${parent.*}`
 
@@ -827,7 +947,7 @@ The inputs provided to the module through a ModuleTemplate, if applicable.
 
 | Type                                             |
 | ------------------------------------------------ |
-| `number | string | boolean | link | array[link]` |
+| `string | number | boolean | link | array[link]` |
 
 
 ## Output configuration context
@@ -928,6 +1048,36 @@ Example:
 my-variable: ${project.name}
 ```
 
+### `${git.*}`
+
+Information about the current state of the project's local git repository.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${git.branch}`
+
+The current Git branch, if available. Resolves to an empty string if HEAD is in a detached state
+(e.g. when rebasing), or if the repository has no commits.
+
+When using remote sources, the branch used is that of the project/top-level repository (the one that contains
+the project configuration).
+
+The branch is computed at the start of the Garden command's execution, and is not updated if the current
+branch changes during the command's execution (which could happen, for example, when using watch-mode
+commands).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${git.branch}
+```
+
 ### `${variables.*}`
 
 A map of all variables defined in the project configuration, including environment-specific variables.
@@ -940,7 +1090,7 @@ A map of all variables defined in the project configuration, including environme
 
 | Type                                             |
 | ------------------------------------------------ |
-| `number | string | boolean | link | array[link]` |
+| `string | number | boolean | link | array[link]` |
 
 ### `${var.*}`
 
@@ -956,7 +1106,7 @@ Number, string or boolean
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${environment.*}`
 
@@ -1030,7 +1180,7 @@ The provider config key value. Refer to individual [provider references](https:/
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${providers.<provider-name>.outputs.*}`
 
@@ -1046,7 +1196,7 @@ The provider output value. Refer to individual [provider references](https://doc
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${modules.*}`
 
@@ -1084,7 +1234,7 @@ The module output value. Refer to individual [module type references](https://do
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${modules.<module-name>.path}`
 
@@ -1144,7 +1294,7 @@ The service output value. Refer to individual [module type references](https://d
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${runtime.tasks.*}`
 
@@ -1168,7 +1318,7 @@ The task output value. Refer to individual [module type references](https://docs
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${parent.*}`
 
@@ -1214,7 +1364,7 @@ The inputs provided to the module through a ModuleTemplate, if applicable.
 
 | Type                                             |
 | ------------------------------------------------ |
-| `number | string | boolean | link | array[link]` |
+| `string | number | boolean | link | array[link]` |
 
 
 ## Workflow configuration context
@@ -1312,6 +1462,36 @@ Example:
 my-variable: ${project.name}
 ```
 
+### `${git.*}`
+
+Information about the current state of the project's local git repository.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${git.branch}`
+
+The current Git branch, if available. Resolves to an empty string if HEAD is in a detached state
+(e.g. when rebasing), or if the repository has no commits.
+
+When using remote sources, the branch used is that of the project/top-level repository (the one that contains
+the project configuration).
+
+The branch is computed at the start of the Garden command's execution, and is not updated if the current
+branch changes during the command's execution (which could happen, for example, when using watch-mode
+commands).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${git.branch}
+```
+
 ### `${variables.*}`
 
 A map of all variables defined in the project configuration, including environment-specific variables.
@@ -1324,7 +1504,7 @@ A map of all variables defined in the project configuration, including environme
 
 | Type                                             |
 | ------------------------------------------------ |
-| `number | string | boolean | link | array[link]` |
+| `string | number | boolean | link | array[link]` |
 
 ### `${var.*}`
 
@@ -1340,7 +1520,7 @@ Number, string or boolean
 
 | Type                        |
 | --------------------------- |
-| `number | string | boolean` |
+| `string | number | boolean` |
 
 ### `${environment.*}`
 
@@ -1424,5 +1604,5 @@ for its output schema.
 
 | Type                                             |
 | ------------------------------------------------ |
-| `number | string | boolean | link | array[link]` |
+| `string | number | boolean | link | array[link]` |
 

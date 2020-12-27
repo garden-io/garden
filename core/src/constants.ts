@@ -57,6 +57,7 @@ export const gardenEnv = {
   GARDEN_DISABLE_ANALYTICS: env.get("GARDEN_DISABLE_ANALYTICS").required(false).asBool(),
   GARDEN_DISABLE_VERSION_CHECK: env.get("GARDEN_DISABLE_VERSION_CHECK").required(false).asBool(),
   GARDEN_ENABLE_PROFILING: env.get("GARDEN_ENABLE_PROFILING").required(false).asBool(),
+  GARDEN_EXPERIMENTAL_BUILD_STAGE: env.get("GARDEN_EXPERIMENTAL_BUILD_STAGE").required(false).asBool(),
   GARDEN_LOG_LEVEL: env.get("GARDEN_LOG_LEVEL").required(false).asString(),
   GARDEN_LOGGER_TYPE: env.get("GARDEN_LOGGER_TYPE").required(false).asString(),
   GARDEN_GE_SCHEDULED: env.get("GARDEN_GE_SCHEDULED").required(false).asBool(),

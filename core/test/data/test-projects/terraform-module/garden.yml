@@ -1,10 +1,14 @@
 kind: Project
 name: terraform-provider
+environments:
+  - name: local
 providers:
   - name: terraform
     variables:
       my-variable: base
   - name: test-plugin
+variables:
+  workspace: default
 ---
 kind: Module
 type: terraform
@@ -12,6 +16,7 @@ name: tf
 include: ["*"]
 autoApply: true
 root: ./tf
+workspace: ${var.workspace}
 variables:
   my-variable: foo
 ---

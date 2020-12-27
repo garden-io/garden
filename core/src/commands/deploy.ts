@@ -64,6 +64,8 @@ export class DeployCommand extends Command<Args, Opts> {
 
   protected = true
   workflows = true
+  streamEvents = true
+  streamLogEntries = true
 
   description = dedent`
     Deploys all or specified services, taking into account service dependency order.
