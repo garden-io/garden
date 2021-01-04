@@ -14,7 +14,7 @@ import cliTruncate = require("cli-truncate")
 import stringWidth = require("string-width")
 import hasAnsi = require("has-ansi")
 
-import { LogEntry, MessageState } from "./log-entry"
+import { LogEntry, LogEntryMessage } from "./log-entry"
 import { JsonLogEntry } from "./writers/json-terminal-writer"
 import { highlightYaml, PickFromUnion, safeDumpYaml } from "../util/util"
 import { printEmoji, formatGardenError } from "./util"
@@ -62,8 +62,8 @@ export function getLeftOffset(entry: LogEntry) {
  * Returns the most recent message's `msg` field if it has `append` set to `false`.
  * Otherwise returns longest chain of messages with `append: true` (starting from the most recent message).
  */
-export function chainMessages(messageStates: MessageState[], chain: string[] = []): string | string[] {
-  const latestState = messageStates[messageStates.length - 1]
+export function chainMessages(messages: LogEntryMessage[], chain: string[] = []): string | string[] {
+  const latestState = messages[messages.length - 1]
   if (!latestState) {
     return chain.length === 1 ? chain[0] : chain.reverse()
   }
@@ -71,7 +71,7 @@ export function chainMessages(messageStates: MessageState[], chain: string[] = [
   chain = latestState.msg !== undefined ? [...chain, latestState.msg] : chain
 
   if (latestState.append) {
-    return chainMessages(messageStates.slice(0, -1), chain)
+    return chainMessages(messages.slice(0, -1), chain)
   }
   return chain.reverse()
 }
@@ -82,7 +82,7 @@ export function leftPad(entry: LogEntry): string {
 }
 
 export function renderEmoji(entry: LogEntry): string {
-  const { emoji } = entry.getMessageState()
+  const { emoji } = entry.getLatestMessage()
   if (emoji) {
     return printEmoji(emoji, entry) + " "
   }
@@ -95,12 +95,12 @@ export function renderError(entry: LogEntry) {
     return formatGardenError(error)
   }
 
-  const msg = chainMessages(entry.getMessageStates() || [])
+  const msg = chainMessages(entry.getMessages() || [])
   return isArray(msg) ? msg.join(" ") : msg || ""
 }
 
 export function renderSymbolBasic(entry: LogEntry): string {
-  let { symbol, status } = entry.getMessageState()
+  let { symbol, status } = entry.getLatestMessage()
 
   if (symbol === "empty") {
     return " "
@@ -113,7 +113,7 @@ export function renderSymbolBasic(entry: LogEntry): string {
 }
 
 export function renderSymbol(entry: LogEntry): string {
-  const { symbol } = entry.getMessageState()
+  const { symbol } = entry.getLatestMessage()
 
   if (symbol === "empty") {
     return " "
@@ -129,10 +129,10 @@ export function renderTimestamp(entry: LogEntry): string {
 }
 
 export function getTimestamp(entry: LogEntry): string {
-  const { timestamp } = entry.getMessageState()
+  const { timestamp } = entry.getLatestMessage()
   let formatted = ""
   try {
-    formatted = new Date(timestamp).toISOString()
+    formatted = timestamp.toISOString()
   } catch (_err) {}
 
   return formatted
@@ -140,8 +140,8 @@ export function getTimestamp(entry: LogEntry): string {
 
 export function renderMsg(entry: LogEntry): string {
   const { fromStdStream } = entry
-  const { status } = entry.getMessageState()
-  const msg = chainMessages(entry.getMessageStates() || [])
+  const { status } = entry.getLatestMessage()
+  const msg = chainMessages(entry.getMessages() || [])
 
   if (fromStdStream) {
     return isArray(msg) ? msg.join(" ") : msg || ""
@@ -157,7 +157,7 @@ export function renderMsg(entry: LogEntry): string {
 }
 
 export function renderData(entry: LogEntry): string {
-  const { data, dataFormat } = entry.getMessageState()
+  const { data, dataFormat } = entry.getLatestMessage()
   if (!data) {
     return ""
   }
@@ -169,7 +169,7 @@ export function renderData(entry: LogEntry): string {
 }
 
 export function renderSection(entry: LogEntry): string {
-  const { msg, section, maxSectionWidth } = entry.getMessageState()
+  const { msg: msg, section, maxSectionWidth } = entry.getLatestMessage()
   if (section && msg) {
     return `${styleSection(section, maxSectionWidth)} → `
   } else if (section) {
@@ -182,7 +182,7 @@ export function renderSection(entry: LogEntry): string {
  * Formats entries for both fancy writer and basic terminal writer.
  */
 export function formatForTerminal(entry: LogEntry, type: PickFromUnion<LoggerType, "fancy" | "basic">): string {
-  const { msg, emoji, section, symbol, data } = entry.getMessageState()
+  const { msg: msg, emoji, section, symbol, data } = entry.getLatestMessage()
   const empty = [msg, section, emoji, symbol, data].every((val) => val === undefined)
 
   if (empty) {
@@ -227,9 +227,9 @@ export function basicRender(entry: LogEntry, logger: Logger): string | null {
 
 // TODO: Include individual message states with timestamp
 export function formatForJson(entry: LogEntry): JsonLogEntry {
-  const { section, data } = entry.getMessageState()
+  const { section, data } = entry.getLatestMessage()
   const metadata = entry.getMetadata()
-  const msg = chainMessages(entry.getMessageStates() || [])
+  const msg = chainMessages(entry.getMessages() || [])
   return {
     msg: cleanForJSON(msg),
     data,

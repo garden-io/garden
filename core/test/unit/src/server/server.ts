@@ -41,7 +41,7 @@ describe("GardenServer", () => {
 
   it("should show no URL on startup", async () => {
     const line = gardenServer["statusLog"]
-    expect(line.getMessageState().msg).to.be.undefined
+    expect(line.getLatestMessage().msg).to.be.undefined
   })
 
   it("should update dashboard URL with own if the external dashboard goes down", async () => {
@@ -51,7 +51,7 @@ describe("GardenServer", () => {
     })
     const line = gardenServer["statusLog"]
     await sleep(1) // This is enough to let go of the control loop
-    const status = stripAnsi(line.getMessageState().msg || "")
+    const status = stripAnsi(line.getLatestMessage().msg || "")
     expect(status).to.equal(`Garden dashboard running at ${gardenServer.getUrl()}`)
   })
 
@@ -62,7 +62,7 @@ describe("GardenServer", () => {
     })
     const line = gardenServer["statusLog"]
     await sleep(1) // This is enough to let go of the control loop
-    const status = stripAnsi(line.getMessageState().msg || "")
+    const status = stripAnsi(line.getLatestMessage().msg || "")
     expect(status).to.equal(`Garden dashboard running at http://localhost:9800`)
   })
 

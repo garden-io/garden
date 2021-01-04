@@ -10,19 +10,20 @@ import { expect } from "chai"
 import { omit } from "lodash"
 
 import { LogLevel } from "../../../../src/logger/log-node"
-import { getLogger } from "../../../../src/logger/logger"
-import { LogEntryEvent, formatLogEntryForEventStream } from "../../../../src/enterprise/buffered-event-stream"
+import { getLogger, Logger } from "../../../../src/logger/logger"
+import { LogEntryEventPayload, formatLogEntryForEventStream } from "../../../../src/enterprise/buffered-event-stream"
 
-const logger: any = getLogger()
+const logger: Logger = getLogger()
 
 beforeEach(() => {
-  logger.children = []
+  // tslint:disable-next-line: prettier
+  (logger["children"] as any) = []
 })
 
 describe("Logger", () => {
   describe("events", () => {
-    let loggerEvents: LogEntryEvent[] = []
-    let listener = (event: LogEntryEvent) => loggerEvents.push(event)
+    let loggerEvents: LogEntryEventPayload[] = []
+    let listener = (event: LogEntryEventPayload) => loggerEvents.push(event)
 
     before(() => logger.events.on("logEntry", listener))
     after(() => logger.events.off("logEntry", listener))
@@ -56,7 +57,7 @@ describe("Logger", () => {
       logger.info({ msg: "0" })
       logger.info({ msg: "a1", id: "a" })
       logger.info({ msg: "a2", id: "a" })
-      expect(logger.findById("a")["messageStates"][0]["msg"]).to.eql("a1")
+      expect(logger.findById("a")["messages"][0]["msg"]).to.eql("a1")
       expect(logger.findById("z")).to.be.undefined
     })
   })

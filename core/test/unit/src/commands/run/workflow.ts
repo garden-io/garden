@@ -150,7 +150,7 @@ describe("RunWorkflowCommand", () => {
   })
 
   function filterLogEntries(entries: LogEntry[], msgRegex: RegExp): LogEntry[] {
-    return entries.filter((e) => msgRegex.test(e.getMessageState().msg || ""))
+    return entries.filter((e) => msgRegex.test(e.getLatestMessage().msg || ""))
   }
 
   it("should collect log outputs from a command step", async () => {

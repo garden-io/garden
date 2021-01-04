@@ -517,7 +517,7 @@ export function getLogMessages(log: LogEntry, filter?: (log: LogEntry) => boolea
   return log
     .getChildEntries()
     .filter((entry) => (filter ? filter(entry) : true))
-    .flatMap((entry) => entry.getMessageStates()?.map((state) => stripAnsi(state.msg || "")) || [])
+    .flatMap((entry) => entry.getMessages()?.map((state) => stripAnsi(state.msg || "")) || [])
 }
 
 const skipGroups = gardenEnv.GARDEN_SKIP_TESTS.split(" ")

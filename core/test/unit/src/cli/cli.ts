@@ -414,7 +414,7 @@ describe("cli", () => {
 
       await cli.run({ args, exitOnError: false })
 
-      const serverStatus = cmd.server!["statusLog"].getMessageState().msg!
+      const serverStatus = cmd.server!["statusLog"].getLatestMessage().msg!
       expect(stripAnsi(serverStatus)).to.equal(`Garden dashboard running at ${cmd.server!.getUrl()}`)
     })
 
@@ -468,7 +468,7 @@ describe("cli", () => {
         await server.close()
       }
 
-      const serverStatus = cmd.server!["statusLog"].getMessageState().msg!
+      const serverStatus = cmd.server!["statusLog"].getLatestMessage().msg!
       expect(stripAnsi(serverStatus)).to.equal(`Garden dashboard running at ${server.getUrl()}`)
     })
 
