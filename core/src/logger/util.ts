@@ -83,7 +83,7 @@ export function tailChildEntries(node: LogNode | LogEntry, level: LogLevel, line
   traverseChildren<LogNode, LogEntry>(node, (entry) => {
     if (entry.level <= level) {
       output.push(entry)
-      const msg = entry.getMessageState().msg || ""
+      const msg = entry.getLatestMessage().msg || ""
       outputLines += msg.length > 0 ? msg.split("\n").length : 0
 
       if (outputLines >= lines) {

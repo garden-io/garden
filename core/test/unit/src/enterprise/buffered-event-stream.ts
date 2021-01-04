@@ -7,7 +7,11 @@
  */
 
 import { expect } from "chai"
-import { StreamEvent, LogEntryEvent, BufferedEventStream } from "../../../../src/enterprise/buffered-event-stream"
+import {
+  StreamEvent,
+  LogEntryEventPayload,
+  BufferedEventStream,
+} from "../../../../src/enterprise/buffered-event-stream"
 import { getLogger } from "../../../../src/logger/logger"
 import { Garden } from "../../../../src/garden"
 import { makeTestGardenA } from "../../../helpers"
@@ -32,7 +36,7 @@ describe("BufferedEventStream", () => {
 
   it("should flush events and log entries emitted by a connected event emitter", async () => {
     const flushedEvents: StreamEvent[] = []
-    const flushedLogEntries: LogEntryEvent[] = []
+    const flushedLogEntries: LogEntryEventPayload[] = []
 
     const log = getLogger().placeholder()
 
@@ -42,7 +46,7 @@ describe("BufferedEventStream", () => {
       flushedEvents.push(...events)
       return Promise.resolve()
     }
-    bufferedEventStream["flushLogEntries"] = (logEntries: LogEntryEvent[]) => {
+    bufferedEventStream["flushLogEntries"] = (logEntries: LogEntryEventPayload[]) => {
       flushedLogEntries.push(...logEntries)
       return Promise.resolve()
     }
@@ -61,7 +65,7 @@ describe("BufferedEventStream", () => {
 
   it("should only flush events or log entries emitted by the last connected Garden bus", async () => {
     const flushedEvents: StreamEvent[] = []
-    const flushedLogEntries: LogEntryEvent[] = []
+    const flushedLogEntries: LogEntryEventPayload[] = []
 
     const log = getLogger().placeholder()
 
@@ -71,7 +75,7 @@ describe("BufferedEventStream", () => {
       flushedEvents.push(...events)
       return Promise.resolve()
     }
-    bufferedEventStream["flushLogEntries"] = (logEntries: LogEntryEvent[]) => {
+    bufferedEventStream["flushLogEntries"] = (logEntries: LogEntryEventPayload[]) => {
       flushedLogEntries.push(...logEntries)
       return Promise.resolve()
     }

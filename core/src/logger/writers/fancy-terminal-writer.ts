@@ -181,7 +181,7 @@ export class FancyTerminalWriter extends Writer {
         let spinnerX: number
         let spinnerCoords: Coords | undefined
 
-        if (entry.getMessageState().status === "active") {
+        if (entry.getLatestMessage().status === "active") {
           spinnerX = getLeftOffset(entry)
           spinnerFrame = this.tickSpinner(entry.key)
           spinnerCoords = [spinnerX, currentLineNumber]
