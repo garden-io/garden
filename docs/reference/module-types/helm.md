@@ -626,7 +626,7 @@ A valid Helm chart name or URI (same as you'd input to `helm install`). Required
 Example:
 
 ```yaml
-chart: "stable/nginx-ingress"
+chart: "ingress-nginx"
 ```
 
 ### `chartPath`
