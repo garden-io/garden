@@ -31,7 +31,7 @@
     "async": "^3.2.0",
     "async-exit-hook": "^2.0.1",
     "async-lock": "^1.2.4",
-    "axios": "^0.19.2",
+    "axios": "^0.21.1",
     "better-sqlite3": "^7.1.0",
     "bluebird": "^3.7.2",
     "certpem": "^1.1.3",
