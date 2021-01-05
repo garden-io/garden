@@ -25,7 +25,7 @@
     "@types/prettier": "^2",
     "@types/semver": "^7.2.0",
     "@yarnpkg/pnpify": "^2.1.0",
-    "axios": "^0.19.2",
+    "axios": "^0.21.1",
     "deline": "^1.0.4",
     "dependency-graph": "^0.9.0",
     "execa": "^4.0.2",
