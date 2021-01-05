@@ -41,6 +41,7 @@ gulpfile.js
 !core/gulpfile.js
 *.map
 *.tgz
+*.tsbuildinfo
 build/
 dist/
 static/dashboard/

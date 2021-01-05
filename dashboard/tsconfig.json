@@ -15,5 +15,10 @@
   "include": [
     "src/**/*.ts*",
     "test/**/*.ts*"
+  ],
+  "references": [
+    {
+      "path": "../core"
+    }
   ]
 }

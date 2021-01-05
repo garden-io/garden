@@ -3,6 +3,7 @@
   "version": "0.12.11",
   "private": true,
   "devDependencies": {
+    "@garden-io/cli": "*",
     "@types/d3": "^5.7.2",
     "@types/dagre-d3": "^0.4.39",
     "@types/eslint": "^6",

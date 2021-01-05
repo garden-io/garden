@@ -68,7 +68,7 @@
     "clean": "./scripts/run-script.ts clean && find . -name \".garden\" -type d -prune -exec rm -rf '{}' '+'",
     "clean-node-modules": "find . -name \"node_modules\" -type d -prune -exec rm -rf '{}' '+'",
     "dev": "./scripts/run-script.ts dev --parallel",
-    "dist": "./scripts/run-script.ts dist",
+    "dist": "node cli/build/src/build-pkg.js",
     "fix-format": "./scripts/run-script.ts fix-format --no-bail --parallel",
     "generate-docs": "./scripts/run-script.ts generate-docs",
     "integ": "./scripts/run-script.ts integ",

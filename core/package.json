@@ -231,10 +231,9 @@
     "typescript": "^3.9.6"
   },
   "scripts": {
-    "build": "tsc -p . && gulp pegjs",
+    "build": "gulp pegjs",
     "check-package-lock": "git diff-index --quiet HEAD -- yarn.lock || (echo 'yarn.lock is dirty!' && exit 1)",
     "clean": "shx rm -rf build",
-    "dev": "yarn run watch",
     "fix-format": "prettier --write \"{src,test}/**/*.ts\"",
     "lint": "tslint -p .",
     "migration:generate": "typeorm migration:generate --config ormconfig.js -n",
@@ -243,8 +242,7 @@
     "integ-remote": "GARDEN_INTEG_TEST_MODE=remote GARDEN_SKIP_TESTS=local-only mocha --opts test/mocha.integ.opts",
     "e2e": "cd test/e2e && ../../../bin/garden test",
     "e2e-project": "node build/test/e2e/e2e-project.js",
-    "test": "mocha --opts test/mocha.opts",
-    "watch": "tsc -p . -w"
+    "test": "mocha --opts test/mocha.opts"
   },
   "pkg": {
     "scripts": [

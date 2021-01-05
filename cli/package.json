@@ -51,16 +51,14 @@
   },
   "scripts": {
     "add-version-files": "node build/src/add-version-files.js",
-    "build": "tsc -p . && yarn run add-version-files && yarn run generate-docs",
+    "build": "tsc --build . --verbose && yarn run add-version-files && yarn run generate-docs",
     "check-package-lock": "git diff-index --quiet HEAD -- yarn.lock || (echo 'yarn.lock is dirty!' && exit 1)",
     "clean": "shx rm -rf build dist",
-    "dev": "yarn run watch",
-    "dist": "node build/src/build-pkg.js",
+    "dev": "tsc --build . -w --preserveWatchOutput",
     "fix-format": "prettier --write \"{src,test}/**/*.ts\"",
     "generate-docs": "node ./build/src/generate-docs.js",
     "lint": "tslint -p .",
-    "test": "mocha",
-    "watch": "tsc -p . -w"
+    "test": "mocha"
   },
   "pkg": {
     "scripts": [

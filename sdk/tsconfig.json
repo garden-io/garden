@@ -3,5 +3,11 @@
   "include": [
     "*.ts",
     "**/*.ts"
+  ],
+  "compilerOptions": {
+    "composite": true
+  },
+  "references": [
+    { "path": "../core" }
   ]
 }
