@@ -71,7 +71,7 @@ export class DeployTask extends BaseTask {
       nodeType: "deploy",
       name: this.getName(),
       recursive: false,
-      filterFn: (depNode) => !(depNode.type === "deploy" && includes(this.hotReloadServiceNames, depNode.name)),
+      filter: (depNode) => !(depNode.type === "deploy" && includes(this.hotReloadServiceNames, depNode.name)),
     })
 
     const statusTask = new GetServiceStatusTask({
