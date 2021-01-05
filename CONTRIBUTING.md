@@ -35,7 +35,9 @@ Please refer to our [installation docs](./docs/basics/installation.md) for instr
 
 ### Step 2: Clone the repo
 
-    git clone https://github.com/garden-io/garden.git
+```sh
+git clone https://github.com/garden-io/garden.git
+```
 
 ### Step 3: Install dependencies
 
@@ -45,7 +47,9 @@ For Mac we have a script that installs all required dependencies.
 
 If you haven't already, please [install Homebrew](https://docs.brew.sh/Installation). Then run:
 
-    ./scripts/install-osx-dependencies.sh
+```sh
+./scripts/install-osx-dependencies.sh
+```
 
 #### Windows / Linux
 
@@ -68,7 +72,7 @@ You may need to install the Node modules in the core package manually due to [le
 
 ```sh
 cd core
-yarn install
+yarn
 ```
 
 ## Developing Garden
@@ -78,7 +82,7 @@ yarn install
 Before running Garden for the first time, you need to do an initial build by running
 
 ```sh
-yarn run build
+yarn build
 ```
 
 from the root directory. This ensures that the dashboard is built and ready to serve and that version files are in place.
@@ -87,7 +91,9 @@ from the root directory. This ensures that the dashboard is built and ready to s
 
 To develop the CLI, run the `dev` command in your console:
 
-    yarn run dev
+```sh
+yarn dev
+```
 
 This will link it to your global `node_modules` folder, and then watch for
 changes and auto-rebuild as you code. You can then run the `garden` command as normal.

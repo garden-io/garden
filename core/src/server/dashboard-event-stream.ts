@@ -17,7 +17,7 @@ const targetUpdateIntervalMsec = 1000
 export class DashboardEventStream extends BufferedEventStream {
   protected intervalMsec = 250
 
-  private targetPollIntervalId: NodeJS.Timeout
+  private targetPollIntervalId?: NodeJS.Timeout
   private ignoreHost: string | undefined
 
   connect(params: ConnectBufferedEventStreamParams & { ignoreHost?: string }) {

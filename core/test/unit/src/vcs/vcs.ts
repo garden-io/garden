@@ -271,7 +271,7 @@ describe("VcsHandler", () => {
     describe("hashVersions", () => {
       it("is stable with respect to key order in moduleConfig", async () => {
         const originalConfig = await gardenA.resolveModule("module-a")
-        const stirredConfig = cloneDeep(originalConfig)
+        const stirredConfig: any = cloneDeep(originalConfig)
         delete stirredConfig.name
         stirredConfig.name = originalConfig.name
 

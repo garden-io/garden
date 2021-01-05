@@ -4,4 +4,15 @@
     "*.ts",
     "test/*.ts"
   ],
+  "compilerOptions": {
+    "composite": true
+  },
+  "references": [
+    {
+      "path": "../../core"
+    },
+    {
+      "path": "../../sdk"
+    }
+  ]
 }
