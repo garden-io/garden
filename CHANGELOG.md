@@ -1,4 +1,11 @@
 
+<a name="0.12.12-1"></a>
+## [0.12.12-1](https://github.com/garden-io/garden/compare/0.12.12-0...0.12.12-1) (2021-01-06)
+
+### Bug Fixes
+
+* **k8s:** upgrade from deprecated nginx helm chart ([2d79889d](https://github.com/garden-io/garden/commit/2d79889d))
+
 <a name="0.12.12-0"></a>
 ## [0.12.12-0](https://github.com/garden-io/garden/compare/0.12.11...0.12.12-0) (2021-01-05)
 
