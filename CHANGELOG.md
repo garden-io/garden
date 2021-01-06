@@ -1,4 +1,22 @@
 
+<a name="0.12.12"></a>
+## [0.12.12](https://github.com/garden-io/garden/compare/0.12.11...0.12.12) (2021-01-06)
+
+### Bug Fixes
+
+* use archive stable repository ([b007a8c1](https://github.com/garden-io/garden/commit/b007a8c1))
+* **core:** prohibit templates in workflow name ([fa5df971](https://github.com/garden-io/garden/commit/fa5df971))
+* **helm:** use archive stable repository ([#2174](https://github.com/garden-io/garden/issues/2174)) ([1e144006](https://github.com/garden-io/garden/commit/1e144006))
+* **k8s:** upgrade from deprecated nginx helm chart ([2eaac5f3](https://github.com/garden-io/garden/commit/2eaac5f3))
+
+### Features
+
+* **template:** support if-blocks for multi-line conditionals ([884fe328](https://github.com/garden-io/garden/commit/884fe328))
+
+### Improvements
+
+* **core:** more efficient file scanning with multiple ignores ([3604da3c](https://github.com/garden-io/garden/commit/3604da3c))
+
 <a name="0.12.11"></a>
 ## [0.12.11](https://github.com/garden-io/garden/compare/0.12.10...0.12.11) (2020-12-01)
 
