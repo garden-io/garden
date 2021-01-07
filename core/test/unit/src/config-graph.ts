@@ -76,12 +76,12 @@ describe("ConfigGraph", () => {
 
   describe("getModules", () => {
     it("should scan and return all registered modules in the context", async () => {
-      const modules = await graphA.getModules()
+      const modules = graphA.getModules()
       expect(getNames(modules).sort()).to.eql(["module-a", "module-b", "module-c"])
     })
 
     it("should optionally return specified modules in the context", async () => {
-      const modules = await graphA.getModules({ names: ["module-b", "module-c"] })
+      const modules = graphA.getModules({ names: ["module-b", "module-c"] })
       expect(getNames(modules).sort()).to.eql(["module-b", "module-c"])
     })
 
@@ -189,13 +189,13 @@ describe("ConfigGraph", () => {
 
   describe("getServices", () => {
     it("should scan for modules and return all registered services in the context", async () => {
-      const services = await graphA.getServices()
+      const services = graphA.getServices()
 
       expect(getNames(services).sort()).to.eql(["service-a", "service-b", "service-c"])
     })
 
     it("should optionally return specified services in the context", async () => {
-      const services = await graphA.getServices({ names: ["service-b", "service-c"] })
+      const services = graphA.getServices({ names: ["service-b", "service-c"] })
 
       expect(getNames(services).sort()).to.eql(["service-b", "service-c"])
     })
@@ -309,7 +309,7 @@ describe("ConfigGraph", () => {
 
     it("should throw if named service is missing", async () => {
       try {
-        await graphA.getServices({ names: ["bla"] })
+        graphA.getServices({ names: ["bla"] })
       } catch (err) {
         expect(err.type).to.equal("parameter")
         return
@@ -321,14 +321,14 @@ describe("ConfigGraph", () => {
 
   describe("getService", () => {
     it("should return the specified service", async () => {
-      const service = await graphA.getService("service-b")
+      const service = graphA.getService("service-b")
 
       expect(service.name).to.equal("service-b")
     })
 
     it("should throw if service is missing", async () => {
       try {
-        await graphA.getService("bla")
+        graphA.getService("bla")
       } catch (err) {
         expect(err.type).to.equal("parameter")
         return
@@ -340,12 +340,12 @@ describe("ConfigGraph", () => {
 
   describe("getTasks", () => {
     it("should scan for modules and return all registered tasks in the context", async () => {
-      const tasks = await graphA.getTasks()
+      const tasks = graphA.getTasks()
       expect(getNames(tasks).sort()).to.eql(["task-a", "task-b", "task-c"])
     })
 
     it("should optionally return specified tasks in the context", async () => {
-      const tasks = await graphA.getTasks({ names: ["task-b", "task-c"] })
+      const tasks = graphA.getTasks({ names: ["task-b", "task-c"] })
       expect(getNames(tasks).sort()).to.eql(["task-b", "task-c"])
     })
 
@@ -452,7 +452,7 @@ describe("ConfigGraph", () => {
 
     it("should throw if named task is missing", async () => {
       try {
-        await graphA.getTasks({ names: ["bla"] })
+        graphA.getTasks({ names: ["bla"] })
       } catch (err) {
         expect(err.type).to.equal("parameter")
         return
@@ -464,14 +464,14 @@ describe("ConfigGraph", () => {
 
   describe("getTask", () => {
     it("should return the specified task", async () => {
-      const task = await graphA.getTask("task-b")
+      const task = graphA.getTask("task-b")
 
       expect(task.name).to.equal("task-b")
     })
 
     it("should throw if task is missing", async () => {
       try {
-        await graphA.getTask("bla")
+        graphA.getTask("bla")
       } catch (err) {
         expect(err.type).to.equal("parameter")
         return
@@ -863,7 +863,7 @@ describe("ConfigGraph", () => {
       const graph = await garden.getConfigGraph(garden.log)
       const deps = graph.getDependants({ nodeType: "build", name: "module-a", recursive: true })
 
-      expect(deps.deploy.map((m) => m.name)).to.eql(["service-a"])
+      expect(deps.deploy.map((m) => m.name)).to.eql([])
     })
   })
 
@@ -928,17 +928,17 @@ describe("ConfigGraph", () => {
 
   describe("resolveDependencyModules", () => {
     it("should resolve build dependencies", async () => {
-      const modules = await graphA.resolveDependencyModules([{ name: "module-c", copy: [] }], [])
+      const modules = graphA.resolveDependencyModules([{ name: "module-c", copy: [] }], [])
       expect(getNames(modules)).to.eql(["module-a", "module-b", "module-c"])
     })
 
     it("should resolve service dependencies", async () => {
-      const modules = await graphA.resolveDependencyModules([], ["service-b"])
+      const modules = graphA.resolveDependencyModules([], ["service-b"])
       expect(getNames(modules)).to.eql(["module-a", "module-b"])
     })
 
     it("should combine module and service dependencies", async () => {
-      const modules = await graphA.resolveDependencyModules([{ name: "module-b", copy: [] }], ["service-c"])
+      const modules = graphA.resolveDependencyModules([{ name: "module-b", copy: [] }], ["service-c"])
       expect(getNames(modules)).to.eql(["module-a", "module-b", "module-c"])
     })
   })
@@ -952,84 +952,98 @@ describe("ConfigGraph", () => {
           name: "module-a",
           moduleName: "module-a",
           key: "build.module-a",
+          disabled: false,
         },
         {
           type: "build",
           name: "module-b",
           moduleName: "module-b",
           key: "build.module-b",
+          disabled: false,
         },
         {
           type: "build",
           name: "module-c",
           moduleName: "module-c",
           key: "build.module-c",
+          disabled: false,
         },
         {
           type: "test",
           name: "unit",
           moduleName: "module-c",
           key: "test.module-c.unit",
+          disabled: false,
         },
         {
           type: "test",
           name: "integ",
           moduleName: "module-c",
           key: "test.module-c.integ",
+          disabled: false,
         },
         {
           type: "run",
           name: "task-c",
           moduleName: "module-c",
           key: "task.task-c",
+          disabled: false,
         },
         {
           type: "deploy",
           name: "service-c",
           moduleName: "module-c",
           key: "deploy.service-c",
+          disabled: false,
         },
         {
           type: "test",
           name: "unit",
           moduleName: "module-a",
           key: "test.module-a.unit",
+          disabled: false,
         },
         {
           type: "test",
           name: "integration",
           moduleName: "module-a",
           key: "test.module-a.integration",
+          disabled: false,
         },
         {
           type: "run",
           name: "task-a",
           moduleName: "module-a",
           key: "task.task-a",
+          disabled: false,
         },
         {
           type: "test",
           name: "unit",
           moduleName: "module-b",
           key: "test.module-b.unit",
+          disabled: false,
         },
         {
           type: "run",
           name: "task-b",
           moduleName: "module-b",
           key: "task.task-b",
+          disabled: false,
         },
         {
           type: "deploy",
           name: "service-a",
           moduleName: "module-a",
           key: "deploy.service-a",
+          disabled: false,
         },
         {
           type: "deploy",
           name: "service-b",
           moduleName: "module-b",
           key: "deploy.service-b",
+          disabled: false,
         },
       ])
     })
@@ -1039,46 +1053,62 @@ describe("ConfigGraph", () => {
 describe("DependencyGraphNode", () => {
   describe("render", () => {
     it("should render a build node", () => {
-      const node = new DependencyGraphNode("build", "module-a", "module-a")
+      const node = new DependencyGraphNode("build", "module-a", "module-a", false)
       const res = node.render()
       expect(res).to.eql({
         type: "build",
         name: "module-a",
         moduleName: "module-a",
         key: "build.module-a",
+        disabled: false,
       })
     })
 
     it("should render a deploy node", () => {
-      const node = new DependencyGraphNode("deploy", "service-a", "module-a")
+      const node = new DependencyGraphNode("deploy", "service-a", "module-a", false)
       const res = node.render()
       expect(res).to.eql({
         type: "deploy",
         name: "service-a",
         moduleName: "module-a",
         key: "deploy.service-a",
+        disabled: false,
       })
     })
 
     it("should render a run node", () => {
-      const node = new DependencyGraphNode("run", "task-a", "module-a")
+      const node = new DependencyGraphNode("run", "task-a", "module-a", false)
       const res = node.render()
       expect(res).to.eql({
         type: "run",
         name: "task-a",
         moduleName: "module-a",
         key: "task.task-a",
+        disabled: false,
       })
     })
 
     it("should render a test node", () => {
-      const node = new DependencyGraphNode("test", "module-a.test-a", "module-a")
+      const node = new DependencyGraphNode("test", "module-a.test-a", "module-a", false)
       const res = node.render()
       expect(res).to.eql({
         type: "test",
         name: "test-a",
         moduleName: "module-a",
         key: "test.module-a.test-a",
+        disabled: false,
+      })
+    })
+
+    it("should indicate if the node is disabled", () => {
+      const node = new DependencyGraphNode("test", "module-a.test-a", "module-a", true)
+      const res = node.render()
+      expect(res).to.eql({
+        type: "test",
+        name: "test-a",
+        moduleName: "module-a",
+        key: "test.module-a.test-a",
+        disabled: true,
       })
     })
   })

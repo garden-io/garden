@@ -464,7 +464,7 @@ export class FullscreenTerminalWriter extends Writer {
     let spinnerFrame = ""
     let spinnerX: number | undefined
 
-    if (entry.getMessageState().status === "active") {
+    if (entry.getLatestMessage().status === "active") {
       spinnerX = leftPad(entry).length
       spinnerFrame = this.tickSpinner(entry.key)
     } else {

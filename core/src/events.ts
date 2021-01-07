@@ -9,7 +9,7 @@
 import { omit } from "lodash"
 import { EventEmitter2 } from "eventemitter2"
 import { GraphResult } from "./task-graph"
-import { LogEntryEvent } from "./enterprise/buffered-event-stream"
+import { LogEntryEventPayload } from "./enterprise/buffered-event-stream"
 import { ServiceStatus } from "./types/service"
 import { RunStatus } from "./types/plugin/base"
 import { Omit } from "./util/util"
@@ -55,7 +55,7 @@ export class EventBus extends EventEmitter2 {
  */
 export interface LoggerEvents {
   _test: any
-  logEntry: LogEntryEvent
+  logEntry: LogEntryEventPayload
 }
 
 export type LoggerEventName = keyof LoggerEvents

@@ -176,7 +176,7 @@ export class Logger extends LogNode {
   }
 
   filterBySection(section: string): LogEntry[] {
-    return getChildEntries(this).filter((entry) => entry.getMessageState().section === section)
+    return getChildEntries(this).filter((entry) => entry.getLatestMessage().section === section)
   }
 
   findById(id: string): LogEntry | void {

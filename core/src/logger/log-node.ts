@@ -40,13 +40,13 @@ export function resolveParams(level: LogLevel, params: string | LogEntryParams):
 }
 
 export abstract class LogNode {
-  public readonly timestamp: number
+  public readonly timestamp: Date
   public readonly key: string
   public readonly children: LogEntry[]
 
   constructor(public readonly level: LogLevel, public readonly parent?: LogEntry, public readonly id?: string) {
     this.key = uniqid()
-    this.timestamp = Date.now()
+    this.timestamp = new Date()
     this.children = []
   }
 
@@ -94,6 +94,6 @@ export abstract class LogNode {
    * Returns the duration in seconds, defaults to 2 decimal precision
    */
   getDuration(precision: number = 2): number {
-    return round((Date.now() - this.timestamp) / 1000, precision)
+    return round((new Date().getTime() - this.timestamp.getTime()) / 1000, precision)
   }
 }
