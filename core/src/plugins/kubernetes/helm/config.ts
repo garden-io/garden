@@ -132,7 +132,7 @@ export const helmModuleSpecSchema = () =>
         deline`A valid Helm chart name or URI (same as you'd input to \`helm install\`).
       Required if the module doesn't contain the Helm chart itself.`
       )
-      .example("stable/nginx-ingress"),
+      .example("ingress-nginx"),
     chartPath: joi
       .posixPath()
       .subPathOnly()

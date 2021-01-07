@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 
-import { getLogger } from "../../../../src/logger/logger"
+import { getLogger, Logger } from "../../../../src/logger/logger"
 import {
   renderMsg,
   msgStyle,
@@ -29,10 +29,11 @@ import stripAnsi = require("strip-ansi")
 import { highlightYaml, safeDumpYaml } from "../../../../src/util/util"
 import { freezeTime } from "../../../helpers"
 
-const logger: any = getLogger()
+const logger: Logger = getLogger()
 
 beforeEach(() => {
-  logger.children = []
+  // tslint:disable-next-line: prettier
+  (logger["children"] as any) = []
 })
 
 describe("renderers", () => {
@@ -126,8 +127,8 @@ describe("renderers", () => {
   })
   describe("chainMessages", () => {
     it("should correctly chain log messages", () => {
-      const timestamp = Date.now()
-      const messageStateTable = [
+      const timestamp = new Date()
+      const messagesTable = [
         [
           { msg: "1", append: true },
           { msg: "2", append: true },
@@ -155,7 +156,7 @@ describe("renderers", () => {
         ],
       ].map((msgStates) => msgStates.map((msgState) => ({ ...msgState, timestamp })))
       const expects = [["1", "2", "3"], ["1", "2", "3"], ["2", "3"], ["2", "3"], ["3"]]
-      messageStateTable.forEach((msgState, index) => {
+      messagesTable.forEach((msgState, index) => {
         expect(chainMessages(msgState)).to.eql(expects[index])
       })
     })
@@ -173,7 +174,7 @@ describe("renderers", () => {
       const entry = logger.info({})
       expect(formatForTerminal(entry, "fancy")).to.equal("")
     })
-    it("should return a string with a new line if any of the members of entry.messageState is not empty", () => {
+    it("should return a string with a new line if any of the members of entry.messages is not empty", () => {
       const entryMsg = logger.info({ msg: "msg" })
       expect(formatForTerminal(entryMsg, "fancy")).contains("\n")
 
@@ -217,10 +218,11 @@ describe("renderers", () => {
 
           expect(formatForTerminal(entry, "basic")).to.equal(`[${now.toISOString()}] ${msgStyle("hello world")}\n`)
         })
-        it("should show the timestamp for the most recent message state", () => {
+        it("should show the timestamp for the most recent message state", async () => {
           const entry = logger.info("hello world")
+          const date = new Date(1600555650583) // Some date that's different from the current one
+          freezeTime(date)
           entry.setState("update entry")
-          entry.messageStates[1].timestamp = 1600555650583
 
           expect(formatForTerminal(entry, "basic")).to.equal(`[2020-09-19T22:47:30.583Z] ${msgStyle("update entry")}\n`)
         })

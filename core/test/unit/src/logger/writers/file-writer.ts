@@ -11,14 +11,15 @@ import chalk from "chalk"
 import stripAnsi from "strip-ansi"
 
 import { LogLevel } from "../../../../../src/logger/log-node"
-import { getLogger } from "../../../../../src/logger/logger"
+import { getLogger, Logger } from "../../../../../src/logger/logger"
 import { renderError } from "../../../../../src/logger/renderers"
 import { render } from "../../../../../src/logger/writers/file-writer"
 
-const logger: any = getLogger()
+const logger: Logger = getLogger()
 
 beforeEach(() => {
-  logger.children = []
+  // tslint:disable-next-line: prettier
+  (logger["children"] as any) = []
 })
 
 describe("FileWriter", () => {
