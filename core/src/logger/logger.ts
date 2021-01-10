@@ -161,7 +161,7 @@ export class Logger extends LogNode {
   }
 
   onGraphChange(entry: LogEntry) {
-    if (entry.level <= EVENT_LOG_LEVEL) {
+    if (entry.level <= EVENT_LOG_LEVEL && !entry.isPlaceholder) {
       this.events.emit("logEntry", formatLogEntryForEventStream(entry))
     }
     for (const writer of this.writers) {

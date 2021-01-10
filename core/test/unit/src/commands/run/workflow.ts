@@ -93,8 +93,8 @@ describe("RunWorkflowCommand", () => {
     const workflowCompletedEntry = filterLogEntries(entries, /Workflow.*completed/)[0]
 
     expect(runningWorkflowEntry).to.exist
-    expect(runningWorkflowEntry!.getMetadata()).to.eql({})
-    expect(stepHeaderEntries.map((e) => e.getMetadata())).to.eql([{}, {}], "stepHeaderEntries")
+    expect(runningWorkflowEntry!.getMetadata()).to.eql(undefined)
+    expect(stepHeaderEntries.map((e) => e.getMetadata())).to.eql([undefined, undefined], "stepHeaderEntries")
 
     const stepBodyEntriesMetadata = stepBodyEntries.map((e) => e.getMetadata())
     expect(stepBodyEntriesMetadata).to.eql(
@@ -102,9 +102,9 @@ describe("RunWorkflowCommand", () => {
       "stepBodyEntries"
     )
 
-    expect(stepFooterEntries.map((e) => e.getMetadata())).to.eql([{}, {}], "stepFooterEntries")
+    expect(stepFooterEntries.map((e) => e.getMetadata())).to.eql([undefined, undefined], "stepFooterEntries")
     expect(workflowCompletedEntry).to.exist
-    expect(workflowCompletedEntry!.getMetadata()).to.eql({}, "workflowCompletedEntry")
+    expect(workflowCompletedEntry!.getMetadata()).to.eql(undefined, "workflowCompletedEntry")
   })
 
   it("should emit workflow events", async () => {

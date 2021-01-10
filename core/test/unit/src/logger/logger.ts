@@ -7,11 +7,11 @@
  */
 
 import { expect } from "chai"
-import { omit } from "lodash"
 
 import { LogLevel } from "../../../../src/logger/log-node"
 import { getLogger, Logger } from "../../../../src/logger/logger"
-import { LogEntryEventPayload, formatLogEntryForEventStream } from "../../../../src/enterprise/buffered-event-stream"
+import { LogEntryEventPayload } from "../../../../src/enterprise/buffered-event-stream"
+import { freezeTime } from "../../../helpers"
 
 const logger: Logger = getLogger()
 
@@ -32,23 +32,119 @@ describe("Logger", () => {
       loggerEvents = []
     })
 
-    it("should emit a loggerEvent event when an entry is created", () => {
-      const log = logger.info({ msg: "0" })
-      const e = loggerEvents[0]
-      expect(loggerEvents.length).to.eql(1)
-      expect(e.revision).to.eql(0)
-      expect(omit(formatLogEntryForEventStream(log), "timestamp")).to.eql(omit(e, "timestamp"))
-    })
+    describe("onGraphChange", () => {
+      it("should emit a loggerEvent event when an entry is created", () => {
+        const now = freezeTime()
+        const log = logger.info({
+          msg: "hello",
+          emoji: "admission_tickets",
+          status: "active",
+          section: "80",
+          symbol: "info",
+          append: true,
+          data: { foo: "bar" },
+          dataFormat: "json",
+          maxSectionWidth: 20,
+          metadata: {
+            workflowStep: {
+              index: 2,
+            },
+          },
+        })
+        const e = loggerEvents[0]
+        expect(loggerEvents.length).to.eql(1)
+        expect(e).to.eql({
+          key: log.key,
+          parentKey: null,
+          revision: 0,
+          timestamp: now,
+          level: 2,
+          message: {
+            msg: "hello",
+            emoji: "admission_tickets",
+            status: "active",
+            section: "80",
+            symbol: "info",
+            append: true,
+            dataFormat: "json",
+            data: { foo: "bar" },
+            maxSectionWidth: 20,
+          },
+          metadata: {
+            workflowStep: {
+              index: 2,
+            },
+          },
+        })
+      })
+      it("should include parent key on nested entries", () => {
+        const now = freezeTime()
+        const log = logger.info("hello")
+        const nested = log.warn("world")
+        const emptyMsg = {
+          emoji: undefined,
+          status: undefined,
+          section: undefined,
+          symbol: undefined,
+          append: undefined,
+          dataFormat: undefined,
+          data: undefined,
+          maxSectionWidth: undefined,
+        }
 
-    it("should emit a loggerEvent with a bumped revision when an entry is updated", () => {
-      const log = logger.info({ msg: "0" })
-      log.setState("1")
-      logger.info({ msg: "0" })
-      const [e1, e2, e3] = loggerEvents
-      expect(loggerEvents.length).to.eql(3)
-      expect(e1.revision).to.eql(0)
-      expect(e2.revision).to.eql(1)
-      expect(e3.revision).to.eql(0)
+        const [e1, e2] = loggerEvents
+        expect(loggerEvents.length).to.eql(2)
+        expect(e1).to.eql({
+          key: log.key,
+          parentKey: null,
+          revision: 0,
+          timestamp: now,
+          level: 2,
+          message: {
+            ...emptyMsg,
+            msg: "hello",
+          },
+          metadata: undefined,
+        })
+        expect(e2).to.eql({
+          key: nested.key,
+          parentKey: log.key,
+          revision: 0,
+          timestamp: now,
+          level: 1,
+          message: {
+            ...emptyMsg,
+            msg: "world",
+          },
+          metadata: undefined,
+        })
+      })
+      it("should emit a loggerEvent with a bumped revision when an entry is updated", () => {
+        const log = logger.info({ msg: "0" })
+        log.setState("1")
+        logger.info({ msg: "0" })
+        const [e1, e2, e3] = loggerEvents
+        expect(loggerEvents.length).to.eql(3)
+        expect(e1.revision).to.eql(0)
+        expect(e2.revision).to.eql(1)
+        expect(e3.revision).to.eql(0)
+      })
+      it("should not emit a loggerEvent for placeholder log entries", () => {
+        logger.placeholder()
+        expect(loggerEvents.length).to.eql(0)
+      })
+      it("should emit a loggerEvent when a placeholder entry is updated", () => {
+        const log = logger.placeholder()
+        expect(loggerEvents.length).to.eql(0)
+
+        logger.info({ msg: "1" })
+        log.setState("2")
+
+        const [e1, e2] = loggerEvents
+        expect(loggerEvents.length).to.eql(2)
+        expect(e1.message.msg).to.eql("1")
+        expect(e2.message.msg).to.eql("2")
+      })
     })
   })
 

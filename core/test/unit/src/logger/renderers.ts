@@ -38,7 +38,7 @@ beforeEach(() => {
 
 describe("renderers", () => {
   describe("renderMsg", () => {
-    it("should return an empty string if the entry is empty", () => {
+    it("should return an empty string for placeholder entries", () => {
       const entry = logger.placeholder()
       expect(renderMsg(entry)).to.equal("")
     })
@@ -166,7 +166,7 @@ describe("renderers", () => {
       const entry = logger.info("")
       expect(formatForTerminal(entry, "fancy")).to.equal("\n")
     })
-    it("should return an empty string without a new line if the entry is empty", () => {
+    it("should return an empty string without a new line if it's a placeholder entry", () => {
       const entry = logger.placeholder()
       expect(formatForTerminal(entry, "fancy")).to.equal("")
     })
@@ -281,13 +281,14 @@ describe("renderers", () => {
       })
     })
     it("should handle undefined messages", () => {
+      const now = freezeTime()
       const entry = logger.placeholder()
       expect(formatForJson(entry)).to.eql({
         msg: "",
         section: "",
         data: undefined,
         metadata: undefined,
-        timestamp: "",
+        timestamp: now.toISOString(),
       })
     })
   })
