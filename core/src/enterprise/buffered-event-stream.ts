@@ -11,7 +11,6 @@ import { omit } from "lodash"
 
 import { Events, EventName, EventBus, eventNames } from "../events"
 import { LogEntryMetadata, LogEntry, LogEntryMessage } from "../logger/log-entry"
-import { chainMessages } from "../logger/renderers"
 import { got } from "../util/http"
 import { makeAuthHeader } from "./auth"
 import { LogLevel } from "../logger/log-node"
@@ -28,12 +27,9 @@ export interface LogEntryEventPayload {
   key: string
   parentKey: string | null
   revision: number
-  msg: string | string[]
   timestamp: Date
   level: LogLevel
   message: Omit<LogEntryMessage, "timestamp">
-  data?: any
-  section?: string
   metadata?: LogEntryMetadata
 }
 
@@ -42,15 +38,11 @@ export function formatLogEntryForEventStream(entry: LogEntry): LogEntryEventPayl
   const { key, revision, level } = entry
   const parentKey = entry.parent ? entry.parent.key : null
   const metadata = entry.getMetadata()
-  const msg = chainMessages(entry.getMessages() || [])
   return {
     key,
     parentKey,
     revision,
-    msg,
-    data: message.data,
     metadata,
-    section: message.section,
     timestamp: message.timestamp,
     level,
     message: omit(message, "timestamp"),

@@ -20,14 +20,58 @@ beforeEach(() => {
 })
 
 describe("LogEntry", () => {
-  it("should dedent placeholder log entries", () => {
-    const ph1 = logger.placeholder()
-    const ph2 = ph1.placeholder()
-    const nonEmpty = ph1.info("foo")
-    const nested = nonEmpty.info("foo")
-    const nestedPh = nested.placeholder()
-    const indents = [ph1.indent, ph2.indent, nonEmpty.indent, nested.indent, nestedPh.indent]
-    expect(indents).to.eql([-1, -1, 0, 1, 0])
+  const emptyState = {
+    msg: undefined,
+    emoji: undefined,
+    section: undefined,
+    symbol: undefined,
+    status: undefined,
+    data: undefined,
+    dataFormat: undefined,
+    append: undefined,
+    maxSectionWidth: undefined,
+  }
+  it("should create log entries with the appropriate fields set", () => {
+    const timestamp = freezeTime()
+    const entry = logger.info({
+      id: "my-id",
+      msg: "hello",
+      emoji: "alien",
+      status: "error",
+      section: "80",
+      symbol: "info",
+      append: true,
+      data: { foo: "bar" },
+      dataFormat: "json",
+      maxSectionWidth: 20,
+      metadata: {
+        workflowStep: {
+          index: 2,
+        },
+      },
+    })
+    expect(entry.getMetadata()).to.eql({
+      workflowStep: {
+        index: 2,
+      },
+    })
+    expect(entry.getMessages()).to.eql([
+      {
+        msg: "hello",
+        emoji: "alien",
+        status: "error",
+        section: "80",
+        symbol: "info",
+        append: true,
+        data: { foo: "bar" },
+        dataFormat: "json",
+        maxSectionWidth: 20,
+        timestamp,
+      },
+    ])
+    expect(entry.isPlaceholder).to.be.false
+    expect(entry.revision).to.eql(0)
+    expect(entry.id).to.eql("my-id")
   })
   it("should indent nested log entries", () => {
     const entry = logger.info("hello")
@@ -45,6 +89,33 @@ describe("LogEntry", () => {
       deepDeepNested2.indent,
     ]
     expect(indents).to.eql([undefined, 1, 2, 3, 2, 3])
+  })
+  context("placeholders", () => {
+    it("should dedent placeholder log entries", () => {
+      const ph1 = logger.placeholder()
+      const ph2 = ph1.placeholder()
+      const nonEmpty = ph1.info("foo")
+      const nested = nonEmpty.info("foo")
+      const nestedPh = nested.placeholder()
+      const indents = [ph1.indent, ph2.indent, nonEmpty.indent, nested.indent, nestedPh.indent]
+      expect(indents).to.eql([-1, -1, 0, 1, 0])
+    })
+    it("should initialize placeholders with an empty message and a timestamp", () => {
+      const timestamp = freezeTime()
+      const ph = logger.placeholder()
+      expect(ph.isPlaceholder).to.be.true
+      expect(ph.getMessages()).to.eql([{ timestamp }])
+    })
+    it("should correctly update placeholders", () => {
+      const timestamp = freezeTime()
+      const ph = logger.placeholder()
+      const hello = ph.info("hello")
+      ph.setState("world")
+      expect(hello.getMessages()).to.eql([{ ...emptyState, timestamp, msg: "hello" }])
+      expect(hello.isPlaceholder).to.be.false
+      expect(ph.getMessages()).to.eql([{ ...emptyState, timestamp, msg: "world" }])
+      expect(ph.isPlaceholder).to.be.false
+    })
   })
   context("metadata", () => {
     const metadata: LogEntryMetadata = { workflowStep: { index: 1 } }
@@ -64,12 +135,17 @@ describe("LogEntry", () => {
       expect(entry2.getMetadata()).to.eql(undefined)
       expect(nested.getMetadata()).to.eql(metadata)
     })
-
     it("should not set metadata on parent when creating placeholders or child nodes", () => {
       const entry = logger.info("hello")
       const ph = entry.placeholder({ metadata })
       expect(entry.getMetadata()).to.eql(undefined)
       expect(ph.getMetadata()).to.eql(metadata)
+    })
+    it("should not set empty metadata objects on child entries", () => {
+      const entry = logger.info("hello")
+      const child = entry.info("world")
+      expect(entry.getMetadata()).to.eql(undefined)
+      expect(child.getMetadata()).to.eql(undefined)
     })
   })
   context("childEntriesInheritLevel is set to true", () => {
@@ -94,17 +170,6 @@ describe("LogEntry", () => {
     })
   })
   describe("setState", () => {
-    const emptyState = {
-      msg: undefined,
-      emoji: undefined,
-      section: undefined,
-      symbol: undefined,
-      status: undefined,
-      data: undefined,
-      dataFormat: undefined,
-      append: undefined,
-      maxSectionWidth: undefined,
-    }
     it("should update entry state", () => {
       const timestamp = freezeTime()
       const taskMetadata: TaskMetadata = {

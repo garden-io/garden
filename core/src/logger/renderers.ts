@@ -59,13 +59,12 @@ export function getLeftOffset(entry: LogEntry) {
 }
 
 /**
- * Returns the most recent message's `msg` field if it has `append` set to `false`.
- * Otherwise returns longest chain of messages with `append: true` (starting from the most recent message).
+ * Returns longest chain of messages with `append: true` (starting from the most recent message).
  */
-export function chainMessages(messages: LogEntryMessage[], chain: string[] = []): string | string[] {
+export function chainMessages(messages: LogEntryMessage[], chain: string[] = []): string[] {
   const latestState = messages[messages.length - 1]
   if (!latestState) {
-    return chain.length === 1 ? chain[0] : chain.reverse()
+    return chain.reverse()
   }
 
   chain = latestState.msg !== undefined ? [...chain, latestState.msg] : chain
@@ -144,16 +143,14 @@ export function renderMsg(entry: LogEntry): string {
   const msg = chainMessages(entry.getMessages() || [])
 
   if (fromStdStream) {
-    return isArray(msg) ? msg.join(" ") : msg || ""
+    return msg.join(" ")
   }
 
   const styleFn = status === "error" ? errorStyle : msgStyle
-  if (isArray(msg)) {
-    // We apply the style function to each item (as opposed to the entire string) in case some
-    // part of the message already has a style
-    return msg.map((str) => styleFn(str)).join(styleFn(" → "))
-  }
-  return msg ? styleFn(msg) : ""
+
+  // We apply the style function to each item (as opposed to the entire string) in case some
+  // part of the message already has a style
+  return msg.map((str) => styleFn(str)).join(styleFn(" → "))
 }
 
 export function renderData(entry: LogEntry): string {
@@ -185,7 +182,7 @@ export function formatForTerminal(entry: LogEntry, type: PickFromUnion<LoggerTyp
   const { msg: msg, emoji, section, symbol, data } = entry.getLatestMessage()
   const empty = [msg, section, emoji, symbol, data].every((val) => val === undefined)
 
-  if (empty) {
+  if (entry.isPlaceholder || empty) {
     return ""
   }
 

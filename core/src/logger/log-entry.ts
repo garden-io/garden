@@ -86,8 +86,12 @@ function resolveParams(params?: string | UpdateLogEntryParams): UpdateLogEntryPa
   }
 }
 
+// FIXME: Refactor to better distinguish between normal log entries and placeholder
+// log entries and to get rid of these "god" interfaces.
+// We should also better distinguish between message data and log entry data
+// and enforce that some message data is set for non-placeholder entries.
 export class LogEntry extends LogNode {
-  private messages?: LogEntryMessage[]
+  private messages: LogEntryMessage[]
   private metadata?: LogEntryMetadata
   public readonly root: Logger
   public readonly fromStdStream?: boolean
@@ -95,7 +99,7 @@ export class LogEntry extends LogNode {
   public readonly errorData?: GardenError
   public readonly childEntriesInheritLevel?: boolean
   public readonly id?: string
-  public isPlaceholder?: boolean
+  public isPlaceholder: boolean
   public revision: number
 
   constructor(params: LogEntryConstructor) {
@@ -108,7 +112,7 @@ export class LogEntry extends LogNode {
     this.childEntriesInheritLevel = params.childEntriesInheritLevel
     this.metadata = params.metadata
     this.id = params.id
-    this.isPlaceholder = params.isPlaceholder
+    this.isPlaceholder = params.isPlaceholder || false
     this.revision = -1
 
     if (!params.isPlaceholder) {
@@ -120,8 +124,11 @@ export class LogEntry extends LogNode {
         status: params.level === LogLevel.error ? "error" : params.status,
         data: params.data,
         dataFormat: params.dataFormat,
+        append: params.append,
         maxSectionWidth: params.maxSectionWidth,
       })
+    } else {
+      this.messages = [{ timestamp: new Date() }]
     }
   }
 
@@ -159,7 +166,14 @@ export class LogEntry extends LogNode {
       nextMessage.symbol = "empty"
     }
 
-    this.messages = [...(this.messages || []), nextMessage]
+    if (this.isPlaceholder) {
+      // If it's a placeholder, this will be the first message...
+      this.messages = [nextMessage]
+      this.isPlaceholder = false
+    } else {
+      // ...otherwise we push it
+      this.messages = [...(this.messages || []), nextMessage]
+    }
 
     if (updateParams.metadata) {
       this.metadata = { ...(this.metadata || {}), ...updateParams.metadata }
@@ -190,11 +204,16 @@ export class LogEntry extends LogNode {
     const parentWithPreserveFlag = findParentEntry(this, (entry) => !!entry.childEntriesInheritLevel)
     const level = parentWithPreserveFlag ? Math.max(parentWithPreserveFlag.level, params.level) : params.level
 
+    let metadata: LogEntryMetadata | undefined = undefined
+    if (this.metadata || params.metadata) {
+      metadata = merge(cloneDeep(this.metadata || {}), params.metadata || {})
+    }
+
     return new LogEntry({
       ...params,
       indent,
       level,
-      metadata: merge(cloneDeep(this.metadata || {}), params.metadata || {}),
+      metadata,
       root: this.root,
       parent: this,
     })
@@ -246,7 +265,6 @@ export class LogEntry extends LogNode {
 
   // Preserves status
   setState(params?: string | UpdateLogEntryParams): LogEntry {
-    this.isPlaceholder = false
     this.deepUpdate({ ...resolveParams(params) })
     this.onGraphChange(this)
     return this
