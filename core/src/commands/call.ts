@@ -62,9 +62,11 @@ export class CallCommand extends Command<Args> {
 
   arguments = callArgs
 
-  async action({ garden, log, headerLog, args }: CommandParams<Args>): Promise<CommandResult<CallResult>> {
+  printHeader({ headerLog }) {
     printHeader(headerLog, "Call", "telephone_receiver")
+  }
 
+  async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<CallResult>> {
     let [serviceName, path] = splitFirst(args.serviceAndPath, "/")
 
     // TODO: better error when service doesn't exist

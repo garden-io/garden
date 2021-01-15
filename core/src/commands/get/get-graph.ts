@@ -7,6 +7,7 @@
  */
 
 import { RenderedEdge, RenderedNode } from "../../config-graph"
+import { printHeader } from "../../logger/util"
 import { Command, CommandResult, CommandParams } from "../base"
 
 export interface GraphOutput {
@@ -17,6 +18,10 @@ export interface GraphOutput {
 export class GetGraphCommand extends Command {
   name = "graph"
   help = "Outputs the dependency relationships specified in this project's garden.yml files."
+
+  printHeader({ headerLog }) {
+    printHeader(headerLog, "Get graph", "chart_with_upwards_trend")
+  }
 
   async action({ garden, log }: CommandParams): Promise<CommandResult<GraphOutput>> {
     const graph = await garden.getConfigGraph(log)

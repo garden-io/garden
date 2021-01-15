@@ -46,15 +46,11 @@ export class UnlinkModuleCommand extends Command<Args, Opts> {
         garden unlink module --all      # unlink all modules
   `
 
-  async action({
-    garden,
-    log,
-    headerLog,
-    args,
-    opts,
-  }: CommandParams<Args, Opts>): Promise<CommandResult<LinkedSource[]>> {
+  printHeader({ headerLog }) {
     printHeader(headerLog, "Unlink module", "chains")
+  }
 
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<LinkedSource[]>> {
     const sourceType = "module"
 
     const { modules = [] } = args

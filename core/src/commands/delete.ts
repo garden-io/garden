@@ -55,6 +55,10 @@ export class DeleteSecretCommand extends Command<typeof deleteSecretArgs> {
 
   arguments = deleteSecretArgs
 
+  printHeader({ headerLog }) {
+    printHeader(headerLog, "Delete secrete", "skull_and_crossbones")
+  }
+
   async action({ garden, log, args }: CommandParams<DeleteSecretArgs>): Promise<CommandResult<DeleteSecretResult>> {
     const key = args.key!
     const actions = await garden.getActionRouter()
@@ -102,9 +106,11 @@ export class DeleteEnvironmentCommand extends Command {
       ),
     })
 
-  async action({ garden, log, headerLog }: CommandParams): Promise<CommandResult<DeleteEnvironmentResult>> {
-    printHeader(headerLog, `Deleting ${garden.environmentName} environment`, "skull_and_crossbones")
+  printHeader({ headerLog }) {
+    printHeader(headerLog, `Deleting environment`, "skull_and_crossbones")
+  }
 
+  async action({ garden, log }: CommandParams): Promise<CommandResult<DeleteEnvironmentResult>> {
     const actions = await garden.getActionRouter()
 
     const serviceStatuses = await actions.deleteServices(log)
@@ -148,7 +154,11 @@ export class DeleteServiceCommand extends Command {
   outputsSchema = () =>
     joiIdentifierMap(serviceStatusSchema()).description("A map of statuses for all the deleted services.")
 
-  async action({ garden, log, headerLog, args }: CommandParams<DeleteServiceArgs>): Promise<CommandResult> {
+  printHeader({ headerLog }) {
+    printHeader(headerLog, "Delete service", "skull_and_crossbones")
+  }
+
+  async action({ garden, log, args }: CommandParams<DeleteServiceArgs>): Promise<CommandResult> {
     const graph = await garden.getConfigGraph(log)
     const services = graph.getServices({ names: args.services })
 
@@ -156,8 +166,6 @@ export class DeleteServiceCommand extends Command {
       log.warn({ msg: "No services found. Aborting." })
       return { result: {} }
     }
-
-    printHeader(headerLog, "Delete service", "skull_and_crossbones")
 
     const deleteServiceTasks = services.map((service) => {
       return new DeleteServiceTask({ garden, graph, log, service })

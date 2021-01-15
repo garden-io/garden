@@ -70,6 +70,8 @@ export class MigrateCommand extends Command<Args, Opts> {
     return "basic"
   }
 
+  printHeader() {}
+
   async action({ log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<MigrateCommandResult>> {
     // opts.root defaults to current directory
     const projectConfig = await findProjectConfig(opts.root, true)
