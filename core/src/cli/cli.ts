@@ -181,6 +181,7 @@ ${renderCommands(commands)}
       output,
       "force-refresh": forceRefresh,
       "var": cliVars,
+      "disable-port-forwards": disablePortForwards,
     } = parsedOpts
 
     // Parse command line --var input
@@ -225,6 +226,7 @@ ${renderCommands(commands)}
         args: parsedArgs,
         opts: parsedOpts,
       },
+      disablePortForwards,
       environmentName,
       log,
       sessionId,

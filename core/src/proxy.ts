@@ -8,6 +8,7 @@
 
 import { isEqual, invert } from "lodash"
 import Bluebird from "bluebird"
+import chalk = require("chalk")
 import { createServer, Server, Socket } from "net"
 const AsyncLock = require("async-lock")
 import getPort = require("get-port")
@@ -38,6 +39,11 @@ registerCleanupFunction("kill-service-port-proxies", () => {
 const portLock = new AsyncLock()
 
 export async function startPortProxies(garden: Garden, log: LogEntry, service: Service, status: ServiceStatus) {
+  if (garden.disablePortForwards) {
+    log.info({ msg: chalk.gray("Port forwards disabled") })
+    return []
+  }
+
   return Bluebird.map(status.forwardablePorts || [], (spec) => {
     return startPortProxy(garden, log, service, spec)
   })
