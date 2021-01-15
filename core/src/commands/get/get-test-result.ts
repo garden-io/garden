@@ -52,12 +52,7 @@ export class GetTestResultCommand extends Command<Args> {
       })
       .description("The result from the test. May also return null if no test result is found.")
 
-  async action({
-    garden,
-    log,
-    headerLog,
-    args,
-  }: CommandParams<Args>): Promise<CommandResult<GetTestResultCommandResult>> {
+  printHeader({ headerLog, args }) {
     const testName = args.name
     const moduleName = args.module
 
@@ -66,6 +61,11 @@ export class GetTestResultCommand extends Command<Args> {
       `Test result for test ${chalk.cyan(testName)} in module ${chalk.cyan(moduleName)}`,
       "heavy_check_mark"
     )
+  }
+
+  async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<GetTestResultCommandResult>> {
+    const testName = args.name
+    const moduleName = args.module
 
     const graph = await garden.getConfigGraph(log)
     const actions = await garden.getActionRouter()

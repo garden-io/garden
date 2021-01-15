@@ -48,12 +48,12 @@ export class GetTaskResultCommand extends Command<Args> {
       })
       .description("The output from the task. May also return null if no task result is found.")
 
-  async action({
-    garden,
-    log,
-    headerLog,
-    args,
-  }: CommandParams<Args>): Promise<CommandResult<GetTaskResultCommandResult>> {
+  printHeader({ headerLog, args }) {
+    const taskName = args.name
+    printHeader(headerLog, `Task result for task ${chalk.cyan(taskName)}`, "rocket")
+  }
+
+  async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<GetTaskResultCommandResult>> {
     const taskName = args.name
 
     const graph: ConfigGraph = await garden.getConfigGraph(log)
@@ -80,8 +80,6 @@ export class GetTaskResultCommand extends Command<Args> {
         artifacts,
       }
     }
-
-    printHeader(headerLog, `Task result for task ${chalk.cyan(taskName)}`, "rocket")
 
     log.info("")
 

@@ -10,7 +10,7 @@ import chalk from "chalk"
 import dedent from "dedent"
 import { pathExists, writeFile, copyFile } from "fs-extra"
 import inquirer from "inquirer"
-import { Command, CommandResult, CommandParams, PrepareParams } from "../base"
+import { Command, CommandResult, CommandParams } from "../base"
 import { printHeader } from "../../logger/util"
 import { isDirectory } from "../../util/fs"
 import { loadConfigResources } from "../../config/base"
@@ -91,9 +91,8 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
     return "basic"
   }
 
-  async prepare({ headerLog }: PrepareParams<CreateProjectArgs, CreateProjectOpts>) {
+  printHeader({ headerLog }) {
     printHeader(headerLog, "Create new project", "pencil2")
-    return { persistent: false }
   }
 
   async action({

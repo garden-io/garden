@@ -46,15 +46,11 @@ export class UnlinkSourceCommand extends Command<Args, Opts> {
         garden unlink source --all      # unlinks all sources
   `
 
-  async action({
-    garden,
-    log,
-    headerLog,
-    args,
-    opts,
-  }: CommandParams<Args, Opts>): Promise<CommandResult<LinkedSource[]>> {
+  printHeader({ headerLog }) {
     printHeader(headerLog, "Unlink source", "chains")
+  }
 
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<LinkedSource[]>> {
     const sourceType = "project"
 
     const { sources = [] } = args

@@ -12,7 +12,7 @@ import { dedent, renderTable, tablePresets } from "../util/string"
 import { LogEntry } from "../logger/log-entry"
 import { Garden, DummyGarden } from "../garden"
 import { Command, CommandParams } from "./base"
-import { getTerminalWidth } from "../logger/util"
+import { getTerminalWidth, printHeader } from "../logger/util"
 import { LoggerType } from "../logger/logger"
 import { ParameterError } from "../exceptions"
 import { uniqByName, exec, shutdown } from "../util/util"
@@ -73,6 +73,9 @@ export class ToolsCommand extends Command<Args, Opts> {
 
   getLoggerType(): LoggerType {
     return "basic"
+  }
+  printHeader({ headerLog }) {
+    printHeader(headerLog, "Tools", "hammer_and_wrench")
   }
 
   async prepare({ log }) {

@@ -64,21 +64,19 @@ export class ExecCommand extends Command<Args> {
     return "basic"
   }
 
-  async action({
-    garden,
-    log,
-    headerLog,
-    args,
-    opts,
-  }: CommandParams<Args, Opts>): Promise<CommandResult<ExecInServiceResult>> {
+  printHeader({ headerLog, args }) {
     const serviceName = args.service
     const command = args.command || []
-
     printHeader(
       headerLog,
       `Running command ${chalk.cyan(command.join(" "))} in service ${chalk.cyan(serviceName)}`,
       "runner"
     )
+  }
+
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ExecInServiceResult>> {
+    const serviceName = args.service
+    const command = args.command || []
 
     const graph = await garden.getConfigGraph(log)
     const service = graph.getService(serviceName)

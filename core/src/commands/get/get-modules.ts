@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandParams, PrepareParams } from "../base"
+import { Command, CommandParams } from "../base"
 import { StringsParameter, BooleanParameter } from "../../cli/params"
 import { moduleSchema, GardenModule } from "../../types/module"
 import { keyBy, omit, sortBy } from "lodash"
@@ -53,10 +53,10 @@ export class GetModulesCommand extends Command {
 
   outputsSchema = () => joi.object().keys({ modules: joiIdentifierMap(moduleSchema()) })
 
-  async prepare({ headerLog }: PrepareParams<Args, Opts>) {
+  printHeader({ headerLog }) {
     printHeader(headerLog, "Get Modules", "open_book")
-    return { persistent: false }
   }
+
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>) {
     const graph = await garden.getConfigGraph(log)
 
