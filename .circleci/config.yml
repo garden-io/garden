@@ -532,7 +532,7 @@ jobs:
     environment:
       <<: *shared-env-config
       K8S_VERSION: <<parameters.kubernetesVersion>>
-      MINIKUBE_VERSION: v1.5.2
+      MINIKUBE_VERSION: v1.11.0
       GARDEN_LOG_LEVEL: debug
       GARDEN_LOGGER_TYPE: basic
     steps:
@@ -542,7 +542,7 @@ jobs:
           name: Install system dependencies
           command: |
             sudo apt-get update
-            sudo apt install nfs-common
+            sudo apt install nfs-common conntrack
       - update_nodejs
       # Note: We can't use npm_install here because the cache conflicts
       - run: yarn run bootstrap
@@ -614,14 +614,22 @@ jobs:
 
 workflows:
   version: 2
+  test-minikube-1.20:
+    jobs:
+      - test-minikube:
+          kubernetesVersion: "1.20.2"
+  test-minikube-1.19:
+    jobs:
+      - test-minikube:
+          kubernetesVersion: "1.19.7"
+  test-minikube-1.18:
+    jobs:
+      - test-minikube:
+          kubernetesVersion: "1.18.15"
   test-minikube-1.17:
     jobs:
       - test-minikube:
           kubernetesVersion: "1.17.4"
-  test-microk8s-1.16:
-    jobs:
-      - test-microk8s:
-          kubernetesVersion: "1.16"
   test-minikube-1.16:
     jobs:
       - test-minikube:
@@ -634,14 +642,10 @@ workflows:
     jobs:
       - test-minikube:
           kubernetesVersion: "1.14.9"
-  test-minikube-1.13:
+  test-microk8s-1.19:
     jobs:
-      - test-minikube:
-          kubernetesVersion: "1.13.12"
-  test-minikube-1.12:
-    jobs:
-      - test-minikube:
-          kubernetesVersion: "1.12.10"
+      - test-microk8s:
+          kubernetesVersion: "1.19"
   commit:
     jobs:
       ### ALL BRANCHES ###
