@@ -70,14 +70,14 @@ services:
 You can import the source code for a _single_ Garden module from another repository via the `repositoryUrl` directive in the module-level `garden.yml` like so:
 
 ```yaml
-# examples/remote-sources/jworker/garden.yml
+# examples/remote-sources/worker/garden.yml
 kind: Module
 description: Java Worker
 type: container
-name: jworker
 repositoryUrl: https://github.com/garden-io/garden-example-remote-module-jworker.git#v0.1.0
+name: worker
 services:
-  - name: jworker
+  - name: worker
   ...
 ```
 
@@ -91,7 +91,7 @@ $ tree .
 
 .
 ├── garden.yml
-└── jworker
+└── worker
     └── garden.yml
 ```
 
