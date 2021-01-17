@@ -4,9 +4,12 @@
       <div id="content-container-center">
          <div id="choice" >
         <h3>Cats vs Dogs!</h3>
-          <button id="a" type="submit" name="vote" class="a" v-on:click="vote('a')" value="a">{{optionA}}</button>
-          <button id="b" type="submit" name="vote" class="b" v-on:click="vote('b')" value="b">{{optionB}}</button>
-
+          <button id="a" type="submit" name="vote" class="a" v-on:click="vote('a')" value="a">
+            {{optionA}}
+          </button>
+          <button id="b" type="submit" name="vote" class="b" v-on:click="vote('b')" value="b">
+            {{optionB}}
+          </button>
         </div>
       </div>
     </div>
@@ -17,12 +20,11 @@
 
 <script>
 export default {
-  name: 'HelloWorld',
+  name: 'Vote',
   data() {
     return {
       counter: 0,
       voteResult: '',
-
     };
   },
   props: {
@@ -34,11 +36,10 @@ export default {
       this.voteResult = v;
       const headers = {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Access-Control-Allow-Origin': '*',
       };
       const self = this;
-      axios.post('http://api.local.app.garden/vote/', `vote=${this.voteResult}`, { headers }).then((result) => {
-        self.counter++;
+      window.axios.post('/api/vote', `vote=${this.voteResult}`, { headers }).then(() => {
+        self.counter += 1;
       });
     },
   },
