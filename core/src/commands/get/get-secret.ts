@@ -10,6 +10,7 @@ import { NotFoundError } from "../../exceptions"
 import { Command, CommandResult, CommandParams } from "../base"
 import dedent = require("dedent")
 import { StringParameter } from "../../cli/params"
+import { printHeader } from "../../logger/util"
 
 const getSecretArgs = {
   provider: new StringParameter({
@@ -45,6 +46,10 @@ export class GetSecretCommand extends Command<GetArgs> {
   `
 
   arguments = getSecretArgs
+
+  printHeader({ headerLog }) {
+    printHeader(headerLog, "Get secret", "unlock")
+  }
 
   async action({ garden, log, args }: CommandParams<GetArgs>): Promise<CommandResult> {
     const key = args.key

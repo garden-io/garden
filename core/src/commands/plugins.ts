@@ -61,6 +61,10 @@ export class PluginsCommand extends Command<Args> {
     return "basic"
   }
 
+  printHeader({ headerLog }) {
+    printHeader(headerLog, "Plugins", "gear")
+  }
+
   async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult> {
     const providerConfigs = garden.getRawProviderConfigs()
     const configuredPlugins = providerConfigs.map((p) => p.name)

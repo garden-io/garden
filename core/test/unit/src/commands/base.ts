@@ -37,6 +37,7 @@ describe("Command", () => {
           }),
         }
 
+        printHeader() {}
         async action() {
           return {}
         }
@@ -66,6 +67,7 @@ describe("Command", () => {
         name = "test-command"
         help = ""
 
+        printHeader() {}
         async action() {
           return {}
         }
@@ -80,6 +82,7 @@ describe("Command", () => {
         alias = "some-alias"
         help = ""
 
+        printHeader() {}
         async action() {
           return {}
         }
@@ -93,6 +96,7 @@ describe("Command", () => {
         name = "test-command"
         help = ""
 
+        printHeader() {}
         async action() {
           return {}
         }
@@ -112,6 +116,7 @@ describe("Command", () => {
         name = "test-command"
         help = ""
 
+        printHeader() {}
         async action() {
           return {}
         }
@@ -136,6 +141,7 @@ describe("Command", () => {
         alias = "command-alias"
         help = ""
 
+        printHeader() {}
         async action() {
           return {}
         }
@@ -159,6 +165,7 @@ describe("Command", () => {
         alias = "command-alias"
         help = ""
 
+        printHeader() {}
         async action() {
           return {}
         }
@@ -188,6 +195,7 @@ describe("CommandGroup", () => {
         name = "test-command-a"
         help = ""
 
+        printHeader() {}
         async action() {
           return {}
         }
@@ -202,6 +210,7 @@ describe("CommandGroup", () => {
         name = "test-command-b"
         help = ""
 
+        printHeader() {}
         async action() {
           return {}
         }
@@ -235,6 +244,7 @@ describe("CommandGroup", () => {
         alias = "command-alias"
         help = "Some help text."
 
+        printHeader() {}
         async action() {
           return {}
         }

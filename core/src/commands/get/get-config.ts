@@ -14,6 +14,7 @@ import { providerConfigBaseSchema, providerSchema } from "../../config/provider"
 import { moduleConfigSchema } from "../../config/module"
 import { workflowConfigSchema } from "../../config/workflow"
 import { BooleanParameter, ChoicesParameter } from "../../cli/params"
+import { printHeader } from "../../logger/util"
 
 export const getConfigOptions = {
   "exclude-disabled": new BooleanParameter({
@@ -53,6 +54,10 @@ export class GetConfigCommand extends Command<{}, Opts> {
     })
 
   options = getConfigOptions
+
+  printHeader({ headerLog }) {
+    printHeader(headerLog, "Get config", "open_file_folder")
+  }
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<ConfigDump>> {
     const config = await garden.dumpConfig({

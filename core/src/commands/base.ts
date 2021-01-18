@@ -46,6 +46,11 @@ export interface CommandParamsBase<T extends Parameters = {}, U extends Paramete
   opts: ParameterValues<GlobalOptions & U>
 }
 
+export interface PrintHeaderParams<T extends Parameters = {}, U extends Parameters = {}>
+  extends CommandParamsBase<T, U> {
+  headerLog: LogEntry
+}
+
 export interface PrepareParams<T extends Parameters = {}, U extends Parameters = {}> extends CommandParamsBase<T, U> {
   headerLog: LogEntry
   footerLog: LogEntry
@@ -163,11 +168,13 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
     return { persistent: false }
   }
 
+  abstract printHeader(params: PrintHeaderParams<T, U>): void
+
   // Note: Due to a current TS limitation (apparently covered by https://github.com/Microsoft/TypeScript/issues/7011),
   // subclass implementations need to explicitly set the types in the implemented function signature. So for now we
   // can't enforce the types of `args` and `opts` automatically at the abstract class level and have to specify
   // the types explicitly on the subclassed methods.
-  abstract async action(params: CommandParams<T, U>): Promise<CommandResult>
+  abstract action(params: CommandParams<T, U>): Promise<CommandResult>
 
   /**
    * Called on all commands and checks if the command is protected.
@@ -244,6 +251,8 @@ export abstract class CommandGroup extends Command {
       }
     })
   }
+
+  printHeader() {}
 
   async action() {
     return {}

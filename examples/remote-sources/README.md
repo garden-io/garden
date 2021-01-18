@@ -20,7 +20,7 @@ garden deploy
 ```
 Garden will continue to use the version originally downloaded. Use the `update-remote sources|modules|all` command to fetch the latest version of your remote sources and modules:
 ```sh
-garden update-remote modules jworker
+garden update-remote modules worker
 ```
 If you however change the repository URL of your remote source or module (e.g. switch to a different tag or branch), Garden will automatically fetch the correct version.
 

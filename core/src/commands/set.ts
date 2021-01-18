@@ -10,6 +10,7 @@ import { Command, CommandResult, CommandParams, CommandGroup } from "./base"
 import dedent = require("dedent")
 import { SetSecretResult } from "../types/plugin/provider/setSecret"
 import { StringParameter } from "../cli/params"
+import { printHeader } from "../logger/util"
 
 export class SetCommand extends CommandGroup {
   name = "set"
@@ -61,6 +62,10 @@ export class SetSecretCommand extends Command<typeof setSecretArgs> {
   `
 
   arguments = setSecretArgs
+
+  printHeader({ headerLog }) {
+    printHeader(headerLog, "Set secret", "lock")
+  }
 
   async action({ garden, log, args }: CommandParams<SetArgs>): Promise<CommandResult<SetSecretResult>> {
     const key = args.key
