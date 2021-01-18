@@ -20,6 +20,7 @@ import { resolve } from "path"
 import { joi } from "../../../../src/config/common"
 import { pathExists, remove } from "fs-extra"
 import { TemplatedModuleConfig } from "../../../../src/plugins/templated"
+import { cloneDeep } from "lodash"
 
 describe("module templates", () => {
   let garden: TestGarden
@@ -241,25 +242,6 @@ describe("module templates", () => {
       )
     })
 
-    it("throws if inputs don't match inputs schema", async () => {
-      const config: TemplatedModuleConfig = {
-        ...defaults,
-        spec: {
-          ...defaults.spec,
-          inputs: {
-            foo: 123,
-          },
-        },
-      }
-      await expectError(
-        () => resolveTemplatedModule(garden, config, templates),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            "Error validating templated module test (modules.garden.yml): key .inputs.foo must be a string"
-          )
-      )
-    })
-
     it("fully resolves the source path on module files", async () => {
       const _templates = {
         test: {
@@ -444,6 +426,76 @@ describe("module templates", () => {
         (err) =>
           expect(stripAnsi(err.message)).to.equal(
             "ModuleTemplate test returned an invalid module (named 123) for templated module test: Error validating module (modules.garden.yml): key .name must be a string"
+          )
+      )
+    })
+
+    it("resolves project variable references in input fields", async () => {
+      const _templates: any = {
+        test: {
+          ...template,
+          modules: [
+            {
+              type: "test",
+              name: "${inputs.name}-test",
+            },
+          ],
+        },
+      }
+
+      const config: TemplatedModuleConfig = cloneDeep(defaults)
+      config.spec.inputs = { name: "${var.test}" }
+      garden.variables.test = "test-value"
+
+      const resolved = await resolveTemplatedModule(garden, config, _templates)
+
+      expect(resolved.modules[0].name).to.equal("test-value-test")
+    })
+
+    it("passes through unresolvable template strings in inputs field", async () => {
+      const _templates: any = {
+        test: {
+          ...template,
+          modules: [
+            {
+              type: "test",
+              name: "test",
+            },
+          ],
+        },
+      }
+
+      const templateString = "version-${modules.foo.version}"
+
+      const config: TemplatedModuleConfig = cloneDeep(defaults)
+      config.spec.inputs = { version: templateString }
+
+      const resolved = await resolveTemplatedModule(garden, config, _templates)
+
+      expect(resolved.modules[0].inputs?.version).to.equal(templateString)
+    })
+
+    it("throws if an unresolvable template string is used for a templated module name", async () => {
+      const _templates: any = {
+        test: {
+          ...template,
+          modules: [
+            {
+              type: "test",
+              name: "${inputs.name}-test",
+            },
+          ],
+        },
+      }
+
+      const config: TemplatedModuleConfig = cloneDeep(defaults)
+      config.spec.inputs = { name: "module-${modules.foo.version}" }
+
+      await expectError(
+        () => resolveTemplatedModule(garden, config, _templates),
+        (err) =>
+          expect(stripAnsi(err.message)).to.equal(
+            'ModuleTemplate test returned an invalid module (named module-${modules.foo.version}-test) for templated module test: Error validating module (modules.garden.yml): key .name with value "module-${modules.foo.version}-test" fails to match the required pattern: /^(?!garden)(?=.{1,63}$)[a-z][a-z0-9]*(-[a-z0-9]+)*$/. Note that if a template string is used in the name of a module in a template, that the template string must be fully resolvable at the time of module scanning. This means that e.g. references to other modules or runtime outputs cannot be used.'
           )
       )
     })

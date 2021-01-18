@@ -159,8 +159,12 @@ export const testPlugin = createGardenPlugin({
       return { url: `http://localhost:12345/${page.name}` }
     },
 
+    async getEnvironmentStatus() {
+      return { ready: true, outputs: { testKey: "testValue" } }
+    },
+
     async prepareEnvironment() {
-      return { status: { ready: true, outputs: {} } }
+      return { status: { ready: true, outputs: { testKey: "testValue" } } }
     },
 
     async setSecret({ key, value }) {
