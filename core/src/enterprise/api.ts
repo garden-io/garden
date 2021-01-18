@@ -40,6 +40,7 @@ export class EnterpriseApi {
   protected log: LogEntry
   protected enterpriseDomain: string
   protected intervalMsec = 4500 // Refresh interval in ms, it needs to be less than refreshThreshold/2
+  public isUserLoggedIn: boolean = false
   protected apiPrefix = "api"
 
   constructor(log: LogEntry) {
@@ -76,6 +77,11 @@ export class EnterpriseApi {
       if (!tokenIsValid) {
         await this.refreshToken()
       }
+      // At this point we can be sure the user is logged in because we have
+      // a valid token or refreshing the token did not go through.
+      // TODO: Refactor to make a bit more robust (cc @emanuele and @thsig, you
+      // know what I'm talking about.)
+      this.isUserLoggedIn = true
       this.startInterval()
     }
   }

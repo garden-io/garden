@@ -333,7 +333,7 @@ export class Garden {
     const projectId = config.id || null
     let secrets: StringMap = {}
     const enterpriseApi = opts.enterpriseApi || null
-    if (!opts.noEnterprise && enterpriseApi) {
+    if (!opts.noEnterprise && enterpriseApi?.isUserLoggedIn) {
       const enterpriseInitResult = await enterpriseInit({ log, projectId, enterpriseApi, environmentName })
       secrets = enterpriseInitResult.secrets
     }
