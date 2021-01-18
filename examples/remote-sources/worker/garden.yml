@@ -1,9 +1,9 @@
 kind: Module
 description: Java Worker
 type: container
-name: jworker
+name: worker
 repositoryUrl: https://github.com/garden-io/garden-example-remote-module-jworker.git#v0.2.0
 services:
-  - name: javaworker
+  - name: worker
     dependencies:
       - redis

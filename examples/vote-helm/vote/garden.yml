@@ -14,10 +14,13 @@ values:
   ingress:
     enabled: true
     paths: [/]
-    hosts: [vote-helm.local.app.garden]
+    hosts: ["vote.${var.baseHostname}"]
+  env:
+    - name: HOSTNAME
+      value: vote.${var.baseHostname}
 tests:
   - name: integ
     args: [npm, run, test:integ]
     timeout: 60
     dependencies:
-      - api
+      - vote
