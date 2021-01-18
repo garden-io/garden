@@ -9,7 +9,7 @@
 import { cloneDeep, keyBy } from "lodash"
 import { validateWithPath } from "./config/validation"
 import { resolveTemplateStrings, getModuleTemplateReferences, resolveTemplateString } from "./template-string"
-import { ContextResolveOpts, ModuleConfigContext } from "./config/config-context"
+import { ContextResolveOpts, ModuleConfigContext, GenericContext } from "./config/config-context"
 import { relative, resolve, posix } from "path"
 import { Garden } from "./garden"
 import { ConfigurationError, FilesystemError, PluginError } from "./exceptions"
@@ -80,7 +80,7 @@ export class ModuleResolver {
       }
     }
     for (const rawConfig of this.rawConfigs) {
-      const deps = this.getModuleTemplateDependencies(rawConfig)
+      const deps = this.getModuleDependenciesFromTemplateStrings(rawConfig)
       for (const graph of [fullGraph, processingGraph]) {
         for (const dep of deps) {
           graph.addNode(dep.name)
@@ -178,7 +178,10 @@ export class ModuleResolver {
     return Object.values(resolvedModules)
   }
 
-  private getModuleTemplateDependencies(rawConfig: ModuleConfig) {
+  /**
+   * Returns module configs for each module that is referenced in a ${modules.*} template string in the raw config.
+   */
+  private getModuleDependenciesFromTemplateStrings(rawConfig: ModuleConfig) {
     const configContext = new ModuleConfigContext({
       garden: this.garden,
       resolvedProviders: this.resolvedProviders,
@@ -221,23 +224,63 @@ export class ModuleResolver {
    */
   async resolveModuleConfig(config: ModuleConfig, dependencies: GardenModule[]): Promise<ModuleConfig> {
     const garden = this.garden
-    const configContext = new ModuleConfigContext({
-      garden: this.garden,
+    let inputs = {}
+
+    const templateContextParams = {
+      garden,
       resolvedProviders: this.resolvedProviders,
-      moduleName: config.name,
       dependencies,
       runtimeContext: this.runtimeContext,
       parentName: config.parentName,
       templateName: config.templateName,
-      inputs: config.inputs,
+      inputs,
       partialRuntimeResolution: true,
+    }
+
+    // First resolve and validate the inputs field, because template module inputs may not be fully resolved at this
+    // time.
+    // TODO: This whole complicated procedure could be much improved and simplified by implementing lazy resolution on
+    // values... I'll be looking into that. - JE
+    const templateName = config.templateName
+
+    if (templateName) {
+      const template = this.garden.moduleTemplates[templateName]
+
+      inputs = resolveTemplateStrings(
+        inputs,
+        new ModuleConfigContext(templateContextParams),
+        // Not all inputs may need to be resolvable
+        { allowPartial: true }
+      )
+
+      inputs = validateWithPath({
+        config: cloneDeep(config.inputs || {}),
+        configType: `inputs for module ${config.name}`,
+        path: config.configPath || config.path,
+        schema: template.inputsSchema,
+        projectRoot: garden.projectRoot,
+      })
+    }
+
+    // Now resolve just references to inputs on the config
+    config = resolveTemplateStrings(cloneDeep(config), new GenericContext({ inputs }), {
+      allowPartial: true,
     })
 
-    config = resolveTemplateStrings(cloneDeep(config), configContext, {
+    // And finally fully resolve the config
+    const configContext = new ModuleConfigContext({
+      ...templateContextParams,
+      inputs,
+      moduleName: config.name,
+    })
+
+    config = resolveTemplateStrings({ ...config, inputs: {} }, configContext, {
       allowPartial: false,
     })
 
-    const moduleTypeDefinitions = await this.garden.getModuleTypes()
+    config.inputs = inputs
+
+    const moduleTypeDefinitions = await garden.getModuleTypes()
     const description = moduleTypeDefinitions[config.type]
 
     if (!description) {

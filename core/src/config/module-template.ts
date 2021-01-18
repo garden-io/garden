@@ -11,7 +11,7 @@ import { baseModuleSpecSchema, BaseModuleSpec, ModuleConfig } from "./module"
 import { dedent, deline } from "../util/string"
 import { GardenResource, prepareModuleResource } from "./base"
 import { DOCS_BASE_URL } from "../constants"
-import { ProjectConfigContext, ModuleTemplateConfigContext } from "./config-context"
+import { ProjectConfigContext, ModuleTemplateConfigContext, EnvironmentConfigContext } from "./config-context"
 import { resolveTemplateStrings } from "../template-string"
 import { validateWithPath } from "./validation"
 import { Garden } from "../garden"
@@ -108,8 +108,22 @@ export async function resolveTemplatedModule(
   config: TemplatedModuleConfig,
   templates: { [name: string]: ModuleTemplateConfig }
 ) {
-  // Resolve template strings for fields
-  const resolved = resolveTemplateStrings(config, new ProjectConfigContext({ ...garden, branch: garden.vcsBranch }))
+  // Resolve template strings for fields. Note that inputs are partially resolved, and will be fully resolved later
+  // when resolving the resolving the resulting modules. Inputs that are used in module names must however be resolvable
+  // immediately.
+  const templateContext = new EnvironmentConfigContext({ ...garden, branch: garden.vcsBranch })
+  const resolvedWithoutInputs = resolveTemplateStrings(
+    { ...config, spec: omit(config.spec, "inputs") },
+    templateContext
+  )
+  const partiallyResolvedInputs = resolveTemplateStrings(config.spec.inputs || {}, templateContext, {
+    allowPartial: true,
+  })
+  const resolved = {
+    ...resolvedWithoutInputs,
+    spec: { ...resolvedWithoutInputs.spec, inputs: partiallyResolvedInputs },
+  }
+
   const configType = "templated module " + resolved.name
 
   let resolvedSpec = omit(resolved.spec, "build")
@@ -119,9 +133,9 @@ export async function resolveTemplatedModule(
     return { resolvedSpec, modules: [] }
   }
 
-  // Validate
+  // Validate the module spec
   resolvedSpec = validateWithPath({
-    config: omit(resolved.spec, "build"),
+    config: resolvedSpec,
     configType,
     path: resolved.configPath || resolved.path,
     schema: templatedModuleSpecSchema(),
@@ -141,28 +155,17 @@ export async function resolveTemplatedModule(
     )
   }
 
-  // Validate template inputs
-  resolvedSpec = validateWithPath({
-    config: resolvedSpec,
-    configType,
-    path: resolved.configPath || resolved.path,
-    schema: templatedModuleSpecSchema().keys({ inputs: template.inputsSchema }),
-    projectRoot: garden.projectRoot,
-  })
-
-  const inputs = resolvedSpec.inputs || {}
-
   // Prepare modules and resolve templated names
   const context = new ModuleTemplateConfigContext({
     ...garden,
     branch: garden.vcsBranch,
     parentName: resolved.name,
     templateName: template.name,
-    inputs,
+    inputs: partiallyResolvedInputs,
   })
 
   const modules = await Bluebird.map(template.modules || [], async (m) => {
-    // Run a partial template resolution with the parent+template info and inputs
+    // Run a partial template resolution with the parent+template info
     const spec = resolveTemplateStrings(m, context, { allowPartial: true })
 
     let moduleConfig: ModuleConfig
@@ -170,8 +173,15 @@ export async function resolveTemplatedModule(
     try {
       moduleConfig = prepareModuleResource(spec, resolved.configPath || resolved.path, garden.projectRoot)
     } catch (error) {
+      let msg = error.message
+
+      if (spec.name && spec.name.includes && spec.name.includes("${")) {
+        msg +=
+          ". Note that if a template string is used in the name of a module in a template, then the template string must be fully resolvable at the time of module scanning. This means that e.g. references to other modules or runtime outputs cannot be used."
+      }
+
       throw new ConfigurationError(
-        `${templateKind} ${template.name} returned an invalid module (named ${spec.name}) for templated module ${resolved.name}: ${error.message}`,
+        `${templateKind} ${template.name} returned an invalid module (named ${spec.name}) for templated module ${resolved.name}: ${msg}`,
         {
           moduleSpec: spec,
           parent: resolvedSpec,
@@ -195,7 +205,7 @@ export async function resolveTemplatedModule(
     // Attach metadata
     moduleConfig.parentName = resolved.name
     moduleConfig.templateName = template.name
-    moduleConfig.inputs = inputs
+    moduleConfig.inputs = partiallyResolvedInputs
 
     return moduleConfig
   })
