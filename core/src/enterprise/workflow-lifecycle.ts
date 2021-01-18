@@ -48,15 +48,16 @@ export async function registerWorkflowRun({
       log.error(`An error occurred while registering workflow run: ${err.message}`)
       throw err
     }
+    const body = res.body
 
-    if (res && res["workflowRunUid"] && res["status"] === "success") {
-      return res["workflowRunUid"]
+    if (body && body["workflowRunUid"] && body["status"] === "success") {
+      return body["workflowRunUid"]
     } else {
       throw new EnterpriseApiError(
-        `Error while registering workflow run: Request failed with status ${res["status"]}`,
+        `Error while registering workflow run: Request failed with status ${body["status"]}`,
         {
-          status: res["status"],
-          workflowRunUid: res["workflowRunUid"],
+          status: body["status"],
+          workflowRunUid: body["workflowRunUid"],
         }
       )
     }

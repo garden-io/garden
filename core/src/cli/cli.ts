@@ -290,7 +290,7 @@ ${renderCommands(commands)}
           }
         }
 
-        if (enterpriseApi.getDomain()) {
+        if (enterpriseApi.isUserLoggedIn) {
           log.silly(`Connecting Garden instance to GE BufferedEventStream`)
           bufferedEventStream.connect({
             garden,
