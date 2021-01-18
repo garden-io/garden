@@ -526,13 +526,21 @@ jobs:
       image: 'ubuntu-1604:202004-01'
       docker_layer_caching: true
     parameters:
+      minikubeVersion:
+        description: The Minikube version to use
+        type: string
+        default: v1.11.0
       kubernetesVersion:
         description: The Kubernetes version to run
         type: string
+      testOpenfaas:
+        description: Whether to test the openfaas project
+        type: boolean
+        default: true
     environment:
       <<: *shared-env-config
       K8S_VERSION: <<parameters.kubernetesVersion>>
-      MINIKUBE_VERSION: v1.5.2
+      MINIKUBE_VERSION: <<parameters.minikubeVersion>>
       GARDEN_LOG_LEVEL: debug
       GARDEN_LOGGER_TYPE: basic
     steps:
@@ -542,7 +550,7 @@ jobs:
           name: Install system dependencies
           command: |
             sudo apt-get update
-            sudo apt install nfs-common
+            sudo apt install nfs-common conntrack
       - update_nodejs
       # Note: We can't use npm_install here because the cache conflicts
       - run: yarn run bootstrap
@@ -568,9 +576,12 @@ jobs:
       - run:
           name: Deploy demo-project
           command: sudo -E ./bin/garden deploy --root examples/demo-project
-      - run:
-          name: Deploy openfaas
-          command: sudo -E ./bin/garden deploy --root examples/openfaas
+      - when:
+          condition: <<parameters.testOpenfaas>>
+          steps:
+            - run:
+                name: Deploy openfaas
+                command: sudo -E ./bin/garden deploy --root examples/openfaas
       - run:
           name: Run cluster cleanup
           command: |
@@ -614,14 +625,30 @@ jobs:
 
 workflows:
   version: 2
+  test-minikube-1.20:
+    jobs:
+      - test-minikube:
+          kubernetesVersion: "1.20.2"
+          minikubeVersion: "v1.16.0"
+          # OpenFaaS project fails without ingress, which doesn't work in CircleCI on minikube v1.12+, which is necessary
+          # for most recent k8s versions.
+          testOpenfaas: false
+  test-minikube-1.19:
+    jobs:
+      - test-minikube:
+          kubernetesVersion: "1.19.7"
+          minikubeVersion: "v1.16.0"
+          testOpenfaas: false
+  test-minikube-1.18:
+    jobs:
+      - test-minikube:
+          kubernetesVersion: "1.18.15"
+          minikubeVersion: "v1.16.0"
+          testOpenfaas: false
   test-minikube-1.17:
     jobs:
       - test-minikube:
           kubernetesVersion: "1.17.4"
-  test-microk8s-1.16:
-    jobs:
-      - test-microk8s:
-          kubernetesVersion: "1.16"
   test-minikube-1.16:
     jobs:
       - test-minikube:
@@ -634,14 +661,10 @@ workflows:
     jobs:
       - test-minikube:
           kubernetesVersion: "1.14.9"
-  test-minikube-1.13:
+  test-microk8s-1.19:
     jobs:
-      - test-minikube:
-          kubernetesVersion: "1.13.12"
-  test-minikube-1.12:
-    jobs:
-      - test-minikube:
-          kubernetesVersion: "1.12.10"
+      - test-microk8s:
+          kubernetesVersion: "1.19"
   commit:
     jobs:
       ### ALL BRANCHES ###

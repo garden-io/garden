@@ -28,5 +28,3 @@ values:
     nodeSelector: ${var.system-node-selector}
   defaultBackend:
     enabled: false
-  admissionWebhooks:
-   enabled: false
