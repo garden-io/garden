@@ -40,9 +40,11 @@ export class UpdateRemoteAllCommand extends Command {
         garden update-remote all # update all remote sources and modules in the project
   `
 
-  async action({ garden, log, headerLog }: CommandParams): Promise<CommandResult<UpdateRemoteAllResult>> {
+  printHeader({ headerLog }) {
     printHeader(headerLog, "Update remote sources and modules", "hammer_and_wrench")
+  }
 
+  async action({ garden, log }: CommandParams): Promise<CommandResult<UpdateRemoteAllResult>> {
     const { result: projectSources } = await updateRemoteSources({
       garden,
       log,

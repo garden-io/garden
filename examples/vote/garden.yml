@@ -1,32 +1,34 @@
 kind: Project
 name: vote
-dotIgnoreFiles:
-  - .gitignore
-  - .gardenignore
-  - .fooignore
 environments:
   - name: local
+    variables:
+      baseHostname: vote.local.app.garden
   - name: remote
+    defaultNamespace: ${var.userId}
+    variables:
+      baseHostname: vote-${var.userId}.dev-1.sys.garden
   - name: testing
-    defaultNamespace: testing-${local.env.CIRCLE_BUILD_NUM || local.username}
+    defaultNamespace: testing-${var.userId}
+    variables:
+      baseHostname: vote-testing-${var.userId}.dev-1.sys.garden
 providers:
   - name: local-kubernetes
     environments: [local]
   - name: kubernetes
     environments: [remote]
     # Replace these values as appropriate
-    context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
-    namespace: ${local.username}-vote
-    defaultHostname: ${local.username}-vote.dev-1.sys.garden
+    context: ${var.remoteContext}
     buildMode: cluster-docker
   - name: kubernetes
     environments: [testing]
-    context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
-    defaultHostname: ${environment.namespace}.dev-1.sys.garden
+    context: ${var.remoteContext}
     buildMode: cluster-docker
     clusterDocker:
       enableBuildKit: true
 variables:
+  userId: ${local.env.CIRCLE_BUILD_NUM || local.username}
+  remoteContext: gke_garden-dev-200012_europe-west1-b_garden-dev-1
   postgres-database: postgres
   # Only use for testing!
   postgres-username: postgres

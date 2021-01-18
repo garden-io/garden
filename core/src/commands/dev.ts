@@ -29,6 +29,7 @@ import { DeployTask } from "../tasks/deploy"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { StringsParameter, BooleanParameter } from "../cli/params"
+import { printHeader } from "../logger/util"
 
 const ansiBannerPath = join(STATIC_DIR, "garden-banner-2.txt")
 
@@ -85,6 +86,10 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
   `
 
   options = devOpts
+
+  printHeader({ headerLog }) {
+    printHeader(headerLog, "Dev", "keyboard")
+  }
 
   async prepare({ log, footerLog }: PrepareParams<DevCommandArgs, DevCommandOpts>) {
     // print ANSI banner image

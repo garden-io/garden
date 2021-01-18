@@ -1,9 +1,9 @@
 kind: Module
 description: The worker that collects votes and stores results in a postgres table
 type: container
-name: jworker
+name: worker
 services:
-  - name: javaworker
+  - name: worker
     dependencies:
       - redis
       - db-init

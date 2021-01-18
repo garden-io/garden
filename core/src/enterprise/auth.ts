@@ -83,6 +83,7 @@ export async function checkClientAuthToken(token: string, enterpriseDomain: stri
     if (res && res.statusCode === 401) {
       valid = false
     } else {
+      log.setError("Error")
       throw new RuntimeError(`An error occurred while verifying client auth token with platform: ${err.message}`, {})
     }
   }

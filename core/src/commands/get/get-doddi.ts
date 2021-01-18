@@ -26,6 +26,8 @@ export class GetDoddiCommand extends Command {
   hidden = true
   noProject = true
 
+  printHeader() {}
+
   async action(): Promise<CommandResult> {
     const image = (await readFile(join(STATIC_DIR, "doddi.txt"))).toString()
     // tslint:disable-next-line: no-console

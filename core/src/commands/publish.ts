@@ -83,16 +83,17 @@ export class PublishCommand extends Command<Args, Opts> {
       ),
     })
 
+  printHeader({ headerLog }) {
+    printHeader(headerLog, "Publish modules", "rocket")
+  }
+
   async action({
     garden,
     log,
-    headerLog,
     footerLog,
     args,
     opts,
   }: CommandParams<Args, Opts>): Promise<CommandResult<PublishCommandResult>> {
-    printHeader(headerLog, "Publish modules", "rocket")
-
     const graph = await garden.getConfigGraph(log)
     const modules = graph.getModules({ names: args.modules })
 

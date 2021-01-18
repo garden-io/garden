@@ -43,6 +43,9 @@ export class ConfigAnalyticsEnabled extends Command {
         garden config analytics-enabled false  # disable analytics
   `
 
+  // Skip printing header
+  printHeader() {}
+
   async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult> {
     const analyticsClient = await AnalyticsHandler.init(garden, log)
     await analyticsClient.setAnalyticsOptIn(args.enable)

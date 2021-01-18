@@ -52,6 +52,8 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
 
   options = fetchToolsOpts
 
+  printHeader() {}
+
   async action({ garden, log, opts }: CommandParams<{}, FetchToolsOpts>) {
     let plugins: GardenPlugin[]
 

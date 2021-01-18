@@ -22,6 +22,7 @@ import chalk from "chalk"
 import { GitHandler } from "../../vcs/git"
 import { ValidationError } from "../../exceptions"
 import { ChoicesParameter, BooleanParameter } from "../../cli/params"
+import { printHeader } from "../../logger/util"
 
 export const TEMP_DEBUG_ROOT = "tmp"
 export const SYSTEM_INFO_FILENAME_NO_EXT = "system-info"
@@ -267,6 +268,10 @@ export class GetDebugInfoCommand extends Command<Args, Opts> {
 
   arguments = debugInfoArguments
   options = debugInfoOptions
+
+  printHeader({ headerLog }) {
+    printHeader(headerLog, "Get debug info", "information_source")
+  }
 
   async action({ garden, log, opts }: CommandParams<Args, Opts>) {
     const tempPath = join(garden.gardenDirPath, TEMP_DEBUG_ROOT)

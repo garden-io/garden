@@ -205,6 +205,8 @@ ${renderCommands(commands)}
     const log = logger.placeholder()
     const footerLog = logger.placeholder()
 
+    command.printHeader({ headerLog, args: parsedArgs, opts: parsedOpts })
+
     // Init event & log streaming.
     const sessionId = uuidv4()
     const bufferedEventStream = new BufferedEventStream(log, sessionId)

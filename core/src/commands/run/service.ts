@@ -63,13 +63,12 @@ export class RunServiceCommand extends Command<Args, Opts> {
   arguments = runServiceArgs
   options = runServiceOpts
 
-  async action({
-    garden,
-    log,
-    headerLog,
-    args,
-    opts,
-  }: CommandParams<Args, Opts>): Promise<CommandResult<RunServiceOutput>> {
+  printHeader({ headerLog, args }) {
+    const serviceName = args.service
+    printHeader(headerLog, `Running service ${chalk.cyan(serviceName)}`, "runner")
+  }
+
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunServiceOutput>> {
     const serviceName = args.service
     const graph = await garden.getConfigGraph(log)
     const service = graph.getService(serviceName, true)
@@ -85,8 +84,6 @@ export class RunServiceCommand extends Command<Args, Opts> {
         { serviceName: service.name, environmentName: garden.environmentName }
       )
     }
-
-    printHeader(headerLog, `Running service ${chalk.cyan(serviceName)} in module ${chalk.cyan(module.name)}`, "runner")
 
     const actions = await garden.getActionRouter()
 

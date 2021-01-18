@@ -86,14 +86,11 @@ describe("RunWorkflowCommand", () => {
 
     await cmd.action({ ..._defaultParams, args: { workflow: "workflow-a" } })
     const entries = _garden.log.getChildEntries()
-    const runningWorkflowEntry = filterLogEntries(entries, /Running workflow/)[0]
     const stepHeaderEntries = filterLogEntries(entries, /Running step/)
     const stepBodyEntries = filterLogEntries(entries, /Starting processModules/)
     const stepFooterEntries = filterLogEntries(entries, /Step.*completed/)
     const workflowCompletedEntry = filterLogEntries(entries, /Workflow.*completed/)[0]
 
-    expect(runningWorkflowEntry).to.exist
-    expect(runningWorkflowEntry!.getMetadata()).to.eql(undefined)
     expect(stepHeaderEntries.map((e) => e.getMetadata())).to.eql([undefined, undefined], "stepHeaderEntries")
 
     const stepBodyEntriesMetadata = stepBodyEntries.map((e) => e.getMetadata())
