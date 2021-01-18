@@ -68,7 +68,7 @@ export async function tfValidate(params: TerraformParams) {
     ) {
       // We need to run `terraform init` and retry validation
       log.debug("Initializing Terraform")
-      await terraform(ctx, provider).exec({ log, args: ["init"], cwd: root, timeoutSec: 300 })
+      await tfInit(params)
 
       const retryRes = await terraform(ctx, provider).json({
         log,
@@ -175,10 +175,10 @@ export async function getStackStatus(params: TerraformParamsWithVariables): Prom
 
 export async function applyStack(params: TerraformParamsWithVariables) {
   const { ctx, log, provider, root, variables } = params
-  const args = ["apply", "-auto-approve", "-input=false", ...(await prepareVariables(root, variables))]
 
   await setWorkspace(params)
 
+  const args = ["apply", "-auto-approve", "-input=false", ...(await prepareVariables(root, variables))]
   const proc = await terraform(ctx, provider).spawn({ log, args, cwd: root })
 
   const statusLine = log.info("→ Applying Terraform stack...")
@@ -241,7 +241,12 @@ export async function prepareVariables(targetDir: string, variables?: object): P
 /**
  * Lists the created workspaces for the given Terraform `root`, and returns which one is selected.
  */
-export async function getWorkspaces({ ctx, log, provider, root }: TerraformParams) {
+export async function getWorkspaces(params: TerraformParams) {
+  const { ctx, log, provider, root } = params
+
+  // Must in some cases ensure init is complete before listing workspaces
+  await tfInit(params)
+
   const res = await terraform(ctx, provider).stdout({ args: ["workspace", "list"], cwd: root, log })
   let selected = "default"
 
@@ -286,4 +291,8 @@ export async function setWorkspace(params: TerraformParamsWithWorkspace) {
   } else {
     await terraform(ctx, provider).stdout({ args: ["workspace", "new", workspace], cwd: root, log })
   }
+}
+
+export async function tfInit({ ctx, log, provider, root }: TerraformParams) {
+  await terraform(ctx, provider).exec({ log, args: ["init"], cwd: root, timeoutSec: 600 })
 }
