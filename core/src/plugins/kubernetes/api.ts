@@ -258,13 +258,23 @@ export class KubeApi {
         }
 
         log.debug(`Kubernetes: Getting API resource info for group ${apiVersion}`)
-        const res = await this.request({ log, path: getGroupBasePath(apiVersion) })
 
-        // We're only interested in the entities themselves, not the sub-resources
-        const resources = res.body.resources.filter((r: any) => !r.name.includes("/"))
+        try {
+          const res = await this.request({ log, path: getGroupBasePath(apiVersion) })
 
-        apiResources[apiVersion] = keyBy(resources, "kind")
-        return apiResources[apiVersion]
+          // We're only interested in the entities themselves, not the sub-resources
+          const resources = res.body.resources.filter((r: any) => !r.name.includes("/"))
+
+          apiResources[apiVersion] = keyBy(resources, "kind")
+          return apiResources[apiVersion]
+        } catch (err) {
+          if (err.statusCode === 404) {
+            // Could not find the resource type
+            return {}
+          } else {
+            throw err
+          }
+        }
       }))
 
     const resource = resourceMap[kind]
