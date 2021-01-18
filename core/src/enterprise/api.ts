@@ -69,7 +69,8 @@ export class EnterpriseApi {
       return
     }
     this.enterpriseDomain = enterpriseDomain
-    if (!gardenEnv.GARDEN_AUTH_TOKEN && commandAllowed) {
+    const authToken = await this.readAuthToken()
+    if (authToken && !gardenEnv.GARDEN_AUTH_TOKEN && commandAllowed) {
       this.log.debug({ msg: `Refreshing auth token and starting refresh interval.` })
       const tokenIsValid = await this.checkClientAuthToken(this.log)
       if (!tokenIsValid) {
