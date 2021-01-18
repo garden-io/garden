@@ -526,13 +526,21 @@ jobs:
       image: 'ubuntu-1604:202004-01'
       docker_layer_caching: true
     parameters:
+      minikubeVersion:
+        description: The Minikube version to use
+        type: string
+        default: v1.11.0
       kubernetesVersion:
         description: The Kubernetes version to run
         type: string
+      testOpenfaas:
+        description: Whether to test the openfaas project
+        type: boolean
+        default: true
     environment:
       <<: *shared-env-config
       K8S_VERSION: <<parameters.kubernetesVersion>>
-      MINIKUBE_VERSION: v1.11.0
+      MINIKUBE_VERSION: <<parameters.minikubeVersion>>
       GARDEN_LOG_LEVEL: debug
       GARDEN_LOGGER_TYPE: basic
     steps:
@@ -568,9 +576,12 @@ jobs:
       - run:
           name: Deploy demo-project
           command: sudo -E ./bin/garden deploy --root examples/demo-project
-      - run:
-          name: Deploy openfaas
-          command: sudo -E ./bin/garden deploy --root examples/openfaas
+      - when:
+          condition: <<parameters.testOpenfaas>>
+          steps:
+            - run:
+                name: Deploy openfaas
+                command: sudo -E ./bin/garden deploy --root examples/openfaas
       - run:
           name: Run cluster cleanup
           command: |
@@ -618,14 +629,22 @@ workflows:
     jobs:
       - test-minikube:
           kubernetesVersion: "1.20.2"
+          minikubeVersion: "v1.16.0"
+          # OpenFaaS project fails without ingress, which doesn't work in CircleCI on minikube v1.12+, which is necessary
+          # for most recent k8s versions.
+          testOpenfaas: false
   test-minikube-1.19:
     jobs:
       - test-minikube:
           kubernetesVersion: "1.19.7"
+          minikubeVersion: "v1.16.0"
+          testOpenfaas: false
   test-minikube-1.18:
     jobs:
       - test-minikube:
           kubernetesVersion: "1.18.15"
+          minikubeVersion: "v1.16.0"
+          testOpenfaas: false
   test-minikube-1.17:
     jobs:
       - test-minikube:
