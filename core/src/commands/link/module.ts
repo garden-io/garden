@@ -58,9 +58,11 @@ export class LinkModuleCommand extends Command<Args> {
         garden link module my-module path/to/my-module # links my-module to its local version at the given path
   `
 
-  async action({ garden, log, headerLog, args }: CommandParams<Args>): Promise<CommandResult<Output>> {
+  printHeader({ headerLog }) {
     printHeader(headerLog, "Link module", "link")
+  }
 
+  async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<Output>> {
     const sourceType = "module"
 
     const { module: moduleName, path } = args

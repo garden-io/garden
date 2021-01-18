@@ -16,6 +16,9 @@ service:
   type: ClusterIP
 
 servicePort: 80
+healthCheckPath:
+
+env: []
 
 ingress:
   enabled: false
@@ -23,8 +26,7 @@ ingress:
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
   paths: []
-  hosts:
-    - chart-example.local
+  hosts: []
   tls: []
   #  - secretName: chart-example-tls
   #    hosts:

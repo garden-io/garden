@@ -10,7 +10,7 @@ services:
     ingresses:
       - path: /
         port: ui
-        hostname: result.local.app.garden
+        hostname: result.${var.baseHostname}
     ports:
       - name: ui
         protocol: TCP

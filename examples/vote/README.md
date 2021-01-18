@@ -15,7 +15,7 @@ garden dev
 Good afternoon! Let's get your environment wired up...
 
 ✔ local-kubernetes          → Configured
-✔ jworker                   → Building jworker:8bbc389b3e... → Done (took 0.6 sec)
+✔ worker                    → Building worker:8bbc389b3e... → Done (took 0.6 sec)
 ✔ postgres                  → Building → Done (took 0.4 sec)
 ✔ result                    → Building result:8bbc389b3e... → Done (took 0.5 sec)
 ✔ vote                      → Building vote:8bbc389b3e-1543837972... → Done (took 0.5 sec)

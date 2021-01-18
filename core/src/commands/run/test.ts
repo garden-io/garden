@@ -93,13 +93,11 @@ export class RunTestCommand extends Command<Args, Opts> {
       graphResults: graphResultsSchema(),
     })
 
-  async action({
-    garden,
-    log,
-    headerLog,
-    args,
-    opts,
-  }: CommandParams<Args, Opts>): Promise<CommandResult<RunTestOutput>> {
+  printHeader({ headerLog, args }) {
+    printHeader(headerLog, `Running test ${chalk.cyan(args.test)}`, "runner")
+  }
+
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunTestOutput>> {
     const moduleName = args.module
     const testName = args.test
 
@@ -128,8 +126,6 @@ export class RunTestCommand extends Command<Args, Opts> {
         { moduleName: module.name, testName: test.name, environmentName: garden.environmentName }
       )
     }
-
-    printHeader(headerLog, `Running test ${chalk.cyan(testName)} in module ${chalk.cyan(moduleName)}`, "runner")
 
     const actions = await garden.getActionRouter()
     const interactive = opts.interactive

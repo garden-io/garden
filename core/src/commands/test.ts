@@ -89,11 +89,14 @@ export class TestCommand extends Command<Args, Opts> {
 
   private isPersistent = (opts) => !!opts.watch
 
-  async prepare({ headerLog, footerLog, opts }: PrepareParams<Args, Opts>) {
+  printHeader({ headerLog }) {
+    printHeader(headerLog, `Running tests`, "thermometer")
+  }
+
+  async prepare({ footerLog, opts }: PrepareParams<Args, Opts>) {
     const persistent = this.isPersistent(opts)
 
     if (persistent) {
-      printHeader(headerLog, `Running tests`, "thermometer")
       this.server = await startServer({ log: footerLog })
     }
 
@@ -103,15 +106,10 @@ export class TestCommand extends Command<Args, Opts> {
   async action({
     garden,
     log,
-    headerLog,
     footerLog,
     args,
     opts,
   }: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
-    if (!this.isPersistent(opts)) {
-      printHeader(headerLog, `Running tests`, "thermometer")
-    }
-
     if (this.server) {
       this.server.setGarden(garden)
     }

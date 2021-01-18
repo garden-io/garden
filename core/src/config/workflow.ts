@@ -81,12 +81,12 @@ export const workflowConfigSchema = () =>
           cpu: joi
             .number()
             .default(defaultContainerLimits.cpu)
-            .min(1000)
+            .min(500)
             .description("The maximum amount of CPU the workflow pod can use, in millicpus (i.e. 1000 = 1 CPU)"),
           memory: joi
             .number()
             .default(defaultContainerLimits.memory)
-            .min(1024)
+            .min(256)
             .description("The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB)"),
         })
         .default(defaultContainerLimits),

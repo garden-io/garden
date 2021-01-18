@@ -9,7 +9,7 @@
 import chalk from "chalk"
 import indentString from "indent-string"
 import { sortBy, omit, uniq } from "lodash"
-import { Command, CommandResult, CommandParams, PrepareParams } from "../base"
+import { Command, CommandResult, CommandParams } from "../base"
 import { printHeader } from "../../logger/util"
 import { Task } from "../../types/task"
 import { StringsParameter } from "../../cli/params"
@@ -56,9 +56,8 @@ export class GetTasksCommand extends Command<Args> {
 
   arguments = getTasksArgs
 
-  async prepare({ headerLog }: PrepareParams<Args>) {
+  printHeader({ headerLog }) {
     printHeader(headerLog, "Tasks", "open_book")
-    return { persistent: false }
   }
 
   async action({ args, garden, log }: CommandParams<Args>): Promise<CommandResult> {

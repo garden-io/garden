@@ -29,5 +29,13 @@ spec:
             - name: http
               containerPort: 80
               protocol: TCP
+          {{- if .Values.healthCheckPath }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.healthCheckPath }}
+              port: http
+          {{- end }}
+          env:
+            {{- toYaml .Values.env | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

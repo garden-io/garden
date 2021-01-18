@@ -40,6 +40,7 @@ describe("runCli", () => {
       name = randomString(10)
       help = "halp!"
 
+      printHeader() {}
       async action({}: CommandParams) {
         const allProcesses = await GardenProcess.getActiveProcesses()
         const record = find(allProcesses, (p) => p.command)
@@ -66,6 +67,7 @@ describe("runCli", () => {
       name = randomString(10)
       help = "halp!"
 
+      printHeader() {}
       async action({}: CommandParams) {
         return { result: {} }
       }

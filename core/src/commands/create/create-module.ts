@@ -10,7 +10,7 @@ import chalk from "chalk"
 import dedent from "dedent"
 import { pathExists } from "fs-extra"
 import inquirer from "inquirer"
-import { Command, CommandResult, CommandParams, PrepareParams } from "../base"
+import { Command, CommandResult, CommandParams } from "../base"
 import { printHeader } from "../../logger/util"
 import { isDirectory, defaultConfigFilename } from "../../util/fs"
 import { loadConfigResources, findProjectConfig } from "../../config/base"
@@ -95,9 +95,8 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
     return "basic"
   }
 
-  async prepare({ headerLog }: PrepareParams<CreateModuleArgs, CreateModuleOpts>) {
+  printHeader({ headerLog }) {
     printHeader(headerLog, "Create new module", "pencil2")
-    return { persistent: false }
   }
 
   async action({

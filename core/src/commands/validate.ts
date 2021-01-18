@@ -13,14 +13,17 @@ import dedent = require("dedent")
 export class ValidateCommand extends Command {
   name = "validate"
   help = "Check your garden configuration for errors."
+  emoji: "heavy_check_mark"
 
   description = dedent`
     Throws an error and exits with code 1 if something's not right in your garden.yml files.
   `
 
-  async action({ garden, log, headerLog }: CommandParams): Promise<CommandResult> {
+  printHeader({ headerLog }) {
     printHeader(headerLog, "Validate", "heavy_check_mark")
+  }
 
+  async action({ garden, log }: CommandParams): Promise<CommandResult> {
     await garden.getConfigGraph(log)
 
     return {}
