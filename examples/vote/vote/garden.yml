@@ -13,10 +13,16 @@ services:
     ports:
       - name: http
         containerPort: 8080
+    healthCheck:
+      httpGet:
+        path: /
+        port: http
     ingresses:
       - path: /
         port: http
-        hostname: vote.local.app.garden
+        hostname: vote.${var.baseHostname}
+    env:
+      HOSTNAME: vote.${var.baseHostname}
     dependencies:
       - api
 tests:
@@ -26,4 +32,4 @@ tests:
     args: [npm, run, test:integ]
     timeout: 60
     dependencies:
-      - api
+      - vote

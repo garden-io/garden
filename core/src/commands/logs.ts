@@ -18,6 +18,7 @@ import dedent = require("dedent")
 import { LogLevel } from "../logger/log-node"
 import { emptyRuntimeContext } from "../runtime-context"
 import { StringsParameter, BooleanParameter, IntegerParameter } from "../cli/params"
+import { printHeader } from "../logger/util"
 
 const logsArgs = {
   services: new StringsParameter({
@@ -64,6 +65,10 @@ export class LogsCommand extends Command<Args, Opts> {
 
   getLoggerType(): LoggerType {
     return "basic"
+  }
+
+  printHeader({ headerLog }) {
+    printHeader(headerLog, "Logs", "scroll")
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ServiceLogEntry[]>> {

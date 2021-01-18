@@ -21,9 +21,11 @@ export class LogOutCommand extends Command {
     Logs you out of Garden Enterprise.
   `
 
-  async action({ log, headerLog }: CommandParams): Promise<CommandResult> {
+  printHeader({ headerLog }) {
     printHeader(headerLog, "Log out", "cloud")
+  }
 
+  async action({ log }: CommandParams): Promise<CommandResult> {
     await clearAuthToken(log)
 
     return {}

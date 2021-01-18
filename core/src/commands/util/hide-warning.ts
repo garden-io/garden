@@ -33,6 +33,8 @@ export class HideWarningCommand extends Command<Args, {}> {
 
   arguments = hideWarningArgs
 
+  printHeader() {}
+
   async action({ args }: CommandParams<Args, {}>) {
     await Warning.hide(args.key)
 

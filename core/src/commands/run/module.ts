@@ -79,23 +79,20 @@ export class RunModuleCommand extends Command<Args, Opts> {
   arguments = runModuleArgs
   options = runModuleOpts
 
-  async action({
-    garden,
-    log,
-    headerLog,
-    args,
-    opts,
-  }: CommandParams<Args, Opts>): Promise<CommandResult<RunModuleOutput>> {
+  printHeader({ headerLog, args }) {
     const moduleName = args.module
-
-    const graph = await garden.getConfigGraph(log)
-    const module = graph.getModule(moduleName)
-
     const msg = args.arguments
       ? `Running module ${chalk.white(moduleName)} with arguments ${chalk.white(args.arguments.join(" "))}`
       : `Running module ${chalk.white(moduleName)}`
 
     printHeader(headerLog, msg, "runner")
+  }
+
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunModuleOutput>> {
+    const moduleName = args.module
+
+    const graph = await garden.getConfigGraph(log)
+    const module = graph.getModule(moduleName)
 
     const actions = await garden.getActionRouter()
 

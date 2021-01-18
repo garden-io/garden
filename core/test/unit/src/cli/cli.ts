@@ -72,6 +72,7 @@ describe("cli", () => {
         help = "halp!"
         noProject = true
 
+        printHeader() {}
         async action({ args }) {
           return { result: { args } }
         }
@@ -128,6 +129,7 @@ describe("cli", () => {
           help = "halp!"
           noProject = true
 
+          printHeader() {}
           async action({}) {
             return { result: { something: "important" } }
           }
@@ -148,6 +150,7 @@ describe("cli", () => {
           help = "halp!"
           noProject = true
 
+          printHeader() {}
           async action({}) {
             return { result: { something: "important" } }
           }
@@ -171,6 +174,7 @@ describe("cli", () => {
           help = "halp!"
           noProject = true
 
+          printHeader() {}
           async action({}) {
             return { result: { something: "important" } }
           }
@@ -201,6 +205,7 @@ describe("cli", () => {
         help = "halp!"
         noProject = true
 
+        printHeader() {}
         async action({}) {
           return { result: { something: "important" } }
         }
@@ -222,6 +227,7 @@ describe("cli", () => {
         help = "halp!"
         noProject = true
 
+        printHeader() {}
         async action({}) {
           return { result: { something: "important" } }
         }
@@ -245,6 +251,7 @@ describe("cli", () => {
         name = "test-command"
         help = "halp!"
 
+        printHeader() {}
         async action({ garden }: CommandParams) {
           expect(record.command).to.equal(this.name)
           expect(record.sessionId).to.equal(garden.sessionId)
@@ -284,6 +291,7 @@ describe("cli", () => {
           return { persistent: true }
         }
 
+        printHeader() {}
         async action({ garden }: CommandParams) {
           expect(record.command).to.equal(this.name)
           expect(record.sessionId).to.equal(garden.sessionId)
@@ -339,6 +347,7 @@ describe("cli", () => {
         streamEvents = true
         streamLogEntries = true
 
+        printHeader() {}
         async action({ garden }: CommandParams) {
           garden.events.emit("_test", "funky functional test")
           return { result: {} }
@@ -374,6 +383,7 @@ describe("cli", () => {
           return { persistent: true }
         }
 
+        printHeader() {}
         async action({ garden }: CommandParams) {
           garden.events.emit("_test", "nope")
           return { result: {} }
@@ -401,6 +411,7 @@ describe("cli", () => {
           return { persistent: true }
         }
 
+        printHeader() {}
         async action({}: CommandParams) {
           return { result: {} }
         }
@@ -450,6 +461,7 @@ describe("cli", () => {
           return { persistent: true }
         }
 
+        printHeader() {}
         async action({}: CommandParams) {
           return { result: {} }
         }
@@ -478,6 +490,7 @@ describe("cli", () => {
         help = "halp!"
         noProject = true
 
+        printHeader() {}
         async action({}) {
           return { result: { something: "important" } }
         }
@@ -509,6 +522,7 @@ describe("cli", () => {
         help = ""
         noProject = true
 
+        printHeader() {}
         async action({ args, opts }) {
           return { result: { args, opts } }
         }
@@ -584,6 +598,7 @@ describe("cli", () => {
           }),
         }
 
+        printHeader() {}
         async action({ args, opts }) {
           return { result: { args, opts } }
         }
@@ -643,6 +658,7 @@ describe("cli", () => {
           }),
         }
 
+        printHeader() {}
         async action({ args, opts }) {
           return { result: { args, opts } }
         }
@@ -719,6 +735,7 @@ describe("cli", () => {
           }),
         }
 
+        printHeader() {}
         async action({ args, opts }) {
           return { result: { args, opts } }
         }
@@ -743,6 +760,7 @@ describe("cli", () => {
         help = "halp!"
         noProject = true
 
+        printHeader() {}
         async action({ args }) {
           return { result: { args } }
         }
@@ -762,6 +780,7 @@ describe("cli", () => {
         help = "halp!"
         noProject = true
 
+        printHeader() {}
         async action({ garden }) {
           return { result: { variables: garden.variables } }
         }
@@ -784,6 +803,7 @@ describe("cli", () => {
         help = "halp!"
         noProject = true
 
+        printHeader() {}
         async action() {
           return { result: { some: "output" } }
         }
@@ -803,6 +823,7 @@ describe("cli", () => {
         help = "halp!"
         noProject = true
 
+        printHeader() {}
         async action() {
           return { result: { some: "output" } }
         }
@@ -822,6 +843,7 @@ describe("cli", () => {
         help = "halp!"
         noProject = true
 
+        printHeader() {}
         async action({ garden }) {
           return { result: { environmentName: garden.environmentName } }
         }
@@ -842,6 +864,7 @@ describe("cli", () => {
         help = "halp!"
         noProject = true
 
+        printHeader() {}
         async action({ garden }) {
           return { result: { environmentName: garden.environmentName } }
         }
@@ -881,6 +904,7 @@ describe("cli", () => {
           help = "hilfe!"
           noProject = true
 
+          printHeader() {}
           async action({ args }) {
             return { result: { args } }
           }

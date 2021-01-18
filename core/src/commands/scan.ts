@@ -10,10 +10,15 @@ import { DeepPrimitiveMap } from "../config/common"
 import { highlightYaml, safeDumpYaml } from "../util/util"
 import { Command, CommandParams, CommandResult } from "./base"
 import { omit } from "lodash"
+import { printHeader } from "../logger/util"
 
 export class ScanCommand extends Command {
   name = "scan"
   help = "Scans your project and outputs an overview of all modules."
+
+  printHeader({ headerLog }) {
+    printHeader(headerLog, "Scan", "mag_right")
+  }
 
   async action({ garden, log }: CommandParams): Promise<CommandResult<DeepPrimitiveMap>> {
     const graph = await garden.getConfigGraph(log)

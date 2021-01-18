@@ -22,6 +22,7 @@ import { EnvironmentStatusMap } from "../../types/plugin/provider/getEnvironment
 import { ServiceStatus, serviceStatusSchema } from "../../types/service"
 import { joi, joiIdentifierMap, joiStringMap } from "../../config/common"
 import { environmentStatusSchema } from "../../config/status"
+import { printHeader } from "../../logger/util"
 
 export interface TestStatuses {
   [testKey: string]: RunStatus
@@ -61,6 +62,10 @@ export class GetStatusCommand extends Command {
       tasks: joiStringMap(runStatusSchema()).description("A map of statuses for each configured task."),
       tests: joiStringMap(runStatusSchema()).description("A map of statuses for each configured test."),
     })
+
+  printHeader({ headerLog }) {
+    printHeader(headerLog, "Get status", "pager")
+  }
 
   async action({ garden, log, opts }: CommandParams): Promise<CommandResult<StatusCommandResult>> {
     const actions = await garden.getActionRouter()

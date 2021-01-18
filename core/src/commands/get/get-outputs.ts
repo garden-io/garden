@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandResult, CommandParams, PrepareParams } from "../base"
+import { Command, CommandResult, CommandParams } from "../base"
 import { printHeader } from "../../logger/util"
 import { fromPairs } from "lodash"
 import { PrimitiveMap, joiVariables } from "../../config/common"
@@ -33,9 +33,8 @@ export class GetOutputsCommand extends Command {
 
   outputsSchema = () => joiVariables().description("A map of all the defined project outputs, fully resolved.")
 
-  async prepare({ headerLog }: PrepareParams) {
+  printHeader({ headerLog }) {
     printHeader(headerLog, "Resolving project outputs", "notebook")
-    return { persistent: false }
   }
 
   async action({ garden, log }: CommandParams): Promise<CommandResult<PrimitiveMap>> {

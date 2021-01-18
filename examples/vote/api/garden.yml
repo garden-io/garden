@@ -5,16 +5,25 @@ name: api
 services:
   - name: api
     args: [python, app.py]
-    ingresses:
-      - path: /
-        hostname: api.local.app.garden
-        port: interface
     ports:
-      - name: interface
+      - name: http
         protocol: TCP
         containerPort: 80
+    healthCheck:
+      httpGet:
+        path: /api
+        port: http
+    ingresses:
+      - path: /
+        hostname: "api.${var.baseHostname}"
+        port: http
     dependencies:
       - redis
 tests:
   - name: unit
     args: [echo, ok]
+  - name: integ
+    args: [python, /app/test.py]
+    timeout: 60
+    dependencies:
+      - api

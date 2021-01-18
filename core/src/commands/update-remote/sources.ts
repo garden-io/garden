@@ -53,8 +53,11 @@ export class UpdateRemoteSourcesCommand extends Command<Args> {
         garden update-remote sources my-source  # update remote source my-source
   `
 
-  async action({ garden, log, headerLog, args }: CommandParams<Args>): Promise<CommandResult<Output>> {
+  printHeader({ headerLog }) {
     printHeader(headerLog, "Update remote sources", "hammer_and_wrench")
+  }
+
+  async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<Output>> {
     return updateRemoteSources({ garden, log, args })
   }
 }

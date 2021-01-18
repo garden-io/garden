@@ -15,4 +15,5 @@ values:
   ingress:
     enabled: true
     paths: [/]
-    hosts: [api.local.app.garden]
+    hosts: ["api.${var.baseHostname}"]
+  healthCheckPath: /api

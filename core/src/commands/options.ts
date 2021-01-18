@@ -17,6 +17,8 @@ export class OptionsCommand extends Command {
 
   description = "Prints all global options (options that can be applied to any command)."
 
+  printHeader() {}
+
   async action({ log }: CommandParams): Promise<CommandResult> {
     log.info("")
     log.info(cliStyles.heading("GLOBAL OPTIONS"))
