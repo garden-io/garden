@@ -25,11 +25,12 @@ import { apply } from "../kubectl"
 import { waitForResources } from "../status/status"
 import { execInWorkload } from "../container/exec"
 import { dedent, deline } from "../../../util/string"
-import { buildSyncDeploymentName, getDockerDaemonPodRunner } from "../container/build"
+import { buildSyncDeploymentName } from "../container/build/common"
 import { getDeploymentPod } from "../util"
 import { getSystemNamespace } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
 import { PodRunner } from "../run"
+import { getDockerDaemonPodRunner } from "../container/build/cluster-docker"
 
 const workspaceSyncDirTtl = 0.5 * 86400 // 2 days
 
