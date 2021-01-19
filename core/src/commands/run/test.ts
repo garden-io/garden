@@ -73,7 +73,6 @@ export class RunTestCommand extends Command<Args, Opts> {
 
   workflows = true
   streamEvents = true
-  streamLogEntries = true
 
   description = dedent`
     This can be useful for debugging tests, particularly integration/end-to-end tests.

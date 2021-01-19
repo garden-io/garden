@@ -59,7 +59,6 @@ export class PublishCommand extends Command<Args, Opts> {
 
   workflows = true
   streamEvents = true
-  streamLogEntries = true
 
   description = dedent`
     Publishes built module artifacts for all or specified modules.

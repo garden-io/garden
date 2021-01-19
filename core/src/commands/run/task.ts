@@ -57,7 +57,6 @@ export class RunTaskCommand extends Command<Args, Opts> {
 
   workflows = true
   streamEvents = true
-  streamLogEntries = true
 
   description = dedent`
     This is useful for re-running tasks ad-hoc, for example after writing/modifying database migrations.
