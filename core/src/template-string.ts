@@ -15,7 +15,7 @@ import {
   ContextKeySegment,
   ModuleConfigContext,
 } from "./config/config-context"
-import { difference, flatten, uniq, isPlainObject, isNumber } from "lodash"
+import { difference, uniq, isPlainObject, isNumber } from "lodash"
 import { Primitive, StringMap, isPrimitive, objectSpreadKey } from "./config/common"
 import { profile } from "./util/profiling"
 import { dedent, deline, truncate } from "./util/string"
