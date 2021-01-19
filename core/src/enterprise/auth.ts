@@ -68,11 +68,10 @@ export async function logout(enterpriseApi: EnterpriseApi, log: LogEntry): Promi
         Cookie: `rt=${token?.refreshToken}`,
       },
     })
-
-    await enterpriseApi.clearAuthToken()
   } catch (error) {
-    log.error({ msg: "An error occurred while logging out." })
-    log.debug({ msg: JSON.stringify(error, null, 2) })
+    log.debug({ msg: `An error occurred while logging out from Garden Enterprise: ${error.message}` })
+  } finally {
+    await enterpriseApi.clearAuthToken()
   }
 }
 
