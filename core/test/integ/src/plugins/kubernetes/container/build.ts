@@ -12,8 +12,7 @@ import { ConfigGraph } from "../../../../../../src/config-graph"
 import {
   k8sBuildContainer,
   k8sGetContainerBuildStatus,
-  getDockerDaemonPodRunner,
-} from "../../../../../../src/plugins/kubernetes/container/build"
+} from "../../../../../../src/plugins/kubernetes/container/build/build"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { expect } from "chai"
@@ -22,6 +21,7 @@ import { containerHelpers } from "../../../../../../src/plugins/container/helper
 import { dockerDaemonContainerName } from "../../../../../../src/plugins/kubernetes/constants"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { getSystemNamespace } from "../../../../../../src/plugins/kubernetes/namespace"
+import { getDockerDaemonPodRunner } from "../../../../../../src/plugins/kubernetes/container/build/cluster-docker"
 
 describe("kubernetes build flow", () => {
   let garden: Garden

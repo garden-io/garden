@@ -10,7 +10,7 @@ import {
   kanikoBuildFailed,
   getKanikoFlags,
   DEFAULT_KANIKO_FLAGS,
-} from "../../../../../../src/plugins/kubernetes/container/build"
+} from "../../../../../../src/plugins/kubernetes/container/build/kaniko"
 import { expect } from "chai"
 
 describe("kaniko build", () => {

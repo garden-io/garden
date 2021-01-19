@@ -10,7 +10,7 @@ import { pullModule } from "../../../../../../src/plugins/kubernetes/commands/pu
 import { Garden } from "../../../../../../src/garden"
 import { ConfigGraph } from "../../../../../../src/config-graph"
 import { getContainerTestGarden } from "../container/container"
-import { k8sBuildContainer } from "../../../../../../src/plugins/kubernetes/container/build"
+import { k8sBuildContainer } from "../../../../../../src/plugins/kubernetes/container/build/build"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { KubernetesProvider, KubernetesPluginContext } from "../../../../../../src/plugins/kubernetes/config"
 import { GardenModule } from "../../../../../../src/types/module"
