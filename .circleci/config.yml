@@ -595,6 +595,7 @@ jobs:
     machine:
       image: 'ubuntu-1604:202004-01'
       docker_layer_caching: true
+    resource_class: large
     parameters:
       minikubeVersion:
         description: The Minikube version to use
@@ -639,11 +640,12 @@ jobs:
               --extra-config=kubeadm.ignore-preflight-errors=RSRC_INSUFFICIENT_CORES \
               --kubernetes-version=$K8S_VERSION \
               --vm-driver=none \
-              --cpus 2 \
+              --cpus 3 \
               --memory 4096
             sudo chown -R circleci:circleci /home/circleci/.kube /home/circleci/.minikube /etc/kubernetes
             # Work around annoying issue on recent minikubes where namespaces take a long time to generate default service account
             kubectl create namespace container-default
+            sleep 10
       - run:
           name: Integ tests
           # Note: We skip tests that only work for remote environments

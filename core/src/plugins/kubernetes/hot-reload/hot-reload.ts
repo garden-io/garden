@@ -31,7 +31,6 @@ import { getHotReloadSpec, syncToService } from "./helpers"
 export type HotReloadableResource = KubernetesResource<V1Deployment | V1DaemonSet | V1StatefulSet>
 export type HotReloadableKind = "Deployment" | "DaemonSet" | "StatefulSet"
 
-export const RSYNC_PORT_NAME = "garden-rsync"
 export const hotReloadableKinds: HotReloadableKind[] = ["Deployment", "DaemonSet", "StatefulSet"]
 
 /**

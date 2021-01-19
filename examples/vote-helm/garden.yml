@@ -14,6 +14,6 @@ providers:
   - name: kubernetes
     environments: [testing]
     context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
-    buildMode: cluster-docker
+    buildMode: kaniko
 variables:
   userId: ${local.env.CIRCLE_BUILD_NUM || local.username}

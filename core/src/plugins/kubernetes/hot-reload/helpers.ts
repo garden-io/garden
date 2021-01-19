@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { V1Container } from "@kubernetes/client-node"
 import { ContainerHotReloadSpec } from "../../container/config"
 import { RuntimeError, ConfigurationError } from "../../../exceptions"
 import { resolve as resolvePath, dirname, posix } from "path"
@@ -17,7 +16,7 @@ import { LogEntry } from "../../../logger/log-entry"
 import { getResourceContainer, getServiceResourceSpec } from "../util"
 import { execInWorkload } from "../container/exec"
 import { getPortForward, killPortForward } from "../port-forward"
-import { RSYNC_PORT } from "../constants"
+import { rsyncPort, buildSyncVolumeName, rsyncPortName } from "../constants"
 import { KubernetesPluginContext } from "../config"
 import { KubernetesWorkload } from "../types"
 import { normalizeLocalRsyncPath, normalizeRelativePath } from "../../../util/fs"
@@ -26,7 +25,7 @@ import { GardenModule } from "../../../types/module"
 import { getBaseModule } from "../helm/common"
 import { HelmModule, HelmService } from "../helm/config"
 import { KubernetesModule, KubernetesService } from "../kubernetes-module/config"
-import { HotReloadableKind, HotReloadableResource, RSYNC_PORT_NAME } from "./hot-reload"
+import { HotReloadableKind, HotReloadableResource } from "./hot-reload"
 import Bluebird from "bluebird"
 import normalizePath from "normalize-path"
 
@@ -54,7 +53,6 @@ export function configureHotReload({
   const kind = <HotReloadableKind>target.kind
   set(target, ["metadata", "annotations", gardenAnnotationKey("hot-reload")], "true")
   const mainContainer = getResourceContainer(target, containerName)
-  const syncVolumeName = `garden-sync`
 
   // We're copying the target folder, not just its contents
   const syncConfig = hotReloadSpec.sync
@@ -69,7 +67,7 @@ export function configureHotReload({
     imagePullPolicy: "IfNotPresent",
     volumeMounts: [
       {
-        name: syncVolumeName,
+        name: buildSyncVolumeName,
         mountPath: "/.garden/hot_reload",
       },
     ],
@@ -77,7 +75,7 @@ export function configureHotReload({
 
   const syncMounts = targets.map((t) => {
     return {
-      name: syncVolumeName,
+      name: buildSyncVolumeName,
       mountPath: t,
       // Need to prefix the target with "root" because we need a "tmp" folder next to it while syncing
       subPath: posix.join("root", rsyncTargetPath(t)),
@@ -94,11 +92,11 @@ export function configureHotReload({
     mainContainer.ports = []
   }
 
-  if (mainContainer.ports.find((p) => p.containerPort === RSYNC_PORT)) {
+  if (mainContainer.ports.find((p) => p.containerPort === rsyncPort)) {
     throw new Error(deline`
       ${kind} ${target.metadata.name} is configured for hot reload, but one of its containers uses
-      port ${RSYNC_PORT}, which is reserved for internal use while hot reload is active. Please remove
-      ${RSYNC_PORT} from your services' port config.`)
+      port ${rsyncPort}, which is reserved for internal use while hot reload is active. Please remove
+      ${rsyncPort} from your services' port config.`)
   }
 
   if (hotReloadCommand) {
@@ -109,7 +107,22 @@ export function configureHotReload({
     mainContainer.args = hotReloadArgs
   }
 
-  const rsyncContainer: V1Container = {
+  // These any casts are necessary because of flaws in the TS definitions in the client library.
+  if (!target.spec.template.spec!.volumes) {
+    target.spec.template.spec!.volumes = []
+  }
+
+  target.spec.template.spec!.volumes.push(<any>{
+    name: buildSyncVolumeName,
+    emptyDir: {},
+  })
+
+  if (!target.spec.template.spec!.initContainers) {
+    target.spec.template.spec!.initContainers = []
+  }
+  target.spec.template.spec!.initContainers.push(<any>initContainer)
+
+  target.spec.template.spec!.containers.push({
     name: "garden-rsync",
     image: "gardendev/rsync:0.2.0",
     imagePullPolicy: "IfNotPresent",
@@ -120,7 +133,7 @@ export function configureHotReload({
     ],
     volumeMounts: [
       {
-        name: syncVolumeName,
+        name: buildSyncVolumeName,
         /**
          * We mount at /data because the rsync image we're currently using is configured
          * to use that path.
@@ -130,9 +143,9 @@ export function configureHotReload({
     ],
     ports: [
       {
-        name: RSYNC_PORT_NAME,
+        name: rsyncPortName,
         protocol: "TCP",
-        containerPort: RSYNC_PORT,
+        containerPort: rsyncPort,
       },
     ],
     readinessProbe: {
@@ -141,26 +154,9 @@ export function configureHotReload({
       timeoutSeconds: 3,
       successThreshold: 1,
       failureThreshold: 5,
-      tcpSocket: { port: <object>(<unknown>RSYNC_PORT_NAME) },
+      tcpSocket: { port: <object>(<unknown>rsyncPortName) },
     },
-  }
-
-  // These any casts are necessary because of flaws in the TS definitions in the client library.
-  if (!target.spec.template.spec!.volumes) {
-    target.spec.template.spec!.volumes = []
-  }
-
-  target.spec.template.spec!.volumes.push(<any>{
-    name: syncVolumeName,
-    emptyDir: {},
   })
-
-  if (!target.spec.template.spec!.initContainers) {
-    target.spec.template.spec!.initContainers = []
-  }
-  target.spec.template.spec!.initContainers.push(<any>initContainer)
-
-  target.spec.template.spec!.containers.push(<any>rsyncContainer)
 }
 
 export function getHotReloadSpec(service: KubernetesService | HelmService) {
@@ -284,7 +280,7 @@ export async function syncToService({ ctx, service, hotReloadSpec, namespace, wo
   const targetResource = `${workload.kind.toLowerCase()}/${workload.metadata.name}`
 
   const doSync = async () => {
-    const portForward = await getPortForward({ ctx, log, namespace, targetResource, port: RSYNC_PORT })
+    const portForward = await getPortForward({ ctx, log, namespace, targetResource, port: rsyncPort })
 
     const syncResult = await Bluebird.map(hotReloadSpec.sync, ({ source, target }) => {
       const sourcePath = rsyncSourcePath(service.sourceModule.path, source)
@@ -345,7 +341,7 @@ export async function syncToService({ ctx, service, hotReloadSpec, namespace, wo
     } catch (error) {
       if (error.message.includes("did not see server greeting") || error.message.includes("Connection reset by peer")) {
         log.debug(`Port-forward to ${targetResource} disconnected. Retrying.`)
-        killPortForward(targetResource, RSYNC_PORT)
+        killPortForward(targetResource, rsyncPort)
         await doSync()
       } else {
         throw error

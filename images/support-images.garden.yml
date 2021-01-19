@@ -1,0 +1,6 @@
+kind: Project
+name: garden-support-images
+environments:
+  - name: local
+providers:
+  - name: container

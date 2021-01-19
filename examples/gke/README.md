@@ -1,8 +1,8 @@
 # gke project
 
-A variant on the `demo-project` example, with an example configuration for GKE with in-cluster building with Kaniko.
+A variant on the `demo-project` example, with an example configuration for GKE with in-cluster building with Kaniko or BuildKit.
 
-Two environments are configured, `gke-kaniko` and `gke-kaniko-gcr`. Both use Kaniko for in-cluster builds, but the latter uses GCR as a deployment registry (which is often preferable to deploying an in-cluster registry).
+A few environments are configured, `gke-kaniko`, `gke-kaniko-gcr`, `gke-buildkit` and `gke-buildkit-gcr`. The first two use Kaniko for in-cluster builds, the last two use BuildKit. The ones with the `-gcr` suffix use GCR as the deployment registry, and the other ones use the basic in-cluster registry (which is simpler to set up but won't scale as well as using GCR).
 
 ## Setup
 
@@ -28,6 +28,7 @@ gcloud alpha billing projects link $PROJECT_ID --billing-account=<account ID>
 # Enable the required APIs (this can sometimes take a while).
 gcloud services enable compute.googleapis.com container.googleapis.com servicemanagement.googleapis.com --project $PROJECT_ID
 ```
+
 ### Step 2 - Create a GKE cluster (if you don't already have one)
 
 See the general GKE instructions [here](https://cloud.google.com/kubernetes-engine/docs/how-to/creating-a-zonal-cluster).
@@ -80,13 +81,15 @@ You'll need to replace the values under the `variables` keys in the `garden.yml`
 
 You can optionally set up an ingress controller in the cluster and point a DNS hostname to it, and set that under `variables.default-hostname`.
 
-### Step 5 - Initialize the cluster
+### Step 6 - Initialize the cluster (Kaniko only)
 
-Install the cluster-wide services Garden needs by running:
+When using Kaniko, you need to install the cluster-wide services Garden needs by running:
 
 ```sh
 garden plugins kubernetes cluster-init --env=<gke-kaniko|gke-kaniko-gcr>
 ```
+
+_This is not necessary when using BuildKit._
 
 ## Usage
 
@@ -96,5 +99,5 @@ Finally, to build and deploy your services to your new GKE cluster, run:
 
 ```sh
 # Choose which environment to deploy with the --env parameter
-garden deploy --env=<gke-kaniko|gke-kaniko-gcr>
+garden deploy --env=<gke-kaniko|gke-kaniko-gcr|gke-buildkit|gke-buildkit-gcr>
 ```

@@ -12,7 +12,7 @@ import { containerHelpers } from "../../../container/helpers"
 import { GetBuildStatusParams, BuildStatus } from "../../../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams, BuildResult } from "../../../../types/plugin/module/build"
 import { getDeploymentPod } from "../../util"
-import { gardenUtilDaemonDeploymentName, RSYNC_PORT } from "../../constants"
+import { gardenUtilDaemonDeploymentName, inClusterRegistryHostname } from "../../constants"
 import { KubeApi } from "../../api"
 import { KubernetesProvider } from "../../config"
 import { PodRunner } from "../../run"
@@ -21,24 +21,30 @@ import { resolve } from "path"
 import { getPortForward } from "../../port-forward"
 import { normalizeLocalRsyncPath } from "../../../../util/fs"
 import { exec } from "../../../../util/util"
+import { InternalError, RuntimeError } from "../../../../exceptions"
+import { LogEntry } from "../../../../logger/log-entry"
 
-export const buildSyncDeploymentName = "garden-build-sync"
+const inClusterRegistryPort = 5000
+
+export const sharedBuildSyncDeploymentName = "garden-build-sync"
 
 export type BuildStatusHandler = (params: GetBuildStatusParams<ContainerModule>) => Promise<BuildStatus>
 export type BuildHandler = (params: BuildModuleParams<ContainerModule>) => Promise<BuildResult>
 
 interface SyncToSharedBuildSyncParams extends BuildModuleParams<ContainerModule> {
   api: KubeApi
-  systemNamespace: string
+  namespace: string
+  deploymentName: string
+  rsyncPort: number
 }
 
-export async function syncToSharedBuildSync(params: SyncToSharedBuildSyncParams) {
-  const { ctx, module, log, api, systemNamespace } = params
+export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
+  const { ctx, module, log, api, namespace, deploymentName, rsyncPort } = params
 
   const buildSyncPod = await getDeploymentPod({
     api,
-    deploymentName: buildSyncDeploymentName,
-    namespace: systemNamespace,
+    deploymentName,
+    namespace,
   })
   // Sync the build context to the remote sync service
   // -> Get a tunnel to the service
@@ -46,9 +52,9 @@ export async function syncToSharedBuildSync(params: SyncToSharedBuildSyncParams)
   const syncFwd = await getPortForward({
     ctx,
     log,
-    namespace: systemNamespace,
+    namespace,
     targetResource: `Pod/${buildSyncPod.metadata.name}`,
-    port: RSYNC_PORT,
+    port: rsyncPort,
   })
 
   // -> Run rsync
@@ -87,6 +93,84 @@ export async function syncToSharedBuildSync(params: SyncToSharedBuildSyncParams)
   return { contextPath }
 }
 
+/**
+ * Checks if the module has been built by exec-ing skopeo in a deployed pod in the cluster.
+ */
+export async function skopeoBuildStatus({
+  namespace,
+  deploymentName,
+  containerName,
+  log,
+  api,
+  ctx,
+  provider,
+  module,
+}: {
+  namespace: string
+  deploymentName: string
+  containerName: string
+  log: LogEntry
+  api: KubeApi
+  ctx: PluginContext
+  provider: KubernetesProvider
+  module: ContainerModule
+}) {
+  const deploymentRegistry = provider.config.deploymentRegistry
+
+  if (!deploymentRegistry) {
+    // This is validated in the provider configure handler, so this is an internal error if it happens
+    throw new InternalError(`Expected configured deploymentRegistry for remote build`, { config: provider.config })
+  }
+  const remoteId = containerHelpers.getDeploymentImageId(module, module.version, deploymentRegistry)
+  const inClusterRegistry = deploymentRegistry?.hostname === inClusterRegistryHostname
+  const skopeoCommand = ["skopeo", "--command-timeout=30s", "inspect", "--raw", "--authfile", "/.docker/config.json"]
+  if (inClusterRegistry) {
+    // The in-cluster registry is not exposed, so we don't configure TLS on it.
+    skopeoCommand.push("--tls-verify=false")
+  }
+
+  skopeoCommand.push(`docker://${remoteId}`)
+
+  const podCommand = ["sh", "-c", skopeoCommand.join(" ")]
+
+  const pod = await getDeploymentPod({
+    api,
+    deploymentName,
+    namespace,
+  })
+
+  const runner = new PodRunner({
+    api,
+    ctx,
+    provider,
+    namespace,
+    pod,
+  })
+
+  try {
+    await runner.exec({
+      log,
+      command: podCommand,
+      timeoutSec: 300,
+      containerName,
+    })
+    return { ready: true }
+  } catch (err) {
+    const res = err.detail?.result || {}
+
+    // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
+    if (res.exitCode !== 0 && !res.stderr.includes("manifest unknown")) {
+      const output = res.allLogs || err.message
+
+      throw new RuntimeError(`Unable to query registry for image status: ${output}`, {
+        command: skopeoCommand,
+        output,
+      })
+    }
+    return { ready: false }
+  }
+}
+
 export async function getUtilDaemonPodRunner({
   api,
   systemNamespace,
@@ -111,6 +195,24 @@ export async function getUtilDaemonPodRunner({
     namespace: systemNamespace,
     pod,
   })
+}
+
+export function getSocatContainer(registryHostname: string) {
+  return {
+    name: "proxy",
+    image: "gardendev/socat:0.1.0",
+    command: ["/bin/sh", "-c", `socat TCP-LISTEN:5000,fork TCP:${registryHostname}:${inClusterRegistryPort} || exit 0`],
+    ports: [
+      {
+        name: "proxy",
+        containerPort: inClusterRegistryPort,
+        protocol: "TCP",
+      },
+    ],
+    readinessProbe: {
+      tcpSocket: { port: <any>inClusterRegistryPort },
+    },
+  }
 }
 
 export async function getManifestInspectArgs(module: ContainerModule, deploymentRegistry: ContainerRegistryConfig) {

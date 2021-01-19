@@ -852,7 +852,7 @@ export class PodRunner extends PodRunnerParams {
    * Executes a command in the running Pod. Must be called after `start()`.
    */
   async exec(params: ExecParams) {
-    const { command, containerName: container, timeoutSec, tty = false } = params
+    const { command, containerName: container, timeoutSec, tty = false, log } = params
     let { stdout, stderr, stdin } = params
 
     if (tty) {
@@ -866,11 +866,14 @@ export class PodRunner extends PodRunnerParams {
     }
 
     const startedAt = new Date()
+    const containerName = container || this.pod.spec.containers[0].name
+
+    log.debug(`Execing command in ${this.namespace}/Pod/${this.podName}/${containerName}: ${command.join(" ")}`)
 
     const result = await this.api.execInPod({
       namespace: this.namespace,
       podName: this.podName,
-      containerName: container || this.pod.spec.containers[0].name,
+      containerName,
       command,
       stdout,
       stderr,

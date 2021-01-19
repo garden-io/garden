@@ -16,7 +16,6 @@ import { KubernetesProvider, KubernetesPluginContext } from "../../../../../../s
 import { GardenModule } from "../../../../../../src/types/module"
 import { containerHelpers } from "../../../../../../src/plugins/container/helpers"
 import { expect } from "chai"
-import { LogEntry } from "../../../../../../src/logger/log-entry"
 import { grouped } from "../../../../../helpers"
 
 describe("pull-image plugin command", () => {
@@ -38,12 +37,22 @@ describe("pull-image plugin command", () => {
     ctx = await garden.getPluginContext(provider)
   }
 
-  async function ensureImagePulled(module: GardenModule, log: LogEntry) {
+  async function removeImage(module: GardenModule) {
+    const imageId = containerHelpers.getLocalImageId(module, module.version)
+    await containerHelpers.dockerCli({
+      cwd: "/tmp",
+      args: ["rmi", imageId],
+      log: garden.log,
+      ctx,
+    })
+  }
+
+  async function ensureImagePulled(module: GardenModule) {
     const imageId = containerHelpers.getLocalImageId(module, module.version)
     const imageHash = await containerHelpers.dockerCli({
       cwd: module.buildPath,
       args: ["images", "-q", imageId],
-      log,
+      log: garden.log,
       ctx,
     })
 
@@ -69,8 +78,9 @@ describe("pull-image plugin command", () => {
     })
 
     it("should pull the image", async () => {
+      await removeImage(module)
       await pullModule(ctx as KubernetesPluginContext, module, garden.log)
-      await ensureImagePulled(module, garden.log)
+      await ensureImagePulled(module)
     })
   })
 
@@ -93,8 +103,59 @@ describe("pull-image plugin command", () => {
     })
 
     it("should pull the image", async () => {
+      await removeImage(module)
       await pullModule(ctx as KubernetesPluginContext, module, garden.log)
-      await ensureImagePulled(module, garden.log)
+      await ensureImagePulled(module)
+    })
+  })
+
+  grouped("cluster-buildkit", "remote-only").context("using an external cluster registry", () => {
+    let module: GardenModule
+
+    before(async () => {
+      await init("cluster-buildkit-remote-registry")
+
+      module = graph.getModule("remote-registry-test")
+
+      // build the image
+      await garden.buildStaging.syncFromSrc(module, garden.log)
+
+      await k8sBuildContainer({
+        ctx,
+        log: garden.log,
+        module,
+      })
+    })
+
+    it("should pull the image", async () => {
+      await removeImage(module)
+      await pullModule(ctx as KubernetesPluginContext, module, garden.log)
+      await ensureImagePulled(module)
+    })
+  })
+
+  grouped("cluster-buildkit").context("using the in cluster registry", () => {
+    let module: GardenModule
+
+    before(async () => {
+      await init("cluster-buildkit")
+
+      module = graph.getModule("simple-service")
+
+      // build the image
+      await garden.buildStaging.syncFromSrc(module, garden.log)
+
+      await k8sBuildContainer({
+        ctx,
+        log: garden.log,
+        module,
+      })
+    })
+
+    it("should pull the image", async () => {
+      await removeImage(module)
+      await pullModule(ctx as KubernetesPluginContext, module, garden.log)
+      await ensureImagePulled(module)
     })
   })
 })

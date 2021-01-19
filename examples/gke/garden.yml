@@ -4,25 +4,28 @@ environments:
   - name: gke-kaniko
     variables:
       buildMode: kaniko
+      # Use an in-cluster registry instead of GCR
+      deploymentRegistry: null
       imagePullSecrets: []
   - name: gke-kaniko-gcr
     variables:
       buildMode: kaniko
-      deploymentRegistry:
-        # Replace these values as appropriate
-        hostname: eu.gcr.io            # <- set this according to the region your cluster runs in
-        namespace: garden-dev-200012   # <- set this to the project ID of the target cluster
-      imagePullSecrets:
-        # Make sure this matches the name and namespace of the secret you created
-        - name: gcr-config
-          namespace: default
+  - name: gke-buildkit
+    variables:
+      buildMode: cluster-buildkit
+      # Use an in-cluster registry instead of GCR
+      deploymentRegistry: null
+      imagePullSecrets: []
+  - name: gke-buildkit-gcr
+    variables:
+      buildMode: cluster-buildkit
 providers:
   - name: kubernetes
     context: ${var.gkeContext}
     namespace: ${var.namespace}
     defaultHostname: ${var.defaultHostname}
     buildMode: ${var.buildMode}
-    deploymentRegistry: ${var.deploymentRegistry}?  # <- note the ? suffix, which allows this to be undefined
+    deploymentRegistry: ${var.deploymentRegistry}
     imagePullSecrets: ${var.imagePullSecrets}
 variables:
   # Replace these values as appropriate
@@ -32,3 +35,11 @@ variables:
   defaultHostname: ${local.env.CIRCLE_BUILD_NUM || local.username}-gke.dev-1.sys.garden
   # > the namespace to deploy to in the cluster
   namespace: gke-testing-${local.env.CIRCLE_BUILD_NUM || local.username}
+  deploymentRegistry:
+    # Replace these values as appropriate
+    hostname: eu.gcr.io            # <- set this according to the region your cluster runs in
+    namespace: garden-dev-200012   # <- set this to the project ID of the target cluster
+  imagePullSecrets:
+    # Make sure this matches the name and namespace of the imagePullSecret you've created
+    - name: gcr-config
+      namespace: default
