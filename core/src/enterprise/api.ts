@@ -70,19 +70,37 @@ export class EnterpriseApi {
       return
     }
     this.enterpriseDomain = enterpriseDomain
+
+    // Retrieve an authentication token
     const authToken = await this.readAuthToken()
-    if (authToken && !gardenEnv.GARDEN_AUTH_TOKEN && commandAllowed) {
-      this.log.debug({ msg: `Refreshing auth token and starting refresh interval.` })
+    if (authToken && commandAllowed) {
+      // Verify a valid token is present
+      this.log.debug({ msg: `Refreshing auth token and trying to start refresh interval.` })
       const tokenIsValid = await this.checkClientAuthToken(this.log)
+
       if (!tokenIsValid) {
-        await this.refreshToken()
+        // If the token is an Access Token and it's invalid we return.
+        if (gardenEnv.GARDEN_AUTH_TOKEN) {
+          throw new RuntimeError(
+            "The provided access token is expired or has been revoked, please create a new one from the Garden Enterprise UI.",
+            {}
+          )
+        } else {
+          // Try to refresh an expired JWT
+          // This will throw if it fails to refresh
+          await this.refreshToken()
+        }
       }
       // At this point we can be sure the user is logged in because we have
       // a valid token or refreshing the token did not go through.
       // TODO: Refactor to make a bit more robust (cc @emanuele and @thsig, you
       // know what I'm talking about.)
       this.isUserLoggedIn = true
-      this.startInterval()
+      // Start refresh interval if using JWT
+      if (!gardenEnv.GARDEN_AUTH_TOKEN) {
+        this.log.debug({ msg: `Starting refresh interval.` })
+        this.startInterval()
+      }
     }
   }
 
@@ -90,7 +108,8 @@ export class EnterpriseApi {
     this.log.debug({ msg: `Will run refresh function every ${this.intervalMsec} ms.` })
     this.intervalId = setInterval(() => {
       this.refreshToken().catch((err) => {
-        this.log.debug(err)
+        this.log.debug({ msg: "Something went wrong while trying to refresh the authentication token." })
+        this.log.debug({ msg: err.message })
       })
     }, this.intervalMsec)
   }
@@ -106,9 +125,11 @@ export class EnterpriseApi {
     const invalidCredentialsErrorMsg = "Your Garden Enteprise credentials have expired. Please login again."
     const token = await ClientAuthToken.findOne()
 
-    if (!token) {
-      throw new RuntimeError(invalidCredentialsErrorMsg, {})
+    if (!token || gardenEnv.GARDEN_AUTH_TOKEN) {
+      this.log.debug({ msg: "Nothing to refresh, returning." })
+      return
     }
+
     if (isAfter(new Date(), sub(token.validity, { seconds: refreshThreshold }))) {
       try {
         const res = await this.get(this.log, "token/refresh", {
@@ -207,26 +228,6 @@ export class EnterpriseApi {
     return token
   }
 
-  async logout() {
-    const token = await ClientAuthToken.findOne()
-    if (!token) {
-      // Noop when the user is not logged in
-      return
-    }
-    try {
-      await this.post(this.log, "token/logout", {
-        headers: {
-          Cookie: `rt=${token?.refreshToken}`,
-        },
-      })
-
-      await this.clearAuthToken()
-    } catch (error) {
-      this.log.error({ msg: "An error occurred while logging out." })
-      this.log.debug({ msg: JSON.stringify(error, null, 2) })
-    }
-  }
-
   /**
    * If a persisted client auth token exists, deletes it.
    */
@@ -256,6 +257,7 @@ export class EnterpriseApi {
     return res
   }
 
+  // TODO Validate response
   async get(log: LogEntry, path: string, headers?: GotHeaders) {
     log.debug({ msg: `PATH ${path} headers ${JSON.stringify(headers, null, 2)}` })
     return this.apiFetch(log, path, {

@@ -117,6 +117,7 @@ export interface GardenOpts {
   experimentalBuildSync?: boolean
   commandInfo?: CommandInfo
   config?: ProjectConfig
+  disablePortForwards?: boolean
   environmentName?: string
   forceRefresh?: boolean
   gardenDirPath?: string
@@ -134,6 +135,7 @@ export interface GardenParams {
   vcsBranch: string
   buildStaging: BuildStaging
   projectId: string | null
+  disablePortForwards?: boolean
   dotIgnoreFiles: string[]
   environmentName: string
   environmentConfigs: EnvironmentConfig[]
@@ -209,6 +211,7 @@ export class Garden {
   public readonly version: ModuleVersion
   private readonly forceRefresh: boolean
   public readonly enterpriseApi: EnterpriseApi | null
+  public readonly disablePortForwards: boolean
 
   constructor(params: GardenParams) {
     this.buildStaging = params.buildStaging
@@ -279,6 +282,8 @@ export class Garden {
       dependencyVersions: {},
       files: [],
     }
+
+    this.disablePortForwards = gardenEnv.GARDEN_DISABLE_PORT_FORWARDS || params.disablePortForwards || false
   }
 
   static async factory<T extends typeof Garden>(
@@ -286,7 +291,7 @@ export class Garden {
     currentDirectory: string,
     opts: GardenOpts = {}
   ): Promise<InstanceType<T>> {
-    let { environmentName: environmentStr, config, gardenDirPath, plugins = [] } = opts
+    let { environmentName: environmentStr, config, gardenDirPath, plugins = [], disablePortForwards } = opts
 
     if (!config) {
       config = await findProjectConfig(currentDirectory)
@@ -379,6 +384,7 @@ export class Garden {
       artifactsPath,
       vcsBranch,
       sessionId,
+      disablePortForwards,
       projectId,
       projectRoot,
       projectName,
@@ -580,7 +586,7 @@ export class Garden {
         names = getNames(rawConfigs)
       }
 
-      throwOnMissingSecretKeys(rawConfigs, this.secrets, "Provider")
+      throwOnMissingSecretKeys(rawConfigs, this.secrets, "Provider", log)
 
       // As an optimization, we return immediately if all requested providers are already resolved
       const alreadyResolvedProviders = names.map((name) => this.resolvedProviders[name]).filter(Boolean)
@@ -1009,7 +1015,7 @@ export class Garden {
       const groupedResources = groupBy(allResources, "kind")
 
       for (const [kind, configs] of Object.entries(groupedResources)) {
-        throwOnMissingSecretKeys(configs, this.secrets, kind)
+        throwOnMissingSecretKeys(configs, this.secrets, kind, this.log)
       }
 
       let rawModuleConfigs = [...this.pluginModuleConfigs, ...((groupedResources.Module as ModuleConfig[]) || [])]

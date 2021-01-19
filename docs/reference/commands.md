@@ -33,6 +33,7 @@ The following option flags can be used with any of the CLI commands:
   | `--var` |  | array:string | Set a specific variable value, using the format &lt;key&gt;&#x3D;&lt;value&gt;, e.g. &#x60;--var some-key&#x3D;custom-value&#x60;. This will override any value set in your project configuration. You can specify multiple variables by separating with a comma, e.g. &#x60;--var key-a&#x3D;foo,key-b&#x3D;&quot;value with quotes&quot;&#x60;.
   | `--version` | `-v` | boolean | Show the current CLI version.
   | `--help` | `-h` | boolean | Show help
+  | `--disable-port-forwards` |  | boolean | Disable automatic port forwarding when in watch/hot-reload mode. Note that you can also set GARDEN_DISABLE_PORT_FORWARDS&#x3D;true in your environment.
 
 ### garden build
 
