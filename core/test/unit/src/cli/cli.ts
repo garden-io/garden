@@ -550,6 +550,7 @@ describe("cli", () => {
           "--force-refresh",
           "--var",
           "my=value,other=something",
+          "--disable-port-forwards",
         ],
         exitOnError: false,
       })
@@ -571,6 +572,7 @@ describe("cli", () => {
           "var": ["my=value", "other=something"],
           "version": false,
           "help": false,
+          "disable-port-forwards": true,
         },
       })
     })
@@ -631,6 +633,7 @@ describe("cli", () => {
           "version": false,
           "help": false,
           "floop": "floop-opt",
+          "disable-port-forwards": false,
         },
       })
     })
@@ -701,6 +704,7 @@ describe("cli", () => {
           "version": false,
           "help": false,
           "floop": "floop-opt",
+          "disable-port-forwards": false,
         },
       })
     })
@@ -835,6 +839,27 @@ describe("cli", () => {
 
       const { consoleOutput } = await cli.run({ args: ["test-command", "--output=yaml"], exitOnError: false })
       expect(safeLoad(consoleOutput!)).to.eql({ result: { some: "output" }, success: true })
+    })
+
+    it("should disable port forwards if --disable-port-forwards is set", async () => {
+      class TestCommand extends Command {
+        name = "test-command"
+        help = "halp!"
+        noProject = true
+
+        printHeader() {}
+
+        async action({ garden }: CommandParams) {
+          return { result: { garden } }
+        }
+      }
+
+      const command = new TestCommand()
+      const cli = new GardenCli()
+      cli.addCommand(command)
+
+      const { result } = await cli.run({ args: ["test-command", "--disable-port-forwards"], exitOnError: false })
+      expect(result.garden.disablePortForwards).to.be.true
     })
 
     it(`should configure a dummy environment when command has noProject=true and --env is specified`, async () => {
