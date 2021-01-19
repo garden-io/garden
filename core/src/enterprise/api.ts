@@ -257,6 +257,7 @@ export class EnterpriseApi {
     return res
   }
 
+  // TODO Validate response
   async get(log: LogEntry, path: string, headers?: GotHeaders) {
     log.debug({ msg: `PATH ${path} headers ${JSON.stringify(headers, null, 2)}` })
     return this.apiFetch(log, path, {
