@@ -323,7 +323,7 @@ export class Garden {
 
     const defaultEnvironmentName = resolveTemplateString(
       config.defaultEnvironment,
-      new DefaultEnvironmentContext({ projectName, artifactsPath, branch: vcsBranch, username: _username })
+      new DefaultEnvironmentContext({ projectName, projectRoot, artifactsPath, branch: vcsBranch, username: _username })
     ) as string
 
     const defaultEnvironment = getDefaultEnvironmentName(defaultEnvironmentName, config)

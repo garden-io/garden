@@ -131,6 +131,7 @@ describe("resolveProjectConfig", () => {
       variables: {
         platform: "${local.platform}",
         secret: "${secrets.foo}",
+        projectPath: "${local.projectPath}",
       },
     }
 
@@ -168,6 +169,7 @@ describe("resolveProjectConfig", () => {
       variables: {
         platform: platform(),
         secret: "banana",
+        projectPath: config.path,
       },
     })
 

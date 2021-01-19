@@ -421,7 +421,7 @@ export function resolveProjectConfig({
       variables: config.variables,
       environments: [],
     },
-    new ProjectConfigContext({ projectName: name, artifactsPath, branch, username, secrets })
+    new ProjectConfigContext({ projectName: name, projectRoot: config.path, artifactsPath, branch, username, secrets })
   )
 
   // Validate after resolving global fields
@@ -508,7 +508,7 @@ export async function pickEnvironment({
   username: string
   secrets: PrimitiveMap
 }) {
-  const { environments, name: projectName } = projectConfig
+  const { environments, name: projectName, path: projectRoot } = projectConfig
 
   let { environment, namespace } = parseEnvironment(envString)
 
@@ -531,7 +531,15 @@ export async function pickEnvironment({
   // Resolve template strings in the environment config, except providers
   environmentConfig = resolveTemplateStrings(
     { ...environmentConfig, providers: [] },
-    new EnvironmentConfigContext({ projectName, artifactsPath, branch, username, variables: projectVariables, secrets })
+    new EnvironmentConfigContext({
+      projectName,
+      projectRoot,
+      artifactsPath,
+      branch,
+      username,
+      variables: projectVariables,
+      secrets,
+    })
   )
 
   environmentConfig = validateWithPath({

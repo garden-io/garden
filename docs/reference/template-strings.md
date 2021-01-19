@@ -66,6 +66,20 @@ Example:
 my-variable: ${local.platform}
 ```
 
+### `${local.projectPath}`
+
+The absolute path to the project root directory.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.projectPath}
+```
+
 ### `${local.username}`
 
 The current username (as resolved by https://github.com/sindresorhus/username)
@@ -188,6 +202,20 @@ Example:
 
 ```yaml
 my-variable: ${local.platform}
+```
+
+### `${local.projectPath}`
+
+The absolute path to the project root directory.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.projectPath}
 ```
 
 ### `${local.username}`
@@ -344,6 +372,20 @@ Example:
 
 ```yaml
 my-variable: ${local.platform}
+```
+
+### `${local.projectPath}`
+
+The absolute path to the project root directory.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.projectPath}
 ```
 
 ### `${local.username}`
@@ -593,6 +635,20 @@ Example:
 
 ```yaml
 my-variable: ${local.platform}
+```
+
+### `${local.projectPath}`
+
+The absolute path to the project root directory.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.projectPath}
 ```
 
 ### `${local.username}`
@@ -1012,6 +1068,20 @@ Example:
 my-variable: ${local.platform}
 ```
 
+### `${local.projectPath}`
+
+The absolute path to the project root directory.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.projectPath}
+```
+
 ### `${local.username}`
 
 The current username (as resolved by https://github.com/sindresorhus/username)
@@ -1424,6 +1494,20 @@ Example:
 
 ```yaml
 my-variable: ${local.platform}
+```
+
+### `${local.projectPath}`
+
+The absolute path to the project root directory.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.projectPath}
 ```
 
 ### `${local.username}`
