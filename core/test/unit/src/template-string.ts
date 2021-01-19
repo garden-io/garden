@@ -1087,7 +1087,7 @@ describe("collectTemplateReferences", () => {
   })
 })
 
-describe("throwOnMissingSecretKeys", () => {
+describe.skip("throwOnMissingSecretKeys", () => {
   it("should not throw an error if no secrets are referenced", () => {
     const configs = [
       {
