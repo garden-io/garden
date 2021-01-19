@@ -16,6 +16,8 @@ import getPort = require("get-port")
 import { LogEntry } from "../logger/log-entry"
 import { InternalError } from "../exceptions"
 import { EnterpriseApi, AuthTokenResponse } from "./api"
+import { ClientAuthToken } from "../db/entities/client-auth-token"
+import { gardenEnv } from "../constants"
 
 /**
  * Logs in to Garden Enterprise if needed, and returns a valid client auth token.
@@ -55,13 +57,22 @@ export async function login(enterpriseApi: EnterpriseApi, log: LogEntry): Promis
 }
 
 export async function logout(enterpriseApi: EnterpriseApi, log: LogEntry): Promise<void> {
-  const savedToken = await enterpriseApi.readAuthToken()
-  // Ping platform with saved token (if it exists)
-  if (savedToken) {
-    log.debug("Local client auth token found, verifying it with platform...")
-    if (await enterpriseApi.checkClientAuthToken(log)) {
-      log.debug("Local client token is valid, no need for login.")
-    }
+  const token = await ClientAuthToken.findOne()
+  if (!token || gardenEnv.GARDEN_AUTH_TOKEN) {
+    // Noop when the user is not logged in or an access token is in use
+    return
+  }
+  try {
+    await enterpriseApi.post(log, "token/logout", {
+      headers: {
+        Cookie: `rt=${token?.refreshToken}`,
+      },
+    })
+
+    await enterpriseApi.clearAuthToken()
+  } catch (error) {
+    log.error({ msg: "An error occurred while logging out." })
+    log.debug({ msg: JSON.stringify(error, null, 2) })
   }
 }
 
