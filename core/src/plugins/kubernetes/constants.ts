@@ -6,7 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-export const RSYNC_PORT = 873
+export const rsyncPort = 873
+export const rsyncPortName = "garden-rsync"
+export const buildSyncVolumeName = `garden-sync`
+
 export const CLUSTER_REGISTRY_PORT = 5000
 export const CLUSTER_REGISTRY_DEPLOYMENT_NAME = "garden-docker-registry"
 export const MAX_CONFIGMAP_DATA_SIZE = 1024 * 1024 // max ConfigMap data size is 1MB
@@ -21,5 +24,6 @@ export const inClusterRegistryHostname = "127.0.0.1:5000"
 export const gardenUtilDaemonDeploymentName = "garden-util-daemon"
 export const dockerDaemonDeploymentName = "garden-docker-daemon"
 
+export const k8sUtilImageName = "gardendev/k8s-util:0.3.5"
 export const dockerDaemonContainerName = "docker-daemon"
 export const skopeoDaemonContainerName = "util"

@@ -82,20 +82,8 @@ export async function buildContainerModule({ ctx, module, log }: BuildModulePara
 export function getDockerBuildFlags(module: ContainerModule) {
   const args: string[] = []
 
-  const buildArgs: PrimitiveMap = {
-    GARDEN_MODULE_VERSION: module.version.versionString,
-    ...module.spec.buildArgs,
-  }
-
-  for (const [key, value] of Object.entries(buildArgs)) {
-    // 0 is falsy
-    if (value || value === 0) {
-      args.push("--build-arg", `${key}=${value}`)
-    } else {
-      // If the value of a build-arg is null, Docker pulls it from
-      // the environment: https://docs.docker.com/engine/reference/commandline/build/
-      args.push("--build-arg", `${key}`)
-    }
+  for (const arg of getDockerBuildArgs(module)) {
+    args.push("--build-arg", arg)
   }
 
   if (module.spec.build.targetImage) {
@@ -105,4 +93,22 @@ export function getDockerBuildFlags(module: ContainerModule) {
   args.push(...(module.spec.extraFlags || []))
 
   return args
+}
+
+export function getDockerBuildArgs(module: ContainerModule) {
+  const buildArgs: PrimitiveMap = {
+    GARDEN_MODULE_VERSION: module.version.versionString,
+    ...module.spec.buildArgs,
+  }
+
+  return Object.entries(buildArgs).map(([key, value]) => {
+    // 0 is falsy
+    if (value || value === 0) {
+      return `${key}=${value}`
+    } else {
+      // If the value of a build-arg is null, Docker pulls it from
+      // the environment: https://docs.docker.com/engine/reference/commandline/build/
+      return key
+    }
+  })
 }

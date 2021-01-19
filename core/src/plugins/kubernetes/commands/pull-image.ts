@@ -8,7 +8,7 @@
 
 import fs from "fs"
 import tmp from "tmp-promise"
-import { KubernetesPluginContext, KubernetesProvider } from "../config"
+import { KubernetesPluginContext } from "../config"
 import { PluginError, ParameterError } from "../../../exceptions"
 import { PluginCommand } from "../../../types/plugin/command"
 import chalk from "chalk"
@@ -20,12 +20,12 @@ import { LogEntry } from "../../../logger/log-entry"
 import { containerHelpers } from "../../container/helpers"
 import { RuntimeError } from "../../../exceptions"
 import { PodRunner } from "../run"
-import { inClusterRegistryHostname } from "../constants"
+import { inClusterRegistryHostname, gardenUtilDaemonDeploymentName } from "../constants"
 import { getAppNamespace, getSystemNamespace } from "../namespace"
-import { makePodName, getSkopeoContainer, getDockerAuthVolume } from "../util"
+import { getDeploymentPod } from "../util"
 import { getRegistryPortForward } from "../container/util"
 import { PluginContext } from "../../../plugin-context"
-import { KubernetesPod } from "../types"
+import { buildkitDeploymentName } from "../container/build/buildkit"
 
 export const pullImage: PluginCommand = {
   name: "pull-image",
@@ -140,11 +140,21 @@ async function pullFromExternalRegistry(
   localId: string
 ) {
   const api = await KubeApi.factory(log, ctx, ctx.provider)
-  const namespace = await getAppNamespace(ctx, log, ctx.provider)
-  const podName = makePodName("skopeo", namespace, module.name)
-  const systemNamespace = await getSystemNamespace(ctx, ctx.provider, log)
+  const buildMode = ctx.provider.config.buildMode
+
+  let namespace: string
+  let deploymentName: string
+
+  if (buildMode === "cluster-buildkit") {
+    namespace = await getAppNamespace(ctx, log, ctx.provider)
+    deploymentName = buildkitDeploymentName
+  } else {
+    namespace = await getSystemNamespace(ctx, ctx.provider, log)
+    deploymentName = gardenUtilDaemonDeploymentName
+  }
+
   const imageId = containerHelpers.getDeploymentImageId(module, module.version, ctx.provider.config.deploymentRegistry)
-  const tarName = `${module.name}-${module.version.versionString}`
+  const tarName = `/tmp/${module.name}-${module.version.versionString}`
 
   const skopeoCommand = [
     "skopeo",
@@ -155,18 +165,29 @@ async function pullFromExternalRegistry(
     `docker-archive:${tarName}`,
   ]
 
-  const runner = await launchSkopeoContainer({
+  const pod = await getDeploymentPod({
+    api,
+    deploymentName,
+    namespace,
+  })
+  const runner = new PodRunner({
+    api,
     ctx,
     provider: ctx.provider,
-    api,
-    podName,
-    systemNamespace,
+    namespace,
+    pod,
+  })
+
+  await runner.exec({
+    command: ["sh", "-c", skopeoCommand.join(" ")],
+    containerName: "util",
     log,
+    timeoutSec: 60 * 1000 * 5, // 5 minutes,
   })
 
   try {
-    await pullImageFromRegistry(runner, skopeoCommand.join(" "), log)
     await importImage({ module, runner, tarName, imageId, log, ctx })
+
     await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["tag", imageId, localId], log, ctx })
     await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["rmi", imageId], log, ctx })
   } catch (err) {
@@ -175,7 +196,15 @@ async function pullFromExternalRegistry(
       imageId,
     })
   } finally {
-    await runner.stop()
+    try {
+      await runner.exec({
+        command: ["rm", "-rf", tarName],
+        containerName: "util",
+        log,
+      })
+    } catch (err) {
+      log.warn("Failed cleaning up temporary file: " + err.message)
+    }
   }
 }
 
@@ -194,14 +223,14 @@ async function importImage({
   log: LogEntry
   ctx: PluginContext
 }) {
-  const sourcePath = `/${tarName}`
-  const getOutputCommand = ["cat", sourcePath]
+  const getOutputCommand = ["cat", tarName]
+
   await tmp.withFile(async ({ path }) => {
     let writeStream = fs.createWriteStream(path)
 
     await runner.exec({
       command: getOutputCommand,
-      containerName: "skopeo",
+      containerName: "util",
       log,
       stdout: writeStream,
     })
@@ -209,69 +238,4 @@ async function importImage({
     const args = ["import", path, imageId]
     await containerHelpers.dockerCli({ cwd: module.buildPath, args, log, ctx })
   })
-}
-
-async function pullImageFromRegistry(runner: PodRunner, command: string, log: LogEntry) {
-  // TODO: make this timeout configurable
-  await runner.exec({
-    command: ["sh", "-c", command],
-    containerName: "skopeo",
-    log,
-    timeoutSec: 60 * 1000 * 5, // 5 minutes,
-  })
-}
-
-async function launchSkopeoContainer({
-  ctx,
-  provider,
-  api,
-  podName,
-  systemNamespace,
-  log,
-}: {
-  ctx: PluginContext
-  provider: KubernetesProvider
-  api: KubeApi
-  podName: string
-  systemNamespace: string
-  log: LogEntry
-}): Promise<PodRunner> {
-  const sleepCommand = "sleep 86400"
-
-  const pod: KubernetesPod = {
-    apiVersion: "v1",
-    kind: "Pod",
-    metadata: {
-      name: podName,
-      namespace: systemNamespace,
-    },
-    spec: {
-      shareProcessNamespace: true,
-      volumes: [
-        // Mount the docker auth secret, so skopeo can inspect private registries.
-        getDockerAuthVolume(),
-      ],
-      containers: [getSkopeoContainer(sleepCommand)],
-    },
-  }
-
-  const runner = new PodRunner({
-    ctx,
-    api,
-    pod,
-    provider,
-    namespace: systemNamespace,
-  })
-
-  const { status } = await runner.start({
-    log,
-  })
-
-  if (status.state !== "ready") {
-    throw new RuntimeError("Failed to start skopeo container", {
-      status,
-    })
-  }
-
-  return runner
 }

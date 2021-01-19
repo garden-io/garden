@@ -12,7 +12,7 @@ import { containerHelpers } from "../../../container/helpers"
 import { getDockerBuildFlags } from "../../../container/build"
 import { GetBuildStatusParams, BuildStatus } from "../../../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams, BuildResult } from "../../../../types/plugin/module/build"
-import { inClusterRegistryHostname, dockerDaemonContainerName } from "../../constants"
+import { inClusterRegistryHostname, dockerDaemonContainerName, rsyncPort } from "../../constants"
 import { posix } from "path"
 import { KubeApi } from "../../api"
 import { KubernetesProvider, ContainerBuildMode } from "../../config"
@@ -24,7 +24,8 @@ import chalk = require("chalk")
 import { getKanikoBuildStatus, runKaniko, kanikoBuildFailed, getKanikoFlags } from "./kaniko"
 import { getClusterDockerBuildStatus, getDockerDaemonPodRunner } from "./cluster-docker"
 import { getLocalBuildStatus, localBuild } from "./local"
-import { BuildStatusHandler, BuildHandler, syncToSharedBuildSync } from "./common"
+import { BuildStatusHandler, BuildHandler, syncToBuildSync, sharedBuildSyncDeploymentName } from "./common"
+import { buildkitBuildHandler, getBuildkitBuildStatus } from "./buildkit"
 
 export async function k8sGetContainerBuildStatus(params: GetBuildStatusParams<ContainerModule>): Promise<BuildStatus> {
   const { ctx, module } = params
@@ -56,8 +57,7 @@ export async function k8sBuildContainer(params: BuildModuleParams<ContainerModul
 
 const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } = {
   "local-docker": getLocalBuildStatus,
-  // TODO: make these handlers faster by running a simple in-cluster service
-  // that wraps https://github.com/containers/image
+  "cluster-buildkit": getBuildkitBuildStatus,
   "cluster-docker": getClusterDockerBuildStatus,
   "kaniko": getKanikoBuildStatus,
 }
@@ -76,7 +76,13 @@ const remoteBuild: BuildHandler = async (params) => {
   )
   const dockerfile = module.spec.dockerfile || "Dockerfile"
 
-  const { contextPath } = await syncToSharedBuildSync({ ...params, api, systemNamespace })
+  const { contextPath } = await syncToBuildSync({
+    ...params,
+    api,
+    namespace: systemNamespace,
+    deploymentName: sharedBuildSyncDeploymentName,
+    rsyncPort,
+  })
 
   log.setState(`Building image ${localId}...`)
 
@@ -191,6 +197,7 @@ const remoteBuild: BuildHandler = async (params) => {
 
 const buildHandlers: { [mode in ContainerBuildMode]: BuildHandler } = {
   "local-docker": localBuild,
+  "cluster-buildkit": buildkitBuildHandler,
   "cluster-docker": remoteBuild,
   "kaniko": remoteBuild,
 }

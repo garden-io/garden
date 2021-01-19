@@ -84,13 +84,16 @@ interface KubernetesStorage {
   sync: KubernetesStorageSpec
 }
 
-export type ContainerBuildMode = "local-docker" | "cluster-docker" | "kaniko"
+export type ContainerBuildMode = "local-docker" | "cluster-docker" | "kaniko" | "cluster-buildkit"
 
 export type DefaultDeploymentStrategy = "rolling"
 export type DeploymentStrategy = DefaultDeploymentStrategy | "blue-green"
 
 export interface KubernetesConfig extends GenericProviderConfig {
   buildMode: ContainerBuildMode
+  clusterBuildkit?: {
+    rootless?: boolean
+  }
   clusterDocker?: {
     enableBuildKit?: boolean
   }
@@ -291,27 +294,30 @@ export const kubernetesConfigBase = () =>
   providerConfigBaseSchema().keys({
     buildMode: joi
       .string()
-      .allow("local-docker", "cluster-docker", "kaniko")
+      .allow("local-docker", "cluster-docker", "kaniko", "cluster-buildkit")
       .default("local-docker")
       .description(
         dedent`
-        Choose the mechanism for building container images before deploying. By default it uses the local Docker
-        daemon, but you can set it to \`cluster-docker\` or \`kaniko\` to sync files to a remote Docker daemon,
-        installed in the cluster, and build container images there. This removes the need to run Docker or
-        Kubernetes locally, and allows you to share layer and image caches between multiple developers, as well
-        as between your development and CI workflows.
+        Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to \`cluster-buildkit\`, \`cluster-docker\` or \`kaniko\` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
 
-        This is currently experimental and sometimes not desired, so it's not enabled by default. For example when using
-        the \`local-kubernetes\` provider with Docker for Desktop and Minikube, we directly use the in-cluster docker
-        daemon when building. You might also be deploying to a remote cluster that isn't intended as a development
-        environment, so you'd want your builds to happen elsewhere.
-
-        Functionally, both \`cluster-docker\` and \`kaniko\` do the same thing, but use different underlying mechanisms
-        to build. The former uses a normal Docker daemon in the cluster. Because this has to run in privileged mode,
-        this is less secure than Kaniko, but in turn it is generally faster. See the
-        [Kaniko docs](https://github.com/GoogleContainerTools/kaniko) for more information on Kaniko.
-      `
+        For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/guides/in-cluster-building).
+        `
       ),
+    clusterBuildkit: joi
+      .object()
+      .keys({
+        rootless: joi
+          .boolean()
+          .default(false)
+          .description(
+            dedent`
+            Enable rootless mode for the cluster-buildkit daemon, which runs the daemon with decreased privileges.
+            Please see [the buildkit docs](https://github.com/moby/buildkit/blob/master/docs/rootless.md) for caveats when using this mode.
+            `
+          ),
+      })
+      .default(() => {})
+      .description("Configuration options for the `cluster-buildkit` build mode."),
     clusterDocker: joi
       .object()
       .keys({
@@ -385,14 +391,13 @@ export const kubernetesConfigBase = () =>
       .object()
       .keys({
         builder: resourceSchema(defaultResources.builder).description(dedent`
-            Resource requests and limits for the in-cluster builder.
+            Resource requests and limits for the in-cluster builder. It's important to consider which build mode you're using when configuring this.
 
-            When \`buildMode\` is \`cluster-docker\`, this refers to the Docker Daemon that is installed and run
-            cluster-wide. This is shared across all users and builds, so it should be resourced accordingly, factoring
-            in how many concurrent builds you expect and how heavy your builds tend to be.
+            When \`buildMode\` is \`kaniko\`, this refers to _each Kaniko pod_, i.e. each individual build, so you'll want to consider the requirements for your individual image builds, with your most expensive/heavy images in mind.
 
-            When \`buildMode\` is \`kaniko\`, this refers to _each instance_ of Kaniko, so you'd generally use lower
-            limits/requests, but you should evaluate based on your needs.
+            When \`buildMode\` is \`cluster-buildkit\`, this applies to the BuildKit deployment created in _each project namespace_. So think of this as the resource spec for each individual user or project namespace.
+
+            When \`buildMode\` is \`cluster-docker\`, this applies to the single Docker Daemon that is installed and run cluster-wide. This is shared across all users and builds in the cluster, so it should be resourced accordingly, factoring in how many concurrent builds you expect and how heavy your builds tend to be.
           `),
         registry: resourceSchema(defaultResources.registry).description(dedent`
             Resource requests and limits for the in-cluster image registry. Built images are pushed to this registry,
@@ -550,7 +555,7 @@ export const configSchema = () =>
     .keys({
       name: joiProviderName("kubernetes"),
       context: k8sContextSchema().required(),
-      deploymentRegistry: containerRegistryConfigSchema(),
+      deploymentRegistry: containerRegistryConfigSchema().allow(null),
       ingressClass: joi.string().description(dedent`
         The ingress class to use on configured Ingresses (via the \`kubernetes.io/ingress.class\` annotation)
         when deploying \`container\` services. Use this if you have multiple ingress controllers in your cluster.

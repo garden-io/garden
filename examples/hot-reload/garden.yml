@@ -11,4 +11,4 @@ providers:
     environments: [testing]
     context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
     defaultHostname: ${environment.namespace}.dev-1.sys.garden
-    buildMode: cluster-docker
+    buildMode: cluster-buildkit

@@ -12,7 +12,7 @@ providers:
     context: gke_garden-dev-200012_europe-west1-b_garden-dev-1
     namespace: e2e-tests
     defaultHostname: dev-1.sys.garden
-    buildMode: cluster-docker
+    buildMode: cluster-buildkit
     setupIngressController: nginx
   - name: local-kubernetes
     environments: [local]

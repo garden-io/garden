@@ -8,14 +8,18 @@
 
 import { V1PodSpec } from "@kubernetes/client-node"
 import { ContainerModule } from "../../../container/config"
-import { containerHelpers } from "../../../container/helpers"
 import { millicpuToString, megabytesToString, makePodName } from "../../util"
-import { dockerAuthSecretName, inClusterRegistryHostname, skopeoDaemonContainerName } from "../../constants"
+import {
+  dockerAuthSecretName,
+  inClusterRegistryHostname,
+  skopeoDaemonContainerName,
+  gardenUtilDaemonDeploymentName,
+} from "../../constants"
 import { KubeApi } from "../../api"
 import { LogEntry } from "../../../../logger/log-entry"
 import { getDockerAuthVolume } from "../../util"
 import { KubernetesProvider, KubernetesPluginContext, DEFAULT_KANIKO_IMAGE } from "../../config"
-import { InternalError, RuntimeError, ConfigurationError } from "../../../../exceptions"
+import { ConfigurationError } from "../../../../exceptions"
 import { PodRunner } from "../../run"
 import { getRegistryHostname, getKubernetesSystemVariables } from "../../init"
 import { Writable } from "stream"
@@ -24,59 +28,27 @@ import { dedent } from "../../../../util/string"
 import { RunResult } from "../../../../types/plugin/base"
 import { PluginContext } from "../../../../plugin-context"
 import { KubernetesPod } from "../../types"
-import { getUtilDaemonPodRunner, BuildStatusHandler } from "./common"
+import { BuildStatusHandler, skopeoBuildStatus, getSocatContainer } from "./common"
 import { differenceBy } from "lodash"
-
-const registryPort = 5000
 
 export const getKanikoBuildStatus: BuildStatusHandler = async (params) => {
   const { ctx, module, log } = params
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
-  const deploymentRegistry = provider.config.deploymentRegistry
 
-  if (!deploymentRegistry) {
-    // This is validated in the provider configure handler, so this is an internal error if it happens
-    throw new InternalError(`Expected configured deploymentRegistry for remote build`, { config: provider.config })
-  }
-
-  const remoteId = containerHelpers.getDeploymentImageId(module, module.version, deploymentRegistry)
-  const inClusterRegistry = deploymentRegistry?.hostname === inClusterRegistryHostname
-  const skopeoCommand = ["skopeo", "--command-timeout=30s", "inspect", "--raw"]
-  if (inClusterRegistry) {
-    // The in-cluster registry is not exposed, so we don't configure TLS on it.
-    skopeoCommand.push("--tls-verify=false")
-  }
-
-  skopeoCommand.push(`docker://${remoteId}`)
-
-  const podCommand = ["sh", "-c", skopeoCommand.join(" ")]
   const api = await KubeApi.factory(log, ctx, provider)
   const systemNamespace = await getSystemNamespace(ctx, provider, log)
-  const runner = await getUtilDaemonPodRunner({ api, systemNamespace, ctx, provider })
 
-  try {
-    await runner.exec({
-      log,
-      command: podCommand,
-      timeoutSec: 300,
-      containerName: skopeoDaemonContainerName,
-    })
-    return { ready: true }
-  } catch (err) {
-    const res = err.detail?.result || {}
-
-    // Non-zero exit code can both mean the manifest is not found, and any other unexpected error
-    if (res.exitCode !== 0 && !res.stderr.includes("manifest unknown")) {
-      const output = res.allLogs || err.message
-
-      throw new RuntimeError(`Unable to query registry for image status: ${output}`, {
-        command: skopeoCommand,
-        output,
-      })
-    }
-    return { ready: false }
-  }
+  return skopeoBuildStatus({
+    namespace: systemNamespace,
+    deploymentName: gardenUtilDaemonDeploymentName,
+    containerName: skopeoDaemonContainerName,
+    log,
+    api,
+    ctx,
+    provider,
+    module,
+  })
 }
 
 export const DEFAULT_KANIKO_FLAGS = ["--cache=true"]
@@ -281,23 +253,5 @@ export async function runKaniko({
     ...result,
     moduleName: module.name,
     version: module.version.versionString,
-  }
-}
-
-function getSocatContainer(registryHostname: string) {
-  return {
-    name: "proxy",
-    image: "gardendev/socat:0.1.0",
-    command: ["/bin/sh", "-c", `socat TCP-LISTEN:5000,fork TCP:${registryHostname}:5000 || exit 0`],
-    ports: [
-      {
-        name: "proxy",
-        containerPort: registryPort,
-        protocol: "TCP",
-      },
-    ],
-    readinessProbe: {
-      tcpSocket: { port: <any>registryPort },
-    },
   }
 }

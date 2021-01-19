@@ -61,8 +61,13 @@ export async function configureProvider({
     }
   }
 
-  if (config.buildMode === "cluster-docker" || config.buildMode === "kaniko") {
-    config._systemServices.push("build-sync", "util")
+  const buildMode = config.buildMode
+
+  // TODO: clean this up, this is getting confusing here
+  if (buildMode !== "local-docker") {
+    if (buildMode !== "cluster-buildkit") {
+      config._systemServices.push("build-sync", "util")
+    }
 
     const usingInClusterRegistry =
       !config.deploymentRegistry || config.deploymentRegistry.hostname === inClusterRegistryHostname
@@ -79,18 +84,20 @@ export async function configureProvider({
       }
       config._systemServices.push("docker-registry", "registry-proxy")
     }
-    if (!usingInClusterRegistry || config.buildMode === "kaniko") {
-      // If using an external registry we need the util service
+
+    if (buildMode !== "cluster-buildkit" && (!usingInClusterRegistry || buildMode === "kaniko")) {
+      // If using an external registry and kaniko or cluster-docker, we need the util service
       // Also the kaniko buildMode needs the util service even if using an in-cluster registry
       config._systemServices.push("util")
     }
 
-    if (config.buildMode === "cluster-docker") {
+    if (buildMode === "cluster-docker") {
       config._systemServices.push("docker-daemon")
     }
 
-    // Set up an NFS provisioner if the user doesn't explicitly set a storage class for the shared sync volume
-    if (!config.storage.sync.storageClass) {
+    // Set up an NFS provisioner if not using cluster-buildkit, and the user doesn't explicitly set a storage class for
+    // the shared sync volume
+    if (buildMode !== "cluster-buildkit" && !config.storage.sync.storageClass) {
       config._systemServices.push("nfs-provisioner")
     }
   } else if (config.name !== "local-kubernetes" && !config.deploymentRegistry) {

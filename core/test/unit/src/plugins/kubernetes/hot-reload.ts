@@ -9,7 +9,7 @@
 import { platform } from "os"
 import { expect } from "chai"
 import td from "testdouble"
-import { HotReloadableResource, RSYNC_PORT_NAME } from "../../../../../src/plugins/kubernetes/hot-reload/hot-reload"
+import { HotReloadableResource } from "../../../../../src/plugins/kubernetes/hot-reload/hot-reload"
 
 import { setPlatform, makeTestGarden, TestGarden, getDataDir } from "../../../../helpers"
 import { ConfigGraph } from "../../../../../src/config-graph"
@@ -21,6 +21,7 @@ import {
   makeCopyCommand,
   filesForSync,
 } from "../../../../../src/plugins/kubernetes/hot-reload/helpers"
+import { rsyncPortName } from "../../../../../src/plugins/kubernetes/constants"
 
 describe("configureHotReload", () => {
   it("should correctly augment a resource manifest with containers and volume for hot reloading", async () => {
@@ -99,7 +100,7 @@ describe("configureHotReload", () => {
                   timeoutSeconds: 3,
                   successThreshold: 1,
                   failureThreshold: 5,
-                  tcpSocket: { port: <object>(<unknown>RSYNC_PORT_NAME) },
+                  tcpSocket: { port: <object>(<unknown>rsyncPortName) },
                 },
                 volumeMounts: [
                   {

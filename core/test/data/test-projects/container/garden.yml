@@ -10,6 +10,9 @@ environments:
   - name: kaniko
   - name: kaniko-image-override
   - name: kaniko-remote-registry
+  - name: cluster-buildkit
+  - name: cluster-buildkit-rootless
+  - name: cluster-buildkit-remote-registry
 providers:
   - name: local-kubernetes
     environments: [local]
@@ -47,4 +50,16 @@ providers:
     buildMode: kaniko
     kaniko:
       image: gcr.io/kaniko-project/executor:debug-perf
+    deploymentRegistry: *deploymentRegistry
+  - <<: *clusterDocker
+    environments: [cluster-buildkit]
+    buildMode: cluster-buildkit
+  - <<: *clusterDocker
+    environments: [cluster-buildkit-rootless]
+    buildMode: cluster-buildkit
+    clusterBuildkit:
+      rootless: true
+  - <<: *clusterDocker
+    environments: [cluster-buildkit-remote-registry]
+    buildMode: cluster-buildkit
     deploymentRegistry: *deploymentRegistry

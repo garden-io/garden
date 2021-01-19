@@ -6,22 +6,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { expectError, grouped } from "../../../../../helpers"
-import { Garden } from "../../../../../../src/garden"
-import { ConfigGraph } from "../../../../../../src/config-graph"
+import { expectError, grouped } from "../../../../../../helpers"
+import { Garden } from "../../../../../../../src/garden"
+import { ConfigGraph } from "../../../../../../../src/config-graph"
 import {
   k8sBuildContainer,
   k8sGetContainerBuildStatus,
-} from "../../../../../../src/plugins/kubernetes/container/build/build"
-import { PluginContext } from "../../../../../../src/plugin-context"
-import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
+} from "../../../../../../../src/plugins/kubernetes/container/build/build"
+import { PluginContext } from "../../../../../../../src/plugin-context"
+import { KubernetesProvider } from "../../../../../../../src/plugins/kubernetes/config"
 import { expect } from "chai"
-import { getContainerTestGarden } from "./container"
-import { containerHelpers } from "../../../../../../src/plugins/container/helpers"
-import { dockerDaemonContainerName } from "../../../../../../src/plugins/kubernetes/constants"
-import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
-import { getSystemNamespace } from "../../../../../../src/plugins/kubernetes/namespace"
-import { getDockerDaemonPodRunner } from "../../../../../../src/plugins/kubernetes/container/build/cluster-docker"
+import { getContainerTestGarden } from "../container"
+import { containerHelpers } from "../../../../../../../src/plugins/container/helpers"
+import { dockerDaemonContainerName } from "../../../../../../../src/plugins/kubernetes/constants"
+import { KubeApi } from "../../../../../../../src/plugins/kubernetes/api"
+import { getSystemNamespace } from "../../../../../../../src/plugins/kubernetes/namespace"
+import { getDockerDaemonPodRunner } from "../../../../../../../src/plugins/kubernetes/container/build/cluster-docker"
 
 describe("kubernetes build flow", () => {
   let garden: Garden
@@ -465,6 +465,215 @@ describe("kubernetes build flow", () => {
         log: garden.log,
         module,
       })
+    })
+  })
+
+  grouped("cluster-buildkit").context("cluster-buildkit mode", () => {
+    before(async () => {
+      await init("cluster-buildkit")
+    })
+
+    it("should build a simple container", async () => {
+      const module = graph.getModule("simple-service")
+      await garden.buildStaging.syncFromSrc(module, garden.log)
+
+      await k8sBuildContainer({
+        ctx,
+        log: garden.log,
+        module,
+      })
+    })
+
+    it("should get the build status from the registry", async () => {
+      const module = graph.getModule("simple-service")
+      await garden.buildStaging.syncFromSrc(module, garden.log)
+
+      await k8sBuildContainer({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      const status = await k8sGetContainerBuildStatus({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      expect(status.ready).to.be.true
+    })
+
+    grouped("remote-only").it("should support pulling from private registries", async () => {
+      const module = graph.getModule("private-base")
+      await garden.buildStaging.syncFromSrc(module, garden.log)
+
+      await k8sBuildContainer({
+        ctx,
+        log: garden.log,
+        module,
+      })
+    })
+
+    it("should return ready=false status when image doesn't exist in registry", async () => {
+      const module = graph.getModule("simple-service")
+      await garden.buildStaging.syncFromSrc(module, garden.log)
+
+      module.spec.image = "skee-ba-dee-skoop"
+
+      const status = await k8sGetContainerBuildStatus({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      expect(status.ready).to.be.false
+    })
+
+    it("should throw if attempting to pull from private registry without access", async () => {
+      const module = graph.getModule("inaccessible-base")
+      await garden.buildStaging.syncFromSrc(module, garden.log)
+
+      await expectError(
+        () =>
+          k8sBuildContainer({
+            ctx,
+            log: garden.log,
+            module,
+          }),
+        (err) => {
+          expect(err.message).to.include("authorization failed")
+        }
+      )
+    })
+  })
+
+  grouped("cluster-buildkit").context("cluster-buildkit-rootless mode", () => {
+    before(async () => {
+      await init("cluster-buildkit-rootless")
+    })
+
+    it("should build a simple container", async () => {
+      const module = graph.getModule("simple-service")
+      await garden.buildStaging.syncFromSrc(module, garden.log)
+
+      await k8sBuildContainer({
+        ctx,
+        log: garden.log,
+        module,
+      })
+    })
+
+    it("should get the build status from the registry", async () => {
+      const module = graph.getModule("simple-service")
+      await garden.buildStaging.syncFromSrc(module, garden.log)
+
+      await k8sBuildContainer({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      const status = await k8sGetContainerBuildStatus({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      expect(status.ready).to.be.true
+    })
+
+    grouped("remote-only").it("should support pulling from private registries", async () => {
+      const module = graph.getModule("private-base")
+      await garden.buildStaging.syncFromSrc(module, garden.log)
+
+      await k8sBuildContainer({
+        ctx,
+        log: garden.log,
+        module,
+      })
+    })
+
+    it("should return ready=false status when image doesn't exist in registry", async () => {
+      const module = graph.getModule("simple-service")
+      await garden.buildStaging.syncFromSrc(module, garden.log)
+
+      module.spec.image = "skee-ba-dee-skoop"
+
+      const status = await k8sGetContainerBuildStatus({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      expect(status.ready).to.be.false
+    })
+
+    it("should throw if attempting to pull from private registry without access", async () => {
+      const module = graph.getModule("inaccessible-base")
+      await garden.buildStaging.syncFromSrc(module, garden.log)
+
+      await expectError(
+        () =>
+          k8sBuildContainer({
+            ctx,
+            log: garden.log,
+            module,
+          }),
+        (err) => {
+          expect(err.message).to.include("authorization failed")
+        }
+      )
+    })
+  })
+
+  grouped("cluster-buildkit", "remote-only").context("cluster-buildkit-remote-registry mode", () => {
+    before(async () => {
+      await init("cluster-buildkit-remote-registry")
+    })
+
+    it("should push to configured deploymentRegistry if specified", async () => {
+      const module = graph.getModule("remote-registry-test")
+      await garden.buildStaging.syncFromSrc(module, garden.log)
+
+      await k8sBuildContainer({
+        ctx,
+        log: garden.log,
+        module,
+      })
+    })
+
+    it("should get the build status from the registry", async () => {
+      const module = graph.getModule("remote-registry-test")
+      await garden.buildStaging.syncFromSrc(module, garden.log)
+
+      await k8sBuildContainer({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      const status = await k8sGetContainerBuildStatus({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      expect(status.ready).to.be.true
+    })
+
+    it("should return ready=false status when image doesn't exist in registry", async () => {
+      const module = graph.getModule("remote-registry-test")
+      await garden.buildStaging.syncFromSrc(module, garden.log)
+
+      module.version.versionString = "v-0000000000"
+
+      const status = await k8sGetContainerBuildStatus({
+        ctx,
+        log: garden.log,
+        module,
+      })
+
+      expect(status.ready).to.be.false
     })
   })
 })
