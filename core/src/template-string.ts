@@ -21,6 +21,7 @@ import { profile } from "./util/profiling"
 import { dedent, deline, truncate } from "./util/string"
 import { isArray } from "util"
 import { ObjectWithName } from "./util/util"
+import { LogEntry } from "./logger/log-entry"
 
 export type StringOrStringPromise = Promise<string> | string
 
@@ -262,8 +263,15 @@ export function getModuleTemplateReferences<T extends object>(obj: T, context: M
  * blank values) in the provided secrets map.
  *
  * Prefix should be e.g. "Module" or "Provider" (used when generating error messages).
+ *
+ * TODO: We've disabled this for now. Re-introudce once we've removed get config command call from GE!
  */
-export function throwOnMissingSecretKeys(configs: ObjectWithName[], secrets: StringMap, prefix: string) {
+export function throwOnMissingSecretKeys(
+  configs: ObjectWithName[],
+  secrets: StringMap,
+  prefix: string,
+  log?: LogEntry
+) {
   const allMissing: [string, ContextKeySegment[]][] = [] // [[key, missing keys]]
   for (const config of configs) {
     const missing = detectMissingSecretKeys(config, secrets)
@@ -300,10 +308,13 @@ export function throwOnMissingSecretKeys(configs: ObjectWithName[], secrets: Str
 
     ${footer}
   `
-  throw new ConfigurationError(errMsg, {
-    loadedSecretKeys: loadedKeys,
-    missingSecretKeys: uniq(flatten(allMissing.map(([_key, missing]) => missing))),
-  })
+  if (log) {
+    log.silly(errMsg)
+  }
+  // throw new ConfigurationError(errMsg, {
+  //   loadedSecretKeys: loadedKeys,
+  //   missingSecretKeys: uniq(flatten(allMissing.map(([_key, missing]) => missing))),
+  // })
 }
 
 /**
