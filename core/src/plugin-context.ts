@@ -7,8 +7,7 @@
  */
 
 import { Garden } from "./garden"
-import { cloneDeep } from "lodash"
-import { projectNameSchema, projectSourcesSchema, environmentNameSchema } from "./config/project"
+import { projectNameSchema, projectSourcesSchema, environmentNameSchema, SourceConfig } from "./config/project"
 import { Provider, providerSchema, GenericProviderConfig } from "./config/provider"
 import { deline } from "./util/string"
 import { joi, joiVariables, PrimitiveMap, joiStringMap } from "./config/common"
@@ -18,7 +17,6 @@ type WrappedFromGarden = Pick<
   Garden,
   | "projectName"
   | "projectRoot"
-  | "projectSources"
   | "gardenDirPath"
   | "workingCopyId"
   // TODO: remove this from the interface
@@ -34,6 +32,7 @@ export interface CommandInfo {
 
 export interface PluginContext<C extends GenericProviderConfig = GenericProviderConfig> extends WrappedFromGarden {
   command?: CommandInfo
+  projectSources: SourceConfig[]
   provider: Provider<C>
   tools: { [key: string]: PluginTool }
 }
@@ -83,7 +82,7 @@ export async function createPluginContext(
     gardenDirPath: garden.gardenDirPath,
     projectName: garden.projectName,
     projectRoot: garden.projectRoot,
-    projectSources: cloneDeep(garden.projectSources),
+    projectSources: garden.getProjectSources(),
     provider,
     production: garden.production,
     workingCopyId: garden.workingCopyId,
