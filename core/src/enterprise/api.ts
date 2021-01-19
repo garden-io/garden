@@ -81,11 +81,10 @@ export class EnterpriseApi {
       if (!tokenIsValid) {
         // If the token is an Access Token and it's invalid we return.
         if (gardenEnv.GARDEN_AUTH_TOKEN) {
-          this.log.error({
-            msg:
-              "The provided access token is expired or revoked, please create a new one from the Garden Enterprise UI.",
-          })
-          return
+          throw new RuntimeError(
+            "The provided access token is expired or has been revoked, please create a new one from the Garden Enterprise UI.",
+            {}
+          )
         } else {
           // Try to refresh an expired JWT
           // This will throw if it fails to refresh
