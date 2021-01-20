@@ -1,4 +1,11 @@
 
+<a name="0.12.14"></a>
+## [0.12.14](https://github.com/garden-io/garden/compare/0.12.13...0.12.14) (2021-01-20)
+
+### Bug Fixes
+
+* **k8s:** regression in port-forward handler ([723b1ae7](https://github.com/garden-io/garden/commit/723b1ae7))
+
 <a name="0.12.13"></a>
 ## [0.12.13](https://github.com/garden-io/garden/compare/0.12.12...0.12.13) (2021-01-06)
 
