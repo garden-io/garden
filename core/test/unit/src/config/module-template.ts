@@ -495,7 +495,7 @@ describe("module templates", () => {
         () => resolveTemplatedModule(garden, config, _templates),
         (err) =>
           expect(stripAnsi(err.message)).to.equal(
-            'ModuleTemplate test returned an invalid module (named module-${modules.foo.version}-test) for templated module test: Error validating module (modules.garden.yml): key .name with value "module-${modules.foo.version}-test" fails to match the required pattern: /^(?!garden)(?=.{1,63}$)[a-z][a-z0-9]*(-[a-z0-9]+)*$/. Note that if a template string is used in the name of a module in a template, that the template string must be fully resolvable at the time of module scanning. This means that e.g. references to other modules or runtime outputs cannot be used.'
+            'ModuleTemplate test returned an invalid module (named module-${modules.foo.version}-test) for templated module test: Error validating module (modules.garden.yml): key .name with value "module-${modules.foo.version}-test" fails to match the required pattern: /^(?!garden)(?=.{1,63}$)[a-z][a-z0-9]*(-[a-z0-9]+)*$/. Note that if a template string is used in the name of a module in a template, then the template string must be fully resolvable at the time of module scanning. This means that e.g. references to other modules or runtime outputs cannot be used.'
           )
       )
     })
