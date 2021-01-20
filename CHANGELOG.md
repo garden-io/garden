@@ -1,4 +1,38 @@
 
+<a name="0.12.13"></a>
+## [0.12.13](https://github.com/garden-io/garden/compare/0.12.12...0.12.13) (2021-01-06)
+
+### Bug Fixes
+
+* **enterprise:** also validate env tokens ([540d0618](https://github.com/garden-io/garden/commit/540d0618))
+* **enterprise:** fix login/token flow ([32c14f80](https://github.com/garden-io/garden/commit/32c14f80))
+* **enterprise:** more fixes to login flow ([8e558e1c](https://github.com/garden-io/garden/commit/8e558e1c))
+* **enterprise:** fix secrets res ([a064a169](https://github.com/garden-io/garden/commit/a064a169))
+* **enterprise:** limit log streaming to workflows ([63b9e5d8](https://github.com/garden-io/garden/commit/63b9e5d8))
+* **enterprise:** don't throw if log out fails ([65ecd850](https://github.com/garden-io/garden/commit/65ecd850))
+* **enterprise:** fix start interval when using access tokens ([#2211](https://github.com/garden-io/garden/issues/2211)) ([3953c5a9](https://github.com/garden-io/garden/commit/3953c5a9))
+* **enterprise:** lower workflow resource minima ([e457bded](https://github.com/garden-io/garden/commit/e457bded))
+* **k8s:** hanging port forward processes on Windows ([d6dcd451](https://github.com/garden-io/garden/commit/d6dcd451))
+* **k8s:** gracefully fail if minikube ingress addon can't be enabled ([c505c4f3](https://github.com/garden-io/garden/commit/c505c4f3))
+* **k8s:** confusing error message when resource type doesn't exist ([ef70e194](https://github.com/garden-io/garden/commit/ef70e194))
+* **proxy:** fix error handling when unable to bind proxy to a port ([5e047125](https://github.com/garden-io/garden/commit/5e047125))
+* **terraform:** make sure terraform init is run before workspace list ([9950c1e6](https://github.com/garden-io/garden/commit/9950c1e6))
+
+### Features
+
+* **config:** add ${local.projectPath} template key ([882e15b8](https://github.com/garden-io/garden/commit/882e15b8))
+* **config:** allow template strings in project source definition ([367f7171](https://github.com/garden-io/garden/commit/367f7171))
+* **core:** allow disabling port forwards ([060cef45](https://github.com/garden-io/garden/commit/060cef45))
+* **enterprise:** implement refresh of auth token ([db40a0c5](https://github.com/garden-io/garden/commit/db40a0c5))
+
+### Improvements
+
+* **core:** set consistent header logs on all commands ([3c2747a6](https://github.com/garden-io/garden/commit/3c2747a6))
+* **dashboard:** show proper dependencies of disabled graph nodes ([3a2788cb](https://github.com/garden-io/garden/commit/3a2788cb))
+* **docs:** quick fix on 'welcome' page ([bc2de8f5](https://github.com/garden-io/garden/commit/bc2de8f5))
+* **docs:** add support forum and enterprise to 'welcome' page ([c5a07f32](https://github.com/garden-io/garden/commit/c5a07f32))
+* **enterprise:** include message metadata with log entries ([e9710e51](https://github.com/garden-io/garden/commit/e9710e51))
+
 <a name="0.12.12"></a>
 ## [0.12.12](https://github.com/garden-io/garden/compare/0.12.11...0.12.12) (2021-01-06)
 
