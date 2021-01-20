@@ -168,7 +168,7 @@ class Kubectl extends PluginTool {
     return JSON.parse(result)
   }
 
-  private prepareArgs(params: KubectlParams) {
+  prepareArgs(params: KubectlParams) {
     const { namespace, configPath, args } = params
 
     const opts: string[] = []
