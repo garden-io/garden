@@ -105,15 +105,11 @@ export async function getPortForward({
     log.debug(`Forwarding local port ${localPort} to ${targetResource} port ${port}`)
 
     // TODO: use the API directly instead of kubectl (need to reverse-engineer kubectl quite a bit for that)
-    const portForwardArgs = [
-      "--context",
-      k8sCtx.provider.config.context,
-      "--namespace",
+    const { args: portForwardArgs } = kubectl(k8sCtx, k8sCtx.provider).prepareArgs({
       namespace,
-      "port-forward",
-      targetResource,
-      portMapping,
-    ]
+      args: ["port-forward", targetResource, portMapping],
+      log,
+    })
 
     log.silly(`Running 'kubectl ${portForwardArgs.join(" ")}'`)
 
