@@ -14,7 +14,7 @@ const AsyncLock = require("async-lock")
 import getPort = require("get-port")
 import { Service, ServiceStatus, ForwardablePort } from "./types/service"
 import { Garden } from "./garden"
-import { registerCleanupFunction } from "./util/util"
+import { registerCleanupFunction, sleep } from "./util/util"
 import { LogEntry } from "./logger/log-entry"
 import { GetPortForwardResult } from "./types/plugin/service/getPortForward"
 import { LocalAddress } from "./db/entities/local-address"
@@ -77,21 +77,6 @@ async function createProxy(garden: Garden, log: LogEntry, service: Service, spec
     serviceName: service.name,
     hostname: getHostname(service, spec),
   })
-  let localIp = localAddress.getIp()
-  let localPort: number
-
-  try {
-    localPort = await getPort({ host: localIp, port: spec.targetPort })
-  } catch (err) {
-    if (err.errno === "EADDRNOTAVAIL" || err.errno === "EADDRINUSE") {
-      // If we're not allowed to bind to other 127.x.x.x addresses, we fall back to localhost. This will almost always
-      // be the case on Mac, until we come up with something more clever (that doesn't require sudo).
-      localIp = "127.0.0.1"
-      localPort = await getPort({ host: localIp, port: spec.targetPort })
-    } else {
-      throw err
-    }
-  }
 
   const getPortForward = async () => {
     if (fwd) {
@@ -116,7 +101,7 @@ async function createProxy(garden: Garden, log: LogEntry, service: Service, spec
     return fwd
   }
 
-  const server = createServer((local) => {
+  const serverCallback = (local: Socket) => {
     let _remote: Socket
     let localDidClose = false
 
@@ -209,17 +194,57 @@ async function createProxy(garden: Garden, log: LogEntry, service: Service, spec
     local.on("error", (err) => {
       log.debug(`Local socket error: ${err.message}`)
     })
-  })
+  }
 
-  const host = `${localIp}:${localPort}`
-  // For convenience, we try to guess a protocol based on the target port, if no URL protocol is specified
-  const protocol = spec.urlProtocol || guessProtocol(spec)
-  const localUrl = protocol ? `${protocol.toLowerCase()}://${host}` : host
+  let localIp = localAddress.getIp()
+  let localPort: number | undefined
 
-  log.debug(`Starting proxy to ${key} on ${host}`)
-  server.listen(localPort, localIp)
+  while (true) {
+    try {
+      localPort = await getPort({ host: localIp, port: spec.targetPort })
+    } catch (err) {
+      if (err.errno === "EADDRNOTAVAIL") {
+        // If we're not allowed to bind to other 127.x.x.x addresses, we fall back to localhost. This will almost always
+        // be the case on Mac, until we come up with something more clever (that doesn't require sudo).
+        localIp = "127.0.0.1"
+        localPort = await getPort({ host: localIp, port: spec.targetPort })
+      } else {
+        throw err
+      }
+    }
 
-  return { key, server, service, spec, localPort, localUrl }
+    const host = `${localIp}:${localPort}`
+    // For convenience, we try to guess a protocol based on the target port, if no URL protocol is specified
+    const protocol = spec.urlProtocol || guessProtocol(spec)
+    const localUrl = protocol ? `${protocol.toLowerCase()}://${host}` : host
+
+    const server = createServer(serverCallback)
+
+    const started = await new Promise((resolve, reject) => {
+      server.listen(localPort, localIp)
+      server.on("listening", () => {
+        log.debug(`Started proxy to ${key} on ${host}`)
+        resolve(true)
+      })
+      server.on("error", (err) => {
+        if (err["errno"] === "EADDRINUSE") {
+          resolve(false)
+        } else {
+          // This will throw the error and halt the loop
+          reject(err)
+        }
+      })
+    })
+
+    if (started) {
+      return { key, server, service, spec, localPort, localUrl }
+    } else {
+      // Need to retry on different port
+      localIp = "127.0.0.1"
+      localPort = undefined
+      await sleep(500)
+    }
+  }
 }
 
 function stopPortProxy(proxy: PortProxy, log?: LogEntry) {
