@@ -1,3 +1,3 @@
 Hello I am file!
-input: ${inputs.foo}
-module reference: ${modules["${parent.name}-${inputs.foo}-test-a"].path}
+input: ${inputs.value}
+module reference: ${modules["${parent.name}-${inputs.name}-a"].path}

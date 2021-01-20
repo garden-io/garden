@@ -225,6 +225,20 @@ export abstract class ConfigContext {
   }
 }
 
+/**
+ * A generic context that just wraps an object.
+ */
+export class GenericContext extends ConfigContext {
+  constructor(obj: any) {
+    super()
+    Object.assign(this, obj)
+  }
+
+  static getSchema() {
+    return joi.object()
+  }
+}
+
 export class ScanContext extends ConfigContext {
   foundKeys: KeyedSet<ContextKeySegment[]>
 

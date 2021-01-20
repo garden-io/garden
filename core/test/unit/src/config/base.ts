@@ -182,8 +182,9 @@ describe("loadConfigResources", () => {
         modules: [
           {
             type: "test",
-            name: "${parent.name}-${inputs.foo}-test-a",
+            name: "${parent.name}-${inputs.name}-a",
             include: [],
+            extraFlags: ["${inputs.value}"],
             generateFiles: [
               {
                 targetPath: "module-a.log",
@@ -193,10 +194,10 @@ describe("loadConfigResources", () => {
           },
           {
             type: "test",
-            name: "${parent.name}-${inputs.foo}-test-b",
+            name: "${parent.name}-${inputs.name}-b",
             include: [],
             build: {
-              dependencies: ["${parent.name}-${inputs.foo}-test-a"],
+              dependencies: ["${parent.name}-${inputs.name}-a"],
             },
             generateFiles: [
               {
@@ -207,16 +208,16 @@ describe("loadConfigResources", () => {
           },
           {
             type: "test",
-            name: "${parent.name}-${inputs.foo}-test-c",
+            name: "${parent.name}-${inputs.name}-c",
             include: [],
             build: {
-              dependencies: ["${parent.name}-${inputs.foo}-test-a"],
+              dependencies: ["${parent.name}-${inputs.name}-a"],
             },
             generateFiles: [
               {
                 targetPath: ".garden/subdir/module-c.log",
                 value:
-                  'Hello I am string!\ninput: ${inputs.foo}\nmodule reference: ${modules["${parent.name}-${inputs.foo}-test-a"].path}\n',
+                  'Hello I am string!\ninput: ${inputs.value}\nmodule reference: ${modules["${parent.name}-${inputs.name}-a"].path}\n',
               },
             ],
           },

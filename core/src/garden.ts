@@ -86,6 +86,7 @@ import {
   resolveModuleTemplate,
   resolveTemplatedModule,
   templateKind,
+  ModuleTemplateConfig,
 } from "./config/module-template"
 import { TemplatedModuleConfig } from "./plugins/templated"
 import { BuildDirRsync } from "./build-staging/rsync"
@@ -184,6 +185,7 @@ export class Garden {
   private actionHelper: ActionRouter
   public readonly events: EventBus
   private tools: { [key: string]: PluginTool }
+  public moduleTemplates: { [name: string]: ModuleTemplateConfig }
 
   public readonly production: boolean
   public readonly projectRoot: string
@@ -1056,6 +1058,7 @@ export class Garden {
       this.log.silly(`Scanned and found ${rawModuleConfigs.length} modules and ${rawWorkflowConfigs.length} workflows`)
 
       this.configsScanned = true
+      this.moduleTemplates = keyBy(moduleTemplates, "name")
     })
   }
 
