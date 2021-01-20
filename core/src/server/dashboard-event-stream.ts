@@ -53,7 +53,7 @@ export class DashboardEventStream extends BufferedEventStream {
     const currentHosts = this.targets.map((p) => p.host).sort()
     const newHosts = servers.map((p) => p.serverHost!).sort()
 
-    this.targets = servers.map((p) => ({ host: p.serverHost!, clientAuthToken: p.serverAuthKey! }))
+    this.targets = servers.map((p) => ({ host: p.serverHost!, clientAuthToken: p.serverAuthKey!, enterprise: false }))
 
     // Notify of updates
     if (this.garden && !isEqual(currentHosts, newHosts)) {

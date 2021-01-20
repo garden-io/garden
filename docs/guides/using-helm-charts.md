@@ -241,10 +241,6 @@ values:
   image:
     repository: api-image
     tag: ${modules.api-image.version}
-  ingress:
-    enabled: true
-    paths: [/]
-    hosts: [api.local.app.garden]
 ```
 
 Here, the `base-chart` module contains the actual Helm chart and templates. Note the `skipDeploy` flag, which we set

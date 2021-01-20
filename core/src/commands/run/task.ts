@@ -57,7 +57,6 @@ export class RunTaskCommand extends Command<Args, Opts> {
 
   workflows = true
   streamEvents = true
-  streamLogEntries = true
 
   description = dedent`
     This is useful for re-running tasks ad-hoc, for example after writing/modifying database migrations.
@@ -76,13 +75,12 @@ export class RunTaskCommand extends Command<Args, Opts> {
       graphResults: graphResultsSchema(),
     })
 
-  async action({
-    garden,
-    log,
-    headerLog,
-    args,
-    opts,
-  }: CommandParams<Args, Opts>): Promise<CommandResult<RunTaskOutput>> {
+  printHeader({ headerLog, args }) {
+    const msg = `Running task ${chalk.white(args.task)}`
+    printHeader(headerLog, msg, "runner")
+  }
+
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunTaskOutput>> {
     const graph = await garden.getConfigGraph(log)
     const task = graph.getTask(args.task, true)
 
@@ -96,10 +94,6 @@ export class RunTaskCommand extends Command<Args, Opts> {
         { moduleName: task.module.name, taskName: task.name, environmentName: garden.environmentName }
       )
     }
-
-    const msg = `Running task ${chalk.white(task.name)}`
-
-    printHeader(headerLog, msg, "runner")
 
     const taskTask = await TaskTask.factory({ garden, graph, task, log, force: true, forceBuild: opts["force-build"] })
     const graphResults = await garden.processTasks([taskTask])

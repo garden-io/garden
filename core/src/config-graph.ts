@@ -55,6 +55,7 @@ export interface RenderedNode {
   name: string
   moduleName: string
   key: string
+  disabled: boolean
 }
 
 type DepNodeTaskTypeMap = { [key in DependencyGraphNodeType]: TaskType }
@@ -186,12 +187,17 @@ export class ConfigGraph {
       }
 
       if (needsBuild) {
-        addBuildDeps(this.getNode("build", moduleKey, moduleKey))
+        addBuildDeps(this.getNode("build", moduleKey, moduleKey, module.disabled))
       }
 
       // Service dependencies
       for (const serviceConfig of module.serviceConfigs) {
-        const serviceNode = this.getNode("deploy", serviceConfig.name, moduleKey)
+        const serviceNode = this.getNode(
+          "deploy",
+          serviceConfig.name,
+          moduleKey,
+          module.disabled || serviceConfig.disabled
+        )
 
         if (needsBuild) {
           // The service needs its own module to be built
@@ -213,7 +219,7 @@ export class ConfigGraph {
 
       // Task dependencies
       for (const taskConfig of module.taskConfigs) {
-        const taskNode = this.getNode("run", taskConfig.name, moduleKey)
+        const taskNode = this.getNode("run", taskConfig.name, moduleKey, module.disabled || taskConfig.disabled)
 
         if (needsBuild) {
           // The task needs its own module to be built
@@ -239,7 +245,7 @@ export class ConfigGraph {
 
         this.testConfigs[testConfigName] = { type: "test", moduleKey, config: testConfig }
 
-        const testNode = this.getNode("test", testConfigName, moduleKey)
+        const testNode = this.getNode("test", testConfigName, moduleKey, module.disabled || testConfig.disabled)
 
         if (needsBuild) {
           // The test needs its own module to be built
@@ -277,12 +283,6 @@ export class ConfigGraph {
 
   private addRuntimeRelation(node: DependencyGraphNode, depName: string) {
     const dep = this.serviceConfigs[depName] || this.taskConfigs[depName]
-
-    // Ignore runtime dependencies on disabled tasks/services
-    if (this.isDisabled(dep)) {
-      return
-    }
-
     const depType = dep.type === "service" ? "deploy" : "run"
 
     this.addRelation({
@@ -351,7 +351,7 @@ export class ConfigGraph {
   }
 
   /*
-   * If filterFn is provided to any of the methods below that accept it, matching nodes
+   * If filter is provided to any of the methods below that accept it, matching nodes
    * (and their dependencies/dependants, if recursive = true) are ignored.
    */
 
@@ -385,14 +385,14 @@ export class ConfigGraph {
     nodeType,
     name,
     recursive,
-    filterFn,
+    filter,
   }: {
     nodeType: DependencyGraphNodeType
     name: string
     recursive: boolean
-    filterFn?: DependencyRelationFilterFn
+    filter?: DependencyRelationFilterFn
   }): DependencyRelations {
-    return this.toRelations(this.getDependencyNodes({ nodeType, name, recursive, filterFn }))
+    return this.toRelations(this.getDependencyNodes({ nodeType, name, recursive, filter }))
   }
 
   /**
@@ -406,14 +406,14 @@ export class ConfigGraph {
     nodeType,
     name,
     recursive,
-    filterFn,
+    filter,
   }: {
     nodeType: DependencyGraphNodeType
     name: string
     recursive: boolean
-    filterFn?: DependencyRelationFilterFn
+    filter?: DependencyRelationFilterFn
   }): DependencyRelations {
-    return this.toRelations(this.getDependantNodes({ nodeType, name, recursive, filterFn }))
+    return this.toRelations(this.getDependantNodes({ nodeType, name, recursive, filter }))
   }
 
   /**
@@ -424,15 +424,15 @@ export class ConfigGraph {
     nodeType,
     names,
     recursive,
-    filterFn,
+    filter,
   }: {
     nodeType: DependencyGraphNodeType
     names: string[]
     recursive: boolean
-    filterFn?: DependencyRelationFilterFn
+    filter?: DependencyRelationFilterFn
   }): DependencyRelations {
     return this.toRelations(
-      flatten(names.map((name) => this.getDependencyNodes({ nodeType, name, recursive, filterFn })))
+      flatten(names.map((name) => this.getDependencyNodes({ nodeType, name, recursive, filter })))
     )
   }
 
@@ -444,16 +444,14 @@ export class ConfigGraph {
     nodeType,
     names,
     recursive,
-    filterFn,
+    filter,
   }: {
     nodeType: DependencyGraphNodeType
     names: string[]
     recursive: boolean
-    filterFn?: DependencyRelationFilterFn
+    filter?: DependencyRelationFilterFn
   }): DependencyRelations {
-    return this.toRelations(
-      flatten(names.map((name) => this.getDependantNodes({ nodeType, name, recursive, filterFn })))
-    )
+    return this.toRelations(flatten(names.map((name) => this.getDependantNodes({ nodeType, name, recursive, filter }))))
   }
 
   /**
@@ -534,46 +532,30 @@ export class ConfigGraph {
     nodeType,
     name,
     recursive,
-    filterFn,
+    filter,
   }: {
     nodeType: DependencyGraphNodeType
     name: string
     recursive: boolean
-    filterFn?: DependencyRelationFilterFn
+    filter?: DependencyRelationFilterFn
   }): DependencyGraphNode[] {
     const node = this.dependencyGraph[nodeKey(nodeType, name)]
-    if (node) {
-      if (recursive) {
-        return node.recursiveDependencies(filterFn)
-      } else {
-        return filterFn ? node.dependencies.filter(filterFn) : node.dependencies
-      }
-    } else {
-      return []
-    }
+    return node ? node.getDependencies(recursive, filter) : []
   }
 
   private getDependantNodes({
     nodeType,
     name,
     recursive,
-    filterFn,
+    filter,
   }: {
     nodeType: DependencyGraphNodeType
     name: string
     recursive: boolean
-    filterFn?: DependencyRelationFilterFn
+    filter?: DependencyRelationFilterFn
   }): DependencyGraphNode[] {
     const node = this.dependencyGraph[nodeKey(nodeType, name)]
-    if (node) {
-      if (recursive) {
-        return node.recursiveDependants(filterFn)
-      } else {
-        return filterFn ? node.dependants.filter(filterFn) : node.dependants
-      }
-    } else {
-      return []
-    }
+    return node ? node.getDependants(recursive, filter) : []
   }
 
   private uniqueNames(nodes: DependencyGraphNode[], type: DependencyGraphNodeType) {
@@ -592,19 +574,22 @@ export class ConfigGraph {
     dependencyName: string
     dependencyModuleName: string
   }) {
-    const dependency = this.getNode(dependencyType, dependencyName, dependencyModuleName)
+    const dependency = this.getNode(dependencyType, dependencyName, dependencyModuleName, false)
     dependant.addDependency(dependency)
     dependency.addDependant(dependant)
   }
 
   // Idempotent.
-  private getNode(type: DependencyGraphNodeType, name: string, moduleName: string) {
+  private getNode(type: DependencyGraphNodeType, name: string, moduleName: string, disabled: boolean) {
     const key = nodeKey(type, name)
     const existingNode = this.dependencyGraph[key]
     if (existingNode) {
+      if (disabled) {
+        existingNode.disabled = true
+      }
       return existingNode
     } else {
-      const newNode = new DependencyGraphNode(type, name, moduleName)
+      const newNode = new DependencyGraphNode(type, name, moduleName, disabled)
       this.dependencyGraph[key] = newNode
       return newNode
     }
@@ -657,16 +642,15 @@ interface DependencyGraphEdge {
 }
 
 export class DependencyGraphNode {
-  type: DependencyGraphNodeType
-  name: string // same as a corresponding task's name
-  moduleName: string
   dependencies: DependencyGraphNode[]
   dependants: DependencyGraphNode[]
 
-  constructor(type: DependencyGraphNodeType, name: string, moduleName: string) {
-    this.type = type
-    this.name = name
-    this.moduleName = moduleName
+  constructor(
+    public type: DependencyGraphNodeType,
+    public name: string,
+    public moduleName: string,
+    public disabled: boolean
+  ) {
     this.dependencies = []
     this.dependants = []
   }
@@ -680,6 +664,7 @@ export class DependencyGraphNode {
       type: this.type,
       moduleName: this.moduleName,
       key: makeBaseKey(taskType, this.name),
+      disabled: this.disabled,
     }
   }
 
@@ -700,21 +685,41 @@ export class DependencyGraphNode {
   }
 
   /**
-   * If filterFn is provided, ignores matching nodes and their dependencies.
+   * Returns the dependencies of this node, optionally recursively.
+   * Omits disabled dependency nodes other than build dependencies, and does not recurse past them.
+   * If filter is provided, ignores matching nodes and their dependencies.
    * Note: May return duplicate entries (deduplicated in DependencyGraph#toRelations).
    */
-  recursiveDependencies(filterFn?: DependencyRelationFilterFn) {
-    const deps = filterFn ? this.dependencies.filter(filterFn) : this.dependencies
-    return flatten(deps.concat(deps.map((d) => d.recursiveDependencies(filterFn))))
+  getDependencies(recursive: boolean, filter?: DependencyRelationFilterFn) {
+    return this.traverse("dependencies", recursive, filter)
   }
 
   /**
-   * If filterFn is provided, ignores matching nodes and their dependants.
+   * Returns the dependants of this node, optionally recursively.
+   * Omits disabled dependant nodes other than build dependants, and does not recurse past them.
+   * If filter is provided, ignores matching nodes and their dependants.
    * Note: May return duplicate entries (deduplicated in DependencyGraph#toRelations).
    */
-  recursiveDependants(filterFn?: DependencyRelationFilterFn) {
-    const dependants = filterFn ? this.dependants.filter(filterFn) : this.dependants
-    return flatten(dependants.concat(dependants.map((d) => d.recursiveDependants(filterFn))))
+  getDependants(recursive: boolean, filter?: DependencyRelationFilterFn) {
+    return this.traverse("dependants", recursive, filter)
+  }
+
+  private traverse(type: "dependants" | "dependencies", recursive: boolean, filter?: DependencyRelationFilterFn) {
+    const nodes = this[type].filter((n) => {
+      if (n.type !== "build" && n.disabled) {
+        return false
+      } else if (filter) {
+        return filter(n)
+      } else {
+        return true
+      }
+    })
+
+    if (recursive) {
+      return flatten(nodes.concat(nodes.map((d) => d.traverse(type, recursive, filter))))
+    } else {
+      return nodes
+    }
   }
 }
 

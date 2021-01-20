@@ -341,6 +341,10 @@ export const globalOptions = {
     alias: "h",
     help: "Show help",
   }),
+  "disable-port-forwards": new BooleanParameter({
+    help:
+      "Disable automatic port forwarding when in watch/hot-reload mode. Note that you can also set GARDEN_DISABLE_PORT_FORWARDS=true in your environment.",
+  }),
 }
 
 export type GlobalOptions = typeof globalOptions

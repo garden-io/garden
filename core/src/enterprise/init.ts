@@ -9,17 +9,20 @@
 import chalk from "chalk"
 import dedent from "dedent"
 import { LogEntry } from "../logger/log-entry"
-import { readAuthToken, checkClientAuthToken } from "./auth"
 import { deline } from "../util/string"
-import { getSecrets } from "./secrets"
+import { getSecrets } from "./get-secrets"
 import { StringMap } from "../config/common"
-import { Garden } from "../garden"
+import { EnterpriseApi } from "./api"
 
 export interface EnterpriseInitParams {
   log: LogEntry
   projectId: string | null
-  enterpriseDomain: string | null
   environmentName: string
+  enterpriseApi: EnterpriseApi
+}
+
+export interface EnterpriseConnectParams extends EnterpriseInitParams {
+  projectId: string
 }
 
 export interface GardenEnterpriseContext {
@@ -28,82 +31,77 @@ export interface GardenEnterpriseContext {
   enterpriseDomain: string
 }
 
-export async function enterpriseInit({ log, projectId, enterpriseDomain, environmentName }: EnterpriseInitParams) {
-  const clientAuthToken = await readAuthToken(log)
+export async function enterpriseInit({ log, projectId, enterpriseApi, environmentName }: EnterpriseInitParams) {
+  const clientAuthToken = await enterpriseApi.readAuthToken()
   let secrets: StringMap = {}
   // If a client auth token exists in local storage, we assume that the user wants to be logged in.
   if (clientAuthToken) {
-    if (!enterpriseDomain || !projectId) {
-      const errorMessages: string[] = []
-      if (!enterpriseDomain) {
-        errorMessages.push(deline`
-          ${chalk.bold("project.domain")} is not set in your project-level ${chalk.bold("garden.yml")}. Make sure it
-          is set to the appropriate API backend endpoint (e.g. http://myusername-cloud-api.cloud.dev.garden.io,
-          with an http/https prefix).
-        `)
-      }
-      if (!projectId) {
-        errorMessages.push(deline`
-          ${chalk.bold("project.id")} is not set in your project-level ${chalk.bold("garden.yml")}. Please visit
-          Garden Enterprise's web UI for your project and copy your project's ID from there.
-        `)
-      }
-      if (errorMessages.length > 0) {
-        log.verbose(
-          chalk.gray(dedent`
-            ${errorMessages.join("\n\n")}
-
-            Logging out via the ${chalk.bold("garden logout")} command will suppress this message.`)
-        )
-      }
+    if (!enterpriseApi.getDomain() || !projectId) {
+      await handleMissingConfig(log, enterpriseApi, projectId)
     } else {
-      const tokenIsValid = await checkClientAuthToken(clientAuthToken, enterpriseDomain, log)
-      if (tokenIsValid) {
-        secrets = await getSecrets({
-          projectId,
-          enterpriseDomain,
-          clientAuthToken,
-          log,
-          environmentName,
-        })
-        log.silly(`Fetched ${Object.keys(secrets).length} secrets from ${enterpriseDomain}`)
-      } else {
-        log.warn(deline`
-          You were previously logged in to Garden Enterprise, but your session has expired or is invalid. Please run
-          ${chalk.bold("garden login")} to continue using enterprise features, or run ${chalk.bold("garden logout")}
-          to suppress this message.
-        `)
-      }
+      secrets = await enterpriseConnect({ log, projectId, environmentName, enterpriseApi })
     }
   }
-
   return { clientAuthToken, secrets }
 }
 
-/**
- * Returns null if one or more parameters are null.
- *
- * Returns a `GardenEnterpriseContext` otherwise.
- */
-export function makeEnterpriseContext(garden: Garden): GardenEnterpriseContext | null {
-  const missing: string[] = []
-  if (!garden.clientAuthToken) {
-    missing.push("client auth token")
+async function handleMissingConfig(log: LogEntry, enterpriseApi: EnterpriseApi, projectId: string | null) {
+  const errorMessages: string[] = []
+  if (!enterpriseApi.getDomain()) {
+    errorMessages.push(deline`
+      ${chalk.bold("project.domain")} is not set in your project-level ${chalk.bold("garden.yml")}. Make sure it
+      is set to the appropriate Garden Enterprise URL (e.g. https://garden-enterprise.example.com,
+      with an http/https prefix).
+    `)
   }
-  if (!garden.projectId) {
-    missing.push("project id")
+  if (!projectId) {
+    errorMessages.push(deline`
+      ${chalk.bold("project.id")} is not set in your project-level ${chalk.bold("garden.yml")}. Please visit
+      Garden Enterprise's web UI for your project and copy your project's ID from there.
+    `)
   }
-  if (!garden.enterpriseDomain) {
-    missing.push("domain")
+  if (errorMessages.length > 0) {
+    log.verbose(
+      chalk.gray(dedent`
+        ${errorMessages.join("\n\n")}
+
+        Logging out via the ${chalk.bold("garden logout")} command will suppress this message.`)
+    )
   }
-  if (missing.length > 0) {
-    garden.log.silly(`Enterprise features disabled. Missing values: ${missing.join(",")}`)
-    return null
-  } else {
-    return {
-      clientAuthToken: garden.clientAuthToken!,
-      projectId: garden.projectId!,
-      enterpriseDomain: garden.enterpriseDomain!,
+}
+
+async function enterpriseConnect({ log, projectId, environmentName, enterpriseApi }: EnterpriseConnectParams) {
+  let success = true
+  let secrets: StringMap = {}
+
+  const enterpriseLog = log.info({ section: "garden-enterprise", msg: "Connecting...", status: "active" })
+  const tokenIsValid = await enterpriseApi.checkClientAuthToken(enterpriseLog)
+  if (tokenIsValid) {
+    try {
+      secrets = await getSecrets({
+        projectId,
+        environmentName,
+        enterpriseApi,
+        log: enterpriseLog,
+      })
+    } catch (err) {
+      success = false
     }
+    enterpriseLog.silly(`Fetched ${Object.keys(secrets).length} secrets from ${enterpriseApi.getDomain()}`)
+  } else {
+    success = false
+    enterpriseLog.warn(deline`
+        You were previously logged in to Garden Enterprise, but your session has expired or is invalid. Please run
+        ${chalk.bold("garden login")} to continue using enterprise features, or run ${chalk.bold("garden logout")}
+        to suppress this message.
+      `)
   }
+
+  if (success) {
+    enterpriseLog.setSuccess("Ready")
+  } else {
+    enterpriseLog.setWarn()
+  }
+
+  return secrets
 }

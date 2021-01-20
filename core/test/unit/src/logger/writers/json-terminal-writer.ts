@@ -9,13 +9,14 @@
 import { expect } from "chai"
 
 import { JsonTerminalWriter } from "../../../../../src/logger/writers/json-terminal-writer"
-import { getLogger } from "../../../../../src/logger/logger"
+import { getLogger, Logger } from "../../../../../src/logger/logger"
 import { freezeTime } from "../../../../helpers"
 
-const logger: any = getLogger()
+const logger: Logger = getLogger()
 
 beforeEach(() => {
-  logger.children = []
+  // tslint:disable-next-line: prettier
+  (logger["children"] as any) = []
 })
 
 describe("JsonTerminalWriter", () => {

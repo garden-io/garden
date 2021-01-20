@@ -1,6 +1,11 @@
 {
   "type": "object",
   "properties": {
-    "foo": { "type": "string" }
+    "name": {
+      "type": "string"
+    },
+    "value": {
+      "type": "string"
+    }
   }
 }

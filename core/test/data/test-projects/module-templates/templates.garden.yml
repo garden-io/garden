@@ -3,27 +3,28 @@ name: combo
 inputsSchemaPath: "module-templates.json"
 modules:
   - type: test
-    name: ${parent.name}-${inputs.foo}-test-a
+    name: ${parent.name}-${inputs.name}-a
     include: []
+    extraFlags: ["${inputs.value}"]
     generateFiles:
       - targetPath: module-a.log
         value: "hellow"
   - type: test
-    name: ${parent.name}-${inputs.foo}-test-b
+    name: ${parent.name}-${inputs.name}-b
     build:
-      dependencies: ["${parent.name}-${inputs.foo}-test-a"]
+      dependencies: ["${parent.name}-${inputs.name}-a"]
     include: []
     generateFiles:
       - targetPath: module-b.log
         sourcePath: source.txt
   - type: test
-    name: ${parent.name}-${inputs.foo}-test-c
+    name: ${parent.name}-${inputs.name}-c
     build:
-      dependencies: ["${parent.name}-${inputs.foo}-test-a"]
+      dependencies: ["${parent.name}-${inputs.name}-a"]
     include: []
     generateFiles:
       - targetPath: .garden/subdir/module-c.log
         value: |
           Hello I am string!
-          input: ${inputs.foo}
-          module reference: ${modules["${parent.name}-${inputs.foo}-test-a"].path}
+          input: ${inputs.value}
+          module reference: ${modules["${parent.name}-${inputs.name}-a"].path}

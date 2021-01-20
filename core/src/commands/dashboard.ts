@@ -47,8 +47,11 @@ export class DashboardCommand extends Command<Args, Opts> {
   arguments = dashboardArgs
   options = dashboardOpts
 
-  async prepare({ headerLog, log, footerLog, opts }: PrepareParams<Args, Opts>) {
+  printHeader({ headerLog }) {
     printHeader(headerLog, "Dashboard", "bar_chart")
+  }
+
+  async prepare({ log, footerLog, opts }: PrepareParams<Args, Opts>) {
     this.server = await startServer({ log: footerLog, port: opts.port })
 
     // Print nicer error message when address is not available

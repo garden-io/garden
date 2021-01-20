@@ -92,7 +92,7 @@ export class TestTask extends BaseTask {
       nodeType: "test",
       name: this.getName(),
       recursive: false,
-      filterFn: (depNode) => !(depNode.type === "deploy" && includes(this.hotReloadServiceNames, depNode.name)),
+      filter: (depNode) => !(depNode.type === "deploy" && includes(this.hotReloadServiceNames, depNode.name)),
     })
 
     const buildTasks = await BuildTask.factory({

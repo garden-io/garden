@@ -53,8 +53,11 @@ export class UpdateRemoteSourcesCommand extends Command<Args> {
         garden update-remote sources my-source  # update remote source my-source
   `
 
-  async action({ garden, log, headerLog, args }: CommandParams<Args>): Promise<CommandResult<Output>> {
+  printHeader({ headerLog }) {
     printHeader(headerLog, "Update remote sources", "hammer_and_wrench")
+  }
+
+  async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<Output>> {
     return updateRemoteSources({ garden, log, args })
   }
 }
@@ -70,7 +73,8 @@ export async function updateRemoteSources({
 }) {
   const { sources } = args
 
-  const projectSources = garden.projectSources.filter((src) => (sources ? sources.includes(src.name) : true))
+  const projectSources = garden.getProjectSources()
+  const selectedSources = projectSources.filter((src) => (sources ? sources.includes(src.name) : true))
 
   const names = projectSources.map((src) => src.name)
 
@@ -80,7 +84,7 @@ export async function updateRemoteSources({
     throw new ParameterError(
       `Expected source(s) ${chalk.underline(diff.join(","))} to be specified in the project garden.yml config.`,
       {
-        remoteSources: garden.projectSources.map((s) => s.name).sort(),
+        remoteSources: projectSources.map((s) => s.name).sort(),
         input: sources ? sources.sort() : undefined,
       }
     )
@@ -88,7 +92,7 @@ export async function updateRemoteSources({
 
   // TODO Update remotes in parallel. Currently not possible since updating might
   // trigger a username and password prompt from git.
-  for (const { name, repositoryUrl } of projectSources) {
+  for (const { name, repositoryUrl } of selectedSources) {
     await garden.vcs.updateRemoteSource({
       name,
       url: repositoryUrl,
@@ -100,8 +104,8 @@ export async function updateRemoteSources({
   await pruneRemoteSources({
     gardenDirPath: garden.gardenDirPath,
     type: "project",
-    sources: projectSources,
+    sources: selectedSources,
   })
 
-  return { result: { sources: projectSources } }
+  return { result: { sources: selectedSources } }
 }

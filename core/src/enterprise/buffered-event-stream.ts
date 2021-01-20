@@ -7,13 +7,15 @@
  */
 
 import Bluebird from "bluebird"
+import { omit } from "lodash"
+
 import { Events, EventName, EventBus, eventNames } from "../events"
-import { LogEntryMetadata, LogEntry } from "../logger/log-entry"
-import { chainMessages } from "../logger/renderers"
+import { LogEntryMetadata, LogEntry, LogEntryMessage } from "../logger/log-entry"
 import { got } from "../util/http"
-import { makeAuthHeader } from "./auth"
+
 import { LogLevel } from "../logger/log-node"
 import { Garden } from "../garden"
+import { EnterpriseApi, makeAuthHeader } from "./api"
 
 export type StreamEvent = {
   name: EventName
@@ -21,31 +23,37 @@ export type StreamEvent = {
   timestamp: Date
 }
 
-export interface LogEntryEvent {
+// TODO: Remove data, section, timestamp and msg once we've updated GE (it's included in the message)
+export interface LogEntryEventPayload {
   key: string
   parentKey: string | null
   revision: number
-  msg: string | string[]
   timestamp: Date
   level: LogLevel
-  data?: any
-  section?: string
+  message: Omit<LogEntryMessage, "timestamp">
   metadata?: LogEntryMetadata
 }
 
-export function formatLogEntryForEventStream(entry: LogEntry): LogEntryEvent {
-  const { section, data } = entry.getMessageState()
+export function formatLogEntryForEventStream(entry: LogEntry): LogEntryEventPayload {
+  const message = entry.getLatestMessage()
   const { key, revision, level } = entry
   const parentKey = entry.parent ? entry.parent.key : null
   const metadata = entry.getMetadata()
-  const msg = chainMessages(entry.getMessageStates() || [])
-  const timestamp = new Date()
-  return { key, parentKey, revision, msg, data, metadata, section, timestamp, level }
+  return {
+    key,
+    parentKey,
+    revision,
+    metadata,
+    timestamp: message.timestamp,
+    level,
+    message: omit(message, "timestamp"),
+  }
 }
 
 interface StreamTarget {
-  host: string
-  clientAuthToken: string
+  host?: string
+  enterprise: boolean
+  clientAuthToken?: string
 }
 
 export type StreamRecordType = "event" | "logEntry"
@@ -70,7 +78,7 @@ export interface ApiEventBatch extends ApiBatchBase {
 }
 
 export interface ApiLogBatch extends ApiBatchBase {
-  logEntries: LogEntryEvent[]
+  logEntries: LogEntryEventPayload[]
 }
 
 export const controlEventNames: Set<EventName> = new Set(["_workflowRunRegistered"])
@@ -86,6 +94,7 @@ export const controlEventNames: Set<EventName> = new Set(["_workflowRunRegistere
  */
 export class BufferedEventStream {
   protected log: LogEntry
+  protected enterpriseApi?: EnterpriseApi
   public sessionId: string
 
   protected targets: StreamTarget[]
@@ -103,7 +112,7 @@ export class BufferedEventStream {
 
   private intervalId: NodeJS.Timer | null
   private bufferedEvents: StreamEvent[]
-  private bufferedLogEntries: LogEntryEvent[]
+  private bufferedLogEntries: LogEntryEventPayload[]
   protected intervalMsec = 1000
 
   /**
@@ -113,10 +122,11 @@ export class BufferedEventStream {
    */
   private maxBatchBytes = 600 * 1024 // 600 kilobytes
 
-  constructor(log: LogEntry, sessionId: string) {
+  constructor({ log, enterpriseApi, sessionId }: { log: LogEntry; enterpriseApi?: EnterpriseApi; sessionId: string }) {
     this.sessionId = sessionId
     this.log = log
-    this.log.root.events.onAny((_name: string, payload: LogEntryEvent) => {
+    this.enterpriseApi = enterpriseApi
+    this.log.root.events.onAny((_name: string, payload: LogEntryEventPayload) => {
       this.streamLogEntry(payload)
     })
     this.bufferedEvents = []
@@ -153,7 +163,7 @@ export class BufferedEventStream {
     // We maintain this map to facilitate unsubscribing from events when the Garden instance is closed.
     const gardenEventListeners = {}
     for (const gardenEventName of eventNames) {
-      const listener = (payload: LogEntryEvent) => this.streamEvent(gardenEventName, payload)
+      const listener = (payload: LogEntryEventPayload) => this.streamEvent(gardenEventName, payload)
       gardenEventListeners[gardenEventName] = listener
       eventBus.on(gardenEventName, listener)
     }
@@ -205,14 +215,10 @@ export class BufferedEventStream {
     }
   }
 
-  streamLogEntry(logEntry: LogEntryEvent) {
+  streamLogEntry(logEntry: LogEntryEventPayload) {
     if (this.streamLogEntries) {
       this.bufferedLogEntries.push(logEntry)
     }
-  }
-
-  private getHeaders(target: StreamTarget) {
-    return makeAuthHeader(target.clientAuthToken)
   }
 
   async flushEvents(events: StreamEvent[]) {
@@ -232,7 +238,7 @@ export class BufferedEventStream {
     await this.postToTargets(`${events.length} events`, "events", data)
   }
 
-  async flushLogEntries(logEntries: LogEntryEvent[]) {
+  async flushLogEntries(logEntries: LogEntryEventPayload[]) {
     if (logEntries.length === 0 || !this.garden) {
       return
     }
@@ -252,16 +258,20 @@ export class BufferedEventStream {
       this.log.silly("No targets to send events to. Dropping them.")
     }
 
-    const targetUrls = this.targets.map((target) => `${target.host}/${path}`)
-    this.log.silly(`Flushing ${description} to ${targetUrls.join(", ")}`)
-    this.log.silly(`--------`)
-    this.log.silly(`data: ${JSON.stringify(data)}`)
-    this.log.silly(`--------`)
-
     try {
       await Bluebird.map(this.targets, (target) => {
-        const headers = this.getHeaders(target)
-        return got.post(`${target.host}/${path}`, { json: data, headers })
+        if (target.enterprise && this.enterpriseApi?.getDomain()) {
+          this.log.silly(`Flushing ${description} to GE /${path}`)
+          return this.enterpriseApi.post(this.log, `${path}`, { body: data })
+        }
+        const targetUrl = `${target.host}/${path}`
+        this.log.silly(`Flushing ${description} to ${targetUrl}`)
+        this.log.silly(`--------`)
+        this.log.silly(`data: ${JSON.stringify(data)}`)
+        this.log.silly(`--------`)
+
+        const headers = makeAuthHeader(target.clientAuthToken || "")
+        return got.post(`${targetUrl}`, { json: data, headers })
       })
     } catch (err) {
       /**

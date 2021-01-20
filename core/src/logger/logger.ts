@@ -161,7 +161,7 @@ export class Logger extends LogNode {
   }
 
   onGraphChange(entry: LogEntry) {
-    if (entry.level <= EVENT_LOG_LEVEL) {
+    if (entry.level <= EVENT_LOG_LEVEL && !entry.isPlaceholder) {
       this.events.emit("logEntry", formatLogEntryForEventStream(entry))
     }
     for (const writer of this.writers) {
@@ -176,7 +176,7 @@ export class Logger extends LogNode {
   }
 
   filterBySection(section: string): LogEntry[] {
-    return getChildEntries(this).filter((entry) => entry.getMessageState().section === section)
+    return getChildEntries(this).filter((entry) => entry.getLatestMessage().section === section)
   }
 
   findById(id: string): LogEntry | void {

@@ -59,16 +59,19 @@ export class LinkSourceCommand extends Command<Args> {
         garden link source my-source path/to/my-source # links my-source to its local version at the given path
   `
 
-  async action({ garden, log, headerLog, args }: CommandParams<Args>): Promise<CommandResult<Output>> {
+  printHeader({ headerLog }) {
     printHeader(headerLog, "Link source", "link")
+  }
 
+  async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<Output>> {
     const sourceType = "project"
 
     const { source: sourceName, path } = args
-    const projectSourceToLink = garden.projectSources.find((src) => src.name === sourceName)
+    const projectSources = garden.getProjectSources()
+    const projectSourceToLink = projectSources.find((src) => src.name === sourceName)
 
     if (!projectSourceToLink) {
-      const availableRemoteSources = garden.projectSources.map((s) => s.name).sort()
+      const availableRemoteSources = projectSources.map((s) => s.name).sort()
 
       throw new ParameterError(
         `Remote source ${chalk.underline(sourceName)} not found in project config.` +

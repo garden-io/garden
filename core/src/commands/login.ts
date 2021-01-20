@@ -28,8 +28,11 @@ export class LoginCommand extends Command {
     Logs you in to Garden Enterprise. Subsequent commands will have access to enterprise features.
   `
 
-  async action({ garden, log, headerLog }: CommandParams): Promise<CommandResult> {
+  printHeader({ headerLog }) {
     printHeader(headerLog, "Login", "cloud")
+  }
+
+  async action({ garden, log }: CommandParams): Promise<CommandResult> {
     // Since this command has `noProject = true`, `garden` only has a placeholder project config.
     // So we find and load it here, without resolving any template strings.
     const currentDirectory = garden.projectRoot
@@ -39,11 +42,18 @@ export class LoginCommand extends Command {
         currentDirectory,
       })
     }
-    const enterpriseDomain = projectConfig.domain
-    if (!enterpriseDomain) {
-      throw new ConfigurationError(`Error: Your project configuration does not specify a domain.`, {})
+
+    if (!garden.enterpriseApi?.getDomain()) {
+      throw new ConfigurationError(`Error: Your project configuration does not specify a domain.`, {
+        enteprise: garden.enterpriseApi,
+      })
     }
-    await login(enterpriseDomain, log)
+    log.info({ msg: `Logging in to ${garden.enterpriseApi?.getDomain()}.` })
+
+    await login(garden.enterpriseApi, log)
+
+    log.info({ msg: `Successfully logged in to Garden Enteprise.` })
+
     return {}
   }
 }

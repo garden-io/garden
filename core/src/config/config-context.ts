@@ -225,6 +225,20 @@ export abstract class ConfigContext {
   }
 }
 
+/**
+ * A generic context that just wraps an object.
+ */
+export class GenericContext extends ConfigContext {
+  constructor(obj: any) {
+    super()
+    Object.assign(this, obj)
+  }
+
+  static getSchema() {
+    return joi.object()
+  }
+}
+
 export class ScanContext extends ConfigContext {
   foundKeys: KeyedSet<ContextKeySegment[]>
 
@@ -269,6 +283,9 @@ class LocalContext extends ConfigContext {
   )
   public platform: string
 
+  @schema(joi.string().description("The absolute path to the project root directory.").example("/home/me/my-project"))
+  public projectPath: string
+
   @schema(
     joi
       .string()
@@ -277,11 +294,12 @@ class LocalContext extends ConfigContext {
   )
   public username?: string
 
-  constructor(root: ConfigContext, artifactsPath: string, username?: string) {
+  constructor(root: ConfigContext, artifactsPath: string, projectRoot: string, username?: string) {
     super(root)
     this.artifactsPath = artifactsPath
     this.env = process.env
     this.platform = process.platform
+    this.projectPath = projectRoot
     this.username = username
   }
 }
@@ -344,17 +362,19 @@ export class DefaultEnvironmentContext extends ConfigContext {
 
   constructor({
     projectName,
+    projectRoot,
     artifactsPath,
     branch,
     username,
   }: {
     projectName: string
+    projectRoot: string
     artifactsPath: string
     branch: string
     username?: string
   }) {
     super()
-    this.local = new LocalContext(this, artifactsPath, username)
+    this.local = new LocalContext(this, artifactsPath, projectRoot, username)
     this.git = new GitContext(this, branch)
     this.project = new ProjectContext(this, projectName)
   }
@@ -362,6 +382,7 @@ export class DefaultEnvironmentContext extends ConfigContext {
 
 export interface ProjectConfigContextParams {
   projectName: string
+  projectRoot: string
   artifactsPath: string
   branch: string
   username?: string
@@ -386,10 +407,14 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
   )
   public secrets: PrimitiveMap
 
-  constructor({ projectName, artifactsPath, branch, username, secrets }: ProjectConfigContextParams) {
-    super({ projectName, artifactsPath, branch, username })
+  constructor({ projectName, projectRoot, artifactsPath, branch, username, secrets }: ProjectConfigContextParams) {
+    super({ projectName, projectRoot, artifactsPath, branch, username })
     this.secrets = secrets
   }
+}
+
+interface EnvironmentConfigContextParams extends ProjectConfigContextParams {
+  variables: DeepPrimitiveMap
 }
 
 /**
@@ -418,20 +443,14 @@ export class EnvironmentConfigContext extends ProjectConfigContext {
 
   constructor({
     projectName,
+    projectRoot,
     artifactsPath,
     branch,
     username,
     variables,
     secrets,
-  }: {
-    projectName: string
-    artifactsPath: string
-    branch: string
-    username?: string
-    variables: DeepPrimitiveMap
-    secrets: PrimitiveMap
-  }) {
-    super({ projectName, artifactsPath, branch, username, secrets })
+  }: EnvironmentConfigContextParams) {
+    super({ projectName, projectRoot, artifactsPath, branch, username, secrets })
     this.variables = this.var = variables
   }
 }
@@ -498,6 +517,7 @@ export class WorkflowConfigContext extends EnvironmentConfigContext {
   constructor(garden: Garden) {
     super({
       projectName: garden.projectName,
+      projectRoot: garden.projectRoot,
       artifactsPath: garden.artifactsPath,
       branch: garden.vcsBranch,
       username: garden.username,

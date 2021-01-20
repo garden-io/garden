@@ -29,7 +29,6 @@ import { registerWorkflowRun } from "../../enterprise/workflow-lifecycle"
 import { parseCliArgs, pickCommand, processCliArgs } from "../../cli/helpers"
 import { StringParameter } from "../../cli/params"
 import { getAllCommands } from "../commands"
-import { makeEnterpriseContext } from "../../enterprise/init"
 
 const runWorkflowArgs = {
   workflow: new StringParameter({
@@ -61,13 +60,11 @@ export class RunWorkflowCommand extends Command<Args, {}> {
 
   arguments = runWorkflowArgs
 
-  async action({
-    garden,
-    log,
-    headerLog,
-    args,
-    opts,
-  }: CommandParams<Args, {}>): Promise<CommandResult<WorkflowRunOutput>> {
+  printHeader({ headerLog, args }) {
+    printHeader(headerLog, `Running workflow ${chalk.white(args.workflow)}`, "runner")
+  }
+
+  async action({ garden, log, args, opts }: CommandParams<Args, {}>): Promise<CommandResult<WorkflowRunOutput>> {
     const outerLog = log.placeholder()
     // Prepare any configured files before continuing
     const workflow = garden.getWorkflowConfig(args.workflow)
@@ -81,8 +78,6 @@ export class RunWorkflowCommand extends Command<Args, {}> {
 
     const steps = workflow.steps
     const allStepNames = steps.map((s, i) => getStepName(i, s.name))
-
-    printHeader(headerLog, `Running workflow ${chalk.white(workflow.name)}`, "runner")
 
     const startedAt = new Date().valueOf()
 
@@ -436,10 +431,10 @@ export function logErrors(
 }
 
 async function registerAndSetUid(garden: Garden, log: LogEntry, config: WorkflowConfig) {
-  const enterpriseContext = makeEnterpriseContext(garden)
-  if (enterpriseContext) {
+  const { enterpriseApi } = garden
+  if (enterpriseApi) {
     const workflowRunUid = await registerWorkflowRun({
-      enterpriseContext,
+      garden,
       workflowConfig: config,
       environment: garden.environmentName,
       namespace: garden.namespace,

@@ -16,6 +16,7 @@ import { exec } from "../../../util/util"
 import { remove } from "lodash"
 import { getNfsStorageClass } from "../init"
 import { isClusterKind } from "./kind"
+import chalk from "chalk"
 
 // TODO: split this into separate plugins to handle Docker for Mac and Minikube
 
@@ -93,8 +94,7 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
 
   if (await isClusterKind(ctx, provider, log)) {
     config.clusterType = "kind"
-  }
-  if (config.context === "minikube") {
+  } else if (config.context === "minikube") {
     await exec("minikube", ["config", "set", "WantUpdateNotification", "false"])
 
     config.clusterType = "minikube"
@@ -107,7 +107,11 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
 
     if (config.setupIngressController === "nginx") {
       log.debug("Using minikube's ingress addon")
-      await exec("minikube", ["addons", "enable", "ingress"])
+      try {
+        await exec("minikube", ["addons", "enable", "ingress"])
+      } catch (err) {
+        log.warn(chalk.yellow(`Unable to enable minikube ingress addon: ${err.all}`))
+      }
       remove(_systemServices, (s) => nginxServices.includes(s))
     }
 

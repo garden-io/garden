@@ -7,12 +7,12 @@
 
 <script>
 // @ is an alias to /src
-import Vote from "@/components/Vote.vue";
+import Vote from '@/components/Vote.vue';
 
 export default {
-  name: "home",
+  name: 'home',
   components: {
-    Vote
-  }
+    Vote,
+  },
 };
 </script>

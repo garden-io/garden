@@ -14,4 +14,10 @@ import { GardenEntity } from "../base-entity"
 export class ClientAuthToken extends GardenEntity {
   @Column()
   token: string
+
+  @Column()
+  refreshToken: string
+
+  @Column()
+  validity: Date
 }

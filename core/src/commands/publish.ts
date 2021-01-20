@@ -59,7 +59,6 @@ export class PublishCommand extends Command<Args, Opts> {
 
   workflows = true
   streamEvents = true
-  streamLogEntries = true
 
   description = dedent`
     Publishes built module artifacts for all or specified modules.
@@ -83,16 +82,17 @@ export class PublishCommand extends Command<Args, Opts> {
       ),
     })
 
+  printHeader({ headerLog }) {
+    printHeader(headerLog, "Publish modules", "rocket")
+  }
+
   async action({
     garden,
     log,
-    headerLog,
     footerLog,
     args,
     opts,
   }: CommandParams<Args, Opts>): Promise<CommandResult<PublishCommandResult>> {
-    printHeader(headerLog, "Publish modules", "rocket")
-
     const graph = await garden.getConfigGraph(log)
     const modules = graph.getModules({ names: args.modules })
 

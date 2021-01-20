@@ -46,7 +46,7 @@ import { LocalConfigStore, ConfigStore, GlobalConfigStore, LinkedSource } from "
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
 import { BuildDependencyConfig, ModuleConfig } from "./config/module"
 import { ModuleResolver, moduleResolutionConcurrencyLimit } from "./resolve-module"
-import { OutputConfigContext, DefaultEnvironmentContext } from "./config/config-context"
+import { OutputConfigContext, DefaultEnvironmentContext, ProviderConfigContext } from "./config/config-context"
 import { createPluginContext, CommandInfo } from "./plugin-context"
 import { ModuleAndRuntimeActionHandlers, RegisterPluginParam } from "./types/plugin/plugin"
 import { SUPPORTED_PLATFORMS, SupportedPlatform, DEFAULT_GARDEN_DIR_NAME, gardenEnv } from "./constants"
@@ -77,7 +77,7 @@ import { ensureConnected } from "./db/connection"
 import { DependencyValidationGraph } from "./util/validate-dependencies"
 import { Profile } from "./util/profiling"
 import username from "username"
-import { throwOnMissingSecretKeys, resolveTemplateString } from "./template-string"
+import { throwOnMissingSecretKeys, resolveTemplateString, resolveTemplateStrings } from "./template-string"
 import { WorkflowConfig, WorkflowConfigMap, resolveWorkflowConfig } from "./config/workflow"
 import { enterpriseInit } from "./enterprise/init"
 import { PluginTool, PluginTools } from "./util/ext-tools"
@@ -86,9 +86,11 @@ import {
   resolveModuleTemplate,
   resolveTemplatedModule,
   templateKind,
+  ModuleTemplateConfig,
 } from "./config/module-template"
 import { TemplatedModuleConfig } from "./plugins/templated"
 import { BuildDirRsync } from "./build-staging/rsync"
+import { EnterpriseApi } from "./enterprise/api"
 
 export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
   [actionName: string]: PluginActionHandlers[T]
@@ -116,6 +118,7 @@ export interface GardenOpts {
   experimentalBuildSync?: boolean
   commandInfo?: CommandInfo
   config?: ProjectConfig
+  disablePortForwards?: boolean
   environmentName?: string
   forceRefresh?: boolean
   gardenDirPath?: string
@@ -125,15 +128,15 @@ export interface GardenOpts {
   plugins?: RegisterPluginParam[]
   sessionId?: string
   variables?: PrimitiveMap
+  enterpriseApi?: EnterpriseApi
 }
 
 export interface GardenParams {
   artifactsPath: string
   vcsBranch: string
   buildStaging: BuildStaging
-  clientAuthToken: string | null
-  enterpriseDomain: string | null
   projectId: string | null
+  disablePortForwards?: boolean
   dotIgnoreFiles: string[]
   environmentName: string
   environmentConfigs: EnvironmentConfig[]
@@ -157,6 +160,7 @@ export interface GardenParams {
   vcs: VcsHandler
   workingCopyId: string
   forceRefresh?: boolean
+  enterpriseApi?: EnterpriseApi | null
 }
 
 @Profile()
@@ -172,8 +176,6 @@ export class Garden {
   private readonly taskGraph: TaskGraph
   private watcher: Watcher
   private asyncLock: any
-  public readonly clientAuthToken: string | null
-  public readonly enterpriseDomain: string | null
   public readonly projectId: string | null
   public sessionId: string | null
   public readonly configStore: ConfigStore
@@ -183,6 +185,7 @@ export class Garden {
   private actionHelper: ActionRouter
   public readonly events: EventBus
   private tools: { [key: string]: PluginTool }
+  public moduleTemplates: { [name: string]: ModuleTemplateConfig }
 
   public readonly production: boolean
   public readonly projectRoot: string
@@ -192,7 +195,7 @@ export class Garden {
   public readonly namespace: string
   public readonly variables: DeepPrimitiveMap
   public readonly secrets: StringMap
-  public readonly projectSources: SourceConfig[]
+  private readonly projectSources: SourceConfig[]
   public readonly buildStaging: BuildStaging
   public readonly gardenDirPath: string
   public readonly artifactsPath: string
@@ -209,11 +212,11 @@ export class Garden {
   public readonly username?: string
   public readonly version: ModuleVersion
   private readonly forceRefresh: boolean
+  public readonly enterpriseApi: EnterpriseApi | null
+  public readonly disablePortForwards: boolean
 
   constructor(params: GardenParams) {
     this.buildStaging = params.buildStaging
-    this.clientAuthToken = params.clientAuthToken
-    this.enterpriseDomain = params.enterpriseDomain
     this.projectId = params.projectId
     this.sessionId = params.sessionId
     this.environmentName = params.environmentName
@@ -241,6 +244,7 @@ export class Garden {
     this.username = params.username
     this.vcs = params.vcs
     this.forceRefresh = !!params.forceRefresh
+    this.enterpriseApi = params.enterpriseApi || null
 
     // make sure we're on a supported platform
     const currentPlatform = platform()
@@ -280,6 +284,8 @@ export class Garden {
       dependencyVersions: {},
       files: [],
     }
+
+    this.disablePortForwards = gardenEnv.GARDEN_DISABLE_PORT_FORWARDS || params.disablePortForwards || false
   }
 
   static async factory<T extends typeof Garden>(
@@ -287,7 +293,7 @@ export class Garden {
     currentDirectory: string,
     opts: GardenOpts = {}
   ): Promise<InstanceType<T>> {
-    let { environmentName: environmentStr, config, gardenDirPath, plugins = [] } = opts
+    let { environmentName: environmentStr, config, gardenDirPath, plugins = [], disablePortForwards } = opts
 
     if (!config) {
       config = await findProjectConfig(currentDirectory)
@@ -319,7 +325,7 @@ export class Garden {
 
     const defaultEnvironmentName = resolveTemplateString(
       config.defaultEnvironment,
-      new DefaultEnvironmentContext({ projectName, artifactsPath, branch: vcsBranch, username: _username })
+      new DefaultEnvironmentContext({ projectName, projectRoot, artifactsPath, branch: vcsBranch, username: _username })
     ) as string
 
     const defaultEnvironment = getDefaultEnvironmentName(defaultEnvironmentName, config)
@@ -333,12 +339,10 @@ export class Garden {
     const sessionId = opts.sessionId || null
     const projectId = config.id || null
     let secrets: StringMap = {}
-    let clientAuthToken: string | null = null
-    const enterpriseDomain = config.domain || null
-    if (!opts.noEnterprise) {
-      const enterpriseInitResult = await enterpriseInit({ log, projectId, enterpriseDomain, environmentName })
+    const enterpriseApi = opts.enterpriseApi || null
+    if (!opts.noEnterprise && enterpriseApi?.isUserLoggedIn) {
+      const enterpriseInitResult = await enterpriseInit({ log, projectId, enterpriseApi, environmentName })
       secrets = enterpriseInitResult.secrets
-      clientAuthToken = enterpriseInitResult.clientAuthToken
     }
 
     config = resolveProjectConfig({
@@ -382,8 +386,7 @@ export class Garden {
       artifactsPath,
       vcsBranch,
       sessionId,
-      clientAuthToken,
-      enterpriseDomain,
+      disablePortForwards,
       projectId,
       projectRoot,
       projectName,
@@ -408,6 +411,7 @@ export class Garden {
       username: _username,
       vcs,
       forceRefresh: opts.forceRefresh,
+      enterpriseApi,
     }) as InstanceType<T>
 
     return garden
@@ -584,7 +588,7 @@ export class Garden {
         names = getNames(rawConfigs)
       }
 
-      throwOnMissingSecretKeys(rawConfigs, this.secrets, "Provider")
+      throwOnMissingSecretKeys(rawConfigs, this.secrets, "Provider", log)
 
       // As an optimization, we return immediately if all requested providers are already resolved
       const alreadyResolvedProviders = names.map((name) => this.resolvedProviders[name]).filter(Boolean)
@@ -995,7 +999,8 @@ export class Garden {
       // Add external sources that are defined at the project level. External sources are either kept in
       // the .garden/sources dir (and cloned there if needed), or they're linked to a local path via the link command.
       const linkedSources = await getLinkedSources(this, "project")
-      const extSourcePaths = await Bluebird.map(this.projectSources, ({ name, repositoryUrl }) => {
+      const projectSources = this.getProjectSources()
+      const extSourcePaths = await Bluebird.map(projectSources, ({ name, repositoryUrl }) => {
         return this.loadExtSourcePath({
           name,
           linkedSources,
@@ -1013,7 +1018,7 @@ export class Garden {
       const groupedResources = groupBy(allResources, "kind")
 
       for (const [kind, configs] of Object.entries(groupedResources)) {
-        throwOnMissingSecretKeys(configs, this.secrets, kind)
+        throwOnMissingSecretKeys(configs, this.secrets, kind, this.log)
       }
 
       let rawModuleConfigs = [...this.pluginModuleConfigs, ...((groupedResources.Module as ModuleConfig[]) || [])]
@@ -1053,6 +1058,7 @@ export class Garden {
       this.log.silly(`Scanned and found ${rawModuleConfigs.length} modules and ${rawWorkflowConfigs.length} workflows`)
 
       this.configsScanned = true
+      this.moduleTemplates = keyBy(moduleTemplates, "name")
     })
   }
 
@@ -1124,6 +1130,14 @@ export class Garden {
   //===========================================================================
   //region Internal helpers
   //===========================================================================
+
+  /**
+   * Returns the configured project sources, and resolves any template strings on them.
+   */
+  public getProjectSources() {
+    const context = new ProviderConfigContext(this, {})
+    return resolveTemplateStrings(this.projectSources, context)
+  }
 
   /**
    * Clones the project/module source if needed and returns the path (either from .garden/sources or from a local path)

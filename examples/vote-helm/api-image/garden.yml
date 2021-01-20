@@ -5,3 +5,8 @@ name: api-image
 tests:
   - name: unit
     args: [echo, ok]
+  - name: integ
+    args: [python, /app/test.py]
+    timeout: 60
+    dependencies:
+      - api

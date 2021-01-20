@@ -49,7 +49,6 @@ export class BuildCommand extends Command<Args, Opts> {
   protected = true
   workflows = true
   streamEvents = true
-  streamLogEntries = true
 
   description = dedent`
     Builds all or specified modules, taking into account build dependency order.
@@ -70,29 +69,27 @@ export class BuildCommand extends Command<Args, Opts> {
 
   private isPersistent = (opts) => !!opts.watch
 
-  async prepare({ headerLog, footerLog, opts }: PrepareParams<Args, Opts>) {
+  async prepare({ footerLog, opts }: PrepareParams<Args, Opts>) {
     const persistent = this.isPersistent(opts)
 
     if (persistent) {
-      printHeader(headerLog, "Build", "hammer")
       this.server = await startServer({ log: footerLog })
     }
 
     return { persistent }
   }
 
+  printHeader({ headerLog }) {
+    printHeader(headerLog, "Build", "hammer")
+  }
+
   async action({
     garden,
     log,
-    headerLog,
     footerLog,
     args,
     opts,
   }: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
-    if (!this.isPersistent(opts)) {
-      printHeader(headerLog, "Build", "hammer")
-    }
-
     if (this.server) {
       this.server.setGarden(garden)
     }

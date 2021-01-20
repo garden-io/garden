@@ -22,9 +22,11 @@ export class GetLinkedReposCommand extends Command {
   name = "linked-repos"
   help = "Outputs a list of all linked remote sources and modules for this project."
 
-  async action({ garden, log, headerLog }: CommandParams<Args>): Promise<CommandResult<LinkedSource[]>> {
+  printHeader({ headerLog }) {
     printHeader(headerLog, "List linked modules and sources", "open_book")
+  }
 
+  async action({ garden, log }: CommandParams<Args>): Promise<CommandResult<LinkedSource[]>> {
     const linkedProjectSources = sortBy(await getLinkedSources(garden, "project"), (s) => s.name)
     const linkedModuleSources = sortBy(await getLinkedSources(garden, "module"), (s) => s.name)
 

@@ -53,8 +53,8 @@ interface MessageBase {
   maxSectionWidth?: number
 }
 
-export interface MessageState extends MessageBase {
-  timestamp: number
+export interface LogEntryMessage extends MessageBase {
+  timestamp: Date
 }
 
 export interface UpdateLogEntryParams extends MessageBase {
@@ -63,8 +63,6 @@ export interface UpdateLogEntryParams extends MessageBase {
 
 export interface LogEntryParams extends UpdateLogEntryParams {
   error?: GardenError
-  data?: any // to be rendered as e.g. YAML or JSON
-  dataFormat?: "json" | "yaml" // how to render the data object
   indent?: number
   childEntriesInheritLevel?: boolean
   fromStdStream?: boolean
@@ -88,8 +86,12 @@ function resolveParams(params?: string | UpdateLogEntryParams): UpdateLogEntryPa
   }
 }
 
+// FIXME: Refactor to better distinguish between normal log entries and placeholder
+// log entries and to get rid of these "god" interfaces.
+// We should also better distinguish between message data and log entry data
+// and enforce that some message data is set for non-placeholder entries.
 export class LogEntry extends LogNode {
-  private messageStates?: MessageState[]
+  private messages: LogEntryMessage[]
   private metadata?: LogEntryMetadata
   public readonly root: Logger
   public readonly fromStdStream?: boolean
@@ -97,7 +99,7 @@ export class LogEntry extends LogNode {
   public readonly errorData?: GardenError
   public readonly childEntriesInheritLevel?: boolean
   public readonly id?: string
-  public isPlaceholder?: boolean
+  public isPlaceholder: boolean
   public revision: number
 
   constructor(params: LogEntryConstructor) {
@@ -110,7 +112,7 @@ export class LogEntry extends LogNode {
     this.childEntriesInheritLevel = params.childEntriesInheritLevel
     this.metadata = params.metadata
     this.id = params.id
-    this.isPlaceholder = params.isPlaceholder
+    this.isPlaceholder = params.isPlaceholder || false
     this.revision = -1
 
     if (!params.isPlaceholder) {
@@ -122,46 +124,56 @@ export class LogEntry extends LogNode {
         status: params.level === LogLevel.error ? "error" : params.status,
         data: params.data,
         dataFormat: params.dataFormat,
+        append: params.append,
         maxSectionWidth: params.maxSectionWidth,
       })
+    } else {
+      this.messages = [{ timestamp: new Date() }]
     }
   }
 
   /**
    * Updates the log entry with a few invariants:
    * 1. msg, emoji, section, status, and symbol can only be replaced with a value of same type, not removed
-   * 2. append is always set explicitly (the next message state does not inherit the previous value)
+   * 2. append is always set explicitly (the next message does not inherit the previous value)
    * 3. next metadata is merged with the previous metadata
    */
   protected update(updateParams: UpdateLogEntryParams): void {
     this.revision = this.revision + 1
-    const messageState = this.getMessageState()
+    const latestMessage = this.getLatestMessage()
 
     // Explicitly set all the fields so the shape stays consistent
-    const nextMessageState: MessageState = {
+    const nextMessage: LogEntryMessage = {
       // Ensure empty string gets set
-      msg: typeof updateParams.msg === "string" ? updateParams.msg : messageState.msg,
-      emoji: updateParams.emoji || messageState.emoji,
-      section: updateParams.section || messageState.section,
-      status: updateParams.status || messageState.status,
-      symbol: updateParams.symbol || messageState.symbol,
-      data: updateParams.data || messageState.data,
-      dataFormat: updateParams.dataFormat || messageState.dataFormat,
-      // Next state does not inherit the append field
+      msg: typeof updateParams.msg === "string" ? updateParams.msg : latestMessage.msg,
+      emoji: updateParams.emoji || latestMessage.emoji,
+      section: updateParams.section || latestMessage.section,
+      status: updateParams.status || latestMessage.status,
+      symbol: updateParams.symbol || latestMessage.symbol,
+      data: updateParams.data || latestMessage.data,
+      dataFormat: updateParams.dataFormat || latestMessage.dataFormat,
+      // Next message does not inherit the append field
       append: updateParams.append,
-      timestamp: Date.now(),
+      timestamp: new Date(),
       maxSectionWidth:
-        updateParams.maxSectionWidth !== undefined ? updateParams.maxSectionWidth : messageState.maxSectionWidth,
+        updateParams.maxSectionWidth !== undefined ? updateParams.maxSectionWidth : latestMessage.maxSectionWidth,
     }
 
     // Hack to preserve section alignment if spinner disappears
-    const hadSpinner = messageState.status === "active"
-    const hasSymbolOrSpinner = nextMessageState.symbol || nextMessageState.status === "active"
-    if (nextMessageState.section && hadSpinner && !hasSymbolOrSpinner) {
-      nextMessageState.symbol = "empty"
+    const hadSpinner = latestMessage.status === "active"
+    const hasSymbolOrSpinner = nextMessage.symbol || nextMessage.status === "active"
+    if (nextMessage.section && hadSpinner && !hasSymbolOrSpinner) {
+      nextMessage.symbol = "empty"
     }
 
-    this.messageStates = [...(this.messageStates || []), nextMessageState]
+    if (this.isPlaceholder) {
+      // If it's a placeholder, this will be the first message...
+      this.messages = [nextMessage]
+      this.isPlaceholder = false
+    } else {
+      // ...otherwise we push it
+      this.messages = [...(this.messages || []), nextMessage]
+    }
 
     if (updateParams.metadata) {
       this.metadata = { ...(this.metadata || {}), ...updateParams.metadata }
@@ -170,14 +182,14 @@ export class LogEntry extends LogNode {
 
   // Update node and child nodes
   private deepUpdate(updateParams: UpdateLogEntryParams): void {
-    const wasActive = this.getMessageState().status === "active"
+    const wasActive = this.getLatestMessage().status === "active"
 
     this.update(updateParams)
 
     // Stop active child nodes if no longer active
     if (wasActive && updateParams.status !== "active") {
       getChildEntries(this).forEach((entry) => {
-        if (entry.getMessageState().status === "active") {
+        if (entry.getLatestMessage().status === "active") {
           entry.update({ status: "done" })
         }
       })
@@ -192,11 +204,16 @@ export class LogEntry extends LogNode {
     const parentWithPreserveFlag = findParentEntry(this, (entry) => !!entry.childEntriesInheritLevel)
     const level = parentWithPreserveFlag ? Math.max(parentWithPreserveFlag.level, params.level) : params.level
 
+    let metadata: LogEntryMetadata | undefined = undefined
+    if (this.metadata || params.metadata) {
+      metadata = merge(cloneDeep(this.metadata || {}), params.metadata || {})
+    }
+
     return new LogEntry({
       ...params,
       indent,
       level,
-      metadata: merge(cloneDeep(this.metadata || {}), params.metadata || {}),
+      metadata,
       root: this.root,
       parent: this,
     })
@@ -210,23 +227,23 @@ export class LogEntry extends LogNode {
     return this.metadata
   }
 
-  getMessageStates() {
-    return this.messageStates
+  getMessages() {
+    return this.messages
   }
 
   /**
-   * Returns a deep copy of the latest message state, if availble.
-   * Otherwise return an empty object of type MessageState for convenience.
+   * Returns a deep copy of the latest message, if availble.
+   * Otherwise returns an empty object of type LogEntryMessage for convenience.
    */
-  getMessageState() {
-    if (!this.messageStates) {
-      return <MessageState>{}
+  getLatestMessage() {
+    if (!this.messages) {
+      return <LogEntryMessage>{}
     }
 
     // Use spread operator to clone the array
-    const msgState = [...this.messageStates][this.messageStates.length - 1]
+    const message = [...this.messages][this.messages.length - 1]
     // ...and the object itself
-    return { ...msgState }
+    return { ...message }
   }
 
   placeholder({
@@ -248,7 +265,6 @@ export class LogEntry extends LogNode {
 
   // Preserves status
   setState(params?: string | UpdateLogEntryParams): LogEntry {
-    this.isPlaceholder = false
     this.deepUpdate({ ...resolveParams(params) })
     this.onGraphChange(this)
     return this
@@ -296,7 +312,7 @@ export class LogEntry extends LogNode {
 
   stop() {
     // Stop gracefully if still in active state
-    if (this.getMessageState().status === "active") {
+    if (this.getLatestMessage().status === "active") {
       this.update({ symbol: "empty", status: "done" })
       this.onGraphChange(this)
     }
@@ -316,7 +332,7 @@ export class LogEntry extends LogNode {
   toString(filter?: (log: LogEntry) => boolean) {
     return this.getChildEntries()
       .filter((entry) => (filter ? filter(entry) : true))
-      .flatMap((entry) => entry.getMessageStates()?.map((state) => state.msg))
+      .flatMap((entry) => entry.getMessages()?.map((message) => message.msg))
       .join("\n")
   }
 }

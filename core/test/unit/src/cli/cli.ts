@@ -72,6 +72,7 @@ describe("cli", () => {
         help = "halp!"
         noProject = true
 
+        printHeader() {}
         async action({ args }) {
           return { result: { args } }
         }
@@ -128,6 +129,7 @@ describe("cli", () => {
           help = "halp!"
           noProject = true
 
+          printHeader() {}
           async action({}) {
             return { result: { something: "important" } }
           }
@@ -148,6 +150,7 @@ describe("cli", () => {
           help = "halp!"
           noProject = true
 
+          printHeader() {}
           async action({}) {
             return { result: { something: "important" } }
           }
@@ -171,6 +174,7 @@ describe("cli", () => {
           help = "halp!"
           noProject = true
 
+          printHeader() {}
           async action({}) {
             return { result: { something: "important" } }
           }
@@ -201,6 +205,7 @@ describe("cli", () => {
         help = "halp!"
         noProject = true
 
+        printHeader() {}
         async action({}) {
           return { result: { something: "important" } }
         }
@@ -222,6 +227,7 @@ describe("cli", () => {
         help = "halp!"
         noProject = true
 
+        printHeader() {}
         async action({}) {
           return { result: { something: "important" } }
         }
@@ -245,6 +251,7 @@ describe("cli", () => {
         name = "test-command"
         help = "halp!"
 
+        printHeader() {}
         async action({ garden }: CommandParams) {
           expect(record.command).to.equal(this.name)
           expect(record.sessionId).to.equal(garden.sessionId)
@@ -284,6 +291,7 @@ describe("cli", () => {
           return { persistent: true }
         }
 
+        printHeader() {}
         async action({ garden }: CommandParams) {
           expect(record.command).to.equal(this.name)
           expect(record.sessionId).to.equal(garden.sessionId)
@@ -339,6 +347,7 @@ describe("cli", () => {
         streamEvents = true
         streamLogEntries = true
 
+        printHeader() {}
         async action({ garden }: CommandParams) {
           garden.events.emit("_test", "funky functional test")
           return { result: {} }
@@ -374,6 +383,7 @@ describe("cli", () => {
           return { persistent: true }
         }
 
+        printHeader() {}
         async action({ garden }: CommandParams) {
           garden.events.emit("_test", "nope")
           return { result: {} }
@@ -401,6 +411,7 @@ describe("cli", () => {
           return { persistent: true }
         }
 
+        printHeader() {}
         async action({}: CommandParams) {
           return { result: {} }
         }
@@ -414,7 +425,7 @@ describe("cli", () => {
 
       await cli.run({ args, exitOnError: false })
 
-      const serverStatus = cmd.server!["statusLog"].getMessageState().msg!
+      const serverStatus = cmd.server!["statusLog"].getLatestMessage().msg!
       expect(stripAnsi(serverStatus)).to.equal(`Garden dashboard running at ${cmd.server!.getUrl()}`)
     })
 
@@ -450,6 +461,7 @@ describe("cli", () => {
           return { persistent: true }
         }
 
+        printHeader() {}
         async action({}: CommandParams) {
           return { result: {} }
         }
@@ -468,7 +480,7 @@ describe("cli", () => {
         await server.close()
       }
 
-      const serverStatus = cmd.server!["statusLog"].getMessageState().msg!
+      const serverStatus = cmd.server!["statusLog"].getLatestMessage().msg!
       expect(stripAnsi(serverStatus)).to.equal(`Garden dashboard running at ${server.getUrl()}`)
     })
 
@@ -478,6 +490,7 @@ describe("cli", () => {
         help = "halp!"
         noProject = true
 
+        printHeader() {}
         async action({}) {
           return { result: { something: "important" } }
         }
@@ -509,6 +522,7 @@ describe("cli", () => {
         help = ""
         noProject = true
 
+        printHeader() {}
         async action({ args, opts }) {
           return { result: { args, opts } }
         }
@@ -536,6 +550,7 @@ describe("cli", () => {
           "--force-refresh",
           "--var",
           "my=value,other=something",
+          "--disable-port-forwards",
         ],
         exitOnError: false,
       })
@@ -557,6 +572,7 @@ describe("cli", () => {
           "var": ["my=value", "other=something"],
           "version": false,
           "help": false,
+          "disable-port-forwards": true,
         },
       })
     })
@@ -584,6 +600,7 @@ describe("cli", () => {
           }),
         }
 
+        printHeader() {}
         async action({ args, opts }) {
           return { result: { args, opts } }
         }
@@ -616,6 +633,7 @@ describe("cli", () => {
           "version": false,
           "help": false,
           "floop": "floop-opt",
+          "disable-port-forwards": false,
         },
       })
     })
@@ -643,6 +661,7 @@ describe("cli", () => {
           }),
         }
 
+        printHeader() {}
         async action({ args, opts }) {
           return { result: { args, opts } }
         }
@@ -685,6 +704,7 @@ describe("cli", () => {
           "version": false,
           "help": false,
           "floop": "floop-opt",
+          "disable-port-forwards": false,
         },
       })
     })
@@ -719,6 +739,7 @@ describe("cli", () => {
           }),
         }
 
+        printHeader() {}
         async action({ args, opts }) {
           return { result: { args, opts } }
         }
@@ -743,6 +764,7 @@ describe("cli", () => {
         help = "halp!"
         noProject = true
 
+        printHeader() {}
         async action({ args }) {
           return { result: { args } }
         }
@@ -762,6 +784,7 @@ describe("cli", () => {
         help = "halp!"
         noProject = true
 
+        printHeader() {}
         async action({ garden }) {
           return { result: { variables: garden.variables } }
         }
@@ -784,6 +807,7 @@ describe("cli", () => {
         help = "halp!"
         noProject = true
 
+        printHeader() {}
         async action() {
           return { result: { some: "output" } }
         }
@@ -803,6 +827,7 @@ describe("cli", () => {
         help = "halp!"
         noProject = true
 
+        printHeader() {}
         async action() {
           return { result: { some: "output" } }
         }
@@ -816,12 +841,34 @@ describe("cli", () => {
       expect(safeLoad(consoleOutput!)).to.eql({ result: { some: "output" }, success: true })
     })
 
+    it("should disable port forwards if --disable-port-forwards is set", async () => {
+      class TestCommand extends Command {
+        name = "test-command"
+        help = "halp!"
+        noProject = true
+
+        printHeader() {}
+
+        async action({ garden }: CommandParams) {
+          return { result: { garden } }
+        }
+      }
+
+      const command = new TestCommand()
+      const cli = new GardenCli()
+      cli.addCommand(command)
+
+      const { result } = await cli.run({ args: ["test-command", "--disable-port-forwards"], exitOnError: false })
+      expect(result.garden.disablePortForwards).to.be.true
+    })
+
     it(`should configure a dummy environment when command has noProject=true and --env is specified`, async () => {
       class TestCommand2 extends Command {
         name = "test-command-2"
         help = "halp!"
         noProject = true
 
+        printHeader() {}
         async action({ garden }) {
           return { result: { environmentName: garden.environmentName } }
         }
@@ -842,6 +889,7 @@ describe("cli", () => {
         help = "halp!"
         noProject = true
 
+        printHeader() {}
         async action({ garden }) {
           return { result: { environmentName: garden.environmentName } }
         }
@@ -881,6 +929,7 @@ describe("cli", () => {
           help = "hilfe!"
           noProject = true
 
+          printHeader() {}
           async action({ args }) {
             return { result: { args } }
           }

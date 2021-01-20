@@ -7,7 +7,11 @@
  */
 
 import { expect } from "chai"
-import { StreamEvent, LogEntryEvent, BufferedEventStream } from "../../../../src/enterprise/buffered-event-stream"
+import {
+  StreamEvent,
+  LogEntryEventPayload,
+  BufferedEventStream,
+} from "../../../../src/enterprise/buffered-event-stream"
 import { getLogger } from "../../../../src/logger/logger"
 import { Garden } from "../../../../src/garden"
 import { makeTestGardenA } from "../../../helpers"
@@ -26,23 +30,24 @@ describe("BufferedEventStream", () => {
       {
         host: "dummy-platform_url",
         clientAuthToken: "dummy-client-token",
+        enterprise: true,
       },
     ],
   })
 
   it("should flush events and log entries emitted by a connected event emitter", async () => {
     const flushedEvents: StreamEvent[] = []
-    const flushedLogEntries: LogEntryEvent[] = []
+    const flushedLogEntries: LogEntryEventPayload[] = []
 
     const log = getLogger().placeholder()
 
-    const bufferedEventStream = new BufferedEventStream(log, "dummy-session-id")
+    const bufferedEventStream = new BufferedEventStream({ log, sessionId: "dummy-session-id" })
 
     bufferedEventStream["flushEvents"] = (events: StreamEvent[]) => {
       flushedEvents.push(...events)
       return Promise.resolve()
     }
-    bufferedEventStream["flushLogEntries"] = (logEntries: LogEntryEvent[]) => {
+    bufferedEventStream["flushLogEntries"] = (logEntries: LogEntryEventPayload[]) => {
       flushedLogEntries.push(...logEntries)
       return Promise.resolve()
     }
@@ -61,17 +66,17 @@ describe("BufferedEventStream", () => {
 
   it("should only flush events or log entries emitted by the last connected Garden bus", async () => {
     const flushedEvents: StreamEvent[] = []
-    const flushedLogEntries: LogEntryEvent[] = []
+    const flushedLogEntries: LogEntryEventPayload[] = []
 
     const log = getLogger().placeholder()
 
-    const bufferedEventStream = new BufferedEventStream(log, "dummy-session-id")
+    const bufferedEventStream = new BufferedEventStream({ log, sessionId: "dummy-session-id" })
 
     bufferedEventStream["flushEvents"] = (events: StreamEvent[]) => {
       flushedEvents.push(...events)
       return Promise.resolve()
     }
-    bufferedEventStream["flushLogEntries"] = (logEntries: LogEntryEvent[]) => {
+    bufferedEventStream["flushLogEntries"] = (logEntries: LogEntryEventPayload[]) => {
       flushedLogEntries.push(...logEntries)
       return Promise.resolve()
     }
@@ -101,7 +106,7 @@ describe("BufferedEventStream", () => {
     it("should pick records until the batch size reaches MAX_BATCH_BYTES", async () => {
       const recordSizeKb = 0.5
       const log = getLogger().placeholder()
-      const bufferedEventStream = new BufferedEventStream(log, "dummy-session-id")
+      const bufferedEventStream = new BufferedEventStream({ log, sessionId: "dummy-session-id" })
       bufferedEventStream["maxBatchBytes"] = maxBatchBytes
       // Total size is ~3MB, which exceeds MAX_BATCH_BYTES
       const records = range(100).map((_) => makeDummyRecord(recordSizeKb))
@@ -115,7 +120,7 @@ describe("BufferedEventStream", () => {
     it("should drop individual records whose payload size exceeds MAX_BATCH_BYTES", async () => {
       const recordSizeKb = 0.5
       const log = getLogger().placeholder()
-      const bufferedEventStream = new BufferedEventStream(log, "dummy-session-id")
+      const bufferedEventStream = new BufferedEventStream({ log, sessionId: "dummy-session-id" })
       bufferedEventStream["maxBatchBytes"] = maxBatchBytes
       // This record's size, exceeds MAX_BATCH_BYTES, so it should be dropped by `makeBatch`.
       const tooLarge = {
