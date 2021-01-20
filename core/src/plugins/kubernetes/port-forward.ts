@@ -23,6 +23,7 @@ import { ForwardablePort, Service } from "../../types/service"
 import { isBuiltIn } from "./util"
 import { LogEntry } from "../../logger/log-entry"
 import { RuntimeError } from "../../exceptions"
+import execa = require("execa")
 
 // TODO: implement stopPortForward handler
 
@@ -103,11 +104,23 @@ export async function getPortForward({
 
     log.debug(`Forwarding local port ${localPort} to ${targetResource} port ${port}`)
 
-    // TODO: use the API directly instead of kubectl (need to reverse engineer kubectl a bit to get how that works)
-    const portForwardArgs = ["port-forward", targetResource, portMapping]
+    // TODO: use the API directly instead of kubectl (need to reverse-engineer kubectl quite a bit for that)
+    const portForwardArgs = [
+      "--context",
+      k8sCtx.provider.config.context,
+      "--namespace",
+      namespace,
+      "port-forward",
+      targetResource,
+      portMapping,
+    ]
+
     log.silly(`Running 'kubectl ${portForwardArgs.join(" ")}'`)
 
-    const proc = await kubectl(k8sCtx, k8sCtx.provider).spawn({ log, namespace, args: portForwardArgs })
+    // Need to use execa directly to use its cleanup mechanism, otherwise processes can linger on Windows
+    const kubectlPath = await kubectl(k8sCtx, k8sCtx.provider).getPath(log)
+    const proc = execa(kubectlPath, portForwardArgs, { cleanup: true, buffer: false })
+
     let output = ""
 
     return new Promise((resolve, reject) => {
