@@ -30,7 +30,7 @@ describe("GetLinkedReposCommand", () => {
   it("should list all linked project sources in the project", async () => {
     garden = await makeExtProjectSourcesGarden()
     const log = garden.log
-    const sourcesDir = getDataDir("test-project-local-module-sources")
+    const sourcesDir = getDataDir("test-project-local-project-sources")
     const linkSourceCmd = new LinkSourceCommand()
     const sourceNames = ["source-a", "source-b", "source-c"]
     for (const sourceName of sourceNames) {
@@ -64,7 +64,7 @@ describe("GetLinkedReposCommand", () => {
   it("should list all linked modules in the project", async () => {
     garden = await makeExtModuleSourcesGarden()
     const log = garden.log
-    const sourcesDir = getDataDir("test-project-local-project-sources")
+    const sourcesDir = getDataDir("test-project-local-module-sources")
     const linkModuleCmd = new LinkModuleCommand()
     const sourceNames = ["module-a", "module-b", "module-c"]
     for (const moduleName of sourceNames) {

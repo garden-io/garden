@@ -68,7 +68,6 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
   cliOnly = true
 
   streamEvents = true
-  streamLogEntries = true
 
   description = dedent`
     The Garden dev console is a combination of the \`build\`, \`deploy\` and \`test\` commands.

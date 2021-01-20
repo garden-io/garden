@@ -9,6 +9,7 @@
 import { Command, CommandParams, CommandResult } from "./base"
 import { printHeader } from "../logger/util"
 import dedent = require("dedent")
+import { logout } from "../enterprise/auth"
 
 export class LogOutCommand extends Command {
   name = "logout"
@@ -32,7 +33,7 @@ export class LogOutCommand extends Command {
     log.debug({ msg: `Logging out of ${garden.enterpriseApi?.getDomain()}` })
     log.info({ msg: `Logging out of Garden Enterprise.` })
     try {
-      await garden.enterpriseApi.logout()
+      await logout(garden.enterpriseApi, log)
       log.info({ msg: `Succesfully logged out from Garden Enterprise.` })
     } catch (error) {
       log.error(error)

@@ -48,7 +48,7 @@ export class LoginCommand extends Command {
         enteprise: garden.enterpriseApi,
       })
     }
-    log.info({ msg: `Project domain detected: Opening ${garden.enterpriseApi?.getDomain()}.` })
+    log.info({ msg: `Logging in to ${garden.enterpriseApi?.getDomain()}.` })
 
     await login(garden.enterpriseApi, log)
 
