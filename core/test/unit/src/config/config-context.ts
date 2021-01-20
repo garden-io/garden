@@ -329,6 +329,7 @@ describe("ProjectConfigContext", () => {
     process.env.TEST_VARIABLE = "value"
     const c = new ProjectConfigContext({
       projectName: "some-project",
+      projectRoot: "/tmp",
       artifactsPath: "/tmp",
       branch: "main",
       username: "some-user",
@@ -343,6 +344,7 @@ describe("ProjectConfigContext", () => {
   it("should resolve the current git branch", () => {
     const c = new ProjectConfigContext({
       projectName: "some-project",
+      projectRoot: "/tmp",
       artifactsPath: "/tmp",
       branch: "main",
       username: "some-user",
@@ -356,6 +358,7 @@ describe("ProjectConfigContext", () => {
   it("should resolve secrets", () => {
     const c = new ProjectConfigContext({
       projectName: "some-project",
+      projectRoot: "/tmp",
       artifactsPath: "/tmp",
       branch: "main",
       username: "some-user",
@@ -369,6 +372,7 @@ describe("ProjectConfigContext", () => {
   it("should return helpful message when resolving missing env variable", () => {
     const c = new ProjectConfigContext({
       projectName: "some-project",
+      projectRoot: "/tmp",
       artifactsPath: "/tmp",
       branch: "main",
       username: "some-user",
@@ -386,6 +390,7 @@ describe("ProjectConfigContext", () => {
   it("should resolve the local platform", () => {
     const c = new ProjectConfigContext({
       projectName: "some-project",
+      projectRoot: "/tmp",
       artifactsPath: "/tmp",
       branch: "main",
       username: "some-user",

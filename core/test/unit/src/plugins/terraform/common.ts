@@ -20,6 +20,7 @@ import { terraform } from "../../../../../src/plugins/terraform/cli"
 describe("Terraform common", () => {
   const testRoot = getDataDir("test-projects", "terraform-provider")
   const root = join(testRoot, "tf")
+  const terraformDirPath = join(root, ".terraform")
   const stateDirPath = join(root, "terraform.tfstate.d")
   const testFilePath = join(root, "test.log")
 
@@ -29,6 +30,9 @@ describe("Terraform common", () => {
   let provider: TerraformProvider
 
   async function reset() {
+    if (await pathExists(terraformDirPath)) {
+      await remove(terraformDirPath)
+    }
     if (await pathExists(testFilePath)) {
       await remove(testFilePath)
     }

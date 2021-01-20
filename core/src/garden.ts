@@ -46,7 +46,7 @@ import { LocalConfigStore, ConfigStore, GlobalConfigStore, LinkedSource } from "
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
 import { BuildDependencyConfig, ModuleConfig } from "./config/module"
 import { ModuleResolver, moduleResolutionConcurrencyLimit } from "./resolve-module"
-import { OutputConfigContext, DefaultEnvironmentContext } from "./config/config-context"
+import { OutputConfigContext, DefaultEnvironmentContext, ProviderConfigContext } from "./config/config-context"
 import { createPluginContext, CommandInfo } from "./plugin-context"
 import { ModuleAndRuntimeActionHandlers, RegisterPluginParam } from "./types/plugin/plugin"
 import { SUPPORTED_PLATFORMS, SupportedPlatform, DEFAULT_GARDEN_DIR_NAME, gardenEnv } from "./constants"
@@ -77,7 +77,7 @@ import { ensureConnected } from "./db/connection"
 import { DependencyValidationGraph } from "./util/validate-dependencies"
 import { Profile } from "./util/profiling"
 import username from "username"
-import { throwOnMissingSecretKeys, resolveTemplateString } from "./template-string"
+import { throwOnMissingSecretKeys, resolveTemplateString, resolveTemplateStrings } from "./template-string"
 import { WorkflowConfig, WorkflowConfigMap, resolveWorkflowConfig } from "./config/workflow"
 import { enterpriseInit } from "./enterprise/init"
 import { PluginTool, PluginTools } from "./util/ext-tools"
@@ -193,7 +193,7 @@ export class Garden {
   public readonly namespace: string
   public readonly variables: DeepPrimitiveMap
   public readonly secrets: StringMap
-  public readonly projectSources: SourceConfig[]
+  private readonly projectSources: SourceConfig[]
   public readonly buildStaging: BuildStaging
   public readonly gardenDirPath: string
   public readonly artifactsPath: string
@@ -323,7 +323,7 @@ export class Garden {
 
     const defaultEnvironmentName = resolveTemplateString(
       config.defaultEnvironment,
-      new DefaultEnvironmentContext({ projectName, artifactsPath, branch: vcsBranch, username: _username })
+      new DefaultEnvironmentContext({ projectName, projectRoot, artifactsPath, branch: vcsBranch, username: _username })
     ) as string
 
     const defaultEnvironment = getDefaultEnvironmentName(defaultEnvironmentName, config)
@@ -997,7 +997,8 @@ export class Garden {
       // Add external sources that are defined at the project level. External sources are either kept in
       // the .garden/sources dir (and cloned there if needed), or they're linked to a local path via the link command.
       const linkedSources = await getLinkedSources(this, "project")
-      const extSourcePaths = await Bluebird.map(this.projectSources, ({ name, repositoryUrl }) => {
+      const projectSources = this.getProjectSources()
+      const extSourcePaths = await Bluebird.map(projectSources, ({ name, repositoryUrl }) => {
         return this.loadExtSourcePath({
           name,
           linkedSources,
@@ -1126,6 +1127,14 @@ export class Garden {
   //===========================================================================
   //region Internal helpers
   //===========================================================================
+
+  /**
+   * Returns the configured project sources, and resolves any template strings on them.
+   */
+  public getProjectSources() {
+    const context = new ProviderConfigContext(this, {})
+    return resolveTemplateStrings(this.projectSources, context)
+  }
 
   /**
    * Clones the project/module source if needed and returns the path (either from .garden/sources or from a local path)

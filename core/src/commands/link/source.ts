@@ -67,10 +67,11 @@ export class LinkSourceCommand extends Command<Args> {
     const sourceType = "project"
 
     const { source: sourceName, path } = args
-    const projectSourceToLink = garden.projectSources.find((src) => src.name === sourceName)
+    const projectSources = garden.getProjectSources()
+    const projectSourceToLink = projectSources.find((src) => src.name === sourceName)
 
     if (!projectSourceToLink) {
-      const availableRemoteSources = garden.projectSources.map((s) => s.name).sort()
+      const availableRemoteSources = projectSources.map((s) => s.name).sort()
 
       throw new ParameterError(
         `Remote source ${chalk.underline(sourceName)} not found in project config.` +

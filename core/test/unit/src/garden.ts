@@ -27,7 +27,7 @@ import {
   resetLocalConfig,
   testGitUrl,
 } from "../../helpers"
-import { getNames, findByName, omitUndefined } from "../../../src/util/util"
+import { getNames, findByName, omitUndefined, exec } from "../../../src/util/util"
 import { LinkedSource } from "../../../src/config-store"
 import { ModuleVersion } from "../../../src/vcs/vcs"
 import { getModuleCacheContext } from "../../../src/types/module"
@@ -40,8 +40,8 @@ import { providerConfigBaseSchema } from "../../../src/config/provider"
 import { keyBy, set, mapValues } from "lodash"
 import stripAnsi from "strip-ansi"
 import { joi } from "../../../src/config/common"
-import { defaultDotIgnoreFiles } from "../../../src/util/fs"
-import { realpath, writeFile, readFile, remove } from "fs-extra"
+import { defaultDotIgnoreFiles, makeTempDir } from "../../../src/util/fs"
+import { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } from "fs-extra"
 import { dedent, deline } from "../../../src/util/string"
 import { ServiceState } from "../../../src/types/service"
 import execa from "execa"
@@ -2256,6 +2256,46 @@ describe("Garden", () => {
 
       const modules = await garden.resolveModules({ log: garden.log })
       expect(getNames(modules).sort()).to.eql(["module-a", "module-b", "module-c"])
+    })
+
+    it("should resolve template strings in project source definitions", async () => {
+      const garden = await makeTestGarden(resolve(dataDir, "test-project-ext-project-sources"))
+      const sourcesPath = join(garden.gardenDirPath, "sources")
+
+      if (await pathExists(sourcesPath)) {
+        await remove(sourcesPath)
+        await mkdirp(sourcesPath)
+      }
+
+      const localSourcePath = resolve(dataDir, "test-project-local-project-sources", "source-a")
+      const _tmpDir = await makeTempDir()
+
+      try {
+        // Create a temporary git repo to clone
+        const repoPath = resolve(_tmpDir.path, garden.projectName)
+        await copy(localSourcePath, repoPath)
+        await exec("git", ["init"], { cwd: repoPath })
+        await exec("git", ["add", "."], { cwd: repoPath })
+        await exec("git", ["commit", "-m", "foo"], { cwd: repoPath })
+
+        garden.variables.sourceBranch = "master"
+
+        const _garden = garden as any
+        _garden["projectSources"] = [
+          {
+            name: "source-a",
+            // Use a couple of template strings in the repo path
+            repositoryUrl: "file://" + _tmpDir.path + "/${project.name}#${var.sourceBranch}",
+          },
+        ]
+
+        await garden.scanAndAddConfigs()
+
+        const modules = await garden.resolveModules({ log: garden.log })
+        expect(getNames(modules).sort()).to.eql(["module-a"])
+      } finally {
+        await _tmpDir.cleanup()
+      }
     })
 
     it("should resolve module templates and any modules referencing them", async () => {
