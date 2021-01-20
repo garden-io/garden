@@ -566,6 +566,8 @@ jobs:
           command: |
             sudo -E minikube start --vm-driver=none --cpus 2 --memory 4096 --kubernetes-version=$K8S_VERSION
             sudo chown -R circleci:circleci /home/circleci/.kube /home/circleci/.minikube /etc/kubernetes
+            # Work around annoying issue on recent minikubes where namespaces take a long time to generate default service account
+            kubectl create namespace container-default
       - run:
           name: Integ tests
           # Note: We skip tests that only work for remote environments

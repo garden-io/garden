@@ -586,7 +586,7 @@ export class Garden {
         names = getNames(rawConfigs)
       }
 
-      throwOnMissingSecretKeys(rawConfigs, this.secrets, "Provider")
+      throwOnMissingSecretKeys(rawConfigs, this.secrets, "Provider", log)
 
       // As an optimization, we return immediately if all requested providers are already resolved
       const alreadyResolvedProviders = names.map((name) => this.resolvedProviders[name]).filter(Boolean)
@@ -1016,7 +1016,7 @@ export class Garden {
       const groupedResources = groupBy(allResources, "kind")
 
       for (const [kind, configs] of Object.entries(groupedResources)) {
-        throwOnMissingSecretKeys(configs, this.secrets, kind)
+        throwOnMissingSecretKeys(configs, this.secrets, kind, this.log)
       }
 
       let rawModuleConfigs = [...this.pluginModuleConfigs, ...((groupedResources.Module as ModuleConfig[]) || [])]

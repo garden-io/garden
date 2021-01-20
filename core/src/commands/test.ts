@@ -63,7 +63,6 @@ export class TestCommand extends Command<Args, Opts> {
   protected = true
   workflows = true
   streamEvents = true
-  streamLogEntries = true
 
   description = dedent`
     Runs all or specified tests defined in the project. Also builds modules and dependencies,

@@ -27,8 +27,8 @@ export async function getSecrets({
 
   try {
     const res = await enterpriseApi.get(log, `/secrets/projectUid/${projectId}/env/${environmentName}`)
-    if (res && res["status"] === "success") {
-      secrets = res["data"]
+    if (res?.body?.status === "success") {
+      secrets = res.body.data
     }
   } catch (err) {
     log.error("An error occurred while fetching secrets for the project.")
