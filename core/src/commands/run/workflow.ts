@@ -432,7 +432,7 @@ export function logErrors(
 
 async function registerAndSetUid(garden: Garden, log: LogEntry, config: WorkflowConfig) {
   const { enterpriseApi } = garden
-  if (enterpriseApi) {
+  if (enterpriseApi?.isUserLoggedIn) {
     const workflowRunUid = await registerWorkflowRun({
       garden,
       workflowConfig: config,
