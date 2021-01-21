@@ -157,7 +157,7 @@ garden run test my-module my-test -i
 ### Running a specific task
 
 ```sh
-garden run task my-module my-task
+garden run task my-task
 ```
 
 ## Building
