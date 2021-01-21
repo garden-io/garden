@@ -1,4 +1,11 @@
 
+<a name="0.12.15"></a>
+## [0.12.15](https://github.com/garden-io/garden/compare/0.12.14...0.12.15) (2021-01-21)
+
+### Bug Fixes
+
+* **workflow:** register workflow only if user is logged in ([a0c22e99](https://github.com/garden-io/garden/commit/a0c22e99))
+
 <a name="0.12.14"></a>
 ## [0.12.14](https://github.com/garden-io/garden/compare/0.12.13...0.12.14) (2021-01-20)
 
