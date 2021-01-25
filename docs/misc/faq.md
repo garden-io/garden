@@ -67,15 +67,46 @@ No, only *modules* can be build dependencies and runtime outputs come from *task
 
 ### How do I view container build logs?
 
-Set the log-level to `debug` or higher. For example:
+Set the log-level to `verbose` or higher. For example:
 
 ```console
-garden build --log-level debug
+garden build --log-level verbose
 ```
 
 ### Can I use a Dockerfile that lives outside the module root?
 
-No. If you have multiple modules that use the same Dockerfile, you should instead have a single base image and then let each module have its own Dockerfile that's built on the base image. See the [base image example project](https://github.com/garden-io/garden/tree/0.12.16/examples/base-image) for an example of this.
+Dockerfiles need to be at the same level as the `garden.yml` file for the respective module, or in a child directory.
+
+You can always hoist the `garden.yml` file to the same level as the Dockerfile and use the `include` directive to tell Garden what other files belong to the module. For example, if you have the following directory structure:
+
+```console
+.
+├── api
+├── dockerfiles
+│   ├── api.Dockerfile
+│   └── frontend.Dockerfile
+└── frontend
+```
+
+You can set your `garden.yml` file at the root and define your modules likes so:
+
+```yaml
+kind: Module
+name: api
+dockerfile: dockerfiles/api.Dockerfile
+include: [api/**/*]
+
+---
+
+kind: Module
+name: frontend
+dockerfile: dockerfiles/frontend.Dockerfile
+include: [frontend/**/*]
+```
+
+Note that you can put multiple Garden configuration files in the same directory, e.g. `project.garden.yml`, `api.garden.yml` and `frontend.garden.yml`.
+
+If you need the Dockerfile outside of the module root because you want to share it with other modules, you should consider having a single base image instead and then let each module have its own Dockerfile that's built on the base image. See the [base image example project](https://github.com/garden-io/garden/tree/0.12.15/examples/base-image) for an example of this.
 
 ### How do I include files/dirs (e.g. shared libraries) from outside the module root with the build context?
 
