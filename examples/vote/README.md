@@ -49,3 +49,15 @@ garden dev --hot=vote
 Then try making a change to one of the source files in the `vote` service, to see it synchronize into the
 running container, instead of the normal build+deploy flow. Note that changing the file will _also_ trigger a
 build and some tests, but the hot-reloading should complete almost instantly while those take longer to complete.
+
+### Try out Workflows
+
+This example includes a usage example for Garden workflows. The `workflows.garden.yml` file contains the configuration for a sample workflow called `full-test` which initializes the `db`, runs the tests and cleans up the database afterwards. An example of how to execute custom scripts is also included.
+
+To run the workflow:
+
+```sh
+garden run workflow full-test
+```
+
+For more complex use-cases and additional configuration options please refer to the [docs](https://docs.garden.io/using-garden/workflows).

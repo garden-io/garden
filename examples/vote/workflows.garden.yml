@@ -1,0 +1,7 @@
+kind: Workflow
+name: full-test
+description: "An example workflow showing how to run garden commands and scripts"
+steps:
+  - command: [test]
+  - command: [run, task, db-clear]
+  - script: echo "Greetings ${local.username}, your full-test script run succesfully."
