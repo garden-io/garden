@@ -11,8 +11,11 @@ import { Service } from "../types/service"
 
 export async function getHotReloadServiceNames(namesFromOpt: string[] | undefined, configGraph: ConfigGraph) {
   const names = namesFromOpt || []
-  if (names[0] === "*") {
-    return (await configGraph.getServices()).filter((s) => supportsHotReloading(s)).map((s) => s.name)
+  if (names.includes("*")) {
+    return configGraph
+      .getServices()
+      .filter((s) => supportsHotReloading(s))
+      .map((s) => s.name)
   } else {
     return names
   }
@@ -26,7 +29,7 @@ export async function validateHotReloadServiceNames(
   serviceNames: string[],
   configGraph: ConfigGraph
 ): Promise<string | null> {
-  const services = await configGraph.getServices({ names: serviceNames, includeDisabled: true })
+  const services = configGraph.getServices({ names: serviceNames, includeDisabled: true })
 
   const notHotreloadable = services.filter((s) => !supportsHotReloading(s)).map((s) => s.name)
   if (notHotreloadable.length > 0) {
