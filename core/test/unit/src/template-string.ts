@@ -460,6 +460,26 @@ describe("resolveTemplateString", async () => {
     )
   })
 
+  it("should concatenate two arrays", async () => {
+    const res = resolveTemplateString("${a + b}", new TestContext({ a: [1], b: [2, 3] }))
+    expect(res).to.eql([1, 2, 3])
+  })
+
+  it("should add two numbers together", async () => {
+    const res = resolveTemplateString("${1 + a}", new TestContext({ a: 2 }))
+    expect(res).to.equal(3)
+  })
+
+  it("should throw when using + on number and array", async () => {
+    return expectError(
+      () => resolveTemplateString("${a + b}", new TestContext({ a: 123, b: ["a"] })),
+      (err) =>
+        expect(stripAnsi(err.message)).to.equal(
+          "Invalid template string (${a + b}): Both terms need to be either arrays or numbers for + operator (got number and object)."
+        )
+    )
+  })
+
   it("should correctly evaluate clauses in parentheses", async () => {
     const res = resolveTemplateString("${(1 + 2) * (3 + 4)}", new TestContext({}))
     expect(res).to.equal(21)
