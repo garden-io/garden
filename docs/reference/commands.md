@@ -617,6 +617,7 @@ Examples:
     garden deploy --hot=my-service     # deploys all services, with hot reloading enabled for my-service
     garden deploy --hot=*              # deploys all compatible services with hot reloading enabled
     garden deploy --env stage          # deploy your services to an environment called stage
+    garden deploy --skip service-b     # deploy all services except service-b
 
 | Supported in workflows |   |
 | ---------------------- |---|
@@ -640,6 +641,7 @@ Examples:
   | `--force-build` |  | boolean | Force rebuild of module(s).
   | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-deploy.
   | `--hot-reload` | `-hot` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with hot reloading enabled (ignores services belonging to modules that don&#x27;t support or haven&#x27;t configured hot reloading). When this option is used, the command is run in watch mode (i.e. implicitly assumes the --watch/-w flag).
+  | `--skip` |  | array:string | The name(s) of services you&#x27;d like to skip when deploying.
 
 #### Outputs
 
