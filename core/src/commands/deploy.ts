@@ -53,6 +53,9 @@ export const deployOpts = {
     `,
     alias: "hot",
   }),
+  "skip": new StringsParameter({
+    help: "The name(s) of services you'd like to skip when deploying.",
+  }),
 }
 
 type Args = typeof deployArgs
@@ -83,6 +86,7 @@ export class DeployCommand extends Command<Args, Opts> {
         garden deploy --hot=my-service     # deploys all services, with hot reloading enabled for my-service
         garden deploy --hot=*              # deploys all compatible services with hot reloading enabled
         garden deploy --env stage          # deploy your services to an environment called stage
+        garden deploy --skip service-b     # deploy all services except service-b
   `
 
   arguments = deployArgs
@@ -128,7 +132,9 @@ export class DeployCommand extends Command<Args, Opts> {
       log.info({ symbol: "info", msg: chalk.white(msg) })
     }
 
-    services = services.filter((s) => !s.disabled)
+    const skipped = opts.skip || []
+
+    services = services.filter((s) => !s.disabled && !skipped.includes(s.name))
 
     if (services.length === 0) {
       log.error({ msg: "No services to deploy. Aborting." })
