@@ -119,6 +119,7 @@ describe("DeployCommand", () => {
         "watch": false,
         "force": false,
         "force-build": true,
+        "skip": undefined,
       }),
     })
 
@@ -237,6 +238,7 @@ describe("DeployCommand", () => {
         "watch": false,
         "force": false,
         "force-build": true,
+        "skip": undefined,
       }),
     })
 
@@ -288,6 +290,7 @@ describe("DeployCommand", () => {
         "watch": false,
         "force": false,
         "force-build": true,
+        "skip": undefined,
       }),
     })
 
@@ -336,6 +339,7 @@ describe("DeployCommand", () => {
         "watch": false,
         "force": false,
         "force-build": true,
+        "skip": undefined,
       }),
     })
 
@@ -355,5 +359,36 @@ describe("DeployCommand", () => {
       "stage-build.module-b",
       "task.task-a",
     ])
+  })
+
+  it("should skip services set in the --skip option", async () => {
+    const garden = await makeTestGarden(projectRootB, { plugins })
+    const log = garden.log
+    const command = new DeployCommand()
+
+    await garden.scanAndAddConfigs()
+
+    const { result, errors } = await command.action({
+      garden,
+      log,
+      headerLog: log,
+      footerLog: log,
+      args: {
+        services: undefined,
+      },
+      opts: withDefaultGlobalOpts({
+        "hot-reload": undefined,
+        "watch": false,
+        "force": false,
+        "force-build": true,
+        "skip": ["service-b"],
+      }),
+    })
+
+    if (errors) {
+      throw errors[0]
+    }
+
+    expect(Object.keys(taskResultOutputs(result!)).includes("deploy.service-b")).to.be.false
   })
 })
