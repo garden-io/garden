@@ -9,7 +9,13 @@
 import { HelmModule } from "./config"
 import { PodRunner, runAndCopy } from "../run"
 import { getChartResources, getBaseModule } from "./common"
-import { findServiceResource, getResourceContainer, getServiceResourceSpec, makePodName } from "../util"
+import {
+  findServiceResource,
+  getResourceContainer,
+  getResourcePodSpec,
+  getServiceResourceSpec,
+  makePodName,
+} from "../util"
 import { ConfigurationError } from "../../../exceptions"
 import { KubernetesPluginContext } from "../config"
 import { storeTaskResult } from "../task-results"
@@ -137,6 +143,7 @@ export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<Ru
   const res = await runAndCopy({
     ...params,
     container,
+    podSpec: getResourcePodSpec(target),
     command,
     args,
     artifacts: task.spec.artifacts,

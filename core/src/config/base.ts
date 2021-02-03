@@ -172,7 +172,7 @@ export function prepareModuleResource(spec: any, configPath: string, projectRoot
     repositoryUrl: spec.repositoryUrl,
     serviceConfigs: [],
     spec: {
-      ...omit(spec, baseModuleSchemaKeys),
+      ...omit(spec, baseModuleSchemaKeys()),
       build: { ...spec.build, dependencies },
     },
     testConfigs: [],

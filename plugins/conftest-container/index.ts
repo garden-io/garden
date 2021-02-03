@@ -21,7 +21,7 @@ const moduleTypeUrl = getModuleTypeUrl("conftest")
 /**
  * Auto-generates a conftest module for each container module in your project
  */
-export const gardenPlugin = createGardenPlugin({
+export const gardenPlugin = () => createGardenPlugin({
   name: "conftest-container",
   base: "conftest",
   dependencies: ["container"],

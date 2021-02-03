@@ -21,6 +21,6 @@ export const stopPortForward = () => ({
   description: dedent`
     Close a port forward created by \`getPortForward\`.
   `,
-  paramsSchema: serviceActionParamsSchema().keys(forwardablePortKeys),
+  paramsSchema: serviceActionParamsSchema().keys(forwardablePortKeys()),
   resultSchema: joi.object().keys({}),
 })

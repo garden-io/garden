@@ -212,20 +212,6 @@ describe("Garden", () => {
       await expectError(async () => TestGarden.factory(projectRootA, { environmentName: "garden-bla" }), "parameter")
     })
 
-    it("should throw if plugin module exports invalid name", async () => {
-      const pluginPath = join(__dirname, "plugins", "invalid-name.js")
-      const plugins = [pluginPath]
-      const projectRoot = join(dataDir, "test-project-empty")
-      await expectError(async () => TestGarden.factory(projectRoot, { plugins }), "plugin")
-    })
-
-    it("should throw if plugin module doesn't contain plugin", async () => {
-      const pluginPath = join(__dirname, "plugins", "missing-plugin.js")
-      const plugins = [pluginPath]
-      const projectRoot = join(dataDir, "test-project-empty")
-      await expectError(async () => TestGarden.factory(projectRoot, { plugins }), "plugin")
-    })
-
     it("should set .garden as the default cache dir", async () => {
       const projectRoot = join(dataDir, "test-project-empty")
       const garden = await TestGarden.factory(projectRoot, { plugins: [testPlugin] })
@@ -360,7 +346,7 @@ describe("Garden", () => {
     })
   })
 
-  describe("getPlugins", () => {
+  describe("getAllPlugins", () => {
     it("should attach base from createModuleTypes when overriding a handler via extendModuleTypes", async () => {
       const base = createGardenPlugin({
         name: "base",
@@ -409,9 +395,37 @@ describe("Garden", () => {
       expect(extended.handlers.build!.base!.base).to.not.exist
     })
 
+    it("should throw if plugin module exports invalid name", async () => {
+      const pluginPath = join(__dirname, "plugins", "invalid-name.js")
+      const plugins = [pluginPath]
+      const projectRoot = join(dataDir, "test-project-empty")
+      const garden = await TestGarden.factory(projectRoot, { plugins })
+      await expectError(
+        () => garden.getAllPlugins(),
+        (err) =>
+          expect(stripAnsi(err.message)).to.equal(
+            `Unable to load plugin: Error: Error validating plugin module "${pluginPath}": key .gardenPlugin must be of type object`
+          )
+      )
+    })
+
+    it("should throw if plugin module doesn't contain plugin", async () => {
+      const pluginPath = join(__dirname, "plugins", "missing-plugin.js")
+      const plugins = [pluginPath]
+      const projectRoot = join(dataDir, "test-project-empty")
+      const garden = await TestGarden.factory(projectRoot, { plugins })
+      await expectError(
+        () => garden.getAllPlugins(),
+        (err) =>
+          expect(stripAnsi(err.message)).to.equal(
+            `Unable to load plugin: Error: Error validating plugin module "${pluginPath}": key .gardenPlugin is required`
+          )
+      )
+    })
+
     it("should throw if multiple plugins declare the same module type", async () => {
       const testPluginDupe = {
-        ...testPlugin,
+        ...testPlugin(),
         name: "test-plugin-dupe",
       }
       const garden = await makeTestGardenA([testPluginDupe])
@@ -419,7 +433,7 @@ describe("Garden", () => {
       garden["providerConfigs"].push({ name: "test-plugin-dupe" })
 
       await expectError(
-        () => garden.getPlugins(),
+        () => garden.getAllPlugins(),
         (err) =>
           expect(err.message).to.equal(
             "Module type 'test' is declared in multiple plugins: test-plugin, test-plugin-dupe."
@@ -444,7 +458,7 @@ describe("Garden", () => {
       })
 
       await expectError(
-        () => garden.getPlugins(),
+        () => garden.getAllPlugins(),
         (err) =>
           expect(err.message).to.equal(deline`
           Plugin 'foo' extends module type 'bar' but the module type has not been declared.
@@ -569,7 +583,7 @@ describe("Garden", () => {
         })
 
         await expectError(
-          () => garden.getPlugins(),
+          () => garden.getAllPlugins(),
           (err) =>
             expect(err.message).to.equal(deline`
             Module type 'foo', defined in plugin 'foo', specifies base module type 'bar' which cannot be found.
@@ -610,7 +624,7 @@ describe("Garden", () => {
         })
 
         await expectError(
-          () => garden.getPlugins(),
+          () => garden.getAllPlugins(),
           (err) =>
             expect(err.message).to.equal(deline`
             Module type 'foo', defined in plugin 'foo', specifies base module type 'bar' which is defined by 'base'
@@ -645,7 +659,7 @@ describe("Garden", () => {
         })
 
         await expectError(
-          () => garden.getPlugins(),
+          () => garden.getAllPlugins(),
           (err) =>
             expect(err.message).to.equal(deline`
           Found circular dependency between module type
@@ -902,7 +916,7 @@ describe("Garden", () => {
         })
 
         await expectError(
-          () => garden.getPlugins(),
+          () => garden.getAllPlugins(),
           (err) =>
             expect(err.message).to.equal("Plugin 'foo' redeclares the 'foo' module type, already declared by its base.")
         )
@@ -1004,7 +1018,7 @@ describe("Garden", () => {
         })
 
         await expectError(
-          () => garden.getPlugins(),
+          () => garden.getAllPlugins(),
           (err) =>
             expect(err.message).to.equal(
               "Plugin 'foo' specifies plugin 'base' as a base, but that plugin has not been registered."
@@ -1028,7 +1042,7 @@ describe("Garden", () => {
         })
 
         await expectError(
-          () => garden.getPlugins(),
+          () => garden.getAllPlugins(),
           (err) =>
             expect(err.message).to.equal("Found a circular dependency between registered plugins:\n\nfoo <- bar <- foo")
         )
@@ -1260,7 +1274,7 @@ describe("Garden", () => {
           })
 
           await expectError(
-            () => garden.getPlugins(),
+            () => garden.getAllPlugins(),
             (err) =>
               expect(err.message).to.equal(
                 "Plugin 'foo' redeclares the 'foo' module type, already declared by its base."
@@ -1372,7 +1386,7 @@ describe("Garden", () => {
           expect(fooExtension.handlers.build!.base).to.exist
           expect(fooExtension.handlers.build!.base!.actionType).to.equal("build")
           expect(fooExtension.handlers.build!.base!.moduleType).to.equal("foo")
-          expect(fooExtension.handlers.build!.base!.pluginName).to.equal("foo")
+          expect(fooExtension.handlers.build!.base!.pluginName).to.equal("base-a")
         })
 
         it("should throw if plugins have circular bases", async () => {
@@ -1395,7 +1409,7 @@ describe("Garden", () => {
           })
 
           await expectError(
-            () => garden.getPlugins(),
+            () => garden.getAllPlugins(),
             (err) =>
               expect(err.message).to.equal(
                 "Found a circular dependency between registered plugins:\n\nbase-a <- foo <- base-b <- base-a"

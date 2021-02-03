@@ -112,8 +112,8 @@ export async function prepareCommands(): Promise<CommandMap> {
   }
 
   // Need to import this here to avoid circular import issues
-  const { coreCommands } = require("../commands/commands")
-  coreCommands.forEach(addCommand)
+  const { getCoreCommands } = require("../commands/commands")
+  getCoreCommands().forEach(addCommand)
 
   return commands
 }

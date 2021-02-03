@@ -24,7 +24,7 @@ const gitHubUrl = getGitHubUrl("examples/conftest")
 /**
  * Auto-generates a conftest module for each helm and kubernetes module in your project
  */
-export const gardenPlugin = createGardenPlugin({
+export const gardenPlugin = () => createGardenPlugin({
   name: "conftest-kubernetes",
   base: "conftest",
   dependencies: ["kubernetes"],

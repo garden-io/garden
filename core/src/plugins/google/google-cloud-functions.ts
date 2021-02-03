@@ -83,57 +83,58 @@ const configSchema = providerConfigBaseSchema().keys({
     .description("The default GCP project to deploy functions to (can be overridden on individual functions)."),
 })
 
-export const gardenPlugin = createGardenPlugin({
-  name: "google-cloud-function",
-  docs: "EXPERIMENTAL",
-  configSchema,
-  handlers: {
-    getEnvironmentStatus,
-    prepareEnvironment,
-  },
-  createModuleTypes: [
-    {
-      name: "google-cloud-function",
-      docs: "(TODO)",
-      schema: gcfModuleSpecSchema(),
-      handlers: {
-        configure: configureGcfModule,
+export const gardenPlugin = () =>
+  createGardenPlugin({
+    name: "google-cloud-function",
+    docs: "EXPERIMENTAL",
+    configSchema,
+    handlers: {
+      getEnvironmentStatus,
+      prepareEnvironment,
+    },
+    createModuleTypes: [
+      {
+        name: "google-cloud-function",
+        docs: "(TODO)",
+        schema: gcfModuleSpecSchema(),
+        handlers: {
+          configure: configureGcfModule,
 
-        async getModuleOutputs({ ctx, moduleConfig }) {
-          const project = moduleConfig.spec.project || ctx.provider.config.defaultProject
+          async getModuleOutputs({ ctx, moduleConfig }) {
+            const project = moduleConfig.spec.project || ctx.provider.config.defaultProject
 
-          return {
-            outputs: {
-              endpoint: `https://${GOOGLE_CLOUD_DEFAULT_REGION}-${project}.cloudfunctions.net/${name}`,
-            },
-          }
-        },
+            return {
+              outputs: {
+                endpoint: `https://${GOOGLE_CLOUD_DEFAULT_REGION}-${project}.cloudfunctions.net/${name}`,
+              },
+            }
+          },
 
-        async deployService(params: DeployServiceParams<GcfModule>) {
-          const { ctx, service } = params
+          async deployService(params: DeployServiceParams<GcfModule>) {
+            const { ctx, service } = params
 
-          // TODO: provide env vars somehow to function
-          const project = getGcfProject(service, ctx.provider)
-          const functionPath = resolve(service.module.path, service.spec.path)
-          const entrypoint = service.spec.entrypoint || service.name
+            // TODO: provide env vars somehow to function
+            const project = getGcfProject(service, ctx.provider)
+            const functionPath = resolve(service.module.path, service.spec.path)
+            const entrypoint = service.spec.entrypoint || service.name
 
-          await gcloud(project).call([
-            "beta",
-            "functions",
-            "deploy",
-            service.name,
-            `--source=${functionPath}`,
-            `--entry-point=${entrypoint}`,
-            // TODO: support other trigger types
-            "--trigger-http",
-          ])
+            await gcloud(project).call([
+              "beta",
+              "functions",
+              "deploy",
+              service.name,
+              `--source=${functionPath}`,
+              `--entry-point=${entrypoint}`,
+              // TODO: support other trigger types
+              "--trigger-http",
+            ])
 
-          return getServiceStatus(params)
+            return getServiceStatus(params)
+          },
         },
       },
-    },
-  ],
-})
+    ],
+  })
 
 export async function getServiceStatus({ ctx, service }: GetServiceStatusParams<GcfModule>): Promise<ServiceStatus> {
   const project = getGcfProject(service, ctx.provider)

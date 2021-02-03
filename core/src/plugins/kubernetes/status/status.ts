@@ -54,10 +54,12 @@ interface StatusHandler<T = BaseResource> {
 }
 
 const pvcPhaseMap: { [key: string]: ServiceState } = {
-  Available: "deploying",
+  Available: "ready",
   Bound: "ready",
   Released: "stopped",
   Failed: "unhealthy",
+  // This is confusing, but this basically means it's waiting to be bound
+  Pending: "ready",
 }
 
 // Handlers to check the rollout status for K8s objects where that applies.

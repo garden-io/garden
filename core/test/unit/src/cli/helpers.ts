@@ -102,6 +102,13 @@ describe("parseCliArgs", () => {
     expect(argv["log-level"]).to.equal("5")
   })
 
+  it("returns an array for a parameter if multiple instances are specified", () => {
+    const argv = parseCliArgs({ stringArgs: ["test", "--name", "foo", "--name", "bar"], cli: true })
+
+    expect(argv._).to.eql(["test"])
+    expect(argv.name).to.eql(["foo", "bar"])
+  })
+
   it("correctly handles global boolean options", () => {
     const argv = parseCliArgs({
       stringArgs: ["build", "my-module", "--force-refresh", "--silent=false", "-y"],
@@ -202,6 +209,18 @@ describe("processCliArgs", () => {
     const { opts } = parseAndProcess(["-w", "--force-build=false"], cmd)
     expect(opts.watch).to.be.true
     expect(opts["force-build"]).to.be.false
+  })
+
+  it("correctly handles multiple instances of a string array parameter", () => {
+    const cmd = new TestCommand()
+    const { opts } = parseAndProcess(["--name", "foo", "-n", "bar"], cmd)
+    expect(opts.name).to.eql(["foo", "bar"])
+  })
+
+  it("correctly handles multiple instances of a string array parameter where one uses string-delimited values", () => {
+    const cmd = new TestCommand()
+    const { opts } = parseAndProcess(["--name", "foo,bar", "-n", "baz"], cmd)
+    expect(opts.name).to.eql(["foo", "bar", "baz"])
   })
 
   // Note: If an option alias appears before the option (e.g. -w before --watch),

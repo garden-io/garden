@@ -35,16 +35,17 @@ export const baseVolumeSpecSchema = () =>
       `),
   })
 
-export const gardenPlugin = createGardenPlugin({
-  name: "base-volume",
-  createModuleTypes: [
-    {
-      name: "base-volume",
-      docs: dedent`
+export const gardenPlugin = () =>
+  createGardenPlugin({
+    name: "base-volume",
+    createModuleTypes: [
+      {
+        name: "base-volume",
+        docs: dedent`
         Internal abstraction used for specifying and referencing (usually persistent) volumes by other module types.
       `,
-      schema: baseVolumeSpecSchema(),
-      handlers: {},
-    },
-  ],
-})
+        schema: baseVolumeSpecSchema(),
+        handlers: {},
+      },
+    ],
+  })

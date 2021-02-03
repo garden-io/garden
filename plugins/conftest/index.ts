@@ -33,7 +33,7 @@ export interface ConftestProviderConfig extends GenericProviderConfig {
 
 export interface ConftestProvider extends Provider<ConftestProviderConfig> {}
 
-export const configSchema = providerConfigBaseSchema()
+export const configSchema = () => providerConfigBaseSchema()
   .keys({
     policyPath: joi
       .posixPath()
@@ -94,7 +94,7 @@ const commonModuleSchema = joi.object().keys({
     .description("Set to true to use the conftest --combine flag"),
 })
 
-export const gardenPlugin = createGardenPlugin({
+export const gardenPlugin = () => createGardenPlugin({
   name: "conftest",
   docs: dedent`
     This provider allows you to validate your configuration files against policies that you specify, using the [conftest tool](https://github.com/instrumenta/conftest) and Open Policy Agent rego query files. The provider creates a module type of the same name, which allows you to specify files to validate. Each module then creates a Garden test that becomes part of your Stack Graph.
@@ -104,7 +104,7 @@ export const gardenPlugin = createGardenPlugin({
     If those don't match your needs, you can use this provider directly and manually configure your \`conftest\` modules. Simply add this provider to your project configuration, and see the [conftest module documentation](${moduleTypeUrl}) for a detailed reference. Also, check out the below reference for how to configure default policies, default namespaces, and test failure thresholds for all \`conftest\` modules.
   `,
   dependencies: [],
-  configSchema,
+  configSchema: configSchema(),
   createModuleTypes: [
     {
       name: "conftest",

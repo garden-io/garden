@@ -37,8 +37,8 @@ describe("maven-container", () => {
   const projectRoot = resolve(dataDir, "test-projects", "maven-container")
   const modulePath = projectRoot
 
-  const plugin = mavenPlugin
-  const basePlugin = containerPlugin
+  const plugin = mavenPlugin()
+  const basePlugin = containerPlugin()
   const handlers = plugin.createModuleTypes![0].handlers
   const baseHandlers = basePlugin.createModuleTypes![0].handlers
   const build = handlers.build!

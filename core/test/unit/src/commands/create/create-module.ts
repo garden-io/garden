@@ -17,7 +17,7 @@ import { safeLoadAll } from "js-yaml"
 import { exec, safeDumpYaml } from "../../../../../src/util/util"
 import stripAnsi = require("strip-ansi")
 import { getModuleTypes } from "../../../../../src/plugins"
-import { supportedPlugins } from "../../../../../src/plugins/plugins"
+import { getSupportedPlugins } from "../../../../../src/plugins/plugins"
 import inquirer = require("inquirer")
 import { defaultConfigFilename } from "../../../../../src/util/fs"
 
@@ -228,8 +228,9 @@ describe("CreateModuleCommand", () => {
   })
 
   describe("getModuleTypeSuggestions", () => {
+    const moduleTypes = getModuleTypes(getSupportedPlugins().map((f) => f()))
+
     it("should return a list of all supported module types", async () => {
-      const moduleTypes = getModuleTypes(supportedPlugins)
       const result = await getModuleTypeSuggestions(garden.log, moduleTypes, tmp.path, "test")
 
       expect(result).to.eql([
@@ -242,7 +243,6 @@ describe("CreateModuleCommand", () => {
       await writeFile(join(tmp.path, "Chart.yaml"), "")
       await writeFile(join(tmp.path, "foo.tf"), "")
 
-      const moduleTypes = getModuleTypes(supportedPlugins)
       const result = <any>await getModuleTypeSuggestions(garden.log, moduleTypes, tmp.path, "test")
 
       const stripped = result.map((r) => (r instanceof inquirer.Separator ? r : { ...r, name: stripAnsi(r.name) }))

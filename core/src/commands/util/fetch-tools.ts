@@ -58,7 +58,7 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
     let plugins: GardenPlugin[]
 
     if (opts.all) {
-      plugins = Object.values(garden.registeredPlugins)
+      plugins = await garden.getAllPlugins()
       printHeader(log, "Fetching tools for all registered providers", "hammer_and_wrench")
     } else {
       const projectRoot = findProjectConfig(garden.projectRoot)
@@ -74,7 +74,7 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
         garden = await Garden.factory(garden.projectRoot, { ...omit(garden.opts, "config"), log })
       }
 
-      plugins = await garden.getPlugins()
+      plugins = await garden.getConfiguredPlugins()
 
       printHeader(log, "Fetching all tools for the current project and environment", "hammer_and_wrench")
     }

@@ -13,26 +13,36 @@ import {
   ModuleTypeExtension,
   pluginSchema,
   ModuleTypeMap,
+  RegisterPluginParam,
+  pluginModuleSchema,
 } from "./types/plugin/plugin"
 import { GenericProviderConfig } from "./config/provider"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
-import { uniq, mapValues, fromPairs, flatten, keyBy, some } from "lodash"
+import { uniq, mapValues, fromPairs, flatten, keyBy, some, isString, isFunction } from "lodash"
 import { findByName, pushToKey, getNames } from "./util/util"
 import { deline } from "./util/string"
 import { validateSchema } from "./config/validation"
 import { LogEntry } from "./logger/log-entry"
 import { DependencyValidationGraph } from "./util/validate-dependencies"
+import { parse, resolve } from "path"
+import Bluebird from "bluebird"
 
-export function loadPlugins(log: LogEntry, registeredPlugins: PluginMap, configs: GenericProviderConfig[]) {
-  const loadedPlugins: PluginMap = {}
+export async function loadPlugins(
+  log: LogEntry,
+  projectRoot: string,
+  registeredPlugins: RegisterPluginParam[],
+  configs: GenericProviderConfig[]
+) {
+  const initializedPlugins: PluginMap = {}
+  const loadedPlugins = keyBy(await Bluebird.map(registeredPlugins, (p) => loadPlugin(log, projectRoot, p)), "name")
 
-  const loadPlugin = (name: string) => {
-    if (loadedPlugins[name]) {
-      return loadedPlugins[name]
+  const validatePlugin = (name: string) => {
+    if (initializedPlugins[name]) {
+      return initializedPlugins[name]
     }
 
-    log.silly(`Loading plugin ${name}`)
-    let plugin = registeredPlugins[name]
+    log.silly(`Validating plugin ${name}`)
+    let plugin = loadedPlugins[name]
 
     if (!plugin) {
       return null
@@ -42,7 +52,7 @@ export function loadPlugins(log: LogEntry, registeredPlugins: PluginMap, configs
       context: `plugin "${name}"`,
     })
 
-    loadedPlugins[name] = plugin
+    initializedPlugins[name] = plugin
 
     if (plugin.base) {
       if (plugin.base === plugin.name) {
@@ -51,13 +61,13 @@ export function loadPlugins(log: LogEntry, registeredPlugins: PluginMap, configs
         })
       }
 
-      const base = loadPlugin(plugin.base)
+      const base = validatePlugin(plugin.base)
 
       if (!base) {
         throw new PluginError(
           `Plugin '${plugin.name}' specifies plugin '${plugin.base}' as a base, ` +
             `but that plugin has not been registered.`,
-          { registeredPlugins: Object.keys(registeredPlugins), base: plugin.base }
+          { loadedPlugins: Object.keys(loadedPlugins), base: plugin.base }
         )
       }
 
@@ -68,12 +78,12 @@ export function loadPlugins(log: LogEntry, registeredPlugins: PluginMap, configs
     }
 
     for (const dep of plugin.dependencies || []) {
-      const depPlugin = loadPlugin(dep)
+      const depPlugin = validatePlugin(dep)
 
       if (!depPlugin) {
         throw new PluginError(
           `Plugin '${plugin.name}' lists plugin '${dep}' as a dependency, but that plugin has not been registered.`,
-          { registeredPlugins: Object.keys(registeredPlugins), dependency: dep }
+          { loadedPlugins: Object.keys(loadedPlugins), dependency: dep }
         )
       }
     }
@@ -84,33 +94,82 @@ export function loadPlugins(log: LogEntry, registeredPlugins: PluginMap, configs
   }
 
   // Load plugins in dependency order
-  const orderedConfigs = getDependencyOrder(configs, registeredPlugins)
+  const configsByName = keyBy(configs, "name")
+  const orderedPlugins = getDependencyOrder(loadedPlugins)
 
-  for (const config of orderedConfigs) {
-    const plugin = loadPlugin(config.name)
+  for (const name of orderedPlugins) {
+    const plugin = validatePlugin(name)
 
-    if (!plugin) {
-      throw new ConfigurationError(`Configured provider '${config.name}' has not been registered.`, {
-        name: config.name,
-        availablePlugins: Object.keys(registeredPlugins),
+    if (!plugin && configsByName[name]) {
+      throw new ConfigurationError(`Configured provider '${name}' has not been registered.`, {
+        name,
+        availablePlugins: Object.keys(loadedPlugins),
       })
     }
   }
 
   // Resolve plugins against their base plugins
-  const resolvedPlugins = mapValues(loadedPlugins, (p) => resolvePlugin(p, loadedPlugins, configs))
+  const resolvedPlugins = mapValues(initializedPlugins, (p) => resolvePlugin(p, initializedPlugins, configs))
 
   // Resolve module type definitions
   return Object.values(resolveModuleDefinitions(resolvedPlugins, configs))
 }
 
+async function loadPlugin(log: LogEntry, projectRoot: string, nameOrPlugin: RegisterPluginParam) {
+  let plugin: GardenPlugin
+
+  if (isString(nameOrPlugin)) {
+    let moduleNameOrLocation = nameOrPlugin
+
+    // allow relative references to project root
+    if (parse(moduleNameOrLocation).dir !== "") {
+      moduleNameOrLocation = resolve(projectRoot, moduleNameOrLocation)
+    }
+
+    let pluginModule: any
+
+    try {
+      pluginModule = require(moduleNameOrLocation)
+    } catch (error) {
+      throw new ConfigurationError(
+        `Unable to load plugin "${moduleNameOrLocation}" (could not load module: ${error.message})`,
+        {
+          message: error.message,
+          moduleNameOrLocation,
+        }
+      )
+    }
+
+    try {
+      pluginModule = validateSchema(pluginModule, pluginModuleSchema(), {
+        context: `plugin module "${moduleNameOrLocation}"`,
+      })
+    } catch (err) {
+      throw new PluginError(`Unable to load plugin: ${err}`, {
+        moduleNameOrLocation,
+        err,
+      })
+    }
+
+    plugin = pluginModule.gardenPlugin
+  } else if (isFunction(nameOrPlugin)) {
+    plugin = nameOrPlugin()
+  } else {
+    plugin = nameOrPlugin
+  }
+
+  log.silly(`Loaded plugin ${plugin.name}`)
+
+  return plugin
+}
+
 /**
- * Returns the given provider configs in dependency order.
+ * Returns the given provider plugins in dependency order.
  */
-export function getDependencyOrder<T extends GenericProviderConfig>(configs: T[], registeredPlugins: PluginMap): T[] {
+export function getDependencyOrder(loadedPlugins: PluginMap): string[] {
   const graph = new DependencyValidationGraph()
 
-  for (const plugin of Object.values(registeredPlugins)) {
+  for (const plugin of Object.values(loadedPlugins)) {
     graph.addNode(plugin.name)
 
     if (plugin.base) {
@@ -132,12 +191,7 @@ export function getDependencyOrder<T extends GenericProviderConfig>(configs: T[]
     throw new PluginError(`Found a circular dependency between registered plugins:\n\n${description}`, detail)
   }
 
-  const ordered = graph.overallOrder()
-
-  // Note: concat() makes sure we're not mutating the original array, because JS...
-  return configs.concat().sort((a, b) => {
-    return ordered.indexOf(a.name) - ordered.indexOf(b.name)
-  })
+  return graph.overallOrder()
 }
 
 // Takes a plugin and resolves it against its base plugin, if applicable

@@ -10,7 +10,7 @@ import { expect } from "chai"
 import { find } from "lodash"
 import { resolve } from "path"
 
-import { runCli, bundledPlugins } from "../../../src/cli"
+import { runCli, getBundledPlugins } from "../../../src/cli"
 import { testRoot } from "../../helpers"
 
 import { GardenCli } from "@garden-io/core/build/src/cli/cli"
@@ -29,7 +29,7 @@ describe("runCli", () => {
     const projectRoot = resolve(testRoot, "test-projects", "bundled-projects")
     const { cli, result } = await runCli({ args: ["tools", "--root", projectRoot], exitOnError: false })
 
-    expect(cli!["plugins"]).to.eql(bundledPlugins)
+    expect(cli!["plugins"].map((p) => p.name)).to.eql(getBundledPlugins().map((p) => p.name))
 
     const conftestTool = result?.result?.tools?.find((t) => t.pluginName === "conftest")
     expect(conftestTool).to.exist

@@ -149,7 +149,7 @@ export interface ForwardablePort {
   urlProtocol?: string
 }
 
-export const forwardablePortKeys = {
+export const forwardablePortKeys = () => ({
   name: joiIdentifier().description(
     "A descriptive name for the port. Should correspond to user-configured ports where applicable."
   ),
@@ -159,9 +159,9 @@ export const forwardablePortKeys = {
   urlProtocol: joi
     .string()
     .description("The protocol to use for URLs pointing at the port. This can be any valid URI protocol."),
-}
+})
 
-const forwardablePortSchema = () => joi.object().keys(forwardablePortKeys)
+const forwardablePortSchema = () => joi.object().keys(forwardablePortKeys())
 
 export interface ServiceStatus<T = {}> {
   createdAt?: string

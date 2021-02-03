@@ -51,6 +51,14 @@ And then adding this to your `.bashrc`/`.zshrc`:
 export KUBECONFIG=$HOME/.kube/microk8s.config:${KUBECONFIG:-$HOME/.kube/config}
 ```
 
+You also need to ensure microk8s commands can be run by the user that's running Garden, so that Garden can get its status and enable required extensions if necessary. To do this, add your user to the `microk8s` group:
+
+```sh
+sudo usermod -a -G microk8s $USER   # or replace $USER with the desired user, if it's not the current user
+```
+
+Note that in-cluster building is currently not supported with microk8s clusters.
+
 ### Minikube
 
 For Minikube installation instructions, please see the [official guide](https://github.com/kubernetes/minikube#installation).
@@ -67,6 +75,39 @@ Once Minikube and the appropriate driver for your OS are installed, you can star
 ```sh
 minikube start --vm-driver=<your vm driver>  # e.g. hyperkit on macOS
 ```
+
+### kind
+
+For kind installation instructions, see the [official docs](https://kind.sigs.k8s.io/docs/user/quick-start/).
+
+To use `kind` with Garden you may need to start your cluster with extra port mappings to allow ingress controllers to run (see [their docs](https://kind.sigs.k8s.io/docs/user/ingress/) for more info):
+
+```sh
+cat <<EOF | kind create cluster --config=-
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  kubeadmConfigPatches:
+  - |
+    kind: InitConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        node-labels: "ingress-ready=true"
+        authorization-mode: "AlwaysAllow"
+  extraPortMappings:
+  - containerPort: 80
+    hostPort: 80
+    protocol: TCP
+  - containerPort: 443
+    hostPort: 443
+    protocol: TCP
+EOF
+```
+
+Alternatively, if you don't need an ingress controller, you can set `setupIngressController: null` in your `local-kubernetes` provider configuration and start the cluster without the above customization.
+
+Note that in-cluster building is currently not supported with kind clusters.
 
 ## Usage
 

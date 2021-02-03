@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 import { get, flatten, uniqBy, sortBy, omit, chain, sample, isEmpty, find } from "lodash"
-import { V1Pod, V1EnvVar } from "@kubernetes/client-node"
+import { V1Pod, V1EnvVar, V1Container, V1PodSpec } from "@kubernetes/client-node"
 import { apply as jsonMerge } from "json-merge-patch"
 import chalk from "chalk"
 import hasha from "hasha"
@@ -477,7 +477,7 @@ interface GetServiceResourceParams {
 }
 
 /**
- * Finds and returns the configured service resource from the specified chart resources, that we can use for
+ * Finds and returns the configured service resource from the specified manifests, that we can use for
  * hot-reloading and other service-specific functionality.
  *
  * Optionally provide a `resourceSpec`, which is then used instead of the default `module.serviceResource` spec.
@@ -554,11 +554,11 @@ export async function findServiceResource({
  * From the given Deployment, DaemonSet or StatefulSet resource, get either the first container spec,
  * or if `containerName` is specified, the one matching that name.
  */
-export function getResourceContainer(resource: HotReloadableResource, containerName?: string) {
+export function getResourceContainer(resource: HotReloadableResource, containerName?: string): V1Container {
   const kind = resource.kind
   const name = resource.metadata.name
 
-  const containers = resource.spec.template.spec?.containers || []
+  const containers = getResourcePodSpec(resource)?.containers || []
 
   if (containers.length === 0) {
     throw new ConfigurationError(`${kind} ${resource.metadata.name} has no containers configured.`, { resource })
@@ -574,6 +574,10 @@ export function getResourceContainer(resource: HotReloadableResource, containerN
   }
 
   return container
+}
+
+export function getResourcePodSpec(resource: HotReloadableResource): V1PodSpec | undefined {
+  return resource.spec.template.spec
 }
 
 const maxPodNameLength = 63

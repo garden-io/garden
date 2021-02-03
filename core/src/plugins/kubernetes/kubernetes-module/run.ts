@@ -8,7 +8,13 @@
 
 import { KubernetesModule } from "./config"
 import { runAndCopy } from "../run"
-import { findServiceResource, getResourceContainer, getServiceResourceSpec, makePodName } from "../util"
+import {
+  findServiceResource,
+  getResourceContainer,
+  getResourcePodSpec,
+  getServiceResourceSpec,
+  makePodName,
+} from "../util"
 import { KubernetesPluginContext } from "../config"
 import { storeTaskResult } from "../task-results"
 import { RunTaskParams, RunTaskResult } from "../../../types/plugin/task/runTask"
@@ -45,6 +51,7 @@ export async function runKubernetesTask(params: RunTaskParams<KubernetesModule>)
   const res = await runAndCopy({
     ...params,
     container,
+    podSpec: getResourcePodSpec(target),
     command,
     args,
     artifacts: task.spec.artifacts,

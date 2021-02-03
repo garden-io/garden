@@ -19,7 +19,6 @@ import {
 import { expect } from "chai"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
-import { pick } from "lodash"
 import { join } from "path"
 import { ToolsCommand } from "../../../../src/commands/tools"
 import { LogLevel } from "../../../../src/logger/log-node"
@@ -114,7 +113,7 @@ describe("ToolsCommand", () => {
     const _garden = garden as any
 
     _garden.providerConfigs = [{ name: "test-a" }]
-    _garden.registeredPlugins = pick(garden["registeredPlugins"], ["test-a", "test-b"])
+    _garden.registeredPlugins = [pluginA, pluginB]
   })
 
   it("should list tools with no name specified", async () => {
@@ -236,7 +235,7 @@ describe("ToolsCommand", () => {
 
   it("should run a tool by name when run outside of a project", async () => {
     const _garden: any = await makeDummyGarden(tmpDir.path, { noEnterprise: true })
-    _garden.registeredPlugins = pick(garden["registeredPlugins"], ["test-a", "test-b"])
+    _garden.registeredPlugins = [pluginA, pluginB]
 
     const { result } = await command.action({
       garden: _garden,
