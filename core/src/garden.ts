@@ -114,13 +114,13 @@ export type ModuleActionMap = {
 }
 
 export interface GardenOpts {
-  experimentalBuildSync?: boolean
   commandInfo?: CommandInfo
   config?: ProjectConfig
   disablePortForwards?: boolean
   environmentName?: string
   forceRefresh?: boolean
   gardenDirPath?: string
+  legacyBuildSync?: boolean
   log?: LogEntry
   noEnterprise?: boolean
   persistent?: boolean
@@ -362,9 +362,9 @@ export class Garden {
     // Allow overriding variables
     variables = { ...variables, ...(opts.variables || {}) }
 
-    const experimentalBuildSync =
-      opts.experimentalBuildSync === undefined ? gardenEnv.GARDEN_EXPERIMENTAL_BUILD_STAGE : opts.experimentalBuildSync
-    const buildDirCls = experimentalBuildSync ? BuildStaging : BuildDirRsync
+    const legacyBuildSync =
+      opts.legacyBuildSync === undefined ? gardenEnv.GARDEN_LEGACY_BUILD_STAGE : opts.legacyBuildSync
+    const buildDirCls = legacyBuildSync ? BuildDirRsync : BuildStaging
     const buildDir = await buildDirCls.factory(projectRoot, gardenDirPath)
     const workingCopyId = await getWorkingCopyId(gardenDirPath)
 
