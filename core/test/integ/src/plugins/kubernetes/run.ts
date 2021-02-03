@@ -14,16 +14,31 @@ import { join } from "path"
 import { Garden } from "../../../../../src/garden"
 import { ConfigGraph } from "../../../../../src/config-graph"
 import { deline, randomString, dedent } from "../../../../../src/util/string"
-import { runAndCopy, PodRunner } from "../../../../../src/plugins/kubernetes/run"
+import { runAndCopy, PodRunner, prepareRunPodSpec } from "../../../../../src/plugins/kubernetes/run"
 import { containerHelpers } from "../../../../../src/plugins/container/helpers"
 import { KubeApi } from "../../../../../src/plugins/kubernetes/api"
-import { KubernetesProvider } from "../../../../../src/plugins/kubernetes/config"
-import { makePodName } from "../../../../../src/plugins/kubernetes/util"
+import {
+  KubernetesPluginContext,
+  KubernetesProvider,
+  ServiceResourceSpec,
+} from "../../../../../src/plugins/kubernetes/config"
+import {
+  findServiceResource,
+  getResourceContainer,
+  getServiceResourceSpec,
+  getResourcePodSpec,
+  makePodName,
+} from "../../../../../src/plugins/kubernetes/util"
 import { getContainerTestGarden } from "./container/container"
-import { KubernetesPod } from "../../../../../src/plugins/kubernetes/types"
+import { KubernetesPod, KubernetesResource } from "../../../../../src/plugins/kubernetes/types"
 import { PluginContext } from "../../../../../src/plugin-context"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { sleep, StringCollector } from "../../../../../src/util/util"
+import { buildHelmModules, getHelmTestGarden } from "./helm/common"
+import { getBaseModule, getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
+import { getModuleNamespace } from "../../../../../src/plugins/kubernetes/namespace"
+import { GardenModule } from "../../../../../src/types/module"
+import { V1Container, V1DaemonSet, V1Deployment, V1StatefulSet } from "@kubernetes/client-node"
 
 describe("kubernetes Pod runner functions", () => {
   let garden: Garden
@@ -392,6 +407,174 @@ describe("kubernetes Pod runner functions", () => {
             (err) => expect(err.message).to.equal("Cannot set both tty and stdout/stderr/stdin streams")
           )
         })
+      })
+    })
+  })
+
+  describe("prepareRunPodSpec", () => {
+    let helmGarden: Garden
+    let helmProvider: KubernetesProvider
+    let helmCtx: KubernetesPluginContext
+    let helmApi: KubeApi
+    let helmLog: LogEntry
+    let helmGraph: ConfigGraph
+    let helmModule: GardenModule
+    let helmManifests: any[]
+    let helmBaseModule: GardenModule | undefined
+    let helmResourceSpec: ServiceResourceSpec
+    let helmTarget: KubernetesResource<V1Deployment | V1DaemonSet | V1StatefulSet>
+    let helmContainer: V1Container
+    let helmNamespace: string
+
+    before(async () => {
+      helmGarden = await getHelmTestGarden()
+      helmProvider = <KubernetesProvider>await helmGarden.resolveProvider(helmGarden.log, "local-kubernetes")
+      helmCtx = <KubernetesPluginContext>await helmGarden.getPluginContext(helmProvider)
+      helmApi = await KubeApi.factory(helmGarden.log, helmCtx, helmProvider)
+      helmLog = helmGarden.log
+      helmGraph = await helmGarden.getConfigGraph(helmLog)
+      await buildHelmModules(helmGarden, helmGraph)
+      helmModule = helmGraph.getModule("artifacts")
+
+      helmManifests = await getChartResources(helmCtx, helmModule, false, helmLog)
+      helmBaseModule = getBaseModule(helmModule)
+      helmResourceSpec = getServiceResourceSpec(helmModule, helmBaseModule)
+      helmTarget = await findServiceResource({
+        ctx: helmCtx,
+        log: helmLog,
+        manifests: helmManifests,
+        module: helmModule,
+        baseModule: helmBaseModule,
+        resourceSpec: helmResourceSpec,
+      })
+      helmContainer = getResourceContainer(helmTarget, helmResourceSpec.containerName)
+      helmNamespace = await getModuleNamespace({
+        ctx: helmCtx,
+        log: helmLog,
+        module: helmModule,
+        provider: helmCtx.provider,
+      })
+    })
+
+    // These test cases should cover the `kubernetes` module type as well, since these helpers operate on manifests
+    // (it shouldn't matter whether they come from a rendered Helm chart or directly from manifests)
+    it("should generate a default pod spec when none is provided", async () => {
+      const generatedPodSpec = await prepareRunPodSpec({
+        podSpec: undefined, // <------
+        getArtifacts: false,
+        api: helmApi,
+        provider: helmProvider,
+        log: helmLog,
+        module: helmModule,
+        args: ["sh", "-c"],
+        command: ["echo", "foo"],
+        runtimeContext: { envVars: {}, dependencies: [] },
+        envVars: {},
+        description: "Helm module",
+        errorMetadata: {},
+        mainContainerName: "main",
+        image: "foo",
+        container: helmContainer,
+        namespace: helmNamespace,
+        volumes: [],
+      })
+
+      expect(generatedPodSpec).to.eql({
+        containers: [
+          {
+            name: "main",
+            image: "foo",
+            imagePullPolicy: "IfNotPresent",
+            args: ["sh", "-c"],
+            ports: [
+              {
+                name: "http",
+                containerPort: 80,
+                protocol: "TCP",
+              },
+            ],
+            resources: {},
+            env: [],
+            volumeMounts: [],
+            command: ["echo", "foo"],
+          },
+        ],
+        imagePullSecrets: [],
+        volumes: [],
+      })
+    })
+
+    it("should include only whitelisted pod spec fields in the generated pod spec", async () => {
+      const podSpec = getResourcePodSpec(helmTarget)
+      expect(podSpec).to.eql({
+        // This field is *not* whitelisted in `runPodSpecWhitelist`, so it shouldn't appear in the
+        // generated pod spec below.
+        terminationGracePeriodSeconds: 60,
+        containers: [
+          {
+            name: "api",
+            image: "busybox:latest",
+            imagePullPolicy: "IfNotPresent",
+            args: ["python", "app.py"],
+            ports: [
+              {
+                name: "http",
+                containerPort: 80,
+                protocol: "TCP",
+              },
+            ],
+            resources: {},
+          },
+        ],
+        // This field is whitelisted in `runPodSpecWhitelist`, so it *should* appear in the generated
+        // pod spec below.
+        shareProcessNamespace: true,
+      })
+      const generatedPodSpec = await prepareRunPodSpec({
+        podSpec, // <------
+        getArtifacts: false,
+        api: helmApi,
+        provider: helmProvider,
+        log: helmLog,
+        module: helmModule,
+        args: ["sh", "-c"],
+        command: ["echo", "foo"],
+        runtimeContext: { envVars: {}, dependencies: [] },
+        envVars: {},
+        description: "Helm module",
+        errorMetadata: {},
+        mainContainerName: "main",
+        image: "foo",
+        container: helmContainer,
+        namespace: helmNamespace,
+        volumes: [],
+      })
+
+      expect(generatedPodSpec).to.eql({
+        // `shareProcessNamespace` is not blacklisted, so it should be propagated to here.
+        shareProcessNamespace: true,
+        // `terminationGracePeriodSeconds` *is* blacklisted, so it should not appear here.
+        containers: [
+          {
+            name: "main",
+            image: "foo",
+            imagePullPolicy: "IfNotPresent",
+            args: ["sh", "-c"],
+            ports: [
+              {
+                name: "http",
+                containerPort: 80,
+                protocol: "TCP",
+              },
+            ],
+            resources: {},
+            env: [],
+            volumeMounts: [],
+            command: ["echo", "foo"],
+          },
+        ],
+        imagePullSecrets: [],
+        volumes: [],
       })
     })
   })

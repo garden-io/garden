@@ -374,6 +374,20 @@ function buildBinaryExpression(head: any, tail: any) {
       return left !== right
     }
 
+    if (operator === "+") {
+      if (isNumber(left) && isNumber(right)) {
+        return left + right
+      } else if (isArray(left) && isArray(right)) {
+        return left.concat(right)
+      } else {
+        const err = new TemplateStringError(
+          `Both terms need to be either arrays or numbers for + operator (got ${typeof left} and ${typeof right}).`,
+          { left, right, operator }
+        )
+        return { _error: err }
+      }
+    }
+
     // All other operators require numbers to make sense (we're not gonna allow random JS weirdness)
     if (!isNumber(left) || !isNumber(right)) {
       const err = new TemplateStringError(
@@ -390,8 +404,6 @@ function buildBinaryExpression(head: any, tail: any) {
         return left / right
       case "%":
         return left % right
-      case "+":
-        return left + right
       case "-":
         return left - right
       case "<=":

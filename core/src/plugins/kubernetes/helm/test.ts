@@ -14,7 +14,13 @@ import { getChartResources, getBaseModule } from "./common"
 import { KubernetesPluginContext } from "../config"
 import { TestModuleParams } from "../../../types/plugin/module/testModule"
 import { TestResult } from "../../../types/plugin/module/getTestResult"
-import { getServiceResourceSpec, findServiceResource, getResourceContainer, makePodName } from "../util"
+import {
+  getServiceResourceSpec,
+  findServiceResource,
+  getResourceContainer,
+  makePodName,
+  getResourcePodSpec,
+} from "../util"
 import { getModuleNamespace } from "../namespace"
 
 export async function testHelmModule(params: TestModuleParams<HelmModule>): Promise<TestResult> {
@@ -42,6 +48,7 @@ export async function testHelmModule(params: TestModuleParams<HelmModule>): Prom
   const result = await runAndCopy({
     ...params,
     container,
+    podSpec: getResourcePodSpec(target),
     command,
     args,
     artifacts: testConfig.spec.artifacts,
