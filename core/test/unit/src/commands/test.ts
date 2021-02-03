@@ -190,7 +190,7 @@ describe("TestCommand", () => {
       footerLog: log,
       args: { modules: ["module-a"] },
       opts: withDefaultGlobalOpts({
-        "name": "int*",
+        "name": ["int*"],
         "force": true,
         "force-build": true,
         "watch": false,

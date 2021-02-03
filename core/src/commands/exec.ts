@@ -12,17 +12,16 @@ import { ExecInServiceResult, execInServiceResultSchema } from "../types/plugin/
 import { printHeader } from "../logger/util"
 import { Command, CommandResult, CommandParams } from "./base"
 import dedent = require("dedent")
-import { StringParameter, StringsParameter, BooleanParameter } from "../cli/params"
+import { StringParameter, BooleanParameter } from "../cli/params"
 
 const execArgs = {
   service: new StringParameter({
     help: "The service to exec the command in.",
     required: true,
   }),
-  command: new StringsParameter({
+  command: new StringParameter({
     help: "The command to run.",
     required: true,
-    delimiter: " ",
   }),
 }
 
@@ -76,7 +75,7 @@ export class ExecCommand extends Command<Args> {
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ExecInServiceResult>> {
     const serviceName = args.service
-    const command = args.command || []
+    const command = args?.command.split(" ") || []
 
     const graph = await garden.getConfigGraph(log)
     const service = graph.getService(serviceName)

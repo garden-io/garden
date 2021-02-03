@@ -98,7 +98,7 @@ describe("RunModuleCommand", () => {
       opts: withDefaultGlobalOpts({
         "interactive": false,
         "force-build": false,
-        "command": ["/bin/sh", "-c"],
+        "command": "/bin/sh -c",
       }),
     })
 

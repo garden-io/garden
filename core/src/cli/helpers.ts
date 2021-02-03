@@ -269,9 +269,9 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
       continue
     }
 
-    if (Array.isArray(value)) {
-      // TODO: support multiple instances of an argument if it's an array type
-      value = value[value.length - 1] // Use the last value if the option is used multiple times
+    if (Array.isArray(value) && !spec.type.startsWith("array:")) {
+      // Use the last value if the option is used multiple times and the spec is not an array type
+      value = value[value.length - 1]
     }
 
     if (value !== undefined) {

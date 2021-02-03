@@ -2374,7 +2374,7 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--interactive` |  | boolean | Set to false to skip interactive mode and just output the command result.
   | `--force-build` |  | boolean | Force rebuild of module before running.
-  | `--command` | `-c` | array:string | The base command (a.k.a. entrypoint) to run in the module. For container modules, for example, this overrides the image&#x27;s default command/entrypoint. This option may not be relevant for all module types. Example: &#x27;/bin/sh -c&#x27;.
+  | `--command` | `-c` | string | The base command (a.k.a. entrypoint) to run in the module. For container modules, for example, this overrides the image&#x27;s default command/entrypoint. This option may not be relevant for all module types. Example: &#x27;/bin/sh -c&#x27;.
 
 
 ### garden run service
@@ -2649,12 +2649,13 @@ Optionally stays running and automatically re-runs tests if their module source
 
 Examples:
 
-    garden test               # run all tests in the project
-    garden test my-module     # run all tests in the my-module module
-    garden test --name integ  # run all tests with the name 'integ' in the project
-    garden test --name integ* # run all tests with the name starting with 'integ' in the project
-    garden test --force       # force tests to be re-run, even if they've already run successfully
-    garden test --watch       # watch for changes to code
+    garden test                   # run all tests in the project
+    garden test my-module         # run all tests in the my-module module
+    garden test --name integ      # run all tests with the name 'integ' in the project
+    garden test --name integ*     # run all tests with the name starting with 'integ' in the project
+    garden test -n unit -n lint   # run all tests called either 'unit' or 'lint' in the project
+    garden test --force           # force tests to be re-run, even if they've already run successfully
+    garden test --watch           # watch for changes to code
 
 | Supported in workflows |   |
 | ---------------------- |---|
@@ -2674,7 +2675,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--name` | `-n` | string | Only run tests with the specfied name (e.g. unit or integ). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;)
+  | `--name` | `-n` | array:string | Only run tests with the specfied name (e.g. unit or integ). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;)
   | `--force` | `-f` | boolean | Force re-test of module(s).
   | `--force-build` |  | boolean | Force rebuild of module(s).
   | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-test.

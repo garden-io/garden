@@ -16,7 +16,7 @@ import { dedent, deline } from "../../util/string"
 import { Command, CommandParams, CommandResult, handleRunResult, ProcessResultMetadata } from "../base"
 import { printRuntimeContext } from "./run"
 import { GraphResults } from "../../task-graph"
-import { StringParameter, StringsParameter, BooleanParameter } from "../../cli/params"
+import { StringParameter, StringsParameter, BooleanParameter, StringOption } from "../../cli/params"
 
 const runModuleArgs = {
   module: new StringParameter({
@@ -42,12 +42,11 @@ const runModuleOpts = {
   "force-build": new BooleanParameter({
     help: "Force rebuild of module before running.",
   }),
-  "command": new StringsParameter({
+  "command": new StringOption({
     help: deline`The base command (a.k.a. entrypoint) to run in the module. For container modules, for example,
       this overrides the image's default command/entrypoint. This option may not be relevant for all module types.
       Example: '/bin/sh -c'.`,
     alias: "c",
-    delimiter: " ",
   }),
 }
 
@@ -128,7 +127,7 @@ export class RunModuleCommand extends Command<Args, Opts> {
     const result = await actions.runModule({
       log,
       module,
-      command: opts.command,
+      command: opts.command?.split(" "),
       args: args.arguments || [],
       runtimeContext,
       interactive,
