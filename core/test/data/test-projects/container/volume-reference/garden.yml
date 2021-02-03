@@ -21,9 +21,8 @@ kind: Module
 name: volume-module
 type: persistentvolumeclaim
 include: []
-# Note: This is never actually deployed
 spec:
-  accessModes: [ReadOnlyMany]
+  accessModes: [ReadWriteOnce]
   resources:
     requests:
-      storage: 10Mi
+      storage: 1Gi
