@@ -23,7 +23,10 @@ import { getDeployedResource } from "../../../../../../src/plugins/kubernetes/st
 import { ModuleConfig } from "../../../../../../src/config/module"
 import { KubernetesResource, BaseResource } from "../../../../../../src/plugins/kubernetes/types"
 import { DeleteServiceTask } from "../../../../../../src/tasks/delete-service"
-import { deployKubernetesService } from "../../../../../../src/plugins/kubernetes/kubernetes-module/handlers"
+import {
+  deployKubernetesService,
+  getKubernetesServiceStatus,
+} from "../../../../../../src/plugins/kubernetes/kubernetes-module/handlers"
 import { emptyRuntimeContext } from "../../../../../../src/runtime-context"
 import Bluebird from "bluebird"
 import { buildHelmModules } from "../helm/common"
@@ -111,6 +114,33 @@ describe("kubernetes-module handlers", () => {
   after(async () => {
     garden.setModuleConfigs(moduleConfigBackup)
     await tmpDir.cleanup()
+  })
+
+  describe("getServiceStatus", () => {
+    it("should return missing status for a manifest with a missing resource type", async () => {
+      const graph = await garden.getConfigGraph(garden.log)
+      const service = graph.getService("module-simple")
+      const deployParams = {
+        ctx,
+        log: garden.log,
+        module: service.module,
+        service,
+        force: false,
+        hotReload: false,
+        runtimeContext: emptyRuntimeContext,
+      }
+      service.module.spec.manifests = [
+        {
+          apiVersion: "foo.bar/baz",
+          kind: "Whatever",
+          metadata: { name: "foo" },
+          spec: {},
+        },
+      ]
+
+      const status = await getKubernetesServiceStatus(deployParams)
+      expect(status.state).to.equal("missing")
+    })
   })
 
   describe("deployKubernetesService", () => {
