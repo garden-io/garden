@@ -40,10 +40,17 @@ export async function getManifests({
   return Bluebird.map(manifests, async (manifest) => {
     // Ensure a namespace is set, if not already set, and if required by the resource type
     if (!manifest.metadata.namespace) {
-      const info = await api.getApiResourceInfo(log, manifest.apiVersion, manifest.kind)
+      try {
+        const info = await api.getApiResourceInfo(log, manifest.apiVersion, manifest.kind)
 
-      if (info.namespaced) {
-        manifest.metadata.namespace = defaultNamespace
+        if (info.namespaced) {
+          manifest.metadata.namespace = defaultNamespace
+        }
+      } catch (err) {
+        // We can get a 404 if a resource type can't be found, e.g. a missing CRD
+        if (err.statusCode !== 404) {
+          throw err
+        }
       }
     }
 
