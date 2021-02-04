@@ -1,4 +1,11 @@
 
+<a name="0.12.16-1"></a>
+## [0.12.16-1](https://github.com/garden-io/garden/compare/0.12.16-0...0.12.16-1) (2020-04-27)
+
+### Bug Fixes
+
+* **k8s:** issues with GCR auth when running in-cluster builds on GKE ([195d56e2](https://github.com/garden-io/garden/commit/195d56e2))
+
 <a name="0.12.16-0"></a>
 ## [0.12.16-0](https://github.com/garden-io/garden/compare/0.12.15...0.12.16-0) (2021-02-03)
 
