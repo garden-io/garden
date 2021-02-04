@@ -7,7 +7,7 @@
  */
 
 import { isEqual, merge, omit, take } from "lodash"
-import { joi, joiUserIdentifier, joiVariableName, joiIdentifier } from "./common"
+import { joi, joiUserIdentifier, joiVariableName, joiIdentifier, joiEnvVars, PrimitiveMap } from "./common"
 import { DEFAULT_API_VERSION } from "../constants"
 import { deline, dedent } from "../util/string"
 import { defaultContainerLimits, ServiceLimitSpec } from "../plugins/container/config"
@@ -142,6 +142,7 @@ export interface WorkflowStepSpec {
   name?: string
   command?: string[]
   description?: string
+  envVars?: PrimitiveMap
   script?: string
   skip?: boolean
   when?: workflowStepModifier
@@ -183,6 +184,9 @@ export const workflowStepSchema = () => {
         )
         .example(["run", "task", "my-task"]),
       description: joi.string().description("A description of the workflow step."),
+      envVars: joiEnvVars().description(
+        "A map of environment variables to use when running script steps. Ignored for `command` steps."
+      ),
       script: joi.string().description(
         dedent`
         A bash script to run. Note that the host running the workflow must have bash installed and on path.

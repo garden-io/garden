@@ -42,8 +42,8 @@ describe("resolveWorkflowConfig", () => {
       path: "/tmp/foo",
       description: "Sample workflow",
       steps: [
-        { description: "Deploy the stack", command: ["deploy"], skip: false, when: "onSuccess" },
-        { command: ["test"], skip: false, when: "onSuccess" },
+        { description: "Deploy the stack", command: ["deploy"], skip: false, when: "onSuccess", envVars: {} },
+        { command: ["test"], skip: false, when: "onSuccess", envVars: {} },
       ],
       triggers: [
         {
@@ -77,6 +77,7 @@ describe("resolveWorkflowConfig", () => {
           command: ["deploy"],
           skip: ("${var.skip}" as unknown) as boolean,
           when: "onSuccess",
+          envVars: {},
         },
       ],
     }
@@ -170,8 +171,8 @@ describe("resolveWorkflowConfig", () => {
       ...config,
       ...defaults,
       steps: [
-        { description: "Deploy the stack", command: ["deploy"], skip: false, when: "onSuccess" },
-        { command: ["test"], skip: false, when: "onSuccess" },
+        { description: "Deploy the stack", command: ["deploy"], skip: false, when: "onSuccess", envVars: {} },
+        { command: ["test"], skip: false, when: "onSuccess", envVars: {} },
       ],
     })
   })

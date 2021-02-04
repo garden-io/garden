@@ -327,7 +327,7 @@ export async function runStepCommand({
 
 export async function runStepScript({ garden, bodyLog, step }: RunStepParams): Promise<CommandResult<any>> {
   try {
-    await runScript(bodyLog, garden.projectRoot, step.script!)
+    await runScript({ log: bodyLog, cwd: garden.projectRoot, script: step.script!, envVars: step.envVars })
     return { result: {} }
   } catch (_err) {
     const error = _err as ExecaError

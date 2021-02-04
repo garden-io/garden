@@ -469,6 +469,27 @@ describe("RunWorkflowCommand", () => {
     expect(result?.steps["step-1"].log).to.equal(garden.projectRoot)
   })
 
+  it("should apply configured envVars when running script steps", async () => {
+    garden.setWorkflowConfigs([
+      {
+        apiVersion: DEFAULT_API_VERSION,
+        name: "workflow-a",
+        kind: "Workflow",
+        path: garden.projectRoot,
+        files: [],
+        steps: [{ script: "echo $FOO $BAR", envVars: { FOO: "foo", BAR: 123 } }],
+      },
+    ])
+
+    await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
+
+    const { result, errors } = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
+
+    expect(result).to.exist
+    expect(errors).to.not.exist
+    expect(result?.steps["step-1"].log).to.equal("foo 123")
+  })
+
   it("should skip disabled steps", async () => {
     garden.setWorkflowConfigs([
       {
