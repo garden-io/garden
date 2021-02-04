@@ -30,7 +30,7 @@ describe("resolveWorkflowConfig", () => {
   before(async () => {
     garden = await makeTestGardenA()
     garden["secrets"] = { foo: "bar", bar: "baz", baz: "banana" }
-    garden["variables"] = { foo: "baz" }
+    garden["variables"] = { foo: "baz", skip: false }
   })
 
   it("should pass through a canonical workflow config", async () => {
@@ -72,15 +72,44 @@ describe("resolveWorkflowConfig", () => {
       path: "/tmp/foo",
       description: "Secret: ${secrets.foo}, var: ${variables.foo}",
       steps: [
-        { description: "Deploy the stack", command: ["deploy"], skip: false, when: "onSuccess" },
-        { command: ["test"], skip: false, when: "onSuccess" },
+        {
+          description: "Deploy the stack",
+          command: ["deploy"],
+          skip: ("${var.skip}" as unknown) as boolean,
+          when: "onSuccess",
+        },
       ],
     }
 
-    expect(resolveWorkflowConfig(garden, config)).to.eql({
-      ...config,
-      description: `Secret: bar, var: baz`,
-    })
+    const resolved = resolveWorkflowConfig(garden, config)
+
+    expect(resolved.description).to.equal("Secret: bar, var: baz")
+    expect(resolved.steps[0].skip).to.equal(false)
+  })
+
+  it("should not resolve template strings in step commands and scripts", async () => {
+    const config: WorkflowConfig = {
+      ...defaults,
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Workflow",
+      name: "workflow-a",
+      path: "/tmp/foo",
+      description: "foo",
+      steps: [
+        {
+          description: "Deploy the stack",
+          command: ["deploy", "${var.foo}"],
+          skip: false,
+          when: "onSuccess",
+        },
+        { script: "echo ${var.foo}", skip: false, when: "onSuccess" },
+      ],
+    }
+
+    const resolved = resolveWorkflowConfig(garden, config)
+
+    expect(resolved.steps[0].command).to.eql(config.steps[0].command)
+    expect(resolved.steps[1].script).to.eql(config.steps[1].script)
   })
 
   it("should not resolve template strings in trigger specs or in the workflow name", async () => {
