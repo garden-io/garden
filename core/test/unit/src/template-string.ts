@@ -43,9 +43,19 @@ describe("resolveTemplateString", async () => {
     expect(res).to.equal("value")
   })
 
+  it("should correctly resolve if ? suffix is present but value exists", async () => {
+    const res = resolveTemplateString("${foo}?", new TestContext({ foo: "bar" }))
+    expect(res).to.equal("bar")
+  })
+
   it("should allow undefined values if ? suffix is present", async () => {
     const res = resolveTemplateString("${foo}?", new TestContext({}))
     expect(res).to.equal(undefined)
+  })
+
+  it("should pass optional string through if allowPartial=true", async () => {
+    const res = resolveTemplateString("${foo}?", new TestContext({}), { allowPartial: true })
+    expect(res).to.equal("${foo}?")
   })
 
   it("should interpolate a format string with a prefix", async () => {
@@ -1017,6 +1027,23 @@ describe("resolveTemplateStrings", () => {
         nested: "else",
         noTemplate: "at-all",
       },
+    })
+  })
+
+  it("should correctly handle optional template strings", async () => {
+    const obj = {
+      some: "${key}?",
+      other: "${missing}?",
+    }
+    const templateContext = new TestContext({
+      key: "value",
+    })
+
+    const result = resolveTemplateStrings(obj, templateContext)
+
+    expect(result).to.eql({
+      some: "value",
+      other: undefined,
     })
   })
 
