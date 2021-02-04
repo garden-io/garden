@@ -12,13 +12,14 @@ import { ExecInServiceResult, execInServiceResultSchema } from "../types/plugin/
 import { printHeader } from "../logger/util"
 import { Command, CommandResult, CommandParams } from "./base"
 import dedent = require("dedent")
-import { StringParameter, BooleanParameter } from "../cli/params"
+import { StringParameter, BooleanParameter, ParameterValues } from "../cli/params"
 
 const execArgs = {
   service: new StringParameter({
     help: "The service to exec the command in.",
     required: true,
   }),
+  // TODO: make this variadic
   command: new StringParameter({
     help: "The command to run.",
     required: true,
@@ -65,7 +66,7 @@ export class ExecCommand extends Command<Args> {
 
   printHeader({ headerLog, args }) {
     const serviceName = args.service
-    const command = args.command || []
+    const command = this.getCommand(args)
     printHeader(
       headerLog,
       `Running command ${chalk.cyan(command.join(" "))} in service ${chalk.cyan(serviceName)}`,
@@ -75,7 +76,7 @@ export class ExecCommand extends Command<Args> {
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ExecInServiceResult>> {
     const serviceName = args.service
-    const command = args?.command.split(" ") || []
+    const command = this.getCommand(args)
 
     const graph = await garden.getConfigGraph(log)
     const service = graph.getService(serviceName)
@@ -88,5 +89,9 @@ export class ExecCommand extends Command<Args> {
     })
 
     return { result }
+  }
+
+  private getCommand(args: ParameterValues<Args>) {
+    return args.command.split(" ") || []
   }
 }
