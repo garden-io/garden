@@ -16,29 +16,25 @@ services:
       POSTGRES_USERNAME: ${var.postgres-username}
       POSTGRES_PASSWORD: ${var.postgres-password}
     healthCheck:
-      command: [
-        psql,
-        -w,
-        -U, "${var.postgres-username}",
-        -d, "${var.postgres-database}",
-        -c, "SELECT 1",
-      ]
+      command: [psql, -w, -U, "${var.postgres-username}", -d, "${var.postgres-database}", -c, "SELECT 1"]
 tasks:
   - name: db-init
     command: [/bin/sh, -c]
     # The postgres health check appears to go through before the server accepts remote connections, so we need to
     # sleep for a while.
     # https://github.com/CrunchyData/crunchy-containers/issues/653
-    args: [
-      "sleep 15 && psql -w --host=db --port=5432 -d $PGDATABASE -c 'CREATE TABLE IF NOT EXISTS votes (id VARCHAR(255) NOT NULL UNIQUE, vote VARCHAR(255) NOT NULL, created_at timestamp default NULL)'"
-    ]
+    args:
+      [
+        "sleep 15 && psql -w --host=db --port=5432 -d $PGDATABASE -c 'CREATE TABLE IF NOT EXISTS votes (id VARCHAR(255) NOT NULL UNIQUE, vote VARCHAR(255) NOT NULL, created_at timestamp default NULL)'",
+      ]
     dependencies: [db]
     env: &env
       PGDATABASE: ${var.postgres-database}
       PGUSER: ${var.postgres-username}
       PGPASSWORD: ${var.postgres-password}
   - name: db-clear
-    args: [psql, -w, --host=db, --port 5432, -d, $PGDATABASE, "-c 'TRUNCATE votes'"]
+    command: [/bin/sh, -c]
+    args: ["psql -w --host=db --port=5432 -d $PGDATABASE -c 'TRUNCATE votes'"]
     dependencies: [db]
     env:
       <<: *env
