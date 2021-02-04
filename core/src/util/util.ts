@@ -25,6 +25,7 @@ import { tailString, dedent } from "./string"
 import { Writable, Readable } from "stream"
 import { LogEntry } from "../logger/log-entry"
 import execa = require("execa")
+import { PrimitiveMap } from "../config/common"
 export { v4 as uuidv4 } from "uuid"
 
 export type HookCallback = (callback?: () => void) => void
@@ -637,7 +638,17 @@ export function getDurationMsec(start: Date, end: Date): number {
   return Math.round(end.getTime() - start.getTime())
 }
 
-export async function runScript(log: LogEntry, cwd: string, script: string) {
+export async function runScript({
+  log,
+  cwd,
+  script,
+  envVars,
+}: {
+  log: LogEntry
+  cwd: string
+  script: string
+  envVars?: PrimitiveMap
+}) {
   // Run the script, capturing any errors
   const proc = execa("bash", ["-s"], {
     all: true,
@@ -647,6 +658,7 @@ export async function runScript(log: LogEntry, cwd: string, script: string) {
     // Set a very large max buffer (we only hold one of these at a time, and want to avoid overflow errors)
     buffer: true,
     maxBuffer: 100 * 1024 * 1024,
+    env: mapValues(envVars, (v) => (v === undefined ? undefined : "" + v)),
   })
 
   // Stream output to `log`, splitting by line
