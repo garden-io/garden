@@ -1,4 +1,30 @@
 
+<a name="0.12.16-0"></a>
+## [0.12.16-0](https://github.com/garden-io/garden/compare/0.12.15...0.12.16-0) (2021-02-03)
+
+### Bug Fixes
+
+* **config:** pass optional templates through during partial resolution ([c4dac8b8](https://github.com/garden-io/garden/commit/c4dac8b8))
+* **k8s:** error in status checks for missing CRD manifests ([4713cbd2](https://github.com/garden-io/garden/commit/4713cbd2))
+* **k8s:** fix some issues with KinD and add CI tests ([78e79c13](https://github.com/garden-io/garden/commit/78e79c13))
+* **k8s:** fix issues with minikube v1.17 ([9b6015c1](https://github.com/garden-io/garden/commit/9b6015c1))
+
+### Code Refactoring
+
+* break up runAndCopy ([4ac311d8](https://github.com/garden-io/garden/commit/4ac311d8))
+* reduce work at module resolution time ([e8ef6b22](https://github.com/garden-io/garden/commit/e8ef6b22))
+
+### Features
+
+* **cli:** add --skip parameter to deploy command ([10bc98fa](https://github.com/garden-io/garden/commit/10bc98fa))
+* **k8s:** use pod spec fields in tasks and tests ([ce1e8ed3](https://github.com/garden-io/garden/commit/ce1e8ed3))
+* **templates:** allow concatenating arrays with + operator ([4b8a5bb1](https://github.com/garden-io/garden/commit/4b8a5bb1))
+
+### Improvements
+
+* **cli:** allow multiple instances of array option parameters ([844126e6](https://github.com/garden-io/garden/commit/844126e6))
+* **core:** default to new build staging mechanism ([5a218941](https://github.com/garden-io/garden/commit/5a218941))
+
 <a name="0.12.15"></a>
 ## [0.12.15](https://github.com/garden-io/garden/compare/0.12.14...0.12.15) (2021-01-21)
 
