@@ -46,6 +46,7 @@ import { AnalyticsGlobalConfig } from "../src/config-store"
 import { TestGarden, EventLogEntry } from "../src/util/testing"
 import { Logger } from "../src/logger/logger"
 import { LogLevel } from "../src/logger/log-node"
+import { ExecInServiceParams, ExecInServiceResult } from "../src/types/plugin/service/execInService"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus } from "../src/util/testing"
@@ -213,6 +214,10 @@ export const testPlugin = () =>
           },
           async deployService() {
             return { state: "ready", detail: {} }
+          },
+
+          async execInService({ command }: ExecInServiceParams): Promise<ExecInServiceResult> {
+            return { code: 0, output: "Ran command: " + command.join(" ") }
           },
 
           async runService({
