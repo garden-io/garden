@@ -504,16 +504,6 @@ export class WorkflowConfigContext extends EnvironmentConfigContext {
   )
   public variables: DeepPrimitiveMap
 
-  @schema(
-    joiStringMap(joi.string().description("The secret's value."))
-      .description("A map of all secrets for this project in the current environment.")
-      .meta({
-        internal: true,
-        keyPlaceholder: "<secret-name>",
-      })
-  )
-  public secrets: PrimitiveMap
-
   constructor(garden: Garden) {
     super({
       projectName: garden.projectName,
@@ -527,7 +517,6 @@ export class WorkflowConfigContext extends EnvironmentConfigContext {
 
     const fullEnvName = garden.namespace ? `${garden.namespace}.${garden.environmentName}` : garden.environmentName
     this.environment = new EnvironmentContext(this, garden.environmentName, fullEnvName, garden.namespace)
-    this.project = new ProjectContext(this, garden.projectName)
   }
 }
 

@@ -20,7 +20,7 @@ import { getCoreCommands } from "../commands/commands"
 import { CommandGroup } from "../commands/base"
 import { EnvironmentConfig, getNamespace } from "./project"
 import { globalOptions } from "../cli/params"
-import { isTruthy } from "../util/util"
+import { isTruthy, omitUndefined } from "../util/util"
 import { parseCliArgs, pickCommand } from "../cli/helpers"
 
 export interface WorkflowConfig {
@@ -306,23 +306,46 @@ export interface WorkflowConfigMap {
 export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
   const log = garden.log
   const context = new WorkflowConfigContext(garden)
+
   log.silly(`Resolving template strings for workflow ${config.name}`)
-  let resolvedConfig = {
-    ...resolveTemplateStrings(omit(config, "name", "triggers"), context, { allowPartial: true }),
+
+  const partialConfig = {
+    // Don't allow templating in names and triggers
+    ...omit(config, "name", "triggers"),
+    // Defer resolution of step commands and scripts (the dummy script will be overwritten again below)
+    steps: config.steps.map((s) => ({ ...s, command: undefined, script: "echo" })),
+  }
+
+  let resolvedPartialConfig: WorkflowConfig = {
+    ...resolveTemplateStrings(partialConfig, context),
     name: config.name,
   }
+
   if (config.triggers) {
-    resolvedConfig["triggers"] = config.triggers
+    resolvedPartialConfig.triggers = config.triggers
   }
+
   log.silly(`Validating config for workflow ${config.name}`)
 
-  resolvedConfig = <WorkflowConfig>validateWithPath({
-    config: resolvedConfig,
+  resolvedPartialConfig = validateWithPath({
+    config: resolvedPartialConfig,
     configType: "workflow",
     schema: workflowConfigSchema(),
     path: config.path,
     projectRoot: garden.projectRoot,
   })
+
+  // Re-add the deferred step commands and scripts
+  const resolvedConfig = {
+    ...resolvedPartialConfig,
+    steps: resolvedPartialConfig.steps.map((s, i) =>
+      omitUndefined({
+        ...omit(s, "command", "script"),
+        command: config.steps[i].command,
+        script: config.steps[i].script,
+      })
+    ),
+  }
 
   validateSteps(resolvedConfig)
   validateTriggers(resolvedConfig, garden.environmentConfigs)
