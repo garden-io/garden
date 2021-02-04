@@ -3,6 +3,7 @@ version: 2.1
 
 orbs:
   win: circleci/windows@1.0.0
+  rok8s-scripts: fairwinds/rok8s-scripts@11.1.3
 
 # Shared config to use between jobs
 # These can be used to inject shared variables
@@ -242,8 +243,6 @@ jobs:
         description: The project environment to use
         type: string
         default: testing
-    environment:
-      GARDEN_EXPERIMENTAL_BUILD_STAGE: "true"
     steps:
       - checkout
       - run: sudo apt-get update && sudo apt-get install rsync
@@ -461,6 +460,77 @@ jobs:
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist kubectl delete --wait=false $(kubectl get ns -o name | grep testing-$CIRCLE_BUILD_NUM) || true
           when: always
 
+  test-kind:
+    machine:
+      image: 'ubuntu-1604:201903-01'
+      docker_layer_caching: true
+    parameters:
+      kindNodeImage:
+        description: The kind node image to use
+        type: string
+    environment:
+      <<: *shared-env-config
+      GARDEN_LOG_LEVEL: debug
+      GARDEN_LOGGER_TYPE: basic
+    steps:
+      - checkout
+      - install_kubectl
+      - run:
+          name: Install kind
+          command: |
+            curl -LO https://github.com/kubernetes-sigs/kind/releases/download/v0.7.0/kind-linux-amd64
+            chmod +x kind-linux-amd64
+            sudo mv kind-linux-amd64 /usr/local/bin/kind
+      - run:
+          name: Start kind cluster
+          command: |
+            # Create the kind cluster with a custom config to enable the default ingress controller
+            cat \<<EOF | kind create cluster \
+                --image <<parameters.kindNodeImage>> \
+                --wait=120s \
+                --config=-
+
+            kind: Cluster
+            apiVersion: kind.x-k8s.io/v1alpha4
+            nodes:
+            - role: control-plane
+              kubeadmConfigPatches:
+              - |
+                kind: InitConfiguration
+                nodeRegistration:
+                  kubeletExtraArgs:
+                    node-labels: "ingress-ready=true"
+                    authorization-mode: "AlwaysAllow"
+              extraPortMappings:
+              - containerPort: 80
+                hostPort: 80
+                protocol: TCP
+              - containerPort: 443
+                hostPort: 443
+                protocol: TCP
+            EOF
+
+            kubectl config set-context kind-kind
+      - update_nodejs
+      # Note: We can't use npm_install here because the cache conflicts
+      - run: yarn
+      - run: yarn bootstrap
+      - run: yarn build
+      - run:
+          name: Integ tests
+          command: |
+            cd core
+            # Notes:
+            # - We skip tests that only work for remote environments
+            # - We currently don't support in-cluster building on kind.
+            yarn integ-kind -b
+      - run:
+          name: Deploy demo-project
+          command: ./bin/garden deploy --root examples/demo-project --logger-type basic
+      - run:
+          name: Deploy openfaas
+          command: ./bin/garden deploy --root examples/openfaas --logger-type basic
+
   test-microk8s:
     machine:
       image: 'ubuntu-1604:202004-01'
@@ -564,7 +634,13 @@ jobs:
       - run:
           name: Start Minikube Cluster
           command: |
-            sudo -E minikube start --vm-driver=none --cpus 2 --memory 4096 --kubernetes-version=$K8S_VERSION
+            sudo -E minikube start \
+              --extra-config=kubeadm.ignore-preflight-errors=NumCPU \
+              --extra-config=kubeadm.ignore-preflight-errors=RSRC_INSUFFICIENT_CORES \
+              --kubernetes-version=$K8S_VERSION \
+              --vm-driver=none \
+              --cpus 2 \
+              --memory 4096
             sudo chown -R circleci:circleci /home/circleci/.kube /home/circleci/.minikube /etc/kubernetes
             # Work around annoying issue on recent minikubes where namespaces take a long time to generate default service account
             kubectl create namespace container-default
@@ -627,6 +703,10 @@ jobs:
 
 workflows:
   version: 2
+  # Note: The below is a not-quite-random mix of local k8s variants and k8s versions. Doing a full matrix of every
+  # variant and k8s version would be quite expensive, so we try and make sure each of the latest 6-7 k8s versions is
+  # tested, and that the most recent versions are broadly tested. The kind tests are the cheapest to run so we use many
+  # of those, but they currently don't test in-cluster building, so we do need a range of versions on minikube as well.
   test-minikube-1.20:
     jobs:
       - test-minikube:
@@ -647,18 +727,6 @@ workflows:
           kubernetesVersion: "1.18.15"
           minikubeVersion: "v1.16.0"
           testOpenfaas: false
-  test-minikube-1.17:
-    jobs:
-      - test-minikube:
-          kubernetesVersion: "1.17.4"
-  test-minikube-1.16:
-    jobs:
-      - test-minikube:
-          kubernetesVersion: "1.16.8"
-  test-minikube-1.15:
-    jobs:
-      - test-minikube:
-          kubernetesVersion: "1.15.11"
   test-minikube-1.14:
     jobs:
       - test-minikube:
@@ -667,6 +735,26 @@ workflows:
     jobs:
       - test-microk8s:
           kubernetesVersion: "1.19"
+  test-kind-1.15:
+    jobs:
+      - test-kind:
+          kindNodeImage: kindest/node:v1.15.12
+  test-kind-1.16:
+    jobs:
+      - test-kind:
+          kindNodeImage: kindest/node:v1.16.15
+  test-kind-1.17:
+    jobs:
+      - test-kind:
+          kindNodeImage: kindest/node:v1.17.11
+  test-kind-1.19:
+    jobs:
+      - test-kind:
+          kindNodeImage: kindest/node:v1.19.4
+  test-kind-1.20:
+    jobs:
+      - test-kind:
+          kindNodeImage: kindest/node:v1.20.2
   commit:
     jobs:
       ### ALL BRANCHES ###

@@ -37,12 +37,55 @@ import { prepareImagePullSecrets } from "./secrets"
 import { configureVolumes } from "./container/deployment"
 import { PluginContext } from "../../plugin-context"
 import { waitForResources, ResourceStatus } from "./status/status"
-import { cloneDeep } from "lodash"
+import { cloneDeep, pick } from "lodash"
+import { RuntimeContext } from "../../runtime-context"
 
 // Default timeout for individual run/exec operations
 const defaultTimeout = 600
 
-// TODO: break this function up
+/**
+ * When a `podSpec` is passed to `runAndCopy`, only these fields will be used for the runner's pod spec
+ * (and, in some cases, overridden/populated in `runAndCopy`).
+ *
+ * See: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#podspec-v1-core
+ */
+export const runPodSpecWhitelist: (keyof V1PodSpec)[] = [
+  // "activeDeadlineSeconds", // <-- for clarity, we leave the non-whitelisted fields here commented out.
+  "affinity",
+  "automountServiceAccountToken",
+  "containers",
+  "dnsConfig",
+  "dnsPolicy",
+  "enableServiceLinks",
+  // "ephemeralContainers",
+  "hostAliases",
+  "hostIPC",
+  "hostNetwork",
+  "hostPID",
+  "hostname",
+  "imagePullSecrets",
+  // "initContainers",
+  "nodeName",
+  "nodeSelector",
+  "overhead",
+  "preemptionPolicy",
+  "priority",
+  "priorityClassName",
+  // "readinessGates",
+  // "restartPolicy",
+  "runtimeClassName",
+  "schedulerName",
+  "securityContext",
+  "serviceAccount",
+  "serviceAccountName",
+  "shareProcessNamespace",
+  "subdomain",
+  // "terminationGracePeriodSeconds",
+  "tolerations",
+  "topologySpreadConstraints",
+  "volumes",
+]
+
 export async function runAndCopy({
   ctx,
   log,
@@ -55,6 +98,7 @@ export async function runAndCopy({
   image,
   container,
   podName,
+  podSpec,
   artifacts = [],
   artifactsPath,
   envVars = {},
@@ -67,6 +111,7 @@ export async function runAndCopy({
   image: string
   container?: V1Container
   podName?: string
+  podSpec?: V1PodSpec
   artifacts?: ArtifactSpec[]
   artifactsPath?: string
   envVars?: ContainerEnvVars
@@ -79,6 +124,109 @@ export async function runAndCopy({
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
 
+  const getArtifacts = !!(!interactive && artifacts && artifacts.length > 0 && artifactsPath)
+  const mainContainerName = "main"
+
+  if (!description) {
+    description = `Container module '${module.name}'`
+  }
+
+  const errorMetadata: any = { moduleName: module.name, description, args, artifacts }
+
+  podSpec = await prepareRunPodSpec({
+    podSpec,
+    getArtifacts,
+    log,
+    module,
+    args,
+    command,
+    api,
+    provider,
+    runtimeContext,
+    envVars,
+    description,
+    errorMetadata,
+    mainContainerName,
+    image,
+    container,
+    namespace,
+    volumes,
+  })
+
+  if (!podName) {
+    podName = makePodName("run", module.name)
+  }
+
+  const runParams = {
+    ctx,
+    api,
+    provider,
+    log,
+    module,
+    args,
+    command,
+    interactive,
+    runtimeContext,
+    timeout,
+    podSpec,
+    podName,
+    namespace,
+  }
+
+  if (getArtifacts) {
+    return runWithArtifacts({
+      ...runParams,
+      mainContainerName,
+      artifacts,
+      artifactsPath: artifactsPath!,
+      description,
+      errorMetadata,
+      stdout,
+      stderr,
+    })
+  } else {
+    return runWithoutArtifacts(runParams)
+  }
+}
+
+// This helper was created to facilitate testing the pod spec generation in `runAndCopy`.
+export async function prepareRunPodSpec({
+  podSpec,
+  getArtifacts,
+  api,
+  provider,
+  log,
+  module,
+  args,
+  command,
+  runtimeContext,
+  envVars,
+  description,
+  errorMetadata,
+  mainContainerName,
+  image,
+  container,
+  namespace,
+  volumes,
+}: {
+  podSpec?: V1PodSpec
+  getArtifacts: boolean
+  log: LogEntry
+  module: GardenModule
+  args: string[]
+  command: string[] | undefined
+  api: KubeApi
+  provider: KubernetesProvider
+  runtimeContext: RuntimeContext
+  envVars: ContainerEnvVars
+  description: string
+  errorMetadata: any
+  mainContainerName: string
+  image: string
+  container?: V1Container
+  namespace: string
+  volumes?: ContainerVolumeSpec[]
+}): Promise<V1PodSpec> {
   // Prepare environment variables
   envVars = { ...runtimeContext.envVars, ...envVars }
   const env = uniqByName([
@@ -87,33 +235,29 @@ export async function runAndCopy({
     ...(container && container.env ? container.env : []),
   ])
 
-  const getArtifacts = !interactive && artifacts && artifacts.length > 0 && artifactsPath
-  const mainContainerName = "main"
+  const containers: V1Container[] = [
+    {
+      ...(container || {}),
+      // We always override the following attributes
+      name: mainContainerName,
+      image,
+      env,
+      // TODO: consider supporting volume mounts in ad-hoc runs (would need specific logic and testing)
+      volumeMounts: [],
+    },
+  ]
 
-  const spec: V1PodSpec = {
-    containers: [
-      {
-        ...(container || {}),
-        // We always override the following attributes
-        name: mainContainerName,
-        image,
-        env,
-        // TODO: consider supporting volume mounts in ad-hoc runs (would need specific logic and testing)
-        volumeMounts: [],
-      },
-    ],
-    imagePullSecrets: await prepareImagePullSecrets({ api, provider, namespace, log }),
+  const imagePullSecrets = await prepareImagePullSecrets({ api, provider, namespace, log })
+
+  podSpec = {
+    ...pick(podSpec || {}, runPodSpecWhitelist),
+    containers,
+    imagePullSecrets,
   }
 
   if (volumes) {
-    configureVolumes(module, spec, volumes)
+    configureVolumes(module, podSpec, volumes)
   }
-
-  if (!description) {
-    description = `Container module '${module.name}'`
-  }
-
-  const errorMetadata: any = { moduleName: module.name, description, args, artifacts }
 
   if (getArtifacts) {
     if (!command) {
@@ -130,20 +274,39 @@ export async function runAndCopy({
 
     // We start the container with a named pipe and tail that, to get the logs from the actual command
     // we plan on running. Then we sleep, so that we can copy files out of the container.
-    spec.containers[0].command = ["sh", "-c", "mkfifo /tmp/output && cat /tmp/output && sleep 86400"]
+    podSpec.containers[0].command = ["sh", "-c", "mkfifo /tmp/output && cat /tmp/output && sleep 86400"]
   } else {
     if (args) {
-      spec.containers[0].args = args
+      podSpec.containers[0].args = args
     }
     if (command) {
-      spec.containers[0].command = command
+      podSpec.containers[0].command = command
     }
   }
 
-  if (!podName) {
-    podName = makePodName("run", module.name)
-  }
+  return podSpec
+}
 
+async function runWithoutArtifacts({
+  ctx,
+  api,
+  provider,
+  log,
+  module,
+  args,
+  command,
+  timeout,
+  podSpec,
+  podName,
+  namespace,
+  interactive,
+}: RunModuleParams<GardenModule> & {
+  api: KubeApi
+  provider: KubernetesProvider
+  podSpec: V1PodSpec
+  podName: string
+  namespace: string
+}): Promise<RunResult> {
   const pod: KubernetesResource<V1Pod> = {
     apiVersion: "v1",
     kind: "Pod",
@@ -151,7 +314,7 @@ export async function runAndCopy({
       name: podName,
       namespace,
     },
-    spec,
+    spec: podSpec,
   }
 
   const runner = new PodRunner({
@@ -165,7 +328,7 @@ export async function runAndCopy({
   let result: RunResult
   const startedAt = new Date()
 
-  const timedOutResult = async (logs: string) => {
+  const timedOutResult = (logs: string) => {
     return {
       command: runner.getFullCommand(),
       completedAt: new Date(),
@@ -177,39 +340,104 @@ export async function runAndCopy({
     }
   }
 
-  if (!getArtifacts) {
-    try {
-      const res = await runner.runAndWait({
-        log,
-        remove: true,
-        timeoutSec: timeout || defaultTimeout,
-        tty: !!interactive,
-      })
+  try {
+    const res = await runner.runAndWait({
+      log,
+      remove: true,
+      timeoutSec: timeout || defaultTimeout,
+      tty: !!interactive,
+    })
+    result = {
+      ...res,
+      moduleName: module.name,
+      version: module.version.versionString,
+    }
+  } catch (err) {
+    if (err.type === "timeout") {
+      result = timedOutResult(err.detail.logs)
+    } else if (err.type === "pod-runner") {
+      // Command exited with non-zero code
       result = {
-        ...res,
+        log: err.detail.logs || err.message,
         moduleName: module.name,
         version: module.version.versionString,
+        success: false,
+        startedAt,
+        completedAt: new Date(),
+        command: [...(command || []), ...(args || [])],
       }
-    } catch (err) {
-      if (err.type === "timeout") {
-        result = await timedOutResult(err.detail.logs)
-      } else if (err.type === "pod-runner") {
-        // Command exited with non-zero code
-        result = {
-          log: err.detail.logs || err.message,
-          moduleName: module.name,
-          version: module.version.versionString,
-          success: false,
-          startedAt,
-          completedAt: new Date(),
-          command: [...(command || []), ...(args || [])],
-        }
-      } else {
-        throw err
-      }
+    } else {
+      throw err
     }
+  }
 
-    return result
+  return result
+}
+
+async function runWithArtifacts({
+  ctx,
+  api,
+  provider,
+  log,
+  module,
+  args,
+  command,
+  timeout,
+  podSpec,
+  podName,
+  mainContainerName,
+  artifacts,
+  artifactsPath,
+  description,
+  errorMetadata,
+  stdout,
+  stderr,
+  namespace,
+}: RunModuleParams<GardenModule> & {
+  podSpec: V1PodSpec
+  podName: string
+  mainContainerName: string
+  api: KubeApi
+  provider: KubernetesProvider
+  artifacts: ArtifactSpec[]
+  artifactsPath: string
+  description?: string
+  errorMetadata: any
+  stdout?: Writable
+  stderr?: Writable
+  namespace: string
+}): Promise<RunResult> {
+  const pod: KubernetesResource<V1Pod> = {
+    apiVersion: "v1",
+    kind: "Pod",
+    metadata: {
+      name: podName,
+      namespace,
+    },
+    spec: podSpec,
+  }
+
+  const runner = new PodRunner({
+    ctx,
+    api,
+    pod,
+    provider,
+    namespace,
+  })
+
+  let result: RunResult
+  const startedAt = new Date()
+
+  const timedOutResult = (logs: string) => {
+    return {
+      command: runner.getFullCommand(),
+      completedAt: new Date(),
+      log: "Command timed out." + (logs ? ` Here are the logs until the timeout occurred:\n\n${logs}` : ""),
+      moduleName: module.name,
+      startedAt,
+      success: false,
+      version: module.version.versionString,
+    }
   }
 
   const timeoutSec = timeout || defaultTimeout
@@ -308,7 +536,7 @@ export async function runAndCopy({
 
       if (err.type === "timeout") {
         // Command timed out
-        result = await timedOutResult((await runner.getMainContainerLogs()).trim())
+        result = timedOutResult((await runner.getMainContainerLogs()).trim())
       } else if (err.type === "pod-runner" && res && res.exitCode) {
         // Command exited with non-zero code
         result = {
@@ -331,7 +559,7 @@ export async function runAndCopy({
         const tmpDir = await tmp.dir({ unsafeCleanup: true })
         // Remove leading slash (which is required in the schema)
         const sourcePath = artifact.source.slice(1)
-        const targetPath = resolve(artifactsPath!, artifact.target || ".")
+        const targetPath = resolve(artifactsPath, artifact.target || ".")
 
         const tarCmd = [
           "tar",

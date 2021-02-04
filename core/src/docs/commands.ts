@@ -10,7 +10,7 @@ import { readFileSync, writeFileSync } from "fs"
 import handlebars from "handlebars"
 import { resolve } from "path"
 import { globalOptions } from "../cli/params"
-import { coreCommands } from "../commands/commands"
+import { getCoreCommands } from "../commands/commands"
 import { describeParameters, CommandGroup } from "../commands/base"
 import { TEMPLATES_DIR, renderConfigReference } from "./config"
 
@@ -18,7 +18,7 @@ export function writeCommandReferenceDocs(docsRoot: string) {
   const referenceDir = resolve(docsRoot, "reference")
   const outputPath = resolve(referenceDir, "commands.md")
 
-  const commands = coreCommands
+  const commands = getCoreCommands()
     .flatMap((cmd) => {
       if (cmd instanceof CommandGroup && cmd.subCommands?.length) {
         return cmd

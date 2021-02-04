@@ -617,6 +617,7 @@ Examples:
     garden deploy --hot=my-service     # deploys all services, with hot reloading enabled for my-service
     garden deploy --hot=*              # deploys all compatible services with hot reloading enabled
     garden deploy --env stage          # deploy your services to an environment called stage
+    garden deploy --skip service-b     # deploy all services except service-b
 
 | Supported in workflows |   |
 | ---------------------- |---|
@@ -640,6 +641,7 @@ Examples:
   | `--force-build` |  | boolean | Force rebuild of module(s).
   | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-deploy.
   | `--hot-reload` | `-hot` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with hot reloading enabled (ignores services belonging to modules that don&#x27;t support or haven&#x27;t configured hot reloading). When this option is used, the command is run in watch mode (i.e. implicitly assumes the --watch/-w flag).
+  | `--skip` |  | array:string | The name(s) of services you&#x27;d like to skip when deploying.
 
 #### Outputs
 
@@ -2372,7 +2374,7 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--interactive` |  | boolean | Set to false to skip interactive mode and just output the command result.
   | `--force-build` |  | boolean | Force rebuild of module before running.
-  | `--command` | `-c` | array:string | The base command (a.k.a. entrypoint) to run in the module. For container modules, for example, this overrides the image&#x27;s default command/entrypoint. This option may not be relevant for all module types. Example: &#x27;/bin/sh -c&#x27;.
+  | `--command` | `-c` | string | The base command (a.k.a. entrypoint) to run in the module. For container modules, for example, this overrides the image&#x27;s default command/entrypoint. This option may not be relevant for all module types. Example: &#x27;/bin/sh -c&#x27;.
 
 
 ### garden run service
@@ -2647,12 +2649,13 @@ Optionally stays running and automatically re-runs tests if their module source
 
 Examples:
 
-    garden test               # run all tests in the project
-    garden test my-module     # run all tests in the my-module module
-    garden test --name integ  # run all tests with the name 'integ' in the project
-    garden test --name integ* # run all tests with the name starting with 'integ' in the project
-    garden test --force       # force tests to be re-run, even if they've already run successfully
-    garden test --watch       # watch for changes to code
+    garden test                   # run all tests in the project
+    garden test my-module         # run all tests in the my-module module
+    garden test --name integ      # run all tests with the name 'integ' in the project
+    garden test --name integ*     # run all tests with the name starting with 'integ' in the project
+    garden test -n unit -n lint   # run all tests called either 'unit' or 'lint' in the project
+    garden test --force           # force tests to be re-run, even if they've already run successfully
+    garden test --watch           # watch for changes to code
 
 | Supported in workflows |   |
 | ---------------------- |---|
@@ -2672,7 +2675,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--name` | `-n` | string | Only run tests with the specfied name (e.g. unit or integ). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;)
+  | `--name` | `-n` | array:string | Only run tests with the specfied name (e.g. unit or integ). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;)
   | `--force` | `-f` | boolean | Force re-test of module(s).
   | `--force-build` |  | boolean | Force rebuild of module(s).
   | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-test.

@@ -46,8 +46,9 @@ You can use a variety of operators in template string expressions:
 * Logical: `&&`, `||`, ternary (`<test> ? <value if true> : <value if false>`)
 * Unary: `!` (negation), `typeof` (returns the type of the following value as a string, e.g. `"boolean"` or `"number"`)
 * Relational: `contains` (to see if an array contains a value, an object contains a key, or a string contains a substring)
+* Arrays: `+`
 
-The arithmetic and numeric comparison operators can only be used for numeric literals and keys that resolve to numbers. The equality and logical operators work with any term.
+The arithmetic and numeric comparison operators can only be used for numeric literals and keys that resolve to numbers, except the `+` operator which can be used to concatenate two array references. The equality and logical operators work with any term (but be warned that arrays and complex objects aren't currently compared in-depth).
 
 Clauses are evaluated in standard precedence order, but you can also use parentheses to control evaluation order (e.g. `${(1 + 2) * (3 + 4)}` evaluates to 21).
 
@@ -97,7 +98,7 @@ The `contains` operator can be used in several ways:
 * `${var.some-string contains "some"}` checks if the `var.some-string` string includes the substring `"some"`.
 * `${var.some-object contains "some-key"}` checks if the `var.some-object` object includes the key `"some-key"`.
 
-And the arithmetic operators can be handy when provisioning resources:
+The arithmetic operators can be handy when provisioning resources:
 
 ```yaml
 kind: Module
@@ -105,6 +106,32 @@ type: container
 ...
 services:
   replicas: ${var.default-replicas * 2}
+  ...
+```
+
+```yaml
+kind: Module
+type: container
+...
+services:
+  replicas: ${var.default-replicas + 1}
+  ...
+```
+
+And the `+` operator can also be used to concatenate two arrays:
+
+```yaml
+kind: Project
+# ...
+variables:
+  some-values: ["a", "b"]
+  other-values: ["c", "d"]
+---
+kind: Module
+type: helm
+# ...
+values:
+  some-array: ${var.some-values + var.other-values}
   ...
 ```
 

@@ -183,10 +183,11 @@ const outputsSchema = joi.object().keys({
 
 const localKubernetesUrl = getProviderUrl("local-kubernetes")
 
-export const gardenPlugin = createGardenPlugin({
-  name: "kubernetes",
-  dependencies: ["container"],
-  docs: dedent`
+export const gardenPlugin = () =>
+  createGardenPlugin({
+    name: "kubernetes",
+    dependencies: ["container"],
+    docs: dedent`
     The \`kubernetes\` provider allows you to deploy [\`container\` modules](${getModuleTypeUrl("container")}) to
     Kubernetes clusters, and adds the [\`helm\`](${getModuleTypeUrl("helm")}) and
     [\`kubernetes\`](${getModuleTypeUrl("kubernetes")}) module types.
@@ -197,33 +198,33 @@ export const gardenPlugin = createGardenPlugin({
 
     Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the [local-kubernetes provider](${localKubernetesUrl}) simplifies (and automates) the configuration and setup quite a bit.
   `,
-  configSchema,
-  outputsSchema,
-  commands: [cleanupClusterRegistry, clusterInit, uninstallGardenServices, pullImage],
-  handlers: {
-    configureProvider,
-    getEnvironmentStatus,
-    prepareEnvironment,
-    cleanupEnvironment,
-    getSecret,
-    setSecret,
-    deleteSecret,
-    getDebugInfo: debugInfo,
-  },
-  createModuleTypes: [
-    {
-      name: "helm",
-      docs: dedent`
+    configSchema: configSchema(),
+    outputsSchema,
+    commands: [cleanupClusterRegistry, clusterInit, uninstallGardenServices, pullImage],
+    handlers: {
+      configureProvider,
+      getEnvironmentStatus,
+      prepareEnvironment,
+      cleanupEnvironment,
+      getSecret,
+      setSecret,
+      deleteSecret,
+      getDebugInfo: debugInfo,
+    },
+    createModuleTypes: [
+      {
+        name: "helm",
+        docs: dedent`
         Specify a Helm chart (either in your repository or remote from a registry) to deploy.
         Refer to the [Helm guide](${DOCS_BASE_URL}/guides/using-helm-charts) for usage instructions.
       `,
-      moduleOutputsSchema: helmModuleOutputsSchema(),
-      schema: helmModuleSpecSchema(),
-      handlers: helmHandlers,
-    },
-    {
-      name: "kubernetes",
-      docs: dedent`
+        moduleOutputsSchema: helmModuleOutputsSchema(),
+        schema: helmModuleSpecSchema(),
+        handlers: helmHandlers,
+      },
+      {
+        name: "kubernetes",
+        docs: dedent`
         Specify one or more Kubernetes manifests to deploy.
 
         You can either (or both) specify the manifests as part of the \`garden.yml\` configuration, or you can refer to
@@ -234,17 +235,17 @@ export const gardenPlugin = createGardenPlugin({
 
         If you need more advanced templating features you can use the [helm](${getModuleTypeUrl("helm")}) module type.
       `,
-      moduleOutputsSchema: joi.object().keys({}),
-      schema: kubernetesModuleSpecSchema(),
-      handlers: kubernetesHandlers,
-    },
-    pvcModuleDefinition,
-  ],
-  extendModuleTypes: [
-    {
-      name: "container",
-      handlers: containerHandlers,
-    },
-  ],
-  tools: [kubectlSpec, helm3Spec, sternSpec],
-})
+        moduleOutputsSchema: joi.object().keys({}),
+        schema: kubernetesModuleSpecSchema(),
+        handlers: kubernetesHandlers,
+      },
+      pvcModuleDefinition(),
+    ],
+    extendModuleTypes: [
+      {
+        name: "container",
+        handlers: containerHandlers,
+      },
+    ],
+    tools: [kubectlSpec, helm3Spec, sternSpec],
+  })

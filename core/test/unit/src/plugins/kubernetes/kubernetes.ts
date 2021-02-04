@@ -55,7 +55,7 @@ describe("kubernetes configureProvider", () => {
       const result = await configureProvider({
         ctx: await garden.getPluginContext(
           providerFromConfig({
-            plugin: gardenPlugin,
+            plugin: gardenPlugin(),
             config: basicConfig,
             dependencies: {},
             moduleConfigs: [],
@@ -91,7 +91,7 @@ describe("kubernetes configureProvider", () => {
       const result = await configureProvider({
         ctx: await garden.getPluginContext(
           providerFromConfig({
-            plugin: gardenPlugin,
+            plugin: gardenPlugin(),
             config: basicConfig,
             dependencies: {},
             moduleConfigs: [],

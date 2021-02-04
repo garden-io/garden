@@ -280,10 +280,12 @@ export class KubeApi {
     const resource = resourceMap[kind]
 
     if (!resource) {
-      throw new KubernetesError(`Unrecognized resource type ${apiVersion}/${kind}`, {
+      const err = new KubernetesError(`Unrecognized resource type ${apiVersion}/${kind}`, {
         apiVersion,
         kind,
       })
+      err.statusCode = 404
+      throw err
     }
 
     return resource

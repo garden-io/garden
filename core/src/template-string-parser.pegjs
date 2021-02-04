@@ -62,14 +62,14 @@ FormatString
           // We allow certain configuration contexts (e.g. placeholders for runtime.*) to indicate that a template
           // string should be returned partially resolved even if allowPartial=false.
           return text()
+        } else if (options.allowPartial) {
+          return text()
         } else if (allowUndefined) {
           if (e && e._error) {
             return { ...e, _error: undefined }
           } else {
             return e
           }
-        } else if (options.allowPartial) {
-          return text()
         } else if (e && e._error) {
           return e
         } else {

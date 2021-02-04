@@ -33,7 +33,7 @@ export const getPortForward = () => ({
 
     If there is a corresponding \`stopPortForward\` handler, it is called when cleaning up.
   `,
-  paramsSchema: serviceActionParamsSchema().keys(forwardablePortKeys),
+  paramsSchema: serviceActionParamsSchema().keys(forwardablePortKeys()),
   resultSchema: joi.object().keys({
     hostname: joi.string().hostname().description("The hostname of the port tunnel.").example("localhost"),
     port: joi.number().integer().description("The port of the tunnel.").example(12345),

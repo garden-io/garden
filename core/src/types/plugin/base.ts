@@ -64,12 +64,12 @@ export const taskActionParamsSchema = () =>
     task: taskSchema(),
   })
 
-export const runBaseParams = {
+export const runBaseParams = () => ({
   interactive: joi.boolean().description("Whether to run the module interactively (i.e. attach to the terminal)."),
   runtimeContext: runtimeContextSchema(),
   silent: joi.boolean().description("Set to false if the output should not be logged to the console."),
   timeout: joi.number().optional().description("If set, how long to run the command before timing out."),
-}
+})
 
 // TODO: update this schema in 0.13
 export interface RunResult {

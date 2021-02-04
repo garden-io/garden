@@ -19,6 +19,7 @@ spec:
         app.kubernetes.io/name: {{ include "api.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
+      terminationGracePeriodSeconds: 60
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -30,10 +31,7 @@ spec:
               protocol: TCP
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-      {{- with .Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      shareProcessNamespace: {{ .Values.shareProcessNamespace }}
     {{- with .Values.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}

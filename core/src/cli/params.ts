@@ -19,6 +19,7 @@ import chalk = require("chalk")
 import { LogLevel } from "../logger/log-node"
 import { safeDumpYaml } from "../util/util"
 import { resolve } from "path"
+import { isArray } from "lodash"
 
 export const OUTPUT_RENDERERS = {
   json: (data: DeepPrimitiveMap) => {
@@ -137,8 +138,13 @@ export class StringsParameter extends Parameter<string[] | undefined> {
     this.variadic = !!args.variadic
   }
 
-  coerce(input?: string): string[] {
-    return input?.split(this.delimiter) || []
+  coerce(input?: string | string[]): string[] {
+    if (!input) {
+      return []
+    } else if (!isArray(input)) {
+      input = [input]
+    }
+    return input.flatMap((v) => v.split(this.delimiter))
   }
 }
 
@@ -154,7 +160,7 @@ export class PathParameter extends Parameter<string> {
 export class PathsParameter extends StringsParameter {
   type = "array:path"
 
-  coerce(input?: string): string[] {
+  coerce(input?: string | string[]): string[] {
     const paths = super.coerce(input)
     return paths.map((p) => resolve(process.cwd(), p))
   }

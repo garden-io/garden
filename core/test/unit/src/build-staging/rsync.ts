@@ -29,7 +29,7 @@ describe("BuildStagingRsync", () => {
   let garden: TestGarden
 
   before(async () => {
-    garden = await makeTestGarden(projectRoot, { experimentalBuildSync: false })
+    garden = await makeTestGarden(projectRoot, { legacyBuildSync: true })
   })
 
   afterEach(async () => {

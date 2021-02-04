@@ -55,45 +55,46 @@ const systemDir = join(STATIC_DIR, "openfaas", "system")
 const moduleTypeUrl = getModuleTypeUrl("openfaas")
 const gitHubUrl = getGitHubUrl("examples/openfaas")
 
-export const gardenPlugin = createGardenPlugin({
-  name: "openfaas",
-  configSchema: configSchema(),
-  dependencies: ["kubernetes"],
-  docs: dedent`
+export const gardenPlugin = () =>
+  createGardenPlugin({
+    name: "openfaas",
+    configSchema: configSchema(),
+    dependencies: ["kubernetes"],
+    docs: dedent`
     This provider adds support for [OpenFaaS](https://www.openfaas.com/). It adds the [\`openfaas\` module type](${moduleTypeUrl}) and (by default) installs the \`faas-netes\` runtime to the project namespace. Each \`openfaas\` module maps to a single OpenFaaS function.
 
     See the reference below for configuration options for \`faas-netes\`, and the [module type docs](${moduleTypeUrl}) for how to configure the individual functions.
 
     Also see the [openfaas example project](${gitHubUrl}) for a simple usage example.
   `,
-  handlers: {
-    configureProvider,
-  },
-  createModuleTypes: [
-    {
-      name: "openfaas",
-      docs: dedent`
+    handlers: {
+      configureProvider,
+    },
+    createModuleTypes: [
+      {
+        name: "openfaas",
+        docs: dedent`
       Deploy a [OpenFaaS](https://www.openfaas.com/) function using Garden. Requires the \`openfaas\` provider
       to be configured.
     `,
-      moduleOutputsSchema: openfaasModuleOutputsSchema(),
-      schema: openfaasModuleSpecSchema(),
-      handlers: {
-        configure: configureModule,
-        getModuleOutputs: getOpenfaasModuleOutputs,
-        getBuildStatus: getOpenfaasModuleBuildStatus,
-        build: buildOpenfaasModule,
-        // TODO: design and implement a proper test flow for openfaas functions
-        testModule: testExecModule,
-        getServiceStatus,
-        getServiceLogs,
-        deployService,
-        deleteService,
+        moduleOutputsSchema: openfaasModuleOutputsSchema(),
+        schema: openfaasModuleSpecSchema(),
+        handlers: {
+          configure: configureModule,
+          getModuleOutputs: getOpenfaasModuleOutputs,
+          getBuildStatus: getOpenfaasModuleBuildStatus,
+          build: buildOpenfaasModule,
+          // TODO: design and implement a proper test flow for openfaas functions
+          testModule: testExecModule,
+          getServiceStatus,
+          getServiceLogs,
+          deployService,
+          deleteService,
+        },
       },
-    },
-  ],
-  tools: [faasCliSpec],
-})
+    ],
+    tools: [faasCliSpec],
+  })
 
 const templateModuleConfig: ExecModuleConfig = {
   allowPublish: false,

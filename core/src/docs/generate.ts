@@ -19,18 +19,21 @@ import { writeFileSync, readFile, writeFile } from "fs-extra"
 import { renderModuleTypeReference, moduleTypes } from "./module-type"
 import { renderProviderReference } from "./provider"
 import { defaultNamespace } from "../config/project"
-import { GardenPlugin } from "../types/plugin/plugin"
+import { GardenPlugin, GardenPluginCallback } from "../types/plugin/plugin"
 import { workflowConfigSchema } from "../config/workflow"
 import { moduleTemplateSchema } from "../config/module-template"
 
-export async function generateDocs(targetDir: string, plugins: GardenPlugin[]) {
+export async function generateDocs(targetDir: string, plugins: GardenPluginCallback[]) {
   // tslint:disable: no-console
   const docsRoot = resolve(process.cwd(), targetDir)
 
   console.log("Updating command references...")
   writeCommandReferenceDocs(docsRoot)
   console.log("Updating config references...")
-  await writeConfigReferenceDocs(docsRoot, plugins)
+  await writeConfigReferenceDocs(
+    docsRoot,
+    plugins.map((p) => p())
+  )
   console.log("Updating template string reference...")
   writeTemplateStringReferenceDocs(docsRoot)
   console.log("Generating table of contents...")
@@ -77,7 +80,7 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
   })
 
   const providerDir = resolve(docsRoot, "reference", "providers")
-  const allPlugins = await garden.getPlugins()
+  const allPlugins = await garden.getAllPlugins()
   const pluginsByName = keyBy(allPlugins, "name")
   const providersReadme = ["---", "order: 1", "title: Providers", "---", "", "# Providers", ""]
 

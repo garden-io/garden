@@ -37,7 +37,7 @@ import { defaultDotIgnoreFiles } from "../util/fs"
 import { BufferedEventStream } from "../enterprise/buffered-event-stream"
 import { GardenProcess } from "../db/entities/garden-process"
 import { DashboardEventStream } from "../server/dashboard-event-stream"
-import { GardenPlugin } from "../types/plugin/plugin"
+import { GardenPluginCallback } from "../types/plugin/plugin"
 import { renderError } from "../logger/renderers"
 import { EnterpriseApi } from "../enterprise/api"
 
@@ -90,9 +90,9 @@ export interface RunOutput {
 export class GardenCli {
   private commands: { [key: string]: Command } = {}
   private fileWritersInitialized: boolean = false
-  private plugins: GardenPlugin[]
+  private plugins: GardenPluginCallback[]
 
-  constructor({ plugins }: { plugins?: GardenPlugin[] } = {}) {
+  constructor({ plugins }: { plugins?: GardenPluginCallback[] } = {}) {
     this.plugins = plugins || []
 
     const commands = sortBy(getAllCommands(), (c) => c.name)

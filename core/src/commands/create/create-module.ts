@@ -18,7 +18,7 @@ import { resolve, basename, relative, join } from "path"
 import { GardenBaseError, ParameterError } from "../../exceptions"
 import { getModuleTypes, getPluginBaseNames } from "../../plugins"
 import { addConfig } from "./helpers"
-import { supportedPlugins } from "../../plugins/plugins"
+import { getSupportedPlugins } from "../../plugins/plugins"
 import { baseModuleSpecSchema } from "../../config/module"
 import { renderConfigReference } from "../../docs/config"
 import { DOCS_BASE_URL } from "../../constants"
@@ -119,7 +119,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
       type,
     }
 
-    const allModuleTypes = getModuleTypes(supportedPlugins)
+    const allModuleTypes = getModuleTypes(getSupportedPlugins().map((p) => p()))
 
     if (opts.interactive && (!opts.name || !opts.type)) {
       log.root.stop()
@@ -219,7 +219,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
         ])
 
         const allProvidersWithBases = flatten(
-          allProviders.map((p) => getPluginBaseNames(p.name, keyBy(supportedPlugins, "name")))
+          allProviders.map((p) => getPluginBaseNames(p.name, keyBy(getSupportedPlugins, "name")))
         )
 
         if (!allProvidersWithBases.includes(pluginName)) {

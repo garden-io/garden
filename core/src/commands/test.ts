@@ -24,7 +24,7 @@ import { GardenModule } from "../types/module"
 import { getTestTasks } from "../tasks/test"
 import { printHeader } from "../logger/util"
 import { startServer } from "../server/server"
-import { StringsParameter, StringOption, BooleanParameter } from "../cli/params"
+import { StringsParameter, BooleanParameter } from "../cli/params"
 
 export const testArgs = {
   modules: new StringsParameter({
@@ -35,7 +35,7 @@ export const testArgs = {
 }
 
 export const testOpts = {
-  "name": new StringOption({
+  "name": new StringsParameter({
     help:
       "Only run tests with the specfied name (e.g. unit or integ). " +
       "Accepts glob patterns (e.g. integ* would run both 'integ' and 'integration')",
@@ -73,12 +73,13 @@ export class TestCommand extends Command<Args, Opts> {
 
     Examples:
 
-        garden test               # run all tests in the project
-        garden test my-module     # run all tests in the my-module module
-        garden test --name integ  # run all tests with the name 'integ' in the project
-        garden test --name integ* # run all tests with the name starting with 'integ' in the project
-        garden test --force       # force tests to be re-run, even if they've already run successfully
-        garden test --watch       # watch for changes to code
+        garden test                   # run all tests in the project
+        garden test my-module         # run all tests in the my-module module
+        garden test --name integ      # run all tests with the name 'integ' in the project
+        garden test --name integ*     # run all tests with the name starting with 'integ' in the project
+        garden test -n unit -n lint   # run all tests called either 'unit' or 'lint' in the project
+        garden test --force           # force tests to be re-run, even if they've already run successfully
+        garden test --watch           # watch for changes to code
   `
 
   arguments = testArgs
@@ -120,7 +121,7 @@ export class TestCommand extends Command<Args, Opts> {
       : // All modules are included in this case, so there's no need to compute dependants.
         graph.getModules()
 
-    const filterNames = opts.name ? [opts.name] : []
+    const filterNames = opts.name || []
     const force = opts.force
     const forceBuild = opts["force-build"]
 

@@ -11,14 +11,14 @@ import chalk from "chalk"
 import { ensureDir } from "fs-extra"
 import dedent from "dedent"
 import { platform, arch } from "os"
-import { parse, relative, resolve, join } from "path"
-import { flatten, isString, sortBy, fromPairs, keyBy, mapValues, cloneDeep, groupBy } from "lodash"
+import { relative, resolve, join } from "path"
+import { flatten, sortBy, fromPairs, keyBy, mapValues, cloneDeep, groupBy } from "lodash"
 const AsyncLock = require("async-lock")
 
 import { TreeCache } from "./cache"
-import { builtinPlugins } from "./plugins/plugins"
+import { getBuiltinPlugins } from "./plugins/plugins"
 import { GardenModule, getModuleCacheContext, getModuleKey, ModuleConfigMap, moduleFromConfig } from "./types/module"
-import { pluginModuleSchema, ModuleTypeMap } from "./types/plugin/plugin"
+import { ModuleTypeMap } from "./types/plugin/plugin"
 import {
   SourceConfig,
   ProjectConfig,
@@ -40,7 +40,6 @@ import { getLogger } from "./logger/logger"
 import { PluginActionHandlers, GardenPlugin } from "./types/plugin/plugin"
 import { loadConfigResources, findProjectConfig, prepareModuleResource, GardenResource } from "./config/base"
 import { DeepPrimitiveMap, StringMap, PrimitiveMap } from "./config/common"
-import { validateSchema } from "./config/validation"
 import { BaseTask } from "./tasks/base"
 import { LocalConfigStore, ConfigStore, GlobalConfigStore, LinkedSource } from "./config-store"
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
@@ -115,13 +114,13 @@ export type ModuleActionMap = {
 }
 
 export interface GardenOpts {
-  experimentalBuildSync?: boolean
   commandInfo?: CommandInfo
   config?: ProjectConfig
   disablePortForwards?: boolean
   environmentName?: string
   forceRefresh?: boolean
   gardenDirPath?: string
+  legacyBuildSync?: boolean
   log?: LogEntry
   noEnterprise?: boolean
   persistent?: boolean
@@ -172,7 +171,7 @@ export class Garden {
   private pluginModuleConfigs: ModuleConfig[]
   private resolvedProviders: { [key: string]: Provider }
   protected configsScanned: boolean
-  public readonly registeredPlugins: { [key: string]: GardenPlugin }
+  protected registeredPlugins: RegisterPluginParam[]
   private readonly taskGraph: TaskGraph
   private watcher: Watcher
   private asyncLock: any
@@ -267,16 +266,11 @@ export class Garden {
     this.moduleConfigs = {}
     this.pluginModuleConfigs = []
     this.workflowConfigs = {}
-    this.registeredPlugins = {}
+    this.registeredPlugins = [...getBuiltinPlugins(), ...params.plugins]
     this.resolvedProviders = {}
 
     this.taskGraph = new TaskGraph(this, this.log)
     this.events = new EventBus()
-
-    // Register plugins
-    for (const plugin of [...builtinPlugins, ...params.plugins]) {
-      this.registerPlugin(plugin)
-    }
 
     // TODO: actually resolve version, based on the VCS version of the plugin and its dependencies
     this.version = {
@@ -368,9 +362,9 @@ export class Garden {
     // Allow overriding variables
     variables = { ...variables, ...(opts.variables || {}) }
 
-    const experimentalBuildSync =
-      opts.experimentalBuildSync === undefined ? gardenEnv.GARDEN_EXPERIMENTAL_BUILD_STAGE : opts.experimentalBuildSync
-    const buildDirCls = experimentalBuildSync ? BuildStaging : BuildDirRsync
+    const legacyBuildSync =
+      opts.legacyBuildSync === undefined ? gardenEnv.GARDEN_LEGACY_BUILD_STAGE : opts.legacyBuildSync
+    const buildDirCls = legacyBuildSync ? BuildDirRsync : BuildStaging
     const buildDir = await buildDirCls.factory(projectRoot, gardenDirPath)
     const workingCopyId = await getWorkingCopyId(gardenDirPath)
 
@@ -448,52 +442,8 @@ export class Garden {
     this.watcher = new Watcher(this, this.log, paths, modules, bufferInterval)
   }
 
-  private registerPlugin(nameOrPlugin: RegisterPluginParam) {
-    let plugin: GardenPlugin
-
-    if (isString(nameOrPlugin)) {
-      let moduleNameOrLocation = nameOrPlugin
-
-      // allow relative references to project root
-      if (parse(moduleNameOrLocation).dir !== "") {
-        moduleNameOrLocation = resolve(this.projectRoot, moduleNameOrLocation)
-      }
-
-      let pluginModule: any
-
-      try {
-        pluginModule = require(moduleNameOrLocation)
-      } catch (error) {
-        throw new ConfigurationError(
-          `Unable to load plugin "${moduleNameOrLocation}" (could not load module: ${error.message})`,
-          {
-            message: error.message,
-            moduleNameOrLocation,
-          }
-        )
-      }
-
-      try {
-        pluginModule = validateSchema(pluginModule, pluginModuleSchema(), {
-          context: `plugin module "${moduleNameOrLocation}"`,
-        })
-      } catch (err) {
-        throw new PluginError(`Unable to load plugin: ${err}`, {
-          moduleNameOrLocation,
-          err,
-        })
-      }
-
-      plugin = pluginModule.gardenPlugin
-    } else {
-      plugin = nameOrPlugin
-    }
-
-    this.registeredPlugins[plugin.name] = plugin
-  }
-
   async getPlugin(pluginName: string): Promise<GardenPlugin> {
-    const plugins = await this.getPlugins()
+    const plugins = await this.getAllPlugins()
     const plugin = findByName(plugins, pluginName)
 
     if (!plugin) {
@@ -511,7 +461,10 @@ export class Garden {
     return plugin
   }
 
-  async getPlugins() {
+  /**
+   * Returns all registered plugins, loading them if necessary.
+   */
+  async getAllPlugins() {
     // The duplicated check is a small optimization to avoid the async lock when possible,
     // since this is called quite frequently.
     if (this.loadedPlugins) {
@@ -527,7 +480,7 @@ export class Garden {
       this.log.silly(`Loading plugins`)
       const rawConfigs = this.getRawProviderConfigs()
 
-      this.loadedPlugins = loadPlugins(this.log, this.registeredPlugins, rawConfigs)
+      this.loadedPlugins = await loadPlugins(this.log, this.projectRoot, this.registeredPlugins, rawConfigs)
 
       this.log.silly(`Loaded plugins: ${rawConfigs.map((c) => c.name).join(", ")}`)
     })
@@ -536,13 +489,19 @@ export class Garden {
   }
 
   /**
+   * Returns plugins that are currently configured in provider configs.
+   */
+  async getConfiguredPlugins() {
+    const plugins = await this.getAllPlugins()
+    const configNames = keyBy(this.getRawProviderConfigs(), "name")
+    return plugins.filter((p) => configNames[p.name])
+  }
+
+  /**
    * Returns a mapping of all configured module types in the project and their definitions.
    */
   async getModuleTypes(): Promise<ModuleTypeMap> {
-    const plugins = await this.getPlugins()
-    const configNames = keyBy(this.getRawProviderConfigs(), "name")
-    const configuredPlugins = plugins.filter((p) => configNames[p.name])
-
+    const configuredPlugins = await this.getConfiguredPlugins()
     return getModuleTypes(configuredPlugins)
   }
 
@@ -605,13 +564,21 @@ export class Garden {
         status: "active",
       })
 
-      const plugins = keyBy(await this.getPlugins(), "name")
+      const plugins = keyBy(await this.getAllPlugins(), "name")
 
       // Detect circular dependencies here
       const validationGraph = new DependencyValidationGraph()
 
       await Bluebird.map(rawConfigs, async (config) => {
         const plugin = plugins[config.name]
+
+        if (!plugin) {
+          throw new ConfigurationError(`Configured provider '${config.name}' has not been registered.`, {
+            name: config.name,
+            availablePlugins: Object.keys(plugins),
+          })
+        }
+
         validationGraph.addNode(plugin.name)
 
         for (const dep of await getAllProviderDependencyNames(plugin!, config!)) {
@@ -693,7 +660,7 @@ export class Garden {
 
   async getTools() {
     if (!this.tools) {
-      const plugins = await this.getPlugins()
+      const plugins = await this.getAllPlugins()
       const tools: PluginTools = {}
 
       for (const plugin of Object.values(plugins)) {
@@ -729,7 +696,7 @@ export class Garden {
 
   async getActionRouter() {
     if (!this.actionHelper) {
-      const loadedPlugins = await this.getPlugins()
+      const loadedPlugins = await this.getAllPlugins()
       const moduleTypes = await this.getModuleTypes()
       const plugins = keyBy(loadedPlugins, "name")
 
@@ -803,13 +770,19 @@ export class Garden {
     }
 
     // Walk through all plugins in dependency order, and allow them to augment the graph
-    const providerConfigs = Object.values(resolvedProviders).map((p) => p.config)
+    const plugins = keyBy(await this.getAllPlugins(), "name")
 
-    for (const provider of getDependencyOrder(providerConfigs, this.registeredPlugins)) {
+    for (const pluginName of getDependencyOrder(plugins)) {
+      const provider = resolvedProviders[pluginName]
+
+      if (!provider) {
+        continue
+      }
+
       // Skip the routine if the provider doesn't have the handler
       const handler = await actions.getActionHandler({
         actionType: "augmentGraph",
-        pluginName: provider.name,
+        pluginName,
         throwIfMissing: false,
       })
 
@@ -824,7 +797,7 @@ export class Garden {
       }
 
       const { addBuildDependencies, addRuntimeDependencies, addModules } = await actions.augmentGraph({
-        pluginName: provider.name,
+        pluginName,
         log,
         providers: resolvedProviders,
         modules: resolvedModules,

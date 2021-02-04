@@ -12,14 +12,15 @@ import { getDefaultProfiler } from "@garden-io/core/build/src/util/profiling"
 import { GardenProcess } from "@garden-io/core/build/src/db/entities/garden-process"
 import { ensureConnected } from "@garden-io/core/build/src/db/connection"
 import { GardenCli, RunOutput } from "@garden-io/core/build/src/cli/cli"
-import { GardenPlugin } from "@garden-io/core/build/src/types/plugin/plugin"
+import { GardenPluginCallback } from "@garden-io/core/build/src/types/plugin/plugin"
 
 // These plugins are always registered
-export const bundledPlugins = [
-  require("@garden-io/garden-conftest"),
-  require("@garden-io/garden-conftest-container"),
-  require("@garden-io/garden-conftest-kubernetes"),
-].map((m) => m.gardenPlugin as GardenPlugin)
+export const getBundledPlugins = (): GardenPluginCallback[] =>
+  [
+    require("@garden-io/garden-conftest"),
+    require("@garden-io/garden-conftest-container"),
+    require("@garden-io/garden-conftest-kubernetes"),
+  ].map((m) => () => m.gardenPlugin())
 
 export async function runCli({
   args,
@@ -38,7 +39,7 @@ export async function runCli({
 
   try {
     if (!cli) {
-      cli = new GardenCli({ plugins: bundledPlugins })
+      cli = new GardenCli({ plugins: getBundledPlugins() })
     }
     // Note: We slice off the binary/script name from argv.
     result = await cli.run({ args, exitOnError, processRecord })

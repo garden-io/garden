@@ -326,26 +326,27 @@ export async function runExecTask(params: RunTaskParams<ExecModule>): Promise<Ru
   }
 }
 
-export const execPlugin = createGardenPlugin({
-  name: "exec",
-  docs: dedent`
+export const execPlugin = () =>
+  createGardenPlugin({
+    name: "exec",
+    docs: dedent`
     A simple provider that allows running arbitary scripts when initializing providers, and provides the exec
     module type.
 
     _Note: This provider is always loaded when running Garden. You only need to explicitly declare it in your provider
     configuration if you want to configure a script for it to run._
   `,
-  configSchema: providerConfigBaseSchema().keys({
-    initScript: joi.string().description(dedent`
+    configSchema: providerConfigBaseSchema().keys({
+      initScript: joi.string().description(dedent`
       An optional script to run in the project root when initializing providers. This is handy for running an arbitrary
       script when initializing. For example, another provider might declare a dependency on this provider, to ensure
       this script runs before resolving that provider.
     `),
-  }),
-  createModuleTypes: [
-    {
-      name: "exec",
-      docs: dedent`
+    }),
+    createModuleTypes: [
+      {
+        name: "exec",
+        docs: dedent`
       A simple module for executing commands in your shell. This can be a useful escape hatch if no other module
       type fits your needs, and you just need to execute something (as opposed to deploy it, track its status etc.).
 
@@ -357,55 +358,55 @@ export const execPlugin = createGardenPlugin({
       This means that include/exclude filters and ignore files are not applied to local exec modules, as the
       filtering is done during the sync.
     `,
-      moduleOutputsSchema: joi.object().keys({}),
-      schema: execModuleSpecSchema(),
-      taskOutputsSchema: joi.object().keys({
-        log: joi
-          .string()
-          .allow("")
-          .default("")
-          .description(
-            "The full log from the executed task. " +
-              "(Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)"
-          ),
-      }),
-      handlers: {
-        configure: configureExecModule,
-        build: buildExecModule,
-        runTask: runExecTask,
-        testModule: testExecModule,
+        moduleOutputsSchema: joi.object().keys({}),
+        schema: execModuleSpecSchema(),
+        taskOutputsSchema: joi.object().keys({
+          log: joi
+            .string()
+            .allow("")
+            .default("")
+            .description(
+              "The full log from the executed task. " +
+                "(Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)"
+            ),
+        }),
+        handlers: {
+          configure: configureExecModule,
+          build: buildExecModule,
+          runTask: runExecTask,
+          testModule: testExecModule,
+        },
+      },
+    ],
+    handlers: {
+      async getEnvironmentStatus({ ctx }) {
+        // Return ready if there is no initScript to run
+        return { ready: !ctx.provider.config.initScript, outputs: {} }
+      },
+      async prepareEnvironment({ ctx, log }) {
+        if (ctx.provider.config.initScript) {
+          try {
+            log.info({ section: "exec", msg: "Running init script" })
+            await runScript(log, ctx.projectRoot, ctx.provider.config.initScript)
+          } catch (_err) {
+            const error = _err as ExecaError
+
+            // Unexpected error (failed to execute script, as opposed to script returning an error code)
+            if (!error.exitCode) {
+              throw error
+            }
+
+            throw new RuntimeError(`exec provider init script exited with code ${error.exitCode}`, {
+              exitCode: error.exitCode,
+              stdout: error.stdout,
+              stderr: error.stderr,
+            })
+          }
+        }
+        return { status: { ready: true, outputs: {} } }
       },
     },
-  ],
-  handlers: {
-    async getEnvironmentStatus({ ctx }) {
-      // Return ready if there is no initScript to run
-      return { ready: !ctx.provider.config.initScript, outputs: {} }
-    },
-    async prepareEnvironment({ ctx, log }) {
-      if (ctx.provider.config.initScript) {
-        try {
-          log.info({ section: "exec", msg: "Running init script" })
-          await runScript(log, ctx.projectRoot, ctx.provider.config.initScript)
-        } catch (_err) {
-          const error = _err as ExecaError
-
-          // Unexpected error (failed to execute script, as opposed to script returning an error code)
-          if (!error.exitCode) {
-            throw error
-          }
-
-          throw new RuntimeError(`exec provider init script exited with code ${error.exitCode}`, {
-            exitCode: error.exitCode,
-            stdout: error.stdout,
-            stderr: error.stderr,
-          })
-        }
-      }
-      return { status: { ready: true, outputs: {} } }
-    },
-  },
-})
+  })
 
 export const gardenPlugin = execPlugin
 

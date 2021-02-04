@@ -35,6 +35,7 @@ import {
   hotReloadArgsSchema,
 } from "../config"
 import { posix } from "path"
+import { runPodSpecWhitelist } from "../run"
 
 export const defaultHelmTimeout = 300
 
@@ -82,7 +83,7 @@ export const helmModuleOutputsSchema = () =>
 const helmServiceResourceSchema = () =>
   serviceResourceSchema().keys({
     name: joi.string().description(
-      deline`The name of the resource to sync to. If the chart contains a single resource of the specified Kind,
+      dedent`The name of the resource to sync to. If the chart contains a single resource of the specified Kind,
         this can be omitted.
 
         This can include a Helm template string, e.g. '{{ template "my-chart.fullname" . }}'.
@@ -94,21 +95,29 @@ const helmServiceResourceSchema = () =>
     hotReloadArgs: hotReloadArgsSchema(),
   })
 
+const runPodSpecWhitelistDescription = runPodSpecWhitelist.map((f) => `* \`${f}\``).join("\n")
+
 const helmTaskSchema = () =>
   kubernetesTaskSchema().keys({
     resource: helmServiceResourceSchema().description(
-      deline`The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task.
+      dedent`The Deployment, DaemonSet or StatefulSet that Garden should use to execute this task.
         If not specified, the \`serviceResource\` configured on the module will be used. If neither is specified,
-        an error will be thrown.`
+        an error will be thrown.
+
+        The following pod spec fields from the service resource will be used (if present) when executing the task:
+        ${runPodSpecWhitelistDescription}`
     ),
   })
 
 const helmTestSchema = () =>
   kubernetesTestSchema().keys({
     resource: helmServiceResourceSchema().description(
-      deline`The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite.
+      dedent`The Deployment, DaemonSet or StatefulSet that Garden should use to execute this test suite.
         If not specified, the \`serviceResource\` configured on the module will be used. If neither is specified,
-        an error will be thrown.`
+        an error will be thrown.
+
+        The following pod spec fields from the service resource will be used (if present) when executing the test suite:
+        ${runPodSpecWhitelistDescription}`
     ),
   })
 
