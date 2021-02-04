@@ -387,7 +387,7 @@ export const execPlugin = () =>
         if (ctx.provider.config.initScript) {
           try {
             log.info({ section: "exec", msg: "Running init script" })
-            await runScript(log, ctx.projectRoot, ctx.provider.config.initScript)
+            await runScript({ log, cwd: ctx.projectRoot, script: ctx.provider.config.initScript })
           } catch (_err) {
             const error = _err as ExecaError
 

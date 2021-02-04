@@ -1227,6 +1227,11 @@ workflowConfigs:
         # A description of the workflow step.
         description:
 
+        # A map of environment variables to use when running script steps. Ignored for `command` steps.
+        envVars:
+          # Number, string or boolean
+          <name>:
+
         # A bash script to run. Note that the host running the workflow must have bash installed and on path.
         # It is considered to have run successfully if it returns an exit code of 0. Any other exit code signals an
         # error,
