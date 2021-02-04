@@ -67,7 +67,7 @@ describe("BuildStaging", () => {
   let buildStaging: BuildStaging
 
   before(async () => {
-    garden = await makeGarden({ experimentalBuildSync: true })
+    garden = await makeGarden()
     log = garden.log
     buildStaging = garden.buildStaging
   })
@@ -234,7 +234,7 @@ describe("BuildStaging", () => {
   })
 })
 
-export function commonSyncTests(experimentalBuildSync: boolean) {
+export function commonSyncTests(legacyBuildSync: boolean) {
   let garden: TestGarden
   let log: LogEntry
   let buildStaging: BuildStaging
@@ -242,7 +242,7 @@ export function commonSyncTests(experimentalBuildSync: boolean) {
   let tmpPath: string
 
   before(async () => {
-    garden = await makeGarden({ experimentalBuildSync })
+    garden = await makeGarden({ legacyBuildSync })
     log = garden.log
     buildStaging = garden.buildStaging
   })

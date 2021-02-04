@@ -38,7 +38,7 @@ import { getPortForward } from "../port-forward"
 import { Writable } from "stream"
 import { LogLevel } from "../../../logger/log-node"
 import { exec, renderOutputStream } from "../../../util/util"
-import { loadImageToKind } from "../local/kind"
+import { loadImageToKind, getKindImageStatus } from "../local/kind"
 import { getSystemNamespace } from "../namespace"
 import { dedent } from "../../../util/string"
 import chalk = require("chalk")
@@ -80,7 +80,8 @@ const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } 
   "local-docker": async (params) => {
     const { ctx, module, log } = params
     const k8sCtx = ctx as KubernetesPluginContext
-    const deploymentRegistry = k8sCtx.provider.config.deploymentRegistry
+    const config = k8sCtx.provider.config
+    const deploymentRegistry = config.deploymentRegistry
 
     if (deploymentRegistry) {
       const args = await getManifestInspectArgs(module, deploymentRegistry)
@@ -99,7 +100,10 @@ const buildStatusHandlers: { [mode in ContainerBuildMode]: BuildStatusHandler } 
       }
 
       return { ready: res.code === 0 }
-    } else if (k8sCtx.provider.config.clusterType === "microk8s") {
+    } else if (config.clusterType === "kind") {
+      const localId = containerHelpers.getLocalImageId(module, module.version)
+      return getKindImageStatus(config, localId, log)
+    } else if (config.clusterType === "microk8s") {
       const localId = containerHelpers.getLocalImageId(module, module.version)
       return getMicrok8sImageStatus(localId)
     } else {
@@ -206,7 +210,7 @@ const localBuild: BuildHandler = async (params) => {
 
   if (!provider.config.deploymentRegistry) {
     if (provider.config.clusterType === "kind") {
-      await loadImageToKind(buildResult, provider.config)
+      await loadImageToKind(buildResult, provider.config, log)
     } else if (provider.config.clusterType === "microk8s") {
       const imageId = containerHelpers.getLocalImageId(module, module.version)
       await loadImageToMicrok8s({ module, imageId, log, ctx })

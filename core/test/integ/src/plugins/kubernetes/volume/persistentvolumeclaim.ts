@@ -49,10 +49,10 @@ describe("persistentvolumeclaim", () => {
     })
 
     const spec = {
-      accessModes: ["ReadOnlyMany"],
+      accessModes: ["ReadWriteOnce"],
       resources: {
         requests: {
-          storage: "10Mi",
+          storage: "1Gi",
         },
       },
     }

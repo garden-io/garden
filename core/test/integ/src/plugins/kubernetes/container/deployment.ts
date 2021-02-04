@@ -98,7 +98,7 @@ describe("kubernetes container deployment handlers", () => {
                     { name: "POD_UID", valueFrom: { fieldRef: { fieldPath: "metadata.uid" } } },
                   ],
                   ports: [{ name: "http", protocol: "TCP", containerPort: 8080 }],
-                  resources: { requests: { cpu: "10m", memory: "64Mi" }, limits: { cpu: "1", memory: "1Gi" } },
+                  resources: { requests: { cpu: "10m", memory: "90Mi" }, limits: { cpu: "1", memory: "1Gi" } },
                   imagePullPolicy: "IfNotPresent",
                   securityContext: { allowPrivilegeEscalation: false },
                 },

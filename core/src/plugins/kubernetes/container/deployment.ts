@@ -35,7 +35,7 @@ import { prepareImagePullSecrets } from "../secrets"
 import { configureHotReload } from "../hot-reload/helpers"
 
 export const DEFAULT_CPU_REQUEST = "10m"
-export const DEFAULT_MEMORY_REQUEST = "64Mi"
+export const DEFAULT_MEMORY_REQUEST = "90Mi" // This is the minimum in some clusters
 export const REVISION_HISTORY_LIMIT_PROD = 10
 export const REVISION_HISTORY_LIMIT_DEFAULT = 3
 export const DEFAULT_MINIMUM_REPLICAS = 1
