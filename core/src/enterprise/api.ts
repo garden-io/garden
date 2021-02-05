@@ -202,7 +202,7 @@ export class EnterpriseApi {
   async readAuthToken(): Promise<string | null> {
     const tokenFromEnv = gardenEnv.GARDEN_AUTH_TOKEN
     if (tokenFromEnv) {
-      this.log.debug("Read client auth token from env")
+      this.log.silly("Read client auth token from env")
       return tokenFromEnv
     }
 
@@ -238,7 +238,7 @@ export class EnterpriseApi {
 
   private async apiFetch(log: LogEntry, path: string, params: ApiFetchParams, body?: any): Promise<GotResponse<any>> {
     const { method, headers } = params
-    log.debug({ msg: `Fetching enterprise APIs. ${method} ${path}` })
+    log.silly({ msg: `Fetching enterprise APIs. ${method} ${path}` })
     const clientAuthToken = await this.readAuthToken()
     // TODO add more logging details
     const requestObj = {
