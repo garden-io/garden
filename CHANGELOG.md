@@ -1,4 +1,35 @@
 
+<a name="0.12.16"></a>
+## [0.12.16](https://github.com/garden-io/garden/compare/0.12.15...0.12.16) (2021-02-04)
+
+### Bug Fixes
+
+* **cli:** regression in exec command parameter handling ([bea46edf](https://github.com/garden-io/garden/commit/bea46edf))
+* **config:** pass optional templates through during partial resolution ([c4dac8b8](https://github.com/garden-io/garden/commit/c4dac8b8))
+* **k8s:** fix potential GCR auth issue + simpler GKE+GCR instructions ([6df0fa4a](https://github.com/garden-io/garden/commit/6df0fa4a))
+* **k8s:** issues with GCR auth when running in-cluster builds on GKE ([1d01ed6c](https://github.com/garden-io/garden/commit/1d01ed6c))
+* **k8s:** error in status checks for missing CRD manifests ([4713cbd2](https://github.com/garden-io/garden/commit/4713cbd2))
+* **k8s:** fix some issues with KinD and add CI tests ([78e79c13](https://github.com/garden-io/garden/commit/78e79c13))
+* **k8s:** fix issues with minikube v1.17 ([9b6015c1](https://github.com/garden-io/garden/commit/9b6015c1))
+* **workflows:** error referencing undefined vars in workflow templates ([7591cb17](https://github.com/garden-io/garden/commit/7591cb17))
+
+### Code Refactoring
+
+* break up runAndCopy ([4ac311d8](https://github.com/garden-io/garden/commit/4ac311d8))
+* reduce work at module resolution time ([e8ef6b22](https://github.com/garden-io/garden/commit/e8ef6b22))
+
+### Features
+
+* **cli:** add --skip parameter to deploy command ([10bc98fa](https://github.com/garden-io/garden/commit/10bc98fa))
+* **k8s:** use pod spec fields in tasks and tests ([ce1e8ed3](https://github.com/garden-io/garden/commit/ce1e8ed3))
+* **templates:** allow concatenating arrays with + operator ([4b8a5bb1](https://github.com/garden-io/garden/commit/4b8a5bb1))
+* **workflows:** add envVars field for script steps ([857e8458](https://github.com/garden-io/garden/commit/857e8458))
+
+### Improvements
+
+* **cli:** allow multiple instances of array option parameters ([844126e6](https://github.com/garden-io/garden/commit/844126e6))
+* **core:** default to new build staging mechanism ([5a218941](https://github.com/garden-io/garden/commit/5a218941))
+
 <a name="0.12.15"></a>
 ## [0.12.15](https://github.com/garden-io/garden/compare/0.12.14...0.12.15) (2021-01-21)
 
