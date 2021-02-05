@@ -1,4 +1,17 @@
 
+<a name="0.12.16-2"></a>
+## [0.12.16-2](https://github.com/garden-io/garden/compare/0.12.16-1...0.12.16-2) (2021-02-04)
+
+### Bug Fixes
+
+* **cli:** regression in exec command parameter handling ([c9c46a97](https://github.com/garden-io/garden/commit/c9c46a97))
+* **k8s:** fix potential GCR auth issue + simpler GKE+GCR instructions ([64ba57ec](https://github.com/garden-io/garden/commit/64ba57ec))
+* **workflows:** error referencing undefined vars in workflow templates ([9fed87b8](https://github.com/garden-io/garden/commit/9fed87b8))
+
+### Features
+
+* **workflows:** add envVars field for script steps ([4744fe73](https://github.com/garden-io/garden/commit/4744fe73))
+
 <a name="0.12.16-1"></a>
 ## [0.12.16-1](https://github.com/garden-io/garden/compare/0.12.16-0...0.12.16-1) (2020-04-27)
 
