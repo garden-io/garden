@@ -396,7 +396,7 @@ export async function compareDeployedResources(
     if (!isSubset(deployedResource, manifest)) {
       if (manifest) {
         log.verbose(`Resource ${manifest.metadata.name} is not a superset of deployed resource`)
-        log.debug(diffString(deployedResource, manifest))
+        log.silly(diffString(deployedResource, manifest))
       }
       // console.log(JSON.stringify(resource, null, 4))
       // console.log(JSON.stringify(existingSpec, null, 4))
