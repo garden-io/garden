@@ -134,7 +134,7 @@ describe("util", () => {
       module.spec.base = "postgres"
       module.buildDependencies = { postgres: baseModule }
       expect(getServiceResourceSpec(module, baseModule)).to.eql({
-        containerModule: "api-image",
+        imageModule: "api-image",
         kind: "Deployment",
         name: "postgres",
       })

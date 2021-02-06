@@ -27,6 +27,13 @@ import { Provider, GenericProviderConfig, providerConfigBaseSchema } from "../..
 export interface ContainerProviderConfig extends GenericProviderConfig {}
 export type ContainerProvider = Provider<ContainerProviderConfig>
 
+export interface OciImageOutputsSpec {
+  "local-image-name": string
+  "local-image-id": string
+  "deployment-image-name": string
+  "deployment-image-id": string
+}
+
 export const containerModuleOutputsSchema = () =>
   joi.object().keys({
     "local-image-name": joi

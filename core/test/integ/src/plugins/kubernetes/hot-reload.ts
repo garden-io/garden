@@ -48,14 +48,14 @@ describe("getHotReloadSpec", () => {
     })
   })
 
-  it("should throw if the module doesn't specify serviceResource.containerModule", async () => {
+  it("should throw if the module doesn't specify serviceResource.imageModule", async () => {
     const service = graph.getService("api")
-    delete service.module.spec.serviceResource.containerModule
+    delete service.module.spec.serviceResource.imageModule
     await expectError(
       () => getHotReloadSpec(service),
       (err) =>
         expect(err.message).to.equal(
-          "Module 'api' must specify `serviceResource.containerModule` in order to enable hot-reloading."
+          "Module 'api' must specify `serviceResource.imageModule` in order to enable hot-reloading."
         )
     )
   })
@@ -68,7 +68,7 @@ describe("getHotReloadSpec", () => {
       () => getHotReloadSpec(service),
       (err) =>
         expect(err.message).to.equal(deline`
-        Module 'api-image', referenced on module 'api' under \`serviceResource.containerModule\`,
+        Module 'api-image', referenced on module 'api' under \`serviceResource.imageModule\`,
         is not a container module. Please specify the appropriate container module that contains
         the sources for the resource.
       `)
@@ -82,7 +82,7 @@ describe("getHotReloadSpec", () => {
       () => getHotReloadSpec(service),
       (err) =>
         expect(err.message).to.equal(deline`
-        Module 'api-image', referenced on module 'api' under \`serviceResource.containerModule\`,
+        Module 'api-image', referenced on module 'api' under \`serviceResource.imageModule\`,
         is not configured for hot-reloading. Please specify \`hotReload\` on the 'api-image'
         module in order to enable hot-reloading.
       `)

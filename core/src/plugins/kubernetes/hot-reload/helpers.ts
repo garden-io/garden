@@ -173,9 +173,9 @@ export function getHotReloadSpec(service: KubernetesService | HelmService) {
 
   const resourceSpec = getServiceResourceSpec(module, baseModule)
 
-  if (!resourceSpec || !resourceSpec.containerModule) {
+  if (!resourceSpec || !resourceSpec.imageModule) {
     throw new ConfigurationError(
-      `Module '${module.name}' must specify \`serviceResource.containerModule\` in order to enable hot-reloading.`,
+      `Module '${module.name}' must specify \`serviceResource.imageModule\` in order to enable hot-reloading.`,
       { moduleName: module.name, resourceSpec }
     )
   }
@@ -183,8 +183,8 @@ export function getHotReloadSpec(service: KubernetesService | HelmService) {
   if (service.sourceModule.type !== "container") {
     throw new ConfigurationError(
       deline`
-      Module '${resourceSpec.containerModule}', referenced on module '${module.name}' under
-      \`serviceResource.containerModule\`, is not a container module.
+      Module '${resourceSpec.imageModule}', referenced on module '${module.name}' under
+      \`serviceResource.imageModule\`, is not a container module.
       Please specify the appropriate container module that contains the sources for the resource.`,
       { moduleName: module.name, sourceModuleType: service.sourceModule.type, resourceSpec }
     )
@@ -196,9 +196,9 @@ export function getHotReloadSpec(service: KubernetesService | HelmService) {
   if (!hotReloadSpec) {
     throw new ConfigurationError(
       deline`
-      Module '${resourceSpec.containerModule}', referenced on module '${module.name}' under
-      \`serviceResource.containerModule\`, is not configured for hot-reloading.
-      Please specify \`hotReload\` on the '${resourceSpec.containerModule}' module in order to enable hot-reloading.`,
+      Module '${resourceSpec.imageModule}', referenced on module '${module.name}' under
+      \`serviceResource.imageModule\`, is not configured for hot-reloading.
+      Please specify \`hotReload\` on the '${resourceSpec.imageModule}' module in order to enable hot-reloading.`,
       { moduleName: module.name, resourceSpec }
     )
   }

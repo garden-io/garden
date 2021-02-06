@@ -5,7 +5,7 @@ name: api
 releaseName: api-release
 serviceResource:
   kind: Deployment
-  containerModule: api-image
+  imageModule: api-image
 values:
   image:
     tag: ${modules.api-image.version}

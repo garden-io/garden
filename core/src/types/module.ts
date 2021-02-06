@@ -12,7 +12,7 @@ import { ModuleConfig, moduleConfigSchema } from "../config/module"
 import { ModuleVersion } from "../vcs/vcs"
 import { pathToCacheContext } from "../cache"
 import { Garden } from "../garden"
-import { joiArray, joiIdentifier, joiIdentifierMap, joi, moduleVersionSchema, PrimitiveMap } from "../config/common"
+import { joiArray, joiIdentifier, joiIdentifierMap, joi, moduleVersionSchema } from "../config/common"
 import { getModuleTypeBases } from "../plugins"
 import { ModuleType } from "./plugin/plugin"
 import { moduleOutputsSchema } from "./plugin/module/getModuleOutputs"
@@ -26,8 +26,13 @@ export interface FileCopySpec {
 /**
  * The Module interface adds several internally managed keys to the ModuleConfig type.
  */
-export interface GardenModule<M extends {} = any, S extends {} = any, T extends {} = any, W extends {} = any>
-  extends ModuleConfig<M, S, T, W> {
+export interface GardenModule<
+  M extends {} = any,
+  S extends {} = any,
+  T extends {} = any,
+  W extends {} = any,
+  O extends {} = any
+> extends ModuleConfig<M, S, T, W> {
   buildPath: string
   buildMetadataPath: string
   needsBuild: boolean
@@ -35,7 +40,7 @@ export interface GardenModule<M extends {} = any, S extends {} = any, T extends 
   version: ModuleVersion
 
   buildDependencies: ModuleMap
-  outputs: PrimitiveMap
+  outputs: O
 
   serviceNames: string[]
   serviceDependencyNames: string[]

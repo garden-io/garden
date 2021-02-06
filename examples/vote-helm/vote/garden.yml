@@ -4,7 +4,7 @@ type: helm
 name: vote
 serviceResource:
   kind: Deployment
-  containerModule: vote-image
+  imageModule: vote-image
 dependencies:
   - api
 values:

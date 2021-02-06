@@ -18,6 +18,7 @@ import { containerHelpers } from "../../../../../../src/plugins/container/helper
 import { expect } from "chai"
 import { LogEntry } from "../../../../../../src/logger/log-entry"
 import { grouped } from "../../../../../helpers"
+import { ContainerModule } from "../../../../../../src/plugins/container/config"
 
 describe("pull-image plugin command", () => {
   let garden: Garden
@@ -38,8 +39,8 @@ describe("pull-image plugin command", () => {
     ctx = await garden.getPluginContext(provider)
   }
 
-  async function ensureImagePulled(module: GardenModule, log: LogEntry) {
-    const imageId = containerHelpers.getLocalImageId(module, module.version)
+  async function ensureImagePulled(module: ContainerModule, log: LogEntry) {
+    const imageId = module.outputs["local-image-id"]
     const imageHash = await containerHelpers.dockerCli({
       cwd: module.buildPath,
       args: ["images", "-q", imageId],

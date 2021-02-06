@@ -28,6 +28,7 @@ import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
 import { joiStringMap } from "../../config/common"
 import { dedent, deline } from "../../util/string"
 import { getModuleTypeUrl } from "../../docs/common"
+import { OciImageOutputsSpec } from "./container"
 
 export const defaultContainerLimits: ServiceLimitSpec = {
   cpu: 1000, // = 1000 millicpu = 1 CPU
@@ -600,5 +601,6 @@ export interface ContainerModule<
   M extends ContainerModuleSpec = ContainerModuleSpec,
   S extends ContainerServiceSpec = ContainerServiceSpec,
   T extends ContainerTestSpec = ContainerTestSpec,
-  W extends ContainerTaskSpec = ContainerTaskSpec
-> extends GardenModule<M, S, T, W> {}
+  W extends ContainerTaskSpec = ContainerTaskSpec,
+  O extends OciImageOutputsSpec = OciImageOutputsSpec
+> extends GardenModule<M, S, T, W, O> {}

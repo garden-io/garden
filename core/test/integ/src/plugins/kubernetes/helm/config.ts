@@ -79,7 +79,7 @@ describe("configureHelmModule", () => {
             releaseName: "api-release",
             serviceResource: {
               kind: "Deployment",
-              containerModule: "api-image",
+              imageModule: "api-image",
             },
             skipDeploy: false,
             tasks: [],
@@ -108,7 +108,7 @@ describe("configureHelmModule", () => {
         releaseName: "api-release",
         serviceResource: {
           kind: "Deployment",
-          containerModule: "api-image",
+          imageModule: "api-image",
         },
         skipDeploy: false,
         tasks: [],
@@ -130,6 +130,10 @@ describe("configureHelmModule", () => {
       type: "helm",
       taskConfigs: [],
     })
+  })
+
+  it("should migrate containerModule fields to imageModule", async () => {
+    throw "TODO"
   })
 
   it("should not set default includes if include has already been explicitly set", async () => {
@@ -175,13 +179,13 @@ describe("configureHelmModule", () => {
     expect(config.build.dependencies).to.eql([{ name: "api", copy: [{ source: "*", target: "." }] }])
   })
 
-  it("should add module specified under tasks[].resource.containerModule as a build dependency", async () => {
+  it("should add module specified under tasks[].resource.imageModule as a build dependency", async () => {
     patchModuleConfig("api", {
       spec: {
         tasks: [
           {
             name: "my-task",
-            resource: { kind: "Deployment", containerModule: "postgres" },
+            resource: { kind: "Deployment", imageModule: "postgres" },
           },
         ],
       },
@@ -194,13 +198,13 @@ describe("configureHelmModule", () => {
     ])
   })
 
-  it("should add module specified under tests[].resource.containerModule as a build dependency", async () => {
+  it("should add module specified under tests[].resource.imageModule as a build dependency", async () => {
     patchModuleConfig("api", {
       spec: {
         tests: [
           {
             name: "my-task",
-            resource: { kind: "Deployment", containerModule: "postgres" },
+            resource: { kind: "Deployment", imageModule: "postgres" },
           },
         ],
       },
