@@ -17,6 +17,7 @@ import {
   joiModuleIncludeDirective,
   joiIdentifier,
   joiSparseArray,
+  joiArray,
 } from "../../config/common"
 import { ArtifactSpec } from "./../../config/validation"
 import { GardenService, ingressHostnameSchema, linkUrlSchema } from "../../types/service"
@@ -85,6 +86,7 @@ export interface ContainerServiceSpec extends CommonServiceSpec {
   command?: string[]
   args: string[]
   daemon: boolean
+  devMode?: ContainerDevModeSpec
   ingresses: ContainerIngressSpec[]
   env: PrimitiveMap
   healthCheck?: ServiceHealthCheckSpec
@@ -109,7 +111,7 @@ const hotReloadSyncSchema = () =>
       .description(
         deline`
         POSIX-style path of the directory to sync to the target, relative to the module's top-level directory.
-        Must be a relative path if provided. Defaults to the module's top-level directory if no value is provided.`
+        Must be a relative path. Defaults to the module's top-level directory if no value is provided.`
       )
       .example("src"),
     target: joi
@@ -146,6 +148,54 @@ const hotReloadConfigSchema = () =>
     Specifies which files or directories to sync to which paths inside the running containers of hot reload-enabled
     services when those files or directories are modified. Applies to this module's services, and to services
     with this module as their \`sourceModule\`.
+  `)
+
+export type SyncMode = "one-way" | "two-way"
+
+export interface DevModeSyncSpec {
+  source: string
+  target: string
+  mode: SyncMode
+  exclude?: string[]
+}
+
+const devModeSyncSchema = () =>
+  hotReloadSyncSchema().keys({
+    exclude: joi
+      .array()
+      .items(joi.posixPath().allowGlobs().subPathOnly())
+      .description(`Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.`)
+      .example(["dist/**/*", "*.log"]),
+    mode: joi
+      .string()
+      .allow("one-way", "two-way")
+      .default("one-way")
+      .description("The sync mode to use for the given paths."),
+  })
+
+export interface ContainerDevModeSpec {
+  args?: string[]
+  command?: string[]
+  sync: DevModeSyncSpec[]
+}
+
+export const containerDevModeSchema = () =>
+  joi.object().keys({
+    args: joi.array().items(joi.string()).description("Override the default container arguments when in dev mode."),
+    command: joi
+      .array()
+      .items(joi.string())
+      .description("Override the default container command (i.e. entrypoint) when in dev mode."),
+    sync: joi
+      .array()
+      .items(devModeSyncSchema())
+      .description("Specify one or more source files or directories to automatically sync with the running container."),
+  }).description(dedent`
+    **EXPERIMENTAL**
+
+    Specifies which files or directories to sync to which paths inside the running containers of the service when it's in dev mode, and overrides for the container command and/or arguments.
+
+    Dev mode is enabled when running the \`garden dev\` command, and by setting the \`--dev\` flag on the \`garden deploy\` command.
   `)
 
 export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
@@ -367,6 +417,7 @@ const containerServiceSchema = () =>
         Whether to run the service as a daemon (to ensure exactly one instance runs per node).
         May not be supported by all providers.
       `),
+    devMode: containerDevModeSchema(),
     ingresses: joiSparseArray(ingressSchema())
       .description("List of ingress endpoints that the service exposes.")
       .example([{ path: "/api", port: "http" }]),

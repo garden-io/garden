@@ -338,12 +338,43 @@ export class KubeApi {
   }
 
   /**
+   * Fetch the specified resource from the cluster.
+   */
+  async read({
+    log,
+    namespace,
+    apiVersion,
+    kind,
+    name,
+  }: {
+    log: LogEntry
+    namespace: string
+    apiVersion: string
+    kind: string
+    name: string
+  }) {
+    log.silly(`Fetching Kubernetes resource ${apiVersion}/${kind}/${name}`)
+
+    const typePath = await this.getResourceTypeApiPath({
+      log,
+      apiVersion,
+      kind,
+      namespace,
+    })
+
+    const apiPath = typePath + "/" + name
+
+    const res = await this.request({ log, path: apiPath })
+    return res.body
+  }
+
+  /**
    * Given a manifest, attempt to read the matching resource from the cluster.
    */
   async readBySpec({ log, namespace, manifest }: { log: LogEntry; namespace: string; manifest: KubernetesResource }) {
     log.silly(`Fetching Kubernetes resource ${manifest.apiVersion}/${manifest.kind}/${manifest.metadata.name}`)
 
-    const apiPath = await this.getResourceApiPath({ manifest, log, namespace })
+    const apiPath = await this.getResourceApiPathFromManifest({ manifest, log, namespace })
 
     const res = await this.request({ log, path: apiPath })
     return res.body
@@ -405,7 +436,7 @@ export class KubeApi {
   }) {
     log.silly(`Replacing Kubernetes resource ${resource.apiVersion}/${resource.kind}/${resource.metadata.name}`)
 
-    const apiPath = await this.getResourceApiPath({ manifest: resource, log, namespace })
+    const apiPath = await this.getResourceApiPathFromManifest({ manifest: resource, log, namespace })
 
     const res = await this.request({ log, path: apiPath, opts: { method: "put", body: resource } })
     return res.body
@@ -433,7 +464,7 @@ export class KubeApi {
   async deleteBySpec({ namespace, manifest, log }: { namespace: string; manifest: KubernetesResource; log: LogEntry }) {
     log.silly(`Deleting Kubernetes resource ${manifest.apiVersion}/${manifest.kind}/${manifest.metadata.name}`)
 
-    const apiPath = await this.getResourceApiPath({ manifest, log, namespace })
+    const apiPath = await this.getResourceApiPathFromManifest({ manifest, log, namespace })
 
     try {
       await this.request({ log, path: apiPath, opts: { method: "delete" } })
@@ -463,7 +494,7 @@ export class KubeApi {
       : `${basePath}/${resourceInfo.name}`
   }
 
-  private async getResourceApiPath({
+  private async getResourceApiPathFromManifest({
     manifest,
     log,
     namespace,

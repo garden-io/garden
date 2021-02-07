@@ -126,6 +126,7 @@ describe("kubernetes-module handlers", () => {
         module: service.module,
         service,
         force: false,
+        devMode: false,
         hotReload: false,
         runtimeContext: emptyRuntimeContext,
       }
@@ -153,6 +154,7 @@ describe("kubernetes-module handlers", () => {
         module: service.module,
         service,
         force: false,
+        devMode: false,
         hotReload: false,
         runtimeContext: emptyRuntimeContext,
       }
@@ -175,6 +177,7 @@ describe("kubernetes-module handlers", () => {
         module: service.module,
         service,
         force: false,
+        devMode: false,
         hotReload: false,
         runtimeContext: emptyRuntimeContext,
       }
@@ -218,6 +221,8 @@ describe("kubernetes-module handlers", () => {
         service: graph.getService("namespace-resource"),
         force: false,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
       await garden.processTasks([deployTask], { throwOnError: true })
       ns1Resource = await getDeployedResource(ctx, ctx.provider, ns1Manifest!, log)
@@ -239,6 +244,8 @@ describe("kubernetes-module handlers", () => {
         service: graph.getService("namespace-resource"),
         force: true,
         forceBuild: true,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
       await garden.processTasks([deployTask2], { throwOnError: true })
       ns2Resource = await getDeployedResource(ctx, ctx.provider, ns2Manifest!, log)

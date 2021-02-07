@@ -13,7 +13,7 @@ import { getChartPath, getReleaseName, getChartResources, getValueArgs, getBaseM
 import { getReleaseStatus, HelmServiceStatus, getDeployedResources } from "./status"
 import { HotReloadableResource } from "../hot-reload/hot-reload"
 import { apply, deleteResources } from "../kubectl"
-import { KubernetesPluginContext } from "../config"
+import { KubernetesPluginContext, ServiceResourceSpec } from "../config"
 import { ContainerHotReloadSpec } from "../../container/config"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
 import { DeleteServiceParams } from "../../../types/plugin/service/deleteService"
@@ -21,6 +21,8 @@ import { getForwardablePorts, killPortForwards } from "../port-forward"
 import { findServiceResource, getServiceResourceSpec } from "../util"
 import { getModuleNamespace } from "../namespace"
 import { getHotReloadSpec, configureHotReload, getHotReloadContainerName } from "../hot-reload/helpers"
+import { configureDevMode, startDevModeSync } from "../dev-mode"
+import chalk from "chalk"
 
 export async function deployHelmService({
   ctx,
@@ -28,20 +30,32 @@ export async function deployHelmService({
   service,
   log,
   force,
+  devMode,
   hotReload,
 }: DeployServiceParams<HelmModule>): Promise<HelmServiceStatus> {
   let hotReloadSpec: ContainerHotReloadSpec | null = null
-  let hotReloadTarget: HotReloadableResource | null = null
+  let serviceResourceSpec: ServiceResourceSpec | null = null
+  let serviceResource: HotReloadableResource | null = null
 
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
 
-  const manifests = await getChartResources({ ctx: k8sCtx, module, hotReload, log, version: service.version })
+  const manifests = await getChartResources({ ctx: k8sCtx, module, devMode, hotReload, log, version: service.version })
+  const baseModule = getBaseModule(module)
+
+  if (devMode || hotReload) {
+    serviceResourceSpec = getServiceResourceSpec(module, getBaseModule(module))
+    serviceResource = await findServiceResource({
+      ctx,
+      log,
+      module,
+      baseModule,
+      manifests,
+      resourceSpec: serviceResourceSpec,
+    })
+  }
 
   if (hotReload) {
-    const resourceSpec = service.spec.serviceResource
-    const baseModule = getBaseModule(module)
-    hotReloadTarget = await findServiceResource({ ctx, log, module, baseModule, manifests, resourceSpec })
     hotReloadSpec = getHotReloadSpec(service)
   }
 
@@ -55,14 +69,14 @@ export async function deployHelmService({
   })
 
   const releaseName = getReleaseName(module)
-  const releaseStatus = await getReleaseStatus({ ctx: k8sCtx, service, releaseName, log, hotReload })
+  const releaseStatus = await getReleaseStatus({ ctx: k8sCtx, service, releaseName, log, devMode, hotReload })
 
   const commonArgs = [
     "--namespace",
     namespace,
     "--timeout",
     module.spec.timeout.toString(10) + "s",
-    ...(await getValueArgs(module, hotReload)),
+    ...(await getValueArgs(module, devMode, hotReload)),
   ]
 
   if (module.spec.atomicInstall) {
@@ -83,19 +97,23 @@ export async function deployHelmService({
     await helm({ ctx: k8sCtx, namespace, log, args: [...upgradeArgs] })
   }
 
-  if (hotReload && hotReloadSpec && hotReloadTarget) {
-    // Because we need to modify the Deployment, and because there is currently no reliable way to do that before
-    // installing/upgrading via Helm, we need to separately update the target here.
-    const resourceSpec = getServiceResourceSpec(module, getBaseModule(module))
-
+  // Because we need to modify the Deployment, and because there is currently no reliable way to do that before
+  // installing/upgrading via Helm, we need to separately update the target here for dev-mode/hot-reload.
+  if (devMode && service.spec.devMode && serviceResourceSpec && serviceResource) {
+    configureDevMode({
+      target: serviceResource,
+      spec: service.spec.devMode,
+      containerName: service.spec.devMode?.containerName,
+    })
+    await apply({ log, ctx, provider, manifests: [serviceResource], namespace })
+  } else if (hotReload && hotReloadSpec && serviceResourceSpec && serviceResource) {
     configureHotReload({
-      target: hotReloadTarget,
+      target: serviceResource,
       hotReloadSpec,
-      hotReloadArgs: resourceSpec.hotReloadArgs,
+      hotReloadArgs: serviceResourceSpec.hotReloadArgs,
       containerName: getHotReloadContainerName(module),
     })
-
-    await apply({ log, ctx, provider, manifests: [hotReloadTarget], namespace })
+    await apply({ log, ctx, provider, manifests: [serviceResource], namespace })
   }
 
   // FIXME: we should get these objects from the cluster, and not from the local `helm template` command, because
@@ -113,6 +131,18 @@ export async function deployHelmService({
 
   // Make sure port forwards work after redeployment
   killPortForwards(service, forwardablePorts || [], log)
+
+  if (devMode && service.spec.devMode && serviceResource && serviceResourceSpec) {
+    await startDevModeSync({
+      ctx,
+      log: log.info({ section: service.name, symbol: "info", msg: chalk.gray(`Starting sync`) }),
+      moduleRoot: service.sourceModule.path,
+      namespace: serviceResource.metadata.namespace || namespace,
+      target: serviceResource,
+      spec: service.spec.devMode,
+      containerName: service.spec.devMode.containerName,
+    })
+  }
 
   return {
     forwardablePorts,

@@ -115,6 +115,7 @@ describe("DeployCommand", () => {
         services: undefined,
       },
       opts: withDefaultGlobalOpts({
+        "dev-mode": undefined,
         "hot-reload": undefined,
         "watch": false,
         "force": false,
@@ -234,6 +235,7 @@ describe("DeployCommand", () => {
         services: ["service-b"],
       },
       opts: withDefaultGlobalOpts({
+        "dev-mode": undefined,
         "hot-reload": undefined,
         "watch": false,
         "force": false,
@@ -286,6 +288,7 @@ describe("DeployCommand", () => {
         services: undefined,
       },
       opts: withDefaultGlobalOpts({
+        "dev-mode": undefined,
         "hot-reload": undefined,
         "watch": false,
         "force": false,
@@ -335,6 +338,7 @@ describe("DeployCommand", () => {
         services: undefined,
       },
       opts: withDefaultGlobalOpts({
+        "dev-mode": undefined,
         "hot-reload": undefined,
         "watch": false,
         "force": false,
@@ -377,6 +381,7 @@ describe("DeployCommand", () => {
         services: undefined,
       },
       opts: withDefaultGlobalOpts({
+        "dev-mode": undefined,
         "hot-reload": undefined,
         "watch": false,
         "force": false,

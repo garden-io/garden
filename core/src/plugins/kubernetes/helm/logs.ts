@@ -24,7 +24,14 @@ export async function getServiceLogs(params: GetServiceLogsParams<HelmModule>) {
     provider: k8sCtx.provider,
   })
 
-  const resources = await getChartResources({ ctx: k8sCtx, module, hotReload: false, log, version: service.version })
+  const resources = await getChartResources({
+    ctx: k8sCtx,
+    module,
+    devMode: false,
+    hotReload: false,
+    log,
+    version: service.version,
+  })
 
   return streamK8sLogs({ ...params, provider, defaultNamespace: namespace, resources })
 }

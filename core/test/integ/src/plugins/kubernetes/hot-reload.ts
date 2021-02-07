@@ -109,7 +109,14 @@ describe("configureHotReload", () => {
     const log = garden.log
     const service = graph.getService("two-containers")
     const module = service.module
-    const manifests = await getChartResources({ ctx, module, hotReload: true, log, version: service.version })
+    const manifests = await getChartResources({
+      ctx,
+      module,
+      devMode: false,
+      hotReload: true,
+      log,
+      version: service.version,
+    })
     const resourceSpec = getServiceResourceSpec(module, undefined)
     const hotReloadSpec = getHotReloadSpec(service)
     const hotReloadTarget = await findServiceResource({

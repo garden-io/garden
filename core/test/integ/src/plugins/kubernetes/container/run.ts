@@ -47,6 +47,8 @@ describe("runContainerTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
+      devModeServiceNames: [],
+      hotReloadServiceNames: [],
     })
 
     const ctx = await garden.getPluginContext(provider)
@@ -81,6 +83,8 @@ describe("runContainerTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
+      devModeServiceNames: [],
+      hotReloadServiceNames: [],
     })
 
     const ctx = await garden.getPluginContext(provider)
@@ -109,6 +113,8 @@ describe("runContainerTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
+      devModeServiceNames: [],
+      hotReloadServiceNames: [],
     })
 
     const ctx = await garden.getPluginContext(provider)
@@ -140,6 +146,8 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -160,6 +168,8 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
       await emptyDir(garden.artifactsPath)
 
@@ -181,6 +191,8 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -201,6 +213,8 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       const result = await garden.processTasks([testTask])
@@ -226,6 +240,8 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       const result = await garden.processTasks([testTask])

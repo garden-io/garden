@@ -92,6 +92,8 @@ describe("TaskHelpers", () => {
         graph,
         log,
         module,
+        servicesWatched: graph.getServices().map((s) => s.name),
+        devModeServiceNames: [],
         hotReloadServiceNames: [],
       })
 
@@ -156,6 +158,8 @@ describe("TaskHelpers", () => {
         graph,
         log,
         module,
+        servicesWatched: graph.getServices().map((s) => s.name),
+        devModeServiceNames: [],
         hotReloadServiceNames: [],
       })
 
@@ -213,6 +217,8 @@ describe("TaskHelpers", () => {
         graph,
         log,
         module,
+        servicesWatched: graph.getServices().map((s) => s.name),
+        devModeServiceNames: [],
         hotReloadServiceNames: ["service-b"],
       })
 
@@ -269,6 +275,8 @@ describe("TaskHelpers", () => {
             graph,
             log,
             module,
+            servicesWatched: graph.getServices().map((s) => s.name),
+            devModeServiceNames: [],
             hotReloadServiceNames: [],
           })
           expect(sortedBaseKeys(tasks)).to.eql(expectedTasks.sort())
@@ -311,6 +319,8 @@ describe("TaskHelpers", () => {
           graph,
           log,
           module,
+          servicesWatched: graph.getServices().map((s) => s.name),
+          devModeServiceNames: [],
           hotReloadServiceNames: [],
         })
 
@@ -375,6 +385,8 @@ describe("TaskHelpers", () => {
           graph,
           log,
           module,
+          servicesWatched: graph.getServices().map((s) => s.name),
+          devModeServiceNames: [],
           hotReloadServiceNames: [],
         })
 
@@ -430,6 +442,8 @@ describe("TaskHelpers", () => {
             graph,
             log,
             module,
+            servicesWatched: graph.getServices().map((s) => s.name),
+            devModeServiceNames: [],
             hotReloadServiceNames: ["good-morning"],
           })
           expect(sortedBaseKeys(tasks)).to.eql(expectedTasks.sort())
@@ -472,6 +486,8 @@ describe("TaskHelpers", () => {
           graph,
           log,
           module,
+          servicesWatched: ["service-a"],
+          devModeServiceNames: [],
           hotReloadServiceNames: ["service-a"],
         })
 
@@ -536,6 +552,8 @@ describe("TaskHelpers", () => {
           graph,
           log,
           module,
+          servicesWatched: ["service-a", "service-b"],
+          devModeServiceNames: [],
           hotReloadServiceNames: ["service-a", "service-b"],
         })
 

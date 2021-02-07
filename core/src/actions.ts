@@ -470,7 +470,7 @@ export class ActionRouter implements TypeGuard {
     })
 
     const runtimeContext = emptyRuntimeContext
-    const status = await this.getServiceStatus({ ...params, runtimeContext, hotReload: false })
+    const status = await this.getServiceStatus({ ...params, runtimeContext, devMode: false, hotReload: false })
 
     if (status.state === "missing") {
       log.setSuccess({
@@ -613,6 +613,8 @@ export class ActionRouter implements TypeGuard {
           graph,
           log,
           service,
+          devModeServiceNames: [],
+          hotReloadServiceNames: [],
         })
     )
     const results = await this.garden.processTasks(tasks, { throwOnError: true })
@@ -633,6 +635,7 @@ export class ActionRouter implements TypeGuard {
           force,
           forceBuild,
           fromWatch: false,
+          devModeServiceNames: [],
           hotReloadServiceNames: [],
         })
     )

@@ -22,7 +22,7 @@ import { getModuleWatchTasks } from "../tasks/helpers"
 import { processModules } from "../process"
 import { printHeader } from "../logger/util"
 import { BaseTask } from "../tasks/base"
-import { getHotReloadServiceNames, validateHotReloadServiceNames } from "./helpers"
+import { getDevModeServiceNames, getHotReloadServiceNames, validateHotReloadServiceNames } from "./helpers"
 import { startServer } from "../server/server"
 import { DeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
@@ -44,12 +44,20 @@ export const deployOpts = {
     alias: "w",
     cliOnly: true,
   }),
+  "dev-mode": new StringsParameter({
+    help: deline`[EXPERIMENTAL] The name(s) of the service(s) to deploy with dev mode enabled.
+      Use comma as a separator to specify multiple services. Use * to deploy all
+      services with dev mode enabled. When this option is used,
+      the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
+    `,
+    alias: "dev",
+  }),
   "hot-reload": new StringsParameter({
     help: deline`The name(s) of the service(s) to deploy with hot reloading enabled.
       Use comma as a separator to specify multiple services. Use * to deploy all
       services with hot reloading enabled (ignores services belonging to modules that
       don't support or haven't configured hot reloading). When this option is used,
-      the command is run in watch mode (i.e. implicitly assumes the --watch/-w flag).
+      the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
     `,
     alias: "hot",
   }),
@@ -142,8 +150,14 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const modules = Array.from(new Set(services.map((s) => s.module)))
+    const devModeServiceNames = await getDevModeServiceNames(opts["dev-mode"], initGraph)
     const hotReloadServiceNames = await getHotReloadServiceNames(opts["hot-reload"], initGraph)
-    let watch: boolean
+
+    let watch = opts.watch
+
+    if (devModeServiceNames.length > 0) {
+      watch = true
+    }
 
     if (hotReloadServiceNames.length > 0) {
       initGraph.getServices({ names: hotReloadServiceNames }) // validate the existence of these services
@@ -153,8 +167,6 @@ export class DeployCommand extends Command<Args, Opts> {
         return { result: { builds: {}, deployments: {}, tests: {}, graphResults: {} } }
       }
       watch = true
-    } else {
-      watch = opts.watch
     }
 
     const force = opts.force
@@ -170,6 +182,7 @@ export class DeployCommand extends Command<Args, Opts> {
           force,
           forceBuild,
           fromWatch: false,
+          devModeServiceNames,
           hotReloadServiceNames,
         })
     )
@@ -188,6 +201,8 @@ export class DeployCommand extends Command<Args, Opts> {
           graph,
           log,
           module,
+          servicesWatched: services.map((s) => s.name),
+          devModeServiceNames,
           hotReloadServiceNames,
         })
 

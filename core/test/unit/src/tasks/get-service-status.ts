@@ -132,6 +132,8 @@ describe("GetServiceStatusTask", () => {
         service: testService,
         force: true,
         log: garden.log,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       const key = statusTask.getKey()
@@ -210,6 +212,8 @@ describe("GetServiceStatusTask", () => {
         service: testService,
         force: true,
         log: garden.log,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       const key = statusTask.getKey()

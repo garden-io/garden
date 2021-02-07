@@ -33,6 +33,8 @@ import { resolve } from "path"
 import { killPortForwards } from "../port-forward"
 import { prepareImagePullSecrets } from "../secrets"
 import { configureHotReload } from "../hot-reload/helpers"
+import { configureDevMode, startDevModeSync } from "../dev-mode"
+import { hotReloadableKinds, HotReloadableResource } from "../hot-reload/hot-reload"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "90Mi" // This is the minimum in some clusters
@@ -44,19 +46,64 @@ export const PRODUCTION_MINIMUM_REPLICAS = 3
 export async function deployContainerService(
   params: DeployServiceParams<ContainerModule>
 ): Promise<ContainerServiceStatus> {
+  const { ctx, service, log, devMode } = params
   const { deploymentStrategy } = params.ctx.provider.config
 
   if (deploymentStrategy === "blue-green") {
-    return deployContainerServiceBlueGreen(params)
+    await deployContainerServiceBlueGreen(params)
   } else {
-    return deployContainerServiceRolling(params)
+    await deployContainerServiceRolling(params)
   }
+
+  const status = await getContainerServiceStatus(params)
+
+  // Make sure port forwards work after redeployment
+  killPortForwards(service, status.forwardablePorts || [], log)
+
+  if (devMode) {
+    await startContainerDevSync({
+      ctx: <KubernetesPluginContext>ctx,
+      log,
+      status,
+      service,
+    })
+  }
+
+  return status
 }
 
-export async function deployContainerServiceRolling(
-  params: DeployServiceParams<ContainerModule>
-): Promise<ContainerServiceStatus> {
-  const { ctx, service, runtimeContext, log, hotReload } = params
+export async function startContainerDevSync({
+  ctx,
+  log,
+  status,
+  service,
+}: {
+  ctx: KubernetesPluginContext
+  status: ContainerServiceStatus
+  log: LogEntry
+  service: ContainerService
+}) {
+  if (!service.spec.devMode) {
+    return
+  }
+
+  const namespace = await getAppNamespace(ctx, log, ctx.provider)
+  const target = status.detail.remoteResources.find((r) =>
+    hotReloadableKinds.includes(r.kind)
+  )! as HotReloadableResource
+
+  await startDevModeSync({
+    ctx,
+    log: log.info({ section: service.name, symbol: "info", msg: chalk.gray(`Starting sync`) }),
+    moduleRoot: service.module.path,
+    namespace,
+    target,
+    spec: service.spec.devMode,
+  })
+}
+
+export async function deployContainerServiceRolling(params: DeployServiceParams<ContainerModule>) {
+  const { ctx, service, runtimeContext, log, devMode, hotReload } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
@@ -66,6 +113,7 @@ export async function deployContainerServiceRolling(
     log,
     service,
     runtimeContext,
+    enableDevMode: !!devMode,
     enableHotReload: hotReload,
     blueGreen: false,
   })
@@ -83,19 +131,10 @@ export async function deployContainerServiceRolling(
     resources: manifests,
     log,
   })
-
-  const status = await getContainerServiceStatus(params)
-
-  // Make sure port forwards work after redeployment
-  killPortForwards(service, status.forwardablePorts || [], log)
-
-  return status
 }
 
-export async function deployContainerServiceBlueGreen(
-  params: DeployServiceParams<ContainerModule>
-): Promise<ContainerServiceStatus> {
-  const { ctx, service, runtimeContext, log, hotReload } = params
+export async function deployContainerServiceBlueGreen(params: DeployServiceParams<ContainerModule>) {
+  const { ctx, service, runtimeContext, log, devMode, hotReload } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
@@ -105,6 +144,7 @@ export async function deployContainerServiceBlueGreen(
     log,
     service,
     runtimeContext,
+    enableDevMode: !!devMode,
     enableHotReload: hotReload,
     blueGreen: true,
   })
@@ -204,13 +244,6 @@ export async function deployContainerServiceBlueGreen(
       selector: `${gardenAnnotationKey("service")}=${service.name},` + `${versionKey}!=${newVersion}`,
     })
   }
-
-  const status = await getContainerServiceStatus(params)
-
-  // Make sure port forwards work after redeployment
-  killPortForwards(service, status.forwardablePorts || [], log)
-
-  return status
 }
 
 export async function createContainerManifests({
@@ -218,6 +251,7 @@ export async function createContainerManifests({
   log,
   service,
   runtimeContext,
+  enableDevMode,
   enableHotReload,
   blueGreen,
 }: {
@@ -225,6 +259,7 @@ export async function createContainerManifests({
   log: LogEntry
   service: ContainerService
   runtimeContext: RuntimeContext
+  enableDevMode: boolean
   enableHotReload: boolean
   blueGreen: boolean
 }) {
@@ -240,6 +275,7 @@ export async function createContainerManifests({
     service,
     runtimeContext,
     namespace,
+    enableDevMode,
     enableHotReload,
     log,
     production,
@@ -265,6 +301,7 @@ interface CreateDeploymentParams {
   service: ContainerService
   runtimeContext: RuntimeContext
   namespace: string
+  enableDevMode: boolean
   enableHotReload: boolean
   log: LogEntry
   production: boolean
@@ -277,6 +314,7 @@ export async function createWorkloadManifest({
   service,
   runtimeContext,
   namespace,
+  enableDevMode,
   enableHotReload,
   log,
   production,
@@ -288,6 +326,14 @@ export async function createWorkloadManifest({
 
   if (production && !service.spec.replicas) {
     configuredReplicas = PRODUCTION_MINIMUM_REPLICAS
+  }
+
+  if (enableDevMode && configuredReplicas > 1) {
+    log.warn({
+      msg: chalk.gray(`Ignoring replicas config on container service ${service.name} while in dev mode`),
+      symbol: "warning",
+    })
+    configuredReplicas = 1
   }
 
   if (enableHotReload && configuredReplicas > 1) {
@@ -470,7 +516,16 @@ export async function createWorkloadManifest({
     workload.spec.template.spec!.securityContext = securityContext
   }
 
-  if (enableHotReload) {
+  const devModeSpec = service.spec.devMode
+
+  if (enableDevMode && devModeSpec) {
+    log.debug({ section: service.name, msg: chalk.gray(`-> Configuring in dev mode`) })
+
+    configureDevMode({
+      target: workload,
+      spec: devModeSpec,
+    })
+  } else if (enableHotReload) {
     const hotReloadSpec = service.module.spec.hotReload
 
     if (!hotReloadSpec) {

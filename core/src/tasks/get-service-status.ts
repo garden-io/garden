@@ -25,7 +25,8 @@ export interface GetServiceStatusTaskParams {
   service: GardenService
   force: boolean
   log: LogEntry
-  hotReloadServiceNames?: string[]
+  devModeServiceNames: string[]
+  hotReloadServiceNames: string[]
 }
 
 @Profile()
@@ -35,12 +36,14 @@ export class GetServiceStatusTask extends BaseTask {
 
   private graph: ConfigGraph
   private service: GardenService
+  private devModeServiceNames: string[]
   private hotReloadServiceNames: string[]
 
-  constructor({ garden, graph, log, service, force, hotReloadServiceNames = [] }: GetServiceStatusTaskParams) {
+  constructor({ garden, graph, log, service, force, devModeServiceNames, hotReloadServiceNames }: GetServiceStatusTaskParams) {
     super({ garden, log, force, version: service.version })
     this.graph = graph
     this.service = service
+    this.devModeServiceNames = devModeServiceNames
     this.hotReloadServiceNames = hotReloadServiceNames
   }
 
@@ -54,6 +57,7 @@ export class GetServiceStatusTask extends BaseTask {
         log: this.log,
         service,
         force: false,
+        devModeServiceNames: this.devModeServiceNames,
         hotReloadServiceNames: this.hotReloadServiceNames,
       })
     })
@@ -81,7 +85,8 @@ export class GetServiceStatusTask extends BaseTask {
   async process(dependencyResults: GraphResults): Promise<ServiceStatus> {
     const log = this.log.placeholder()
 
-    const hotReload = includes(this.hotReloadServiceNames, this.service.name)
+    const devMode = includes(this.devModeServiceNames, this.service.name)
+    const hotReload = !devMode && includes(this.hotReloadServiceNames, this.service.name)
 
     const dependencies = this.graph.getDependencies({
       nodeType: "deploy",
@@ -110,6 +115,7 @@ export class GetServiceStatusTask extends BaseTask {
       status = await actions.getServiceStatus({
         service: this.service,
         log,
+        devMode,
         hotReload,
         runtimeContext,
       })

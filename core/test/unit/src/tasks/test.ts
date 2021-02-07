@@ -37,6 +37,8 @@ describe("TestTask", () => {
         test: testFromConfig(moduleA, testConfig, graph),
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       const deps = await task.resolveDependencies()
@@ -54,6 +56,7 @@ describe("TestTask", () => {
         log,
         graph,
         module: moduleA,
+        devModeServiceNames: [],
         hotReloadServiceNames: ["service-b"],
       })
 

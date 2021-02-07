@@ -31,7 +31,7 @@ import { getHotReloadSpec, syncToService } from "./helpers"
 export type HotReloadableResource = KubernetesResource<V1Deployment | V1DaemonSet | V1StatefulSet>
 export type HotReloadableKind = "Deployment" | "DaemonSet" | "StatefulSet"
 
-export const hotReloadableKinds: HotReloadableKind[] = ["Deployment", "DaemonSet", "StatefulSet"]
+export const hotReloadableKinds: string[] = ["Deployment", "DaemonSet", "StatefulSet"]
 
 /**
  * The hot reload action handler for helm charts and kubernetes modules.
@@ -62,6 +62,7 @@ export async function hotReloadK8s({
     manifests = await getChartResources({
       ctx: k8sCtx,
       module: service.module,
+      devMode: false,
       hotReload: true,
       log,
       version: service.version,
@@ -125,6 +126,7 @@ export async function hotReloadContainer({
     service,
     runtimeContext: { envVars: {}, dependencies: [] },
     namespace,
+    enableDevMode: false,
     enableHotReload: true,
     production: k8sCtx.production,
     log,

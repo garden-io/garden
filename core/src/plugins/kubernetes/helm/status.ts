@@ -11,11 +11,15 @@ import { GetServiceStatusParams } from "../../../types/plugin/service/getService
 import { LogEntry } from "../../../logger/log-entry"
 import { helm } from "./helm-cli"
 import { HelmModule } from "./config"
-import { getReleaseName, loadTemplate } from "./common"
+import { getBaseModule, getReleaseName, loadTemplate } from "./common"
 import { KubernetesPluginContext } from "../config"
 import { getForwardablePorts } from "../port-forward"
 import { KubernetesServerResource } from "../types"
 import { getModuleNamespace } from "../namespace"
+import { findServiceResource, getServiceResourceSpec } from "../util"
+import chalk from "chalk"
+import { startDevModeSync } from "../dev-mode"
+import { gardenAnnotationKey } from "../../../util/string"
 
 const helmStatusMap: { [status: string]: ServiceState } = {
   unknown: "unknown",
@@ -37,6 +41,7 @@ export async function getServiceStatus({
   module,
   service,
   log,
+  devMode,
   hotReload,
 }: GetServiceStatusParams<HelmModule>): Promise<HelmServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
@@ -46,7 +51,7 @@ export async function getServiceStatus({
   let state: ServiceState
 
   try {
-    const helmStatus = await getReleaseStatus({ ctx: k8sCtx, service, releaseName, log, hotReload })
+    const helmStatus = await getReleaseStatus({ ctx: k8sCtx, service, releaseName, log, devMode, hotReload })
     state = helmStatus.state
   } catch (err) {
     state = "missing"
@@ -57,6 +62,45 @@ export async function getServiceStatus({
   if (state !== "missing") {
     const deployedResources = await getDeployedResources({ ctx: k8sCtx, module, releaseName, log })
     forwardablePorts = getForwardablePorts(deployedResources)
+
+    if (state === "ready" && devMode && service.spec.devMode) {
+      // Need to start the dev-mode sync here, since the deployment handler won't be called.
+      const baseModule = getBaseModule(module)
+      const serviceResourceSpec = getServiceResourceSpec(module, baseModule)
+      const target = await findServiceResource({
+        ctx,
+        log,
+        module,
+        baseModule,
+        manifests: deployedResources,
+        resourceSpec: serviceResourceSpec,
+      })
+
+      // Make sure we don't fail if the service isn't actually properly configured (we don't want to throw in the
+      // status handler, generally)
+      if (target.metadata.annotations?.[gardenAnnotationKey("dev-mode")] === "true") {
+        const namespace =
+          target.metadata.namespace ||
+          (await getModuleNamespace({
+            ctx: k8sCtx,
+            log,
+            module,
+            provider: k8sCtx.provider,
+          }))
+
+        await startDevModeSync({
+          ctx,
+          log: log.info({ section: service.name, symbol: "info", msg: chalk.gray(`Starting sync`) }),
+          moduleRoot: service.sourceModule.path,
+          namespace,
+          target,
+          spec: service.spec.devMode,
+          containerName: service.spec.devMode.containerName,
+        })
+      } else {
+        state = "outdated"
+      }
+    }
   }
 
   return {
@@ -100,12 +144,14 @@ export async function getReleaseStatus({
   service,
   releaseName,
   log,
+  devMode,
   hotReload,
 }: {
   ctx: KubernetesPluginContext
   service: GardenService
   releaseName: string
   log: LogEntry
+  devMode: boolean
   hotReload: boolean
 }): Promise<ServiceStatus> {
   try {
@@ -133,9 +179,15 @@ export async function getReleaseStatus({
         })
       )
       const deployedVersion = values[".garden"] && values[".garden"].version
+      const devModeEnabled = values[".garden"] && values[".garden"].devMode === true
       const hotReloadEnabled = values[".garden"] && values[".garden"].hotReload === true
 
-      if ((hotReload && !hotReloadEnabled) || !deployedVersion || deployedVersion !== service.version) {
+      if (
+        (devMode && !devModeEnabled) ||
+        (hotReload && !hotReloadEnabled) ||
+        !deployedVersion ||
+        deployedVersion !== service.version
+      ) {
         state = "outdated"
       }
     }

@@ -26,6 +26,7 @@ import {
   hotReloadArgsSchema,
 } from "../config"
 import { ContainerModule } from "../../container/config"
+import { kubernetesDevModeSchema, KubernetesDevModeSpec } from "../dev-mode"
 
 // A Kubernetes Module always maps to a single Service
 export type KubernetesModuleSpec = KubernetesServiceSpec
@@ -36,6 +37,7 @@ export type KubernetesModuleConfig = KubernetesModule["_config"]
 
 export interface KubernetesServiceSpec {
   dependencies: string[]
+  devMode?: KubernetesDevModeSpec
   files: string[]
   namespace?: string
   manifests: KubernetesResource[]
@@ -79,12 +81,13 @@ export const kubernetesModuleSpecSchema = () =>
       \`files\` directive so that only the Kubernetes manifests get included.
     `),
     namespace: namespaceNameSchema(),
+    devMode: kubernetesDevModeSchema(),
     serviceResource: serviceResourceSchema()
       .description(
-        deline`The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module
-        (not to be confused with Kubernetes Service resources).
-        Because a \`kubernetes-module\` can contain any number of Kubernetes resources, this needs to be specified for certain
-        Garden features and commands to work.`
+        dedent`
+        The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module (not to be confused with Kubernetes Service resources).
+        Because a \`kubernetes\` module can contain any number of Kubernetes resources, this needs to be specified for certain Garden features and commands to work.
+        `
       )
       .keys({
         containerModule: containerModuleSchema(),

@@ -76,7 +76,7 @@ describe("DevCommand", () => {
   it("should deploy, run and test everything in a project", async () => {
     const garden = await makeTestGardenA()
 
-    const args = {}
+    const args = { services: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "hot-reload": undefined,
@@ -127,6 +127,8 @@ describe("DevCommand", () => {
       log,
       graph,
       modules,
+      services: graph.getServices(),
+      devModeServiceNames: [],
       // Note: service-a is a runtime dependency of module-a's integration test spec, so in this test case
       // we're implicitly verifying that tests with runtime dependencies on services being deployed with
       // hot reloading don't request non-hot-reload-enabled deploys for those same services.
@@ -154,7 +156,7 @@ describe("DevCommand", () => {
     await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].spec.services[0].disabled = true
 
-    const args = {}
+    const args = { services: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "hot-reload": undefined,
@@ -175,7 +177,7 @@ describe("DevCommand", () => {
     await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].spec.tasks[0].disabled = true
 
-    const args = {}
+    const args = { services: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "hot-reload": undefined,
@@ -196,7 +198,7 @@ describe("DevCommand", () => {
     await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-b"].spec.tests[0].disabled = true
 
-    const args = {}
+    const args = { services: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "hot-reload": undefined,
@@ -217,7 +219,7 @@ describe("DevCommand", () => {
     await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].disabled = true
 
-    const args = {}
+    const args = { services: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "hot-reload": undefined,
@@ -238,7 +240,7 @@ describe("DevCommand", () => {
     await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].disabled = true
 
-    const args = {}
+    const args = { services: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "hot-reload": undefined,
@@ -259,7 +261,7 @@ describe("DevCommand", () => {
     await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].disabled = true
 
-    const args = {}
+    const args = { services: undefined }
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "hot-reload": undefined,
@@ -287,6 +289,8 @@ describe("getDevCommandWatchTasks", () => {
       log,
       updatedGraph: graph,
       module: graph.getModule("module-b"),
+      servicesWatched: graph.getServices().map((s) => s.name),
+      devModeServiceNames: [],
       hotReloadServiceNames: [],
       testNames: undefined,
       skipTests: false,

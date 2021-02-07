@@ -188,6 +188,8 @@ describe("kubernetes container module handlers", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       const result = await garden.processTasks([testTask], { throwOnError: true })
@@ -212,6 +214,8 @@ describe("kubernetes container module handlers", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       await expectError(
@@ -244,6 +248,8 @@ describe("kubernetes container module handlers", () => {
           log: garden.log,
           force: true,
           forceBuild: false,
+          devModeServiceNames: [],
+          hotReloadServiceNames: [],
         })
 
         await emptyDir(garden.artifactsPath)
@@ -264,6 +270,8 @@ describe("kubernetes container module handlers", () => {
           log: garden.log,
           force: true,
           forceBuild: false,
+          devModeServiceNames: [],
+          hotReloadServiceNames: [],
         })
 
         await emptyDir(garden.artifactsPath)
@@ -286,6 +294,8 @@ describe("kubernetes container module handlers", () => {
           log: garden.log,
           force: true,
           forceBuild: false,
+          devModeServiceNames: [],
+          hotReloadServiceNames: [],
         })
 
         await emptyDir(garden.artifactsPath)
@@ -306,6 +316,8 @@ describe("kubernetes container module handlers", () => {
           log: garden.log,
           force: true,
           forceBuild: false,
+          devModeServiceNames: [],
+          hotReloadServiceNames: [],
         })
 
         const result = await garden.processTasks([testTask])
@@ -330,6 +342,8 @@ describe("kubernetes container module handlers", () => {
           log: garden.log,
           force: true,
           forceBuild: false,
+          devModeServiceNames: [],
+          hotReloadServiceNames: [],
         })
 
         const result = await garden.processTasks([testTask])

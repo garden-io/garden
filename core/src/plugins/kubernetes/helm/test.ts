@@ -28,7 +28,14 @@ export async function testHelmModule(params: TestModuleParams<HelmModule>): Prom
   const k8sCtx = <KubernetesPluginContext>ctx
 
   // Get the container spec to use for running
-  const manifests = await getChartResources({ ctx: k8sCtx, module, hotReload: false, log, version: test.version })
+  const manifests = await getChartResources({
+    ctx: k8sCtx,
+    module,
+    devMode: false,
+    hotReload: false,
+    log,
+    version: test.version,
+  })
   const baseModule = getBaseModule(module)
   const resourceSpec = test.config.spec.resource || getServiceResourceSpec(module, baseModule)
   const target = await findServiceResource({ ctx: k8sCtx, log, manifests, module, baseModule, resourceSpec })

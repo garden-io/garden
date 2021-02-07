@@ -489,13 +489,19 @@ describe("ActionRouter", () => {
   describe("service actions", () => {
     describe("getServiceStatus", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.getServiceStatus({ log, service, runtimeContext, hotReload: false })
+        const result = await actions.getServiceStatus({
+          log,
+          service,
+          runtimeContext,
+          devMode: false,
+          hotReload: false,
+        })
         expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } })
       })
 
       it("should emit a serviceStatus event", async () => {
         garden.events.eventLog = []
-        await actions.getServiceStatus({ log, service, runtimeContext, hotReload: false })
+        await actions.getServiceStatus({ log, service, runtimeContext, devMode: false, hotReload: false })
         const event = garden.events.eventLog[0]
         expect(event).to.exist
         expect(event.name).to.eql("serviceStatus")
@@ -509,7 +515,7 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actions.getServiceStatus({ log, service, runtimeContext, hotReload: false }),
+          () => actions.getServiceStatus({ log, service, runtimeContext, devMode: false, hotReload: false }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from service 'service-a': key .foo must be a string"
@@ -523,7 +529,7 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actions.getServiceStatus({ log, service, runtimeContext, hotReload: false }),
+          () => actions.getServiceStatus({ log, service, runtimeContext, devMode: false, hotReload: false }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from service 'service-a': key .base must be a string"
@@ -534,13 +540,20 @@ describe("ActionRouter", () => {
 
     describe("deployService", () => {
       it("should correctly call the corresponding plugin handler", async () => {
-        const result = await actions.deployService({ log, service, runtimeContext, force: true, hotReload: false })
+        const result = await actions.deployService({
+          log,
+          service,
+          runtimeContext,
+          force: true,
+          devMode: false,
+          hotReload: false,
+        })
         expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } })
       })
 
       it("should emit a serviceStatus event", async () => {
         garden.events.eventLog = []
-        await actions.deployService({ log, service, runtimeContext, force: true, hotReload: false })
+        await actions.deployService({ log, service, runtimeContext, force: true, devMode: false, hotReload: false })
         const event = garden.events.eventLog[0]
         expect(event).to.exist
         expect(event.name).to.eql("serviceStatus")
@@ -554,7 +567,7 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actions.deployService({ log, service, runtimeContext, force: true, hotReload: false }),
+          () => actions.deployService({ log, service, runtimeContext, force: true, devMode: false, hotReload: false }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from service 'service-a': key .foo must be a string"
@@ -568,7 +581,7 @@ describe("ActionRouter", () => {
         })
 
         await expectError(
-          () => actions.deployService({ log, service, runtimeContext, force: true, hotReload: false }),
+          () => actions.deployService({ log, service, runtimeContext, force: true, devMode: false, hotReload: false }),
           (err) =>
             expect(stripAnsi(err.message)).to.equal(
               "Error validating outputs from service 'service-a': key .base must be a string"
@@ -1509,6 +1522,7 @@ describe("ActionRouter", () => {
           service: serviceA,
           runtimeContext,
           log,
+          devMode: false,
           hotReload: false,
           force: false,
         },
@@ -1558,6 +1572,7 @@ describe("ActionRouter", () => {
           service: serviceA,
           runtimeContext: _runtimeContext,
           log,
+          devMode: false,
           hotReload: false,
           force: false,
         },
@@ -1606,6 +1621,7 @@ describe("ActionRouter", () => {
               service: serviceA,
               runtimeContext: _runtimeContext,
               log,
+              devMode: false,
               hotReload: false,
               force: false,
             },

@@ -29,7 +29,7 @@ import {
   parseEnvironment,
   getDefaultEnvironmentName,
 } from "./config/project"
-import { findByName, pickKeys, getPackageVersion, getNames, findByNames, duplicatesByKey } from "./util/util"
+import { findByName, pickKeys, getPackageVersion, getNames, findByNames, duplicatesByKey, uuidv4 } from "./util/util"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
 import { VcsHandler, ModuleVersion } from "./vcs/vcs"
 import { GitHandler } from "./vcs/git"
@@ -162,7 +162,7 @@ export interface GardenParams {
   providerConfigs: GenericProviderConfig[]
   variables: DeepPrimitiveMap
   secrets: StringMap
-  sessionId: string | null
+  sessionId: string
   username: string | undefined
   vcs: VcsHandler
   workingCopyId: string
@@ -185,7 +185,7 @@ export class Garden {
   private asyncLock: any
   public readonly projectId?: string
   public readonly enterpriseDomain?: string
-  public sessionId: string | null
+  public sessionId: string
   public readonly configStore: ConfigStore
   public readonly globalConfigStore: GlobalConfigStore
   public readonly vcs: VcsHandler
@@ -1179,7 +1179,7 @@ export async function resolveGardenParams(currentDirectory: string, opts: Garden
 
   const { environment: environmentName } = parseEnvironment(environmentStr)
 
-  const sessionId = opts.sessionId || null
+  const sessionId = opts.sessionId || uuidv4()
 
   let secrets: StringMap = {}
   const enterpriseApi = opts.enterpriseApi || null

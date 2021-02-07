@@ -30,6 +30,7 @@ export async function getServiceLogs(params: GetServiceLogsParams<ContainerModul
       // No need for the proper context here
       runtimeContext: emptyRuntimeContext,
       namespace,
+      enableDevMode: false,
       enableHotReload: false,
       production: ctx.production,
       log,

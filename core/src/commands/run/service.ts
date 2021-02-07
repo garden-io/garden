@@ -94,6 +94,8 @@ export class RunServiceCommand extends Command<Args, Opts> {
       graph,
       log,
       service,
+      devModeServiceNames: [],
+      hotReloadServiceNames: [],
     })
     const dependencyResults = await garden.processTasks(await deployTask.resolveDependencies())
 

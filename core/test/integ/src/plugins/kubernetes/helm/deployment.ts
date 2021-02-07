@@ -45,6 +45,7 @@ describe("deployHelmService", () => {
       module: service.module,
       service,
       force: false,
+      devMode: false,
       hotReload: false,
       runtimeContext: emptyRuntimeContext,
     })
@@ -55,6 +56,7 @@ describe("deployHelmService", () => {
       service,
       releaseName,
       log: garden.log,
+      devMode: false,
       hotReload: false,
     })
 
@@ -76,6 +78,7 @@ describe("deployHelmService", () => {
       module: service.module,
       service,
       force: false,
+      devMode: false,
       hotReload: true,
       runtimeContext: emptyRuntimeContext,
     })
@@ -86,6 +89,7 @@ describe("deployHelmService", () => {
       service,
       releaseName,
       log: garden.log,
+      devMode: false,
       hotReload: true,
     })
 
@@ -96,6 +100,10 @@ describe("deployHelmService", () => {
       version: service.version,
       hotReload: true,
     })
+  })
+
+  it("should deploy a chart with devMode enabled", async () => {
+    throw "TODO"
   })
 
   it("should deploy a chart with an alternate namespace set", async () => {
@@ -111,6 +119,7 @@ describe("deployHelmService", () => {
       module: service.module,
       service,
       force: false,
+      devMode: false,
       hotReload: false,
       runtimeContext: emptyRuntimeContext,
     })
@@ -121,6 +130,7 @@ describe("deployHelmService", () => {
       service,
       releaseName,
       log: garden.log,
+      devMode: false,
       hotReload: false,
     })
 

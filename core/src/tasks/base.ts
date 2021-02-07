@@ -28,6 +28,7 @@ export type TaskType =
   | "resolve-module"
   | "resolve-provider"
   | "stage-build"
+  | "start-sync"
   | "task"
   | "test"
 
