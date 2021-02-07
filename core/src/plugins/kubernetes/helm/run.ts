@@ -59,7 +59,7 @@ export async function runHelmModule({
     )
   }
 
-  const manifests = await getChartResources({ ctx: k8sCtx, module, hotReload: false, log, version })
+  const manifests = await getChartResources({ ctx: k8sCtx, module, devMode: false, hotReload: false, log, version })
   const target = await findServiceResource({
     ctx: k8sCtx,
     log,
@@ -125,6 +125,7 @@ export async function runHelmTask(params: RunTaskParams<HelmModule>): Promise<Ru
   const manifests = await getChartResources({
     ctx: k8sCtx,
     module,
+    devMode: false,
     hotReload: false,
     log,
     version: module.version.versionString,

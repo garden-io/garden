@@ -15,6 +15,7 @@ import { joi } from "../../../config/common"
 
 export interface DeployServiceParams<M extends GardenModule = GardenModule, S extends GardenModule = GardenModule>
   extends PluginServiceActionParamsBase<M, S> {
+  devMode: boolean
   force: boolean
   hotReload: boolean
   runtimeContext: RuntimeContext
@@ -28,6 +29,7 @@ export const deployService = () => ({
     Called by the \`garden deploy\` and \`garden dev\` commands.
   `,
   paramsSchema: serviceActionParamsSchema().keys({
+    devMode: joi.boolean().default(false).description("Whether to configure the service for development."),
     force: joi.boolean().description("Whether to force a re-deploy, even if the service is already deployed."),
     runtimeContext: runtimeContextSchema(),
     hotReload: joi.boolean().default(false).description("Whether to configure the service for hot-reloading."),

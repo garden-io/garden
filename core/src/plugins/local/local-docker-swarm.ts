@@ -115,6 +115,7 @@ export const gardenPlugin = () =>
               module,
               runtimeContext,
               log,
+              devMode: false,
               hotReload: false,
             })
             let swarmServiceStatus
@@ -172,7 +173,7 @@ export const gardenPlugin = () =>
               msg: `Ready`,
             })
 
-            return getServiceStatus({ ctx, module, service, runtimeContext, log, hotReload: false })
+            return getServiceStatus({ ctx, module, service, runtimeContext, log, devMode: false, hotReload: false })
           },
 
           async execInService({ ctx, service, command, log }: ExecInServiceParams<ContainerModule>) {
@@ -186,6 +187,7 @@ export const gardenPlugin = () =>
                 dependencies: [],
               },
               log,
+              devMode: false,
               hotReload: false,
             })
 

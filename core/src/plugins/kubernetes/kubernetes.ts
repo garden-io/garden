@@ -41,6 +41,7 @@ import { getModuleTypeUrl, getProviderUrl } from "../../docs/common"
 import { helm3Spec } from "./helm/helm-cli"
 import { sternSpec } from "./logs"
 import { isString } from "lodash"
+import { mutagenCliSpec } from "./mutagen"
 
 export async function configureProvider({
   namespace,
@@ -262,5 +263,5 @@ export const gardenPlugin = () =>
         handlers: containerHandlers,
       },
     ],
-    tools: [kubectlSpec, helm3Spec, sternSpec],
+    tools: [kubectlSpec, helm3Spec, mutagenCliSpec, sternSpec],
   })

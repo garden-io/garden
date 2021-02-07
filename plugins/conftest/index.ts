@@ -242,6 +242,7 @@ export const gardenPlugin = () => createGardenPlugin({
           const templates = await renderTemplates({
             ctx: k8sCtx,
             module: sourceModule,
+            devMode: false,
             hotReload: false,
             log,
             version: sourceModule.version.versionString,

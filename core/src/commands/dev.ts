@@ -30,10 +30,15 @@ import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { StringsParameter, BooleanParameter } from "../cli/params"
 import { printHeader } from "../logger/util"
+import { GardenService } from "../types/service"
 
 const ansiBannerPath = join(STATIC_DIR, "garden-banner-2.txt")
 
-const devArgs = {}
+const devArgs = {
+  services: new StringsParameter({
+    help: `Specify which services to develop (defaults to all configured services).`,
+  }),
+}
 
 const devOpts = {
   "hot-reload": new StringsParameter({
@@ -84,6 +89,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
         garden test --name integ*                 # run all tests with the name starting with 'integ' in the project
   `
 
+  arguments = devArgs
   options = devOpts
 
   printHeader({ headerLog }) {
@@ -107,6 +113,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
     garden,
     log,
     footerLog,
+    args,
     opts,
   }: CommandParams<DevCommandArgs, DevCommandOpts>): Promise<CommandResult> {
     this.server?.setGarden(garden)
@@ -132,11 +139,21 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       }
     }
 
+    const services = graph.getServices({ names: args.services })
+
+    const devModeServiceNames = services
+      .map((s) => s.name)
+      // Since dev mode is implicit when using this command, we consider explicitly enabling hot reloading to
+      // take precedence over dev mode.
+      .filter((name) => !hotReloadServiceNames.includes(name))
+
     const initialTasks = await getDevCommandInitialTasks({
       garden,
       log,
       graph,
       modules,
+      services,
+      devModeServiceNames,
       hotReloadServiceNames,
       skipTests,
     })
@@ -155,6 +172,8 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
           log,
           updatedGraph,
           module,
+          servicesWatched: devModeServiceNames,
+          devModeServiceNames,
           hotReloadServiceNames,
           testNames: opts["test-names"],
           skipTests,
@@ -171,6 +190,8 @@ export async function getDevCommandInitialTasks({
   log,
   graph,
   modules,
+  services,
+  devModeServiceNames,
   hotReloadServiceNames,
   skipTests,
 }: {
@@ -178,10 +199,12 @@ export async function getDevCommandInitialTasks({
   log: LogEntry
   graph: ConfigGraph
   modules: GardenModule[]
+  services: GardenService[]
+  devModeServiceNames: string[]
   hotReloadServiceNames: string[]
   skipTests: boolean
 }) {
-  return flatten(
+  const moduleTasks = flatten(
     await Bluebird.map(modules, async (module) => {
       // Build the module (in case there are no tests, tasks or services here that need to be run)
       const buildTasks = await BuildTask.factory({
@@ -200,32 +223,34 @@ export async function getDevCommandInitialTasks({
             graph,
             log,
             module,
+            devModeServiceNames,
             hotReloadServiceNames,
             force: false,
             forceBuild: false,
           })
 
-      // Deploy all enabled services in module
-      const services = graph.getServices({ names: module.serviceNames, includeDisabled: true })
-      const deployTasks = services
-        .filter((s) => !s.disabled)
-        .map(
-          (service) =>
-            new DeployTask({
-              garden,
-              log,
-              graph,
-              service,
-              force: false,
-              forceBuild: false,
-              fromWatch: false,
-              hotReloadServiceNames,
-            })
-        )
-
-      return [...buildTasks, ...testTasks, ...deployTasks]
+      return [...buildTasks, ...testTasks]
     })
   )
+
+  const serviceTasks = services
+    .filter((s) => !s.disabled)
+    .map(
+      (service) =>
+        new DeployTask({
+          garden,
+          log,
+          graph,
+          service,
+          force: false,
+          forceBuild: false,
+          fromWatch: false,
+          devModeServiceNames,
+          hotReloadServiceNames,
+        })
+    )
+
+  return [...moduleTasks, ...serviceTasks]
 }
 
 export async function getDevCommandWatchTasks({
@@ -233,6 +258,8 @@ export async function getDevCommandWatchTasks({
   log,
   updatedGraph,
   module,
+  servicesWatched,
+  devModeServiceNames,
   hotReloadServiceNames,
   testNames,
   skipTests,
@@ -241,6 +268,8 @@ export async function getDevCommandWatchTasks({
   log: LogEntry
   updatedGraph: ConfigGraph
   module: GardenModule
+  servicesWatched: string[]
+  devModeServiceNames: string[]
   hotReloadServiceNames: string[]
   testNames: string[] | undefined
   skipTests: boolean
@@ -250,6 +279,8 @@ export async function getDevCommandWatchTasks({
     log,
     graph: updatedGraph,
     module,
+    servicesWatched,
+    devModeServiceNames,
     hotReloadServiceNames,
   })
 
@@ -264,6 +295,7 @@ export async function getDevCommandWatchTasks({
             module: m,
             graph: updatedGraph,
             filterNames: testNames,
+            devModeServiceNames,
             hotReloadServiceNames,
           })
         )

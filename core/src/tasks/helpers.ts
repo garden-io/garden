@@ -26,12 +26,16 @@ export async function getModuleWatchTasks({
   log,
   graph,
   module,
+  servicesWatched,
+  devModeServiceNames,
   hotReloadServiceNames,
 }: {
   garden: Garden
   log: LogEntry
   graph: ConfigGraph
   module: GardenModule
+  servicesWatched: string[]
+  devModeServiceNames: string[]
   hotReloadServiceNames: string[]
 }): Promise<BaseTask[]> {
   let buildTasks: BaseTask[] = []
@@ -51,7 +55,7 @@ export async function getModuleWatchTasks({
   const serviceNamesUsingModule = [...module.serviceNames, ...dependantSourceModuleServiceNames]
 
   /**
-   * If a service is deployed with hot reloading enabled, we don't rebuild its module
+   * If a service is deployed with hot reloading or dev modenabled, we don't rebuild its module
    * (or its sourceModule, if the service instead uses a sourceModule) when its
    * sources change.
    *
@@ -60,7 +64,7 @@ export async function getModuleWatchTasks({
    * hotReloadServiceNames and has module as its sourceModule (in which case we
    * also don't add a build task for the dependant's module below).
    */
-  if (intersection(serviceNamesUsingModule, hotReloadServiceNames).length === 0) {
+  if (intersection(serviceNamesUsingModule, [...devModeServiceNames, ...hotReloadServiceNames]).length === 0) {
     buildTasks = await BuildTask.factory({
       garden,
       graph,
@@ -87,7 +91,13 @@ export async function getModuleWatchTasks({
   )
 
   const deployTasks = dependants.deploy
-    .filter((s) => !s.disabled && !hotReloadServiceNames.includes(s.name))
+    .filter(
+      (s) =>
+        !s.disabled &&
+        servicesWatched.includes(s.name) &&
+        !devModeServiceNames.includes(s.name) &&
+        !hotReloadServiceNames.includes(s.name)
+    )
     .map(
       (service) =>
         new DeployTask({
@@ -98,6 +108,7 @@ export async function getModuleWatchTasks({
           force: true,
           forceBuild: false,
           fromWatch: true,
+          devModeServiceNames,
           hotReloadServiceNames,
         })
     )
@@ -108,7 +119,7 @@ export async function getModuleWatchTasks({
       (service) =>
         !service.disabled && (service.module.name === module.name || service.sourceModule.name === module.name)
     )
-    .map((service) => new HotReloadTask({ garden, graph, log, service, force: true }))
+    .map((service) => new HotReloadTask({ garden, graph, log, service, force: true, hotReloadServiceNames }))
 
   const outputTasks = [...buildTasks, ...dependantBuildTasks, ...deployTasks, ...hotReloadTasks]
 

@@ -67,6 +67,7 @@ export async function containsBuildSource(module: HelmModule) {
 interface GetChartResourcesParams {
   ctx: KubernetesPluginContext
   module: GardenModule
+  devMode: boolean
   hotReload: boolean
   log: LogEntry
   version: string
@@ -99,7 +100,7 @@ export async function getChartResources(params: GetChartResourcesParams) {
 /**
  * Renders the given Helm module and returns a multi-document YAML string.
  */
-export async function renderTemplates({ ctx, module, hotReload, log, version }: GetChartResourcesParams) {
+export async function renderTemplates({ ctx, module, devMode, hotReload, log, version }: GetChartResourcesParams) {
   log.debug("Preparing chart...")
 
   const chartPath = await getChartPath(module)
@@ -157,7 +158,7 @@ export async function renderTemplates({ ctx, module, hotReload, log, version }: 
       "json",
       "--timeout",
       module.spec.timeout.toString(10) + "s",
-      ...(await getValueArgs(module, hotReload)),
+      ...(await getValueArgs(module, devMode, hotReload)),
     ],
   })
 
@@ -223,7 +224,7 @@ export function getGardenValuesPath(chartPath: string) {
 /**
  * Get the value files arguments that should be applied to any helm install/render command.
  */
-export async function getValueArgs(module: HelmModule, hotReload: boolean) {
+export async function getValueArgs(module: HelmModule, devMode: boolean, hotReload: boolean) {
   const chartPath = await getChartPath(module)
   const gardenValuesPath = getGardenValuesPath(chartPath)
 
@@ -233,6 +234,9 @@ export async function getValueArgs(module: HelmModule, hotReload: boolean) {
 
   const args = flatten(valueFiles.map((f) => ["--values", f]))
 
+  if (devMode) {
+    args.push("--set", "\\.garden.devMode=true")
+  }
   if (hotReload) {
     args.push("--set", "\\.garden.hotReload=true")
   }
@@ -285,7 +289,7 @@ export async function renderHelmTemplateString(
           "--namespace",
           namespace,
           "--dependency-update",
-          ...(await getValueArgs(module, false)),
+          ...(await getValueArgs(module, false, false)),
           "--show-only",
           relPath,
           chartPath,

@@ -31,6 +31,7 @@ export async function execInService(params: ExecInServiceParams<ContainerModule>
       envVars: {},
       dependencies: [],
     },
+    devMode: false,
     hotReload: false,
   })
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)

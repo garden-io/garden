@@ -18,7 +18,7 @@ interface Params {
   force: boolean
   garden: Garden
   graph: ConfigGraph
-  hotReloadServiceNames?: string[]
+  hotReloadServiceNames: string[]
   log: LogEntry
   service: GardenService
 }

@@ -331,6 +331,7 @@ async function deleteService(params: DeleteServiceParams<OpenFaasModule>): Promi
         dependencies: [],
       },
       module: service.module,
+      devMode: false,
       hotReload: false,
     })
 

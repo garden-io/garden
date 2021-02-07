@@ -22,6 +22,7 @@ type WrappedFromGarden = Pick<
   // TODO: remove this from the interface
   | "environmentName"
   | "production"
+  | "sessionId"
 >
 
 export interface CommandInfo {
@@ -67,6 +68,7 @@ export const pluginContextSchema = () =>
       projectRoot: joi.string().description("The absolute path of the project root."),
       projectSources: projectSourcesSchema(),
       provider: providerSchema().description("The provider being used for this context.").id("ctxProviderSchema"),
+      sessionId: joi.string().description("The unique ID of the currently active session."),
       tools: joiStringMap(joi.object()),
       workingCopyId: joi.string().description("A unique ID assigned to the current project working copy."),
     })
@@ -85,7 +87,8 @@ export async function createPluginContext(
     projectSources: garden.getProjectSources(),
     provider,
     production: garden.production,
-    workingCopyId: garden.workingCopyId,
+    sessionId: garden.sessionId,
     tools: await garden.getTools(),
+    workingCopyId: garden.workingCopyId,
   }
 }

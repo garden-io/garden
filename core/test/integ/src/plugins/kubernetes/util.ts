@@ -88,6 +88,8 @@ describe("util", () => {
           graph,
           log: garden.log,
           service,
+          devModeServiceNames: [],
+          hotReloadServiceNames: [],
         })
 
         const resource = await createWorkloadManifest({
@@ -96,6 +98,7 @@ describe("util", () => {
           service,
           runtimeContext: emptyRuntimeContext,
           namespace: provider.config.namespace!.name!,
+          enableDevMode: false,
           enableHotReload: false,
           log: garden.log,
           production: false,
@@ -178,6 +181,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         module,
+        devMode: false,
         hotReload: false,
         log,
         version: module.version.versionString,
@@ -198,6 +202,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         module,
+        devMode: false,
         hotReload: false,
         log,
         version: module.version.versionString,
@@ -219,6 +224,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         module,
+        devMode: false,
         hotReload: false,
         log,
         version: module.version.versionString,
@@ -246,6 +252,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         module,
+        devMode: false,
         hotReload: false,
         log,
         version: module.version.versionString,
@@ -273,6 +280,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         module,
+        devMode: false,
         hotReload: false,
         log,
         version: module.version.versionString,
@@ -295,6 +303,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         module,
+        devMode: false,
         hotReload: false,
         log,
         version: module.version.versionString,
@@ -318,6 +327,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         module,
+        devMode: false,
         hotReload: false,
         log,
         version: module.version.versionString,

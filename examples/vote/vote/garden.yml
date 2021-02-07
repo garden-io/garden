@@ -3,13 +3,14 @@ description: The voting UI
 name: vote
 # repositoryUrl: http://github.com/garden-io/garden...
 type: container
-hotReload:
-  sync:
-    - target: /app/src
-      source: src
 services:
   - name: vote
     args: [npm, run, serve]
+    devMode:
+      sync:
+        - target: /app/src
+          source: src
+          mode: two-way
     ports:
       - name: http
         containerPort: 8080

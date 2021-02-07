@@ -189,6 +189,8 @@ describe("hadolint provider", () => {
         test: testFromConfig(module, module.testConfigs[0], graph),
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       const key = testTask.getKey()
@@ -251,6 +253,8 @@ describe("hadolint provider", () => {
         test: testFromConfig(module, module.testConfigs[0], graph),
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       const key = testTask.getKey()
@@ -308,6 +312,8 @@ describe("hadolint provider", () => {
         test: testFromConfig(module, module.testConfigs[0], graph),
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       const key = testTask.getKey()
@@ -359,6 +365,8 @@ describe("hadolint provider", () => {
         test: testFromConfig(module, module.testConfigs[0], graph),
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       const key = testTask.getKey()
@@ -400,6 +408,8 @@ describe("hadolint provider", () => {
         test: testFromConfig(module, module.testConfigs[0], graph),
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       const key = testTask.getKey()
@@ -444,6 +454,8 @@ describe("hadolint provider", () => {
         graph,
         force: true,
         forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
       })
 
       const key = testTask.getKey()
