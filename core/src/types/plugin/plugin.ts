@@ -24,7 +24,7 @@ import { GetTaskResultParams, getTaskResult } from "./task/getTaskResult"
 import { GetTestResultParams, getTestResult, TestResult } from "./module/getTestResult"
 import { HotReloadServiceParams, HotReloadServiceResult, hotReloadService } from "./service/hotReloadService"
 import { PrepareEnvironmentParams, PrepareEnvironmentResult, prepareEnvironment } from "./provider/prepareEnvironment"
-import { PublishModuleParams, PublishResult, publishModule } from "./module/publishModule"
+import { PublishModuleParams, PublishModuleResult, publishModule } from "./module/publishModule"
 import { RunModuleParams, runModule } from "./module/runModule"
 import { RunServiceParams, runService } from "./service/runService"
 import { RunTaskParams, RunTaskResult, runTask } from "./task/runTask"
@@ -294,7 +294,7 @@ export interface ModuleActionOutputs extends ServiceActionOutputs {
   suggestModules: SuggestModulesResult
   getBuildStatus: BuildStatus
   build: BuildResult
-  publish: PublishResult
+  publish: PublishModuleResult
   runModule: RunResult
   testModule: TestResult
   getTestResult: TestResult | null

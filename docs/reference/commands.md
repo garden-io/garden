@@ -2417,10 +2417,12 @@ Examples:
 
 ### garden publish
 
-**Build and publish module(s) to a remote registry.**
+**Build and publish module(s) (e.g. container images) to a remote registry.**
 
 Publishes built module artifacts for all or specified modules.
-Also builds modules and dependencies if needed.
+Also builds modules and build dependencies if needed.
+
+By default the artifacts/images are tagged with the Garden module version, but you can also specify the `--tag` option to specify a specific string tag _or_ a templated tag. Any template values that can be used on the module being tagged are available, in addition to ${module.name}, ${module.version} and ${module.hash} tags that allows referencing the name of the module being tagged, as well as its Garden version. ${module.version} includes the "v-" prefix normally used for Garden versions, and ${module.hash} doesn't.
 
 Examples:
 
@@ -2428,6 +2430,12 @@ Examples:
     garden publish my-container   # only publish my-container
     garden publish --force-build  # force re-build of modules before publishing artifacts
     garden publish --allow-dirty  # allow publishing dirty builds (which by default triggers error)
+
+    # Publish my-container with a tag of v0.1
+    garden publish my-container --tag "v0.1"
+
+    # Publish my-container with a tag of v1.2-<hash> (e.g. v1.2-abcdef123)
+    garden publish my-container --tag "v1.2-${module.hash}"
 
 | Supported in workflows |   |
 | ---------------------- |---|
@@ -2449,6 +2457,7 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--force-build` |  | boolean | Force rebuild of module(s) before publishing.
   | `--allow-dirty` |  | boolean | Allow publishing dirty builds (with untracked/uncommitted changes).
+  | `--tag` |  | string | Override the tag on the built artifacts. You can use the same sorts of template strings as when templating values in module configs, with the addition of ${module.*} tags, allowing you to reference the name and Garden version of the module being tagged.
 
 #### Outputs
 
@@ -2619,6 +2628,9 @@ published:
 
     # Optional result message from the provider.
     message:
+
+    # The published artifact identifier, if applicable.
+    identifier:
 
     # Set to true if the build was not attempted, e.g. if a dependency build failed.
     aborted:

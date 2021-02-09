@@ -9,11 +9,16 @@
 import chalk from "chalk"
 import { BuildTask } from "./build"
 import { GardenModule } from "../types/module"
-import { PublishResult } from "../types/plugin/module/publishModule"
+import { PublishModuleResult } from "../types/plugin/module/publishModule"
 import { BaseTask, TaskType } from "../tasks/base"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { ConfigGraph } from "../config-graph"
+import { ModuleConfigContext, schema, ConfigContext, ModuleConfigContextParams } from "../config/config-context"
+import { emptyRuntimeContext } from "../runtime-context"
+import { resolveTemplateString } from "../template-string"
+import { joi } from "../config/common"
+import { versionStringPrefix } from "../vcs/vcs"
 
 export interface PublishTaskParams {
   garden: Garden
@@ -21,6 +26,7 @@ export interface PublishTaskParams {
   log: LogEntry
   module: GardenModule
   forceBuild: boolean
+  tagTemplate?: string
 }
 
 export class PublishTask extends BaseTask {
@@ -30,12 +36,14 @@ export class PublishTask extends BaseTask {
   private graph: ConfigGraph
   private module: GardenModule
   private forceBuild: boolean
+  private tagTemplate?: string
 
-  constructor({ garden, graph, log, module, forceBuild }: PublishTaskParams) {
+  constructor({ garden, graph, log, module, forceBuild, tagTemplate }: PublishTaskParams) {
     super({ garden, log, version: module.version })
     this.graph = graph
     this.module = module
     this.forceBuild = forceBuild
+    this.tagTemplate = tagTemplate
   }
 
   async resolveDependencies() {
@@ -59,27 +67,54 @@ export class PublishTask extends BaseTask {
     return `publishing module ${this.module.name}`
   }
 
-  async process(): Promise<PublishResult> {
-    if (!this.module.allowPublish) {
+  async process(): Promise<PublishModuleResult> {
+    const module = this.module
+
+    if (!module.allowPublish) {
       this.log.info({
-        section: this.module.name,
-        msg: "Publishing disabled",
+        section: module.name,
+        msg: "Publishing disabled (allowPublish=false set on module)",
         status: "active",
       })
       return { published: false }
     }
 
+    let tag: string | undefined = undefined
+
+    if (this.tagTemplate) {
+      const resolvedProviders = await this.garden.resolveProviders(this.log)
+      const dependencies = Object.values(module.buildDependencies)
+
+      const templateContext = new ModuleTagContext({
+        garden: this.garden,
+        module,
+        resolvedProviders,
+        moduleName: module.name,
+        dependencies,
+        runtimeContext: emptyRuntimeContext,
+        parentName: module.parentName,
+        templateName: module.templateName,
+        inputs: module.inputs,
+        partialRuntimeResolution: true,
+      })
+
+      // Resolve template string and make sure the result is a string
+      tag = "" + resolveTemplateString(this.tagTemplate, templateContext)
+
+      // TODO: validate the tag?
+    }
+
     const log = this.log.info({
-      section: this.module.name,
-      msg: "Publishing",
+      section: module.name,
+      msg: "Publishing with tag " + tag,
       status: "active",
     })
 
     const actions = await this.garden.getActionRouter()
 
-    let result: PublishResult
+    let result: PublishModuleResult
     try {
-      result = await actions.publishModule({ module: this.module, log })
+      result = await actions.publishModule({ module, log, tag })
     } catch (err) {
       log.setError()
       throw err
@@ -95,5 +130,33 @@ export class PublishTask extends BaseTask {
     }
 
     return result
+  }
+}
+
+class ModuleSelfContext extends ConfigContext {
+  @schema(joi.string().description("The name of the module being tagged."))
+  public name: string
+
+  @schema(joi.string().description("The version of the module being tagged (including the 'v-' prefix)."))
+  public version: string
+
+  @schema(joi.string().description("The version hash of the module being tagged (minus the 'v-' prefix)."))
+  public hash: string
+
+  constructor(parent: ConfigContext, module: GardenModule) {
+    super(parent)
+    this.name = module.name
+    this.version = module.version.versionString
+    this.hash = module.version.versionString.slice(versionStringPrefix.length)
+  }
+}
+
+class ModuleTagContext extends ModuleConfigContext {
+  @schema(ModuleSelfContext.getSchema().description("Extended information about the module being tagged."))
+  public module: ModuleSelfContext
+
+  constructor(params: ModuleConfigContextParams & { module: GardenModule }) {
+    super(params)
+    this.module = new ModuleSelfContext(this, params.module)
   }
 }

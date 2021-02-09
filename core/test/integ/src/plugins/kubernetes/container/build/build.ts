@@ -135,6 +135,19 @@ describe("kubernetes build flow", () => {
 
         expect(message).to.eql("Published gardendev/remote-registry-test:" + module.version.versionString)
       })
+
+      it("should set custom tag if specified", async () => {
+        const module = await buildImage("remote-registry-test")
+
+        const { message } = await k8sPublishContainerModule({
+          ctx,
+          module,
+          log,
+          tag: "foo",
+        })
+
+        expect(message).to.eql("Published gardendev/remote-registry-test:foo")
+      })
     })
   })
 
@@ -272,6 +285,19 @@ describe("kubernetes build flow", () => {
         })
 
         expect(message).to.eql("Published gardendev/remote-registry-test:" + module.version.versionString)
+      })
+
+      it("should set custom tag if specified", async () => {
+        const module = await buildImage("remote-registry-test")
+
+        const { message } = await k8sPublishContainerModule({
+          ctx,
+          module,
+          log,
+          tag: "foo",
+        })
+
+        expect(message).to.eql("Published gardendev/remote-registry-test:foo")
       })
     })
   })
@@ -422,6 +448,19 @@ describe("kubernetes build flow", () => {
         })
 
         expect(message).to.eql("Published gardendev/remote-registry-test:" + module.version.versionString)
+      })
+
+      it("should set custom tag if specified", async () => {
+        const module = await buildImage("remote-registry-test")
+
+        const { message } = await k8sPublishContainerModule({
+          ctx,
+          module,
+          log,
+          tag: "foo",
+        })
+
+        expect(message).to.eql("Published gardendev/remote-registry-test:foo")
       })
     })
   })
@@ -599,6 +638,19 @@ describe("kubernetes build flow", () => {
         })
 
         expect(message).to.eql("Published gardendev/remote-registry-test:" + module.version.versionString)
+      })
+
+      it("should set custom tag if specified", async () => {
+        const module = await buildImage("remote-registry-test")
+
+        const { message } = await k8sPublishContainerModule({
+          ctx,
+          module,
+          log,
+          tag: "foo",
+        })
+
+        expect(message).to.eql("Published gardendev/remote-registry-test:foo")
       })
     })
   })
