@@ -125,6 +125,10 @@ generateFiles:
     # The desired file contents as a string.
     value:
 
+# Whether to set the --atomic flag during installs and upgrades. Set to false if e.g. you want to see more information
+# about failures and then manually roll back, instead of having Helm do it automatically on failure.
+atomicInstall: true
+
 # The name of another `helm` module to use as a base for this one. Use this to re-use a Helm chart across multiple
 # services. For example, you might have an organization-wide base chart for certain types of services.
 # If set, this module will by default inherit the following properties from the base module: `serviceResource`,
@@ -665,6 +669,14 @@ The desired file contents as a string.
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `atomicInstall`
+
+Whether to set the --atomic flag during installs and upgrades. Set to false if e.g. you want to see more information about failures and then manually roll back, instead of having Helm do it automatically on failure.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `true`  | No       |
 
 ### `base`
 
