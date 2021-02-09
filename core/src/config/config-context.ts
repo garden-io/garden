@@ -844,6 +844,20 @@ export class ModuleTemplateConfigContext extends ProjectConfigContext {
   }
 }
 
+export interface ModuleConfigContextParams {
+  garden: Garden
+  resolvedProviders: ProviderMap
+  moduleName?: string
+  dependencies: GardenModule[]
+  // We only supply this when resolving configuration in dependency order.
+  // Otherwise we pass `${runtime.*} template strings through for later resolution.
+  runtimeContext?: RuntimeContext
+  parentName: string | undefined
+  templateName: string | undefined
+  inputs: DeepPrimitiveMap | undefined
+  partialRuntimeResolution: boolean
+}
+
 /**
  * This context is available for template strings under the `module` key in configuration files.
  * It is a superset of the context available under the `project` key.
@@ -895,19 +909,7 @@ export class ModuleConfigContext extends ProviderConfigContext {
     templateName,
     inputs,
     partialRuntimeResolution,
-  }: {
-    garden: Garden
-    resolvedProviders: ProviderMap
-    moduleName?: string
-    dependencies: GardenModule[]
-    // We only supply this when resolving configuration in dependency order.
-    // Otherwise we pass `${runtime.*} template strings through for later resolution.
-    runtimeContext?: RuntimeContext
-    parentName: string | undefined
-    templateName: string | undefined
-    inputs: DeepPrimitiveMap | undefined
-    partialRuntimeResolution: boolean
-  }) {
+  }: ModuleConfigContextParams) {
     super(garden, resolvedProviders)
 
     this.modules = new Map(

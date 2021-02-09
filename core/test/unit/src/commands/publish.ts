@@ -22,6 +22,7 @@ import {
 import { taskResultOutputs } from "../../../helpers"
 import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
 import { keyBy } from "lodash"
+import { PublishModuleParams, PublishModuleResult } from "../../../../src/types/plugin/module/publishModule"
 
 const projectRootB = join(dataDir, "test-project-b")
 
@@ -33,8 +34,8 @@ const build = async () => {
   return { fresh: true }
 }
 
-const publishModule = async () => {
-  return { published: true }
+const publishModule = async ({ tag }: PublishModuleParams): Promise<PublishModuleResult> => {
+  return { published: true, identifier: tag }
 }
 
 const testProvider = createGardenPlugin({
@@ -62,11 +63,11 @@ async function getTestGarden() {
 
 describe("PublishCommand", () => {
   // TODO: Verify that services don't get redeployed when same version is already deployed.
+  const command = new PublishCommand()
 
   it("should build and publish modules in a project", async () => {
     const garden = await getTestGarden()
     const log = garden.log
-    const command = new PublishCommand()
 
     const { result } = await command.action({
       garden,
@@ -79,6 +80,7 @@ describe("PublishCommand", () => {
       opts: withDefaultGlobalOpts({
         "allow-dirty": false,
         "force-build": false,
+        "tag": undefined,
       }),
     })
 
@@ -87,8 +89,8 @@ describe("PublishCommand", () => {
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: false },
       "build.module-b": { fresh: false },
-      "publish.module-a": { published: true },
-      "publish.module-b": { published: true },
+      "publish.module-a": { published: true, identifier: undefined },
+      "publish.module-b": { published: true, identifier: undefined },
       "publish.module-c": { published: false },
       "stage-build.module-a": {},
       "stage-build.module-b": {},
@@ -112,6 +114,7 @@ describe("PublishCommand", () => {
         error: undefined,
         success: true,
         version: modules["module-a"].version.versionString,
+        identifier: undefined,
       },
       "module-b": {
         published: true,
@@ -120,6 +123,7 @@ describe("PublishCommand", () => {
         error: undefined,
         success: true,
         version: modules["module-b"].version.versionString,
+        identifier: undefined,
       },
       "module-c": {
         published: false,
@@ -132,10 +136,65 @@ describe("PublishCommand", () => {
     })
   })
 
+  it("should apply the specified tag to the published modules", async () => {
+    const garden = await getTestGarden()
+    const log = garden.log
+    const tag = "foo"
+
+    const { result } = await command.action({
+      garden,
+      log,
+      headerLog: log,
+      footerLog: log,
+      args: {
+        modules: undefined,
+      },
+      opts: withDefaultGlobalOpts({
+        "allow-dirty": false,
+        "force-build": false,
+        "tag": tag,
+      }),
+    })
+
+    const { published } = result!
+
+    expect(published["module-a"].published).to.be.true
+    expect(published["module-a"].identifier).to.equal(tag)
+    expect(published["module-b"].published).to.be.true
+    expect(published["module-b"].identifier).to.equal(tag)
+  })
+
+  it("should resolve a templated tag and apply to the modules", async () => {
+    const garden = await getTestGarden()
+    const log = garden.log
+    const tag = "v1.0-${module.name}-${module.version}"
+
+    const result = await command.action({
+      garden,
+      log,
+      headerLog: log,
+      footerLog: log,
+      args: {
+        modules: undefined,
+      },
+      opts: withDefaultGlobalOpts({
+        "allow-dirty": false,
+        "force-build": false,
+        "tag": tag,
+      }),
+    })
+
+    const { published } = result.result!
+
+    expect(published["module-a"].published).to.be.true
+    expect(published["module-a"].identifier).to.equal(`v1.0-module-a-${published["module-a"].version}`)
+    expect(published["module-b"].published).to.be.true
+    expect(published["module-b"].identifier).to.equal(`v1.0-module-b-${published["module-b"].version}`)
+  })
+
   it("should optionally force new build", async () => {
     const garden = await getTestGarden()
     const log = garden.log
-    const command = new PublishCommand()
 
     const { result } = await command.action({
       garden,
@@ -148,14 +207,15 @@ describe("PublishCommand", () => {
       opts: withDefaultGlobalOpts({
         "allow-dirty": false,
         "force-build": true,
+        "tag": undefined,
       }),
     })
 
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: true },
       "build.module-b": { fresh: true },
-      "publish.module-a": { published: true },
-      "publish.module-b": { published: true },
+      "publish.module-a": { published: true, identifier: undefined },
+      "publish.module-b": { published: true, identifier: undefined },
       "publish.module-c": { published: false },
       "stage-build.module-a": {},
       "stage-build.module-b": {},
@@ -165,7 +225,6 @@ describe("PublishCommand", () => {
   it("should optionally build selected module", async () => {
     const garden = await getTestGarden()
     const log = garden.log
-    const command = new PublishCommand()
 
     const { result } = await command.action({
       garden,
@@ -178,12 +237,13 @@ describe("PublishCommand", () => {
       opts: withDefaultGlobalOpts({
         "allow-dirty": false,
         "force-build": false,
+        "tag": undefined,
       }),
     })
 
     expect(taskResultOutputs(result!)).to.eql({
       "build.module-a": { fresh: false },
-      "publish.module-a": { published: true },
+      "publish.module-a": { published: true, identifier: undefined },
       "stage-build.module-a": {},
     })
   })
@@ -191,7 +251,6 @@ describe("PublishCommand", () => {
   it("should respect allowPublish flag", async () => {
     const garden = await getTestGarden()
     const log = garden.log
-    const command = new PublishCommand()
 
     const { result } = await command.action({
       garden,
@@ -204,6 +263,7 @@ describe("PublishCommand", () => {
       opts: withDefaultGlobalOpts({
         "allow-dirty": false,
         "force-build": false,
+        "tag": undefined,
       }),
     })
 
@@ -217,8 +277,6 @@ describe("PublishCommand", () => {
     const log = garden.log
     await garden.clearBuilds()
 
-    const command = new PublishCommand()
-
     const { result } = await command.action({
       garden,
       log,
@@ -230,6 +288,7 @@ describe("PublishCommand", () => {
       opts: withDefaultGlobalOpts({
         "allow-dirty": false,
         "force-build": false,
+        "tag": undefined,
       }),
     })
 

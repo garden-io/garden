@@ -11,25 +11,31 @@ import { GardenModule } from "../../module"
 import { PluginModuleActionParamsBase, moduleActionParamsSchema } from "../base"
 import { joi } from "../../../config/common"
 
-export interface PublishModuleParams<T extends GardenModule = GardenModule> extends PluginModuleActionParamsBase<T> {}
+export interface PublishModuleParams<T extends GardenModule = GardenModule> extends PluginModuleActionParamsBase<T> {
+  tag?: string
+}
 
-export interface PublishResult {
+export interface PublishModuleResult {
   published: boolean
   message?: string
+  identifier?: string
 }
 
 export const publishResultSchema = () =>
   joi.object().keys({
     published: joi.boolean().required().description("Set to true if the module was published."),
     message: joi.string().description("Optional result message from the provider."),
+    identifier: joi.string().description("The published artifact identifier, if applicable."),
   })
 
 export const publishModule = () => ({
   description: dedent`
-    Publish a built module to a remote registry.
+    Publish a built module artifact (e.g. a container image) to a remote registry.
 
     Called by the \`garden publish\` command.
   `,
-  paramsSchema: moduleActionParamsSchema(),
+  paramsSchema: moduleActionParamsSchema().keys({
+    tag: joi.string().description("A specific tag to apply when publishing the artifact, instead of the default."),
+  }),
   resultSchema: publishResultSchema(),
 })

@@ -930,6 +930,38 @@ describe("plugins.container", () => {
         })
       )
     })
+
+    it("should use specified tag if provided", async () => {
+      const config = cloneDeep(baseConfig)
+      config.spec.image = "some/image:1.1"
+      const module = td.object(await getTestModule(config))
+
+      td.replace(helpers, "hasDockerfile", () => true)
+      td.replace(helpers, "getLocalImageId", () => "some/image:12345")
+
+      const dockerCli = td.replace(helpers, "dockerCli")
+
+      const result = await publishModule({ ctx, log, module, tag: "custom-tag" })
+      expect(result).to.eql({ message: "Published some/image:custom-tag", published: true })
+
+      td.verify(
+        dockerCli({
+          cwd: module.buildPath,
+          args: ["tag", "some/image:12345", "some/image:custom-tag"],
+          log: td.matchers.anything(),
+          ctx: td.matchers.anything(),
+        })
+      )
+
+      td.verify(
+        dockerCli({
+          cwd: module.buildPath,
+          args: ["push", "some/image:custom-tag"],
+          log: td.matchers.anything(),
+          ctx: td.matchers.anything(),
+        })
+      )
+    })
   })
 
   describe("checkDockerServerVersion", () => {

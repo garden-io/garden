@@ -28,7 +28,6 @@ import { clusterInit } from "../../../../../../src/plugins/kubernetes/commands/c
 const root = getDataDir("test-projects", "container")
 const defaultEnvironment = process.env.GARDEN_INTEG_TEST_MODE === "remote" ? "cluster-docker" : "local"
 const initializedEnvs: string[] = []
-let currentEnv: string
 let localInstance: Garden
 
 export async function getContainerTestGarden(environmentName: string = defaultEnvironment) {
@@ -90,7 +89,6 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
   if (needsInit) {
     // Run cluster-init
     await clusterInit.handler({ ctx, log: garden.log, args: [], modules: [] })
-    currentEnv = environmentName
     initializedEnvs.push(environmentName)
   }
 

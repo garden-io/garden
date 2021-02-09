@@ -24,6 +24,7 @@ import { Warning } from "../db/entities/warning"
 import { dedent } from "../util/string"
 import { fixedProjectExcludes } from "../util/fs"
 
+export const versionStringPrefix = "v-"
 export const NEW_MODULE_VERSION = "0000000000"
 const fileCountWarningThreshold = 10000
 
@@ -231,7 +232,8 @@ export async function writeModuleVersionFile(path: string, version: ModuleVersio
  * when the version string is used in template variables in configuration files.
  */
 export function getVersionString(moduleConfig: ModuleConfig, treeVersions: NamedTreeVersion[]) {
-  return `v-${hashVersions(moduleConfig, treeVersions)}`
+  // TODO: allow overriding the prefix
+  return `${versionStringPrefix}${hashVersions(moduleConfig, treeVersions)}`
 }
 
 /**

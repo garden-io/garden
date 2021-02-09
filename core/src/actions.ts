@@ -14,7 +14,7 @@ import tmp from "tmp-promise"
 import cpy from "cpy"
 import normalizePath = require("normalize-path")
 
-import { PublishModuleParams, PublishResult } from "./types/plugin/module/publishModule"
+import { PublishModuleParams, PublishModuleResult } from "./types/plugin/module/publishModule"
 import { SetSecretParams, SetSecretResult } from "./types/plugin/provider/setSecret"
 import { validateSchema } from "./config/validation"
 import { defaultProvider } from "./config/provider"
@@ -359,7 +359,7 @@ export class ActionRouter implements TypeGuard {
 
   async publishModule<T extends GardenModule>(
     params: ModuleActionRouterParams<PublishModuleParams<T>>
-  ): Promise<PublishResult> {
+  ): Promise<PublishModuleResult> {
     return this.callModuleHandler({ params, actionType: "publish", defaultHandler: dummyPublishHandler })
   }
 

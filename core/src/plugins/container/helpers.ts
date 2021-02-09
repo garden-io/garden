@@ -12,7 +12,7 @@ import semver from "semver"
 import { parse, CommandEntry } from "docker-file-parser"
 import isGlob from "is-glob"
 import { ConfigurationError, RuntimeError } from "../../exceptions"
-import { splitFirst, spawn, splitLast, SpawnOutput } from "../../util/util"
+import { spawn, splitLast, SpawnOutput, splitFirst } from "../../util/util"
 import { ModuleConfig } from "../../config/module"
 import {
   ContainerModule,
@@ -87,24 +87,31 @@ const helpers = {
   /**
    * Returns the image ID to be used for publishing to container registries
    * (not to be confused with the ID used when pushing to private deployment registries).
+   *
+   * The tag on the identifier will be set as one of (in order of precedence):
+   * - The `tag` variable explicitly set (e.g. set on the garden publish command).
+   * - The tag  part of the `image` field, if one is set and it includes a tag part.
+   * - The Garden version of the module.
    */
-  getPublicImageId(module: ContainerModule) {
+  getPublicImageId(module: ContainerModule, tag?: string) {
     // TODO: allow setting a default user/org prefix in the project/plugin config
-    const image = module.spec.image
+    const explicitImage = module.spec.image
 
-    if (image) {
-      let [imageName, version] = splitFirst(image, ":")
-
-      if (version) {
-        // we use the version in the image name, if specified
-        // (allows specifying version on source images, and also setting specific version name when publishing images)
-        return image
-      } else {
-        const { versionString } = module.version
-        return `${imageName}:${versionString}`
+    if (explicitImage) {
+      // Getting the tag like this because it's otherwise defaulted to "latest"
+      const imageTag = splitFirst(explicitImage, ":")[1]
+      const parsedImage = helpers.parseImageId(explicitImage)
+      if (!tag) {
+        tag = imageTag || module.version.versionString
       }
+      return helpers.unparseImageId({ ...parsedImage, tag })
     } else {
-      return helpers.getLocalImageId(module, module.version)
+      const localImageName = helpers.getLocalImageName(module)
+      const parsedImage = helpers.parseImageId(localImageName)
+      if (!tag) {
+        tag = module.version.versionString
+      }
+      return helpers.unparseImageId({ ...parsedImage, tag })
     }
   },
 

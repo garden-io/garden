@@ -2,6 +2,7 @@ kind: Module
 name: remote-registry-test
 description: Test module for pushing to private registry
 type: container
+image: gardendev/remote-registry-test
 services:
   - name: remote-registry-test
     command: [sh, -c, "nc -l -p 8080"]
