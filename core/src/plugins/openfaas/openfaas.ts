@@ -202,6 +202,7 @@ async function configureProvider({
     testConfigs: [],
     type: "helm",
     spec: {
+      atomicInstall: true,
       repo: "https://openfaas.github.io/faas-netes/",
       chart: "openfaas",
       chartPath: ".",

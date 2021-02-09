@@ -150,7 +150,7 @@ See [this section](https://docs.garden.io/guides/in-cluster-building#pulling-bas
 
 ### How do I use my own private registry in in-cluster build mode?
 
-See [this section](https://docs.garden.io/guides/in-cluster-building#using-private-registries-for-deployments) of our docs.
+See [this section](https://docs.garden.io/guides/in-cluster-building#configuring-a-deployment-registry) of our docs.
 
 ### How do I clean up the in-cluster registry and build sync volumes?
 
