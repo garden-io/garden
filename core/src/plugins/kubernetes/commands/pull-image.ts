@@ -187,9 +187,7 @@ async function pullFromExternalRegistry(
 
   try {
     await importImage({ module, runner, tarName, imageId, log, ctx })
-
     await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["tag", imageId, localId], log, ctx })
-    await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["rmi", imageId], log, ctx })
   } catch (err) {
     throw new RuntimeError(`Failed pulling image for module ${module.name} with image id ${imageId}: ${err}`, {
       err,
