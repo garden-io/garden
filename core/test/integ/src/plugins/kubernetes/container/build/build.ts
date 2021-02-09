@@ -22,13 +22,19 @@ import { dockerDaemonContainerName } from "../../../../../../../src/plugins/kube
 import { KubeApi } from "../../../../../../../src/plugins/kubernetes/api"
 import { getSystemNamespace } from "../../../../../../../src/plugins/kubernetes/namespace"
 import { getDockerDaemonPodRunner } from "../../../../../../../src/plugins/kubernetes/container/build/cluster-docker"
+import { k8sPublishContainerModule } from "../../../../../../../src/plugins/kubernetes/container/publish"
+import { LogEntry } from "../../../../../../../src/logger/log-entry"
 
 describe("kubernetes build flow", () => {
   let garden: Garden
+  let log: LogEntry
   let graph: ConfigGraph
   let provider: KubernetesProvider
   let ctx: PluginContext
   let systemNamespace: string
+  let currentEnv: string
+
+  const builtImages: { [key: string]: boolean } = {}
 
   after(async () => {
     if (garden) {
@@ -37,11 +43,34 @@ describe("kubernetes build flow", () => {
   })
 
   const init = async (environmentName: string) => {
+    currentEnv = environmentName
     garden = await getContainerTestGarden(environmentName)
+    log = garden.log
     graph = await garden.getConfigGraph(garden.log)
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = await garden.getPluginContext(provider)
     systemNamespace = await getSystemNamespace(ctx, provider, garden.log)
+  }
+
+  async function buildImage(moduleName: string) {
+    const module = graph.getModule(moduleName)
+    const key = `${currentEnv}.${module.name}.${module.version.versionString}`
+
+    if (builtImages[key]) {
+      return module
+    }
+
+    await garden.buildStaging.syncFromSrc(module, garden.log)
+
+    await k8sBuildContainer({
+      ctx,
+      log,
+      module,
+    })
+
+    builtImages[key] = true
+
+    return module
   }
 
   context("local mode", () => {
@@ -50,14 +79,7 @@ describe("kubernetes build flow", () => {
     })
 
     it("should build a simple container", async () => {
-      const module = graph.getModule("simple-service")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
-
-      await k8sBuildContainer({
-        ctx,
-        log: garden.log,
-        module,
-      })
+      await buildImage("simple-service")
     })
   })
 
@@ -67,50 +89,52 @@ describe("kubernetes build flow", () => {
     })
 
     it("should push to configured deploymentRegistry if specified", async () => {
-      const module = graph.getModule("remote-registry-test")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
-
-      await k8sBuildContainer({
-        ctx,
-        log: garden.log,
-        module,
-      })
+      const module = await buildImage("remote-registry-test")
 
       const remoteId = containerHelpers.getDeploymentImageId(module, module.version, provider.config.deploymentRegistry)
       // This throws if the image doesn't exist
       await containerHelpers.dockerCli({
         cwd: module.buildPath,
         args: ["manifest", "inspect", remoteId],
-        log: garden.log,
+        log,
         ctx,
       })
     })
 
     it("should get the build status from the deploymentRegistry", async () => {
-      const module = graph.getModule("remote-registry-test")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
-
-      await k8sBuildContainer({
-        ctx,
-        log: garden.log,
-        module,
-      })
+      const module = await buildImage("remote-registry-test")
 
       const remoteId = containerHelpers.getDeploymentImageId(module, module.version, provider.config.deploymentRegistry)
+
       await containerHelpers.dockerCli({
         cwd: module.buildPath,
         args: ["rmi", remoteId],
-        log: garden.log,
+        log,
         ctx,
       })
+      buildImage[`${currentEnv}.${module.name}.${module.version.versionString}`] = false
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
-        log: garden.log,
+        log,
         module,
       })
 
       expect(status.ready).to.be.true
+    })
+
+    context("publish handler", () => {
+      it("should publish the built image", async () => {
+        const module = await buildImage("remote-registry-test")
+
+        const { message } = await k8sPublishContainerModule({
+          ctx,
+          module,
+          log,
+        })
+
+        expect(message).to.eql("Published gardendev/remote-registry-test:" + module.version.versionString)
+      })
     })
   })
 
@@ -120,25 +144,11 @@ describe("kubernetes build flow", () => {
     })
 
     it("should build a simple container", async () => {
-      const module = graph.getModule("simple-service")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
-
-      await k8sBuildContainer({
-        ctx,
-        log: garden.log,
-        module,
-      })
+      await buildImage("simple-service")
     })
 
     grouped("remote-only").it("should support pulling from private registries", async () => {
-      const module = graph.getModule("private-base")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
-
-      await k8sBuildContainer({
-        ctx,
-        log: garden.log,
-        module,
-      })
+      await buildImage("private-base")
     })
 
     it("should throw if attempting to pull from private registry without access", async () => {
@@ -149,7 +159,7 @@ describe("kubernetes build flow", () => {
         () =>
           k8sBuildContainer({
             ctx,
-            log: garden.log,
+            log,
             module,
           }),
         (err) => {
@@ -159,14 +169,7 @@ describe("kubernetes build flow", () => {
     })
 
     it("should get the build status from the deploymentRegistry", async () => {
-      const module = graph.getModule("remote-registry-test")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
-
-      await k8sBuildContainer({
-        ctx,
-        log: garden.log,
-        module,
-      })
+      const module = await buildImage("remote-registry-test")
 
       // Clear the image tag from the in-cluster builder
       const remoteId = containerHelpers.getDeploymentImageId(module, module.version, provider.config.deploymentRegistry)
@@ -175,7 +178,7 @@ describe("kubernetes build flow", () => {
       const runner = await getDockerDaemonPodRunner({ api, systemNamespace, ctx, provider })
 
       await runner.exec({
-        log: garden.log,
+        log,
         command: ["docker", "rmi", remoteId],
         timeoutSec: 300,
         containerName: dockerDaemonContainerName,
@@ -184,7 +187,7 @@ describe("kubernetes build flow", () => {
       // This should still report the build as ready, because it's in the registry
       const status = await k8sGetContainerBuildStatus({
         ctx,
-        log: garden.log,
+        log,
         module,
       })
 
@@ -199,7 +202,7 @@ describe("kubernetes build flow", () => {
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
-        log: garden.log,
+        log,
         module,
       })
 
@@ -207,31 +210,17 @@ describe("kubernetes build flow", () => {
     })
   })
 
-  grouped("cluster-docker").context("cluster-docker-remote-registry mode", () => {
+  grouped("cluster-docker", "remote-only").context("cluster-docker-remote-registry mode", () => {
     before(async () => {
       await init("cluster-docker-remote-registry")
     })
 
-    grouped("remote-only").it("should push to configured deploymentRegistry if specified", async () => {
-      const module = graph.getModule("remote-registry-test")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
-
-      await k8sBuildContainer({
-        ctx,
-        log: garden.log,
-        module,
-      })
+    it("should push to configured deploymentRegistry if specified", async () => {
+      await buildImage("remote-registry-test")
     })
 
-    grouped("remote-only").it("should get the build status from the registry", async () => {
-      const module = graph.getModule("remote-registry-test")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
-
-      await k8sBuildContainer({
-        ctx,
-        log: garden.log,
-        module,
-      })
+    it("should get the build status from the registry", async () => {
+      const module = await buildImage("remote-registry-test")
 
       // Clear the image tag from the in-cluster builder
       const remoteId = containerHelpers.getDeploymentImageId(module, module.version, provider.config.deploymentRegistry)
@@ -240,7 +229,7 @@ describe("kubernetes build flow", () => {
       const runner = await getDockerDaemonPodRunner({ api, systemNamespace, ctx, provider })
 
       await runner.exec({
-        log: garden.log,
+        log,
         command: ["docker", "rmi", remoteId],
         timeoutSec: 300,
         containerName: dockerDaemonContainerName,
@@ -249,14 +238,14 @@ describe("kubernetes build flow", () => {
       // This should still report the build as ready, because it's in the registry
       const status = await k8sGetContainerBuildStatus({
         ctx,
-        log: garden.log,
+        log,
         module,
       })
 
       expect(status.ready).to.be.true
     })
 
-    grouped("remote-only").it("should return ready=false status when image doesn't exist in registry", async () => {
+    it("should return ready=false status when image doesn't exist in registry", async () => {
       const module = graph.getModule("remote-registry-test")
       await garden.buildStaging.syncFromSrc(module, garden.log)
 
@@ -265,11 +254,25 @@ describe("kubernetes build flow", () => {
       // This should still report the build as ready, because it's in the registry
       const status = await k8sGetContainerBuildStatus({
         ctx,
-        log: garden.log,
+        log,
         module,
       })
 
       expect(status.ready).to.be.false
+    })
+
+    context("publish handler", () => {
+      it("should publish the built image", async () => {
+        const module = await buildImage("remote-registry-test")
+
+        const { message } = await k8sPublishContainerModule({
+          ctx,
+          module,
+          log,
+        })
+
+        expect(message).to.eql("Published gardendev/remote-registry-test:" + module.version.versionString)
+      })
     })
   })
 
@@ -284,7 +287,7 @@ describe("kubernetes build flow", () => {
 
       const result = await k8sBuildContainer({
         ctx,
-        log: garden.log,
+        log,
         module,
       })
 
@@ -293,14 +296,7 @@ describe("kubernetes build flow", () => {
     })
 
     grouped("remote-only").it("should support pulling from private registries", async () => {
-      const module = graph.getModule("private-base")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
-
-      await k8sBuildContainer({
-        ctx,
-        log: garden.log,
-        module,
-      })
+      await buildImage("private-base")
     })
 
     it("should throw if attempting to pull from private registry without access", async () => {
@@ -311,7 +307,7 @@ describe("kubernetes build flow", () => {
         () =>
           k8sBuildContainer({
             ctx,
-            log: garden.log,
+            log,
             module,
           }),
         (err) => {
@@ -327,29 +323,15 @@ describe("kubernetes build flow", () => {
     })
 
     it("should build a simple container", async () => {
-      const module = graph.getModule("simple-service")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
-
-      await k8sBuildContainer({
-        ctx,
-        log: garden.log,
-        module,
-      })
+      await buildImage("simple-service")
     })
 
     it("should get the build status from the registry", async () => {
-      const module = graph.getModule("simple-service")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
-
-      await k8sBuildContainer({
-        ctx,
-        log: garden.log,
-        module,
-      })
+      const module = await buildImage("simple-service")
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
-        log: garden.log,
+        log,
         module,
       })
 
@@ -357,14 +339,7 @@ describe("kubernetes build flow", () => {
     })
 
     grouped("remote-only").it("should support pulling from private registries", async () => {
-      const module = graph.getModule("private-base")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
-
-      await k8sBuildContainer({
-        ctx,
-        log: garden.log,
-        module,
-      })
+      await buildImage("private-base")
     })
 
     it("should return ready=false status when image doesn't exist in registry", async () => {
@@ -375,7 +350,7 @@ describe("kubernetes build flow", () => {
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
-        log: garden.log,
+        log,
         module,
       })
 
@@ -390,7 +365,7 @@ describe("kubernetes build flow", () => {
         () =>
           k8sBuildContainer({
             ctx,
-            log: garden.log,
+            log,
             module,
           }),
         (err) => {
@@ -406,29 +381,15 @@ describe("kubernetes build flow", () => {
     })
 
     it("should push to configured deploymentRegistry if specified", async () => {
-      const module = graph.getModule("remote-registry-test")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
-
-      await k8sBuildContainer({
-        ctx,
-        log: garden.log,
-        module,
-      })
+      await buildImage("remote-registry-test")
     })
 
     it("should get the build status from the registry", async () => {
-      const module = graph.getModule("remote-registry-test")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
-
-      await k8sBuildContainer({
-        ctx,
-        log: garden.log,
-        module,
-      })
+      const module = await buildImage("remote-registry-test")
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
-        log: garden.log,
+        log,
         module,
       })
 
@@ -443,11 +404,25 @@ describe("kubernetes build flow", () => {
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
-        log: garden.log,
+        log,
         module,
       })
 
       expect(status.ready).to.be.false
+    })
+
+    context("publish handler", () => {
+      it("should publish the built image", async () => {
+        const module = await buildImage("remote-registry-test")
+
+        const { message } = await k8sPublishContainerModule({
+          ctx,
+          module,
+          log,
+        })
+
+        expect(message).to.eql("Published gardendev/remote-registry-test:" + module.version.versionString)
+      })
     })
   })
 
@@ -457,14 +432,7 @@ describe("kubernetes build flow", () => {
     })
 
     it("should push to configured deploymentRegistry if specified", async () => {
-      const module = graph.getModule("remote-registry-test")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
-
-      await k8sBuildContainer({
-        ctx,
-        log: garden.log,
-        module,
-      })
+      await buildImage("remote-registry-test")
     })
   })
 
@@ -474,29 +442,15 @@ describe("kubernetes build flow", () => {
     })
 
     it("should build a simple container", async () => {
-      const module = graph.getModule("simple-service")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
-
-      await k8sBuildContainer({
-        ctx,
-        log: garden.log,
-        module,
-      })
+      await buildImage("simple-service")
     })
 
     it("should get the build status from the registry", async () => {
-      const module = graph.getModule("simple-service")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
-
-      await k8sBuildContainer({
-        ctx,
-        log: garden.log,
-        module,
-      })
+      const module = await buildImage("simple-service")
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
-        log: garden.log,
+        log,
         module,
       })
 
@@ -504,14 +458,7 @@ describe("kubernetes build flow", () => {
     })
 
     grouped("remote-only").it("should support pulling from private registries", async () => {
-      const module = graph.getModule("private-base")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
-
-      await k8sBuildContainer({
-        ctx,
-        log: garden.log,
-        module,
-      })
+      await buildImage("private-base")
     })
 
     it("should return ready=false status when image doesn't exist in registry", async () => {
@@ -522,7 +469,7 @@ describe("kubernetes build flow", () => {
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
-        log: garden.log,
+        log,
         module,
       })
 
@@ -537,7 +484,7 @@ describe("kubernetes build flow", () => {
         () =>
           k8sBuildContainer({
             ctx,
-            log: garden.log,
+            log,
             module,
           }),
         (err) => {
@@ -553,29 +500,15 @@ describe("kubernetes build flow", () => {
     })
 
     it("should build a simple container", async () => {
-      const module = graph.getModule("simple-service")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
-
-      await k8sBuildContainer({
-        ctx,
-        log: garden.log,
-        module,
-      })
+      await buildImage("simple-service")
     })
 
     it("should get the build status from the registry", async () => {
-      const module = graph.getModule("simple-service")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
-
-      await k8sBuildContainer({
-        ctx,
-        log: garden.log,
-        module,
-      })
+      const module = await buildImage("simple-service")
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
-        log: garden.log,
+        log,
         module,
       })
 
@@ -583,14 +516,7 @@ describe("kubernetes build flow", () => {
     })
 
     grouped("remote-only").it("should support pulling from private registries", async () => {
-      const module = graph.getModule("private-base")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
-
-      await k8sBuildContainer({
-        ctx,
-        log: garden.log,
-        module,
-      })
+      await buildImage("private-base")
     })
 
     it("should return ready=false status when image doesn't exist in registry", async () => {
@@ -601,7 +527,7 @@ describe("kubernetes build flow", () => {
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
-        log: garden.log,
+        log,
         module,
       })
 
@@ -616,7 +542,7 @@ describe("kubernetes build flow", () => {
         () =>
           k8sBuildContainer({
             ctx,
-            log: garden.log,
+            log,
             module,
           }),
         (err) => {
@@ -632,29 +558,15 @@ describe("kubernetes build flow", () => {
     })
 
     it("should push to configured deploymentRegistry if specified", async () => {
-      const module = graph.getModule("remote-registry-test")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
-
-      await k8sBuildContainer({
-        ctx,
-        log: garden.log,
-        module,
-      })
+      await buildImage("remote-registry-test")
     })
 
     it("should get the build status from the registry", async () => {
-      const module = graph.getModule("remote-registry-test")
-      await garden.buildStaging.syncFromSrc(module, garden.log)
-
-      await k8sBuildContainer({
-        ctx,
-        log: garden.log,
-        module,
-      })
+      const module = await buildImage("remote-registry-test")
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
-        log: garden.log,
+        log,
         module,
       })
 
@@ -669,11 +581,25 @@ describe("kubernetes build flow", () => {
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
-        log: garden.log,
+        log,
         module,
       })
 
       expect(status.ready).to.be.false
+    })
+
+    context("publish handler", () => {
+      it("should publish the built image", async () => {
+        const module = await buildImage("remote-registry-test")
+
+        const { message } = await k8sPublishContainerModule({
+          ctx,
+          module,
+          log,
+        })
+
+        expect(message).to.eql("Published gardendev/remote-registry-test:" + module.version.versionString)
+      })
     })
   })
 })

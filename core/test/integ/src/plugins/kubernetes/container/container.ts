@@ -27,7 +27,8 @@ import { clusterInit } from "../../../../../../src/plugins/kubernetes/commands/c
 
 const root = getDataDir("test-projects", "container")
 const defaultEnvironment = process.env.GARDEN_INTEG_TEST_MODE === "remote" ? "cluster-docker" : "local"
-let initializedEnv: string
+const initializedEnvs: string[] = []
+let currentEnv: string
 let localInstance: Garden
 
 export async function getContainerTestGarden(environmentName: string = defaultEnvironment) {
@@ -37,7 +38,7 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
     localInstance = await makeTestGarden(root, { environmentName: "local" })
   }
 
-  const needsInit = !environmentName.startsWith("local") && initializedEnv !== environmentName
+  const needsInit = !environmentName.startsWith("local") && !initializedEnvs.includes(environmentName)
 
   if (needsInit) {
     // Load the test authentication for private registries
@@ -89,7 +90,8 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
   if (needsInit) {
     // Run cluster-init
     await clusterInit.handler({ ctx, log: garden.log, args: [], modules: [] })
-    initializedEnv = environmentName
+    currentEnv = environmentName
+    initializedEnvs.push(environmentName)
   }
 
   return garden

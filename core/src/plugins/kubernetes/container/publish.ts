@@ -11,7 +11,7 @@ import { PublishModuleParams } from "../../../types/plugin/module/publishModule"
 import { containerHelpers } from "../../container/helpers"
 import { KubernetesPluginContext } from "../config"
 import { publishContainerModule } from "../../container/publish"
-import { getRegistryPortForward } from "./util"
+import { pullModule } from "../commands/pull-image"
 
 export async function k8sPublishContainerModule(params: PublishModuleParams<ContainerModule>) {
   const { ctx, module, log } = params
@@ -20,45 +20,18 @@ export async function k8sPublishContainerModule(params: PublishModuleParams<Cont
 
   if (!containerHelpers.hasDockerfile(module, module.version)) {
     log.setState({ msg: `Nothing to publish` })
-    return { published: false }
+    return { published: false, message: undefined }
   }
 
   if (provider.config.buildMode !== "local-docker") {
-    // First pull from the in-cluster registry, then resume standard publish flow.
+    // First pull from the remote registry, then resume standard publish flow.
     // This does mean we require a local docker as a go-between, but the upside is that we can rely on the user's
     // standard authentication setup, instead of having to re-implement or account for all the different ways the
     // user might be authenticating with their registries.
-    log.setState(`Pulling from cluster container registry...`)
-
-    const fwd = await getRegistryPortForward(k8sCtx, log)
-
-    const imageId = containerHelpers.getDeploymentImageId(
-      module,
-      module.version,
-      ctx.provider.config.deploymentRegistry
-    )
-    const pullImageName = containerHelpers.unparseImageId({
-      ...containerHelpers.parseImageId(imageId),
-      // Note: using localhost directly here has issues with Docker for Mac.
-      // https://github.com/docker/for-mac/issues/3611
-      host: `local.app.garden:${fwd.localPort}`,
-    })
-
-    await containerHelpers.dockerCli({
-      cwd: module.buildPath,
-      args: ["pull", pullImageName],
-      log,
-      ctx,
-    })
-
-    // We need to tag the remote image with the local ID before we publish it
-    const localId = containerHelpers.getLocalImageId(module, module.version)
-    await containerHelpers.dockerCli({
-      cwd: module.buildPath,
-      args: ["tag", pullImageName, localId],
-      log,
-      ctx,
-    })
+    // We also generally prefer this because the remote cluster very likely doesn't (and shouldn't) have
+    // privileges to push to production registries.
+    log.setState(`Pulling from remote registry...`)
+    await pullModule(k8sCtx, module, log)
   }
 
   return publishContainerModule({ ...params, ctx: { ...ctx, provider: provider.dependencies.container } })
