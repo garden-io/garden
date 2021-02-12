@@ -142,7 +142,7 @@ describe("prepareDockerAuth", () => {
       td.replace(api, "upsert")
     })
     it("should merge both", async () => {
-      const res = await prepareDockerAuth(api, ctx, basicProvider, garden.log)
+      const res = await prepareDockerAuth(api, basicProvider, "default")
       const dockerAuth = jsonLoadBase64(res.data![dockerAuthSecretKey])
       expect(dockerAuth).to.haveOwnProperty("auths")
       expect(dockerAuth.auths.myDockerRepo).to.equal("simple-auth")
@@ -187,9 +187,10 @@ describe("prepareDockerAuth", () => {
       )
       td.replace(api, "upsert")
     })
+
     it("should fail when both are missing", async () => {
       await expectError(
-        () => prepareDockerAuth(api, ctx, basicProvider, garden.log),
+        () => prepareDockerAuth(api, basicProvider, "default"),
         (e) => expect(e).to.be.instanceof(ConfigurationError)
       )
     })

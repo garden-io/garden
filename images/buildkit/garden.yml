@@ -1,0 +1,21 @@
+kind: Module
+type: container
+name: buildkit
+description: Used for the cluster-buildkit build mode in the kubernetes provider
+image: gardendev/buildkit:v0.8.1-4
+dockerfile: Dockerfile
+build:
+  targetImage: output
+---
+kind: Module
+type: container
+name: buildkit-rootless
+description: Used for the cluster-buildkit build mode in the kubernetes provider, rootless variant
+image: gardendev/buildkit:v0.8.1-4-rootless
+dockerfile: Dockerfile
+build:
+  dependencies:
+    - buildkit
+  targetImage: output
+buildArgs:
+  BASE_IMAGE_SUFFIX: "-rootless"

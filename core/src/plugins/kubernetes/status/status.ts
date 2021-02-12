@@ -316,9 +316,9 @@ export async function compareDeployedResources(
 
     log.silly(
       dedent`
-    Resource(s) with non-ready status found in the cluster:
+      Resource(s) with non-ready status found in the cluster:
 
-    ${descriptions}` + "\n"
+      ${descriptions}` + "\n"
     )
 
     result.state = combineStates(deployedStates)

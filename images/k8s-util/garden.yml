@@ -1,0 +1,6 @@
+kind: Module
+type: container
+name: k8s-util
+description: Used by the kubernetes provider for build-related activities
+image: gardendev/k8s-util:0.3.1
+dockerfile: Dockerfile

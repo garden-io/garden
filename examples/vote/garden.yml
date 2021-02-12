@@ -23,9 +23,7 @@ providers:
   - name: kubernetes
     environments: [testing]
     context: ${var.remoteContext}
-    buildMode: cluster-docker
-    clusterDocker:
-      enableBuildKit: true
+    buildMode: cluster-buildkit
 variables:
   userId: ${local.env.CIRCLE_BUILD_NUM || local.username}
   remoteContext: gke_garden-dev-200012_europe-west1-b_garden-dev-1

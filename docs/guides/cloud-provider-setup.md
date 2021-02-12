@@ -145,13 +145,13 @@ Then, run
 garden --env=eks plugins kubernetes cluster-init
 ```
 
-and
+and finally
 
 ```sh
 garden --env=eks deploy
 ```
 
-Now you should be good to go.
+In order to set up in-cluster building with an ECR registry, please refer to the [In-cluster Building](./in-cluster-building.md) guide, and specifically the section on [using in-cluster building with ECR](./in-cluster-building.md#using-in-cluster-building-with-ecr).
 
 Note: In order to dynamically provision EBS/EFS volumes using `persistenvolumeclaim` modules, consult the [storage classes documentation](https://docs.aws.amazon.com/eks/latest/userguide/storage-classes.html) provided by AWS.
 
