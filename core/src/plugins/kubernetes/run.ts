@@ -688,13 +688,6 @@ export class PodRunner extends PodRunnerParams {
       })
     }
 
-    params.pod.metadata.annotations = {
-      ...(params.pod.metadata.annotations || {}),
-      // Workaround to make sure sidecars are not injected,
-      // due to https://github.com/kubernetes/kubernetes/issues/25908
-      "sidecar.istio.io/inject": "false",
-    }
-
     Object.assign(this, params)
 
     this.podName = this.pod.metadata.name
@@ -746,7 +739,7 @@ export class PodRunner extends PodRunnerParams {
     try {
       await this.createPod({ log, tty })
 
-      // Wait until Pod terminates
+      // Wait until main container terminates
       while (true) {
         const serverPod = await this.api.core.readNamespacedPodStatus(podName, namespace)
         const state = checkPodStatus(serverPod)
@@ -779,7 +772,8 @@ export class PodRunner extends PodRunnerParams {
           })
         }
 
-        if (state === "stopped") {
+        // reason "Completed" means main container is done, but sidecars or other containers possibly still alive
+        if (state === "stopped" || exitReason === "Completed") {
           success = exitCode === 0
           break
         }
