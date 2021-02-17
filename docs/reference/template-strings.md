@@ -82,7 +82,7 @@ my-variable: ${local.projectPath}
 
 ### `${local.username}`
 
-The current username (as resolved by https://github.com/sindresorhus/username)
+The current username (as resolved by https://github.com/sindresorhus/username).
 
 | Type     |
 | -------- |
@@ -92,6 +92,20 @@ Example:
 
 ```yaml
 my-variable: ${local.username}
+```
+
+### `${local.usernameLowerCase}`
+
+The current username (as resolved by https://github.com/sindresorhus/username), with any upper case characters converted to lower case.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.usernameLowerCase}
 ```
 
 ### `${project.*}`
@@ -220,7 +234,7 @@ my-variable: ${local.projectPath}
 
 ### `${local.username}`
 
-The current username (as resolved by https://github.com/sindresorhus/username)
+The current username (as resolved by https://github.com/sindresorhus/username).
 
 | Type     |
 | -------- |
@@ -230,6 +244,20 @@ Example:
 
 ```yaml
 my-variable: ${local.username}
+```
+
+### `${local.usernameLowerCase}`
+
+The current username (as resolved by https://github.com/sindresorhus/username), with any upper case characters converted to lower case.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.usernameLowerCase}
 ```
 
 ### `${project.*}`
@@ -390,7 +418,7 @@ my-variable: ${local.projectPath}
 
 ### `${local.username}`
 
-The current username (as resolved by https://github.com/sindresorhus/username)
+The current username (as resolved by https://github.com/sindresorhus/username).
 
 | Type     |
 | -------- |
@@ -400,6 +428,20 @@ Example:
 
 ```yaml
 my-variable: ${local.username}
+```
+
+### `${local.usernameLowerCase}`
+
+The current username (as resolved by https://github.com/sindresorhus/username), with any upper case characters converted to lower case.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.usernameLowerCase}
 ```
 
 ### `${project.*}`
@@ -653,7 +695,7 @@ my-variable: ${local.projectPath}
 
 ### `${local.username}`
 
-The current username (as resolved by https://github.com/sindresorhus/username)
+The current username (as resolved by https://github.com/sindresorhus/username).
 
 | Type     |
 | -------- |
@@ -663,6 +705,20 @@ Example:
 
 ```yaml
 my-variable: ${local.username}
+```
+
+### `${local.usernameLowerCase}`
+
+The current username (as resolved by https://github.com/sindresorhus/username), with any upper case characters converted to lower case.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.usernameLowerCase}
 ```
 
 ### `${project.*}`
@@ -1084,7 +1140,7 @@ my-variable: ${local.projectPath}
 
 ### `${local.username}`
 
-The current username (as resolved by https://github.com/sindresorhus/username)
+The current username (as resolved by https://github.com/sindresorhus/username).
 
 | Type     |
 | -------- |
@@ -1094,6 +1150,20 @@ Example:
 
 ```yaml
 my-variable: ${local.username}
+```
+
+### `${local.usernameLowerCase}`
+
+The current username (as resolved by https://github.com/sindresorhus/username), with any upper case characters converted to lower case.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.usernameLowerCase}
 ```
 
 ### `${project.*}`
@@ -1512,7 +1582,7 @@ my-variable: ${local.projectPath}
 
 ### `${local.username}`
 
-The current username (as resolved by https://github.com/sindresorhus/username)
+The current username (as resolved by https://github.com/sindresorhus/username).
 
 | Type     |
 | -------- |
@@ -1522,6 +1592,20 @@ Example:
 
 ```yaml
 my-variable: ${local.username}
+```
+
+### `${local.usernameLowerCase}`
+
+The current username (as resolved by https://github.com/sindresorhus/username), with any upper case characters converted to lower case.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.usernameLowerCase}
 ```
 
 ### `${project.*}`

@@ -289,10 +289,23 @@ class LocalContext extends ConfigContext {
   @schema(
     joi
       .string()
-      .description("The current username (as resolved by https://github.com/sindresorhus/username)")
+      .description("The current username (as resolved by https://github.com/sindresorhus/username).")
       .example("tenzing_norgay")
   )
   public username?: string
+
+  @schema(
+    joi
+      .string()
+      .description(
+        deline`
+          The current username (as resolved by https://github.com/sindresorhus/username), with any upper case
+          characters converted to lower case.
+        `
+      )
+      .example("tenzing_norgay")
+  )
+  public usernameLowerCase?: string
 
   constructor(root: ConfigContext, artifactsPath: string, projectRoot: string, username?: string) {
     super(root)
@@ -301,6 +314,7 @@ class LocalContext extends ConfigContext {
     this.platform = process.platform
     this.projectPath = projectRoot
     this.username = username
+    this.usernameLowerCase = username ? username.toLowerCase() : undefined
   }
 }
 
