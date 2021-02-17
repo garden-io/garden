@@ -400,6 +400,23 @@ describe("ProjectConfigContext", () => {
       resolved: process.platform,
     })
   })
+
+  it("should resolve the local username (both regular and lower case versions)", () => {
+    const c = new ProjectConfigContext({
+      projectName: "some-project",
+      projectRoot: "/tmp",
+      artifactsPath: "/tmp",
+      branch: "main",
+      username: "SomeUser",
+      secrets: {},
+    })
+    expect(c.resolve({ key: ["local", "username"], nodePath: [], opts: {} })).to.eql({
+      resolved: "SomeUser",
+    })
+    expect(c.resolve({ key: ["local", "usernameLowerCase"], nodePath: [], opts: {} })).to.eql({
+      resolved: "someuser",
+    })
+  })
 })
 
 describe("ProviderConfigContext", () => {
