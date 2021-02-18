@@ -149,7 +149,8 @@ manifests:
 # POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests.
 files: []
 
-# Deploy to a different namespace than the default one configured in the provider.
+# A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters,
+# numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
 namespace:
 
 # The Deployment, DaemonSet or StatefulSet that Garden should regard as the _Garden service_ in this module (not to be
@@ -661,7 +662,7 @@ POSIX-style paths to YAML files to load manifests from. Each can contain multipl
 
 ### `namespace`
 
-Deploy to a different namespace than the default one configured in the provider.
+A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
 
 | Type     | Required |
 | -------- | -------- |

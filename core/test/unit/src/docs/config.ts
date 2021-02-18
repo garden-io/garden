@@ -15,8 +15,8 @@ import {
 import { expect } from "chai"
 import { joiArray, joi, joiEnvVars } from "../../../../src/config/common"
 import { buildDependencySchema } from "../../../../src/config/module"
-import { normalizeJoiSchemaDescription, JoiDescription } from "../../../../src/docs/joi-schema"
-import { NormalizedSchemaDescription } from "../../../../src/docs/common"
+import { JoiDescription, JoiKeyDescription } from "../../../../src/docs/joi-schema"
+import { BaseKeyDescription, flattenSchema } from "../../../../src/docs/common"
 import { dedent } from "../../../../src/util/string"
 
 describe("docs config module", () => {
@@ -46,6 +46,16 @@ describe("docs config module", () => {
         testArray,
       })
       .required()
+
+  function normalizeJoiSchemaDescription(joiDescription: JoiDescription) {
+    return flattenSchema(
+      new JoiKeyDescription({
+        joiDescription,
+        name: joiDescription.name,
+        level: 0,
+      })
+    )
+  }
 
   describe("sanitizeYamlStringForGitBook", () => {
     it("should remove lines that start with ```", () => {
@@ -422,64 +432,32 @@ describe("docs config module", () => {
 
   describe("renderMarkdownLink", () => {
     it("should return a markdown link with a name and relative path", () => {
-      const common = {
-        allowedValuesOnly: false,
-        deprecated: false,
-        experimental: false,
-        internal: false,
-        level: 0,
-        required: false,
+      class TestKeyDescription extends BaseKeyDescription {
+        type = "string"
+
+        constructor(name: string, level: number) {
+          super(name, level)
+        }
+
+        fullKey() {
+          return "happy.families[].are.all[].alike"
+        }
+
+        getChildren() {
+          return []
+        }
+        getDefaultValue() {
+          return undefined
+        }
+        formatExample() {
+          return undefined
+        }
+        formatAllowedValues() {
+          return undefined
+        }
       }
 
-      const happy: NormalizedSchemaDescription = {
-        ...common,
-        type: "string",
-        name: "happy",
-        hasChildren: true,
-        fullKey: "happy",
-        formattedName: "happy",
-        formattedType: "string",
-      }
-      const families: NormalizedSchemaDescription = {
-        ...common,
-        type: "array",
-        name: "families",
-        fullKey: "happy.families[]",
-        formattedName: "families[]",
-        formattedType: "array",
-        hasChildren: true,
-        parent: happy,
-      }
-      const are: NormalizedSchemaDescription = {
-        ...common,
-        type: "string",
-        name: "happy",
-        fullKey: "happy.families[].are",
-        formattedName: "are",
-        formattedType: "string",
-        hasChildren: true,
-        parent: families,
-      }
-      const all: NormalizedSchemaDescription = {
-        ...common,
-        type: "array",
-        name: "all",
-        fullKey: "happy.families[].are.all[]",
-        formattedName: "all[]",
-        formattedType: "array",
-        hasChildren: true,
-        parent: are,
-      }
-      const alike: NormalizedSchemaDescription = {
-        ...common,
-        type: "string",
-        name: "alike",
-        formattedName: "alike",
-        formattedType: "string",
-        fullKey: "happy.families[].are.all[].alike",
-        hasChildren: false,
-        parent: all,
-      }
+      const alike = new TestKeyDescription("alike", 5)
 
       expect(renderMarkdownLink(alike)).to.equal(`[alike](#happyfamiliesareallalike)`)
     })

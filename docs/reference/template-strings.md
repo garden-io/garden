@@ -160,6 +160,14 @@ Example:
 my-variable: ${git.branch}
 ```
 
+### `${secrets.<secret-name>}`
+
+The secret's value.
+
+| Type     |
+| -------- |
+| `string` |
+
 
 ## Environment configuration context
 
@@ -311,6 +319,14 @@ Example:
 ```yaml
 my-variable: ${git.branch}
 ```
+
+### `${secrets.<secret-name>}`
+
+The secret's value.
+
+| Type     |
+| -------- |
+| `string` |
 
 ### `${variables.*}`
 
@@ -495,6 +511,14 @@ Example:
 ```yaml
 my-variable: ${git.branch}
 ```
+
+### `${secrets.<secret-name>}`
+
+The secret's value.
+
+| Type     |
+| -------- |
+| `string` |
 
 ### `${variables.*}`
 
@@ -772,6 +796,14 @@ Example:
 ```yaml
 my-variable: ${git.branch}
 ```
+
+### `${secrets.<secret-name>}`
+
+The secret's value.
+
+| Type     |
+| -------- |
+| `string` |
 
 ### `${variables.*}`
 
@@ -1218,6 +1250,14 @@ Example:
 my-variable: ${git.branch}
 ```
 
+### `${secrets.<secret-name>}`
+
+The secret's value.
+
+| Type     |
+| -------- |
+| `string` |
+
 ### `${variables.*}`
 
 A map of all variables defined in the project configuration, including environment-specific variables.
@@ -1659,6 +1699,14 @@ Example:
 ```yaml
 my-variable: ${git.branch}
 ```
+
+### `${secrets.<secret-name>}`
+
+The secret's value.
+
+| Type     |
+| -------- |
+| `string` |
 
 ### `${variables.*}`
 

@@ -50,6 +50,16 @@ environments:
     # For more details please check the documentation for the providers in use.
     production: false
 
+        # The name of the provider plugin to use.
+        name:
+
+        # List other providers that should be resolved before this one.
+        dependencies: []
+
+        # If specified, this provider will only be used in the listed environments. Note that an empty array
+        # effectively disables the provider. To use a provider in all environments, omit this field.
+        environments:
+
     # Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
     # _environment-specific_ `variables` field.
     #
@@ -99,7 +109,6 @@ defaultEnvironment: ''
 # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
 # details.
 dotIgnoreFiles:
-  - .gardenignore
 
 # Control where to scan for modules in the project.
 modules:
@@ -305,6 +314,7 @@ Example:
 
 ```yaml
 environments:
+        name: "local-kubernetes"
 ```
 
 ### `environments[].providers[].dependencies[]`
@@ -321,6 +331,8 @@ Example:
 
 ```yaml
 environments:
+        dependencies:
+          - exec
 ```
 
 ### `environments[].providers[].environments[]`
@@ -337,6 +349,9 @@ Example:
 
 ```yaml
 environments:
+        environments:
+          - dev
+          - stage
 ```
 
 ### `environments[].varfile`

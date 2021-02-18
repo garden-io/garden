@@ -11,8 +11,9 @@ import { KubernetesConfig, defaultResources, defaultStorage } from "../../../../
 import { defaultSystemNamespace } from "../../../../../src/plugins/kubernetes/system"
 import { makeDummyGarden } from "../../../../../src/cli/cli"
 import { expect } from "chai"
-import { TempDirectory, makeTempDir, grouped } from "../../../../helpers"
+import { TempDirectory, makeTempDir } from "../../../../helpers"
 import { providerFromConfig } from "../../../../../src/config/provider"
+import { Garden } from "../../../../../src/garden"
 
 describe("kubernetes configureProvider", () => {
   const basicConfig: KubernetesConfig = {
@@ -35,82 +36,106 @@ describe("kubernetes configureProvider", () => {
   }
 
   let tmpDir: TempDirectory
+  let garden: Garden
 
   beforeEach(async () => {
     tmpDir = await makeTempDir({ git: true })
+    garden = await makeDummyGarden(tmpDir.path)
   })
 
   afterEach(async () => {
     await tmpDir.cleanup()
   })
 
-  grouped("cluster-docker").context("cluster-docker mode", () => {
-    it("should set a default deploymentRegistry with projectName as namespace", async () => {
-      const garden = await makeDummyGarden(tmpDir.path)
-      const config: KubernetesConfig = {
-        ...basicConfig,
-        buildMode: "cluster-docker",
-      }
+  async function configure(config: KubernetesConfig) {
+    return configureProvider({
+      ctx: await garden.getPluginContext(
+        providerFromConfig({
+          plugin: gardenPlugin(),
+          config,
+          dependencies: {},
+          moduleConfigs: [],
+          status: { ready: false, outputs: {} },
+        })
+      ),
+      namespace: "default",
+      environmentName: "default",
+      projectName: garden.projectName,
+      projectRoot: garden.projectRoot,
+      config,
+      log: garden.log,
+      dependencies: {},
+      configStore: garden.configStore,
+    })
+  }
 
-      const result = await configureProvider({
-        ctx: await garden.getPluginContext(
-          providerFromConfig({
-            plugin: gardenPlugin(),
-            config: basicConfig,
-            dependencies: {},
-            moduleConfigs: [],
-            status: { ready: false, outputs: {} },
-          })
-        ),
-        environmentName: "default",
-        projectName: garden.projectName,
-        projectRoot: garden.projectRoot,
-        config,
-        log: garden.log,
-        dependencies: {},
-        configStore: garden.configStore,
-      })
-
-      expect(result.config.deploymentRegistry).to.eql({
-        hostname: "127.0.0.1:5000",
-        namespace: garden.projectName,
-      })
+  it("should apply a default namespace if none is configured", async () => {
+    const result = await configure({
+      ...basicConfig,
+      buildMode: "cluster-docker",
+      namespace: undefined,
     })
 
-    it("should allow overriding the deploymentRegistry namespace for the in-cluster registry", async () => {
-      const garden = await makeDummyGarden(tmpDir.path)
-      const config: KubernetesConfig = {
-        ...basicConfig,
-        buildMode: "cluster-docker",
-        deploymentRegistry: {
-          hostname: "127.0.0.1:5000",
-          namespace: "my-namespace",
-        },
-      }
+    expect(result.config.namespace).to.eql({
+      name: `${garden.projectName}-default`,
+    })
+  })
 
-      const result = await configureProvider({
-        ctx: await garden.getPluginContext(
-          providerFromConfig({
-            plugin: gardenPlugin(),
-            config: basicConfig,
-            dependencies: {},
-            moduleConfigs: [],
-            status: { ready: false, outputs: {} },
-          })
-        ),
-        environmentName: "default",
-        projectName: garden.projectName,
-        projectRoot: garden.projectRoot,
-        config,
-        log: garden.log,
-        dependencies: {},
-        configStore: garden.configStore,
-      })
+  it("should convert the string shorthand for the namespace parameter", async () => {
+    const result = await configure({
+      ...basicConfig,
+      buildMode: "cluster-docker",
+      namespace: <any>(<unknown>"foo"),
+    })
 
-      expect(result.config.deploymentRegistry).to.eql({
+    expect(result.config.namespace).to.eql({
+      name: "foo",
+    })
+  })
+
+  it("should pass through a full namespace spec", async () => {
+    const result = await configure({
+      ...basicConfig,
+      buildMode: "cluster-docker",
+      namespace: {
+        name: "foo",
+        annotations: { bla: "ble" },
+        labels: { fla: "fle" },
+      },
+    })
+
+    expect(result.config.namespace).to.eql({
+      name: "foo",
+      annotations: { bla: "ble" },
+      labels: { fla: "fle" },
+    })
+  })
+
+  it("should set a default deploymentRegistry with projectName as namespace", async () => {
+    const result = await configure({
+      ...basicConfig,
+      buildMode: "cluster-docker",
+    })
+
+    expect(result.config.deploymentRegistry).to.eql({
+      hostname: "127.0.0.1:5000",
+      namespace: garden.projectName,
+    })
+  })
+
+  it("should allow overriding the deploymentRegistry namespace for the in-cluster registry", async () => {
+    const result = await configure({
+      ...basicConfig,
+      buildMode: "cluster-docker",
+      deploymentRegistry: {
         hostname: "127.0.0.1:5000",
         namespace: "my-namespace",
-      })
+      },
+    })
+
+    expect(result.config.deploymentRegistry).to.eql({
+      hostname: "127.0.0.1:5000",
+      namespace: "my-namespace",
     })
   })
 })

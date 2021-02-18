@@ -53,7 +53,7 @@ describe("kubernetes Pod runner functions", () => {
     garden = await getContainerTestGarden()
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = await garden.getPluginContext(provider)
-    namespace = provider.config.namespace!
+    namespace = provider.config.namespace!.name!
     api = await KubeApi.factory(garden.log, ctx, provider)
     log = garden.log
   })
@@ -621,7 +621,7 @@ describe("kubernetes Pod runner functions", () => {
         args: [],
         interactive: false,
         module,
-        namespace: provider.config.namespace!,
+        namespace: provider.config.namespace!.name!,
         podName,
         runtimeContext: { envVars: {}, dependencies: [] },
         image,

@@ -107,6 +107,7 @@ describe("ActionRouter", () => {
               status: { ready: false, outputs: {} },
             })
           ),
+          namespace: "default",
           environmentName: "default",
           pluginName: "test-plugin",
           log,

@@ -7,104 +7,41 @@
  */
 
 import { expect } from "chai"
-import { normalizeJsonSchema } from "../../../../src/docs/json-schema"
+import { JsonKeyDescription } from "../../../../src/docs/json-schema"
 
-describe("normalizeJsonSchema", () => {
-  it("should normalize a type=oject JSON Schema", () => {
-    const keys = normalizeJsonSchema(testJsonSchema)
+describe("JsonKeyDescription", () => {
+  it("correctly set the basic attributes of an object schema", () => {
+    const desc = new JsonKeyDescription({
+      schema: testJsonSchema,
+      name: undefined,
+      level: 0,
+    })
 
-    expect(keys).to.eql([
-      {
-        type: "string",
-        name: "apiVersion",
-        allowedValuesOnly: false,
-        defaultValue: "v1",
-        deprecated: false,
-        description: testJsonSchema.properties.apiVersion.description,
-        experimental: false,
-        fullKey: "apiVersion",
-        formattedExample: undefined,
-        formattedName: "apiVersion",
-        formattedType: "string",
-        hasChildren: false,
-        internal: false,
+    expect(desc.type).to.equal("object")
+    expect(desc.internal).to.be.false
+    expect(desc.deprecated).to.be.false
+    expect(desc.experimental).to.be.false
+    expect(desc.description).to.equal(testJsonSchema.description)
+  })
+
+  describe("getChildren", () => {
+    it("should correctly handle object schemas", () => {
+      const desc = new JsonKeyDescription({
+        schema: testJsonSchema,
+        name: "foo",
         level: 0,
-        parent: undefined,
-        required: false,
-      },
-      {
-        type: "string",
-        name: "kind",
-        allowedValuesOnly: true,
-        defaultValue: undefined,
-        deprecated: false,
-        description: testJsonSchema.properties.kind.description,
-        experimental: false,
-        fullKey: "kind",
-        formattedExample: undefined,
-        formattedName: "kind",
-        formattedType: "string",
-        hasChildren: false,
-        internal: false,
-        level: 0,
-        parent: undefined,
-        required: false,
-        allowedValues: '"PersistentVolumeClaim"',
-      },
-      {
-        type: "object",
-        name: "metadata",
-        allowedValuesOnly: false,
-        defaultValue: undefined,
-        deprecated: false,
-        description: testJsonSchema.properties.metadata.description,
-        experimental: false,
-        fullKey: "metadata",
-        formattedExample: undefined,
-        formattedName: "metadata",
-        formattedType: "object",
-        hasChildren: true,
-        internal: false,
-        level: 0,
-        parent: undefined,
-        required: false,
-      },
-      {
-        type: "string",
-        name: "lastTransitionTime",
-        allowedValuesOnly: false,
-        defaultValue: undefined,
-        deprecated: false,
-        description: testJsonSchema.properties.metadata.properties.lastTransitionTime.description,
-        experimental: false,
-        fullKey: "metadata.lastTransitionTime",
-        formattedExample: undefined,
-        formattedName: "lastTransitionTime",
-        formattedType: "string",
-        hasChildren: false,
-        internal: false,
-        level: 1,
-        parent: {
-          type: "object",
-          name: "metadata",
-          allowedValuesOnly: false,
-          defaultValue: undefined,
-          deprecated: false,
-          description: testJsonSchema.properties.metadata.description,
-          experimental: false,
-          fullKey: "metadata",
-          formattedExample: undefined,
-          formattedName: "metadata",
-          formattedType: "object",
-          hasChildren: true,
-          internal: false,
-          level: 0,
-          parent: undefined,
-          required: false,
-        },
-        required: false,
-      },
-    ])
+      })
+      const children = desc.getChildren()
+
+      expect(children.length).to.equal(3)
+      expect(children[0].type).to.equal("string")
+      expect(children[1].type).to.equal("string")
+      expect(children[2].type).to.equal("object")
+
+      for (const c of children) {
+        expect(c.parent).to.equal(desc)
+      }
+    })
   })
 })
 

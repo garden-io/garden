@@ -23,7 +23,7 @@ export interface ConfigureProviderParams<T extends GenericProviderConfig = any> 
   dependencies: ProviderMap
   environmentName: string
   log: LogEntry
-  namespace?: string
+  namespace: string
   projectName: string
   projectRoot: string
   base?: ActionHandler<ConfigureProviderParams<T>, ConfigureProviderResult<T>>
@@ -47,7 +47,7 @@ export const configureProvider = () => ({
     and avoid performing expensive processing or network calls.
   `,
   paramsSchema: actionParamsSchema().keys({
-    config: providerConfigBaseSchema().required(),
+    config: providerConfigBaseSchema(),
     environmentName: joiIdentifier(),
     namespace: joiIdentifier(),
     log: logEntrySchema(),

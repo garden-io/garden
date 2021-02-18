@@ -49,8 +49,8 @@ export const gardenPlugin = () =>
           if (k8sProvider.config.context) {
             args.push("--context", k8sProvider.config.context)
           }
-          if (k8sProvider.config.namespace) {
-            args.push("--namespace", k8sProvider.config.namespace)
+          if (k8sProvider.config.namespace?.name) {
+            args.push("--namespace", k8sProvider.config.namespace.name)
           }
 
           octantProc = execa(path, args, { buffer: false, cleanup: true })

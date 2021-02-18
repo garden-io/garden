@@ -6,137 +6,118 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { flatten, isArray } from "lodash"
-import { NormalizedSchemaDescription, NormalizeOptions } from "./common"
+import { isArray } from "lodash"
+import { BaseKeyDescription } from "./common"
 import { ValidationError } from "../exceptions"
 import { safeDumpYaml } from "../util/util"
 
-/**
- * Takes a JSON Schema and translates to a list of NormalizedKeyDescription objects.
- * Analogous to normalizeJoiSchemaDescription(), and flows the same way.
- */
-export function normalizeJsonSchema(
-  schema: any,
-  { level = 0, name, parent, renderPatternKeys = false }: NormalizeOptions = {}
-): NormalizedSchemaDescription[] {
-  let schemaDescription: NormalizedSchemaDescription | undefined
-  let childDescriptions: NormalizedSchemaDescription[] = []
+export class JsonKeyDescription<T = any> extends BaseKeyDescription<T> {
+  private schema: any
+  private allowedValues?: string[]
 
-  // Skip descriptions without names since they merely point to the keys we're interested in.
-  // This means that we implicitly skip the first key of the schema.
-  if (name) {
-    schemaDescription = normalizeJsonKeyDescription(schema, { name, level, parent })
-  }
-
-  const type = getType(schema)
-
-  if (type === "object") {
-    const children = Object.entries(schema.properties || {}) || []
-    const nextLevel = name ? level + 1 : level
-    const nextParent = name ? schemaDescription : parent
-
-    childDescriptions = flatten(
-      children.map(([childName, childSchema]) =>
-        normalizeJsonSchema(childSchema, { level: nextLevel, parent: nextParent, name: childName })
-      )
-    )
-
-    if (renderPatternKeys && schema.patterns && schema.patterns.length > 0) {
-      // TODO: implement pattern schemas
-    }
-  } else if (type === "array") {
-    // We only use the first array item
-    const item = schema.items[0]
-    childDescriptions = item ? normalizeJsonSchema(item, { level: level + 2, parent: schemaDescription }) : []
-  }
-
-  if (!schemaDescription) {
-    return childDescriptions
-  }
-  return [schemaDescription, ...childDescriptions].filter((key) => !key.internal)
-}
-
-// Normalizes the key description.
-// TODO: This no doubt requires more work. Just implementing the bare necessities for our currently configured schemas.
-function normalizeJsonKeyDescription(
-  schema: any,
-  {
-    level,
+  constructor({
+    schema,
     name,
+    level,
     parent,
-    parentSchema,
-  }: { level: number; name: string; parent?: NormalizedSchemaDescription; parentSchema?: any }
-): NormalizedSchemaDescription {
-  let allowedValues: string[] | undefined
+  }: {
+    schema: any
+    name: string | undefined
+    level: number
+    parent?: BaseKeyDescription
+  }) {
+    super(name, level, parent)
 
-  if (isArray(schema.type) && schema.type.includes(null)) {
-    allowedValues = ["null"]
+    if (isArray(schema.type) && schema.type.includes(null)) {
+      this.allowedValues = ["null"]
+    }
+
+    this.schema = schema
+    this.type = getType(schema)
+
+    if (!this.type) {
+      throw new ValidationError(`Missing type property on JSON Schema`, { schema })
+    }
+
+    this.allowedValuesOnly = false
+    this.deprecated = !!schema.deprecated
+    this.description = schema.description
+    this.experimental = !!schema["x-garden-experimental"]
+    this.internal = !!schema["x-garden-internal"]
+    this.required = false
+
+    if (schema.enum) {
+      this.allowedValuesOnly = true
+      this.allowedValues = [...(this.allowedValues || []), ...schema.enum.map((v: any) => JSON.stringify(v))]
+    }
+
+    if (parent?.type === "object" && (<any>this.parent)?.schema?.required?.includes(name)) {
+      this.required = true
+    }
   }
 
-  const type = getType(schema)
-
-  if (!type) {
-    throw new ValidationError(`Missing type property on JSON Schema`, { schema })
+  formatName() {
+    return this.type === "array" ? `${this.name}[]` : this.name
   }
 
-  const formattedName = type === "array" ? `${name}[]` : name
+  formatType() {
+    return formatType(this.schema)
+  }
 
-  let formattedExample: string | undefined
-  if (schema.examples && schema.examples.length > 0) {
-    const example = schema.examples[0]
-    if (type === "object" || type === "array") {
-      formattedExample = safeDumpYaml(example).trim()
+  formatExample() {
+    if (this.schema.examples && this.schema.examples.length > 0) {
+      const example = this.schema.examples[0]
+      if (this.type === "object" || this.type === "array") {
+        return safeDumpYaml(example).trim()
+      } else {
+        return JSON.stringify(example)
+      }
     } else {
-      formattedExample = JSON.stringify(example)
+      return undefined
     }
   }
 
-  const output: NormalizedSchemaDescription = {
-    type,
-    name,
-    allowedValuesOnly: false,
-    defaultValue: schema.default,
-    deprecated: !!schema.deprecated,
-    description: schema.description,
-    experimental: !!schema["x-garden-experimental"],
-    fullKey: parent ? `${parent.fullKey}.${formattedName}` : formattedName,
-    formattedExample,
-    formattedName,
-    formattedType: formatType(schema),
-    hasChildren: false,
-    internal: !!schema["x-garden-internal"],
-    level,
-    parent,
-    required: false,
+  formatAllowedValues() {
+    return this.allowedValuesOnly ? this.allowedValues?.join(", ") : undefined
   }
 
-  if (schema.enum) {
-    output.allowedValuesOnly = true
-    allowedValues = [...(allowedValues || []), ...schema.enum.map((v: any) => JSON.stringify(v))]
+  getDefaultValue() {
+    return this.schema.default
   }
 
-  if (allowedValues) {
-    output.allowedValues = allowedValues?.join(", ")
+  getChildren(renderPatternKeys = false): JsonKeyDescription[] {
+    if (this.type === "object") {
+      const children = Object.entries(this.schema.properties || {}) || []
+      const level = this.name ? this.level + 1 : this.level
+      const parent = this.name ? this : this.parent
+
+      const childDescriptions = children.map(
+        ([childName, childSchema]) =>
+          new JsonKeyDescription({
+            schema: childSchema,
+            name: childName,
+            level,
+            parent,
+          })
+      )
+      if (renderPatternKeys && this.schema.patterns && this.schema.patterns.length > 0) {
+        // TODO: implement pattern schemas
+      }
+      return childDescriptions
+    } else if (this.type === "array" && this.schema.items[0]) {
+      // We only use the first array item
+      return [
+        new JsonKeyDescription({
+          schema: this.schema.items[0],
+          name: undefined,
+          level: this.level + 2,
+          parent: this,
+        }),
+      ]
+    } else {
+      return []
+    }
   }
-
-  if (parent?.type === "object" && parentSchema?.required.includes(name)) {
-    output.required = true
-  }
-
-  let arrayType: string | undefined
-
-  const children = type === "object" && Object.entries(schema.properties || {})
-  const items = type === "array" && schema.items
-
-  if (children && children.length > 0) {
-    output.hasChildren = true
-  } else if (items && items.length > 0) {
-    // We don't consider an array of primitives as children
-    arrayType = items[0].type
-    output.hasChildren = arrayType === "array" || arrayType === "object"
-  }
-
-  return output
 }
 
 function getType(schema: any): string {
