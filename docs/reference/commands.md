@@ -937,6 +937,268 @@ namespace:
 
 # A list of all configured providers in the environment.
 providers:
+  - # The name of the provider plugin to use.
+    name:
+
+    # If specified, this provider will only be used in the listed environments. Note that an empty array effectively
+    # disables the provider. To use a provider in all environments, omit this field.
+    environments:
+
+    # Map of all the providers that this provider depends on.
+    dependencies:
+      <name>:
+
+    config:
+      # The name of the provider plugin to use.
+      name:
+
+      # List other providers that should be resolved before this one.
+      dependencies:
+
+      # If specified, this provider will only be used in the listed environments. Note that an empty array effectively
+      # disables the provider. To use a provider in all environments, omit this field.
+      environments:
+
+    moduleConfigs:
+      - # The schema version of this config (currently not used).
+        apiVersion:
+
+        kind:
+
+        # The type of this module.
+        type:
+
+        # The name of this module.
+        name:
+
+        # Specify how to build the module. Note that plugins may define additional keys on this object.
+        build:
+          # A list of modules that must be built before this module is built.
+          dependencies:
+            - # Module name to build ahead of this module.
+              name:
+
+              # Specify one or more files or directories to copy from the built dependency to this module.
+              copy:
+                - # POSIX-style path or filename of the directory or file(s) to copy to the target.
+                  source:
+
+                  # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
+                  # Defaults to to same as source path.
+                  target:
+
+        # A description of the module.
+        description:
+
+        # Set this to `true` to disable the module. You can use this with conditional template strings to disable
+        # modules based on, for example, the current environment or other variables (e.g. `disabled:
+        # \${environment.name == "prod"}`). This can be handy when you only need certain modules for specific
+        # environments, e.g. only for development.
+        #
+        # Disabling a module means that any services, tasks and tests contained in it will not be deployed or run. It
+        # also means that the module is not built _unless_ it is declared as a build dependency by another enabled
+        # module (in which case building this module is necessary for the dependant to be built).
+        #
+        # If you disable the module, and its services, tasks or tests are referenced as _runtime_ dependencies, Garden
+        # will automatically ignore those dependency declarations. Note however that template strings referencing the
+        # module's service or task outputs (i.e. runtime outputs) will fail to resolve when the module is disabled, so
+        # you need to make sure to provide alternate values for those if you're using them, using conditional
+        # expressions.
+        disabled:
+
+        # Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module.
+        # Files that do *not* match these paths or globs are excluded when computing the version of the module, when
+        # responding to filesystem watch events, and when staging builds.
+        #
+        # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
+        # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
+        # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+        # for details.
+        #
+        # Also note that specifying an empty list here means _no sources_ should be included.
+        include:
+
+        # Specify a list of POSIX-style paths or glob patterns that should be excluded from the module. Files that
+        # match these paths or globs are excluded when computing the version of the module, when responding to
+        # filesystem watch events, and when staging builds.
+        #
+        # Note that you can also explicitly _include_ files using the `include` field. If you also specify the
+        # `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the
+        # [Configuration Files
+        # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
+        # for details.
+        #
+        # Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files
+        # and directories are watched for changes. Use the project `modules.exclude` field to affect those, if you
+        # have large directories that should not be watched for changes.
+        exclude:
+
+        # A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a
+        # specific branch or tag, with the format: <git remote url>#<branch|tag>
+        #
+        # Garden will import the repository source code into this module, but read the module's config from the local
+        # garden.yml file.
+        repositoryUrl:
+
+        # When false, disables pushing this module to remote registries.
+        allowPublish:
+
+        # The filesystem path of the module.
+        path:
+
+        # The filesystem path of the module config file.
+        configPath:
+
+        # List of services configured by this module.
+        serviceConfigs:
+          - # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
+            # letter, and cannot end with a dash), cannot contain consecutive dashes or start with `garden`, or be
+            # longer than 63 characters.
+            name:
+
+            # The names of any services that this service depends on at runtime, and the names of any tasks that
+            # should be executed before this service is deployed.
+            dependencies:
+
+            # Set this to `true` to disable the service. You can use this with conditional template strings to
+            # enable/disable services based on, for example, the current environment or other variables (e.g.
+            # `enabled: \${environment.name != "prod"}`). This can be handy when you only need certain services for
+            # specific environments, e.g. only for development.
+            #
+            # Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a
+            # runtime dependency for another service, test or task.
+            #
+            # Note however that template strings referencing the service's outputs (i.e. runtime outputs) will fail to
+            # resolve when the service is disabled, so you need to make sure to provide alternate values for those if
+            # you're using them, using conditional expressions.
+            disabled:
+
+            # Set this to true if the module and service configuration supports hot reloading.
+            hotReloadable:
+
+            # The `validate` module action should populate this, if the service's code sources are contained in a
+            # separate module from the parent module. For example, when the service belongs to a module that contains
+            # manifests (e.g. a Helm chart), but the actual code lives in a different module (e.g. a container
+            # module).
+            sourceModuleName:
+
+            # The service's specification, as defined by its provider plugin.
+            spec:
+
+        # List of tasks configured by this module.
+        taskConfigs:
+          - # The name of the task.
+            name:
+
+            # A description of the task.
+            description:
+
+            # The names of any tasks that must be executed, and the names of any services that must be running, before
+            # this task is executed.
+            dependencies:
+
+            # Set this to `true` to disable the task. You can use this with conditional template strings to
+            # enable/disable tasks based on, for example, the current environment or other variables (e.g. `enabled:
+            # \${environment.name != "prod"}`). This can be handy when you only want certain tasks to run in specific
+            # environments, e.g. only for development.
+            #
+            # Disabling a task means that it will not be run, and will also be ignored if it is declared as a runtime
+            # dependency for another service, test or task.
+            #
+            # Note however that template strings referencing the task's outputs (i.e. runtime outputs) will fail to
+            # resolve when the task is disabled, so you need to make sure to provide alternate values for those if
+            # you're using them, using conditional expressions.
+            disabled:
+
+            # Maximum duration (in seconds) of the task's execution.
+            timeout:
+
+            # Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any
+            # time your project (or one or more of the task's dependants) is deployed. Otherwise the task is only
+            # re-run when its version changes (i.e. the module or one of its dependencies is modified), or when you
+            # run `garden run task`.
+            cacheResult:
+
+            # The task's specification, as defined by its provider plugin.
+            spec:
+
+        # List of tests configured by this module.
+        testConfigs:
+          - # The name of the test.
+            name:
+
+            # The names of any services that must be running, and the names of any tasks that must be executed, before
+            # the test is run.
+            dependencies:
+
+            # Set this to `true` to disable the test. You can use this with conditional template strings to
+            # enable/disable tests based on, for example, the current environment or other variables (e.g.
+            # `enabled: \${environment.name != "prod"}`). This is handy when you only want certain tests to run in
+            # specific environments, e.g. only during CI.
+            disabled:
+
+            # Maximum duration (in seconds) of the test run.
+            timeout:
+
+            # The configuration for the test, as specified by its module's provider.
+            spec:
+
+        # The module spec, as defined by the provider plugin.
+        spec:
+
+            # POSIX-style filename to write the resolved file contents to, relative to the path of the module.
+            #
+            # Note that any existing file with the same name will be overwritten. If the path contains one or more
+            # directories, they will be automatically created if missing.
+            targetPath:
+
+            # The desired file contents as a string.
+            value:
+
+            sourcePath:
+
+        # The name of the parent module (e.g. a templated module that generated this module), if applicable.
+        parentName:
+
+        # The module template that generated the module, if applicable.
+        templateName:
+
+        # Inputs provided when rendering the module from a module template, if applicable.
+        inputs:
+          <name>:
+
+    # Description of an environment's status for a provider.
+    status:
+      # Set to true if the environment is fully configured for a provider.
+      ready:
+
+      # Use this to include additional information that is specific to the provider.
+      detail:
+
+      # Output variables that modules and other variables can reference.
+      outputs:
+        <name>:
+
+      # Set to true to disable caching of the status.
+      disableCache:
+
+    # A list of pages that the provider adds to the Garden dashboard.
+    dashboardPages:
+      - # A unique identifier for the page.
+        name:
+
+        # The link title to show in the menu bar (max length 32).
+        title:
+
+        # A description to show when hovering over the link.
+        description:
+
+        # The URL to open in the dashboard pane when clicking the link. If none is specified, the provider must
+        # specify a `getDashboardPage` handler that resolves the URL given the `name` of this page.
+        url:
+
+        # Set to true if the link should open in a new browser tab/window.
+        newWindow:
 
 # All configured variables in the environment.
 variables:
@@ -1127,6 +1389,17 @@ moduleConfigs:
 
     # The module spec, as defined by the provider plugin.
     spec:
+
+        # POSIX-style filename to write the resolved file contents to, relative to the path of the module.
+        #
+        # Note that any existing file with the same name will be overwritten. If the path contains one or more
+        # directories, they will be automatically created if missing.
+        targetPath:
+
+        # The desired file contents as a string.
+        value:
+
+        sourcePath:
 
     # The name of the parent module (e.g. a templated module that generated this module), if applicable.
     parentName:
@@ -1567,6 +1840,17 @@ modules:
 
     # The module spec, as defined by the provider plugin.
     spec:
+
+        # POSIX-style filename to write the resolved file contents to, relative to the path of the module.
+        #
+        # Note that any existing file with the same name will be overwritten. If the path contains one or more
+        # directories, they will be automatically created if missing.
+        targetPath:
+
+        # The desired file contents as a string.
+        value:
+
+        sourcePath:
 
     # The name of the parent module (e.g. a templated module that generated this module), if applicable.
     parentName:

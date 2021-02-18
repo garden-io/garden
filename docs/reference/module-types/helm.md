@@ -147,7 +147,8 @@ chartPath: .
 # List of names of services that should be deployed before this chart.
 dependencies: []
 
-# Deploy to a different namespace than the default one configured in the provider.
+# A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters,
+# numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
 namespace:
 
 # Optionally override the release name used when installing (defaults to the module name).
@@ -726,7 +727,7 @@ List of names of services that should be deployed before this chart.
 
 ### `namespace`
 
-Deploy to a different namespace than the default one configured in the provider.
+A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
 
 | Type     | Required |
 | -------- | -------- |

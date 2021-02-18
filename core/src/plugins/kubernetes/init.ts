@@ -15,7 +15,7 @@ import {
   getSystemNamespace,
 } from "./namespace"
 import { KubernetesPluginContext, KubernetesConfig, KubernetesProvider, ProviderSecretRef } from "./config"
-import { prepareSystemServices, getSystemServiceStatus, getSystemGarden, systemNamespaceUpToDate } from "./system"
+import { prepareSystemServices, getSystemServiceStatus, getSystemGarden } from "./system"
 import { GetEnvironmentStatusParams, EnvironmentStatus } from "../../types/plugin/provider/getEnvironmentStatus"
 import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "../../types/plugin/provider/prepareEnvironment"
 import { CleanupEnvironmentParams } from "../../types/plugin/provider/cleanupEnvironment"
@@ -105,7 +105,7 @@ export async function getEnvironmentStatus({
     // No need to continue if we don't need any system services
     systemServiceNames.length === 0 ||
     // Make sure we don't recurse infinitely
-    provider.config.namespace === systemNamespace
+    provider.config.namespace?.name === systemNamespace
   ) {
     return result
   }
@@ -148,9 +148,6 @@ export async function getEnvironmentStatus({
     }
   }
 
-  const contextForLog = `Checking Garden system service status for plugin "${ctx.provider.name}"`
-  const sysNamespaceUpToDate = await systemNamespaceUpToDate(api, log, systemNamespace, contextForLog)
-
   // Check if builder auth secret is up-to-date
   let secretsUpToDate = true
 
@@ -169,7 +166,7 @@ export async function getEnvironmentStatus({
     serviceNames: systemServiceNames,
   })
 
-  if (!sysNamespaceUpToDate || !secretsUpToDate || systemServiceStatus.state !== "ready") {
+  if (!secretsUpToDate || systemServiceStatus.state !== "ready") {
     result.ready = false
     detail.systemReady = false
   }

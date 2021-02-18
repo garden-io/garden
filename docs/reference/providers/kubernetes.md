@@ -13,7 +13,7 @@ Kubernetes clusters, and adds the [`helm`](https://docs.garden.io/reference/modu
 
 For usage information, please refer to the [guides section](https://docs.garden.io/guides). A good place to start is
 the [Remote Kubernetes guide](https://docs.garden.io/guides/remote-kubernetes) guide if you're connecting to remote clusters.
-The [demo-project](https://docs.garden.io/getting-started/2-initialize-a-project) example project and guide are also helpful as an introduction.
+The [Getting Started](https://docs.garden.io/getting-started/0-introduction) guide is also helpful as an introduction.
 
 Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the [local-kubernetes provider](https://docs.garden.io/reference/providers/local-kubernetes) simplifies (and automates) the configuration and setup quite a bit.
 
@@ -34,22 +34,21 @@ providers:
     # disables the provider. To use a provider in all environments, omit this field.
     environments:
 
-    # Choose the mechanism for building container images before deploying. By default it uses the local Docker
-    # daemon, but you can set it to `cluster-docker` or `kaniko` to sync files to a remote Docker daemon,
-    # installed in the cluster, and build container images there. This removes the need to run Docker or
-    # Kubernetes locally, and allows you to share layer and image caches between multiple developers, as well
-    # as between your development and CI workflows.
+    # Choose the mechanism for building container images before deploying. By default your local Docker daemon is
+    # used, but you can set it to `cluster-buildkit`, `cluster-docker` or `kaniko` to sync files to the cluster, and
+    # build container images there. This removes the need to run Docker locally, and allows you to share layer and
+    # image caches between multiple developers, as well as between your development and CI workflows.
     #
-    # This is currently experimental and sometimes not desired, so it's not enabled by default. For example when using
-    # the `local-kubernetes` provider with Docker for Desktop and Minikube, we directly use the in-cluster docker
-    # daemon when building. You might also be deploying to a remote cluster that isn't intended as a development
-    # environment, so you'd want your builds to happen elsewhere.
-    #
-    # Functionally, both `cluster-docker` and `kaniko` do the same thing, but use different underlying mechanisms
-    # to build. The former uses a normal Docker daemon in the cluster. Because this has to run in privileged mode,
-    # this is less secure than Kaniko, but in turn it is generally faster. See the
-    # [Kaniko docs](https://github.com/GoogleContainerTools/kaniko) for more information on Kaniko.
+    # For more details on all the different options and what makes sense to use for your setup, please check out the
+    # [in-cluster building guide](https://docs.garden.io/guides/in-cluster-building).
     buildMode: local-docker
+
+    # Configuration options for the `cluster-buildkit` build mode.
+    clusterBuildkit:
+      # Enable rootless mode for the cluster-buildkit daemon, which runs the daemon with decreased privileges.
+      # Please see [the buildkit docs](https://github.com/moby/buildkit/blob/master/docs/rootless.md) for caveats when
+      # using this mode.
+      rootless: false
 
     # Configuration options for the `cluster-docker` build mode.
     clusterDocker:
@@ -60,7 +59,7 @@ providers:
     # Configuration options for the `kaniko` build mode.
     kaniko:
       # Change the kaniko image (repository/image:tag) to use when building in kaniko mode.
-      image: 'gcr.io/kaniko-project/executor:debug-v0.23.0'
+      image: 'gcr.io/kaniko-project/executor:debug-v1.2.0'
 
       # Specify extra flags to use when building the container image with kaniko. Flags set on container module take
       # precedence over these.
@@ -92,14 +91,18 @@ providers:
     # Resource requests and limits for the in-cluster builder, container registry and code sync service. (which are
     # automatically installed and used when `buildMode` is `cluster-docker` or `kaniko`).
     resources:
-      # Resource requests and limits for the in-cluster builder.
+      # Resource requests and limits for the in-cluster builder. It's important to consider which build mode you're
+      # using when configuring this.
       #
-      # When `buildMode` is `cluster-docker`, this refers to the Docker Daemon that is installed and run
-      # cluster-wide. This is shared across all users and builds, so it should be resourced accordingly, factoring
-      # in how many concurrent builds you expect and how heavy your builds tend to be.
+      # When `buildMode` is `kaniko`, this refers to _each Kaniko pod_, i.e. each individual build, so you'll want to
+      # consider the requirements for your individual image builds, with your most expensive/heavy images in mind.
       #
-      # When `buildMode` is `kaniko`, this refers to _each instance_ of Kaniko, so you'd generally use lower
-      # limits/requests, but you should evaluate based on your needs.
+      # When `buildMode` is `cluster-buildkit`, this applies to the BuildKit deployment created in _each project
+      # namespace_. So think of this as the resource spec for each individual user or project namespace.
+      #
+      # When `buildMode` is `cluster-docker`, this applies to the single Docker Daemon that is installed and run
+      # cluster-wide. This is shared across all users and builds in the cluster, so it should be resourced
+      # accordingly, factoring in how many concurrent builds you expect and how heavy your builds tend to be.
       builder:
         limits:
           # CPU limit in millicpu.
@@ -318,10 +321,25 @@ providers:
     # Path to kubeconfig file to use instead of the system default. Must be a POSIX-style path.
     kubeconfig:
 
-    # Specify which namespace to deploy services to. Defaults to `<project name>-<environment namespace>`.
+    # Specify which namespace to deploy services to, and optionally annotations/labels to apply to the namespace.
     #
-    # Note that the framework may generate other namespaces as well with this name as a prefix.
+    # You can specify a string as a shorthand for `name: <name>`. Defaults to `<project name>-<environment
+    # namespace>`.
+    #
+    # Note that the framework may generate other namespaces as well with this name as a prefix. Also note that if the
+    # namespace previously exists, Garden will attempt to add the specified labels and annotations. If the user does
+    # not have permissions to do so, a warning is shown.
     namespace:
+      # A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters,
+      # numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63
+      # characters.
+      name:
+
+      # Map of annotations to apply to the namespace when creating it.
+      annotations:
+
+      # Map of labels to apply to the namespace when creating it.
+      labels:
 
     # Set this to `nginx` to install/enable the NGINX ingress controller.
     setupIngressController: false
@@ -375,25 +393,34 @@ providers:
 
 [providers](#providers) > buildMode
 
-Choose the mechanism for building container images before deploying. By default it uses the local Docker
-daemon, but you can set it to `cluster-docker` or `kaniko` to sync files to a remote Docker daemon,
-installed in the cluster, and build container images there. This removes the need to run Docker or
-Kubernetes locally, and allows you to share layer and image caches between multiple developers, as well
-as between your development and CI workflows.
+Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to `cluster-buildkit`, `cluster-docker` or `kaniko` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
 
-This is currently experimental and sometimes not desired, so it's not enabled by default. For example when using
-the `local-kubernetes` provider with Docker for Desktop and Minikube, we directly use the in-cluster docker
-daemon when building. You might also be deploying to a remote cluster that isn't intended as a development
-environment, so you'd want your builds to happen elsewhere.
-
-Functionally, both `cluster-docker` and `kaniko` do the same thing, but use different underlying mechanisms
-to build. The former uses a normal Docker daemon in the cluster. Because this has to run in privileged mode,
-this is less secure than Kaniko, but in turn it is generally faster. See the
-[Kaniko docs](https://github.com/GoogleContainerTools/kaniko) for more information on Kaniko.
+For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/guides/in-cluster-building).
 
 | Type     | Default          | Required |
 | -------- | ---------------- | -------- |
 | `string` | `"local-docker"` | No       |
+
+### `providers[].clusterBuildkit`
+
+[providers](#providers) > clusterBuildkit
+
+Configuration options for the `cluster-buildkit` build mode.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `providers[].clusterBuildkit.rootless`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > rootless
+
+Enable rootless mode for the cluster-buildkit daemon, which runs the daemon with decreased privileges.
+Please see [the buildkit docs](https://github.com/moby/buildkit/blob/master/docs/rootless.md) for caveats when using this mode.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 ### `providers[].clusterDocker`
 
@@ -431,9 +458,9 @@ Configuration options for the `kaniko` build mode.
 
 Change the kaniko image (repository/image:tag) to use when building in kaniko mode.
 
-| Type     | Default                                          | Required |
-| -------- | ------------------------------------------------ | -------- |
-| `string` | `"gcr.io/kaniko-project/executor:debug-v0.23.0"` | No       |
+| Type     | Default                                         | Required |
+| -------- | ----------------------------------------------- | -------- |
+| `string` | `"gcr.io/kaniko-project/executor:debug-v1.2.0"` | No       |
 
 ### `providers[].kaniko.extraFlags[]`
 
@@ -539,14 +566,13 @@ Resource requests and limits for the in-cluster builder, container registry and 
 
 [providers](#providers) > [resources](#providersresources) > builder
 
-Resource requests and limits for the in-cluster builder.
+Resource requests and limits for the in-cluster builder. It's important to consider which build mode you're using when configuring this.
 
-When `buildMode` is `cluster-docker`, this refers to the Docker Daemon that is installed and run
-cluster-wide. This is shared across all users and builds, so it should be resourced accordingly, factoring
-in how many concurrent builds you expect and how heavy your builds tend to be.
+When `buildMode` is `kaniko`, this refers to _each Kaniko pod_, i.e. each individual build, so you'll want to consider the requirements for your individual image builds, with your most expensive/heavy images in mind.
 
-When `buildMode` is `kaniko`, this refers to _each instance_ of Kaniko, so you'd generally use lower
-limits/requests, but you should evaluate based on your needs.
+When `buildMode` is `cluster-buildkit`, this applies to the BuildKit deployment created in _each project namespace_. So think of this as the resource spec for each individual user or project namespace.
+
+When `buildMode` is `cluster-docker`, this applies to the single Docker Daemon that is installed and run cluster-wide. This is shared across all users and builds in the cluster, so it should be resourced accordingly, factoring in how many concurrent builds you expect and how heavy your builds tend to be.
 
 | Type     | Default                                                                     | Required |
 | -------- | --------------------------------------------------------------------------- | -------- |
@@ -1075,9 +1101,9 @@ providers:
 
 A list of hostnames that this certificate should be used for. If you don't specify these, they will be automatically read from the certificate.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
+| Type              | Required |
+| ----------------- | -------- |
+| `array[hostname]` | No       |
 
 Example:
 
@@ -1488,13 +1514,45 @@ Path to kubeconfig file to use instead of the system default. Must be a POSIX-st
 
 [providers](#providers) > namespace
 
-Specify which namespace to deploy services to. Defaults to `<project name>-<environment namespace>`.
+Specify which namespace to deploy services to, and optionally annotations/labels to apply to the namespace.
 
-Note that the framework may generate other namespaces as well with this name as a prefix.
+You can specify a string as a shorthand for `name: <name>`. Defaults to `<project name>-<environment namespace>`.
+
+Note that the framework may generate other namespaces as well with this name as a prefix. Also note that if the namespace previously exists, Garden will attempt to add the specified labels and annotations. If the user does not have permissions to do so, a warning is shown.
+
+| Type              | Required |
+| ----------------- | -------- |
+| `object | string` | No       |
+
+### `providers[].namespace.name`
+
+[providers](#providers) > [namespace](#providersnamespace) > name
+
+A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
 
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `providers[].namespace.annotations`
+
+[providers](#providers) > [namespace](#providersnamespace) > annotations
+
+Map of annotations to apply to the namespace when creating it.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `providers[].namespace.labels`
+
+[providers](#providers) > [namespace](#providersnamespace) > labels
+
+Map of labels to apply to the namespace when creating it.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
 
 ### `providers[].setupIngressController`
 

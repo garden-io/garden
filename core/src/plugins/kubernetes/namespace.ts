@@ -7,11 +7,11 @@
  */
 
 import Bluebird from "bluebird"
-import { intersection } from "lodash"
+import { intersection, cloneDeep } from "lodash"
 
 import { PluginContext } from "../../plugin-context"
-import { KubeApi } from "./api"
-import { KubernetesProvider, KubernetesPluginContext } from "./config"
+import { KubeApi, KubernetesError } from "./api"
+import { KubernetesProvider, KubernetesPluginContext, NamespaceConfig } from "./config"
 import { DeploymentError, TimeoutError } from "../../exceptions"
 import { getPackageVersion, sleep } from "../../util/util"
 import { GetEnvironmentStatusParams } from "../../types/plugin/provider/getEnvironmentStatus"
@@ -21,49 +21,83 @@ import { gardenAnnotationKey } from "../../util/string"
 import dedent from "dedent"
 import { HelmModule } from "./helm/config"
 import { KubernetesModule } from "./kubernetes-module/config"
+import { V1Namespace } from "@kubernetes/client-node"
+import { isSubset } from "../../util/is-subset"
+import chalk from "chalk"
 
 const GARDEN_VERSION = getPackageVersion()
 type CreateNamespaceStatus = "pending" | "created"
 const created: { [name: string]: CreateNamespaceStatus } = {}
 
-export async function ensureNamespace(api: KubeApi, namespace: string) {
-  if (!created[namespace]) {
-    created[namespace] = "pending"
+/**
+ * Makes sure the given namespace exists and has the configured annotations and labels.
+ * Returns true if the namespace was created or updated, false if nothing was done.
+ */
+export async function ensureNamespace(api: KubeApi, namespace: NamespaceConfig, log: LogEntry) {
+  if (!created[namespace.name]) {
+    created[namespace.name] = "pending"
     const namespacesStatus = await api.core.listNamespace()
+    let remoteNamespace: V1Namespace | undefined = undefined
 
     for (const n of namespacesStatus.items) {
       if (n.status.phase === "Active") {
         created[n.metadata.name] = "created"
       }
+      if (n.metadata.name === namespace.name) {
+        remoteNamespace = n
+      }
     }
 
-    if (created[namespace] !== "created") {
-      // TODO: the types for all the create functions in the library are currently broken
-      await createNamespace(api, namespace)
-      created[namespace] = "created"
+    if (created[namespace.name] !== "created") {
+      log.verbose("Creating namespace " + namespace.name)
+      try {
+        return api.core.createNamespace({
+          apiVersion: "v1",
+          kind: "Namespace",
+          metadata: {
+            name: namespace.name,
+            annotations: {
+              [gardenAnnotationKey("generated")]: "true",
+              [gardenAnnotationKey("version")]: GARDEN_VERSION,
+              ...(namespace.annotations || {}),
+            },
+            labels: namespace.labels,
+          },
+        })
+      } catch (error) {
+        throw new KubernetesError(
+          `Namespace ${namespace.name} doesn't exist and Garden was unable to create it. You may need to create it manually or ask an administrator to do so.`,
+          { error }
+        )
+      }
+    } else if (
+      remoteNamespace &&
+      (!isSubset(remoteNamespace.metadata?.annotations, namespace.annotations) ||
+        !isSubset(remoteNamespace.metadata?.labels, namespace.labels))
+    ) {
+      // Make sure annotations and labels are set correctly if the namespace already exists
+      log.verbose("Updating annotations and labels on namespace " + namespace.name)
+      try {
+        return api.core.patchNamespace(namespace.name, {
+          metadata: {
+            annotations: namespace.annotations,
+            labels: namespace.labels,
+          },
+        })
+      } catch {
+        log.warn(chalk.yellow(`Unable to apply the configured annotations and labels on namespace ${namespace.name}`))
+      }
     }
+
+    created[namespace.name] = "created"
   }
-}
 
-// Note: Does not check whether the namespace already exists.
-export async function createNamespace(api: KubeApi, namespace: string) {
-  // TODO: the types for all the create functions in the library are currently broken
-  return api.core.createNamespace(<any>{
-    apiVersion: "v1",
-    kind: "Namespace",
-    metadata: {
-      name: namespace,
-      annotations: {
-        [gardenAnnotationKey("generated")]: "true",
-        [gardenAnnotationKey("version")]: GARDEN_VERSION,
-      },
-    },
-  })
+  return null
 }
 
 interface GetNamespaceParams {
   log: LogEntry
-  override?: string
+  override?: NamespaceConfig
   ctx: PluginContext
   provider: KubernetesProvider
   suffix?: string
@@ -83,18 +117,18 @@ export async function getNamespace({
   suffix,
   skipCreate,
 }: GetNamespaceParams): Promise<string> {
-  let namespace = override || provider.config.namespace || ctx.projectName
+  const namespace = cloneDeep(override || provider.config.namespace)!
 
   if (suffix) {
-    namespace = `${namespace}--${suffix}`
+    namespace.name = `${namespace.name}--${suffix}`
   }
 
   if (!skipCreate) {
     const api = await KubeApi.factory(log, ctx, provider)
-    await ensureNamespace(api, namespace)
+    await ensureNamespace(api, namespace, log)
   }
 
-  return namespace
+  return namespace.name
 }
 
 export async function getSystemNamespace(
@@ -103,13 +137,14 @@ export async function getSystemNamespace(
   log: LogEntry,
   api?: KubeApi
 ): Promise<string> {
-  const namespace = provider.config.gardenSystemNamespace
+  const namespace = { name: provider.config.gardenSystemNamespace }
+
   if (!api) {
     api = await KubeApi.factory(log, ctx, provider)
   }
-  await ensureNamespace(api, namespace)
+  await ensureNamespace(api, namespace, log)
 
-  return namespace
+  return namespace.name
 }
 
 export async function getAppNamespace(ctx: PluginContext, log: LogEntry, provider: KubernetesProvider) {
@@ -214,7 +249,7 @@ export async function getModuleNamespace({
   return getNamespace({
     log,
     ctx,
-    override: module.spec.namespace,
+    override: module.spec.namespace ? { name: module.spec.namespace } : undefined,
     provider,
     skipCreate,
   })

@@ -8,7 +8,15 @@
 
 import dedent = require("dedent")
 
-import { joiArray, joiIdentifier, joiProviderName, joi, joiStringMap } from "../../config/common"
+import {
+  joiArray,
+  joiIdentifier,
+  joiProviderName,
+  joi,
+  joiStringMap,
+  StringMap,
+  joiIdentifierDescription,
+} from "../../config/common"
 import { Provider, providerConfigBaseSchema, GenericProviderConfig } from "../../config/provider"
 import {
   containerRegistryConfigSchema,
@@ -89,6 +97,12 @@ export type ContainerBuildMode = "local-docker" | "cluster-docker" | "kaniko" | 
 export type DefaultDeploymentStrategy = "rolling"
 export type DeploymentStrategy = DefaultDeploymentStrategy | "blue-green"
 
+export interface NamespaceConfig {
+  name: string
+  annotations?: StringMap
+  labels?: StringMap
+}
+
 export interface KubernetesConfig extends GenericProviderConfig {
   buildMode: ContainerBuildMode
   clusterBuildkit?: {
@@ -111,7 +125,7 @@ export interface KubernetesConfig extends GenericProviderConfig {
   ingressHttpsPort: number
   ingressClass?: string
   kubeconfig?: string
-  namespace?: string
+  namespace?: NamespaceConfig
   registryProxyTolerations: V1Toleration[]
   systemNodeSelector: { [key: string]: string }
   resources: KubernetesResources
@@ -550,6 +564,24 @@ export const kubernetesConfigBase = () =>
       `),
   })
 
+export const namespaceSchema = () =>
+  joi.alternatives(
+    joi.object().keys({
+      name: namespaceNameSchema(),
+      annotations: joiStringMap(joi.string()).description(
+        "Map of annotations to apply to the namespace when creating it."
+      ),
+      labels: joiStringMap(joi.string()).description("Map of labels to apply to the namespace when creating it."),
+    }),
+    namespaceNameSchema()
+  ).description(dedent`
+    Specify which namespace to deploy services to, and optionally annotations/labels to apply to the namespace.
+
+    You can specify a string as a shorthand for \`name: <name>\`. Defaults to \`<project name>-<environment namespace>\`.
+
+    Note that the framework may generate other namespaces as well with this name as a prefix. Also note that if the namespace previously exists, Garden will attempt to add the specified labels and annotations. If the user does not have permissions to do so, a warning is shown.
+  `)
+
 export const configSchema = () =>
   kubernetesConfigBase()
     .keys({
@@ -571,11 +603,7 @@ export const configSchema = () =>
       kubeconfig: joi
         .posixPath()
         .description("Path to kubeconfig file to use instead of the system default. Must be a POSIX-style path."),
-      namespace: joi.string().description(dedent`
-      Specify which namespace to deploy services to. Defaults to \`<project name>-<environment namespace>\`.
-
-      Note that the framework may generate other namespaces as well with this name as a prefix.
-      `),
+      namespace: namespaceSchema(),
       setupIngressController: joi
         .string()
         .allow("nginx", false, null)
@@ -703,7 +731,7 @@ export const kubernetesTestSchema = () =>
     })
     .description("The test suite definitions for this module.")
 
-export const namespaceSchema = () =>
+export const namespaceNameSchema = () =>
   joiIdentifier()
     .max(63) // Max length of a DNS label, and by extension max k8s namespace length
-    .description("Deploy to a different namespace than the default one configured in the provider.")
+    .description("A valid Kubernetes namespace name. Must be a " + joiIdentifierDescription)

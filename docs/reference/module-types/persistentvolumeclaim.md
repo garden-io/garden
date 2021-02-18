@@ -482,7 +482,7 @@ Kind is the type of resource being referenced
 
 | Type     | Required |
 | -------- | -------- |
-| `string` | No       |
+| `string` | Yes      |
 
 ### `spec.dataSource.name`
 
@@ -492,7 +492,7 @@ Name is the name of resource being referenced
 
 | Type     | Required |
 | -------- | -------- |
-| `string` | No       |
+| `string` | Yes      |
 
 ### `spec.resources`
 

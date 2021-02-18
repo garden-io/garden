@@ -7,28 +7,18 @@
  */
 
 import { join } from "path"
-import { V1Namespace } from "@kubernetes/client-node"
-import semver from "semver"
 
 import { STATIC_DIR, DEFAULT_API_VERSION } from "../../constants"
 import { Garden } from "../../garden"
 import { KubernetesPluginContext, KubernetesConfig } from "./config"
 import { LogEntry } from "../../logger/log-entry"
-import { KubeApi } from "./api"
-import { createNamespace, getSystemNamespace } from "./namespace"
-import { getPackageVersion } from "../../util/util"
-import { deline, gardenAnnotationKey } from "../../util/string"
-import { deleteNamespaces } from "./namespace"
+import { getSystemNamespace } from "./namespace"
 import { PluginError } from "../../exceptions"
 import { DeepPrimitiveMap } from "../../config/common"
 import { combineStates } from "../../types/service"
-import { KubernetesResource } from "./types"
 import { defaultDotIgnoreFiles } from "../../util/fs"
 import { LogLevel } from "../../logger/log-node"
 import { defaultNamespace } from "../../config/project"
-
-const GARDEN_VERSION = getPackageVersion()
-const SYSTEM_NAMESPACE_MIN_VERSION = "0.9.0"
 
 const systemProjectPath = join(STATIC_DIR, "kubernetes", "system")
 
@@ -64,7 +54,7 @@ export async function getSystemGarden(
     ...ctx.provider.config,
     environments: ["default"],
     name: ctx.provider.name,
-    namespace: systemNamespace,
+    namespace: { name: systemNamespace },
     deploymentStrategy: "rolling",
     _systemServices: [],
   }
@@ -95,62 +85,6 @@ export async function getSystemGarden(
   })
 }
 
-/**
- * Returns true if the namespace exists and has an up-to-date version.
- */
-export async function systemNamespaceUpToDate(
-  api: KubeApi,
-  log: LogEntry,
-  namespace: string,
-  contextForLog: string
-): Promise<boolean> {
-  let namespaceResource: KubernetesResource<V1Namespace>
-
-  try {
-    namespaceResource = await api.core.readNamespace(namespace)
-  } catch (err) {
-    if (err.statusCode === 404) {
-      return false
-    } else {
-      throw err
-    }
-  }
-
-  const annotations = namespaceResource.metadata.annotations || {}
-  const versionInCluster = annotations[gardenAnnotationKey("version")]
-
-  const upToDate = !!versionInCluster && semver.gte(semver.coerce(versionInCluster)!, SYSTEM_NAMESPACE_MIN_VERSION)
-
-  log.debug(deline`
-    ${contextForLog}: current version ${GARDEN_VERSION}, version in cluster: ${versionInCluster},
-    oldest permitted version: ${SYSTEM_NAMESPACE_MIN_VERSION}, up to date: ${upToDate}
-  `)
-
-  return upToDate
-}
-
-/**
- * Returns true if the namespace was outdated.
- */
-export async function recreateSystemNamespaces(api: KubeApi, log: LogEntry, namespace: string) {
-  const entry = log.debug({
-    section: "cleanup",
-    msg: "Deleting outdated system namespaces...",
-    status: "active",
-  })
-
-  const metadataNamespace = `${namespace}--metadata`
-
-  await deleteNamespaces([namespace, metadataNamespace], api, log)
-
-  entry.setState({ msg: "Creating system namespaces..." })
-  await createNamespace(api, namespace)
-  await createNamespace(api, metadataNamespace)
-
-  entry.setState({ msg: "System namespaces up to date" })
-  entry.setSuccess()
-}
-
 interface GetSystemServicesStatusParams {
   ctx: KubernetesPluginContext
   sysGarden: Garden
@@ -178,23 +112,7 @@ interface PrepareSystemServicesParams extends GetSystemServicesStatusParams {
   force: boolean
 }
 
-export async function prepareSystemServices({
-  ctx,
-  sysGarden,
-  log,
-  namespace,
-  serviceNames,
-  force,
-}: PrepareSystemServicesParams) {
-  const api = await KubeApi.factory(log, ctx, ctx.provider)
-
-  const contextForLog = `Preparing environment for plugin "${ctx.provider.name}"`
-  const outdated = !(await systemNamespaceUpToDate(api, log, namespace, contextForLog))
-
-  if (outdated) {
-    await recreateSystemNamespaces(api, log, namespace)
-  }
-
+export async function prepareSystemServices({ ctx, sysGarden, log, serviceNames, force }: PrepareSystemServicesParams) {
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
 

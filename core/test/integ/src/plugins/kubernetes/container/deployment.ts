@@ -51,7 +51,7 @@ describe("kubernetes container deployment handlers", () => {
 
     it("should create a basic Deployment resource", async () => {
       const service = graph.getService("simple-service")
-      const namespace = provider.config.namespace!
+      const namespace = provider.config.namespace!.name!
 
       const resource = await createWorkloadManifest({
         api,
@@ -117,7 +117,7 @@ describe("kubernetes container deployment handlers", () => {
 
     it("should name the Deployment with a version suffix and set a version label if blueGreen=true", async () => {
       const service = graph.getService("simple-service")
-      const namespace = provider.config.namespace!
+      const namespace = provider.config.namespace!.name!
 
       const resource = await createWorkloadManifest({
         api,
@@ -160,7 +160,7 @@ describe("kubernetes container deployment handlers", () => {
       }
       await api.upsert({ kind: "Secret", namespace: "default", obj: authSecret, log: garden.log })
 
-      const namespace = provider.config.namespace!
+      const namespace = provider.config.namespace!.name!
       const _provider = cloneDeep(provider)
       _provider.config.imagePullSecrets = [{ name: secretName, namespace: "default" }]
 
@@ -199,7 +199,7 @@ describe("kubernetes container deployment handlers", () => {
       }
       await api.upsert({ kind: "Secret", namespace: "default", obj: authSecret, log: garden.log })
 
-      const namespace = provider.config.namespace!
+      const namespace = provider.config.namespace!.name!
       const _provider = cloneDeep(provider)
       _provider.config.imagePullSecrets = [{ name: secretName, namespace: "default" }]
 
@@ -222,7 +222,7 @@ describe("kubernetes container deployment handlers", () => {
 
     it("should correctly mount a referenced PVC module", async () => {
       const service = graph.getService("volume-reference")
-      const namespace = provider.config.namespace!
+      const namespace = provider.config.namespace!.name!
 
       const resource = await createWorkloadManifest({
         api,
@@ -244,7 +244,7 @@ describe("kubernetes container deployment handlers", () => {
 
     it("should throw if incompatible module is specified as a volume module", async () => {
       const service = graph.getService("volume-reference")
-      const namespace = provider.config.namespace!
+      const namespace = provider.config.namespace!.name!
 
       service.spec.volumes = [{ name: "test", module: "simple-service" }]
 

@@ -7,16 +7,16 @@
  */
 
 import Joi from "@hapi/joi"
-import { flatten, uniq, isFunction, extend } from "lodash"
-import { NormalizedSchemaDescription, NormalizeOptions } from "./common"
+import { uniq, isFunction, extend, isArray, isPlainObject } from "lodash"
+import { BaseKeyDescription } from "./common"
 import { findByName, safeDumpYaml } from "../util/util"
-import { normalizeJsonSchema } from "./json-schema"
+import { JsonKeyDescription } from "./json-schema"
 
 // Need this to fix the Joi typing
 export interface JoiDescription extends Joi.Description {
+  type: string
   name: string
   level: number
-  parent?: NormalizedSchemaDescription
   flags?: {
     default?: any
     description?: string
@@ -25,157 +25,158 @@ export interface JoiDescription extends Joi.Description {
   }
 }
 
-// Maps a Joi schema description into an array of descriptions and normalizes each entry.
-// Filters out internal descriptions.
-export function normalizeJoiSchemaDescription(
-  joiDesc: JoiDescription,
-  opts: NormalizeOptions = {}
-): NormalizedSchemaDescription[] {
-  const { level = 0, name, parent, renderPatternKeys = false } = opts
+export class JoiKeyDescription extends BaseKeyDescription {
+  private joiDescription: JoiDescription
 
-  let schemaDescription: NormalizedSchemaDescription | undefined
-  let childDescriptions: NormalizedSchemaDescription[] = []
+  constructor({
+    joiDescription,
+    name,
+    level,
+    parent,
+  }: {
+    joiDescription: JoiDescription
+    name: string | undefined
+    level: number
+    parent?: BaseKeyDescription
+  }) {
+    super(name, level, parent)
 
-  // Skip descriptions without names since they merely point to the keys we're interested in.
-  // This means that we implicitly skip the first key of the schema.
-  if (name) {
-    schemaDescription = normalizeJoiKeyDescription({ ...joiDesc, name, level, parent })
+    this.joiDescription = joiDescription
+    this.name = name
+    this.type = joiDescription.type === "customObject" ? "object" : joiDescription.type
+
+    this.allowedValuesOnly = joiDescription.flags?.only === true
+
+    const presenceRequired = joiDescription.flags?.presence === "required"
+    this.required = presenceRequired || this.allowedValuesOnly
+
+    const metas: any = extend({}, ...(joiDescription.metas || []))
+
+    this.deprecated = joiDescription.parent?.deprecated || !!metas.deprecated
+    this.description = joiDescription.flags?.description
+    this.experimental = joiDescription.parent?.experimental || !!metas.experimental
+    this.internal = joiDescription.parent?.internal || !!metas.internal
   }
 
-  if (joiDesc.type === "object" || joiDesc.type === "customObject") {
-    const children = Object.entries(joiDesc.keys || {}) || []
-    const nextLevel = name ? level + 1 : level
-    const nextParent = name ? schemaDescription : parent
+  formatType() {
+    return formatType(this.joiDescription)
+  }
 
-    childDescriptions = flatten(
-      children.map(([childName, childDescription]) =>
-        normalizeJoiSchemaDescription(childDescription as JoiDescription, {
-          ...opts,
-          level: nextLevel,
-          parent: nextParent,
-          name: childName,
-        })
-      )
-    )
+  formatName() {
+    return this.type === "array" ? `${this.name}[]` : this.name
+  }
 
-    if (renderPatternKeys && joiDesc.patterns && joiDesc.patterns.length > 0) {
-      const metas: any = extend({}, ...(joiDesc.metas || []))
-      childDescriptions.push(
-        ...normalizeJoiSchemaDescription(joiDesc.patterns[0].rule as JoiDescription, {
-          ...opts,
-          level: nextLevel,
-          parent: nextParent,
-          name: metas.keyPlaceholder || "<name>",
-        })
-      )
+  formatExample() {
+    if (this.joiDescription.examples && this.joiDescription.examples.length) {
+      const example = this.joiDescription.examples[0]
+      if (isPlainObject(example) || isArray(example)) {
+        return safeDumpYaml(example).trim()
+      } else {
+        return JSON.stringify(example)
+      }
     }
+    return undefined
+  }
 
-    const jsonSchemaRule = findByName(joiDesc.rules || [], "jsonSchema")
+  formatAllowedValues() {
+    if (this.allowedValuesOnly) {
+      return this.joiDescription.allow!.map((v: any) => JSON.stringify(v)).join(", ")
+    } else {
+      return undefined
+    }
+  }
 
-    if (jsonSchemaRule) {
-      const jsonSchema = jsonSchemaRule.args.jsonSchema.schema
+  getDefaultValue() {
+    const defaultSpec = this.joiDescription.flags?.default
+    return isFunction(defaultSpec) ? defaultSpec({}) : defaultSpec
+  }
 
-      childDescriptions.push(
-        ...flatten(
-          Object.entries(jsonSchema.properties).map(([childName, childDescription]) =>
-            normalizeJsonSchema(childDescription as JoiDescription, {
-              ...opts,
-              level: nextLevel,
-              parent: nextParent,
-              name: childName,
-            })
+  getChildren(renderPatternKeys = false) {
+    const objSchema = getObjectSchema(this.joiDescription)
+
+    if (objSchema) {
+      const children = Object.entries(objSchema.keys || {}) || []
+      const nextLevel = this.name ? this.level + 1 : this.level
+      const parent = this.name ? this : this.parent
+
+      const childDescriptions: BaseKeyDescription[] = children.map(
+        ([childName, childDescription]) =>
+          new JoiKeyDescription({
+            joiDescription: childDescription as JoiDescription,
+            name: childName,
+            level: nextLevel,
+            parent,
+          })
+      )
+
+      if (renderPatternKeys && objSchema.patterns && objSchema.patterns.length > 0) {
+        const metas: any = extend({}, ...(objSchema.metas || []))
+        childDescriptions.push(
+          new JoiKeyDescription({
+            joiDescription: (objSchema.patterns[0].rule as JoiDescription) as JoiDescription,
+            name: metas.keyPlaceholder || "<name>",
+            level: nextLevel,
+            parent,
+          })
+        )
+      }
+
+      const jsonSchemaRule = findByName(objSchema.rules || [], "jsonSchema")
+
+      if (jsonSchemaRule) {
+        const jsonSchema = jsonSchemaRule.args.jsonSchema.schema
+
+        childDescriptions.push(
+          ...Object.entries(jsonSchema.properties).map(
+            ([childName, schema]) =>
+              new JsonKeyDescription({
+                schema,
+                name: childName,
+                level: nextLevel,
+                parent,
+              })
           )
         )
-      )
-    }
-  } else if (joiDesc.type === "array") {
-    // We only use the first array item
-    const item = joiDesc.items[0]
-    childDescriptions = item
-      ? normalizeJoiSchemaDescription(item, { ...opts, level: level + 2, parent: schemaDescription, name: undefined })
-      : []
-  }
-
-  if (!schemaDescription) {
-    return childDescriptions
-  }
-  return [schemaDescription, ...childDescriptions].filter((key) => !key.internal)
-}
-
-// Normalizes the key description
-function normalizeJoiKeyDescription(schemaDescription: JoiDescription): NormalizedSchemaDescription {
-  const defaultValue = getJoiDefaultValue(schemaDescription)
-
-  let allowedValues: string | undefined = undefined
-  const allowOnly = schemaDescription.flags?.only === true
-  if (allowOnly) {
-    allowedValues = schemaDescription.allow!.map((v: any) => JSON.stringify(v)).join(", ")
-  }
-
-  const presenceRequired = schemaDescription.flags?.presence === "required"
-  const required = presenceRequired || allowOnly
-
-  let hasChildren: boolean = false
-  let arrayType: string | undefined
-  const { type } = schemaDescription
-  const formattedType = formatType(schemaDescription)
-
-  const children = type === "object" && Object.entries(schemaDescription.keys || {})
-  const items = type === "array" && schemaDescription.items
-
-  if (children && children.length > 0) {
-    hasChildren = true
-  } else if (items && items.length > 0) {
-    // We don't consider an array of primitives as children
-    arrayType = items[0].type
-    hasChildren = arrayType === "array" || arrayType === "object"
-  }
-
-  let formattedExample: string | undefined
-  if (schemaDescription.examples && schemaDescription.examples.length) {
-    const example = schemaDescription.examples[0]
-    if (schemaDescription.type === "object" || schemaDescription.type === "array") {
-      formattedExample = safeDumpYaml(example).trim()
+      }
+      return childDescriptions
+    } else if (this.joiDescription.type === "array" && this.joiDescription.items[0]) {
+      // We only use the first array item
+      return [
+        new JoiKeyDescription({
+          joiDescription: this.joiDescription.items[0],
+          name: undefined,
+          level: this.level + 2,
+          parent: this,
+        }),
+      ]
     } else {
-      formattedExample = JSON.stringify(example)
+      return []
     }
   }
+}
 
-  const metas: any = extend({}, ...(schemaDescription.metas || []))
-  const formattedName = type === "array" ? `${schemaDescription.name}[]` : schemaDescription.name
+/**
+ * Returns an object schema description if applicable for the field, that is if the provided schema is an
+ * object schema _or_ if it's an "alternatives" schema where one alternative is an object schema.
+ */
+function getObjectSchema(d: JoiDescription) {
+  const { type } = d
 
-  const fullKey = schemaDescription.parent ? `${schemaDescription.parent.fullKey}.${formattedName}` : formattedName
-
-  return {
-    type: type!,
-    name: schemaDescription.name,
-    allowedValues,
-    allowedValuesOnly: !!schemaDescription.flags?.only,
-    defaultValue,
-    deprecated: schemaDescription.parent?.deprecated || !!metas.deprecated,
-    description: schemaDescription.flags?.description,
-    experimental: schemaDescription.parent?.experimental || !!metas.experimental,
-    fullKey,
-    formattedExample,
-    formattedName,
-    formattedType,
-    hasChildren,
-    internal: schemaDescription.parent?.internal || !!metas.internal,
-    level: schemaDescription.level,
-    parent: schemaDescription.parent,
-    required,
+  if (type === "alternatives") {
+    for (const { schema } of d.matches) {
+      const nestedObjSchema = getObjectSchema(schema)
+      if (nestedObjSchema && schema.keys) {
+        return nestedObjSchema
+      }
+    }
+  } else if (type === "object" || type === "customObject") {
+    return d
   }
 }
 
-export function getJoiDefaultValue(schemaDescription: JoiDescription) {
-  const flags: any = schemaDescription.flags
-  const defaultSpec = flags?.default
-  return isFunction(defaultSpec) ? defaultSpec(schemaDescription.parent) : defaultSpec
-}
-
-function formatType(description: JoiDescription) {
-  const { type } = description
-  const items = type === "array" && description.items
+function formatType(joiDescription: JoiDescription) {
+  const { type } = joiDescription
+  const items = type === "array" && joiDescription.items
 
   if (items && items.length > 0) {
     // We don't consider an array of primitives as children
@@ -183,7 +184,7 @@ function formatType(description: JoiDescription) {
     return `array[${arrayType}]`
   } else if (type === "alternatives") {
     // returns e.g. "string|number"
-    return uniq(description.matches.map(({ schema }) => formatType(schema))).join(" | ")
+    return uniq(joiDescription.matches.map(({ schema }) => formatType(schema))).join(" | ")
   } else {
     return type || ""
   }

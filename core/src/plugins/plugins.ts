@@ -9,7 +9,7 @@
 import { InternalError } from "../exceptions"
 import { GardenPluginCallback } from "../types/plugin/plugin"
 
-// These plugins are always registered
+// These plugins are always registered and the providers documented
 export const getSupportedPlugins = () =>
   [
     require("./container/container"),
@@ -21,7 +21,6 @@ export const getSupportedPlugins = () =>
     require("./octant/octant"),
     require("./openfaas/openfaas"),
     require("./terraform/terraform"),
-    require("./templated"),
   ].map(resolvePluginFromModule)
 
 // These plugins are always registered
@@ -32,6 +31,7 @@ export const getBuiltinPlugins = () =>
       require("./google/google-cloud-functions"),
       require("./local/local-google-cloud-functions"),
       require("./npm-package"),
+      require("./templated"),
     ].map(resolvePluginFromModule)
   )
 

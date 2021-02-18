@@ -91,7 +91,7 @@ describe("deployHelmService", () => {
     const service = graph.getService("chart-with-namespace")
 
     const namespace = service.module.spec.namespace
-    expect(namespace).to.equal(provider.config.namespace + "-extra")
+    expect(namespace).to.equal(provider.config.namespace!.name + "-extra")
 
     await deployHelmService({
       ctx,

@@ -30,7 +30,7 @@ import {
   ServiceResourceSpec,
   KubernetesTestSpec,
   KubernetesTaskSpec,
-  namespaceSchema,
+  namespaceNameSchema,
   containerModuleSchema,
   hotReloadArgsSchema,
 } from "../config"
@@ -160,7 +160,7 @@ export const helmModuleSpecSchema = () =>
     dependencies: joiArray(joiIdentifier()).description(
       "List of names of services that should be deployed before this chart."
     ),
-    namespace: namespaceSchema(),
+    namespace: namespaceNameSchema(),
     releaseName: joiIdentifier().description(
       "Optionally override the release name used when installing (defaults to the module name)."
     ),

@@ -19,10 +19,11 @@ import {
   indent,
   renderMarkdownTable,
   convertMarkdownLinks,
-  NormalizedSchemaDescription,
+  BaseKeyDescription,
   NormalizeOptions,
+  flattenSchema,
 } from "./common"
-import { normalizeJoiSchemaDescription, JoiDescription } from "./joi-schema"
+import { JoiDescription, JoiKeyDescription } from "./joi-schema"
 import { safeDumpYaml } from "../util/util"
 
 export const TEMPLATES_DIR = resolve(STATIC_DIR, "docs", "templates")
@@ -38,34 +39,35 @@ export function sanitizeYamlStringForGitBook(yamlStr: string) {
 }
 
 function getParentDescriptions(
-  schemaDescription: NormalizedSchemaDescription,
-  schemaDescriptions: NormalizedSchemaDescription[] = []
-): NormalizedSchemaDescription[] {
+  schemaDescription: BaseKeyDescription,
+  schemaDescriptions: BaseKeyDescription[] = []
+): BaseKeyDescription[] {
   if (schemaDescription.parent) {
     return getParentDescriptions(schemaDescription.parent, [schemaDescription.parent, ...schemaDescriptions])
   }
   return schemaDescriptions
 }
 
-export function renderMarkdownLink(description: NormalizedSchemaDescription) {
-  const path = description.fullKey
+export function renderMarkdownLink(description: BaseKeyDescription) {
+  const path = description
+    .fullKey()
     .replace(/\s+/g, "-") // Replace " " with "-""
     .replace(/[\.\[\]\<\>]/g, "") // Replace ".", "[]" and "<>" with ""
     .toLowerCase()
   return `[${description.name}](#${path})`
 }
 
-function makeMarkdownDescription(description: NormalizedSchemaDescription, { showRequiredColumn = true } = {}) {
-  const { formattedType, required, allowedValues, defaultValue, fullKey } = description
+function makeMarkdownDescription(description: BaseKeyDescription, { showRequiredColumn = true } = {}) {
+  const { required } = description
 
   const parentDescriptions = getParentDescriptions(description)
   const breadCrumbs =
     parentDescriptions.length > 0
-      ? parentDescriptions.map(renderMarkdownLink).concat(description.name).join(" > ")
+      ? parentDescriptions.map(renderMarkdownLink).concat(description.name!).join(" > ")
       : null
 
   let formattedExample: string | undefined
-  if (description.formattedExample) {
+  if (description.formatExample()) {
     formattedExample = renderSchemaDescriptionYaml([...parentDescriptions, description], {
       renderFullDescription: false,
       renderValue: "example",
@@ -73,8 +75,11 @@ function makeMarkdownDescription(description: NormalizedSchemaDescription, { sho
     }).replace(/\n$/, "") // strip trailing new line
   }
 
+  const defaultValue = description.getDefaultValue()
+  const allowedValues = description.formatAllowedValues()
+
   const tableData: any = {
-    Type: "`" + formattedType + "`",
+    Type: "`" + description.formatType() + "`",
     ...(allowedValues ? { "Allowed Values": allowedValues } : {}),
     ...(defaultValue !== undefined ? { Default: "`" + JSON.stringify(defaultValue) + "`" } : {}),
   }
@@ -90,7 +95,7 @@ function makeMarkdownDescription(description: NormalizedSchemaDescription, { sho
     breadCrumbs,
     experimentalFeature: description.experimental,
     formattedExample,
-    title: fullKey,
+    title: description.fullKey(),
     table,
   }
 }
@@ -111,7 +116,7 @@ interface RenderYamlOpts {
 }
 
 export function renderSchemaDescriptionYaml(
-  schemaDescriptions: NormalizedSchemaDescription[],
+  schemaDescriptions: BaseKeyDescription[],
   {
     commentOutEmpty = false,
     filterMarkdown = false,
@@ -123,28 +128,16 @@ export function renderSchemaDescriptionYaml(
     renderValue = "default",
   }: RenderYamlOpts
 ) {
-  let prevDesc: NormalizedSchemaDescription
+  let prevDesc: BaseKeyDescription
 
   // Skip all deprecated fields
   schemaDescriptions = schemaDescriptions.filter((desc) => !desc.deprecated)
 
   // This is a little hacky, but works for our purposes
-  const getPresetValue = (desc: NormalizedSchemaDescription) => get(presetValues, desc.fullKey.replace(/\[\]/g, "[0]"))
+  const getPresetValue = (desc: BaseKeyDescription) => get(presetValues, desc.fullKey().replace(/\[\]/g, "[0]"))
 
   const output = schemaDescriptions.map((desc) => {
-    let {
-      description,
-      formattedExample: example,
-      formattedType,
-      hasChildren,
-      allowedValues,
-      required,
-      name,
-      level,
-      defaultValue,
-      type,
-      parent,
-    } = desc
+    let { description, required, name, level, type, parent } = desc
     const indentSpaces = level * 2
     const width = maxWidth - indentSpaces - 2
     const comment: string[] = []
@@ -158,7 +151,10 @@ export function renderSchemaDescriptionYaml(
 
     let value: string | string[] | undefined
     let usingExampleForValue = false
+    const defaultValue = desc.getDefaultValue()
     const renderedDefault = isFunction(defaultValue) ? defaultValue() : defaultValue
+
+    const example = desc.formatExample()
 
     if (presetValue) {
       // Prefer preset value if given
@@ -195,7 +191,7 @@ export function renderSchemaDescriptionYaml(
     }
 
     // Print "..." between keys. Only used when rendering markdown for examples.
-    if (renderEllipsisBetweenKeys && parent && parent.hasChildren && !isArrayItem) {
+    if (renderEllipsisBetweenKeys && parent && parent.hasChildren() && !isArrayItem) {
       out.push("...")
     }
 
@@ -210,7 +206,7 @@ export function renderSchemaDescriptionYaml(
       // Print the description, type, examples, etc
     } else if (renderFullDescription) {
       description && comment.push(description, "")
-      comment.push(`Type: ${formattedType}`, "")
+      comment.push(`Type: ${desc.formatType()}`, "")
       if (example && !usingExampleForValue) {
         if (isPrimitive) {
           // Render example inline
@@ -221,6 +217,8 @@ export function renderSchemaDescriptionYaml(
         }
       }
       renderRequired && comment.push(required ? "Required." : "Optional.")
+
+      const allowedValues = desc.formatAllowedValues()
       allowedValues && comment.push(`Allowed values: ${allowedValues}`, "")
     }
 
@@ -234,14 +232,16 @@ export function renderSchemaDescriptionYaml(
     }
 
     // Render key name and value
+    const children = desc.getChildren()
     const formattedName = name
     const stringifiedValue = JSON.stringify(value)
-    const exceptionallyTreatAsPrimitive = !hasChildren && (stringifiedValue === "[]" || stringifiedValue === "{}")
+    const exceptionallyTreatAsPrimitive =
+      (!children.length || children[0].type !== "object") && (stringifiedValue === "[]" || stringifiedValue === "{}")
 
     let formattedValue: string | string[]
 
     if (example && usingExampleForValue) {
-      const levels = type === "object" ? 2 : 1
+      const levels = desc.type === "object" ? 2 : 1
       formattedValue = isPrimitive || exceptionallyTreatAsPrimitive ? example : indent(example.split("\n"), levels)
     } else {
       // Non-primitive values get rendered in the line below, indented by one
@@ -259,7 +259,7 @@ export function renderSchemaDescriptionYaml(
     if (isPrimitive || exceptionallyTreatAsPrimitive) {
       // For primitives we render the value or example inline
       keyAndValue.push(`${formattedName}: ${formattedValue}`)
-    } else if (!hasChildren || (example && usingExampleForValue)) {
+    } else if (!children.length || (example && usingExampleForValue)) {
       // For arrays or objects without children, or non-primitive examples, we render the value in the line below
       keyAndValue.push(`${formattedName}:`, ...formattedValue)
     } else {
@@ -331,7 +331,13 @@ export function renderConfigReference(
   configSchema: Joi.ObjectSchema,
   { normalizeOpts = {}, yamlOpts = {} }: RenderConfigOpts = {}
 ) {
-  const normalizedDescriptions = normalizeJoiSchemaDescription(configSchema.describe() as JoiDescription, normalizeOpts)
+  const joiDescription = configSchema.describe() as JoiDescription
+  const desc = new JoiKeyDescription({
+    joiDescription,
+    name: undefined,
+    level: 0,
+  })
+  const normalizedDescriptions = flattenSchema(desc, normalizeOpts)
 
   const yaml = renderSchemaDescriptionYaml(normalizedDescriptions, { renderBasicDescription: true, ...yamlOpts })
   const keys = normalizedDescriptions.map((d) => makeMarkdownDescription(d))
@@ -354,7 +360,14 @@ export function renderTemplateStringReference({
   placeholder?: string
   exampleName?: string
 }): string {
-  const normalizedSchemaDescriptions = normalizeJoiSchemaDescription(schema.describe() as JoiDescription, {
+  const joiDescription = schema.describe() as JoiDescription
+  const desc = new JoiKeyDescription({
+    joiDescription,
+    name: undefined,
+    level: 0,
+  })
+
+  const normalizedSchemaDescriptions = flattenSchema(desc, {
     renderPatternKeys: true,
   })
 
@@ -372,7 +385,7 @@ export function renderTemplateStringReference({
         d.title = `${prefix}.${d.title}`
       }
 
-      if (d.type === "object") {
+      if (d.type === "object" || d.type === "customObject") {
         d.title += ".*"
         d.formattedExample = ""
       } else if (d.formattedExample) {
