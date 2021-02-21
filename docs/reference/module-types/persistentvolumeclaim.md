@@ -111,7 +111,9 @@ generateFiles:
     # This file may contain template strings, much like any other field in the configuration.
     sourcePath:
 
-    # POSIX-style filename to write the resolved file contents to, relative to the path of the module.
+    # POSIX-style filename to write the resolved file contents to, relative to the path of the module source directory
+    # (for remote modules this means the root of the module repository, otherwise the directory of the module
+    # configuration).
     #
     # Note that any existing file with the same name will be overwritten. If the path contains one or more
     # directories, they will be automatically created if missing.
@@ -402,7 +404,7 @@ This file may contain template strings, much like any other field in the configu
 
 [generateFiles](#generatefiles) > targetPath
 
-POSIX-style filename to write the resolved file contents to, relative to the path of the module.
+POSIX-style filename to write the resolved file contents to, relative to the path of the module source directory (for remote modules this means the root of the module repository, otherwise the directory of the module configuration).
 
 Note that any existing file with the same name will be overwritten. If the path contains one or more directories, they will be automatically created if missing.
 

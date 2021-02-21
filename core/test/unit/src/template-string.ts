@@ -58,6 +58,26 @@ describe("resolveTemplateString", async () => {
     expect(res).to.equal("${foo}?")
   })
 
+  it("should support a string literal in a template string as a means to escape it", async () => {
+    const res = resolveTemplateString("${'$'}{bar}", new TestContext({}))
+    expect(res).to.equal("${bar}")
+  })
+
+  it("should pass through a template string with a double $$ prefix", async () => {
+    const res = resolveTemplateString("$${bar}", new TestContext({}))
+    expect(res).to.equal("$${bar}")
+  })
+
+  it("should allow unescaping a template string with a double $$ prefix", async () => {
+    const res = resolveTemplateString("$${bar}", new TestContext({}), { unescape: true })
+    expect(res).to.equal("${bar}")
+  })
+
+  it("should allow mixing normal and escaped strings", async () => {
+    const res = resolveTemplateString("${foo}-and-$${var.nope}", new TestContext({ foo: "yes" }), { unescape: true })
+    expect(res).to.equal("yes-and-${var.nope}")
+  })
+
   it("should interpolate a format string with a prefix", async () => {
     const res = resolveTemplateString("prefix-${some}", new TestContext({ some: "value" }))
     expect(res).to.equal("prefix-value")

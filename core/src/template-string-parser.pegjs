@@ -10,6 +10,7 @@
   const {
     buildBinaryExpression,
     buildLogicalExpression,
+    escapePrefix,
     getKey,
     getValue,
     isArray,
@@ -30,10 +31,25 @@ TemplateString
   / $(.*) { return text() === "" ? [] : [{ resolved: text() }] }
 
 FormatString
-  = FormatStart op:BlockOperator FormatEnd {
+  = EscapeStart SourceCharacter* FormatEndWithOptional {
+    if (options.unescape) {
+      return text().slice(1)
+    } else {
+      return text()
+    }
+  }
+  / FormatStart op:BlockOperator FormatEnd {
     return { block: op }
   }
-  / FormatStart blockOperator:(ExpressionBlockOperator __)* e:Expression end:FormatEndWithOptional {
+  / pre:FormatStartWithEscape blockOperator:(ExpressionBlockOperator __)* e:Expression end:FormatEndWithOptional {
+      if (pre[0] === escapePrefix) {
+        if (options.unescape) {
+          return text().slice(1)
+        } else {
+          return text()
+        }
+      }
+
       // Any unexpected error is returned immediately. Certain exceptions have special semantics that are caught below.
       if (e && e._error && e._error.type !== missingKeyExceptionType && e._error.type !== passthroughExceptionType) {
         return e
@@ -87,8 +103,15 @@ InvalidFormatString
   	throw new TemplateStringError("Unable to parse as valid template string.")
   }
 
+EscapeStart
+  = "$${" __
+
 FormatStart
   = "${" __
+
+FormatStartWithEscape
+  = EscapeStart
+  / FormatStart
 
 FormatEnd
   = __ "}"
@@ -108,7 +131,7 @@ ExpressionBlockOperator
   = "if"
 
 Prefix
-  = !FormatStart (. ! FormatStart)* . { return text() }
+  = !FormatStartWithEscape (. ! FormatStartWithEscape)* . { return text() }
 
 Suffix
   = !FormatEnd (. ! FormatEnd)* . { return text() }
@@ -588,16 +611,4 @@ __
 
 _
   = __
-
-// Automatic Semicolon Insertion
-
-EOS
-  = __ ";"
-  / _ SingleLineComment? LineTerminatorSequence
-  / _ &"}"
-  / __ EOF
-
-EOF
-  = !.
-
 

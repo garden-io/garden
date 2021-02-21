@@ -1146,7 +1146,9 @@ providers:
         # The module spec, as defined by the provider plugin.
         spec:
 
-            # POSIX-style filename to write the resolved file contents to, relative to the path of the module.
+            # POSIX-style filename to write the resolved file contents to, relative to the path of the module source
+            # directory (for remote modules this means the root of the module repository, otherwise the directory of
+            # the module configuration).
             #
             # Note that any existing file with the same name will be overwritten. If the path contains one or more
             # directories, they will be automatically created if missing.
@@ -1390,7 +1392,9 @@ moduleConfigs:
     # The module spec, as defined by the provider plugin.
     spec:
 
-        # POSIX-style filename to write the resolved file contents to, relative to the path of the module.
+        # POSIX-style filename to write the resolved file contents to, relative to the path of the module source
+        # directory (for remote modules this means the root of the module repository, otherwise the directory of the
+        # module configuration).
         #
         # Note that any existing file with the same name will be overwritten. If the path contains one or more
         # directories, they will be automatically created if missing.
@@ -1841,7 +1845,9 @@ modules:
     # The module spec, as defined by the provider plugin.
     spec:
 
-        # POSIX-style filename to write the resolved file contents to, relative to the path of the module.
+        # POSIX-style filename to write the resolved file contents to, relative to the path of the module source
+        # directory (for remote modules this means the root of the module repository, otherwise the directory of the
+        # module configuration).
         #
         # Note that any existing file with the same name will be overwritten. If the path contains one or more
         # directories, they will be automatically created if missing.

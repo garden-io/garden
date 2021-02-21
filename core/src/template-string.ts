@@ -27,6 +27,7 @@ export type StringOrStringPromise = Promise<string> | string
 
 const missingKeyExceptionType = "template-string-missing-key"
 const passthroughExceptionType = "template-string-passthrough"
+const escapePrefix = "$${"
 
 class TemplateStringError extends GardenBaseError {
   type = "template-string"
@@ -95,6 +96,8 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
       missingKeyExceptionType,
       passthroughExceptionType,
       allowPartial: !!opts.allowPartial,
+      unescape: !!opts.unescape,
+      escapePrefix,
       optionalSuffix: "}?",
       isPlainObject,
       isPrimitive,

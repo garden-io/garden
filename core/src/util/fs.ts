@@ -278,6 +278,9 @@ export async function makeTempDir({ git = false }: { git?: boolean } = {}): Prom
 
   if (git) {
     await exec("git", ["init"], { cwd: tmpDir.path })
+    await writeFile(join(tmpDir.path, "foo"), "bar")
+    await exec("git", ["add", "."], { cwd: tmpDir.path })
+    await exec("git", ["commit", "-m", "first commit"], { cwd: tmpDir.path })
   }
 
   return tmpDir
