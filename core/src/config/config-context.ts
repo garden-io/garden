@@ -43,6 +43,8 @@ export interface ContextResolveOpts {
   allowPartial?: boolean
   // a list of previously resolved paths, used to detect circular references
   stack?: string[]
+  // Unescape escaped template strings
+  unescape?: boolean
 }
 
 export interface ContextResolveParams {

@@ -111,6 +111,12 @@ This reads a source file from `template/manifests.yml` (the `sourcePath` is rela
 
 Instead of specifying `sourcePath`, you can also specify `value` to provide the file contents directly as a string.
 
+#### Escaping template strings
+
+Sometimes you may want to pass template strings through when generating files, instead of having Garden resolve them. This could for example be handy when templating a Terraform configuration file which uses a similar templating syntax.
+
+To do this, simply add an additional `$` in front of the template string, e.g. `$${var.dont-resolve-me}`.
+
 ### Module references within a templated module
 
 In many cases, it's important for the different modules in a single template to depend on one another, and to reference outputs from one another. You do this basically the same way as in normal modules, but because module names in a template are generally templated themselves, it's helpful to look at how to use templates in module references.
