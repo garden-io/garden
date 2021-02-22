@@ -252,7 +252,7 @@ function getDockerBuildFlags(module: ContainerModule) {
   return args
 }
 
-function getBuildkitDeployment(provider: KubernetesProvider) {
+export function getBuildkitDeployment(provider: KubernetesProvider) {
   const deployment = cloneDeep(baseBuildkitDeployment)
   const buildkitContainer = deployment.spec!.template.spec!.containers[0]
 
@@ -288,6 +288,11 @@ function getBuildkitDeployment(provider: KubernetesProvider) {
   // We need a proxy sidecar to be able to reach the in-cluster registry from the Pod
   const registryHostname = getRegistryHostname(provider.config)
   deployment.spec!.template.spec!.containers.push(getSocatContainer(registryHostname))
+
+  // Set the configured nodeSelector, if any
+  if (provider.config.clusterBuildkit?.nodeSelector) {
+    deployment.spec!.template.spec!.nodeSelector = provider.config.clusterBuildkit?.nodeSelector
+  }
 
   return deployment
 }

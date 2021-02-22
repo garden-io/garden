@@ -67,6 +67,28 @@ describe("ensureBuildkit", () => {
       expect(deployed).to.be.true
     })
 
+    it("deploys buildkit with the configured nodeSelector", async () => {
+      try {
+        await api.apps.deleteNamespacedDeployment(buildkitDeploymentName, namespace)
+      } catch {}
+
+      const nodeSelector = { "kubernetes.io/os": "linux" }
+
+      provider.config.clusterBuildkit = { nodeSelector }
+
+      await ensureBuildkit({
+        ctx,
+        provider,
+        log: garden.log,
+        api,
+        namespace,
+      })
+
+      const deployment = await api.apps.readNamespacedDeployment(buildkitDeploymentName, namespace)
+
+      expect(deployment.spec.template.spec?.nodeSelector).to.eql(nodeSelector)
+    })
+
     it("creates a docker auth secret from configured imagePullSecrets", async () => {
       await ensureBuildkit({
         ctx,
