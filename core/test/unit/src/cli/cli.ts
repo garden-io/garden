@@ -964,21 +964,26 @@ describe("cli", () => {
 
   describe("makeDummyGarden", () => {
     it("should initialise and resolve config graph in a directory with no project", async () => {
-      const garden = await makeDummyGarden(join(GARDEN_CORE_ROOT, "tmp", "foobarbas"), {})
+      const garden = await makeDummyGarden(join(GARDEN_CORE_ROOT, "tmp", "foobarbas"), {
+        commandInfo: { name: "foo", args: {}, opts: {} },
+      })
       const dg = await garden.getConfigGraph(garden.log)
       expect(garden).to.be.ok
       expect(dg.getModules()).to.not.throw
     })
 
     it("should correctly configure a dummy environment when a namespace is set", async () => {
-      const garden = await makeDummyGarden(join(GARDEN_CORE_ROOT, "tmp", "foobarbas"), { environmentName: "test.foo" })
+      const garden = await makeDummyGarden(join(GARDEN_CORE_ROOT, "tmp", "foobarbas"), {
+        environmentName: "test.foo",
+        commandInfo: { name: "foo", args: {}, opts: {} },
+      })
       expect(garden).to.be.ok
       expect(garden.environmentName).to.equal("foo")
     })
 
     it("should initialise and resolve config graph in a project with invalid config", async () => {
       const root = getDataDir("test-project-invalid-config")
-      const garden = await makeDummyGarden(root, {})
+      const garden = await makeDummyGarden(root, { commandInfo: { name: "foo", args: {}, opts: {} } })
       const dg = await garden.getConfigGraph(garden.log)
       expect(garden).to.be.ok
       expect(dg.getModules()).to.not.throw
@@ -986,7 +991,7 @@ describe("cli", () => {
 
     it("should initialise and resolve config graph in a project with template strings", async () => {
       const root = getDataDir("test-project-templated")
-      const garden = await makeDummyGarden(root, {})
+      const garden = await makeDummyGarden(root, { commandInfo: { name: "foo", args: {}, opts: {} } })
       const dg = await garden.getConfigGraph(garden.log)
       expect(garden).to.be.ok
       expect(dg.getModules()).to.not.throw

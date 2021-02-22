@@ -14,11 +14,12 @@ import { BaseTask, TaskType } from "../tasks/base"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { ConfigGraph } from "../config-graph"
-import { ModuleConfigContext, schema, ConfigContext, ModuleConfigContextParams } from "../config/config-context"
 import { emptyRuntimeContext } from "../runtime-context"
 import { resolveTemplateString } from "../template-string"
 import { joi } from "../config/common"
 import { versionStringPrefix } from "../vcs/vcs"
+import { ConfigContext, schema } from "../config/template-contexts/base"
+import { ModuleConfigContext, ModuleConfigContextParams } from "../config/template-contexts/module"
 
 export interface PublishTaskParams {
   garden: Garden

@@ -7,14 +7,13 @@
  */
 
 import { join } from "path"
-import { Garden } from "../../../../src/garden"
 import { CallCommand } from "../../../../src/commands/call"
 import { expect } from "chai"
 import { GardenPlugin, createGardenPlugin } from "../../../../src/types/plugin/plugin"
 import { GetServiceStatusParams } from "../../../../src/types/plugin/service/getServiceStatus"
 import { ServiceStatus } from "../../../../src/types/service"
 import nock = require("nock")
-import { configureTestModule, withDefaultGlobalOpts, dataDir, testModuleSpecSchema } from "../../../helpers"
+import { configureTestModule, withDefaultGlobalOpts, dataDir, testModuleSpecSchema, TestGarden } from "../../../helpers"
 
 const testStatusesA: { [key: string]: ServiceStatus } = {
   "service-a": {
@@ -112,7 +111,7 @@ describe("commands.call", () => {
   })
 
   it("should find the ingress for a service and call it with the specified path", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: pluginsA })
+    const garden = await TestGarden.factory(projectRootB, { plugins: pluginsA })
     const log = garden.log
     const command = new CallCommand()
 
@@ -135,7 +134,7 @@ describe("commands.call", () => {
   })
 
   it("should default to the path '/' if that is exposed if no path is requested", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: pluginsA })
+    const garden = await TestGarden.factory(projectRootB, { plugins: pluginsA })
     const log = garden.log
     const command = new CallCommand()
 
@@ -158,7 +157,7 @@ describe("commands.call", () => {
   })
 
   it("should otherwise use the first defined ingress if no path is requested", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: pluginsA })
+    const garden = await TestGarden.factory(projectRootB, { plugins: pluginsA })
     const log = garden.log
     const command = new CallCommand()
 
@@ -181,7 +180,7 @@ describe("commands.call", () => {
   })
 
   it("should use the linkUrl if provided", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: pluginsB })
+    const garden = await TestGarden.factory(projectRootB, { plugins: pluginsB })
     const log = garden.log
     const command = new CallCommand()
 
@@ -204,7 +203,7 @@ describe("commands.call", () => {
   })
 
   it("should return the path for linkUrl", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: pluginsB })
+    const garden = await TestGarden.factory(projectRootB, { plugins: pluginsB })
     const log = garden.log
     const command = new CallCommand()
 
@@ -227,7 +226,7 @@ describe("commands.call", () => {
   })
 
   it("should error if service isn't running", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: pluginsA })
+    const garden = await TestGarden.factory(projectRootB, { plugins: pluginsA })
     const log = garden.log
     const command = new CallCommand()
 
@@ -249,7 +248,7 @@ describe("commands.call", () => {
   })
 
   it("should error if service has no ingresses", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: pluginsA })
+    const garden = await TestGarden.factory(projectRootB, { plugins: pluginsA })
     const log = garden.log
     const command = new CallCommand()
 
@@ -271,7 +270,7 @@ describe("commands.call", () => {
   })
 
   it("should error if service has no matching ingresses", async () => {
-    const garden = await Garden.factory(projectRootB, { plugins: pluginsA })
+    const garden = await TestGarden.factory(projectRootB, { plugins: pluginsA })
     const log = garden.log
     const command = new CallCommand()
 

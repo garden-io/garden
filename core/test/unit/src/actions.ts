@@ -19,7 +19,6 @@ import { Service, ServiceState } from "../../../src/types/service"
 import { RuntimeContext, prepareRuntimeContext } from "../../../src/runtime-context"
 import { expectError, makeTestGardenA, stubModuleAction, projectRootA, TestGarden } from "../../helpers"
 import { ActionRouter } from "../../../src/actions"
-import { Garden } from "../../../src/garden"
 import { LogEntry } from "../../../src/logger/log-entry"
 import { GardenModule } from "../../../src/types/module"
 import { ServiceLogEntry } from "../../../src/types/plugin/service/getServiceLogs"
@@ -901,7 +900,7 @@ describe("ActionRouter", () => {
           ],
         })
 
-        const _garden = await Garden.factory(path, {
+        const _garden = await TestGarden.factory(path, {
           plugins: [foo],
           config: {
             apiVersion: DEFAULT_API_VERSION,
@@ -954,7 +953,7 @@ describe("ActionRouter", () => {
           ],
         })
 
-        const _garden = await Garden.factory(path, {
+        const _garden = await TestGarden.factory(path, {
           plugins: [base, foo],
           config: {
             apiVersion: DEFAULT_API_VERSION,
@@ -1019,7 +1018,7 @@ describe("ActionRouter", () => {
           ],
         })
 
-        const _garden = await Garden.factory(path, {
+        const _garden = await TestGarden.factory(path, {
           plugins: [base, too, foo],
           config: {
             apiVersion: DEFAULT_API_VERSION,
@@ -1088,7 +1087,7 @@ describe("ActionRouter", () => {
             ],
           })
 
-          const _garden = await Garden.factory(path, {
+          const _garden = await TestGarden.factory(path, {
             plugins: [base, too, foo],
             config: {
               apiVersion: DEFAULT_API_VERSION,
@@ -1145,7 +1144,7 @@ describe("ActionRouter", () => {
           ],
         })
 
-        const _garden = await Garden.factory(path, {
+        const _garden = await TestGarden.factory(path, {
           plugins: [base, foo],
           config: {
             apiVersion: DEFAULT_API_VERSION,
@@ -1213,7 +1212,7 @@ describe("ActionRouter", () => {
           ],
         })
 
-        const _garden = await Garden.factory(path, {
+        const _garden = await TestGarden.factory(path, {
           plugins: [base, foo],
           config: projectConfigWithBase,
         })
@@ -1255,7 +1254,7 @@ describe("ActionRouter", () => {
           ],
         })
 
-        const _garden = await Garden.factory(path, {
+        const _garden = await TestGarden.factory(path, {
           plugins: [base, foo],
           config: projectConfigWithBase,
         })
@@ -1311,7 +1310,7 @@ describe("ActionRouter", () => {
           ],
         })
 
-        const _garden = await Garden.factory(path, {
+        const _garden = await TestGarden.factory(path, {
           plugins: [baseA, baseB, foo],
           config: {
             apiVersion: DEFAULT_API_VERSION,
@@ -1403,7 +1402,7 @@ describe("ActionRouter", () => {
 
       const path = process.cwd()
 
-      const _garden = await Garden.factory(path, {
+      const _garden = await TestGarden.factory(path, {
         plugins: [baseA, baseB, foo],
         config: {
           apiVersion: DEFAULT_API_VERSION,

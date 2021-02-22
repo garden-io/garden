@@ -41,7 +41,7 @@ import { GardenPluginCallback } from "../types/plugin/plugin"
 import { renderError } from "../logger/renderers"
 import { EnterpriseApi } from "../enterprise/api"
 
-export async function makeDummyGarden(root: string, gardenOpts: GardenOpts = {}) {
+export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   const environments = gardenOpts.environmentName
     ? [{ name: parseEnvironment(gardenOpts.environmentName).environment, defaultNamespace, variables: {} }]
     : defaultEnvironments

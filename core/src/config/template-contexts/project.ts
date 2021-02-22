@@ -10,6 +10,7 @@ import { PrimitiveMap, joiIdentifierMap, joiStringMap, joiPrimitive, DeepPrimiti
 import { joi } from "../common"
 import { deline, dedent } from "../../util/string"
 import { schema, ConfigContext } from "./base"
+import { CommandInfo } from "../../plugin-context"
 
 class LocalContext extends ConfigContext {
   @schema(
@@ -112,6 +113,52 @@ class GitContext extends ConfigContext {
   }
 }
 
+const commandHotExample = "${command.params contains 'hot-reload' && command.params.hot-reload contains 'my-service'}"
+
+class CommandContext extends ConfigContext {
+  @schema(
+    joi
+      .string()
+      .description(
+        dedent`
+        The currently running Garden CLI command, without positional arguments or option flags. This can be handy to e.g. change some variables based on whether you're running \`garden test\` or some other specific command.
+
+        Note that this will currently always resolve to \`"run workflow"\` when running Workflows, as opposed to individual workflow step commands. This may be revisited at a later time, but currently all configuration is resolved once for all workflow steps.
+        `
+      )
+      .example("deploy")
+  )
+  public name: string
+
+  @schema(
+    joiStringMap(joi.any())
+      .description(
+        dedent`
+        A map of all parameters set when calling the current command. This includes both positional arguments and option flags, and includes any default values set by the framework or specific command. This can be powerful if used right, but do take care since different parameters are only available in certain commands, some have array values etc.
+
+        For example, to see if a service is in hot-reload mode, you might do something like \`${commandHotExample}\`. Notice that you currently need to check both for the existence of the parameter, and also to correctly handle the array value.
+        `
+      )
+      .example({ force: true, hot: ["my-service"] })
+  )
+  public params: DeepPrimitiveMap
+
+  constructor(root: ConfigContext, commandInfo: CommandInfo) {
+    super(root)
+    this.name = commandInfo.name
+    this.params = { ...commandInfo.args, ...commandInfo.opts }
+  }
+}
+
+interface DefaultEnvironmentContextParams {
+  projectName: string
+  projectRoot: string
+  artifactsPath: string
+  branch: string
+  username?: string
+  commandInfo: CommandInfo
+}
+
 /**
  * This context is available for template strings in the `defaultEnvironment` field in project configs.
  */
@@ -122,6 +169,9 @@ export class DefaultEnvironmentContext extends ConfigContext {
     )
   )
   public local: LocalContext
+
+  @schema(CommandContext.getSchema().description("Information about the currently running command and its arguments."))
+  public command: CommandContext
 
   @schema(ProjectContext.getSchema().description("Information about the Garden project."))
   public project: ProjectContext
@@ -137,26 +187,17 @@ export class DefaultEnvironmentContext extends ConfigContext {
     artifactsPath,
     branch,
     username,
-  }: {
-    projectName: string
-    projectRoot: string
-    artifactsPath: string
-    branch: string
-    username?: string
-  }) {
+    commandInfo,
+  }: DefaultEnvironmentContextParams) {
     super()
     this.local = new LocalContext(this, artifactsPath, projectRoot, username)
     this.git = new GitContext(this, branch)
     this.project = new ProjectContext(this, projectName)
+    this.command = new CommandContext(this, commandInfo)
   }
 }
 
-export interface ProjectConfigContextParams {
-  projectName: string
-  projectRoot: string
-  artifactsPath: string
-  branch: string
-  username?: string
+export interface ProjectConfigContextParams extends DefaultEnvironmentContextParams {
   secrets: PrimitiveMap
 }
 
@@ -178,9 +219,9 @@ export class ProjectConfigContext extends DefaultEnvironmentContext {
   )
   public secrets: PrimitiveMap
 
-  constructor({ projectName, projectRoot, artifactsPath, branch, username, secrets }: ProjectConfigContextParams) {
-    super({ projectName, projectRoot, artifactsPath, branch, username })
-    this.secrets = secrets
+  constructor(params: ProjectConfigContextParams) {
+    super(params)
+    this.secrets = params.secrets
   }
 }
 
@@ -212,16 +253,8 @@ export class EnvironmentConfigContext extends ProjectConfigContext {
   )
   public secrets: PrimitiveMap
 
-  constructor({
-    projectName,
-    projectRoot,
-    artifactsPath,
-    branch,
-    username,
-    variables,
-    secrets,
-  }: EnvironmentConfigContextParams) {
-    super({ projectName, projectRoot, artifactsPath, branch, username, secrets })
-    this.variables = this.var = variables
+  constructor(params: EnvironmentConfigContextParams) {
+    super(params)
+    this.variables = this.var = params.variables
   }
 }

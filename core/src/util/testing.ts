@@ -7,7 +7,7 @@
  */
 
 import { keyBy, isEqual } from "lodash"
-import { Garden } from "../garden"
+import { Garden, GardenOpts, resolveGardenParams } from "../garden"
 import { StringMap, DeepPrimitiveMap } from "../config/common"
 import { GardenParams } from "../garden"
 import { ModuleConfig } from "../config/module"
@@ -67,6 +67,10 @@ export class TestEventBus extends EventBus {
   }
 }
 
+const defaultCommandinfo = { name: "test", args: {}, opts: {} }
+
+export type TestGardenOpts = Partial<GardenOpts>
+
 export class TestGarden extends Garden {
   events: TestEventBus
   public secrets: StringMap // Not readonly, to allow setting secrets in tests
@@ -75,6 +79,17 @@ export class TestGarden extends Garden {
   constructor(params: GardenParams) {
     super(params)
     this.events = new TestEventBus()
+  }
+
+  static async factory<T extends typeof Garden>(
+    this: T,
+    currentDirectory: string,
+    opts?: TestGardenOpts
+  ): Promise<InstanceType<T>> {
+    const garden = new this(
+      await resolveGardenParams(currentDirectory, { commandInfo: defaultCommandinfo, ...opts })
+    ) as InstanceType<T>
+    return garden
   }
 
   setModuleConfigs(moduleConfigs: ModuleConfig[]) {

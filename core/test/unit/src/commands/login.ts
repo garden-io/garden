@@ -42,6 +42,7 @@ describe("LoginCommand", () => {
     const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
       noEnterprise: false,
       enterpriseApi,
+      commandInfo: { name: "foo", args: {}, opts: {} },
     })
 
     await command.action(makeCommandParams(garden))
@@ -55,6 +56,7 @@ describe("LoginCommand", () => {
     const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain"), {
       noEnterprise: false,
       enterpriseApi,
+      commandInfo: { name: "foo", args: {}, opts: {} },
     })
 
     await command.action(makeCommandParams(garden))
@@ -62,7 +64,9 @@ describe("LoginCommand", () => {
   })
 
   it("should throw if the project doesn't have a domain", async () => {
-    const garden = await makeDummyGarden(getDataDir("test-projects", "login", "missing-domain"))
+    const garden = await makeDummyGarden(getDataDir("test-projects", "login", "missing-domain"), {
+      commandInfo: { name: "foo", args: {}, opts: {} },
+    })
     const command = new LoginCommand()
     await expectError(
       () => command.action(makeCommandParams(garden)),
@@ -77,6 +81,7 @@ describe("LoginCommand", () => {
     const garden = await makeDummyGarden(getDataDir("test-projects", "login", "secret-in-project-variables"), {
       noEnterprise: false,
       enterpriseApi,
+      commandInfo: { name: "foo", args: {}, opts: {} },
     })
 
     await command.action(makeCommandParams(garden))

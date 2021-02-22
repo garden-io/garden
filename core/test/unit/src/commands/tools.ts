@@ -234,7 +234,10 @@ describe("ToolsCommand", () => {
   })
 
   it("should run a tool by name when run outside of a project", async () => {
-    const _garden: any = await makeDummyGarden(tmpDir.path, { noEnterprise: true })
+    const _garden: any = await makeDummyGarden(tmpDir.path, {
+      noEnterprise: true,
+      commandInfo: { name: "foo", args: {}, opts: {} },
+    })
     _garden.registeredPlugins = [pluginA, pluginB]
 
     const { result } = await command.action({

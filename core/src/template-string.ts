@@ -434,9 +434,6 @@ function buildLogicalExpression(head: any, tail: any) {
     if (leftRes && leftRes._error) {
       return leftRes
     }
-    if (rightRes && rightRes._error) {
-      return rightRes
-    }
 
     const left = getValue(leftRes)
 

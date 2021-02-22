@@ -37,6 +37,7 @@ import { pathExists, readFile } from "fs-extra"
 import { resolve, basename, relative } from "path"
 import chalk = require("chalk")
 import { safeLoad } from "js-yaml"
+import { CommandInfo } from "../plugin-context"
 
 export const defaultVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
@@ -402,6 +403,7 @@ export function resolveProjectConfig({
   branch,
   username,
   secrets,
+  commandInfo,
 }: {
   defaultEnvironment: string
   config: ProjectConfig
@@ -409,6 +411,7 @@ export function resolveProjectConfig({
   branch: string
   username: string
   secrets: PrimitiveMap
+  commandInfo: CommandInfo
 }): ProjectConfig {
   // Resolve template strings for non-environment-specific fields
   const { environments = [], name } = config
@@ -421,7 +424,15 @@ export function resolveProjectConfig({
       variables: config.variables,
       environments: [],
     },
-    new ProjectConfigContext({ projectName: name, projectRoot: config.path, artifactsPath, branch, username, secrets })
+    new ProjectConfigContext({
+      projectName: name,
+      projectRoot: config.path,
+      artifactsPath,
+      branch,
+      username,
+      secrets,
+      commandInfo,
+    })
   )
 
   // Validate after resolving global fields
@@ -500,6 +511,7 @@ export async function pickEnvironment({
   branch,
   username,
   secrets,
+  commandInfo,
 }: {
   projectConfig: ProjectConfig
   envString: string
@@ -507,6 +519,7 @@ export async function pickEnvironment({
   branch: string
   username: string
   secrets: PrimitiveMap
+  commandInfo: CommandInfo
 }) {
   const { environments, name: projectName, path: projectRoot } = projectConfig
 
@@ -539,6 +552,7 @@ export async function pickEnvironment({
       username,
       variables: projectVariables,
       secrets,
+      commandInfo,
     })
   )
 

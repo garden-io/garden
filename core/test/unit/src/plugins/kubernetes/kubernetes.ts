@@ -9,11 +9,11 @@
 import { configureProvider, gardenPlugin } from "../../../../../src/plugins/kubernetes/kubernetes"
 import { KubernetesConfig, defaultResources, defaultStorage } from "../../../../../src/plugins/kubernetes/config"
 import { defaultSystemNamespace } from "../../../../../src/plugins/kubernetes/system"
-import { makeDummyGarden } from "../../../../../src/cli/cli"
 import { expect } from "chai"
 import { TempDirectory, makeTempDir } from "../../../../helpers"
 import { providerFromConfig } from "../../../../../src/config/provider"
 import { Garden } from "../../../../../src/garden"
+import { makeDummyGarden } from "../../../../../src/cli/cli"
 
 describe("kubernetes configureProvider", () => {
   const basicConfig: KubernetesConfig = {
@@ -40,7 +40,7 @@ describe("kubernetes configureProvider", () => {
 
   beforeEach(async () => {
     tmpDir = await makeTempDir({ git: true })
-    garden = await makeDummyGarden(tmpDir.path)
+    garden = await makeDummyGarden(tmpDir.path, { commandInfo: { name: "test", args: {}, opts: {} } })
   })
 
   afterEach(async () => {

@@ -20,6 +20,7 @@ import { DeployTask } from "../../../../src/tasks/deploy"
 import { DeployServiceParams } from "../../../../src/types/plugin/service/deployService"
 import { RunTaskParams } from "../../../../src/types/plugin/task/runTask"
 import { expect } from "chai"
+import { TestGarden } from "../../../helpers"
 
 describe("DeployTask", () => {
   let tmpDir: tmp.DirectoryResult
@@ -88,7 +89,7 @@ describe("DeployTask", () => {
       ],
     })
 
-    garden = await Garden.factory(tmpDir.path, { config, plugins: [testPlugin] })
+    garden = await TestGarden.factory(tmpDir.path, { config, plugins: [testPlugin] })
 
     garden["moduleConfigs"] = {
       test: {

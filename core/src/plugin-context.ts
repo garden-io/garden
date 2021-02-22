@@ -10,7 +10,7 @@ import { Garden } from "./garden"
 import { projectNameSchema, projectSourcesSchema, environmentNameSchema, SourceConfig } from "./config/project"
 import { Provider, providerSchema, GenericProviderConfig } from "./config/provider"
 import { deline } from "./util/string"
-import { joi, joiVariables, PrimitiveMap, joiStringMap } from "./config/common"
+import { joi, joiVariables, joiStringMap, DeepPrimitiveMap } from "./config/common"
 import { PluginTool } from "./util/ext-tools"
 
 type WrappedFromGarden = Pick<
@@ -26,12 +26,12 @@ type WrappedFromGarden = Pick<
 
 export interface CommandInfo {
   name: string
-  args: PrimitiveMap
-  opts: PrimitiveMap
+  args: DeepPrimitiveMap
+  opts: DeepPrimitiveMap
 }
 
 export interface PluginContext<C extends GenericProviderConfig = GenericProviderConfig> extends WrappedFromGarden {
-  command?: CommandInfo
+  command: CommandInfo
   projectSources: SourceConfig[]
   provider: Provider<C>
   tools: { [key: string]: PluginTool }
@@ -74,7 +74,7 @@ export const pluginContextSchema = () =>
 export async function createPluginContext(
   garden: Garden,
   provider: Provider,
-  command?: CommandInfo
+  command: CommandInfo
 ): Promise<PluginContext> {
   return {
     command,

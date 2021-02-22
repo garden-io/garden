@@ -26,7 +26,7 @@ try {
  * Write .garden-version files for modules in garden-system/static.
  */
 async function addVersionFiles() {
-  const garden = await Garden.factory(STATIC_DIR)
+  const garden = await Garden.factory(STATIC_DIR, { commandInfo: { name: "add-version-files", args: {}, opts: {} } })
 
   const moduleConfigs = await garden.getRawModuleConfigs()
 

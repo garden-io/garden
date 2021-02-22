@@ -10,7 +10,6 @@ import chalk from "chalk"
 import { it } from "mocha"
 import { join } from "path"
 import { expect } from "chai"
-import { Garden } from "../../../../src/garden"
 import { PublishCommand } from "../../../../src/commands/publish"
 import {
   makeTestGardenA,
@@ -18,6 +17,7 @@ import {
   withDefaultGlobalOpts,
   dataDir,
   testModuleSpecSchema,
+  TestGarden,
 } from "../../../helpers"
 import { taskResultOutputs } from "../../../helpers"
 import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
@@ -56,7 +56,7 @@ const testProvider = createGardenPlugin({
 })
 
 async function getTestGarden() {
-  const garden = await Garden.factory(projectRootB, { plugins: [testProvider] })
+  const garden = await TestGarden.factory(projectRootB, { plugins: [testProvider] })
   await garden.clearBuilds()
   return garden
 }
